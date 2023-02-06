@@ -148,13 +148,13 @@ async function getCurrentBucket() {
 }
 
 async function estimateStakeShares({ amount, stakingPool }) {
-  const stakeShareSupply = await stakingPool.stakeSharesSupply();
+  const stakeShareSupply = await stakingPool.getStakeSharesSupply();
 
   if (stakeShareSupply.isZero()) {
     return Math.sqrt(amount);
   }
 
-  const activeStake = await stakingPool.activeStake();
+  const activeStake = await stakingPool.getActiveStake();
   return amount.mul(stakeShareSupply).div(activeStake);
 }
 
@@ -199,7 +199,7 @@ async function generateRewards(
 
 async function calculateStakeAndRewardsWithdrawAmounts(stakingPool, deposit, trancheId) {
   const { accNxmPerRewardShareAtExpiry, stakeAmountAtExpiry, stakeSharesSupplyAtExpiry } =
-    await stakingPool.expiredTranches(trancheId);
+    await stakingPool.getExpiredTranche(trancheId);
 
   return {
     rewards: deposit.rewardsShares

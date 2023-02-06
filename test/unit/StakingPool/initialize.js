@@ -267,8 +267,8 @@ describe('initialize', function () {
       .connect(coverSigner)
       .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, [], poolId, ipfsDescriptionHash);
 
-    expect(await stakingPool.poolFee()).to.be.equal(initialPoolFee);
-    expect(await stakingPool.maxPoolFee()).to.be.equal(maxPoolFee);
+    expect(await stakingPool.getPoolFee()).to.be.equal(initialPoolFee);
+    expect(await stakingPool.getMaxPoolFee()).to.be.equal(maxPoolFee);
     expect(await stakingPool.isPrivatePool()).to.be.equal(isPrivatePool);
   });
 

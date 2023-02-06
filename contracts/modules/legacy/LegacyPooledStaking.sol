@@ -974,7 +974,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
   }
 
-  function getV1PriceForProduct(uint id) view public returns (uint96) {
+  function getV1PriceForProduct(uint id) pure public returns (uint96) {
     // {V1_PRICES_HELPER_BEGIN}
 
     // Argent

@@ -9,6 +9,18 @@ import "../Tokens/ERC721Mock.sol";
 
 contract CoverMockStakingPool is IStakingPool {
 
+  uint public activeStake;
+  uint public rewardPerSecond;
+  bool public isPrivatePool;
+  uint8 public poolFee;
+  uint8 public maxPoolFee;
+  uint public accNxmPerRewardsShare;
+  uint public rewardsPerSecond;
+  uint public stakeSharesSupply;
+
+  mapping(uint => mapping(uint => Deposit)) public deposits;
+  mapping(uint => ExpiredTranche) public expiredTranches;
+
   mapping (uint => uint) public usedCapacity;
   mapping (uint => uint) public stakedAmount;
 
@@ -172,29 +184,99 @@ contract CoverMockStakingPool is IStakingPool {
     revert("CoverMockStakingPool: not callable");
   }
 
-  function getActiveStake() external view returns (uint) {
-    block.timestamp;
-    revert("CoverMockStakingPool: not callable");
-  }
-
-  function getProductStake(uint /* productId */, uint /* coverExpirationDate */) external view returns (uint) {
-    block.timestamp;
-    revert("CoverMockStakingPool: not callable");
-  }
-
-  function getFreeProductStake(uint /* productId */, uint /* coverExpirationDate */) external view returns (uint) {
-    block.timestamp;
-    revert("CoverMockStakingPool: not callable");
-  }
-
-  function getAllocatedProductStake(uint /* productId */) external view returns (uint) {
-    block.timestamp;
-    revert("CoverMockStakingPool: not callable");
-  }
-
   function multicall(bytes[] calldata) external returns (bytes[] memory) {
     manager = manager;
     revert("CoverMockStakingPool: not callable");
+  }
+
+  function getAccNxmPerRewardsShare() external pure returns (uint) {
+    return 0;
+  }
+
+  function getLastAccNxmUpdate() external pure returns (uint) {
+    return 0;
+  }
+
+  function getActiveStake() external pure returns (uint) {
+    return 0;
+  }
+
+  function getDeposit(uint /*tokenId*/, uint /*trancheId*/) external pure returns (
+    uint lastAccNxmPerRewardShare,
+    uint pendingRewards,
+    uint stakeShares,
+    uint rewardsShares
+  ) {
+    return (0, 0, 0, 0);
+  }
+
+  function getExpiredTranche(uint /*trancheId*/) external pure returns (
+    uint accNxmPerRewardShareAtExpiry,
+    uint stakeAmountAtExpiry,
+    uint stakeShareSupplyAtExpiry
+  ) {
+    return (0, 0, 0);
+  }
+
+  function getMaxPoolFee() external pure returns (uint) {
+    return 0;
+  }
+
+  function getPoolFee() external pure returns (uint) {
+    return 0;
+  }
+
+  function getProduct(uint /*productId*/) external pure returns (
+    uint lastEffectiveWeight,
+    uint targetWeight,
+    uint targetPrice,
+    uint bumpedPrice,
+    uint bumpedPriceUpdateTime
+  ) {
+    return (0, 0, 0, 0, 0);
+  }
+
+  function getRewardPerSecond() external pure returns (uint) {
+    return 0;
+  }
+
+  function getStakeSharesSupply() external pure returns (uint) {
+    return 0;
+  }
+
+  function getRewardsSharesSupply() external pure returns (uint) {
+    return 0;
+  }
+
+  function getFirstActiveTrancheId() external pure returns (uint) {
+    return 0;
+  }
+
+  function getFirstActiveBucketId() external pure returns (uint) {
+    return 0;
+  }
+
+  function getNextAllocationId() external pure returns (uint) {
+    return 0;
+  }
+
+  function getTotalTargetWeight() external pure returns (uint) {
+    return 0;
+  }
+
+  function getTotalEffectiveWeight() external pure returns (uint) {
+    return 0;
+  }
+
+  function getTranche(uint /*trancheId*/) external pure returns (
+    uint stakeShares,
+    uint rewardsShares
+  ) {
+    return (0, 0);
+  }
+
+  function isHalted() external pure returns (bool) {
+    return false;
   }
 
 }

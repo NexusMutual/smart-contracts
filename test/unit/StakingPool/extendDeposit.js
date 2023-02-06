@@ -154,15 +154,15 @@ describe('extendDeposit', function () {
 
     await generateRewards(stakingPool, this.coverSigner);
 
-    const accNxmPerRewardsShareBefore = await stakingPool.accNxmPerRewardsShare();
-    const lastAccNxmUpdateBefore = await stakingPool.lastAccNxmUpdate();
+    const accNxmPerRewardsShareBefore = await stakingPool.getAccNxmPerRewardsShare();
+    const lastAccNxmUpdateBefore = await stakingPool.getLastAccNxmUpdate();
 
     await increaseTime(TRANCHE_DURATION);
 
     await stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, 0);
 
-    const accNxmPerRewardsShareAfter = await stakingPool.accNxmPerRewardsShare();
-    const lastAccNxmUpdateAfter = await stakingPool.lastAccNxmUpdate();
+    const accNxmPerRewardsShareAfter = await stakingPool.getAccNxmPerRewardsShare();
+    const lastAccNxmUpdateAfter = await stakingPool.getLastAccNxmUpdate();
     const { timestamp } = await ethers.provider.getBlock('latest');
     const depositData = await stakingPool.deposits(depositNftId, maxTranche);
 
@@ -189,7 +189,7 @@ describe('extendDeposit', function () {
 
     const updatedInitialDeposit = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
     const newTrancheDeposit = await stakingPool.deposits(depositNftId, maxTranche);
-    const accNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
+    const accNxmPerRewardsShare = await stakingPool.getAccNxmPerRewardsShare();
 
     const newRewardsIncrease = await getNewRewardShares({
       stakingPool,
@@ -223,14 +223,14 @@ describe('extendDeposit', function () {
     await generateRewards(stakingPool, this.coverSigner);
 
     const initialDeposit = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
-    const activeStake = await stakingPool.activeStake();
-    const stakeSharesSupply = await stakingPool.stakeSharesSupply();
+    const activeStake = await stakingPool.getActiveStake();
+    const stakeSharesSupply = await stakingPool.getStakeSharesSupply();
 
     const topUpAmount = parseEther('50');
     await stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount);
 
     const updatedDeposit = await stakingPool.deposits(depositNftId, maxTranche);
-    const accNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
+    const accNxmPerRewardsShare = await stakingPool.getAccNxmPerRewardsShare();
 
     const newRewardsIncrease = await getNewRewardShares({
       stakingPool,
@@ -267,7 +267,7 @@ describe('extendDeposit', function () {
     await stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount);
 
     const updatedDeposit = await stakingPool.deposits(depositNftId, maxTranche);
-    const accNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
+    const accNxmPerRewardsShare = await stakingPool.getAccNxmPerRewardsShare();
 
     const newRewardsShares = await getNewRewardShares({
       stakingPool,
@@ -294,7 +294,7 @@ describe('extendDeposit', function () {
 
     const managerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
     const initialDeposit = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
-    const initialTranche = await stakingPool.tranches(firstActiveTrancheId);
+    const initialTranche = await stakingPool.getTranche(firstActiveTrancheId);
 
     expect(initialTranche.stakeShares).to.equal(initialDeposit.stakeShares);
     expect(initialTranche.rewardsShares).to.equal(initialDeposit.rewardsShares.add(managerDeposit.rewardsShares));
@@ -302,8 +302,8 @@ describe('extendDeposit', function () {
     await stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, 0);
 
     const newTrancheDeposit = await stakingPool.deposits(depositNftId, maxTranche);
-    const updatedInitialTranche = await stakingPool.tranches(firstActiveTrancheId);
-    const newTranche = await stakingPool.tranches(maxTranche);
+    const updatedInitialTranche = await stakingPool.getTranche(firstActiveTrancheId);
+    const newTranche = await stakingPool.getTranche(maxTranche);
 
     expect(updatedInitialTranche.stakeShares).to.equal(0);
     expect(updatedInitialTranche.rewardsShares).to.equal(managerDeposit.rewardsShares);
@@ -321,16 +321,16 @@ describe('extendDeposit', function () {
     await generateRewards(stakingPool, this.coverSigner);
 
     const initialDeposit = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
-    const activeStake = await stakingPool.activeStake();
-    const stakeSharesSupply = await stakingPool.stakeSharesSupply();
-    const rewardsSharesSupply = await stakingPool.rewardsSharesSupply();
+    const activeStake = await stakingPool.getActiveStake();
+    const stakeSharesSupply = await stakingPool.getStakeSharesSupply();
+    const rewardsSharesSupply = await stakingPool.getRewardsSharesSupply();
 
     const topUpAmount = parseEther('50');
     await stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount);
 
     const updatedDeposit = await stakingPool.deposits(depositNftId, maxTranche);
-    const stakeSharesSupplyAfter = await stakingPool.stakeSharesSupply();
-    const rewardsSharesSupplyAfter = await stakingPool.rewardsSharesSupply();
+    const stakeSharesSupplyAfter = await stakingPool.getStakeSharesSupply();
+    const rewardsSharesSupplyAfter = await stakingPool.getRewardsSharesSupply();
 
     const newRewardsIncrease = await getNewRewardShares({
       stakingPool,

@@ -103,23 +103,71 @@ interface IStakingPool {
     uint[] memory trancheIds
   ) external returns (uint withdrawnStake, uint withdrawnRewards);
 
+  function isPrivatePool() external view returns (bool);
+
+  function isHalted() external view returns (bool);
+
+  function manager() external view returns (address);
+
+  function getPoolFee() external view returns (uint);
+
+  function getMaxPoolFee() external view returns (uint);
+
+  function getActiveStake() external view returns (uint);
+
+  function getStakeSharesSupply() external view returns (uint);
+
+  function getRewardsSharesSupply() external view returns (uint);
+
+  function getRewardPerSecond() external view returns (uint);
+
+  function getAccNxmPerRewardsShare() external view returns (uint);
+
+  function getLastAccNxmUpdate() external view returns (uint);
+
+  function getFirstActiveTrancheId() external view returns (uint);
+
+  function getFirstActiveBucketId() external view returns (uint);
+
+  function getNextAllocationId() external view returns (uint);
+
+  function getTotalTargetWeight() external view returns (uint);
+
+  function getTotalEffectiveWeight() external view returns (uint);
+
+  function getDeposit(uint tokenId, uint trancheId) external view returns (
+    uint lastAccNxmPerRewardShare,
+    uint pendingRewards,
+    uint stakeShares,
+    uint rewardsShares
+  );
+
+  function getProduct(uint productId) external view returns (
+    uint lastEffectiveWeight,
+    uint targetWeight,
+    uint targetPrice,
+    uint bumpedPrice,
+    uint bumpedPriceUpdateTime
+  );
+
+  function getTranche(uint trancheId) external view returns (
+    uint stakeShares,
+    uint rewardsShares
+  );
+
+  function getExpiredTranche(uint trancheId) external view returns (
+    uint accNxmPerRewardShareAtExpiry,
+    uint stakeAmountAtExpiry,
+    uint stakeShareSupplyAtExpiry
+  );
+
   function setPoolFee(uint newFee) external;
 
   function setPoolPrivacy(bool isPrivatePool) external;
 
   function setProducts(StakedProductParam[] memory params) external;
 
-  function manager() external view returns (address);
-
-  function getActiveStake() external view returns (uint);
-
-  function getProductStake(uint productId, uint coverExpirationDate) external view returns (uint);
-
-  function getFreeProductStake(uint productId, uint coverExpirationDate) external view returns (uint);
-
-  function getAllocatedProductStake(uint productId) external view returns (uint);
-
-    /* ========== EVENTS ========== */
+  /* ========== EVENTS ========== */
 
   event StakeDeposited(address indexed user, uint256 amount, uint256 trancheId, uint256 tokenId);
 

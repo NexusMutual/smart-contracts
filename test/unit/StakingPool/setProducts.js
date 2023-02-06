@@ -109,8 +109,8 @@ describe('setProducts unit tests', function () {
     expect(product.targetPrice).to.be.equal(initialProducts[0].targetPrice);
     expect(product.bumpedPriceUpdateTime).to.be.equal(block.timestamp);
     expect(product.bumpedPrice).to.be.equal(initialProducts[0].initialPrice);
-    expect(await stakingPool.totalTargetWeight()).to.be.equal(2000);
-    expect(await stakingPool.totalEffectiveWeight()).to.be.equal(2000);
+    expect(await stakingPool.getTotalTargetWeight()).to.be.equal(2000);
+    expect(await stakingPool.getTotalEffectiveWeight()).to.be.equal(2000);
   });
 
   it('should fail to initialize too many products with full weight', async function () {
@@ -255,7 +255,7 @@ describe('setProducts unit tests', function () {
     await stakingPool.connect(manager).setProducts(products);
     const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
 
-    expect(await stakingPool.totalTargetWeight()).to.be.equal(2000);
+    expect(await stakingPool.getTotalTargetWeight()).to.be.equal(2000);
     const product19 = await stakingPool.products(19);
     verifyProduct(product19, { ...products[19], bumpedPriceUpdateTime });
   });
@@ -277,7 +277,7 @@ describe('setProducts unit tests', function () {
 
     // add all except the first product to the staking pool
     await stakingPool.connect(manager).setProducts(initialStakingProducts);
-    expect(await stakingPool.totalTargetWeight()).to.be.equal(2000);
+    expect(await stakingPool.getTotalTargetWeight()).to.be.equal(2000);
 
     const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
     const stakingProduct = await stakingPool.products(0);

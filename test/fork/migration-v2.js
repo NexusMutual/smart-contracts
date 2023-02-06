@@ -780,46 +780,43 @@ describe('V2 upgrade', function () {
     )).map(address => address.toLowerCase());
 
     const pooledStaking = this.pooledStaking;
+
+    const skippedNonMigratedProducts = new Set();
+    const skippedProductsWithNoPricingData = new Set();
+    const skippedProductsWithNoStake = new Set();
+
     async function assertPrices(stakingPool, stakerAddress) {
       const contracts = await pooledStaking.stakerContractsArray(stakerAddress);
 
       const v2ProductIds = contracts.map(contract => v2ProductAddresses.indexOf(contract.toLowerCase()));
 
-      console.log({
-        contractIds: v2ProductIds,
-      });
-
       for (let i = 0; i < v2ProductIds.length; i++) {
         const v2ProductId = v2ProductIds[i];
         if (v2ProductId === -1) {
           // contract was not migrated to v2 (deprecated and sunset)
-          console.log(`Skip contract (not migrated to V2): ${contracts[i]}`);
+          skippedNonMigratedProducts.add(contracts[i]);
           continue;
         }
 
         const productPrice = await pooledStaking.getV1PriceForProduct(v2ProductId);
         if (productPrice.toString() === MaxUint96) {
           // it's not a supported product
-          console.log(`Skip contract (no price data available): ${v2ProductId}`);
+          skippedProductsWithNoPricingData.add(v2ProductId);
           continue;
         }
 
         const v1ProductAddress = contracts[i];
         const stakerV1StakeForProduct = await pooledStaking.stakerStoredContractStake(stakerAddress, v1ProductAddress);
         if (stakerV1StakeForProduct.isZero()) {
-          console.log(`Skip contract (v1 stake is 0): ${v2ProductId}`);
+          skippedProductsWithNoStake.add({
+            v2ProductId,
+            v1ProductId: contracts[i],
+          });
           continue;
         }
 
         const stakedProduct = await stakingPool.products(v2ProductId);
 
-        console.log(`Checking product with id: ${v2ProductId}`);
-
-        console.log({
-          productPrice: productPrice.toString(),
-          stakedProductTargetPrice: stakedProduct.targetPrice.toString(),
-          stakedProductBumpedPrice: stakedProduct.bumpedPrice.toString(),
-        });
         expect(stakedProduct.targetPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
         expect(stakedProduct.bumpedPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
       }
@@ -840,6 +837,12 @@ describe('V2 upgrade', function () {
     console.log(`Checking prices for Hugh Pool`);
     const hughPool = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(3));
     await assertPrices(hughPool, HUGH);
+
+    console.log({
+      skippedProductsWithNoPricingData,
+      skippedNonMigratedProducts,
+      skippedProductsWithNoStake,
+    });
   });
 
   it.skip('deploy & add contracts: Assessment, IndividualClaims, YieldTokenIncidents', async function () {

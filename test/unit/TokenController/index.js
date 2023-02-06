@@ -20,4 +20,8 @@ describe('TokenController', function () {
   require('./burnStakingPoolNXMRewards');
   require('./burnStakedNXM');
   require('./withdrawNXMStakeAndRewards');
+  require('./changeOperator');
+  require('./operatorTransfer');
+  require('./mint');
+  require('./burnFrom');
 });

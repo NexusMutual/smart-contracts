@@ -178,12 +178,7 @@ async function setup() {
     master.address,
   ]);
 
-  let cover = await deployProxy('DisposableCover', [
-    coverNFT.address,
-    stakingNFT.address,
-    spf.address,
-    stakingPool.address,
-  ]);
+  const cover = await deployProxy('Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
 
   expect(cover.address).to.equal(expectedCoverAddress);
 
@@ -422,9 +417,7 @@ async function setup() {
   await upgradeProxy(ic.address, 'IndividualClaims', [tk.address, coverNFT.address]);
   await upgradeProxy(yt.address, 'YieldTokenIncidents', [tk.address, coverNFT.address]);
   await upgradeProxy(as.address, 'Assessment', [tk.address]);
-  await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
 
-  cover = await ethers.getContractAt('Cover', cover.address);
   as = await ethers.getContractAt('Assessment', as.address);
 
   // [todo] We should probably call changeDependentContractAddress on every contract

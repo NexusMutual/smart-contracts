@@ -9,15 +9,6 @@ const { roundUpToNearestAllocationUnit, divCeil } = require('../../unit/StakingP
 const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
-const daiProductParamTemplate = {
-  productId: 2, // dai
-  recalculateEffectiveWeight: true,
-  setTargetWeight: true,
-  targetWeight: 100,
-  setTargetPrice: true,
-  targetPrice: 100,
-};
-
 const ethCoverTemplate = {
   productId: 0, // DEFAULT_PRODUCT
   coverAsset: ETH_ASSET_ID, // ETH
@@ -50,18 +41,11 @@ describe('getAllSumAssurance', function () {
     for (const daiHolder of [member1, nonMember1]) {
       // mint  tokens
       await dai.mint(daiHolder.address, parseEther('1000000000000'));
-      await tk
-        .connect(await ethers.getImpersonatedSigner(operator))
-        .mint(daiHolder.address, parseEther('1000000000000'));
-
-      // approve token controller and cover
-      await dai.connect(daiHolder).approve(tc.address, MaxUint256);
       await dai.connect(daiHolder).approve(cover.address, MaxUint256);
-      await tk.connect(daiHolder).approve(tc.address, MaxUint256);
-      await tk.connect(daiHolder).approve(cover.address, MaxUint256);
-
-      await stakingPool.connect(stakingPoolManagers[0]).setProducts([daiProductParamTemplate]);
     }
+
+    await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
+    await tk.connect(member1).approve(tc.address, MaxUint256);
     await stake({
       stakingPool,
       staker: member1,

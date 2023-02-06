@@ -10,14 +10,11 @@ async function main() {
   console.log('Network config:', config.networks[network.name]);
 
   const [owner] = await ethers.getSigners();
+  const ETH = zeroPadRight(Buffer.from('ETH'), 4);
 
   const quotationData = await ethers.getContractAt('TestnetQuotationData', Addresses.LegacyQuotationData);
 
-  const now = Math.floor(Date.now() / 1000);
-  const ETH = zeroPadRight(Buffer.from('ETH'), 4);
-
-  await quotationData.addOldCover(
-    now - 365 * 24 * 60 * 60,
+  await quotationData.addV1Cover(
     30,
     123,
     owner.address, // owner
@@ -27,8 +24,7 @@ async function main() {
     0,
   );
 
-  await quotationData.addOldCover(
-    now - 30 * 24 * 60 * 60,
+  await quotationData.addV1Cover(
     30,
     123,
     owner.address, // owner
@@ -38,8 +34,7 @@ async function main() {
     0,
   );
 
-  await quotationData.addOldCover(
-    now,
+  await quotationData.addV1Cover(
     30,
     123,
     owner.address, // owner

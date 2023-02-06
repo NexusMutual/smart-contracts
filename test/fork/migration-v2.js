@@ -849,9 +849,9 @@ describe('V2 upgrade', function () {
     );
   });
 
-  it.skip('deploy CoverViewer', async function () {
-    const coverViewer = await ethers.deployContract('CoverViewer', [this.master.address]);
-  });
+  // it.skip('deploy CoverViewer', async function () {
+  //   await ethers.deployContract('CoverViewer', [this.master.address]);
+  // });
 
   // [todo] remove me, used just for console logs
   // it('deploy Quotation', async function () {

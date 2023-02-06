@@ -805,7 +805,7 @@ describe('V2 upgrade', function () {
         }
 
         const v1ProductAddress = contracts[i];
-        const stakerV1StakeForProduct = await pooledStaking.stakerContractStake(stakerAddress, v1ProductAddress);
+        const stakerV1StakeForProduct = await pooledStaking.stakerStoredContractStake(stakerAddress, v1ProductAddress);
         if (stakerV1StakeForProduct.isZero()) {
           console.log(`Skip contract (v1 stake is 0): ${v2ProductId}`);
           continue;

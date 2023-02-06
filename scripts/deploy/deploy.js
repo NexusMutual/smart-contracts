@@ -11,7 +11,7 @@ const verifier = require('./verifier')();
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { getContractAddress, parseEther } = ethers.utils;
 
-const { ABI_DIR, CONFIG_FILE } = process.env;
+const { ABI_DIR, CONFIG_FILE, INITIAL_MEMBERS = '' } = process.env;
 
 if (!ABI_DIR || !CONFIG_FILE) {
   console.log('ABI_DIR and CONFIG_FILE env vars are required');
@@ -54,7 +54,27 @@ const productTypes = [
       gracePeriod: 14,
     },
   },
+  {
+    productTypeId: MaxUint256,
+    ipfsMetadata: 'eth2slashingCoverIPFSHash',
+    productType: {
+      descriptionIpfsHash: 'eth2slashingCoverIPFSHash',
+      claimMethod: claimMethod.claim,
+      gracePeriod: 30,
+    },
+  },
+  {
+    productTypeId: MaxUint256,
+    ipfsMetadata: 'sherlockCoverIPFSHash',
+    productType: {
+      descriptionIpfsHash: 'sherlockCoverIPFSHash',
+      claimMethod: claimMethod.claim,
+      gracePeriod: 30,
+    },
+  },
 ];
+
+const productTypeNames = ['protocol', 'custodian', 'token', 'eth2slashing', 'sherlock'];
 
 // source: https://docs.chain.link/docs/price-feeds-migration-august-2020
 const CHAINLINK_DAI_ETH = {
@@ -69,6 +89,11 @@ const CHAINLINK_STETH_ETH = {
 
 const CHAINLINK_ETH_USD = {
   mainnet: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
+  rinkeby: '0x0000000000000000000000000000000000000000', // missing
+};
+
+const CHAINLINK_ENZYME_VAULT = {
+  mainnet: '0xCc72039A141c6e34a779eF93AEF5eB4C82A893c7',
   rinkeby: '0x0000000000000000000000000000000000000000', // missing
 };
 
@@ -139,11 +164,21 @@ async function main() {
     { alias: 'stETH', abiFilename: 'ERC20' },
   );
 
+  console.log('Deploying Enzyme Vault');
+  const enzymeVault = await deployImmutable(
+    'contracts/mocks/Tokens/ERC20MintableDetailed.sol:ERC20MintableDetailed',
+    ['enzymeVault Mock', 'enzymeVault', 18],
+    { alias: 'enzymeVault', abiFilename: 'ERC20' },
+  );
+
+  console.log('Deploying NXMToken');
+  const tk = await deployImmutable('NXMToken', [owner, parseEther('1500000')]);
+
   console.log('Deploying disposable NXMaster');
   const master = await deployProxy('DisposableNXMaster');
 
   console.log('Deploying disposable MemberRoles');
-  const mr = await deployProxy('DisposableMemberRoles');
+  const mr = await deployProxy('DisposableMemberRoles', [tk.address]);
 
   console.log('Deploying disposable PooledStaking');
   const ps = await deployProxy('DisposablePooledStaking');
@@ -159,9 +194,6 @@ async function main() {
 
   console.log('Deploying LegacyClaimsReward');
   const cr = await deployImmutable('LegacyClaimsReward', [master.address, dai.address]);
-
-  console.log('Deploying NXMToken');
-  const tk = await deployImmutable('NXMToken', [owner, parseEther('1500000')]);
 
   console.log('Deploying testnet LegacyQuotationData');
   // Replaced LegacyQuotationData with TestnetQuotationData for ability to create old v1 covers locally
@@ -189,7 +221,10 @@ async function main() {
   const coverNFT = await deployImmutable('CoverNFT', ['Nexus Mutual Cover', 'NMC', expectedCoverAddress]);
 
   console.log('Deploying disposable TokenController');
-  const tc = await deployProxy('DisposableTokenController', [qd.address, cr.address, spf.address]);
+  const tc = await deployProxy(
+    'DisposableTokenController',
+    [qd, cr, spf, tk].map(c => c.address),
+  );
 
   console.log('Deploying StakingPool');
   const stakingPool = await deployImmutable('StakingPool', [
@@ -258,6 +293,16 @@ async function main() {
     CHAINLINK_STETH_ETH[network.name] = chainlinkStEthMock.address;
   }
 
+  if (typeof CHAINLINK_ENZYME_VAULT[network.name] === 'undefined') {
+    console.log('Deploying chainlink enzyme vault aggregator');
+    const chainlinkEnzymeVaultMock = await deployImmutable('ChainlinkAggregatorMock', [], {
+      alias: 'Chainlink-ENZYME-VAULT',
+      abiFilename: 'EACAggregatorProxy',
+    });
+    await chainlinkEnzymeVaultMock.setLatestAnswer(parseEther('1.003')); // almost 1:1
+    CHAINLINK_ENZYME_VAULT[network.name] = chainlinkEnzymeVaultMock.address;
+  }
+
   // only used by frontend
   if (typeof CHAINLINK_ETH_USD[network.name] === 'undefined') {
     console.log('Deploying chainlink eth-usd aggregator');
@@ -271,9 +316,9 @@ async function main() {
 
   console.log('Deploying PriceFeedOracle');
   const priceFeedOracle = await deployImmutable('PriceFeedOracle', [
-    [dai.address, stETH.address],
-    [CHAINLINK_DAI_ETH[network.name], CHAINLINK_STETH_ETH[network.name]],
-    [18, 18],
+    [dai.address, stETH.address, enzymeVault.address],
+    [CHAINLINK_DAI_ETH[network.name], CHAINLINK_STETH_ETH[network.name], CHAINLINK_ENZYME_VAULT[network.name]],
+    [18, 18, 18],
   ]);
 
   console.log('Deploying disposable MCR');
@@ -294,7 +339,7 @@ async function main() {
   await disposableMCR.initializeNextMcr(mcr.address, master.address);
 
   console.log('Deploying Pool');
-  const poolParameters = [master, priceFeedOracle, swapOperator, dai, stETH].map(x => x.address);
+  const poolParameters = [master, priceFeedOracle, swapOperator, dai, stETH, enzymeVault, tk].map(x => x.address);
   const pool = await deployImmutable('Pool', poolParameters);
 
   console.log('Minting DAI to Pool');
@@ -336,18 +381,27 @@ async function main() {
   );
 
   console.log('Initializing TokenController');
-  await tc.initialize(master.address, tk.address, ps.address, assessment.address);
+  await tc.initialize(master.address, ps.address, assessment.address);
 
   console.log('Initializing Assessment');
   await assessment.initialize(master.address, tc.address);
 
   console.log('Initializing MemberRoles');
+  const initialMembers = [
+    owner,
+    ...INITIAL_MEMBERS.split(',')
+      .map(x => x.trim())
+      .filter(a => ethers.utils.isAddress(a)),
+  ];
+
+  const initialTokens = initialMembers.map(() => parseEther('10000'));
+
   await mr.initialize(
     owner,
     master.address,
     tc.address,
-    [owner], // initial members
-    [parseEther('10000')], // initial tokens
+    initialMembers,
+    initialTokens,
     [owner], // advisory board members
   );
 
@@ -383,7 +437,7 @@ async function main() {
 
   const addProductsParams = products.map(product => {
     const underlyingToken = ['ETH', 'DAI'].indexOf(product.underlyingToken);
-    const productType = { protocol: 0, custodian: 1, token: 2 }[product.type];
+    const productType = productTypeNames.indexOf(product.type);
     const yieldTokenAddress = product.coveredToken || '0x0000000000000000000000000000000000000000';
 
     let coverAssets =
@@ -404,20 +458,23 @@ async function main() {
         coverAssets,
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
+        isDeprecated: false,
         useFixedPrice: false,
       },
       allowedPools: [],
     };
   });
-  // 0b01 for eth and 0b10 for dai
-  const coverAssetsFallback = 0b11;
-  await cover.setCoverAssetsFallback(coverAssetsFallback);
 
   console.log('Setting Cover products.');
   await cover.setProducts(addProductsParams);
   const productsStored = await cover.getProducts();
   console.log(`${productsStored.length} products added.`);
   // fs.writeFileSync('products.json', JSON.stringify(productsStored, null, 2));
+
+  await cover.updateUintParametersDisposable(
+    [0, 1], // globalCapacityRatio, globalRewardsRatio
+    [10000, 5000],
+  );
 
   console.log('Adding proposal categories');
   await pc.initialize(mr.address);
@@ -430,8 +487,8 @@ async function main() {
   await master.switchGovernanceAddress(gv.address);
 
   console.log('Upgrading to non-disposable contracts');
-  await upgradeProxy(mr.address, 'MemberRoles');
-  await upgradeProxy(tc.address, 'TokenController', [qd.address, cr.address, spf.address]);
+  await upgradeProxy(mr.address, 'MemberRoles', [tk.address]);
+  await upgradeProxy(tc.address, 'TokenController', [qd.address, cr.address, spf.address, tk.address]);
   await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address]);
   await upgradeProxy(pc.address, 'ProposalCategory');
   await upgradeProxy(master.address, 'NXMaster');

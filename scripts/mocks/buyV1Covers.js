@@ -1,4 +1,5 @@
 const { config, network, ethers } = require('hardhat');
+const { CONTRACTS_ADDRESSES: Addresses } = require(process.env.CONFIG_FILE);
 
 function zeroPadRight(bytes, length) {
   return new Uint8Array(length).fill(0).map((x, i) => bytes[i] || x);
@@ -9,17 +10,11 @@ async function main() {
   console.log('Network config:', config.networks[network.name]);
 
   const [owner] = await ethers.getSigners();
-
-  const quotationData = await ethers.getContractAt(
-    'TestnetQuotationData',
-    '0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9',
-  );
-
-  const now = Math.floor(Date.now() / 1000);
   const ETH = zeroPadRight(Buffer.from('ETH'), 4);
 
-  await quotationData.addOldCover(
-    now - 365 * 24 * 60 * 60,
+  const quotationData = await ethers.getContractAt('TestnetQuotationData', Addresses.LegacyQuotationData);
+
+  await quotationData.addV1Cover(
     30,
     123,
     owner.address, // owner
@@ -29,8 +24,7 @@ async function main() {
     0,
   );
 
-  await quotationData.addOldCover(
-    now - 30 * 24 * 60 * 60,
+  await quotationData.addV1Cover(
     30,
     123,
     owner.address, // owner
@@ -40,8 +34,7 @@ async function main() {
     0,
   );
 
-  await quotationData.addOldCover(
-    now,
+  await quotationData.addV1Cover(
     30,
     123,
     owner.address, // owner

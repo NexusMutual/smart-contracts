@@ -1,6 +1,6 @@
 const { config, network, ethers } = require('hardhat');
-const { AddressZero, MaxUint256 } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { CONTRACTS_ADDRESSES: Addresses } = require(process.env.CONFIG_FILE);
+const { BigNumber } = require('ethers');
 
 async function main() {
   console.log(`Using network: ${network.name}`);
@@ -9,22 +9,15 @@ async function main() {
   const [owner] = await ethers.getSigners();
   console.log('OWNER ADDRESS', owner.address);
 
-  const productId = 0;
-  const targetPrice = 1000;
-  const initialPrice = 10000;
+  const targetPrice = BigNumber.from(200);
+  const initialPrice = BigNumber.from(200);
 
   const isPrivatePool = false;
   const initialPoolFee = '5';
   const maxPoolFee = '5';
   const productInitializationParams = [
     {
-      productId: 73,
-      weight: '40',
-      initialPrice,
-      targetPrice,
-    },
-    {
-      productId,
+      productId: 0,
       weight: '40',
       initialPrice,
       targetPrice,
@@ -35,11 +28,16 @@ async function main() {
       initialPrice,
       targetPrice,
     },
+    {
+      productId: 73, // custodian
+      weight: '40',
+      initialPrice,
+      targetPrice,
+    },
   ];
-  const stakingPoolManager = { address: owner.address };
 
-  const cover = await ethers.getContractAt('Cover', '0x4A679253410272dd5232B3Ff7cF5dbB88f295319');
-  const stakingPool = await ethers.getContractAt('StakingPool', '0x1291Be112d480055DaFd8a610b7d1e203891C274');
+  const stakingPoolManager = owner;
+  const cover = await ethers.getContractAt('Cover', Addresses.Cover);
 
   console.log('Creating 1st staking pool');
   await cover.createStakingPool(
@@ -52,47 +50,16 @@ async function main() {
   );
   console.log('1st staking pool was created.');
 
-  // Staking inputs
-  const stakingAmount = parseEther('10000');
-  const lastBlock = await ethers.provider.getBlock('latest');
-  const period = 3600 * 24 * 30; // 30 days
-  const gracePeriod = 3600 * 24 * 30;
-  const firstTrancheId = Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
-
-  console.log('Deposit to 1st staking pool');
-  // Stake to open up capacity
-  await stakingPool.connect(owner).depositTo(
-    stakingAmount,
-    firstTrancheId,
-    MaxUint256, // new position
-    AddressZero, // destination
-  );
-  console.log('Deposited successfully!');
-
   console.log('Creating 2nd staking pool');
   await cover.createStakingPool(
     stakingPoolManager.address,
-    true, // isPrivatePool
+    isPrivatePool,
     initialPoolFee,
     maxPoolFee,
     productInitializationParams,
     '', // ipfsDescriptionHash
   );
   console.log('2nd staking pool was created.');
-
-  // Staking inputs
-  const lastBlock2 = await ethers.provider.getBlock('latest');
-  const firstTrancheId2 = Math.floor((lastBlock2.timestamp + period + gracePeriod) / (91 * 24 * 3600));
-
-  console.log('Deposit to 2nd staking pool');
-  // Stake to open up capacity
-  await stakingPool.connect(owner).depositTo(
-    stakingAmount,
-    firstTrancheId2,
-    MaxUint256, // new position
-    AddressZero, // destination
-  );
-  console.log('Deposited successfully!');
 
   console.log('Done!');
   process.exit(0);

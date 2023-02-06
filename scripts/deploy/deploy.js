@@ -11,7 +11,7 @@ const verifier = require('./verifier')();
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { getContractAddress, parseEther } = ethers.utils;
 
-const { ABI_DIR, CONFIG_FILE } = process.env;
+const { ABI_DIR, CONFIG_FILE, INITIAL_MEMBERS } = process.env;
 
 if (!ABI_DIR || !CONFIG_FILE) {
   console.log('ABI_DIR and CONFIG_FILE env vars are required');
@@ -364,12 +364,18 @@ async function main() {
   await assessment.initialize(master.address, tc.address);
 
   console.log('Initializing MemberRoles');
+  const initialMembers = [
+    owner,
+    ...INITIAL_MEMBERS.split(',')
+      .map(x => x.trim())
+      .filter(a => ethers.utils.isAddress(a)),
+  ];
+
   await mr.initialize(
     owner,
     master.address,
     tc.address,
-    // eslint-disable-next-line max-len
-    [owner, '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65', '0x2546BcD3c84621e976D8185a91A922aE77ECEc30'], // initial members
+    initialMembers,
     [parseEther('10000'), parseEther('10000'), parseEther('10000')], // initial tokens
     [owner], // advisory board members
   );

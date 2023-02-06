@@ -189,4 +189,94 @@ contract CoverMockStakingPool is IStakingPool {
     revert("CoverMockStakingPool: not callable");
   }
 
+  function getAccNxmPerRewardsShare() external pure returns (uint) {
+    return 0;
+  }
+
+  function getLastAccNxmUpdate() external pure returns (uint) {
+    return 0;
+  }
+
+  function getActiveStake() external pure returns (uint) {
+    return 0;
+  }
+
+  function getDeposit(uint /*tokenId*/, uint /*trancheId*/) external pure returns (
+    uint lastAccNxmPerRewardShare,
+    uint pendingRewards,
+    uint stakeShares,
+    uint rewardsShares
+  ) {
+    return (0, 0, 0, 0);
+  }
+
+  function getExpiredTranche(uint /*trancheId*/) external pure returns (
+    uint accNxmPerRewardShareAtExpiry,
+    uint stakeAmountAtExpiry,
+    uint stakeShareSupplyAtExpiry
+  ) {
+    return (0, 0, 0);
+  }
+
+  function getMaxPoolFee() external pure returns (uint) {
+    return 0;
+  }
+
+  function getPoolFee() external pure returns (uint) {
+    return 0;
+  }
+
+  function getProduct(uint /*productId*/) external pure returns (
+    uint lastEffectiveWeight,
+    uint targetWeight,
+    uint targetPrice,
+    uint bumpedPrice,
+    uint bumpedPriceUpdateTime
+  ) {
+    return (0, 0, 0, 0, 0);
+  }
+
+  function getRewardPerSecond() external pure returns (uint) {
+    return 0;
+  }
+
+  function getStakeSharesSupply() external pure returns (uint) {
+    return 0;
+  }
+
+  function getRewardsSharesSupply() external pure returns (uint) {
+    return 0;
+  }
+
+  function getFirstActiveTrancheId() external pure returns (uint) {
+    return 0;
+  }
+
+  function getFirstActiveBucketId() external pure returns (uint) {
+    return 0;
+  }
+
+  function getNextAllocationId() external pure returns (uint) {
+    return 0;
+  }
+
+  function getTotalTargetWeight() external pure returns (uint) {
+    return 0;
+  }
+
+  function getTotalEffectiveWeight() external pure returns (uint) {
+    return 0;
+  }
+
+  function getTranche(uint /*trancheId*/) external pure returns (
+    uint stakeShares,
+    uint rewardsShares
+  ) {
+    return (0, 0);
+  }
+
+  function isHalted() external pure returns (bool) {
+    return false;
+  }
+
 }

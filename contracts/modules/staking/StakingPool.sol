@@ -32,54 +32,54 @@ contract StakingPool is IStakingPool, Multicall {
 
   // slot 1
   // supply of pool stake shares used by tranches
-  uint128 public stakeSharesSupply;
+  uint128 internal stakeSharesSupply;
 
   // supply of pool rewards shares used by tranches
-  uint128 public rewardsSharesSupply;
+  uint128 internal rewardsSharesSupply;
 
   // slot 2
   // accumulated rewarded nxm per reward share
-  uint96 public accNxmPerRewardsShare;
+  uint96 internal accNxmPerRewardsShare;
 
   // currently active staked nxm amount
-  uint96 public activeStake;
+  uint96 internal activeStake;
 
-  uint32 public firstActiveTrancheId;
-  uint32 public firstActiveBucketId;
+  uint32 internal firstActiveTrancheId;
+  uint32 internal firstActiveBucketId;
 
   // slot 3
   // timestamp when accNxmPerRewardsShare was last updated
-  uint32 public lastAccNxmUpdate;
+  uint32 internal lastAccNxmUpdate;
   // current nxm reward per second for the entire pool
   // applies to active stake only and does not need update on deposits
-  uint96 public rewardPerSecond;
+  uint96 internal rewardPerSecond;
 
-  uint40 poolId;
-  uint24 public nextAllocationId;
+  uint40 internal poolId;
+  uint24 internal nextAllocationId;
 
-  bool public isPrivatePool;
-  bool private halted;
+  bool public override isPrivatePool;
+  bool public override isHalted;
 
-  uint8 public poolFee;
-  uint8 public maxPoolFee;
+  uint8 internal poolFee;
+  uint8 internal maxPoolFee;
 
   // 32 bytes left in slot 3
 
   // slot 4
   address public override manager;
-  uint32 public totalEffectiveWeight;
-  uint32 public totalTargetWeight;
+  uint32 internal totalEffectiveWeight;
+  uint32 internal totalTargetWeight;
 
   // 32 bytes left in slot 4
 
   // tranche id => tranche data
-  mapping(uint => Tranche) public tranches;
+  mapping(uint => Tranche) internal tranches;
 
   // tranche id => expired tranche data
-  mapping(uint => ExpiredTranche) public expiredTranches;
+  mapping(uint => ExpiredTranche) internal expiredTranches;
 
   // reward bucket id => RewardBucket
-  mapping (uint => uint) public rewardPerSecondCut;
+  mapping(uint => uint) public rewardPerSecondCut;
 
   // product id => tranche group id => active allocations for a tranche group
   mapping(uint => mapping(uint => TrancheAllocationGroup)) public trancheAllocationGroups;
@@ -175,7 +175,7 @@ contract StakingPool is IStakingPool, Multicall {
   }
 
   modifier whenNotHalted {
-    if (halted) {
+    if (isHalted) {
       revert PoolHalted();
     }
     _;
@@ -292,8 +292,8 @@ contract StakingPool is IStakingPool, Multicall {
         uint elapsed = bucketStartTime - _lastAccNxmUpdate;
 
         uint newAccNxmPerRewardsShare = _rewardsSharesSupply != 0
-          ? elapsed * _rewardPerSecond * ONE_NXM / _rewardsSharesSupply
-          : 0;
+        ? elapsed * _rewardPerSecond * ONE_NXM / _rewardsSharesSupply
+        : 0;
 
         _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
 
@@ -310,8 +310,8 @@ contract StakingPool is IStakingPool, Multicall {
         uint trancheEndTime = (_firstActiveTrancheId + 1) * TRANCHE_DURATION;
         uint elapsed = trancheEndTime - _lastAccNxmUpdate;
         uint newAccNxmPerRewardsShare = _rewardsSharesSupply != 0
-          ? elapsed * _rewardPerSecond * ONE_NXM / _rewardsSharesSupply
-          : 0;
+        ? elapsed * _rewardPerSecond * ONE_NXM / _rewardsSharesSupply
+        : 0;
         _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
         _lastAccNxmUpdate = trancheEndTime;
 
@@ -328,8 +328,8 @@ contract StakingPool is IStakingPool, Multicall {
 
         // the tranche is expired now so we decrease the stake and the shares supply
         uint expiredStake = _stakeSharesSupply != 0
-          ? (_activeStake * expiringTranche.stakeShares) / _stakeSharesSupply
-          : 0;
+        ? (_activeStake * expiringTranche.stakeShares) / _stakeSharesSupply
+        : 0;
 
         _activeStake -= expiredStake;
         _stakeSharesSupply -= expiringTranche.stakeShares;
@@ -345,8 +345,8 @@ contract StakingPool is IStakingPool, Multicall {
     if (updateUntilCurrentTimestamp) {
       uint elapsed = block.timestamp - _lastAccNxmUpdate;
       uint newAccNxmPerRewardsShare = _rewardsSharesSupply != 0
-        ? elapsed * _rewardPerSecond * ONE_NXM / _rewardsSharesSupply
-        : 0;
+      ? elapsed * _rewardPerSecond * ONE_NXM / _rewardsSharesSupply
+      : 0;
       _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
       _lastAccNxmUpdate = block.timestamp;
     }
@@ -426,8 +426,8 @@ contract StakingPool is IStakingPool, Multicall {
     }
 
     uint newStakeShares = _stakeSharesSupply == 0
-      ? Math.sqrt(amount)
-      : _stakeSharesSupply * amount / _activeStake;
+    ? Math.sqrt(amount)
+    : _stakeSharesSupply * amount / _activeStake;
 
     uint newRewardsShares;
 
@@ -435,14 +435,14 @@ contract StakingPool is IStakingPool, Multicall {
     {
       // conditional read
       Deposit memory deposit = requestTokenId == MAX_UINT
-        ? Deposit(0, 0, 0, 0)
-        : deposits[tokenId][trancheId];
+      ? Deposit(0, 0, 0, 0)
+      : deposits[tokenId][trancheId];
 
       newRewardsShares = calculateNewRewardShares(
         deposit.stakeShares, // initialStakeShares
-        newStakeShares,      // newStakeShares
-        trancheId,   // initialTrancheId
-        trancheId,   // newTrancheId, the same as initialTrancheId in this case
+        newStakeShares, // newStakeShares
+        trancheId, // initialTrancheId
+        trancheId, // newTrancheId, the same as initialTrancheId in this case
         block.timestamp
       );
 
@@ -528,17 +528,17 @@ contract StakingPool is IStakingPool, Multicall {
 
     // the bonus is based on the the time left and the total amount of stake shares (initial + new)
     uint newBonusShares = (initialStakeShares + stakeSharesIncrease)
-      * REWARD_BONUS_PER_TRANCHE_RATIO
-      * timeLeftOfNewTranche
-      / TRANCHE_DURATION
-      / REWARD_BONUS_PER_TRANCHE_DENOMINATOR;
+    * REWARD_BONUS_PER_TRANCHE_RATIO
+    * timeLeftOfNewTranche
+    / TRANCHE_DURATION
+    / REWARD_BONUS_PER_TRANCHE_DENOMINATOR;
 
     // for existing deposits, the previous bonus is deducted from the final amount
     uint previousBonusSharesDeduction = initialStakeShares
-      * REWARD_BONUS_PER_TRANCHE_RATIO
-      * timeLeftOfInitialTranche
-      / TRANCHE_DURATION
-      / REWARD_BONUS_PER_TRANCHE_DENOMINATOR;
+    * REWARD_BONUS_PER_TRANCHE_RATIO
+    * timeLeftOfInitialTranche
+    / TRANCHE_DURATION
+    / REWARD_BONUS_PER_TRANCHE_DENOMINATOR;
 
     return stakeSharesIncrease + newBonusShares - previousBonusSharesDeduction;
   }
@@ -574,7 +574,7 @@ contract StakingPool is IStakingPool, Multicall {
 
           // Deposit withdrawals are not permitted while the manager is locked in governance to
           // prevent double voting.
-          if(managerLockedInGovernanceUntil > block.timestamp) {
+          if (managerLockedInGovernanceUntil > block.timestamp) {
             revert ManagerNxmIsLockedForGovernanceVote();
           }
 
@@ -592,8 +592,8 @@ contract StakingPool is IStakingPool, Multicall {
 
           // if the tranche is expired, use the accumulator value saved at expiration time
           uint accNxmPerRewardShareToUse = trancheId < _firstActiveTrancheId
-            ? expiredTranches[trancheId].accNxmPerRewardShareAtExpiry
-            : _accNxmPerRewardsShare;
+          ? expiredTranches[trancheId].accNxmPerRewardShareAtExpiry
+          : _accNxmPerRewardsShare;
 
           // calculate reward since checkpoint
           uint newRewardPerShare = accNxmPerRewardShareToUse.uncheckedSub(deposit.lastAccNxmPerRewardShare);
@@ -613,8 +613,8 @@ contract StakingPool is IStakingPool, Multicall {
     }
 
     address destination = tokenId == MAX_UINT
-      ? manager
-      : stakingNFT.ownerOf(tokenId);
+    ? manager
+    : stakingNFT.ownerOf(tokenId);
 
     tokenController.withdrawNXMStakeAndRewards(
       destination,
@@ -638,13 +638,13 @@ contract StakingPool is IStakingPool, Multicall {
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
     uint[] memory trancheAllocations = request.allocationId == type(uint).max
-      ? getActiveAllocations(request.productId)
-      : getActiveAllocationsWithoutCover(
-          request.productId,
-          request.allocationId,
-          request.previousStart,
-          request.previousExpiration
-        );
+    ? getActiveAllocations(request.productId)
+    : getActiveAllocationsWithoutCover(
+      request.productId,
+      request.allocationId,
+      request.previousStart,
+      request.previousExpiration
+    );
 
     // we are only deallocating
     // rewards streaming is left as is
@@ -667,10 +667,10 @@ contract StakingPool is IStakingPool, Multicall {
     uint initialCapacityUsed;
     uint totalCapacity;
     (
-      coverAllocationAmount,
-      initialCapacityUsed,
-      totalCapacity,
-      allocationId
+    coverAllocationAmount,
+    initialCapacityUsed,
+    totalCapacity,
+    allocationId
     ) = allocate(amount, request, trancheAllocations);
 
     // the returned premium value has 18 decimals
@@ -686,7 +686,7 @@ contract StakingPool is IStakingPool, Multicall {
 
     // add new rewards
     {
-      if(request.rewardRatio > REWARDS_DENOMINATOR) {
+      if (request.rewardRatio > REWARDS_DENOMINATOR) {
         revert RewardRatioTooHigh();
       }
 
@@ -878,7 +878,7 @@ contract StakingPool is IStakingPool, Multicall {
   ) internal view returns (uint[] memory trancheCapacities) {
 
     // TODO: this require statement seems redundant
-    if(firstTrancheId < block.timestamp / TRANCHE_DURATION) {
+    if (firstTrancheId < block.timestamp / TRANCHE_DURATION) {
       revert RequestedTrancheIsExpired();
     }
 
@@ -891,14 +891,14 @@ contract StakingPool is IStakingPool, Multicall {
     }
 
     uint multiplier =
-      capacityRatio
-      * (CAPACITY_REDUCTION_DENOMINATOR - reductionRatio)
-      * products[productId].targetWeight;
+    capacityRatio
+    * (CAPACITY_REDUCTION_DENOMINATOR - reductionRatio)
+    * products[productId].targetWeight;
 
     uint denominator =
-      GLOBAL_CAPACITY_DENOMINATOR
-      * CAPACITY_REDUCTION_DENOMINATOR
-      * WEIGHT_DENOMINATOR;
+    GLOBAL_CAPACITY_DENOMINATOR
+    * CAPACITY_REDUCTION_DENOMINATOR
+    * WEIGHT_DENOMINATOR;
 
     for (uint i = 0; i < trancheCount; i++) {
       uint trancheStake = (_activeStake * tranches[firstTrancheId + i].stakeShares / _stakeSharesSupply);
@@ -1090,7 +1090,7 @@ contract StakingPool is IStakingPool, Multicall {
   ) external whenNotPaused whenNotHalted {
 
     // token id MAX_UINT is only used for pool manager fee tracking, no deposits allowed
-    if(tokenId == MAX_UINT) {
+    if (tokenId == MAX_UINT) {
       revert InvalidTokenId();
     }
     if (!stakingNFT.isApprovedOrOwner(msg.sender, tokenId)) {
@@ -1227,7 +1227,7 @@ contract StakingPool is IStakingPool, Multicall {
     // If all stake is burned, leave 1 wei and close pool
     if (amount >= _activeStake) {
       amount = _activeStake - 1;
-      halted = true;
+      isHalted = true;
     }
 
     tokenController.burnStakedNXM(amount, poolId);
@@ -1275,14 +1275,14 @@ contract StakingPool is IStakingPool, Multicall {
     for (uint i = 0; i < numProducts; i++) {
       productIds[i] = params[i].productId;
       if (!ICover(coverContract).isPoolAllowed(params[i].productId, poolId)) {
-         revert PoolNotAllowedForThisProduct();
+        revert PoolNotAllowedForThisProduct();
       }
     }
     (
-      uint globalCapacityRatio,
-      uint globalMinPriceRatio,
-      uint[] memory initialPriceRatios,
-      uint[] memory capacityReductionRatios
+    uint globalCapacityRatio,
+    uint globalMinPriceRatio,
+    uint[] memory initialPriceRatios,
+    uint[] memory capacityReductionRatios
     ) = ICover(coverContract).getPriceAndCapacityRatios(productIds);
 
     uint _totalTargetWeight = totalTargetWeight;
@@ -1516,10 +1516,10 @@ contract StakingPool is IStakingPool, Multicall {
   ) public pure returns (uint) {
 
     uint premiumPerYear =
-      coverAmount
-      * NXM_PER_ALLOCATION_UNIT
-      * fixedPrice
-      / TARGET_PRICE_DENOMINATOR;
+    coverAmount
+    * NXM_PER_ALLOCATION_UNIT
+    * fixedPrice
+    / TARGET_PRICE_DENOMINATOR;
 
     return premiumPerYear * period / 365 days;
   }
@@ -1543,8 +1543,8 @@ contract StakingPool is IStakingPool, Multicall {
       // basePrice = max(targetPrice, bumpedPrice - priceDrop)
       // rewritten to avoid underflow
       basePrice = product.bumpedPrice < targetPrice + priceDrop
-        ? targetPrice
-        : product.bumpedPrice - priceDrop;
+      ? targetPrice
+      : product.bumpedPrice - priceDrop;
     }
 
     // calculate the bumped price by applying the price bump
@@ -1640,6 +1640,116 @@ contract StakingPool is IStakingPool, Multicall {
     // amountOnSurge has two decimals
     // dividing by ALLOCATION_UNITS_PER_NXM (=100) to normalize the result
     return surgePremium / ALLOCATION_UNITS_PER_NXM;
+  }
+
+  /* getters */
+
+  function getPoolFee() external override view returns (uint) {
+    return poolFee;
+  }
+
+  function getMaxPoolFee() external override view returns (uint) {
+    return maxPoolFee;
+  }
+
+  function getActiveStake() external override view returns (uint) {
+    return activeStake;
+  }
+
+  function getStakeSharesSupply() external override view returns (uint) {
+    return stakeSharesSupply;
+  }
+
+  function getRewardsSharesSupply() external override view returns (uint) {
+    return rewardsSharesSupply;
+  }
+
+  function getRewardPerSecond() external override view returns (uint) {
+    return rewardPerSecond;
+  }
+
+  function getAccNxmPerRewardsShare() external override view returns (uint) {
+    return accNxmPerRewardsShare;
+  }
+
+  function getLastAccNxmUpdate() external override view returns (uint) {
+    return lastAccNxmUpdate;
+  }
+
+  function getFirstActiveTrancheId() external override view returns (uint) {
+    return firstActiveTrancheId;
+  }
+
+  function getFirstActiveBucketId() external override view returns (uint) {
+    return firstActiveBucketId;
+  }
+
+  function getNextAllocationId() external override view returns (uint) {
+    return nextAllocationId;
+  }
+
+  function getTotalTargetWeight() external view returns (uint) {
+    return totalTargetWeight;
+  }
+
+  function getTotalEffectiveWeight() external view returns (uint) {
+    return totalEffectiveWeight;
+  }
+
+  function getDeposit(uint tokenId, uint trancheId) external view returns (
+    uint lastAccNxmPerRewardShare,
+    uint pendingRewards,
+    uint stakeShares,
+    uint rewardsShares
+  ) {
+    Deposit memory deposit = deposits[tokenId][trancheId];
+    return (
+      deposit.lastAccNxmPerRewardShare,
+      deposit.pendingRewards,
+      deposit.stakeShares,
+      deposit.rewardsShares
+    );
+  }
+
+  function getProduct(uint productId) external view returns (
+    uint lastEffectiveWeight,
+    uint targetWeight,
+    uint targetPrice,
+    uint bumpedPrice,
+    uint bumpedPriceUpdateTime
+  ) {
+    StakedProduct memory product = products[productId];
+    return (
+      product.lastEffectiveWeight,
+      product.targetWeight,
+      product.targetPrice,
+      product.bumpedPrice,
+      product.bumpedPriceUpdateTime
+    );
+  }
+
+  function getTranche(uint trancheId) external view returns (
+    uint stakeShares,
+    uint rewardsShares
+  ) {
+    Tranche memory tranche = tranches[trancheId];
+    return (
+      tranche.stakeShares,
+      tranche.rewardsShares
+    );
+  }
+
+  function getExpiredTranche(uint trancheId) external override view returns (
+    uint accNxmPerRewardShareAtExpiry,
+    uint stakeAmountAtExpiry,
+    uint stakeSharesSupplyAtExpiry
+  ) {
+    ExpiredTranche memory expiredTranche = expiredTranches[trancheId];
+    return (
+      expiredTranche.accNxmPerRewardShareAtExpiry,
+      expiredTranche.stakeAmountAtExpiry,
+      expiredTranche.stakeSharesSupplyAtExpiry
+    );
   }
 
 }

@@ -105,36 +105,57 @@ interface IStakingPool {
 
   function isPrivatePool() external view returns (bool);
 
-  function poolFee() external view returns (uint8);
-
-  function maxPoolFee() external view returns (uint8);
-
-  function activeStake() external view returns (uint);
-
-  function stakeSharesSupply() external view returns (uint);
-
-  function rewardPerSecond() external view returns (uint);
-
-  function accNxmPerRewardsShare() external view returns (uint);
+  function isHalted() external view returns (bool);
 
   function manager() external view returns (address);
 
-  function deposits(uint tokenId, uint trancheId) external view returns (
+  function getPoolFee() external view returns (uint);
+
+  function getMaxPoolFee() external view returns (uint);
+
+  function getActiveStake() external view returns (uint);
+
+  function getStakeSharesSupply() external view returns (uint);
+
+  function getRewardsSharesSupply() external view returns (uint);
+
+  function getRewardPerSecond() external view returns (uint);
+
+  function getAccNxmPerRewardsShare() external view returns (uint);
+
+  function getLastAccNxmUpdate() external view returns (uint);
+
+  function getFirstActiveTrancheId() external view returns (uint);
+
+  function getFirstActiveBucketId() external view returns (uint);
+
+  function getNextAllocationId() external view returns (uint);
+
+  function getTotalTargetWeight() external view returns (uint);
+
+  function getTotalEffectiveWeight() external view returns (uint);
+
+  function getDeposit(uint tokenId, uint trancheId) external view returns (
     uint lastAccNxmPerRewardShare,
     uint pendingRewards,
     uint stakeShares,
     uint rewardsShares
   );
 
-  function products(uint productId) external view returns (
-    uint16 lastEffectiveWeight,
-    uint8 targetWeight,
-    uint96 targetPrice,
-    uint96 bumpedPrice,
-    uint32 bumpedPriceUpdateTime
+  function getProduct(uint productId) external view returns (
+    uint lastEffectiveWeight,
+    uint targetWeight,
+    uint targetPrice,
+    uint bumpedPrice,
+    uint bumpedPriceUpdateTime
   );
 
-  function expiredTranches(uint trancheId) external view returns (
+  function getTranche(uint trancheId) external view returns (
+    uint stakeShares,
+    uint rewardsShares
+  );
+
+  function getExpiredTranche(uint trancheId) external view returns (
     uint accNxmPerRewardShareAtExpiry,
     uint stakeAmountAtExpiry,
     uint stakeShareSupplyAtExpiry

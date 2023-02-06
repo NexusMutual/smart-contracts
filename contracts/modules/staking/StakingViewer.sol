@@ -102,12 +102,12 @@ contract StakingViewer is Multicall {
     pool.poolId = poolId;
     pool.isPrivatePool = _stakingPool.isPrivatePool();
     pool.manager = _stakingPool.manager();
-    pool.poolFee = _stakingPool.poolFee();
-    pool.maxPoolFee = _stakingPool.maxPoolFee();
-    pool.activeStake = _stakingPool.activeStake();
+    pool.poolFee = _stakingPool.getPoolFee();
+    pool.maxPoolFee = _stakingPool.getMaxPoolFee();
+    pool.activeStake = _stakingPool.getActiveStake();
     pool.currentAPY =
-      _stakingPool.activeStake() != 0
-        ? _stakingPool.rewardPerSecond() * 365 days / _stakingPool.activeStake()
+      _stakingPool.getActiveStake() != 0
+        ? _stakingPool.getRewardPerSecond() * 365 days / _stakingPool.getActiveStake()
         : 0;
 
     return pool;
@@ -152,7 +152,7 @@ contract StakingViewer is Multicall {
         uint targetPrice,
         uint bumpedPrice,
         uint bumpedPriceUpdateTime
-      ) = stakingPool(poolId).products(i);
+      ) = stakingPool(poolId).getProduct(i);
 
       if (targetWeight == 0 && lastEffectiveWeight == 0 && bumpedPriceUpdateTime == 0) {
         continue;
@@ -216,7 +216,7 @@ contract StakingViewer is Multicall {
         uint pendingRewards,
         uint stakeShares,
         uint rewardsShares
-      ) = _stakingPool.deposits(tokenId, firstActiveTrancheId + i);
+      ) = _stakingPool.getDeposit(tokenId, firstActiveTrancheId + i);
 
       if (rewardsShares == 0) {
         continue;
@@ -227,11 +227,11 @@ contract StakingViewer is Multicall {
       deposit.trancheId = firstActiveTrancheId + i;
 
       uint stake =
-        _stakingPool.activeStake()
+        _stakingPool.getActiveStake()
         * stakeShares
-        / _stakingPool.stakeSharesSupply();
+        / _stakingPool.getStakeSharesSupply();
 
-      uint newRewardPerShare = _stakingPool.accNxmPerRewardsShare().uncheckedSub(lastAccNxmPerRewardShare);
+      uint newRewardPerShare = _stakingPool.getAccNxmPerRewardsShare().uncheckedSub(lastAccNxmPerRewardShare);
       uint reward = pendingRewards + newRewardPerShare * rewardsShares / ONE_NXM;
 
       deposit.stake = stake;
@@ -250,7 +250,7 @@ contract StakingViewer is Multicall {
         uint pendingRewards,
         uint stakeShares,
         uint rewardsShares
-      ) = _stakingPool.deposits(tokenId, i);
+      ) = _stakingPool.getDeposit(tokenId, i);
 
       if (rewardsShares == 0) {
         continue;
@@ -260,7 +260,7 @@ contract StakingViewer is Multicall {
         uint accNxmPerRewardShareAtExpiry,
         uint stakeAmountAtExpiry,
         uint stakeShareSupplyAtExpiry
-      ) = _stakingPool.expiredTranches(i);
+      ) = _stakingPool.getExpiredTranche(i);
 
       // to avoid this the workaround is to call processExpirations as the first call in the
       // multicall batch. this will require the call to be explicitly be static in js:

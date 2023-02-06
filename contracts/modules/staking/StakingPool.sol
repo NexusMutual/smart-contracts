@@ -1688,15 +1688,15 @@ contract StakingPool is IStakingPool, Multicall {
     return nextAllocationId;
   }
 
-  function getTotalTargetWeight() external view returns (uint) {
+  function getTotalTargetWeight() external override view returns (uint) {
     return totalTargetWeight;
   }
 
-  function getTotalEffectiveWeight() external view returns (uint) {
+  function getTotalEffectiveWeight() external override view returns (uint) {
     return totalEffectiveWeight;
   }
 
-  function getDeposit(uint tokenId, uint trancheId) external view returns (
+  function getDeposit(uint tokenId, uint trancheId) external override view returns (
     uint lastAccNxmPerRewardShare,
     uint pendingRewards,
     uint stakeShares,
@@ -1711,7 +1711,7 @@ contract StakingPool is IStakingPool, Multicall {
     );
   }
 
-  function getProduct(uint productId) external view returns (
+  function getProduct(uint productId) external override view returns (
     uint lastEffectiveWeight,
     uint targetWeight,
     uint targetPrice,
@@ -1728,7 +1728,7 @@ contract StakingPool is IStakingPool, Multicall {
     );
   }
 
-  function getTranche(uint trancheId) external view returns (
+  function getTranche(uint trancheId) external override view returns (
     uint stakeShares,
     uint rewardsShares
   ) {

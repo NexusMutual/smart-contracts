@@ -8,8 +8,9 @@ contract CoverMockStakingNFT is ERC721Mock {
 
   constructor() ERC721Mock("", "") {}
 
-  function mint(address to) external {
-    _mint(to, totalSupply++);
+  function mint(address to) external returns (uint tokenId) {
+    tokenId = ++totalSupply;
+    _mint(to, tokenId);
   }
 
 }

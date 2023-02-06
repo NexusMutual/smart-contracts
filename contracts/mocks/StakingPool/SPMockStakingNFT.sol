@@ -11,7 +11,7 @@ contract SPMockStakingNFT is ERC721Mock {
   mapping(uint => uint) public _stakingPoolOf;
 
   function mint(uint poolId, address to) external returns (uint) {
-    uint tokenId = totalSupply++;
+    uint tokenId = ++totalSupply;
     _mint(to, tokenId);
     _stakingPoolOf[tokenId] = poolId;
     return tokenId;

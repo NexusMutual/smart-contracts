@@ -6,7 +6,7 @@ const { setEtherBalance } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
 const { parseEther } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 
 const gracePeriod = 120 * 24 * 3600; // 120 days
 const NXM_ASSET_ID = 255;
@@ -54,9 +54,10 @@ describe('buyCover', function () {
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     const poolEthBalanceBefore = await ethers.provider.getBalance(pool.address);
+
     await cover.connect(coverBuyer).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: coverBuyer.address,
         productId,
         coverAsset,
@@ -76,7 +77,8 @@ describe('buyCover', function () {
     expect(await ethers.provider.getBalance(cover.address)).to.be.equal(0);
     const premium = expectedPremium.mul(period).div(daysToSeconds(365));
     expect(await ethers.provider.getBalance(pool.address)).to.equal(poolEthBalanceBefore.add(premium));
-    const coverId = (await cover.coverDataCount()).sub(1);
+    const coverId = await cover.coverDataCount();
+
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -99,7 +101,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: coverBuyer.address,
         productId,
         coverAsset,
@@ -119,7 +121,7 @@ describe('buyCover', function () {
     expect(await ethers.provider.getBalance(cover.address)).to.be.equal(0);
     const premium = expectedPremium.mul(period).div(daysToSeconds(365));
     expect(await ethers.provider.getBalance(pool.address)).to.equal(poolEthBalanceBefore.add(premium));
-    const coverId = (await cover.coverDataCount()).sub(1);
+    const coverId = await cover.coverDataCount();
 
     await assertCoverFields(cover, coverId, {
       productId,
@@ -151,7 +153,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: coverBuyer.address,
         productId,
         coverAsset,
@@ -173,7 +175,7 @@ describe('buyCover', function () {
     const expectedPremiumPerPool = expectedPremium.div(2).mul(period).div(daysToSeconds(365));
     expect(await ethers.provider.getBalance(pool.address)).to.equal(expectedPremiumPerPool.mul(2));
 
-    const coverId = (await cover.coverDataCount()).sub(1);
+    const coverId = await cover.coverDataCount();
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -208,7 +210,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -240,7 +242,7 @@ describe('buyCover', function () {
     const commissionDifference = commissionNxmBalanceAfter.sub(commissionNxmBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
 
-    const coverId = (await cover.coverDataCount()).sub(1);
+    const coverId = await cover.coverDataCount();
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -282,7 +284,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: coverBuyer.address,
         productId,
         coverAsset,
@@ -310,7 +312,7 @@ describe('buyCover', function () {
     const commissionDifference = commissionDaiBalanceAfter.sub(commissionDaiBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
 
-    const coverId = (await cover.coverDataCount()).sub(1);
+    const coverId = await cover.coverDataCount();
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -352,7 +354,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -381,7 +383,7 @@ describe('buyCover', function () {
     const commissionDifference = commissionDaiBalanceAfter.sub(commissionDaiBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
 
-    const coverId = (await cover.coverDataCount()).sub(1);
+    const coverId = await cover.coverDataCount();
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -401,7 +403,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -428,7 +430,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -455,7 +457,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId: 2,
           coverAsset,
@@ -483,7 +485,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -510,7 +512,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -536,7 +538,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -564,7 +566,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -597,7 +599,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(member1).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer1.address,
           productId,
           coverAsset,
@@ -625,7 +627,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -655,7 +657,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(nonMember).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: nonMember.address,
           productId,
           coverAsset,
@@ -681,7 +683,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: AddressZero,
           productId,
           coverAsset,
@@ -710,7 +712,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -741,7 +743,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -772,7 +774,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -803,7 +805,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -834,7 +836,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -860,7 +862,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -886,7 +888,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -928,7 +930,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: coverReceiver.address,
         productId,
         coverAsset,
@@ -965,7 +967,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: coverBuyer.address,
         productId,
         coverAsset,
@@ -984,7 +986,7 @@ describe('buyCover', function () {
     const globalRewardsRatio = await cover.globalRewardsRatio();
     const { timestamp } = await ethers.provider.getBlock('latest');
 
-    const coverId = (await cover.coverDataCount()).sub(1);
+    const coverId = await cover.coverDataCount();
     const storedCoverData = await cover.coverData(coverId);
     expect(storedCoverData.productId).to.be.equal(productId);
     expect(storedCoverData.coverAsset).to.be.equal(coverAsset);
@@ -1020,7 +1022,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: coverReceiver.address,
         productId,
         coverAsset,
@@ -1039,7 +1041,7 @@ describe('buyCover', function () {
     const nftBalanceAfter = await coverNFT.balanceOf(coverReceiver.address);
     expect(nftBalanceAfter).to.be.equal(1);
 
-    const coverId = (await cover.coverDataCount()).sub(1);
+    const coverId = await cover.coverDataCount();
     const ownerOfCoverId = await coverNFT.ownerOf(coverId);
     expect(ownerOfCoverId).to.be.equal(coverReceiver.address);
   });
@@ -1059,7 +1061,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: nonMemberCoverReceiver.address,
         productId,
         coverAsset,
@@ -1078,7 +1080,7 @@ describe('buyCover', function () {
     const nftBalanceAfter = await coverNFT.balanceOf(nonMemberCoverReceiver.address);
     expect(nftBalanceAfter).to.be.equal(1);
 
-    const coverId = (await cover.coverDataCount()).sub(1);
+    const coverId = await cover.coverDataCount();
     const ownerOfCoverId = await coverNFT.ownerOf(coverId);
     expect(ownerOfCoverId).to.be.equal(nonMemberCoverReceiver.address);
   });
@@ -1112,7 +1114,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: coverReceiver.address,
         productId,
         coverAsset,
@@ -1193,7 +1195,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: coverReceiver.address,
         productId,
         coverAsset,
@@ -1222,7 +1224,7 @@ describe('buyCover', function () {
     expect(stakingPool2After.rewards).to.be.equal(stakingPool2Before.rewards.add(expectedRewardPerPool));
     expect(stakingPool3After.rewards).to.be.equal(stakingPool3Before.rewards.add(expectedRewardPerPool));
 
-    const coverId = (await cover.coverDataCount()).sub(1);
+    const coverId = await cover.coverDataCount();
 
     for (let i = 0; i < 3; i++) {
       const segmentAllocation = await cover.coverSegmentAllocations(coverId, segmentId, i);
@@ -1255,7 +1257,7 @@ describe('buyCover', function () {
 
     const txData = await cover.connect(coverBuyer).populateTransaction.buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: coverReceiver.address,
         productId,
         coverAsset,
@@ -1284,7 +1286,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: MaxUint256,
+          coverId: 0,
           owner: coverReceiver.address,
           productId,
           coverAsset,
@@ -1320,7 +1322,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer1).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: coverBuyer1.address,
         productId,
         coverAsset,
@@ -1338,7 +1340,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer2).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: coverBuyer2.address,
         productId,
         coverAsset,
@@ -1358,7 +1360,7 @@ describe('buyCover', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     // Validate data for second cover
-    const coverId = (await cover.coverDataCount()).sub(1);
+    const coverId = await cover.coverDataCount();
     const storedCoverData = await cover.coverData(coverId);
     expect(storedCoverData.productId).to.be.equal(productId);
     expect(storedCoverData.coverAsset).to.be.equal(coverAsset);

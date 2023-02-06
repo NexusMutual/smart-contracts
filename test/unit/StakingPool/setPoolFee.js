@@ -1,5 +1,5 @@
 const { ethers, expect } = require('hardhat');
-const { MaxUint256, AddressZero } = ethers.constants;
+const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 const { daysToSeconds } = require('../utils').helpers;
@@ -8,8 +8,8 @@ const { getTranches } = require('./helpers');
 
 const allocationRequestTemplate = {
   productId: 0,
-  coverId: MaxUint256,
-  allocationId: MaxUint256,
+  coverId: 0,
+  allocationId: 0,
   period: daysToSeconds(30),
   gracePeriod: daysToSeconds(30),
   previousStart: 0,
@@ -124,8 +124,8 @@ describe('setPoolFee', function () {
     const trancheId = firstActiveTrancheId + 1;
 
     const depositAmount = parseEther('100');
-    const tokenId = MaxUint256; // new deposit
-    const managerDepositId = MaxUint256; // manager position id
+    const tokenId = 0; // new deposit
+    const managerDepositId = 0; // manager position id
     const { initialPoolFee } = initializeParams;
     const newPoolFee = initialPoolFee - 2;
 

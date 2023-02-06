@@ -26,7 +26,7 @@ describe('redeemClaimPayout', function () {
     );
 
     {
-      await submitClaim(this)({ coverId: 0, sender: coverOwner });
+      await submitClaim(this)({ coverId: 1, sender: coverOwner });
       const { payoutCooldownInDays } = await assessment.config();
       const { poll } = await assessment.assessments(0);
       await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
@@ -34,7 +34,7 @@ describe('redeemClaimPayout', function () {
     }
 
     {
-      await submitClaim(this)({ coverId: 0, sender: coverOwner });
+      await submitClaim(this)({ coverId: 1, sender: coverOwner });
       const { payoutCooldownInDays } = await assessment.config();
       const { poll } = await assessment.assessments(1);
       await assessment.castVote(1, true, parseEther('1'));
@@ -44,7 +44,7 @@ describe('redeemClaimPayout', function () {
     }
 
     {
-      await submitClaim(this)({ coverId: 0, sender: coverOwner });
+      await submitClaim(this)({ coverId: 1, sender: coverOwner });
       const { payoutCooldownInDays } = await assessment.config();
       const { poll } = await assessment.assessments(2);
       await assessment.castVote(2, true, parseEther('1'));
@@ -65,7 +65,7 @@ describe('redeemClaimPayout', function () {
       [segment],
     );
 
-    await submitClaim(this)({ coverId: 0, sender: coverOwner });
+    await submitClaim(this)({ coverId: 1, sender: coverOwner });
 
     {
       const { poll } = await assessment.assessments(0);
@@ -101,7 +101,7 @@ describe('redeemClaimPayout', function () {
       [segment],
     );
 
-    await submitClaim(this)({ coverId: 0, sender: coverOwner });
+    await submitClaim(this)({ coverId: 1, sender: coverOwner });
 
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
@@ -125,7 +125,7 @@ describe('redeemClaimPayout', function () {
       [segment],
     );
 
-    await submitClaim(this)({ coverId: 0, sender: coverOwner });
+    await submitClaim(this)({ coverId: 1, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     const { payoutCooldownInDays } = await assessment.config();
@@ -148,7 +148,7 @@ describe('redeemClaimPayout', function () {
       [segment],
     );
 
-    await submitClaim(this)({ coverId: 0, sender: coverOwner });
+    await submitClaim(this)({ coverId: 1, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     const { payoutCooldownInDays } = await assessment.config();
@@ -171,7 +171,7 @@ describe('redeemClaimPayout', function () {
       [segment],
     );
 
-    await submitClaim(this)({ coverId: 0, sender: coverOwner });
+    await submitClaim(this)({ coverId: 1, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     const { payoutCooldownInDays } = await assessment.config();
@@ -194,7 +194,7 @@ describe('redeemClaimPayout', function () {
       [segment],
     );
 
-    await submitClaim(this)({ coverId: 0, sender: coverOwner });
+    await submitClaim(this)({ coverId: 1, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     const { payoutCooldownInDays } = await assessment.config();
@@ -202,7 +202,7 @@ describe('redeemClaimPayout', function () {
 
     await expect(individualClaims.connect(coverOwner).redeemClaimPayout(0))
       .to.emit(individualClaims, 'ClaimPayoutRedeemed')
-      .withArgs(coverOwner.address, parseEther('1'), 0, 0);
+      .withArgs(coverOwner.address, parseEther('1'), 0, 1);
   });
 
   it("sets the claim's payoutRedeemed property to true", async function () {
@@ -216,7 +216,7 @@ describe('redeemClaimPayout', function () {
       ASSET.ETH,
       [segment],
     );
-    await submitClaim(this)({ coverId: 0, sender: coverOwner });
+    await submitClaim(this)({ coverId: 1, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     const { payoutCooldownInDays } = await assessment.config();
@@ -240,7 +240,7 @@ describe('redeemClaimPayout', function () {
     );
 
     const ethBalanceBefore = await ethers.provider.getBalance(originalOwner.address);
-    const coverId = 0;
+    const coverId = 1;
     const assessmentId = 0;
     const claimId = 0;
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
@@ -281,7 +281,7 @@ describe('redeemClaimPayout', function () {
         ],
       );
 
-      const coverId = 1;
+      const coverId = 2;
       const assessmentId = 1;
       const claimId = 1;
       const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
@@ -311,7 +311,7 @@ describe('redeemClaimPayout', function () {
 
     const ethBalanceBefore = await ethers.provider.getBalance(originalOwner.address);
     const daiBalanceBefore = await dai.balanceOf(originalOwner.address);
-    const coverId = 0;
+    const coverId = 1;
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.DAI);
     await setNextBlockBaseFee('0');
     await individualClaims
@@ -336,7 +336,7 @@ describe('redeemClaimPayout', function () {
 
       const ethBalanceBefore = await ethers.provider.getBalance(newOwner.address);
       const daiBalanceBefore = await dai.balanceOf(newOwner.address);
-      const coverId = 1;
+      const coverId = 2;
       const segmentId = 0;
       const assessmentId = 1;
       const claimId = 1;

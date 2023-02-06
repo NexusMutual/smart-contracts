@@ -2,7 +2,6 @@ const { ethers } = require('hardhat');
 const { assert, expect } = require('chai');
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
-const { MaxUint256 } = ethers.constants;
 const { daysToSeconds } = require('../../../lib/helpers');
 const {
   helpers: { hex },
@@ -187,7 +186,7 @@ describe('updateMCR', function () {
     const expectedPremium = parseEther('1');
     await cover.connect(coverHolder).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: coverHolder.address,
         productId,
         coverAsset: 0,

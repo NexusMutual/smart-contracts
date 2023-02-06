@@ -8,8 +8,8 @@ contract ICMockCoverNFT is ERC721Mock {
 
   constructor() ERC721Mock("", "") {}
 
-  function mint(address to, uint tokenId) external {
-    totalSupply++;
+  function mint(address to) external returns (uint tokenId) {
+    tokenId = ++totalSupply;
     _mint(to, tokenId);
   }
 

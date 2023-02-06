@@ -13,14 +13,14 @@ const {
   MAX_ACTIVE_TRANCHES,
 } = require('./helpers');
 
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 
 const depositToFixture = {
   amount: parseEther('100'),
   trancheId: 0,
-  tokenId: MaxUint256,
+  tokenId: 0,
   destination: AddressZero,
 };
 
@@ -126,7 +126,7 @@ describe('processExpirations', function () {
     for (let i = 0; i < tranches.length; i++) {
       const tranche = tranches[i];
       await stakingPool.connect(user).depositTo(amount, tranche, tokenId, destination);
-      const nftId = i;
+      const nftId = i + 1;
       const deposit = await stakingPool.deposits(nftId, tranche);
 
       const feesRewardShares = deposit.rewardsShares.mul(initialPoolFee).div(POOL_FEE_DENOMINATOR.sub(initialPoolFee));

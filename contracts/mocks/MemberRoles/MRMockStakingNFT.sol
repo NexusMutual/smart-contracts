@@ -11,7 +11,7 @@ contract MRMockStakingNFT is ERC721Mock {
   }
 
   function mint(address to) external {
-    _mint(to, totalSupply++);
+    _mint(to, ++totalSupply);
   }
 
   function operatorTransferFrom(address from, address to, uint256 tokenId) external {

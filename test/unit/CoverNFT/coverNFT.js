@@ -16,67 +16,67 @@ describe('CoverNFT', function () {
 
   it('should fail to mint - onlyOperator()', async function () {
     const { coverNFT } = this;
-    await expect(coverNFT.mint(coverNFT.address, 10)).to.be.revertedWith('CoverNFT: Not operator');
+    await expect(coverNFT.mint(coverNFT.address)).to.be.revertedWith('CoverNFT: Not operator');
   });
 
   it('should successfully mint', async function () {
     const { coverNFT } = this;
     const [operator, nftOwner] = this.accounts.members;
-    await coverNFT.connect(operator).mint(nftOwner.address, 0);
-    expect(await coverNFT.ownerOf(0)).to.be.equal(nftOwner.address);
+    await coverNFT.connect(operator).mint(nftOwner.address);
+    expect(await coverNFT.ownerOf(1)).to.be.equal(nftOwner.address);
   });
 
   it('should fail to burn - onlyOperator()', async function () {
     const { coverNFT } = this;
-    await expect(coverNFT.burn(0)).to.be.revertedWith('CoverNFT: Not operator');
+    await expect(coverNFT.burn(1)).to.be.revertedWith('CoverNFT: Not operator');
   });
 
   it('should successfully burn', async function () {
     const { coverNFT } = this;
     const [operator, nftOwner] = this.accounts.members;
-    await coverNFT.connect(operator).mint(nftOwner.address, 0);
-    await coverNFT.connect(operator).burn(0);
-    await expect(coverNFT.ownerOf(0)).to.be.revertedWith('NOT_MINTED');
+    await coverNFT.connect(operator).mint(nftOwner.address);
+    await coverNFT.connect(operator).burn(1);
+    await expect(coverNFT.ownerOf(1)).to.be.revertedWith('NOT_MINTED');
   });
 
   it('should return success for isApproveOrOwner() - owner == sender', async function () {
     const { coverNFT } = this;
     const [operator, nftOwner] = this.accounts.members;
-    await coverNFT.connect(operator).mint(nftOwner.address, 0);
-    expect(await coverNFT.isApprovedOrOwner(nftOwner.address, 0)).to.be.equal(true);
-    expect(await coverNFT.isApprovedOrOwner(operator.address, 0)).to.be.equal(false);
+    await coverNFT.connect(operator).mint(nftOwner.address);
+    expect(await coverNFT.isApprovedOrOwner(nftOwner.address, 1)).to.be.equal(true);
+    expect(await coverNFT.isApprovedOrOwner(operator.address, 1)).to.be.equal(false);
   });
 
   it('should return success for isApproveOrOwner() - isApprovedForAll', async function () {
     const { coverNFT } = this;
     const [operator, nftOwner] = this.accounts.members;
     const [randomAccount] = this.accounts.generalPurpose;
-    await coverNFT.connect(operator).mint(nftOwner.address, 0);
+    await coverNFT.connect(operator).mint(nftOwner.address);
     await coverNFT.connect(nftOwner).setApprovalForAll(randomAccount.address, true);
-    expect(await coverNFT.isApprovedOrOwner(randomAccount.address, 0)).to.be.equal(true);
-    expect(await coverNFT.isApprovedOrOwner(nftOwner.address, 0)).to.be.equal(true);
+    expect(await coverNFT.isApprovedOrOwner(randomAccount.address, 1)).to.be.equal(true);
+    expect(await coverNFT.isApprovedOrOwner(nftOwner.address, 1)).to.be.equal(true);
   });
 
   it('should return success for isApproveOrOwner() - isApproved', async function () {
     const { coverNFT } = this;
     const [operator, nftOwner] = this.accounts.members;
     const [randomAccount] = this.accounts.generalPurpose;
-    await coverNFT.connect(operator).mint(nftOwner.address, 0);
-    await coverNFT.connect(nftOwner).approve(randomAccount.address, 0);
-    expect(await coverNFT.isApprovedOrOwner(randomAccount.address, 0)).to.be.equal(true);
-    expect(await coverNFT.isApprovedOrOwner(nftOwner.address, 0)).to.be.equal(true);
+    await coverNFT.connect(operator).mint(nftOwner.address);
+    await coverNFT.connect(nftOwner).approve(randomAccount.address, 1);
+    expect(await coverNFT.isApprovedOrOwner(randomAccount.address, 1)).to.be.equal(true);
+    expect(await coverNFT.isApprovedOrOwner(nftOwner.address, 1)).to.be.equal(true);
   });
 
   it('should revert when calling isApproveOrOwner() for non-existing tokenId', async function () {
     const { coverNFT } = this;
     const [, account] = this.accounts.members;
-    await expect(coverNFT.isApprovedOrOwner(account.address, 0)).to.be.revertedWith('NOT_MINTED');
+    await expect(coverNFT.isApprovedOrOwner(account.address, 1)).to.be.revertedWith('NOT_MINTED');
   });
 
   it('should fail to transfer from operator - onlyOperator()', async function () {
     const { coverNFT } = this;
     const [account] = this.accounts.members;
-    await expect(coverNFT.operatorTransferFrom(coverNFT.address, account.address, 0)).to.be.revertedWith(
+    await expect(coverNFT.operatorTransferFrom(coverNFT.address, account.address, 1)).to.be.revertedWith(
       'CoverNFT: Not operator',
     );
   });
@@ -84,17 +84,17 @@ describe('CoverNFT', function () {
   it('should fail to transfer from operator - wrong from address', async function () {
     const { coverNFT } = this;
     const [operator, nftOwner, otherAddress] = this.accounts.members;
-    await coverNFT.connect(operator).mint(nftOwner.address, 0);
+    await coverNFT.connect(operator).mint(nftOwner.address);
     await expect(
-      coverNFT.connect(operator).operatorTransferFrom(otherAddress.address, operator.address, 0),
+      coverNFT.connect(operator).operatorTransferFrom(otherAddress.address, operator.address, 1),
     ).to.be.revertedWith('WRONG_FROM');
   });
 
   it('should fail to transfer from operator - send to 0 address', async function () {
     const { coverNFT } = this;
     const [operator, nftOwner] = this.accounts.members;
-    await coverNFT.connect(operator).mint(nftOwner.address, 0);
-    await expect(coverNFT.connect(operator).operatorTransferFrom(nftOwner.address, AddressZero, 0)).to.be.revertedWith(
+    await coverNFT.connect(operator).mint(nftOwner.address);
+    await expect(coverNFT.connect(operator).operatorTransferFrom(nftOwner.address, AddressZero, 1)).to.be.revertedWith(
       'INVALID_RECIPIENT',
     );
   });
@@ -102,9 +102,9 @@ describe('CoverNFT', function () {
   it('should successfully transfer from the operator', async function () {
     const { coverNFT } = this;
     const [operator, coverNFTReceiver] = this.accounts.members;
-    await coverNFT.connect(operator).mint(coverNFTReceiver.address, 0);
-    await coverNFT.connect(operator).operatorTransferFrom(coverNFTReceiver.address, operator.address, 0);
-    expect(await coverNFT.ownerOf(0)).to.be.equal(operator.address);
+    await coverNFT.connect(operator).mint(coverNFTReceiver.address);
+    await coverNFT.connect(operator).operatorTransferFrom(coverNFTReceiver.address, operator.address, 1);
+    expect(await coverNFT.ownerOf(1)).to.be.equal(operator.address);
   });
 
   it('should revert if caller is not operator', async function () {
@@ -129,5 +129,19 @@ describe('CoverNFT', function () {
     expect(await coverNFT.operator()).to.not.be.equal(newOperator.address);
     await coverNFT.connect(oldOperator).changeOperator(newOperator.address);
     expect(await coverNFT.operator()).to.be.equal(newOperator.address);
+  });
+
+  it('should increment and decrement totalSupply', async function () {
+    const { coverNFT } = this;
+    const [operator, nftOwner] = this.accounts.members;
+    const tokenId = 1;
+
+    expect(await coverNFT.totalSupply()).to.be.equal(0);
+    await expect(coverNFT.connect(operator).mint(nftOwner.address))
+      .to.emit(coverNFT, 'Transfer')
+      .withArgs(AddressZero, nftOwner.address, tokenId);
+
+    expect(await coverNFT.totalSupply()).to.be.equal(1);
+    await coverNFT.connect(operator).burn(tokenId);
   });
 });

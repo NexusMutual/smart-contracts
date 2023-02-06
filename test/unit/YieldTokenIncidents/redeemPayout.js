@@ -57,27 +57,27 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      yieldTokenIncidents.connect(coverOwner).redeemPayout(0, 0, 0, parseEther('100'), coverOwner.address, []),
-    ).not.to.be.revertedWith('Only the cover owner or approved addresses can redeem');
-
-    await expect(
-      yieldTokenIncidents.connect(nonCoverOwner).redeemPayout(0, 1, 0, parseEther('100'), coverOwner.address, []),
-    ).to.be.revertedWith('Only the cover owner or approved addresses can redeem');
-
-    await coverNFT.connect(coverOwner).approve(nonCoverOwner.address, 1);
-
-    await expect(
-      yieldTokenIncidents.connect(nonCoverOwner).redeemPayout(0, 1, 0, parseEther('100'), coverOwner.address, []),
+      yieldTokenIncidents.connect(coverOwner).redeemPayout(0, 1, 0, parseEther('100'), coverOwner.address, []),
     ).not.to.be.revertedWith('Only the cover owner or approved addresses can redeem');
 
     await expect(
       yieldTokenIncidents.connect(nonCoverOwner).redeemPayout(0, 2, 0, parseEther('100'), coverOwner.address, []),
+    ).to.be.revertedWith('Only the cover owner or approved addresses can redeem');
+
+    await coverNFT.connect(coverOwner).approve(nonCoverOwner.address, 2);
+
+    await expect(
+      yieldTokenIncidents.connect(nonCoverOwner).redeemPayout(0, 2, 0, parseEther('100'), coverOwner.address, []),
+    ).not.to.be.revertedWith('Only the cover owner or approved addresses can redeem');
+
+    await expect(
+      yieldTokenIncidents.connect(nonCoverOwner).redeemPayout(0, 3, 0, parseEther('100'), coverOwner.address, []),
     ).to.be.revertedWith('Only the cover owner or approved addresses can redeem');
 
     await coverNFT.connect(coverOwner).setApprovalForAll(nonCoverOwner.address, true);
 
     await expect(
-      yieldTokenIncidents.connect(nonCoverOwner).redeemPayout(0, 2, 0, parseEther('100'), coverOwner.address, []),
+      yieldTokenIncidents.connect(nonCoverOwner).redeemPayout(0, 4, 0, parseEther('100'), coverOwner.address, []),
     ).not.to.be.revertedWith('Only the cover owner or approved addresses can redeem');
   });
 
@@ -98,7 +98,7 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The incident needs to be accepted');
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
@@ -110,7 +110,7 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The incident needs to be accepted');
 
     {
@@ -119,7 +119,7 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The incident needs to be accepted');
   });
 
@@ -147,14 +147,14 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The voting and cooldown periods must end');
 
     const { end } = await assessment.getPoll(0);
     await setTime(end);
 
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The voting and cooldown periods must end');
 
     {
@@ -190,7 +190,7 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The redemption period has expired');
   });
 
@@ -222,11 +222,11 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('101.011'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('101.011'), member1.address, []),
     ).to.be.revertedWith('Payout exceeds covered amount');
 
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('101.01'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('101.01'), member1.address, []),
     ).not.to.be.revertedWith('Payout exceeds covered amount');
   });
 
@@ -262,10 +262,10 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Cover ended before the incident');
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 1, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 1, parseEther('100'), member1.address, []),
     ).not.to.be.revertedWith('Cover ended before the incident');
   });
 
@@ -311,13 +311,13 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 1, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 1, parseEther('100'), member1.address, []),
+    ).to.be.revertedWith('Cover started after the incident');
+    await expect(
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 2, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Cover started after the incident');
     await expect(
       yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
-    ).to.be.revertedWith('Cover started after the incident');
-    await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
     ).not.to.be.revertedWith('Cover started after the incident');
   });
 
@@ -348,10 +348,10 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Grace period has expired');
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 2, 0, parseEther('100'), member1.address, []),
     ).not.to.be.revertedWith('Grace period has expired');
   });
 
@@ -387,10 +387,10 @@ describe('redeemPayout', function () {
     await setTime(end + daysToSeconds(payoutCooldownInDays));
 
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Grace period has expired');
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 2, 0, parseEther('100'), member1.address, []),
     ).to.not.be.revertedWith('Grace period has expired');
   });
 
@@ -442,19 +442,19 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
-    ).to.be.revertedWith('Product id mismatch');
-
-    await expect(
       yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Product id mismatch');
 
     await expect(
       yieldTokenIncidents.connect(member1).redeemPayout(0, 2, 0, parseEther('100'), member1.address, []),
-    ).not.to.be.revertedWith('Product id mismatch');
+    ).to.be.revertedWith('Product id mismatch');
 
     await expect(
       yieldTokenIncidents.connect(member1).redeemPayout(0, 3, 0, parseEther('100'), member1.address, []),
+    ).not.to.be.revertedWith('Product id mismatch');
+
+    await expect(
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 4, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Product id mismatch');
   });
 
@@ -497,7 +497,7 @@ describe('redeemPayout', function () {
       await setNextBlockBaseFee('0');
       await yieldTokenIncidents
         .connect(member1)
-        .redeemPayout(0, 0, 0, claimedAmount, member1.address, [], { gasPrice: 0 });
+        .redeemPayout(0, 1, 0, claimedAmount, member1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(member1.address);
       expect(ethBalanceAfter).to.be.equal(
         ethBalanceBefore.add(
@@ -512,7 +512,7 @@ describe('redeemPayout', function () {
       await setNextBlockBaseFee('0');
       await yieldTokenIncidents
         .connect(member1)
-        .redeemPayout(0, 0, 0, claimedAmount, nonMember1.address, [], { gasPrice: 0 });
+        .redeemPayout(0, 1, 0, claimedAmount, nonMember1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
       expect(ethBalanceAfter).to.be.equal(
         ethBalanceBefore.add(
@@ -527,7 +527,7 @@ describe('redeemPayout', function () {
       await setNextBlockBaseFee('0');
       await yieldTokenIncidents
         .connect(member1)
-        .redeemPayout(0, 0, 0, claimedAmount, nonMember2.address, [], { gasPrice: 0 });
+        .redeemPayout(0, 1, 0, claimedAmount, nonMember2.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember2.address);
       expect(ethBalanceAfter).to.be.equal(
         ethBalanceBefore.add(
@@ -576,7 +576,7 @@ describe('redeemPayout', function () {
       await setNextBlockBaseFee('0');
       await yieldTokenIncidents
         .connect(member1)
-        .redeemPayout(0, 0, 0, claimedAmount, nonMember1.address, [], { gasPrice: 0 });
+        .redeemPayout(0, 1, 0, claimedAmount, nonMember1.address, [], { gasPrice: 0 });
       const daiBalanceAfter = await dai.balanceOf(nonMember1.address);
       expect(daiBalanceAfter).to.be.equal(
         daiBalanceBefore.add(
@@ -591,7 +591,7 @@ describe('redeemPayout', function () {
       await setNextBlockBaseFee('0');
       await yieldTokenIncidents
         .connect(member1)
-        .redeemPayout(0, 0, 0, claimedAmount, nonMember1.address, [], { gasPrice: 0 });
+        .redeemPayout(0, 1, 0, claimedAmount, nonMember1.address, [], { gasPrice: 0 });
       const daiBalanceAfter = await dai.balanceOf(nonMember1.address);
       expect(daiBalanceAfter).to.be.equal(
         daiBalanceBefore.add(
@@ -606,7 +606,7 @@ describe('redeemPayout', function () {
       await setNextBlockBaseFee('0');
       await yieldTokenIncidents
         .connect(member1)
-        .redeemPayout(0, 0, 0, claimedAmount, nonMember2.address, [], { gasPrice: 0 });
+        .redeemPayout(0, 1, 0, claimedAmount, nonMember2.address, [], { gasPrice: 0 });
       const daiBalanceAfter = await dai.balanceOf(nonMember2.address);
       expect(daiBalanceAfter).to.be.equal(
         daiBalanceBefore.add(
@@ -672,7 +672,7 @@ describe('redeemPayout', function () {
     await setNextBlockBaseFee('0');
     await yieldTokenIncidents.connect(member1).redeemPayout(
       0,
-      0,
+      1,
       0,
       parseEther('3000'),
       nonMember.address,
@@ -721,17 +721,17 @@ describe('redeemPayout', function () {
 
     await ybEth.connect(coverOwner1).approve(yieldTokenIncidents.address, parseEther('10000'));
     await expect(
-      yieldTokenIncidents.connect(coverOwner1).redeemPayout(0, 0, 0, parseEther('100'), coverOwner1.address, []),
+      yieldTokenIncidents.connect(coverOwner1).redeemPayout(0, 1, 0, parseEther('100'), coverOwner1.address, []),
     )
       .to.emit(yieldTokenIncidents, 'IncidentPayoutRedeemed')
-      .withArgs(coverOwner1.address, parseEther('90'), 0, 0);
+      .withArgs(coverOwner1.address, parseEther('90'), 0, 1);
 
     await ybDai.connect(coverOwner2).approve(yieldTokenIncidents.address, parseEther('10000'));
     await expect(
-      yieldTokenIncidents.connect(coverOwner2).redeemPayout(1, 2, 0, parseEther('100'), coverOwner2.address, []),
+      yieldTokenIncidents.connect(coverOwner2).redeemPayout(1, 3, 0, parseEther('100'), coverOwner2.address, []),
     )
       .to.emit(yieldTokenIncidents, 'IncidentPayoutRedeemed')
-      .withArgs(coverOwner2.address, parseEther('90'), 1, 2);
+      .withArgs(coverOwner2.address, parseEther('90'), 1, 3);
   });
 
   it('reverts if system is paused', async function () {
@@ -758,7 +758,7 @@ describe('redeemPayout', function () {
 
     await ybEth.connect(coverOwner1).approve(yieldTokenIncidents.address, parseEther('10000'));
     await expect(
-      yieldTokenIncidents.connect(coverOwner1).redeemPayout(0, 0, 0, parseEther('100'), coverOwner1.address, []),
+      yieldTokenIncidents.connect(coverOwner1).redeemPayout(0, 1, 0, parseEther('100'), coverOwner1.address, []),
     ).to.be.revertedWith('System is paused');
   });
 
@@ -786,7 +786,7 @@ describe('redeemPayout', function () {
 
     await ybEth.connect(coverOwner1).approve(yieldTokenIncidents.address, parseEther('10000'));
     await expect(
-      yieldTokenIncidents.connect(nonMember).redeemPayout(0, 0, 0, parseEther('100'), coverOwner1.address, []),
+      yieldTokenIncidents.connect(nonMember).redeemPayout(0, 1, 0, parseEther('100'), coverOwner1.address, []),
     ).to.be.revertedWith('Caller is not a member');
   });
 
@@ -819,7 +819,7 @@ describe('redeemPayout', function () {
     await setNextBlockBaseFee('0');
     await yieldTokenIncidents
       .connect(member1)
-      .redeemPayout(0, 0, 0, depeggedTokensAmount, member1.address, [], { gasPrice: 0 });
+      .redeemPayout(0, 1, 0, depeggedTokensAmount, member1.address, [], { gasPrice: 0 });
     const ybEthContractBalanceAfter = await ybEth.balanceOf(yieldTokenIncidents.address);
     const ybEthMemberBalanceAfter = await ybEth.balanceOf(member1.address);
 
@@ -858,7 +858,7 @@ describe('redeemPayout', function () {
     await setNextBlockBaseFee('0');
     await yieldTokenIncidents
       .connect(member1)
-      .redeemPayout(0, 0, 0, depeggedTokensAmount, member1.address, [], { gasPrice: 0 });
+      .redeemPayout(0, 1, 0, depeggedTokensAmount, member1.address, [], { gasPrice: 0 });
 
     const { amount } = await cover.burnStakeCalledWith();
 

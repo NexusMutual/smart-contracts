@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { getCurrentTrancheId } = require('./helpers');
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
@@ -39,7 +39,7 @@ const newProductTemplate = {
 
 const buyCoverParamsTemplate = {
   owner: AddressZero,
-  coverId: MaxUint256,
+  coverId: 0,
   productId: 0,
   coverAsset: 0, // ETH
   amount: parseEther('100'),
@@ -472,7 +472,7 @@ describe('setProducts unit tests', function () {
     // Get capacity in staking pool
     await nxm.connect(staker).approve(tokenController.address, amount);
     const trancheId = (await getCurrentTrancheId()) + 2;
-    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ MaxUint256, staker.address);
+    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ 0, staker.address);
 
     let i = 0;
     const coverId = 1;
@@ -501,7 +501,7 @@ describe('setProducts unit tests', function () {
 
     await Promise.all(
       coverBuyParams.map(cb => {
-        return cover.allocateCapacity(cb, coverId, MaxUint256, stakingPool.address);
+        return cover.allocateCapacity(cb, coverId, 0, stakingPool.address);
       }),
     );
 
@@ -544,7 +544,7 @@ describe('setProducts unit tests', function () {
     // Get capacity in staking pool
     await nxm.connect(staker).approve(tokenController.address, amount);
     const trancheId = (await getCurrentTrancheId()) + 2;
-    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ MaxUint256, manager.address);
+    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ 0, manager.address);
 
     const ratio = await cover.getPriceAndCapacityRatios([0]);
     const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
@@ -563,7 +563,7 @@ describe('setProducts unit tests', function () {
       });
     await Promise.all(
       coverBuyParams.map(cb => {
-        return cover.connect(coverBuyer).allocateCapacity(cb, coverId, MaxUint256, stakingPool.address);
+        return cover.connect(coverBuyer).allocateCapacity(cb, coverId, 0, stakingPool.address);
       }),
     );
 
@@ -614,7 +614,7 @@ describe('setProducts unit tests', function () {
     // Get capacity in staking pool
     await nxm.connect(staker).approve(tokenController.address, amount);
     const trancheId = (await getCurrentTrancheId()) + 2;
-    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ MaxUint256, manager.address);
+    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ 0, manager.address);
 
     // Initialize Products and CoverBuy requests
     const coverBuyParams = Array(20)
@@ -630,7 +630,7 @@ describe('setProducts unit tests', function () {
     const coverId = 1;
     await Promise.all(
       coverBuyParams.map(cb => {
-        return cover.connect(coverBuyer).allocateCapacity(cb, coverId, MaxUint256, stakingPool.address);
+        return cover.connect(coverBuyer).allocateCapacity(cb, coverId, 0, stakingPool.address);
       }),
     );
 

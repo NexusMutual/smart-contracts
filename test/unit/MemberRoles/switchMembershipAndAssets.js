@@ -90,27 +90,28 @@ describe('switchMembershipAndAssets', function () {
 
     expect(newAddressBalance).to.be.equal(initialAddressBalance);
   });
+
   it('transfers the provided covers to the new address', async function () {
     const { memberRoles, nxm, cover, coverNFT } = this.contracts;
     const [member] = this.accounts.members;
     const [nonMember] = this.accounts.nonMembers;
 
     for (let i = 0; i < 3; i++) {
-      await cover.createMockCover(member.address, i);
+      await cover.createMockCover(member.address);
     }
 
     await nxm.connect(member).approve(memberRoles.address, ethers.constants.MaxUint256);
     {
-      const ownershipArr = await Promise.all([0, 1, 2].map(x => coverNFT.ownerOf(x)));
+      const ownershipArr = await Promise.all([1, 2, 3].map(x => coverNFT.ownerOf(x)));
       expect(ownershipArr[0]).to.be.equal(member.address);
       expect(ownershipArr[1]).to.be.equal(member.address);
       expect(ownershipArr[2]).to.be.equal(member.address);
     }
 
     const newMemberAddress = nonMember.address;
-    await memberRoles.connect(member).switchMembershipAndAssets(newMemberAddress, [0, 2], []);
+    await memberRoles.connect(member).switchMembershipAndAssets(newMemberAddress, [1, 3], []);
     {
-      const ownershipArr = await Promise.all([0, 1, 2].map(x => coverNFT.ownerOf(x)));
+      const ownershipArr = await Promise.all([1, 2, 3].map(x => coverNFT.ownerOf(x)));
       expect(ownershipArr[0]).to.be.equal(newMemberAddress);
       expect(ownershipArr[1]).to.be.equal(member.address);
       expect(ownershipArr[2]).to.be.equal(newMemberAddress);
@@ -120,7 +121,7 @@ describe('switchMembershipAndAssets', function () {
   it('transfers all staking NFTs to the new address', async function () {
     const { memberRoles, nxm, stakingNFT } = this.contracts;
     const [member, otherMember] = this.accounts.members;
-    const [nonMember] = this.accounts.nonMembers;
+    const [newMember] = this.accounts.nonMembers;
 
     await stakingNFT.mint(member.address);
     await stakingNFT.mint(otherMember.address);
@@ -128,26 +129,13 @@ describe('switchMembershipAndAssets', function () {
 
     await nxm.connect(member).approve(memberRoles.address, ethers.constants.MaxUint256);
 
-    const newMemberAddress = nonMember.address;
     const coverIds = [];
-    const stakingNFTIds = [0, 2];
-    await memberRoles.connect(member).switchMembershipAndAssets(newMemberAddress, coverIds, stakingNFTIds);
+    const stakingNFTIds = [1, 3];
+    await memberRoles.connect(member).switchMembershipAndAssets(newMember.address, coverIds, stakingNFTIds);
 
-    // The given nfts should belong to the new address
-    {
-      const owner = await stakingNFT.ownerOf(0);
-      expect(owner).to.be.equal(newMemberAddress);
-    }
-    {
-      const owner = await stakingNFT.ownerOf(2);
-      expect(owner).to.be.equal(newMemberAddress);
-    }
-
-    // The omitted nfts should belong to the initial address
-    {
-      const owner = await stakingNFT.ownerOf(1);
-      expect(owner).to.be.equal(otherMember.address);
-    }
+    expect(await stakingNFT.ownerOf(1)).to.be.equal(newMember.address);
+    expect(await stakingNFT.ownerOf(2)).to.be.equal(otherMember.address);
+    expect(await stakingNFT.ownerOf(3)).to.be.equal(newMember.address);
   });
 
   it('reverts when trying to transfer staking nfts of another member', async function () {
@@ -163,7 +151,8 @@ describe('switchMembershipAndAssets', function () {
 
     const newMemberAddress = nonMember.address;
     const coverIds = [];
-    const stakingNFTIds = [0];
+    const stakingNFTIds = [1];
+
     await expect(
       memberRoles.connect(member).switchMembershipAndAssets(newMemberAddress, coverIds, stakingNFTIds),
     ).to.be.revertedWith('WRONG_FROM');
@@ -175,13 +164,13 @@ describe('switchMembershipAndAssets', function () {
     const [nonMember] = this.accounts.nonMembers;
 
     for (let i = 0; i < 3; i++) {
-      await cover.createMockCover(otherMember.address, i);
+      await cover.createMockCover(otherMember.address);
     }
 
     const newMemberAddress = nonMember.address;
     await nxm.connect(member).approve(memberRoles.address, ethers.constants.MaxUint256);
     await expect(
-      memberRoles.connect(member).switchMembershipAndAssets(newMemberAddress, [0, 2], []),
+      memberRoles.connect(member).switchMembershipAndAssets(newMemberAddress, [1, 3], []),
     ).to.be.revertedWith('WRONG_FROM');
   });
 });

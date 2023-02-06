@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 
 const { parseEther, parseUnits } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 
 const ETH_ASSET_ID = 0;
 const DAI_ASSET_ID = 1;
@@ -16,7 +16,7 @@ async function buyCover({ amount, productId, coverAsset, period, cover, coverBuy
   await cover.connect(coverBuyer).buyCover(
     {
       owner: coverBuyer.address,
-      coverId: MaxUint256,
+      coverId: 0,
       productId,
       coverAsset,
       amount,

@@ -24,7 +24,7 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [segment],
     );
-    const coverId = 0;
+    const coverId = 1;
     await expect(
       individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment.amount, '', {
         value: ethers.constants.Zero,
@@ -42,12 +42,12 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [segment],
     );
-    await submitClaim(this)({ coverId: 0, sender: coverOwner });
+    await submitClaim(this)({ coverId: 1, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     const { payoutCooldownInDays } = await assessment.config();
     await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
-    await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).to.be.revertedWith(
+    await expect(submitClaim(this)({ coverId: 1, sender: coverOwner })).to.be.revertedWith(
       'A payout can still be redeemed',
     );
   });
@@ -62,14 +62,14 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [segment],
     );
-    await submitClaim(this)({ coverId: 0, sender: coverOwner });
-    await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).to.be.revertedWith(
+    await submitClaim(this)({ coverId: 1, sender: coverOwner });
+    await expect(submitClaim(this)({ coverId: 1, sender: coverOwner })).to.be.revertedWith(
       'A claim is already being assessed',
     );
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     await setTime(poll.end + daysToSeconds(poll.end));
-    await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).not.to.be.revertedWith(
+    await expect(submitClaim(this)({ coverId: 1, sender: coverOwner })).not.to.be.revertedWith(
       'A claim is already being assessed',
     );
   });
@@ -84,7 +84,7 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [segment],
     );
-    await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).to.be.revertedWith(
+    await expect(submitClaim(this)({ coverId: 1, sender: coverOwner })).to.be.revertedWith(
       'Invalid claim method for this product type',
     );
     {
@@ -97,7 +97,7 @@ describe('submitClaim', function () {
         [segment],
       );
     }
-    await expect(submitClaim(this)({ coverId: 1, sender: coverOwner })).not.to.be.revertedWith(
+    await expect(submitClaim(this)({ coverId: 2, sender: coverOwner })).not.to.be.revertedWith(
       'Invalid claim method for this product type',
     );
     {
@@ -110,7 +110,7 @@ describe('submitClaim', function () {
         [segment],
       );
     }
-    await expect(submitClaim(this)({ coverId: 2, sender: coverOwner })).not.to.be.revertedWith('Invalid redeem method');
+    await expect(submitClaim(this)({ coverId: 3, sender: coverOwner })).not.to.be.revertedWith('Invalid redeem method');
   });
 
   it('allows claim submission if an accepted claim is not redeemed during the redemption period', async function () {
@@ -123,13 +123,13 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [segment],
     );
-    await submitClaim(this)({ coverId: 0, sender: coverOwner });
+    await submitClaim(this)({ coverId: 1, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     const { payoutCooldownInDays } = await assessment.config();
     const { payoutRedemptionPeriodInDays } = await individualClaims.config();
     await setTime(poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays));
-    await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).not.to.be.reverted;
+    await expect(submitClaim(this)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
   });
 
   it('reverts if the submission deposit is less than the expected amount', async function () {
@@ -144,7 +144,7 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [segment],
     );
-    const coverId = 0;
+    const coverId = 1;
 
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, coverAsset);
     await expect(
@@ -172,7 +172,8 @@ describe('submitClaim', function () {
     await setNextBlockBaseFee('0');
     await individualClaims
       .connect(coverOwner)
-      .submitClaim(0, 0, segment.amount, '', { value: deposit.mul('2'), gasPrice: 0 });
+      .submitClaim(1, 0, segment.amount, '', { value: deposit.mul('2'), gasPrice: 0 });
+
     const balanceAfter = await ethers.provider.getBalance(coverOwner.address);
     expect(balanceAfter).to.be.equal(balanceBefore.sub(deposit));
 
@@ -189,7 +190,8 @@ describe('submitClaim', function () {
       await setNextBlockBaseFee('0');
       await individualClaims
         .connect(coverOwner)
-        .submitClaim(1, 0, segment.amount, '', { value: deposit.mul('3'), gasPrice: 0 });
+        .submitClaim(2, 0, segment.amount, '', { value: deposit.mul('3'), gasPrice: 0 });
+
       const balanceAfter = await ethers.provider.getBalance(coverOwner.address);
       expect(balanceAfter).to.be.equal(balanceBefore.sub(deposit));
     }
@@ -207,7 +209,8 @@ describe('submitClaim', function () {
       await setNextBlockBaseFee('0');
       await individualClaims
         .connect(coverOwner)
-        .submitClaim(2, 0, segment.amount, '', { value: deposit.mul('10'), gasPrice: 0 });
+        .submitClaim(3, 0, segment.amount, '', { value: deposit.mul('10'), gasPrice: 0 });
+
       const balanceAfter = await ethers.provider.getBalance(coverOwner.address);
       expect(balanceAfter).to.be.equal(balanceBefore.sub(deposit));
     }
@@ -227,7 +230,7 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [segment0, segment1],
     );
-    const coverId = 0;
+    const coverId = 1;
 
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(
       segment0.amount,
@@ -257,7 +260,7 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [segment0, segment1],
     );
-    const coverId = 0;
+    const coverId = 1;
 
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(
       segment0.amount,
@@ -297,7 +300,7 @@ describe('submitClaim', function () {
     const latestBlock = await ethers.provider.getBlock('latest');
     const currentTime = latestBlock.timestamp;
     await setTime(currentTime + segment0.period + gracePeriod + 1);
-    const coverId = 0;
+    const coverId = 1;
 
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(
       segment0.amount,
@@ -342,7 +345,7 @@ describe('submitClaim', function () {
     const latestBlock = await ethers.provider.getBlock('latest');
     const currentTime = latestBlock.timestamp;
     await setTime(currentTime + segment0.period + gracePeriod + 1);
-    const coverId = 0;
+    const coverId = 1;
 
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(
       segment0.amount,
@@ -375,7 +378,7 @@ describe('submitClaim', function () {
       [segment],
     );
 
-    const coverId = 0;
+    const coverId = 1;
 
     const [expectedDeposit, expectedTotalReward] = await individualClaims.getAssessmentDepositAndReward(
       segment.amount,
@@ -407,7 +410,7 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [segment],
     );
-    const coverId = 0;
+    const coverId = 1;
     coverNFT.connect(coverOwner).transferFrom(coverOwner.address, nonMemberOwner.address, coverId);
     await expect(submitClaim(this)({ coverId, sender: nonMemberOwner })).to.be.revertedWith('Caller is not a member');
   });
@@ -423,7 +426,7 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [segment],
     );
-    const coverId = 0;
+    const coverId = 1;
     await expect(submitClaim(this)({ coverId, sender: otherMember })).to.be.revertedWith(
       'Only the owner or approved addresses can submit a claim',
     );
@@ -460,7 +463,7 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [segment],
     );
-    const coverId = 0;
+    const coverId = 1;
     await expect(submitClaim(this)({ coverId, ipfsMetadata, sender: coverOwner }))
       .to.emit(individualClaims, 'MetadataSubmitted')
       .withArgs(0, ipfsMetadata);
@@ -476,7 +479,7 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [segment],
     );
-    const coverId = 0;
+    const coverId = 1;
     await expect(submitClaim(this)({ coverId, sender: coverOwner })).not.to.emit(individualClaims, 'MetadataSubmitted');
   });
 
@@ -489,7 +492,7 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [await getCoverSegment()],
     );
-    const firstCoverId = 0;
+    const firstCoverId = 1;
 
     {
       const [claimId, exists] = await individualClaims.lastClaimSubmissionOnCover(firstCoverId);
@@ -510,7 +513,7 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [await getCoverSegment()],
     );
-    const secondCoverId = 1;
+    const secondCoverId = 2;
 
     {
       const [claimId, exists] = await individualClaims.lastClaimSubmissionOnCover(secondCoverId);
@@ -540,7 +543,7 @@ describe('submitClaim', function () {
       [segment],
     );
 
-    const coverId = 0;
+    const coverId = 1;
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
     await expect(
       individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit }),
@@ -559,7 +562,7 @@ describe('submitClaim', function () {
       [segment],
     );
 
-    const coverId = 0;
+    const coverId = 1;
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
     await expect(
       individualClaims.connect(coverNonOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit }),
@@ -580,7 +583,7 @@ describe('submitClaim', function () {
 
     const balanceBefore = await ethers.provider.getBalance(pool.address);
 
-    const coverId = 0;
+    const coverId = 1;
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
     await individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit });
     await expect(await ethers.provider.getBalance(pool.address)).to.be.equal(balanceBefore.add(deposit));
@@ -598,7 +601,7 @@ describe('submitClaim', function () {
       [segment],
     );
 
-    const coverId = 0;
+    const coverId = 1;
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
     await expect(individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit }))
       .to.emit(individualClaims, 'ClaimSubmitted')
@@ -628,7 +631,7 @@ describe('submitClaim', function () {
     await expect(
       individualClaims
         .connect(fallbackWillFailSigner)
-        .submitClaim(0, 0, segment.amount, '', { value: deposit.mul('2') }),
+        .submitClaim(1, 0, segment.amount, '', { value: deposit.mul('2') }),
     ).to.be.revertedWith('Assessment deposit excess refund failed');
   });
 
@@ -654,7 +657,7 @@ describe('submitClaim', function () {
     );
 
     await expect(
-      individualClaims.connect(coverOwner).submitClaim(0, 0, segment.amount, '', { value: deposit }),
+      individualClaims.connect(coverOwner).submitClaim(1, 0, segment.amount, '', { value: deposit }),
     ).to.be.revertedWith('Assessment deposit transfer to pool failed');
   });
 });

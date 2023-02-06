@@ -76,7 +76,7 @@ contract StakingNFT is IStakingNFT {
 
     // counter overflow is incredibly unrealistic
     unchecked {
-      id = _totalSupply++;
+      id = ++_totalSupply;
       _balanceOf[to]++;
     }
 

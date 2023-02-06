@@ -3,12 +3,12 @@
 pragma solidity ^0.8.16;
 
 import "../../interfaces/ICover.sol";
-import "../../interfaces/IERC721Mock.sol";
+import "../../interfaces/ICoverNFT.sol";
 
 
 contract CLMockCover {
 
-  IERC721Mock public immutable coverNFT;
+  ICoverNFT public immutable coverNFT;
 
   struct BurnStakeCalledWith {
     uint coverId;
@@ -24,7 +24,8 @@ contract CLMockCover {
 
   BurnStakeCalledWith public burnStakeCalledWith;
   MigrateCoverFromCalledWith public migrateCoverFromCalledWith;
-  CoverData[] public coverData;
+
+  mapping(uint => CoverData) public coverData;
   mapping(uint => CoverSegment[]) _coverSegments;
   mapping(uint => PoolAllocation[]) stakingPoolsForCover;
 
@@ -60,7 +61,7 @@ contract CLMockCover {
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
 
   constructor(address coverNFTAddress) {
-    coverNFT = IERC721Mock(coverNFTAddress);
+    coverNFT = ICoverNFT(coverNFTAddress);
   }
 
   function products(uint id) external view returns (Product memory) {
@@ -93,18 +94,17 @@ contract CLMockCover {
     CoverSegment[] memory segments
   ) external payable returns (uint coverId) {
 
-    coverData.push(CoverData(
-        productId,
-        coverAsset,
-        0
-      ));
+    coverId = coverNFT.mint(owner);
+
+    coverData[coverId] = CoverData(
+      productId,
+      coverAsset,
+      0
+    );
 
     for (uint i = 0; i < segments.length; i++) {
-      _coverSegments[coverData.length - 1].push(segments[i]);
+      _coverSegments[coverId].push(segments[i]);
     }
-
-    coverId = coverData.length - 1;
-    coverNFT.mint(owner, coverId);
   }
 
   function addProductType(

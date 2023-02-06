@@ -8,6 +8,7 @@ import "../../interfaces/IMemberRoles.sol";
 pragma solidity ^0.8.16;
 
 contract MRMockCover {
+
   ICoverNFT immutable public coverNFT;
   IMemberRoles immutable public memberRoles;
   IStakingNFT immutable public stakingNFT;
@@ -31,7 +32,7 @@ contract MRMockCover {
     }
   }
 
-  function createMockCover(address to, uint tokenId) public {
-    coverNFT.mint(to, tokenId);
+  function createMockCover(address to) public returns (uint tokenId) {
+    return coverNFT.mint(to);
   }
 }

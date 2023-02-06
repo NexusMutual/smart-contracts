@@ -4,7 +4,7 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime, setEtherBalance } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -19,6 +19,7 @@ const stakedProductParamTemplate = {
   setTargetPrice: true,
   targetPrice: 100,
 };
+
 const buyCoverFixture = {
   productId: 2, // ybETH
   coverAsset: 0, // ETH
@@ -26,7 +27,7 @@ const buyCoverFixture = {
   gracePeriod: daysToSeconds(30),
   amount: parseEther('10'),
   priceDenominator: 10000,
-  coverId: 0,
+  coverId: 1,
   segmentId: 0,
   incidentId: 0,
   assessmentId: 0,
@@ -57,8 +58,8 @@ describe('totalActiveCover', function () {
     const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
 
     // Stake to open up capacity
-    await stakingPool.connect(staker).depositTo(stakingAmount, firstTrancheId, MaxUint256, AddressZero);
-    await stakingPool.connect(staker).depositTo(stakingAmount, firstTrancheId + 1, MaxUint256, AddressZero);
+    await stakingPool.connect(staker).depositTo(stakingAmount, firstTrancheId, 0, AddressZero);
+    await stakingPool.connect(staker).depositTo(stakingAmount, firstTrancheId + 1, 0, AddressZero);
   }
 
   async function transferYieldToken({ tokenOwner, coverBuyer1, ybETH, yc }) {
@@ -80,7 +81,7 @@ describe('totalActiveCover', function () {
 
     await cover.connect(coverBuyer1).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: 0,
         owner: coverBuyer1.address,
         productId,
         coverAsset,

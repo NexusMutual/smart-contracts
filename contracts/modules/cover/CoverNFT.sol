@@ -7,7 +7,7 @@ import "solmate/src/tokens/ERC721.sol";
 
 contract CoverNFT is ERC721 {
 
-  // TODO: consider adding totalSupply()
+  uint96 internal _totalSupply;
 
   address public operator;
 
@@ -20,6 +20,10 @@ contract CoverNFT is ERC721 {
     operator = _operator;
   }
 
+  function totalSupply() public view returns (uint) {
+    return _totalSupply;
+  }
+
   function tokenURI(uint256) public pure override returns (string memory) {
     // TODO: implement me
     return "";
@@ -30,14 +34,17 @@ contract CoverNFT is ERC721 {
     return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[tokenId];
   }
 
-  function mint(address to, uint tokenId) external onlyOperator {
+  function mint(address to) external onlyOperator returns (uint tokenId) {
+    tokenId = ++_totalSupply;
     _mint(to, tokenId);
   }
 
   function burn(uint tokenId) external onlyOperator {
     _burn(tokenId);
+    --_totalSupply;
   }
 
+  // TODO: the only diff between this and transferFrom is the approval check. We should consider using transferFrom.
   function operatorTransferFrom(address from, address to, uint256 tokenId) external onlyOperator {
 
     require(from == _ownerOf[tokenId], "WRONG_FROM");

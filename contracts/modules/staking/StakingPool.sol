@@ -153,8 +153,6 @@ contract StakingPool is IStakingPool, Multicall {
   // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
-  uint public constant MAX_UINT = type(uint).max;
-
   modifier onlyCoverContract {
     if (msg.sender != coverContract) {
       revert OnlyCoverContract();
@@ -179,6 +177,14 @@ contract StakingPool is IStakingPool, Multicall {
       revert PoolHalted();
     }
     _;
+  }
+
+  // validate token id exists and belongs to this pool
+  // stakingPoolOf() reverts for non-existent tokens
+  function requireTokenBelongsToPool(uint tokenId) internal view {
+    if (stakingNFT.stakingPoolOf(tokenId) != poolId) {
+      revert TokenDoesNotBelongToPool();
+    }
   }
 
   constructor (
@@ -410,18 +416,13 @@ contract StakingPool is IStakingPool, Multicall {
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
     uint totalAmount;
 
-    // deposit to token id = MAX_UINT is not allowed
+    // deposit to token id = 0 is not allowed
     // we treat it as a flag to create a new token
-    if (requestTokenId == MAX_UINT) {
+    if (requestTokenId == 0) {
       address to = destination == address(0) ? msg.sender : destination;
       tokenId = stakingNFT.mint(poolId, to);
     } else {
-      // validate token id exists and belongs to this pool
-      // stakingPoolOf() reverts for non-existent tokens
-      require(
-        stakingNFT.stakingPoolOf(requestTokenId) == poolId,
-        "StakingPool: Token does not belong to this pool"
-      );
+      requireTokenBelongsToPool(requestTokenId);
       tokenId = requestTokenId;
     }
 
@@ -434,7 +435,7 @@ contract StakingPool is IStakingPool, Multicall {
     // update deposit and pending reward
     {
       // conditional read
-      Deposit memory deposit = requestTokenId == MAX_UINT
+      Deposit memory deposit = requestTokenId == 0
         ? Deposit(0, 0, 0, 0)
         : deposits[tokenId][trancheId];
 
@@ -462,7 +463,7 @@ contract StakingPool is IStakingPool, Multicall {
 
     // update pool manager's reward shares
     {
-      Deposit memory feeDeposit = deposits[MAX_UINT][trancheId];
+      Deposit memory feeDeposit = deposits[0][trancheId];
 
       {
         // create fee deposit reward shares
@@ -476,7 +477,7 @@ contract StakingPool is IStakingPool, Multicall {
         feeDeposit.rewardsShares += newFeeRewardShares.toUint128();
       }
 
-      deposits[MAX_UINT][trancheId] = feeDeposit;
+      deposits[0][trancheId] = feeDeposit;
     }
 
     // update tranche
@@ -612,7 +613,7 @@ contract StakingPool is IStakingPool, Multicall {
       deposits[tokenId][trancheId] = deposit;
     }
 
-    address destination = tokenId == MAX_UINT
+    address destination = tokenId == 0
       ? manager
       : stakingNFT.ownerOf(tokenId);
 
@@ -637,7 +638,7 @@ contract StakingPool is IStakingPool, Multicall {
 
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
-    uint[] memory trancheAllocations = request.allocationId == type(uint).max
+    uint[] memory trancheAllocations = request.allocationId == 0
       ? getActiveAllocations(request.productId)
       : getActiveAllocationsWithoutCover(
           request.productId,
@@ -658,9 +659,9 @@ contract StakingPool is IStakingPool, Multicall {
       );
 
       // no need to charge any premium
-      // returning maxUint as allocationId since there was no allocation
+      // returning 0 as allocationId since there was no allocation
       // and since amount is 0 allocation will not be saved in the segment
-      return (0, type(uint).max);
+      return (0, 0);
     }
 
     uint coverAllocationAmount;
@@ -919,9 +920,8 @@ contract StakingPool is IStakingPool, Multicall {
     uint allocationId
   ) {
 
-    if (request.allocationId == type(uint).max) {
-      allocationId = nextAllocationId;
-      nextAllocationId++;
+    if (request.allocationId == 0) {
+      allocationId = ++lastAllocationId;
     } else {
       allocationId = request.allocationId;
     }
@@ -1089,10 +1089,8 @@ contract StakingPool is IStakingPool, Multicall {
     uint topUpAmount
   ) external whenNotPaused whenNotHalted {
 
-    // token id MAX_UINT is only used for pool manager fee tracking, no deposits allowed
-    if (tokenId == MAX_UINT) {
-      revert InvalidTokenId();
-    }
+    requireTokenBelongsToPool(tokenId);
+
     if (!stakingNFT.isApprovedOrOwner(msg.sender, tokenId)) {
       revert NotTokenOwnerOrApproved();
     }
@@ -1109,6 +1107,7 @@ contract StakingPool is IStakingPool, Multicall {
       if (newTrancheId > maxTrancheId) {
         revert RequestedTrancheIsNotYetActive();
       }
+
       if (newTrancheId < firstActiveTrancheId) {
         revert RequestedTrancheIsExpired();
       }
@@ -1444,7 +1443,7 @@ contract StakingPool is IStakingPool, Multicall {
     for (uint trancheId = fromTrancheId; trancheId <= toTrancheId; trancheId++) {
 
       // sload
-      Deposit memory feeDeposit = deposits[MAX_UINT][trancheId];
+      Deposit memory feeDeposit = deposits[0][trancheId];
 
       if (feeDeposit.rewardsShares == 0) {
         continue;
@@ -1458,7 +1457,7 @@ contract StakingPool is IStakingPool, Multicall {
       feeDeposit.rewardsShares = (uint(feeDeposit.rewardsShares) * newFee / oldFee).toUint128();
 
       // sstore
-      deposits[MAX_UINT][trancheId] = feeDeposit;
+      deposits[0][trancheId] = feeDeposit;
     }
 
     emit PoolFeeChanged(msg.sender, newFee);

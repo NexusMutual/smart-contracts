@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
 const { parseEther } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 
 const DEFAULT_POOL_FEE = '5';
 const DEFAULT_PRODUCTS = [{ productId: 0, weight: 100 }];
@@ -97,7 +97,7 @@ async function buyCoverOnMultiplePools({
   const tx = await cover.connect(coverBuyer).buyCover(
     {
       owner: coverBuyer.address,
-      coverId: MaxUint256,
+      coverId: 0,
       productId,
       coverAsset,
       amount,

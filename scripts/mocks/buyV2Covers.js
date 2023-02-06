@@ -92,7 +92,7 @@ async function buyCover(productId, poolId, cover, buyer, amount, period, payment
       commissionRatio: parseEther('0'),
       commissionDestination: AddressZero,
       ipfsData: '',
-      coverId: MaxUint256.toString(), // new cover
+      coverId: 0, // new cover
     },
     [{ poolId, coverAmountInAsset: amount.toString() }],
     { value: premiumWithSlippage },

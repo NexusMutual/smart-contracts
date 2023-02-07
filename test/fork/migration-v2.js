@@ -1,8 +1,9 @@
-const { artifacts, ethers, web3, network, run } = require('hardhat');
+const { artifacts, ethers, network, run } = require('hardhat');
 const { expect } = require('chai');
 const fetch = require('node-fetch');
 
 const evm = require('./evm')();
+const { enableAsEnzymeReceiver } = require('./utils');
 const proposalCategories = require('../utils').proposalCategories;
 const { ProposalCategory: PROPOSAL_CATEGORIES, ContractTypes } = require('../../lib/constants');
 
@@ -40,9 +41,6 @@ const COWSWAP_SETTLEMENT = '0x9008D19f58AAbD9eD0D60971565AA8510560ab41';
 
 const ENZYMEV4_VAULT_PROXY_ADDRESS = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
 const ENZYME_FUND_VALUE_CALCULATOR_ROUTER = '0x7c728cd0CfA92401E01A4849a01b57EE53F5b2b9';
-const ENZYME_COMPTROLLER_PROXY_ADDRESS = '0xa5bf4350da6193b356ac15a3dbd777a687bc216e';
-const ENZYME_ADDRESS_LIST_REGISTRY = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
-const ListIdForReceivers = 218;
 
 const DAI_PRICE_FEED_ORACLE_AGGREGATOR = '0x773616E4d11A78F511299002da57A0a94577F1f4';
 const STETH_PRICE_FEED_ORACLE_AGGREGATOR = '0x86392dC19c0b719886221c78AB11eb8Cf5c52812';
@@ -114,28 +112,6 @@ async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
 
   const proposal = await gv.proposal(id);
   assert.equal(proposal[2].toNumber(), 3, 'Proposal Status != ACCEPTED');
-}
-
-async function enableAsEnzymeReceiver(receiverAddress) {
-  const comptroller = await ethers.getContractAt('IEnzymeV4Comptroller', ENZYME_COMPTROLLER_PROXY_ADDRESS);
-  const vault = await ethers.getContractAt('IEnzymeV4Vault', ENZYMEV4_VAULT_PROXY_ADDRESS);
-  const ownerAddress = await vault.getOwner();
-  console.log('Enzyme vault owner address:', ownerAddress);
-
-  // Unlock and funding vault owner
-  const owner = await getSigner(ownerAddress);
-  await evm.impersonate(ownerAddress);
-  await evm.setBalance(ownerAddress, parseEther('1000'));
-
-  // Update Enzyme vault receivers
-  const selector = web3.eth.abi.encodeFunctionSignature('addToList(uint256,address[])');
-  const receiverArgs = web3.eth.abi.encodeParameters(['uint256', 'address[]'], [ListIdForReceivers, [receiverAddress]]);
-  await comptroller.connect(owner).vaultCallOnContract(ENZYME_ADDRESS_LIST_REGISTRY, selector, receiverArgs);
-
-  // Check that Enzyme vault receivers contains the Pool address
-  const registry = await ethers.getContractAt('IAddressListRegistry', ENZYME_ADDRESS_LIST_REGISTRY);
-  const inReceiverList = await registry.isInList(ListIdForReceivers, receiverAddress);
-  assert.equal(inReceiverList, true);
 }
 
 describe('V2 upgrade', function () {
@@ -636,7 +612,7 @@ describe('V2 upgrade', function () {
   });
 
   // TODO: add MCR value check
-  it('MCR Value check', async function() {});
+  it('MCR Value check', async function () {});
 
   it('Cleanup storage in MemberRoles', async function () {
     const claimPayableAddressSlot = 15;
@@ -1254,4 +1230,6 @@ describe('V2 upgrade', function () {
     const kycAuthAddressMR = await this.memberRoles.kycAuthAddress();
     expect(kycAuthAddressMR).to.be.equal(kycAuthAddressQD);
   });
+
+  require('./basic-functionality-tests');
 });

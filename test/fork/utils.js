@@ -38,6 +38,8 @@ const PriceFeedOracle = {
 
 const ratioScale = toBN('10000');
 
+const ListIdForReceivers = 218;
+
 async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
   const id = await gv.getProposalLength();
 
@@ -103,13 +105,6 @@ async function submitMemberVoteGovernanceProposal(categoryId, actionData, signer
   assert.equal(proposal[2].toNumber(), 3, 'Proposal Status != ACCEPTED');
 }
 
-async function deployContract(contract, args = []) {
-  const Contract = await ethers.getContractFactory(contract);
-  const instance = await Contract.deploy(...args);
-  await instance.deployed();
-  return instance;
-}
-
 async function calculateCurrentTrancheId() {
   const lastBlock = await ethers.provider.getBlock('latest');
   return Math.floor(lastBlock.timestamp / (91 * 24 * 3600));
@@ -137,10 +132,35 @@ const unlock = async address => {
   return await ethers.getSigner(address);
 };
 
+async function enableAsEnzymeReceiver(receiverAddress) {
+  await evm.connect(ethers.provider);
+
+  const comptroller = await ethers.getContractAt('IEnzymeV4Comptroller', EnzymeAdress.ENZYME_COMPTROLLER_PROXY_ADDRESS);
+  const vault = await ethers.getContractAt('IEnzymeV4Vault', EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS);
+  const ownerAddress = await vault.getOwner();
+  console.log('Enzyme vault owner address:', ownerAddress);
+
+  // Unlock and funding vault owner
+  const owner = await getSigner(ownerAddress);
+  await evm.impersonate(ownerAddress);
+  await evm.setBalance(ownerAddress, parseEther('1000'));
+
+  // Update Enzyme vault receivers
+  const selector = web3.eth.abi.encodeFunctionSignature('addToList(uint256,address[])');
+  const receiverArgs = web3.eth.abi.encodeParameters(['uint256', 'address[]'], [ListIdForReceivers, [receiverAddress]]);
+  await comptroller
+    .connect(owner)
+    .vaultCallOnContract(EnzymeAdress.ENZYME_ADDRESS_LIST_REGISTRY, selector, receiverArgs);
+
+  // Check that Enzyme vault receivers contains the Pool address
+  const registry = await ethers.getContractAt('IAddressListRegistry', EnzymeAdress.ENZYME_ADDRESS_LIST_REGISTRY);
+  const inReceiverList = await registry.isInList(ListIdForReceivers, receiverAddress);
+  assert.equal(inReceiverList, true);
+}
+
 module.exports = {
   submitGovernanceProposal,
   submitMemberVoteGovernanceProposal,
-  deployContract,
   calculateCurrentTrancheId,
   getSigner,
   toBytes,
@@ -152,4 +172,5 @@ module.exports = {
   fund,
   unlock,
   ratioScale,
+  enableAsEnzymeReceiver,
 };

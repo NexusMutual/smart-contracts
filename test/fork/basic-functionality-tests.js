@@ -1,5 +1,8 @@
-const { ethers } = require('hardhat');
-const { parseEther, defaultAbiCoder, toUtf8Bytes, getCreate2Address, arrayify } = ethers.utils;
+const {
+  ethers,
+  ethers: { deployContract },
+} = require('hardhat');
+const { parseEther, defaultAbiCoder, toUtf8Bytes, getCreate2Address } = ethers.utils;
 const { expect } = require('chai');
 const { AddressZero, MaxUint256 } = ethers.constants;
 const evm = require('./evm')();
@@ -8,12 +11,12 @@ const {
   UserAddress,
   EnzymeAdress,
   PriceFeedOracle,
-  deployContract,
   calculateCurrentTrancheId,
   getSigner,
   submitGovernanceProposal,
   submitMemberVoteGovernanceProposal,
   toBytes,
+  enableAsEnzymeReceiver,
 } = require('./utils');
 
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
@@ -22,7 +25,7 @@ const { proposalCategories } = require('../utils');
 
 const { DAI_ADDRESS, STETH_ADDRESS } = Address;
 const { NXM_WHALE_1, NXM_WHALE_2, DAI_NXM_HOLDER, NXMHOLDER } = UserAddress;
-const { ENZYMEV4_VAULT_PROXY_ADDRESS } = EnzymeAdress;
+const { ENZYMEV4_VAULT_PROXY_ADDRESS, ENZYME_COMPTROLLER_PROXY_ADDRESS, ENZYME_ADDRESS_LIST_REGISTRY } = EnzymeAdress;
 const {
   DAI_PRICE_FEED_ORACLE_AGGREGATOR,
   STETH_PRICE_FEED_ORACLE_AGGREGATOR,
@@ -30,9 +33,15 @@ const {
 } = PriceFeedOracle;
 
 let ybDAI, ybETH, ybEthProductId, ybDaiProductId, ybDaiCoverId, ybEthCoverId, ybDaiAssessmentId, ybEthAssessmentId;
-let stakingPool;
-let tranchId;
+let poolId;
+let trancheId;
 let tokenId;
+
+async function compareProxyImplementationAddress(proxyAddress, addressToCompare) {
+  const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
+  const implementationAddress = await proxy.implementation();
+  expect(implementationAddress).to.be.equal(addressToCompare);
+}
 
 describe('basic functionality tests', function () {
   before(async () => {
@@ -41,7 +50,7 @@ describe('basic functionality tests', function () {
 
     await evm.increaseTime(7 * 24 * 3600); // +7 days
 
-    tranchId = await calculateCurrentTrancheId();
+    trancheId = await calculateCurrentTrancheId();
   });
 
   it('Impersonate members', async function () {
@@ -57,6 +66,7 @@ describe('basic functionality tests', function () {
     this.members.push(await getSigner(NXM_WHALE_2));
     this.members.push(await getSigner(NXMHOLDER));
   });
+
   it('buy NXM Token', async function () {
     const buyValue = parseEther('1');
     const buyer = this.abMembers[0];
@@ -72,7 +82,7 @@ describe('basic functionality tests', function () {
     expect(balanceAfter).to.be.equal(balanceBefore.add(expectedTokensReceived));
   });
 
-  it('buy NXM till you can sell NXM', async function () {
+  it('buy NXM until you can sell NXM', async function () {
     const buyer = this.abMembers[0];
     const buyerAddress = await buyer.getAddress();
 
@@ -139,15 +149,18 @@ describe('basic functionality tests', function () {
         },
       },
     ];
-    try {
-      await this.cover.connect(this.abMembers[0]).setProductTypes(productTypes);
-    } catch (ex) {
-      console.log(ex);
-    }
+    const productTypesCountBefore = await this.cover.productTypesCount();
+
+    await this.cover.connect(this.abMembers[0]).setProductTypes(productTypes);
+
+    const productTypesCountAfter = await this.cover.productTypesCount();
+
+    expect(productTypesCountAfter).to.be.equal(productTypesCountBefore.add(productTypes.length));
   });
 
   it('add ybDAI yield token cover', async function () {
     ybDAI = await deployContract('ERC20MintableDetailed', ['yield bearing DAI', 'ybDAI', 18]);
+    const productsBefore = await this.cover.getProducts();
 
     await this.cover.connect(this.abMembers[0]).setProducts([
       {
@@ -159,19 +172,23 @@ describe('basic functionality tests', function () {
           yieldTokenAddress: ybDAI.address,
           coverAssets: 2,
           initialPriceRatio: 1000,
-          capacityReductionRatio: 10000,
+          capacityReductionRatio: 1000,
           useFixedPrice: false,
           isDeprecated: false,
         },
         allowedPools: [],
       },
     ]);
-    const allProducts = await this.cover.getProducts();
-    ybDaiProductId = allProducts.length - 1;
+
+    const productsAfter = await this.cover.getProducts();
+    ybDaiProductId = productsAfter.length - 1;
+
+    expect(productsAfter.length).to.be.equal(productsBefore.length + 1);
   });
 
   it('add ybETH yield token cover', async function () {
     ybETH = await deployContract('ERC20MintableDetailed', ['yield bearing DAI', 'ybDAI', 18]);
+    const productsBefore = await this.cover.getProducts();
 
     await this.cover.connect(this.abMembers[0]).setProducts([
       {
@@ -183,20 +200,22 @@ describe('basic functionality tests', function () {
           yieldTokenAddress: ybETH.address,
           coverAssets: 1,
           initialPriceRatio: 1000,
-          capacityReductionRatio: 10000,
+          capacityReductionRatio: 1000,
           useFixedPrice: false,
           isDeprecated: false,
         },
         allowedPools: [],
       },
     ]);
-    const allProducts = await this.cover.getProducts();
-    ybEthProductId = allProducts.length - 1;
+
+    const productsAfter = await this.cover.getProducts();
+    ybEthProductId = productsAfter.length - 1;
+
+    expect(productsAfter.length).to.be.equal(productsBefore.length + 1);
   });
 
   it('create staking Pool', async function () {
     const [manager] = this.abMembers;
-    const managerAddress = await manager.getAddress();
     const products = [
       {
         productId: ybDaiProductId, // ybDAI
@@ -212,40 +231,37 @@ describe('basic functionality tests', function () {
       },
     ];
     const stakingPoolCountBefore = await this.stakingPoolFactory.stakingPoolCount();
-    await this.cover.connect(manager).createStakingPool(managerAddress, false, 5, 5, products, 'description');
+    await this.cover.connect(manager).createStakingPool(false, 5, 5, products, 'description');
 
     const stakingPoolCountAfter = await this.stakingPoolFactory.stakingPoolCount();
 
+    poolId = stakingPoolCountAfter.toNumber();
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
-    const salt = Buffer.from(stakingPoolCountBefore.toString().padStart(64, '0'), 'hex');
+
+    const salt = Buffer.from(poolId.toString(16).padStart(64, '0'), 'hex');
+    // TODO: calculate hash
     const initCodeHash = Buffer.from('203b477dc328f1ceb7187b20e5b1b0f0bc871114ada7e9020c9ac112bbfb6920', 'hex');
     const address = getCreate2Address(this.stakingPoolFactory.address, salt, initCodeHash);
 
-    stakingPool = await ethers.getContractAt('StakingPool', address);
+    this.stakingPool = await ethers.getContractAt('StakingPool', address);
   });
 
   it('deposit to staking Pool', async function () {
     const [manager] = this.abMembers;
     const managerAddress = await manager.getAddress();
+    const managerBalanceBefore = await this.nxm.balanceOf(managerAddress);
     const totalSupplyBefore = await this.stakingNFT.totalSupply();
-    const amount = parseEther('10');
+    const amount = parseEther('100');
 
-    await stakingPool.connect(manager).depositTo(amount, tranchId, 0, AddressZero);
+    await this.stakingPool.connect(manager).depositTo(amount, trancheId + 1, 0, AddressZero);
+
+    const managerBalanceAfter = await this.nxm.balanceOf(managerAddress);
     const totalSupplyAfter = await this.stakingNFT.totalSupply();
-    console.log('totalSupplyBefore');
-    console.log(totalSupplyBefore);
-    console.log('totalSupplyAfter');
-    console.log(totalSupplyAfter);
-    expect(totalSupplyAfter).to.equal(totalSupplyBefore.add(1));
-
     tokenId = totalSupplyAfter;
-    console.log('-------token-----');
-    console.log(tokenId);
-    const poolId = await this.stakingNFT.stakingPoolOf(tokenId);
-    console.log('-------pool-----');
-    console.log(poolId);
     const owner = await this.stakingNFT.ownerOf(tokenId);
-    console.log(owner);
+
+    expect(totalSupplyAfter).to.equal(totalSupplyBefore.add(1));
+    expect(managerBalanceAfter).to.equal(managerBalanceBefore.sub(amount));
     expect(owner).to.equal(managerAddress);
   });
 
@@ -253,18 +269,90 @@ describe('basic functionality tests', function () {
     const [manager] = this.abMembers;
     const managerAddress = await manager.getAddress();
     const amount = parseEther('5');
-    console.log(tokenId);
-
     const managerBalanceBefore = await this.nxm.balanceOf(managerAddress);
     const tokenControllerBalanceBefore = await this.nxm.balanceOf(this.tokenController.address);
-    await stakingPool.connect(manager).extendDeposit(tokenId, tranchId, tranchId + 7, amount);
+
+    await this.stakingPool.connect(manager).extendDeposit(tokenId, trancheId, trancheId + 7, amount);
+
     const tokenControllerBalanceAfter = await this.nxm.balanceOf(this.tokenController.address);
     const managerBalanceAfter = await this.nxm.balanceOf(managerAddress);
 
-    console.log('--------------');
     expect(managerBalanceAfter).to.equal(managerBalanceBefore.sub(amount));
-    console.log('--------------');
     expect(tokenControllerBalanceAfter).to.equal(tokenControllerBalanceBefore.add(amount));
+  });
+
+  it('buy ybDAI yield token cover with DAI', async function () {
+    await evm.impersonate(DAI_NXM_HOLDER);
+    const coverBuyer = await getSigner(DAI_NXM_HOLDER);
+    const coverBuyerAddress = await coverBuyer.getAddress();
+
+    const coverAsset = 1; // DAI
+    const amount = parseEther('1');
+    const commissionRatio = '500'; // 5%
+
+    const dai = await ethers.getContractAt('ERC20MintableDetailed', DAI_ADDRESS);
+    await dai.connect(coverBuyer).approve(this.cover.address, amount);
+    const coverCountBefore = await this.cover.coverDataCount();
+
+    await this.cover.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyerAddress,
+        productId: ybDaiProductId,
+        coverAsset,
+        amount,
+        period: 3600 * 24 * 30, // 30 days
+        maxPremiumInAsset: parseEther('1').mul(260).div(10000),
+        paymentAsset: coverAsset,
+        payWithNXM: false,
+        commissionRatio,
+        commissionDestination: coverBuyerAddress,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+      { value: '0' },
+    );
+
+    const coverCountAfter = await this.cover.coverDataCount();
+    ybDaiCoverId = coverCountBefore;
+
+    expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
+  });
+
+  it('buy ybETH yield token cover with ETH', async function () {
+    await evm.impersonate(DAI_NXM_HOLDER);
+    const coverBuyer = await getSigner(DAI_NXM_HOLDER);
+    const coverBuyerAddress = await coverBuyer.getAddress();
+
+    const coverAsset = 0; // ETH
+    const amount = parseEther('1');
+    const commissionRatio = '500'; // 5%
+
+    const coverCountBefore = await this.cover.coverDataCount();
+
+    await this.cover.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyerAddress,
+        productId: ybEthProductId,
+        coverAsset,
+        amount,
+        period: 3600 * 24 * 30, // 30 days
+        maxPremiumInAsset: parseEther('1').mul(260).div(10000),
+        paymentAsset: coverAsset,
+        payWithNXM: false,
+        commissionRatio,
+        commissionDestination: coverBuyerAddress,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+      { value: amount },
+    );
+
+    const coverCountAfter = await this.cover.coverDataCount();
+    ybEthCoverId = coverCountBefore;
+
+    expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
   });
 
   it('Add proposal category 45 (Submit Incident for Yield Token)', async function () {
@@ -290,69 +378,6 @@ describe('basic functionality tests', function () {
       this.abMembers,
       this.governance,
     );
-  });
-
-  it('buy ybDAI yield token cover with DAI', async function () {
-    await evm.impersonate(DAI_NXM_HOLDER);
-    const coverBuyer = await getSigner(DAI_NXM_HOLDER);
-    const coverBuyerAddress = await coverBuyer.getAddress();
-
-    const coverAsset = 1; // DAI
-    const amount = parseEther('1');
-    const commissionRatio = '500'; // 5%
-
-    const dai = await ethers.getContractAt('ERC20MintableDetailed', DAI_ADDRESS);
-    await dai.connect(coverBuyer).approve(this.cover.address, amount);
-    await this.cover.connect(coverBuyer).buyCover(
-      {
-        coverId: MaxUint256,
-        owner: coverBuyerAddress,
-        productId: ybDaiProductId,
-        coverAsset,
-        amount,
-        period: 3600 * 24 * 30, // 30 days
-        maxPremiumInAsset: parseEther('1').mul(260).div(10000),
-        paymentAsset: coverAsset,
-        payWithNXM: false,
-        commissionRatio,
-        commissionDestination: coverBuyerAddress,
-        ipfsData: '',
-      },
-      [{ poolId: '0', coverAmountInAsset: amount }],
-      { value: '0' },
-    );
-
-    ybDaiCoverId = (await this.cover.coverDataCount()).sub(1);
-  });
-
-  it('buy ybETH yield token cover with ETH', async function () {
-    const coverBuyer = await getSigner(DAI_NXM_HOLDER);
-    const coverBuyerAddress = await coverBuyer.getAddress();
-
-    const coverAsset = 0; // ETH
-    const amount = parseEther('1');
-    const commissionRatio = '500'; // 5%
-
-    await this.cover.connect(coverBuyer).buyCover(
-      {
-        coverId: MaxUint256,
-        owner: coverBuyerAddress,
-        productId: ybEthProductId,
-        coverAsset,
-        amount,
-        period: 3600 * 24 * 30, // 30 days
-        maxPremiumInAsset: parseEther('1').mul(260).div(10000),
-        paymentAsset: coverAsset,
-        payWithNXM: false,
-        commissionRatio,
-        commissionDestination: coverBuyerAddress,
-        ipfsData: '',
-      },
-      [{ poolId: '0', coverAmountInAsset: amount }],
-      { value: amount },
-    );
-
-    ybEthCoverId = (await this.cover.coverDataCount()).sub(1);
   });
 
   it.skip('submit claim for ybDAI cover', async function () {
@@ -389,22 +414,6 @@ describe('basic functionality tests', function () {
     );
   });
 
-  it.skip('vote for the ybDAI claim', async function () {
-    const [manager] = this.abMembers;
-    const assessmentStakingAmount = parseEther('1000');
-
-    await this.assessment.connect(manager).stake(assessmentStakingAmount);
-    await this.assessment.connect(manager).castVotes(ybDaiAssessmentId, [true], ['Assessment data hash'], 0);
-  });
-
-  it.skip('vote for the ybETH claim', async function () {
-    const [manager] = this.abMembers;
-    const assessmentStakingAmount = parseEther('1000');
-
-    await this.assessment.connect(manager).stake(assessmentStakingAmount);
-    await this.assessment.connect(manager).castVotes(ybEthAssessmentId, [true], ['Assessment data hash'], 0);
-  });
-
   it('sets DMCI to greater to 1% to allow floor increase', async function () {
     const newMaxMCRFloorChange = BigNumber.from(100);
 
@@ -432,10 +441,7 @@ describe('basic functionality tests', function () {
       this.governance,
     );
 
-    const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', this.governance.address);
-    this.governance = await ethers.getContractAt('Governance', this.governance.address);
-    const governanceAddressAfter = await proxy.implementation();
-    expect(governanceAddressAfter).to.be.equal(newGovernance.address);
+    await compareProxyImplementationAddress(this.governance.address, newGovernance.address);
   });
 
   it('performs hypothetical future NXMaster upgrade', async function () {
@@ -447,12 +453,10 @@ describe('basic functionality tests', function () {
       this.abMembers,
       this.governance,
     );
-    const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', this.master.address);
-    const masterAddressAfter = await proxy.implementation();
-    expect(masterAddressAfter).to.be.equal(newMaster.address);
+    await compareProxyImplementationAddress(this.master.address, newMaster.address);
   });
 
-  it.skip('performs hypothetical future upgrade of proxy and non-proxy', async function () {
+  it('performs hypothetical future upgrade of proxy and non-proxy', async function () {
     // CR - ClaimRewards.sol
     const newClaimsReward = await deployContract('LegacyClaimsReward', [this.master.address, DAI_ADDRESS]);
 
@@ -461,13 +465,14 @@ describe('basic functionality tests', function () {
       this.quotationData.address,
       newClaimsReward.address,
       this.stakingPoolFactory.address,
+      this.nxm.address,
     ]);
 
     // MCR - MCR.sol
     const mcr = await deployContract('MCR', [this.master.address]);
 
     // MR - MemberRoles.sol
-    const memberRoles = await deployContract('MemberRoles');
+    const memberRoles = await deployContract('MemberRoles', [this.nxm.address]);
 
     // CO - Cover.sol
     const cover = await deployContract('Cover', [
@@ -478,8 +483,11 @@ describe('basic functionality tests', function () {
     ]);
 
     // PS - PooledStaking.sol
-    const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
-    const pooledStaking = await deployContract('LegacyPooledStaking', [coverProxyAddress, this.productsV1.address]);
+    const pooledStaking = await deployContract('LegacyPooledStaking', [
+      this.coverProxyAddress,
+      this.productsV1.address,
+      this.stakingNFT.address,
+    ]);
 
     // PriceFeedOracle.sol
     const assetAddresses = [DAI_ADDRESS, STETH_ADDRESS, ENZYMEV4_VAULT_PROXY_ADDRESS];
@@ -489,23 +497,39 @@ describe('basic functionality tests', function () {
       ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
     ];
     const assetDecimals = [18, 18, 18];
-    this.priceFeedOracle = await deployContract('PriceFeedOracle', [assetAddresses, assetAggregators, assetDecimals]);
+    const priceFeedOracle = await deployContract('PriceFeedOracle', [assetAddresses, assetAggregators, assetDecimals]);
 
     // P1 - Pool.sol
     const pool = await deployContract('Pool', [
       this.master.address,
-      this.priceFeedOracle.address,
+      priceFeedOracle.address,
       this.swapOperator.address,
       DAI_ADDRESS,
       STETH_ADDRESS,
       ENZYMEV4_VAULT_PROXY_ADDRESS,
+      this.nxm.address,
     ]);
+
+    // Enable Pool as Enzyme receiver
+    await enableAsEnzymeReceiver(pool.address);
 
     // CL - CoverMigrator.sol
     const coverMigrator = await deployContract('CoverMigrator', [this.quotationData.address, this.productsV1.address]);
 
     // GW - Gateway.sol
     const gateway = await deployContract('LegacyGateway');
+
+    // AS - Assessment.sol
+    const assessment = await ethers.deployContract('Assessment', [this.nxm.address]);
+
+    // IC - IndividualClaims.sol
+    const individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
+
+    // YT - YieldTokenIncidents.sol
+    const yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
+      this.nxm.address,
+      this.coverNFT.address,
+    ]);
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
@@ -516,23 +540,27 @@ describe('basic functionality tests', function () {
             toUtf8Bytes('MR'),
             toUtf8Bytes('MC'),
             toUtf8Bytes('CO'),
-            toUtf8Bytes('CR'),
             toUtf8Bytes('TC'),
             toUtf8Bytes('PS'),
             toUtf8Bytes('P1'),
             toUtf8Bytes('CL'),
             toUtf8Bytes('GW'),
+            toUtf8Bytes('AS'),
+            toUtf8Bytes('IC'),
+            toUtf8Bytes('YT'),
           ],
           [
             memberRoles.address,
             mcr.address,
             cover.address,
-            newClaimsReward.address,
             tokenController.address,
             pooledStaking.address,
             pool.address,
             coverMigrator.address,
             gateway.address,
+            assessment.address,
+            individualClaims.address,
+            yieldTokenIncidents.address,
           ],
         ],
       ),
@@ -540,21 +568,22 @@ describe('basic functionality tests', function () {
       this.governance,
     );
 
-    this.memberRoles = await ethers.getContractAt('MemberRoles', this.memberRoles.address);
-    this.mcr = await ethers.getContractAt('MCR', mcr.address);
-    this.cover = await ethers.getContractAt('Cover', coverProxyAddress);
+    // Compare proxy implementation addresses
+    await compareProxyImplementationAddress(this.memberRoles.address, memberRoles.address);
+    await compareProxyImplementationAddress(this.pooledStaking.address, pooledStaking.address);
+    await compareProxyImplementationAddress(this.tokenController.address, tokenController.address);
+    await compareProxyImplementationAddress(this.gateway.address, gateway.address);
+    await compareProxyImplementationAddress(this.individualClaims.address, individualClaims.address);
+    await compareProxyImplementationAddress(this.assessment.address, assessment.address);
+    await compareProxyImplementationAddress(this.yieldTokenIncidents.address, yieldTokenIncidents.address);
+    await compareProxyImplementationAddress(this.cover.address, cover.address);
 
-    const tokenControllerAddress = await this.master.contractAddresses(toUtf8Bytes('TC'));
-    this.tokenController = await ethers.getContractAt('TokenController', tokenControllerAddress);
+    // Compare non-proxy addresses
+    expect(pool.address).to.be.equal(await this.master.contractAddresses(toUtf8Bytes('P1')));
+    expect(mcr.address).to.be.equal(await this.master.contractAddresses(toUtf8Bytes('MC')));
+    expect(coverMigrator.address).to.be.equal(await this.master.contractAddresses(toUtf8Bytes('CL')));
 
-    const pooledStakingAddress = await this.master.contractAddresses(toUtf8Bytes('PS'));
-    this.pooledStaking = await ethers.getContractAt('LegacyPooledStaking', pooledStakingAddress);
+    this.mcr = mcr;
     this.pool = pool;
-    this.coverMigrator = await ethers.getContractAt('CoverMigrator', coverMigrator.address);
-
-    const gatewayAddress = await this.master.contractAddresses(toUtf8Bytes('GW'));
-    this.gateway = await ethers.getContractAt('LegacyGateway', gatewayAddress);
-
-    this.claimsReward = newClaimsReward;
   });
 });

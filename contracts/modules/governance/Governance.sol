@@ -405,7 +405,7 @@ contract Governance is IGovernance, LegacyMasterAware {
    * @dev Provides option to Advisory board member to reject proposal action execution within actionWaitingTime, if found suspicious
    */
   function rejectAction(uint _proposalId) external {
-    require(memberRole.checkRole(msg.sender, uint(IMemberRoles.Role.AdvisoryBoard)) && proposalExecutionTime[_proposalId] > now);
+    require(memberRole.checkRole(msg.sender, uint(IMemberRoles.Role.AdvisoryBoard)));
 
     require(proposalActionStatus[_proposalId] == uint(ActionStatus.Accepted));
 

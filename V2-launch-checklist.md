@@ -43,9 +43,9 @@
 
 #2
 - [x] [List of all product types + metadata](https://docs.google.com/spreadsheets/d/1mhPPdmVyGTZHfhnCTK9pkyuVCwIFm5JtKiTa011e9g8/edit#gid=0) 
-  - [ ] store product type name onchain in a mapping
+  - [x] store product type name onchain in a mapping
 - [x] [List of all products + metadata](https://docs.google.com/spreadsheets/d/1mhPPdmVyGTZHfhnCTK9pkyuVCwIFm5JtKiTa011e9g8/edit#gid=1826493151)
-  - [ ] store the product name onchain in a mapping
+  - [x] store the product name onchain in a mapping
 - [x] IPFS structure for `productTypes` info:
   - store the cover wording PDF on IPFS and use that IPFS hash
 - [x] IPFS structure for `products` info

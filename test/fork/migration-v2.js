@@ -180,6 +180,8 @@ describe('V2 upgrade', function () {
     this.gateway = await factory('GW');
     this.priceFeedOracle = await factory('PRICEORACLE');
 
+    this.mcrValueBefore = await this.mcr.getMCR();
+
     // Pool value related info
     this.poolValueBefore = await this.pool.getPoolValueInEth();
 
@@ -632,6 +634,9 @@ describe('V2 upgrade', function () {
       'Enzyme shares balance should be the same',
     ).to.be.equal(0);
   });
+
+  // TODO: add MCR value check
+  it('MCR Value check', async function() {});
 
   it('Cleanup storage in MemberRoles', async function () {
     const claimPayableAddressSlot = 15;

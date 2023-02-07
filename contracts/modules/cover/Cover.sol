@@ -735,7 +735,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       newProductValue.initialPriceRatio = product.initialPriceRatio;
       newProductValue.capacityReductionRatio = product.capacityReductionRatio;
 
-      productNames[param.productId] = param.productName;
+      if (bytes(param.productName).length > 0) {
+        productNames[param.productId] = param.productName;
+      }
 
       if (bytes(param.ipfsMetadata).length > 0) {
         emit ProductSet(param.productId, param.ipfsMetadata);
@@ -761,7 +763,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       }
       _productTypes[param.productTypeId].gracePeriod = param.productType.gracePeriod;
 
-      productTypeNames[param.productTypeId] = param.productTypeName;
+      if (bytes(param.productTypeName).length > 0) {
+        productTypeNames[param.productTypeId] = param.productTypeName;
+      }
 
       if (bytes(param.ipfsMetadata).length > 0) {
         emit ProductTypeSet(param.productTypeId, param.ipfsMetadata);

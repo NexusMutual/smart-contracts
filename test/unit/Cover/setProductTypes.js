@@ -91,6 +91,24 @@ describe('setProductTypes', function () {
     expect(productTypeName).to.be.equal(expectedProductTypeName);
   });
 
+  it('should not change productTyype name for existing productType if passed empty string', async function () {
+    const { cover } = this;
+    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+
+    const expectedProductTypeId = 0;
+    const productTypeNameBefore = await cover.productTypeNames(expectedProductTypeId);
+
+    const productTypeParams = {
+      ...ProductTypeParamTemplate,
+      productTypeId: expectedProductTypeId,
+      productTypeName: '',
+    };
+    await cover.connect(advisoryBoardMember0).setProductTypes([productTypeParams]);
+
+    const productTypeNameAfter = await cover.productTypeNames(expectedProductTypeId);
+    expect(productTypeNameAfter).to.be.equal(productTypeNameBefore);
+  });
+
   it('should store product type name for new productType', async function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;

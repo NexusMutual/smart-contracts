@@ -418,6 +418,24 @@ describe('setProducts', function () {
     expect(productName).to.be.equal(expectedProductName);
   });
 
+  it('should not change product name for existing product if passed empty string', async function () {
+    const { cover } = this;
+    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+
+    const expectedProductId = 0;
+    const productNameBefore = await cover.productNames(expectedProductId);
+
+    const productParams = {
+      ...productParamsTemplate,
+      productId: expectedProductId,
+      productName: '',
+    };
+    await cover.connect(advisoryBoardMember0).setProducts([productParams]);
+
+    const productNameAfter = await cover.productNames(expectedProductId);
+    expect(productNameAfter).to.be.equal(productNameBefore);
+  });
+
   it('should store product name for new product', async function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;

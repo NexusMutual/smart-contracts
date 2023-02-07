@@ -49,6 +49,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   // assetId => bucketId => amount
   mapping(uint => mapping(uint => uint)) public activeCoverExpirationBuckets;
 
+  // productId => product name
+  mapping(uint => string) public productNames;
+  // productTypeId => productType name
+  mapping(uint => string) public productTypeNames;
+
   /* ========== CONSTANTS ========== */
 
   uint private constant PRICE_DENOMINATOR = 10000;
@@ -662,11 +667,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return _productTypes[id];
   }
 
+  function productTypesCount() external override view returns (uint) {
+    return _productTypes.length;
+  }
+
   /* ========== PRODUCT CONFIGURATION ========== */
 
   function setProducts(ProductParam[] calldata productParams) external override onlyAdvisoryBoard {
 
-    uint productTypesCount = _productTypes.length;
     uint unsupportedCoverAssetsBitmap = type(uint).max;
 
     Asset[] memory assets = pool().getAssets();
@@ -684,7 +692,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       ProductParam calldata param = productParams[i];
       Product calldata product = param.product;
 
-      if (product.productType >= productTypesCount) {
+      if (product.productType >= _productTypes.length) {
         revert InvalidProductType();
       }
 
@@ -712,11 +720,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       // New product has id == uint256.max
       if (param.productId == type(uint256).max) {
         emit ProductSet(_products.length, param.ipfsMetadata);
+        productNames[_products.length] = param.productName;
         _products.push(product);
         continue;
       }
 
-      // existing product
+      // Existing product
       if (param.productId >= _products.length) {
         revert ProductDoesntExist();
       }
@@ -725,6 +734,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       newProductValue.coverAssets = product.coverAssets;
       newProductValue.initialPriceRatio = product.initialPriceRatio;
       newProductValue.capacityReductionRatio = product.capacityReductionRatio;
+
+      if (bytes(param.productName).length > 0) {
+        productNames[param.productId] = param.productName;
+      }
 
       if (bytes(param.ipfsMetadata).length > 0) {
         emit ProductSet(param.productId, param.ipfsMetadata);
@@ -740,6 +753,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       // New product has id == uint256.max
       if (param.productTypeId == type(uint256).max) {
         emit ProductTypeSet(_productTypes.length, param.ipfsMetadata);
+        productTypeNames[_productTypes.length] = param.productTypeName;
         _productTypes.push(param.productType);
         continue;
       }
@@ -748,7 +762,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         revert ProductTypeNotFound();
       }
       _productTypes[param.productTypeId].gracePeriod = param.productType.gracePeriod;
-      emit ProductTypeSet(param.productTypeId, param.ipfsMetadata);
+
+      if (bytes(param.productTypeName).length > 0) {
+        productTypeNames[param.productTypeId] = param.productTypeName;
+      }
+
+      if (bytes(param.ipfsMetadata).length > 0) {
+        emit ProductTypeSet(param.productTypeId, param.ipfsMetadata);
+      }
     }
   }
 

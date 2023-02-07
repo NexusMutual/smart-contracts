@@ -178,12 +178,7 @@ async function setup() {
     master.address,
   ]);
 
-  let cover = await deployProxy('DisposableCover', [
-    coverNFT.address,
-    stakingNFT.address,
-    spf.address,
-    stakingPool.address,
-  ]);
+  const cover = await deployProxy('Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
 
   expect(cover.address).to.equal(expectedCoverAddress);
 
@@ -269,6 +264,7 @@ async function setup() {
   await cover.setProductTypes([
     {
       // Protocol Cover
+      productTypeName: 'Protocol',
       productTypeId: MaxUint256,
       ipfsMetadata: 'protocolCoverIPFSHash',
       productType: {
@@ -279,6 +275,7 @@ async function setup() {
     },
     {
       // Custody Cover
+      productTypeName: 'Custody',
       productTypeId: MaxUint256,
       ipfsMetadata: 'custodyCoverIPFSHash',
       productType: {
@@ -289,6 +286,7 @@ async function setup() {
     },
     // Yield Token Cover
     {
+      productTypeName: 'Yield Token',
       productTypeId: MaxUint256,
       ipfsMetadata: 'yieldTokenCoverIPFSHash',
       productType: {
@@ -301,6 +299,7 @@ async function setup() {
 
   await cover.setProducts([
     {
+      productName: 'Product 0',
       productId: MaxUint256,
       ipfsMetadata: 'product 0 metadata',
       product: {
@@ -314,6 +313,7 @@ async function setup() {
       allowedPools: [],
     },
     {
+      productName: 'Product 1',
       productId: MaxUint256,
       ipfsMetadata: 'product 1 metadata',
       product: {
@@ -327,6 +327,7 @@ async function setup() {
       allowedPools: [],
     },
     {
+      productName: 'Product 2',
       productId: MaxUint256,
       ipfsMetadata: 'product 2 metadata',
       product: {
@@ -340,6 +341,7 @@ async function setup() {
       allowedPools: [],
     },
     {
+      productName: 'Product 3',
       productId: MaxUint256,
       ipfsMetadata: 'product 3 metadata',
       product: {
@@ -353,6 +355,7 @@ async function setup() {
       allowedPools: [],
     },
     {
+      productName: 'Product 4',
       productId: MaxUint256,
       ipfsMetadata: 'product 4 metadata',
       product: {
@@ -366,6 +369,7 @@ async function setup() {
       allowedPools: [1],
     },
     {
+      productName: 'Product 5',
       productId: MaxUint256,
       ipfsMetadata: 'product 5 metadata',
       product: {
@@ -379,6 +383,7 @@ async function setup() {
       allowedPools: [],
     },
     {
+      productName: 'Product 6',
       productId: MaxUint256,
       ipfsMetadata: 'product 6 metadata',
       product: {
@@ -393,10 +398,7 @@ async function setup() {
     },
   ]);
 
-  await cover.updateUintParametersDisposable(
-    [0, 1], // globalCapacityRatio, globalRewardsRatio
-    [10000, 5000],
-  );
+  await cover.initialize();
 
   await gv.changeMasterAddress(master.address);
   await master.switchGovernanceAddress(gv.address);
@@ -415,9 +417,7 @@ async function setup() {
   await upgradeProxy(ic.address, 'IndividualClaims', [tk.address, coverNFT.address]);
   await upgradeProxy(yt.address, 'YieldTokenIncidents', [tk.address, coverNFT.address]);
   await upgradeProxy(as.address, 'Assessment', [tk.address]);
-  await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
 
-  cover = await ethers.getContractAt('Cover', cover.address);
   as = await ethers.getContractAt('Assessment', as.address);
 
   // [todo] We should probably call changeDependentContractAddress on every contract

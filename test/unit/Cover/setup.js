@@ -105,6 +105,7 @@ async function setup() {
 
   await cover.connect(accounts.advisoryBoardMembers[0]).setProductTypes([
     {
+      productTypeName: 'ProductType X',
       productTypeId: MaxUint256,
       ipfsMetadata: 'ipfs metadata',
       productType: {
@@ -117,6 +118,7 @@ async function setup() {
   // add products
   await cover.connect(accounts.advisoryBoardMembers[0]).setProducts([
     {
+      productName: 'Product A',
       productId: MaxUint256,
       ipfsMetadata: 'ipfs metadata',
       product: {
@@ -131,6 +133,7 @@ async function setup() {
       allowedPools: [],
     },
     {
+      productName: 'Product B',
       productId: MaxUint256,
       ipfsMetadata: 'ipfs metadata',
       product: {
@@ -145,6 +148,7 @@ async function setup() {
       allowedPools: [0],
     },
     {
+      productName: 'Product C',
       productId: MaxUint256,
       ipfsMetadata: 'ipfs metadata',
       product: {

@@ -62,6 +62,7 @@ struct BuyCoverParams {
 }
 
 struct ProductParam {
+  string productName;
   uint productId;
   string ipfsMetadata;
   Product product;
@@ -69,6 +70,7 @@ struct ProductParam {
 }
 
 struct ProductTypeParam {
+  string productTypeName;
   uint productTypeId;
   string ipfsMetadata;
   ProductType productType;
@@ -150,6 +152,8 @@ interface ICover {
   function stakingPool(uint index) external view returns (IStakingPool);
 
   function productsCount() external view returns (uint);
+
+  function productTypesCount() external view returns (uint);
 
   function MAX_COVER_PERIOD() external view returns (uint);
 

@@ -1016,13 +1016,18 @@ contract Governance is IGovernance, LegacyMasterAware {
       actionAddress = ms.getLatestAddress(contractName);
     }
     // solhint-disable-next-line avoid-low-level-calls
-    (bool actionStatus,) = actionAddress.call(abi.encodePacked(_functionHash, allProposalSolutions[_proposalId][1]));
-    if (actionStatus) {
-      emit ActionSuccess(_proposalId);
-    } else {
-      proposalActionStatus[_proposalId] = uint(ActionStatus.Accepted);
-      emit ActionFailed(_proposalId);
+    (bool actionStatus, bytes memory result) = actionAddress.call(
+      abi.encodePacked(_functionHash, allProposalSolutions[_proposalId][1])
+    );
+
+    if (!actionStatus) {
+      uint length = result.length;
+      // 0 length returned from empty revert() / require(false)
+      require(length != 0, 'Action failed without revert reason');
+      assembly { revert(add(result, 0x20), length) }
     }
+
+    emit ActionSuccess(_proposalId);
   }
 
   /**

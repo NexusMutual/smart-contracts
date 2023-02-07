@@ -1,6 +1,6 @@
 const fetch = require('node-fetch');
 const { artifacts, web3, network: { provider } } = require('hardhat');
-const { ether, expectRevert } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert, time, expectEvent } = require('@openzeppelin/test-helpers');
 
 const { submitGovernanceProposal } = require('./utils');
 const { hex } = require('../utils').helpers;
@@ -119,6 +119,103 @@ describe('deploy governance fixes', function () {
       assert.notEqual(actionStatus, 1); // ActionAccepted
       await expectRevert.unspecified(governance.rejectAction(proposalId, { from: voters[0] }));
     }
+  });
+
+  it('reverts when calling triggerAction() and action fails due to low gas', async function () {
+
+    const { voters, governance, master } = this;
+
+    const gatewayImplementation = await Gateway.new();
+    const upgradesActionDataProxy = web3.eth.abi.encodeParameters(
+      ['bytes2[]', 'address[]'],
+      [
+        ['GW'].map(hex),
+        [gatewayImplementation].map(c => c.address),
+      ],
+    );
+
+    const id = await governance.getProposalLength();
+    console.log(`Creating proposal ${id}`);
+
+    // Create proposal and open it for voting
+    const from = voters[0];
+    await governance.createProposal('', '', '', 0, { from });
+    await governance.categorizeProposal(id, ProposalCategory.upgradeNonProxy, 0, { from });
+    await governance.submitProposalWithSolution(id, '', upgradesActionDataProxy, { from });
+
+    // Vote on proposal
+    for (let i = 0; i < 3; i++) {
+      await governance.submitVote(id, 1, { from: voters[i] });
+    }
+
+    // Close proposal reverts if not enough gas is provided
+    console.log(`Closing proposal ${id} reverts with 300k gas`);
+    await time.increase(604800);
+    await expectRevert(
+      governance.closeProposal(id, { from, gas: 300000 }), // 300K gas
+      'Action failed without revert reason',
+    );
+
+    // Close proposal succeeds if enough gas is provided
+    console.log(`Closing proposal ${id} succeeds with 2M gas`);
+    await governance.closeProposal(id, { from, gas: 2000000 }); // 2M gas
+
+    const actionStatus = await governance.proposalActionStatus(id);
+    assert.equal(actionStatus, 3); // ActionExecuted
+
+    const gwProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('GW')));
+    const gwImplementation = await gwProxy.implementation();
+    assert.equal(gwImplementation, gatewayImplementation.address);
+  });
+
+  it('reverts when calling triggerAction() and action fails due to wrong action', async function () {
+
+    const { voters, governance } = this;
+
+    // addEmergencyPause(bool,bytes4) in NXMaster.sol
+    // The category exists, but the `addEmergencyPause` function doesn't exist anymore in NXMaster.sol
+    // All member vote
+    const upgradesActionData = web3.eth.abi.encodeParameters(
+      ['bool', 'bytes4'],
+      [true, hex('abcd')],
+    );
+
+    const proposalId = await governance.getProposalLength();
+    console.log(`Creating proposal ${proposalId}`);
+
+    // Create proposal and open it for voting
+    const from = voters[0];
+    await governance.createProposal('', '', '', 0, { from });
+    await governance.categorizeProposal(proposalId, ProposalCategory.addEmergencyPause, 0, { from });
+    await governance.submitProposalWithSolution(proposalId, '', upgradesActionData, { from });
+
+    // Vote on proposal
+    for (let i = 0; i < 3; i++) {
+      await governance.submitVote(proposalId, 1, { from: voters[i] });
+    }
+
+    await time.increase(604800); // 7 days
+
+    // Close proposal
+    await governance.closeProposal(proposalId, { from, gas: 300000 }); // 300K gas
+
+    // Trigger action should revert
+    console.log(`Trigger action on proposal ${proposalId} reverts`);
+    await time.increase(25 * 60 * 60); // 25h - past cooldown period
+    await expectRevert(
+      governance.triggerAction(proposalId, { from, gas: 2000000 }), // 2M gas
+      'Action failed without revert reason',
+    );
+
+    // AB should be able to reject the action
+    console.log(`AB rejects proposal ${proposalId}`);
+    for (let i = 0; i < 3; i++) {
+      await governance.rejectAction(proposalId, { from: voters[i] });
+    }
+
+    console.log(`Actions status after AB reject proposal ${proposalId} is ActionRejected`);
+    const actionStatusAfterReject = await governance.proposalActionStatus(proposalId);
+    assert.equal(actionStatusAfterReject, 2); // ActionRejected
   });
 
   it('performs hypothetical future proxy upgrade', async function () {

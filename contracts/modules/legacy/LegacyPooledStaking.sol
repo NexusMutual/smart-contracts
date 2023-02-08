@@ -11,17 +11,30 @@ import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IStakingPool.sol";
 
 contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
+  /* Constants */
+
+  address constant ARMOR_STAKER = 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4;
+  address constant ARMOR_MANAGER = 0xFa760444A229e78A50Ca9b3779f4ce4CcE10E170;
+  address constant HUGH = 0x87B2a7559d85f4653f13E6546A14189cd5455d45;
+  address constant NM_FOUNDATION = 0x963Df0066ff8345922dF88eebeb1095BE4e4e12E;
+  uint constant MAX_ACTIVE_TRANCHES = 8;
+
+  ICover public immutable cover;
+  IProductsV1 public immutable productsV1;
+
   /* Structs */
 
-  struct MigrationData {
+  struct StakingPoolMigrationData {
     address stakerAddress;
-    string ipfsDescriptionHash;
     address managerAddress;
+    string ipfsDescriptionHash;
     bool isPrivatePool;
     uint initialPoolFee;
     uint maxPoolFee;
-
+    uint deposit;
+    uint[MAX_ACTIVE_TRANCHES] trancheStakeRatio;
   }
+
   /* Events */
 
   // deposits
@@ -48,18 +61,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
   // used for logging products not listed in ProductsV1.sol when migrating to a new pool
   event ProductNotFound(address oldProductId);
-
-  /* constants */
-
-  address constant ARMOR = 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4;
-  address constant ARMOR_MANAGER = 0xFa760444A229e78A50Ca9b3779f4ce4CcE10E170;
-  address constant HUGH = 0x87B2a7559d85f4653f13E6546A14189cd5455d45;
-  address constant NEXUS_FOUNDATION = 0x963Df0066ff8345922dF88eebeb1095BE4e4e12E;
-  address constant ITRUST = 0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2;
-  uint constant TRANCHE_COUNT = 8;
-
-  ICover public immutable cover;
-  IProductsV1 public immutable productsV1;
 
   /* Storage variables */
 
@@ -1207,204 +1208,87 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     return type(uint96).max;
   }
 
-  function getStakerConfig(address stakerAddress) internal returns (
-    ProductInitializationParams[] memory params,
-    uint deposit
+  function getProductInitParams(address stakerAddress, uint deposit) internal returns (
+    ProductInitializationParams[] memory productInitParams
   ) {
+    uint stakedProductsCount = stakers[stakerAddress].contracts.length;
+    uint[] memory products = new uint[](stakedProductsCount);
+    uint[] memory stakes = new uint[](stakedProductsCount);
 
-    // read and set deposit to zero to avoid re-entrancy
-    deposit = stakers[stakerAddress].deposit;
-    require(deposit > 0, "Address has no stake to migrate");
-    stakers[stakerAddress].deposit = 0;
+    uint productsToBeMigratedCount = 0;
 
-    uint contractCount = stakers[stakerAddress].contracts.length;
-    uint[] memory products = new uint[](contractCount);
-    uint[] memory stakes = new uint[](contractCount);
-    uint migratableCount = 0;
+    for (uint i = 0; i < stakedProductsCount; i++) {
+      address productAddress = stakers[stakerAddress].contracts[i];
 
-    for (uint i = 0; i < contractCount; i++) {
-      address oldProductId = stakers[stakerAddress].contracts[i];
       uint productId;
-      try productsV1.getNewProductId(oldProductId) returns (uint v) {
-        productId = v;
+      try productsV1.getNewProductId(productAddress) returns (uint id) {
+        productId = id;
       } catch {
-        emit ProductNotFound(oldProductId);
+        emit ProductNotFound(productAddress);
         continue;
       }
+
       products[i] = productId;
-      stakes[i] = min(stakers[stakerAddress].stakes[oldProductId], deposit);
-      migratableCount++;
+      stakes[i] = min(stakers[stakerAddress].stakes[productAddress], deposit);
+      productsToBeMigratedCount++;
     }
 
-    params = new ProductInitializationParams[](migratableCount);
-    uint migrateAtIndex = 0;
+    productInitParams = new ProductInitializationParams[](productsToBeMigratedCount);
 
-
-    for (uint i = 0; i < contractCount; i++) {
+    uint index = 0;
+    for (uint i = 0; i < stakedProductsCount; i++) {
       if (stakes[i] == 0) {
         continue;
       }
+
       uint96 price = getV1PriceForProduct(products[i]);
       if (price == type(uint96).max) {
         continue;
       }
-      params[migrateAtIndex] = ProductInitializationParams(
+
+      productInitParams[index] = ProductInitializationParams(
         products[i], // productId
         uint8(min(stakes[i] * 1e18 / deposit / 1e16, 100)), // weight (0-100)
         price / 1e16, // initialPrice with a 100_00 denominator
         price / 1e16 // targetPrice with a 100_00 denominator
       );
-      migrateAtIndex++;
+      index++;
     }
   }
-
-
-  struct StakingPoolMigrationData {
-    uint initialPoolFee;
-    uint maxPoolFee;
-    uint[TRANCHE_COUNT] stakerTrancheRatios;
-    uint deposit;
-    address stakerAddress;
-    bool isPrivatePool;
-    string ipfsDescriptionHash;
-    address managerAddress;
-  }
-
-  function migrateToNewV2Pool(address stakerAddress) external noPendingActions {
-
-    // Addresses marked for implicit migration can be migrated by anyone.
-    // Addresses who are not can only be migrated by calling this function themselves.
-    require(
-      stakerAddress == ARMOR || // Armor
-      stakerAddress == HUGH || // Hugh
-      stakerAddress == NEXUS_FOUNDATION, // Foundation
-
-      "You are not authorized to migrate this staker"
-    );
-
-
-    INXMToken nxm = token();
-    uint nxmBalanceBefore = nxm.balanceOf(address(this));
-
-    // ratios have no decimal points. eg 5 is 5%
-    uint[TRANCHE_COUNT] memory stakerTrancheRatios;
-
-    (ProductInitializationParams[] memory params, uint deposit) = getStakerConfig(stakerAddress);
-
-    if (stakerAddress == HUGH) {
-      stakerTrancheRatios = [uint256(0), 10, 0, 0, 0, 90, 0, 0];
-
-      migrateToPool(
-        StakingPoolMigrationData(
-         10, // initialPoolFee
-         20, // maxPoolFee
-         stakerTrancheRatios,
-         deposit,
-         HUGH,
-         false, // isPrivatePool
-         '', // ipfsDescriptionHash
-         HUGH // managerAddress
-        ),
-        params
-      );
-    } else if (stakerAddress == ARMOR) {
-      stakerTrancheRatios = [uint256(20), 25, 25, 15, 10, 0, 0, 0];
-
-      uint aaaLowRiskPoolDeposit = 75 * deposit / 100;
-      uint maxFee = 25;
-      uint initialFee = 15;
-      migrateToPool(
-        StakingPoolMigrationData(
-          initialFee,
-          maxFee,
-          stakerTrancheRatios,
-          aaaLowRiskPoolDeposit,
-          ARMOR,
-          false, // isPrivatePool
-          '', // ipfsDescriptionHash
-          ARMOR_MANAGER // managerAddress
-        ),
-        params
-      );
-      uint aaRiskPoolDeposit = deposit - aaaLowRiskPoolDeposit;
-
-      migrateToPool(
-        StakingPoolMigrationData(
-          initialFee,
-          maxFee,
-          stakerTrancheRatios,
-          aaRiskPoolDeposit,
-          ARMOR,
-          false, // isPrivatePool
-          '', // ipfsDescriptionHash
-          ARMOR_MANAGER // managerAddress
-        ),
-        params
-      );
-
-    } else if (stakerAddress == NEXUS_FOUNDATION) {
-
-      stakerTrancheRatios = [uint256(0), 0, 0, 0, 0, 0, 0, 0];
-      // TODO: when switching the StakingPool manager is supported, simply make LegacyPooledStaking the manager
-      // make the deposits and then switch the manager to the foundation
-      // stakerTrancheRatios = [uint256(0), 25, 0, 25, 0, 50, 0, 0];
-
-      // TODO: waiting for final value for maxPoolFee
-      migrateToPool(
-        StakingPoolMigrationData(
-          0, // initialPoolFee
-          20, // maxPoolFee
-          stakerTrancheRatios,
-          deposit,
-          NEXUS_FOUNDATION,
-          true, // isPrivatePool
-          '', // ipfsDescriptionHash
-          NEXUS_FOUNDATION // managerAddress
-        ),
-        params
-      );
-    } else {
-      revert("Usupported migrateable staker");
-    }
-
-    uint nxmBalanceAfter = nxm.balanceOf(address(this));
-
-    uint nexusV2StakedNXM = nxmBalanceBefore - nxmBalanceAfter;
-
-    uint nxmToBeUnlocked = deposit - nexusV2StakedNXM;
-
-    // send unlocked back
-    nxm.transfer(stakerAddress, nxmToBeUnlocked);
-  }
-
 
   function migrateToPool(
     StakingPoolMigrationData memory migrationData,
-    ProductInitializationParams[] memory params
+    ProductInitializationParams[] memory productInitParams
   ) internal {
     ( /* uint stakingPoolId */, address stakingPoolAddress) = cover.createStakingPool(
       migrationData.managerAddress,
       migrationData.isPrivatePool,
       migrationData.initialPoolFee,
       migrationData.maxPoolFee,
-      params,
+      productInitParams,
       migrationData.ipfsDescriptionHash
     );
 
+    token().approve(address(tokenController()), migrationData.deposit);
 
-    // First token id is Max uint to trigger the creation of a new StakingNFT.
-    // After the first execution it's updated to the ID of the newly created token
+    uint totalStakeRatio = 0;
+    uint totalStake = 0;
     uint tokenId = type(uint).max;
-
     uint firstTrancheId = block.timestamp / 91 days + 1;
-    for (uint i = 0; i < TRANCHE_COUNT; i++) {
-      uint trancheDeposit = migrationData.deposit * migrationData.stakerTrancheRatios[i] / 100;
 
+    for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
+      uint trancheDeposit = migrationData.deposit * migrationData.trancheStakeRatio[i] / 100;
       if (trancheDeposit == 0) {
         continue;
       }
 
-      token().approve(address(tokenController()), trancheDeposit);
+      totalStakeRatio += migrationData.trancheStakeRatio[i];
+      // Prevent dust due to precision loss and deposit everything remaining in the last tranche
+      if (totalStakeRatio == 100) {
+        trancheDeposit = migrationData.deposit - totalStake;
+      }
+      totalStake += trancheDeposit;
+
       tokenId = IStakingPool(stakingPoolAddress).depositTo(
         trancheDeposit,
         firstTrancheId + i,
@@ -1412,6 +1296,106 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
         migrationData.managerAddress
       );
     }
+
+    // TODO This can be enabled once the foundation deposit migration is done
+    // require(totalStake == migrationData.deposit, "Migrated stake != staker deposit");
+  }
+
+  function migrateToNewV2Pool(address stakerAddress) external noPendingActions {
+    // Only selected stakers are automatically migrated
+    require(
+      stakerAddress == ARMOR_STAKER ||
+      stakerAddress == HUGH ||
+      stakerAddress == NM_FOUNDATION,
+
+      "You are not authorized to migrate this staker"
+    );
+
+    // Read and set deposit to zero to avoid re-entrancy
+    uint deposit = stakers[stakerAddress].deposit;
+    require(deposit > 0, "Address has no stake to migrate");
+    stakers[stakerAddress].deposit = 0;
+
+    INXMToken nxm = token();
+    uint nxmBalanceBefore = nxm.balanceOf(address(this));
+
+    ProductInitializationParams[] memory productInitParams = getProductInitParams(
+      stakerAddress,
+      deposit
+    );
+
+    if (stakerAddress == HUGH) {
+      migrateToPool(
+        StakingPoolMigrationData(
+          HUGH, // stakerAddress
+          HUGH, // managerAddress
+          '', // ipfsDescriptionHash --- TODO fill in
+          false, // isPrivatePool
+          10, // initialPoolFee
+          20, // maxPoolFee
+          deposit, // deposit
+          [uint256(0), 10, 0, 0, 0, 90, 0, 0] // stake on each tranche, as % out of the deposit
+        ),
+        productInitParams
+      );
+    } else if (stakerAddress == ARMOR_STAKER) {
+
+      uint armorAAALowRiskPoolDeposit = 75 * deposit / 100;
+      migrateToPool(
+        StakingPoolMigrationData(
+          ARMOR_STAKER, // stakerAddress
+          ARMOR_MANAGER, // managerAddress
+          '', // ipfsDescriptionHash --- TODO fill in
+          false, // isPrivatePool
+          15, // initialPoolFee
+          25, // maxPoolFee
+          armorAAALowRiskPoolDeposit, // deposit
+          [uint256(20), 25, 25, 15, 10, 0, 0, 0] // stake on each tranche, as % out of the deposit
+        ),
+        productInitParams
+      );
+
+      uint armorAAMidRiskPoolDeposit = deposit - armorAAALowRiskPoolDeposit;
+      migrateToPool(
+        StakingPoolMigrationData(
+          ARMOR_STAKER, // stakerAddress
+          ARMOR_MANAGER, // managerAddress
+          '', // ipfsDescriptionHash --- TODO fill in
+          false, // isPrivatePool
+          15, // initialPoolFee
+          25, // maxPoolFee
+          armorAAMidRiskPoolDeposit, // deposit
+          [uint256(20), 25, 25, 15, 10, 0, 0, 0] // stake on each tranche, as % out of the deposit
+        ),
+        productInitParams
+      );
+    } else if (stakerAddress == NM_FOUNDATION) {
+
+      // TODO: when switching the StakingPool manager is supported, simply make LegacyPooledStaking the manager
+      // make the deposits and then switch the manager to the foundation
+      // trancheStakeRatio = [uint256(0), 25, 0, 25, 0, 50, 0, 0];
+      migrateToPool(
+        StakingPoolMigrationData(
+          NM_FOUNDATION, // stakerAddress
+          NM_FOUNDATION, // managerAddress
+          '', // ipfsDescriptionHash --- TODO fill in
+          true, // isPrivatePool
+          0, // initialPoolFee
+          99, // maxPoolFee
+          deposit,
+          [uint256(0), 0, 0, 0, 0, 0, 0, 0] // stake on each tranche, as % out of the deposit
+        ),
+        productInitParams
+      );
+    } else {
+      revert("Staker cannot be automatically migrated to a new staking pool");
+    }
+
+    uint nxmBalanceAfter = nxm.balanceOf(address(this));
+    uint nxmToBeUnlocked = deposit - (nxmBalanceBefore - nxmBalanceAfter);
+
+    // Send unlocked NXM back
+    nxm.transfer(stakerAddress, nxmToBeUnlocked);
   }
 
   function migrateToExistingV2Pool(IStakingPool stakingPool, uint trancheId) external {

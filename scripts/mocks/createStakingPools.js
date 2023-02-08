@@ -17,18 +17,21 @@ async function main() {
   const maxPoolFee = '5';
   const productInitializationParams = [
     {
+      productName: 'Product 0',
       productId: 0,
       weight: '40',
       initialPrice,
       targetPrice,
     },
     {
+      productName: 'Product 1',
       productId: 1,
       weight: '20',
       initialPrice,
       targetPrice,
     },
     {
+      productName: 'Product 73',
       productId: 73, // custodian
       weight: '40',
       initialPrice,

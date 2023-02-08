@@ -28,6 +28,7 @@ const PROXY_CONTRACT = 'contracts/modules/governance/external/OwnedUpgradeabilit
 const claimMethod = { claim: 0, incident: 1 };
 const productTypes = [
   {
+    productTypeName: 'Protocol',
     productTypeId: MaxUint256,
     ipfsMetadata: 'protocolCoverIPFSHash',
     productType: {
@@ -37,6 +38,7 @@ const productTypes = [
     },
   },
   {
+    productTypeName: 'Custody',
     productTypeId: MaxUint256,
     ipfsMetadata: 'custodyCoverIPFSHash',
     productType: {
@@ -46,6 +48,7 @@ const productTypes = [
     },
   },
   {
+    productTypeName: 'Yield Token',
     productTypeId: MaxUint256,
     ipfsMetadata: 'yieldTokenCoverIPFSHash',
     productType: {
@@ -55,6 +58,7 @@ const productTypes = [
     },
   },
   {
+    productTypeName: 'Stakewise ETH2 Staking',
     productTypeId: MaxUint256,
     ipfsMetadata: 'eth2slashingCoverIPFSHash',
     productType: {
@@ -64,6 +68,7 @@ const productTypes = [
     },
   },
   {
+    productTypeName: 'Sherlock',
     productTypeId: MaxUint256,
     ipfsMetadata: 'sherlockCoverIPFSHash',
     productType: {
@@ -74,6 +79,7 @@ const productTypes = [
   },
 ];
 
+// TODO: use the name from the productTypes array above
 const productTypeNames = ['protocol', 'custodian', 'token', 'eth2slashing', 'sherlock'];
 
 // source: https://docs.chain.link/docs/price-feeds-migration-august-2020
@@ -235,13 +241,8 @@ async function main() {
     master.address,
   ]);
 
-  console.log('Deploying disposable Cover');
-  const cover = await deployProxy('DisposableCover', [
-    coverNFT.address,
-    stakingNFT.address,
-    spf.address,
-    stakingPool.address,
-  ]);
+  console.log('Deploying Cover');
+  const cover = await deployProxy('Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
   expect(cover.address).to.equal(expectedCoverAddress);
 
   console.log('Deploying CoverViewer');
@@ -450,6 +451,7 @@ async function main() {
     }
 
     return {
+      productName: product.name,
       productId: MaxUint256,
       ipfsMetadata: '',
       product: {
@@ -470,11 +472,6 @@ async function main() {
   const productsStored = await cover.getProducts();
   console.log(`${productsStored.length} products added.`);
   // fs.writeFileSync('products.json', JSON.stringify(productsStored, null, 2));
-
-  await cover.updateUintParametersDisposable(
-    [0, 1], // globalCapacityRatio, globalRewardsRatio
-    [10000, 5000],
-  );
 
   console.log('Adding proposal categories');
   await pc.initialize(mr.address);

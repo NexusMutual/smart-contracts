@@ -1124,10 +1124,6 @@ describe('V2 upgrade', function () {
 
     const migratedPrice = await this.pooledStaking.getV1PriceForProduct(productId);
 
-    console.log({
-      migratedPrice,
-    });
-
     const coverAsset = 0; // ETH
     const amount = parseEther('1');
     const period = 364 * 24 * 3600; // 364 days to get a full percentage
@@ -1160,6 +1156,7 @@ describe('V2 upgrade', function () {
 
     const premiumSentToPool = poolEthBalanceAfter.sub(poolEthBalanceBefore);
 
+    expect(expectedPremium).to.be.greaterThanOrEqual(premiumSentToPool);
     // 0.01% max tolerated error
     expect(expectedPremium.sub(premiumSentToPool)).to.be.lessThan(BigNumber.from(amount.div(10000)));
   });

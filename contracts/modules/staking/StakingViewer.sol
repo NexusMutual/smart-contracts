@@ -324,17 +324,11 @@ contract StakingViewer is Multicall {
     return aggregated;
   }
 
-  function getManagerRewards (uint poolId) public view returns (AggregatedRewards memory managerRewards) {
+  function getManagerRewards (uint[] memory poolIds) public view returns (Token[] memory tokens) {
+    tokens = new Token[](poolIds.length);
 
-    Token memory token = _getToken(poolId, 0);
-
-    managerRewards.totalRewards = token.rewards;
-    managerRewards.trancheIds = new uint[](token.deposits.length);
-
-    for (uint i = 0; i < token.deposits.length; i++) {
-      managerRewards.trancheIds[i] = token.deposits[i].trancheId;
+    for (uint i = 0; i < poolIds.length; i++) {
+      tokens[i] = _getToken(poolIds[i], 0);
     }
-
-    return managerRewards;
   }
 }

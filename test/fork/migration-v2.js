@@ -21,6 +21,8 @@ const populateV2Products = require('../../scripts/populate-v2-products');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const getV1CoverPrices = require('../../scripts/get-v1-cover-prices');
 
+const PRODUCT_ADDRESSES_OUTPUT = require('../../scripts/v2-migration/products/output/product-addresses.json');
+
 const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
 const STETH_ADDRESS = '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84';
@@ -48,6 +50,8 @@ const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 const MEMBER_ADDRESS = '0xd7cba5b9a0240770cfd9671961dae064136fa240';
 const CLAIM_PAYABLE_ADDRESS = '0x748E712663510Bb417c1aBb1bca3d817447f118c';
 
+let poolValueBefore;
+
 const getSigner = async address => {
   const provider =
     network.name !== 'hardhat' // ethers errors out when using non-local accounts
@@ -67,8 +71,6 @@ const getContractFactory = async providerOrSigner => {
     return new ethers.Contract(address, abi, providerOrSigner);
   };
 };
-
-let poolValueBefore;
 
 async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
   const id = await gv.getProposalLength();
@@ -140,7 +142,6 @@ describe('V2 upgrade', function () {
     const [deployer] = await ethers.getSigners();
     this.deployer = deployer;
 
-    // TODO rename factory to make it obvious it fetches addresses and abis from version-data
     const factory = await getContractFactory(deployer);
 
     this.master = await factory('NXMASTER');
@@ -172,11 +173,8 @@ describe('V2 upgrade', function () {
     expect(claimPayableAddressAfter).to.be.equal(getAddress(CLAIM_PAYABLE_ADDRESS));
   });
 
-  // Generates the ProductsV1 contract
-  // TODO: We should generate the Products1.sol contract outside the fork test
-  // either way, for this to work now, we must get rid of the get-sunset-products script
-  // and use the generated file here
-  it.skip('run get-products-v1 script', async function () {
+  // Generate ProductsV1.sol contract
+  it.skip('Run scripts/v2-migration/products/get-products.js', async function () {
     await getProductAddresses();
   });
 
@@ -586,7 +584,7 @@ describe('V2 upgrade', function () {
     await tx.wait();
   });
 
-  // TODO review from here on
+  // TODO review
   it.skip('unlock claim assessment stakes', async function () {
     const stakesPath = path.join(config.paths.root, 'scripts/v2-migration/output/eligibleForCLAUnlock.json');
     const claimAssessors = require(stakesPath).map(x => x.member);
@@ -614,6 +612,7 @@ describe('V2 upgrade', function () {
     await tx.wait();
   });
 
+  // TODO review
   it.skip('transfer v1 assessment rewards to assessors', async function () {
     const tcNxmBalanceBefore = await this.nxm.balanceOf(this.tokenController.address);
 
@@ -642,6 +641,7 @@ describe('V2 upgrade', function () {
     // expect(governanceRewardsMigrated).to.be.equal(this.governanceRewardsSum);
   });
 
+  // TODO review
   it.skip('check if TokenController balance checks out with Governance rewards', async function () {
     const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
 
@@ -665,15 +665,7 @@ describe('V2 upgrade', function () {
     // expect(tcNxmBalance).to.be.equal(rewardsSum.add(coverNotesSum));
   });
 
-  it('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {
-    await submitGovernanceProposal(
-      PROPOSAL_CATEGORIES.removeContracts, // removeContracts(bytes2[])
-      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
-      this.abMembers,
-      this.governance,
-    );
-  });
-
+  // TODO review
   it.skip('run populate-v2-products script', async function () {
     await populateV2Products(this.cover.address, this.abMembers[0]);
   });
@@ -689,22 +681,23 @@ describe('V2 upgrade', function () {
     }
   });
 
-  // TODO: One of the price assertions fails for Hugh's pool
-  it('migrate top stakers to new v2 staking pools', async function () {
-    const ARMOR_NFT = '0x1337def1fc06783d4b03cb8c1bf3ebf7d0593fc4';
-    const NEXUSMUTUAL_FOUNDATION = '0x963df0066ff8345922df88eebeb1095be4e4e12e';
+  it('Migrate selected stakers to their own staking pools', async function () {
+    const ARMOR = '0x1337def1fc06783d4b03cb8c1bf3ebf7d0593fc4';
+    const FOUNDATION = '0x963df0066ff8345922df88eebeb1095be4e4e12e';
     const HUGH = '0x87b2a7559d85f4653f13e6546a14189cd5455d45';
-    const topStakers = [ARMOR_NFT, NEXUSMUTUAL_FOUNDATION, HUGH];
+    const topStakers = [FOUNDATION, HUGH, ARMOR];
 
-    const depositAmounts = {};
+    // Get stakers current deposits in PooledStaking
+    const depositInPS = {};
     await Promise.all(
       topStakers.map(async staker => {
         const deposit = await this.pooledStaking.stakerDeposit(staker);
         console.log(`Staker ${staker} deposit = ${deposit.toString()}`);
-        depositAmounts[staker] = deposit;
+        depositInPS[staker] = deposit;
       }),
     );
 
+    // Get stakers NXM balances before the migration
     const nxmBalancesBefore = {};
     await Promise.all(
       topStakers.map(async staker => {
@@ -712,36 +705,13 @@ describe('V2 upgrade', function () {
       }),
     );
 
+    // Migrate stakers
+    console.log('Migrating selected stakers to their own staking pools');
     for (const staker of topStakers) {
       await this.pooledStaking.migrateToNewV2Pool(staker);
     }
 
-    const stakingPoolCount = await this.stakingPoolFactory.stakingPoolCount();
-
-    // Armor has 2 pools therefore +1
-    expect(stakingPoolCount).to.be.equal(topStakers.length + 1);
-
-    const armorPool0Id = 0;
-    const armorPool1Id = 1;
-    const nexusFoundationPoolId = 2;
-    const hughPoolId = 3;
-    const { deposits: armorPool0Balance } = await this.tokenController.stakingPoolNXMBalances(armorPool0Id);
-    const expectedArmorPool0Balance = depositAmounts[ARMOR_NFT].mul(75).div(100).mul(95).div(100);
-    expect(armorPool0Balance.div(10)).to.be.equal(expectedArmorPool0Balance.div(10));
-
-    const { deposits: armorPool1Balance } = await this.tokenController.stakingPoolNXMBalances(armorPool1Id);
-    const expectedArmorPool1Balance = depositAmounts[ARMOR_NFT].mul(25).div(100).mul(95).div(100);
-    expect(armorPool1Balance.div(10)).to.be.equal(expectedArmorPool1Balance.div(10));
-
-    const { deposits: nexusFoundationBalance } = await this.tokenController.stakingPoolNXMBalances(
-      nexusFoundationPoolId,
-    );
-    expect(nexusFoundationBalance.div(10)).to.be.equal('0');
-
-    const { deposits: hughPoolBalance } = await this.tokenController.stakingPoolNXMBalances(hughPoolId);
-    const expectedHughBalance = depositAmounts[HUGH];
-    expect(hughPoolBalance.div(10)).to.be.equal(expectedHughBalance.div(10));
-
+    // Get stakers NXM balances before the migration
     const nxmBalancesAfter = {};
     await Promise.all(
       topStakers.map(async staker => {
@@ -749,22 +719,70 @@ describe('V2 upgrade', function () {
       }),
     );
 
-    // assert each staker gets the unlocked NXM tokens back
-    const armorNFTBalanceIncreaseDelta = nxmBalancesAfter[ARMOR_NFT].sub(nxmBalancesBefore[ARMOR_NFT]).sub(
-      depositAmounts[ARMOR_NFT].sub(expectedArmorPool0Balance),
-    );
-    expect(armorNFTBalanceIncreaseDelta).to.be.lessThan(10);
+    // Check all new staking pools have been created
+    console.log('Checking all new staking pools have been created');
+    const stakingPoolCount = await this.stakingPoolFactory.stakingPoolCount();
+    expect(stakingPoolCount).to.be.equal(topStakers.length + 1); // +1 because Armor has 2 pools
 
-    const hughBalanceIncreaseDelta = nxmBalancesAfter[HUGH].sub(nxmBalancesBefore[HUGH]).sub(
-      depositAmounts[HUGH].sub(expectedHughBalance),
-    );
-    expect(hughBalanceIncreaseDelta).to.be.lessThan(10);
+    // Check the new staking pools have the correct deposits and stakers have the correct balances
+    const depositsInStakingPools = {};
+    for (let i = 0; i < stakingPoolCount; i++) {
+      const { deposits } = await this.tokenController.stakingPoolNXMBalances(i);
+      console.log(`Staking pool ${i} deposit: ${deposits.toString()}`);
+      depositsInStakingPools[i] = deposits;
+    }
 
-    expect(nxmBalancesAfter[NEXUSMUTUAL_FOUNDATION].sub(nxmBalancesBefore[NEXUSMUTUAL_FOUNDATION])).to.be.equal(
-      depositAmounts[NEXUSMUTUAL_FOUNDATION],
+    console.log('Checking the new staking pools have the correct deposits and stakers have the correct balances');
+
+    // Check Armor - poolId = 0
+    // 5% of the stake is unlocked
+    // 71.25% of the stake moves to AAA Pool (95% * 75% of the stake)
+    // 23.75% of the stake moves to AA Pool (95% * 25% os the stake)
+
+    // TODO: We can avoid the precision tolerance here if we handle things a bit differently in Solidity
+    let precisionTolerance;
+
+    // Nexus Mutual Foundation Pool
+    console.log('Nexus Mutual Foundation Pool');
+    const foundationPoolId = 0;
+    // The entire NXM balance is unlocked and sent back to the Foundation
+    // TODO: Needs some Solidity changes to be able to fully migrate them as well
+    expect(depositsInStakingPools[foundationPoolId]).to.be.equal(0); // depositInPS[FOUNDATION]
+    expect(nxmBalancesAfter[FOUNDATION]).to.be.equal(nxmBalancesBefore[FOUNDATION].add(depositInPS[FOUNDATION]));
+
+    // Hugh Pool
+    console.log('Hugh Pool');
+    const hughPoolId = 1;
+    precisionTolerance = 1; // 1 wei
+    expect(depositsInStakingPools[hughPoolId]).to.be.equal(depositInPS[HUGH].sub(precisionTolerance));
+    // No NXM gets unlocked, so the balance shouldn't change
+    precisionTolerance = 1; // 1 wei
+    expect(nxmBalancesBefore[HUGH]).to.be.equal(nxmBalancesAfter[HUGH].sub(precisionTolerance));
+
+    // Armor AAA Pool
+    console.log('Armor AAA Pool');
+    const armorAAAPoolId = 2;
+    // 5% of the AAA allocation must be unlocked
+    const expectedArmorAAAPoolBalance = depositInPS[ARMOR].mul(75).div(100).mul(95).div(100);
+    precisionTolerance = 1;
+    expect(depositsInStakingPools[armorAAAPoolId]).to.be.equal(expectedArmorAAAPoolBalance.sub(precisionTolerance));
+
+    // Armor AA Pool
+    console.log('Armor AA Pool');
+    const armorAAPoolId = 3;
+    // 5% of the AA allocation must be unlocked
+    const expectedArmorAAPoolBalance = depositInPS[ARMOR].mul(25).div(100).mul(95).div(100);
+    precisionTolerance = 1;
+    expect(depositsInStakingPools[armorAAPoolId]).to.be.equal(expectedArmorAAPoolBalance.sub(precisionTolerance));
+
+    // Overall we must unlock 5% of Armor's total tokens in PS
+    precisionTolerance = 4;
+    expect(nxmBalancesAfter[ARMOR]).to.be.equal(
+      nxmBalancesBefore[ARMOR].add(depositInPS[ARMOR].mul(5).div(100)).add(precisionTolerance),
     );
 
-    // assert deposits are now 0 for each staker
+    // Check PS deposits are now 0 for all selected stakers
+    console.log('Checking PS deposits are now 0 for all selected stakers');
     await Promise.all(
       topStakers.map(async staker => {
         const deposit = await this.pooledStaking.stakerDeposit(staker);
@@ -772,78 +790,69 @@ describe('V2 upgrade', function () {
       }),
     );
 
-    // Assert deposit for Armor Pool 0
-    const v2ProductAddresses = require(path.join(
-      config.paths.root,
-      'scripts/v2-migration/products/output/product-addresses.json',
-    )).map(address => address.toLowerCase());
+    // Check staked products prices for all staking pools
+    console.log('Checking staked products prices for all staking pools');
 
-    const pooledStaking = this.pooledStaking;
+    const productAddresses = PRODUCT_ADDRESSES_OUTPUT.map(address => address.toLowerCase());
+    const stakers = topStakers.concat([ARMOR]); // Armor has 2 pools - do this so we can iterate below
 
-    const skippedNonMigratedProducts = new Set();
-    const skippedProductsWithNoPricingData = new Set();
-    const skippedProductsWithNoStake = new Set();
+    const deprecatedProducts = new Set();
+    const productsWithNoStake = new Set();
 
-    async function assertPrices(stakingPool, stakerAddress) {
-      const contracts = await pooledStaking.stakerContractsArray(stakerAddress);
+    for (let poolId = 0; poolId < stakingPoolCount; poolId++) {
+      const stakerAddress = stakers[poolId];
+      const stakingPool = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(poolId));
+      console.log('Checking prices for staking pool', poolId, 'of', stakerAddress);
 
-      const v2ProductIds = contracts.map(contract => v2ProductAddresses.indexOf(contract.toLowerCase()));
+      const addressesOfProductsStakedInPS = await this.pooledStaking.stakerContractsArray(stakerAddress);
+      const idsOfProductsStakedInPS = addressesOfProductsStakedInPS.map(c => productAddresses.indexOf(c.toLowerCase()));
 
-      for (let i = 0; i < v2ProductIds.length; i++) {
-        const v2ProductId = v2ProductIds[i];
-        if (v2ProductId === -1) {
-          // contract was not migrated to v2 (deprecated and sunset)
-          skippedNonMigratedProducts.add(contracts[i]);
+      for (let j = 0; j < idsOfProductsStakedInPS.length; j++) {
+        const productId = idsOfProductsStakedInPS[j];
+        const productAddress = addressesOfProductsStakedInPS[j];
+
+        // Product is deprecated and sunset (we didn't migrate it)
+        if (productId === -1) {
+          deprecatedProducts.add(productAddress);
           continue;
         }
 
-        const productPrice = await pooledStaking.getV1PriceForProduct(v2ProductId);
+        const productPrice = await this.pooledStaking.getV1PriceForProduct(productId);
+
+        // Product is deprecated and not sunset (we migrated it as covers can still be claimed, but the quote engine
+        // can't give us a price for it)
         if (productPrice.toString() === MaxUint96) {
-          // it's not a supported product
-          skippedProductsWithNoPricingData.add(v2ProductId);
+          deprecatedProducts.add(productAddress);
           continue;
         }
 
-        const v1ProductAddress = contracts[i];
-        const stakerV1StakeForProduct = await pooledStaking.stakerStoredContractStake(stakerAddress, v1ProductAddress);
-        if (stakerV1StakeForProduct.isZero()) {
-          skippedProductsWithNoStake.add({
-            v2ProductId,
-            v1ProductId: contracts[i],
-          });
+        // Product has no stake in PS
+        const stakeForProductInPS = await this.pooledStaking.stakerStoredContractStake(stakerAddress, productAddress);
+        if (stakeForProductInPS.isZero()) {
+          productsWithNoStake.add(productAddress);
           continue;
         }
 
-        const stakedProduct = await stakingPool.products(v2ProductId);
-
+        const stakedProduct = await stakingPool.products(productId);
         expect(stakedProduct.targetPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
         expect(stakedProduct.bumpedPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
       }
     }
 
-    console.log(`Checking prices for Armor Pool 0`);
-    const armorStakingPool0 = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(0));
-    await assertPrices(armorStakingPool0, ARMOR_NFT);
-
-    console.log(`Checking prices for Armor Pool 1`);
-    const armorStakingPool1 = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(1));
-    await assertPrices(armorStakingPool1, ARMOR_NFT);
-
-    console.log(`Checking prices for Nexus Foundation Pool`);
-    const nexusFoundationPool = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(2));
-    await assertPrices(nexusFoundationPool, NEXUSMUTUAL_FOUNDATION);
-
-    console.log(`Checking prices for Hugh Pool`);
-    const hughPool = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(3));
-    await assertPrices(hughPool, HUGH);
-
-    console.log({
-      skippedProductsWithNoPricingData,
-      skippedNonMigratedProducts,
-      skippedProductsWithNoStake,
-    });
+    console.log({ deprecatedProducts, productsWithNoStake });
   });
 
+  // TODO review
+  it.skip('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {
+    await submitGovernanceProposal(
+      PROPOSAL_CATEGORIES.removeContracts, // removeContracts(bytes2[])
+      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
+      this.abMembers,
+      this.governance,
+    );
+  });
+
+  // TODO review
   it.skip('deploy & add contracts: Assessment, IndividualClaims, YieldTokenIncidents', async function () {
     const individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
     const yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
@@ -871,22 +880,7 @@ describe('V2 upgrade', function () {
   //   await ethers.deployContract('CoverViewer', [this.master.address]);
   // });
 
-  // [todo] remove me, used just for console logs
-  // it('deploy Quotation', async function () {
-  // const Quotation = await ethers.getContractFactory('Quotation');
-  // const quotation = await Quotation.deploy();
-  // await quotation.deployed();
-
-  // await submitGovernanceProposal(
-  // 29, // upgradeMultipleContracts(bytes2[],address[])
-  // defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('QT')], [quotation.address]]),
-  // this.abMembers,
-  // this.governance,
-  // );
-
-  // this.quotation = await ethers.getContractAt('Quotation', quotation.address);
-  // });
-
+  // TODO review
   it.skip('MemberRoles is initialized with kycAuthAddress from QuotationData', async function () {
     const kycAuthAddressQD = await this.quotationData.kycAuthAddress();
     const kycAuthAddressMR = await this.memberRoles.kycAuthAddress();
@@ -894,6 +888,7 @@ describe('V2 upgrade', function () {
     expect(kycAuthAddressMR).to.be.equal(kycAuthAddressQD);
   });
 
+  // TODO review
   it.skip('withdrawCoverNote withdraws notes only once and removes the lock reasons', async function () {
     // Using AB members to test for cover notes but other addresses could be added as well
     for (const member of this.abMembers) {
@@ -947,6 +942,7 @@ describe('V2 upgrade', function () {
     // [todo]
   });
 
+  // TODO review
   it.skip('pool value check', async function () {
     const poolValueAfter = await this.pool.getPoolValueInEth();
     const poolValueDiff = poolValueAfter.sub(poolValueBefore).abs();

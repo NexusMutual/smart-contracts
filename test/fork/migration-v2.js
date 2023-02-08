@@ -1122,10 +1122,16 @@ describe('V2 upgrade', function () {
 
     const productId = this.productsV1.getNewProductId(EULER_V1_PRODUCT_ID);
 
+    const migratedPrice = await this.pooledStaking.getV1PriceForProduct(productId);
+
+    console.log({
+      migratedPrice,
+    });
+
     const coverAsset = 0; // ETH
-    const amount = parseEther('2');
-    const period = 30 * 24 * 3600; // 30 days
-    const expectedPremium = amount.mul(300).div(10000);
+    const amount = parseEther('1');
+    const period = 364 * 24 * 3600; // 364 days to get a full percentage
+    const expectedPremium = amount.mul(migratedPrice).div((1e18).toString()).div(100);
     const paymentAsset = coverAsset;
 
     const poolAllocationRequest = [{ poolId: this.armorAAAPoolId, coverAmountInAsset: amount }];
@@ -1149,6 +1155,13 @@ describe('V2 upgrade', function () {
       poolAllocationRequest,
       { value: expectedPremium },
     );
+
+    const poolEthBalanceAfter = await ethers.provider.getBalance(this.pool.address);
+
+    const premiumSentToPool = poolEthBalanceAfter.sub(poolEthBalanceBefore);
+
+    // 0.01% max tolerated error
+    expect(expectedPremium.sub(premiumSentToPool)).to.be.lessThan(BigNumber.from(amount.div(10000)));
   });
 
   // TODO review

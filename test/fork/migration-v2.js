@@ -8,7 +8,7 @@ const proposalCategories = require('../utils').proposalCategories;
 const evm = require('./evm')();
 
 const { BigNumber } = ethers;
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
 
 // TODO Review constants
@@ -1039,6 +1039,11 @@ describe('V2 upgrade', function () {
       //   expect(deposit.stake).to.be.equal(expectedTrancheDeposit);
       // }
     }
+
+    this.armorAAAPoolId = armorAAAPoolId;
+    this.armorAAPoolId = armorAAPoolId;
+    this.foundationPoolId = foundationPoolId;
+    this.hughPoolId = hughPoolId;
   });
 
   it('Non-selected stakers can withdraw their entire deposit from LegacyPooledStaking', async function () {
@@ -1075,6 +1080,39 @@ describe('V2 upgrade', function () {
       defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
       this.abMembers,
       this.governance,
+    );
+  });
+
+  it('purchase Cover at the expected prices from the migrated pools', async function () {
+    const coverBuyer = this.abMembers[4];
+    const poolEthBalanceBefore = await ethers.provider.getBalance(this.pool.address);
+
+    const productId = 55;
+
+    const coverAsset = 0; // ETH
+    const amount = parseEther('2');
+    const period = 30 * 24 * 3600; // 30 days
+    const expectedPremium = amount.mul(300).div(10000);
+    const paymentAsset = coverAsset;
+
+    const poolAllocationRequest = [{ poolId: this.armorAAAPoolId, coverAmountInAsset: amount }];
+
+    await this.cover.connect(coverBuyer).buyCover(
+      {
+        coverId: MaxUint256,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      poolAllocationRequest,
+      { value: expectedPremium },
     );
   });
 

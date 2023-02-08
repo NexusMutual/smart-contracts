@@ -39,7 +39,7 @@
   - [x] Generate `scripts/v2-migration/products/output/v2ProductAddresses.json` - a subset of V1 products that are either _not deprecated_ or _deprecated, but have covers that are active / in grace period_
   - [x] Generate `ProductsV1.sol` - a contract that includes a mapping between V1 product IDs (i.e. contract addresses) and V2 product IDs (numerical IDs)
 - [ ] Check `ProductsV1.sol` data
-- [x] Check `v2-migration/products/output/v2ProductAddresses.json` data against the list of all products below
+- [x] Check `v2-migration/products/output/product-addresses.json` data against the list of all products below
 
 #2
 - [x] [List of all product types + metadata](https://docs.google.com/spreadsheets/d/1mhPPdmVyGTZHfhnCTK9pkyuVCwIFm5JtKiTa011e9g8/edit#gid=0) 
@@ -50,8 +50,8 @@
   - store the cover wording PDF on IPFS and use that IPFS hash
 - [x] IPFS structure for `products` info
   - store the product exclusions on IPFS: {"exclusions": "Exclusion 1", "Exclusion 2", ...} - can be found [here](https://docs.google.com/spreadsheets/d/1mhPPdmVyGTZHfhnCTK9pkyuVCwIFm5JtKiTa011e9g8/edit#gid=1755020585) 
-- [ ] **In review** Script to generate and upload all the above to IPFS
-  - Need to adapt: https://github.com/NexusMutual/smart-contracts/blob/782d93cf42dbc12d579b8625f3ec9b8d2c8c645f/scripts/populate-v2-products.js#L34
+- [x] Script to generate and upload all the above to IPFS
+  - `scripts/v2-migration/scripts/upload-to-ipfs.js`
 - [ ] Upload the above to IPFS
 
 #3

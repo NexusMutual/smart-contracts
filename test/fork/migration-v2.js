@@ -758,9 +758,6 @@ describe('V2 upgrade', function () {
     // 71.25% of the stake moves to AAA Pool (95% * 75% of the stake)
     // 23.75% of the stake moves to AA Pool (95% * 25% os the stake)
 
-    // TODO: We can avoid the precision tolerance here if we handle things a bit differently in Solidity
-    let precisionTolerance;
-
     // Nexus Mutual Foundation Pool
     console.log('Nexus Mutual Foundation Pool');
     const foundationPoolId = 0;
@@ -772,18 +769,18 @@ describe('V2 upgrade', function () {
     // Hugh Pool
     console.log('Hugh Pool');
     const hughPoolId = 1;
-    precisionTolerance = 1; // 1 wei
-    expect(depositsInStakingPools[hughPoolId]).to.be.equal(depositInPS[HUGH].sub(precisionTolerance));
+    expect(depositsInStakingPools[hughPoolId]).to.be.equal(depositInPS[HUGH]);
     // No NXM gets unlocked, so the balance shouldn't change
-    precisionTolerance = 1; // 1 wei
-    expect(nxmBalancesBefore[HUGH]).to.be.equal(nxmBalancesAfter[HUGH].sub(precisionTolerance));
+    expect(nxmBalancesAfter[HUGH]).to.be.equal(nxmBalancesBefore[HUGH]);
+
+    // Needed because of the divisions we do on Armor's deposit to split it between the 2 pools
+    let precisionTolerance = 2;
 
     // Armor AAA Pool
     console.log('Armor AAA Pool');
     const armorAAAPoolId = 2;
     // 5% of the AAA allocation must be unlocked
     const expectedArmorAAAPoolBalance = depositInPS[ARMOR].mul(75).div(100).mul(95).div(100);
-    precisionTolerance = 2;
     expect(depositsInStakingPools[armorAAAPoolId]).to.be.equal(expectedArmorAAAPoolBalance.sub(precisionTolerance));
 
     // Armor AA Pool
@@ -791,7 +788,6 @@ describe('V2 upgrade', function () {
     const armorAAPoolId = 3;
     // 5% of the AA allocation must be unlocked
     const expectedArmorAAPoolBalance = depositInPS[ARMOR].mul(25).div(100).mul(95).div(100);
-    precisionTolerance = 2;
     expect(depositsInStakingPools[armorAAPoolId]).to.be.equal(expectedArmorAAPoolBalance.sub(precisionTolerance));
 
     // Overall we must unlock 5% of Armor's total tokens in PS

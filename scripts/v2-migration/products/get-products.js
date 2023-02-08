@@ -114,10 +114,10 @@ const main = async () => {
   console.log(`Writing file ${productsV1ContractPath}`);
   fs.writeFileSync(productsV1ContractPath, productsV1Contract, 'utf8');
 
-  const v2ProductAddressesPath = outputDir + '/v2ProductAddresses.json';
-  console.log(`Writing file ${v2ProductAddressesPath}`);
+  const productAddressesPath = outputDir + '/product-addresses.json';
+  console.log(`Writing file ${productAddressesPath}`);
   fs.writeFileSync(
-    v2ProductAddressesPath,
+    productAddressesPath,
     JSON.stringify(
       v2Products.map(x => x.legacyProductId),
       null,

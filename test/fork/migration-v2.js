@@ -775,7 +775,7 @@ describe('V2 upgrade', function () {
     // Assert deposit for Armor Pool 0
     const v2ProductAddresses = require(path.join(
       config.paths.root,
-      'scripts/v2-migration/products/output/v2ProductAddresses.json',
+      'scripts/v2-migration/products/output/product-addresses.json',
     ));
 
     const pooledStaking = this.pooledStaking;

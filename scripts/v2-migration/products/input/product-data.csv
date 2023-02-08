@@ -1,5 +1,4 @@
-Product Id,Product Address ,Name,Product Type,Yield Token Address,Cover Assets,Initial Price Ratio,Capacity Reduction Ratio,Is Deprecated,Use Fixed Price,Allowed Pools,IPFS Hash,IPFS data
-,for reference only,,,(leave blank if N/A),(leave blank if both ETH/DAI apply),10% for all,0% for all,(leave blank if false),(leave blank if false),(leave blank if all),,Exclusions
+Product Id,Product Address,Name,Product Type,Yield Token Address,Cover Assets,Initial Price Ratio,Capacity Reduction Ratio,Is Deprecated,Use Fixed Price,Allowed Pools,IPFS Hash,IPFS data
 ,0xB27F1DB0a7e473304A5a06E54bdf035F671400C0,0x v3,Protocol,,,10%,0%,,,,,
 ,0x11111254369792b2Ca5d084aB5eEA397cA8fa48B,1Inch (DEX & Liquidity Pools),Protocol,,,10%,0%,,,,,
 ,0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9,Aave v2,Protocol,,,10%,0%,,,,,

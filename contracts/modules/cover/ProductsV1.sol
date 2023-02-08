@@ -403,88 +403,94 @@ contract ProductsV1 is IProductsV1 {
       return 65;
     }
 
+    // Product: Liquid Collective
+    // Type: eth2slashing
+    if (legacyProductId == 0x0000000000000000000000000000000000000033) {
+      return 66;
+    }
+
     // Product: Bancor v2
     // Type: protocol
     if (legacyProductId == 0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C) {
-      return 66;
+      return 67;
     }
 
     // Product: Eth 2.0 (deposit contract)
     // Type: protocol
     if (legacyProductId == 0x00000000219ab540356cBB839Cbe05303d7705Fa) {
-      return 67;
+      return 68;
     }
 
     // Product: Celsius
     // Type: custodian
     if (legacyProductId == 0xc57D000000000000000000000000000000000001) {
-      return 68;
+      return 69;
     }
 
     // Product: BlockFi
     // Type: custodian
     if (legacyProductId == 0xC57D000000000000000000000000000000000002) {
-      return 69;
+      return 70;
     }
 
     // Product: Nexo
     // Type: custodian
     if (legacyProductId == 0xC57d000000000000000000000000000000000003) {
-      return 70;
+      return 71;
     }
 
     // Product: Ledn
     // Type: custodian
     if (legacyProductId == 0xC57D000000000000000000000000000000000005) {
-      return 71;
+      return 72;
     }
 
     // Product: Hodlnaut
     // Type: custodian
     if (legacyProductId == 0xC57d000000000000000000000000000000000006) {
-      return 72;
+      return 73;
     }
 
     // Product: Gemini
     // Type: custodian
     if (legacyProductId == 0xc57d000000000000000000000000000000000010) {
-      return 73;
+      return 74;
     }
 
     // Product: Crypto.com
     // Type: custodian
     if (legacyProductId == 0xC57d000000000000000000000000000000000012) {
-      return 74;
+      return 75;
     }
 
     // Product: Yield.app
     // Type: custodian
     if (legacyProductId == 0xc57d000000000000000000000000000000000013) {
-      return 75;
+      return 76;
     }
 
     // Product: Rari Capital
     // Type: protocol
     if (legacyProductId == 0x835482FE0532f169024d5E9410199369aAD5C77E) {
-      return 76;
+      return 77;
     }
 
     // Product: Anchor
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000001) {
-      return 77;
+      return 78;
     }
 
     // Product: Thorchain
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000004) {
-      return 78;
+      return 79;
     }
 
     // Product: Babylon Finance
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000020) {
-      return 79;
+      return 80;
     }
 
     revert("Invalid product!");

@@ -5,129 +5,100 @@ const path = require('path');
 const fetch = require('node-fetch');
 const { parse: csvParse } = require('csv-parse/sync');
 
-async function readFileFromURL(url) {
-  const file = await fetch(url).then(x => x.buffer());
-  return file;
-}
+const IPFS_API_URL = 'https://api.nexusmutual.io/ipfs-api/api/v0';
 
-const CoverWordings = {
-  // protocol
-  0: 'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d0f4c4cca088730ac54ccc_ProtocolCoverv1.0.pdf',
-  // custodian
-  1: 'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d0f4d7b378db634f0f9a9d_CustodyCoverWordingv1.0.pdf',
-  // token
-  2: 'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d0f475a1a2c7250a1e9697_YieldTokenCoverv1.0.pdf',
-  // sherlock
-  3: 'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d0f7c4f0864e48c46ad93c_SherlockExcessCoverv1.0.pdf',
-  // eth2slashing
-  4:
-    'https://uploads-ssl.webflow.com/' +
-    '62d8193ce9880895261daf4a/63d0f8390352b0dc1cb8112b_ETH2-Staking-Cover-Wording-v1.0.pdf',
-  // liquidcollective
-  5: 'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d7cb35dea9958c3952e9c0_Liquid-Collective-v1.0.pdf',
-};
+// Input files
+const PRODUCT_TYPE_DATA_PATH = path.join(__dirname, 'input/product-type-data.csv');
+const PRODUCT_DATA_PATH = path.join(__dirname, 'input/product-data.csv');
 
-const IPFS = {
-  API: {
-    url: 'https://api.nexusmutual.io/ipfs-api/api/v0',
-  },
-  GATEWAY: 'https://api.nexusmutual.io/ipfs/',
-};
-
-async function uploadCoverWordingForProductType(ipfs, productType) {
-  const url = CoverWordings[productType];
-  console.log(`Fetching ${productType} cover wording from ${url}..`);
-  const agreementBuffer = await readFileFromURL(url);
-
-  console.log(`Uploading ${productType} cover wording to IPFS..`);
-  const agreement = await ipfs.add(agreementBuffer);
-  const productTypeHash = agreement.path;
-
-  console.log(`Pinning ${productTypeHash}`);
-  await ipfs.pin.add(productTypeHash);
-
-  console.log(`Succesfully pinned`);
-  return productTypeHash;
-}
-
-/**
-   Expected format is an exclusion on each newline
-
-   Losses due to a compromised wallet
-   Losses due to a previously disclosed vulnerability
- */
-function parseExclusions(extensionsText) {
-  const extensions = extensionsText.split('\n');
-  return extensions.map(e => e.trim());
-}
+// Output files
+const PRODUCT_TYPE_IPFS_HASHES_PATH = path.join(__dirname, 'output/product-type-ipfs-hashes.json');
+const PRODUCT_IPFS_HASHES_PATH = path.join(__dirname, 'output/product-ipfs-hashes.json');
 
 const main = async () => {
-  const ipfs = ipfsClient({
-    url: IPFS.API.url,
-  });
+  const ipfs = ipfsClient({ url: IPFS_API_URL });
 
-  // using product type IDs
-  const productTypes = [0, 1, 2, 3, 4, 5];
+  /* ----------------------------- Product Type ------------------------------ */
 
-  const productTypeHashes = {};
-  for (const productType of productTypes) {
-    const protocolCoverHash = await uploadCoverWordingForProductType(ipfs, productType);
-    productTypeHashes[productType] = protocolCoverHash;
-  }
+  console.log(`Uploading ProductType IPFS metadata`);
 
-  const productTypeIpfsHashesPath = path.join(__dirname, 'output/product-type-ipfs-hashes.json');
-
-  fs.writeFileSync(productTypeIpfsHashesPath, JSON.stringify(productTypeHashes, null, 2), 'utf8');
-
-  console.log(`Uploading Product IPFS metadata..`);
-
-  const V2OnChainProductInfoProductsPath = path.join(__dirname, 'input/product-data.csv');
-  const productInfoRecords = csvParse(fs.readFileSync(V2OnChainProductInfoProductsPath, 'utf8'), {
+  const productTypeData = csvParse(fs.readFileSync(PRODUCT_TYPE_DATA_PATH, 'utf8'), {
     columns: true,
     skip_empty_lines: true,
-  }).slice(1); // eliminate the header of the CSV
+  }).slice(0); // eliminate the header of the CSV
 
-  const v2ProductAddressesPath = path.join(__dirname, 'output/v2ProductAddresses.json');
-  const v2ProductAddresses = JSON.parse(fs.readFileSync(v2ProductAddressesPath)).map(a => a.toLowerCase());
+  const productTypeHashes = {};
+  for (const record of productTypeData) {
+    console.log(record.Name);
+
+    const productType = record.Id;
+    const productTypeName = record.Name;
+    const url = record['Cover Wording URL'];
+
+    console.log(`Fetching ${productTypeName} cover wording from ${url}`);
+    const agreementBuffer = await fetch(url).then(x => x.buffer());
+
+    console.log(`Uploading ${productTypeName} cover wording to IPFS`);
+    const agreement = await ipfs.add(agreementBuffer);
+    const productTypeHash = agreement.path;
+
+    console.log(`Pinning ${productTypeHash}`);
+    await ipfs.pin.add(productTypeHash);
+
+    productTypeHashes[productType] = productTypeHash;
+  }
+
+  fs.writeFileSync(PRODUCT_TYPE_IPFS_HASHES_PATH, JSON.stringify(productTypeHashes, null, 2), 'utf8');
+
+  /* ------------------------------ Product -------------------------------- */
+
+  console.log(`Uploading Product IPFS metadata`);
+
+  const productData = csvParse(fs.readFileSync(PRODUCT_DATA_PATH, 'utf8'), {
+    columns: true,
+    skip_empty_lines: true,
+  }).slice(0); // eliminate the header of the CSV
+
+  const productAddressesPath = path.join(__dirname, 'output/product-addresses.json');
+  const productAddresses = require(productAddressesPath).map(a => a.toLowerCase());
 
   const productHashes = {};
 
-  for (const record of productInfoRecords) {
-    const ipfsData = record['IPFS data'];
+  for (const record of productData) {
+    console.log(record.Name);
 
-    console.log({
-      record,
-    });
+    const ipfsData = record['IPFS data'];
     if (ipfsData.length === 0) {
       continue;
     }
 
-    const data = {
-      exclusions: parseExclusions(ipfsData),
-    };
-
-    const productAddress = record['Product Address '];
     const productName = record.Name;
-
-    const v2Id = v2ProductAddresses.indexOf(productAddress.toLowerCase());
-
-    if (v2Id < 0) {
+    const productAddress = record['Product Address'];
+    const productId = productAddresses.indexOf(productAddress.toLowerCase());
+    if (productId < 0) {
       throw new Error(`Id for product ${productName} not found.`);
     }
 
-    console.log(`Uploading IPFS data for product ${productName} with V2 Id: ${v2Id}`);
-
-    const ipfsUpload = await ipfs.add(Buffer.from(JSON.stringify(data)));
+    /*
+      Expected format is an exclusion string on each newline, i.e.:
+      ```
+      Losses due to a compromised wallet
+      Losses due to a previously disclosed vulnerability
+      ```
+    */
+    const exclusionsData = {
+      exclusions: ipfsData.split('\n').map(e => e.trim()),
+    };
+    console.log(`Uploading IPFS data for product ${productName} with product id: ${productId}`);
+    const ipfsUpload = await ipfs.add(Buffer.from(JSON.stringify(exclusionsData)));
 
     console.log(`Pinning ${ipfsUpload.path}`);
     await ipfs.pin.add(ipfsUpload.path);
 
-    productHashes[v2Id] = ipfsUpload.path;
+    productHashes[productId] = ipfsUpload.path;
   }
 
-  const productIpfsHashesPath = path.join(__dirname, 'output/product-ipfs-hashes.json');
-
-  fs.writeFileSync(productIpfsHashesPath, JSON.stringify(productHashes, null, 2), 'utf8');
+  fs.writeFileSync(PRODUCT_IPFS_HASHES_PATH, JSON.stringify(productHashes, null, 2), 'utf8');
 };
 
 if (require.main === module) {

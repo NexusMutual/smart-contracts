@@ -50,7 +50,7 @@ describe('submitClaim', function () {
 
   it('submits ETH claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, stakingPool0, as, yc, ybETH, gv } = this.contracts;
+    const { cover, stakingPool1, as, yc, ybETH, gv } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
 
@@ -60,7 +60,7 @@ describe('submitClaim', function () {
     const coverAsset = 0; // ETH
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
+    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
 
     // cover buyer gets yield token
     await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, yToken: ybETH, yc });
@@ -116,7 +116,7 @@ describe('submitClaim', function () {
 
   it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, stakingPool0, as, dai, yc, ybDAI, gv } = this.contracts;
+    const { cover, stakingPool1, as, dai, yc, ybDAI, gv } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
 
@@ -126,7 +126,7 @@ describe('submitClaim', function () {
     const coverAsset = 1; // DAI
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
+    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
@@ -185,7 +185,7 @@ describe('submitClaim', function () {
 
   it('submits ETH claim and rejects claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, stakingPool0, as, yc, ybETH, gv } = this.contracts;
+    const { cover, stakingPool1, as, yc, ybETH, gv } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
 
@@ -195,7 +195,7 @@ describe('submitClaim', function () {
     const coverAsset = 0; // ETH
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
+    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
 
     // cover buyer gets yield token
     await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, yToken: ybETH, yc });
@@ -234,7 +234,7 @@ describe('submitClaim', function () {
 
   it('submits DAI claim and rejects claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, stakingPool0, as, dai, yc, ybDAI, gv } = this.contracts;
+    const { cover, stakingPool1, as, dai, yc, ybDAI, gv } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
 
@@ -244,7 +244,7 @@ describe('submitClaim', function () {
     const coverAsset = 1; // DAI
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
+    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
@@ -285,7 +285,7 @@ describe('submitClaim', function () {
 
   it('submits and redeems full amount of ETH claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, stakingPool0, as, yc, ybETH, gv } = this.contracts;
+    const { cover, stakingPool1, as, yc, ybETH, gv } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
 
@@ -295,7 +295,7 @@ describe('submitClaim', function () {
     const coverAsset = 0; // ETH
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
+    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
 
     // cover buyer gets yield token
     await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, yToken: ybETH, yc });
@@ -337,7 +337,7 @@ describe('submitClaim', function () {
 
   it('submits and redeems full amount of DAI claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, stakingPool0, as, dai, yc, ybDAI, gv } = this.contracts;
+    const { cover, stakingPool1, as, dai, yc, ybDAI, gv } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
 
@@ -347,7 +347,7 @@ describe('submitClaim', function () {
     const coverAsset = 1; // DAI
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
+    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
@@ -389,7 +389,7 @@ describe('submitClaim', function () {
 
   it('submits and redeems claims from multiple users', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, stakingPool0, as, yc, ybETH, gv } = this.contracts;
+    const { cover, stakingPool1, as, yc, ybETH, gv } = this.contracts;
     const [coverBuyer1, coverBuyer2, coverBuyer3, staker1] = this.accounts.members;
     const [nonMember1, nonMember2, nonMember3] = this.accounts.nonMembers;
 
@@ -399,7 +399,7 @@ describe('submitClaim', function () {
     const coverAsset = 0; // ETH
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
+    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
 
     // coverBuyer1 gets yield token
     await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, yToken: ybETH, yc });
@@ -497,7 +497,7 @@ describe('submitClaim', function () {
 
   it('submits and redeems claims from multiple products', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, stakingPool0, as, yc, ybETH, gv, dai, ybDAI } = this.contracts;
+    const { cover, stakingPool1, as, yc, ybETH, gv, dai, ybDAI } = this.contracts;
     const [coverBuyer1, coverBuyer2, staker1] = this.accounts.members;
     const [nonMember1, nonMember2] = this.accounts.nonMembers;
 
@@ -509,7 +509,7 @@ describe('submitClaim', function () {
       const coverAsset = 0; // ETH
 
       // Stake to open up capacity
-      await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
+      await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
 
       // cover buyer gets yield token
       await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, yToken: ybETH, yc });
@@ -539,7 +539,7 @@ describe('submitClaim', function () {
       const coverAsset = 1; // DAI
 
       // Stake to open up capacity
-      await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
+      await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
 
       // cover buyer gets cover asset
       await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer2, asset: dai, cover });
@@ -595,7 +595,7 @@ describe('submitClaim', function () {
 
   it('submits USDC claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, stakingPool0, as, usdc, yc, ybUSDC, gv } = this.contracts;
+    const { cover, stakingPool1, as, usdc, yc, ybUSDC, gv } = this.contracts;
     const [coverBuyer, staker] = this.accounts.members;
     const [nonMember] = this.accounts.nonMembers;
 
@@ -606,7 +606,7 @@ describe('submitClaim', function () {
     const coverAsset = 4; // usdc
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker, productId, period, gracePeriod });
+    await stake({ stakingPool: stakingPool1, staker, productId, period, gracePeriod });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer, asset: usdc, cover });
@@ -647,7 +647,7 @@ describe('submitClaim', function () {
 
   it('submits and redeems full amount of USDC claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, stakingPool0, as, usdc, yc, ybUSDC, gv } = this.contracts;
+    const { cover, stakingPool1, as, usdc, yc, ybUSDC, gv } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
 
@@ -659,7 +659,7 @@ describe('submitClaim', function () {
     const coverAsset = 4; // usdc
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
+    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: usdc, cover });

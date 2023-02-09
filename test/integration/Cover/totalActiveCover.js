@@ -35,7 +35,7 @@ const buyCoverFixture = {
 
 describe('totalActiveCover', function () {
   beforeEach(async function () {
-    const { tk, stakingProducts, stakingPool0 } = this.contracts;
+    const { tk, stakingProducts, stakingPool1 } = this.contracts;
     const { stakingPoolManagers } = this.accounts;
 
     const members = this.accounts.members.slice(0, 5);
@@ -46,7 +46,7 @@ describe('totalActiveCover', function () {
 
     await stakingProducts
       .connect(stakingPoolManagers[0])
-      .setProducts(await stakingPool0.getPoolId(), [stakedProductParamTemplate]);
+      .setProducts(await stakingPool1.getPoolId(), [stakedProductParamTemplate]);
   });
 
   function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
@@ -96,7 +96,7 @@ describe('totalActiveCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: 0, coverAmountInAsset: amount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
       {
         value: expectedPremium,
       },
@@ -116,7 +116,7 @@ describe('totalActiveCover', function () {
 
   it('expire a cover that had a claim paid out fully', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, stakingPool0, as, yc, gv, ybETH } = this.contracts;
+    const { cover, stakingPool1, as, yc, gv, ybETH } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
     const { BUCKET_SIZE } = this.config;
@@ -124,10 +124,10 @@ describe('totalActiveCover', function () {
     const { productId, coverAsset, period, gracePeriod, amount, coverId, segmentId, incidentId, assessmentId } =
       buyCoverFixture;
 
-    expect(await cover.stakingPool(0)).to.be.equal(stakingPool0.address);
+    expect(await cover.stakingPool(1)).to.be.equal(stakingPool1.address);
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, period, gracePeriod });
+    await stake({ stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
 
     // cover buyer gets yield token
     await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer1, yc, ybETH });
@@ -188,7 +188,7 @@ describe('totalActiveCover', function () {
   it('expire a cover that had a partial claim paid out', async function () {
     const { DEFAULT_PRODUCTS } = this;
     const { BUCKET_SIZE } = this.config;
-    const { cover, stakingPool0, as, yc, gv, ybETH } = this.contracts;
+    const { cover, stakingPool1, as, yc, gv, ybETH } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
 
@@ -196,7 +196,7 @@ describe('totalActiveCover', function () {
       buyCoverFixture;
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, period, gracePeriod });
+    await stake({ stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
 
     // cover buyer gets yield token
     await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer1, yc, ybETH });
@@ -264,7 +264,7 @@ describe('totalActiveCover', function () {
   it('expire a cover that had rejected claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
     const { BUCKET_SIZE } = this.config;
-    const { cover, stakingPool0, as, yc, gv, ybETH } = this.contracts;
+    const { cover, stakingPool1, as, yc, gv, ybETH } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
 
@@ -272,7 +272,7 @@ describe('totalActiveCover', function () {
       buyCoverFixture;
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, period, gracePeriod });
+    await stake({ stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
 
     // cover buyer gets yield token
     await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer1, yc, ybETH });

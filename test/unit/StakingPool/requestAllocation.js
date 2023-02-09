@@ -99,7 +99,7 @@ const product3 = {
   targetPrice: 200, // 2%}
 };
 
-const poolId = 0;
+const poolId = 1;
 const trancheOffset = 5;
 
 describe('requestAllocation', function () {

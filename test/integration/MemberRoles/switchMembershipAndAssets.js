@@ -74,7 +74,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('transfers the provided covers to the new address', async function () {
-    const { mr: memberRoles, tk: token, cover, coverNFT, stakingPool0 } = this.contracts;
+    const { mr: memberRoles, tk: token, cover, coverNFT, stakingPool1 } = this.contracts;
     const [member, staker] = this.accounts.members;
     const [nonMember] = this.accounts.nonMembers;
 
@@ -86,7 +86,7 @@ describe('switchMembershipAndAssets', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker, gracePeriod, period, productId });
 
     for (let i = 0; i < 3; i++) {
       const expectedPremium = parseEther('1');
@@ -104,7 +104,7 @@ describe('switchMembershipAndAssets', function () {
           commissionDestination: ethers.constants.AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        [{ poolId: 1, coverAmountInAsset: amount }],
         { value: expectedPremium },
       );
     }
@@ -128,16 +128,16 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it.skip('transfers all staking LP shares of the provided staking pools', async function () {
-    const { mr: memberRoles, tk: token, stakingPool0, stakingPool1, stakingPool2 } = this.contracts;
+    const { mr: memberRoles, tk: token, stakingPool1, stakingPool2, stakingPool3 } = this.contracts;
     const {
       members: [member1],
       nonMembers: [nonMember1],
     } = this.accounts;
 
     const stakingPoolsAndAmounts = [
-      [stakingPool0, parseEther('1000')],
-      [stakingPool1, parseEther('10')],
+      [stakingPool1, parseEther('1000')],
       [stakingPool2, parseEther('10')],
+      [stakingPool3, parseEther('10')],
     ];
 
     const lastBlock = await ethers.provider.getBlock('latest');
@@ -161,28 +161,28 @@ describe('switchMembershipAndAssets', function () {
     await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [], [0, 2], [[1], [1]]);
 
     {
-      const balance = await stakingPool0.balanceOf(member1.address);
+      const balance = await stakingPool1.balanceOf(member1.address);
       expect(balance).to.be.equal(0);
     }
     {
-      const balance = await stakingPool1.balanceOf(member1.address);
+      const balance = await stakingPool2.balanceOf(member1.address);
       expect(balance).to.be.equal(1);
     }
     {
-      const balance = await stakingPool2.balanceOf(member1.address);
+      const balance = await stakingPool3.balanceOf(member1.address);
       expect(balance).to.be.equal(0);
     }
 
     {
-      const balance = await stakingPool0.balanceOf(newMemberAddress);
+      const balance = await stakingPool1.balanceOf(newMemberAddress);
       expect(balance).to.be.equal(1);
     }
     {
-      const balance = await stakingPool1.balanceOf(newMemberAddress);
+      const balance = await stakingPool2.balanceOf(newMemberAddress);
       expect(balance).to.be.equal(0);
     }
     {
-      const balance = await stakingPool2.balanceOf(newMemberAddress);
+      const balance = await stakingPool3.balanceOf(newMemberAddress);
       expect(balance).to.be.equal(1);
     }
   });

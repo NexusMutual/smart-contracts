@@ -24,7 +24,7 @@ contract CoverNFT is ICoverNFT {
   address public operator;
 
   modifier onlyOperator {
-    require(msg.sender == operator, "CoverNFT: Not operator");
+    if (msg.sender != operator) revert NotOperator();
     _;
   }
 
@@ -51,11 +51,11 @@ contract CoverNFT is ICoverNFT {
   }
 
   function ownerOf(uint256 id) public view virtual returns (address owner) {
-    require((owner = _ownerOf[id]) != address(0), "NOT_MINTED");
+    if ((owner = _ownerOf[id]) == address(0)) revert NotMinted();
   }
 
   function balanceOf(address owner) public view virtual returns (uint256) {
-    require(owner != address(0), "ZERO_ADDRESS");
+    if (owner == address(0)) revert ZeroAddress();
 
     return _balanceOf[owner];
   }
@@ -66,7 +66,7 @@ contract CoverNFT is ICoverNFT {
   }
 
   function changeOperator(address _newOperator) public onlyOperator returns (bool) {
-    require(_newOperator != address(0), "CoverNFT: Invalid newOperator address");
+    if (_newOperator == address(0)) revert InvalidNewOperatorAddress();
 
     operator = _newOperator;
     return true;
@@ -76,7 +76,7 @@ contract CoverNFT is ICoverNFT {
   function approve(address spender, uint256 id) public virtual {
     address owner = _ownerOf[id];
 
-    require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "NOT_AUTHORIZED");
+    if (msg.sender != owner && !isApprovedForAll[owner][msg.sender]) revert NotAuthorized();
 
     getApproved[id] = spender;
 
@@ -94,14 +94,13 @@ contract CoverNFT is ICoverNFT {
     address to,
     uint256 id
   ) public virtual {
-    require(from == _ownerOf[id], "WRONG_FROM");
+    if (from != _ownerOf[id]) revert WrongFrom();
 
-    require(to != address(0), "INVALID_RECIPIENT");
+    if (to == address(0)) revert InvalidRecipient();
 
-    require(
-      msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id],
-      "NOT_AUTHORIZED"
-    );
+    if (msg.sender != from && !isApprovedForAll[from][msg.sender] && msg.sender != getApproved[id]) {
+      revert NotAuthorized();
+    }
 
     // Underflow of the sender's balance is impossible because we check for
     // ownership above and the recipient's balance can't realistically overflow.
@@ -125,12 +124,10 @@ contract CoverNFT is ICoverNFT {
   ) public virtual {
     transferFrom(from, to, id);
 
-    require(
-      to.code.length == 0 ||
-      ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") ==
-      ERC721TokenReceiver.onERC721Received.selector,
-      "UNSAFE_RECIPIENT"
-    );
+    if (to.code.length != 0
+      && ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") != ERC721TokenReceiver.onERC721Received.selector) {
+      revert UnsafeRecipient();
+    }
   }
 
   function safeTransferFrom(
@@ -141,12 +138,10 @@ contract CoverNFT is ICoverNFT {
   ) public virtual {
     transferFrom(from, to, id);
 
-    require(
-      to.code.length == 0 ||
-      ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) ==
-      ERC721TokenReceiver.onERC721Received.selector,
-      "UNSAFE_RECIPIENT"
-    );
+    if (to.code.length != 0
+      && ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) != ERC721TokenReceiver.onERC721Received.selector) {
+      revert UnsafeRecipient();
+    }
   }
 
 
@@ -161,9 +156,9 @@ contract CoverNFT is ICoverNFT {
   // Internal functions
 
   function _mint(address to, uint256 id) internal virtual {
-    require(to != address(0), "INVALID_RECIPIENT");
+    if (to == address(0)) revert InvalidRecipient();
 
-    require(_ownerOf[id] == address(0), "ALREADY_MINTED");
+    if (_ownerOf[id] != address(0)) revert AlreadyMinted();
 
     // Counter overflow is incredibly unrealistic.
   unchecked {
@@ -174,6 +169,24 @@ contract CoverNFT is ICoverNFT {
 
     emit Transfer(address(0), to, id);
   }
+
+  function _burn(uint256 id) internal virtual {
+    address owner = _ownerOf[id];
+
+    if (owner == address(0)) revert NotMinted();
+
+    // Ownership check above ensures no underflow.
+  unchecked {
+    _balanceOf[owner]--;
+  }
+
+    delete _ownerOf[id];
+
+    delete getApproved[id];
+
+    emit Transfer(owner, address(0), id);
+  }
+
 }
 
 /// @notice A generic interface for a contract which properly accepts ERC721 tokens.
@@ -188,4 +201,3 @@ abstract contract ERC721TokenReceiver {
     return ERC721TokenReceiver.onERC721Received.selector;
   }
 }
-

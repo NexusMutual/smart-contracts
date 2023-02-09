@@ -12,4 +12,13 @@ interface ICoverNFT is IERC721 {
 
   function mint(address to) external returns (uint);
 
+  error NotOperator();
+  error NotMinted();
+  error ZeroAddress();
+  error WrongFrom();
+  error InvalidRecipient();
+  error InvalidNewOperatorAddress();
+  error NotAuthorized();
+  error UnsafeRecipient();
+  error AlreadyMinted();
 }

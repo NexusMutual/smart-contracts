@@ -43,8 +43,8 @@ contract StakingNFT is IStakingNFT {
   // TODO: implement change token descriptor function here
 
   function changeOperator(address newOperator) public {
-    require(msg.sender == operator, "NOT_OPERATOR");
-    require(newOperator != address(0), "INVALID_OPERATOR");
+    if (msg.sender != operator) revert NotOperator();
+    if (newOperator == address(0)) revert InvalidNewOperatorAddress();
     operator = newOperator;
   }
 
@@ -52,12 +52,11 @@ contract StakingNFT is IStakingNFT {
 
   function mint(uint poolId, address to) public returns (uint id) {
 
-    require(
-      msg.sender == StakingPoolLibrary.getAddress(stakingPoolFactory, poolId),
-      'NOT_STAKING_POOL'
-    );
+    if (msg.sender != StakingPoolLibrary.getAddress(stakingPoolFactory, poolId)) {
+      revert NotStakingPool();
+    }
 
-    require(to != address(0), "INVALID_RECIPIENT");
+    if (to == address(0)) revert InvalidRecipient();
 
     // counter overflow is incredibly unrealistic
     unchecked {
@@ -80,21 +79,22 @@ contract StakingNFT is IStakingNFT {
   function tokenInfo(uint tokenId) public view returns (uint poolId, address owner) {
     poolId = _tokenInfo[tokenId].poolId;
     owner = _tokenInfo[tokenId].owner;
-    require(owner != address(0), "NOT_MINTED");
+    if (owner == address(0)) revert NotMinted();
   }
 
   function stakingPoolOf(uint tokenId) public view returns (uint poolId) {
     poolId = _tokenInfo[tokenId].poolId;
-    require(poolId != 0, "NOT_MINTED");
+    if (poolId == 0) revert NotMinted();
   }
 
   // ERC165
 
   function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
     return
-      interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-      interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-      interfaceId == 0x5b5e139f;   // ERC165 Interface ID for ERC721Metadata
+    interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
+    interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
+    interfaceId == 0x5b5e139f;
+    // ERC165 Interface ID for ERC721Metadata
   }
 
   // ERC721
@@ -107,17 +107,17 @@ contract StakingNFT is IStakingNFT {
 
   function ownerOf(uint id) public view returns (address owner) {
     owner = _tokenInfo[id].owner;
-    require(owner != address(0), "NOT_MINTED");
+    if (owner == address(0)) revert NotMinted();
   }
 
   function balanceOf(address owner) public view returns (uint) {
-    require(owner != address(0), "ZERO_ADDRESS");
+    if (owner == address(0)) revert ZeroAddress();
     return _balanceOf[owner];
   }
 
   function approve(address spender, uint id) public {
     address owner = ownerOf(id);
-    require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "NOT_AUTHORIZED");
+    if (msg.sender != owner && !isApprovedForAll[owner][msg.sender]) revert NotAuthorized();
     getApproved[id] = spender;
     emit Approval(owner, spender, id);
   }
@@ -136,13 +136,12 @@ contract StakingNFT is IStakingNFT {
 
   function transferFrom(address from, address to, uint id) public {
 
-    require(from == ownerOf(id), "WRONG_FROM");
-    require(to != address(0), "INVALID_RECIPIENT");
+    if (from != ownerOf(id)) revert WrongFrom();
+    if (to == address(0)) revert InvalidRecipient();
 
-    require(
-      msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id],
-      "NOT_AUTHORIZED"
-    );
+    if (msg.sender != from && !isApprovedForAll[from][msg.sender] && msg.sender != getApproved[id]) {
+      revert NotAuthorized();
+    }
 
     // underflow of the sender's balance is impossible because we check for
     // ownership above and the recipient's balance can't realistically overflow
@@ -159,12 +158,9 @@ contract StakingNFT is IStakingNFT {
 
   function safeTransferFrom(address from, address to, uint id) public {
     transferFrom(from, to, id);
-    require(
-      to.code.length == 0 ||
-      ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "")
-        == ERC721TokenReceiver.onERC721Received.selector,
-      "UNSAFE_RECIPIENT"
-    );
+    if (to.code.length != 0 && ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") != ERC721TokenReceiver.onERC721Received.selector) {
+      revert UnsafeRecipient();
+    }
   }
 
   function safeTransferFrom(
@@ -174,12 +170,10 @@ contract StakingNFT is IStakingNFT {
     bytes calldata data
   ) public {
     transferFrom(from, to, id);
-    require(
-      to.code.length == 0 ||
-      ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data)
-        == ERC721TokenReceiver.onERC721Received.selector,
-      "UNSAFE_RECIPIENT"
-    );
+
+    if (to.code.length != 0 && ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) != ERC721TokenReceiver.onERC721Received.selector) {
+      revert UnsafeRecipient();
+    }
   }
 }
 

@@ -32,28 +32,28 @@ describe('StakingNFT', function () {
 
   it('should revert when reading tokenInfo for a non-existent token', async function () {
     const { stakingNFT } = this;
-    await expect(stakingNFT.tokenInfo(0)).to.be.revertedWith('NOT_MINTED');
+    await expect(stakingNFT.tokenInfo(0)).to.be.revertedWithCustomError(stakingNFT, 'NotMinted');
   });
 
   it('should revert if calling stakingPoolOf for a non existent token', async function () {
     const { stakingNFT } = this;
-    const [nftOwner] = this.accounts.members;
-    await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, nftOwner.address);
-    // first token id is 1
-    await expect(stakingNFT.stakingPoolOf(0)).to.be.revertedWith('NOT_MINTED');
+    await expect(stakingNFT.stakingPoolOf(0)).to.be.revertedWithCustomError(stakingNFT, 'NotMinted');
   });
 
   it('should fail to mint to zero address', async function () {
     const { stakingNFT } = this;
     await expect(
       stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, ethers.constants.AddressZero),
-    ).to.be.revertedWith('INVALID_RECIPIENT');
+    ).to.be.revertedWithCustomError(stakingNFT, 'InvalidRecipient');
   });
 
   it('should fail to mint - OnlyStakingPool()', async function () {
     const { stakingNFT } = this;
     const [member] = this.accounts.members;
-    await expect(stakingNFT.connect(member).mint(this.poolId, member.address)).to.be.revertedWith('NOT_STAKING_POOL');
+    await expect(stakingNFT.connect(member).mint(this.poolId, member.address)).to.be.revertedWithCustomError(
+      stakingNFT,
+      'NotStakingPool',
+    );
   });
 
   it('should successfully mint', async function () {
@@ -97,27 +97,65 @@ describe('StakingNFT', function () {
     const { stakingNFT } = this;
     const [owner, nonOwner] = this.accounts.members;
     await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, owner.address);
-    await expect(stakingNFT.connect(nonOwner).approve(nonOwner.address, 1)).to.be.revertedWith('NOT_AUTHORIZED');
+    await expect(
+      stakingNFT.connect(nonOwner).approve(nonOwner.address, 1),
+    ).to.be.revertedWithCustomError(stakingNFT, 'NotAuthorized');
   });
 
-  it('should revert if reading balance of 0 address - ZERO_ADDRESS', async function () {
+  it('should revert if reading balance of 0 address - ZeroAddress', async function () {
     const { stakingNFT } = this;
-    await expect(stakingNFT.balanceOf(ethers.constants.AddressZero)).to.be.revertedWith('ZERO_ADDRESS');
+    await expect(stakingNFT.balanceOf(ethers.constants.AddressZero)).to.be.revertedWithCustomError(
+      stakingNFT,
+      'ZeroAddress',
+    );
   });
 
-  it('should revert if trying to transferFrom a token from a non-owner - WRONG_FROM', async function () {
+  it('should revert if a non operator tries to call operatorTransfer - NotOperator', async function () {
+    const { stakingNFT } = this;
+    const [member] = this.accounts.members;
+    await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, member.address);
+    await expect(stakingNFT.operatorTransferFrom(member.address, member.address, 1)).to.be.revertedWithCustomError(
+      stakingNFT,
+      'NotOperator',
+    );
+  });
+
+  it('should revert if trying to operatorTransfer a token from a non-owner - WrongFrom', async function () {
+    const { stakingNFT, cover } = this;
+    const [nonOwner, owner] = this.accounts.members;
+    await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, owner.address);
+    await expect(cover.operatorTransferFrom(nonOwner.address, owner.address, 1)).to.be.revertedWithCustomError(
+      stakingNFT,
+      'WrongFrom',
+    );
+  });
+
+  it('should revert if trying to operatorTransfer a token to a zero address - ZeroAddress', async function () {
+    const { stakingNFT, cover } = this;
+    const [owner] = this.accounts.members;
+    await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, owner.address);
+    await expect(
+      cover.operatorTransferFrom(owner.address, ethers.constants.AddressZero, 1),
+    ).to.be.revertedWithCustomError(stakingNFT, 'InvalidRecipient');
+  });
+
+  it('should revert if trying to transferFrom a token from a non-owner - WrongFrom', async function () {
     const { stakingNFT } = this;
     const [nonOwner, owner] = this.accounts.members;
     await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, owner.address);
-    await expect(stakingNFT.transferFrom(nonOwner.address, owner.address, 1)).to.be.revertedWith('WRONG_FROM');
+    await expect(stakingNFT.transferFrom(nonOwner.address, owner.address, 1)).to.be.revertedWithCustomError(
+      stakingNFT,
+      'WrongFrom',
+    );
   });
 
-  it('should revert if trying to transferFrom a token to a zero address - ZERO_ADDRESS', async function () {
+  it('should revert if trying to transferFrom a token to a zero address - ZeroAddress', async function () {
     const { stakingNFT } = this;
     const [owner] = this.accounts.members;
     await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, owner.address);
-    await expect(stakingNFT.transferFrom(owner.address, ethers.constants.AddressZero, 1)).to.be.revertedWith(
-      'INVALID_RECIPIENT',
+    await expect(stakingNFT.transferFrom(owner.address, ethers.constants.AddressZero, 1)).to.be.revertedWithCustomError(
+      stakingNFT,
+      'InvalidRecipient',
     );
   });
 
@@ -125,9 +163,9 @@ describe('StakingNFT', function () {
     const { stakingNFT } = this;
     const [owner, nonOwner] = this.accounts.members;
     await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, owner.address);
-    await expect(stakingNFT.connect(nonOwner).transferFrom(owner.address, nonOwner.address, 1)).to.be.revertedWith(
-      'NOT_AUTHORIZED',
-    );
+    await expect(
+      stakingNFT.connect(nonOwner).transferFrom(owner.address, nonOwner.address, 1),
+    ).to.be.revertedWithCustomError(stakingNFT, 'NotAuthorized');
   });
 
   it('should transferFrom a token', async function () {

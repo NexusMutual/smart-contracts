@@ -1118,7 +1118,7 @@ describe('submitClaim', function () {
       priceDenominator,
     });
 
-    const coverId = 0;
+    const coverId = 1;
     const segment = await cover.coverSegments(coverId, 0);
     const previousCoverSegmentAllocation = await cover.coverSegmentAllocations(coverId, 0, 0);
 
@@ -1252,7 +1252,7 @@ describe('submitClaim', function () {
       priceDenominator,
     });
 
-    const coverId = 0;
+    const coverId = 1;
     const firstSegment = 0;
     const preBurnCoverAllocation = await cover.coverSegmentAllocations(coverId, firstSegment, 0);
 

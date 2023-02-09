@@ -9,13 +9,6 @@ import "../Tokens/ERC721Mock.sol";
 
 contract CoverMockStakingPool is IStakingPool {
 
-  struct BurnStakeCalledWithRequest {
-    uint coverId;
-    uint period;
-    uint previousStart;
-    uint previousExpiration;
-  }
-
   uint public activeStake;
   uint public rewardPerSecond;
   bool public isPrivatePool;

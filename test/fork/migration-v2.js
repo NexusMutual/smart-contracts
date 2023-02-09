@@ -50,8 +50,6 @@ const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 const MEMBER_ADDRESS = '0xd7cba5b9a0240770cfd9671961dae064136fa240';
 const CLAIM_PAYABLE_ADDRESS = '0x748E712663510Bb417c1aBb1bca3d817447f118c';
 
-const MAX_STAKINGPOOL_PRODUCT_WEIGHT = BigNumber.from(100);
-
 let poolValueBefore;
 
 const getSigner = async address => {
@@ -684,24 +682,29 @@ describe('V2 upgrade', function () {
   });
 
   it('Migrate selected stakers to their own staking pools', async function () {
-    const ARMOR = '0x1337def1fc06783d4b03cb8c1bf3ebf7d0593fc4';
+    const ARMOR_STAKER = '0x1337def1fc06783d4b03cb8c1bf3ebf7d0593fc4';
     const FOUNDATION = '0x963df0066ff8345922df88eebeb1095be4e4e12e';
     const HUGH = '0x87b2a7559d85f4653f13e6546a14189cd5455d45';
     const ARMOR_MANAGER = '0xFa760444A229e78A50Ca9b3779f4ce4CcE10E170';
-    const topStakers = [FOUNDATION, HUGH, ARMOR];
+    const selectedStakers = [FOUNDATION, HUGH, ARMOR_STAKER];
 
-    console.log('Check that stakers selected for automatic migration  are not allowed to withdraw.');
-    for (const staker of topStakers) {
+    console.log('Checking that selected stakers cannot withdraw independently');
+    for (const staker of selectedStakers) {
       // pooledStaking.withdraw(uint) is not verified here for simplicity; it follows the exact same code path
       await expect(this.pooledStaking.connect(this.abMembers[0]).withdrawForUser(staker)).to.be.revertedWith(
         'Not allowed to withdraw',
       );
     }
 
+    console.log('Checking that non selected stakers cannot be migrated automatically');
+    await expect(
+      this.pooledStaking.migrateToNewV2Pool('0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2'),
+    ).to.be.revertedWith('You are not authorized to migrate this staker');
+
     // Get stakers current deposits in PooledStaking
     const depositInPS = {};
     await Promise.all(
-      topStakers.map(async staker => {
+      selectedStakers.map(async staker => {
         const deposit = await this.pooledStaking.stakerDeposit(staker);
         console.log(`Staker ${staker} deposit = ${deposit.toString()}`);
         depositInPS[staker] = deposit;
@@ -711,29 +714,36 @@ describe('V2 upgrade', function () {
     // Get stakers NXM balances before the migration
     const nxmBalancesBefore = {};
     await Promise.all(
-      topStakers.map(async staker => {
+      selectedStakers.map(async staker => {
         nxmBalancesBefore[staker] = await this.nxm.balanceOf(staker);
       }),
     );
 
-    console.log('Verify it reverts when attempting to migrate a staker not scheduled for automatic migration');
-    const ITRUST = '0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2';
-    await expect(this.pooledStaking.migrateToNewV2Pool(ITRUST)).to.be.revertedWith(
-      'You are not authorized to migrate this staker',
-    );
+    // Get staker PS stakes before the migration
+    const stakesInPSBefore = {};
+    for (const staker of selectedStakers) {
+      const stakerProducts = await this.pooledStaking.stakerContractsArray(staker);
+      const productStakes = {};
 
-    // Migrate stakers
+      for (const product of stakerProducts) {
+        productStakes[product] = await this.pooledStaking.stakerContractStake(staker, product);
+      }
+      stakesInPSBefore[staker] = productStakes;
+    }
+
     console.log('Migrating selected stakers to their own staking pools');
 
     const stakingNFTSupplyBefore = await this.stakingNFT.totalSupply();
-    for (const staker of topStakers) {
+
+    // Migrates stakers
+    for (const staker of selectedStakers) {
       await this.pooledStaking.migrateToNewV2Pool(staker);
     }
 
-    // Get stakers NXM balances before the migration
+    // Get stakers NXM balances after the migration
     const nxmBalancesAfter = {};
     await Promise.all(
-      topStakers.map(async staker => {
+      selectedStakers.map(async staker => {
         nxmBalancesAfter[staker] = await this.nxm.balanceOf(staker);
       }),
     );
@@ -741,17 +751,16 @@ describe('V2 upgrade', function () {
     // Check all new staking pools have been created
     console.log('Checking all new staking pools have been created');
     const stakingPoolCount = await this.stakingPoolFactory.stakingPoolCount();
-    expect(stakingPoolCount).to.be.equal(topStakers.length + 1); // +1 because Armor has 2 pools
+    expect(stakingPoolCount).to.be.equal(selectedStakers.length + 1); // +1 because Armor has 2 pools
 
     // Check the new staking pools have the correct deposits and stakers have the correct balances
+    console.log('Checking the new staking pools have the correct deposits and stakers have the correct balances');
     const depositsInStakingPools = {};
     for (let i = 0; i < stakingPoolCount; i++) {
       const { deposits } = await this.tokenController.stakingPoolNXMBalances(i);
       console.log(`Staking pool ${i} deposit: ${deposits.toString()}`);
       depositsInStakingPools[i] = deposits;
     }
-
-    console.log('Checking the new staking pools have the correct deposits and stakers have the correct balances');
 
     // Check Armor - poolId = 0
     // 5% of the stake is unlocked
@@ -780,36 +789,36 @@ describe('V2 upgrade', function () {
     console.log('Armor AAA Pool');
     const armorAAAPoolId = 2;
     // 5% of the AAA allocation must be unlocked
-    const expectedArmorAAAPoolBalance = depositInPS[ARMOR].mul(75).div(100).mul(95).div(100);
+    const expectedArmorAAAPoolBalance = depositInPS[ARMOR_STAKER].mul(75).div(100).mul(95).div(100);
     expect(depositsInStakingPools[armorAAAPoolId]).to.be.equal(expectedArmorAAAPoolBalance.sub(precisionTolerance));
 
     // Armor AA Pool
     console.log('Armor AA Pool');
     const armorAAPoolId = 3;
     // 5% of the AA allocation must be unlocked
-    const expectedArmorAAPoolBalance = depositInPS[ARMOR].mul(25).div(100).mul(95).div(100);
+    const expectedArmorAAPoolBalance = depositInPS[ARMOR_STAKER].mul(25).div(100).mul(95).div(100);
     expect(depositsInStakingPools[armorAAPoolId]).to.be.equal(expectedArmorAAPoolBalance.sub(precisionTolerance));
 
     // Overall we must unlock 5% of Armor's total tokens in PS
     precisionTolerance = 6;
-    expect(nxmBalancesAfter[ARMOR]).to.be.equal(
-      nxmBalancesBefore[ARMOR].add(depositInPS[ARMOR].mul(5).div(100)).add(precisionTolerance),
+    expect(nxmBalancesAfter[ARMOR_STAKER]).to.be.equal(
+      nxmBalancesBefore[ARMOR_STAKER].add(depositInPS[ARMOR_STAKER].mul(5).div(100)).add(precisionTolerance),
     );
 
     // Check PS deposits are now 0 for all selected stakers
     console.log('Checking PS deposits are now 0 for all selected stakers');
     await Promise.all(
-      topStakers.map(async staker => {
+      selectedStakers.map(async staker => {
         const deposit = await this.pooledStaking.stakerDeposit(staker);
         expect(deposit).to.be.equal(0);
       }),
     );
 
-    // Check staked products prices and product weights for all staking pools
-    console.log('Checking staked products prices for all staking pools');
+    // Check price and weight for staked products in the newly created staking pools
+    console.log('Checking price and weight for staked products in the newly created staking pools');
 
     const productAddresses = PRODUCT_ADDRESSES_OUTPUT.map(address => address.toLowerCase());
-    const stakers = topStakers.concat([ARMOR]); // Armor has 2 pools - do this so we can iterate below
+    const stakers = selectedStakers.concat([ARMOR_STAKER]); // Armor has 2 pools - do this so we can iterate below
 
     const deprecatedProducts = new Set();
     const productsWithNoStake = new Set();
@@ -842,35 +851,32 @@ describe('V2 upgrade', function () {
         }
 
         // Product has no stake in PS
-        const stakeForProductInPS = await this.pooledStaking.stakerStoredContractStake(stakerAddress, productAddress);
+        const stakeForProductInPS = stakesInPSBefore[stakerAddress][productAddress];
         if (stakeForProductInPS.isZero()) {
           productsWithNoStake.add(productAddress);
           continue;
         }
 
+        // Check price
         const stakedProduct = await stakingPool.products(productId);
         expect(stakedProduct.targetPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
         expect(stakedProduct.bumpedPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
 
-        // The expected weight is a number between 0-100
-        // equal to the ratio between the stake amount for the product in LegacyPooledStaking
-        // and the total deposit of that staker.
+        // Check weight
+        // Expected to be a number between 0-100, calculated as (product-stake-in-PS / deposit-in-PS)
         const expectedWeight = stakeForProductInPS
           .mul(parseEther('1'))
           .div(depositInPS[stakerAddress])
           .div(parseEther('0.01'));
-        const expectedWeightCapped = expectedWeight.gt(MAX_STAKINGPOOL_PRODUCT_WEIGHT)
-          ? MAX_STAKINGPOOL_PRODUCT_WEIGHT
-          : expectedWeight;
-        expect(stakedProduct.targetWeight).to.be.equal(expectedWeightCapped);
+        expect(stakedProduct.targetWeight).to.be.equal(expectedWeight);
         expect(stakedProduct.lastEffectiveWeight).to.be.equal(BigNumber.from(0));
       }
     }
+    console.log({ deprecatedProducts, productsWithNoStake });
 
     // Only managers of pools with non-zero deposits own a StakingNFT
     const poolsWithDepositsCount = Object.values(depositsInStakingPools).filter(deposit => deposit.gt(0)).length;
-
-    console.log(`heck that the right number of StakingNFTs are minted: ${poolsWithDepositsCount}`);
+    console.log(`Check that ${poolsWithDepositsCount} StakingNFTs are minted`);
     const stakingNFTSupplyAfter = await this.stakingNFT.totalSupply();
     expect(stakingNFTSupplyAfter.sub(stakingNFTSupplyBefore)).to.be.equal(poolsWithDepositsCount);
 
@@ -879,77 +885,69 @@ describe('V2 upgrade', function () {
 
     const expectedPoolConfigurations = {};
     expectedPoolConfigurations[foundationPoolId] = {
-      maxFee: 20, // TODO: waiting for final value for maxPoolFee - sheet has 100, we currently store 20
+      maxFee: 99,
       initialFee: 0,
       manager: FOUNDATION,
       isPrivatePool: true,
+      // stakingNFTId: stakingNFTSupplyBefore.add(1),
     };
     expectedPoolConfigurations[hughPoolId] = {
       maxFee: 20,
       initialFee: 10,
       manager: HUGH,
       isPrivatePool: false,
+      stakingNFTId: stakingNFTSupplyBefore.add(1),
     };
     expectedPoolConfigurations[armorAAAPoolId] = {
       maxFee: 25,
       initialFee: 15,
       manager: ARMOR_MANAGER,
       isPrivatePool: false,
+      stakingNFTId: stakingNFTSupplyBefore.add(2),
     };
     expectedPoolConfigurations[armorAAPoolId] = {
       maxFee: 25,
       initialFee: 15,
       manager: ARMOR_MANAGER,
       isPrivatePool: false,
+      stakingNFTId: stakingNFTSupplyBefore.add(3),
     };
-
-    let expectedStakingNFTId = stakingNFTSupplyBefore.toNumber();
-
-    console.log({
-      stakingNFTSupplyBefore: stakingNFTSupplyBefore.toString(),
-      expectedStakingNFTId,
-    });
 
     for (let poolId = 0; poolId < stakingPoolCount; poolId++) {
       const stakerAddress = stakers[poolId];
+      console.log(`Checking pool configuration for staking pool ${poolId} of ${stakerAddress}`);
 
       const stakingPool = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(poolId));
-
       const isPrivatePool = await stakingPool.isPrivatePool();
       const poolFee = await stakingPool.getPoolFee();
       const maxFee = await stakingPool.getMaxPoolFee();
       const manager = await stakingPool.manager();
 
       const expected = expectedPoolConfigurations[poolId];
-
       expect(maxFee).to.be.equal(expected.maxFee);
       expect(poolFee).to.be.equal(expected.initialFee);
       expect(manager.toLowerCase()).to.be.equal(expected.manager.toLowerCase());
       expect(isPrivatePool).to.be.equal(expected.isPrivatePool);
 
-      // Populate and check the expected stakingNFTId for each manager.
-      // assuming exactly one StakingNFT per pool is minted that has a non-zero deposit.
+      // Check the expected stakingNFTId for each manager.
+      // Assumes exactly one StakingNFT per pool is minted that has a non-zero deposit.
       if (depositsInStakingPools[poolId].gt(0)) {
-        expected.stakingNFTId = expectedStakingNFTId++;
         const ownerOfStakingNFT = await this.stakingNFT.ownerOf(expected.stakingNFTId);
         expect(ownerOfStakingNFT.toLowerCase()).to.be.equal(expected.manager.toLowerCase());
       } else {
         console.log(`Staker ${stakerAddress}'s manager ${expected.manager} does not own a StakingNFT.`);
-        expected.stakingNFTId = undefined;
       }
     }
-
-    console.log({ deprecatedProducts, productsWithNoStake });
   });
 
-  it('arbitrary non-selected stakers can withdraw their entire LegacyPooledStakingDeposit', async function () {
+  it('Non-selected stakers can withdraw their entire deposit from LegacyPooledStaking', async function () {
     const arbitraryStakers = [
       '0x7a17d7661ed48322A03ab16Cd7CCa97aa28C2e99',
       '0x50c4E8fd53D5F8686ff35C54e3AA4B2c6241a5bF',
     ];
 
     for (const stakerAddress of arbitraryStakers) {
-      // Unlock and funding vault owner
+      // Unlock and fund staker address
       const staker = await getSigner(stakerAddress);
       await evm.impersonate(stakerAddress);
       await evm.setBalance(stakerAddress, parseEther('1000'));
@@ -957,17 +955,15 @@ describe('V2 upgrade', function () {
       const nxmBalanceBefore = await this.nxm.balanceOf(stakerAddress);
       const stakerDepositBefore = await this.pooledStaking.stakerDeposit(stakerAddress);
 
-      // verify stakers with non-zero deposits
+      // Check staker has a deposit
       expect(stakerDepositBefore).to.be.greaterThan('0');
-
       await this.pooledStaking.connect(staker).withdraw('0'); // parameter is unused
 
       const nxmBalanceAfter = await this.nxm.balanceOf(stakerAddress);
       const stakerDepositAfter = await this.pooledStaking.stakerDeposit(stakerAddress);
 
       expect(stakerDepositAfter).to.be.equal('0');
-      const nxmBalanceIncrease = nxmBalanceAfter.sub(nxmBalanceBefore);
-      expect(nxmBalanceIncrease).to.be.equal(stakerDepositBefore);
+      expect(nxmBalanceAfter.sub(nxmBalanceBefore)).to.be.equal(stakerDepositBefore);
     }
   });
 

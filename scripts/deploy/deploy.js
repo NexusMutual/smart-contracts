@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const fs = require('fs');
 const { ethers, network, run, tenderly } = require('hardhat');
 const path = require('path');
@@ -9,7 +8,7 @@ const products = require('../v2-migration/output/migratableProducts.json');
 const verifier = require('./verifier')();
 
 const { AddressZero, MaxUint256 } = ethers.constants;
-const { getContractAddress, parseEther } = ethers.utils;
+const { parseEther } = ethers.utils;
 
 const { ABI_DIR, CONFIG_FILE, INITIAL_MEMBERS = '' } = process.env;
 
@@ -147,7 +146,8 @@ async function main() {
     const opts = { constructorArgs: [impl.address], alias, abiFilename, isProxy: true, libraries, implFqName };
     verifier.add(proxy.address, PROXY_CONTRACT, opts);
     const instance = await ethers.getContractAt(contract, proxyAddress);
-    instance.changeDependentContractAddress && (await instance.changeDependentContractAddress());
+    // reverts when calling cover.changeDependentContractAddress because it doesn't have a master contract set yet
+    // instance.changeDependentContractAddress && (await instance.changeDependentContractAddress());
     return instance;
   };
 
@@ -208,23 +208,18 @@ async function main() {
   console.log('Deploying ProductsV1');
   const productsV1 = await deployImmutable('ProductsV1');
 
-  console.log('Deploying StakingPoolFactory');
-  const expectedCoverAddress = getContractAddress({
-    from: ownerSigner.address,
-    nonce: (await ownerSigner.getTransactionCount()) + 7,
-  });
-  const spf = await deployImmutable('StakingPoolFactory', [expectedCoverAddress]);
+  console.log('Deploying Cover and StakingProducts stubs');
+  const coverStub = await deployProxy('ERC20Mock'); // temporarily using erc20 mock instead of stub
+  // const stakingProductsStub = await deployProxy('Stub');
 
-  console.log('Deploying StakingNFT');
-  const stakingNFT = await deployImmutable('StakingNFT', [
-    'Nexus Mutual Deposit',
-    'NMD',
-    spf.address,
-    expectedCoverAddress,
-  ]);
+  console.log('Deploying StakingPoolFactory');
+  const spf = await deployImmutable('StakingPoolFactory', [coverStub.address]);
 
   console.log('Deploying CoverNFT');
-  const coverNFT = await deployImmutable('CoverNFT', ['Nexus Mutual Cover', 'NMC', expectedCoverAddress]);
+  const coverNFT = await deployImmutable('CoverNFT', ['Nexus Mutual Cover', 'NMC', coverStub.address]);
+
+  console.log('Deploying StakingNFT');
+  const stakingNFT = await deployImmutable('StakingNFT', ['Nexus Mutual Stake', 'NMS', spf.address, coverStub.address]);
 
   console.log('Deploying disposable TokenController');
   const tc = await deployProxy(
@@ -236,16 +231,22 @@ async function main() {
   const stakingPool = await deployImmutable('StakingPool', [
     stakingNFT.address,
     tk.address,
-    expectedCoverAddress,
+    coverStub.address,
     tc.address,
     master.address,
   ]);
 
   console.log('Deploying Cover');
-  const cover = await deployProxy('Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
-  expect(cover.address).to.equal(expectedCoverAddress);
-
+  const cover = await upgradeProxy(coverStub.address, 'Cover', [
+    coverNFT.address,
+    stakingNFT.address,
+    spf.address,
+    stakingPool.address,
+  ]);
   await cover.initialize();
+
+  // console.log('Deploying StakingProducts');
+  // const stakingProducts = await upgradeProxy(stakingProductsStub.address, 'StakingProducts', []);
 
   console.log('Deploying CoverViewer');
   await deployImmutable('CoverViewer', [master.address]);

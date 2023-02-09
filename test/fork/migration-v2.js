@@ -50,6 +50,8 @@ const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 const MEMBER_ADDRESS = '0xd7cba5b9a0240770cfd9671961dae064136fa240';
 const CLAIM_PAYABLE_ADDRESS = '0x748E712663510Bb417c1aBb1bca3d817447f118c';
 
+const MAX_STAKINGPOOL_PRODUCT_WEIGHT = BigNumber.from(100);
+
 let poolValueBefore;
 
 const getSigner = async address => {
@@ -805,7 +807,7 @@ describe('V2 upgrade', function () {
       }),
     );
 
-    // Check staked products prices for all staking pools
+    // Check staked products prices and product weights for all staking pools
     console.log('Checking staked products prices for all staking pools');
 
     const productAddresses = PRODUCT_ADDRESSES_OUTPUT.map(address => address.toLowerCase());
@@ -851,6 +853,19 @@ describe('V2 upgrade', function () {
         const stakedProduct = await stakingPool.products(productId);
         expect(stakedProduct.targetPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
         expect(stakedProduct.bumpedPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
+
+        // The expected weight is a number between 0-100
+        // equal to the ratio between the stake amount for the product in LegacyPooledStaking
+        // and the total deposit of that staker.
+        const expectedWeight = stakeForProductInPS
+          .mul(parseEther('1'))
+          .div(depositInPS[stakerAddress])
+          .div(parseEther('0.01'));
+        const expectedWeightCapped = expectedWeight.gt(MAX_STAKINGPOOL_PRODUCT_WEIGHT)
+          ? MAX_STAKINGPOOL_PRODUCT_WEIGHT
+          : expectedWeight;
+        expect(stakedProduct.targetWeight).to.be.equal(expectedWeightCapped);
+        expect(stakedProduct.lastEffectiveWeight).to.be.equal(BigNumber.from(0));
       }
     }
 

@@ -26,11 +26,6 @@ describe('CoverNFT', function () {
     expect(await coverNFT.ownerOf(1)).to.be.equal(nftOwner.address);
   });
 
-  it('should fail to burn - onlyOperator()', async function () {
-    const { coverNFT } = this;
-    await expect(coverNFT.burn(1)).to.be.revertedWith('CoverNFT: Not operator');
-  });
-
   it('should return success for isApproveOrOwner() - owner == sender', async function () {
     const { coverNFT } = this;
     const [operator, nftOwner] = this.accounts.members;
@@ -89,7 +84,7 @@ describe('CoverNFT', function () {
     expect(await coverNFT.operator()).to.be.equal(newOperator.address);
   });
 
-  it('should increment and decrement totalSupply', async function () {
+  it('should increment totalSupply', async function () {
     const { coverNFT } = this;
     const [operator, nftOwner] = this.accounts.members;
     const tokenId = 1;
@@ -100,6 +95,5 @@ describe('CoverNFT', function () {
       .withArgs(AddressZero, nftOwner.address, tokenId);
 
     expect(await coverNFT.totalSupply()).to.be.equal(1);
-    await coverNFT.connect(operator).burn(tokenId);
   });
 });

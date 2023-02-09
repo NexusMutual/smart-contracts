@@ -245,6 +245,8 @@ async function main() {
   const cover = await deployProxy('Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
   expect(cover.address).to.equal(expectedCoverAddress);
 
+  await cover.initialize();
+
   console.log('Deploying CoverViewer');
   await deployImmutable('CoverViewer', [master.address]);
 

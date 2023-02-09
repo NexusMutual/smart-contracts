@@ -686,6 +686,8 @@ describe('V2 upgrade', function () {
     const FOUNDATION = '0x963df0066ff8345922df88eebeb1095be4e4e12e';
     const HUGH = '0x87b2a7559d85f4653f13e6546a14189cd5455d45';
     const ARMOR_MANAGER = '0xFa760444A229e78A50Ca9b3779f4ce4CcE10E170';
+    const INITIAL_POOL_ID = 1;
+
     const selectedStakers = [FOUNDATION, HUGH, ARMOR_STAKER];
 
     console.log('Checking that selected stakers cannot withdraw independently');
@@ -756,20 +758,21 @@ describe('V2 upgrade', function () {
     // Check the new staking pools have the correct deposits and stakers have the correct balances
     console.log('Checking the new staking pools have the correct deposits and stakers have the correct balances');
     const depositsInStakingPools = {};
-    for (let i = 0; i < stakingPoolCount; i++) {
+    for (let i = INITIAL_POOL_ID; i <= stakingPoolCount; i++) {
       const { deposits } = await this.tokenController.stakingPoolNXMBalances(i);
       console.log(`Staking pool ${i} deposit: ${deposits.toString()}`);
       depositsInStakingPools[i] = deposits;
     }
 
-    // Check Armor - poolId = 0
+    // Check Armor
     // 5% of the stake is unlocked
     // 71.25% of the stake moves to AAA Pool (95% * 75% of the stake)
     // 23.75% of the stake moves to AA Pool (95% * 25% os the stake)
 
     // Nexus Mutual Foundation Pool
     console.log('Nexus Mutual Foundation Pool');
-    const foundationPoolId = 0;
+    let expectedPoolId = INITIAL_POOL_ID;
+    const foundationPoolId = expectedPoolId++;
     // The entire NXM balance is unlocked and sent back to the Foundation
     // TODO: Needs some Solidity changes to be able to fully migrate them as well
     expect(depositsInStakingPools[foundationPoolId]).to.be.equal(0); // depositInPS[FOUNDATION]
@@ -777,7 +780,7 @@ describe('V2 upgrade', function () {
 
     // Hugh Pool
     console.log('Hugh Pool');
-    const hughPoolId = 1;
+    const hughPoolId = expectedPoolId++;
     expect(depositsInStakingPools[hughPoolId]).to.be.equal(depositInPS[HUGH]);
     // No NXM gets unlocked, so the balance shouldn't change
     expect(nxmBalancesAfter[HUGH]).to.be.equal(nxmBalancesBefore[HUGH]);
@@ -787,14 +790,14 @@ describe('V2 upgrade', function () {
 
     // Armor AAA Pool
     console.log('Armor AAA Pool');
-    const armorAAAPoolId = 2;
+    const armorAAAPoolId = expectedPoolId++;
     // 5% of the AAA allocation must be unlocked
     const expectedArmorAAAPoolBalance = depositInPS[ARMOR_STAKER].mul(75).div(100).mul(95).div(100);
     expect(depositsInStakingPools[armorAAAPoolId]).to.be.equal(expectedArmorAAAPoolBalance.sub(precisionTolerance));
 
     // Armor AA Pool
     console.log('Armor AA Pool');
-    const armorAAPoolId = 3;
+    const armorAAPoolId = expectedPoolId++;
     // 5% of the AA allocation must be unlocked
     const expectedArmorAAPoolBalance = depositInPS[ARMOR_STAKER].mul(25).div(100).mul(95).div(100);
     expect(depositsInStakingPools[armorAAPoolId]).to.be.equal(expectedArmorAAPoolBalance.sub(precisionTolerance));
@@ -823,8 +826,8 @@ describe('V2 upgrade', function () {
     const deprecatedProducts = new Set();
     const productsWithNoStake = new Set();
 
-    for (let poolId = 0; poolId < stakingPoolCount; poolId++) {
-      const stakerAddress = stakers[poolId];
+    for (let poolId = INITIAL_POOL_ID; poolId <= stakingPoolCount; poolId++) {
+      const stakerAddress = stakers[poolId - 1];
       const stakingPool = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(poolId));
       console.log('Checking prices for staking pool', poolId, 'of', stakerAddress);
 
@@ -913,7 +916,7 @@ describe('V2 upgrade', function () {
       stakingNFTId: stakingNFTSupplyBefore.add(3),
     };
 
-    for (let poolId = 0; poolId < stakingPoolCount; poolId++) {
+    for (let poolId = INITIAL_POOL_ID; poolId <= stakingPoolCount; poolId++) {
       const stakerAddress = stakers[poolId];
       console.log(`Checking pool configuration for staking pool ${poolId} of ${stakerAddress}`);
 

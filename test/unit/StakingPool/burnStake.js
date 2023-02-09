@@ -52,28 +52,11 @@ const burnStakeParams = {
   deallocationAmount: 0,
 };
 
-const allocationRequestParams = {
-  productId: 0,
-  coverId: 0,
-  allocationId: 0,
-  period: DEFAULT_PERIOD,
-  gracePeriod: DEFAULT_GRACE_PERIOD,
-  previousStart: 0,
-  previousExpiration: 0,
-  previousRewardsRatio: 5000,
-  useFixedPrice: false,
-  globalCapacityRatio: 20000,
-  capacityReductionRatio: 0,
-  rewardRatio: 5000,
-  globalMinPrice: 10000,
-};
-
-const stakedNxmAmount = parseEther('100');
-const burnAmount = parseEther('10');
+const stakedNxmAmount = parseEther('1235');
 
 describe('burnStake', function () {
   beforeEach(async function () {
-    const { stakingPool, cover, nxm, tokenController } = this;
+    const { stakingPool, stakingProducts, cover, nxm, tokenController } = this;
     const { defaultSender: manager } = this.accounts;
     const [staker] = this.accounts.members;
     const { TRANCHE_DURATION } = this.config;
@@ -90,13 +73,18 @@ describe('burnStake', function () {
       false, // isPrivatePool
       initialPoolFee,
       maxPoolFee,
-      products,
       poolId,
       ipfsDescriptionHash,
     );
 
+    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
+
     await nxm.mint(manager.address, MaxUint256.div(1e6));
     await nxm.connect(manager).approve(tokenController.address, MaxUint256);
+
+    // Deposit into pool
+    const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
+    await stakingPool.connect(manager).depositTo(stakedNxmAmount, firstActiveTrancheId + 1, MaxUint256, AddressZero);
 
     // Move to the beginning of the next tranche
     const { firstActiveTrancheId: trancheId } = await getTranches();

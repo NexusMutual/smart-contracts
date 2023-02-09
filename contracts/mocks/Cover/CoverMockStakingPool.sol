@@ -2,12 +2,17 @@
 
 pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "../../interfaces/IStakingPool.sol";
-import "../../modules/staking/StakingPool.sol";
-import "../Tokens/ERC721Mock.sol";
+import "../../libraries/Math.sol";
 
 contract CoverMockStakingPool is IStakingPool {
+
+  struct BurnStakeCalledWithRequest {
+    uint coverId;
+    uint period;
+    uint previousStart;
+    uint previousExpiration;
+  }
 
   uint public activeStake;
   uint public rewardPerSecond;
@@ -24,8 +29,6 @@ contract CoverMockStakingPool is IStakingPool {
   mapping (uint => uint) public usedCapacity;
   mapping (uint => uint) public stakedAmount;
 
-  // product id => StakedProduct
-  mapping(uint => StakedProduct) public products;
   mapping (uint => uint) public mockPrices;
 
   uint public constant MAX_PRICE_RATIO = 10_000;
@@ -42,19 +45,28 @@ contract CoverMockStakingPool is IStakingPool {
   uint public burnStakeCalledWithAmount;
   BurnStakeParams public burnStakeCalledWithParams;
 
+  struct StakedProduct {
+    uint16 lastEffectiveWeight;
+    uint8 targetWeight;
+    uint96 targetPrice;
+    uint96 bumpedPrice;
+    uint32 bumpedPriceUpdateTime;
+  }
+
+  // product id => StakedProduct
+  mapping(uint => StakedProduct) public products;
+
   function initialize(
     address _manager,
     bool _isPrivatePool,
     uint _initialPoolFee,
     uint _maxPoolFee,
-    ProductInitializationParams[] calldata params,
     uint _poolId,
     string calldata /* ipfsDescriptionHash */
   ) external {
     _isPrivatePool;
     _initialPoolFee;
     _maxPoolFee;
-    params;
     manager = _manager;
     poolId = _poolId;
   }
@@ -64,29 +76,40 @@ contract CoverMockStakingPool is IStakingPool {
     uint /*previousPremium*/,
     AllocationRequest calldata request
   ) external override returns (uint premium, uint allocationId) {
-    usedCapacity[request.productId] += amount;
-    if (request.useFixedPrice) {
-      return (calculateFixedPricePremium(amount, request.period, mockPrices[request.productId]), allocationId);
-    }
-    return (calculatePremium(mockPrices[request.productId], amount, request.period), allocationId);
-  }
 
+    usedCapacity[request.productId] += amount;
+
+    premium = request.useFixedPrice
+      ? calculateFixedPricePremium(amount, request.period, mockPrices[request.productId])
+      : calculatePremium(mockPrices[request.productId], amount, request.period);
+
+    return (premium, allocationId);
+  }
 
   function calculateFixedPricePremium(
     uint coverAmount,
     uint period,
     uint fixedPrice
   ) public pure returns (uint) {
+
     // NOTE: the actual function takes coverAmount scaled down by NXM_PER_ALLOCATION_UNIT as an argument
     coverAmount = Math.divCeil(coverAmount, NXM_PER_ALLOCATION_UNIT);
 
     uint premiumPerYear =
-    coverAmount
-    * NXM_PER_ALLOCATION_UNIT
-    * fixedPrice
-    / TARGET_PRICE_DENOMINATOR;
+      coverAmount
+      * NXM_PER_ALLOCATION_UNIT
+      * fixedPrice
+      / TARGET_PRICE_DENOMINATOR;
 
     return premiumPerYear * period / 365 days;
+  }
+
+  function getTargetPrice(uint productId) external /*override*/ view returns (uint) {
+    return products[productId].targetPrice;
+  }
+
+  function setTargetPrice(uint productId, uint amount) external {
+    products[productId].targetPrice = uint96(amount);
   }
 
   function setProducts(StakedProductParam[] memory /*params*/) external {
@@ -118,20 +141,12 @@ contract CoverMockStakingPool is IStakingPool {
     return usedCapacity[productId];
   }
 
-  function getTargetPrice(uint productId) external /*override*/ view returns (uint) {
-    return products[productId].targetPrice;
-  }
-
   function getStake(uint productId) external /*override*/ view returns (uint) {
     return stakedAmount[productId];
   }
 
   function setUsedCapacity(uint productId, uint amount) external {
     usedCapacity[productId] = amount;
-  }
-
-    function setTargetPrice(uint productId, uint amount) external {
-    products[productId].targetPrice = uint96(amount);
   }
 
   function setStake(uint productId, uint amount) external {
@@ -220,6 +235,10 @@ contract CoverMockStakingPool is IStakingPool {
     return (0, 0, 0);
   }
 
+  function getPoolId() external view returns (uint) {
+    return poolId;
+  }
+
   function getMaxPoolFee() external pure returns (uint) {
     return 0;
   }
@@ -281,4 +300,19 @@ contract CoverMockStakingPool is IStakingPool {
     return false;
   }
 
+  function getActiveAllocations(
+    uint /*productId*/
+  ) external pure returns (uint[] memory /*trancheAllocations*/){
+    revert("CoverMockStakingPool: not callable");
+  }
+
+  function getTrancheCapacities(
+    uint /*productId*/,
+    uint /*firstTrancheId*/,
+    uint /*trancheCount*/,
+    uint /*capacityRatio*/,
+    uint /*reductionRatio*/
+  ) external pure returns (uint[] memory /*trancheCapacities*/){
+    revert("CoverMockStakingPool: not callable");
+  }
 }

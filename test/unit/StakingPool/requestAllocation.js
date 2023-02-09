@@ -99,35 +99,32 @@ const product3 = {
   targetPrice: 200, // 2%}
 };
 
+const poolId = 0;
+const trancheOffset = 5;
+
 describe('requestAllocation', function () {
-  const trancheOffset = 5;
   beforeEach(async function () {
-    const { stakingPool, cover } = this;
+    const { stakingPool, stakingProducts, cover } = this;
     const { defaultSender: manager } = this.accounts;
     const [staker] = this.accounts.members;
     const productId = 0;
     const trancheId = (await getCurrentTrancheId()) + trancheOffset;
+
     // Set global product and product type
     await cover.setProduct(coverProductTemplate, productId);
     await cover.setProductType({ claimMethod: 1, gracePeriod: daysToSeconds(7) }, productId);
 
     // Initialize staking pool
-    const poolId = 0;
     const isPrivatePool = false;
     const ipfsDescriptionHash = 'Staking pool 1';
     const maxPoolFee = 10; // 10%
     const initialPoolFee = 7; // 7%
 
-    await cover.initializeStaking(
-      stakingPool.address,
-      manager.address,
-      isPrivatePool,
-      initialPoolFee,
-      maxPoolFee,
-      [defaultProduct, product2, product3],
-      poolId,
-      ipfsDescriptionHash,
-    );
+    await stakingPool
+      .connect(this.coverSigner)
+      .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+
+    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, [defaultProduct, product2, product3]);
 
     // Deposit into pool
     const amount = stakedNxmAmount;
@@ -193,10 +190,10 @@ describe('requestAllocation', function () {
   });
 
   it('should correctly calculate the premium and price for year long cover', async function () {
-    const { stakingPool, cover } = this;
+    const { stakingProducts, stakingPool, cover } = this;
     const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = this.config;
 
-    const product = await stakingPool.products(productId);
+    const product = await stakingProducts.getProduct(poolId, productId);
     const initialPrice = BigNumber.from(coverProductTemplate.initialPriceRatio);
     expect(product.bumpedPrice).to.be.equal(initialPrice);
 
@@ -217,13 +214,13 @@ describe('requestAllocation', function () {
     const buyCoverParams = { ...buyCoverParamsTemplate, period: daysToSeconds(365) };
     await cover.allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address);
 
-    const updatedProduct = await stakingPool.products(productId);
+    const updatedProduct = await stakingProducts.getProduct(poolId, productId);
     expect(await cover.lastPremium()).to.be.equal(expectedPremium);
     expect(updatedProduct.bumpedPrice).to.be.equal(initialPrice.add(priceBump));
   });
 
   it('should correctly calculate the premium and price for a very small cover', async function () {
-    const { stakingPool, cover } = this;
+    const { stakingProducts, stakingPool, cover } = this;
     const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = this.config;
 
     const amount = BigNumber.from(1);
@@ -241,7 +238,7 @@ describe('requestAllocation', function () {
       const buyCoverParams = { ...buyCoverParamsTemplate, amount };
       await cover.allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address);
 
-      const product = await stakingPool.products(productId);
+      const product = await stakingProducts.getProduct(poolId, productId);
 
       // cover purchases below NXM_PER_ALLOCATION_UNIT are charged at NXM_PER_ALLOCATION_UNIT rate
       expect(await cover.lastPremium()).to.be.equal(
@@ -255,10 +252,10 @@ describe('requestAllocation', function () {
   });
 
   it('should correctly calculate the premium using the initial price', async function () {
-    const { stakingPool, cover } = this;
+    const { stakingProducts, stakingPool, cover } = this;
     const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = this.config;
 
-    const product = await stakingPool.products(productId);
+    const product = await stakingProducts.getProduct(poolId, productId);
     const initialPrice = BigNumber.from(coverProductTemplate.initialPriceRatio);
     expect(product.bumpedPrice).to.be.equal(initialPrice);
 
@@ -282,14 +279,14 @@ describe('requestAllocation', function () {
       // buy cover and check premium + new price
       await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
 
-      const product = await stakingPool.products(productId);
+      const product = await stakingProducts.getProduct(poolId, productId);
       expect(await cover.lastPremium()).to.be.equal(expectedPremium);
       expect(product.bumpedPrice).to.be.equal(initialPrice.add(priceBump));
     }
   });
 
   it('should decrease price by PRICE_CHANGE_PER_DAY until it reaches product target price', async function () {
-    const { stakingPool, cover } = this;
+    const { stakingProducts, stakingPool, cover } = this;
     const { PRICE_CHANGE_PER_DAY, INITIAL_PRICE_DENOMINATOR } = this.config;
     const initialPrice = coverProductTemplate.initialPriceRatio;
     const daysForward = 1;
@@ -302,7 +299,7 @@ describe('requestAllocation', function () {
       .div(periodsInYear);
     expect(await cover.lastPremium()).to.be.equal(expectedPremium);
     {
-      const product = await stakingPool.products(productId);
+      const product = await stakingProducts.getProduct(poolId, productId);
       const daysForward = 50;
       await increaseTime(daysToSeconds(daysForward));
       await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
@@ -315,7 +312,7 @@ describe('requestAllocation', function () {
   });
 
   it('shouldnt underflow while expiring cover during allocate capacity', async function () {
-    const { stakingPool, cover } = this;
+    const { stakingProducts, stakingPool, cover } = this;
     const { PRICE_CHANGE_PER_DAY, INITIAL_PRICE_DENOMINATOR } = this.config;
     const initialPrice = coverProductTemplate.initialPriceRatio;
     const daysForward = 1;
@@ -328,7 +325,7 @@ describe('requestAllocation', function () {
       .div(periodsInYear);
     expect(await cover.lastPremium()).to.be.equal(expectedPremium);
     {
-      const product = await stakingPool.products(productId);
+      const product = await stakingProducts.getProduct(poolId, productId);
       const daysForward = 100;
       await increaseTime(daysToSeconds(daysForward));
       await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
@@ -341,9 +338,15 @@ describe('requestAllocation', function () {
   });
 
   it('should correctly calculate price when all coverage is bought in a single purchase', async function () {
-    const { stakingPool, cover } = this;
+    const { stakingProducts, stakingPool, cover } = this;
     const [coverBuyer] = this.accounts.members;
-    const { GLOBAL_CAPACITY_RATIO, PRICE_CHANGE_PER_DAY, NXM_PER_ALLOCATION_UNIT } = this.config;
+    const {
+      GLOBAL_CAPACITY_RATIO,
+      PRICE_CHANGE_PER_DAY,
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM,
+      TARGET_PRICE_DENOMINATOR,
+    } = this.config;
     const GLOBAL_CAPACITY_DENOMINATOR = BigNumber.from(10000);
 
     const amount = stakedNxmAmount.mul(GLOBAL_CAPACITY_RATIO).div(GLOBAL_CAPACITY_DENOMINATOR);
@@ -356,7 +359,7 @@ describe('requestAllocation', function () {
       coverProductTemplate.capacityReductionRatio,
     );
 
-    const product = await stakingPool.products(productId);
+    const product = await stakingProducts.getProduct(poolId, productId);
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     // calculate premiums
@@ -368,7 +371,7 @@ describe('requestAllocation', function () {
       surgePremiumSkipped: expectedSurgePremiumSkipped,
     } = calculateSurgePremium(amount, initialCapacityUsed, totalCapacity, buyCoverParams.period, this.config);
 
-    const actualPremium = await stakingPool.calculatePremium(
+    const actualPremium = await stakingProducts.calculatePremium(
       product,
       buyCoverParams.period,
       divCeil(amount, NXM_PER_ALLOCATION_UNIT), // allocation amount
@@ -376,6 +379,9 @@ describe('requestAllocation', function () {
       totalCapacity,
       product.targetPrice, // targetPrice
       timestamp, // current block timestamp
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM,
+      TARGET_PRICE_DENOMINATOR,
     );
 
     const expectedPremium = expectedBasePremium.add(expectedSurgePremium);

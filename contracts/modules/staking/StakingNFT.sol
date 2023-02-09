@@ -22,8 +22,9 @@ contract StakingNFT is IStakingNFT {
   mapping(address => mapping(address => bool)) public isApprovedForAll;
 
   uint96 internal _totalSupply;
-  address public stakingPoolFactory;
   address public operator;
+
+  address public immutable stakingPoolFactory;
 
   constructor(
     string memory _name,

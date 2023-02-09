@@ -10,6 +10,7 @@ interface IMasterAwareV2 {
     MR, // MemberRoles.sol
     MC, // MCR.sol
     CO, // Cover.sol
+    SP, // StakingProducts.sol
     AS, // Assessment.sol
     TK, // NXMToken.sol
     PS, // LegacyPooledStaking.sol

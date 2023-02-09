@@ -29,13 +29,6 @@ struct StakedProductParam {
   uint96 targetPrice;
 }
 
-struct ProductInitializationParams {
-  uint productId;
-  uint8 weight;
-  uint96 initialPrice;
-  uint96 targetPrice;
-}
-
 struct BurnStakeParams {
   uint allocationId;
   uint productId;
@@ -69,20 +62,11 @@ interface IStakingPool {
     uint128 rewardsShares;
   }
 
-  struct StakedProduct {
-    uint16 lastEffectiveWeight;
-    uint8 targetWeight;
-    uint96 targetPrice;
-    uint96 bumpedPrice;
-    uint32 bumpedPriceUpdateTime;
-  }
-
   function initialize(
     address _manager,
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,
-    ProductInitializationParams[] calldata params,
     uint _poolId,
     string memory ipfsDescriptionHash
   ) external;
@@ -117,6 +101,8 @@ interface IStakingPool {
 
   function manager() external view returns (address);
 
+  function getPoolId() external view returns (uint);
+
   function getPoolFee() external view returns (uint);
 
   function getMaxPoolFee() external view returns (uint);
@@ -139,23 +125,11 @@ interface IStakingPool {
 
   function getNextAllocationId() external view returns (uint);
 
-  function getTotalTargetWeight() external view returns (uint);
-
-  function getTotalEffectiveWeight() external view returns (uint);
-
   function getDeposit(uint tokenId, uint trancheId) external view returns (
     uint lastAccNxmPerRewardShare,
     uint pendingRewards,
     uint stakeShares,
     uint rewardsShares
-  );
-
-  function getProduct(uint productId) external view returns (
-    uint lastEffectiveWeight,
-    uint targetWeight,
-    uint targetPrice,
-    uint bumpedPrice,
-    uint bumpedPriceUpdateTime
   );
 
   function getTranche(uint trancheId) external view returns (
@@ -173,7 +147,18 @@ interface IStakingPool {
 
   function setPoolPrivacy(bool isPrivatePool) external;
 
-  function setProducts(StakedProductParam[] memory params) external;
+  function getActiveAllocations(
+    uint productId
+  ) external view returns (uint[] memory trancheAllocations);
+
+  function getTrancheCapacities(
+    uint productId,
+    uint firstTrancheId,
+    uint trancheCount,
+    uint capacityRatio,
+    uint reductionRatio
+  ) external view returns (uint[] memory trancheCapacities);
+
 
   /* ========== EVENTS ========== */
 
@@ -191,7 +176,6 @@ interface IStakingPool {
 
   event StakeBurned(uint amount);
 
-  event ProductUpdated(uint productId, uint8 targetWeight, uint96 targetPrice);
 
   // Auth
   error OnlyCoverContract();
@@ -213,8 +197,9 @@ interface IStakingPool {
   error RewardRatioTooHigh();
 
   // Staking NFTs
+  error InvalidTokenId();
   error NotTokenOwnerOrApproved();
-  error TokenDoesNotBelongToPool();
+  error InvalidStakingPoolForToken();
 
   // Tranche & capacity
   error NewTrancheEndsBeforeInitialTranche();
@@ -222,14 +207,5 @@ interface IStakingPool {
   error RequestedTrancheIsExpired();
   error InsufficientCapacity();
 
-  // Products & weights
-  error PoolNotAllowedForThisProduct();
-  error MustSetPriceForNewProducts();
-  error MustSetWeightForNewProducts();
-  error TargetPriceTooHigh();
-  error TargetPriceBelowMin();
-  error TargetWeightTooHigh();
-  error MustRecalculateEffectiveWeight();
-  error TotalTargetWeightExceeded();
-  error TotalEffectiveWeightExceeded();
+
 }

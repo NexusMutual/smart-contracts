@@ -35,7 +35,7 @@ const buyCoverFixture = {
 
 describe('totalActiveCover', function () {
   beforeEach(async function () {
-    const { tk, stakingPool0 } = this.contracts;
+    const { tk, stakingProducts, stakingPool0 } = this.contracts;
     const { stakingPoolManagers } = this.accounts;
 
     const members = this.accounts.members.slice(0, 5);
@@ -44,7 +44,9 @@ describe('totalActiveCover', function () {
       await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
     }
 
-    await stakingPool0.connect(stakingPoolManagers[0]).setProducts([stakedProductParamTemplate]);
+    await stakingProducts
+      .connect(stakingPoolManagers[0])
+      .setProducts(await stakingPool0.getPoolId(), [stakedProductParamTemplate]);
   });
 
   function calculateFirstTrancheId(lastBlock, period, gracePeriod) {

@@ -44,8 +44,10 @@ async function stake({ stakingPool, staker, productId, period, gracePeriod }) {
     targetPrice: 100, // 1%
   };
 
+  // Set staked products
   const managerSigner = await ethers.getSigner(await stakingPool.manager());
-  await stakingPool.connect(managerSigner).setProducts([stakingProductParams]);
+  const stakingProducts = await ethers.getContractAt('StakingProducts', await stakingPool.stakingProducts());
+  await stakingProducts.connect(managerSigner).setProducts(await stakingPool.getPoolId(), [stakingProductParams]);
 }
 
 module.exports = {

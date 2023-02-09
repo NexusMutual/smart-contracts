@@ -16,4 +16,5 @@ describe('UNIT TESTS', function () {
   require('./CoverViewer');
   require('./StakingNFT');
   require('./StakingPoolFactory');
+  require('./NXMaster');
 });

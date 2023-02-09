@@ -10,6 +10,7 @@ import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IStakingProducts.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
@@ -57,8 +58,8 @@ contract StakingPool is IStakingPool, Multicall {
   uint40 public poolId;
   uint24 internal lastAllocationId;
 
-  bool public override isPrivatePool;
-  bool public override isHalted;
+  bool public isPrivatePool;
+  bool public isHalted;
 
   uint8 internal poolFee;
   uint8 internal maxPoolFee;
@@ -67,10 +68,8 @@ contract StakingPool is IStakingPool, Multicall {
 
   // slot 4
   address public override manager;
-  uint32 internal totalEffectiveWeight;
-  uint32 internal totalTargetWeight;
 
-  // 32 bytes left in slot 4
+  // 96 bytes left in slot 4
 
   // tranche id => tranche data
   mapping(uint => Tranche) internal tranches;
@@ -91,9 +90,6 @@ contract StakingPool is IStakingPool, Multicall {
   // starts with the first active tranche at the time of cover buy
   mapping(uint => uint) public coverTrancheAllocations;
 
-  // product id => Product
-  mapping(uint => StakedProduct) public products;
-
   // token id => tranche id => deposit data
   mapping(uint => mapping(uint => Deposit)) public deposits;
 
@@ -104,6 +100,7 @@ contract StakingPool is IStakingPool, Multicall {
   ITokenController public  immutable tokenController;
   address public immutable coverContract;
   INXMMaster public immutable masterContract;
+  IStakingProducts public immutable stakingProducts;
 
   /* constants */
 
@@ -117,7 +114,6 @@ contract StakingPool is IStakingPool, Multicall {
 
   uint public constant REWARD_BONUS_PER_TRANCHE_RATIO = 10_00; // 10.00%
   uint public constant REWARD_BONUS_PER_TRANCHE_DENOMINATOR = 100_00;
-  uint public constant MAX_TOTAL_WEIGHT = 20_00; // 20x
   uint public constant WEIGHT_DENOMINATOR = 100;
   uint public constant REWARDS_DENOMINATOR = 100_00;
   uint public constant POOL_FEE_DENOMINATOR = 100;
@@ -125,22 +121,8 @@ contract StakingPool is IStakingPool, Multicall {
   // denominators for cover contract parameters
   uint public constant GLOBAL_CAPACITY_DENOMINATOR = 100_00;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 100_00;
-  uint public constant INITIAL_PRICE_DENOMINATOR = 100_00;
-  uint public constant TARGET_PRICE_DENOMINATOR = 100_00;
-
-  // base price bump
-  // +0.2% for each 1% of capacity used, ie +20% for 100%
-  uint public constant PRICE_BUMP_RATIO = 20_00; // 20%
-
-  // bumped price smoothing
-  // 0.5% per day
-  uint public constant PRICE_CHANGE_PER_DAY = 50; // 0.5%
 
   // +2% for every 1%, ie +200% for 100%
-  uint public constant SURGE_PRICE_RATIO = 2 ether;
-
-  uint public constant SURGE_THRESHOLD_RATIO = 90_00; // 90.00%
-  uint public constant SURGE_THRESHOLD_DENOMINATOR = 100_00; // 100.00%
 
   // 1 nxm = 1e18
   uint public constant ONE_NXM = 1 ether;
@@ -152,6 +134,13 @@ contract StakingPool is IStakingPool, Multicall {
   // given capacities have 2 decimals
   // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
+
+  modifier onlyPublicOrManager {
+    if (isPrivatePool && msg.sender != manager) {
+      revert PrivatePool();
+    }
+    _;
+  }
 
   modifier onlyCoverContract {
     if (msg.sender != coverContract) {
@@ -168,7 +157,9 @@ contract StakingPool is IStakingPool, Multicall {
   }
 
   modifier whenNotPaused {
-    require(!masterContract.isPause(), "System is paused");
+    if (masterContract.isPause()) {
+      revert SystemPaused();
+    }
     _;
   }
 
@@ -179,26 +170,20 @@ contract StakingPool is IStakingPool, Multicall {
     _;
   }
 
-  // validate token id exists and belongs to this pool
-  // stakingPoolOf() reverts for non-existent tokens
-  function requireTokenBelongsToPool(uint tokenId) internal view {
-    if (stakingNFT.stakingPoolOf(tokenId) != poolId) {
-      revert TokenDoesNotBelongToPool();
-    }
-  }
-
   constructor (
     address _stakingNFT,
     address _token,
     address _coverContract,
     address _tokenController,
-    address _master
+    address _master,
+    address _stakingProducts
   ) {
     stakingNFT = IStakingNFT(_stakingNFT);
     nxm = INXMToken(_token);
     coverContract = _coverContract;
     tokenController = ITokenController(_tokenController);
     masterContract = INXMMaster(_master);
+    stakingProducts = IStakingProducts(_stakingProducts);
   }
 
   function initialize(
@@ -206,7 +191,6 @@ contract StakingPool is IStakingPool, Multicall {
     bool _isPrivatePool,
     uint _initialPoolFee,
     uint _maxPoolFee,
-    ProductInitializationParams[] calldata params,
     uint _poolId,
     string  calldata ipfsDescriptionHash
   ) external onlyCoverContract {
@@ -224,8 +208,6 @@ contract StakingPool is IStakingPool, Multicall {
     poolFee = uint8(_initialPoolFee);
     maxPoolFee = uint8(_maxPoolFee);
     poolId = _poolId.toUint40();
-
-    _setInitialProducts(params);
 
     emit PoolDescriptionSet(ipfsDescriptionHash);
   }
@@ -373,13 +355,8 @@ contract StakingPool is IStakingPool, Multicall {
     uint trancheId,
     uint requestTokenId,
     address destination
-  ) public whenNotPaused whenNotHalted returns (uint tokenId) {
-
-    if (isPrivatePool) {
-      if (msg.sender != manager) {
-        revert PrivatePool();
-      }
-    }
+  ) public onlyPublicOrManager whenNotPaused whenNotHalted
+  returns (uint tokenId)  {
 
     if (block.timestamp <= nxm.isLockedForMV(msg.sender)) {
       revert NxmIsLockedForGovernanceVote();
@@ -392,9 +369,11 @@ contract StakingPool is IStakingPool, Multicall {
       if (amount == 0) {
         revert InsufficientDepositAmount();
       }
+
       if (trancheId > maxTranche) {
         revert RequestedTrancheIsNotYetActive();
       }
+
       if (trancheId < _firstActiveTrancheId) {
         revert RequestedTrancheIsExpired();
       }
@@ -422,7 +401,11 @@ contract StakingPool is IStakingPool, Multicall {
       address to = destination == address(0) ? msg.sender : destination;
       tokenId = stakingNFT.mint(poolId, to);
     } else {
-      requireTokenBelongsToPool(requestTokenId);
+      // validate token id exists and belongs to this pool
+      // stakingPoolOf() reverts for non-existent tokens
+      if (stakingNFT.stakingPoolOf(requestTokenId) != poolId) {
+        revert InvalidStakingPoolForToken();
+      }
       tokenId = requestTokenId;
     }
 
@@ -636,8 +619,6 @@ contract StakingPool is IStakingPool, Multicall {
     // passing true because we change the reward per second
     processExpirations(true);
 
-    uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
-
     uint[] memory trancheAllocations = request.allocationId == 0
       ? getActiveAllocations(request.productId)
       : getActiveAllocationsWithoutCover(
@@ -654,7 +635,7 @@ contract StakingPool is IStakingPool, Multicall {
       // store deallocated amount
       updateStoredAllocations(
         request.productId,
-        _firstActiveTrancheId,
+        block.timestamp / TRANCHE_DURATION, // firstActiveTrancheId
         trancheAllocations
       );
 
@@ -675,14 +656,17 @@ contract StakingPool is IStakingPool, Multicall {
     ) = allocate(amount, request, trancheAllocations);
 
     // the returned premium value has 18 decimals
-    premium = getPremium(
+    premium = stakingProducts.getPremium(
+      poolId,
       request.productId,
       request.period,
       coverAllocationAmount,
       initialCapacityUsed,
       totalCapacity,
       request.globalMinPrice,
-      request.useFixedPrice
+      request.useFixedPrice,
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM
     );
 
     // add new rewards
@@ -881,9 +865,9 @@ contract StakingPool is IStakingPool, Multicall {
     uint trancheCount,
     uint capacityRatio,
     uint reductionRatio
-  ) internal view returns (uint[] memory trancheCapacities) {
+  ) public view returns (uint[] memory trancheCapacities) {
 
-    // TODO: this require statement seems redundant
+    // will revert if with unprocessed expirations
     if (firstTrancheId < block.timestamp / TRANCHE_DURATION) {
       revert RequestedTrancheIsExpired();
     }
@@ -899,7 +883,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint multiplier =
       capacityRatio
       * (CAPACITY_REDUCTION_DENOMINATOR - reductionRatio)
-      * products[productId].targetWeight;
+      * stakingProducts.getProductTargetWeight(poolId, productId);
 
     uint denominator =
       GLOBAL_CAPACITY_DENOMINATOR
@@ -1093,9 +1077,12 @@ contract StakingPool is IStakingPool, Multicall {
     uint initialTrancheId,
     uint newTrancheId,
     uint topUpAmount
-  ) external whenNotPaused whenNotHalted {
+  ) external onlyPublicOrManager whenNotPaused whenNotHalted {
 
-    requireTokenBelongsToPool(tokenId);
+    // token id 0 is only used for pool manager fee tracking, no deposits allowed
+    if (tokenId == 0) {
+      revert InvalidTokenId();
+    }
 
     if (!stakingNFT.isApprovedOrOwner(msg.sender, tokenId)) {
       revert NotTokenOwnerOrApproved();
@@ -1137,12 +1124,6 @@ contract StakingPool is IStakingPool, Multicall {
 
       return;
       // done! skip the rest of the function.
-    }
-
-    if (isPrivatePool) {
-      if (msg.sender != manager) {
-        revert PrivatePool();
-      }
     }
 
     // if we got here - the initial tranche is still active. move all the shares to the new tranche
@@ -1288,197 +1269,12 @@ contract StakingPool is IStakingPool, Multicall {
 
   /* pool management */
 
-  function recalculateEffectiveWeights(uint[] calldata productIds) external {
-    (
-    uint globalCapacityRatio,
-    /* globalMinPriceRatio */,
-    /* initialPriceRatios */,
-    /* capacityReductionRatios */
-    uint[] memory capacityReductionRatios
-    ) = ICover(coverContract).getPriceAndCapacityRatios(productIds);
-
-    uint _totalEffectiveWeight = totalEffectiveWeight;
-
-    for (uint i = 0; i < productIds.length; i++) {
-      uint productId = productIds[i];
-      StakedProduct memory _product = products[productId];
-
-      uint16 previousEffectiveWeight = _product.lastEffectiveWeight;
-      _product.lastEffectiveWeight = getEffectiveWeight(
-        productId,
-        _product.targetWeight,
-        globalCapacityRatio,
-        capacityReductionRatios[i]
-      );
-      _totalEffectiveWeight = _totalEffectiveWeight - previousEffectiveWeight + _product.lastEffectiveWeight;
-      products[productId] = _product;
-    }
-    totalEffectiveWeight = _totalEffectiveWeight.toUint32();
-  }
-
-  function setProducts(StakedProductParam[] memory params) external onlyManager {
-    uint numProducts = params.length;
-    uint[] memory productIds = new uint[](numProducts);
-
-    for (uint i = 0; i < numProducts; i++) {
-      productIds[i] = params[i].productId;
-      if (!ICover(coverContract).isPoolAllowed(params[i].productId, poolId)) {
-        revert PoolNotAllowedForThisProduct();
-      }
-    }
-    (
-      uint globalCapacityRatio,
-      uint globalMinPriceRatio,
-      uint[] memory initialPriceRatios,
-      uint[] memory capacityReductionRatios
-    ) = ICover(coverContract).getPriceAndCapacityRatios(productIds);
-
-    uint _totalTargetWeight = totalTargetWeight;
-    uint _totalEffectiveWeight = totalEffectiveWeight;
-    bool targetWeightIncreased;
-
-    for (uint i = 0; i < numProducts; i++) {
-      StakedProductParam memory _param = params[i];
-      StakedProduct memory _product = products[_param.productId];
-
-      // if this is a new product
-      if (_product.bumpedPriceUpdateTime == 0) {
-        // initialize the bumpedPrice
-        _product.bumpedPrice = initialPriceRatios[i].toUint96();
-        _product.bumpedPriceUpdateTime = uint32(block.timestamp);
-        // and make sure we set the price and the target weight
-        if (!_param.setTargetPrice) {
-          revert MustSetPriceForNewProducts();
-        }
-        if (!_param.setTargetWeight) {
-          revert MustSetWeightForNewProducts();
-        }
-      }
-
-      if (_param.setTargetPrice) {
-        if (_param.targetPrice > TARGET_PRICE_DENOMINATOR) {
-          revert TargetPriceTooHigh();
-        }
-        if (_param.targetPrice < globalMinPriceRatio) {
-          revert TargetPriceBelowMin();
-        }
-        _product.targetPrice = _param.targetPrice;
-      }
-
-      // if setTargetWeight is set - effective weight must be recalculated
-      if (_param.setTargetWeight && !_param.recalculateEffectiveWeight) {
-        revert MustRecalculateEffectiveWeight();
-      }
-
-      // Must recalculate effectiveWeight to adjust targetWeight
-      if (_param.recalculateEffectiveWeight) {
-
-        if (_param.setTargetWeight) {
-          if (_param.targetWeight > WEIGHT_DENOMINATOR) {
-            revert TargetWeightTooHigh();
-          }
-
-          // totalEffectiveWeight cannot be above the max unless target  weight is not increased
-          if (!targetWeightIncreased) {
-            targetWeightIncreased = _param.targetWeight > _product.targetWeight;
-          }
-          _totalTargetWeight = _totalTargetWeight - _product.targetWeight + _param.targetWeight;
-          _product.targetWeight = _param.targetWeight;
-        }
-
-        // subtract the previous effective weight
-        _totalEffectiveWeight -= _product.lastEffectiveWeight;
-
-        _product.lastEffectiveWeight = getEffectiveWeight(
-          _param.productId,
-          _product.targetWeight,
-          globalCapacityRatio,
-          capacityReductionRatios[i]
-        );
-
-        // add the new effective weight
-        _totalEffectiveWeight += _product.lastEffectiveWeight;
-      }
-
-      // sstore
-      products[_param.productId] = _product;
-
-      emit ProductUpdated(_param.productId, _param.targetWeight, _param.targetPrice);
-    }
-
-    if (_totalTargetWeight > MAX_TOTAL_WEIGHT) {
-      revert TotalTargetWeightExceeded();
-    }
-
-    if (targetWeightIncreased) {
-      if (_totalEffectiveWeight > MAX_TOTAL_WEIGHT) {
-        revert TotalEffectiveWeightExceeded();
-      }
-    }
-
-    totalTargetWeight = _totalTargetWeight.toUint32();
-    totalEffectiveWeight = _totalEffectiveWeight.toUint32();
-  }
-
-  function getEffectiveWeight(
-    uint productId,
-    uint targetWeight,
-    uint globalCapacityRatio,
-    uint capacityReductionRatio
-  ) internal view returns (uint16 effectiveWeight) {
-
-    uint[] memory trancheCapacities = getTrancheCapacities(
-      productId,
-      block.timestamp / TRANCHE_DURATION, // first active tranche id
-      MAX_ACTIVE_TRANCHES,
-      globalCapacityRatio,
-      capacityReductionRatio
-    );
-
-    uint totalCapacity = Math.sum(trancheCapacities);
-
-    if (totalCapacity == 0) {
-      return targetWeight.toUint16();
-    }
-
-    uint[] memory activeAllocations = getActiveAllocations(productId);
-    uint totalAllocation = Math.sum(activeAllocations);
-    uint actualWeight = Math.min(totalAllocation * WEIGHT_DENOMINATOR / totalCapacity, type(uint16).max);
-
-    return Math.max(targetWeight, actualWeight).toUint16();
-  }
-
-  function _setInitialProducts(ProductInitializationParams[] memory params) internal {
-    uint32 _totalTargetWeight = totalTargetWeight;
-
-    for (uint i = 0; i < params.length; i++) {
-      ProductInitializationParams memory param = params[i];
-      StakedProduct storage _product = products[param.productId];
-      if (param.targetPrice > TARGET_PRICE_DENOMINATOR) {
-        revert TargetPriceTooHigh();
-      }
-      if (param.weight > WEIGHT_DENOMINATOR) {
-        revert TargetWeightTooHigh();
-      }
-      _product.bumpedPrice = param.initialPrice;
-      _product.bumpedPriceUpdateTime = uint32(block.timestamp);
-      _product.targetPrice = param.targetPrice;
-      _product.targetWeight = param.weight;
-      _totalTargetWeight += param.weight;
-    }
-
-    if (_totalTargetWeight > MAX_TOTAL_WEIGHT) {
-      revert TotalTargetWeightExceeded();
-    }
-    totalTargetWeight = _totalTargetWeight;
-    totalEffectiveWeight = totalTargetWeight;
-  }
-
   function setPoolFee(uint newFee) external onlyManager {
 
     if (newFee > maxPoolFee) {
       revert PoolFeeExceedsMax();
     }
+
     uint oldFee = poolFee;
     poolFee = uint8(newFee);
 
@@ -1514,7 +1310,6 @@ contract StakingPool is IStakingPool, Multicall {
 
   function setPoolPrivacy(bool _isPrivatePool) external onlyManager {
     isPrivatePool = _isPrivatePool;
-
     emit PoolPrivacyChanged(msg.sender, _isPrivatePool);
   }
 
@@ -1522,175 +1317,11 @@ contract StakingPool is IStakingPool, Multicall {
     emit PoolDescriptionSet(ipfsDescriptionHash);
   }
 
-  /* pricing code */
-
-  function getPremium(
-    uint productId,
-    uint period,
-    uint coverAmount,
-    uint initialCapacityUsed,
-    uint totalCapacity,
-    uint globalMinPrice,
-    bool useFixedPrice
-  ) internal returns (uint premium) {
-
-    StakedProduct memory product = products[productId];
-    uint targetPrice = Math.max(product.targetPrice, globalMinPrice);
-
-    if (useFixedPrice) {
-      return calculateFixedPricePremium(period, coverAmount, targetPrice);
-    }
-
-    (premium, product) = calculatePremium(
-      product,
-      period,
-      coverAmount,
-      initialCapacityUsed,
-      totalCapacity,
-      targetPrice,
-      block.timestamp
-    );
-
-    // sstore
-    products[productId] = product;
-
-    return premium;
-  }
-
-  function calculateFixedPricePremium(
-    uint coverAmount,
-    uint period,
-    uint fixedPrice
-  ) public pure returns (uint) {
-
-    uint premiumPerYear =
-      coverAmount
-      * NXM_PER_ALLOCATION_UNIT
-      * fixedPrice
-      / TARGET_PRICE_DENOMINATOR;
-
-    return premiumPerYear * period / 365 days;
-  }
-
-  function calculatePremium(
-    StakedProduct memory product,
-    uint period,
-    uint coverAmount,
-    uint initialCapacityUsed,
-    uint totalCapacity,
-    uint targetPrice,
-    uint currentBlockTimestamp
-  ) public pure returns (uint premium, StakedProduct memory) {
-
-    uint basePrice;
-    {
-      // use previously recorded bumped price and apply time based smoothing towards target price
-      uint timeSinceLastUpdate = currentBlockTimestamp - product.bumpedPriceUpdateTime;
-      uint priceDrop = PRICE_CHANGE_PER_DAY * timeSinceLastUpdate / 1 days;
-
-      // basePrice = max(targetPrice, bumpedPrice - priceDrop)
-      // rewritten to avoid underflow
-      basePrice = product.bumpedPrice < targetPrice + priceDrop
-        ? targetPrice
-        : product.bumpedPrice - priceDrop;
-    }
-
-    // calculate the bumped price by applying the price bump
-    uint priceBump = PRICE_BUMP_RATIO * coverAmount / totalCapacity;
-    product.bumpedPrice = (basePrice + priceBump).toUint96();
-    product.bumpedPriceUpdateTime = uint32(currentBlockTimestamp);
-
-    // use calculated base price and apply surge pricing if applicable
-    uint premiumPerYear = calculatePremiumPerYear(
-      basePrice,
-      coverAmount,
-      initialCapacityUsed,
-      totalCapacity
-    );
-
-    // calculate the premium for the requested period
-    return (premiumPerYear * period / 365 days, product);
-  }
-
-  function calculatePremiumPerYear(
-    uint basePrice,
-    uint coverAmount,
-    uint initialCapacityUsed,
-    uint totalCapacity
-  ) public pure returns (uint) {
-    // cover amount has 2 decimals (100 = 1 unit)
-    // scale coverAmount to 18 decimals and apply price percentage
-    uint basePremium = coverAmount * NXM_PER_ALLOCATION_UNIT * basePrice / TARGET_PRICE_DENOMINATOR;
-    uint finalCapacityUsed = initialCapacityUsed + coverAmount;
-
-    // surge price is applied for the capacity used above SURGE_THRESHOLD_RATIO.
-    // the surge price starts at zero and increases linearly.
-    // to simplify things, we're working with fractions/ratios instead of percentages,
-    // ie 0 to 1 instead of 0% to 100%, 100% = 1 (a unit).
-    //
-    // surgeThreshold = SURGE_THRESHOLD_RATIO / SURGE_THRESHOLD_DENOMINATOR
-    //                = 90_00 / 100_00 = 0.9
-    uint surgeStartPoint = totalCapacity * SURGE_THRESHOLD_RATIO / SURGE_THRESHOLD_DENOMINATOR;
-
-    // Capacity and surge pricing
-    //
-    //        i        f                         s
-    //   ▓▓▓▓▓░░░░░░░░░                          ▒▒▒▒▒▒▒▒▒▒
-    //
-    //  i - initial capacity used
-    //  f - final capacity used
-    //  s - surge start point
-
-    // if surge does not apply just return base premium
-    // i < f <= s case
-    if (finalCapacityUsed <= surgeStartPoint) {
-      return basePremium;
-    }
-
-    // calculate the premium amount incurred due to surge pricing
-    uint amountOnSurge = finalCapacityUsed - surgeStartPoint;
-    uint surgePremium = calculateSurgePremium(amountOnSurge, totalCapacity);
-
-    // if the capacity start point is before the surge start point
-    // the surge premium starts at zero, so we just return it
-    // i <= s < f case
-    if (initialCapacityUsed <= surgeStartPoint) {
-      return basePremium + surgePremium;
-    }
-
-    // otherwise we need to subtract the part that was already used by other covers
-    // s < i < f case
-    uint amountOnSurgeSkipped = initialCapacityUsed - surgeStartPoint;
-    uint surgePremiumSkipped = calculateSurgePremium(amountOnSurgeSkipped, totalCapacity);
-
-    return basePremium + surgePremium - surgePremiumSkipped;
-  }
-
-  // Calculates the premium for a given cover amount starting with the surge point
-  function calculateSurgePremium(
-    uint amountOnSurge,
-    uint totalCapacity
-  ) public pure returns (uint) {
-
-    // for every percent of capacity used, the surge price has a +2% increase per annum
-    // meaning a +200% increase for 100%, ie x2 for a whole unit (100%) of capacity in ratio terms
-    //
-    // coverToCapacityRatio = amountOnSurge / totalCapacity
-    // surgePriceStart = 0
-    // surgePriceEnd = SURGE_PRICE_RATIO * coverToCapacityRatio
-    //
-    // surgePremium = amountOnSurge * surgePriceEnd / 2
-    //              = amountOnSurge * SURGE_PRICE_RATIO * coverToCapacityRatio / 2
-    //              = amountOnSurge * SURGE_PRICE_RATIO * amountOnSurge / totalCapacity / 2
-
-    uint surgePremium = amountOnSurge * SURGE_PRICE_RATIO * amountOnSurge / totalCapacity / 2;
-
-    // amountOnSurge has two decimals
-    // dividing by ALLOCATION_UNITS_PER_NXM (=100) to normalize the result
-    return surgePremium / ALLOCATION_UNITS_PER_NXM;
-  }
-
   /* getters */
+
+  function getPoolId() external override view returns (uint) {
+    return poolId;
+  }
 
   function getPoolFee() external override view returns (uint) {
     return poolFee;
@@ -1736,14 +1367,6 @@ contract StakingPool is IStakingPool, Multicall {
     return lastAllocationId + 1;
   }
 
-  function getTotalTargetWeight() external override view returns (uint) {
-    return totalTargetWeight;
-  }
-
-  function getTotalEffectiveWeight() external override view returns (uint) {
-    return totalEffectiveWeight;
-  }
-
   function getDeposit(uint tokenId, uint trancheId) external override view returns (
     uint lastAccNxmPerRewardShare,
     uint pendingRewards,
@@ -1759,22 +1382,6 @@ contract StakingPool is IStakingPool, Multicall {
     );
   }
 
-  function getProduct(uint productId) external override view returns (
-    uint lastEffectiveWeight,
-    uint targetWeight,
-    uint targetPrice,
-    uint bumpedPrice,
-    uint bumpedPriceUpdateTime
-  ) {
-    StakedProduct memory product = products[productId];
-    return (
-      product.lastEffectiveWeight,
-      product.targetWeight,
-      product.targetPrice,
-      product.bumpedPrice,
-      product.bumpedPriceUpdateTime
-    );
-  }
 
   function getTranche(uint trancheId) external override view returns (
     uint stakeShares,

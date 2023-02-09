@@ -39,7 +39,7 @@ const DEFAULT_GRACE_PERIOD = daysToSeconds(30);
 
 describe('depositTo', function () {
   beforeEach(async function () {
-    const { stakingPool, cover } = this;
+    const { stakingPool, stakingProducts, cover } = this;
     const { defaultSender: manager } = this.accounts;
     const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 
@@ -52,10 +52,11 @@ describe('depositTo', function () {
       false, // isPrivatePool
       initialPoolFee,
       maxPoolFee,
-      products,
       poolId,
       ipfsDescriptionHash,
     );
+
+    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
 
     // Move to the beginning of the next tranche
     const { firstActiveTrancheId: trancheId } = await getTranches();
@@ -72,9 +73,9 @@ describe('depositTo', function () {
     // enable emergency pause
     await master.setEmergencyPause(true);
 
-    await expect(stakingPool.connect(user).depositTo(amount, trancheId, tokenId, destination)).to.be.revertedWith(
-      'System is paused',
-    );
+    await expect(
+      stakingPool.connect(user).depositTo(amount, trancheId, tokenId, destination),
+    ).to.be.revertedWithCustomError(stakingPool, 'SystemPaused');
   });
 
   it('reverts if caller is not manager when pool is private', async function () {

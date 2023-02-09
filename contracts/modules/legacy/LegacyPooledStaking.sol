@@ -1268,7 +1268,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     uint totalStakeRatio = 0;
     uint totalStake = 0;
-    uint tokenId = type(uint).max;
+    uint tokenId = 0; // 0 means a new NFT will be created that will then be reused for each tranche
     uint firstTrancheId = block.timestamp / 91 days + 1;
 
     for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {

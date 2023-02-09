@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { getTranches, moveTimeToNextTranche, setTime, BUCKET_DURATION, TRANCHE_DURATION } = require('./helpers');
+const { getTranches, moveTimeToNextTranche, setTime, BUCKET_DURATION } = require('./helpers');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { setEtherBalance } = require('../utils').evm;
 

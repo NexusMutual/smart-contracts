@@ -54,7 +54,7 @@ contract StakingPool is IStakingPool, Multicall {
   // applies to active stake only and does not need update on deposits
   uint96 internal rewardPerSecond;
 
-  uint40 internal poolId;
+  uint40 public poolId;
   uint24 internal lastAllocationId;
 
   bool public override isPrivatePool;
@@ -1245,7 +1245,7 @@ contract StakingPool is IStakingPool, Multicall {
 
     uint firstTrancheId = params.start / TRANCHE_DURATION;
     uint[] memory coverAllocations = new uint[](MAX_ACTIVE_TRANCHES);
-  
+
     uint remainingAmount = params.deallocationAmount / NXM_PER_ALLOCATION_UNIT;
     uint packedCoverAllocations;
 
@@ -1268,7 +1268,7 @@ contract StakingPool is IStakingPool, Multicall {
     }
 
     coverTrancheAllocations[params.allocationId] = packedCoverAllocations;
-    
+
     updateExpiringCoverAmounts(
       params.productId,
       firstTrancheId,

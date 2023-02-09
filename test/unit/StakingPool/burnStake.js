@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { getTranches, moveTimeToNextTranche, BUCKET_DURATION } = require('./helpers');
+const { getTranches, moveTimeToNextTranche, setTime, BUCKET_DURATION, TRANCHE_DURATION } = require('./helpers');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { setEtherBalance } = require('../utils').evm;
 
@@ -22,7 +22,7 @@ const initialProduct = {
 };
 
 const poolInitParams = {
-  poolId: 0,
+  poolId: 1,
   initialPoolFee: 5, // 5%
   maxPoolFee: 5, // 5%
   products: [initialProduct],
@@ -55,7 +55,7 @@ const burnStakeParams = {
 const allocationRequestParams = {
   productId: 0,
   coverId: 0,
-  allocationId: MaxUint256,
+  allocationId: 0,
   period: DEFAULT_PERIOD,
   gracePeriod: DEFAULT_GRACE_PERIOD,
   previousStart: 0,
@@ -73,9 +73,10 @@ const burnAmount = parseEther('10');
 
 describe('burnStake', function () {
   beforeEach(async function () {
-    const { stakingPool, cover } = this;
+    const { stakingPool, cover, nxm, tokenController } = this;
     const { defaultSender: manager } = this.accounts;
     const [staker] = this.accounts.members;
+    const { TRANCHE_DURATION } = this.config;
     const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 
     this.coverSigner = await ethers.getImpersonatedSigner(cover.address);
@@ -94,13 +95,17 @@ describe('burnStake', function () {
       ipfsDescriptionHash,
     );
 
+    await nxm.mint(manager.address, MaxUint256.div(1e6));
+    await nxm.connect(manager).approve(tokenController.address, MaxUint256);
+
     // Move to the beginning of the next tranche
-    const currentTrancheId = await moveTimeToNextTranche(1);
+    const { firstActiveTrancheId: trancheId } = await getTranches();
+    await setTime(TRANCHE_DURATION.mul(trancheId + 1).toNumber());
 
     // Deposit into pool
-    await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId, MaxUint256, AddressZero);
-    await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId + 1, MaxUint256, AddressZero);
-    await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId + 2, MaxUint256, AddressZero);
+    await stakingPool.connect(staker).depositTo(stakedNxmAmount, trancheId + 1, 0, AddressZero);
+    await stakingPool.connect(staker).depositTo(stakedNxmAmount, trancheId + 2, 0, AddressZero);
+    await stakingPool.connect(staker).depositTo(stakedNxmAmount, trancheId + 3, 0, AddressZero);
   });
 
   it('should revert if the caller is not the cover contract', async function () {
@@ -158,12 +163,9 @@ describe('burnStake', function () {
 
   it('reduces activeStake', async function () {
     const { stakingPool } = this;
-
-    const activeStakeBefore = await stakingPool.activeStake();
-
+    const activeStakeBefore = await stakingPool.getActiveStake();
     await stakingPool.connect(this.coverSigner).burnStake(burnAmount, burnStakeParams);
-
-    const activeStakeAfter = await stakingPool.activeStake();
+    const activeStakeAfter = await stakingPool.getActiveStake();
     expect(activeStakeAfter).to.equal(activeStakeBefore.sub(burnAmount));
   });
 
@@ -197,7 +199,7 @@ describe('burnStake', function () {
 
     const poolId = await stakingPool.poolId();
 
-    const initialStake = await stakingPool.activeStake();
+    const initialStake = await stakingPool.getActiveStake();
     const balanceBefore = await nxm.balanceOf(tokenController.address);
     const tcBalancesBefore = await tokenController.stakingPoolNXMBalances(poolId);
 
@@ -209,7 +211,7 @@ describe('burnStake', function () {
       .to.emit(stakingPool, 'StakeBurned')
       .withArgs(actualBurnedAmount);
 
-    const activeStakeAfter = await stakingPool.activeStake();
+    const activeStakeAfter = await stakingPool.getActiveStake();
     const balanceAfter = await nxm.balanceOf(tokenController.address);
     const tcBalancesAfter = await tokenController.stakingPoolNXMBalances(poolId);
 
@@ -224,7 +226,7 @@ describe('burnStake', function () {
 
     const coverTrancheAllocationAmount = stakedNxmAmount.div(NXM_PER_ALLOCATION_UNIT);
 
-    const allocationId1 = await stakingPool.nextAllocationId();
+    const allocationId1 = await stakingPool.getNextAllocationId();
     const allocationAmount1 = stakedNxmAmount;
 
     // allocates 50% of first tranche
@@ -239,7 +241,7 @@ describe('burnStake', function () {
     }
 
     const allocationAmount2 = stakedNxmAmount.mul(2);
-    const allocationId2 = await stakingPool.nextAllocationId();
+    const allocationId2 = await stakingPool.getNextAllocationId();
 
     // allocates 50% of first tranche and 50% of second tranche
     await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount2, 0, allocationRequestParams);
@@ -306,7 +308,7 @@ describe('burnStake', function () {
 
     const { productId } = allocationRequestParams;
 
-    const allocationId1 = await stakingPool.nextAllocationId();
+    const allocationId1 = await stakingPool.getNextAllocationId();
     const allocationAmount1 = stakedNxmAmount;
 
     {
@@ -394,7 +396,7 @@ describe('burnStake', function () {
 
     const { productId, period } = allocationRequestParams;
 
-    const allocationId1 = await stakingPool.nextAllocationId();
+    const allocationId1 = await stakingPool.getNextAllocationId();
     const allocationAmount1 = stakedNxmAmount;
 
     {
@@ -591,15 +593,15 @@ describe('burnStake', function () {
   it('calls process expirations', async function () {
     const { stakingPool } = this;
 
-    const initialFirstActiveBucketId = await stakingPool.firstActiveBucketId();
-    const initialFirstActiveTrancheId = await stakingPool.firstActiveTrancheId();
+    const initialFirstActiveBucketId = await stakingPool.getFirstActiveBucketId();
+    const initialFirstActiveTrancheId = await stakingPool.getFirstActiveTrancheId();
 
     await moveTimeToNextTranche(2);
 
     await stakingPool.connect(this.coverSigner).burnStake(burnAmount, burnStakeParams);
 
-    const firstActiveBucketId = await stakingPool.firstActiveBucketId();
-    const firstActiveTrancheId = await stakingPool.firstActiveTrancheId();
+    const firstActiveBucketId = await stakingPool.getFirstActiveBucketId();
+    const firstActiveTrancheId = await stakingPool.getFirstActiveTrancheId();
 
     expect(firstActiveBucketId).to.gt(initialFirstActiveBucketId);
     expect(firstActiveTrancheId).to.gt(initialFirstActiveTrancheId);

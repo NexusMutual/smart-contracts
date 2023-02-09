@@ -379,13 +379,23 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
   }
 
   function withdraw(uint /*ignoredParam*/) external override whenNotPaused onlyMember noPendingBurns {
-    uint amount = stakers[msg.sender].deposit;
-    stakers[msg.sender].deposit = 0;
-    token().transfer(msg.sender, amount);
-    emit Withdrawn(msg.sender, amount);
+    _withdrawForUser(msg.sender);
   }
 
   function withdrawForUser(address user) external override whenNotPaused onlyMember noPendingBurns {
+    _withdrawForUser(user);
+  }
+
+  function _withdrawForUser(address user) internal {
+
+    // Stakers scheduled for automatic migration are not allowed to withdraw
+    require(
+      user != ARMOR && // Armor
+      user != HUGH && // Hugh
+      user != NEXUS_FOUNDATION, // Foundation
+      "Not allowed to withdraw"
+    );
+
     uint amount = stakers[user].deposit;
     stakers[user].deposit = 0;
     token().transfer(user, amount);

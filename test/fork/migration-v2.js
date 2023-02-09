@@ -688,6 +688,14 @@ describe('V2 upgrade', function () {
     const ARMOR_MANAGER = '0xFa760444A229e78A50Ca9b3779f4ce4CcE10E170';
     const topStakers = [FOUNDATION, HUGH, ARMOR];
 
+    console.log('Check that stakers selected for automatic migration  are not allowed to withdraw.');
+    for (const staker of topStakers) {
+      // pooledStaking.withdraw(uint) is not verified here for simplicity; it follows the exact same code path
+      await expect(this.pooledStaking.connect(this.abMembers[0]).withdrawForUser(staker)).to.be.revertedWith(
+        'Not allowed to withdraw',
+      );
+    }
+
     // Get stakers current deposits in PooledStaking
     const depositInPS = {};
     await Promise.all(

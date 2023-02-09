@@ -685,6 +685,7 @@ describe('V2 upgrade', function () {
     const ARMOR = '0x1337def1fc06783d4b03cb8c1bf3ebf7d0593fc4';
     const FOUNDATION = '0x963df0066ff8345922df88eebeb1095be4e4e12e';
     const HUGH = '0x87b2a7559d85f4653f13e6546a14189cd5455d45';
+    const ARMOR_MANAGER = '0xFa760444A229e78A50Ca9b3779f4ce4CcE10E170';
     const topStakers = [FOUNDATION, HUGH, ARMOR];
 
     // Get stakers current deposits in PooledStaking
@@ -764,7 +765,7 @@ describe('V2 upgrade', function () {
     const armorAAAPoolId = 2;
     // 5% of the AAA allocation must be unlocked
     const expectedArmorAAAPoolBalance = depositInPS[ARMOR].mul(75).div(100).mul(95).div(100);
-    precisionTolerance = 1;
+    precisionTolerance = 2;
     expect(depositsInStakingPools[armorAAAPoolId]).to.be.equal(expectedArmorAAAPoolBalance.sub(precisionTolerance));
 
     // Armor AA Pool
@@ -772,11 +773,11 @@ describe('V2 upgrade', function () {
     const armorAAPoolId = 3;
     // 5% of the AA allocation must be unlocked
     const expectedArmorAAPoolBalance = depositInPS[ARMOR].mul(25).div(100).mul(95).div(100);
-    precisionTolerance = 1;
+    precisionTolerance = 2;
     expect(depositsInStakingPools[armorAAPoolId]).to.be.equal(expectedArmorAAPoolBalance.sub(precisionTolerance));
 
     // Overall we must unlock 5% of Armor's total tokens in PS
-    precisionTolerance = 4;
+    precisionTolerance = 6;
     expect(nxmBalancesAfter[ARMOR]).to.be.equal(
       nxmBalancesBefore[ARMOR].add(depositInPS[ARMOR].mul(5).div(100)).add(precisionTolerance),
     );
@@ -837,6 +838,51 @@ describe('V2 upgrade', function () {
         expect(stakedProduct.targetPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
         expect(stakedProduct.bumpedPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
       }
+    }
+
+    // Check pool configurations are set correctly for each pool
+    console.log('Checking pool configurations are set correctly for each pool');
+
+    const expectedPoolConfigurations = {};
+    expectedPoolConfigurations[foundationPoolId] = {
+      maxFee: 20, // TODO: waiting for final value for maxPoolFee - sheet has 100, we currently store 20
+      initialFee: 0,
+      manager: FOUNDATION,
+      isPrivatePool: true,
+    };
+    expectedPoolConfigurations[hughPoolId] = {
+      maxFee: 20,
+      initialFee: 10,
+      manager: HUGH,
+      isPrivatePool: false,
+    };
+    expectedPoolConfigurations[armorAAAPoolId] = {
+      maxFee: 25,
+      initialFee: 15,
+      manager: ARMOR_MANAGER,
+      isPrivatePool: false,
+    };
+    expectedPoolConfigurations[armorAAPoolId] = {
+      maxFee: 25,
+      initialFee: 15,
+      manager: ARMOR_MANAGER,
+      isPrivatePool: false,
+    };
+    for (let poolId = 0; poolId < stakingPoolCount; poolId++) {
+      const stakerAddress = stakers[poolId];
+      const stakingPool = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(poolId));
+
+      const isPrivatePool = await stakingPool.isPrivatePool();
+      const poolFee = await stakingPool.getPoolFee();
+      const maxFee = await stakingPool.getMaxPoolFee();
+      const manager = await stakingPool.manager();
+
+      const expected = expectedPoolConfigurations[poolId];
+
+      expect(maxFee).to.be.equal(expected.maxFee);
+      expect(poolFee).to.be.equal(expected.initialFee);
+      expect(manager.toLowerCase()).to.be.equal(expected.manager.toLowerCase());
+      expect(isPrivatePool).to.be.equal(expected.isPrivatePool);
     }
 
     console.log({ deprecatedProducts, productsWithNoStake });

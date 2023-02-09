@@ -16,11 +16,12 @@
 
 ### Scripts
 - [ ] Have all the scripts needed ready in `/v2-migration` folder
+  - [ ] `get-products.js`
+// Review the ones below
   - [ ] `get-governance-rewards.js`
   - [ ] `get-legacy-assessment-rewards.js`
   - [ ] `get-locked-in-v1-claim-assessment.js`
   - [ ] `get-v1-cover-prices.js`
-  - [ ] `get-products.js`
   - [ ] `populate-v2-products.js`
   - [ ] `get-withdrawable-cover-notes.js`
 
@@ -69,10 +70,18 @@
 - [ ] Run `get-legacy-assessment-rewards.js` to automatically populate `LegacyClaimsRewards.sol` with the list of addresses we reimburse with the assessment rewards.
   - [ ] Check `LegacyClaimsRewards.sol`
  
-### Staking Pools - WIP
-- [ ] List of initial syndicate operators and their migration strategy
-  - [ ] Final inputs [here](https://docs.google.com/spreadsheets/d/1ebhsVWjc18rQJpGLMzRfmzRwwYzND7_6Q0A9zOlADvE)
-- [ ] Update `migrateToNewV2Pool` in `LegacyPooledStaking.sol` with the above info 
+### Staking Pools
+**What we need**
+1. List of staking pool inputs
+2. List of V1 prices
+
+**How we get it**
+- [x] Final inputs for staking pools [here](https://docs.google.com/spreadsheets/d/1ebhsVWjc18rQJpGLMzRfmzRwwYzND7_6Q0A9zOlADvE)
+  - [x] Update `migrateToNewV2Pool` in `LegacyPooledStaking.sol` with the above info
+  - [ ] Allow changing the pool manager so we can also migrate the Foundation stake
+- [ ] Run `get-v1-cover-prices.js`
+  - [ ] !!! We need to make sure the QE is accessible to us while we run this. We should run it after we block V1 staking.   
+
 
 ### Onchain
 - [ ] **Add new proposal category**: 42 Add new contracts

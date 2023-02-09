@@ -14,5 +14,4 @@ interface ICoverNFT is IERC721 {
 
   function burn(uint tokenId) external;
 
-  function operatorTransferFrom(address from, address to, uint256 tokenId) external;
 }

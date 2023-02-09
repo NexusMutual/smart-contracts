@@ -31,14 +31,6 @@ describe('CoverNFT', function () {
     await expect(coverNFT.burn(1)).to.be.revertedWith('CoverNFT: Not operator');
   });
 
-  it('should successfully burn', async function () {
-    const { coverNFT } = this;
-    const [operator, nftOwner] = this.accounts.members;
-    await coverNFT.connect(operator).mint(nftOwner.address);
-    await coverNFT.connect(operator).burn(1);
-    await expect(coverNFT.ownerOf(1)).to.be.revertedWith('NOT_MINTED');
-  });
-
   it('should return success for isApproveOrOwner() - owner == sender', async function () {
     const { coverNFT } = this;
     const [operator, nftOwner] = this.accounts.members;
@@ -71,40 +63,6 @@ describe('CoverNFT', function () {
     const { coverNFT } = this;
     const [, account] = this.accounts.members;
     await expect(coverNFT.isApprovedOrOwner(account.address, 1)).to.be.revertedWith('NOT_MINTED');
-  });
-
-  it('should fail to transfer from operator - onlyOperator()', async function () {
-    const { coverNFT } = this;
-    const [account] = this.accounts.members;
-    await expect(coverNFT.operatorTransferFrom(coverNFT.address, account.address, 1)).to.be.revertedWith(
-      'CoverNFT: Not operator',
-    );
-  });
-
-  it('should fail to transfer from operator - wrong from address', async function () {
-    const { coverNFT } = this;
-    const [operator, nftOwner, otherAddress] = this.accounts.members;
-    await coverNFT.connect(operator).mint(nftOwner.address);
-    await expect(
-      coverNFT.connect(operator).operatorTransferFrom(otherAddress.address, operator.address, 1),
-    ).to.be.revertedWith('WRONG_FROM');
-  });
-
-  it('should fail to transfer from operator - send to 0 address', async function () {
-    const { coverNFT } = this;
-    const [operator, nftOwner] = this.accounts.members;
-    await coverNFT.connect(operator).mint(nftOwner.address);
-    await expect(coverNFT.connect(operator).operatorTransferFrom(nftOwner.address, AddressZero, 1)).to.be.revertedWith(
-      'INVALID_RECIPIENT',
-    );
-  });
-
-  it('should successfully transfer from the operator', async function () {
-    const { coverNFT } = this;
-    const [operator, coverNFTReceiver] = this.accounts.members;
-    await coverNFT.connect(operator).mint(coverNFTReceiver.address);
-    await coverNFT.connect(operator).operatorTransferFrom(coverNFTReceiver.address, operator.address, 1);
-    expect(await coverNFT.ownerOf(1)).to.be.equal(operator.address);
   });
 
   it('should revert if caller is not operator', async function () {

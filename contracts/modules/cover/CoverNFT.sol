@@ -24,6 +24,8 @@ contract CoverNFT is ERC721 {
     return _totalSupply;
   }
 
+  // TODO: implement change token descriptor function here
+
   function tokenURI(uint256) public pure override returns (string memory) {
     // TODO: implement me
     return "";

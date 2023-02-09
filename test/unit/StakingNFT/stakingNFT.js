@@ -105,29 +105,6 @@ describe('StakingNFT', function () {
     await expect(stakingNFT.balanceOf(ethers.constants.AddressZero)).to.be.revertedWith('ZERO_ADDRESS');
   });
 
-  it('should revert if a non operator tries to call operatorTransfer - NOT_OPERATOR', async function () {
-    const { stakingNFT } = this;
-    const [member] = this.accounts.members;
-    await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, member.address);
-    await expect(stakingNFT.operatorTransferFrom(member.address, member.address, 1)).to.be.revertedWith('NOT_OPERATOR');
-  });
-
-  it('should revert if trying to operatorTransfer a token from a non-owner - WRONG_FROM', async function () {
-    const { stakingNFT, cover } = this;
-    const [nonOwner, owner] = this.accounts.members;
-    await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, owner.address);
-    await expect(cover.operatorTransferFrom(nonOwner.address, owner.address, 1)).to.be.revertedWith('WRONG_FROM');
-  });
-
-  it('should revert if trying to operatorTransfer a token to a zero address - ZERO_ADDRESS', async function () {
-    const { stakingNFT, cover } = this;
-    const [owner] = this.accounts.members;
-    await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, owner.address);
-    await expect(cover.operatorTransferFrom(owner.address, ethers.constants.AddressZero, 1)).to.be.revertedWith(
-      'INVALID_RECIPIENT',
-    );
-  });
-
   it('should revert if trying to transferFrom a token from a non-owner - WRONG_FROM', async function () {
     const { stakingNFT } = this;
     const [nonOwner, owner] = this.accounts.members;

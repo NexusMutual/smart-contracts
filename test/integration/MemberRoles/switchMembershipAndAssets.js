@@ -110,6 +110,8 @@ describe('switchMembershipAndAssets', function () {
     }
 
     await token.connect(member).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await coverNFT.connect(member).setApprovalForAll(memberRoles.address, true);
+
     {
       const ownershipArr = await Promise.all([1, 2, 3].map(x => coverNFT.ownerOf(x)));
       assert(ownershipArr.every(x => x === member.address));

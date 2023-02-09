@@ -200,10 +200,6 @@ interface ICover {
 
   function stakingPoolFactory() external returns (IStakingPoolFactory);
 
-  function transferCovers(address from, address to, uint256[] calldata tokenIds) external;
-
-  function transferStakingPoolTokens(address from, address to, uint256[] calldata tokenIds) external;
-
   function createStakingPool(
     address manager,
     bool isPrivatePool,

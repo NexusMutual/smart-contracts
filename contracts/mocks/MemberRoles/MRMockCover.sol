@@ -22,13 +22,13 @@ contract MRMockCover {
 
   function transferCovers(address from, address to, uint256[] calldata tokenIds) external {
     for (uint256 i = 0; i < tokenIds.length; i++) {
-      coverNFT.operatorTransferFrom(from, to, tokenIds[i]);
+      coverNFT.transferFrom(from, to, tokenIds[i]);
     }
   }
 
   function transferStakingPoolTokens(address from, address to, uint256[] calldata tokenIds) external {
     for (uint256 i = 0; i < tokenIds.length; i++) {
-      stakingNFT.operatorTransferFrom(from, to, tokenIds[i]);
+      stakingNFT.transferFrom(from, to, tokenIds[i]);
     }
   }
 

@@ -494,26 +494,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return coverId;
   }
 
-  function transferCovers(address from, address to, uint256[] calldata tokenIds) external override {
-    if (msg.sender != address(memberRoles())) {
-      revert OnlyMemberRolesCanOperateTransfer();
-    }
-
-    for (uint256 i = 0; i < tokenIds.length; i++) {
-      ICoverNFT(coverNFT).operatorTransferFrom(from, to, tokenIds[i]);
-    }
-  }
-
-  function transferStakingPoolTokens(address from, address to, uint256[] calldata tokenIds) external override {
-    if (msg.sender != address(memberRoles())) {
-      revert OnlyMemberRolesCanOperateTransfer();
-    }
-
-    for (uint256 i = 0; i < tokenIds.length; i++) {
-      stakingNFT.operatorTransferFrom(from, to, tokenIds[i]);
-    }
-  }
-
   function createStakingPool(
     address manager,
     bool isPrivatePool,

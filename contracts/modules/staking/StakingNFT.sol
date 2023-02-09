@@ -39,23 +39,7 @@ contract StakingNFT is IStakingNFT {
 
   // operator functions
 
-  function operatorTransferFrom(address from, address to, uint id) external {
-    require(msg.sender == operator, "NOT_OPERATOR");
-    require(from == ownerOf(id), "WRONG_FROM");
-    require(to != address(0), "INVALID_RECIPIENT");
-
-    // underflow of the sender's balance is impossible because we check for
-    // ownership above and the recipient's balance can't realistically overflow
-    unchecked {
-      _balanceOf[from]--;
-      _balanceOf[to]++;
-    }
-
-    _tokenInfo[id].owner = to;
-    delete getApproved[id];
-
-    emit Transfer(from, to, id);
-  }
+  // TODO: implement change token descriptor function here
 
   function changeOperator(address newOperator) public {
     require(msg.sender == operator, "NOT_OPERATOR");
@@ -76,7 +60,7 @@ contract StakingNFT is IStakingNFT {
 
     // counter overflow is incredibly unrealistic
     unchecked {
-      id = _totalSupply++;
+      id = ++_totalSupply;
       _balanceOf[to]++;
     }
 

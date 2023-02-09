@@ -21,16 +21,16 @@ describe('getClaimsToDisplay', function () {
     segment.period = daysToSeconds('66');
     const expectedProductIds = ['1', '0', '1', '0', '1'];
     const expectedClaimIds = ['0', '1', '2', '3', '4'];
-    const expectedCoverIds = ['3', '1', '2', '0', '4'];
+    const expectedCoverIds = ['4', '2', '3', '1', '5'];
     const expectedAssessmentIds = ['0', '1', '2', '3', '4'];
-    const expectedAssetSymbols = ['MOCK', 'MOCK', 'ETH', 'ETH', 'MOCK']; // MOCk is the symbol for the DAI mock
+    const expectedAssetSymbols = ['MOCK', 'MOCK', 'ETH', 'ETH', 'MOCK']; // MOCK is the symbol for the DAI mock
     const expectedAssetIndexes = ['1', '1', '0', '0', '1'];
     const expectedAmounts = [parseEther('10'), parseEther('20'), parseEther('30'), parseEther('40'), parseEther('40')];
     const expectedCoverStarts = [];
     const expectedPollStarts = [];
 
     {
-      // 0
+      // 1
       const { timestamp } = await ethers.provider.getBlock('latest');
       segment.start = timestamp + 1;
       await cover.createMockCover(
@@ -44,7 +44,7 @@ describe('getClaimsToDisplay', function () {
     }
 
     {
-      // 1
+      // 2
       const { timestamp } = await ethers.provider.getBlock('latest');
       segment.start = timestamp + 1;
       await cover.createMockCover(
@@ -58,7 +58,7 @@ describe('getClaimsToDisplay', function () {
     }
 
     {
-      // 2
+      // 3
       const { timestamp } = await ethers.provider.getBlock('latest');
       segment.start = timestamp + 1;
       await cover.createMockCover(
@@ -72,7 +72,7 @@ describe('getClaimsToDisplay', function () {
     }
 
     {
-      // 3
+      // 4
       const { timestamp } = await ethers.provider.getBlock('latest');
       segment.start = timestamp + 1;
       await cover.createMockCover(
@@ -86,7 +86,7 @@ describe('getClaimsToDisplay', function () {
     }
 
     {
-      // 4
+      // 5
       const { timestamp } = await ethers.provider.getBlock('latest');
       segment.start = timestamp + 1;
       await cover.createMockCover(
@@ -104,7 +104,7 @@ describe('getClaimsToDisplay', function () {
         segment.period,
         ASSET.DAI,
       );
-      await individualClaims.connect(coverOwner).submitClaim(3, 0, expectedAmounts[0], '', {
+      await individualClaims.connect(coverOwner).submitClaim(4, 0, expectedAmounts[0], '', {
         value: deposit,
       });
       const latestBlock = await ethers.provider.getBlock('latest');
@@ -117,7 +117,7 @@ describe('getClaimsToDisplay', function () {
         segment.period,
         ASSET.DAI,
       );
-      await individualClaims.connect(coverOwner).submitClaim(1, 0, expectedAmounts[1], '', {
+      await individualClaims.connect(coverOwner).submitClaim(2, 0, expectedAmounts[1], '', {
         value: deposit,
       });
       const latestBlock = await ethers.provider.getBlock('latest');
@@ -130,7 +130,7 @@ describe('getClaimsToDisplay', function () {
         segment.period,
         ASSET.ETH,
       );
-      await individualClaims.connect(coverOwner).submitClaim(2, 0, expectedAmounts[2], '', {
+      await individualClaims.connect(coverOwner).submitClaim(3, 0, expectedAmounts[2], '', {
         value: deposit,
       });
       const latestBlock = await ethers.provider.getBlock('latest');
@@ -143,7 +143,7 @@ describe('getClaimsToDisplay', function () {
         segment.period,
         ASSET.ETH,
       );
-      await individualClaims.connect(coverOwner).submitClaim(0, 0, expectedAmounts[3], '', {
+      await individualClaims.connect(coverOwner).submitClaim(1, 0, expectedAmounts[3], '', {
         value: deposit,
       });
       const latestBlock = await ethers.provider.getBlock('latest');
@@ -156,7 +156,7 @@ describe('getClaimsToDisplay', function () {
         segment.period,
         ASSET.ETH,
       );
-      await individualClaims.connect(coverOwner).submitClaim(4, 0, expectedAmounts[4], '', {
+      await individualClaims.connect(coverOwner).submitClaim(5, 0, expectedAmounts[4], '', {
         value: deposit,
       });
       const latestBlock = await ethers.provider.getBlock('latest');

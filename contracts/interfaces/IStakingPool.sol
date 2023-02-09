@@ -205,8 +205,8 @@ interface IStakingPool {
   error RewardRatioTooHigh();
 
   // Staking NFTs
-  error InvalidTokenId();
   error NotTokenOwnerOrApproved();
+  error TokenDoesNotBelongToPool();
 
   // Tranche & capacity
   error NewTrancheEndsBeforeInitialTranche();

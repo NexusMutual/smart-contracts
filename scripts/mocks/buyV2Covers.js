@@ -1,6 +1,6 @@
 const { network, ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 const { formatEther, parseEther, formatUnits } = ethers.utils;
 
 const { CONTRACTS_ADDRESSES: Addresses } = require(process.env.CONFIG_FILE);
@@ -92,7 +92,7 @@ async function buyCover(productId, poolId, cover, buyer, amount, period, payment
       commissionRatio: parseEther('0'),
       commissionDestination: AddressZero,
       ipfsData: '',
-      coverId: MaxUint256.toString(), // new cover
+      coverId: 0, // new cover
     },
     [{ poolId, coverAmountInAsset: amount.toString() }],
     { value: premiumWithSlippage },

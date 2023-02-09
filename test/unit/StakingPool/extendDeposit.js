@@ -3,13 +3,13 @@ const { expect } = require('chai');
 const { getTranches, getNewRewardShares, TRANCHE_DURATION, generateRewards, setTime } = require('./helpers');
 const { setEtherBalance, increaseTime } = require('../utils').evm;
 
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 const depositToFixture = {
   amount: parseEther('100'),
   trancheId: 0,
-  tokenId: MaxUint256,
+  tokenId: 0,
   destination: AddressZero,
 };
 
@@ -28,8 +28,8 @@ const poolInitParams = {
   ipfsDescriptionHash: 'Description Hash',
 };
 
-const depositNftId = 0;
-const managerDepositId = MaxUint256;
+const depositNftId = 1;
+const managerDepositId = 0;
 
 describe('extendDeposit', function () {
   beforeEach(async function () {
@@ -72,7 +72,7 @@ describe('extendDeposit', function () {
     ).to.be.revertedWith('System is paused');
   });
 
-  it('reverts if token id is max uint', async function () {
+  it('reverts if token id is 0', async function () {
     const { stakingPool } = this;
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -80,8 +80,8 @@ describe('extendDeposit', function () {
     const managerSigner = await ethers.getImpersonatedSigner(managerAddress);
 
     await expect(
-      stakingPool.connect(managerSigner).extendDeposit(MaxUint256, firstActiveTrancheId, maxTranche, 0),
-    ).to.be.revertedWithCustomError(stakingPool, 'InvalidTokenId');
+      stakingPool.connect(managerSigner).extendDeposit(0, firstActiveTrancheId, maxTranche, 0),
+    ).to.be.revertedWith('NOT_MINTED');
   });
 
   it('reverts if new tranche ends before the initial tranche', async function () {

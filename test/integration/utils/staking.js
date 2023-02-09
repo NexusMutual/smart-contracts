@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
@@ -16,7 +16,7 @@ async function stake({ stakingPool, staker, productId, period, gracePeriod }) {
   await stakingPool.connect(staker).depositTo(
     stakingAmount,
     firstTrancheId,
-    MaxUint256, // new position
+    0, // new position
     AddressZero, // destination
   );
 

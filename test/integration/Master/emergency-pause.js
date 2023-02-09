@@ -7,7 +7,7 @@ const { enrollClaimAssessor } = require('../utils/enroll');
 const { stake } = require('../utils/staking');
 const { BigNumber } = require('ethers');
 const { parseEther, defaultAbiCoder } = ethers.utils;
-const { MaxUint256, AddressZero } = ethers.constants;
+const { AddressZero } = ethers.constants;
 const { acceptClaim } = require('../utils/voteClaim');
 
 const priceDenominator = '10000';
@@ -129,7 +129,7 @@ describe('emergency pause', function () {
       cover.connect(member).buyCover(
         {
           owner: member.address,
-          coverId: MaxUint256,
+          coverId: 0,
           productId,
           coverAsset,
           amount,
@@ -172,7 +172,7 @@ describe('emergency pause', function () {
     await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
-        coverId: MaxUint256,
+        coverId: 0,
         productId,
         coverAsset,
         amount,
@@ -190,7 +190,7 @@ describe('emergency pause', function () {
     );
 
     // Submit claim
-    const coverId = 0;
+    const coverId = 1;
     const claimAmount = amount;
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -231,7 +231,7 @@ describe('emergency pause', function () {
     await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
-        coverId: MaxUint256,
+        coverId: 0,
         productId,
         coverAsset,
         amount,
@@ -249,7 +249,7 @@ describe('emergency pause', function () {
     );
 
     // Submit claim
-    const coverId = 0;
+    const coverId = 1;
     const claimAmount = amount;
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {

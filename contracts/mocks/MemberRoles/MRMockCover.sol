@@ -8,6 +8,7 @@ import "../../interfaces/IMemberRoles.sol";
 pragma solidity ^0.8.16;
 
 contract MRMockCover {
+
   ICoverNFT immutable public coverNFT;
   IMemberRoles immutable public memberRoles;
   IStakingNFT immutable public stakingNFT;
@@ -21,17 +22,17 @@ contract MRMockCover {
 
   function transferCovers(address from, address to, uint256[] calldata tokenIds) external {
     for (uint256 i = 0; i < tokenIds.length; i++) {
-      coverNFT.operatorTransferFrom(from, to, tokenIds[i]);
+      coverNFT.transferFrom(from, to, tokenIds[i]);
     }
   }
 
   function transferStakingPoolTokens(address from, address to, uint256[] calldata tokenIds) external {
     for (uint256 i = 0; i < tokenIds.length; i++) {
-      stakingNFT.operatorTransferFrom(from, to, tokenIds[i]);
+      stakingNFT.transferFrom(from, to, tokenIds[i]);
     }
   }
 
-  function createMockCover(address to, uint tokenId) public {
-    coverNFT.mint(to, tokenId);
+  function createMockCover(address to) public returns (uint tokenId) {
+    return coverNFT.mint(to);
   }
 }

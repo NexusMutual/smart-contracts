@@ -65,9 +65,33 @@ async function setup() {
   await cover.addProductType('0', '90', '5000');
   await cover.addProductType('1', '30', '5000');
 
-  await cover.addProduct(['0', '0x1111111111111111111111111111111111111111', '1', '0', '0']);
-  await cover.addProduct(['1', '0x2222222222222222222222222222222222222222', '1', '0', '0']);
-  await cover.addProduct(['2', '0x3333333333333333333333333333333333333333', '1', '0', '0']);
+  const productTemplate = {
+    productType: '0',
+    yieldTokenAddress: '0x1111111111111111111111111111111111111111',
+    coverAssets: '1',
+    initialPriceRatio: '0',
+    capacityReductionRatio: '0',
+    isDeprecated: false,
+    useFixedPrice: false,
+  };
+
+  await cover.addProduct({
+    ...productTemplate,
+    productType: '0',
+    yieldTokenAddress: '0x1111111111111111111111111111111111111111',
+  });
+
+  await cover.addProduct({
+    ...productTemplate,
+    productType: '1',
+    yieldTokenAddress: '0x2222222222222222222222222222222222222222',
+  });
+
+  await cover.addProduct({
+    ...productTemplate,
+    productType: '2',
+    yieldTokenAddress: '0x3333333333333333333333333333333333333333',
+  });
 
   await individualClaims.changeMasterAddress(master.address);
   await individualClaims.changeDependentContractAddress();

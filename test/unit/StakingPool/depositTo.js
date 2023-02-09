@@ -7,13 +7,13 @@ const { daysToSeconds } = require('../utils').helpers;
 const { DIVISION_BY_ZERO } = require('../utils').errors;
 
 const { BigNumber } = ethers;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 const depositToFixture = {
   amount: parseEther('100'),
   trancheId: 0,
-  tokenId: MaxUint256,
+  tokenId: 0,
   destination: AddressZero,
 };
 
@@ -32,7 +32,7 @@ const poolInitParams = {
   ipfsDescriptionHash: 'Description Hash',
 };
 
-const managerDepositId = MaxUint256;
+const managerDepositId = 0;
 
 const DEFAULT_PERIOD = daysToSeconds(30);
 const DEFAULT_GRACE_PERIOD = daysToSeconds(30);
@@ -148,7 +148,7 @@ describe('depositTo', function () {
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
     const tx = await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
 
-    const expectedMintedTokenId = 0;
+    const expectedMintedTokenId = 1;
     await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user.address, expectedMintedTokenId);
 
     const totalSupplyAfter = await stakingNFT.totalSupply();
@@ -170,7 +170,7 @@ describe('depositTo', function () {
 
     const tx = await stakingPool.connect(user1).depositTo(amount, firstActiveTrancheId, tokenId, user2.address);
 
-    const expectedMintedTokenId = 0;
+    const expectedMintedTokenId = 1;
     await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user2.address, expectedMintedTokenId);
 
     const totalSupplyAfter = await stakingNFT.totalSupply();
@@ -188,7 +188,7 @@ describe('depositTo', function () {
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
     const newStakeShares = await estimateStakeShares({ amount, stakingPool });
 
-    const expectedTokenId = 0;
+    const expectedTokenId = 1;
     const tx = await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
     await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user.address, expectedTokenId);
 
@@ -216,7 +216,7 @@ describe('depositTo', function () {
     // first deposit
     const tx = await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
 
-    const expectedTokenId = 0;
+    const expectedTokenId = 1;
     await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user.address, expectedTokenId);
 
     const firstDepositData = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
@@ -247,8 +247,8 @@ describe('depositTo', function () {
     // Generate rewards
     const allocationRequest = {
       productId: 0,
-      coverId: MaxUint256,
-      allocationId: MaxUint256,
+      coverId: 0,
+      allocationId: 0,
       period: daysToSeconds(30),
       gracePeriod: daysToSeconds(30),
       previousStart: 0,
@@ -264,7 +264,7 @@ describe('depositTo', function () {
     const { firstActiveTrancheId } = await getTranches(allocationRequest.period, allocationRequest.gracePeriod);
 
     // first deposit
-    const expectedTokenId = 0;
+    const expectedTokenId = 1;
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
     const depositData = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
 
@@ -312,8 +312,8 @@ describe('depositTo', function () {
 
     const allocationRequest = {
       productId: 0,
-      coverId: MaxUint256,
-      allocationId: MaxUint256,
+      coverId: 0,
+      allocationId: 0,
       period: daysToSeconds(30),
       gracePeriod: daysToSeconds(30),
       previousStart: 0,
@@ -369,8 +369,8 @@ describe('depositTo', function () {
 
     const allocationRequest = {
       productId: 0,
-      coverId: MaxUint256,
-      allocationId: MaxUint256,
+      coverId: 0,
+      allocationId: 0,
       period: daysToSeconds(30),
       gracePeriod: daysToSeconds(30),
       previousStart: 0,
@@ -418,7 +418,7 @@ describe('depositTo', function () {
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
 
     {
-      const expectedTokenId = 0;
+      const expectedTokenId = 1;
       const userDeposit = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
       const managerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
 
@@ -449,7 +449,7 @@ describe('depositTo', function () {
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
 
     {
-      const expectedTokenId = 0;
+      const expectedTokenId = 1;
       const userDeposit = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
       const managerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
 
@@ -475,7 +475,7 @@ describe('depositTo', function () {
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
 
     {
-      const expectedTokenId = 0;
+      const expectedTokenId = 1;
       const userDeposit = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
       const managerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
 
@@ -535,8 +535,8 @@ describe('depositTo', function () {
     let totalStakeShares = BigNumber.from(0);
     let stakedAmount = BigNumber.from(0);
 
-    for (let tokenId = 0; tokenId < tranches.length; tokenId++) {
-      const trancheId = tranches[tokenId];
+    for (let tokenId = 1; tokenId < tranches.length; tokenId++) {
+      const trancheId = tranches[tokenId - 1];
       const deposit = await stakingPool.deposits(tokenId, trancheId);
 
       const newRewardShares = await getNewRewardShares({
@@ -548,7 +548,7 @@ describe('depositTo', function () {
       });
 
       const newStakeShares =
-        tokenId === 0
+        tokenId === 1
           ? Math.sqrt(amount) // first deposit uses sqrt(amount)
           : amount.mul(totalStakeShares).div(stakedAmount);
 
@@ -579,7 +579,7 @@ describe('depositTo', function () {
 
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
 
-    const expectedTokenId = 0;
+    const expectedTokenId = 1;
     await expect(stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination))
       .to.emit(stakingPool, 'StakeDeposited')
       .withArgs(user.address, amount, firstActiveTrancheId, expectedTokenId);
@@ -643,5 +643,38 @@ describe('depositTo', function () {
       stakingPool,
       'NxmIsLockedForGovernanceVote',
     );
+  });
+
+  it('should revert if trying to deposit with token from other pool', async function () {
+    const { stakingPool, nxm, stakingNFT, cover, tokenController, master } = this;
+    const [user, manager] = this.accounts.members;
+
+    const { amount, tokenId, destination } = depositToFixture;
+    const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
+
+    const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
+    const otherStakingPool = await ethers.deployContract('StakingPool', [
+      stakingNFT.address,
+      nxm.address,
+      cover.address,
+      tokenController.address,
+      master.address,
+    ]);
+    await stakingPool.connect(this.coverSigner).initialize(
+      manager.address,
+      false, // isPrivatePool
+      initialPoolFee,
+      maxPoolFee,
+      products,
+      poolId + 1,
+      ipfsDescriptionHash,
+    );
+    await nxm.mint(user.address, amount.mul(2));
+    await nxm.approve(stakingPool.address, amount);
+    await nxm.approve(otherStakingPool.address, amount);
+    await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
+    await expect(
+      otherStakingPool.connect(user).depositTo(amount, firstActiveTrancheId, 1, destination),
+    ).to.be.revertedWithCustomError(otherStakingPool, 'TokenDoesNotBelongToPool');
   });
 });

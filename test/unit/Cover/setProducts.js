@@ -26,7 +26,7 @@ describe('setProducts', function () {
   // Cover.BuyCoverParams
   const buyCoverTemplate = {
     owner: AddressZero,
-    coverId: MaxUint256,
+    coverId: 0,
     productId: 0,
     coverAsset: 0,
     amount,
@@ -339,7 +339,7 @@ describe('setProducts', function () {
     const deprecateProductParams = { ...productParamsTemplate, productId, product };
     await cover.connect(advisoryBoardMember0).setProducts([deprecateProductParams]);
 
-    const coverId = (await cover.coverDataCount()).sub(1);
+    const coverId = await cover.coverDataCount();
     const editCoverParams = { ...buyCoverParams, coverId };
 
     // edit cover

@@ -64,9 +64,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     _;
   }
 
-  constructor(
-    address tokenAddress
-  ) {
+  constructor(address tokenAddress) {
     token = INXMToken(tokenAddress);
   }
 
@@ -241,6 +239,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     uint[] calldata coverIds,
     uint[] calldata stakingTokenIds
   ) external override {
+
     _switchMembership(msg.sender, newAddress);
     token.transferFrom(msg.sender, newAddress, token.balanceOf(msg.sender));
 
@@ -248,12 +247,18 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
 
     // Transfer the cover NFTs to the new address, if any were given
     if (coverIds.length > 0) {
-      _cover.transferCovers(msg.sender, newAddress, coverIds);
+      ICoverNFT coverNFT = _cover.coverNFT();
+      for (uint i = 0; i < coverIds.length; i++) {
+        coverNFT.transferFrom(msg.sender, newAddress, coverIds[i]);
+      }
     }
 
     // Transfer the staking pool NFTs to the new address, if any were given
     if (stakingTokenIds.length > 0) {
-      _cover.transferStakingPoolTokens(msg.sender, newAddress, stakingTokenIds);
+      IStakingNFT stakingNFT = _cover.stakingNFT();
+      for (uint i = 0; i < stakingTokenIds.length; i++) {
+        stakingNFT.transferFrom(msg.sender, newAddress, stakingTokenIds[i]);
+      }
     }
   }
 

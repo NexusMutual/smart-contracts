@@ -56,7 +56,7 @@ describe('submitClaim', function () {
     });
 
     // Submit claim
-    const coverId = 0;
+    const coverId = 1;
     const claimAmount = amount;
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -106,7 +106,7 @@ describe('submitClaim', function () {
       priceDenominator,
     });
 
-    const coverId = 0;
+    const coverId = 1;
 
     // Submit partial claim - 1/2 of total amount
     const claimAmount = amount.div(2);
@@ -159,7 +159,7 @@ describe('submitClaim', function () {
     });
 
     // Submit claim
-    const coverId = 0;
+    const coverId = 1;
     const claimAmount = amount;
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -208,7 +208,7 @@ describe('submitClaim', function () {
     });
 
     // Submit claim - 1/2 of total amount
-    const coverId = 0;
+    const coverId = 1;
     const claimAmount = amount.div(2);
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -260,7 +260,7 @@ describe('submitClaim', function () {
     });
 
     // Submit claim
-    const coverId = 0;
+    const coverId = 1;
     const claimAmount = amount;
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -313,7 +313,7 @@ describe('submitClaim', function () {
     });
 
     // Submit claim - 1/2 of total amount
-    const coverId = 0;
+    const coverId = 1;
     const claimAmount = amount.div(2);
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -366,7 +366,7 @@ describe('submitClaim', function () {
     });
 
     // Submit claim
-    const coverId = 0;
+    const coverId = 1;
     const claimAmount = amount;
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -418,7 +418,7 @@ describe('submitClaim', function () {
     });
 
     // Submit claim - 1/2 of total amount
-    const coverId = 0;
+    const coverId = 1;
     const claimAmount = amount.div(2);
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -472,7 +472,7 @@ describe('submitClaim', function () {
     });
 
     // Submit claim
-    const coverId = 0;
+    const coverId = 1;
     const claimAmount = amount;
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -527,7 +527,7 @@ describe('submitClaim', function () {
     });
 
     // Submit claim - 1/2 of total amount
-    const coverId = 0;
+    const coverId = 1;
     const claimAmount = amount.div(2);
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -582,7 +582,7 @@ describe('submitClaim', function () {
     });
 
     // Submit claim - 1/2 of total amount
-    const coverId = 0;
+    const coverId = 1;
     const claimAmount = amount.div(2);
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -630,7 +630,7 @@ describe('submitClaim', function () {
       priceDenominator,
     });
 
-    const coverId = 0;
+    const coverId = 1;
 
     // Submit First partial claim - 1/2 of total amount
     {
@@ -755,7 +755,7 @@ describe('submitClaim', function () {
 
     // Submit First partial claim - 1/2 of total amount
     {
-      const coverId = 0;
+      const coverId = 1;
       const claimAmount = amount.div(2);
       const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
       await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -787,7 +787,7 @@ describe('submitClaim', function () {
 
     // Submit Second partial claim - 1/4 of total amount
     {
-      const coverId = 0;
+      const coverId = 1;
       const claimAmount = amount.div(4);
       const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
       await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -819,7 +819,7 @@ describe('submitClaim', function () {
 
     // Submit Third partial claim - 1/4 of total amount
     {
-      const coverId = 0;
+      const coverId = 1;
       const claimAmount = amount.div(4);
       const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
       await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -876,7 +876,7 @@ describe('submitClaim', function () {
 
     // Submit First partial claim - 1/2 of total amount
     {
-      const coverId = 0;
+      const coverId = 1;
       const claimAmount = amount.div(2);
       const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
       await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -908,7 +908,7 @@ describe('submitClaim', function () {
 
     // Submit Second partial claim - 1/4 of total amount
     {
-      const coverId = 0;
+      const coverId = 1;
       const claimAmount = amount.div(4);
       const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
       await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -940,7 +940,7 @@ describe('submitClaim', function () {
 
     // Submit Third partial claim - 1/4 of total amount
     {
-      const coverId = 0;
+      const coverId = 1;
       const claimAmount = amount.div(4);
       const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
       await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
@@ -990,7 +990,7 @@ describe('submitClaim', function () {
       priceDenominator,
     });
 
-    const coverId = 0;
+    const coverId = 1;
 
     // Submit First partial claim - 1/2 of total amount
     {

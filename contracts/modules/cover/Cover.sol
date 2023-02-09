@@ -29,7 +29,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   Product[] internal _products;
   ProductType[] internal _productTypes;
 
-  CoverData[] private _coverData;
+  mapping(uint => CoverData) private _coverData;
 
   // cover id => segment id => pool allocations array
   mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
@@ -45,7 +45,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   uint24 public globalRewardsRatio;
 
   // assetId => { lastBucketUpdateId, totalActiveCoverInAsset }
-  mapping (uint => ActiveCover) public activeCover;
+  mapping(uint => ActiveCover) public activeCover;
   // assetId => bucketId => amount
   mapping(uint => mapping(uint => uint)) public activeCoverExpirationBuckets;
 
@@ -157,7 +157,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       allocationRequest = AllocationRequest(
         params.productId,
         coverId,
-        type(uint).max,
+        0,
         params.period,
         _productTypes[product.productType].gracePeriod,
         product.useFixedPrice,
@@ -173,25 +173,27 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     uint previousSegmentAmount;
 
-    if (params.coverId == type(uint).max) {
+    if (params.coverId == 0) {
 
       // new cover
-      coverId = _coverData.length;
-      _coverData.push(CoverData(params.productId, params.coverAsset, 0 /* amountPaidOut */));
-      coverNFT.mint(params.owner, coverId);
+      coverId = coverNFT.mint(params.owner);
+      _coverData[coverId] = CoverData(params.productId, params.coverAsset, 0 /* amountPaidOut */);
 
     } else {
 
       // existing cover
       coverId = params.coverId;
+
       if (!coverNFT.isApprovedOrOwner(msg.sender, coverId)) {
         revert OnlyOwnerOrApproved();
       }
 
       CoverData memory cover = _coverData[coverId];
+
       if (params.coverAsset != cover.coverAsset) {
         revert UnexpectedCoverAsset();
       }
+
       if (params.productId != cover.productId) {
         revert UnexpectedProductId();
       }
@@ -335,7 +337,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         allocationRequest.allocationId = previousPoolAllocation.allocationId;
       } else {
         // request new allocation id
-        allocationRequest.allocationId = type(uint).max;
+        allocationRequest.allocationId = 0;
       }
 
       // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
@@ -473,11 +475,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       revert CoverOutsideOfTheGracePeriod();
     }
 
-    _coverData.push(
-      CoverData(productId.toUint24(), coverAsset.toUint8(), 0 /* amountPaidOut */)
-    );
-
-    coverId = _coverData.length - 1;
+    coverId = coverNFT.mint(newOwner);
+    _coverData[coverId] = CoverData(productId.toUint24(), coverAsset.toUint8(), 0 /* amountPaidOut */);
 
     _coverSegments[coverId].push(
       CoverSegment(
@@ -490,30 +489,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       )
     );
 
-    coverNFT.mint(newOwner, coverId);
     emit CoverEdited(coverId, productId, 0, msg.sender, "");
 
     return coverId;
-  }
-
-  function transferCovers(address from, address to, uint256[] calldata tokenIds) external override {
-    if (msg.sender != address(memberRoles())) {
-      revert OnlyMemberRolesCanOperateTransfer();
-    }
-
-    for (uint256 i = 0; i < tokenIds.length; i++) {
-      ICoverNFT(coverNFT).operatorTransferFrom(from, to, tokenIds[i]);
-    }
-  }
-
-  function transferStakingPoolTokens(address from, address to, uint256[] calldata tokenIds) external override {
-    if (msg.sender != address(memberRoles())) {
-      revert OnlyMemberRolesCanOperateTransfer();
-    }
-
-    for (uint256 i = 0; i < tokenIds.length; i++) {
-      stakingNFT.operatorTransferFrom(from, to, tokenIds[i]);
-    }
   }
 
   function createStakingPool(
@@ -648,7 +626,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   }
 
   function coverDataCount() external override view returns (uint) {
-    return _coverData.length;
+    return coverNFT.totalSupply();
   }
 
   function products(uint id) external override view returns (Product memory) {

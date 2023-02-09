@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 function calculateTrancheId(currentTime, period, gracePeriod) {
@@ -50,13 +50,13 @@ describe('createStakingPool', function () {
     const managerStakingPoolNFTBalanceBefore = await stakingNFT.balanceOf(manager.address);
     assert.equal(managerStakingPoolNFTBalanceBefore.toNumber(), 0);
 
-    await stakingPool.connect(manager).depositTo(deposit, trancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(manager).depositTo(deposit, trancheId, 0, AddressZero);
 
     const managerStakingPoolNFTBalanceAfter = await stakingNFT.balanceOf(manager.address);
     assert.equal(managerStakingPoolNFTBalanceAfter.toNumber(), 1);
 
     await expect(
-      stakingPool.connect(staker).depositTo(deposit, trancheId, MaxUint256, AddressZero), // new deposit
+      stakingPool.connect(staker).depositTo(deposit, trancheId, 0, AddressZero), // new deposit
     ).to.be.revertedWithCustomError(stakingPool, 'PrivatePool');
   });
 
@@ -88,12 +88,12 @@ describe('createStakingPool', function () {
     const managerStakingPoolNFTBalanceBefore = await stakingNFT.balanceOf(manager.address);
     expect(managerStakingPoolNFTBalanceBefore).to.be.equal(0);
 
-    await stakingPool.connect(manager).depositTo(deposit, trancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(manager).depositTo(deposit, trancheId, 0, AddressZero);
 
     const managerStakingPoolNFTBalanceAfter = await stakingNFT.balanceOf(manager.address);
     expect(managerStakingPoolNFTBalanceAfter).to.be.equal(1);
 
-    await stakingPool.connect(staker).depositTo(deposit, trancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(staker).depositTo(deposit, trancheId, 0, AddressZero);
 
     const stakerStakingPoolNFTBalance = await stakingNFT.balanceOf(staker.address);
     expect(stakerStakingPoolNFTBalance).to.be.equal(1);

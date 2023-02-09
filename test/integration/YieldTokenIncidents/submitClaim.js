@@ -93,14 +93,14 @@ describe('submitClaim', function () {
     {
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
       await setNextBlockBaseFee('0');
-      await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1'), nonMember1.address, [], { gasPrice: 0 });
+      await yc.connect(coverBuyer1).redeemPayout(0, 1, 0, parseEther('1'), nonMember1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('0.99')));
     }
     {
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
       await setNextBlockBaseFee('0');
-      await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1.11'), nonMember1.address, [], { gasPrice: 0 });
+      await yc.connect(coverBuyer1).redeemPayout(0, 1, 0, parseEther('1.11'), nonMember1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('1.0989')));
     }
@@ -108,7 +108,7 @@ describe('submitClaim', function () {
     {
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
       await setNextBlockBaseFee('0');
-      await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('3'), nonMember1.address, [], { gasPrice: 0 });
+      await yc.connect(coverBuyer1).redeemPayout(0, 1, 0, parseEther('3'), nonMember1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('2.970')));
     }
@@ -162,14 +162,14 @@ describe('submitClaim', function () {
     {
       const daiBalanceBefore = await dai.balanceOf(nonMember1.address);
       await setNextBlockBaseFee('0');
-      await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1'), nonMember1.address, [], { gasPrice: 0 });
+      await yc.connect(coverBuyer1).redeemPayout(0, 1, 0, parseEther('1'), nonMember1.address, [], { gasPrice: 0 });
       const daiBalanceAfter = await dai.balanceOf(nonMember1.address);
       expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(parseEther('0.99')));
     }
     {
       const daiBalanceBefore = await dai.balanceOf(nonMember1.address);
       await setNextBlockBaseFee('0');
-      await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1.11'), nonMember1.address, [], { gasPrice: 0 });
+      await yc.connect(coverBuyer1).redeemPayout(0, 1, 0, parseEther('1.11'), nonMember1.address, [], { gasPrice: 0 });
       const daiBalanceAfter = await dai.balanceOf(nonMember1.address);
       expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(parseEther('1.0989')));
     }
@@ -177,7 +177,7 @@ describe('submitClaim', function () {
     {
       const ethBalanceBefore = await dai.balanceOf(nonMember1.address);
       await setNextBlockBaseFee('0');
-      await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('3'), nonMember1.address, [], { gasPrice: 0 });
+      await yc.connect(coverBuyer1).redeemPayout(0, 1, 0, parseEther('3'), nonMember1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await dai.balanceOf(nonMember1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('2.970')));
     }
@@ -228,7 +228,7 @@ describe('submitClaim', function () {
 
     await setNextBlockBaseFee('0');
     await expect(
-      yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1'), nonMember1.address, [], { gasPrice: 0 }),
+      yc.connect(coverBuyer1).redeemPayout(0, 1, 0, parseEther('1'), nonMember1.address, [], { gasPrice: 0 }),
     ).to.be.revertedWith('The incident needs to be accepted');
   });
 
@@ -279,7 +279,7 @@ describe('submitClaim', function () {
     }
 
     await expect(
-      yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1'), nonMember1.address, []),
+      yc.connect(coverBuyer1).redeemPayout(0, 1, 0, parseEther('1'), nonMember1.address, []),
     ).to.be.revertedWith('The incident needs to be accepted');
   });
 
@@ -330,7 +330,7 @@ describe('submitClaim', function () {
     const exactAmountToRedeemFullCover = parseEther('11.111111111111111112');
     await yc
       .connect(coverBuyer1)
-      .redeemPayout(0, 0, 0, exactAmountToRedeemFullCover, nonMember1.address, [], { gasPrice: 0 });
+      .redeemPayout(0, 1, 0, exactAmountToRedeemFullCover, nonMember1.address, [], { gasPrice: 0 });
     const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
     expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(amount));
   });
@@ -382,7 +382,7 @@ describe('submitClaim', function () {
 
     const daiBalanceBefore = await dai.balanceOf(nonMember1.address);
     const exactAmountToRedeemFullCover = parseEther('11.111111111111111112');
-    await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, exactAmountToRedeemFullCover, nonMember1.address, []);
+    await yc.connect(coverBuyer1).redeemPayout(0, 1, 0, exactAmountToRedeemFullCover, nonMember1.address, []);
     const daiBalanceAfter = await dai.balanceOf(nonMember1.address);
     expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(amount));
   });
@@ -465,7 +465,7 @@ describe('submitClaim', function () {
     {
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
 
-      await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, exactAmountToRedeemFullCover, nonMember1.address, []);
+      await yc.connect(coverBuyer1).redeemPayout(0, 1, 0, exactAmountToRedeemFullCover, nonMember1.address, []);
 
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
 
@@ -476,7 +476,7 @@ describe('submitClaim', function () {
     {
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember2.address);
 
-      await yc.connect(coverBuyer2).redeemPayout(0, 1, 0, exactAmountToRedeemFullCover, nonMember2.address, []);
+      await yc.connect(coverBuyer2).redeemPayout(0, 2, 0, exactAmountToRedeemFullCover, nonMember2.address, []);
 
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember2.address);
 
@@ -487,7 +487,7 @@ describe('submitClaim', function () {
     {
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember3.address);
 
-      await yc.connect(coverBuyer3).redeemPayout(0, 2, 0, exactAmountToRedeemFullCover, nonMember3.address, []);
+      await yc.connect(coverBuyer3).redeemPayout(0, 3, 0, exactAmountToRedeemFullCover, nonMember3.address, []);
 
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember3.address);
 
@@ -580,14 +580,14 @@ describe('submitClaim', function () {
       await setNextBlockBaseFee('0');
       await yc
         .connect(coverBuyer1)
-        .redeemPayout(0, 0, 0, exactAmountToRedeemFullCover, nonMember1.address, [], { gasPrice: 0 });
+        .redeemPayout(0, 1, 0, exactAmountToRedeemFullCover, nonMember1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(amount));
     }
 
     {
       const daiBalanceBefore = await dai.balanceOf(nonMember2.address);
-      await yc.connect(coverBuyer2).redeemPayout(1, 1, 0, exactAmountToRedeemFullCover, nonMember2.address, []);
+      await yc.connect(coverBuyer2).redeemPayout(1, 2, 0, exactAmountToRedeemFullCover, nonMember2.address, []);
       const daiBalanceAfter = await dai.balanceOf(nonMember2.address);
       expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(amount));
     }
@@ -640,7 +640,7 @@ describe('submitClaim', function () {
     }
 
     const usdcBalanceBefore = await usdc.balanceOf(nonMember.address);
-    await yc.connect(coverBuyer).redeemPayout(0, 0, 0, parseUnits('1', usdcDecimals), nonMember.address, []);
+    await yc.connect(coverBuyer).redeemPayout(0, 1, 0, parseUnits('1', usdcDecimals), nonMember.address, []);
     const usdcBalanceAfter = await usdc.balanceOf(nonMember.address);
     expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(parseUnits('0.9', usdcDecimals)));
   });
@@ -694,7 +694,7 @@ describe('submitClaim', function () {
 
     const usdcBalanceBefore = await usdc.balanceOf(nonMember1.address);
     const exactAmountToRedeemFullCover = parseUnits('11.111112', usdcDecimals);
-    await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, exactAmountToRedeemFullCover, nonMember1.address, []);
+    await yc.connect(coverBuyer1).redeemPayout(0, 1, 0, exactAmountToRedeemFullCover, nonMember1.address, []);
     const usdcBalanceAfter = await usdc.balanceOf(nonMember1.address);
     expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(amount));
   });

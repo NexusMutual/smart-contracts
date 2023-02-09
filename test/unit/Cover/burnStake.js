@@ -2,7 +2,6 @@ const { ethers } = require('hardhat');
 const { assertCoverFields, buyCoverOnOnePool, buyCoverOnMultiplePools, createStakingPool } = require('./helpers');
 const { expect } = require('chai');
 
-const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 const gracePeriod = 120 * 24 * 3600; // 120 days
@@ -10,7 +9,7 @@ const GLOBAL_CAPACITY_DENOMINATOR = 10000;
 
 describe('burnStake', function () {
   const coverBuyFixture = {
-    coverId: MaxUint256,
+    coverId: 0,
     productId: 0,
     coverAsset: 0, // ETH
     period: 3600 * 24 * 30, // 30 days

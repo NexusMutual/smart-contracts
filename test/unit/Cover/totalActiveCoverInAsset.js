@@ -7,7 +7,7 @@ const { buyCoverOnOnePool } = require('./helpers');
 
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 
 const ETH_ASSET_ID = 0b00;
 const DAI_ASSET_ID = 0b01;
@@ -102,10 +102,11 @@ describe('totalActiveCoverInAsset', function () {
     await increaseTime(BUCKET_SIZE.toNumber());
 
     // Edit cover
+    const coverId = await cover.coverDataCount();
     await cover.connect(member).buyCover(
       {
         owner: member.address,
-        coverId: 0,
+        coverId,
         productId,
         coverAsset,
         amount,
@@ -134,7 +135,7 @@ describe('totalActiveCoverInAsset', function () {
       await cover.connect(member).buyCover(
         {
           owner: member.address,
-          coverId: MaxUint256,
+          coverId: 0,
           productId,
           coverAsset,
           amount,
@@ -166,7 +167,8 @@ describe('totalActiveCoverInAsset', function () {
     const { coverAsset, amount } = daiCoverBuyFixture;
 
     await buyCoverOnOnePool.call(this, daiCoverBuyFixture);
-    await cover.connect(internalContract).burnStake(0, 0, amount);
+    const coverId = await cover.coverDataCount();
+    await cover.connect(internalContract).burnStake(coverId, 0, amount);
     expect(await cover.totalActiveCoverInAsset(coverAsset)).to.be.equal(0);
   });
 
@@ -177,7 +179,8 @@ describe('totalActiveCoverInAsset', function () {
     const { coverAsset, amount } = daiCoverBuyFixture;
 
     await buyCoverOnOnePool.call(this, daiCoverBuyFixture);
-    await cover.connect(internalContract).burnStake(0, 0, 1);
+    const coverId = await cover.coverDataCount();
+    await cover.connect(internalContract).burnStake(coverId, 0, 1);
     expect(await cover.totalActiveCoverInAsset(coverAsset)).to.be.equal(amount.sub(1));
   });
 
@@ -192,7 +195,8 @@ describe('totalActiveCoverInAsset', function () {
 
     // cover 0
     await buyCoverOnOnePool.call(this, daiCoverBuyFixture);
-    await cover.connect(internalContract).burnStake(0, 0, amount);
+    const coverId = await cover.coverDataCount();
+    await cover.connect(internalContract).burnStake(coverId, 0, amount);
 
     const timeBetweenPurchases = daysToSeconds(2);
     expect(members.length * timeBetweenPurchases < daiCoverBuyFixture.period);
@@ -206,7 +210,7 @@ describe('totalActiveCoverInAsset', function () {
       await cover.connect(member).buyCover(
         {
           owner: member.address,
-          coverId: MaxUint256,
+          coverId: 0,
           productId,
           coverAsset,
           amount,
@@ -220,7 +224,7 @@ describe('totalActiveCoverInAsset', function () {
         [{ poolId: 0, coverAmountInAsset: amount }],
       );
       // Burn first segment of coverId == i
-      await cover.connect(internalContract).burnStake(i, 0, amount.div(2));
+      await cover.connect(internalContract).burnStake(i + 1, 0, amount.div(2));
       expect(await cover.totalActiveCoverInAsset(coverAsset)).to.be.equal(expectedActiveCover);
     }
 

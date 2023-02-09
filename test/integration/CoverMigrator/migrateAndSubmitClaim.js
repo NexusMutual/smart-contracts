@@ -31,7 +31,7 @@ describe('migrateAndSubmitClaim', function () {
       .connect(coverOwner)
       .migrateAndSubmitClaim(v1CoverId, 0, claimAmount, '', { value: parseEther('1') });
 
-    const expectedV2CoverId = 0;
+    const expectedV2CoverId = 1;
     await expect(tx).to.emit(coverNFT, 'Transfer').withArgs(AddressZero, coverOwner.address, expectedV2CoverId);
     await expect(tx).to.emit(coverMigrator, 'CoverMigrated').withArgs(v1CoverId, expectedV2CoverId, coverOwner.address);
 

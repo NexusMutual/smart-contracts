@@ -68,7 +68,7 @@ describe('burnStake', function () {
 
     // Deposit into pool
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
-    await stakingPool.connect(manager).depositTo(stakedNxmAmount, firstActiveTrancheId + 1, MaxUint256, AddressZero);
+    await stakingPool.connect(manager).depositTo(stakedNxmAmount, firstActiveTrancheId + 1, 0, AddressZero);
 
     // Move to the beginning of the next tranche
     const { firstActiveTrancheId: trancheId } = await getTranches();
@@ -93,7 +93,7 @@ describe('burnStake', function () {
 
     // depositTo and extendDeposit should revert
     await expect(
-      stakingPool.connect(member).depositTo(stakedNxmAmount, firstActiveTrancheId, MaxUint256, AddressZero),
+      stakingPool.connect(member).depositTo(stakedNxmAmount, firstActiveTrancheId, 0, AddressZero),
     ).to.be.revertedWithCustomError(stakingPool, 'PoolHalted');
     await expect(stakingPool.connect(member).extendDeposit(0, 0, 0, 0)).to.be.revertedWithCustomError(
       stakingPool,
@@ -113,15 +113,15 @@ describe('burnStake', function () {
 
     // deposit should work
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
-    await expect(stakingPool.connect(member).depositTo(stakedNxmAmount, firstActiveTrancheId, MaxUint256, AddressZero))
-      .to.not.be.reverted;
+    await expect(stakingPool.connect(member).depositTo(stakedNxmAmount, firstActiveTrancheId, 0, AddressZero)).to.not.be
+      .reverted;
 
     // Burn all activeStake
     await stakingPool.connect(this.coverSigner).burnStake(stakedNxmAmount.add(1));
 
     // deposit should fail
     await expect(
-      stakingPool.connect(member).depositTo(stakedNxmAmount, firstActiveTrancheId, MaxUint256, AddressZero),
+      stakingPool.connect(member).depositTo(stakedNxmAmount, firstActiveTrancheId, 0, AddressZero),
     ).to.be.revertedWithCustomError(stakingPool, 'PoolHalted');
   });
 });

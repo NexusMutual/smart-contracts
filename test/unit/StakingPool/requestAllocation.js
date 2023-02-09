@@ -17,7 +17,7 @@ const {
 const { increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
-const { AddressZero, MaxUint256, Two } = ethers.constants;
+const { AddressZero, Two } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 
@@ -41,7 +41,7 @@ const LAST_BUCKET_ID_MASK = MaxUint16;
 const allocationRequestParams = {
   productId: 0,
   coverId: 0,
-  allocationId: MaxUint256,
+  allocationId: 0,
   period: daysToSeconds(10),
   gracePeriod: daysToSeconds(10),
   previousStart: 0,
@@ -56,7 +56,7 @@ const allocationRequestParams = {
 
 const buyCoverParamsTemplate = {
   owner: AddressZero,
-  coverId: MaxUint256,
+  coverId: 0,
   productId: 0,
   coverAsset: 0, // ETH
   amount: parseEther('4800'),
@@ -131,7 +131,7 @@ describe('requestAllocation', function () {
 
     // Deposit into pool
     const amount = stakedNxmAmount;
-    await stakingPool.connect(staker).depositTo(amount, trancheId, MaxUint256, staker.address);
+    await stakingPool.connect(staker).depositTo(amount, trancheId, 0, staker.address);
   });
 
   it('should allocate the amount for tranches and generate new allocation Id', async function () {
@@ -143,7 +143,7 @@ describe('requestAllocation', function () {
     const nextAllocationIdBefore = await stakingPool.getNextAllocationId();
     const activeTrancheCapacitiesBefore = await stakingPool.getActiveAllocations(buyCoverParamsTemplate.productId);
 
-    await cover.allocateCapacity(buyCoverParams, coverId, MaxUint256, stakingPool.address);
+    await cover.allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address);
 
     const nextAllocationIdAfter = await stakingPool.getNextAllocationId();
     const activeTrancheCapacitiesAfter = await stakingPool.getActiveAllocations(buyCoverParamsTemplate.productId);
@@ -164,7 +164,7 @@ describe('requestAllocation', function () {
       // AllocationRequest struct
       productId: buyCoverParamsTemplate.productId,
       coverId: buyCoverParamsTemplate.coverId,
-      allocationId: MaxUint256,
+      allocationId: 0,
       period: buyCoverParamsTemplate.period,
       gracePeriod: daysToSeconds(7),
       useFixedPrice: coverProductTemplate.useFixedPrice,
@@ -215,7 +215,7 @@ describe('requestAllocation', function () {
 
     // buy cover and check premium + new price
     const buyCoverParams = { ...buyCoverParamsTemplate, period: daysToSeconds(365) };
-    await cover.allocateCapacity(buyCoverParams, coverId, MaxUint256, stakingPool.address);
+    await cover.allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address);
 
     const updatedProduct = await stakingPool.products(productId);
     expect(await cover.lastPremium()).to.be.equal(expectedPremium);
@@ -239,7 +239,7 @@ describe('requestAllocation', function () {
     {
       // buy cover and check premium + new price
       const buyCoverParams = { ...buyCoverParamsTemplate, amount };
-      await cover.allocateCapacity(buyCoverParams, coverId, MaxUint256, stakingPool.address);
+      await cover.allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address);
 
       const product = await stakingPool.products(productId);
 
@@ -280,7 +280,7 @@ describe('requestAllocation', function () {
 
     {
       // buy cover and check premium + new price
-      await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, MaxUint256, stakingPool.address);
+      await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
 
       const product = await stakingPool.products(productId);
       expect(await cover.lastPremium()).to.be.equal(expectedPremium);
@@ -295,7 +295,7 @@ describe('requestAllocation', function () {
     const daysForward = 1;
     const expectedPrice = initialPrice - PRICE_CHANGE_PER_DAY * daysForward;
     await increaseTime(daysToSeconds(daysForward));
-    await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, MaxUint256, stakingPool.address);
+    await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
     const expectedPremium = buyCoverParamsTemplate.amount
       .mul(expectedPrice)
       .div(INITIAL_PRICE_DENOMINATOR)
@@ -305,7 +305,7 @@ describe('requestAllocation', function () {
       const product = await stakingPool.products(productId);
       const daysForward = 50;
       await increaseTime(daysToSeconds(daysForward));
-      await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, MaxUint256, stakingPool.address);
+      await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
       const expectedPremium = buyCoverParamsTemplate.amount
         .mul(product.targetPrice)
         .div(INITIAL_PRICE_DENOMINATOR)
@@ -321,7 +321,7 @@ describe('requestAllocation', function () {
     const daysForward = 1;
     const expectedPrice = initialPrice - PRICE_CHANGE_PER_DAY * daysForward;
     await increaseTime(daysToSeconds(daysForward));
-    await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, MaxUint256, stakingPool.address);
+    await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
     const expectedPremium = buyCoverParamsTemplate.amount
       .mul(expectedPrice)
       .div(INITIAL_PRICE_DENOMINATOR)
@@ -331,7 +331,7 @@ describe('requestAllocation', function () {
       const product = await stakingPool.products(productId);
       const daysForward = 100;
       await increaseTime(daysToSeconds(daysForward));
-      await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, MaxUint256, stakingPool.address);
+      await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, 0, stakingPool.address);
       const expectedPremium = buyCoverParamsTemplate.amount
         .mul(product.targetPrice)
         .div(INITIAL_PRICE_DENOMINATOR)
@@ -382,7 +382,7 @@ describe('requestAllocation', function () {
     expect(actualPremium.premium).to.be.equal(expectedPremium);
     expect(expectedSurgePremiumSkipped).to.be.equal(0);
 
-    await cover.connect(coverBuyer).allocateCapacity(buyCoverParams, coverId, MaxUint256, stakingPool.address);
+    await cover.connect(coverBuyer).allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address);
 
     // get active allocations
     const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -409,7 +409,7 @@ describe('requestAllocation', function () {
     );
 
     await expect(
-      cover.connect(coverBuyer).allocateCapacity(buyCoverParams, coverId, MaxUint256, stakingPool.address),
+      cover.connect(coverBuyer).allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address),
     ).to.be.revertedWith("SafeCast: value doesn't fit in 32 bits");
   });
 
@@ -432,7 +432,7 @@ describe('requestAllocation', function () {
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('100');
     const previousPremium = 0;
@@ -463,7 +463,7 @@ describe('requestAllocation', function () {
     const [user] = this.accounts.members;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('100');
     const previousPremium = 0;
@@ -495,7 +495,7 @@ describe('requestAllocation', function () {
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('100');
     const previousPremium = 0;
@@ -529,7 +529,7 @@ describe('requestAllocation', function () {
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('100');
     const previousPremium = 0;
@@ -558,8 +558,6 @@ describe('requestAllocation', function () {
       expect(coverTrancheAllocations).to.equal(0);
     }
 
-    const nextAllocationId = await stakingPool.getNextAllocationId();
-
     // Allocate
     await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
 
@@ -584,7 +582,7 @@ describe('requestAllocation', function () {
     // set amount = 0 to only deallocate
     await stakingPool.connect(this.coverSigner).requestAllocation(0, previousPremium, {
       ...allocationRequestParams,
-      allocationId: nextAllocationId,
+      allocationId,
       previousStart: lastBlock.timestamp,
       previousExpiration: lastBlock.timestamp + period,
     });
@@ -629,7 +627,7 @@ describe('requestAllocation', function () {
     const { productId } = allocationRequestParams;
 
     for (let i = 0; i < tranches.length; i++) {
-      await stakingPool.connect(user).depositTo(depositPerTranche, tranches[i], MaxUint256, AddressZero);
+      await stakingPool.connect(user).depositTo(depositPerTranche, tranches[i], 0, AddressZero);
     }
 
     const previousActiveAllocations = await stakingPool.getActiveAllocations(productId);
@@ -652,7 +650,7 @@ describe('requestAllocation', function () {
 
     // double capacity
     for (let i = 0; i < tranches.length; i++) {
-      await stakingPool.connect(user).depositTo(depositPerTranche, tranches[i], MaxUint256, AddressZero);
+      await stakingPool.connect(user).depositTo(depositPerTranche, tranches[i], 0, AddressZero);
     }
 
     // double allocation
@@ -680,9 +678,9 @@ describe('requestAllocation', function () {
     const depositAmount = parseEther('10');
 
     // add capacity to three tranches
-    await stakingPool.connect(user).depositTo(parseEther('10'), currentTrancheId, MaxUint256, AddressZero);
-    await stakingPool.connect(user).depositTo(parseEther('10'), currentTrancheId + 1, MaxUint256, AddressZero);
-    await stakingPool.connect(user).depositTo(parseEther('10'), currentTrancheId + 2, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('10'), currentTrancheId, 0, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('10'), currentTrancheId + 1, 0, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('10'), currentTrancheId + 2, 0, AddressZero);
 
     const allocationAmount = depositAmount.mul(3);
     const allocationAmountInNXMUnit = allocationAmount.div(NXM_PER_ALLOCATION_UNIT);
@@ -754,7 +752,7 @@ describe('requestAllocation', function () {
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amountProduct1 = parseEther('10');
     const amountProduct2 = parseEther('20');
@@ -819,7 +817,7 @@ describe('requestAllocation', function () {
     const [user] = this.accounts.members;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('100');
     const previousPremium = 0;
@@ -846,7 +844,7 @@ describe('requestAllocation', function () {
     const { rewardRatio } = allocationRequestParams;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('100');
     const previousPremium = 0;
@@ -923,7 +921,7 @@ describe('requestAllocation', function () {
     const { rewardRatio } = allocationRequestParams;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('100');
     const previousPremium = 0;
@@ -1003,9 +1001,9 @@ describe('requestAllocation', function () {
     const depositAmount = parseEther('10');
 
     // add capacity to three tranches
-    await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId, MaxUint256, AddressZero);
-    await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId + 1, MaxUint256, AddressZero);
-    await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId + 2, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId, 0, AddressZero);
+    await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId + 1, 0, AddressZero);
+    await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId + 2, 0, AddressZero);
 
     let maxAllocationAmount = depositAmount.mul(6);
     const previousPremium = 0;
@@ -1074,7 +1072,7 @@ describe('requestAllocation', function () {
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('10');
     const previousPremium = 0;
@@ -1160,9 +1158,9 @@ describe('requestAllocation', function () {
 
     const currentTrancheId = await moveTimeToNextTranche(8);
 
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 1, MaxUint256, AddressZero);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 2, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 1, 0, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 2, 0, AddressZero);
 
     const amount = parseEther('200');
     const previousPremium = 0;
@@ -1262,9 +1260,9 @@ describe('requestAllocation', function () {
 
     const currentTrancheId = await moveTimeToNextTranche(8);
 
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 1, MaxUint256, AddressZero);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 2, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 1, 0, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 2, 0, AddressZero);
 
     const amount = parseEther('200');
     const previousPremium = 0;
@@ -1372,7 +1370,7 @@ describe('requestAllocation', function () {
     const depositAmount = parseEther('100');
 
     // add capacity to three tranches
-    await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId, 0, AddressZero);
 
     let maxAllocationAmount = depositAmount.mul(GLOBAL_CAPACITY_RATIO).div(GLOBAL_CAPACITY_DENOMINATOR);
     const previousPremium = 0;
@@ -1416,7 +1414,7 @@ describe('requestAllocation', function () {
     const depositAmount = parseEther('100');
 
     // add capacity to three tranches
-    await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId, 0, AddressZero);
 
     const maxAllocationAmountProduct1 = depositAmount
       .mul(GLOBAL_CAPACITY_RATIO)
@@ -1460,7 +1458,7 @@ describe('requestAllocation', function () {
     const capacityReductionRatio = 1000;
 
     // add capacity to three tranches
-    await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId, 0, AddressZero);
 
     const maxAllocationAmount = depositAmount
       .mul(GLOBAL_CAPACITY_RATIO)

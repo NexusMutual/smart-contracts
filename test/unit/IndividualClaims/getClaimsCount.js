@@ -41,7 +41,7 @@ describe('getClaimsCount', function () {
       expect(count).to.be.equal(0);
     }
 
-    await submitClaim(this)({ coverId: 0, sender: coverOwner });
+    await submitClaim(this)({ coverId: 1, sender: coverOwner });
 
     {
       const count = await individualClaims.getClaimsCount();
@@ -51,7 +51,7 @@ describe('getClaimsCount', function () {
     for (let i = 0; i < 6; i++) {
       const latestBlock = await ethers.provider.getBlock('latest');
       await setTime(latestBlock.timestamp + daysToSeconds(30));
-      await submitClaim(this)({ coverId: 0, sender: coverOwner });
+      await submitClaim(this)({ coverId: 1, sender: coverOwner });
     }
 
     {

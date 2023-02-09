@@ -706,6 +706,12 @@ describe('V2 upgrade', function () {
       }),
     );
 
+    console.log('Verify it reverts when attempting to migrate a staker not scheduled for automatic migration');
+    const ITRUST = '0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2';
+    await expect(this.pooledStaking.migrateToNewV2Pool(ITRUST)).to.be.revertedWith(
+      'You are not authorized to migrate this staker',
+    );
+
     // Migrate stakers
     console.log('Migrating selected stakers to their own staking pools');
     for (const staker of topStakers) {

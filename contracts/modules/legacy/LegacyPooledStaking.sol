@@ -1389,6 +1389,11 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       migrationData.ipfsDescriptionHash
     );
 
+
+    // First token id is Max uint to trigger the creation of a new StakingNFT.
+    // After the first execution it's updated to the ID of the newly created token
+    uint tokenId = type(uint).max;
+
     uint firstTrancheId = block.timestamp / 91 days + 1;
     for (uint i = 0; i < TRANCHE_COUNT; i++) {
       uint trancheDeposit = migrationData.deposit * migrationData.stakerTrancheRatios[i] / 100;
@@ -1398,10 +1403,10 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       }
 
       token().approve(address(tokenController()), trancheDeposit);
-      IStakingPool(stakingPoolAddress).depositTo(
+      tokenId = IStakingPool(stakingPoolAddress).depositTo(
         trancheDeposit,
         firstTrancheId + i,
-        type(uint).max,
+        tokenId,
         migrationData.managerAddress
       );
     }

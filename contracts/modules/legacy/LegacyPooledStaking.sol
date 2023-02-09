@@ -192,14 +192,10 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     return stakers[staker].contracts;
   }
 
-  function stakerContractStake(address staker, address contractAddress) external override view returns (uint) {
+  function stakerContractStake(address staker, address contractAddress) public override view returns (uint) {
     uint stake = stakers[staker].stakes[contractAddress];
     uint deposit = stakers[staker].deposit;
     return stake < deposit ? stake : deposit;
-  }
-
-  function stakerStoredContractStake(address staker, address contractAddress) external view returns (uint) {
-    return stakers[staker].stakes[contractAddress];
   }
 
   function stakerContractPendingUnstakeTotal(address staker, address contractAddress) external view returns (uint) {
@@ -1228,7 +1224,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       }
 
       products[i] = productId;
-      stakes[i] = min(stakers[stakerAddress].stakes[productAddress], deposit);
+      stakes[i] = stakerContractStake(stakerAddress, productAddress);
       productsToBeMigratedCount++;
     }
 
@@ -1247,7 +1243,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
       productInitParams[index] = ProductInitializationParams(
         products[i], // productId
-        uint8(min(stakes[i] * 1e18 / deposit / 1e16, 100)), // weight (0-100)
+        uint8(stakes[i] * 1e18 / deposit / 1e16), // weight (0-100)
         price / 1e16, // initialPrice with a 100_00 denominator
         price / 1e16 // targetPrice with a 100_00 denominator
       );
@@ -1310,10 +1306,8 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       "You are not authorized to migrate this staker"
     );
 
-    // Read and set deposit to zero to avoid re-entrancy
     uint deposit = stakers[stakerAddress].deposit;
     require(deposit > 0, "Address has no stake to migrate");
-    stakers[stakerAddress].deposit = 0;
 
     INXMToken nxm = token();
     uint nxmBalanceBefore = nxm.balanceOf(address(this));
@@ -1393,10 +1387,15 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     uint nxmBalanceAfter = nxm.balanceOf(address(this));
     uint nxmToBeUnlocked = deposit - (nxmBalanceBefore - nxmBalanceAfter);
 
+    // Set deposit to zero to avoid re-entrancy
+    stakers[stakerAddress].deposit = 0;
+
     // Send unlocked NXM back
     nxm.transfer(stakerAddress, nxmToBeUnlocked);
   }
 
+  // TODO review if we want this functionality
+  // We might want to allow users to lock their deposit in multiple tranches
   function migrateToExistingV2Pool(IStakingPool stakingPool, uint trancheId) external {
     uint deposit = stakers[msg.sender].deposit;
     stakers[msg.sender].deposit = 0;

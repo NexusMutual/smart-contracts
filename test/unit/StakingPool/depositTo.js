@@ -651,7 +651,7 @@ describe('depositTo', function () {
     const [user, manager] = this.accounts.members;
 
     const { amount, tokenId, destination } = depositToFixture;
-    const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
+    const { poolId, initialPoolFee, maxPoolFee, ipfsDescriptionHash } = poolInitParams;
 
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
     const otherStakingPool = await ethers.deployContract('StakingPool', [
@@ -660,13 +660,13 @@ describe('depositTo', function () {
       cover.address,
       tokenController.address,
       master.address,
+      AddressZero,
     ]);
     await stakingPool.connect(this.coverSigner).initialize(
       manager.address,
       false, // isPrivatePool
       initialPoolFee,
       maxPoolFee,
-      products,
       poolId + 1,
       ipfsDescriptionHash,
     );
@@ -676,6 +676,6 @@ describe('depositTo', function () {
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
     await expect(
       otherStakingPool.connect(user).depositTo(amount, firstActiveTrancheId, 1, destination),
-    ).to.be.revertedWithCustomError(otherStakingPool, 'TokenDoesNotBelongToPool');
+    ).to.be.revertedWithCustomError(otherStakingPool, 'InvalidStakingPoolForToken');
   });
 });

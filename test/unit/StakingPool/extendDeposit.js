@@ -83,7 +83,7 @@ describe('extendDeposit', function () {
 
     await expect(
       stakingPool.connect(managerSigner).extendDeposit(0, firstActiveTrancheId, maxTranche, 0),
-    ).to.be.revertedWith('NOT_MINTED');
+    ).to.be.revertedWithCustomError(stakingPool, 'InvalidTokenId');
   });
 
   it('reverts if new tranche ends before the initial tranche', async function () {

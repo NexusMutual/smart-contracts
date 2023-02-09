@@ -724,6 +724,8 @@ describe('V2 upgrade', function () {
 
     // Migrate stakers
     console.log('Migrating selected stakers to their own staking pools');
+
+    const stakingNFTSupplyBefore = await this.stakingNFT.totalSupply();
     for (const staker of topStakers) {
       await this.pooledStaking.migrateToNewV2Pool(staker);
     }
@@ -869,6 +871,13 @@ describe('V2 upgrade', function () {
       }
     }
 
+    // Only managers of pools with non-zero deposits own a StakingNFT
+    const poolsWithDepositsCount = Object.values(depositsInStakingPools).filter(deposit => deposit.gt(0)).length;
+
+    console.log(`heck that the right number of StakingNFTs are minted: ${poolsWithDepositsCount}`);
+    const stakingNFTSupplyAfter = await this.stakingNFT.totalSupply();
+    expect(stakingNFTSupplyAfter.sub(stakingNFTSupplyBefore)).to.be.equal(poolsWithDepositsCount);
+
     // Check pool configurations are set correctly for each pool
     console.log('Checking pool configurations are set correctly for each pool');
 
@@ -897,8 +906,17 @@ describe('V2 upgrade', function () {
       manager: ARMOR_MANAGER,
       isPrivatePool: false,
     };
+
+    let expectedStakingNFTId = stakingNFTSupplyBefore.toNumber();
+
+    console.log({
+      stakingNFTSupplyBefore: stakingNFTSupplyBefore.toString(),
+      expectedStakingNFTId,
+    });
+
     for (let poolId = 0; poolId < stakingPoolCount; poolId++) {
       const stakerAddress = stakers[poolId];
+
       const stakingPool = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(poolId));
 
       const isPrivatePool = await stakingPool.isPrivatePool();
@@ -912,6 +930,17 @@ describe('V2 upgrade', function () {
       expect(poolFee).to.be.equal(expected.initialFee);
       expect(manager.toLowerCase()).to.be.equal(expected.manager.toLowerCase());
       expect(isPrivatePool).to.be.equal(expected.isPrivatePool);
+
+      // Populate and check the expected stakingNFTId for each manager.
+      // assuming exactly one StakingNFT per pool is minted that has a non-zero deposit.
+      if (depositsInStakingPools[poolId].gt(0)) {
+        expected.stakingNFTId = expectedStakingNFTId++;
+        const ownerOfStakingNFT = await this.stakingNFT.ownerOf(expected.stakingNFTId);
+        expect(ownerOfStakingNFT.toLowerCase()).to.be.equal(expected.manager.toLowerCase());
+      } else {
+        console.log(`Staker ${stakerAddress}'s manager ${expected.manager} does not own a StakingNFT.`);
+        expected.stakingNFTId = undefined;
+      }
     }
 
     console.log({ deprecatedProducts, productsWithNoStake });

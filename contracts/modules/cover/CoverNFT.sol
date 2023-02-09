@@ -40,7 +40,7 @@ contract CoverNFT is ICoverNFT {
 
   // TODO: implement change token descriptor function here
 
-  function tokenURI(uint256) public pure override returns (string memory) {
+  function tokenURI(uint256) public pure returns (string memory) {
     // TODO: implement me
     return "";
   }

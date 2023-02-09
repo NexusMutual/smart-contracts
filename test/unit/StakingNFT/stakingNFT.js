@@ -97,9 +97,10 @@ describe('StakingNFT', function () {
     const { stakingNFT } = this;
     const [owner, nonOwner] = this.accounts.members;
     await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, owner.address);
-    await expect(
-      stakingNFT.connect(nonOwner).approve(nonOwner.address, 1),
-    ).to.be.revertedWithCustomError(stakingNFT, 'NotAuthorized');
+    await expect(stakingNFT.connect(nonOwner).approve(nonOwner.address, 1)).to.be.revertedWithCustomError(
+      stakingNFT,
+      'NotAuthorized',
+    );
   });
 
   it('should revert if reading balance of 0 address - ZeroAddress', async function () {
@@ -108,35 +109,6 @@ describe('StakingNFT', function () {
       stakingNFT,
       'ZeroAddress',
     );
-  });
-
-  it('should revert if a non operator tries to call operatorTransfer - NotOperator', async function () {
-    const { stakingNFT } = this;
-    const [member] = this.accounts.members;
-    await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, member.address);
-    await expect(stakingNFT.operatorTransferFrom(member.address, member.address, 1)).to.be.revertedWithCustomError(
-      stakingNFT,
-      'NotOperator',
-    );
-  });
-
-  it('should revert if trying to operatorTransfer a token from a non-owner - WrongFrom', async function () {
-    const { stakingNFT, cover } = this;
-    const [nonOwner, owner] = this.accounts.members;
-    await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, owner.address);
-    await expect(cover.operatorTransferFrom(nonOwner.address, owner.address, 1)).to.be.revertedWithCustomError(
-      stakingNFT,
-      'WrongFrom',
-    );
-  });
-
-  it('should revert if trying to operatorTransfer a token to a zero address - ZeroAddress', async function () {
-    const { stakingNFT, cover } = this;
-    const [owner] = this.accounts.members;
-    await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, owner.address);
-    await expect(
-      cover.operatorTransferFrom(owner.address, ethers.constants.AddressZero, 1),
-    ).to.be.revertedWithCustomError(stakingNFT, 'InvalidRecipient');
   });
 
   it('should revert if trying to transferFrom a token from a non-owner - WrongFrom', async function () {

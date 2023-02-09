@@ -30,7 +30,7 @@ const product = {
 };
 
 const initializeParams = {
-  poolId: 0,
+  poolId: 1,
   isPrivatePool: false,
   initialPoolFee: 5, // 5%
   maxPoolFee: 5, // 5%

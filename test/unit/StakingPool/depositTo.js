@@ -25,7 +25,7 @@ const productParams = {
 };
 
 const poolInitParams = {
-  poolId: 0,
+  poolId: 1,
   initialPoolFee: 5, // 5%
   maxPoolFee: 5, // 5%
   products: [productParams],

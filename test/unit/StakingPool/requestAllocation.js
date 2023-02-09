@@ -115,6 +115,7 @@ describe('requestAllocation', function () {
     await cover.setProductType({ claimMethod: 1, gracePeriod: daysToSeconds(7) }, productId);
 
     // Initialize staking pool
+    const poolId = 1;
     const isPrivatePool = false;
     const ipfsDescriptionHash = 'Staking pool 1';
     const maxPoolFee = 10; // 10%

@@ -17,7 +17,6 @@ async function createStakingPool(cover, productId, capacity, targetPrice, active
 
   const factoryAddress = await cover.stakingPoolFactory();
   const stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', factoryAddress);
-  const stakingPoolIndex = await stakingPoolFactory.stakingPoolCount();
 
   await cover.connect(creator).createStakingPool(
     manager.address,
@@ -28,7 +27,8 @@ async function createStakingPool(cover, productId, capacity, targetPrice, active
     '', // ipfsDescriptionHash
   );
 
-  const stakingPoolAddress = await cover.stakingPool(stakingPoolIndex);
+  const stakingPoolId = await stakingPoolFactory.stakingPoolCount();
+  const stakingPoolAddress = await cover.stakingPool(stakingPoolId);
   const stakingPool = await ethers.getContractAt('CoverMockStakingPool', stakingPoolAddress);
 
   await stakingPool.setStake(productId, capacity);
@@ -70,7 +70,7 @@ async function buyCoverOnOnePool(params) {
     targetPriceRatio,
   );
 
-  const allocationRequest = [{ poolId: 0, coverAmountInAsset: amount }];
+  const allocationRequest = [{ poolId: 1, coverAmountInAsset: amount }];
 
   return buyCoverOnMultiplePools.call(this, { ...params, allocationRequest });
 }

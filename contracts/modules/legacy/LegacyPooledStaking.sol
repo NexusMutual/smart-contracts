@@ -1373,7 +1373,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     ProductInitializationParams[] memory params
   ) internal {
     ( /* uint stakingPoolId */, address stakingPoolAddress) = cover.createStakingPool(
-      migrationData.stakerAddress,
+      migrationData.managerAddress,
       migrationData.isPrivatePool,
       migrationData.initialPoolFee,
       migrationData.maxPoolFee,

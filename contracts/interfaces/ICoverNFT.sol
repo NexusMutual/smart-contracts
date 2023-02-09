@@ -12,6 +12,4 @@ interface ICoverNFT is IERC721 {
 
   function mint(address to) external returns (uint);
 
-  function burn(uint tokenId) external;
-
 }

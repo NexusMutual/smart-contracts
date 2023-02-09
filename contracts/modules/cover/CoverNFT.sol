@@ -5,6 +5,7 @@ pragma solidity ^0.8.9;
 import "../../interfaces/ICover.sol";
 import "solmate/src/tokens/ERC721.sol";
 
+// TODO: implement ICoverNFT instead
 contract CoverNFT is ERC721 {
 
   uint96 internal _totalSupply;

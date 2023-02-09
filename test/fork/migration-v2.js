@@ -902,6 +902,35 @@ describe('V2 upgrade', function () {
     console.log({ deprecatedProducts, productsWithNoStake });
   });
 
+  it('arbitrary non-selected stakers can withdraw their entire LegacyPooledStakingDeposit', async function () {
+    const arbitraryStakers = [
+      '0x7a17d7661ed48322A03ab16Cd7CCa97aa28C2e99',
+      '0x50c4E8fd53D5F8686ff35C54e3AA4B2c6241a5bF',
+    ];
+
+    for (const stakerAddress of arbitraryStakers) {
+      // Unlock and funding vault owner
+      const staker = await getSigner(stakerAddress);
+      await evm.impersonate(stakerAddress);
+      await evm.setBalance(stakerAddress, parseEther('1000'));
+
+      const nxmBalanceBefore = await this.nxm.balanceOf(stakerAddress);
+      const stakerDepositBefore = await this.pooledStaking.stakerDeposit(stakerAddress);
+
+      // verify stakers with non-zero deposits
+      expect(stakerDepositBefore).to.be.greaterThan('0');
+
+      await this.pooledStaking.connect(staker).withdraw('0'); // parameter is unused
+
+      const nxmBalanceAfter = await this.nxm.balanceOf(stakerAddress);
+      const stakerDepositAfter = await this.pooledStaking.stakerDeposit(stakerAddress);
+
+      expect(stakerDepositAfter).to.be.equal('0');
+      const nxmBalanceIncrease = nxmBalanceAfter.sub(nxmBalanceBefore);
+      expect(nxmBalanceIncrease).to.be.equal(stakerDepositBefore);
+    }
+  });
+
   // TODO review
   it.skip('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {
     await submitGovernanceProposal(

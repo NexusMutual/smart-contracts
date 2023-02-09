@@ -391,9 +391,9 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     // Stakers scheduled for automatic migration are not allowed to withdraw
     require(
-      user != ARMOR && // Armor
-      user != HUGH && // Hugh
-      user != NEXUS_FOUNDATION, // Foundation
+      user != ARMOR_STAKER &&
+      user != HUGH &&
+      user != NM_FOUNDATION,
       "Not allowed to withdraw"
     );
 
@@ -1208,7 +1208,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     return type(uint96).max;
   }
 
-  function getProductInitParams(address stakerAddress, uint deposit) external view returns (
+  function getProductInitParams(address stakerAddress, uint deposit) public view returns (
     ProductInitializationParams[] memory productInitParams
   ) {
     uint stakedProductsCount = stakers[stakerAddress].contracts.length;
@@ -1224,7 +1224,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       try productsV1.getNewProductId(productAddress) returns (uint id) {
         productId = id;
       } catch {
-        emit ProductNotFound(productAddress);
         continue;
       }
 

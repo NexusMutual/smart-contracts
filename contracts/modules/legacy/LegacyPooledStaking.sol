@@ -1208,7 +1208,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     return type(uint96).max;
   }
 
-  function getProductInitParams(address stakerAddress, uint deposit) internal returns (
+  function getProductInitParams(address stakerAddress, uint deposit) external view returns (
     ProductInitializationParams[] memory productInitParams
   ) {
     uint stakedProductsCount = stakers[stakerAddress].contracts.length;

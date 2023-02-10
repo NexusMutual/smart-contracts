@@ -31,6 +31,8 @@ async function setup() {
   const mcr = await ethers.deployContract('CoverMockMCR');
   await mcr.setMCR(parseEther('600000'));
 
+  const stakingProducts = await ethers.deployContract('CoverMockStakingProducts');
+
   const stakingPoolImplementation = await ethers.deployContract('CoverMockStakingPool');
   const coverNFT = await ethers.deployContract('CoverMockCoverNFT');
   const stakingNFT = await ethers.deployContract('CoverMockStakingNFT');
@@ -69,6 +71,7 @@ async function setup() {
   await master.setLatestAddress(hex('CO'), cover.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
+  await master.setLatestAddress(hex('SP'), stakingProducts.address);
 
   const accounts = await getAccounts();
 

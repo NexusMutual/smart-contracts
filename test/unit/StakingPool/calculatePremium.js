@@ -96,8 +96,14 @@ const totalCapacityInNxm = parseEther('50000');
 
 describe('calculatePremium', function () {
   it('should calculate premium on multiple cover buys over time, based on pre-defined numbers', async function () {
-    const { stakingPool } = this;
-    const { NXM_PER_ALLOCATION_UNIT, PRICE_BUMP_RATIO, PRICE_CHANGE_PER_DAY } = this.config;
+    const { stakingProducts } = this;
+    const {
+      NXM_PER_ALLOCATION_UNIT,
+      PRICE_BUMP_RATIO,
+      PRICE_CHANGE_PER_DAY,
+      ALLOCATION_UNITS_PER_NXM,
+      TARGET_PRICE_DENOMINATOR,
+    } = this.config;
 
     const period = daysToSeconds(365);
     const totalCapacity = divCeil(totalCapacityInNxm, NXM_PER_ALLOCATION_UNIT);
@@ -132,7 +138,7 @@ describe('calculatePremium', function () {
       expect(expectedPoolCapacityBeforePercentage).to.be.equal(spreadsheetItem.poolCapacityBeforePercentage);
 
       // calculate premium using the contract function
-      const [actualPremium, updatedProduct] = await stakingPool.calculatePremium(
+      const [actualPremium, updatedProduct] = await stakingProducts.calculatePremium(
         product,
         period,
         allocationAmount,
@@ -140,6 +146,9 @@ describe('calculatePremium', function () {
         totalCapacity,
         product.targetPrice,
         currentTime,
+        NXM_PER_ALLOCATION_UNIT,
+        ALLOCATION_UNITS_PER_NXM,
+        TARGET_PRICE_DENOMINATOR,
       );
 
       // check contract vs js
@@ -154,10 +163,10 @@ describe('calculatePremium', function () {
   });
 
   it('should return 0 premium when period is 0', async function () {
-    const { stakingPool } = this;
+    const { stakingProducts } = this;
     let { timestamp } = await ethers.provider.getBlock('latest');
     timestamp = BigNumber.from(timestamp);
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = this.config;
     const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
     const period = BigNumber.from(0);
     const coverAmountRaw = parseEther('100');
@@ -166,7 +175,7 @@ describe('calculatePremium', function () {
     const totalCapacity = parseEther('100');
     const initialCapacityUsed = BigNumber.from(0);
 
-    const { premium } = await stakingPool.calculatePremium(
+    const { premium } = await stakingProducts.calculatePremium(
       stakedProduct,
       period,
       coverAmount,
@@ -174,14 +183,17 @@ describe('calculatePremium', function () {
       totalCapacity,
       stakedProduct.targetPrice,
       timestamp,
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM,
+      TARGET_PRICE_DENOMINATOR,
     );
 
     expect(premium).to.be.equal(0);
   });
 
   it('should calculate the premium correctly when cover amount is equal to total capacity', async function () {
-    const { stakingPool } = this;
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { stakingProducts } = this;
+    const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = this.config;
 
     const timestamp = 0;
     const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
@@ -193,7 +205,7 @@ describe('calculatePremium', function () {
     const initialCapacity = BigNumber.from(0);
     const totalCapacity = allocationAmount;
 
-    const { premium: actualPremium } = await stakingPool.calculatePremium(
+    const { premium: actualPremium } = await stakingProducts.calculatePremium(
       stakedProduct,
       period,
       allocationAmount,
@@ -201,6 +213,9 @@ describe('calculatePremium', function () {
       totalCapacity,
       stakedProduct.targetPrice,
       timestamp,
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM,
+      TARGET_PRICE_DENOMINATOR,
     );
 
     const expectedBasePrice = calculateBasePrice(timestamp, stakedProduct, this.config.PRICE_CHANGE_PER_DAY);
@@ -213,9 +228,14 @@ describe('calculatePremium', function () {
   });
 
   it('should calculate the premium when the initialCapacityUsed == surgeStartPoint', async function () {
-    const { stakingPool } = this;
-    const { SURGE_THRESHOLD_RATIO, SURGE_THRESHOLD_DENOMINATOR, NXM_PER_ALLOCATION_UNIT } = this.config;
-
+    const { stakingProducts } = this;
+    const {
+      SURGE_THRESHOLD_RATIO,
+      SURGE_THRESHOLD_DENOMINATOR,
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM,
+      TARGET_PRICE_DENOMINATOR,
+    } = this.config;
     const timestamp = 0;
     const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
 
@@ -236,7 +256,7 @@ describe('calculatePremium', function () {
 
     const expectedPremium = expectedBasePremium.add(expectedSurgePremium);
 
-    const { premium: actualPremium } = await stakingPool.calculatePremium(
+    const { premium: actualPremium } = await stakingProducts.calculatePremium(
       stakedProduct,
       period,
       allocationAmount,
@@ -244,6 +264,9 @@ describe('calculatePremium', function () {
       totalCapacity,
       stakedProduct.targetPrice,
       timestamp,
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM,
+      TARGET_PRICE_DENOMINATOR,
     );
 
     expect(expectedSurgePremiumSkipped).to.be.equal(0);
@@ -251,8 +274,14 @@ describe('calculatePremium', function () {
   });
 
   it('should calculate premium when initialCapacityUsed > surgeStartPoint', async function () {
-    const { stakingPool } = this;
-    const { SURGE_THRESHOLD_RATIO, SURGE_THRESHOLD_DENOMINATOR, NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { stakingProducts } = this;
+    const {
+      SURGE_THRESHOLD_RATIO,
+      SURGE_THRESHOLD_DENOMINATOR,
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM,
+      TARGET_PRICE_DENOMINATOR,
+    } = this.config;
 
     const timestamp = 0;
     const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
@@ -276,7 +305,7 @@ describe('calculatePremium', function () {
     );
     const expectedPremium = expectedBasePremium.add(expectedSurgePremium);
 
-    const { premium: actualPremium } = await stakingPool.calculatePremium(
+    const { premium: actualPremium } = await stakingProducts.calculatePremium(
       stakedProduct,
       period,
       allocationAmount,
@@ -284,14 +313,17 @@ describe('calculatePremium', function () {
       totalCapacity,
       stakedProduct.targetPrice,
       timestamp,
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM,
+      TARGET_PRICE_DENOMINATOR,
     );
 
     expect(actualPremium).to.be.equal(expectedPremium);
   });
 
   it('should calculate 0 premium for 0 cover amount', async function () {
-    const { stakingPool } = this;
-
+    const { stakingProducts } = this;
+    const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = this.config;
     const timestamp = 0;
     const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
     const period = daysToSeconds(365);
@@ -300,7 +332,7 @@ describe('calculatePremium', function () {
     const initialCapacityUsed = BigNumber.from(0);
     const totalCapacity = BigNumber.from(100);
 
-    const { premium } = await stakingPool.calculatePremium(
+    const { premium } = await stakingProducts.calculatePremium(
       stakedProduct,
       period,
       coverAmount,
@@ -308,15 +340,17 @@ describe('calculatePremium', function () {
       totalCapacity,
       stakedProduct.targetPrice,
       timestamp,
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM,
+      TARGET_PRICE_DENOMINATOR,
     );
 
     expect(premium).to.be.equal(0);
   });
 
   it('should calculate the correct premium when the coverAmount is 1 wei', async function () {
-    const { stakingPool } = this;
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
-
+    const { stakingProducts } = this;
+    const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = this.config;
     const timestamp = 0;
     const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
 
@@ -335,7 +369,7 @@ describe('calculatePremium', function () {
       surgePremiumSkipped: expectedSurgePremiumSkipped,
     } = calculateSurgePremium(coverAmount, initialCapacityUsed, totalCapacity, period, this.config);
 
-    const { premium: actualPremium } = await stakingPool.calculatePremium(
+    const { premium: actualPremium } = await stakingProducts.calculatePremium(
       stakedProduct,
       period,
       allocationAmount,
@@ -343,6 +377,9 @@ describe('calculatePremium', function () {
       totalCapacity,
       stakedProduct.targetPrice,
       timestamp,
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM,
+      TARGET_PRICE_DENOMINATOR,
     );
 
     expect(expectedSurgePremium).to.be.eq(0);
@@ -351,8 +388,8 @@ describe('calculatePremium', function () {
   });
 
   it('initialCapacityUsed < surgeStartPoint & finalCapacityUsed < surgeStartPoint', async function () {
-    const { stakingPool } = this;
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { stakingProducts } = this;
+    const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = this.config;
 
     const timestamp = 0;
     const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
@@ -367,7 +404,7 @@ describe('calculatePremium', function () {
     const expectedBasePrice = calculateBasePrice(timestamp, stakedProduct, this.config.PRICE_CHANGE_PER_DAY);
     const expectedBasePremium = calculateBasePremium(coverAmount, expectedBasePrice, period, this.config);
 
-    const { premium: actualPremium } = await stakingPool.calculatePremium(
+    const { premium: actualPremium } = await stakingProducts.calculatePremium(
       stakedProduct,
       period,
       allocationAmount,
@@ -375,6 +412,9 @@ describe('calculatePremium', function () {
       totalCapacity,
       stakedProduct.targetPrice,
       timestamp,
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM,
+      TARGET_PRICE_DENOMINATOR,
     );
 
     const {
@@ -388,8 +428,14 @@ describe('calculatePremium', function () {
   });
 
   it('initialCapacityUsed < surgeStartPoint & finalCapacityUsed > surgeStartPoint', async function () {
-    const { stakingPool } = this;
-    const { SURGE_THRESHOLD_RATIO, SURGE_THRESHOLD_DENOMINATOR, NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { stakingProducts } = this;
+    const {
+      SURGE_THRESHOLD_RATIO,
+      SURGE_THRESHOLD_DENOMINATOR,
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM,
+      TARGET_PRICE_DENOMINATOR,
+    } = this.config;
 
     const timestamp = 0;
     const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
@@ -413,7 +459,7 @@ describe('calculatePremium', function () {
 
     const expectedPremium = expectedBasePremium.add(expectedSurgePremium);
 
-    const { premium: actualPremium } = await stakingPool.calculatePremium(
+    const { premium: actualPremium } = await stakingProducts.calculatePremium(
       stakedProduct,
       period,
       allocationAmount,
@@ -421,10 +467,17 @@ describe('calculatePremium', function () {
       totalCapacity,
       stakedProduct.targetPrice,
       timestamp,
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM,
+      TARGET_PRICE_DENOMINATOR,
     );
 
     // noinspection ES6RedundantAwait
-    const actualSurgePremium = await stakingPool.calculateSurgePremium(expectedAmountOnSurge, totalCapacity);
+    const actualSurgePremium = await stakingProducts.calculateSurgePremium(
+      expectedAmountOnSurge,
+      totalCapacity,
+      ALLOCATION_UNITS_PER_NXM,
+    );
 
     expect(expectedSurgePremium).to.be.equal(actualSurgePremium);
     expect(expectedSurgePremiumSkipped).to.be.eq(0);
@@ -432,8 +485,8 @@ describe('calculatePremium', function () {
   });
 
   it('should revert with divide by 0 panic, when totalCapacity is zero', async function () {
-    const { stakingPool } = this;
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { stakingProducts } = this;
+    const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = this.config;
 
     const timestamp = 0;
     const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
@@ -447,7 +500,7 @@ describe('calculatePremium', function () {
     const basePrice = calculateBasePrice(timestamp, stakedProduct, this.config.PRICE_CHANGE_PER_DAY);
 
     await expect(
-      stakingPool.calculatePremium(
+      stakingProducts.calculatePremium(
         stakedProduct,
         period,
         allocationAmount,
@@ -455,17 +508,28 @@ describe('calculatePremium', function () {
         totalCapacity,
         stakedProduct.targetPrice,
         timestamp,
+        NXM_PER_ALLOCATION_UNIT,
+        ALLOCATION_UNITS_PER_NXM,
+        TARGET_PRICE_DENOMINATOR,
       ),
     ).to.be.revertedWithPanic(DIVIDE_BY_ZERO);
 
     await expect(
-      stakingPool.calculatePremiumPerYear(basePrice, allocationAmount, initialCapacityUsed, totalCapacity),
+      stakingProducts.calculatePremiumPerYear(
+        basePrice,
+        allocationAmount,
+        initialCapacityUsed,
+        totalCapacity,
+        NXM_PER_ALLOCATION_UNIT,
+        ALLOCATION_UNITS_PER_NXM,
+        TARGET_PRICE_DENOMINATOR,
+      ),
     ).to.be.revertedWithPanic(DIVIDE_BY_ZERO);
   });
 
   it('should correctly calculate fixed price premium', async function () {
-    const { stakingPool } = this;
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { stakingProducts } = this;
+    const { NXM_PER_ALLOCATION_UNIT, TARGET_PRICE_DENOMINATOR } = this.config;
 
     const period = daysToSeconds(182.5);
     const coverAmount = parseEther('4321');
@@ -474,10 +538,12 @@ describe('calculatePremium', function () {
     const expectedBasePrice = BigNumber.from('500'); // 5%
     const expectedFixedPricePremium = calculateBasePremium(coverAmount, expectedBasePrice, period, this.config);
 
-    const actualFixedPricePremium = await stakingPool.calculateFixedPricePremium(
+    const actualFixedPricePremium = await stakingProducts.calculateFixedPricePremium(
       allocationAmount,
       period,
       expectedBasePrice,
+      NXM_PER_ALLOCATION_UNIT,
+      TARGET_PRICE_DENOMINATOR,
     );
 
     expect(actualFixedPricePremium).to.be.equal(expectedFixedPricePremium);

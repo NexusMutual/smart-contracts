@@ -76,13 +76,11 @@ struct ProductTypeParam {
   ProductType productType;
 }
 
-struct PoolInitializationParams {
-  uint poolId;
-  address manager;
-  bool isPrivatePool;
-  uint initialPoolFee;
-  uint maxPoolFee;
-  uint globalMinPriceRatio;
+struct ProductInitializationParams {
+  uint productId;
+  uint8 weight;
+  uint96 initialPrice;
+  uint96 targetPrice;
 }
 
 /* storage structs */

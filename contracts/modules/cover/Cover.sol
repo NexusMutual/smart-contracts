@@ -19,6 +19,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
+import "../../interfaces/IStakingProducts.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -524,10 +525,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       isPrivatePool,
       initialPoolFee,
       maxPoolFee,
-      productInitParams,
       poolId,
       ipfsDescriptionHash
     );
+
+    stakingProducts().setInitialProducts(poolId, productInitParams);
 
     return (poolId, stakingPoolAddress);
   }
@@ -838,12 +840,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return IIndividualClaims(getInternalContractAddress(ID.IC));
   }
 
+  function stakingProducts() internal view returns (IStakingProducts) {
+    return IStakingProducts(getInternalContractAddress(ID.SP));
+  }
+
   function changeDependentContractAddress() external override {
-    master = INXMMaster(master);
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.IC)] = master.getLatestAddress("IC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+    internalContracts[uint(ID.SP)] = master.getLatestAddress("SP");
   }
 
   /**

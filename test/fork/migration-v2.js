@@ -922,7 +922,7 @@ describe('V2 upgrade', function () {
     };
 
     for (let poolId = INITIAL_POOL_ID; poolId <= stakingPoolCount; poolId++) {
-      const stakerAddress = stakers[poolId];
+      const stakerAddress = stakers[poolId - 1];
       console.log(`Checking pool configuration for staking pool ${poolId} of ${stakerAddress}`);
 
       const stakingPool = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(poolId));

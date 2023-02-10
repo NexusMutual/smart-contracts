@@ -12,16 +12,16 @@ const { AddressZero } = ethers.constants;
 const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
 
 // TODO Review constants
-const getProductAddresses = require('../../scripts/v2-migration/products/get-products');
+const getProductAddresses = require('../../scripts/v2-migration/get-v2-products');
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
 const getLockedInV1ClaimAssessment = require('../../scripts/get-locked-in-v1-claim-assessment');
 const getWithdrawableCoverNotes = require('../../scripts/get-withdrawable-cover-notes');
 const getGovernanceRewards = require('../../scripts/get-governance-rewards');
 const populateV2Products = require('../../scripts/populate-v2-products');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-const getV1CoverPrices = require('../../scripts/get-v1-cover-prices');
+const getV1CoverPrices = require('../../scripts/v2-migration/get-v1-cover-prices');
 
-const PRODUCT_ADDRESSES_OUTPUT = require('../../scripts/v2-migration/products/output/product-addresses.json');
+const PRODUCT_ADDRESSES_OUTPUT = require('../../scripts/v2-migration/output/product-addresses.json');
 
 const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';

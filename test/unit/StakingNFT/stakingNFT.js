@@ -103,11 +103,11 @@ describe('StakingNFT', function () {
     );
   });
 
-  it('should revert if reading balance of 0 address - ZeroAddress', async function () {
+  it('should revert if reading balance of 0 address - NotMinted', async function () {
     const { stakingNFT } = this;
     await expect(stakingNFT.balanceOf(ethers.constants.AddressZero)).to.be.revertedWithCustomError(
       stakingNFT,
-      'ZeroAddress',
+      'NotMinted',
     );
   });
 

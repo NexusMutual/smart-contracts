@@ -26,6 +26,11 @@ contract StakingNFT is IStakingNFT {
 
   address public immutable stakingPoolFactory;
 
+  modifier onlyOperator {
+    if (msg.sender != operator) revert NotOperator();
+    _;
+  }
+
   constructor(
     string memory _name,
     string memory _symbol,
@@ -40,13 +45,12 @@ contract StakingNFT is IStakingNFT {
 
   // operator functions
 
-  // TODO: implement change token descriptor function here
-
-  function changeOperator(address newOperator) public {
-    if (msg.sender != operator) revert NotOperator();
+  function changeOperator(address newOperator) public onlyOperator {
     if (newOperator == address(0)) revert InvalidNewOperatorAddress();
     operator = newOperator;
   }
+
+  // TODO: implement change token descriptor function here
 
   // minting and supply
 
@@ -91,18 +95,16 @@ contract StakingNFT is IStakingNFT {
 
   function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
     return
-    interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-    interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-    interfaceId == 0x5b5e139f;
-    // ERC165 Interface ID for ERC721Metadata
+      interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
+      interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
+      interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
   }
 
   // ERC721
 
-  function tokenURI(uint id) public view virtual returns (string memory) {
+  function tokenURI(uint /*id*/) public view returns (string memory) {
     // TODO: implement token uri
-    id;
-    return "NOT IMPLEMENTED";
+    revert("NOT IMPLEMENTED");
   }
 
   function ownerOf(uint id) public view returns (address owner) {
@@ -111,7 +113,7 @@ contract StakingNFT is IStakingNFT {
   }
 
   function balanceOf(address owner) public view returns (uint) {
-    if (owner == address(0)) revert ZeroAddress();
+    if (owner == address(0)) revert NotMinted();
     return _balanceOf[owner];
   }
 
@@ -170,7 +172,6 @@ contract StakingNFT is IStakingNFT {
     bytes calldata data
   ) public {
     transferFrom(from, to, id);
-
     if (to.code.length != 0 && ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) != ERC721TokenReceiver.onERC721Received.selector) {
       revert UnsafeRecipient();
     }
@@ -180,12 +181,7 @@ contract StakingNFT is IStakingNFT {
 /// @notice A generic interface for a contract which properly accepts ERC721 tokens.
 /// @dev Based on Solmate https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol
 abstract contract ERC721TokenReceiver {
-  function onERC721Received(
-    address,
-    address,
-    uint,
-    bytes calldata
-  ) external pure returns (bytes4) {
+  function onERC721Received(address, address, uint, bytes calldata) external returns (bytes4) {
     return ERC721TokenReceiver.onERC721Received.selector;
   }
 }

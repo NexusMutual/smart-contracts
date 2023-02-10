@@ -682,6 +682,14 @@ describe('V2 upgrade', function () {
     }
   });
 
+  it('deploys StakingViewer', async function () {
+    this.stakingViewer = await ethers.deployContract('StakingViewer', [
+      this.master.address,
+      this.stakingNFT.address,
+      this.stakingPoolFactory.address,
+    ]);
+  });
+
   it('Migrate selected stakers to their own staking pools', async function () {
     const ARMOR_STAKER = '0x1337def1fc06783d4b03cb8c1bf3ebf7d0593fc4';
     const FOUNDATION = '0x963df0066ff8345922df88eebeb1095be4e4e12e';
@@ -947,15 +955,40 @@ describe('V2 upgrade', function () {
       }
 
       // validate tokens are distributed correctly across tranches
+
+      const totalAllocations = expected.trancheStakeRatio.reduce((a, b) => a + b, 0);
+
+      if (totalAllocations === 0) {
+        // Nexus Foundation is still in this situation
+        console.log(`Skip allocation verifications for ${stakerAddress}. There are none expected to be made`);
+        continue;
+      }
+
       const block = await ethers.provider.getBlock('latest');
+
+      // TODO: remove, not necessary
       const firstTrancheId = BigNumber.from(block.timestamp)
         .div(91 * 24 * 3600)
         .add(1);
+
+      console.log({
+        firstTrancheId: firstTrancheId.toString(),
+      });
+
+      const token = await this.stakingViewer.getToken(expected.stakingNFTId);
+
       for (let i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
-        const trancheDeposit = await stakingPool.deposits(expected.stakingNFTId, firstTrancheId.add(i));
+        console.log(`fetching deposit from ${expected.stakingNFTId}`);
+
         const expectedTrancheDeposit = depositInPS[stakerAddress].mul(expected.trancheStakeRatio[i]).div(100);
 
-        expect(expectedTrancheDeposit).to.be.equal(trancheDeposit);
+        console.log({
+          expectedTrancheDeposit: expectedTrancheDeposit.toString(),
+        });
+
+        const deposit = token.deposits[i];
+        expect(deposit.trancheId).to.be.equal(firstTrancheId.add(i));
+        expect(deposit.stake).to.be.equal(expectedTrancheDeposit);
       }
     }
   });

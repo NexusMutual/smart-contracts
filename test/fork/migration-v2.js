@@ -44,7 +44,6 @@ const ListIdForReceivers = 218;
 const AddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
 
 const MIN_POOL_ETH = 0;
-const MAX_ACTIVE_TRANCHES = 8;
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 
@@ -988,6 +987,8 @@ describe('V2 upgrade', function () {
       //
       // // the StakingViewer provides us only with the non-zero deposits and we match those with the expected ratios
       // expect(token.deposits.length).to.be.equal(expected.trancheStakeRatio.filter(r => r > 0).length);
+      //
+      // const MAX_ACTIVE_TRANCHES = 8;
       //
       // // index to track which deposit of the view we are current checking
       // let depositIndex = 0;

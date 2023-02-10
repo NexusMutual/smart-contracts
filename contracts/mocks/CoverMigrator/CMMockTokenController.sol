@@ -8,7 +8,8 @@ contract CMMockTokenController {
     uint16 claimCount;
     bool hasOpenClaim;
     bool hasAcceptedClaim;
-    // note: still 224 bits available here, can be used later
+    uint96 requestedPayoutAmount;
+    // note: still 128 bits available here, can be used later
   }
 
   mapping(uint => CoverInfo) public coverInfo;
@@ -19,7 +20,6 @@ contract CMMockTokenController {
     bool hasOpenClaim,
     bool hasAcceptedClaim
   ) external {
-    coverInfo[coverId] = CoverInfo(claimCount, hasOpenClaim, hasAcceptedClaim);
+    coverInfo[coverId] = CoverInfo(claimCount, hasOpenClaim, hasAcceptedClaim, 0);
   }
-
 }

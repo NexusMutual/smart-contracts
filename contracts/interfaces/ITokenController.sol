@@ -15,7 +15,8 @@ interface ITokenController {
     uint16 claimCount;
     bool hasOpenClaim;
     bool hasAcceptedClaim;
-    // note: still 224 bits available here, can be used later
+    uint96 requestedPayoutAmount;
+    // note: still 128 bits available here, can be used later
   }
 
   struct WithdrawFromStakingNftParams {
@@ -28,7 +29,12 @@ interface ITokenController {
     WithdrawFromStakingNftParams[] nfts;
   }
 
-  function coverInfo(uint id) external view returns (uint16 claimCount, bool hasOpenClaim, bool hasAcceptedClaim);
+  function coverInfo(uint id) external view returns (
+    uint16 claimCount,
+    bool hasOpenClaim,
+    bool hasAcceptedClaim,
+    uint96 requestedPayoutAmount
+  );
 
   function withdrawCoverNote(
     address _of,

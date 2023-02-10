@@ -122,7 +122,12 @@ contract CoverMigrator is MasterAwareV2 {
     }
 
     {
-      (uint claimCount , bool hasOpenClaim,  /*hasAcceptedClaim*/) = tokenController().coverInfo(coverId);
+      (
+        uint claimCount ,
+        bool hasOpenClaim,
+        /* hasAcceptedClaim */,
+        /* requestedAmount */
+      ) = tokenController().coverInfo(coverId);
       require(!hasOpenClaim, "Cover has an open V1 claim");
       require(claimCount < 2, "Cover already has 2 claims");
     }

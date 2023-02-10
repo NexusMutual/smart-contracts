@@ -39,7 +39,7 @@ const DEFAULT_GRACE_PERIOD = daysToSeconds(30);
 
 describe('depositTo', function () {
   beforeEach(async function () {
-    const { stakingPool, cover } = this;
+    const { stakingPool, stakingProducts, cover } = this;
     const { defaultSender: manager } = this.accounts;
     const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 
@@ -52,10 +52,11 @@ describe('depositTo', function () {
       false, // isPrivatePool
       initialPoolFee,
       maxPoolFee,
-      products,
       poolId,
       ipfsDescriptionHash,
     );
+
+    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
 
     // Move to the beginning of the next tranche
     const { firstActiveTrancheId: trancheId } = await getTranches();
@@ -72,9 +73,9 @@ describe('depositTo', function () {
     // enable emergency pause
     await master.setEmergencyPause(true);
 
-    await expect(stakingPool.connect(user).depositTo(amount, trancheId, tokenId, destination)).to.be.revertedWith(
-      'System is paused',
-    );
+    await expect(
+      stakingPool.connect(user).depositTo(amount, trancheId, tokenId, destination),
+    ).to.be.revertedWithCustomError(stakingPool, 'SystemPaused');
   });
 
   it('reverts if caller is not manager when pool is private', async function () {
@@ -646,35 +647,20 @@ describe('depositTo', function () {
   });
 
   it('should revert if trying to deposit with token from other pool', async function () {
-    const { stakingPool, nxm, stakingNFT, cover, tokenController, master } = this;
-    const [user, manager] = this.accounts.members;
+    const { stakingPool, stakingNFT } = this;
+    const [user] = this.accounts.members;
 
-    const { amount, tokenId, destination } = depositToFixture;
-    const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
-
+    const { amount, destination } = depositToFixture;
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
-    const otherStakingPool = await ethers.deployContract('StakingPool', [
-      stakingNFT.address,
-      nxm.address,
-      cover.address,
-      tokenController.address,
-      master.address,
-    ]);
-    await stakingPool.connect(this.coverSigner).initialize(
-      manager.address,
-      false, // isPrivatePool
-      initialPoolFee,
-      maxPoolFee,
-      products,
-      poolId + 1,
-      ipfsDescriptionHash,
-    );
-    await nxm.mint(user.address, amount.mul(2));
-    await nxm.approve(stakingPool.address, amount);
-    await nxm.approve(otherStakingPool.address, amount);
-    await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
+
+    const poolId = await stakingPool.getPoolId();
+
+    // mint a token belonging to a different pool
+    await stakingNFT.mint(poolId.add(1), user.address);
+    const tokenId = await stakingNFT.totalSupply();
+
     await expect(
-      otherStakingPool.connect(user).depositTo(amount, firstActiveTrancheId, 1, destination),
-    ).to.be.revertedWithCustomError(otherStakingPool, 'TokenDoesNotBelongToPool');
+      stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination),
+    ).to.be.revertedWithCustomError(stakingPool, 'InvalidStakingPoolForToken');
   });
 });

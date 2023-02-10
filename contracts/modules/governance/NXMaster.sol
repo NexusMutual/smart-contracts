@@ -87,17 +87,33 @@ contract NXMaster is INXMMaster {
     require(contractAddress != address(0), "NXMaster: Contract address is 0");
 
     contractCodes.push(contractCode);
-
     address payable newInternalContract;
-    if (_type == uint(ContractType.Replaceable)) {
+    uint contractType = uint8(_type);
+
+    if (contractType == uint(ContractType.Replaceable)) {
 
       newInternalContract = contractAddress;
       isReplaceable[contractCode] = true;
-    } else if (_type == uint(ContractType.Proxy)) {
 
-      newInternalContract = payable(new OwnedUpgradeabilityProxy(contractAddress));
+    } else if (contractType == uint(ContractType.Proxy)) {
 
+      uint salt = _type >> 8;
+
+      if (salt == 0) {
+        // contractCode will use the 16 most significant bits (leftmost)
+        // block.number will use the least significant bits (rightmost)
+        // example: contractCode = "XX" = 0x5858, block.number = 13565952 = 0xcf0000
+        // result:  0x5858000000000000000000000000000000000000000000000000000000cf0000
+        salt = uint(bytes32(contractCode)) + block.number;
+      }
+
+      // using the max address as the initial implementation to avoid revert in upgradeTo
+      OwnedUpgradeabilityProxy proxy = new OwnedUpgradeabilityProxy{salt: bytes32(salt)}(address(type(uint160).max));
+      proxy.upgradeTo(contractAddress);
+
+      newInternalContract = payable(proxy);
       isProxy[contractCode] = true;
+
     } else {
       revert("NXMaster: Unsupported contract type");
     }

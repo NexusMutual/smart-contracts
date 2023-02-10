@@ -41,7 +41,7 @@ const poolInitParams = {
 
 describe('processExpirations', function () {
   beforeEach(async function () {
-    const { stakingPool, cover } = this;
+    const { stakingPool, stakingProducts, cover } = this;
     const { defaultSender: manager } = this.accounts;
     const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 
@@ -51,7 +51,9 @@ describe('processExpirations', function () {
 
     await stakingPool
       .connect(coverSigner)
-      .initialize(manager.address, false, initialPoolFee, maxPoolFee, products, poolId, ipfsDescriptionHash);
+      .initialize(manager.address, false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+
+    await stakingProducts.connect(coverSigner).setInitialProducts(poolId, products);
 
     // Move to the beginning of the next tranche
     const { firstActiveTrancheId: trancheId } = await getTranches();

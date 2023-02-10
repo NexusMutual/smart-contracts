@@ -25,7 +25,7 @@ const initializeParams = {
   isPrivatePool: false,
   initialPoolFee: 5, // 5%
   maxPoolFee: 5, // 5%
-  productInitializationParams: [product0],
+  products: [product0],
   ipfsDescriptionHash: 'Description Hash',
 };
 
@@ -39,23 +39,16 @@ const withdrawFixture = {
 
 describe('withdraw', function () {
   beforeEach(async function () {
-    const { stakingPool, coverSigner } = this;
+    const { stakingPool, stakingProducts, coverSigner } = this;
     const manager = this.accounts.defaultSender;
 
-    const { poolId, initialPoolFee, maxPoolFee, productInitializationParams, isPrivatePool, ipfsDescriptionHash } =
-      initializeParams;
+    const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
     await stakingPool
       .connect(coverSigner)
-      .initialize(
-        manager.address,
-        isPrivatePool,
-        initialPoolFee,
-        maxPoolFee,
-        productInitializationParams,
-        poolId,
-        ipfsDescriptionHash,
-      );
+      .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+
+    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
 
     // Move to the beginning of the next tranche
     const { firstActiveTrancheId: trancheId } = await getTranches();
@@ -72,9 +65,9 @@ describe('withdraw', function () {
     // enable emergency pause
     await master.setEmergencyPause(true);
 
-    await expect(stakingPool.connect(user).withdraw(tokenId, true, false, [firstActiveTrancheId])).to.be.revertedWith(
-      'System is paused',
-    );
+    await expect(
+      stakingPool.connect(user).withdraw(tokenId, true, false, [firstActiveTrancheId]),
+    ).to.be.revertedWithCustomError(stakingPool, 'SystemPaused');
   });
 
   it('reverts if trying to withdraw stake locked in governance', async function () {

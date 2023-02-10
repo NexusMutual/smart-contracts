@@ -73,7 +73,7 @@ const burnAmount = parseEther('10');
 
 describe('burnStake', function () {
   beforeEach(async function () {
-    const { stakingPool, cover } = this;
+    const { stakingPool, stakingProducts, cover } = this;
     const { defaultSender: manager } = this.accounts;
     const [staker] = this.accounts.members;
     const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
@@ -89,10 +89,11 @@ describe('burnStake', function () {
       false, // isPrivatePool
       initialPoolFee,
       maxPoolFee,
-      products,
       poolId,
       ipfsDescriptionHash,
     );
+
+    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
 
     // Move to the beginning of the next tranche
     const currentTrancheId = await moveTimeToNextTranche(1);

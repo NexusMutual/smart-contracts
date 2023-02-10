@@ -32,7 +32,6 @@ async function createStakingPool(cover, productId, capacity, targetPrice, active
   const stakingPool = await ethers.getContractAt('CoverMockStakingPool', stakingPoolAddress);
 
   await stakingPool.setStake(productId, capacity);
-  await stakingPool.setTargetPrice(productId, targetPrice);
   await stakingPool.setUsedCapacity(productId, activeCover);
   await stakingPool.setPrice(productId, currentPrice); // 2.6%
 

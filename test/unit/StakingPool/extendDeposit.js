@@ -33,7 +33,7 @@ const managerDepositId = 0;
 
 describe('extendDeposit', function () {
   beforeEach(async function () {
-    const { stakingPool, stakingNFT, cover } = this;
+    const { stakingPool, stakingProducts, stakingNFT, cover } = this;
     const manager = this.accounts.defaultSender;
     const [user] = this.accounts.members;
 
@@ -44,7 +44,9 @@ describe('extendDeposit', function () {
     const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
     await stakingPool
       .connect(coverSigner)
-      .initialize(manager.address, false, initialPoolFee, maxPoolFee, products, poolId, ipfsDescriptionHash);
+      .initialize(manager.address, false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+
+    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
 
     // Move to the beginning of the next tranche
     const { firstActiveTrancheId: trancheId } = await getTranches();
@@ -69,7 +71,7 @@ describe('extendDeposit', function () {
 
     await expect(
       stakingPool.connect(user).extendDeposit(depositNftId, maxTranche, firstActiveTrancheId, 0),
-    ).to.be.revertedWith('System is paused');
+    ).to.be.revertedWithCustomError(stakingPool, 'SystemPaused');
   });
 
   it('reverts if token id is 0', async function () {
@@ -81,7 +83,7 @@ describe('extendDeposit', function () {
 
     await expect(
       stakingPool.connect(managerSigner).extendDeposit(0, firstActiveTrancheId, maxTranche, 0),
-    ).to.be.revertedWith('NOT_MINTED');
+    ).to.be.revertedWithCustomError(stakingPool, 'InvalidTokenId');
   });
 
   it('reverts if new tranche ends before the initial tranche', async function () {

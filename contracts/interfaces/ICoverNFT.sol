@@ -8,8 +8,18 @@ interface ICoverNFT is IERC721 {
 
   function isApprovedOrOwner(address spender, uint tokenId) external returns (bool);
 
+  function mint(address to) external returns (uint tokenId);
+
+  function changeOperator(address newOperator) external;
+
   function totalSupply() external view returns (uint);
 
-  function mint(address to) external returns (uint);
-
+  error NotOperator();
+  error NotMinted();
+  error WrongFrom();
+  error InvalidRecipient();
+  error InvalidNewOperatorAddress();
+  error NotAuthorized();
+  error UnsafeRecipient();
+  error AlreadyMinted();
 }

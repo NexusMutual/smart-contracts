@@ -95,7 +95,7 @@ describe('createStakingPool', function () {
     expect(storedManager).to.be.equal(stakingPoolManager.address);
 
     // validate variable is initialized
-    const contractPoolId = await stakingPoolInstance.poolId();
+    const contractPoolId = await stakingPoolInstance.getPoolId();
     expect(contractPoolId).to.be.equal(poolId);
   });
 

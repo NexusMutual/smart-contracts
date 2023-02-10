@@ -49,8 +49,8 @@ describe('burnStake', function () {
     });
 
     const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
-    const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
-    expect(burnStakeCalledWith).to.be.equal(expectedBurnAmount);
+    const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
+    expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount);
   });
 
   it('reverts if caller is not an internal contract', async function () {
@@ -146,8 +146,8 @@ describe('burnStake', function () {
     for (let i = 0; i < amountOfPools; i++) {
       const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(i));
 
-      const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
-      expect(burnStakeCalledWith).to.be.equal(expectedBurnAmount[i]);
+      const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
+      expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount[i]);
 
       const segmentAllocationAfter = await cover.coverSegmentAllocations(expectedCoverId, segmentId, i);
       const payoutAmountInNXM = segmentAllocationsBefore[i].coverAmountInNXM.div(burnAmountDivisor);
@@ -189,7 +189,58 @@ describe('burnStake', function () {
     });
 
     const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
-    const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
-    expect(burnStakeCalledWith).to.be.equal(expectedBurnAmount);
+    const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
+    expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount);
+  });
+
+  it('updates segment allocation premium in nxm', async function () {
+    const { cover } = this;
+    const [internal] = this.accounts.internalContracts;
+    const { amount } = coverBuyFixture;
+    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const burnAmountDivisor = 2;
+    const burnAmount = amount.div(burnAmountDivisor);
+    const segmentAllocationBefore = await cover.coverSegmentAllocations(expectedCoverId, segmentId, 0);
+    const payoutAmountInNXM = segmentAllocationBefore.premiumInNXM.div(burnAmountDivisor);
+
+    await cover.connect(internal).burnStake(expectedCoverId, segmentId, burnAmount);
+
+    const segmentAllocationAfter = await cover.coverSegmentAllocations(expectedCoverId, segmentId, 0);
+    expect(segmentAllocationAfter.premiumInNXM).to.be.equal(
+      segmentAllocationBefore.premiumInNXM.sub(payoutAmountInNXM),
+    );
+  });
+
+  it('call stakingPool with correct parameters', async function () {
+    const { cover } = this;
+    const [internal] = this.accounts.internalContracts;
+    const { amount, productId } = coverBuyFixture;
+    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const burnAmountDivisor = 2;
+    const payoutAmountInAsset = amount.div(burnAmountDivisor);
+    const burnAmount = amount.div(burnAmountDivisor);
+
+    const segment = await cover.coverSegments(expectedCoverId, segmentId);
+    const segmentAllocation = await cover.coverSegmentAllocations(expectedCoverId, segmentId, '0');
+
+    const payoutAmountInNXM = segmentAllocation.coverAmountInNXM.mul(payoutAmountInAsset).div(segment.amount);
+    const expectedBurnAmount = payoutAmountInNXM.mul(GLOBAL_CAPACITY_DENOMINATOR).div(segment.globalCapacityRatio);
+
+    await cover.connect(internal).burnStake(expectedCoverId, segmentId, burnAmount);
+
+    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
+
+    const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
+    expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount);
+
+    const allocationId = 0;
+    const burnStakeCalledWithParams = await stakingPool.burnStakeCalledWithParams();
+    expect(burnStakeCalledWithParams.allocationId).to.be.equal(allocationId);
+    expect(burnStakeCalledWithParams.period).to.be.equal(segment.period);
+    expect(burnStakeCalledWithParams.start).to.be.equal(segment.start);
+    expect(burnStakeCalledWithParams.productId).to.be.equal(productId);
+    expect(burnStakeCalledWithParams.deallocationAmount).to.be.equal(payoutAmountInNXM);
   });
 });

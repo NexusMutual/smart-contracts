@@ -36,6 +36,14 @@ struct ProductInitializationParams {
   uint96 targetPrice;
 }
 
+struct BurnStakeParams {
+  uint allocationId;
+  uint productId;
+  uint start;
+  uint period;
+  uint deallocationAmount;
+}
+
 interface IStakingPool {
 
   /* structs for storage */
@@ -87,7 +95,7 @@ interface IStakingPool {
     AllocationRequest calldata request
   ) external returns (uint premium, uint allocationId);
 
-  function burnStake(uint amount) external;
+  function burnStake(uint amount, BurnStakeParams calldata params) external;
 
   function depositTo(
     uint amount,
@@ -108,6 +116,8 @@ interface IStakingPool {
   function isHalted() external view returns (bool);
 
   function manager() external view returns (address);
+
+  function getPoolId() external view returns (uint);
 
   function getPoolFee() external view returns (uint);
 

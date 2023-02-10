@@ -1,6 +1,5 @@
 const { BigNumber } = require('ethers');
 const { ethers } = require('hardhat');
-const { expect } = require('chai');
 
 const { ContractTypes } = require('../utils').constants;
 const { toBytes2, toBytes8 } = require('../utils').helpers;
@@ -8,7 +7,7 @@ const { proposalCategories } = require('../utils');
 const { getAccounts, stakingPoolManagers } = require('../utils').accounts;
 const { enrollMember } = require('./utils/enroll');
 
-const { getContractAddress, parseEther, parseUnits } = ethers.utils;
+const { parseEther, parseUnits } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 
 const deployProxy = async (contract, deployParams = [], options = {}) => {
@@ -154,39 +153,41 @@ async function setup() {
   let as = await deployProxy('DisposableAssessment', []);
   const cl = await deployProxy('CoverMigrator', [qd.address, productsV1.address]);
 
-  const expectedCoverAddress = getContractAddress({
-    from: owner.address,
-    nonce: (await owner.getTransactionCount()) + 7,
-  });
+  // 1. deploy StakingPoolFactory, StakingNFT and CoverNFT with owner as temporary operator
+  const spf = await ethers.deployContract('StakingPoolFactory', [owner.address]);
+  const stakingNFT = await ethers.deployContract('StakingNFT', ['Deposit', 'NMD', spf.address, owner.address]);
+  const coverNFT = await ethers.deployContract('CoverNFT', ['Cover', 'NMC', owner.address]);
 
-  const spf = await ethers.deployContract('StakingPoolFactory', [expectedCoverAddress]);
-  const stakingNFT = await ethers.deployContract('StakingNFT', [
-    'Nexus Mutual Deposit',
-    'NMD',
-    spf.address,
-    expectedCoverAddress,
-  ]);
-  const coverNFT = await ethers.deployContract('CoverNFT', ['Nexus Mutual Cover', 'NMC', expectedCoverAddress]);
+  // 2. deploy Cover, StakingProducts and TokenController proxies
+  let cover = await deployProxy('Stub');
+  let stakingProducts = await deployProxy('Stub');
+  let tc = await deployProxy('Stub');
 
-  const tc = await deployProxy('DisposableTokenController', [qd.address, lcr.address, spf.address, tk.address]);
+  // 3. deploy StakingPool implementation
+  const spArgs = [stakingNFT, tk, cover, tc, master, stakingProducts].map(c => c.address);
+  const stakingPool = await ethers.deployContract('StakingPool', spArgs);
 
-  const stakingPool = await ethers.deployContract('StakingPool', [
-    stakingNFT.address,
-    tk.address,
-    expectedCoverAddress,
-    tc.address,
-    master.address,
-  ]);
+  // 4. deploy implementations and upgrade Cover, StakingProducts and DisposableTokenController proxies
+  await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
+  cover = await ethers.getContractAt('Cover', cover.address);
 
-  const cover = await deployProxy('Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
+  await upgradeProxy(stakingProducts.address, 'StakingProducts', [cover.address, spf.address]);
+  stakingProducts = await ethers.getContractAt('StakingProducts', stakingProducts.address);
 
-  expect(cover.address).to.equal(expectedCoverAddress);
+  // TODO: get rid of DisposableTokenController and use TokenController instead with owner as operator
+  await upgradeProxy(tc.address, 'DisposableTokenController', [qd.address, lcr.address, spf.address, tk.address]);
+  tc = await ethers.getContractAt('DisposableTokenController', tc.address);
+
+  // 5. update operators
+  await spf.changeOperator(cover.address);
+  await stakingNFT.changeOperator(cover.address);
+  await coverNFT.changeOperator(cover.address);
 
   await cover.changeMasterAddress(master.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC', 'YT', 'AS', 'CO', 'CL'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC', 'YT', 'AS', 'CO', 'CL', 'SP'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -199,8 +200,9 @@ async function setup() {
     return 0;
   };
 
-  const codes = ['QD', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'YT', 'AS', 'CO', 'CR'];
-  const addresses = [qd, tc, p1, mc, owner, pc, mr, ps, gateway, ic, cl, yt, as, cover, lcr].map(c => c.address);
+  const addr = c => c.address;
+  const addresses = [qd, tc, p1, mc, owner, pc, mr, ps, gateway, ic, cl, yt, as, cover, lcr, stakingProducts].map(addr);
+  const codes = ['QD', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'YT', 'AS', 'CO', 'CR', 'SP'];
 
   await master.initialize(
     owner.address,
@@ -512,7 +514,7 @@ async function setup() {
   const DEFAULT_POOL_FEE = '5';
 
   for (let i = 0; i < 3; i++) {
-    await this.contracts.cover.createStakingPool(
+    await cover.createStakingPool(
       stakingPoolManagers[i],
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
@@ -530,6 +532,7 @@ async function setup() {
     BUCKET_SIZE: await cover.BUCKET_SIZE(),
   };
 
+  this.contracts.stakingProducts = stakingProducts;
   this.config = config;
   this.accounts = ethersAccounts;
   this.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS;

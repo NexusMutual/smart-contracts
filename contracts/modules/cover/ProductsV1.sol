@@ -31,7 +31,7 @@ contract ProductsV1 is IProductsV1 {
       return 3;
     }
 
-    // Product: Gnosis Safe
+    // Product: Safe (formerly, Gnosis Safe)
     // Type: protocol
     if (legacyProductId == 0x34CfAC646f301356fAa8B21e94227e3583Fe3F5F) {
       return 4;
@@ -163,327 +163,327 @@ contract ProductsV1 is IProductsV1 {
       return 25;
     }
 
-    // Product: Alpaca Finance
-    // Type: protocol
-    if (legacyProductId == 0xA625AB01B08ce023B2a342Dbb12a16f2C8489A8F) {
-      return 26;
-    }
-
     // Product: Goldfinch
     // Type: protocol
     if (legacyProductId == 0x8481a6EbAf5c7DABc3F7e09e44A89531fd31F822) {
-      return 27;
+      return 26;
     }
 
     // Product: Binance
     // Type: custodian
     if (legacyProductId == 0xC57d000000000000000000000000000000000007) {
-      return 28;
+      return 27;
     }
 
     // Product: Coinbase
     // Type: custodian
     if (legacyProductId == 0xc57D000000000000000000000000000000000008) {
-      return 29;
+      return 28;
     }
 
     // Product: Kraken
     // Type: custodian
     if (legacyProductId == 0xc57d000000000000000000000000000000000009) {
-      return 30;
-    }
-
-    // Product: FTX
-    // Type: custodian
-    if (legacyProductId == 0xC57d000000000000000000000000000000000011) {
-      return 31;
+      return 29;
     }
 
     // Product: Pangolin
     // Type: protocol
     if (legacyProductId == 0xefa94DE7a4656D787667C749f7E1223D71E9FD88) {
-      return 32;
+      return 30;
     }
 
     // Product: Centrifuge Tinlake
     // Type: protocol
     if (legacyProductId == 0x0CED6166873038Ac0cc688e7E6d19E2cBE251Bf0) {
-      return 33;
+      return 31;
     }
 
     // Product: Abracadabra
     // Type: protocol
     if (legacyProductId == 0xd96f48665a1410C0cd669A88898ecA36B9Fc2cce) {
-      return 34;
+      return 32;
     }
 
     // Product: Premia Finance
     // Type: protocol
     if (legacyProductId == 0x48D49466CB2EFbF05FaA5fa5E69f2984eDC8d1D7) {
-      return 35;
-    }
-
-    // Product: Yearn yvUSDC v2
-    // Type: token
-    if (legacyProductId == 0x0000000000000000000000000000000000000007) {
-      return 36;
+      return 33;
     }
 
     // Product: Curve 3pool LP (3Crv)
     // Type: token
     if (legacyProductId == 0x0000000000000000000000000000000000000009) {
-      return 37;
+      return 34;
     }
 
     // Product: Curve sETH LP (eCrv)
     // Type: token
     if (legacyProductId == 0x0000000000000000000000000000000000000010) {
-      return 38;
+      return 35;
     }
 
     // Product: Convex stethCrv (cvxstethCrv)
     // Type: token
     if (legacyProductId == 0x0000000000000000000000000000000000000013) {
-      return 39;
+      return 36;
     }
 
     // Product: Convex 3CRV (cvx3CRV)
     // Type: token
     if (legacyProductId == 0x0000000000000000000000000000000000000014) {
-      return 40;
+      return 37;
     }
 
     // Product: Notional Finance v2
     // Type: protocol
     if (legacyProductId == 0x1344A36A1B56144C3Bc62E7757377D288fDE0369) {
-      return 41;
-    }
-
-    // Product: OlympusDAO
-    // Type: protocol
-    if (legacyProductId == 0x575409F8d77c12B05feD8B455815f0e54797381c) {
-      return 42;
+      return 38;
     }
 
     // Product: Ribbon Finance v2
     // Type: protocol
     if (legacyProductId == 0x25751853Eab4D0eB3652B5eB6ecB102A2789644B) {
-      return 43;
+      return 39;
     }
 
     // Product: Pool Together v4
     // Type: protocol
     if (legacyProductId == 0xd89a09084555a7D0ABe7B111b1f78DFEdDd638Be) {
-      return 44;
+      return 40;
     }
 
     // Product: Trader Joe
     // Type: protocol
     if (legacyProductId == 0x60aE616a2155Ee3d9A68541Ba4544862310933d4) {
-      return 45;
+      return 41;
     }
 
     // Product: Origin OUSD
     // Type: token
     if (legacyProductId == 0x0000000000000000000000000000000000000016) {
-      return 46;
-    }
-
-    // Product: Enzyme v3
-    // Type: protocol
-    if (legacyProductId == 0x7e6d3b1161DF9c9c7527F68d651B297d2Fdb820B) {
-      return 47;
+      return 42;
     }
 
     // Product: Beefy
     // Type: protocol
     if (legacyProductId == 0x453D4Ba9a2D594314DF88564248497F7D74d6b2C) {
-      return 48;
+      return 43;
     }
 
     // Product: Angle
     // Type: protocol
     if (legacyProductId == 0xfdA462548Ce04282f4B6D6619823a7C64Fdc0185) {
-      return 49;
+      return 44;
     }
 
     // Product: FODL
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000017) {
-      return 50;
+      return 45;
     }
 
     // Product: Alchemix v2
     // Type: protocol
     if (legacyProductId == 0x5C6374a2ac4EBC38DeA0Fc1F8716e5Ea1AdD94dd) {
-      return 51;
+      return 46;
     }
 
     // Product: Bundle: Gelt + mStable + Aave v2
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000018) {
-      return 52;
+      return 47;
     }
 
     // Product: Yeti Finance
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000019) {
-      return 53;
+      return 48;
     }
 
     // Product: Vector
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000021) {
-      return 54;
+      return 49;
     }
 
     // Product: Bancor v3
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000022) {
-      return 55;
+      return 50;
     }
 
     // Product: Ease
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000023) {
-      return 56;
+      return 51;
     }
 
     // Product: Stakewise operated (3 ETH / validator)
     // Type: eth2slashing
     if (legacyProductId == 0x0000000000000000000000000000000000000025) {
-      return 57;
+      return 52;
     }
 
     // Product: Stakewise 3rd party (3 ETH / validator)
     // Type: eth2slashing
     if (legacyProductId == 0x0000000000000000000000000000000000000026) {
-      return 58;
+      return 53;
     }
 
     // Product: Nested
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000027) {
-      return 59;
+      return 54;
     }
 
     // Product: Euler
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000028) {
-      return 60;
+      return 55;
     }
 
     // Product: GMX
     // Type: protocol
     if (legacyProductId == 0x3D6bA331e3D9702C5e8A8d254e5d8a285F223aba) {
-      return 61;
+      return 56;
     }
 
     // Product: Sherlock
     // Type: sherlock
     if (legacyProductId == 0x0000000000000000000000000000000000000029) {
-      return 62;
+      return 57;
     }
 
     // Product: Gearbox V2
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000030) {
-      return 63;
+      return 58;
     }
 
     // Product: Aura
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000031) {
-      return 64;
+      return 59;
     }
 
     // Product: Enzyme v4
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000032) {
-      return 65;
+      return 60;
     }
 
     // Product: Liquid Collective
     // Type: eth2slashing
     if (legacyProductId == 0x0000000000000000000000000000000000000033) {
-      return 66;
+      return 61;
     }
 
     // Product: Bancor v2
     // Type: protocol
     if (legacyProductId == 0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C) {
-      return 67;
+      return 62;
     }
 
     // Product: Eth 2.0 (deposit contract)
     // Type: protocol
     if (legacyProductId == 0x00000000219ab540356cBB839Cbe05303d7705Fa) {
-      return 68;
+      return 63;
+    }
+
+    // Product: Alpaca Finance
+    // Type: protocol
+    if (legacyProductId == 0xA625AB01B08ce023B2a342Dbb12a16f2C8489A8F) {
+      return 64;
     }
 
     // Product: Celsius
     // Type: custodian
     if (legacyProductId == 0xc57D000000000000000000000000000000000001) {
-      return 69;
+      return 65;
     }
 
     // Product: BlockFi
     // Type: custodian
     if (legacyProductId == 0xC57D000000000000000000000000000000000002) {
-      return 70;
+      return 66;
     }
 
     // Product: Nexo
     // Type: custodian
     if (legacyProductId == 0xC57d000000000000000000000000000000000003) {
-      return 71;
+      return 67;
     }
 
     // Product: Ledn
     // Type: custodian
     if (legacyProductId == 0xC57D000000000000000000000000000000000005) {
-      return 72;
+      return 68;
     }
 
     // Product: Hodlnaut
     // Type: custodian
     if (legacyProductId == 0xC57d000000000000000000000000000000000006) {
-      return 73;
+      return 69;
     }
 
     // Product: Gemini
     // Type: custodian
     if (legacyProductId == 0xc57d000000000000000000000000000000000010) {
-      return 74;
+      return 70;
+    }
+
+    // Product: FTX
+    // Type: custodian
+    if (legacyProductId == 0xC57d000000000000000000000000000000000011) {
+      return 71;
     }
 
     // Product: Crypto.com
     // Type: custodian
     if (legacyProductId == 0xC57d000000000000000000000000000000000012) {
-      return 75;
+      return 72;
     }
 
     // Product: Yield.app
     // Type: custodian
     if (legacyProductId == 0xc57d000000000000000000000000000000000013) {
-      return 76;
+      return 73;
     }
 
     // Product: Rari Capital
     // Type: protocol
     if (legacyProductId == 0x835482FE0532f169024d5E9410199369aAD5C77E) {
-      return 77;
+      return 74;
     }
 
     // Product: Anchor
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000001) {
+      return 75;
+    }
+
+    // Product: THORChain (Thorchain Network)
+    // Type: protocol
+    if (legacyProductId == 0x0000000000000000000000000000000000000004) {
+      return 76;
+    }
+
+    // Product: Yearn yvUSDC v2
+    // Type: token
+    if (legacyProductId == 0x0000000000000000000000000000000000000007) {
+      return 77;
+    }
+
+    // Product: OlympusDAO
+    // Type: protocol
+    if (legacyProductId == 0x575409F8d77c12B05feD8B455815f0e54797381c) {
       return 78;
     }
 
-    // Product: Thorchain
+    // Product: Enzyme v3
     // Type: protocol
-    if (legacyProductId == 0x0000000000000000000000000000000000000004) {
+    if (legacyProductId == 0x7e6d3b1161DF9c9c7527F68d651B297d2Fdb820B) {
       return 79;
     }
 

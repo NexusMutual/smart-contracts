@@ -4,6 +4,8 @@ const path = require('path');
 const fetch = require('node-fetch');
 
 const outputDir = path.join(__dirname, 'output');
+const productsV1ContractPath = path.join(__dirname, '../../contracts/modules/cover/ProductsV1.sol');
+const CONTRACTS_URL = 'https://api.nexusmutual.io/coverables/contracts.json';
 
 const gracePeriod = {
   protocol: 30,
@@ -34,7 +36,7 @@ const getSunsetProducts = async () => {
     decode(await fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(x => x.arrayBuffer())),
   );
 
-  const products = await fetch('https://api.nexusmutual.io/coverables/contracts.json').then(r => r.json());
+  const products = await fetch(CONTRACTS_URL).then(r => r.json());
 
   const productsWithLowerCasedKeys = {};
   for (const key in products) {
@@ -93,7 +95,7 @@ contract ProductsV1 is IProductsV1 {
 `;
 
 const main = async () => {
-  const v1Products = await fetch('https://api.nexusmutual.io/coverables/contracts.json').then(r => r.json());
+  const v1Products = await fetch(CONTRACTS_URL).then(r => r.json());
 
   console.log(`Total V1 products: ${Object.keys(v1Products).length}`);
 
@@ -110,7 +112,6 @@ const main = async () => {
   const v2Products = v2ProductAddresses.map((k, i) => ({ ...v1Products[k], productId: i, legacyProductId: k }));
   const productsV1Contract = getProductsContract(v2Products);
 
-  const productsV1ContractPath = path.join(__dirname, '../../../contracts/modules/cover/ProductsV1.sol');
   console.log(`Writing file ${productsV1ContractPath}`);
   fs.writeFileSync(productsV1ContractPath, productsV1Contract, 'utf8');
 

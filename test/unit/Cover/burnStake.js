@@ -48,7 +48,7 @@ describe('burnStake', function () {
       amountPaidOut: payoutAmountInAsset,
     });
 
-    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
+    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(1));
     const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
     expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount);
   });
@@ -96,7 +96,7 @@ describe('burnStake', function () {
     const amountPerPool = amount.div(amountOfPools);
 
     const allocationRequest = [];
-    for (let i = 0; i < amountOfPools; i++) {
+    for (let i = 1; i <= amountOfPools; i++) {
       await createStakingPool(
         cover,
         productId,
@@ -144,7 +144,7 @@ describe('burnStake', function () {
     });
 
     for (let i = 0; i < amountOfPools; i++) {
-      const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(i));
+      const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(i + 1));
 
       const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
       expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount[i]);
@@ -188,7 +188,7 @@ describe('burnStake', function () {
       amountPaidOut: payoutAmountInAsset,
     });
 
-    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
+    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(1));
     const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
     expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount);
   });
@@ -230,7 +230,7 @@ describe('burnStake', function () {
 
     await cover.connect(internal).burnStake(expectedCoverId, segmentId, burnAmount);
 
-    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
+    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(1));
 
     const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
     expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount);

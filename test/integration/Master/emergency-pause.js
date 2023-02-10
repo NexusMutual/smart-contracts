@@ -140,7 +140,7 @@ describe('emergency pause', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+        [{ poolId: 1, coverAmountInAsset: amount.toString() }],
         {
           value: expectedPremium,
         },
@@ -150,7 +150,7 @@ describe('emergency pause', function () {
 
   it('stops claim payouts on redeemPayout', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as, master } = this.contracts;
+    const { ic, cover, stakingPool1, as, master } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
     const emergencyAdmin = this.accounts.emergencyAdmin;
 
@@ -162,7 +162,7 @@ describe('emergency pause', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // Buy Cover
     const expectedPremium = amount
@@ -183,7 +183,7 @@ describe('emergency pause', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
       {
         value: expectedPremium,
       },
@@ -209,7 +209,7 @@ describe('emergency pause', function () {
 
   it('stops claim voting', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as, master } = this.contracts;
+    const { ic, cover, stakingPool1, as, master } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const emergencyAdmin = this.accounts.emergencyAdmin;
 
@@ -221,7 +221,7 @@ describe('emergency pause', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // Buy Cover
     const expectedPremium = amount
@@ -242,7 +242,7 @@ describe('emergency pause', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
       {
         value: expectedPremium,
       },

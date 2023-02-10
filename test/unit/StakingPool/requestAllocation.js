@@ -99,7 +99,7 @@ const product3 = {
   targetPrice: 200, // 2%}
 };
 
-const poolId = 0;
+const poolId = 1;
 const trancheOffset = 5;
 
 describe('requestAllocation', function () {
@@ -115,6 +115,7 @@ describe('requestAllocation', function () {
     await cover.setProductType({ claimMethod: 1, gracePeriod: daysToSeconds(7) }, productId);
 
     // Initialize staking pool
+    const poolId = 1;
     const isPrivatePool = false;
     const ipfsDescriptionHash = 'Staking pool 1';
     const maxPoolFee = 10; // 10%

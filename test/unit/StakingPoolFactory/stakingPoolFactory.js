@@ -51,7 +51,7 @@ describe('StakingPoolFactory', function () {
     const proxyHash = bytesToHex(keccak256(hexToBytes(proxyBytecode.replace(/^0x/i, ''))));
     const initCodeHash = Buffer.from(proxyHash, 'hex');
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 1; i <= 10; i++) {
       const poolId = i;
       const salt = Buffer.from(poolId.toString(16).padStart(64, '0'), 'hex');
       const expectedAddress = ethers.utils.getCreate2Address(stakingPoolFactory.address, salt, initCodeHash);
@@ -59,7 +59,7 @@ describe('StakingPoolFactory', function () {
       await expect(stakingPoolFactory.connect(operator).create(beacon.address))
         .to.emit(stakingPoolFactory, 'StakingPoolCreated')
         .withArgs(poolId, expectedAddress);
-      expect(await stakingPoolFactory.stakingPoolCount()).to.be.equal(poolId + 1);
+      expect(await stakingPoolFactory.stakingPoolCount()).to.be.equal(poolId);
     }
   });
 });

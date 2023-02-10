@@ -44,7 +44,7 @@ describe('createStakingPool', function () {
     const stakingPoolCountAfter = await spf.stakingPoolCount();
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
 
-    const stakingPoolAddress = await cover.stakingPool(stakingPoolCountAfter.sub(1));
+    const stakingPoolAddress = await cover.stakingPool(stakingPoolCountAfter);
     const stakingPool = await ethers.getContractAt('StakingPool', stakingPoolAddress);
 
     const managerStakingPoolNFTBalanceBefore = await stakingNFT.balanceOf(manager.address);
@@ -82,7 +82,7 @@ describe('createStakingPool', function () {
     const stakingPoolCountAfter = await spf.stakingPoolCount();
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
 
-    const stakingPoolAddress = await cover.stakingPool(stakingPoolCountAfter.sub(1));
+    const stakingPoolAddress = await cover.stakingPool(stakingPoolCountAfter);
     const stakingPool = await ethers.getContractAt('StakingPool', stakingPoolAddress);
 
     const managerStakingPoolNFTBalanceBefore = await stakingNFT.balanceOf(manager.address);

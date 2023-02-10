@@ -602,7 +602,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         payoutAmountInNXM
       );
 
-      stakingPool(i).burnStake(burnAmountInNxm, params);
+      uint poolId = allocations[i].poolId;
+      stakingPool(poolId).burnStake(burnAmountInNxm, params);
     }
 
     return coverNFT.ownerOf(coverId);

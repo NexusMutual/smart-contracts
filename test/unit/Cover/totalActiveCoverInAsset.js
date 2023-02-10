@@ -117,7 +117,7 @@ describe('totalActiveCoverInAsset', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: 0, coverAmountInAsset: amount }],
+      [{ poolId: 1, coverAmountInAsset: amount }],
     );
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -146,7 +146,7 @@ describe('totalActiveCoverInAsset', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 0, coverAmountInAsset: amount }],
+        [{ poolId: 1, coverAmountInAsset: amount }],
       );
     }
 
@@ -221,7 +221,7 @@ describe('totalActiveCoverInAsset', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 0, coverAmountInAsset: amount }],
+        [{ poolId: 1, coverAmountInAsset: amount }],
       );
       // Burn first segment of coverId == i
       await cover.connect(internalContract).burnStake(i + 1, 0, amount.div(2));

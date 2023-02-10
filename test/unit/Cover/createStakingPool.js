@@ -64,7 +64,7 @@ describe('createStakingPool', function () {
       );
     }
 
-    const poolId = 0;
+    const poolId = 1;
     const salt = Buffer.from(poolId.toString(16).padStart(64, '0'), 'hex');
     const initCodeHash = Buffer.from(requiredHash, 'hex');
     const expectedAddress = ethers.utils.getCreate2Address(stakingPoolFactory.address, salt, initCodeHash);
@@ -103,7 +103,7 @@ describe('createStakingPool', function () {
     const { cover } = this;
     const [stakingPoolCreator, stakingPoolManager] = this.accounts.generalPurpose;
     const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
-    const poolId = 0;
+    const poolId = 1;
 
     const firstStakingPoolAddress = await cover.stakingPool(poolId);
 
@@ -135,7 +135,7 @@ describe('createStakingPool', function () {
       ipfsDescriptionHash,
     );
 
-    const poolId = 0;
+    const poolId = 1;
     const expectedSPAddress = await cover.stakingPool(poolId);
     await expect(tx).to.emit(stakingPoolFactory, 'StakingPoolCreated').withArgs(poolId, expectedSPAddress);
   });

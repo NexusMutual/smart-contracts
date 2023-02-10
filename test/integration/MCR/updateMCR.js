@@ -162,7 +162,7 @@ describe('updateMCR', function () {
 
   // [todo] deal with test once active cover amount measurement is settled
   it.skip('increases desiredMCR if totalSumAssured is high enough', async function () {
-    const { mcr, stakingPool0, cover } = this.contracts;
+    const { mcr, stakingPool1, cover } = this.contracts;
 
     const [coverHolder, staker1] = this.accounts.members;
 
@@ -181,7 +181,7 @@ describe('updateMCR', function () {
     const amount = coverAmount;
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     const expectedPremium = parseEther('1');
     await cover.connect(coverHolder).buyCover(
@@ -198,7 +198,7 @@ describe('updateMCR', function () {
         commissionDestination: ethers.constants.AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount }],
+      [{ poolId: 1, coverAmountInAsset: amount }],
       { value: expectedPremium },
     );
 

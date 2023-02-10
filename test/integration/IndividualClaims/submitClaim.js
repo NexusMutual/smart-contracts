@@ -38,7 +38,7 @@ describe('submitClaim', function () {
 
   it('submits ETH claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as } = this.contracts;
+    const { ic, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -49,7 +49,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // Buy Cover
     await buyCover({
@@ -89,7 +89,7 @@ describe('submitClaim', function () {
 
   it('submits partial ETH claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as } = this.contracts;
+    const { ic, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -100,7 +100,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // Buy Cover
     await buyCover({
@@ -141,7 +141,7 @@ describe('submitClaim', function () {
 
   it('submits ETH claim and rejects claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as } = this.contracts;
+    const { ic, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     // Cover inputs
@@ -152,7 +152,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // Buy Cover
     await buyCover({
@@ -190,7 +190,7 @@ describe('submitClaim', function () {
 
   it('submits partial ETH claim and rejects claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as } = this.contracts;
+    const { ic, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     // Cover inputs
@@ -201,7 +201,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // Buy Cover
     await buyCover({
@@ -239,7 +239,7 @@ describe('submitClaim', function () {
 
   it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as, dai } = this.contracts;
+    const { ic, cover, stakingPool1, as, dai } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -250,7 +250,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
@@ -292,7 +292,7 @@ describe('submitClaim', function () {
 
   it('submits partial DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as, dai } = this.contracts;
+    const { ic, cover, stakingPool1, as, dai } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -303,7 +303,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
@@ -345,7 +345,7 @@ describe('submitClaim', function () {
 
   it('submits DAI claim and rejects claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as, dai } = this.contracts;
+    const { ic, cover, stakingPool1, as, dai } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     // Cover inputs
@@ -356,7 +356,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
@@ -397,7 +397,7 @@ describe('submitClaim', function () {
 
   it('submits partial DAI claim and rejects claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as, dai } = this.contracts;
+    const { ic, cover, stakingPool1, as, dai } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     // Cover inputs
@@ -408,7 +408,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
@@ -449,7 +449,7 @@ describe('submitClaim', function () {
 
   it('submits USDC claim and approves claim (token with 6 decimals)', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as, usdc } = this.contracts;
+    const { ic, cover, stakingPool1, as, usdc } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     const usdcDecimals = 6;
@@ -462,7 +462,7 @@ describe('submitClaim', function () {
     const amount = parseUnits('10', usdcDecimals);
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: usdc, cover });
@@ -504,7 +504,7 @@ describe('submitClaim', function () {
 
   it('submits partial USDC claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as, usdc } = this.contracts;
+    const { ic, cover, stakingPool1, as, usdc } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     const usdcDecimals = 6;
@@ -517,7 +517,7 @@ describe('submitClaim', function () {
     const amount = parseUnits('10', usdcDecimals);
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: usdc, cover });
@@ -559,7 +559,7 @@ describe('submitClaim', function () {
 
   it('submits partial USDC claim and rejects claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as, usdc } = this.contracts;
+    const { ic, cover, stakingPool1, as, usdc } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     const usdcDecimals = 6;
@@ -572,7 +572,7 @@ describe('submitClaim', function () {
     const amount = parseUnits('10', usdcDecimals);
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: usdc, cover });
@@ -613,7 +613,7 @@ describe('submitClaim', function () {
 
   it('multiple partial ETH claims approved on the same cover', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as } = this.contracts;
+    const { ic, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -624,7 +624,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // Buy Cover
     await buyCover({
@@ -733,7 +733,7 @@ describe('submitClaim', function () {
 
   it('multiple partial DAI claims approved on the same cover', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as, dai } = this.contracts;
+    const { ic, cover, stakingPool1, as, dai } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -744,7 +744,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
@@ -852,7 +852,7 @@ describe('submitClaim', function () {
 
   it('multiple partial USDC claims approved on the same cover', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as, usdc } = this.contracts;
+    const { ic, cover, stakingPool1, as, usdc } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     const usdcDecimals = 6;
@@ -865,7 +865,7 @@ describe('submitClaim', function () {
     const amount = parseUnits('10', usdcDecimals);
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: usdc, cover });
@@ -973,7 +973,7 @@ describe('submitClaim', function () {
 
   it('multiple partial claims on the same cover with combinations of approved / denied', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as } = this.contracts;
+    const { ic, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     // Cover inputs
@@ -984,7 +984,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // Buy Cover
     await buyCover({
@@ -1092,7 +1092,7 @@ describe('submitClaim', function () {
 
   it('correctly calculates premium in cover edit after a claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { p1, ic, cover, stakingPool0, as } = this.contracts;
+    const { p1, ic, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -1103,8 +1103,8 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
-    await stakeOnly({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, trancheIdOffset: 1 });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stakeOnly({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, trancheIdOffset: 1 });
 
     // Buy Cover
     await buyCover({
@@ -1191,7 +1191,7 @@ describe('submitClaim', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: amount }],
       { value: totalEditPremium, gasPrice: 0 },
     );
 
@@ -1204,10 +1204,10 @@ describe('submitClaim', function () {
 
   it('correctly updates pool allocation after claim and cover edit', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as } = this.contracts;
+    const { ic, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
-    const NXM_PER_ALLOCATION_UNIT = await stakingPool0.NXM_PER_ALLOCATION_UNIT();
+    const NXM_PER_ALLOCATION_UNIT = await stakingPool1.NXM_PER_ALLOCATION_UNIT();
 
     // Move to the beginning of the next tranche
     const currentTrancheId = await moveTimeToNextTranche(1);
@@ -1220,23 +1220,23 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
-    await stakeOnly({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, trancheIdOffset: 1 });
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stakeOnly({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, trancheIdOffset: 1 });
 
-    const allocationId = await stakingPool0.getNextAllocationId();
+    const allocationId = await stakingPool1.getNextAllocationId();
     const lastBlock = await ethers.provider.getBlock('latest');
     const targetBucketId = Math.ceil((lastBlock.timestamp + period) / BUCKET_DURATION);
     const groupId = Math.floor(currentTrancheId / BUCKET_TRANCHE_GROUP_SIZE);
     const currentTrancheIndexInGroup = currentTrancheId % BUCKET_TRANCHE_GROUP_SIZE;
 
     {
-      const activeAllocations = await stakingPool0.getActiveAllocations(productId);
+      const activeAllocations = await stakingPool1.getActiveAllocations(productId);
       expect(activeAllocations[0]).to.equal(0);
 
-      const coverTrancheAllocations = await stakingPool0.coverTrancheAllocations(allocationId);
+      const coverTrancheAllocations = await stakingPool1.coverTrancheAllocations(allocationId);
       expect(coverTrancheAllocations).to.equal(0);
 
-      const expiringCoverBuckets = await stakingPool0.expiringCoverBuckets(productId, targetBucketId, groupId);
+      const expiringCoverBuckets = await stakingPool1.expiringCoverBuckets(productId, targetBucketId, groupId);
       expect(expiringCoverBuckets).to.equal(0);
     }
 
@@ -1257,15 +1257,15 @@ describe('submitClaim', function () {
     const preBurnCoverAllocation = await cover.coverSegmentAllocations(coverId, firstSegment, 0);
 
     {
-      const activeAllocations = await stakingPool0.getActiveAllocations(productId);
+      const activeAllocations = await stakingPool1.getActiveAllocations(productId);
       expect(activeAllocations[0]).to.equal(preBurnCoverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT));
 
-      const coverTrancheAllocations = await stakingPool0.coverTrancheAllocations(allocationId);
+      const coverTrancheAllocations = await stakingPool1.coverTrancheAllocations(allocationId);
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(
         preBurnCoverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT),
       );
 
-      const expiringCoverBuckets = await stakingPool0.expiringCoverBuckets(productId, targetBucketId, groupId);
+      const expiringCoverBuckets = await stakingPool1.expiringCoverBuckets(productId, targetBucketId, groupId);
       expect(expiringCoverBuckets.shr(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
         preBurnCoverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT),
       );
@@ -1296,18 +1296,18 @@ describe('submitClaim', function () {
       expect(payoutRedeemed).to.be.equal(true);
 
       const coverAllocation = await cover.coverSegmentAllocations(coverId, firstSegment, 0);
-      const activeAllocations = await stakingPool0.getActiveAllocations(productId);
+      const activeAllocations = await stakingPool1.getActiveAllocations(productId);
       expect(activeAllocations[0]).to.equal(
         preBurnCoverAllocation.coverAmountInNXM.div(2).div(NXM_PER_ALLOCATION_UNIT).add(1),
       );
       expect(activeAllocations[0]).to.equal(coverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT).add(1));
 
-      const coverTrancheAllocations = await stakingPool0.coverTrancheAllocations(allocationId);
+      const coverTrancheAllocations = await stakingPool1.coverTrancheAllocations(allocationId);
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(
         coverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT).add(1),
       );
 
-      const expiringCoverBuckets = await stakingPool0.expiringCoverBuckets(productId, targetBucketId, groupId);
+      const expiringCoverBuckets = await stakingPool1.expiringCoverBuckets(productId, targetBucketId, groupId);
       expect(expiringCoverBuckets.shr(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
         coverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT).add(1),
       );
@@ -1349,7 +1349,7 @@ describe('submitClaim', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: amount }],
       { value: totalEditPremium },
     );
 
@@ -1358,15 +1358,15 @@ describe('submitClaim', function () {
       const coverAllocation = await cover.coverSegmentAllocations(coverId, secondSegment, 0);
       expect(coverAllocation.coverAmountInNXM).to.equal(preBurnCoverAllocation.coverAmountInNXM);
 
-      const activeAllocations = await stakingPool0.getActiveAllocations(productId);
+      const activeAllocations = await stakingPool1.getActiveAllocations(productId);
       expect(activeAllocations[0]).to.equal(coverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT));
 
-      const coverTrancheAllocations = await stakingPool0.coverTrancheAllocations(allocationId);
+      const coverTrancheAllocations = await stakingPool1.coverTrancheAllocations(allocationId);
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(
         coverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT),
       );
 
-      const expiringCoverBuckets = await stakingPool0.expiringCoverBuckets(productId, targetBucketId, groupId);
+      const expiringCoverBuckets = await stakingPool1.expiringCoverBuckets(productId, targetBucketId, groupId);
       expect(expiringCoverBuckets.shr(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
         coverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT),
       );

@@ -523,10 +523,11 @@ async function setup() {
       '', // ipfs hash
     );
 
-    const stakingPoolAddress = await cover.stakingPool(i);
+    const poolId = i + 1;
+    const stakingPoolAddress = await cover.stakingPool(poolId);
     const stakingPoolInstance = await ethers.getContractAt('StakingPool', stakingPoolAddress);
 
-    this.contracts['stakingPool' + i] = stakingPoolInstance;
+    this.contracts['stakingPool' + poolId] = stakingPoolInstance;
   }
   const config = {
     BUCKET_SIZE: await cover.BUCKET_SIZE(),

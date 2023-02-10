@@ -61,7 +61,7 @@ describe('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: increasedAmount.toString() }],
       {
         value: extraPremium.add(1),
       },
@@ -105,7 +105,7 @@ describe('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: reducedAmount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: reducedAmount.toString() }],
       {
         value: 0,
       },
@@ -159,8 +159,8 @@ describe('editCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: 0, skip: true, coverAmountInAsset: 0 },
-        { poolId: 1, skip: false, coverAmountInAsset: amount },
+        { poolId: 1, skip: true, coverAmountInAsset: 0 },
+        { poolId: 2, skip: false, coverAmountInAsset: amount },
       ],
       {
         value: expectedPremium.add(1),
@@ -170,13 +170,13 @@ describe('editCover', function () {
     const buyerBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
     expect(buyerBalanceAfter).to.be.lt(buyerBalanceBefore.sub(expectedPremium));
 
-    const pool0Allocation = await cover.coverSegmentAllocations(expectedCoverId, 1, 0);
-    expect(pool0Allocation.poolId).to.be.equal(0);
-    const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, 1, 1);
+    const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, 1, 0);
     expect(pool1Allocation.poolId).to.be.equal(1);
+    const pool2Allocation = await cover.coverSegmentAllocations(expectedCoverId, 1, 1);
+    expect(pool2Allocation.poolId).to.be.equal(2);
 
-    expect(pool0Allocation.coverAmountInNXM).to.be.equal(amount);
     expect(pool1Allocation.coverAmountInNXM).to.be.equal(amount);
+    expect(pool2Allocation.coverAmountInNXM).to.be.equal(amount);
 
     await assertCoverFields(cover, expectedCoverId, {
       productId,
@@ -222,7 +222,7 @@ describe('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', skip: false, coverAmountInAsset: amount.toString() }],
+      [{ poolId: 1, skip: false, coverAmountInAsset: amount.toString() }],
       {
         value: extraPremium.add(10),
       },
@@ -264,7 +264,7 @@ describe('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', skip: false, coverAmountInAsset: amount.toString() }],
+      [{ poolId: 1, skip: false, coverAmountInAsset: amount.toString() }],
       {
         value: 0,
       },
@@ -317,7 +317,7 @@ describe('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount.toString() }],
+      [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount.toString() }],
       {
         value: extraPremium.add(10),
       },
@@ -370,7 +370,7 @@ describe('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', skip: false, coverAmountInAsset: decreasedAmount.toString() }],
+      [{ poolId: 1, skip: false, coverAmountInAsset: decreasedAmount.toString() }],
       {
         value: extraPremium,
       },
@@ -439,7 +439,7 @@ describe('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount.toString() }],
+      [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount.toString() }],
       {
         value: extraPremium,
       },
@@ -487,7 +487,7 @@ describe('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', skip: false, coverAmountInAsset: reducedAmount.toString() }],
+      [{ poolId: 1, skip: false, coverAmountInAsset: reducedAmount.toString() }],
       {
         value: 0,
       },
@@ -534,7 +534,7 @@ describe('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', skip: true, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, skip: true, coverAmountInAsset: increasedAmount }],
         { value: extraPremium.add(10) },
       ),
     ).to.be.revertedWithCustomError(cover, 'ExpiredCoversCannotBeEdited');
@@ -576,7 +576,7 @@ describe('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount.toString() }],
+        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount.toString() }],
         {
           value: extraPremium,
         },
@@ -621,7 +621,7 @@ describe('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount.toString() }],
+        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount.toString() }],
         {
           value: extraPremium,
         },
@@ -665,7 +665,7 @@ describe('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount }],
+      [{ poolId: 1, coverAmountInAsset: amount }],
       { value: expectedPremium.add(10) },
     );
 
@@ -702,7 +702,7 @@ describe('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount }],
         { value: extraPremium.add(10) },
       ),
     ).to.be.revertedWithCustomError(cover, 'OnlyOwnerOrApproved');
@@ -737,7 +737,7 @@ describe('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount }],
         { value: extraPremium.add(10) },
       ),
     ).to.be.revertedWith('NOT_MINTED');
@@ -779,7 +779,7 @@ describe('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount.toString() }],
+        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount.toString() }],
         {
           value: extraPremium,
         },
@@ -824,7 +824,7 @@ describe('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount.toString() }],
+        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount.toString() }],
         {
           value: extraPremium,
         },
@@ -869,7 +869,7 @@ describe('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount }],
         { value: extraPremium.add(1) },
       ),
     ).to.not.be.reverted;
@@ -909,7 +909,7 @@ describe('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount }],
         { value: extraPremium.add(1) },
       ),
     ).to.not.be.reverted;
@@ -951,7 +951,7 @@ describe('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount }],
         { value: extraPremium.add(1) },
       ),
     ).to.be.revertedWithCustomError(cover, 'UnexpectedCoverAsset');
@@ -993,7 +993,7 @@ describe('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount }],
         { value: extraPremium.add(1) },
       ),
     ).to.be.revertedWithCustomError(cover, 'UnexpectedProductId');
@@ -1084,7 +1084,7 @@ describe('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData,
         },
-        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount }],
         { value: extraPremium.add(1) },
       ),
     )
@@ -1129,7 +1129,7 @@ describe('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: increasedAmount.toString() }],
       {
         value: extraPremium,
       },
@@ -1190,7 +1190,7 @@ describe('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: increasedAmount.toString() }],
       {
         value: 0,
       },
@@ -1250,8 +1250,8 @@ describe('editCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: 0, skip: true, coverAmountInAsset: 0 },
-        { poolId: 1, skip: false, coverAmountInAsset: amount },
+        { poolId: 1, skip: true, coverAmountInAsset: 0 },
+        { poolId: 2, skip: false, coverAmountInAsset: amount },
       ],
       {
         value: expectedPremium.add(1),
@@ -1265,13 +1265,13 @@ describe('editCover', function () {
     const segment = await cover.coverSegments(expectedCoverId, firstEditSegment);
 
     {
-      const pool0Allocation = await cover.coverSegmentAllocations(expectedCoverId, firstEditSegment, 0);
-      expect(pool0Allocation.poolId).to.be.equal(0);
-      expect(pool0Allocation.coverAmountInNXM).to.be.equal(amount);
-
-      const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, firstEditSegment, 1);
+      const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, firstEditSegment, 0);
       expect(pool1Allocation.poolId).to.be.equal(1);
       expect(pool1Allocation.coverAmountInNXM).to.be.equal(amount);
+
+      const pool2Allocation = await cover.coverSegmentAllocations(expectedCoverId, firstEditSegment, 1);
+      expect(pool2Allocation.poolId).to.be.equal(2);
+      expect(pool2Allocation.coverAmountInNXM).to.be.equal(amount);
 
       await assertCoverFields(cover, expectedCoverId, {
         productId,
@@ -1310,8 +1310,8 @@ describe('editCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: 0, skip: false, coverAmountInAsset: increasedPoolAmount },
         { poolId: 1, skip: false, coverAmountInAsset: increasedPoolAmount },
+        { poolId: 2, skip: false, coverAmountInAsset: increasedPoolAmount },
       ],
       {
         value: extraPremium.add(10),
@@ -1321,13 +1321,13 @@ describe('editCover', function () {
     const secondEditSegment = 2;
 
     {
-      const pool0Allocation = await cover.coverSegmentAllocations(expectedCoverId, secondEditSegment, 0);
-      expect(pool0Allocation.poolId).to.be.equal(0);
-      expect(pool0Allocation.coverAmountInNXM).to.be.equal(increasedPoolAmount);
-
-      const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, secondEditSegment, 1);
+      const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, secondEditSegment, 0);
       expect(pool1Allocation.poolId).to.be.equal(1);
       expect(pool1Allocation.coverAmountInNXM).to.be.equal(increasedPoolAmount);
+
+      const pool2Allocation = await cover.coverSegmentAllocations(expectedCoverId, secondEditSegment, 1);
+      expect(pool2Allocation.poolId).to.be.equal(2);
+      expect(pool2Allocation.coverAmountInNXM).to.be.equal(increasedPoolAmount);
 
       await assertCoverFields(cover, expectedCoverId, {
         productId,
@@ -1375,7 +1375,7 @@ describe('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: 0, skip: true, coverAmountInAsset: amount.mul(2) }],
+      [{ poolId: 1, skip: true, coverAmountInAsset: amount.mul(2) }],
       {
         value: expectedPremium.mul(2),
       },
@@ -1383,9 +1383,9 @@ describe('editCover', function () {
 
     const firstEditSegment = 1;
     {
-      const pool0Allocation = await cover.coverSegmentAllocations(expectedCoverId, firstEditSegment, 0);
-      expect(pool0Allocation.poolId).to.be.equal(0);
-      expect(pool0Allocation.coverAmountInNXM).to.be.equal(amount);
+      const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, firstEditSegment, 0);
+      expect(pool1Allocation.poolId).to.be.equal(1);
+      expect(pool1Allocation.coverAmountInNXM).to.be.equal(amount);
 
       await assertCoverFields(cover, expectedCoverId, {
         productId,
@@ -1434,7 +1434,7 @@ describe('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 1, skip: false, coverAmountInAsset: amount }],
+        [{ poolId: 2, skip: false, coverAmountInAsset: amount }],
         {
           value: expectedPremium,
         },
@@ -1488,7 +1488,7 @@ describe('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: increasedAmount.toString() }],
       {
         value: extraPremium.add(1),
       },

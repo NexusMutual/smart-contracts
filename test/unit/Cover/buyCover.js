@@ -14,7 +14,7 @@ const NXM_ASSET_ID = 255;
 const buyCoverFixture = {
   productId: 0,
   coverAsset: 0, // ETH
-  poolId: 0,
+  poolId: 1,
   segmentId: 0,
   period: 3600 * 24 * 30, // 30 days
   amount: parseEther('1000'),
@@ -26,7 +26,7 @@ const buyCoverFixture = {
   expectedPremium: parseEther('1000').mul(260).div(10000), // amount * targetPriceRatio / priceDenominator
 };
 
-const poolAllocationRequest = [{ poolId: '0', coverAmountInAsset: buyCoverFixture.amount }];
+const poolAllocationRequest = [{ poolId: 1, coverAmountInAsset: buyCoverFixture.amount }];
 
 describe('buyCover', function () {
   beforeEach(async function () {
@@ -94,7 +94,8 @@ describe('buyCover', function () {
     const { amount, targetPriceRatio, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     const productId = 1;
-    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
+    const stakingPoolId = poolAllocationRequest[0].poolId;
+    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(stakingPoolId));
     await stakingPool.setPrice(productId, targetPriceRatio);
 
     const poolEthBalanceBefore = await ethers.provider.getBalance(pool.address);
@@ -166,8 +167,8 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: '1', coverAmountInAsset: amount.div(2) },
-        { poolId: '0', coverAmountInAsset: amount.div(2) },
+        { poolId: 2, coverAmountInAsset: amount.div(2) },
+        { poolId: 1, coverAmountInAsset: amount.div(2) },
       ],
       { value: expectedPremium },
     );
@@ -900,7 +901,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: 0 }],
+        [{ poolId: 1, coverAmountInAsset: 0 }],
         { value: expectedPremium },
       ),
     ).to.be.revertedWithCustomError(cover, 'InsufficientCoverAmountAllocated');
@@ -1208,16 +1209,16 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: 0, coverAmountInAsset: coverAmountAllocationPerPool },
         { poolId: 1, coverAmountInAsset: coverAmountAllocationPerPool },
         { poolId: 2, coverAmountInAsset: coverAmountAllocationPerPool },
+        { poolId: 3, coverAmountInAsset: coverAmountAllocationPerPool },
       ],
       { value: expectedPremium },
     );
 
     const stakingPool1After = await tokenController.stakingPoolNXMBalances(0);
     const stakingPool2After = await tokenController.stakingPoolNXMBalances(1);
-    const stakingPool3After = await tokenController.stakingPoolNXMBalances(2);
+    const stakingPool3After = await tokenController.stakingPoolNXMBalances(3);
 
     // validate that rewards increased
     expect(stakingPool1After.rewards).to.be.equal(stakingPool1Before.rewards.add(expectedRewardPerPool));
@@ -1228,7 +1229,7 @@ describe('buyCover', function () {
 
     for (let i = 0; i < 3; i++) {
       const segmentAllocation = await cover.coverSegmentAllocations(coverId, segmentId, i);
-      expect(segmentAllocation.poolId).to.be.equal(i);
+      expect(segmentAllocation.poolId).to.be.equal(i + 1);
       expect(segmentAllocation.coverAmountInNXM).to.be.equal(coverAmountAllocationPerPool);
     }
   });

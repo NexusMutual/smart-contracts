@@ -19,7 +19,7 @@ describe('setProducts', function () {
 
   // Cover.PoolAllocationRequest
   const poolAllocationRequestTemplate = {
-    poolId: '0',
+    poolId: 1,
     coverAmountInAsset: amount,
   };
 

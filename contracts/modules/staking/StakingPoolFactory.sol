@@ -32,7 +32,7 @@ contract StakingPoolFactory is IStakingPoolFactory {
     require(msg.sender == operator, "StakingPoolFactory: Not operator");
 
     beacon = _beacon;
-    poolId = _stakingPoolCount++;
+    poolId = ++_stakingPoolCount;
 
     stakingPoolAddress = address(
       new MinimalBeaconProxy{salt : bytes32(poolId)}()

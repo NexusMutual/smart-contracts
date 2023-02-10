@@ -44,6 +44,7 @@ const ListIdForReceivers = 218;
 const AddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
 
 const MIN_POOL_ETH = 0;
+const MAX_ACTIVE_TRANCHES = 8;
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 
@@ -893,6 +894,7 @@ describe('V2 upgrade', function () {
       manager: FOUNDATION,
       isPrivatePool: true,
       // stakingNFTId: stakingNFTSupplyBefore.add(1),
+      trancheStakeRatio: [0, 0, 0, 0, 0, 0, 0, 0],
     };
     expectedPoolConfigurations[hughPoolId] = {
       maxFee: 20,
@@ -900,6 +902,7 @@ describe('V2 upgrade', function () {
       manager: HUGH,
       isPrivatePool: false,
       stakingNFTId: stakingNFTSupplyBefore.add(1),
+      trancheStakeRatio: [0, 10, 0, 0, 0, 90, 0, 0],
     };
     expectedPoolConfigurations[armorAAAPoolId] = {
       maxFee: 25,
@@ -907,6 +910,7 @@ describe('V2 upgrade', function () {
       manager: ARMOR_MANAGER,
       isPrivatePool: false,
       stakingNFTId: stakingNFTSupplyBefore.add(2),
+      trancheStakeRatio: [20, 25, 25, 15, 10, 0, 0, 0],
     };
     expectedPoolConfigurations[armorAAPoolId] = {
       maxFee: 25,
@@ -914,6 +918,7 @@ describe('V2 upgrade', function () {
       manager: ARMOR_MANAGER,
       isPrivatePool: false,
       stakingNFTId: stakingNFTSupplyBefore.add(3),
+      trancheStakeRatio: [20, 25, 25, 15, 10, 0, 0, 0],
     };
 
     for (let poolId = INITIAL_POOL_ID; poolId <= stakingPoolCount; poolId++) {
@@ -939,6 +944,18 @@ describe('V2 upgrade', function () {
         expect(ownerOfStakingNFT.toLowerCase()).to.be.equal(expected.manager.toLowerCase());
       } else {
         console.log(`Staker ${stakerAddress}'s manager ${expected.manager} does not own a StakingNFT.`);
+      }
+
+      // validate tokens are distributed correctly across tranches
+      const block = await ethers.provider.getBlock('latest');
+      const firstTrancheId = BigNumber.from(block.timestamp)
+        .div(91 * 24 * 3600)
+        .add(1);
+      for (let i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
+        const trancheDeposit = await stakingPool.deposits(expected.stakingNFTId, firstTrancheId.add(i));
+        const expectedTrancheDeposit = depositInPS[stakerAddress].mul(expected.trancheStakeRatio[i]).div(100);
+
+        expect(expectedTrancheDeposit).to.be.equal(trancheDeposit);
       }
     }
   });

@@ -773,6 +773,9 @@ describe('V2 upgrade', function () {
       depositsInStakingPools[i] = deposits;
     }
 
+    // What ratio of the original staker's deposit was allocated to this pool.
+    const poolDepositRatio = {};
+
     // Check Armor
     // 5% of the stake is unlocked
     // 71.25% of the stake moves to AAA Pool (95% * 75% of the stake)
@@ -782,6 +785,7 @@ describe('V2 upgrade', function () {
     console.log('Nexus Mutual Foundation Pool');
     let expectedPoolId = INITIAL_POOL_ID;
     const foundationPoolId = expectedPoolId++;
+    poolDepositRatio[foundationPoolId] = 100;
     // The entire NXM balance is unlocked and sent back to the Foundation
     // TODO: Needs some Solidity changes to be able to fully migrate them as well
     expect(depositsInStakingPools[foundationPoolId]).to.be.equal(0); // depositInPS[FOUNDATION]
@@ -790,6 +794,7 @@ describe('V2 upgrade', function () {
     // Hugh Pool
     console.log('Hugh Pool');
     const hughPoolId = expectedPoolId++;
+    poolDepositRatio[hughPoolId] = 100;
     expect(depositsInStakingPools[hughPoolId]).to.be.equal(depositInPS[HUGH]);
     // No NXM gets unlocked, so the balance shouldn't change
     expect(nxmBalancesAfter[HUGH]).to.be.equal(nxmBalancesBefore[HUGH]);
@@ -800,15 +805,23 @@ describe('V2 upgrade', function () {
     // Armor AAA Pool
     console.log('Armor AAA Pool');
     const armorAAAPoolId = expectedPoolId++;
+    poolDepositRatio[armorAAAPoolId] = 75;
     // 5% of the AAA allocation must be unlocked
-    const expectedArmorAAAPoolBalance = depositInPS[ARMOR_STAKER].mul(75).div(100).mul(95).div(100);
+    const expectedArmorAAAPoolBalance = depositInPS[ARMOR_STAKER].mul(poolDepositRatio[armorAAAPoolId])
+      .div(100)
+      .mul(95)
+      .div(100);
     expect(depositsInStakingPools[armorAAAPoolId]).to.be.equal(expectedArmorAAAPoolBalance.sub(precisionTolerance));
 
     // Armor AA Pool
     console.log('Armor AA Pool');
     const armorAAPoolId = expectedPoolId++;
+    poolDepositRatio[armorAAPoolId] = 25;
     // 5% of the AA allocation must be unlocked
-    const expectedArmorAAPoolBalance = depositInPS[ARMOR_STAKER].mul(25).div(100).mul(95).div(100);
+    const expectedArmorAAPoolBalance = depositInPS[ARMOR_STAKER].mul(poolDepositRatio[armorAAPoolId])
+      .div(100)
+      .mul(95)
+      .div(100);
     expect(depositsInStakingPools[armorAAPoolId]).to.be.equal(expectedArmorAAPoolBalance.sub(precisionTolerance));
 
     // Overall we must unlock 5% of Armor's total tokens in PS
@@ -966,27 +979,27 @@ describe('V2 upgrade', function () {
 
       const block = await ethers.provider.getBlock('latest');
 
-      // TODO: remove, not necessary
       const firstTrancheId = BigNumber.from(block.timestamp)
         .div(91 * 24 * 3600)
         .add(1);
-
-      console.log({
-        firstTrancheId: firstTrancheId.toString(),
-      });
-
       const token = await this.stakingViewer.getToken(expected.stakingNFTId);
 
+      // the StakingViewer provides us only with the non-zero deposits and we match those with the expected ratios
+      expect(token.deposits.length).to.be.equal(expected.trancheStakeRatio.filter(r => r > 0).length);
+
+      // index to track which deposit of the view we are current checking
+      let depositIndex = 0;
       for (let i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
-        console.log(`fetching deposit from ${expected.stakingNFTId}`);
+        if (expected.trancheStakeRatio[i] === 0) {
+          continue;
+        }
+        const expectedTrancheDeposit = depositInPS[stakerAddress]
+          .mul(poolDepositRatio[poolId])
+          .div(100)
+          .mul(expected.trancheStakeRatio[i])
+          .div(100);
+        const deposit = token.deposits[depositIndex++]; // increment the depositIndex to check the next
 
-        const expectedTrancheDeposit = depositInPS[stakerAddress].mul(expected.trancheStakeRatio[i]).div(100);
-
-        console.log({
-          expectedTrancheDeposit: expectedTrancheDeposit.toString(),
-        });
-
-        const deposit = token.deposits[i];
         expect(deposit.trancheId).to.be.equal(firstTrancheId.add(i));
         expect(deposit.stake).to.be.equal(expectedTrancheDeposit);
       }

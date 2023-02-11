@@ -1372,4 +1372,128 @@ describe('submitClaim', function () {
       );
     }
   });
+
+  it.only('should use the correct segment when calculating claim payout', async function () {
+    const { DEFAULT_PRODUCTS } = this;
+    const { ic, cover, stakingPool1, as } = this.contracts;
+    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+
+    const NXM_PER_ALLOCATION_UNIT = await stakingPool1.NXM_PER_ALLOCATION_UNIT();
+
+    // Move to the beginning of the next tranche
+    const currentTrancheId = await moveTimeToNextTranche(1);
+
+    // Cover inputs
+    const productId = 0;
+    const coverAsset = ETH_ASSET_ID; // ETH
+    const period = daysToSeconds(60); // 60 days
+    const gracePeriod = daysToSeconds(30);
+    const amount = parseEther('1');
+
+    // Stake to open up capacity
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stakeOnly({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, trancheIdOffset: 1 });
+
+    const allocationId = await stakingPool1.getNextAllocationId();
+    const lastBlock = await ethers.provider.getBlock('latest');
+    const targetBucketId = Math.ceil((lastBlock.timestamp + period) / BUCKET_DURATION);
+    const groupId = Math.floor(currentTrancheId / BUCKET_TRANCHE_GROUP_SIZE);
+    const currentTrancheIndexInGroup = currentTrancheId % BUCKET_TRANCHE_GROUP_SIZE;
+
+    // Buy Cover
+    await buyCover({
+      amount,
+      productId,
+      coverAsset,
+      period,
+      cover,
+      coverBuyer: coverBuyer1,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
+      priceDenominator,
+    });
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    await setTime(timestamp + period - daysToSeconds(30));
+
+    const coverId = 1;
+    const firstSegment = 0;
+    const secondSegment = 1;
+    const claimAmount = amount.div(3);
+    const decreasedAmount = amount.div(9);
+
+    const segment = await cover.coverSegments(coverId, 0);
+    const latestBlock = await ethers.provider.getBlock('latest');
+
+    const editTimestamp = BigNumber.from(latestBlock.timestamp).add(1);
+    const passedPeriod = editTimestamp.sub(segment.start);
+    const remainingPeriod = BigNumber.from(segment.period).sub(passedPeriod);
+
+    const expectedPremium = decreasedAmount
+      .mul(DEFAULT_PRODUCTS[0].targetPrice)
+      .div(priceDenominator)
+      .mul(period)
+      .div(MAX_COVER_PERIOD);
+
+    const coverAmountLeft = decreasedAmount.sub(claimAmount);
+    const refund = coverAmountLeft
+      .mul(DEFAULT_PRODUCTS[0].targetPrice)
+      .mul(BigNumber.from(segment.period).sub(passedPeriod))
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+    const totalEditPremium = expectedPremium.sub(refund);
+
+    // Edit Cover - resets amount for the remaining period
+    // TODO: when period is increased -> StakingPool.requestAllocation (contracts/modules/staking/StakingPool.sol:698
+    await cover.connect(coverBuyer1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        coverId,
+        productId,
+        coverAsset,
+        amount: decreasedAmount,
+        period: remainingPeriod,
+        maxPremiumInAsset: totalEditPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: 1, coverAmountInAsset: decreasedAmount }],
+      { value: totalEditPremium },
+    );
+
+    // Submit partial claim - 1/2 of total amount
+    {
+      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+        value: deposit.mul('2'),
+      });
+
+      const assessmentId = 0;
+      const assessmentStakingAmount = parseEther('1000');
+      await acceptClaim({ staker: staker2, assessmentStakingAmount, as, assessmentId });
+
+      const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
+
+      // redeem payout
+      await ic.redeemClaimPayout(assessmentId);
+
+      const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
+      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(claimAmount).add(deposit));
+
+      const { payoutRedeemed } = await ic.claims(assessmentId);
+      expect(payoutRedeemed).to.be.equal(true);
+
+      const coverAllocation = await cover.coverSegmentAllocations(coverId, firstSegment, 0);
+      const coverAllocationSecondSegment = await cover.coverSegmentAllocations(coverId, secondSegment, 0);
+      const activeAllocations = await stakingPool1.getActiveAllocations(productId);
+      expect(activeAllocations[0]).to.equal(0);
+
+      const coverTrancheAllocations = await stakingPool1.coverTrancheAllocations(allocationId);
+      expect(coverTrancheAllocations).to.equal(0);
+
+      const expiringCoverBuckets = await stakingPool1.expiringCoverBuckets(productId, targetBucketId, groupId);
+      expect(expiringCoverBuckets.shr(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(0);
+    }
+  });
 });

@@ -558,6 +558,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     CoverData storage cover = _coverData[coverId];
     ActiveCover storage _activeCover = activeCover[cover.coverAsset];
     CoverSegment memory segment = coverSegments(coverId, segmentId);
+
+    CoverSegment memory latestSegment = coverSegments(coverId, _coverSegments[coverId].length - 1);
+
     PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
 
     // Update expired buckets and calculate the amount of active cover that should be burned
@@ -566,12 +569,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       uint lastUpdateId = _activeCover.lastBucketUpdateId;
       uint currentBucketId = block.timestamp / BUCKET_SIZE;
 
-      uint burnedSegmentBucketId = Math.divCeil((segment.start + segment.period), BUCKET_SIZE);
+      uint _burnedSegmentBucketId = Math.divCeil((segment.start + segment.period), BUCKET_SIZE);
+
+      uint burnedSegmentBucketId = Math.divCeil((latestSegment.start + latestSegment.period), BUCKET_SIZE);
       uint activeCoverToExpire = getExpiredCoverAmount(coverAsset, lastUpdateId, currentBucketId);
 
       // burn amount is accounted for in total active cover if segment has not expired
       if (burnedSegmentBucketId > currentBucketId) {
+        assert(activeCoverExpirationBuckets[coverAsset][_burnedSegmentBucketId] == 0);
         uint segmentAmount = Math.min(payoutAmountInAsset, segment.amount);
+        segmentAmount = Math.min(segmentAmount, activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId]);
         activeCoverToExpire += segmentAmount;
         activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId] -= segmentAmount.toUint192();
       }
@@ -588,17 +595,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     for (uint i = 0; i < allocationCount; i++) {
       PoolAllocation memory allocation = allocations[i];
 
-      uint payoutAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / segment.amount;
-      uint burnAmountInNxm = payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / segment.globalCapacityRatio;
+      uint payoutAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / latestSegment.amount;
+      uint burnAmountInNxm = payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / latestSegment.globalCapacityRatio;
 
+      // TODO: underflow
       allocations[i].coverAmountInNXM -= payoutAmountInNXM.toUint96();
-      allocations[i].premiumInNXM -= (allocation.premiumInNXM * payoutAmountInAsset / segment.amount).toUint96();
+      allocations[i].premiumInNXM -= (allocation.premiumInNXM * payoutAmountInAsset / latestSegment.amount).toUint96();
+
 
       BurnStakeParams memory params = BurnStakeParams(
         allocation.allocationId,
         cover.productId,
-        segment.start,
-        segment.period,
+        latestSegment.start,
+        latestSegment.period,
         payoutAmountInNXM
       );
 

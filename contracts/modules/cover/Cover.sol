@@ -577,7 +577,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       // burn amount is accounted for in total active cover if segment has not expired
       if (burnedSegmentBucketId > currentBucketId) {
         assert(activeCoverExpirationBuckets[coverAsset][_burnedSegmentBucketId] == 0);
-        uint segmentAmount = Math.min(payoutAmountInAsset, segment.amount);
+        uint segmentAmount = Math.min(payoutAmountInAsset, latestSegment.amount);
         segmentAmount = Math.min(segmentAmount, activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId]);
         activeCoverToExpire += segmentAmount;
         activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId] -= segmentAmount.toUint192();

@@ -564,6 +564,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
 
     // Update expired buckets and calculate the amount of active cover that should be burned
+    uint maxPayoutAmountInAsset = Math.min(payoutAmountInAsset, latestSegment.amount);
     {
       uint coverAsset = cover.coverAsset;
       uint lastUpdateId = _activeCover.lastBucketUpdateId;
@@ -572,10 +573,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       uint burnedSegmentBucketId = Math.divCeil((latestSegment.start + latestSegment.period), BUCKET_SIZE);
       uint activeCoverToExpire = getExpiredCoverAmount(coverAsset, lastUpdateId, currentBucketId);
 
+
       // burn amount is accounted for in total active cover if segment has not expired
       if (burnedSegmentBucketId > currentBucketId) {
-        uint segmentAmount = Math.min(payoutAmountInAsset, latestSegment.amount);
-        segmentAmount = Math.min(segmentAmount, activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId]);
+        // TODO: is this needed?
+        uint segmentAmount = Math.min(maxPayoutAmountInAsset, activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId]);
         activeCoverToExpire += segmentAmount;
         activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId] -= segmentAmount.toUint192();
       }
@@ -592,12 +594,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     for (uint i = 0; i < allocationCount; i++) {
       PoolAllocation memory allocation = allocations[i];
 
-      uint payoutAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / latestSegment.amount;
+      uint payoutAmountInNXM = allocation.coverAmountInNXM * maxPayoutAmountInAsset / latestSegment.amount;
+      // TODO: use latest globalCapacityRatio?
       uint burnAmountInNxm = payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / latestSegment.globalCapacityRatio;
 
       // TODO: underflow
       allocations[i].coverAmountInNXM -= payoutAmountInNXM.toUint96();
-      allocations[i].premiumInNXM -= (allocation.premiumInNXM * payoutAmountInAsset / latestSegment.amount).toUint96();
+      allocations[i].premiumInNXM -= (allocation.premiumInNXM * maxPayoutAmountInAsset / latestSegment.amount).toUint96();
 
 
       BurnStakeParams memory params = BurnStakeParams(

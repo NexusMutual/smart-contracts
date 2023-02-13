@@ -26,6 +26,12 @@ async function assertNewAddresses(master, contractCodes, newAddresses, contractT
   }
 }
 
+const encoder = (types, values) => {
+  const abiCoder = ethers.utils.defaultAbiCoder;
+  const encodedParams = abiCoder.encode(types, values);
+  return encodedParams.slice(2);
+};
+
 describe('master', function () {
   it('adds new replaceable contract which can execute internal functions', async function () {
     const { master, gv } = this.contracts;
@@ -70,6 +76,37 @@ describe('master', function () {
     const newContractInstance = await ethers.getContractAt('MMockNewContract', address);
     // can perform onlyInternal action
     await newContractInstance.mint(this.accounts.defaultSender.address, parseEther('1'));
+  });
+
+  it('adds new proxy contract with a predictable address', async function () {
+    const { master, gv } = this.contracts;
+
+    const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
+    const newContract = await MMockNewContract.deploy();
+
+    const salt = 2;
+
+    const contractTypeAndSalt = 2 * 2 ** 8 + ContractTypes.Proxy;
+
+    const code = hex('XX');
+    const actionData = defaultAbiCoder.encode(
+      ['bytes2[]', 'address[]', 'uint[]'],
+      [[code], [newContract.address], [contractTypeAndSalt]],
+    );
+    await submitProposal(gv, ProposalCategory.newContracts, actionData, [this.accounts.defaultSender]);
+
+    const address = await master.getLatestAddress(code);
+    const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', address);
+
+    const implementation = await proxy.implementation();
+    assert.equal(implementation, newContract.address);
+
+    const OwnedUpgradeabilityProxy = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
+    const saltHex = ethers.utils.id(salt.toString());
+    const initCode = OwnedUpgradeabilityProxy.bytecode + encoder(['address'], [master.address]);
+    const expectedProxyAddress = ethers.utils.getCreate2Address(master.address, saltHex, initCode);
+
+    expect(proxy.address).to.be.equal(expectedProxyAddress);
   });
 
   it('replace contract', async function () {

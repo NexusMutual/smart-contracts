@@ -88,7 +88,7 @@ async function main() {
   const firstDepositTx = await stakingPoolZero.depositTo(
     stakingAmount,
     lastActiveTrancheId,
-    MaxUint256, // new position
+    0, // new position
     AddressZero, // destination
   );
 
@@ -100,7 +100,7 @@ async function main() {
   const secondDepositTx = await stakingPoolOne.depositTo(
     stakingAmount,
     lastActiveTrancheId,
-    MaxUint256, // new position
+    0, // new position
     AddressZero, // destination
   );
 

@@ -61,7 +61,7 @@ contract CoverNFT is ICoverNFT {
 
   // ERC165
 
-  function supportsInterface(bytes4 interfaceId) public view returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
     return
       interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
       interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
@@ -70,7 +70,8 @@ contract CoverNFT is ICoverNFT {
 
   // ERC721
 
-  function tokenURI(uint /*id*/) public pure returns (string memory) {
+  function tokenURI(uint /*id*/) public view returns (string memory) {
+    name; // silence warning - remove once implemented
     // TODO: implement me
     revert("NOT IMPLEMENTED");
   }
@@ -91,9 +92,9 @@ contract CoverNFT is ICoverNFT {
     emit Approval(owner, spender, id);
   }
 
-  function setApprovalForAll(address operator, bool approved) public {
-    isApprovedForAll[msg.sender][operator] = approved;
-    emit ApprovalForAll(msg.sender, operator, approved);
+  function setApprovalForAll(address spender, bool approved) public {
+    isApprovedForAll[msg.sender][spender] = approved;
+    emit ApprovalForAll(msg.sender, spender, approved);
   }
 
   /// @dev `ownerOf` and `getApproved` throw if the token doesn't exist as per ERC721 spec
@@ -148,7 +149,8 @@ contract CoverNFT is ICoverNFT {
 /// @notice A generic interface for a contract which properly accepts ERC721 tokens.
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
 abstract contract ERC721TokenReceiver {
-  function onERC721Received(address, address, uint, bytes calldata) external returns (bytes4) {
+  function onERC721Received(address, address, uint, bytes calldata) external virtual returns
+  (bytes4) {
     return ERC721TokenReceiver.onERC721Received.selector;
   }
 }

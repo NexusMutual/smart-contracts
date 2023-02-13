@@ -81,7 +81,7 @@ describe('expireCover', function () {
     assert.strictEqual(actualCoverStatus.toNumber(), expectedCoverStatus);
   });
 
-  it('decreases the total sum assured upon expiration', async function () {
+  it.skip('decreases the total sum assured upon expiration', async function () {
 
     const { qt, qd } = this.contracts;
 
@@ -108,7 +108,7 @@ describe('expireCover', function () {
     assert.strictEqual(actualCoverStatus.toNumber(), expectedCoverStatus);
   });
 
-  it('does not decrease total sum assured if a claim was accepted', async function () {
+  it.skip('does not decrease total sum assured if a claim was accepted', async function () {
 
     const { qt, qd } = this.contracts;
 

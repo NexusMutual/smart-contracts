@@ -122,7 +122,7 @@ contract StakingViewer is Multicall {
     uint poolsLength = poolIds.length;
     pools = new Pool[](poolsLength);
 
-    for (uint i = 1; i <= poolsLength; i++) {
+    for (uint i = 0; i < poolsLength; i++) {
       pools[i] = getPool(poolIds[i]);
     }
 
@@ -134,8 +134,8 @@ contract StakingViewer is Multicall {
     uint poolCount = stakingPoolFactory.stakingPoolCount();
     pools = new Pool[](poolCount);
 
-    for (uint i = 1; i <= poolCount; i++) {
-      pools[i] = getPool(i);
+    for (uint i = 0; i < poolCount; i++) {
+      pools[i] = getPool(i+1); // poolId starts from 1
     }
 
     return pools;

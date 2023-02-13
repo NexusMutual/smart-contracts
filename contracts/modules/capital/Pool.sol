@@ -113,24 +113,24 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
     // Set DAI swap details
     swapDetails[DAIAddress] = SwapDetails(
-      1000000 ether, // minAmount (1 mil)
-      2000000 ether, // maxAmount (2 mil)
+      10_000_000 ether, // minAmount (10 mil)
+      15_000_000 ether, // maxAmount (15 mil)
       0,             // lastSwapTime
       2_50           // maxSlippageRatio (2.5%)
     );
 
     // Set stETH swap details
     swapDetails[stETHAddress] = SwapDetails(
-      24360 ether, // minAmount (~24k)
-      32500 ether, // maxAmount (~32k)
+      24_360 ether, // minAmount (~24k)
+      32_500 ether, // maxAmount (~32k)
       1633425218,  // lastSwapTime
       0            // maxSlippageRatio (0%)
     );
 
     // Set enzyme vault swap details
     swapDetails[enzymeVaultAddress] = SwapDetails(
-      15000 ether, // minAmount
-      16000 ether, // maxAmount
+      15_000 ether, // minAmount
+      16_000 ether, // maxAmount
       1660673114,  // lastSwapTime
       2_50         // maxSlippageRatio (2.5%)
     );

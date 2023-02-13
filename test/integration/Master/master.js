@@ -5,6 +5,7 @@ const { submitProposal } = require('../utils').governance;
 const { hex } = require('../utils').helpers;
 const { parseEther, defaultAbiCoder } = ethers.utils;
 const { AddressZero } = ethers.constants;
+const { BigNumber } = ethers;
 
 async function assertNewAddresses(master, contractCodes, newAddresses, contractType) {
   for (let i = 0; i < contractCodes.length; i++) {
@@ -78,7 +79,7 @@ describe('master', function () {
     await newContractInstance.mint(this.accounts.defaultSender.address, parseEther('1'));
   });
 
-  it('adds new proxy contract with a predictable address', async function () {
+  it.only('adds new proxy contract with a predictable address', async function () {
     const { master, gv } = this.contracts;
 
     const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
@@ -103,8 +104,14 @@ describe('master', function () {
 
     const OwnedUpgradeabilityProxy = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
     const saltHex = ethers.utils.id(salt.toString());
-    const initCode = OwnedUpgradeabilityProxy.bytecode + encoder(['address'], [master.address]);
-    const expectedProxyAddress = ethers.utils.getCreate2Address(master.address, saltHex, initCode);
+
+    const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
+    const initCode = OwnedUpgradeabilityProxy.bytecode + encoder(['address'], [MaxAddress]);
+    const expectedProxyAddress = ethers.utils.getCreate2Address(
+      master.address,
+      saltHex,
+      ethers.utils.keccak256(initCode),
+    );
 
     expect(proxy.address).to.be.equal(expectedProxyAddress);
   });

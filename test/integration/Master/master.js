@@ -87,7 +87,7 @@ describe('master', function () {
 
     const salt = 2;
 
-    const contractTypeAndSalt = 2 * 2 ** 8 + ContractTypes.Proxy;
+    const contractTypeAndSalt = BigNumber.from(2).shl(8).add(ContractTypes.Proxy);
 
     const code = hex('XX');
     const actionData = defaultAbiCoder.encode(

@@ -103,7 +103,8 @@ describe('master', function () {
     assert.equal(implementation, newContract.address);
 
     const OwnedUpgradeabilityProxy = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
-    const saltHex = ethers.utils.id(salt.toString());
+
+    const saltHex = ethers.utils.formatBytes32String(salt.toString());
 
     const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
     const initCode = OwnedUpgradeabilityProxy.bytecode + encoder(['address'], [MaxAddress]);

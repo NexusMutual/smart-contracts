@@ -125,7 +125,7 @@ contract NXMaster is INXMMaster {
     up.changeMasterAddress(address(this));
     up.changeDependentContractAddress();
 
-    emit InternalContractAdded(contractCode, contractAddress, ContractType(_type));
+    emit InternalContractAdded(contractCode, contractAddress, ContractType(contractType));
   }
 
   /// @dev upgrades multiple contracts at a time

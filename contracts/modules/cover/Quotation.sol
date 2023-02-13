@@ -59,11 +59,12 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     (/* claim count */, bool hasOpenClaim, /* accepted */, /* amount */) = tc.coverInfo(coverId);
     require(!hasOpenClaim, "Quotation: cover has an open claim");
 
-    if (coverStatus != uint(IQuotationData.CoverStatus.ClaimAccepted)) {
-      (,, address contractAddress, bytes4 currency, uint amount,) = qd.getCoverDetailsByCoverID1(coverId);
-      qd.subFromTotalSumAssured(currency, amount);
-      qd.subFromTotalSumAssuredSC(contractAddress, currency, amount);
-    }
+    // disable active total cover amount tracking in v1 ahead of v2 upgrade
+    // if (coverStatus != uint(IQuotationData.CoverStatus.ClaimAccepted)) {
+    //   (,, address contractAddress, bytes4 currency, uint amount,) = qd.getCoverDetailsByCoverID1(coverId);
+    //   qd.subFromTotalSumAssured(currency, amount);
+    //   qd.subFromTotalSumAssuredSC(contractAddress, currency, amount);
+    // }
 
     qd.changeCoverStatusNo(coverId, uint8(IQuotationData.CoverStatus.CoverExpired));
   }

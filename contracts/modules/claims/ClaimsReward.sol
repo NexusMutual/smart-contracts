@@ -148,8 +148,10 @@ contract ClaimsReward is IClaimsReward, LegacyMasterAware {
 
     // adjust total sum assured
     (, address coverContract) = qd.getscAddressOfCover(coverId);
-    qd.subFromTotalSumAssured(coverCurrency, coverAmount);
-    qd.subFromTotalSumAssuredSC(coverContract, coverCurrency, coverAmount);
+
+    // disable active total cover amount tracking in v1 ahead of v2 upgrade
+    // qd.subFromTotalSumAssured(coverCurrency, coverAmount);
+    // qd.subFromTotalSumAssuredSC(coverContract, coverCurrency, coverAmount);
 
     // update MCR since total sum assured and MCR% change
     mcr.updateMCRInternal(pool.getPoolValueInEth(), true);

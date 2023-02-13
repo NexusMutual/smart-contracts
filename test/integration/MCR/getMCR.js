@@ -45,7 +45,7 @@ describe('getMCR', function () {
     assert.equal(currentMCR.toString(), storageMCR.toString());
   });
 
-  it('increases mcr towards by 0.4% in 2 hours and then decreases by 0.4% in 2 hours it after cover expiry', async function () {
+  it.skip('increases mcr towards by 0.4% in 2 hours and then decreases by 0.4% in 2 hours it after cover expiry', async function () {
     const { mcr, qt: quotation } = this.contracts;
 
     const gearingFactor = await mcr.gearingFactor();

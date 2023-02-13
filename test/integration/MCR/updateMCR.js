@@ -175,7 +175,7 @@ describe('updateMCR', function () {
     assert.equal(desireMCRAfter.toString(), expectedDesiredMCR.toString());
   });
 
-  it('increases desiredMCR if totalSumAssured is high enough and subsequently decreases to mcrFloor it when totalSumAssured falls to 0', async function () {
+  it.skip('increases desiredMCR if totalSumAssured is high enough and subsequently decreases to mcrFloor it when totalSumAssured falls to 0', async function () {
     const { mcr, qt: quotation } = this.contracts;
 
     const gearingFactor = await mcr.gearingFactor();
@@ -216,7 +216,7 @@ describe('updateMCR', function () {
     assert.equal(currentMCRFloor.toString(), expectedMCRFloor.toString());
   });
 
-  it('claim payout triggers updateMCR and sets desiredMCR to mcrFloor (sumAssured = 0)', async function () {
+  it.skip('claim payout triggers updateMCR and sets desiredMCR to mcrFloor (sumAssured = 0)', async function () {
     const { mcr, cl: claims, tk: token, p1: pool } = this.contracts;
 
     const gearingFactor = await mcr.gearingFactor();

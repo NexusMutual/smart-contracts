@@ -227,6 +227,9 @@ async function main() {
     [qd, cr, spf, tk].map(c => c.address),
   );
 
+  console.log('Deploying StakingProducts');
+  const stakingProducts = await deployProxy('StakingProducts', [coverStub.address, spf.address]);
+
   console.log('Deploying StakingPool');
   const stakingPool = await deployImmutable('StakingPool', [
     stakingNFT.address,
@@ -234,6 +237,7 @@ async function main() {
     coverStub.address,
     tc.address,
     master.address,
+    stakingProducts.address,
   ]);
 
   console.log('Deploying Cover');
@@ -252,7 +256,7 @@ async function main() {
   await deployImmutable('CoverViewer', [master.address]);
 
   console.log('Deploying StakingViewer');
-  await deployImmutable('StakingViewer', [master.address, stakingNFT.address, spf.address]);
+  await deployImmutable('StakingViewer', [master.address, stakingNFT.address, spf.address, stakingProducts.address]);
 
   console.log('Deploying assessment contracts');
   const yt = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);

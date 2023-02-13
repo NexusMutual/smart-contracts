@@ -210,7 +210,7 @@ async function main() {
 
   console.log('Deploying Cover and StakingProducts stubs');
   const coverStub = await deployProxy('ERC20Mock'); // temporarily using erc20 mock instead of stub
-  // const stakingProductsStub = await deployProxy('Stub');
+  const stakingProductsStub = await deployProxy('Stub');
 
   console.log('Deploying StakingPoolFactory');
   const spf = await deployImmutable('StakingPoolFactory', [coverStub.address]);
@@ -221,14 +221,17 @@ async function main() {
   console.log('Deploying StakingNFT');
   const stakingNFT = await deployImmutable('StakingNFT', ['Nexus Mutual Stake', 'NMS', spf.address, coverStub.address]);
 
+  console.log('Deploying StakingProducts');
+  const stakingProducts = await upgradeProxy(stakingProductsStub.address, 'StakingProducts', [
+    coverStub.address,
+    spf.address,
+  ]);
+
   console.log('Deploying disposable TokenController');
   const tc = await deployProxy(
     'DisposableTokenController',
     [qd, cr, spf, tk].map(c => c.address),
   );
-
-  console.log('Deploying StakingProducts');
-  const stakingProducts = await deployProxy('StakingProducts', [coverStub.address, spf.address]);
 
   console.log('Deploying StakingPool');
   const stakingPool = await deployImmutable('StakingPool', [
@@ -248,9 +251,6 @@ async function main() {
     stakingPool.address,
   ]);
   await cover.initialize();
-
-  // console.log('Deploying StakingProducts');
-  // const stakingProducts = await upgradeProxy(stakingProductsStub.address, 'StakingProducts', []);
 
   console.log('Deploying CoverViewer');
   await deployImmutable('CoverViewer', [master.address]);
@@ -357,7 +357,7 @@ async function main() {
   const replaceableContractCodes = ['MC', 'P1', 'CL'];
   const replaceableContractAddresses = [mcr, pool, coverMigrator].map(x => x.address);
 
-  const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'YT', 'IC', 'AS'];
+  const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'YT', 'IC', 'AS', 'SP'];
   const proxyContractAddresses = [
     { address: owner }, // as governance
     mr,
@@ -369,6 +369,7 @@ async function main() {
     yt,
     ic,
     assessment,
+    stakingProducts,
   ].map(x => x.address);
 
   const addresses = [...replaceableContractAddresses, ...proxyContractAddresses];

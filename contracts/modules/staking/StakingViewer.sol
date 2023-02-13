@@ -142,30 +142,30 @@ contract StakingViewer is Multicall {
   }
 
   function getProductPools(uint productId) public view returns (Pool[] memory pools) {
-    uint stakedPoolsCount = 0;
+    uint queueSize = 0;
     uint poolCount = stakingPoolFactory.stakingPoolCount();
     Pool[] memory stakedPoolsQueue = new Pool[](poolCount);
 
     for (uint i = 1; i <= poolCount; i++) {
       (
-      uint lastEffectiveWeight,
-      uint targetWeight,
-      uint targetPrice,
-      uint bumpedPrice,
-      uint bumpedPriceUpdateTime
-      ) = stakingPool(i).getProduct(productId);
+        uint lastEffectiveWeight,
+        uint targetWeight,
+        /* uint targetPrice */,
+        /* uint bumpedPrice */,
+        uint bumpedPriceUpdateTime
+      ) = stakingProducts.getProduct(i, productId);
 
       if (targetWeight == 0 && lastEffectiveWeight == 0 && bumpedPriceUpdateTime == 0) {
         continue;
       }
 
       Pool memory pool = getPool(i);
-      stakedPoolsQueue[stakedPoolsCount] = pool;
-      stakedPoolsCount++;
+      stakedPoolsQueue[queueSize] = pool;
+      queueSize++;
     }
-    pools = new Pool[](stakedPoolsCount);
+    pools = new Pool[](queueSize);
 
-    for (uint i = 0; i < stakedPoolsCount; i++) {
+    for (uint i = 0; i < queueSize; i++) {
       pools[i] = stakedPoolsQueue[i];
     }
 

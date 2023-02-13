@@ -82,25 +82,25 @@ async function main() {
   const firstActiveTrancheId = Math.floor(now / (91 * 24 * 3600));
   const lastActiveTrancheId = firstActiveTrancheId + 7;
 
-  console.log('Deposit to staking pool id: 0');
-  const stakingPoolZero = await getStakingPool(0, owner);
+  console.log('Deposit to staking pool id: 1');
+  const stakingPoolOne = await getStakingPool(1, owner);
 
-  const firstDepositTx = await stakingPoolZero.depositTo(
+  const firstDepositTx = await stakingPoolOne.depositTo(
     stakingAmount,
     lastActiveTrancheId,
-    MaxUint256, // new position
+    0, // new position
     AddressZero, // destination
   );
 
   logDepositEvent(await firstDepositTx.wait());
 
-  console.log('Deposit to staking pool id: 1');
-  const stakingPoolOne = await getStakingPool(1, staker);
+  console.log('Deposit to staking pool id: 2');
+  const stakingPoolTwo = await getStakingPool(2, staker);
 
-  const secondDepositTx = await stakingPoolOne.depositTo(
+  const secondDepositTx = await stakingPoolTwo.depositTo(
     stakingAmount,
     lastActiveTrancheId,
-    MaxUint256, // new position
+    0, // new position
     AddressZero, // destination
   );
 

@@ -103,6 +103,7 @@ contract StakingNFT is IStakingNFT {
   // ERC721
 
   function tokenURI(uint /*id*/) public view returns (string memory) {
+    name; // silence warning - remove once implemented
     // TODO: implement token uri
     revert("NOT IMPLEMENTED");
   }
@@ -181,7 +182,8 @@ contract StakingNFT is IStakingNFT {
 /// @notice A generic interface for a contract which properly accepts ERC721 tokens.
 /// @dev Based on Solmate https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol
 abstract contract ERC721TokenReceiver {
-  function onERC721Received(address, address, uint, bytes calldata) external returns (bytes4) {
+  function onERC721Received(address, address, uint, bytes calldata) external virtual returns
+  (bytes4) {
     return ERC721TokenReceiver.onERC721Received.selector;
   }
 }

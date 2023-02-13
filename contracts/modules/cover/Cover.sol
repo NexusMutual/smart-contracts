@@ -80,11 +80,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   // internally we store capacity using 2 decimals
   // 1 nxm of capacity is stored as 100
-  uint private constant ALLOCATION_UNITS_PER_NXM = 100;
+  uint public constant ALLOCATION_UNITS_PER_NXM = 100;
 
   // given capacities have 2 decimals
   // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
-  uint private constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
+  uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
   ICoverNFT public immutable override coverNFT;
   IStakingNFT public immutable override stakingNFT;

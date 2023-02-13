@@ -29,6 +29,8 @@ async function buyCover(productId, poolId, cover, buyer, amount, period, payment
   const stakingPoolAddr = await cover.stakingPool(poolId);
   const stakingPool = await ethers.getContractAt('StakingPool', stakingPoolAddr, buyer);
 
+  const stakingProducts = await ethers.getContractAt('StakingProducts', Addresses.StakingProducts, buyer);
+
   const globalCapacityRatio = await cover.globalCapacityRatio();
   console.log('Global capacity ratio:', globalCapacityRatio.toString());
 
@@ -36,7 +38,7 @@ async function buyCover(productId, poolId, cover, buyer, amount, period, payment
   console.log('Capacity reduction ratio for product', productId, ':', capacityReductionRatio.toString());
 
   const { timestamp: now } = await ethers.provider.getBlock('latest');
-  const stakedProduct = await stakingPool.products(productId);
+  const stakedProduct = await stakingProducts.getProduct(poolId, productId);
   console.log('Staked Product:', {
     lastEffectiveWeight: stakedProduct.lastEffectiveWeight,
     targetWeight: stakedProduct.targetWeight,
@@ -67,14 +69,20 @@ async function buyCover(productId, poolId, cover, buyer, amount, period, payment
   );
 
   // Calculate premium for productId 0
-  const [expectedPremium] = await stakingPool.calculatePremium(
-    stakedProduct, // product
+  const NXM_PER_ALLOCATION_UNIT = await cover.NXM_PER_ALLOCATION_UNIT();
+  const ALLOCATION_UNITS_PER_NXM = await cover.ALLOCATION_UNITS_PER_NXM();
+  const TARGET_PRICE_DENOMINATOR = await stakingProducts.TARGET_PRICE_DENOMINATOR();
+  const [expectedPremium] = await stakingProducts.calculatePremium(
+    stakedProduct, // staked product
     period, // cover period
     divCeil(amount, parseEther('0.01')), // cover amount with 2 decimals
     activeAllocationsBefore[7], // used capacity - 8th tranche - change if you are depositing in a different tranche
     totalCapacity, // total capacity
     stakedProduct.targetPrice, // target price
-    now, // current timestamp
+    now, // current time,
+    NXM_PER_ALLOCATION_UNIT, // NXM per allocation unit from Cover.sol
+    ALLOCATION_UNITS_PER_NXM, // allocation units per NXM from Cover.sol
+    TARGET_PRICE_DENOMINATOR, // target price denominator from StakingProducts.sol
   );
   console.log('Expected premium: ', formatEther(expectedPremium));
 
@@ -118,20 +126,20 @@ async function main() {
   const tokenPrice = await pool.getTokenPrice();
   console.log('NXM token price', formatEther(tokenPrice));
 
-  const poolId = 0;
+  const poolId = 1;
 
   // Buy cover generic inputs
   const paymentAsset = 0; // ETH
   const period = 30 * 24 * 3600; // 30 days
   const amount = parseEther('0.1'); // 0.1 ETH
 
-  console.log('========= ProductId 0 on PoolId 0 ==========');
+  console.log('========= ProductId 0 on PoolId 1 ==========');
   await buyCover(0, poolId, cover, buyer, amount, period, paymentAsset);
 
-  console.log('========= ProductId 1 on PoolId 0==========');
+  console.log('========= ProductId 1 on PoolId 1 ==========');
   await buyCover(1, poolId, cover, buyer, amount, period, paymentAsset);
 
-  console.log('========= ProductId 73 on PoolId 0 ==========');
+  console.log('========= ProductId 73 on PoolId 1 ==========');
   await buyCover(73, poolId, cover, buyer, amount, period, paymentAsset);
 
   console.log('Done!');

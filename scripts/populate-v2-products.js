@@ -17,75 +17,17 @@ const sleep = ms => {
   });
 };
 
-const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
+const main = async (coverAddress, abMemberSigner) => {
   const [deployer] = await ethers.getSigners();
   const { abi } = JSON.parse(fs.readFileSync('./artifacts/contracts/modules/cover/Cover.sol/Cover.json'));
   const cover = new ethers.Contract(coverAddress, abi, deployer);
-  const ipfs = ipfsClient({
-    host: 'ipfs.infura.io',
-    port: '5001',
-    protocol: 'https',
-  });
 
-  let protocolCoverHash;
-  let custodianCoverHash;
-  let yieldTokenCoverHash;
-  let sherlockExcessCoverHash;
-  let eth2SlashingCoverHash;
-  let liquidCollectiveSlashingCoverHash;
-
-  if (enableIPFSUploads) {
-    // Add product types:
-    // Protocol
-    const protocolAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/ProtocolCoverv1.0.pdf');
-    const protocolAgreement = await ipfs.add(protocolAgreementBuffer);
-
-    const protocolCover = await ipfs.add(
-      Buffer.from(
-        JSON.stringify({
-          agreement: protocolAgreement.path,
-          title: 'Protocol cover',
-        }),
-      ),
-    );
-    const protocolCoverHash = protocolCover.path;
-    ipfs.pin.add(protocolCoverHash);
-
-    // Custodian
-    const custodianAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/CustodyCoverWordingv1.0.pdf');
-    const custodianAgreement = await ipfs.add(custodianAgreementBuffer);
-    const custodianCover = await ipfs.add(
-      Buffer.from(
-        JSON.stringify({
-          agreement: custodianAgreement.path,
-          title: 'Custodian cover',
-        }),
-      ),
-    );
-    const custodianCoverHash = custodianCover.path;
-    ipfs.pin.add(custodianCoverHash);
-
-    // Yield Token
-    const yieldTokenAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/YieldTokenCoverv1.0.pdf');
-    const yieldTokenAgreement = await ipfs.add(yieldTokenAgreementBuffer);
-    const yieldTokenCover = await ipfs.add(
-      Buffer.from(
-        JSON.stringify({
-          agreement: yieldTokenAgreement.path,
-          name: 'Yield token cover',
-        }),
-      ),
-    );
-    const yieldTokenCoverHash = yieldTokenCover.path;
-    ipfs.pin.add(yieldTokenCoverHash);
-  } else {
-    protocolCoverHash = 'Fork Test Mock Protocol Cover Hash';
-    custodianCoverHash = 'Fork Test Mock Custodian Cover Hash';
-    yieldTokenCoverHash = 'Test Mock Yield Token Cover Hash';
-    sherlockExcessCoverHash = 'Test Mock Yield Token Cover Hash';
-    eth2SlashingCoverHash = 'Test Eth 2 Slashing Cover Hash';
-    liquidCollectiveSlashingCoverHash = 'Liquid Collective Cover Hash';
-  }
+  const protocolCoverHash = 'Fork Test Mock Protocol Cover Hash';
+  const custodianCoverHash = 'Fork Test Mock Custodian Cover Hash';
+  const yieldTokenCoverHash = 'Test Mock Yield Token Cover Hash';
+  const sherlockExcessCoverHash = 'Test Mock Yield Token Cover Hash';
+  const eth2SlashingCoverHash = 'Test Eth 2 Slashing Cover Hash';
+  const liquidCollectiveSlashingCoverHash = 'Liquid Collective Cover Hash';
 
   await cover.connect(abMemberSigner).setProductTypes([
     {
@@ -170,22 +112,8 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
   // const migratableProductsIpfsHashes = JSON.parse(fs.readFileSync('./deploy/migratableProductsIpfsHashes.json'));
   const migratableProductsIpfsHashes = [];
 
-  if (enableIPFSUploads) {
-    for (const product of migratableProducts) {
-      const ipfsUpload = await ipfs.add(
-        Buffer.from(
-          JSON.stringify({
-            name: product.name,
-          }),
-        ),
-      );
-      await sleep(20000); // Required to avoid "Too many requests"
-      migratableProductsIpfsHashes.push(ipfsUpload.path);
-    }
-  } else {
-    for (const product of migratableProducts) {
-      migratableProductsIpfsHashes.push(`Fork Test Mock IPFS Path Product ${product.name}`);
-    }
+  for (const product of migratableProducts) {
+    migratableProductsIpfsHashes.push(`Fork Test Mock IPFS Path Product ${product.name}`);
   }
 
   const migrateableProductsIpfsHashesPath = path.join(

@@ -698,7 +698,7 @@ describe('V2 upgrade', function () {
   });
 
   // TODO review
-  it.skip('run populate-v2-products script', async function () {
+  it('run populate-v2-products script', async function () {
     await populateV2Products(this.cover.address, this.abMembers[0]);
   });
 

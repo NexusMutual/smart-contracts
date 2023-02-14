@@ -1,6 +1,5 @@
 require('dotenv').config();
 const { ethers } = require('hardhat');
-const ipfsClient = require('ipfs-http-client');
 const fs = require('fs');
 const path = require('path');
 
@@ -9,12 +8,6 @@ const { MaxUint256 } = ethers.constants;
 const claimMethod = {
   individualClaim: 0,
   yieldTokenIncidents: 1,
-};
-
-const sleep = ms => {
-  return new Promise(resolve => {
-    setTimeout(resolve, ms);
-  });
 };
 
 const main = async (coverAddress, abMemberSigner) => {

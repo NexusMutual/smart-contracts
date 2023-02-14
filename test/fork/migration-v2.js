@@ -372,14 +372,18 @@ describe('V2 upgrade', function () {
     this.governance = await ethers.getContractAt('Governance', this.governance.address);
   });
 
-  it('Add empty new internal contract for Cover (CoverInitializer.sol - CO)', async function () {
-    const coverInitializer = await ethers.deployContract('CoverInitializer');
+  it('Add empty new internal contracts for Cover and StakingProducts (InternalProxyInitializer.sol - CO, SP)', async function () {
+    const internalProxyInitializer = await ethers.deployContract('InternalProxyInitializer');
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]', 'uint256[]'],
-        [[toUtf8Bytes('CO')], [coverInitializer.address], [2]], // 2 = proxy contract
+        [
+          [toUtf8Bytes('CO'), toUtf8Bytes('SP')],
+          [internalProxyInitializer.address, internalProxyInitializer.address],
+          [2, 2],
+        ], // 2 = proxy contract
       ),
       this.abMembers,
       this.governance,
@@ -387,9 +391,14 @@ describe('V2 upgrade', function () {
 
     // Check the master address of the empty cover contract is correct
     const coverAddress = await this.master.getLatestAddress(hex('CO'));
-    const cover = await ethers.getContractAt('CoverInitializer', coverAddress);
+    const cover = await ethers.getContractAt('Cover', coverAddress);
     const storedMaster = await cover.master();
     expect(storedMaster).to.be.equal(this.master.address);
+
+    const stakingProductsAddress = await this.master.getLatestAddress(hex('SP'));
+
+    this.cover = cover;
+    this.stakingProducts = await ethers.getContractAt('StakingProducts', stakingProductsAddress);
   });
 
   it('Deploy StakingPoolFactory.sol, StakingNFT.sol, StakingPool.sol', async function () {
@@ -412,6 +421,7 @@ describe('V2 upgrade', function () {
       coverProxyAddress,
       this.tokenController.address,
       this.master.address,
+      this.stakingProducts.address,
     ]);
   });
 
@@ -496,6 +506,12 @@ describe('V2 upgrade', function () {
     // GW - Gateway.sol
     const gateway = await ethers.deployContract('LegacyGateway');
 
+    // SP - StakingProduct.sol
+    const stakingProducts = await ethers.deployContract('StakingProducts', [
+      this.cover.address,
+      this.stakingPool.address,
+    ]);
+
     console.log(
       'Upgrade multiple contracts: MR - MemberRoles.sol, MC - MCR.sol, CO - Cover.sol, TC -' +
         ' TokenController.sol, PS - PooledStaking.sol, P1 - Pool.sol, CL - CoverMigrator.sol, GW - Gateway.sol',
@@ -515,6 +531,7 @@ describe('V2 upgrade', function () {
             toUtf8Bytes('P1'),
             toUtf8Bytes('CL'),
             toUtf8Bytes('GW'),
+            toUtf8Bytes('SP'),
           ],
           [
             memberRoles.address,
@@ -526,6 +543,7 @@ describe('V2 upgrade', function () {
             pool.address,
             coverMigrator.address,
             gateway.address,
+            stakingProducts.address,
           ],
         ],
       ),
@@ -686,6 +704,7 @@ describe('V2 upgrade', function () {
       this.master.address,
       this.stakingNFT.address,
       this.stakingPoolFactory.address,
+      this.stakingProducts.address,
     ]);
   });
 
@@ -882,7 +901,7 @@ describe('V2 upgrade', function () {
         }
 
         // Check price
-        const stakedProduct = await stakingPool.products(productId);
+        const stakedProduct = await this.stakingProducts.getProduct(poolId, productId);
         expect(stakedProduct.targetPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
         expect(stakedProduct.bumpedPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
 

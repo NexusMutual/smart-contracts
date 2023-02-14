@@ -1124,9 +1124,22 @@ describe('V2 upgrade', function () {
 
     const coverAsset = 0; // ETH
     const amount = parseEther('1');
-    const period = 364 * 24 * 3600; // 364 days to get a full percentage
-    const expectedPremium = amount.mul(migratedPrice).div((1e18).toString());
+
+    const MAX_COVER_PERIOD_IN_DAYS = 364;
+    const DAYS_IN_YEAR = 365;
+    const period = MAX_COVER_PERIOD_IN_DAYS * 24 * 3600;
+    const expectedPremium = amount
+      .mul(migratedPrice)
+      .div((1e18).toString())
+      .div(100)
+      // annualized premium is for DAYS_IN_YEAR but covers can only be up to MAX_COVER_PERIOD_IN_DAYS long
+      .mul(MAX_COVER_PERIOD_IN_DAYS)
+      .div(DAYS_IN_YEAR);
     const paymentAsset = coverAsset;
+
+    console.log({
+      expectedPremium: expectedPremium.toString(),
+    });
 
     const poolAllocationRequest = [{ poolId: this.armorAAAPoolId, coverAmountInAsset: amount }];
 

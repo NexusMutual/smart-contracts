@@ -272,12 +272,12 @@ describe('submitClaim', function () {
       individualClaims.connect(coverOwner).submitClaim(coverId, 1, segment0.amount, '', {
         value: deposit,
       }),
-    ).to.be.revertedWith('Cover starts in the future');
+    ).to.be.revertedWith('Cannot buy cover and submit claim in the same block');
     await expect(
       individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment0.amount, '', {
         value: deposit,
       }),
-    ).not.to.be.revertedWith('Cover starts in the future');
+    ).not.to.be.revertedWith('Cannot buy cover and submit claim in the same block');
   });
 
   it('reverts if the cover segment is outside the grace period', async function () {

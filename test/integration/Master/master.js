@@ -5,6 +5,9 @@ const { submitProposal } = require('../utils').governance;
 const { hex } = require('../utils').helpers;
 const { parseEther, defaultAbiCoder } = ethers.utils;
 const { AddressZero } = ethers.constants;
+const { BigNumber } = ethers;
+
+const MAX_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff';
 
 async function assertNewAddresses(master, contractCodes, newAddresses, contractType) {
   for (let i = 0; i < contractCodes.length; i++) {
@@ -25,6 +28,12 @@ async function assertNewAddresses(master, contractCodes, newAddresses, contractT
     }
   }
 }
+
+const encoder = (types, values) => {
+  const abiCoder = ethers.utils.defaultAbiCoder;
+  const encodedParams = abiCoder.encode(types, values);
+  return encodedParams.slice(2);
+};
 
 describe('master', function () {
   it('adds new replaceable contract which can execute internal functions', async function () {
@@ -70,6 +79,41 @@ describe('master', function () {
     const newContractInstance = await ethers.getContractAt('MMockNewContract', address);
     // can perform onlyInternal action
     await newContractInstance.mint(this.accounts.defaultSender.address, parseEther('1'));
+  });
+
+  it('adds new proxy contract with a predictable address', async function () {
+    const { master, gv } = this.contracts;
+
+    const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
+    const newContract = await MMockNewContract.deploy();
+
+    const salt = 2;
+
+    const contractTypeAndSalt = BigNumber.from(2).shl(8).add(ContractTypes.Proxy);
+
+    const code = hex('XX');
+    const actionData = defaultAbiCoder.encode(
+      ['bytes2[]', 'address[]', 'uint[]'],
+      [[code], [newContract.address], [contractTypeAndSalt]],
+    );
+    await submitProposal(gv, ProposalCategory.newContracts, actionData, [this.accounts.defaultSender]);
+
+    const address = await master.getLatestAddress(code);
+    const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', address);
+
+    const implementation = await proxy.implementation();
+    assert.equal(implementation, newContract.address);
+
+    const OwnedUpgradeabilityProxy = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
+
+    const saltHex = Buffer.from(salt.toString(16).padStart(64, '0'), 'hex');
+
+    const initCode = OwnedUpgradeabilityProxy.bytecode + encoder(['address'], [MAX_ADDRESS]);
+    const initCodeHash = ethers.utils.keccak256(initCode);
+
+    const expectedProxyAddress = ethers.utils.getCreate2Address(master.address, saltHex, initCodeHash);
+
+    expect(proxy.address).to.be.equal(expectedProxyAddress);
   });
 
   it('replace contract', async function () {

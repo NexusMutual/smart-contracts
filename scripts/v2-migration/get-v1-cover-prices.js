@@ -33,14 +33,14 @@ ${priceMap[price]
   })
   .join('')}
     ) {
-      return ${price}; // ${price / 1e16} %
+      return ${price}; // ${price / 1e18} %
     }`;
     }
     const productId = products.findIndex(x => x === priceMap[price][0]);
     return `
     // ${products[productId]} 
     if (id == ${productId}) {
-      return ${price}; // ${price / 1e16} %
+      return ${price}; // ${price / 1e18} %
     }`;
   })
   .join('\n')}
@@ -83,7 +83,7 @@ const main = async () => {
     });
     await sleep(100);
     const quote = await quoteRes.json();
-    const annualPrice = quote.price;
+    const annualPrice = quote.price * 100; // highest is 100.
 
     // TODO there are currently 7 products that have price 0.
     // This is because there isn't enough stake on them.
@@ -96,8 +96,7 @@ const main = async () => {
     }
     priceToProductMap[annualPrice].push(productAddress);
   }
-  // TODO check in a test that the prices have the right magnitude
-  // I changed the display format from / 1e18 to / 1e16 and I got the same end result, which was unexpected
+
   const snippet = getPrices(priceToProductMap, PRODUCT_ADDRESSES);
   console.log({ snippet });
   const templateHelperRegex = /\/\/ \{V1_PRICES_HELPER_BEGIN\}([\s\S]*?)\/\/ \{V1_PRICES_HELPER_END\}/;

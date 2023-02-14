@@ -377,6 +377,17 @@ describe('V2 upgrade', function () {
     async function () {
       const internalProxyInitializer = await ethers.deployContract('InternalProxyInitializer');
 
+      /*
+       This initializer is necessary to solve for the circular dependency between: Cover <-> StakingNFT
+       by having the permanent proxy address ready when passing in the dependencies.
+
+        StakingProducts can be deployed once Cover and StakingPoolFactory is deployed, however it would require another
+        addNewInternalContracts call to add it, therefore it makes sense to create the proxy for it here;
+
+        Then, when the bulk upgrade of all smart contracts happens, both CO and SP can be upgraded to their final
+        implementations (no extra gov proposal is necessary in between)/
+
+       */
       await submitGovernanceProposal(
         PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
         defaultAbiCoder.encode(

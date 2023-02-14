@@ -1,17 +1,12 @@
 const { ethers } = require('hardhat');
-const { expect } = require('chai');
 
-const { rejectClaim, acceptClaim } = require('../utils/voteClaim');
-const { buyCover, transferCoverAsset, ETH_ASSET_ID, DAI_ASSET_ID, USDC_ASSET_ID } = require('../utils/cover');
-
+const { DAI_ASSET_ID } = require('../utils/cover');
 const { daysToSeconds } = require('../utils').helpers;
 const { increaseTime, setEtherBalance } = require('../utils').evm;
-const { MAX_COVER_PERIOD } = require('../../unit/Cover/helpers');
-const { BUCKET_DURATION, moveTimeToNextTranche } = require('../../unit/StakingPool/helpers');
 
 const { BigNumber } = ethers;
 const { AddressZero, Zero, Two, MaxUint256 } = ethers.constants;
-const { parseEther, parseUnits } = ethers.utils;
+const { formatUnits, parseEther } = ethers.utils;
 
 const createTime = async (callbacks = []) => {
   const hooks = [...callbacks];
@@ -114,9 +109,19 @@ const createCover = async (cover, coverBuyer, poolId, amount, period) => {
 
   // allocations factory
   const allocations = amount => [{ poolId, coverAmountInAsset: amount }];
+  const f = (value, units = 18) => formatUnits(value, units);
+
+  const buy = async (requestedCoverId, amount, period) => {
+    console.log(`buy(coverId=${requestedCoverId}, amount=${f(amount)}, period=${f(period, 0)})`);
+    await cover.buyCover({ ...params(amount, period), coverId: requestedCoverId }, allocations(amount));
+    const coverId = await cover.coverDataCount();
+    const segmentCount = await cover.coverSegmentsCount(coverId);
+    const segment = await cover.coverSegments(coverId, segmentCount.sub(1));
+    console.log(`=> amount=${f(segment.amount)}, period=${f(segment.period, 0)})\n`);
+  };
 
   // buy initial cover
-  await cover.buyCover({ ...params(amount, period), coverId: 0 }, allocations(amount));
+  await buy(0, amount, period);
 
   const api = {
     edit: async ({ amount = 0, period = 0 } = {}) => {
@@ -134,28 +139,41 @@ const createCover = async (cover, coverBuyer, poolId, amount, period) => {
         amount = lastSegment.amount.sub(coverData.amountPaidOut);
       }
 
-      await cover.buyCover(params(amount, period), allocations(amount));
+      await buy(coverId, amount, period);
     },
 
     claim: async (amount, segment = -1) => {},
 
-    data: async () => {},
+    data: async () => cover.coverData(coverId),
 
-    segments: async () => {},
+    segment: async i => cover.coverSegments(coverId, i),
 
-    allocations: async () => {},
+    segments: async () => {
+      const segmentCount = (await cover.coverSegmentsCount(coverId)).toNumber();
+      const segments = [];
+      for (let i = 0; i < segmentCount; i++) {
+        segments.push(await cover.coverSegments(coverId, i));
+      }
+      return segments;
+    },
+
+    allocations: async () => {
+      const segments = await this.segments();
+      return Promise.all(segments.map((_, id) => cover.coverSegmentAllocations(coverId, id)));
+    },
 
     dump: async () => {
       const data = await this.data();
       const segments = await this.segments();
       const allocations = await this.allocations();
+      console.log({ data, segments, allocations });
     },
   };
 
   return api;
 };
 
-describe.only('cover burns playground', function () {
+describe('cover burns playground', function () {
   before(async function () {
     // infinite dai for cover buys
     const { cover, dai } = this.contracts;
@@ -185,20 +203,19 @@ describe.only('cover burns playground', function () {
     // create cover object
     const cover = await createCover(this.contracts.cover, defaultSender, poolId, amount, period);
 
-    await cover.edit({ amount: amount.div(2) });
     await cover.edit({ period: period.mul(2) });
-    await cover.claim(amount.div(2), -1); // claim on last segment
+    await cover.edit({ amount: amount.div(2) });
+    // await cover.claim(amount.div(2), -1); // claim on last segment
   });
 
-  it('should buy, wait 30 days, edit cover, claim immediately', async function () {});
-  it('should buy, edit, claim', async function () {});
-  it('should buy, edit to increase amount, claim twice', async function () {});
-  it('should buy, edit to increase amount, claim on previous segment', async function () {});
-  it('should buy, wait 1 bucket, edit, claim', async function () {});
-  it('should buy, wait 30 days, edit cover, wait 30 days, claim', async function () {});
-  it('should buy, wait 30 days, edit cover, wait until expiration is processed, claim', async function () {});
-
-  it('should buy 10 ETH cover, edit cover to 2ETH, claim 4ETH, edit cover again to 2ETH', async function () {
+  it.skip('should buy, wait 30 days, edit cover, claim immediately', async function () {});
+  it.skip('should buy, edit, claim', async function () {});
+  it.skip('should buy, edit to increase amount, claim twice', async function () {});
+  it.skip('should buy, edit to increase amount, claim on previous segment', async function () {});
+  it.skip('should buy, wait 1 bucket, edit, claim', async function () {});
+  it.skip('should buy, wait 30 days, edit cover, wait 30 days, claim', async function () {});
+  it.skip('should buy, wait 30 days, edit cover, wait until expiration is processed, claim', async function () {});
+  it.skip('should buy 10 ETH cover, edit cover to 2ETH, claim 4ETH, edit cover again to 2ETH', async function () {
     // TODO: test whether final amount is 2ETH ... maybe should finalize cover and prevent last edit
   });
 });

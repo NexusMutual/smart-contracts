@@ -557,8 +557,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     CoverData storage cover = _coverData[coverId];
     ActiveCover storage _activeCover = activeCover[cover.coverAsset];
-    CoverSegment memory segment = coverSegments(coverId, segmentId);
-
     CoverSegment memory latestSegment = coverSegments(coverId, _coverSegments[coverId].length - 1);
 
     PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
@@ -576,8 +574,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       // burn amount is accounted for in total active cover if segment has not expired
       if (burnedSegmentBucketId > currentBucketId) {
-        // TODO: is this needed?
-        uint segmentAmount = Math.min(maxPayoutAmountInAsset, activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId]);
+        uint segmentAmount = maxPayoutAmountInAsset;
         activeCoverToExpire += segmentAmount;
         activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId] -= segmentAmount.toUint192();
       }
@@ -598,7 +595,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       // TODO: use latest globalCapacityRatio?
       uint burnAmountInNxm = payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / latestSegment.globalCapacityRatio;
 
-      // TODO: underflow
       allocations[i].coverAmountInNXM -= payoutAmountInNXM.toUint96();
       allocations[i].premiumInNXM -= (allocation.premiumInNXM * maxPayoutAmountInAsset / latestSegment.amount).toUint96();
 

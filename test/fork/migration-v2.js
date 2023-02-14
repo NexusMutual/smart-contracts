@@ -1072,6 +1072,11 @@ describe('V2 upgrade', function () {
       expect(stakeSharesSum).to.be.equal(sharesSupply);
       // console.log('-------------- deposit in PS = ', depositInPS[stakerAddress].toString());
     }
+
+    this.armorAAAPoolId = armorAAAPoolId;
+    this.armorAAPoolId = armorAAPoolId;
+    this.foundationPoolId = foundationPoolId;
+    this.hughPoolId = hughPoolId;
   });
 
   it('Non-selected stakers can withdraw their entire deposit from LegacyPooledStaking', async function () {
@@ -1099,6 +1104,55 @@ describe('V2 upgrade', function () {
       expect(stakerDepositAfter).to.be.equal('0');
       expect(nxmBalanceAfter.sub(nxmBalanceBefore)).to.be.equal(stakerDepositBefore);
     }
+  });
+
+  it('purchase Cover at the expected prices from the migrated pools', async function () {
+    const coverBuyer = this.abMembers[4];
+    const poolEthBalanceBefore = await ethers.provider.getBalance(this.pool.address);
+
+    const UNISWAP_V3 = '0x1F98431c8aD98523631AE4a59f267346ea31F984';
+
+    const productId = await this.productsV1.getNewProductId(UNISWAP_V3);
+
+    console.log({});
+
+    const migratedPrice = await this.pooledStaking.getV1PriceForProduct(productId);
+
+    const coverAsset = 0; // ETH
+    const amount = parseEther('1');
+    const period = 364 * 24 * 3600; // 364 days to get a full percentage
+    const expectedPremium = amount.mul(migratedPrice).div((1e18).toString()).div(100);
+    const paymentAsset = coverAsset;
+
+    const poolAllocationRequest = [{ poolId: this.armorAAAPoolId, coverAmountInAsset: amount }];
+
+    console.log(`Buyer ${coverBuyer._address} buying cover for ${productId.toString()} on Pool ${this.armorAAAPoolId}`);
+
+    await this.cover.connect(coverBuyer).buyCover(
+      {
+        coverId: '0', // new cover
+        owner: coverBuyer._address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      poolAllocationRequest,
+      { value: expectedPremium },
+    );
+
+    const poolEthBalanceAfter = await ethers.provider.getBalance(this.pool.address);
+
+    const premiumSentToPool = poolEthBalanceAfter.sub(poolEthBalanceBefore);
+
+    expect(expectedPremium).to.be.greaterThanOrEqual(premiumSentToPool);
+    // 0.01% max tolerated error
+    expect(expectedPremium.sub(premiumSentToPool)).to.be.lessThan(BigNumber.from(amount.div(10000)));
   });
 
   // TODO review

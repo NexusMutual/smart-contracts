@@ -1098,7 +1098,7 @@ describe('V2 upgrade', function () {
     const coverBuyer = this.abMembers[4];
     const poolEthBalanceBefore = await ethers.provider.getBalance(this.pool.address);
 
-    const productId = this.productsV1.getNewProductId(EULER_V1_PRODUCT_ID);
+    const productId = await this.productsV1.getNewProductId(EULER_V1_PRODUCT_ID);
 
     const migratedPrice = await this.pooledStaking.getV1PriceForProduct(productId);
 
@@ -1110,7 +1110,7 @@ describe('V2 upgrade', function () {
 
     const poolAllocationRequest = [{ poolId: this.armorAAAPoolId, coverAmountInAsset: amount }];
 
-    console.log(`Buyer ${coverBuyer._address} buying cover for ${productId.toString()} on Pool ${this.armorPool0Id}`);
+    console.log(`Buyer ${coverBuyer._address} buying cover for ${productId.toString()} on Pool ${this.armorAAAPoolId}`);
 
     await this.cover.connect(coverBuyer).buyCover(
       {

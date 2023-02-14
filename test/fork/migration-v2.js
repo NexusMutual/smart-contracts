@@ -343,11 +343,6 @@ describe('V2 upgrade', function () {
     this.productsV1 = await ethers.deployContract('ProductsV1');
   });
 
-  it('Deploy CoverNFT.sol', async function () {
-    const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
-    this.coverNFT = await ethers.deployContract('CoverNFT', ['Nexus Mutual Cover', 'NXC', coverProxyAddress]);
-  });
-
   it('Deploy SwapOperator.sol', async function () {
     this.swapOperator = await ethers.deployContract('SwapOperator', [
       COWSWAP_SETTLEMENT, // _cowSettlement
@@ -416,6 +411,11 @@ describe('V2 upgrade', function () {
       this.stakingProducts = await ethers.getContractAt('StakingProducts', stakingProductsAddress);
     },
   );
+
+  it('Deploy CoverNFT.sol', async function () {
+    const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
+    this.coverNFT = await ethers.deployContract('CoverNFT', ['Nexus Mutual Cover', 'NXC', coverProxyAddress]);
+  });
 
   it('Deploy StakingPoolFactory.sol, StakingNFT.sol, StakingPool.sol', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
@@ -1114,7 +1114,7 @@ describe('V2 upgrade', function () {
 
     await this.cover.connect(coverBuyer).buyCover(
       {
-        coverId: MaxUint256,
+        coverId: '0', // new cover
         owner: coverBuyer._address,
         productId,
         coverAsset,

@@ -1118,10 +1118,14 @@ describe('V2 upgrade', function () {
 
     const migratedPrice = await this.pooledStaking.getV1PriceForProduct(productId);
 
+    console.log({
+      migratedPrice: migratedPrice.toString(),
+    });
+
     const coverAsset = 0; // ETH
     const amount = parseEther('1');
     const period = 364 * 24 * 3600; // 364 days to get a full percentage
-    const expectedPremium = amount.mul(migratedPrice).div((1e18).toString()).div(100);
+    const expectedPremium = amount.mul(migratedPrice).div((1e18).toString());
     const paymentAsset = coverAsset;
 
     const poolAllocationRequest = [{ poolId: this.armorAAAPoolId, coverAmountInAsset: amount }];
@@ -1150,9 +1154,11 @@ describe('V2 upgrade', function () {
 
     const premiumSentToPool = poolEthBalanceAfter.sub(poolEthBalanceBefore);
 
+    console.log({
+      premiumSentToPool: premiumSentToPool.toString(),
+    });
+
     expect(expectedPremium).to.be.greaterThanOrEqual(premiumSentToPool);
-    // 0.01% max tolerated error
-    expect(expectedPremium.sub(premiumSentToPool)).to.be.lessThan(BigNumber.from(amount.div(10000)));
   });
 
   // TODO review

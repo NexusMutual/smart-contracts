@@ -29,9 +29,11 @@ const main = async (coverAddress, abMemberSigner) => {
   const eth2SlashingCoverHash = 'Test Eth 2 Slashing Cover Hash';
   const liquidCollectiveSlashingCoverHash = 'Liquid Collective Cover Hash';
 
+  console.log('Calling Cover.setProductTypes');
   await cover.connect(abMemberSigner).setProductTypes([
     {
       // Protocol Cover
+      productTypeName: 'Protocol',
       productTypeId: MaxUint256,
       ipfsMetadata: protocolCoverHash,
       productType: {
@@ -42,6 +44,7 @@ const main = async (coverAddress, abMemberSigner) => {
     },
     {
       // Custody Cover
+      productTypeName: 'Custody',
       productTypeId: MaxUint256,
       ipfsMetadata: custodianCoverHash,
       productType: {
@@ -52,6 +55,7 @@ const main = async (coverAddress, abMemberSigner) => {
     },
     // Yield Token Cover
     {
+      productTypeName: 'Yield Token',
       productTypeId: MaxUint256,
       ipfsMetadata: yieldTokenCoverHash,
       productType: {
@@ -63,6 +67,7 @@ const main = async (coverAddress, abMemberSigner) => {
 
     // Sherlock Excess Cover
     {
+      productTypeName: 'Sherlock Excess',
       productTypeId: MaxUint256,
       ipfsMetadata: sherlockExcessCoverHash,
       productType: {
@@ -74,6 +79,7 @@ const main = async (coverAddress, abMemberSigner) => {
 
     // Stakewise Slashing Cover
     {
+      productTypeName: 'Stakewise ETH Staking',
       productTypeId: MaxUint256,
       ipfsMetadata: eth2SlashingCoverHash,
       productType: {
@@ -85,6 +91,7 @@ const main = async (coverAddress, abMemberSigner) => {
 
     // Liquid Collective slashing cover
     {
+      productTypeName: 'Liquid Collective ETH Staking',
       productTypeId: MaxUint256,
       ipfsMetadata: liquidCollectiveSlashingCoverHash,
       productType: {
@@ -123,6 +130,7 @@ const main = async (coverAddress, abMemberSigner) => {
 
   fs.writeFileSync(migrateableProductsIpfsHashesPath, JSON.stringify(migratableProductsIpfsHashes, null, 2), 'utf8');
 
+  console.log(`Call Cover.setProducts with ${migratableProducts.length} products.`);
   await cover.connect(abMemberSigner).setProducts(
     migratableProducts.map(x => {
       const coverAssets =
@@ -132,6 +140,7 @@ const main = async (coverAddress, abMemberSigner) => {
         0;
 
       const productParams = {
+        productName: x.name,
         productId: MaxUint256,
         ipfsMetadata: 'product 0 metadata',
         product: {

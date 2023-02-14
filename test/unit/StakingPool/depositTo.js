@@ -138,7 +138,7 @@ describe('depositTo', function () {
     ).to.be.revertedWithCustomError(stakingPool, 'RequestedTrancheIsExpired');
   });
 
-  it('mints a new nft if token id is max uint', async function () {
+  it('mints a new nft if token id is 0', async function () {
     const { stakingPool, stakingNFT } = this;
     const [user] = this.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -159,7 +159,7 @@ describe('depositTo', function () {
     expect(owner).to.equal(user.address);
   });
 
-  it('mints a new nft to destination if token id is max uint', async function () {
+  it('mints a new nft to destination if token id is 0', async function () {
     const { stakingPool, stakingNFT } = this;
     const [user1, user2] = this.accounts.members;
     const { amount, tokenId } = depositToFixture;
@@ -238,6 +238,25 @@ describe('depositTo', function () {
     expect(updatedDepositData.lastAccNxmPerRewardShare).to.equal(0);
     expect(updatedDepositData.stakeShares).to.equal(firstDepositData.stakeShares.add(newStakeShares));
     expect(updatedDepositData.rewardsShares).to.equal(firstDepositData.rewardsShares.add(newRewardShares));
+  });
+
+  it('reverts deposit to an existing nft that msg.sender is not an owner of / approved for', async function () {
+    const { stakingPool, stakingNFT } = this;
+    const [user1, user2] = this.accounts.members;
+    const { amount, tokenId, destination } = depositToFixture;
+
+    const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
+
+    // user1 first deposit
+    const tx = await stakingPool.connect(user1).depositTo(amount, firstActiveTrancheId, tokenId, destination);
+
+    const expectedTokenId = 1;
+    await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user1.address, expectedTokenId);
+
+    // user2 deposit to the same tokenId
+    await expect(
+      stakingPool.connect(user2).depositTo(amount, firstActiveTrancheId, expectedTokenId, destination),
+    ).to.be.revertedWithCustomError(stakingPool, 'NotTokenOwnerOrApproved');
   });
 
   it('updates deposit pendingRewards and lastAccNxmPerRewardShare', async function () {

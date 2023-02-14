@@ -402,6 +402,11 @@ contract StakingPool is IStakingPool, Multicall {
       if (stakingNFT.stakingPoolOf(requestTokenId) != poolId) {
         revert InvalidStakingPoolForToken();
       }
+      // validate only the token owner or an approved address can deposit
+      if (!stakingNFT.isApprovedOrOwner(msg.sender, requestTokenId)) {
+        revert NotTokenOwnerOrApproved();
+      }
+
       tokenId = requestTokenId;
     }
 

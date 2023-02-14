@@ -1313,10 +1313,14 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     INXMToken nxm = token();
     uint nxmBalanceBefore = nxm.balanceOf(address(this));
 
+
     ProductInitializationParams[] memory productInitParams = getProductInitParams(
       stakerAddress,
       deposit
     );
+
+    // Set deposit to zero to avoid re-entrancy before any side-effects are executed
+    stakers[stakerAddress].deposit = 0;
 
     if (stakerAddress == HUGH) {
       migrateToPool(
@@ -1387,9 +1391,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     uint nxmBalanceAfter = nxm.balanceOf(address(this));
     uint nxmToBeUnlocked = deposit - (nxmBalanceBefore - nxmBalanceAfter);
-
-    // Set deposit to zero to avoid re-entrancy
-    stakers[stakerAddress].deposit = 0;
 
     // Send unlocked NXM back
     nxm.transfer(stakerAddress, nxmToBeUnlocked);

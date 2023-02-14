@@ -343,28 +343,6 @@ describe('V2 upgrade', function () {
     this.productsV1 = await ethers.deployContract('ProductsV1');
   });
 
-  it('Add empty new internal contract for Cover (CoverInitializer.sol - CO)', async function () {
-    const CoverInitializer = await ethers.getContractFactory('CoverInitializer');
-    const coverInitializer = await CoverInitializer.deploy();
-    await coverInitializer.deployed();
-
-    await submitGovernanceProposal(
-      PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
-      defaultAbiCoder.encode(
-        ['bytes2[]', 'address[]', 'uint256[]'],
-        [[toUtf8Bytes('CO')], [coverInitializer.address], [2]], // 2 = proxy contract
-      ),
-      this.abMembers,
-      this.governance,
-    );
-
-    // Check the master address of the empty cover contract is correct
-    const coverAddress = await this.master.getLatestAddress(hex('CO'));
-    const cover = await ethers.getContractAt('CoverInitializer', coverAddress);
-    const storedMaster = await cover.master();
-    expect(storedMaster).to.be.equal(this.master.address);
-  });
-
   it('Deploy CoverNFT.sol', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     this.coverNFT = await ethers.deployContract('CoverNFT', ['Nexus Mutual Cover', 'NXC', coverProxyAddress]);

@@ -39,7 +39,7 @@ describe('editCover', function () {
 
     const expectedRefund = segment.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(segment.period - 1)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -199,7 +199,7 @@ describe('editCover', function () {
 
     const expectedRefund = segment.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(segment.period - 1)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -293,7 +293,7 @@ describe('editCover', function () {
 
     const expectedRefund = segment.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(segment.period - 1)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -346,7 +346,7 @@ describe('editCover', function () {
 
     const expectedRefund = segment.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(segment.period - 1)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -843,7 +843,7 @@ describe('editCover', function () {
     const increasedAmount = amount.mul(2);
     const expectedRefund = segment.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(segment.period - 1)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -1055,7 +1055,7 @@ describe('editCover', function () {
     const increasedAmount = amount.mul(2);
     const expectedRefund = segment.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(segment.period - 1)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -1105,7 +1105,7 @@ describe('editCover', function () {
 
     const expectedRefund = segment.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(segment.period - 1)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -1166,7 +1166,7 @@ describe('editCover', function () {
 
     const expectedRefund = segment.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(segment.period - 1)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -1287,7 +1287,7 @@ describe('editCover', function () {
 
     const expectedRefund = segment.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(segment.period - 1)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 

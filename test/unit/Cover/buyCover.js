@@ -1000,7 +1000,7 @@ describe('buyCover', function () {
     expect(segment.gracePeriod).to.be.equal(gracePeriod);
     expect(segment.period).to.be.equal(period);
     expect(segment.amount).to.be.equal(amount);
-    expect(segment.start).to.be.equal(timestamp + 1);
+    expect(segment.start).to.be.equal(timestamp);
     expect(segment.globalRewardsRatio).to.be.equal(globalRewardsRatio);
 
     const segmentPoolAllocationIndex = 0;
@@ -1374,7 +1374,7 @@ describe('buyCover', function () {
     expect(segment.gracePeriod).to.be.equal(gracePeriod);
     expect(segment.period).to.be.equal(period);
     expect(segment.amount).to.be.equal(amount);
-    expect(segment.start).to.be.equal(timestamp + 1);
+    expect(segment.start).to.be.equal(timestamp);
     expect(segment.globalRewardsRatio).to.be.equal(globalRewardsRatio);
 
     const segmentPoolAllocationIndex = 0;

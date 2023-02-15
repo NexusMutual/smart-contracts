@@ -8,7 +8,7 @@ const proposalCategories = require('../utils').proposalCategories;
 const evm = require('./evm')();
 
 const { BigNumber } = ethers;
-const { AddressZero, WeiPerEther } = ethers.constants;
+const { AddressZero } = ethers.constants;
 const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
 
 // TODO Review constants
@@ -1022,17 +1022,16 @@ describe('V2 upgrade', function () {
 
       let depositStakeSum = BigNumber.from(0);
       let stakeSharesSum = BigNumber.from(0);
-      let stakeRatioSum = BigNumber.from(0);
       const sharesSupply = await stakingPool.getStakeSharesSupply();
 
       for (let i = 0; i < tokenDepositsLength; i++) {
         const deposit = token.deposits[i];
         const trancheId = deposit.trancheId;
-        console.log('Deposit trancheId --------------------', trancheId.toString());
+        // console.log('Deposit trancheId --------------------', trancheId.toString());
 
         // Index of the active tranche
         const activeTrancheIndex = trancheId.sub(firstTrancheId);
-        console.log('ActiveTrancheIndex', activeTrancheIndex.toString());
+        // console.log('ActiveTrancheIndex', activeTrancheIndex.toString());
 
         // Calculated out of the original pooled staking deposit
         const expectedStake = depositInPS[stakerAddress]
@@ -1041,36 +1040,19 @@ describe('V2 upgrade', function () {
           .mul(expected.trancheStakeRatio[activeTrancheIndex])
           .div(100);
 
-        console.log('Expected tranche stake', expectedStake.toString());
-        console.log('Actual tranche stake', deposit.stake.toString());
-        // Assert below fails
-        // expect(expectedStake).to.be.equal(deposit.stake);
+        // console.log('Expected tranche stake', expectedStake.toString());
+        // console.log('Actual tranche stake', deposit.stake.toString());
 
-        const stakeDiff = deposit.stake.sub(expectedStake);
-        const stakeDiffPercent = WeiPerEther.mul(stakeDiff).div(expectedStake);
-        console.log(
-          `Tranche stake diff actual - expected is ${stakeDiff.toString()}, representing ${formatEther(
-            stakeDiffPercent.mul(100),
-          )}% of the expected tranche stake`,
-        );
-
-        const trancheStakeRatio = WeiPerEther.mul(deposit.stake).div(token.activeStake);
-        console.log('Expected tranche allocation ratio', expected.trancheStakeRatio[activeTrancheIndex], '%');
-        console.log('Actual tranche stake ratio', formatEther(trancheStakeRatio.mul(100)), '%');
-        console.log(
-          'Actual tranche shares ratio',
-          formatEther(WeiPerEther.mul(deposit.stakeShares).div(sharesSupply).mul(100)),
-          '%',
-        );
+        const stakeDiffAbs = Math.abs(deposit.stake.sub(expectedStake));
+        expect(stakeDiffAbs).to.be.lt(100000000000); // 0.00001%
 
         stakeSharesSum = stakeSharesSum.add(deposit.stakeShares);
         depositStakeSum = depositStakeSum.add(deposit.stake);
-        stakeRatioSum = stakeRatioSum.add(trancheStakeRatio);
       }
+
       expect(depositStakeSum).to.be.equal(token.activeStake);
       expect(stakeSharesSum).to.be.equal(sharesSupply);
-      console.log('Stake ratios sum', formatEther(stakeRatioSum.mul(100)), '%');
-      console.log('-------------- deposit in PS = ', depositInPS[stakerAddress].toString());
+      // console.log('-------------- deposit in PS = ', depositInPS[stakerAddress].toString());
     }
   });
 

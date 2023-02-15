@@ -1118,10 +1118,6 @@ describe('V2 upgrade', function () {
 
     const migratedPrice = await this.pooledStaking.getV1PriceForProduct(productId);
 
-    console.log({
-      migratedPrice: migratedPrice.toString(),
-    });
-
     const coverAsset = 0; // ETH
     const amount = parseEther('1');
 
@@ -1136,10 +1132,6 @@ describe('V2 upgrade', function () {
       .mul(MAX_COVER_PERIOD_IN_DAYS)
       .div(DAYS_IN_YEAR);
     const paymentAsset = coverAsset;
-
-    console.log({
-      expectedPremium: expectedPremium.toString(),
-    });
 
     const poolAllocationRequest = [{ poolId: this.armorAAAPoolId, coverAmountInAsset: amount }];
 
@@ -1169,9 +1161,20 @@ describe('V2 upgrade', function () {
 
     console.log({
       premiumSentToPool: premiumSentToPool.toString(),
+      expectedPremium: expectedPremium.toString(),
+      migratedPrice: migratedPrice.toString(),
     });
 
     expect(expectedPremium).to.be.greaterThanOrEqual(premiumSentToPool);
+
+    // expectedPremium >= premiumSentToPool guaranteed by the assertion above.
+    // We then assert the difference between the 2 is less than 0.01% of the original amount
+    // The difference comes from the fact that we truncate prices to 4 decimals when we port them from
+    // Quote Engine to StakingProduct.sol. On top of that, the covers go only up to 364 days, while the
+    // Quote Engine prices are calculated for 365.25 days.
+    // The latter is partially accounted for in the expectedPremium computation above
+    // (BigNumber doesn't support fractions)
+    expect(expectedPremium.sub(premiumSentToPool)).to.be.lessThanOrEqual(amount.div(10000));
   });
 
   // TODO review

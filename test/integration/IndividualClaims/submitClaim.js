@@ -1199,7 +1199,7 @@ describe('submitClaim', function () {
 
     // should pay for premium to reset amount
     expect(ethBalanceAfter).to.not.be.equal(ethBalanceBefore);
-    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(totalEditPremium).add(1));
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(totalEditPremium));
   });
 
   it('correctly updates pool allocation after claim and cover edit', async function () {

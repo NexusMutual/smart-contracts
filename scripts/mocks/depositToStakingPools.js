@@ -77,7 +77,6 @@ async function main() {
   await token.connect(staker).approve(Addresses.TokenController, MaxUint256);
 
   // staking inputs
-  const stakingAmount = parseEther('10000');
   const { timestamp: now } = await ethers.provider.getBlock('latest');
   const firstActiveTrancheId = Math.floor(now / (91 * 24 * 3600));
   const lastActiveTrancheId = firstActiveTrancheId + 7;
@@ -86,7 +85,7 @@ async function main() {
   const stakingPoolOne = await getStakingPool(1, owner);
 
   const firstDepositTx = await stakingPoolOne.depositTo(
-    stakingAmount,
+    parseEther('123'),
     lastActiveTrancheId,
     0, // new position
     AddressZero, // destination
@@ -98,7 +97,7 @@ async function main() {
   const stakingPoolTwo = await getStakingPool(2, staker);
 
   const secondDepositTx = await stakingPoolTwo.depositTo(
-    stakingAmount,
+    parseEther('456'),
     lastActiveTrancheId,
     0, // new position
     AddressZero, // destination

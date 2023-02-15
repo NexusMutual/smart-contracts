@@ -8,7 +8,7 @@ const proposalCategories = require('../utils').proposalCategories;
 const evm = require('./evm')();
 
 const { BigNumber } = ethers;
-const { AddressZero } = ethers.constants;
+const { AddressZero, WeiPerEther } = ethers.constants;
 const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
 
 // TODO Review constants
@@ -754,6 +754,9 @@ describe('V2 upgrade', function () {
       }),
     );
 
+    console.log('Deposits in PS');
+    console.log({ depositInPS });
+
     // Get stakers NXM balances before the migration
     const nxmBalancesBefore = {};
     await Promise.all(
@@ -998,46 +1001,76 @@ describe('V2 upgrade', function () {
         console.log(`Staker ${stakerAddress}'s manager ${expected.manager} does not own a StakingNFT.`);
       }
 
-      // validate tokens are distributed correctly across tranches
+      // Check NXM is staked correctly across tranches
+      const totalAllocations = expected.trancheStakeRatio.reduce((a, b) => a + b, 0);
+      if (totalAllocations === 0) {
+        // Nexus Foundation is still in this situation
+        console.log(`Skip allocation verifications for ${stakerAddress}. There are none expected to be made`);
+        continue;
+      }
 
-      // TODO: re-enable this in a separate PR
+      const block = await ethers.provider.getBlock('latest');
+      const firstTrancheId = BigNumber.from(block.timestamp).div(91 * 24 * 3600);
+      const token = await this.stakingViewer.getToken(expected.stakingNFTId);
 
-      // const totalAllocations = expected.trancheStakeRatio.reduce((a, b) => a + b, 0);
-      //
-      // if (totalAllocations === 0) {
-      //   // Nexus Foundation is still in this situation
-      //   console.log(`Skip allocation verifications for ${stakerAddress}. There are none expected to be made`);
-      //   continue;
-      // }
-      //
-      // const block = await ethers.provider.getBlock('latest');
-      //
-      // const firstTrancheId = BigNumber.from(block.timestamp)
-      //   .div(91 * 24 * 3600)
-      //   .add(1);
-      // const token = await this.stakingViewer.getToken(expected.stakingNFTId);
-      //
-      // // the StakingViewer provides us only with the non-zero deposits and we match those with the expected ratios
-      // expect(token.deposits.length).to.be.equal(expected.trancheStakeRatio.filter(r => r > 0).length);
-      //
-      // const MAX_ACTIVE_TRANCHES = 8;
-      //
-      // // index to track which deposit of the view we are current checking
-      // let depositIndex = 0;
-      // for (let i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
-      //   if (expected.trancheStakeRatio[i] === 0) {
-      //     continue;
-      //   }
-      //   const expectedTrancheDeposit = depositInPS[stakerAddress]
-      //     .mul(poolDepositRatio[poolId])
-      //     .div(100)
-      //     .mul(expected.trancheStakeRatio[i])
-      //     .div(100);
-      //   const deposit = token.deposits[depositIndex++]; // increment the depositIndex to check the next
-      //
-      //   expect(deposit.trancheId).to.be.equal(firstTrancheId.add(i));
-      //   expect(deposit.stake).to.be.equal(expectedTrancheDeposit);
-      // }
+      // Precision error from divisions
+      expect(depositsInStakingPools[poolId].sub(token.activeStake).lt(4));
+
+      // StakingViewer returns non-zero deposits only
+      const tokenDepositsLength = token.deposits.length;
+      expect(tokenDepositsLength).to.be.equal(expected.trancheStakeRatio.filter(r => r > 0).length);
+
+      let depositStakeSum = BigNumber.from(0);
+      let stakeSharesSum = BigNumber.from(0);
+      let stakeRatioSum = BigNumber.from(0);
+      const sharesSupply = await stakingPool.getStakeSharesSupply();
+
+      for (let i = 0; i < tokenDepositsLength; i++) {
+        const deposit = token.deposits[i];
+        const trancheId = deposit.trancheId;
+        console.log('Deposit trancheId --------------------', trancheId.toString());
+
+        // Index of the active tranche
+        const activeTrancheIndex = trancheId.sub(firstTrancheId);
+        console.log('ActiveTrancheIndex', activeTrancheIndex.toString());
+
+        // Calculated out of the original pooled staking deposit
+        const expectedStake = depositInPS[stakerAddress]
+          .mul(poolDepositRatio[poolId])
+          .div(100)
+          .mul(expected.trancheStakeRatio[activeTrancheIndex])
+          .div(100);
+
+        console.log('Expected tranche stake', expectedStake.toString());
+        console.log('Actual tranche stake', deposit.stake.toString());
+        // Assert below fails
+        // expect(expectedStake).to.be.equal(deposit.stake);
+
+        const stakeDiff = deposit.stake.sub(expectedStake);
+        const stakeDiffPercent = WeiPerEther.mul(stakeDiff).div(expectedStake);
+        console.log(
+          `Tranche stake diff actual - expected is ${stakeDiff.toString()}, representing ${formatEther(
+            stakeDiffPercent.mul(100),
+          )}% of the expected tranche stake`,
+        );
+
+        const trancheStakeRatio = WeiPerEther.mul(deposit.stake).div(token.activeStake);
+        console.log('Expected tranche allocation ratio', expected.trancheStakeRatio[activeTrancheIndex], '%');
+        console.log('Actual tranche stake ratio', formatEther(trancheStakeRatio.mul(100)), '%');
+        console.log(
+          'Actual tranche shares ratio',
+          formatEther(WeiPerEther.mul(deposit.stakeShares).div(sharesSupply).mul(100)),
+          '%',
+        );
+
+        stakeSharesSum = stakeSharesSum.add(deposit.stakeShares);
+        depositStakeSum = depositStakeSum.add(deposit.stake);
+        stakeRatioSum = stakeRatioSum.add(trancheStakeRatio);
+      }
+      expect(depositStakeSum).to.be.equal(token.activeStake);
+      expect(stakeSharesSum).to.be.equal(sharesSupply);
+      console.log('Stake ratios sum', formatEther(stakeRatioSum.mul(100)), '%');
+      console.log('-------------- deposit in PS = ', depositInPS[stakerAddress].toString());
     }
   });
 

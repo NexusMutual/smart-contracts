@@ -237,7 +237,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     _coverSegments[coverId].push(
       CoverSegment(
         coverAmountInCoverAsset.toUint96(), // cover amount in cover asset
-        (block.timestamp + 1).toUint32(), // start
+        block.timestamp.toUint32(), // start
         params.period, // period
         allocationRequest.gracePeriod.toUint32(),
         globalRewardsRatio,

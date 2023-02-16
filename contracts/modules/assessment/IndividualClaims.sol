@@ -291,7 +291,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
         "Invalid claim method for this product type"
       );
       require(requestedAmount <= segment.amount, "Covered amount exceeded");
-      require(segment.start <= block.timestamp, "Cover starts in the future");
+      require(block.timestamp > segment.start, "Cannot buy cover and submit claim in the same block");
       require(
         uint(segment.start) + uint(segment.period) + uint(segment.gracePeriod) > block.timestamp,
         "Cover is outside the grace period"

@@ -255,6 +255,8 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
 
       require(coverData.productId == incident.productId, "Product id mismatch");
 
+      require(block.timestamp > coverSegment.start, "Cannot buy cover and submit claim in the same block");
+
       // Calculate the payout amount
       {
         uint deductiblePriceBefore =

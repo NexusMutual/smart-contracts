@@ -41,6 +41,7 @@ contract StakingViewer is Multicall {
   }
 
   struct Token {
+    uint tokenId;
     uint poolId;
     uint activeStake;
     uint expiredStake;
@@ -318,6 +319,7 @@ contract StakingViewer is Multicall {
       token.rewards += deposit.reward;
     }
 
+    token.tokenId = tokenId;
     token.poolId = poolId;
     token.deposits = new Deposit[](depositCount);
 

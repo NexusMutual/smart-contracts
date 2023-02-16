@@ -581,9 +581,8 @@ contract StakingPool is IStakingPool, Multicall {
           withdrawnRewards += trancheRewardsToWithdraw;
 
           // save checkpoint
-          deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare.toUint96();
+          deposit.lastAccNxmPerRewardShare = accNxmPerRewardShareToUse.toUint96();
           deposit.pendingRewards = 0;
-          deposit.rewardsShares = 0;
         }
 
         emit Withdraw(msg.sender, tokenId, trancheId, trancheStakeToWithdraw, trancheRewardsToWithdraw);

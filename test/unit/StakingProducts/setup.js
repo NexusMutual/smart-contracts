@@ -99,17 +99,9 @@ async function setup() {
       cover.setPoolAllowed(productId, 1 /* poolID */, true),
     ]),
   );
-  const ret = await cover.callStatic.createStakingPool(
-    stakingProducts.address,
-    accounts.members[0].address,
-    false,
-    5,
-    5,
-    [],
-    'ipfs hash',
-  );
+  const ret = await cover.callStatic.createStakingPool(accounts.members[0].address, false, 5, 5, [], 'ipfs hash');
 
-  await cover.createStakingPool(stakingProducts.address, accounts.members[0].address, false, 5, 5, [], 'ipfs hash');
+  await cover.createStakingPool(accounts.members[0].address, false, 5, 5, [], 'ipfs hash');
 
   const stakingPool = await ethers.getContractAt('StakingPool', ret[1]);
 

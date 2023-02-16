@@ -17,7 +17,7 @@ const initializeParams = {
   ipfsDescriptionHash: 'Description Hash',
 };
 
-describe('initialize', function () {
+describe('initializeProducts', function () {
   it('reverts if product target price is too high', async function () {
     const { stakingProducts } = this;
 

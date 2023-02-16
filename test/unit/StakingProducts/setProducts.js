@@ -8,11 +8,6 @@ const daysToSeconds = days => days * 24 * 60 * 60;
 
 const poolId = 1;
 
-const ProductTypeFixture = {
-  claimMethod: 1,
-  gracePeriod: 7 * 24 * 3600, // 7 days
-};
-
 const initialProductTemplate = {
   productId: 0,
   weight: 100, // 1.00
@@ -27,15 +22,6 @@ const newProductTemplate = {
   targetWeight: 100,
   setTargetPrice: true,
   targetPrice: 500,
-};
-
-const coverProductTemplate = {
-  productType: 1,
-  yieldTokenAddress: AddressZero,
-  coverAssets: 1111,
-  initialPriceRatio: 500,
-  capacityReductionRatio: 0,
-  useFixedPrice: false,
 };
 
 const buyCoverParamsTemplate = {
@@ -79,52 +65,6 @@ describe('setProducts unit tests', function () {
       stakingProducts,
       'PoolDoesNotExist',
     );
-  });
-
-  it('should initialize products successfully', async function () {
-    const { stakingProducts } = this;
-    const [internalContract] = this.accounts.internalContracts;
-
-    // initial products
-    let i = 0;
-    const initialProducts = Array(20)
-      .fill('')
-      .map(() => {
-        return { ...initialProductTemplate, productId: i++ };
-      });
-
-    await stakingProducts.connect(internalContract).setInitialProducts(poolId, initialProducts);
-
-    const block = await ethers.provider.getBlock('latest');
-
-    const product = await stakingProducts.getProduct(poolId, 0);
-    expect(product.targetWeight).to.be.equal(initialProducts[0].weight);
-    expect(product.targetPrice).to.be.equal(initialProducts[0].targetPrice);
-    expect(product.bumpedPriceUpdateTime).to.be.equal(block.timestamp);
-    expect(product.bumpedPrice).to.be.equal(initialProducts[0].initialPrice);
-
-    const weights = await stakingProducts.weights(poolId);
-    expect(weights.totalTargetWeight).to.be.equal(2000);
-    expect(weights.totalEffectiveWeight).to.be.equal(2000);
-    expect(await stakingProducts.getTotalTargetWeight(poolId)).to.be.equal(2000);
-    expect(await stakingProducts.getTotalEffectiveWeight(poolId)).to.be.equal(2000);
-  });
-
-  it('should fail to initialize too many products with full weight', async function () {
-    const { stakingProducts } = this;
-    const [internalContract] = this.accounts.internalContracts;
-
-    // initial products
-    let i = 0;
-    const initialProducts = Array(21)
-      .fill('')
-      .map(() => {
-        return { ...initialProductTemplate, productId: i++ };
-      });
-
-    await expect(
-      stakingProducts.connect(internalContract).setInitialProducts(poolId, initialProducts),
-    ).to.be.revertedWithCustomError(stakingProducts, 'TotalTargetWeightExceeded');
   });
 
   it('should set products and store values correctly', async function () {
@@ -247,15 +187,6 @@ describe('setProducts unit tests', function () {
     ).to.be.revertedWithCustomError(stakingProducts, 'TotalTargetWeightExceeded');
   });
 
-  it('should fail to initialize product with targetWeight greater that 1', async function () {
-    const { stakingProducts } = this;
-    const [internal] = this.accounts.internalContracts;
-
-    const initialProduct = { ...initialProductTemplate, weight: 101 };
-    await expect(
-      stakingProducts.connect(internal).setInitialProducts(poolId, [initialProduct]),
-    ).to.be.revertedWithCustomError(stakingProducts, 'TargetWeightTooHigh');
-  });
 
   it('should fail to make product weight higher than 1', async function () {
     const { stakingProducts } = this;
@@ -359,17 +290,7 @@ describe('setProducts unit tests', function () {
     );
   });
 
-  // TODO: move to cover unit tests
-  it.skip('should fail to initialize products with targetPrice below global minimum', async function () {
-    const { stakingProducts } = this;
-    const { GLOBAL_MIN_PRICE_RATIO } = this.config;
-    const [internal] = this.accounts.internalContracts;
 
-    const product = { ...initialProductTemplate, targetPrice: GLOBAL_MIN_PRICE_RATIO - 1 };
-    await expect(stakingProducts.connect(internal).setInitialProducts(poolId, [product])).to.be.revertedWith(
-      'Cover: Target price below GLOBAL_MIN_PRICE_RATIO',
-    );
-  });
 
   it('should fail with targetPrice below global min price ratio', async function () {
     const { stakingProducts } = this;

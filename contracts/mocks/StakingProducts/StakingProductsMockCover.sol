@@ -4,8 +4,10 @@ pragma solidity ^0.8.0;
 
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
+import "../../interfaces/IStakingProducts.sol";
+import "../../interfaces/IStakingPoolFactory.sol";
 
-contract SPMockCover {
+contract StakingProductsMockCover {
 
   uint public constant globalCapacityRatio = 20000;
   uint public constant globalRewardsRatio = 5000;
@@ -17,6 +19,25 @@ contract SPMockCover {
   mapping(uint => address) public stakingPool;
   mapping(uint => Product) public products;
   mapping(uint => ProductType) public productTypes;
+  mapping(uint => mapping(uint => bool)) public allowedPools;
+
+  ICoverNFT public coverNFT;
+  IStakingNFT public stakingNFT;
+  IStakingPoolFactory public stakingPoolFactory;
+  address public stakingPoolImplementation;
+
+  constructor(
+    ICoverNFT _coverNFT,
+    IStakingNFT _stakingNFT,
+    IStakingPoolFactory _stakingPoolFactory,
+    address _stakingPoolImplementation
+  ) {
+    // in constructor we only initialize immutable fields
+    coverNFT = _coverNFT;
+    stakingNFT = _stakingNFT;
+    stakingPoolFactory = _stakingPoolFactory;
+    stakingPoolImplementation = _stakingPoolImplementation;
+  }
 
   event RequestAllocationReturned(uint premium, uint allocationId);
 
@@ -130,6 +151,7 @@ contract SPMockCover {
 
   function initializeStaking(
     address staking_,
+    address _manager,
     bool _isPrivatePool,
     uint _initialPoolFee,
     uint _maxPoolFee,
@@ -138,6 +160,7 @@ contract SPMockCover {
   ) external {
 
     IStakingPool(staking_).initialize(
+      _manager,
       _isPrivatePool,
       _initialPoolFee,
       _maxPoolFee,
@@ -146,7 +169,48 @@ contract SPMockCover {
     );
   }
 
-  function isPoolAllowed(uint /*productId*/, uint /*poolId*/) external pure returns (bool) {
-    return true;
+  error TargetPriceBelowGlobalMinPriceRatio();
+
+  function createStakingPool(
+    IStakingProducts stakingProducts,
+    address manager,
+    bool isPrivatePool,
+    uint initialPoolFee,
+    uint maxPoolFee,
+    ProductInitializationParams[] memory productInitParams,
+    string calldata ipfsDescriptionHash
+  ) external returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+
+    // override with initial price
+    for (uint i = 0; i < productInitParams.length; i++) {
+
+      uint productId = productInitParams[i].productId;
+      productInitParams[i].initialPrice = products[productId].initialPriceRatio;
+
+      if (productInitParams[i].targetPrice < GLOBAL_MIN_PRICE_RATIO) {
+        revert TargetPriceBelowGlobalMinPriceRatio();
+      }
+    }
+
+    (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(address(this));
+
+    IStakingPool(stakingPoolAddress).initialize(
+      manager,
+      isPrivatePool,
+      initialPoolFee,
+      maxPoolFee,
+      poolId,
+      ipfsDescriptionHash
+    );
+
+    return (poolId, stakingPoolAddress);
+  }
+
+  function setPoolAllowed(uint productId, uint poolId, bool allowed) external {
+    allowedPools[productId][poolId] = allowed;
+  }
+
+  function isPoolAllowed(uint productId, uint poolId) external view returns (bool) {
+    return allowedPools[productId][poolId];
   }
 }

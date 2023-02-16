@@ -9,7 +9,7 @@ import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 
-contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
+contract SPMockStakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   using SafeUintCast for uint;
 
   uint public constant SURGE_PRICE_RATIO = 2 ether;
@@ -72,11 +72,11 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   ) {
     StakedProduct memory product = _products[poolId][productId];
     return (
-      product.lastEffectiveWeight,
-      product.targetWeight,
-      product.targetPrice,
-      product.bumpedPrice,
-      product.bumpedPriceUpdateTime
+    product.lastEffectiveWeight,
+    product.targetWeight,
+    product.targetPrice,
+    product.bumpedPrice,
+    product.bumpedPriceUpdateTime
     );
   }
 
@@ -85,11 +85,11 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     IStakingPool stakingPool = getStakingPool(poolId);
 
     (
-      uint globalCapacityRatio,
-      /* globalMinPriceRatio */,
-      /* initialPriceRatios */,
-      /* capacityReductionRatios */
-      uint[] memory capacityReductionRatios
+    uint globalCapacityRatio,
+    /* globalMinPriceRatio */,
+    /* initialPriceRatios */,
+    /* capacityReductionRatios */
+    uint[] memory capacityReductionRatios
     ) = ICover(coverContract).getPriceAndCapacityRatios(productIds);
 
     uint _totalEffectiveWeight = weights[poolId].totalEffectiveWeight;
@@ -137,10 +137,10 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
         }
       }
       (
-        globalCapacityRatio,
-        globalMinPriceRatio,
-        initialPriceRatios,
-        capacityReductionRatios
+      globalCapacityRatio,
+      globalMinPriceRatio,
+      initialPriceRatios,
+      capacityReductionRatios
       ) = ICover(coverContract).getPriceAndCapacityRatios(productIds);
     }
 
@@ -311,8 +311,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     }
 
     weights[poolId] = Weights({
-      totalTargetWeight: totalTargetWeight.toUint32(),
-      totalEffectiveWeight: totalTargetWeight.toUint32()
+    totalTargetWeight: totalTargetWeight.toUint32(),
+    totalEffectiveWeight: totalTargetWeight.toUint32()
     });
   }
 
@@ -329,10 +329,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint nxmPerAllocationUnit,
     uint allocationUnitsPerNXM
   ) public returns (uint premium) {
-
-     if (msg.sender != StakingPoolLibrary.getAddress(stakingPoolFactory, poolId)) {
-       revert OnlyStakingPool();
-     }
 
     StakedProduct memory product = _products[poolId][productId];
     uint targetPrice = Math.max(product.targetPrice, globalMinPrice);

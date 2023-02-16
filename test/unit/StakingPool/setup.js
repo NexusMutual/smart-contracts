@@ -20,7 +20,7 @@ async function setup() {
   const cover = await ethers.deployContract('SPMockCover');
   const stakingNFT = await ethers.deployContract('SPMockStakingNFT');
   const spf = await ethers.deployContract('StakingPoolFactory', [cover.address]);
-  const stakingProducts = await ethers.deployContract('StakingProducts', [cover.address, spf.address]);
+  const stakingProducts = await ethers.deployContract('SPMockStakingProducts', [cover.address, spf.address]);
 
   const stakingPool = await ethers.deployContract('StakingPool', [
     stakingNFT.address,

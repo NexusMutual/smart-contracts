@@ -12,6 +12,6 @@ describe('StakingProducts unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
-  require('./initialize');
+  require('./initializeProducts');
   require('./setProducts');
 });

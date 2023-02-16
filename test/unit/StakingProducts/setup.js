@@ -42,7 +42,7 @@ async function setup() {
 
   const nonce = (await accounts.defaultSender.getTransactionCount()) + 4;
   const expectedCoverAddress = getContractAddress({ from: accounts.defaultSender.address, nonce });
-  const coverNFT = await ethers.deployContract('CoverNFT', ['SPCoverNFT', 'SPCN', expectedCoverAddress]);
+  const coverNFT = await ethers.deployContract('CoverNFT', ['CoverNFT', 'CNFT', expectedCoverAddress]);
   const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [expectedCoverAddress]);
   const stakingProducts = await ethers.deployContract('StakingProducts', [
     expectedCoverAddress,
@@ -56,7 +56,7 @@ async function setup() {
     master.address,
     stakingProducts.address,
   ]);
-  const cover = await ethers.deployContract('SPMockCover', [
+  const cover = await ethers.deployContract('StakingProductsMockCover', [
     coverNFT.address,
     stakingNFT.address,
     stakingPoolFactory.address,

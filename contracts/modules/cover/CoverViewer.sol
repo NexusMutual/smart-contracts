@@ -2,11 +2,10 @@
 
 pragma solidity ^0.8.9;
 
-import "../../abstract/Multicall.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/INXMMaster.sol";
 
-contract CoverViewer is Multicall {
+contract CoverViewer {
 
   struct Segment {
     uint amount;
@@ -63,5 +62,28 @@ contract CoverViewer is Multicall {
       covers[i].segments = segments;
     }
     return covers;
+  }
+
+  function getCoverSegments(uint coverId) external view returns (Segment[] memory) {
+    ICover _cover = cover();
+    CoverData memory coverData = _cover.coverData(coverId);
+    CoverSegment[] memory coverSegments = _cover.coverSegments(coverId);
+
+    uint segmentsCount = _cover.coverSegmentsCount(coverId);
+    Segment[] memory segments = new Segment[](segmentsCount);
+
+    for (uint segId = 0; segId < segmentsCount; segId++) {
+      CoverSegment memory coverSegment = coverSegments[segId];
+
+      segments[segId].start = coverSegment.start;
+      segments[segId].period = coverSegment.period;
+      segments[segId].gracePeriod = coverSegment.gracePeriod;
+      segments[segId].amount = coverSegment.amount;
+      segments[segId].remainingAmount = coverSegment.amount > coverData.amountPaidOut
+        ? coverSegment.amount - coverData.amountPaidOut
+        : 0;
+    }
+
+    return segments;
   }
 }

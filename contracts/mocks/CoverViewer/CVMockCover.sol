@@ -4,13 +4,11 @@ pragma solidity ^0.8.9;
 
 import "../../interfaces/ICover.sol";
 
-contract CoverViewerMockCover {
-
+contract CVMockCover {
 
   mapping(uint => CoverSegment[]) public _coverSegments;
 
   function addSegments(uint coverId, CoverSegment[] memory segments) public {
-
     for (uint i = 0; i < segments.length; i++) {
       _coverSegments[coverId].push(segments[i]);
     }
@@ -20,7 +18,10 @@ contract CoverViewerMockCover {
     return _coverSegments[coverId].length;
   }
 
-  function coverSegments(uint coverId, uint segmentId) external view returns (CoverSegment memory) {
+  function coverSegmentWithRemainingAmount(
+    uint coverId,
+    uint segmentId
+  ) external view returns (CoverSegment memory) {
     return _coverSegments[coverId][segmentId];
   }
 }

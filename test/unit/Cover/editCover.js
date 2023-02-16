@@ -1478,7 +1478,7 @@ describe('editCover', function () {
       .mul(period)
       .div(priceDenominator)
       .div(3600 * 24 * 365)
-      .mul(2); // for the 2 pools
+      .mul(2); // for 2 pools
 
     const extraPremium = expectedEditPremium.sub(expectedRefund);
 

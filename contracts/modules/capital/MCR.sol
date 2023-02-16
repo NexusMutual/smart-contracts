@@ -10,6 +10,7 @@ import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ICover.sol";
 import "../../abstract/MasterAwareV2.sol";
+import "../../libraries/Math.sol";
 
 contract MCR is IMCR, MasterAwareV2 {
   // sizeof(qd) + 96 = 160 + 96 = 256 (occupies entire slot)
@@ -154,7 +155,7 @@ contract MCR is IMCR, MasterAwareV2 {
     if (block.timestamp > _lastUpdateTime && pool().calculateMCRRatio(poolValueInEth, _mcr) >= _mcrFloorIncrementThreshold) {
         // MCR floor updates by up to maxMCRFloorIncrement percentage per day whenever the MCR ratio exceeds 1.3
         // MCR floor is monotonically increasing.
-      uint basisPointsAdjustment = min(
+      uint basisPointsAdjustment = Math.min(
         _maxMCRFloorIncrement * (block.timestamp - _lastUpdateTime) / 1 days,
         _maxMCRFloorIncrement
       );
@@ -174,7 +175,7 @@ contract MCR is IMCR, MasterAwareV2 {
     // on the changes in the totalSumAssured in the system.
     uint totalSumAssured = getAllSumAssurance();
     uint gearedMCR = totalSumAssured * BASIS_PRECISION / _gearingFactor;
-    uint112 newDesiredMCR = uint112(max(gearedMCR, mcrFloor));
+    uint112 newDesiredMCR = uint112(Math.max(gearedMCR, mcrFloor));
     if (newDesiredMCR != _desiredMCR) {
       desiredMCR = newDesiredMCR;
     }
@@ -209,26 +210,18 @@ contract MCR is IMCR, MasterAwareV2 {
     uint _maxMCRIncrement = maxMCRIncrement;
 
     uint basisPointsAdjustment = _maxMCRIncrement * (block.timestamp - _lastUpdateTime) / 1 days;
-    basisPointsAdjustment = min(basisPointsAdjustment, MAX_MCR_ADJUSTMENT);
+    basisPointsAdjustment = Math.min(basisPointsAdjustment, MAX_MCR_ADJUSTMENT);
 
     if (_desiredMCR > _mcr) {
-      return min(_mcr * (basisPointsAdjustment + BASIS_PRECISION) / BASIS_PRECISION, _desiredMCR);
+      return Math.min(_mcr * (basisPointsAdjustment + BASIS_PRECISION) / BASIS_PRECISION, _desiredMCR);
     }
 
     // in case desiredMCR <= mcr
-    return max(_mcr * (BASIS_PRECISION - basisPointsAdjustment) / (BASIS_PRECISION), _desiredMCR);
+    return Math.max(_mcr * (BASIS_PRECISION - basisPointsAdjustment) / (BASIS_PRECISION), _desiredMCR);
   }
 
   function getGearedMCR() external view returns (uint) {
     return getAllSumAssurance() * BASIS_PRECISION / gearingFactor;
-  }
-
-  function min(uint x, uint y) pure internal returns (uint) {
-    return x < y ? x : y;
-  }
-
-  function max(uint x, uint y) pure internal returns (uint) {
-    return x > y ? x : y;
   }
 
   /**

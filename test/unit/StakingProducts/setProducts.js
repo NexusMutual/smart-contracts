@@ -61,10 +61,7 @@ describe('setProducts unit tests', function () {
     const [manager] = this.accounts.members;
 
     const product = { ...newProductTemplate };
-    await expect(stakingProducts.connect(manager).setProducts(324985304958, [product])).to.be.revertedWithCustomError(
-      stakingProducts,
-      'PoolDoesNotExist',
-    );
+    await expect(stakingProducts.connect(manager).setProducts(324985304958, [product])).to.be.revertedWithoutReason();
   });
 
   it('should set products and store values correctly', async function () {
@@ -187,7 +184,6 @@ describe('setProducts unit tests', function () {
     ).to.be.revertedWithCustomError(stakingProducts, 'TotalTargetWeightExceeded');
   });
 
-
   it('should fail to make product weight higher than 1', async function () {
     const { stakingProducts } = this;
     const [manager] = this.accounts.members;
@@ -289,8 +285,6 @@ describe('setProducts unit tests', function () {
       'TargetPriceTooHigh',
     );
   });
-
-
 
   it('should fail with targetPrice below global min price ratio', async function () {
     const { stakingProducts } = this;

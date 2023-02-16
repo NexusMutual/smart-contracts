@@ -172,7 +172,6 @@ contract StakingProductsMockCover {
   error TargetPriceBelowGlobalMinPriceRatio();
 
   function createStakingPool(
-    IStakingProducts stakingProducts,
     address manager,
     bool isPrivatePool,
     uint initialPoolFee,

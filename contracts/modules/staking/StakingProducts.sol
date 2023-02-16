@@ -45,10 +45,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function getStakingPool(uint poolId) internal view returns (IStakingPool stakingPoolAddress) {
     stakingPoolAddress = IStakingPool(StakingPoolLibrary.getAddress(stakingPoolFactory, poolId));
-    // Reverts without reason if the pool is not created yet
-    if (address(stakingPoolAddress).code.length == 0) {
-      revert PoolDoesNotExist();
-    }
   }
 
   function getProductTargetWeight(uint poolId, uint productId) external view override returns (uint) {

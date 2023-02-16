@@ -1,6 +1,5 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { setEtherBalance } = require('../utils').evm;
 
 const product0 = {
   productId: 0,

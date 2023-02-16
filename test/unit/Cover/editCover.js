@@ -28,12 +28,10 @@ describe('editCover', function () {
 
   it('should edit purchased cover and increase amount', async function () {
     const { cover } = this;
-
     const [coverBuyer] = this.accounts.members;
 
     const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
-
-    const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
     const { start: startTimestamp } = await cover.coverSegments(expectedCoverId, 0);
@@ -42,14 +40,22 @@ describe('editCover', function () {
 
     const increasedAmount = amount.mul(2);
 
+    // premium for the new amount, without refunds
+    const expectedNewPremium = increasedAmount
+      .mul(targetPriceRatio)
+      .mul(period)
+      .div(priceDenominator)
+      .div(3600 * 24 * 365);
+
+    // refund for the unused period
     const expectedRefund = segment.amount
       .mul(targetPriceRatio)
       .mul(BigNumber.from(segment.period).sub(passedPeriod))
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
-    const expectedEditPremium = expectedPremium.mul(2);
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    // difference to pay
+    const extraPremium = expectedNewPremium.sub(expectedRefund);
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -59,7 +65,7 @@ describe('editCover', function () {
         coverAsset,
         amount: increasedAmount,
         period,
-        maxPremiumInAsset: extraPremium.add(1),
+        maxPremiumInAsset: extraPremium,
         paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
@@ -67,9 +73,7 @@ describe('editCover', function () {
         ipfsData: '',
       },
       [{ poolId: 1, coverAmountInAsset: increasedAmount.toString() }],
-      {
-        value: extraPremium.add(1),
-      },
+      { value: extraPremium },
     );
 
     await assertCoverFields(cover, expectedCoverId, {

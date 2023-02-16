@@ -1196,12 +1196,7 @@ describe('editCover', function () {
     const [coverBuyer] = this.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
-    const {
-      expectedPremium,
-      segment,
-      coverId: expectedCoverId,
-      segmentId,
-    } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { segment, coverId: expectedCoverId, segmentId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
     const { start: startTimestamp } = await cover.coverSegments(expectedCoverId, 0);
@@ -1477,7 +1472,14 @@ describe('editCover', function () {
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
-    const expectedEditPremium = expectedPremium.mul(2).mul(2);
+    // premium for the new amount, without refunds
+    const expectedEditPremium = increasedPoolAmount
+      .mul(targetPriceRatio)
+      .mul(period)
+      .div(priceDenominator)
+      .div(3600 * 24 * 365)
+      .mul(2); // for the 2 pools
+
     const extraPremium = expectedEditPremium.sub(expectedRefund);
 
     await cover.connect(coverBuyer).buyCover(
@@ -1488,7 +1490,7 @@ describe('editCover', function () {
         coverAsset,
         amount: increasedPoolAmount.mul(2),
         period,
-        maxPremiumInAsset: extraPremium.add(1),
+        maxPremiumInAsset: extraPremium,
         paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
@@ -1500,7 +1502,7 @@ describe('editCover', function () {
         { poolId: 2, skip: false, coverAmountInAsset: increasedPoolAmount },
       ],
       {
-        value: extraPremium.add(1),
+        value: extraPremium,
       },
     );
 

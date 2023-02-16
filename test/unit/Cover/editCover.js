@@ -1150,7 +1150,7 @@ describe('editCover', function () {
     const [coverBuyer] = this.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
-    const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const increasedAmount = amount.mul(2);
     const expectedRefund = segment.amount
@@ -1159,7 +1159,13 @@ describe('editCover', function () {
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
-    const expectedEditPremium = expectedPremium.mul(2);
+    // premium for the new amount, without refunds
+    const expectedEditPremium = increasedAmount
+      .mul(targetPriceRatio)
+      .mul(period)
+      .div(priceDenominator)
+      .div(3600 * 24 * 365);
+
     const extraPremium = expectedEditPremium.sub(expectedRefund);
 
     await expect(
@@ -1171,7 +1177,7 @@ describe('editCover', function () {
           coverAsset,
           amount: increasedAmount,
           period,
-          maxPremiumInAsset: expectedEditPremium.add(1),
+          maxPremiumInAsset: expectedEditPremium,
           paymentAsset: coverAsset,
           payWitNXM: false,
           commissionRatio: parseEther('0'),
@@ -1179,7 +1185,7 @@ describe('editCover', function () {
           ipfsData: '',
         },
         [],
-        { value: extraPremium.add(1) },
+        { value: extraPremium },
       ),
     ).to.be.revertedWithCustomError(cover, 'InsufficientCoverAmountAllocated');
   });

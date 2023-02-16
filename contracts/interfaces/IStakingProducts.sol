@@ -107,7 +107,7 @@ interface IStakingProducts {
   error OnlyManager();
 
   // Inputs
-  error InvalidStakingPool();
+  error PoolDoesNotExist();
 
   // Products & weights
   error PoolNotAllowedForThisProduct();

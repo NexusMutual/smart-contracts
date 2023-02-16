@@ -12,6 +12,7 @@ describe('UNIT TESTS', function () {
   require('./IndividualClaims');
   require('./YieldTokenIncidents');
   require('./StakingPool');
+  require('./StakingProducts');
   require('./PriceFeedOracle');
   require('./CoverViewer');
   require('./StakingNFT');

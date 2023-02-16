@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.9;
 
+import "hardhat/console.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
 import "../../interfaces/IStakingProducts.sol";
@@ -44,7 +45,11 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   }
 
   function getStakingPool(uint poolId) internal view returns (IStakingPool stakingPoolAddress) {
-    return IStakingPool(StakingPoolLibrary.getAddress(stakingPoolFactory, poolId));
+    stakingPoolAddress = IStakingPool(StakingPoolLibrary.getAddress(stakingPoolFactory, poolId));
+    // Reverts without reason if the pool is not created yet
+    if (address(stakingPoolAddress).code.length == 0) {
+      revert PoolDoesNotExist();
+    }
   }
 
   function getProductTargetWeight(uint poolId, uint productId) external view override returns (uint) {
@@ -308,7 +313,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     weights[poolId] = Weights({
       totalTargetWeight: totalTargetWeight.toUint32(),
-      totalEffectiveWeight: 0
+      totalEffectiveWeight: totalTargetWeight.toUint32()
     });
   }
 
@@ -326,12 +331,10 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint allocationUnitsPerNXM
   ) public returns (uint premium) {
 
-    // TODO: WARNING! EXTREMELY IMPORTANT!
-    // TODO: uncomment this after moving the StakingProducts tests to a separate folder
     // TODO: need to use a SPMockStakingProducts when testing StakingPool
-    // if (msg.sender != StakingPoolLibrary.getAddress(stakingPoolFactory, poolId)) {
-    //   revert OnlyStakingPool();
-    // }
+     if (msg.sender != StakingPoolLibrary.getAddress(stakingPoolFactory, poolId)) {
+       revert OnlyStakingPool();
+     }
 
     StakedProduct memory product = _products[poolId][productId];
     uint targetPrice = Math.max(product.targetPrice, globalMinPrice);

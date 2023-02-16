@@ -21,10 +21,11 @@ const initializeParams = {
 describe('initialize', function () {
   it('reverts if cover contract is not the caller', async function () {
     const { stakingPool, cover } = this;
+    const manager = this.accounts.defaultSender;
     const { poolId, initialPoolFee, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
     await expect(
-      stakingPool.initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash),
+      stakingPool.initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash),
     ).to.be.revertedWithCustomError(stakingPool, 'OnlyCoverContract');
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
@@ -33,12 +34,13 @@ describe('initialize', function () {
     await expect(
       stakingPool
         .connect(coverSigner)
-        .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash),
+        .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash),
     ).to.not.be.reverted;
   });
 
   it('reverts if initial pool fee exceeds max pool fee', async function () {
     const { stakingPool, cover } = this;
+    const manager = this.accounts.defaultSender;
 
     const { poolId, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
@@ -48,26 +50,31 @@ describe('initialize', function () {
     await expect(
       stakingPool
         .connect(coverSigner)
-        .initialize(isPrivatePool, maxPoolFee + 1, maxPoolFee, poolId, ipfsDescriptionHash),
+        .initialize(manager.address, isPrivatePool, maxPoolFee + 1, maxPoolFee, poolId, ipfsDescriptionHash),
     ).to.be.revertedWithCustomError(stakingPool, 'PoolFeeExceedsMax');
   });
 
   it('reverts if max pool fee is 100%', async function () {
     const { stakingPool, cover } = this;
+    const manager = this.accounts.defaultSender;
+
     const { poolId, initialPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
     await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
 
     await expect(
-      stakingPool.connect(coverSigner).initialize(isPrivatePool, initialPoolFee, 100, poolId, ipfsDescriptionHash),
+      stakingPool
+        .connect(coverSigner)
+        .initialize(manager.address, isPrivatePool, initialPoolFee, 100, poolId, ipfsDescriptionHash),
     ).to.be.revertedWithCustomError(stakingPool, 'MaxPoolFeeAbove100');
   });
 
-<<<<<<< HEAD
   // TODO: StakingProducts test
   it.skip('reverts if product target price is too high', async function () {
     const { stakingPool, stakingProducts, cover } = this;
+    const manager = this.accounts.defaultSender;
+
     const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
@@ -79,6 +86,7 @@ describe('initialize', function () {
       stakingPool
         .connect(coverSigner)
         .initialize(
+          manager.address,
           isPrivatePool,
           initialPoolFee,
           maxPoolFee,
@@ -92,6 +100,7 @@ describe('initialize', function () {
       stakingPool
         .connect(coverSigner)
         .initialize(
+          manager.address,
           isPrivatePool,
           initialPoolFee,
           maxPoolFee,
@@ -105,6 +114,8 @@ describe('initialize', function () {
   // TODO: StakingProducts test
   it.skip('reverts if product weight bigger than 1', async function () {
     const { stakingPool, stakingProducts, cover } = this;
+    const manager = this.accounts.defaultSender;
+
     const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
@@ -116,6 +127,7 @@ describe('initialize', function () {
       stakingPool
         .connect(coverSigner)
         .initialize(
+          manager.address,
           isPrivatePool,
           initialPoolFee,
           maxPoolFee,
@@ -129,6 +141,7 @@ describe('initialize', function () {
       stakingPool
         .connect(coverSigner)
         .initialize(
+          manager.address,
           isPrivatePool,
           initialPoolFee,
           maxPoolFee,
@@ -142,6 +155,8 @@ describe('initialize', function () {
   // TODO: StakingProducts test
   it.skip('reverts if products total target exceeds max total weight', async function () {
     const { stakingPool, stakingProducts, cover } = this;
+    const manager = this.accounts.defaultSender;
+
     const { poolId, initialPoolFee, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
@@ -156,6 +171,7 @@ describe('initialize', function () {
       stakingPool
         .connect(coverSigner)
         .initialize(
+          manager.address,
           isPrivatePool,
           initialPoolFee,
           maxPoolFee,
@@ -168,14 +184,22 @@ describe('initialize', function () {
     await expect(
       stakingPool
         .connect(coverSigner)
-        .initialize(isPrivatePool, initialPoolFee, maxPoolFee, [...validProducts], poolId, ipfsDescriptionHash),
+        .initialize(
+          manager.address,
+          isPrivatePool,
+          initialPoolFee,
+          maxPoolFee,
+          [...validProducts],
+          poolId,
+          ipfsDescriptionHash,
+        ),
     ).to.not.be.reverted;
   });
 
-=======
->>>>>>> b3305614... wip - move and update staking product tests
   it('correctly initialize pool parameters', async function () {
     const { stakingPool, cover } = this;
+    const manager = this.accounts.defaultSender;
+
     const { poolId, initialPoolFee, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
@@ -183,17 +207,35 @@ describe('initialize', function () {
 
     await stakingPool
       .connect(coverSigner)
-      .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+      .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
 
     expect(await stakingPool.getPoolFee()).to.be.equal(initialPoolFee);
     expect(await stakingPool.getMaxPoolFee()).to.be.equal(maxPoolFee);
     expect(await stakingPool.isPrivatePool()).to.be.equal(isPrivatePool);
   });
 
-<<<<<<< HEAD
+  it('correctly sets the manager', async function () {
+    const { stakingPool, cover } = this;
+    const manager = this.accounts.defaultSender;
+
+    const { poolId, initialPoolFee, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
+
+    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+    await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
+
+    await stakingPool
+      .connect(coverSigner)
+      .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+
+    const actualManager = await stakingPool.manager();
+    expect(actualManager).to.be.equal(manager.address);
+  });
+
   // TODO: StakingProducts test
   it.skip('correctly initializes the list of products', async function () {
     const { stakingPool, stakingProducts, cover } = this;
+    const manager = this.accounts.defaultSender;
+
     const { poolId, initialPoolFee, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
@@ -213,7 +255,15 @@ describe('initialize', function () {
 
     await stakingPool
       .connect(coverSigner)
-      .initialize(isPrivatePool, initialPoolFee, maxPoolFee, [...validProducts], poolId, ipfsDescriptionHash);
+      .initialize(
+        manager.address,
+        isPrivatePool,
+        initialPoolFee,
+        maxPoolFee,
+        [...validProducts],
+        poolId,
+        ipfsDescriptionHash,
+      );
 
     for (const [index, product] of validProducts.entries()) {
       const [lastEffectiveWeight, targetWeight, targetPrice, bumpedPrice, bumpedPriceUpdateTime] =
@@ -231,22 +281,16 @@ describe('initialize', function () {
     const { stakingPool, cover } = this;
     const manager = this.accounts.defaultSender;
     const [nonManager] = this.accounts.nonMembers;
-=======
-  it('correctly sets the manager', async function () {
-    const { stakingPool, cover } = this;
-    const manager = this.accounts.defaultSender;
->>>>>>> b3305614... wip - move and update staking product tests
 
     const { poolId, initialPoolFee, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
     await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
 
-<<<<<<< HEAD
     await expect(
       stakingPool
         .connect(coverSigner)
-        .initialize(isPrivatePool, initialPoolFee, maxPoolFee, [], poolId, ipfsDescriptionHash),
+        .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, [], poolId, ipfsDescriptionHash),
     )
       .to.emit(stakingPool, 'PoolDescriptionSet')
       .withArgs(ipfsDescriptionHash);
@@ -259,13 +303,5 @@ describe('initialize', function () {
       stakingPool,
       'OnlyManager',
     );
-=======
-    await stakingPool
-      .connect(coverSigner)
-      .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
-
-    const actualManager = await stakingPool.manager();
-    expect(actualManager).to.be.equal(manager.address);
->>>>>>> b3305614... wip - move and update staking product tests
   });
 });

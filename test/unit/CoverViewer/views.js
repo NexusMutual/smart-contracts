@@ -15,16 +15,23 @@ describe('views', function () {
       globalCapacityRatio: 2000,
     };
 
+    const coverData = {
+      productId: 1,
+      coverAsset: 0, // ETH
+      amountPaidOut: 0,
+    };
+
     const coverId = 1;
+
+    await cover.addCoverData(coverId, coverData);
     await cover.addSegments(coverId, [coverSegment]);
 
     const segments = await coverViewer.getCoverSegments(coverId);
-
     expect(segments.length).to.be.equal(1);
     expect(segments[0].amount.toString()).to.be.equal(coverSegment.amount.toString());
+    expect(segments[0].remainingAmount.toString()).to.be.equal(coverSegment.amount.toString());
     expect(segments[0].start).to.be.equal(coverSegment.start);
     expect(segments[0].period).to.be.equal(coverSegment.period);
     expect(segments[0].gracePeriod).to.be.equal(coverSegment.gracePeriod);
-    expect(segments[0].globalRewardsRatio).to.be.equal(coverSegment.globalRewardsRatio);
   });
 });

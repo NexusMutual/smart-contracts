@@ -165,7 +165,7 @@ describe('totalActiveCover', function () {
 
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
-      const segment = await cover.coverSegments(coverId, segmentId);
+      const segment = await cover.coverSegmentWithRemainingAmount(coverId, segmentId);
       expect(segment.period + segment.start).to.be.lt(timestamp);
 
       // Doesn't expire until buyCover/burnStake is called
@@ -180,7 +180,7 @@ describe('totalActiveCover', function () {
         cover,
         coverBuyer1,
       });
-      const segment = await cover.coverSegments(coverId + 1, segmentId);
+      const segment = await cover.coverSegmentWithRemainingAmount(coverId + 1, segmentId);
       expect(await cover.totalActiveCoverInAsset(coverAsset)).to.be.equal(segment.amount);
     }
   });
@@ -225,7 +225,7 @@ describe('totalActiveCover', function () {
 
     // partial paid cover
     const claimAmount = amount.div(2);
-    // const segmentBeforeBurn = await cover.coverSegments(coverId, segmentId);
+    // const segmentBeforeBurn = await cover.coverSegmentWithRemainingAmount(coverId, segmentId);
 
     await yc.connect(coverBuyer1).redeemPayout(incidentId, coverId, segmentId, claimAmount, nonMember1.address, []);
 
@@ -241,7 +241,7 @@ describe('totalActiveCover', function () {
     {
       // Verify that the cover period is over
       const { timestamp } = await ethers.provider.getBlock('latest');
-      const segment = await cover.coverSegments(coverId, segmentId);
+      const segment = await cover.coverSegmentWithRemainingAmount(coverId, segmentId);
       expect(segment.period + segment.start).to.be.lt(timestamp);
 
       // Doesn't expire until buyCover/burnStake is called
@@ -256,7 +256,7 @@ describe('totalActiveCover', function () {
         cover,
         coverBuyer1,
       });
-      const segment = await cover.coverSegments(coverId + 1, segmentId);
+      const segment = await cover.coverSegmentWithRemainingAmount(coverId + 1, segmentId);
       expect(await cover.totalActiveCoverInAsset(coverAsset)).to.be.equal(segment.amount);
     }
   });
@@ -312,7 +312,7 @@ describe('totalActiveCover', function () {
 
     // Verify that the cover period is over
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const segment = await cover.coverSegments(coverId, segmentId);
+    const segment = await cover.coverSegmentWithRemainingAmount(coverId, segmentId);
     expect(segment.period + segment.start).to.be.lt(timestamp);
 
     // Doesn't explicitly expire until buyCover/burnStake is called
@@ -327,7 +327,7 @@ describe('totalActiveCover', function () {
         cover,
         coverBuyer1,
       });
-      const segment = await cover.coverSegments(coverId + 1, segmentId);
+      const segment = await cover.coverSegmentWithRemainingAmount(coverId + 1, segmentId);
       expect(await cover.totalActiveCoverInAsset(coverAsset)).to.be.equal(segment.amount);
     }
   });

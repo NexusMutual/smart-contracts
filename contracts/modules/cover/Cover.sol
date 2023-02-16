@@ -200,7 +200,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       }
 
       segmentId = _coverSegments[coverId].length;
-      CoverSegment memory lastSegment = coverSegments(coverId, segmentId - 1);
+      CoverSegment memory lastSegment = coverSegmentWithRemainingAmount(coverId, segmentId - 1);
 
       // require last segment not to be expired
       if (lastSegment.start + lastSegment.period <= block.timestamp) {
@@ -557,7 +557,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     CoverData storage cover = _coverData[coverId];
     ActiveCover storage _activeCover = activeCover[cover.coverAsset];
-    CoverSegment memory segment = coverSegments(coverId, segmentId);
+    CoverSegment memory segment = coverSegmentWithRemainingAmount(coverId, segmentId);
     PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
 
     // Update expired buckets and calculate the amount of active cover that should be burned
@@ -621,7 +621,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return _coverData[coverId];
   }
 
-  function coverSegments(
+  function coverSegmentWithRemainingAmount(
     uint coverId,
     uint segmentId
   ) public override view returns (CoverSegment memory) {
@@ -631,6 +631,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       ? segment.amount - amountPaidOut
       : 0;
     return segment;
+  }
+
+  function coverSegments(uint coverId) external override view returns (CoverSegment[] memory) {
+    return _coverSegments[coverId];
   }
 
   function coverSegmentsCount(uint coverId) external override view returns (uint) {

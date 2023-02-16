@@ -702,6 +702,13 @@ describe('V2 upgrade', function () {
     await populateV2Products(this.cover.address, this.abMembers[0]);
   });
 
+  it('Call LegacyPooledStaking.pushRewards for all non-deprecated contracts', async function () {
+    const productAddresses = PRODUCT_ADDRESSES_OUTPUT.map(address => address.toLowerCase());
+
+    console.log(`Call pushRewards with ${productAddresses.length} product addresses.`);
+    await this.pooledStaking.pushRewards(productAddresses);
+  });
+
   it('Process all PooledStaking pending actions', async function () {
     let hasPendingActions = await this.pooledStaking.hasPendingActions();
     let i = 0;

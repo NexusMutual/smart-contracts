@@ -1072,6 +1072,11 @@ describe('V2 upgrade', function () {
       expect(stakeSharesSum).to.be.equal(sharesSupply);
       // console.log('-------------- deposit in PS = ', depositInPS[stakerAddress].toString());
     }
+
+    this.armorAAAPoolId = armorAAAPoolId;
+    this.armorAAPoolId = armorAAPoolId;
+    this.foundationPoolId = foundationPoolId;
+    this.hughPoolId = hughPoolId;
   });
 
   it('Non-selected stakers can withdraw their entire deposit from LegacyPooledStaking', async function () {
@@ -1099,6 +1104,77 @@ describe('V2 upgrade', function () {
       expect(stakerDepositAfter).to.be.equal('0');
       expect(nxmBalanceAfter.sub(nxmBalanceBefore)).to.be.equal(stakerDepositBefore);
     }
+  });
+
+  it('purchase Cover at the expected prices from the migrated pools', async function () {
+    const coverBuyer = this.abMembers[4];
+    const poolEthBalanceBefore = await ethers.provider.getBalance(this.pool.address);
+
+    const UNISWAP_V3 = '0x1F98431c8aD98523631AE4a59f267346ea31F984';
+
+    const productId = await this.productsV1.getNewProductId(UNISWAP_V3);
+
+    console.log({});
+
+    const migratedPrice = await this.pooledStaking.getV1PriceForProduct(productId);
+
+    const coverAsset = 0; // ETH
+    const amount = parseEther('1');
+
+    const MAX_COVER_PERIOD_IN_DAYS = 364;
+    const DAYS_IN_YEAR = 365;
+    const period = MAX_COVER_PERIOD_IN_DAYS * 24 * 3600;
+    const expectedPremium = amount
+      .mul(migratedPrice)
+      .div((1e18).toString())
+      .div(100)
+      // annualized premium is for DAYS_IN_YEAR but covers can only be up to MAX_COVER_PERIOD_IN_DAYS long
+      .mul(MAX_COVER_PERIOD_IN_DAYS)
+      .div(DAYS_IN_YEAR);
+    const paymentAsset = coverAsset;
+
+    const poolAllocationRequest = [{ poolId: this.armorAAAPoolId, coverAmountInAsset: amount }];
+
+    console.log(`Buyer ${coverBuyer._address} buying cover for ${productId.toString()} on Pool ${this.armorAAAPoolId}`);
+
+    await this.cover.connect(coverBuyer).buyCover(
+      {
+        coverId: '0', // new cover
+        owner: coverBuyer._address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      poolAllocationRequest,
+      { value: expectedPremium },
+    );
+
+    const poolEthBalanceAfter = await ethers.provider.getBalance(this.pool.address);
+
+    const premiumSentToPool = poolEthBalanceAfter.sub(poolEthBalanceBefore);
+
+    console.log({
+      premiumSentToPool: premiumSentToPool.toString(),
+      expectedPremium: expectedPremium.toString(),
+      migratedPrice: migratedPrice.toString(),
+    });
+
+    expect(expectedPremium).to.be.greaterThanOrEqual(premiumSentToPool);
+
+    // expectedPremium >= premiumSentToPool guaranteed by the assertion above.
+    // We then assert the difference between the 2 is less than 0.01% of the original amount
+    // The difference comes from the fact that we truncate prices to 4 decimals when we port them from
+    // Quote Engine to StakingProduct.sol. On top of that, the covers go only up to 364 days, while the
+    // Quote Engine prices are calculated for 365.25 days.
+    // The latter is partially accounted for in the expectedPremium computation above
+    // (BigNumber doesn't support fractions)
+    expect(expectedPremium.sub(premiumSentToPool)).to.be.lessThanOrEqual(amount.div(10000));
   });
 
   // TODO review

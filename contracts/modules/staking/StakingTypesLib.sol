@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.18;
 
 // 5 x uint48 activeAllocation + 1 x uint16 lastBucketId
 // 5 * 48 + 16 = 256

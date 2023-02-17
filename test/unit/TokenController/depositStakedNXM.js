@@ -50,6 +50,8 @@ describe('depositStakedNXM', function () {
     const initialUserBalance = await nxm.balanceOf(member.address);
 
     const amount = parseEther('10');
+    console.log(this.poolSigner.address);
+    console.log(this.poolId);
     await tokenController.connect(this.poolSigner).depositStakedNXM(member.address, amount, this.poolId);
 
     const tcBalance = await nxm.balanceOf(tokenController.address);

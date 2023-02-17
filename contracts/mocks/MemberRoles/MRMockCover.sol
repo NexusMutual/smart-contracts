@@ -5,7 +5,7 @@ import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IMemberRoles.sol";
 
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.18;
 
 contract MRMockCover {
 

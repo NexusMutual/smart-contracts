@@ -2,7 +2,8 @@ const { ethers } = require('hardhat');
 
 const { DAI_ASSET_ID } = require('../utils/cover');
 const { daysToSeconds } = require('../utils').helpers;
-const { increaseTime, setEtherBalance } = require('../utils').evm;
+const { increaseTime, setEtherBalance, setNextBlockBaseFee } = require('../utils').evm;
+const { toBytes2 } = require('../utils').helpers;
 
 const { BigNumber } = ethers;
 const { AddressZero, Zero, Two, MaxUint256 } = ethers.constants;
@@ -54,11 +55,11 @@ const createDeposit = async (stakingPool, staker) => {
   const coverAddress = await stakingPool.coverContract();
   const amount = Two.pow(96).sub(1);
   const coverSigner = await ethers.getImpersonatedSigner(coverAddress);
-  await setEtherBalance(coverSigner.address, parseEther('1000'));
 
   // mint nxm
   const tc = await ethers.getContractAt('TokenController', await stakingPool.tokenController());
-  await tc.connect(coverSigner).mint(staker.address, amount);
+  await setNextBlockBaseFee(0);
+  await tc.connect(coverSigner).mint(staker.address, amount, { gasPrice: 0 });
 
   // make infinite approval
   const tk = await ethers.getContractAt('NXMToken', await tc.token());
@@ -89,6 +90,25 @@ const createDeposit = async (stakingPool, staker) => {
 };
 
 const createCover = async (cover, coverBuyer, poolId, amount, period) => {
+  /// setup ///
+
+  const ms = await ethers.getContractAt('NXMaster', await cover.master());
+  const as = await ethers.getContractAt('Assessment', await ms.getLatestAddress(toBytes2('AS')), coverBuyer);
+  const ic = await ethers.getContractAt('IndividualClaims', await ms.getLatestAddress(toBytes2('IC')), coverBuyer);
+  const tc = await ethers.getContractAt('TokenController', await ms.getLatestAddress(toBytes2('TC')), coverBuyer);
+  const tk = await ethers.getContractAt('NXMToken', await ms.tokenAddress(), coverBuyer);
+
+  // get cover signer and set ether balance
+  const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+  await setEtherBalance(coverSigner.address, parseEther('1000'));
+
+  // mint nxm, approve infinity, stake as assessor
+  const balance = Two.pow(96).sub(1);
+  await setNextBlockBaseFee(0);
+  await tc.connect(coverSigner).mint(coverBuyer.address, balance, { gasPrice: 0 });
+  await tk.approve(tc.address, MaxUint256);
+  await as.stake(balance.div(2));
+
   // get next cover id
   const coverId = (await cover.coverDataCount()).add(1);
 
@@ -109,19 +129,74 @@ const createCover = async (cover, coverBuyer, poolId, amount, period) => {
 
   // allocations factory
   const allocations = amount => [{ poolId, coverAmountInAsset: amount }];
-  const f = (value, units = 18) => formatUnits(value, units);
+
+  // const allocations = amount => [
+  //   { poolId, coverAmountInAsset: amount.div(2) },
+  //   { poolId: poolId.add(1), coverAmountInAsset: amount.div(2) },
+  // ];
+
+  const f = (value, units = 18, padSize = 4) => {
+    const formatted = formatUnits(value, units);
+    const [int, dec = ''] = formatted.split('.');
+    return int + '.' + dec.slice(0, padSize).padEnd(padSize, '0');
+  };
+
+  const days = seconds => (seconds / 3600 / 24).toFixed(2) + 'd';
+
+  /// internal functions ///
 
   const buy = async (requestedCoverId, amount, period) => {
-    console.log(`buy(coverId=${requestedCoverId}, amount=${f(amount)}, period=${f(period, 0)})`);
     await cover.buyCover({ ...params(amount, period), coverId: requestedCoverId }, allocations(amount));
-    const coverId = await cover.coverDataCount();
+    const coverId = BigNumber.from(requestedCoverId).isZero() ? await cover.coverDataCount() : requestedCoverId;
     const segmentCount = await cover.coverSegmentsCount(coverId);
     const segment = await cover.coverSegments(coverId, segmentCount.sub(1));
-    console.log(`=> amount=${f(segment.amount)}, period=${f(segment.period, 0)})\n`);
+    console.log(
+      [
+        `buy(coverId=${coverId}, amount = ${f(amount)}, period = ${days(period)})`,
+        `=> amount = ${f(segment.amount)}, period = ${days(segment.period)}\n`,
+      ].join(' '),
+    );
   };
+
+  const claim = async (amount, segmentId) => {
+    // gather info
+    const { coverAsset } = await cover.coverData(coverId);
+    const { period: segmentPeriod } = await cover.coverSegments(coverId, segmentId);
+    const [deposit] = await ic.getAssessmentDepositAndReward(amount, segmentPeriod, coverAsset);
+
+    // submit claim
+    await ic.submitClaim(coverId, segmentId, amount, '', { value: deposit });
+    const { claimId } = await ic.lastClaimSubmissionOnCover(coverId);
+
+    // vote
+    const { assessmentId } = await ic.claims(claimId);
+    await as.castVotes([assessmentId], [true], [''], 0);
+
+    // advance time 24h and redeem payout
+    await increaseTime(4 * 24 * 3600); // 3 days for voting + 1 day for cooldown
+    await ic.redeemClaimPayout(claimId);
+
+    // get updated info
+    const { amountPaidOut } = await cover.coverData(coverId);
+
+    console.log(
+      [
+        `claim(coverId = ${coverId}, segment = ${segmentId}, amount = ${f(amount)})`,
+        `=> amountPaidOut = ${f(amountPaidOut)}\n`,
+      ].join(' '),
+    );
+  };
+
+  const dump = async () => {
+
+  };
+
+  /// initialization ///
 
   // buy initial cover
   await buy(0, amount, period);
+
+  /// api ///
 
   const api = {
     edit: async ({ amount = 0, period = 0 } = {}) => {
@@ -134,7 +209,7 @@ const createCover = async (cover, coverBuyer, poolId, amount, period) => {
         period = BigNumber.from(lastSegment.start).add(lastSegment.period).sub(timestamp).add(1);
       }
 
-      if (amount === 0) {
+      if (Zero.eq(amount)) {
         const coverData = await cover.coverData(coverId);
         amount = lastSegment.amount.sub(coverData.amountPaidOut);
       }
@@ -142,7 +217,13 @@ const createCover = async (cover, coverBuyer, poolId, amount, period) => {
       await buy(coverId, amount, period);
     },
 
-    claim: async (amount, segment = -1) => {},
+    claim: async (amount, segment = -1) => {
+      const segmentId =
+        BigNumber.from(segment).eq(-1) === false
+          ? segment // use provided segment id
+          : (await cover.coverSegmentsCount(coverId)).sub(1);
+      await claim(amount, segmentId);
+    },
 
     data: async () => cover.coverData(coverId),
 
@@ -157,16 +238,56 @@ const createCover = async (cover, coverBuyer, poolId, amount, period) => {
       return segments;
     },
 
-    allocations: async () => {
-      const segments = await this.segments();
-      return Promise.all(segments.map((_, id) => cover.coverSegmentAllocations(coverId, id)));
+    allocations: async segmentId => {
+      const allocationCount = await cover.getSegmentAllocationCount(coverId, segmentId);
+      const allocations = [];
+      for (let i = 0; i < allocationCount; i++) {
+        allocations.push(cover.coverSegmentAllocations(coverId, segmentId, i));
+      }
+      return Promise.all(allocations);
     },
 
     dump: async () => {
-      const data = await this.data();
-      const segments = await this.segments();
-      const allocations = await this.allocations();
-      console.log({ data, segments, allocations });
+      const cellWidth = 14;
+      const dateCellWidth = 22;
+
+      const cell = s => `${s}`.padStart(cellWidth, ' ');
+      const date = timestamp =>
+        new Date(timestamp * 1000).toISOString().replace('T', ' ').replace(/\..+/, '').padStart(dateCellWidth, ' ');
+
+      const { amountPaidOut } = await api.data();
+      const segments = await api.segments();
+
+      console.log(`dump() => ${coverId}, amount paid out = ${f(amountPaidOut)}`);
+      const columns = [
+        'segment id',
+        'amount asset',
+        'period',
+        'start'.padStart(dateCellWidth),
+        'end'.padStart(dateCellWidth),
+        'alloc idx',
+        'pool id',
+        'alloc id',
+        'amount nxm',
+        'premium nxm',
+      ];
+
+      console.log(columns.map(cell).join(''));
+      const gap = ['', '', '', ' '.repeat(dateCellWidth), ' '.repeat(dateCellWidth)].map(cell);
+
+      for (const sid in segments) {
+        const { amount, start, period } = segments[sid];
+        const segmentCells = [sid, f(amount), days(period), date(start), date(start + period)];
+
+        (await api.allocations(sid)).forEach((allocation, aid) => {
+          const { poolId, coverAmountInNXM, premiumInNXM, allocationId } = allocation;
+          const leftSide = aid === 0 ? segmentCells : gap;
+          const cells = [...leftSide, aid, poolId, allocationId, f(coverAmountInNXM, 18, 2), f(premiumInNXM, 18, 6)];
+          console.log(cells.map(cell).join(''));
+        });
+
+        console.log(''); // empty line
+      }
     },
   };
 
@@ -192,20 +313,30 @@ describe('cover burns playground', function () {
     const stakingPool = await createStakingPool(this.contracts.cover, defaultSender);
     const deposit = await createDeposit(stakingPool, defaultSender);
 
+    const stakingPoolTwo = await createStakingPool(this.contracts.cover, defaultSender);
+    const depositTwo = await createDeposit(stakingPoolTwo, defaultSender);
+
     // create time object and add hook to extend deposit
     const time = await createTime();
     time.hook(() => deposit.extend());
+    time.hook(() => depositTwo.extend());
 
     const poolId = await stakingPool.getPoolId();
-    const amount = parseEther('10');
+    const amount = parseEther('10000');
     const period = BigNumber.from(daysToSeconds(30));
 
     // create cover object
     const cover = await createCover(this.contracts.cover, defaultSender, poolId, amount, period);
+    await cover.dump();
 
     await cover.edit({ period: period.mul(2) });
+    await cover.dump();
+
     await cover.edit({ amount: amount.div(2) });
-    // await cover.claim(amount.div(2), -1); // claim on last segment
+    await cover.dump();
+
+    await cover.claim(amount.div(2), 0);
+    await cover.dump();
   });
 
   it.skip('should buy, wait 30 days, edit cover, claim immediately', async function () {});

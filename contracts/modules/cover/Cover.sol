@@ -642,6 +642,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return _coverSegments[coverId].length;
   }
 
+  function getSegmentAllocationCount(
+    uint coverId,
+    uint segmentId
+  ) external view returns (uint allocationCount) {
+    return coverSegmentAllocations[coverId][segmentId].length;
+  }
+
   function coverDataCount() external override view returns (uint) {
     return coverNFT.totalSupply();
   }

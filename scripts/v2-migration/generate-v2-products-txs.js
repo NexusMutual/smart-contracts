@@ -3,6 +3,8 @@ const { ethers } = require('hardhat');
 const fs = require('fs');
 const path = require('path');
 
+const { parse: csvParse } = require('csv-parse/sync');
+
 const { MaxUint256 } = ethers.constants;
 
 const claimMethod = {
@@ -10,93 +12,38 @@ const claimMethod = {
   yieldTokenIncidents: 1,
 };
 
-const main = async (coverAddress, abMemberSigner) => {
+const main = async coverAddress => {
   const [deployer] = await ethers.getSigners();
   const { abi } = JSON.parse(fs.readFileSync('./artifacts/contracts/modules/cover/Cover.sol/Cover.json'));
 
-  const productTypeIpfsHashes = require(__dirname + '../output/product-type-ipfs-hashes.json');
-  const productIpfsHashes = require(__dirname + '../output/product-ipfs-hashes.json');
+  const V2OnChainProductTypeDataProductsPath = path.join(__dirname, 'input/product-type-data.csv');
+  const productTypeData = csvParse(fs.readFileSync(V2OnChainProductTypeDataProductsPath, 'utf8'), {
+    columns: true,
+    skip_empty_lines: true,
+  });
+
+  const productTypeIpfsHashes = require(__dirname + '/output/product-type-ipfs-hashes.json');
+  const productIpfsHashes = require(__dirname + '/output/product-ipfs-hashes.json');
   const cover = new ethers.Contract(coverAddress, abi, deployer);
 
-  const protocolCoverHash = 'Fork Test Mock Protocol Cover Hash';
-  const custodianCoverHash = 'Fork Test Mock Custodian Cover Hash';
-  const yieldTokenCoverHash = 'Test Mock Yield Token Cover Hash';
-  const sherlockExcessCoverHash = 'Test Mock Yield Token Cover Hash';
-  const eth2SlashingCoverHash = 'Test Eth 2 Slashing Cover Hash';
-  const liquidCollectiveSlashingCoverHash = 'Liquid Collective Cover Hash';
+  const productTypeEntries = productTypeData.map(data => {
+    console.log(data);
 
-  console.log('Creating Cover.setProductTypes');
-  const setProductTypesTransaction = await cover.populateTransaction.setProductTypes([
-    {
-      // Protocol Cover
-      productTypeName: 'Protocol',
-      productTypeId: MaxUint256,
-      ipfsMetadata: protocolCoverHash,
+    return {
+      productTypeName: data.Name,
+      productTypeId: MaxUint256, // create new product type
+      ipfsMetadata: productTypeIpfsHashes[data.Id],
       productType: {
         descriptionIpfsHash: 'protocolCoverIPFSHash',
-        claimMethod: claimMethod.individualClaim,
-        gracePeriod: 30 * 24 * 3600, // 30 days
+        claimMethod: data['Claim Method'],
+        gracePeriod: data['Grace Period (days)'],
       },
-    },
-    {
-      // Custody Cover
-      productTypeName: 'Custody',
-      productTypeId: MaxUint256,
-      ipfsMetadata: custodianCoverHash,
-      productType: {
-        descriptionIpfsHash: 'custodyCoverIPFSHash',
-        claimMethod: claimMethod.individualClaim,
-        gracePeriod: 120 * 24 * 3600, // 120 days
-      },
-    },
-    // Yield Token Cover
-    {
-      productTypeName: 'Yield Token',
-      productTypeId: MaxUint256,
-      ipfsMetadata: yieldTokenCoverHash,
-      productType: {
-        descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
-        claimMethod: claimMethod.yieldTokenIncidents,
-        gracePeriod: 14 * 24 * 3600, // 14 days
-      },
-    },
+    };
+  });
 
-    // Sherlock Excess Cover
-    {
-      productTypeName: 'Sherlock Excess',
-      productTypeId: MaxUint256,
-      ipfsMetadata: sherlockExcessCoverHash,
-      productType: {
-        descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
-        claimMethod: claimMethod.individualClaim,
-        gracePeriod: 30 * 24 * 3600, // 30 days
-      },
-    },
+  console.log(productTypeEntries);
 
-    // Stakewise Slashing Cover
-    {
-      productTypeName: 'Stakewise ETH Staking',
-      productTypeId: MaxUint256,
-      ipfsMetadata: eth2SlashingCoverHash,
-      productType: {
-        descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
-        claimMethod: claimMethod.individualClaim,
-        gracePeriod: 30 * 24 * 3600, // 30 days
-      },
-    },
-
-    // Liquid Collective slashing cover
-    {
-      productTypeName: 'Liquid Collective ETH Staking',
-      productTypeId: MaxUint256,
-      ipfsMetadata: liquidCollectiveSlashingCoverHash,
-      productType: {
-        descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
-        claimMethod: claimMethod.individualClaim,
-        gracePeriod: 30 * 24 * 3600, // 30 days
-      },
-    },
-  ]);
+  const setProductTypesTransaction = await cover.populateTransaction.setProductTypes(productTypeEntries);
 
   return;
 
@@ -129,7 +76,7 @@ const main = async (coverAddress, abMemberSigner) => {
   fs.writeFileSync(migrateableProductsIpfsHashesPath, JSON.stringify(migratableProductsIpfsHashes, null, 2), 'utf8');
 
   console.log(`Call Cover.setProducts with ${migratableProducts.length} products.`);
-  await cover.connect(abMemberSigner).setProducts(
+  await cover.setProducts(
     migratableProducts.map(x => {
       const coverAssets =
         (x.name === 'MakerDAO MCD' && 0b01) || // Maker cannot be covered using DAI

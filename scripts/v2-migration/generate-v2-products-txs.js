@@ -16,6 +16,8 @@ const main = async coverAddress => {
   const [deployer] = await ethers.getSigners();
   const { abi } = JSON.parse(fs.readFileSync('./artifacts/contracts/modules/cover/Cover.sol/Cover.json'));
 
+  console.log(`Using cover address: ${coverAddress}`);
+
   const V2OnChainProductTypeDataProductsPath = path.join(__dirname, 'input/product-type-data.csv');
   const productTypeData = csvParse(fs.readFileSync(V2OnChainProductTypeDataProductsPath, 'utf8'), {
     columns: true,
@@ -23,7 +25,6 @@ const main = async coverAddress => {
   });
 
   const productTypeIpfsHashes = require(__dirname + '/output/product-type-ipfs-hashes.json');
-  const productIpfsHashes = require(__dirname + '/output/product-ipfs-hashes.json');
   const cover = new ethers.Contract(coverAddress, abi, deployer);
 
   const productTypeEntries = productTypeData.map(data => {
@@ -41,24 +42,46 @@ const main = async coverAddress => {
     };
   });
 
-  console.log(productTypeEntries);
-
   const setProductTypesTransaction = await cover.populateTransaction.setProductTypes(productTypeEntries);
 
+  const V2OnChainProductDataProductsPath = path.join(__dirname, 'input/product-data.csv');
+  const productData = csvParse(fs.readFileSync(V2OnChainProductDataProductsPath, 'utf8'), {
+    columns: true,
+    skip_empty_lines: true,
+  });
+
+  console.log({
+    productData,
+  });
+
+  const productAddresses = path.join(__dirname, 'v2-migration/output/product-addresses.json');
+  const productIpfsHashes = require(__dirname + '/output/product-ipfs-hashes.json');
+
+  productData.map(data => {
+    let productId; // TODO: fill in.
+    const ipfsMetadata = productIpfsHashes[productId.toString()];
+    const productParams = {
+      productName: data.Name,
+      productId: MaxUint256, // create new product
+      ipfsMetadata: ipfsMetadata || '', // IPFS metadata is optional.
+      product: {
+        productType: productTypeIds[data.type],
+        yieldTokenAddress:
+          data['Product Type'] === 'Yield Token'
+            ? data['Yield Token Address']
+            : '0x0000000000000000000000000000000000000000',
+        coverAssets,
+        // works for integers: parseInt('10%') === 10
+        initialPriceRatio: parseInt(data['Initial Price Ratio']),
+        // works for integers: parseInt('0%') === 0
+        capacityReductionRatio: parseInt(data['Capacity Reduction Ratio']),
+        useFixedPrice: data['Use Fixed Price'] === 'Yes',
+      },
+      allowedPools: [],
+    };
+  });
+
   return;
-
-  const productTypeIds = {
-    protocol: 0,
-    custodian: 1,
-    token: 2,
-    sherlock: 3,
-    eth2slashing: 4,
-    liquidcollective: 5,
-  };
-
-  const migrateableProductsPath = path.join(__dirname, 'v2-migration/output/migratableProducts.json');
-
-  const migratableProducts = JSON.parse(fs.readFileSync(migrateableProductsPath));
 
   // Use the next line to skip reuploading when testing
   // const migratableProductsIpfsHashes = JSON.parse(fs.readFileSync('./deploy/migratableProductsIpfsHashes.json'));
@@ -106,7 +129,7 @@ const main = async coverAddress => {
 };
 
 if (require.main === module) {
-  main(process.argv[1]).catch(e => {
+  main(process.argv[2]).catch(e => {
     console.log('Unhandled error encountered: ', e.stack);
     process.exit(1);
   });

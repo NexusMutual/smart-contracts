@@ -7,9 +7,13 @@ const { parse: csvParse } = require('csv-parse/sync');
 
 const { MaxUint256 } = ethers.constants;
 
-const claimMethod = {
-  individualClaim: 0,
-  yieldTokenIncidents: 1,
+const productTypeIds = {
+  Protocol: 0,
+  Custody: 1,
+  'Yield Token': 2,
+  'Stakewise Slashing': 3,
+  'Sherlock Excess': 4,
+  'Liquid Collective Slashing': 5,
 };
 
 const main = async coverAddress => {
@@ -27,6 +31,7 @@ const main = async coverAddress => {
   const productTypeIpfsHashes = require(__dirname + '/output/product-type-ipfs-hashes.json');
   const cover = new ethers.Contract(coverAddress, abi, deployer);
 
+  let expectedProductTypeId = 0;
   const productTypeEntries = productTypeData.map(data => {
     console.log(data);
 
@@ -39,10 +44,15 @@ const main = async coverAddress => {
         claimMethod: data['Claim Method'],
         gracePeriod: data['Grace Period (days)'],
       },
+      expectedProductTypeId: expectedProductTypeId++,
     };
   });
 
   const setProductTypesTransaction = await cover.populateTransaction.setProductTypes(productTypeEntries);
+
+  console.log({
+    setProductTypesTransaction,
+  });
 
   const V2OnChainProductDataProductsPath = path.join(__dirname, 'input/product-data.csv');
   const productData = csvParse(fs.readFileSync(V2OnChainProductDataProductsPath, 'utf8'), {
@@ -50,23 +60,20 @@ const main = async coverAddress => {
     skip_empty_lines: true,
   });
 
-  console.log({
-    productData,
-  });
-
   const productAddresses = path.join(__dirname, 'v2-migration/output/product-addresses.json');
   const productIpfsHashes = require(__dirname + '/output/product-ipfs-hashes.json');
 
-  productData.map(data => {
-    let productId; // TODO: fill in.
+  const productEntries = productData.map(data => {
+    const productId = productAddresses.indexOf(data['Product Address']);
     const ipfsMetadata = productIpfsHashes[productId.toString()];
+
+    const productType = productTypeEntries.filter(entry => entry);
 
     const coverAssetsAsText = data['Cover Assets'];
     const coverAssets =
-      (data.Name === 'MakerDAO MCD' && 0b01) || // Special Case: Maker cannot be covered using DAI
       (coverAssetsAsText === 'DAI' && 0b10) || // Yield token cover that uses DAI
       (coverAssetsAsText === 'ETH' && 0b01) || // Yield token cover that uses ETH
-      0;
+      0; // The default is 0 - this means all assets are allowed (no whitelist)
     const productParams = {
       productName: data.Name,
       productId: MaxUint256, // create new product
@@ -86,8 +93,11 @@ const main = async coverAddress => {
       },
       allowedPools: [],
     };
+
+    return productParams;
   });
 
+  console.log(productEntries);
   return;
 
   // Use the next line to skip reuploading when testing

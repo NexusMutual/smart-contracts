@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.17;
+pragma solidity ^0.8.18;
 
 contract EtherRejecter {
-  function() payable external {
-    revert('I secretly hate ether');
+  receive() external payable {
+    revert("I secretly hate ether");
+  }
+
+  fallback() external payable {
+    revert("I secretly hate ether");
   }
 }

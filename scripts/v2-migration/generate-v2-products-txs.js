@@ -60,6 +60,13 @@ const main = async coverAddress => {
   productData.map(data => {
     let productId; // TODO: fill in.
     const ipfsMetadata = productIpfsHashes[productId.toString()];
+
+    const coverAssetsAsText = data['Cover Assets'];
+    const coverAssets =
+      (data.Name === 'MakerDAO MCD' && 0b01) || // Special Case: Maker cannot be covered using DAI
+      (coverAssetsAsText === 'DAI' && 0b10) || // Yield token cover that uses DAI
+      (coverAssetsAsText === 'ETH' && 0b01) || // Yield token cover that uses ETH
+      0;
     const productParams = {
       productName: data.Name,
       productId: MaxUint256, // create new product

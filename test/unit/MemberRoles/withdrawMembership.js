@@ -33,6 +33,19 @@ describe('withdrawMembership', function () {
     expect(removeFromWhitelistLastCalledWtih).to.be.equal(member1.address);
   });
 
+  it('prevents withdrawing membership if the member is a staking pool manager', async function () {
+    const { memberRoles, tokenController } = this.contracts;
+    const {
+      members: [member1],
+    } = this.accounts;
+
+    await tokenController.setIsStakingPoolManager(member1.address, true);
+
+    await expect(memberRoles.connect(member1).withdrawMembership()).to.be.revertedWith(
+      'MemberRoles: Member is a staking pool manager',
+    );
+  });
+
   it("burns all the tokens from the member's address", async function () {
     const { memberRoles, nxm } = this.contracts;
     const {

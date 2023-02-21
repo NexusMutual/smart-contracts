@@ -12,15 +12,15 @@ describe('MemberRoles unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
-  require('./join');
-  require('./changeDependentContractAddress');
-  require('./updateRole');
-  require('./switchMembership');
-  require('./switchMembershipOf');
-  require('./withdrawMembership');
-  require('./switchMembershipAndAssets');
-  require('./swapABMember');
   require('./changeAuthorized');
-  require('./stateManagement');
+  require('./changeDependentContractAddress');
   require('./changeMaxABCount');
+  require('./join');
+  require('./stateManagement');
+  require('./swapABMember');
+  require('./switchMembership');
+  require('./switchMembershipAndAssets');
+  require('./switchMembershipOf');
+  require('./updateRole');
+  require('./withdrawMembership');
 });

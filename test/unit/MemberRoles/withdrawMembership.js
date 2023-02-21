@@ -26,7 +26,9 @@ describe('withdrawMembership', function () {
       members: [member1],
     } = this.accounts;
 
+    await tokenController.setIsStakingPoolManager(member1.address, false);
     await memberRoles.connect(member1).withdrawMembership();
+
     const removeFromWhitelistLastCalledWtih = await tokenController.removeFromWhitelistLastCalledWtih();
     expect(removeFromWhitelistLastCalledWtih).to.be.equal(member1.address);
   });

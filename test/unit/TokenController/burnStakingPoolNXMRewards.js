@@ -26,7 +26,7 @@ describe('burnStakingPoolNXMRewards', function () {
 
     const amount = parseEther('10');
     await expect(tokenController.burnStakingPoolNXMRewards(amount, this.poolId)).to.be.revertedWith(
-      'TokenController: msg.sender not staking pool',
+      'TokenController: Caller not a staking pool',
     );
   });
 

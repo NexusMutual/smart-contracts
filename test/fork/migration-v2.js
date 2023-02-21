@@ -482,6 +482,7 @@ describe('V2 upgrade', function () {
     const pooledStaking = await ethers.deployContract('LegacyPooledStaking', [
       coverProxyAddress,
       this.productsV1.address,
+      this.stakingNFT.address,
     ]);
 
     // PriceFeedOracle.sol
@@ -1177,8 +1178,7 @@ describe('V2 upgrade', function () {
     expect(expectedPremium.sub(premiumSentToPool)).to.be.lessThanOrEqual(amount.div(10000));
   });
 
-  // TODO review
-  it.skip('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {
+  it('Remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.removeContracts, // removeContracts(bytes2[])
       defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
@@ -1187,8 +1187,7 @@ describe('V2 upgrade', function () {
     );
   });
 
-  // TODO review
-  it.skip('deploy & add contracts: Assessment, IndividualClaims, YieldTokenIncidents', async function () {
+  it('Deploy & add contracts: Assessment, IndividualClaims, YieldTokenIncidents', async function () {
     const individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
     const yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
       this.nxm.address,
@@ -1211,12 +1210,11 @@ describe('V2 upgrade', function () {
     );
   });
 
-  // it.skip('deploy CoverViewer', async function () {
-  //   await ethers.deployContract('CoverViewer', [this.master.address]);
-  // });
+  it('Deploy CoverViewer', async function () {
+    await ethers.deployContract('CoverViewer', [this.master.address]);
+  });
 
-  // TODO review
-  it.skip('MemberRoles is initialized with kycAuthAddress from QuotationData', async function () {
+  it('MemberRoles is initialized with kycAuthAddress from QuotationData', async function () {
     const kycAuthAddressQD = await this.quotationData.kycAuthAddress();
     const kycAuthAddressMR = await this.memberRoles.kycAuthAddress();
     console.log({ kycAuthAddressMR, kycAuthAddressQD });
@@ -1277,8 +1275,7 @@ describe('V2 upgrade', function () {
     // [todo]
   });
 
-  // TODO review
-  it.skip('pool value check', async function () {
+  it.skip('Pool value check', async function () {
     const poolValueAfter = await this.pool.getPoolValueInEth();
     const poolValueDiff = poolValueAfter.sub(poolValueBefore).abs();
 

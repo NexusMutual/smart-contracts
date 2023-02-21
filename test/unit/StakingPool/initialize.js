@@ -209,14 +209,7 @@ describe('initialize', function () {
 
     await stakingPool
       .connect(coverSigner)
-      .initialize(
-        isPrivatePool,
-        initialPoolFee,
-        maxPoolFee,
-        [...validProducts],
-        poolId,
-        ipfsDescriptionHash,
-      );
+      .initialize(isPrivatePool, initialPoolFee, maxPoolFee, [...validProducts], poolId, ipfsDescriptionHash);
 
     for (const [index, product] of validProducts.entries()) {
       const [lastEffectiveWeight, targetWeight, targetPrice, bumpedPrice, bumpedPriceUpdateTime] =

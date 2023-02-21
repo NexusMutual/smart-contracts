@@ -8,17 +8,19 @@ contract ICMockTokenController {
 
   INXMToken public token;
 
-  constructor(address tokenAddres) public {
+  constructor(address tokenAddres) {
     token = INXMToken(tokenAddres);
   }
 
   function operatorTransfer(address _from, address _to, uint _value) external returns (bool) {
     token.operatorTransfer(_from, _value);
     token.transfer(_to, _value);
+    return true;
   }
 
   function mint(address _to, uint _value) external returns (bool) {
     token.mint(_to, _value);
+    return true;
   }
 
 }

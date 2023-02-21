@@ -19,6 +19,7 @@ contract SOMockEnzymeV4Comptroller is IEnzymeV4Comptroller {
   function getDenominationAsset() external view returns (address denominationAsset_) {
     return weth;
   }
+
   function redeemSharesForSpecificAssets(
     address _recipient,
     uint256 _sharesQuantity,

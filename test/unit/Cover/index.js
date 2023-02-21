@@ -12,14 +12,14 @@ describe('Cover unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
-  require('./constructor');
-  require('./buyCover');
-  require('./updateUintParameters');
-  require('./editCover');
-  require('./createStakingPool');
-  require('./totalActiveCoverInAsset');
   require('./burnStake');
+  require('./buyCover');
+  require('./constructor');
+  require('./createStakingPool');
+  require('./editCover');
   require('./initialize');
-  require('./setProducts');
   require('./setProductTypes');
+  require('./setProducts');
+  require('./totalActiveCoverInAsset');
+  require('./updateUintParameters');
 });

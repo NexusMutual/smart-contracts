@@ -269,7 +269,6 @@ describe('setProducts', function () {
       targetPriceRatio,
       activeCover,
       stakingPoolManager,
-      stakingPoolManager,
       targetPriceRatio,
     );
 
@@ -314,7 +313,6 @@ describe('setProducts', function () {
       capacity,
       targetPriceRatio,
       activeCover,
-      stakingPoolManager,
       stakingPoolManager,
       targetPriceRatio,
     );
@@ -366,7 +364,6 @@ describe('setProducts', function () {
       capacity,
       targetPriceRatio,
       activeCover,
-      stakingPoolManager,
       stakingPoolManager,
       targetPriceRatio,
     );

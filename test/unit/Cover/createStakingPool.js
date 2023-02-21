@@ -21,14 +21,13 @@ const newPoolFixture = {
 describe('createStakingPool', function () {
   it('reverts if system is paused', async function () {
     const { cover, master } = this;
-    const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;
+    const [stakingPoolCreator] = this.accounts.members;
     const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
 
     await master.setEmergencyPause(true);
 
     await expect(
       cover.connect(stakingPoolCreator).createStakingPool(
-        stakingPoolManager.address,
         false, // isPrivatePool,
         initialPoolFee,
         maxPoolFee,
@@ -40,7 +39,7 @@ describe('createStakingPool', function () {
 
   it('should create and initialize a new pool minimal beacon proxy pool', async function () {
     const { cover, stakingPoolFactory } = this;
-    const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;
+    const [stakingPoolManager] = this.accounts.members;
     const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
 
     // beacon proxy init code hash
@@ -73,8 +72,7 @@ describe('createStakingPool', function () {
     const reportedAddress = await cover.stakingPool(poolId);
     expect(reportedAddress).to.be.equal(expectedAddress);
 
-    const tx = await cover.connect(stakingPoolCreator).createStakingPool(
-      stakingPoolManager.address,
+    const tx = await cover.connect(stakingPoolManager).createStakingPool(
       false, // isPrivatePool,
       initialPoolFee,
       maxPoolFee,
@@ -91,43 +89,33 @@ describe('createStakingPool', function () {
 
     const stakingPoolInstance = await ethers.getContractAt('CoverMockStakingPool', expectedAddress);
 
-    const storedManager = await stakingPoolInstance.manager();
-    expect(storedManager).to.be.equal(stakingPoolManager.address);
-
     // validate variable is initialized
     const contractPoolId = await stakingPoolInstance.getPoolId();
     expect(contractPoolId).to.be.equal(poolId);
   });
 
-  it('allows anyone to create a new pool', async function () {
+  it('reverts when caller is not a member', async function () {
     const { cover } = this;
-    const [stakingPoolCreator, stakingPoolManager] = this.accounts.generalPurpose;
+    const [nonMember] = this.accounts.nonMembers;
     const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
-    const poolId = 1;
 
-    const firstStakingPoolAddress = await cover.stakingPool(poolId);
-
-    await cover.connect(stakingPoolCreator).createStakingPool(
-      stakingPoolManager.address,
-      false, // isPrivatePool,
-      initialPoolFee,
-      maxPoolFee,
-      productInitializationParams,
-      '', // ipfsDescriptionHash
-    );
-
-    const stakingPoolInstance = await ethers.getContractAt('IStakingPool', firstStakingPoolAddress);
-    const storedManager = await stakingPoolInstance.manager();
-    expect(storedManager).to.be.equal(stakingPoolManager.address);
+    await expect(
+      cover.connect(nonMember).createStakingPool(
+        false, // isPrivatePool,
+        initialPoolFee,
+        maxPoolFee,
+        productInitializationParams,
+        '', // ipfsDescriptionHash
+      ),
+    ).to.be.revertedWith('Caller is not a member');
   });
 
   it('emits StakingPoolCreated event', async function () {
     const { cover, stakingPoolFactory } = this;
-    const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;
+    const [stakingPoolCreator] = this.accounts.members;
     const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
 
     const tx = await cover.connect(stakingPoolCreator).createStakingPool(
-      stakingPoolManager.address,
       false, // isPrivatePool,
       initialPoolFee,
       maxPoolFee,
@@ -142,13 +130,12 @@ describe('createStakingPool', function () {
 
   it('increments staking pool count', async function () {
     const { cover, stakingPoolFactory } = this;
-    const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;
+    const [stakingPoolCreator] = this.accounts.members;
     const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
 
     const stakingPoolCountBefore = await stakingPoolFactory.stakingPoolCount();
 
     await cover.connect(stakingPoolCreator).createStakingPool(
-      stakingPoolManager.address,
       false, // isPrivatePool,
       initialPoolFee,
       maxPoolFee,

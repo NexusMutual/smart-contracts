@@ -19,6 +19,11 @@ interface ITokenController {
     // note: still 128 bits available here, can be used later
   }
 
+  struct StakingPoolOwnershipOffer {
+    address proposedManager;
+    uint96 deadline;
+  }
+
   function coverInfo(uint id) external view returns (
     uint16 claimCount,
     bool hasOpenClaim,
@@ -50,13 +55,33 @@ interface ITokenController {
 
   function getLockReasons(address _of) external view returns (bytes32[] memory reasons);
 
-  function totalSupply() external view returns (uint256);
+  function totalSupply() external view returns (uint);
 
-  function totalBalanceOf(address _of) external view returns (uint256 amount);
+  function totalBalanceOf(address _of) external view returns (uint amount);
+
+  function totalBalanceOfWithoutDelegations(address _of) external view returns (uint amount);
 
   function getTokenPrice() external view returns (uint tokenPrice);
 
   function token() external view returns (INXMToken);
+
+  function getStakingPoolManager(uint poolId) external view returns (address manager);
+
+  function getManagerStakingPools(address manager) external view returns (uint[] memory poolIds);
+
+  function isStakingPoolManager(address member) external view returns (bool);
+
+  function getStakingPoolOwnershipOffer(uint poolId) external view returns (address proposedManager, uint deadline);
+
+  function transferStakingPoolsOwnership(address from, address to) external;
+
+  function assignStakingPoolManager(uint poolId, address manager) external;
+
+  function createStakingPoolOwnershipOffer(uint poolId, address proposedManager, uint deadline) external;
+
+  function acceptStakingPoolOwnershipOffer(uint poolId) external;
+
+  function cancelStakingPoolOwnershipOffer(uint poolId) external;
 
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external;
 

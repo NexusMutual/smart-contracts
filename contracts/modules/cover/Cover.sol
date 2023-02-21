@@ -496,13 +496,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   }
 
   function createStakingPool(
-    address manager,
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,
     ProductInitializationParams[] memory productInitParams,
     string calldata ipfsDescriptionHash
-  ) external whenNotPaused returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+  ) external whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
 
     if (msg.sender != master.getLatestAddress("PS")) {
 
@@ -521,13 +520,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(address(this));
 
     IStakingPool(stakingPoolAddress).initialize(
-      manager,
       isPrivatePool,
       initialPoolFee,
       maxPoolFee,
       poolId,
       ipfsDescriptionHash
     );
+
+    tokenController().assignStakingPoolManager(poolId, msg.sender);
 
     stakingProducts().setInitialProducts(poolId, productInitParams);
 

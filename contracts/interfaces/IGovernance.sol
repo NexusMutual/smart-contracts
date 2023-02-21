@@ -95,8 +95,7 @@ interface IGovernance {
     uint _proposalId,
     string calldata _solutionHash,
     bytes calldata _action
-  )
-  external;
+  ) external;
 
   /// @dev Creates a new proposal with solution and votes for the solution
   /// @param _proposalDescHash Proposal description hash through IPFS having Short and long description of proposal
@@ -109,23 +108,17 @@ interface IGovernance {
     uint _categoryId,
     string calldata _solutionHash,
     bytes calldata _action
-  )
-  external;
-
-  function submitVote(
-    uint _proposalId,
-    uint _solutionChosen
   ) external;
 
-  /// @dev Casts vote
+  /// @dev Casts vote using total balance including delegated tokens via managed staking pools
   /// @param _proposalId Proposal id
-  /// @param _solutionChosen solution chosen while voting. _solutionChosen[0] is the chosen solution
-  /// @param managedStakingPoolIds An array of staking pool ids that the user is a manager of.
-  function submitVoteWithStakingPoolIds(
-    uint _proposalId,
-    uint _solutionChosen,
-    uint[] calldata managedStakingPoolIds
-  ) external;
+  /// @param _solutionChosen solution chosen while voting
+  function submitVote(uint _proposalId, uint _solutionChosen) external;
+
+  /// @dev Casts vote using total balance without delegated tokens via managed staking pools
+  /// @param _proposalId Proposal id
+  /// @param _solutionChosen solution chosen while voting
+  function submitVoteWithoutDelegations(uint _proposalId, uint _solutionChosen) external;
 
   function closeProposal(uint _proposalId) external;
 
@@ -133,10 +126,7 @@ interface IGovernance {
 
   function claimReward(address _memberAddress, uint _maxRecords) external returns (uint pendingDAppReward);
 
-  function proposal(uint _proposalId)
-  external
-  view
-  returns (
+  function proposal(uint _proposalId) external view returns (
     uint proposalId,
     uint category,
     uint status,

@@ -130,7 +130,6 @@ contract SPMockCover {
 
   function initializeStaking(
     address staking_,
-    address _manager,
     bool _isPrivatePool,
     uint _initialPoolFee,
     uint _maxPoolFee,
@@ -139,7 +138,6 @@ contract SPMockCover {
   ) external {
 
     IStakingPool(staking_).initialize(
-      _manager,
       _isPrivatePool,
       _initialPoolFee,
       _maxPoolFee,

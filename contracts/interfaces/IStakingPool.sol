@@ -63,7 +63,6 @@ interface IStakingPool {
   }
 
   function initialize(
-    address _manager,
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,

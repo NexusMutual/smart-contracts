@@ -207,17 +207,25 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
   }
 
   /// Withdraws membership
-  function withdrawMembership() public {
+  function withdrawMembership() public whenNotPaused {
 
     ITokenController _tokenController = tokenController();
-    require(!master.isPause() && isMember(msg.sender));
-    // No locked tokens for Member/Governance voting
-    require(block.timestamp > token.isLockedForMV(msg.sender));
+
+    require(isMember(msg.sender), "MemberRoles: Caller is not a member");
+
+    require(
+      block.timestamp > token.isLockedForMV(msg.sender),
+      "MemberRoles: Locked for voting in governance"
+    );
+
+    require(
+      tokenController().isStakingPoolManager(msg.sender) == false,
+      "MemberRoles: Member is a staking pool manager"
+    );
 
     _tokenController.burnFrom(msg.sender, token.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
     _tokenController.removeFromWhitelist(msg.sender); // need clarification on whitelist
-
   }
 
   /// Switches membership from the sender's address to a new address.
@@ -225,6 +233,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
   function switchMembership(address newAddress) external override {
     _switchMembership(msg.sender, newAddress);
     token.transferFrom(msg.sender, newAddress, token.balanceOf(msg.sender));
+    tokenController().transferStakingPoolsOwnership(msg.sender, newAddress);
   }
 
   /// Switches the membership from the sender's address to the new address and transfers the
@@ -242,6 +251,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
 
     _switchMembership(msg.sender, newAddress);
     token.transferFrom(msg.sender, newAddress, token.balanceOf(msg.sender));
+    tokenController().transferStakingPoolsOwnership(msg.sender, newAddress);
 
     ICover _cover = cover();
 

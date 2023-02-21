@@ -204,6 +204,7 @@ async function main() {
   console.log('Deploying testnet LegacyQuotationData');
   // Replaced LegacyQuotationData with TestnetQuotationData for ability to create old v1 covers locally
   const qd = await deployImmutable('TestnetQuotationData', [owner, owner]);
+  await qd.changeMasterAddress(master.address);
 
   console.log('Deploying ProductsV1');
   const productsV1 = await deployImmutable('ProductsV1');

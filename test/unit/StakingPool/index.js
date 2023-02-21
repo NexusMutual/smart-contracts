@@ -19,11 +19,11 @@ describe('StakingPool unit tests', function () {
   require('./depositTo');
   require('./extendDeposit');
   require('./initialize');
+  require('./multicall');
   require('./processExpirations');
   require('./requestAllocation');
   require('./setPoolFee');
   require('./setPoolPrivacy');
   require('./setProducts');
   require('./withdraw');
-  require('./multicall');
 });

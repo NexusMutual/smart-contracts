@@ -33,18 +33,17 @@ const managerDepositId = 0;
 
 describe('extendDeposit', function () {
   beforeEach(async function () {
-    const { stakingPool, stakingProducts, stakingNFT, cover } = this;
-    const manager = this.accounts.defaultSender;
+    const { stakingPool, stakingProducts, stakingNFT, cover, tokenController } = this;
     const [user] = this.accounts.members;
+    const manager = this.accounts.defaultSender;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
     await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
     this.coverSigner = coverSigner;
 
     const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
-    await stakingPool
-      .connect(coverSigner)
-      .initialize(manager.address, false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+    await stakingPool.connect(coverSigner).initialize(false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+    await tokenController.setStakingPoolManager(poolId, manager.address);
 
     await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
 
@@ -77,12 +76,10 @@ describe('extendDeposit', function () {
   it('reverts if token id is 0', async function () {
     const { stakingPool } = this;
     const { firstActiveTrancheId, maxTranche } = await getTranches();
-
-    const managerAddress = await stakingPool.manager();
-    const managerSigner = await ethers.getImpersonatedSigner(managerAddress);
+    const manager = this.accounts.defaultSender;
 
     await expect(
-      stakingPool.connect(managerSigner).extendDeposit(0, firstActiveTrancheId, maxTranche, 0),
+      stakingPool.connect(manager).extendDeposit(0, firstActiveTrancheId, maxTranche, 0),
     ).to.be.revertedWithCustomError(stakingPool, 'InvalidTokenId');
   });
 

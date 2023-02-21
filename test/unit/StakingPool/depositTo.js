@@ -39,7 +39,7 @@ const DEFAULT_GRACE_PERIOD = daysToSeconds(30);
 
 describe('depositTo', function () {
   beforeEach(async function () {
-    const { stakingPool, stakingProducts, cover } = this;
+    const { stakingPool, stakingProducts, cover, tokenController } = this;
     const { defaultSender: manager } = this.accounts;
     const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 
@@ -48,13 +48,13 @@ describe('depositTo', function () {
     this.coverSigner = coverSigner;
 
     await stakingPool.connect(coverSigner).initialize(
-      manager.address,
       false, // isPrivatePool
       initialPoolFee,
       maxPoolFee,
       poolId,
       ipfsDescriptionHash,
     );
+    await tokenController.setStakingPoolManager(poolId, manager.address);
 
     await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
 

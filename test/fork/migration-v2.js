@@ -1,27 +1,31 @@
-const { ethers, web3, network, config } = require('hardhat');
-const fetch = require('node-fetch');
 const { expect } = require('chai');
-const path = require('path');
+const { ethers, web3, network } = require('hardhat');
+const fetch = require('node-fetch');
 
+const evm = require('./evm')();
 const { hex } = require('../utils').helpers;
 const proposalCategories = require('../utils').proposalCategories;
-const evm = require('./evm')();
+const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 
 const { BigNumber } = ethers;
-const { AddressZero } = ethers.constants;
+const { AddressZero, Two } = ethers.constants;
 const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
 
-// TODO Review constants
 const getProductAddresses = require('../../scripts/v2-migration/get-v2-products');
-const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
-const getLockedInV1ClaimAssessment = require('../../scripts/get-locked-in-v1-claim-assessment');
-const getWithdrawableCoverNotes = require('../../scripts/get-withdrawable-cover-notes');
-const getGovernanceRewards = require('../../scripts/get-governance-rewards');
-const populateV2Products = require('../../scripts/populate-v2-products');
-const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const getV1CoverPrices = require('../../scripts/v2-migration/get-v1-cover-prices');
+const getGovernanceRewards = require('../../scripts/v2-migration/get-governance-rewards');
+const getClaimAssessmentRewards = require('../../scripts/v2-migration/get-claim-assessment-rewards');
+const getClaimAssessmentStakes = require('../../scripts/v2-migration/get-claim-assessment-stakes');
+const getTCLockedAmount = require('../../scripts/v2-migration/get-tc-locked-amount');
+const getCNLockedAmount = require('../../scripts/v2-migration/get-cn-locked');
+// TODO Review
+const populateV2Products = require('../../scripts/populate-v2-products');
 
 const PRODUCT_ADDRESSES_OUTPUT = require('../../scripts/v2-migration/output/product-addresses.json');
+const GV_REWARDS_OUTPUT = require('../../scripts/v2-migration/output/governance-rewards.json');
+const CLA_REWARDS_OUTPUT = require('../../scripts/v2-migration/output/claim-assessment-rewards.json');
+const CLA_STAKES_OUTPUT = require('../../scripts/v2-migration/output/claim-assessment-stakes.json');
+const TC_LOCKED_AMOUNT_OUTPUT = require('../../scripts/v2-migration/output/tc-locked-amount.json');
 
 const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
@@ -33,24 +37,18 @@ const ENZYMEV4_VAULT_PROXY_ADDRESS = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD
 const ENZYME_FUND_VALUE_CALCULATOR_ROUTER = '0x7c728cd0CfA92401E01A4849a01b57EE53F5b2b9';
 const ENZYME_COMPTROLLER_PROXY_ADDRESS = '0xa5bf4350da6193b356ac15a3dbd777a687bc216e';
 const ENZYME_ADDRESS_LIST_REGISTRY = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
+const ListIdForReceivers = 218;
 
 const DAI_PRICE_FEED_ORACLE_AGGREGATOR = '0x773616E4d11A78F511299002da57A0a94577F1f4';
 const STETH_PRICE_FEED_ORACLE_AGGREGATOR = '0x86392dC19c0b719886221c78AB11eb8Cf5c52812';
 const ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR = '0xCc72039A141c6e34a779eF93AEF5eB4C82A893c7';
-
-const MaxUint96 = '79228162514264337593543950335';
-
-const ListIdForReceivers = 218;
-const AddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
-
-const MIN_POOL_ETH = 0;
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 
 const MEMBER_ADDRESS = '0xd7cba5b9a0240770cfd9671961dae064136fa240';
 const CLAIM_PAYABLE_ADDRESS = '0x748E712663510Bb417c1aBb1bca3d817447f118c';
 
-let poolValueBefore;
+const MaxUint96 = Two.pow(96).sub(1);
 
 const getSigner = async address => {
   const provider =
@@ -112,7 +110,7 @@ async function enableAsEnzymeReceiver(receiverAddress) {
   // Update Enzyme vault receivers
   const selector = web3.eth.abi.encodeFunctionSignature('addToList(uint256,address[])');
   const receiverArgs = web3.eth.abi.encodeParameters(['uint256', 'address[]'], [ListIdForReceivers, [receiverAddress]]);
-  await comptroller.connect(owner).vaultCallOnContract(AddressListRegistry, selector, receiverArgs);
+  await comptroller.connect(owner).vaultCallOnContract(ENZYME_ADDRESS_LIST_REGISTRY, selector, receiverArgs);
 
   // Check that Enzyme vault receivers contains the Pool address
   const registry = await ethers.getContractAt('IAddressListRegistry', ENZYME_ADDRESS_LIST_REGISTRY);
@@ -159,7 +157,19 @@ describe('V2 upgrade', function () {
     this.claimsReward = await factory('CR');
     this.claimsData = await factory('CD');
 
-    poolValueBefore = await this.pool.getPoolValueInEth();
+    // Pool value related info
+    this.poolValueBefore = await this.pool.getPoolValueInEth();
+
+    this.ethBalanceBefore = await ethers.provider.getBalance(this.pool.address);
+
+    this.dai = await ethers.getContractAt('ERC20Mock', DAI_ADDRESS);
+    this.daiBalanceBefore = await this.dai.balanceOf(this.pool.address);
+
+    this.stEth = await ethers.getContractAt('ERC20Mock', STETH_ADDRESS);
+    this.stEthBalanceBefore = await this.stEth.balanceOf(this.pool.address);
+
+    this.enzymeShares = await ethers.getContractAt('ERC20Mock', ENZYMEV4_VAULT_PROXY_ADDRESS);
+    this.enzymeSharesBalanceBefore = await this.enzymeShares.balanceOf(this.pool.address);
   });
 
   // Setup needed to test that `claimPayoutAddress` storage is cleaned up
@@ -173,82 +183,68 @@ describe('V2 upgrade', function () {
     expect(claimPayableAddressAfter).to.be.equal(getAddress(CLAIM_PAYABLE_ADDRESS));
   });
 
-  // Generate ProductsV1.sol contract
-  it.skip('Run scripts/v2-migration/products/get-products.js', async function () {
+  // Generates ProductsV1.sol contract
+  it.skip('Generate ProductsV1.sol with all products to be migrated to V2', async function () {
     await getProductAddresses();
   });
 
-  // TODO to be reviewed
-  it.skip('run get-v1-cover-prices', async function () {
-    const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
-    await getV1CoverPrices(directProvider);
+  it.skip('Get V1 cover prices', async function () {
+    await getV1CoverPrices();
   });
 
-  // TODO to be reviewed
-  it.skip('run get-withdrawable-cover-notes', async function () {
-    const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
-    await getWithdrawableCoverNotes(directProvider, this.tokenController);
+  it('Get governance rewards', async function () {
+    await getGovernanceRewards(ethers.provider);
   });
 
-  // TODO to be reviewed
-  it.skip('compute total withdrawable cover notes', async function () {
-    const eligibleForCoverNoteWithdrawPath = path.join(
-      config.paths.root,
-      'scripts/v2-migration/output/eligible-for-cover-note-withdraw.json',
-    );
-    const withdrawableCoverNotes = require(eligibleForCoverNoteWithdrawPath);
+  it('Get claim assessment rewards and generate transfer calls in LegacyClaimsReward.sol', async function () {
+    await getClaimAssessmentRewards(ethers.provider);
+  });
 
-    const coverNotesSum = withdrawableCoverNotes.reduce(
-      (sum, coverNote) => sum.add(BigNumber.from(coverNote.withdrawableAmount)),
+  it('Get claim assessment stakes', async function () {
+    await getClaimAssessmentStakes(ethers.provider);
+  });
+
+  it('Get TC locked amount', async function () {
+    await getTCLockedAmount(ethers.provider);
+  });
+
+  it('Check balance of CR equals CLA + GV rewards computed above', async function () {
+    const crBalance = await this.nxm.balanceOf(this.claimsReward.address);
+
+    this.governanceRewardsSum = Object.values(GV_REWARDS_OUTPUT).reduce(
+      (sum, reward) => sum.add(reward),
       BigNumber.from(0),
     );
+    this.claRewardsSum = CLA_REWARDS_OUTPUT.reduce((sum, reward) => sum.add(reward.reward), BigNumber.from(0));
+    this.claStakesSum = Object.values(CLA_STAKES_OUTPUT).reduce((sum, amount) => sum.add(amount), BigNumber.from(0));
 
-    // console.log({
-    //   coverNotesSum: coverNotesSum.toString(),
-    // });
+    console.log({
+      governanceRewardsSum: formatEther(this.governanceRewardsSum),
+      claRewardsSum: formatEther(this.claRewardsSum),
+      totalRewardsInCR: formatEther(this.governanceRewardsSum.add(this.claRewardsSum)),
+      crBalance: formatEther(crBalance),
+      extraAmount: formatEther(crBalance.sub(this.governanceRewardsSum.add(this.claRewardsSum))),
+    });
 
-    this.coverNotesSum = coverNotesSum;
+    // Currently there are still 1.655901756826619689 NXM extra when comparing
+    // the sum of governance rewards and claim assessment rewards with the balance of CR
+    // expect(crBalance).to.be.equal(governanceRewardsSum.add(claRewardsSum));
   });
 
-  // TODO to be reviewed
-  it.skip('run get-governance-rewards script', async function () {
-    const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
-    await getGovernanceRewards(directProvider);
-  });
-
-  // TODO to be reviewed
-  it.skip('compute total governance rewards', async function () {
-    const governanceRewardablePath = path.join(
-      config.paths.root,
-      'scripts/v2-migration/output/governance-rewardable.json',
-    );
-
-    const rewardables = require(governanceRewardablePath);
-    const rewardableAddresses = Object.keys(rewardables);
-    const governanceRewardsSum = rewardableAddresses.reduce(
-      (sum, address) => sum.add(BigNumber.from(rewardables[address])),
+  it('Check balance of TC equals sum of all locked NXM', async function () {
+    this.TCLockedAmount = Object.values(TC_LOCKED_AMOUNT_OUTPUT).reduce(
+      (sum, amount) => sum.add(amount),
       BigNumber.from(0),
     );
+    const tcBalanceBeforeUpgrade = await this.nxm.balanceOf(this.tokenController.address);
 
-    // console.log({
-    //   governanceRewardsSum: governanceRewardsSum.toString(),
-    // });
+    console.log({
+      TCBalance: formatEther(tcBalanceBeforeUpgrade),
+      TCLockedAmount: formatEther(this.TCLockedAmount),
+      Diff: formatEther(tcBalanceBeforeUpgrade.sub(this.TCLockedAmount)),
+    });
 
-    this.governanceRewardsSum = governanceRewardsSum;
-  });
-
-  // TODO to be reviewed
-  // generates the LegacyClaimsReward contract with the transfer calls
-  it.skip('run get-legacy-assessment-rewards script', async function () {
-    const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
-    await getLegacyAssessmentRewards(directProvider);
-  });
-
-  // TODO to be reviewed
-  // generates the eligibleForCLAUnlock.json file
-  it.skip('run get-locked-in-v1-claim-assessment script', async function () {
-    const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
-    await getLockedInV1ClaimAssessment(directProvider);
+    expect(tcBalanceBeforeUpgrade).to.be.equal(this.TCLockedAmount);
   });
 
   it('Impersonate AB members', async function () {
@@ -349,7 +345,7 @@ describe('V2 upgrade', function () {
       WETH_ADDRESS, // _weth
       ENZYMEV4_VAULT_PROXY_ADDRESS,
       ENZYME_FUND_VALUE_CALCULATOR_ROUTER,
-      MIN_POOL_ETH,
+      0, // Min Pool ETH
     ]);
   });
 
@@ -380,7 +376,7 @@ describe('V2 upgrade', function () {
         addNewInternalContracts call to add it, therefore it makes sense to create the proxy for it here;
 
         Then, when the bulk upgrade of all smart contracts happens, both CO and SP can be upgraded to their final
-        implementations (no extra gov proposal is necessary in between)/
+        implementations (no extra gov proposal is necessary in between)
 
        */
       await submitGovernanceProposal(
@@ -584,6 +580,46 @@ describe('V2 upgrade', function () {
     this.claimsReward = newClaimsReward;
   });
 
+  it('Pool value check', async function () {
+    const poolValueAfter = await this.pool.getPoolValueInEth();
+    const poolValueDiff = poolValueAfter.sub(this.poolValueBefore);
+
+    const ethBalanceAfter = await ethers.provider.getBalance(this.pool.address);
+    const daiBalanceAfter = await this.dai.balanceOf(this.pool.address);
+    const stEthBalanceAfter = await this.stEth.balanceOf(this.pool.address);
+    const enzymeSharesBalanceAfter = await this.enzymeShares.balanceOf(this.pool.address);
+
+    console.log({
+      poolValueBefore: formatEther(this.poolValueBefore),
+      poolValueAfter: formatEther(poolValueAfter),
+      poolValueDiff: formatEther(poolValueDiff),
+      ethBalanceBefore: formatEther(this.ethBalanceBefore),
+      ethBalanceAfter: formatEther(ethBalanceAfter),
+      ethBalanceDiff: formatEther(ethBalanceAfter.sub(this.ethBalanceBefore)),
+      daiBalanceBefore: formatEther(this.daiBalanceBefore),
+      daiBalanceAfter: formatEther(daiBalanceAfter),
+      daiBalanceDiff: formatEther(daiBalanceAfter.sub(this.daiBalanceBefore)),
+      stEthBalanceBefore: formatEther(this.stEthBalanceBefore),
+      stEthBalanceAfter: formatEther(stEthBalanceAfter),
+      stEthBalanceDiff: formatEther(stEthBalanceAfter.sub(this.stEthBalanceBefore)),
+      enzymeSharesBalanceBefore: formatEther(this.enzymeSharesBalanceBefore),
+      enzymeSharesBalanceAfter: formatEther(enzymeSharesBalanceAfter),
+      enzymeSharesBalanceDiff: formatEther(enzymeSharesBalanceAfter.sub(this.enzymeSharesBalanceBefore)),
+    });
+
+    // The 1 wei difference is due to the rebasing nature of stETH
+    expect(poolValueDiff.abs(), 'Pool value in ETH should be the same').lessThanOrEqual(BigNumber.from(1));
+    expect(stEthBalanceAfter.sub(this.stEthBalanceBefore).abs(), 'stETH balance should be the same').lessThanOrEqual(
+      BigNumber.from(1),
+    );
+    expect(ethBalanceAfter.sub(this.ethBalanceBefore), 'ETH balance should be the same').to.be.equal(0);
+    expect(daiBalanceAfter.sub(this.daiBalanceBefore), 'DAI balance should be the same').to.be.equal(0);
+    expect(
+      enzymeSharesBalanceAfter.sub(this.enzymeSharesBalanceBefore),
+      'Enzyme shares balance should be the same',
+    ).to.be.equal(0);
+  });
+
   it('Cleanup storage in MemberRoles', async function () {
     const claimPayableAddressSlot = 15;
     const paddedSlot = hexZeroPad(claimPayableAddressSlot, 32);
@@ -607,36 +643,12 @@ describe('V2 upgrade', function () {
     await tx.wait();
   });
 
-  // TODO review
-  it.skip('unlock claim assessment stakes', async function () {
-    const stakesPath = path.join(config.paths.root, 'scripts/v2-migration/output/eligibleForCLAUnlock.json');
-    const claimAssessors = require(stakesPath).map(x => x.member);
-
-    const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
-
-    console.log('Token balances before running tc.withdrawClaimAssessmentTokens');
-    console.log({
-      tcNxmBalance: tcNxmBalance.toString(),
-    });
-
-    const totalToProcess = claimAssessors.length;
-    console.log(`Processing withdrawClaimAssessmentTokens for ${totalToProcess} claim assesors`);
-    let amountProcessed = 0;
-    while (claimAssessors.length > 0) {
-      const batchSize = 100;
-      const batch = claimAssessors.splice(0, batchSize);
-      await this.tokenController.withdrawClaimAssessmentTokens(batch);
-
-      amountProcessed += batchSize;
-      console.log(`Processed ${amountProcessed}/${totalToProcess}`);
-    }
-
-    const tx = await this.tokenController.withdrawClaimAssessmentTokens(claimAssessors);
-    await tx.wait();
+  // TODO: need to pass it the instance of the upgraded TC contract
+  it.skip('Get CN locked amount', async function () {
+    await getCNLockedAmount(ethers.provider, false);
   });
 
-  // TODO review
-  it.skip('transfer v1 assessment rewards to assessors', async function () {
+  it('Transfer CLA rewards to assessors and GV rewards to TC', async function () {
     const tcNxmBalanceBefore = await this.nxm.balanceOf(this.tokenController.address);
 
     await this.claimsReward.transferRewards();
@@ -645,47 +657,49 @@ describe('V2 upgrade', function () {
     const crNxmBalanceAfter = await this.nxm.balanceOf(this.claimsReward.address);
 
     expect(crNxmBalanceAfter).to.be.equal(BigNumber.from(0));
-
-    const governanceRewardsMigrated = tcNxmBalanceAfter.sub(tcNxmBalanceBefore);
-
+    // Currently there are 1.655901756826619689 extra NXM transferred from CR to TC
+    // (compared to our expected GV rewards calculated above)
+    // expect(tcNxmBalanceAfter.sub(tcNxmBalanceBefore)).to.be.equal(this.governanceRewardsSum);
     console.log({
-      governanceRewardsMigrated: governanceRewardsMigrated.toString(),
-      governanceRewardsSum: this.governanceRewardsSum.toString(),
+      tcNxmBalanceBefore: formatEther(tcNxmBalanceBefore),
+      tcNxmBalanceAfter: formatEther(tcNxmBalanceAfter),
+      expectedGVRewards: formatEther(this.governanceRewardsSum),
+      tcBalanceDiff: formatEther(tcNxmBalanceAfter.sub(tcNxmBalanceBefore)),
+      crNxmBalanceAfter: formatEther(crNxmBalanceAfter),
     });
-
-    /*
-      -1106654884061072517264
-      +870391213513961173071
-
-      Extra tokens:
-
-      236.26367054711136 NXM
-     */
-    // expect(governanceRewardsMigrated).to.be.equal(this.governanceRewardsSum);
   });
 
-  // TODO review
-  it.skip('check if TokenController balance checks out with Governance rewards', async function () {
-    const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
+  // eslint-disable-next-line max-len
+  it('Check all members with claim assessment stakes can withdraw & TC has the correct balance afterwards', async function () {
+    const tcBalanceBefore = await this.nxm.balanceOf(this.tokenController.address);
 
-    const rewardsSum = this.governanceRewardsSum;
+    // Withdraw CLA stakes for all members
+    for (const member of Object.keys(CLA_STAKES_OUTPUT)) {
+      const memberBalanceBefore = await this.nxm.balanceOf(member);
+      await this.tokenController.withdrawClaimAssessmentTokens([member]);
+      const memberBalanceAfter = await this.nxm.balanceOf(member);
+      expect(memberBalanceAfter.sub(memberBalanceBefore)).to.be.equal(CLA_STAKES_OUTPUT[member]);
+    }
 
-    const coverNotesSum = this.coverNotesSum;
+    const tcBalanceAfter = await this.nxm.balanceOf(this.tokenController.address);
+    const tcBalanceDiff = tcBalanceBefore.sub(tcBalanceAfter);
+    expect(tcBalanceDiff).to.be.equal(this.claStakesSum);
 
     console.log({
-      tcNxmBalance: tcNxmBalance.toString(),
-      rewardsSum: rewardsSum.toString(),
-      coverNotesSum: coverNotesSum.toString(),
+      tcBalanceBefore: formatEther(tcBalanceBefore),
+      tcBalanceAfter: formatEther(tcBalanceAfter),
+      tcBalanceDiff: formatEther(tcBalanceDiff),
+      claStakesSum: formatEther(this.claStakesSum),
+      tcBalanceDiffMinusCLAStakes: formatEther(tcBalanceDiff.sub(this.claStakesSum)),
     });
 
-    // TODO: this does NOT pass. Find out where the extra 7k tokens is from.
-    // The outputs of the above log:
-    // {
-    //   tcNxmBalance: '21186831578421870058919',
-    //   rewardsSum: '870391213513961173071',
-    //   coverNotesSum: '13324809641365910004774'
-    // }
-    // expect(tcNxmBalance).to.be.equal(rewardsSum.add(coverNotesSum));
+    // Attempt to withdraw CLA stakes for all members again, and assert that their balances don't change
+    for (const member of Object.keys(CLA_STAKES_OUTPUT)) {
+      const memberBalanceBefore = await this.nxm.balanceOf(member);
+      await this.tokenController.withdrawClaimAssessmentTokens([member]);
+      const memberBalanceAfter = await this.nxm.balanceOf(member);
+      expect(memberBalanceAfter.sub(memberBalanceBefore)).to.be.equal(0);
+    }
   });
 
   // TODO review
@@ -693,6 +707,12 @@ describe('V2 upgrade', function () {
     await populateV2Products(this.cover.address, this.abMembers[0]);
   });
 
+  // TODO review
+  // We should also read
+  // `const { amount, lastDistributionRound } = await ps.accumulatedRewards(coverable);`
+  // and check if the amount > 0
+  // Also, we should iterate through all products, in case we deprecated something that had a cover buy since the
+  // last reward distribution round
   it('Call LegacyPooledStaking.pushRewards for all non-deprecated contracts', async function () {
     const productAddresses = PRODUCT_ADDRESSES_OUTPUT.map(address => address.toLowerCase());
 
@@ -711,6 +731,7 @@ describe('V2 upgrade', function () {
     await this.pooledStaking.pushRewards(productAddresses);
   });
 
+  // TODO review
   it('Process all PooledStaking pending actions', async function () {
     let hasPendingActions = await this.pooledStaking.hasPendingActions();
     let i = 0;
@@ -913,7 +934,7 @@ describe('V2 upgrade', function () {
 
         // Product is deprecated and not sunset (we migrated it as covers can still be claimed, but the quote engine
         // can't give us a price for it)
-        if (productPrice.toString() === MaxUint96) {
+        if (productPrice.toString() === MaxUint96.toString()) {
           deprecatedProducts.add(productAddress);
           continue;
         }
@@ -1097,6 +1118,7 @@ describe('V2 upgrade', function () {
     }
   });
 
+  // TODO review
   it('purchase Cover at the expected prices from the migrated pools', async function () {
     const coverBuyer = this.abMembers[4];
     const poolEthBalanceBefore = await ethers.provider.getBalance(this.pool.address);
@@ -1104,8 +1126,6 @@ describe('V2 upgrade', function () {
     const UNISWAP_V3 = '0x1F98431c8aD98523631AE4a59f267346ea31F984';
 
     const productId = await this.productsV1.getNewProductId(UNISWAP_V3);
-
-    console.log({});
 
     const migratedPrice = await this.pooledStaking.getV1PriceForProduct(productId);
 
@@ -1207,7 +1227,6 @@ describe('V2 upgrade', function () {
   it('MemberRoles is initialized with kycAuthAddress from QuotationData', async function () {
     const kycAuthAddressQD = await this.quotationData.kycAuthAddress();
     const kycAuthAddressMR = await this.memberRoles.kycAuthAddress();
-    console.log({ kycAuthAddressMR, kycAuthAddressQD });
     expect(kycAuthAddressMR).to.be.equal(kycAuthAddressQD);
   });
 
@@ -1263,24 +1282,5 @@ describe('V2 upgrade', function () {
 
   it.skip('withdrawCoverNote reverts after one rejected and one an accepted claim', async function () {
     // [todo]
-  });
-
-  it.skip('Pool value check', async function () {
-    const poolValueAfter = await this.pool.getPoolValueInEth();
-    const poolValueDiff = poolValueAfter.sub(poolValueBefore).abs();
-
-    console.log({
-      poolValueBefore: poolValueBefore.toString(),
-      poolValueAfter: poolValueAfter.toString(),
-    });
-
-    expect(
-      poolValueDiff.isZero(),
-      [
-        `Pool value before: ${formatEther(poolValueBefore)} `,
-        `Pool value after:  ${formatEther(poolValueAfter)}`,
-        `Current diff: ${formatEther(poolValueDiff)}`,
-      ].join('\n'),
-    ).to.be.equal(true);
   });
 });

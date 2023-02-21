@@ -7,7 +7,7 @@ const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 const OUTPUT_FILE = path.join(
   config.paths.root,
   'scripts/v2-migration/output', // dir
-  'eligible-for-cover-note-withdraw.json', // filename
+  'tc-locked-amount.json', // filename
 );
 
 const getContractFactory = async providerOrSigner => {
@@ -24,57 +24,57 @@ const getContractFactory = async providerOrSigner => {
 
 const ROLE_MEMBER = 2;
 
-async function getWithdrawableCoverNotes(i, qt, mr) {
+async function getLockedNXM(i, mr, tc, ps) {
   const { 0: member, 1: active } = await mr.memberAtIndex(ROLE_MEMBER, i);
-
   if (!active) {
-    return { member, withdrawableAmount: '0' };
+    return { member, amount: '0' };
   }
 
-  const withdrawableAmount = await qt.getWithdrawableCoverNotesAmount(member);
-  return {
-    withdrawableAmount: withdrawableAmount.toString(),
-    member,
-  };
+  const lockedAmount = await tc.totalLockedBalance(member); // includes PS deposits
+  const psDeposit = await ps.stakerDeposit(member);
+  const tokensLockedAmount = lockedAmount.sub(psDeposit);
+
+  return { member, amount: tokensLockedAmount.toString() };
 }
 
-async function main(provider, useCache = true) {
+const main = async (provider, useCache = true) => {
   // check the cache first
   if (useCache && fs.existsSync(OUTPUT_FILE)) {
-    console.log('Using cached data for withdrawable cover notes');
+    console.log('Using cached data for TC locked amount');
     return JSON.parse(fs.readFileSync(OUTPUT_FILE).toString());
   }
-
   const factory = await getContractFactory(provider);
+  const tc = await factory('TC');
   const mr = await factory('MR');
-  const qt = await factory('QT');
+  const ps = await factory('PS');
 
   const memberCount = (await mr.membersLength(ROLE_MEMBER)).toNumber();
   const memberIds = [...Array(memberCount).keys()];
-  const memberWithdrawableCoverNotes = [];
+  const memberLockedNXM = {};
 
-  console.log('Fetching claim assessment stakes...');
-
+  console.log('Fetching locked amounts for all reasons for all members...');
   while (memberIds.length > 0) {
     const batch = memberIds.splice(0, 200);
-    const withdrawableCoverNotes = await Promise.all(
-      batch.map(async i => {
-        const withdrawableAmountWithMember = await getWithdrawableCoverNotes(i, qt, mr);
-        return withdrawableAmountWithMember;
-      }),
+    const lockedNXM = await Promise.all(batch.map(i => getLockedNXM(i, mr, tc, ps)));
+    for (const locked of lockedNXM) {
+      if (!lockedNXM[locked.member] && locked.amount !== '0') {
+        memberLockedNXM[locked.member] = locked.amount;
+      }
+    }
+    console.log(
+      `Found ${
+        Object.keys(memberLockedNXM).length
+      } members with locked NXM in TC; processed a batch of 200/${memberCount}`,
     );
-    memberWithdrawableCoverNotes.push(...withdrawableCoverNotes);
-    console.log(`Processed ${memberWithdrawableCoverNotes.length}/${memberCount}`);
   }
 
-  const nonZeroMemberWithdrawableCoverNotes = memberWithdrawableCoverNotes.filter(x => x.withdrawableAmount !== '0');
-
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(nonZeroMemberWithdrawableCoverNotes, null, 2));
-
-  return nonZeroMemberWithdrawableCoverNotes;
-}
+  console.log('Writing output to output/tc-locked-amount.json...');
+  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(memberLockedNXM, null, 2), 'utf8');
+  console.log('Done.');
+};
 
 if (require.main === module) {
+  // use default provider and bypass cache when run via cli
   main(ethers.provider, false)
     .then(() => process.exit(0))
     .catch(e => {

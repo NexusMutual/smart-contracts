@@ -1,11 +1,10 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { BigNumber } = ethers;
 const { buyCover, ETH_ASSET_ID, DAI_ASSET_ID } = require('../utils/cover');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { stake } = require('../utils/staking');
 const { setEtherBalance } = require('../../utils/evm');
-const { roundUpToNearestAllocationUnit, divCeil } = require('../../unit/StakingPool/helpers');
+const { assetToEthWithPrecisionLoss } = require('../utils/assetPricing');
 const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
@@ -30,10 +29,9 @@ const daiCoverTemplate = {
 
 describe('getAllSumAssurance', function () {
   beforeEach(async function () {
-    const { tk, dai, stakingPool0: stakingPool, tc, mcr, cover } = this.contracts;
+    const { tk, dai, stakingPool1: stakingPool, tc, mcr, cover } = this.contracts;
     const [member1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
-    const stakingPoolManagers = this.accounts.stakingPoolManagers;
 
     const operator = await tk.operator();
     await setEtherBalance(operator, parseEther('10000000'));
@@ -57,16 +55,6 @@ describe('getAllSumAssurance', function () {
     expect(await mcr.getAllSumAssurance()).to.be.equal(0);
   });
 
-  async function adjustForPricePrecisionLoss(pool, coverAmountInAsset, NXM_PER_ALLOCATION_UNIT, ONE_NXM) {
-    const nxmPriceInCoverAsset = await pool.getTokenPriceInAsset(ETH_ASSET_ID);
-    const coverAmountInNXM = roundUpToNearestAllocationUnit(
-      divCeil(BigNumber.from(coverAmountInAsset).mul(ONE_NXM), nxmPriceInCoverAsset),
-      NXM_PER_ALLOCATION_UNIT,
-    );
-    const coverAmountInCoverAsset = coverAmountInNXM.mul(nxmPriceInCoverAsset).div(ONE_NXM);
-    return coverAmountInCoverAsset;
-  }
-
   it('returns 0 when no covers exist', async function () {
     const { mcr } = this.contracts;
 
@@ -89,14 +77,7 @@ describe('getAllSumAssurance', function () {
       priceDenominator,
     });
     const totalAssurance = await mcr.getAllSumAssurance();
-    expect(totalAssurance).to.be.equal(
-      await adjustForPricePrecisionLoss(
-        p1,
-        coverBuyTemplate.amount,
-        this.config.NXM_PER_ALLOCATION_UNIT,
-        this.config.ONE_NXM,
-      ),
-    );
+    expect(totalAssurance).to.be.equal(await assetToEthWithPrecisionLoss(p1, coverBuyTemplate.amount, 0, this.config));
   });
 
   it('returns total value of DAI purchased cover', async function () {
@@ -114,15 +95,11 @@ describe('getAllSumAssurance', function () {
       priceDenominator,
     });
 
-    const expectedAmountETH = roundUpToNearestAllocationUnit(
-      this.rates.daiToEthRate.mul(coverBuyTemplate.amount).div(this.config.ONE_NXM),
-      this.config.NXM_PER_ALLOCATION_UNIT,
-    );
-    const expectedTotal = await adjustForPricePrecisionLoss(
+    const expectedTotal = await assetToEthWithPrecisionLoss(
       p1,
-      expectedAmountETH,
-      this.config.NXM_PER_ALLOCATION_UNIT,
-      this.config.ONE_NXM,
+      coverBuyTemplate.amount,
+      this.rates.daiToEthRate,
+      this.config,
     );
 
     const totalAssurance = await mcr.getAllSumAssurance();
@@ -158,26 +135,17 @@ describe('getAllSumAssurance', function () {
     }
 
     // calculate eth covers
-    const expectedTotalEthAssurance = await adjustForPricePrecisionLoss(
-      p1,
-      ethCoverTemplate.amount.mul(2),
-      this.config.NXM_PER_ALLOCATION_UNIT,
-      this.config.ONE_NXM,
-    );
+    const expectedEthAssurance = await assetToEthWithPrecisionLoss(p1, ethCoverTemplate.amount.mul(2), 0, this.config);
 
     // calculate dai covers
-    const expectedAmountETH = roundUpToNearestAllocationUnit(
-      this.rates.daiToEthRate.mul(daiCoverTemplate.amount.mul(2)).div(this.config.ONE_NXM),
-      this.config.NXM_PER_ALLOCATION_UNIT,
-    );
-    const expectedTotalDaiAssurance = await adjustForPricePrecisionLoss(
+    const expectedDaiAssurance = await assetToEthWithPrecisionLoss(
       p1,
-      expectedAmountETH,
-      this.config.NXM_PER_ALLOCATION_UNIT,
-      this.config.ONE_NXM,
+      daiCoverTemplate.amount.mul(2),
+      this.rates.daiToEthRate,
+      this.config,
     );
 
     const totalAssurance = await mcr.getAllSumAssurance();
-    expect(totalAssurance).to.be.equal(expectedTotalEthAssurance.add(expectedTotalDaiAssurance));
+    expect(totalAssurance).to.be.equal(expectedEthAssurance.add(expectedDaiAssurance));
   });
 });

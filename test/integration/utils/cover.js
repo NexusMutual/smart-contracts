@@ -9,9 +9,21 @@ const STETH_ASSET_ID = 2;
 const ENZYME_ASSET_ID = 3;
 const USDC_ASSET_ID = 4;
 
-async function buyCover({ amount, productId, coverAsset, period, cover, coverBuyer, targetPrice, priceDenominator }) {
+async function buyCover({
+  amount,
+  productId,
+  coverAsset,
+  period,
+  cover,
+  coverBuyer,
+  targetPrice,
+  priceDenominator,
+  expectedPremium = 0,
+}) {
   // Buy Cover
-  const expectedPremium = amount.mul(targetPrice).div(priceDenominator);
+  if (!expectedPremium) {
+    expectedPremium = amount.mul(targetPrice).div(priceDenominator);
+  }
 
   await cover.connect(coverBuyer).buyCover(
     {

@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.18;
 
+import "hardhat/console.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
@@ -403,6 +404,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint premiumInPaymentAsset = nxmPriceInCoverAsset * premiumInNxm / ONE_NXM;
     uint commission = premiumInPaymentAsset * commissionRatio / COMMISSION_DENOMINATOR;
 
+    console.log("maxPremiumInAsset", maxPremiumInAsset);
+    console.log("premiumInPaymentAsset", premiumInPaymentAsset);
     if (premiumInPaymentAsset > maxPremiumInAsset) {
       revert PriceExceedsMaxPremiumInAsset();
     }

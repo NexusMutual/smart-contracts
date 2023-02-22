@@ -6,7 +6,7 @@ const { parseEther } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { stake } = require('../utils/staking');
-const { buyCover, ETH_ASSET_ID, DAI_ASSET_ID } = require('../utils/cover');
+const { buyCover, ETH_ASSET_ID } = require('../utils/cover');
 
 const increaseTime = async interval => {
   const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -68,8 +68,9 @@ describe('getMCR', function () {
     expect(currentMCR.toString()).to.be.equal(storageMCR);
   });
 
-  it.only('increases mcr by 0.4% in 2 hours and decreases by 0.4% in 2 hours it after cover expiry', async function () {
-    const { mcr, cover, p1 } = this.contracts;
+  // TODO: expected MCR is off
+  it('increases mcr by 0.4% in 2 hours and decreases by 0.4% in 2 hours it after cover expiry', async function () {
+    const { mcr, cover } = this.contracts;
     const [coverBuyer] = this.accounts.members;
     const targetPrice = this.DEFAULT_PRODUCTS[0].targetPrice;
     const priceDenominator = this.config.TARGET_PRICE_DENOMINATOR;
@@ -104,7 +105,7 @@ describe('getMCR', function () {
       const maxMCRIncrement = BigNumber.from(await mcr.maxMCRIncrement());
       const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
 
-      // TODO: expected MCR is off
+      // TODO: expected MCR is off here
       const expectedMCR = storedMCR.mul(expectedPercentageIncrease).div(10000).add(storedMCR);
       expect(latestMCR).to.be.equal(expectedMCR);
     }

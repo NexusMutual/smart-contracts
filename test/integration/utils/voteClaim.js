@@ -10,17 +10,17 @@ const setTime = async timestamp => {
   await mineNextBlock();
 };
 
-async function voteClaim({ claimId, verdict, cl, cd, cr, voter }) {
-  await cl.submitCAVote(claimId, toBN(verdict), { from: voter });
+async function voteClaim({ claimId, verdict, ic, cd, cr, voter }) {
+  await ic.submitCAVote(claimId, toBN(verdict), { from: voter });
 
   const minVotingTime = await cd.minVotingTime();
   await time.increase(minVotingTime.addn(1));
 
-  const voteStatusBefore = await cl.checkVoteClosing(claimId);
+  const voteStatusBefore = await ic.checkVoteClosing(claimId);
   assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
 
   await cr.closeClaim(claimId);
-  const voteStatusAfter = await cl.checkVoteClosing(claimId);
+  const voteStatusAfter = await ic.checkVoteClosing(claimId);
   assert.equal(voteStatusAfter.toString(), '-1', 'voting should be closed');
 }
 

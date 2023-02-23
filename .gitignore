@@ -10,3 +10,4 @@ node_modules/
 coverage/
 coverage.json
 tenderly.yaml
+scripts/v2-migration/output/

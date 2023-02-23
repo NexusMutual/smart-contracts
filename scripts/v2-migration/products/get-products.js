@@ -125,6 +125,29 @@ const main = async () => {
     ),
     'utf8',
   );
+
+  const v2ProductsMapPath = outputDir + '/v2-products-map.json';
+  console.log(`Writing file ${v2ProductsMapPath}`);
+  fs.writeFileSync(
+    v2ProductsMapPath,
+    JSON.stringify(
+      v2Products.reduce((productsMap, product) => {
+        productsMap[product.productId] = {
+          name: product.name,
+          type: product.type,
+          supportedChains: product.supportedChains,
+          dateAdded: product.dateAdded,
+          logo: product.logo,
+          github: product.github,
+          deprecated: product.deprecated,
+        };
+        return productsMap;
+      }, {}),
+      null,
+      2,
+    ),
+    'utf8',
+  );
 };
 
 if (require.main === module) {

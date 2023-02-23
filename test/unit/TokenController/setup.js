@@ -10,6 +10,8 @@ async function setup() {
   const { internalContracts, members } = accounts;
   const internal = internalContracts[0];
 
+  const pooledStaking = await ethers.deployContract('TCMockPooledStaking');
+
   const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [accounts.defaultSender.address]);
 
   const nxm = await ethers.deployContract('NXMTokenMock');
@@ -25,6 +27,7 @@ async function setup() {
   await master.enrollInternal(internal.address);
   await master.setTokenAddress(nxm.address);
   await master.setLatestAddress(hex('GV'), accounts.governanceContracts[0].address);
+  await master.setLatestAddress(hex('PS'), pooledStaking.address);
 
   const governance = await ethers.deployContract('TCMockGovernance');
   const assessment = await ethers.deployContract('TCMockAssessment');
@@ -64,6 +67,7 @@ async function setup() {
     tokenController,
     assessment,
     stakingPoolFactory,
+    pooledStaking,
   };
 }
 

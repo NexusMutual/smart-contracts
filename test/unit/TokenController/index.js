@@ -12,6 +12,11 @@ describe('TokenController', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  require('./totalBalanceOf');
+  require('./acceptStakingPoolOwnershipOffer');
+  require('./assignStakingPoolManager');
+  require('./cancelStakingPoolOwnershipOffer');
+  require('./transferStakingPoolOwnership');
   require('./withdrawGovernanceRewards');
   require('./withdrawGovernanceRewardsTo');
   require('./withdrawPendingRewards');

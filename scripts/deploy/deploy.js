@@ -515,7 +515,10 @@ async function main() {
   await transferProxyOwnership(cover.address, master.address);
   await transferProxyOwnership(yt.address, master.address);
   await transferProxyOwnership(ic.address, master.address);
+
   await transferProxyOwnership(assessment.address, master.address);
+  await assessment.changeDependentContractAddress();
+
   await transferProxyOwnership(master.address, gv.address);
 
   const verifyOnEtherscan = !['hardhat', 'localhost', 'tenderly'].includes(network.name);

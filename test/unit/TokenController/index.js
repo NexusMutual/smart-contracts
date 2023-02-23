@@ -13,6 +13,7 @@ describe('TokenController', function () {
   });
 
   require('./totalBalanceOf');
+  require('./createStakingPoolOwnershipOffer');
   require('./acceptStakingPoolOwnershipOffer');
   require('./assignStakingPoolManager');
   require('./cancelStakingPoolOwnershipOffer');

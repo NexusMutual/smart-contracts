@@ -172,9 +172,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
       }
       uint256 amount = locked[users[i]]["CLA"].amount;
 
-      // TODO: test this function
-      assert (amount == 0);
-
       if (amount > 0) {
         locked[users[i]]["CLA"].claimed = true;
         emit Unlocked(users[i], "CLA", amount);

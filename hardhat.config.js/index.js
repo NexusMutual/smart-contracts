@@ -6,7 +6,6 @@ require('@nomiclabs/hardhat-etherscan');
 require('@nomicfoundation/hardhat-chai-matchers');
 require('solidity-coverage');
 require('hardhat-contract-sizer');
-require('hardhat-tracer');
 
 require('./tasks');
 

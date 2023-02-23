@@ -2,10 +2,16 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
+const { config } = require('hardhat');
 
-const outputDir = path.join(__dirname, 'output');
 const productsV1ContractPath = path.join(__dirname, '../../contracts/modules/cover/ProductsV1.sol');
 const CONTRACTS_URL = 'https://api.nexusmutual.io/coverables/contracts.json';
+
+const OUTPUT_FILE = path.join(
+  config.paths.root,
+  'scripts/v2-migration/output', // dir
+  'product-addresses.json', // filename
+);
 
 const gracePeriod = {
   protocol: 30,
@@ -94,7 +100,13 @@ contract ProductsV1 is IProductsV1 {
 }
 `;
 
-const main = async () => {
+const main = async (useCache = true) => {
+  // check the cache first
+  if (useCache && fs.existsSync(OUTPUT_FILE)) {
+    console.log('Using cached data for get V2 products');
+    return JSON.parse(fs.readFileSync(OUTPUT_FILE).toString());
+  }
+
   const v1Products = await fetch(CONTRACTS_URL).then(r => r.json());
 
   console.log(`Total V1 products: ${Object.keys(v1Products).length}`);
@@ -115,10 +127,9 @@ const main = async () => {
   console.log(`Writing file ${productsV1ContractPath}`);
   fs.writeFileSync(productsV1ContractPath, productsV1Contract, 'utf8');
 
-  const productAddressesPath = outputDir + '/product-addresses.json';
-  console.log(`Writing file ${productAddressesPath}`);
+  console.log(`Writing file ${OUTPUT_FILE}`);
   fs.writeFileSync(
-    productAddressesPath,
+    OUTPUT_FILE,
     JSON.stringify(
       v2Products.map(x => x.legacyProductId),
       null,
@@ -129,7 +140,7 @@ const main = async () => {
 };
 
 if (require.main === module) {
-  main()
+  main(false)
     .then(() => console.log('Done!'))
     .catch(e => {
       console.log('Unhandled error encountered: ', e.stack);

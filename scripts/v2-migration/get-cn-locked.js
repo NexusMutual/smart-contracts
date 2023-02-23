@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
 
+const { BigNumber } = ethers;
+
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 const OUTPUT_FILE = path.join(
   config.paths.root,
@@ -31,7 +33,27 @@ async function getMemberCN(i, mr, tc) {
   }
 
   const { coverIds, lockReasons, withdrawableAmount } = await tc.getWithdrawableCoverNotes(member);
-  return { member, coverIds, lockReasons, amount: withdrawableAmount.toString() };
+  const memberLockReasons = await tc.getLockReasons(member);
+
+  const lockReasonIndexCover = {};
+  let coverIndex = 0;
+  for (const lockReason of lockReasons) {
+    const lockReasonIndex = memberLockReasons.indexOf(lockReason);
+    lockReasonIndexCover[lockReasonIndex] = BigNumber.from(coverIds[coverIndex++]).toString();
+  }
+
+  const sortedIndexes = Object.keys(lockReasonIndexCover).sort((a, b) => a - b);
+  const sortedCoverIds = [];
+  for (const index of sortedIndexes) {
+    sortedCoverIds.push(lockReasonIndexCover[index]);
+  }
+
+  return {
+    member,
+    coverIds: sortedCoverIds,
+    lockReasonIndexes: sortedIndexes,
+    amount: withdrawableAmount.toString(),
+  };
 }
 
 const main = async (provider, useCache = true) => {
@@ -41,30 +63,29 @@ const main = async (provider, useCache = true) => {
     return JSON.parse(fs.readFileSync(OUTPUT_FILE).toString());
   }
   const factory = await getContractFactory(provider);
-  const tc = await factory('TC');
+  const tcV1 = await factory('TC');
+  const tc = await ethers.getContractAt('TokenController', tcV1.address);
   const mr = await factory('MR');
 
   const memberCount = (await mr.membersLength(ROLE_MEMBER)).toNumber();
   const memberIds = [...Array(memberCount).keys()];
-  const memberLockedCN = {};
+  const memberLockedCN = [];
 
   console.log('Fetching locked CN amounts for all members...');
   while (memberIds.length > 0) {
     const batch = memberIds.splice(0, 200);
     const lockedCN = await Promise.all(batch.map(i => getMemberCN(i, mr, tc)));
     for (const locked of lockedCN) {
-      if (!lockedCN[locked.member] && locked.amount !== '0') {
-        memberLockedCN[locked.member] = locked.amount;
+      if (!memberLockedCN.some(x => x.member === locked.member) && locked.amount !== '0') {
+        memberLockedCN.push(locked);
       }
     }
     console.log(
-      `Found ${
-        Object.keys(memberLockedCN).length
-      } members with locked NXM for CN; processed a batch of 200/${memberCount}`,
+      `Found ${memberLockedCN.length} members with locked NXM for CN; processed a batch of 200/${memberCount}`,
     );
   }
 
-  console.log('Writing output to output/cn-locked-amount.json...');
+  console.log(`Writing output to ${OUTPUT_FILE}...`);
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(memberLockedCN, null, 2), 'utf8');
   console.log('Done.');
 };

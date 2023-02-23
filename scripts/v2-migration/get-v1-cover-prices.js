@@ -14,6 +14,7 @@ const DAI_COVER_BLACKLIST = [
 ];
 
 const PRODUCT_ADDRESSES = require(path.join(__dirname, 'output/product-addresses.json'));
+const { ethers } = require('hardhat');
 const PS_CONTRACT_PATH = path.join(__dirname, '../../contracts/modules/legacy/LegacyPooledStaking.sol');
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -46,7 +47,13 @@ ${priceMap[price]
   .join('\n')}
     // {V1_PRICES_HELPER_END}`;
 
-const main = async () => {
+const main = async (useCache = true) => {
+  // check the cache first
+  if (useCache) {
+    console.log('Using cached data for get V1 cover prices');
+    return;
+  }
+
   const priceToProductMap = {};
   const productToPriceMap = {};
 
@@ -85,7 +92,7 @@ const main = async () => {
     const quote = await quoteRes.json();
     const annualPrice = quote.price * 100; // highest is 100.
 
-    // TODO there are currently 7 products that have price 0.
+    // TODO there are currently 3 products that have price 0.
     // This is because there isn't enough stake on them.
     // Solution: create a new quote api endpoint that provides
     // **unsigned** quotes and ignores capacity limits
@@ -108,7 +115,8 @@ const main = async () => {
 };
 
 if (require.main === module) {
-  main()
+  // bypass cache when run via cli
+  main(false)
     .then(() => process.exit(0))
     .catch(e => {
       console.log('Unhandled error encountered: ', e.stack);

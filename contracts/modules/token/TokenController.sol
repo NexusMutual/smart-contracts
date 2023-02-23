@@ -475,7 +475,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   /// Transfers the ownership of a staking pool to a new address
-  /// Used by PooledStaking during the migration
+  /// Used by PooledStaking during the migration and by Cover on staking pool creation
   ///
   /// @param poolId       id of the staking pool
   /// @param manager      address of the new manager of the staking pool

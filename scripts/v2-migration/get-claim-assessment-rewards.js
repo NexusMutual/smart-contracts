@@ -39,7 +39,7 @@ const getTransferCalls = rewardables => {
 const main = async (provider, useCache = true) => {
   // check the cache first
   if (useCache && fs.existsSync(OUTPUT_FILE)) {
-    console.log('Using cached data for Claim Assessment Rewards');
+    console.log('Using cached data for Claim Assessment rewards');
     return JSON.parse(fs.readFileSync(OUTPUT_FILE).toString());
   }
 

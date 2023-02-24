@@ -1434,7 +1434,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       migrationData.ipfsDescriptionHash
     );
 
-    tokenController().assignStakingPoolManager(stakingPoolId, migrationData.stakerAddress);
+    tokenController().assignStakingPoolManager(stakingPoolId, migrationData.managerAddress);
 
     uint firstTrancheId = block.timestamp / 91 days + 1;
     for (uint i = 0; i < TRANCHE_COUNT; i++) {

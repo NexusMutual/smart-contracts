@@ -10,8 +10,9 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingNFT.sol";
+import "./PricesV1.sol";
 
-contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
+contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
   /* Constants */
 
   address constant ARMOR_STAKER = 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4;
@@ -988,225 +989,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
   }
 
-  function getV1PriceForProduct(uint id) pure public returns (uint96) {
-    // {V1_PRICES_HELPER_BEGIN}
-
-    if (
-      // 0xd96f48665a1410C0cd669A88898ecA36B9Fc2cce
-      id == 32 ||
-      // 0x0000000000000000000000000000000000000016
-      id == 42 ||
-      // 0xfdA462548Ce04282f4B6D6619823a7C64Fdc0185
-      id == 44
-    ) {
-      return 0; // 0 %
-    }
-
-    // 0xB1dD690Cc9AF7BB1a906A9B5A94F94191cc553Ce
-    if (id == 0) {
-      return 16799401684516225000; // 16.799401684516226 %
-    }
-
-    if (
-      // 0x364508A5cA0538d8119D3BF40A284635686C98c4
-      id == 1 ||
-      // 0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B
-      id == 3 ||
-      // 0x34CfAC646f301356fAa8B21e94227e3583Fe3F5F
-      id == 4 ||
-      // 0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B
-      id == 5 ||
-      // 0x9D25057e62939D3408406975aD75Ffe834DA4cDd
-      id == 7 ||
-      // 0x79a8C46DeA5aDa233ABaFFD40F3A0A2B1e5A4F27
-      id == 8 ||
-      // 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f
-      id == 10 ||
-      // 0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F
-      id == 12 ||
-      // 0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9
-      id == 14 ||
-      // 0xc2EdaD668740f1aA35E4D8f227fB8E17dcA888Cd
-      id == 15 ||
-      // 0xCC88a9d330da1133Df3A7bD823B95e52511A6962
-      id == 19 ||
-      // 0xB17640796e4c27a39AF51887aff3F8DC0daF9567
-      id == 21 ||
-      // 0xA39739EF8b0231DbFA0DcdA07d7e29faAbCf4bb2
-      id == 22 ||
-      // 0x1F98431c8aD98523631AE4a59f267346ea31F984
-      id == 23 ||
-      // 0xF403C135812408BFbE8713b5A23a04b3D48AAE31
-      id == 24 ||
-      // 0xBA12222222228d8Ba445958a75a0704d566BF2C8
-      id == 25 ||
-      // 0xc57D000000000000000000000000000000000008
-      id == 28 ||
-      // 0x0000000000000000000000000000000000000014
-      id == 37 ||
-      // 0x25751853Eab4D0eB3652B5eB6ecB102A2789644B
-      id == 39 ||
-      // 0x60aE616a2155Ee3d9A68541Ba4544862310933d4
-      id == 41 ||
-      // 0x453D4Ba9a2D594314DF88564248497F7D74d6b2C
-      id == 43 ||
-      // 0x0000000000000000000000000000000000000017
-      id == 45 ||
-      // 0x5C6374a2ac4EBC38DeA0Fc1F8716e5Ea1AdD94dd
-      id == 46 ||
-      // 0x0000000000000000000000000000000000000018
-      id == 47 ||
-      // 0x0000000000000000000000000000000000000019
-      id == 48 ||
-      // 0x0000000000000000000000000000000000000021
-      id == 49 ||
-      // 0x0000000000000000000000000000000000000023
-      id == 51 ||
-      // 0x0000000000000000000000000000000000000027
-      id == 54 ||
-      // 0x0000000000000000000000000000000000000028
-      id == 55 ||
-      // 0x3D6bA331e3D9702C5e8A8d254e5d8a285F223aba
-      id == 56 ||
-      // 0x0000000000000000000000000000000000000030
-      id == 58 ||
-      // 0x0000000000000000000000000000000000000031
-      id == 59 ||
-      // 0x0000000000000000000000000000000000000032
-      id == 60
-    ) {
-      return 2598220396988364000; // 2.598220396988364 %
-    }
-
-    // 0xB27F1DB0a7e473304A5a06E54bdf035F671400C0
-    if (id == 2) {
-      return 20967452287412728000; // 20.967452287412726 %
-    }
-
-    // 0x11111254369792b2Ca5d084aB5eEA397cA8fa48B
-    if (id == 6) {
-      return 12267920069755300000; // 12.2679200697553 %
-    }
-
-    // 0x5B67871C3a857dE81A1ca0f9F7945e5670D986Dc
-    if (id == 9) {
-      return 27257694850770133000; // 27.257694850770132 %
-    }
-
-    // 0xAFcE80b19A8cE13DEc0739a1aaB7A028d6845Eb3
-    if (id == 11) {
-      return 5083170877253071000; // 5.083170877253071 %
-    }
-
-    // 0xa4c8d221d8BB851f83aadd0223a8900A6921A349
-    if (id == 13) {
-      return 3741050473501892600; // 3.741050473501893 %
-    }
-
-    // 0xA51156F3F1e39d1036Ca4ba4974107A1C1815d1e
-    if (id == 16) {
-      return 36561218327095910000; // 36.56121832709591 %
-    }
-
-    // 0x6354E79F21B56C11f48bcD7c451BE456D7102A36
-    if (id == 17) {
-      return 16510438725751974000; // 16.510438725751975 %
-    }
-
-    // 0x7C06792Af1632E77cb27a558Dc0885338F4Bdf8E
-    if (id == 18) {
-      return 31089368473949233000; // 31.089368473949232 %
-    }
-
-    // 0xa4F1671d3Aee73C05b552d57f2d16d3cfcBd0217
-    if (id == 20) {
-      return 26607324828110442000; // 26.607324828110443 %
-    }
-
-    // 0x8481a6EbAf5c7DABc3F7e09e44A89531fd31F822
-    if (id == 26) {
-      return 9057767930031161000; // 9.057767930031162 %
-    }
-
-    // 0xC57d000000000000000000000000000000000007
-    if (id == 27) {
-      return 4711485801693298000; // 4.711485801693297 %
-    }
-
-    // 0xc57d000000000000000000000000000000000009
-    if (id == 29) {
-      return 2953968343232513000; // 2.9539683432325132 %
-    }
-
-    // 0xefa94DE7a4656D787667C749f7E1223D71E9FD88
-    if (id == 30) {
-      return 61178359111821860000; // 61.17835911182186 %
-    }
-
-    // 0x0CED6166873038Ac0cc688e7E6d19E2cBE251Bf0
-    if (id == 31) {
-      return 11792267503276466000; // 11.792267503276467 %
-    }
-
-    // 0x48D49466CB2EFbF05FaA5fa5E69f2984eDC8d1D7
-    if (id == 33) {
-      return 30995110094003560000; // 30.99511009400356 %
-    }
-
-    // 0x0000000000000000000000000000000000000009
-    if (id == 34) {
-      return 2719817361400341000; // 2.719817361400341 %
-    }
-
-    // 0x0000000000000000000000000000000000000010
-    if (id == 35) {
-      return 3599033596007569400; // 3.5990335960075694 %
-    }
-
-    // 0x0000000000000000000000000000000000000013
-    if (id == 36) {
-      return 16747416295079130000; // 16.74741629507913 %
-    }
-
-    // 0x1344A36A1B56144C3Bc62E7757377D288fDE0369
-    if (id == 38) {
-      return 14640415987596065000; // 14.640415987596064 %
-    }
-
-    // 0xd89a09084555a7D0ABe7B111b1f78DFEdDd638Be
-    if (id == 40) {
-      return 23057565204705350000; // 23.057565204705348 %
-    }
-
-    // 0x0000000000000000000000000000000000000022
-    if (id == 50) {
-      return 52816256281937306000; // 52.81625628193731 %
-    }
-
-    // 0x0000000000000000000000000000000000000025
-    if (id == 52) {
-      return 2098562628336755700; // 2.0985626283367558 %
-    }
-
-    // 0x0000000000000000000000000000000000000026
-    if (id == 53) {
-      return 2298425735797399300; // 2.2984257357973994 %
-    }
-
-    // 0x0000000000000000000000000000000000000029
-    if (id == 57) {
-      return 1998631074606434000; // 1.998631074606434 %
-    }
-
-    // 0x0000000000000000000000000000000000000033
-    if (id == 61) {
-      return 2248459958932238000; // 2.248459958932238 %
-    }
-    // {V1_PRICES_HELPER_END}
-
-    return type(uint96).max;
-  }
-
   function getProductInitParams(
     address stakerAddress,
     uint deposit
@@ -1251,8 +1033,8 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       productInitParams[i] = ProductInitializationParams(
         products[i], // productId
         uint8(100 * stakes[i] / deposit), // weight (0-100)
-        uint96(prices[i] / 1e16), // initialPrice with a 100_00 denominator
-        uint96(prices[i] / 1e16) // targetPrice with a 100_00 denominator
+        uint96(prices[i]), // initialPrice with a 100_00 denominator
+        uint96(prices[i]) // targetPrice with a 100_00 denominator
       );
     }
   }

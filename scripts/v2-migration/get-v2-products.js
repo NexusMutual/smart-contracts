@@ -7,9 +7,10 @@ const { config } = require('hardhat');
 const productsV1ContractPath = path.join(__dirname, '../../contracts/modules/cover/ProductsV1.sol');
 const CONTRACTS_URL = 'https://api.nexusmutual.io/coverables/contracts.json';
 
+const outputDir = 'scripts/v2-migration/output';
 const OUTPUT_FILE = path.join(
   config.paths.root,
-  'scripts/v2-migration/output', // dir
+  outputDir, // dir
   'product-addresses.json', // filename
 );
 

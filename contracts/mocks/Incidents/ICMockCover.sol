@@ -85,7 +85,7 @@ contract ICMockCover {
     }
   }
 
-  function coverSegments(
+  function coverSegmentWithRemainingAmount(
     uint coverId,
     uint segmentId
   ) external view returns (CoverSegment memory) {

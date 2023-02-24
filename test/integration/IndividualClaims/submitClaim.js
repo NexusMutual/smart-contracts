@@ -1119,7 +1119,7 @@ describe('submitClaim', function () {
     });
 
     const coverId = 1;
-    const segment = await cover.coverSegments(coverId, 0);
+    const segment = await cover.coverSegmentWithRemainingAmount(coverId, 0);
     const previousCoverSegmentAllocation = await cover.coverSegmentAllocations(coverId, 0, 0);
 
     // Submit partial claim - 1/2 of total amount
@@ -1313,7 +1313,7 @@ describe('submitClaim', function () {
       );
     }
 
-    const segment = await cover.coverSegments(coverId, 0);
+    const segment = await cover.coverSegmentWithRemainingAmount(coverId, 0);
     const latestBlock = await ethers.provider.getBlock('latest');
 
     const editTimestamp = BigNumber.from(latestBlock.timestamp).add(1);

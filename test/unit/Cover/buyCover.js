@@ -996,7 +996,7 @@ describe('buyCover', function () {
     const coverSegmentsCount = await cover.coverSegmentsCount(coverId);
     expect(coverSegmentsCount).to.be.equal(1);
 
-    const segment = await cover.coverSegments(coverId, segmentId);
+    const segment = await cover.coverSegmentWithRemainingAmount(coverId, segmentId);
     expect(segment.gracePeriod).to.be.equal(gracePeriod);
     expect(segment.period).to.be.equal(period);
     expect(segment.amount).to.be.equal(amount);
@@ -1370,7 +1370,7 @@ describe('buyCover', function () {
     const coverSegmentsCount = await cover.coverSegmentsCount(coverId);
     expect(coverSegmentsCount).to.be.equal(1);
 
-    const segment = await cover.coverSegments(coverId, segmentId);
+    const segment = await cover.coverSegmentWithRemainingAmount(coverId, segmentId);
     expect(segment.gracePeriod).to.be.equal(gracePeriod);
     expect(segment.period).to.be.equal(period);
     expect(segment.amount).to.be.equal(amount);

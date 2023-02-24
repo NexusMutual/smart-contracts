@@ -163,7 +163,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
     CoverData memory coverData = cover().coverData(claim.coverId);
 
-    CoverSegment memory segment = cover().coverSegments(claim.coverId, claim.segmentId);
+    CoverSegment memory segment = cover().coverSegmentWithRemainingAmount(claim.coverId, claim.segmentId);
 
     uint segmentEnd = segment.start + segment.period;
 
@@ -280,7 +280,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
     ICover coverContract = cover();
     CoverData memory coverData = cover().coverData(coverId);
-    CoverSegment memory segment = cover().coverSegments(coverId, segmentId);
+    CoverSegment memory segment = cover().coverSegmentWithRemainingAmount(coverId, segmentId);
 
     {
       Product memory product = coverContract.products(coverData.productId);

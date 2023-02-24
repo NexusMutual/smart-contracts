@@ -30,7 +30,7 @@ describe('burnStake', function () {
     const payoutAmountInAsset = amount.div(2);
     const remainingAmount = amount.sub(payoutAmountInAsset);
 
-    const segment = await cover.coverSegments(expectedCoverId, segmentId);
+    const segment = await cover.coverSegmentWithRemainingAmount(expectedCoverId, segmentId);
     const segmentAllocation = await cover.coverSegmentAllocations(expectedCoverId, segmentId, '0');
 
     const payoutAmountInNXM = segmentAllocation.coverAmountInNXM.mul(payoutAmountInAsset).div(segment.amount);
@@ -121,7 +121,7 @@ describe('burnStake', function () {
     const segmentAllocationsBefore = [];
     const expectedBurnAmount = [];
 
-    const segment = await cover.coverSegments(expectedCoverId, segmentId);
+    const segment = await cover.coverSegmentWithRemainingAmount(expectedCoverId, segmentId);
 
     for (let i = 0; i < amountOfPools; i++) {
       const segmentAllocationBefore = await cover.coverSegmentAllocations(expectedCoverId, segmentId, i);
@@ -170,7 +170,7 @@ describe('burnStake', function () {
     const payoutAmountInAsset = amount.div(2);
     const remainingAmount = amount.sub(payoutAmountInAsset);
 
-    const segment = await cover.coverSegments(expectedCoverId, segmentId);
+    const segment = await cover.coverSegmentWithRemainingAmount(expectedCoverId, segmentId);
     const segmentAllocation = await cover.coverSegmentAllocations(expectedCoverId, segmentId, '0');
 
     const payoutAmountInNXM = segmentAllocation.coverAmountInNXM.mul(payoutAmountInAsset).div(segment.amount);
@@ -222,7 +222,7 @@ describe('burnStake', function () {
     const payoutAmountInAsset = amount.div(burnAmountDivisor);
     const burnAmount = amount.div(burnAmountDivisor);
 
-    const segment = await cover.coverSegments(expectedCoverId, segmentId);
+    const segment = await cover.coverSegmentWithRemainingAmount(expectedCoverId, segmentId);
     const segmentAllocation = await cover.coverSegmentAllocations(expectedCoverId, segmentId, '0');
 
     const payoutAmountInNXM = segmentAllocation.coverAmountInNXM.mul(payoutAmountInAsset).div(segment.amount);

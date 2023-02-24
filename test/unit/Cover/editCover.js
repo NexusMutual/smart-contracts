@@ -34,7 +34,7 @@ describe('editCover', function () {
     const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegments(expectedCoverId, 0);
+    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
     const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
@@ -207,7 +207,7 @@ describe('editCover', function () {
     const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegments(expectedCoverId, 0);
+    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
     const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
@@ -313,7 +313,7 @@ describe('editCover', function () {
     const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegments(expectedCoverId, 0);
+    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
     const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
@@ -378,7 +378,7 @@ describe('editCover', function () {
     const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegments(expectedCoverId, 0);
+    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
     const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
@@ -450,7 +450,7 @@ describe('editCover', function () {
 
     const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, { ...coverBuyFixture, period });
 
-    const { start: startTimestamp } = await cover.coverSegments(expectedCoverId, 0);
+    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
     const passedPeriod = BigNumber.from(10);
     const editTimestamp = BigNumber.from(startTimestamp).add(10);
 
@@ -740,7 +740,7 @@ describe('editCover', function () {
 
     const extraPremium = expectedEditPremium.sub(expectedRefund);
 
-    const { start: startTimestamp } = await cover.coverSegments(expectedCoverId, 0);
+    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
     const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
@@ -763,7 +763,7 @@ describe('editCover', function () {
       { value: extraPremium },
     );
 
-    const secondSegment = await cover.coverSegments(expectedCoverId, 1);
+    const secondSegment = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 1);
     expect(secondSegment.gracePeriod).to.be.equal(newGracePeriod);
     expect(productTypeBefore.gracePeriod).to.be.equal(segment.gracePeriod);
   });
@@ -959,7 +959,7 @@ describe('editCover', function () {
     const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegments(expectedCoverId, 0);
+    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
     const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
@@ -1199,7 +1199,7 @@ describe('editCover', function () {
     const { segment, coverId: expectedCoverId, segmentId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegments(expectedCoverId, 0);
+    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
     const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
@@ -1258,7 +1258,7 @@ describe('editCover', function () {
     const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegments(expectedCoverId, 0);
+    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
     const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
@@ -1329,7 +1329,7 @@ describe('editCover', function () {
     const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegments(expectedCoverId, 0);
+    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
     const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
@@ -1438,7 +1438,7 @@ describe('editCover', function () {
     expect(buyerBalanceAfter).to.be.lt(buyerBalanceBefore.sub(expectedPremium));
 
     const firstEditSegment = 1;
-    const segment = await cover.coverSegments(expectedCoverId, firstEditSegment);
+    const segment = await cover.coverSegmentWithRemainingAmount(expectedCoverId, firstEditSegment);
 
     {
       const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, firstEditSegment, 0);
@@ -1460,7 +1460,7 @@ describe('editCover', function () {
     }
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegments(expectedCoverId, 0);
+    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
     const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 

@@ -178,11 +178,12 @@ describe('updateMCR', function () {
 
     const [coverHolder] = this.accounts.members;
 
+    await mcr.getAllSumAssurance();
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
+
     const coverAmount = BigNumber.from(gearingFactor)
       .mul(currentMCR.add(parseEther('300')))
-      .div(parseEther('1'))
       .div(ratioScale);
 
     // buy cover
@@ -192,7 +193,7 @@ describe('updateMCR', function () {
       cover,
       coverBuyer: coverHolder,
       targetPrice: this.DEFAULT_PRODUCTS[0].targetPrice,
-      expectedPremium: parseEther('100'),
+      expectedPremium: parseEther('100000'),
     };
     await buyCover({
       ...newCoverBuyParams,
@@ -207,7 +208,7 @@ describe('updateMCR', function () {
     const lastUpdateTimeAfter = await mcr.lastUpdateTime();
     const mcrFloorAfter = await mcr.mcrFloor();
     const desireMCRAfter = await mcr.desiredMCR();
-    const expectedDesiredMCR = coverAmount.div(gearingFactor).mul(ratioScale);
+    const expectedDesiredMCR = coverAmount.mul(ratioScale).div(gearingFactor);
 
     expect(lastUpdateTimeBefore).to.be.lt(lastUpdateTimeAfter);
     expect(lastUpdateTimeAfter).to.be.equal(currentTime);

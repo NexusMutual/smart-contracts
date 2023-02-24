@@ -14,7 +14,6 @@ const DAI_COVER_BLACKLIST = [
 ];
 
 const PRODUCT_ADDRESSES = require(path.join(__dirname, 'output/product-addresses.json'));
-const { ethers } = require('hardhat');
 const PS_CONTRACT_PATH = path.join(__dirname, '../../contracts/modules/legacy/LegacyPooledStaking.sol');
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));

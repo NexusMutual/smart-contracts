@@ -68,7 +68,7 @@ const main = async (provider, useCache = true) => {
     );
   }
 
-  console.log('Writing output to output/tc-locked-amount.json...');
+  console.log(`Writing output to ${OUTPUT_FILE}...`);
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(memberLockedNXM, null, 2), 'utf8');
   console.log('Done.');
 };

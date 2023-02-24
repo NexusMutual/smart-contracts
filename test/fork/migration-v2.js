@@ -232,10 +232,10 @@ describe('V2 upgrade', function () {
 
     // Currently there are still 1.655901756826619689 NXM extra when comparing
     // the sum of governance rewards and claim assessment rewards with the balance of CR
-    // expect(crBalance).to.be.equal(governanceRewardsSum.add(claRewardsSum));
+    expect(crBalance.sub(this.governanceRewardsSum).sub(this.claRewardsSum)).lt(parseEther(2));
   });
 
-  it.skip('Check balance of TC equals sum of all locked NXM', async function () {
+  it('Check balance of TC equals sum of all locked NXM', async function () {
     const TC_LOCKED_AMOUNT_OUTPUT = require(TC_LOCKED_AMOUNT_OUTPUT_PATH);
     this.TCLockedAmount = Object.values(TC_LOCKED_AMOUNT_OUTPUT).reduce(
       (sum, amount) => sum.add(amount),

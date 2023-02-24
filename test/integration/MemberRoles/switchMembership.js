@@ -39,6 +39,32 @@ describe('switchMembership', function () {
     }
   });
 
+  it('switches membership and transfers manager staking pools from one address to another', async function () {
+    const { mr: memberRoles, tk: token, tc: tokenController } = this.contracts;
+    const {
+      nonMembers: [newMember],
+      stakingPoolManagers: [stakingPoolManager],
+    } = this.accounts;
+
+    {
+      const newMemberAddress = newMember.address;
+      const poolIds = await tokenController.getManagerStakingPools(stakingPoolManager.address);
+
+      await token.connect(stakingPoolManager).approve(memberRoles.address, ethers.constants.MaxUint256);
+      await memberRoles.connect(stakingPoolManager).switchMembership(newMemberAddress);
+
+      // check old manager address is removed
+      const managerPoolsOld = await tokenController.getManagerStakingPools(stakingPoolManager.address);
+      expect(managerPoolsOld).to.be.deep.equal([]);
+      expect(await tokenController.isStakingPoolManager(stakingPoolManager.address)).to.be.equal(false);
+
+      // check that new manager address is added
+      expect(await tokenController.isStakingPoolManager(newMemberAddress)).to.be.equal(true);
+      expect(await tokenController.getManagerStakingPools(newMemberAddress)).to.be.deep.equal(poolIds);
+      expect(await tokenController.getStakingPoolManager(poolIds[0])).to.be.equal(newMemberAddress);
+    }
+  });
+
   it('reverts when switching membership for non-member', async function () {
     const { mr: memberRoles } = this.contracts;
     const {

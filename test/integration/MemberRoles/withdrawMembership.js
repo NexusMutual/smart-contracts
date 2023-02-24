@@ -29,4 +29,12 @@ describe('withdrawMembership', function () {
     const [nonMember1] = this.accounts.nonMembers;
     await expect(memberRoles.connect(nonMember1).withdrawMembership()).to.be.reverted;
   });
+
+  it('reverts when withdrawing membership for staking pool manager', async function () {
+    const { mr: memberRoles } = this.contracts;
+    const [stakingPoolManager] = this.accounts.stakingPoolManagers;
+    await expect(memberRoles.connect(stakingPoolManager).withdrawMembership()).to.be.revertedWith(
+      'MemberRoles: Member is a staking pool manager',
+    );
+  });
 });

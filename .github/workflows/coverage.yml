@@ -1,0 +1,12 @@
+name: Test
+on: [push]
+
+jobs:
+  setup:
+    uses: ./.github/workflows/setup.yml
+  coverage:
+    needs: [setup]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coverage
+        run: npm run coverage && cat coverage/lcov.info | npx coveralls

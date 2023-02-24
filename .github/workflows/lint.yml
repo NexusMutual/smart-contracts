@@ -1,0 +1,12 @@
+name: Lint
+on: [push]
+
+jobs:
+  setup:
+    uses: ./.github/workflows/setup.yml
+  lint:
+    needs: [setup]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lint
+        run: npm run lint

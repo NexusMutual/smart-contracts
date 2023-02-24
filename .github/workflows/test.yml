@@ -1,0 +1,12 @@
+name: Test
+on: [push]
+
+jobs:
+  setup:
+    uses: ./.github/workflows/setup.yml
+  test:
+    needs: [setup]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test
+        run: npm run test

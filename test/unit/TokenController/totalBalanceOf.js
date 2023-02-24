@@ -91,7 +91,7 @@ describe('totalBalanceOf', function () {
     const amount = One.mul(2).pow(127); // uint128 overflows
 
     // Get staking pool at ID and impersonate the address
-    const stakingPoolAddress = await stakingPoolAddressAt(stakingPoolFactory.address, poolId);
+    const stakingPoolAddress = stakingPoolAddressAt(stakingPoolFactory.address, poolId);
     const stakingPoolSigner = await ethers.getImpersonatedSigner(stakingPoolAddress);
     await setEtherBalance(stakingPoolAddress, amount);
 
@@ -122,7 +122,7 @@ describe('totalBalanceOf', function () {
     const delegateAmount = One.mul(2).pow(64); // uint128 overflows
 
     // setup staking pool signer
-    const stakingPoolAddress = await stakingPoolAddressAt(stakingPoolFactory.address, poolId);
+    const stakingPoolAddress = stakingPoolAddressAt(stakingPoolFactory.address, poolId);
     const stakingPoolSigner = await ethers.getImpersonatedSigner(stakingPoolAddress);
     await setEtherBalance(stakingPoolAddress, delegateAmount);
 

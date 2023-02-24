@@ -152,7 +152,6 @@ describe('totalBalanceOf', function () {
     );
   });
 
-  it.skip('should correctly calculate locked tokens', async function () {
-    // TODO: how to lock tokens?
-  });
+  // TODO: move to fork test
+  it.skip('should correctly calculate locked tokens', async function () {});
 });

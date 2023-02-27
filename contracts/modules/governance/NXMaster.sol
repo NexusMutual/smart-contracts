@@ -202,14 +202,16 @@ contract NXMaster is INXMMaster {
     }
 
     // delete elements from contractCodes
-    for (uint i = 0; i < contractCodes.length; i++) {
+    for (uint i = 0; i < contractCodes.length;) {
       for (uint j = 0; j < contractCodesToRemove.length; j++) {
         if (contractCodes[i] == contractCodesToRemove[j]) {
           contractCodes[i] = contractCodes[contractCodes.length - 1];
           contractCodes.pop();
-          i = i == 0 ? 0 : i - 1;
+          unchecked { i--; }
+          break;
         }
       }
+      unchecked { i++; }
     }
 
     updateAllDependencies();

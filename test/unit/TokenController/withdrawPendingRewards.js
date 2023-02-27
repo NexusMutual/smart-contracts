@@ -1,7 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { BigNumber } = ethers;
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
@@ -95,75 +94,5 @@ describe('withdrawPendingRewards', function () {
     await expect(tokenController.withdrawPendingRewards(forUser, true, false, batchSize, [])).to.be.revertedWith(
       'TokenController: No withdrawable governance rewards',
     );
-  });
-
-  it('withdraws pooled staking rewards when givern an array of WithdrawFromStakingPoolParams', async function () {
-    const { tokenController } = this.contracts;
-
-    const stakingPool1 = await ethers.deployContract('TCMockStakingPool');
-    const stakingPool2 = await ethers.deployContract('TCMockStakingPool');
-
-    const trancheIds1 = [1, 2, 3, 4].map(e => BigNumber.from(e));
-    const trancheIds2 = [3, 4].map(e => BigNumber.from(e));
-    const trancheIds3 = [5, 6, 7].map(e => BigNumber.from(e));
-
-    const nfts1 = [
-      { id: 1, trancheIds: trancheIds1 },
-      { id: 3, trancheIds: trancheIds3 },
-    ];
-    const nfts2 = [{ id: 2, trancheIds: trancheIds2 }];
-
-    const params = [
-      { poolAddress: stakingPool1.address, nfts: nfts1 },
-      { poolAddress: stakingPool2.address, nfts: nfts2 },
-    ];
-
-    await tokenController.withdrawPendingRewards(AddressZero, false, false, 0, params);
-
-    {
-      const calls = await stakingPool1.calls();
-      const [
-        withdrawCalledWithTokenId,
-        withdrawCalledWithStake,
-        withdrawCalledWithRewards,
-        withdrawCalledWithTrancheIds,
-      ] = await stakingPool1.withdrawCalledWith(1);
-
-      expect(calls).to.equal(nfts1.length);
-      expect(withdrawCalledWithTokenId).to.equal(nfts1[0].id);
-      expect(withdrawCalledWithStake).to.equal(false);
-      expect(withdrawCalledWithRewards).to.equal(true);
-      expect(withdrawCalledWithTrancheIds).to.deep.equal(nfts1[0].trancheIds);
-    }
-
-    {
-      const [
-        withdrawCalledWithTokenId,
-        withdrawCalledWithStake,
-        withdrawCalledWithRewards,
-        withdrawCalledWithTrancheIds,
-      ] = await stakingPool1.withdrawCalledWith(2);
-
-      expect(withdrawCalledWithTokenId).to.equal(nfts1[1].id);
-      expect(withdrawCalledWithStake).to.equal(false);
-      expect(withdrawCalledWithRewards).to.equal(true);
-      expect(withdrawCalledWithTrancheIds).to.deep.equal(nfts1[1].trancheIds);
-    }
-
-    {
-      const calls = await stakingPool2.calls();
-      const [
-        withdrawCalledWithTokenId,
-        withdrawCalledWithStake,
-        withdrawCalledWithRewards,
-        withdrawCalledWithTrancheIds,
-      ] = await stakingPool2.withdrawCalledWith(1);
-
-      expect(calls).to.equal(nfts2.length);
-      expect(withdrawCalledWithTokenId).to.equal(nfts2[0].id);
-      expect(withdrawCalledWithStake).to.equal(false);
-      expect(withdrawCalledWithRewards).to.equal(true);
-      expect(withdrawCalledWithTrancheIds).to.deep.equal(nfts2[0].trancheIds);
-    }
   });
 });

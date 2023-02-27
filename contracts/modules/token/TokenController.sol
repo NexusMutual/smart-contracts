@@ -251,6 +251,12 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token.transfer(destination, governanceRewards);
   }
 
+  function getPendingRewards(address member) public view returns (uint) {
+    (uint totalPendingAmountInNXM,,) = assessment().getRewards(member);
+    uint governanceRewards = governance().getPendingReward(member);
+    return totalPendingAmountInNXM + governanceRewards;
+  }
+
   /// Function used to claim all pending rewards in one tx. It can be used to selectively withdraw
   /// rewards.
   ///
@@ -260,15 +266,11 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @param fromAssessment    When true, assessment rewards are withdrawn.
   /// @param batchSize         The maximum number of iterations to avoid unbounded loops when
   ///                          withdrawing governance and/or assessment rewards.
-  /// @param fromStakingPools  An array of structures containing staking pools, token ids and
-  ///                          tranche ids. See: WithdrawFromStakingPoolParams from ITokenController
-  ///                          When empty, no staking rewards are withdrawn.
   function withdrawPendingRewards(
     address forUser,
     bool fromGovernance,
     bool fromAssessment,
-    uint batchSize,
-    WithdrawFromStakingPoolParams[] calldata fromStakingPools
+    uint batchSize
   ) external whenNotPaused {
 
     if (fromAssessment) {
@@ -279,21 +281,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
       uint governanceRewards = governance().claimReward(forUser, batchSize);
       require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
       token.transfer(forUser, governanceRewards);
-    }
-
-    for (uint i = 0; i < fromStakingPools.length; i++) {
-
-      // TODO: external call to user-controlled address (vuln)
-      IStakingPool stakingPool = IStakingPool(fromStakingPools[i].poolAddress);
-
-      for (uint j = 0; j < fromStakingPools[i].nfts.length; j++) {
-        stakingPool.withdraw(
-          fromStakingPools[i].nfts[j].id,
-          false, // withdrawStake
-          true,  // withdrawRewards
-          fromStakingPools[i].nfts[j].trancheIds
-        );
-      }
     }
   }
 
@@ -339,7 +326,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
         idsQueueLength++;
       }
     }
-
     coverIds = new uint[](idsQueueLength);
     lockReasons = new bytes32[](idsQueueLength);
 

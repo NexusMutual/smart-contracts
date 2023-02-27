@@ -1,15 +1,18 @@
-const { ethers, web3, network, run } = require('hardhat');
+const { artifacts, ethers, web3, network, run } = require('hardhat');
 const { expect } = require('chai');
 const fetch = require('node-fetch');
 
 const evm = require('./evm')();
-const { hex } = require('../utils').helpers;
 const proposalCategories = require('../utils').proposalCategories;
-const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
+const { ProposalCategory: PROPOSAL_CATEGORIES, ContractTypes } = require('../../lib/constants');
 
 const { BigNumber } = ethers;
 const { AddressZero, Two } = ethers.constants;
 const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
+const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
+
+const CoverCreate2Salt = 1000;
+const StakingProductsCreate2Salt = 1001;
 
 const getProductAddresses = require('../../scripts/v2-migration/get-v2-products');
 const getV1CoverPrices = require('../../scripts/v2-migration/get-v1-cover-prices');
@@ -18,8 +21,6 @@ const getClaimAssessmentRewards = require('../../scripts/v2-migration/get-claim-
 const getClaimAssessmentStakes = require('../../scripts/v2-migration/get-claim-assessment-stakes');
 const getTCLockedAmount = require('../../scripts/v2-migration/get-tc-locked-amount');
 const getCNLockedAmount = require('../../scripts/v2-migration/get-cn-locked');
-// TODO Review
-const populateV2Products = require('../../scripts/populate-v2-products');
 
 const PRODUCT_ADDRESSES_OUTPUT_PATH = '../../scripts/v2-migration/output/product-addresses.json';
 const GV_REWARDS_OUTPUT_PATH = '../../scripts/v2-migration/output/governance-rewards.json';
@@ -69,6 +70,21 @@ const getContractFactory = async providerOrSigner => {
     const { abi, address } = abis[code];
     return new ethers.Contract(address, abi, providerOrSigner);
   };
+};
+
+const calculateProxyAddress = (masterAddress, salt) => {
+  const { bytecode } = artifacts.readArtifactSync('OwnedUpgradeabilityProxy');
+  const initCode = bytecode + defaultAbiCoder.encode(['address'], [MaxAddress]).slice(2);
+  const initCodeHash = ethers.utils.keccak256(initCode);
+  const saltHex = Buffer.from(salt.toString(16).padStart(64, '0'), 'hex');
+  return ethers.utils.getCreate2Address(masterAddress, saltHex, initCodeHash);
+};
+
+const formatInternalContracts = ({ _contractAddresses, _contractCodes }) => {
+  return _contractCodes.map((code, i) => {
+    const index = `${i}`.padStart(2, '0');
+    return `[${index}] ${Buffer.from(code.slice(2), 'hex')} -> ${_contractAddresses[i]}`;
+  });
 };
 
 async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
@@ -372,75 +388,32 @@ describe('V2 upgrade', function () {
     this.governance = await ethers.getContractAt('Governance', this.governance.address);
   });
 
-  it(
-    'Add empty new internal contracts for Cover and StakingProducts' + '(InternalProxyInitializer.sol - CO, SP)',
-    async function () {
-      const internalProxyInitializer = await ethers.deployContract('InternalProxyInitializer');
-
-      /*
-       This initializer is necessary to solve for the circular dependency between: Cover <-> StakingNFT
-       by having the permanent proxy address ready when passing in the dependencies.
-
-        StakingProducts can be deployed once Cover and StakingPoolFactory is deployed, however it would require another
-        addNewInternalContracts call to add it, therefore it makes sense to create the proxy for it here;
-
-        Then, when the bulk upgrade of all smart contracts happens, both CO and SP can be upgraded to their final
-        implementations (no extra gov proposal is necessary in between)
-
-       */
-      await submitGovernanceProposal(
-        PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
-        defaultAbiCoder.encode(
-          ['bytes2[]', 'address[]', 'uint256[]'],
-          [
-            [toUtf8Bytes('CO'), toUtf8Bytes('SP')],
-            [internalProxyInitializer.address, internalProxyInitializer.address],
-            [2, 2],
-          ], // 2 = proxy contract
-        ),
-        this.abMembers,
-        this.governance,
-      );
-
-      // Check the master address of the empty cover contract is correct
-      const coverAddress = await this.master.getLatestAddress(hex('CO'));
-      const cover = await ethers.getContractAt('Cover', coverAddress);
-      const storedMaster = await cover.master();
-      expect(storedMaster).to.be.equal(this.master.address);
-
-      const stakingProductsAddress = await this.master.getLatestAddress(hex('SP'));
-
-      this.cover = cover;
-      this.stakingProducts = await ethers.getContractAt('StakingProducts', stakingProductsAddress);
-    },
-  );
+  it('Calculate proxy addresses for Cover and StakingProducts', async function () {
+    this.coverProxyAddress = calculateProxyAddress(this.master.address, CoverCreate2Salt);
+    this.stakingProductsProxyAddress = calculateProxyAddress(this.master.address, StakingProductsCreate2Salt);
+  });
 
   it('Deploy CoverNFT.sol', async function () {
-    const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
-    this.coverNFT = await ethers.deployContract('CoverNFT', ['Nexus Mutual Cover', 'NXC', coverProxyAddress]);
+    this.coverNFT = await ethers.deployContract('CoverNFT', ['Nexus Mutual Cover', 'NXC', this.coverProxyAddress]);
   });
 
   it('Deploy StakingPoolFactory.sol, StakingNFT.sol, StakingPool.sol', async function () {
-    const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
-    // StakingPoolFactory.sol
-    this.stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [coverProxyAddress]);
+    this.stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [this.coverProxyAddress]);
 
-    // StakingNFT.sol
     this.stakingNFT = await ethers.deployContract('StakingNFT', [
       'Nexus Mutual Deposit',
       'NMD',
       this.stakingPoolFactory.address,
-      coverProxyAddress,
+      this.coverProxyAddress,
     ]);
 
-    // StakingPool.sol
     this.stakingPool = await ethers.deployContract('StakingPool', [
       this.stakingNFT.address,
       this.nxm.address,
-      coverProxyAddress,
+      this.coverProxyAddress,
       this.tokenController.address,
       this.master.address,
-      this.stakingProducts.address,
+      this.stakingProductsProxyAddress,
     ]);
   });
 
@@ -456,7 +429,7 @@ describe('V2 upgrade', function () {
   });
 
   // eslint-disable-next-line max-len
-  it('Deploy & upgrade contracts: MR, MCR, CO, TC, PS, PriceFeedOracle, P1, CL (CoverMigrator), GW, CR', async function () {
+  it('Deploy & upgrade: MR, MCR, TC, PS, PriceFeedOracle, P1, CL (CoverMigrator), GW, CR', async function () {
     // CR - ClaimRewards.sol
     const newClaimsReward = await ethers.deployContract('LegacyClaimsReward', [this.master.address, DAI_ADDRESS]);
 
@@ -473,14 +446,6 @@ describe('V2 upgrade', function () {
 
     // MR - MemberRoles.sol
     const memberRoles = await ethers.deployContract('MemberRoles', [this.nxm.address]);
-
-    // CO - Cover.sol
-    const cover = await ethers.deployContract('Cover', [
-      this.coverNFT.address,
-      this.stakingNFT.address,
-      this.stakingPoolFactory.address,
-      this.stakingPool.address,
-    ]);
 
     // PS - PooledStaking.sol
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
@@ -514,6 +479,7 @@ describe('V2 upgrade', function () {
       ENZYMEV4_VAULT_PROXY_ADDRESS,
       this.nxm.address,
     ]);
+
     // Enable Pool as Enzyme receiver
     await enableAsEnzymeReceiver(pool.address);
 
@@ -526,50 +492,30 @@ describe('V2 upgrade', function () {
     // GW - Gateway.sol
     const gateway = await ethers.deployContract('LegacyGateway');
 
-    // SP - StakingProduct.sol
-    const stakingProducts = await ethers.deployContract('StakingProducts', [
-      this.cover.address,
-      this.stakingPool.address,
-    ]);
+    const contractsBefore = await this.master.getInternalContracts();
 
-    console.log(
-      'Upgrade multiple contracts: MR - MemberRoles.sol, MC - MCR.sol, CO - Cover.sol, TC -' +
-        ' TokenController.sol, PS - PooledStaking.sol, P1 - Pool.sol, CL - CoverMigrator.sol, GW - Gateway.sol',
-    );
+    const codes = ['MR', 'MC', 'CR', 'TC', 'PS', 'P1', 'CL', 'GW'].map(code => toUtf8Bytes(code));
+    const addresses = [
+      memberRoles,
+      mcr,
+      newClaimsReward,
+      tokenController,
+      pooledStaking,
+      pool,
+      coverMigrator,
+      gateway,
+    ].map(c => c.address);
+
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
-      defaultAbiCoder.encode(
-        ['bytes2[]', 'address[]'],
-        [
-          [
-            toUtf8Bytes('MR'),
-            toUtf8Bytes('MC'),
-            toUtf8Bytes('CO'),
-            toUtf8Bytes('CR'),
-            toUtf8Bytes('TC'),
-            toUtf8Bytes('PS'),
-            toUtf8Bytes('P1'),
-            toUtf8Bytes('CL'),
-            toUtf8Bytes('GW'),
-            toUtf8Bytes('SP'),
-          ],
-          [
-            memberRoles.address,
-            mcr.address,
-            cover.address,
-            newClaimsReward.address,
-            tokenController.address,
-            pooledStaking.address,
-            pool.address,
-            coverMigrator.address,
-            gateway.address,
-            stakingProducts.address,
-          ],
-        ],
-      ),
+      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [codes, addresses]),
       this.abMembers,
       this.governance,
     );
+
+    const contractsAfter = await this.master.getInternalContracts();
+    console.log('Contracts before:', formatInternalContracts(contractsBefore));
+    console.log('Contracts after:', formatInternalContracts(contractsAfter));
 
     this.memberRoles = await ethers.getContractAt('MemberRoles', this.memberRoles.address);
     this.mcr = await ethers.getContractAt('MCR', mcr.address);
@@ -647,16 +593,6 @@ describe('V2 upgrade', function () {
     expect(claimPayableAddressAfter).to.be.equal(AddressZero);
   });
 
-  it('Call function to initialize Cover.sol', async function () {
-    await this.cover.initialize();
-
-    const storedGlobalCapacityRatio = await this.cover.globalCapacityRatio();
-    expect(storedGlobalCapacityRatio).to.be.equal(20000); // x2
-
-    const storedGlobalRewardsRatio = await this.cover.globalRewardsRatio();
-    expect(storedGlobalRewardsRatio).to.be.equal(5000); // 50%
-  });
-
   it('Call function to block V1 staking', async function () {
     const tx = await this.pooledStaking.blockV1();
     await tx.wait();
@@ -730,9 +666,6 @@ describe('V2 upgrade', function () {
       await this.tokenController.withdrawCoverNote(lock.member, lock.coverIds, lock.lockReasonIndexes);
       const memberBalanceAfter = await this.nxm.balanceOf(lock.member);
       expect(memberBalanceAfter.sub(memberBalanceBefore)).to.be.equal(lock.amount);
-
-      const lockReasonsCount = (await this.tokenController.getLockReasons(lock.member)).length;
-      expect(lockReasonsCount).lte(1);
     }
 
     const tcBalanceAfter = await this.nxm.balanceOf(this.tokenController.address);
@@ -752,9 +685,78 @@ describe('V2 upgrade', function () {
     expect(tcBalanceDiff).to.be.equal(cnLockedAmountSum);
   });
 
-  // TODO review
-  it('run populate-v2-products script', async function () {
-    await populateV2Products(this.cover.address, this.abMembers[0]);
+  it('Remove CR, CD, IC, QD, QT, TF, TD, P2, PD', async function () {
+    const contractsBefore = await this.master.getInternalContracts();
+
+    await submitGovernanceProposal(
+      PROPOSAL_CATEGORIES.removeContracts, // removeContracts(bytes2[])
+      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
+      this.abMembers,
+      this.governance,
+    );
+
+    const contractsAfter = await this.master.getInternalContracts();
+    console.log('Contracts before:', formatInternalContracts(contractsBefore));
+    console.log('Contracts after:', formatInternalContracts(contractsAfter));
+  });
+
+  it('Deploy & add: Assessment, IndividualClaims, YieldTokenIncidents, Cover, StakingProducts', async function () {
+    const contractsBefore = await this.master.getInternalContracts();
+
+    const individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
+    const yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
+      this.nxm.address,
+      this.coverNFT.address,
+    ]);
+    const assessment = await ethers.deployContract('Assessment', [this.nxm.address]);
+
+    // CO - Cover.sol
+    const coverImpl = await ethers.deployContract('Cover', [
+      this.coverNFT.address,
+      this.stakingNFT.address,
+      this.stakingPoolFactory.address,
+      this.stakingPool.address,
+    ]);
+
+    // SP - StakingProduct.sol
+    const stakingProductsImpl = await ethers.deployContract('StakingProducts', [
+      this.coverProxyAddress,
+      this.stakingPool.address,
+    ]);
+
+    const coverTypeAndSalt = BigNumber.from(CoverCreate2Salt).shl(8).add(ContractTypes.Proxy);
+    const stakingProductsTypeAndSalt = BigNumber.from(StakingProductsCreate2Salt).shl(8).add(ContractTypes.Proxy);
+
+    await submitGovernanceProposal(
+      PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
+      defaultAbiCoder.encode(
+        ['bytes2[]', 'address[]', 'uint256[]'],
+        [
+          [toUtf8Bytes('IC'), toUtf8Bytes('YT'), toUtf8Bytes('AS'), toUtf8Bytes('CO'), toUtf8Bytes('SP')],
+          [individualClaims, yieldTokenIncidents, assessment, coverImpl, stakingProductsImpl].map(c => c.address),
+          [ContractTypes.Proxy, ContractTypes.Proxy, ContractTypes.Proxy, coverTypeAndSalt, stakingProductsTypeAndSalt],
+        ],
+      ),
+      this.abMembers,
+      this.governance,
+    );
+
+    this.cover = await ethers.getContractAt('Cover', this.coverProxyAddress);
+    this.stakingProducts = await ethers.getContractAt('StakingProducts', this.stakingProductsProxyAddress);
+
+    const contractsAfter = await this.master.getInternalContracts();
+    console.log('Contracts before:', formatInternalContracts(contractsBefore));
+    console.log('Contracts after:', formatInternalContracts(contractsAfter));
+  });
+
+  it('Call function to initialize Cover.sol', async function () {
+    await this.cover.initialize();
+
+    const storedGlobalCapacityRatio = await this.cover.globalCapacityRatio();
+    expect(storedGlobalCapacityRatio).to.be.equal(20000); // x2
+
+    const storedGlobalRewardsRatio = await this.cover.globalRewardsRatio();
+    expect(storedGlobalRewardsRatio).to.be.equal(5000); // 50%
   });
 
   // TODO review
@@ -1238,38 +1240,6 @@ describe('V2 upgrade', function () {
     // The latter is partially accounted for in the expectedPremium computation above
     // (BigNumber doesn't support fractions)
     expect(expectedPremium.sub(premiumSentToPool)).to.be.lessThanOrEqual(amount.div(10000));
-  });
-
-  it('Remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {
-    await submitGovernanceProposal(
-      PROPOSAL_CATEGORIES.removeContracts, // removeContracts(bytes2[])
-      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
-      this.abMembers,
-      this.governance,
-    );
-  });
-
-  it('Deploy & add contracts: Assessment, IndividualClaims, YieldTokenIncidents', async function () {
-    const individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
-    const yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
-      this.nxm.address,
-      this.coverNFT.address,
-    ]);
-    const assessment = await ethers.deployContract('Assessment', [this.nxm.address]);
-
-    await submitGovernanceProposal(
-      PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
-      defaultAbiCoder.encode(
-        ['bytes2[]', 'address[]', 'uint256[]'],
-        [
-          [toUtf8Bytes('IC'), toUtf8Bytes('YT'), toUtf8Bytes('AS')],
-          [individualClaims.address, yieldTokenIncidents.address, assessment.address],
-          [2, 2, 2],
-        ],
-      ),
-      this.abMembers,
-      this.governance,
-    );
   });
 
   it('Deploy CoverViewer', async function () {

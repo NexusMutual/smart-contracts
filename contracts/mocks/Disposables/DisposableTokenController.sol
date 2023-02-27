@@ -53,7 +53,7 @@ contract DisposableTokenController is TokenController {
   * @param _time Lock time in seconds
   */
   function _lock(address _of, bytes32 _reason, uint256 _amount, uint256 _time) internal {
-    require(_tokensLocked(_of, _reason) == 0, "TokenController: An amount of tokens is already locked");
+    require(tokensLocked(_of, _reason) == 0, "TokenController: An amount of tokens is already locked");
     require(_amount != 0, "TokenController: Amount shouldn't be zero");
 
     if (locked[_of][_reason].amount == 0) {

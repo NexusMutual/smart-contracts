@@ -236,7 +236,7 @@ describe('V2 upgrade', function () {
 
     // Currently there are still 1.655901756826619689 NXM extra when comparing
     // the sum of governance rewards and claim assessment rewards with the balance of CR
-    expect(crBalance.sub(this.governanceRewardsSum).sub(this.claRewardsSum)).lt(parseEther(2));
+    expect(crBalance.sub(this.governanceRewardsSum).sub(this.claRewardsSum)).lt(parseEther('2'));
   });
 
   it('Check balance of TC equals sum of all locked NXM', async function () {

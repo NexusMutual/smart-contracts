@@ -1,5 +1,5 @@
+const { ethers, web3, network, run } = require('hardhat');
 const { expect } = require('chai');
-const { ethers, web3, network } = require('hardhat');
 const fetch = require('node-fetch');
 
 const evm = require('./evm')();
@@ -190,7 +190,9 @@ describe('V2 upgrade', function () {
   });
 
   it('Get V1 cover prices', async function () {
-    await getV1CoverPrices();
+    await getV1CoverPrices(ethers.provider);
+    console.log('Recompiling contracts in case prices contract has changed');
+    await run('compile');
   });
 
   it('Get governance rewards', async function () {

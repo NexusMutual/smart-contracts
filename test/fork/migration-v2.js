@@ -191,8 +191,6 @@ describe('V2 upgrade', function () {
 
   it('Get V1 cover prices', async function () {
     await getV1CoverPrices(ethers.provider);
-    console.log('Recompiling contracts in case prices contract has changed');
-    await run('compile');
   });
 
   it('Get governance rewards', async function () {
@@ -209,6 +207,10 @@ describe('V2 upgrade', function () {
 
   it('Get TC locked amount', async function () {
     await getTCLockedAmount(ethers.provider);
+  });
+
+  it('Recompile contracts if needed', async function () {
+    await run('compile');
   });
 
   it('Check balance of CR equals CLA + GV rewards computed above', async function () {

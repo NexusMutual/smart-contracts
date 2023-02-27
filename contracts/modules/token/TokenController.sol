@@ -205,7 +205,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
     // This loop can be removed once all cover notes are withdrawn
     for (uint256 i = 0; i < lockReason[_of].length; i++) {
-      amount = amount + _tokensLocked(_of, lockReason[_of][i]);
+      amount = amount + tokensLocked(_of, lockReason[_of][i]);
     }
 
     // [todo] Can be removed after PooledStaking is decommissioned
@@ -304,10 +304,10 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   * @param _of The address whose tokens are locked
   * @param _reason The reason to query the lock tokens for
   */
-  function _tokensLocked(
+  function tokensLocked(
     address _of,
     bytes32 _reason
-  ) internal view returns (uint256 amount) {
+  ) public view returns (uint256 amount) {
     if (!locked[_of][_reason].claimed) {
       amount = locked[_of][_reason].amount;
     }
@@ -330,7 +330,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     for (uint i = 0; i < allCoverIds.length; i++) {
       uint coverId = allCoverIds[i];
       bytes32 lockReason = keccak256(abi.encodePacked("CN", coverOwner, coverId));
-      uint coverNoteAmount = _tokensLocked(coverOwner, lockReason);
+      uint coverNoteAmount = tokensLocked(coverOwner, lockReason);
 
       if (coverNoteAmount > 0) {
         idsQueue[idsQueueLength] = coverId;

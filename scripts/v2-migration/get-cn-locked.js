@@ -26,8 +26,9 @@ const getContractFactory = async providerOrSigner => {
 
 const ROLE_MEMBER = 2;
 
-async function getMemberCN(i, mr, tc) {
-  const { 0: member, 1: active } = await mr.memberAtIndex(ROLE_MEMBER, i);
+async function getMemberCN(memberId, mr, tc) {
+  const [member, active] = await mr.memberAtIndex(ROLE_MEMBER, memberId);
+
   if (!active) {
     return { member, amount: '0' };
   }
@@ -72,18 +73,21 @@ const main = async (provider, useCache = true) => {
   const memberLockedCN = [];
 
   console.log('Fetching locked CN amounts for all members...');
+
   while (memberIds.length > 0) {
     const batch = memberIds.splice(0, 200);
-    const lockedCN = await Promise.all(batch.map(i => getMemberCN(i, mr, tc)));
+    console.log(`Processed a batch of 200 ${memberCount - memberIds.length}/${memberCount}`);
+
+    const lockedCN = await Promise.all(batch.map(memberId => getMemberCN(memberId, mr, tc)));
+
     for (const locked of lockedCN) {
       if (!memberLockedCN.some(x => x.member === locked.member) && locked.amount !== '0') {
         memberLockedCN.push(locked);
       }
     }
-    console.log(
-      `Found ${memberLockedCN.length} members with locked NXM for CN; processed a batch of 200/${memberCount}`,
-    );
   }
+
+  console.log(`Found ${memberLockedCN.length} members with locked NXM for CN`);
 
   console.log(`Writing output to ${OUTPUT_FILE}...`);
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(memberLockedCN, null, 2), 'utf8');

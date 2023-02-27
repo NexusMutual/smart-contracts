@@ -55,18 +55,17 @@ const main = async (provider, useCache = true) => {
   console.log('Fetching locked amounts for all reasons for all members...');
   while (memberIds.length > 0) {
     const batch = memberIds.splice(0, 200);
+    console.log(`Processed a batch of 200 ${memberCount - memberIds.length}/${memberCount}`);
+
     const lockedNXM = await Promise.all(batch.map(i => getLockedNXM(i, mr, tc, ps)));
     for (const locked of lockedNXM) {
       if (!lockedNXM[locked.member] && locked.amount !== '0') {
         memberLockedNXM[locked.member] = locked.amount;
       }
     }
-    console.log(
-      `Found ${
-        Object.keys(memberLockedNXM).length
-      } members with locked NXM in TC; processed a batch of 200/${memberCount}`,
-    );
   }
+
+  console.log(`Found ${Object.keys(memberLockedNXM).length} members with locked NXM for CN`);
 
   console.log(`Writing output to ${OUTPUT_FILE}...`);
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(memberLockedNXM, null, 2), 'utf8');

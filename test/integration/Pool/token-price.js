@@ -53,6 +53,7 @@ describe('Token price functions', function () {
       productId: ethCoverTemplate.productId,
       period: daysToSeconds(60),
       gracePeriod: daysToSeconds(30),
+      amount: parseEther('100000'),
     });
   });
 

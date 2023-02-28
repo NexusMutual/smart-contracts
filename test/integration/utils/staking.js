@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
+const { BigNumber } = ethers;
 
 function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
   return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
@@ -21,9 +22,9 @@ async function stakeOnly({ stakingPool, staker, period, gracePeriod, trancheIdOf
   );
 }
 
-async function stake({ stakingPool, staker, productId, period, gracePeriod }) {
+async function stake({ stakingPool, staker, productId, period, gracePeriod, amount = 0 }) {
   // Staking inputs
-  const stakingAmount = parseEther('1000000');
+  const stakingAmount = amount !== 0 ? BigNumber.from(amount) : parseEther('10000');
   const lastBlock = await ethers.provider.getBlock('latest');
   const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
 

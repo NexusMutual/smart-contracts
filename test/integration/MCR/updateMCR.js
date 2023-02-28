@@ -48,6 +48,7 @@ describe('updateMCR', function () {
       productId: newEthCoverTemplate.productId,
       period: daysToSeconds(60),
       gracePeriod: daysToSeconds(90),
+      amount: parseEther('1000000'),
     });
     await stake({
       stakingPool,

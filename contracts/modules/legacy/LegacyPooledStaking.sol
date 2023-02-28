@@ -1104,7 +1104,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
     INXMToken nxm = token();
     uint nxmBalanceBefore = nxm.balanceOf(address(this));
 
-
     ProductInitializationParams[] memory productInitParams = getProductInitParams(
       stakerAddress,
       deposit
@@ -1114,6 +1113,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
     stakers[stakerAddress].deposit = 0;
 
     if (stakerAddress == HUGH) {
+      uint[8] memory trancheStakeRatio = [uint(0), 10, 0, 0, 0, 50, 0, 0];
       migrateToPool(
         StakingPoolMigrationData(
           HUGH, // stakerAddress
@@ -1122,14 +1122,16 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
           false, // isPrivatePool
           10, // initialPoolFee
           20, // maxPoolFee
-          deposit, // deposit
-          [uint256(0), 10, 0, 0, 0, 90, 0, 0] // stake on each tranche, as % out of the deposit
+          deposit * 60 / 100, // 60% of the deposit
+          trancheStakeRatio // stake on each tranche, as % out of the deposit
         ),
         productInitParams
       );
     } else if (stakerAddress == ARMOR_STAKER) {
 
-      uint armorAAALowRiskPoolDeposit = 75 * deposit / 100;
+      uint armorAAALowRiskPoolDeposit = deposit * 75 / 100; // 75% of the deposit
+      uint[8] memory trancheStakeRatioAAA = [uint(20), 25, 25, 15, 10, 0, 0, 0];
+
       migrateToPool(
         StakingPoolMigrationData(
           ARMOR_STAKER, // stakerAddress
@@ -1139,12 +1141,13 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
           15, // initialPoolFee
           25, // maxPoolFee
           armorAAALowRiskPoolDeposit, // deposit
-          [uint256(20), 25, 25, 15, 10, 0, 0, 0] // stake on each tranche, as % out of the deposit
+          trancheStakeRatioAAA // stake on each tranche, as % out of the deposit
         ),
         productInitParams
       );
 
-      uint armorAAMidRiskPoolDeposit = deposit - armorAAALowRiskPoolDeposit;
+      uint[8] memory trancheStakeRatioAA = [uint(20), 25, 25, 15, 10, 0, 0, 0];
+
       migrateToPool(
         StakingPoolMigrationData(
           ARMOR_STAKER, // stakerAddress
@@ -1153,16 +1156,17 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
           false, // isPrivatePool
           15, // initialPoolFee
           25, // maxPoolFee
-          armorAAMidRiskPoolDeposit, // deposit
-          [uint256(20), 25, 25, 15, 10, 0, 0, 0] // stake on each tranche, as % out of the deposit
+          deposit - armorAAALowRiskPoolDeposit, // deposit 25%
+          trancheStakeRatioAA // stake on each tranche, as % out of the deposit
         ),
         productInitParams
       );
     } else if (stakerAddress == NM_FOUNDATION) {
 
-      // TODO: when switching the StakingPool manager is supported, simply make LegacyPooledStaking the manager
       // make the deposits and then switch the manager to the foundation
       // trancheStakeRatio = [uint256(0), 25, 0, 25, 0, 50, 0, 0];
+      uint[8] memory trancheStakeRatio = [uint(0), 25, 0, 25, 0, 0, 0, 0];
+
       migrateToPool(
         StakingPoolMigrationData(
           NM_FOUNDATION, // stakerAddress
@@ -1171,8 +1175,8 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
           true, // isPrivatePool
           0, // initialPoolFee
           99, // maxPoolFee
-          deposit,
-          [uint256(0), 0, 0, 0, 0, 0, 0, 0] // stake on each tranche, as % out of the deposit
+          deposit * 50 / 100, // 50% of the deposit
+          trancheStakeRatio // stake on each tranche, as % out of the deposit
         ),
         productInitParams
       );

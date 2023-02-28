@@ -26,7 +26,6 @@ Losses that occur outside the designated protocol, such as a separate protocol u
 ,0xc57d000000000000000000000000000000000007,Binance,Custody,,,10%,0%,,,,,
 ,0xC57D000000000000000000000000000000000002,BlockFi,Custody,,,10%,0%,Yes,,,,
 ,0x0000000000000000000000000000000000000018,Bundle: Gelt + mStable + Aave v2 ,Protocol,,,10%,0%,,,,,
-,0xc57D000000000000000000000000000000000001,Celsius,Custody,,,10%,0%,Yes,,,,
 ,0x0CED6166873038Ac0cc688e7E6d19E2cBE251Bf0,Centrifuge Tinlake,Protocol,,,10%,0%,,,,,
 ,0xc57D000000000000000000000000000000000008,Coinbase,Custody,,,10%,0%,,,,,
 ,0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B,Compound v2,Protocol,,,10%,0%,,,,,
@@ -54,7 +53,7 @@ Losses that occur outside the designated protocol, such as a separate protocol u
 ,0x0000000000000000000000000000000000000030,Gearbox v2,Protocol,,,10%,0%,,,,,"Losses due to a compromised wallet
 Losses due to a previously disclosed vulnerability
 Losses that occur outside the designated protocol, such as a separate protocol used in an underlying yield aggregation strategy"
-,0xc57d000000000000000000000000000000000010,Gemini,Custody,,,10%,0%,,,,,
+,0xc57d000000000000000000000000000000000010,Gemini,Custody,,,10%,0%,Yes,,,,
 ,0x3D6bA331e3D9702C5e8A8d254e5d8a285F223aba,GMX,Protocol,,,10%,0%,,,,,"Losses due to a compromised wallet
 Losses due to a previously disclosed vulnerability
 Liquidity provider (LP) losses as a result of previously disclosed design issues, which include but is not limited to [accumulated LP losses due to zero-slippage design](https://www.coindesk.com/markets/2022/09/19/defi-trader-nets-over-500k-by-using-dex-gmx-to-manipulate-avalanche-token/)
@@ -65,7 +64,7 @@ Liquidity provider (LP) losses as a result of previously disclosed design issues
 ,0xC57D000000000000000000000000000000000005,Ledn,Custody,,,10%,0%,Yes,,,,
 ,0x0000000000000000000000000000000000000033,Liquid Collective,Liquid Collective Slashing,,ETH,10%,0%,,Yes,Nexus 1,,
 ,0xA39739EF8b0231DbFA0DcdA07d7e29faAbCf4bb2,Liquity,Protocol,,,10%,0%,,,,,
-,0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B,MakerDAO MCD,Protocol,,,10%,0%,,,,,
+,0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B,MakerDAO MCD,Protocol,,ETH,10%,0%,,,,,
 ,0xAFcE80b19A8cE13DEc0739a1aaB7A028d6845Eb3,mStable,Protocol,,,10%,0%,,,,,"Losses due to a compromised wallet
 Losses due to a previously disclosed vulnerability
 Losses that occur outside the designated protocol, such as a separate protocol used in an underlying yield aggregation strategy"
@@ -112,7 +111,7 @@ Losses that occur outside the designated protocol, such as a separate protocol u
 ,0x9D25057e62939D3408406975aD75Ffe834DA4cDd,Yearn Finance (all vaults),Protocol,,,10%,0%,,,,,"Losses due to a compromised wallet
 Losses due to a previously disclosed vulnerability
 Losses that occur outside the designated protocol, such as a separate protocol used in an underlying yield aggregation strategy"
-,0x0000000000000000000000000000000000000007,Yearn yvUSDC v2,Yield Token,0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9 ,DAI,10%,0%,Yes,,,,
+,0x0000000000000000000000000000000000000007,Yearn yvUSDC v2,Yield Token,0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9,DAI,10%,0%,Yes,,,,
 ,0x0000000000000000000000000000000000000019,Yeti Finance,Protocol,,,10%,0%,,,,,"Losses due to a compromised wallet
 Losses due to a previously disclosed vulnerability
 Losses that occur outside the designated protocol, such as a separate protocol used in an underlying yield aggregation strategy"

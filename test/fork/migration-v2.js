@@ -21,6 +21,7 @@ const getClaimAssessmentRewards = require('../../scripts/v2-migration/get-claim-
 const getClaimAssessmentStakes = require('../../scripts/v2-migration/get-claim-assessment-stakes');
 const getTCLockedAmount = require('../../scripts/v2-migration/get-tc-locked-amount');
 const getCNLockedAmount = require('../../scripts/v2-migration/get-cn-locked');
+const generateV2ProductTxs = require('../../scripts/v2-migration/generate-v2-products-txs');
 
 const PRODUCT_ADDRESSES_OUTPUT_PATH = '../../scripts/v2-migration/output/product-addresses.json';
 const GV_REWARDS_OUTPUT_PATH = '../../scripts/v2-migration/output/governance-rewards.json';
@@ -761,6 +762,61 @@ describe('V2 upgrade', function () {
 
     const storedGlobalRewardsRatio = await this.cover.globalRewardsRatio();
     expect(storedGlobalRewardsRatio).to.be.equal(5000); // 50%
+  });
+
+  // TODO review
+  it('run populate-v2-products script', async function () {
+    const signerAddress = await this.abMembers[0].getAddress();
+    const { setProductTypesTransaction, setProductsTransaction, productTypeData, productData, productTypeIds } =
+      await generateV2ProductTxs(ethers.provider, this.cover.address, signerAddress);
+
+    console.log('Calling setProductTypes.');
+    await this.abMembers[0].sendTransaction(setProductTypesTransaction);
+
+    console.log('Calling setProducts.');
+    await this.abMembers[0].sendTransaction(setProductsTransaction);
+
+    const productCount = await this.cover.productsCount();
+
+    assert.equal(productCount.toNumber(), productData.length);
+
+    const productTypesCount = await this.cover.productTypesCount();
+    assert.equal(productTypesCount.toNumber(), productTypeData.length);
+
+    for (let i = 0; i < productTypeData.length; i++) {
+      const productType = await this.cover.productTypes(i);
+      const productTypeName = await this.cover.productTypeNames(i);
+
+      const data = productTypeData[i];
+
+      expect(productTypeName).to.be.equal(data.Name);
+      expect(productType.claimMethod.toString()).to.be.equal(data['Claim Method']);
+      expect(productType.gracePeriod.toString()).to.be.equal(data['Grace Period (days)']);
+    }
+
+    const products = await this.cover.getProducts();
+    for (let i = 0; i < products.length; i++) {
+      const product = products[i];
+      const data = productData[i];
+
+      expect(product.productType).to.be.equal(productTypeIds[data['Product Type']]);
+      expect(product.yieldTokenAddress).to.be.equal(
+        data['Product Type'] === 'Yield Token'
+          ? data['Yield Token Address']
+          : '0x0000000000000000000000000000000000000000',
+      );
+
+      const coverAssetsAsText = data['Cover Assets'];
+      const coverAssets =
+        (coverAssetsAsText === 'DAI' && 0b10) || // Yield token cover that uses DAI
+        (coverAssetsAsText === 'ETH' && 0b01) || // Yield token cover that uses ETH
+        0; // The default is 0 - this means all assets are allowed (no whitelist)
+      expect(product.coverAssets.toString()).to.be.equal(coverAssets.toString());
+      expect(product.initialPriceRatio).to.be.equal(parseInt(data['Initial Price Ratio']) * 100);
+      expect(product.capacityReductionRatio).to.be.equal(parseInt(data['Capacity Reduction Ratio']));
+      expect(product.isDeprecated).to.be.equal(false);
+      expect(product.useFixedPrice).to.be.equal(data['Use Fixed Price'] === 'Yes');
+    }
   });
 
   // TODO review

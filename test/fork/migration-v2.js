@@ -22,6 +22,9 @@ const getClaimAssessmentStakes = require('../../scripts/v2-migration/get-claim-a
 const getTCLockedAmount = require('../../scripts/v2-migration/get-tc-locked-amount');
 const getCNLockedAmount = require('../../scripts/v2-migration/get-cn-locked');
 
+// ACTIONS
+const blockV1 = require('../../scripts/v2-migration/actions/LegacyPooledStaking.blockV1');
+
 const PRODUCT_ADDRESSES_OUTPUT_PATH = '../../scripts/v2-migration/output/product-addresses.json';
 const GV_REWARDS_OUTPUT_PATH = '../../scripts/v2-migration/output/governance-rewards.json';
 const CLA_REWARDS_OUTPUT_PATH = '../../scripts/v2-migration/output/claim-assessment-rewards.json';
@@ -592,8 +595,7 @@ describe('V2 upgrade', function () {
   });
 
   it('Call function to block V1 staking', async function () {
-    const tx = await this.pooledStaking.blockV1();
-    await tx.wait();
+    await blockV1({ legacyPooledStaking: this.pooledStaking, signer: this.deployer });
   });
 
   it('Transfer CLA rewards to assessors and GV rewards to TC', async function () {

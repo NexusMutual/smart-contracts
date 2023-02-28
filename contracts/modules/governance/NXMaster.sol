@@ -71,6 +71,8 @@ contract NXMaster is INXMMaster {
     for (uint i = 0; i < newContractCodes.length; i++) {
       addNewInternalContract(newContractCodes[i], newAddresses[i], _types[i]);
     }
+
+    updateAllDependencies();
   }
 
   /// @dev Adds new internal contract
@@ -123,7 +125,6 @@ contract NXMaster is INXMMaster {
 
     IMasterAwareV2 up = IMasterAwareV2(newInternalContract);
     up.changeMasterAddress(address(this));
-    up.changeDependentContractAddress();
 
     emit InternalContractAdded(contractCode, contractAddress, ContractType(contractType));
   }

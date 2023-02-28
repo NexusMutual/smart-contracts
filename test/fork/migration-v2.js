@@ -448,9 +448,8 @@ describe('V2 upgrade', function () {
     const memberRoles = await ethers.deployContract('MemberRoles', [this.nxm.address]);
 
     // PS - PooledStaking.sol
-    const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const pooledStaking = await ethers.deployContract('LegacyPooledStaking', [
-      coverProxyAddress,
+      this.coverProxyAddress,
       this.productsV1.address,
       this.stakingNFT.address,
     ]);
@@ -519,7 +518,6 @@ describe('V2 upgrade', function () {
 
     this.memberRoles = await ethers.getContractAt('MemberRoles', this.memberRoles.address);
     this.mcr = await ethers.getContractAt('MCR', mcr.address);
-    this.cover = await ethers.getContractAt('Cover', coverProxyAddress);
 
     const tokenControllerAddress = await this.master.contractAddresses(toUtf8Bytes('TC'));
     this.tokenController = await ethers.getContractAt('TokenController', tokenControllerAddress);
@@ -700,7 +698,7 @@ describe('V2 upgrade', function () {
     console.log('Contracts after:', formatInternalContracts(contractsAfter));
   });
 
-  it('Deploy & add: Assessment, IndividualClaims, YieldTokenIncidents, Cover, StakingProducts', async function () {
+  it('Deploy & add: AS, IC, YT, CO, SP', async function () {
     const contractsBefore = await this.master.getInternalContracts();
 
     const individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
@@ -747,6 +745,12 @@ describe('V2 upgrade', function () {
     const contractsAfter = await this.master.getInternalContracts();
     console.log('Contracts before:', formatInternalContracts(contractsBefore));
     console.log('Contracts after:', formatInternalContracts(contractsAfter));
+
+    const actualCoverAddress = await this.master.getLatestAddress(toUtf8Bytes('CO'));
+    expect(actualCoverAddress).to.be.equal(this.coverProxyAddress);
+
+    const actualStakingProductsAddress = await this.master.getLatestAddress(toUtf8Bytes('SP'));
+    expect(actualStakingProductsAddress).to.be.equal(this.stakingProductsProxyAddress);
   });
 
   it('Call function to initialize Cover.sol', async function () {

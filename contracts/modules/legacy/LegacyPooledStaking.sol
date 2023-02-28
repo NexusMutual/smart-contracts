@@ -1434,8 +1434,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       migrationData.ipfsDescriptionHash
     );
 
-    tokenController().assignStakingPoolManager(stakingPoolId, migrationData.managerAddress);
-
     uint firstTrancheId = block.timestamp / 91 days + 1;
     for (uint i = 0; i < TRANCHE_COUNT; i++) {
       uint trancheDeposit = migrationData.deposit * migrationData.stakerTrancheRatios[i] / 100;
@@ -1452,6 +1450,8 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
         migrationData.managerAddress
       );
     }
+
+    tokenController().assignStakingPoolManager(stakingPoolId, migrationData.managerAddress);
   }
 
   function migrateToExistingV2Pool(IStakingPool stakingPool, uint trancheId) external {

@@ -531,7 +531,7 @@ async function setup() {
     this.contracts['stakingPool' + poolId] = stakingPoolInstance;
   }
   const config = {
-    BUCKET_SIZE: await cover.BUCKET_SIZE(),
+    BUCKET_SIZE: BigNumber.from(7 * 24 * 3600), // 7 days
   };
 
   this.contracts.stakingProducts = stakingProducts;

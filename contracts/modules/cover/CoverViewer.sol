@@ -8,6 +8,7 @@ import "../../interfaces/INXMMaster.sol";
 contract CoverViewer {
 
   struct Segment {
+    uint segmentId;
     uint amount;
     uint remainingAmount;
     uint start;
@@ -16,6 +17,7 @@ contract CoverViewer {
   }
 
   struct Cover {
+    uint coverId;
     uint productId;
     uint coverAsset;
     uint amountPaidOut;
@@ -40,6 +42,7 @@ contract CoverViewer {
       uint coverId = coverIds[i];
 
       CoverData memory coverData = _cover.coverData(coverId);
+      covers[i].coverId = coverId;
       covers[i].productId = coverData.productId;
       covers[i].coverAsset = coverData.coverAsset;
       covers[i].amountPaidOut = coverData.amountPaidOut;
@@ -51,6 +54,7 @@ contract CoverViewer {
       for (uint segId = 0; segId < segmentsCount; segId++) {
         CoverSegment memory coverSegment = coverSegments[segId];
 
+        segments[segId].segmentId = segId;
         segments[segId].start = coverSegment.start;
         segments[segId].period = coverSegment.period;
         segments[segId].gracePeriod = coverSegment.gracePeriod;

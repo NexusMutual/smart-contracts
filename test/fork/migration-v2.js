@@ -1006,8 +1006,8 @@ describe('V2 upgrade', function () {
 
         // Check price
         const stakedProduct = await this.stakingProducts.getProduct(poolId, productId);
-        expect(stakedProduct.targetPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
-        expect(stakedProduct.bumpedPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
+        expect(stakedProduct.targetPrice).to.be.equal(productPrice);
+        expect(stakedProduct.bumpedPrice).to.be.equal(productPrice);
 
         // Check weight
         // Expected to be a number between 0-100, calculated as (product-stake-in-PS / deposit-in-PS)

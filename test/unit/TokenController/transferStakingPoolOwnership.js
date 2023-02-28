@@ -89,7 +89,6 @@ describe('transferStakingPoolOwnership', function () {
     expect(await tokenController.isStakingPoolManager(oldManager.address)).to.be.equal(false);
   });
 
-  // TODO: not sure if we want this behavior
   it('should transfer pool ownership to zero address', async function () {
     const { tokenController } = this.contracts;
     const {

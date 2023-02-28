@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { setEtherBalance } = require('../../utils/').evm;
 const { stakingPoolAddressAt } = require('../../utils/').addresses;
-const { One, MaxUint256 } = ethers.constants;
+const { Two, MaxUint256 } = ethers.constants;
 
 const poolId = 234;
 describe('totalBalanceOf', function () {
@@ -26,7 +26,7 @@ describe('totalBalanceOf', function () {
     const [member] = this.accounts.members;
 
     // Mint 1
-    const amount = One;
+    const amount = Two;
     await tokenController.connect(internalContract).mint(member.address, amount);
 
     const expectedAmount = amount.add(this.nxmBalanceBefore);
@@ -41,7 +41,7 @@ describe('totalBalanceOf', function () {
     const [member] = this.accounts.members;
 
     // mock staker rewards
-    const amount = One;
+    const amount = Two;
     await pooledStaking.setStakerReward(member.address, amount);
 
     const expectedAmount = amount.add(this.nxmBalanceBefore);
@@ -55,7 +55,7 @@ describe('totalBalanceOf', function () {
     const [member] = this.accounts.members;
 
     // mock staker deposits
-    const amount = One;
+    const amount = Two;
     await pooledStaking.setStakerDeposit(member.address, amount);
 
     const expectedAmount = amount.add(this.nxmBalanceBefore);
@@ -71,7 +71,7 @@ describe('totalBalanceOf', function () {
     const { assessment, tokenController, nxm } = this.contracts;
     const [member] = this.accounts.members;
 
-    const amount = One.mul(2).pow(80);
+    const amount = Two.pow(80);
     await assessment.setStakeOf(member.address, amount);
 
     const expectedAmount = amount.add(this.nxmBalanceBefore);
@@ -88,10 +88,10 @@ describe('totalBalanceOf', function () {
       internalContracts: [internalContract],
     } = this.accounts;
 
-    const amount = One.mul(2).pow(127); // uint128 overflows
+    const amount = Two.pow(127); // uint128 overflows
 
     // Get staking pool at ID and impersonate the address
-    const stakingPoolAddress = stakingPoolAddressAt(stakingPoolFactory.address, poolId);
+    const stakingPoolAddress = await stakingPoolAddressAt(stakingPoolFactory.address, poolId);
     const stakingPoolSigner = await ethers.getImpersonatedSigner(stakingPoolAddress);
     await setEtherBalance(stakingPoolAddress, amount);
 
@@ -119,14 +119,15 @@ describe('totalBalanceOf', function () {
       internalContracts: [internalContract],
     } = this.accounts;
 
-    const delegateAmount = One.mul(2).pow(64); // uint128 overflows
+    const delegateAmount = Two.pow(64); // uint128 overflows
 
     // setup staking pool signer
-    const stakingPoolAddress = stakingPoolAddressAt(stakingPoolFactory.address, poolId);
+    const stakingPoolAddress = await stakingPoolAddressAt(stakingPoolFactory.address, poolId);
     const stakingPoolSigner = await ethers.getImpersonatedSigner(stakingPoolAddress);
     await setEtherBalance(stakingPoolAddress, delegateAmount);
 
     // set delegation amount
+    await tokenController.connect(stakingPoolSigner);
     await tokenController.connect(internalContract).mint(member.address, delegateAmount);
     await nxm.connect(member).approve(tokenController.address, MaxUint256);
     await tokenController.connect(stakingPoolSigner).depositStakedNXM(member.address, delegateAmount, poolId);
@@ -151,7 +152,4 @@ describe('totalBalanceOf', function () {
       (await tokenController.totalBalanceOf(member.address)).sub(delegateAmount),
     );
   });
-
-  // TODO: move to fork test
-  it.skip('should correctly calculate locked tokens', async function () {});
 });

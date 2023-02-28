@@ -1,7 +1,11 @@
-const { ethers } = require('hardhat');
+const { ethers, artifacts } = require('hardhat');
+const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
+const { keccak256 } = require('ethereum-cryptography/keccak');
 
-function stakingPoolAddressAt(poolFactoryAddress, poolId) {
-  const initCodeHash = '203b477dc328f1ceb7187b20e5b1b0f0bc871114ada7e9020c9ac112bbfb6920';
+async function stakingPoolAddressAt(poolFactoryAddress, poolId) {
+  const { bytecode: proxyBytecode } = await artifacts.readArtifact('MinimalBeaconProxy');
+  const initCodeHash = bytesToHex(keccak256(hexToBytes(proxyBytecode.replace(/^0x/i, ''))));
+
   const salt = Buffer.from(poolId.toString(16).padStart(64, '0'), 'hex');
   const initCodeHashHex = Buffer.from(initCodeHash, 'hex');
   const stakingPoolAddress = ethers.utils.getCreate2Address(poolFactoryAddress, salt, initCodeHashHex);

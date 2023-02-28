@@ -81,7 +81,6 @@ describe('createStakingPoolOwnershipOffer', function () {
     expect(deadline).to.be.equal(expectedDeadline2);
   });
 
-  // TODO: not sure if we want this behavior?
   it('should successfully transfer ownership to the same address', async function () {
     const { tokenController } = this.contracts;
     const {

@@ -53,7 +53,7 @@ describe('Token price functions', function () {
       productId: ethCoverTemplate.productId,
       period: daysToSeconds(60),
       gracePeriod: daysToSeconds(30),
-      amount: parseEther('100000'),
+      amount: parseEther('1000000'),
     });
   });
 
@@ -226,7 +226,6 @@ describe('Token price functions', function () {
     );
   });
 
-  // TODO: fix this test - assertions are off
   it('buyNXM token price reflects the latest higher MCR value (higher MCReth -> lower price)', async function () {
     const { p1: pool, mcr, cover, stakingProducts } = this.contracts;
     const [member1, coverHolder] = this.accounts.members;
@@ -234,13 +233,11 @@ describe('Token price functions', function () {
     const buyValue = parseEther('1000');
     const expectedNXMOutPreMCRPosting = await pool.getNXMForEth(buyValue);
     const spotTokenPricePreMCRPosting = await pool.getTokenPriceInAsset(ETH_ASSET_ID);
-    await pool.getPoolValueInEth();
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
     const coverAmount = BigNumber.from(gearingFactor)
       .mul(currentMCR.add(parseEther('300')))
-      .div(parseEther('1'))
       .div(ratioScale);
 
     const coverBuyParams = { ...ethCoverTemplate, amount: coverAmount };
@@ -251,7 +248,7 @@ describe('Token price functions', function () {
       cover,
       coverBuyer: coverHolder,
       targetPrice: product.targetPrice,
-      expectedPremium: buyValue,
+      expectedPremium: coverAmount,
     });
 
     // trigger an MCR update and post a lower MCR since lowering the price (higher MCR percentage)
@@ -266,7 +263,6 @@ describe('Token price functions', function () {
     const spotTokenPricePostMCRPosting = await pool.getTokenPriceInAsset(ETH_ASSET_ID);
     const expectedNXMOutPostMCRPosting = await pool.getNXMForEth(buyValue);
 
-    // TODO: assertion is off
     expect(spotTokenPricePostMCRPosting).to.be.lt(spotTokenPricePreMCRPosting);
     expect(expectedNXMOutPostMCRPosting).to.be.gt(expectedNXMOutPreMCRPosting);
   });

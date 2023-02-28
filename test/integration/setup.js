@@ -4,7 +4,7 @@ const { ethers } = require('hardhat');
 const { ContractTypes } = require('../utils').constants;
 const { toBytes2, toBytes8 } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
-const { getAccounts, stakingPoolManagers } = require('../utils').accounts;
+const { getAccounts } = require('../utils').accounts;
 const { enrollMember } = require('./utils/enroll');
 
 const { parseEther, parseUnits } = ethers.utils;
@@ -35,6 +35,7 @@ async function setup() {
   const ethersAccounts = await getAccounts();
   const { members, emergencyAdmin } = ethersAccounts;
   const owner = ethersAccounts.defaultSender;
+  const { stakingPoolManagers } = ethersAccounts;
 
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
   const INITIAL_SUPPLY = parseEther('15000000000');
@@ -502,6 +503,7 @@ async function setup() {
   this.contractType = contractType;
 
   await enrollMember(this.contracts, members, owner);
+  await enrollMember(this.contracts, stakingPoolManagers, owner);
 
   const product = {
     productId: 0,
@@ -514,8 +516,7 @@ async function setup() {
   const DEFAULT_POOL_FEE = '5';
 
   for (let i = 0; i < 3; i++) {
-    await cover.createStakingPool(
-      stakingPoolManagers[i],
+    await cover.connect(stakingPoolManagers[i]).createStakingPool(
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,

@@ -66,11 +66,6 @@ contract StakingPool is IStakingPool, Multicall {
 
   // 32 bytes left in slot 3
 
-  // slot 4
-  address public override manager;
-
-  // 96 bytes left in slot 4
-
   // tranche id => tranche data
   mapping(uint => Tranche) internal tranches;
 
@@ -143,7 +138,7 @@ contract StakingPool is IStakingPool, Multicall {
   }
 
   modifier onlyManager {
-    if (msg.sender != manager) {
+    if (msg.sender != manager()) {
       revert OnlyManager();
     }
     _;
@@ -180,7 +175,6 @@ contract StakingPool is IStakingPool, Multicall {
   }
 
   function initialize(
-    address _manager,
     bool _isPrivatePool,
     uint _initialPoolFee,
     uint _maxPoolFee,
@@ -196,7 +190,6 @@ contract StakingPool is IStakingPool, Multicall {
       revert MaxPoolFeeAbove100();
     }
 
-    manager = _manager;
     isPrivatePool = _isPrivatePool;
     poolFee = uint8(_initialPoolFee);
     maxPoolFee = uint8(_maxPoolFee);
@@ -350,7 +343,7 @@ contract StakingPool is IStakingPool, Multicall {
     address destination
   ) public whenNotPaused whenNotHalted returns (uint tokenId) {
 
-    if (isPrivatePool && msg.sender != manager) {
+    if (isPrivatePool && msg.sender != manager()) {
       revert PrivatePool();
     }
 
@@ -535,7 +528,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint[] memory trancheIds
   ) public whenNotPaused returns (uint withdrawnStake, uint withdrawnRewards) {
 
-    uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager);
+    uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
 
     // pass false as it does not modify the share supply nor the reward per second
     processExpirations(false);
@@ -597,7 +590,7 @@ contract StakingPool is IStakingPool, Multicall {
     }
 
     address destination = tokenId == 0
-      ? manager
+      ? manager()
       : stakingNFT.ownerOf(tokenId);
 
     tokenController.withdrawNXMStakeAndRewards(
@@ -1091,7 +1084,7 @@ contract StakingPool is IStakingPool, Multicall {
       revert InvalidStakingPoolForToken();
     }
 
-    if (isPrivatePool && msg.sender != manager) {
+    if (isPrivatePool && msg.sender != manager()) {
       revert PrivatePool();
     }
 
@@ -1328,6 +1321,10 @@ contract StakingPool is IStakingPool, Multicall {
   }
 
   /* getters */
+
+  function manager() public override view returns (address) {
+    return tokenController.getStakingPoolManager(poolId);
+  }
 
   function getPoolId() external override view returns (uint) {
     return poolId;

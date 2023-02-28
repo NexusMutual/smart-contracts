@@ -204,7 +204,6 @@ interface ICover {
   function stakingPoolFactory() external returns (IStakingPoolFactory);
 
   function createStakingPool(
-    address manager,
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,

@@ -8,8 +8,6 @@ import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IProposalCategory.sol";
 import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IMinimalStakingPool.sol";
-import "../../interfaces/IMinimalCover.sol";
 
 contract Governance is IGovernance, LegacyMasterAware {
   using SafeMath for uint;
@@ -80,7 +78,6 @@ contract Governance is IGovernance, LegacyMasterAware {
 
   bool internal actionParamsInitialised;
   uint internal actionWaitingTime;
-  IMinimalCover internal cover;
   uint constant internal AB_MAJ_TO_REJECT_ACTION = 3;
 
   enum ActionStatus {
@@ -267,32 +264,22 @@ contract Governance is IGovernance, LegacyMasterAware {
     );
   }
 
-  /// Submit a vote on the proposal. This function signature is provided to be compatible with the legacy UI
+  /// Submit a vote on the proposal.
+  /// Includes delegated nxm from the user's managed staking pools in vote power.
   ///
   /// @param _proposalId            The id of the proposal that the user votes upon.
   /// @param _solutionChosen        True if the vote is in favor of the proposal or false otherwise.
-  function submitVote(
-    uint _proposalId,
-    uint _solutionChosen
-  ) external {
-
-    uint[] memory managedStakingPoolIds = new uint[](0);
-    _submitVote(_proposalId, _solutionChosen, managedStakingPoolIds);
+  function submitVote(uint _proposalId, uint _solutionChosen) external {
+    _submitVote(_proposalId, _solutionChosen, true);
   }
 
   /// Submit a vote on the proposal.
+  /// Does NOT include delegated nxm from the user's managed staking pools in vote power.
   ///
   /// @param _proposalId            The id of the proposal that the user votes upon.
   /// @param _solutionChosen        True if the vote is in favor of the proposal or false otherwise.
-  /// @param managedStakingPoolIds  An array of staking pool ids that the user is a manager of.
-  ///                               The active stake from these pools is added to the user's
-  ///                               voting power.
-  function submitVoteWithStakingPoolIds(
-    uint _proposalId,
-    uint _solutionChosen,
-    uint[] calldata managedStakingPoolIds
-  ) external {
-    _submitVote(_proposalId, _solutionChosen, managedStakingPoolIds);
+  function submitVoteWithoutDelegations(uint _proposalId, uint _solutionChosen) external {
+    _submitVote(_proposalId, _solutionChosen, false);
   }
 
   /**
@@ -593,7 +580,6 @@ contract Governance is IGovernance, LegacyMasterAware {
     tokenInstance = ITokenController(ms.getLatestAddress("TC"));
     memberRole = IMemberRoles(ms.getLatestAddress("MR"));
     proposalCategory = IProposalCategory(ms.getLatestAddress("PC"));
-    cover = IMinimalCover(ms.getLatestAddress("CO"));
   }
 
   /**
@@ -615,11 +601,7 @@ contract Governance is IGovernance, LegacyMasterAware {
   *      i.e. Closevalue is 1 if proposal is ready to be closed, 2 if already closed, 0 otherwise!
   * @param _proposalId Proposal id to which closing value is being checked
   */
-  function canCloseProposal(uint _proposalId)
-  public
-  view
-  returns (uint)
-  {
+  function canCloseProposal(uint _proposalId) public view returns (uint) {
     uint dateUpdate;
     uint pStatus;
     uint _closingTime;
@@ -775,15 +757,13 @@ contract Governance is IGovernance, LegacyMasterAware {
 
   /// @dev Internal call to submit vote
   ///
-  /// @param _proposalId            The id of the proposal that the user votes upon.
-  /// @param _solution              True if the vote is in favor of the proposal or false otherwise.
-  /// @param managedStakingPoolIds  An array of staking pool ids that the user is a manager of.
-  ///                               The active stake from these pools is added to the user's
-  ///                               voting power.
+  /// @param _proposalId                The id of the proposal that the user votes upon.
+  /// @param _solution                  True if the vote is in favor of the proposal or false otherwise.
+  /// @param includeManagedStakingPools Whether to include or not the staked nxm of the managed staking pools.
   function _submitVote(
     uint _proposalId,
     uint _solution,
-    uint[] memory managedStakingPoolIds
+    bool includeManagedStakingPools
   ) internal {
 
     require(allProposalData[_proposalId].propStatus ==
@@ -820,7 +800,7 @@ contract Governance is IGovernance, LegacyMasterAware {
 
     } else {
       uint numberOfMembers = memberRole.numberOfMembers(mrSequence);
-      _setVoteTally(_proposalId, _solution, mrSequence, managedStakingPoolIds);
+      _setVoteTally(_proposalId, _solution, mrSequence, includeManagedStakingPools);
 
       if (mrSequence == uint(IMemberRoles.Role.AdvisoryBoard)) {
         if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(numberOfMembers)
@@ -846,9 +826,8 @@ contract Governance is IGovernance, LegacyMasterAware {
     uint _proposalId,
     uint _solution,
     uint mrSequence,
-    uint[] memory managedStakingPoolIds
-  ) internal
-  {
+    bool includeManagedStakingPools
+  ) internal {
     uint categoryABReq;
     uint isSpecialResolution;
     (, categoryABReq, isSpecialResolution) = proposalCategory.categoryExtendedData(allProposalData[_proposalId].category);
@@ -856,32 +835,17 @@ contract Governance is IGovernance, LegacyMasterAware {
       mrSequence == uint(IMemberRoles.Role.AdvisoryBoard)) {
       proposalVoteTally[_proposalId].abVoteValue[_solution]++;
     }
+
     tokenInstance.lockForMemberVote(msg.sender, tokenHoldingTime);
+
     if (mrSequence != uint(IMemberRoles.Role.AdvisoryBoard)) {
-      uint tokenBalance = tokenInstance.totalBalanceOf(msg.sender);
+
+      uint tokenBalance = includeManagedStakingPools
+        ? tokenInstance.totalBalanceOf(msg.sender)
+        : tokenInstance.totalBalanceOfWithoutDelegations(msg.sender);
+
       uint totalSupply = tokenInstance.totalSupply();
       uint voteWeight = tokenBalance.add(10 ** 18);
-
-      // Check if the sender is the actual manager of each givern staking pool and add the active
-      // stake to the voting weight.
-      for (uint i = 0; i < managedStakingPoolIds.length; i++) {
-        // Make sure the there are no repeated pool ids in the array. An efficient way to do this
-        // is to expect them in ascending order where each id is greater than the previous.
-        require(
-          i == 0 || managedStakingPoolIds[i] > managedStakingPoolIds[i - 1],
-          "Provide the staking pool ids in ascending order"
-        );
-        IMinimalStakingPool stakingPool = cover.stakingPool(managedStakingPoolIds[i]);
-        require(
-          stakingPool.manager() == msg.sender,
-          "One or more staking pools are not managed by the sender"
-        );
-        (
-          /*uint stakingRewards*/,
-          uint stakingDeposits
-        ) = tokenInstance.stakingPoolNXMBalances(managedStakingPoolIds[i]);
-        voteWeight = voteWeight.add(stakingDeposits);
-      }
 
       // If it's not a special resolution, the vote weight is bounded by a percentage out of the total supply
       // which is defined by maxVoteWeigthPer.

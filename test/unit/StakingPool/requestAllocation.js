@@ -82,21 +82,21 @@ const defaultProduct = {
   productId: 0,
   weight: 100, // 1.00
   initialPrice: coverProductTemplate.initialPriceRatio,
-  targetPrice: 200, // 2%}
+  targetPrice: 200, // 2%
 };
 
 const product2 = {
   productId: 1,
   weight: 100, // 1.00
   initialPrice: coverProductTemplate.initialPriceRatio,
-  targetPrice: 200, // 2%}
+  targetPrice: 200, // 2%
 };
 
 const product3 = {
   productId: 2,
   weight: 90, // 1.00
   initialPrice: coverProductTemplate.initialPriceRatio,
-  targetPrice: 200, // 2%}
+  targetPrice: 200, // 2%
 };
 
 const poolId = 1;
@@ -105,7 +105,6 @@ const trancheOffset = 5;
 describe('requestAllocation', function () {
   beforeEach(async function () {
     const { stakingPool, stakingProducts, cover } = this;
-    const { defaultSender: manager } = this.accounts;
     const [staker] = this.accounts.members;
     const productId = 0;
     const trancheId = (await getCurrentTrancheId()) + trancheOffset;
@@ -123,7 +122,7 @@ describe('requestAllocation', function () {
 
     await stakingPool
       .connect(this.coverSigner)
-      .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+      .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
 
     await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, [defaultProduct, product2, product3]);
 

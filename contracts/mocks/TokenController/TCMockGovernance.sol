@@ -8,8 +8,6 @@ import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IProposalCategory.sol";
 import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IMinimalStakingPool.sol";
-import "../../interfaces/IMinimalCover.sol";
 
 contract TCMockGovernance {
   mapping(address => uint) public unclaimedGovernanceRewards;

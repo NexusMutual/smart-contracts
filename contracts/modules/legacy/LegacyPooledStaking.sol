@@ -1422,13 +1422,11 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     nxm.transfer(stakerAddress, nxmToBeUnlocked);
   }
 
-
   function migrateToPool(
     StakingPoolMigrationData memory migrationData,
     ProductInitializationParams[] memory params
   ) internal {
-    ( /* uint stakingPoolId */, address stakingPoolAddress) = cover.createStakingPool(
-      migrationData.stakerAddress,
+    (uint stakingPoolId, address stakingPoolAddress) = cover.createStakingPool(
       migrationData.isPrivatePool,
       migrationData.initialPoolFee,
       migrationData.maxPoolFee,
@@ -1452,6 +1450,8 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
         migrationData.managerAddress
       );
     }
+
+    tokenController().assignStakingPoolManager(stakingPoolId, migrationData.managerAddress);
   }
 
   function migrateToExistingV2Pool(IStakingPool stakingPool, uint trancheId) external {

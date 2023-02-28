@@ -104,7 +104,6 @@ describe('burnStake', function () {
         targetPriceRatio,
         activeCover,
         stakingPoolManager,
-        stakingPoolManager,
         targetPriceRatio,
       );
       allocationRequest.push({ poolId: i, coverAmountInAsset: amountPerPool });

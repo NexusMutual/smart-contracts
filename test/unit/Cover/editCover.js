@@ -143,7 +143,6 @@ describe('editCover', function () {
       parseEther('10000'), // capacity
       coverBuyFixture.targetPriceRatio, // targetPrice
       0, // activeCover
-      manager, // creator
       manager, // manager
       coverBuyFixture.targetPriceRatio, // currentPrice
     );
@@ -1401,7 +1400,6 @@ describe('editCover', function () {
       parseEther('10000'), // capacity
       coverBuyFixture.targetPriceRatio, // targetPrice
       0, // activeCover
-      manager, // creator
       manager, // manager
       coverBuyFixture.targetPriceRatio, // currentPrice
     );
@@ -1543,7 +1541,6 @@ describe('editCover', function () {
       parseEther('10000'), // capacity
       coverBuyFixture.targetPriceRatio, // targetPrice
       0, // activeCover
-      manager, // creator
       manager, // manager
       coverBuyFixture.targetPriceRatio, // currentPrice
     );
@@ -1601,7 +1598,6 @@ describe('editCover', function () {
       parseEther('10000'), // capacity
       coverBuyFixture.targetPriceRatio, // targetPrice
       0, // activeCover
-      manager, // creator
       manager, // manager
       coverBuyFixture.targetPriceRatio, // currentPrice
     );

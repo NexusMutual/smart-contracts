@@ -74,7 +74,6 @@ const burnAmount = parseEther('10');
 describe('burnStake', function () {
   beforeEach(async function () {
     const { stakingPool, stakingProducts, cover } = this;
-    const { defaultSender: manager } = this.accounts;
     const [staker] = this.accounts.members;
     const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 
@@ -85,7 +84,6 @@ describe('burnStake', function () {
     await cover.setProduct(coverProductTemplate, initialProduct.productId);
 
     await stakingPool.connect(this.coverSigner).initialize(
-      manager.address,
       false, // isPrivatePool
       initialPoolFee,
       maxPoolFee,

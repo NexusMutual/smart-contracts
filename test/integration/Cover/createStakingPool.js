@@ -33,7 +33,6 @@ describe('createStakingPool', function () {
     const stakingPoolCountBefore = await spf.stakingPoolCount();
 
     await cover.connect(manager).createStakingPool(
-      manager.address,
       true, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,
@@ -71,7 +70,6 @@ describe('createStakingPool', function () {
     const stakingPoolCountBefore = await spf.stakingPoolCount();
 
     await cover.connect(manager).createStakingPool(
-      manager.address,
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,

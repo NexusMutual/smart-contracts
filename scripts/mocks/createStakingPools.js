@@ -39,12 +39,10 @@ async function main() {
     },
   ];
 
-  const stakingPoolManager = owner;
   const cover = await ethers.getContractAt('Cover', Addresses.Cover);
 
   console.log('Creating 1st staking pool');
   await cover.createStakingPool(
-    stakingPoolManager.address,
     isPrivatePool,
     initialPoolFee,
     maxPoolFee,
@@ -55,7 +53,6 @@ async function main() {
 
   console.log('Creating 2nd staking pool');
   await cover.createStakingPool(
-    stakingPoolManager.address,
     isPrivatePool,
     initialPoolFee,
     maxPoolFee,

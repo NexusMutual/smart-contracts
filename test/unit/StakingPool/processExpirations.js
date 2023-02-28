@@ -42,16 +42,13 @@ const poolInitParams = {
 describe('processExpirations', function () {
   beforeEach(async function () {
     const { stakingPool, stakingProducts, cover } = this;
-    const { defaultSender: manager } = this.accounts;
     const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
     await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
     this.coverSigner = coverSigner;
 
-    await stakingPool
-      .connect(coverSigner)
-      .initialize(manager.address, false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+    await stakingPool.connect(coverSigner).initialize(false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
 
     await stakingProducts.connect(coverSigner).setInitialProducts(poolId, products);
 

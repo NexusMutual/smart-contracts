@@ -33,7 +33,6 @@ contract CoverMockStakingPool is IStakingPool {
   uint public constant TARGET_PRICE_DENOMINATOR = 100_00;
 
   uint internal poolId;
-  address public manager;
 
   uint public burnStakeCalledWithAmount;
   BurnStakeParams public burnStakeCalledWithParams;
@@ -50,7 +49,6 @@ contract CoverMockStakingPool is IStakingPool {
   mapping(uint => StakedProduct) public products;
 
   function initialize(
-    address _manager,
     bool _isPrivatePool,
     uint _initialPoolFee,
     uint _maxPoolFee,
@@ -60,7 +58,6 @@ contract CoverMockStakingPool is IStakingPool {
     _isPrivatePool;
     _initialPoolFee;
     _maxPoolFee;
-    manager = _manager;
     poolId = _poolId;
   }
 
@@ -98,7 +95,7 @@ contract CoverMockStakingPool is IStakingPool {
   }
 
   function setProducts(StakedProductParam[] memory /*params*/) external {
-    manager = manager;
+    activeStake = activeStake;
   }
 
   function calculatePremium(uint priceRatio, uint coverAmount, uint period) public pure returns (uint) {
@@ -106,11 +103,11 @@ contract CoverMockStakingPool is IStakingPool {
   }
 
   function stake(uint /*amount*/) external {
-    manager = manager;
+    activeStake = activeStake;
   }
 
   function processExpirations(bool) external {
-    manager = manager;
+    activeStake = activeStake;
     revert("CoverMockStakingPool: not callable");
   }
 
@@ -162,7 +159,7 @@ contract CoverMockStakingPool is IStakingPool {
     uint /*requestTokenId*/,
     address /*destination*/
   ) external returns (uint /* tokenId */) {
-    manager = manager;
+    activeStake = activeStake;
     revert("CoverMockStakingPool: not callable");
   }
 
@@ -172,22 +169,22 @@ contract CoverMockStakingPool is IStakingPool {
     bool /*withdrawRewards*/,
     uint[] memory /*trancheIds*/
   ) public returns (uint /*withdrawnStake*/, uint /*withdrawnRewards*/) {
-    manager = manager;
+    activeStake = activeStake;
     revert("CoverMockStakingPool: not callable");
   }
 
   function setPoolFee(uint /* newFee */) external {
-    manager = manager;
+    activeStake = activeStake;
     revert("CoverMockStakingPool: not callable");
   }
 
   function setPoolPrivacy(bool /* isPrivatePool */) external {
-    manager = manager;
+    activeStake = activeStake;
     revert("CoverMockStakingPool: not callable");
   }
 
   function multicall(bytes[] calldata) external returns (bytes[] memory) {
-    manager = manager;
+    activeStake = activeStake;
     revert("CoverMockStakingPool: not callable");
   }
 
@@ -230,6 +227,10 @@ contract CoverMockStakingPool is IStakingPool {
 
   function getPoolId() external view returns (uint) {
     return poolId;
+  }
+
+  function manager() external pure returns (address) {
+    return address(0);
   }
 
   function getProduct(uint /*productId*/) external pure returns (

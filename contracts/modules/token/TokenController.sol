@@ -27,7 +27,17 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
 
+  // pool id => { rewards, deposits }
   mapping(uint => StakingPoolNXMBalances) public override stakingPoolNXMBalances;
+
+  // pool id => manager
+  mapping(uint => address) internal stakingPoolManagers;
+
+  // pool id => offer
+  mapping(uint => StakingPoolOwnershipOffer) internal stakingPoolOwnershipOffers;
+
+  // manager => pool ids
+  mapping(address => uint[]) internal managerStakingPools;
 
   INXMToken public immutable token;
   IQuotationData public immutable quotationData;
@@ -189,36 +199,48 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     return token.totalSupply();
   }
 
-  /// Returns the base voting power not the balance. It is used in governance voting as well as in
-  /// snapshot voting.
-  ///
-  /// @dev Caution, this function is improperly named because reconfiguring snapshot voting was
-  /// not desired. It accounts for the tokens in the user's wallet as well as tokens locked in
-  /// assessment and legacy staking deposits. V2 staking deposits are excluded because they are
-  /// delegated to the pool managers instead.
-  /// TODO: add stake pool balance for pool operators
+  /// Returns the base voting power. It is used in governance and snapshot voting.
+  /// Includes the delegated tokens via staking pools.
   ///
   /// @param _of  The member address for which the base voting power is calculated.
-  function totalBalanceOf(address _of) public override view returns (uint256 amount) {
+  function totalBalanceOf(address _of) public override view returns (uint) {
+    return _totalBalanceOf(_of, true);
+  }
 
-    amount = token.balanceOf(_of);
+  /// Returns the base voting power. It is used in governance and snapshot voting.
+  /// Does not include the delegated tokens via staking pools in order to act as a fallback if
+  /// voting including delegations fails for whatever reason.
+  ///
+  /// @param _of  The member address for which the base voting power is calculated.
+  function totalBalanceOfWithoutDelegations(address _of) public override view returns (uint) {
+    return _totalBalanceOf(_of, false);
+  }
+
+  function _totalBalanceOf(address _of, bool includeManagedStakingPools) internal view returns (uint) {
+
+    uint amount = token.balanceOf(_of);
 
     // This loop can be removed once all cover notes are withdrawn
     for (uint256 i = 0; i < lockReason[_of].length; i++) {
       amount = amount + tokensLocked(_of, lockReason[_of][i]);
     }
 
-    // [todo] Can be removed after PooledStaking is decommissioned
-    uint stakerReward = pooledStaking().stakerReward(_of);
-    uint stakerDeposit = pooledStaking().stakerDeposit(_of);
+    // TODO: can be removed after PooledStaking is decommissioned
+    amount += pooledStaking().stakerReward(_of);
+    amount += pooledStaking().stakerDeposit(_of);
 
-    (
-      uint assessmentStake,
-      /*uint104 rewardsWithdrawableFromIndex*/,
-      /*uint16 fraudCount*/
-    ) = assessment().stakeOf(_of);
+    (uint assessmentStake,,) = assessment().stakeOf(_of);
+    amount += assessmentStake;
 
-    amount += stakerDeposit + stakerReward + assessmentStake;
+    if (includeManagedStakingPools) {
+      uint managedStakingPoolCount = managerStakingPools[_of].length;
+      for (uint i = 0; i < managedStakingPoolCount; i++) {
+        uint poolId = managerStakingPools[_of][i];
+        amount += stakingPoolNXMBalances[poolId].deposits;
+      }
+    }
+
+    return amount;
   }
 
   /// Returns the NXM price in ETH. To be use by external protocols.
@@ -377,24 +399,154 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token.transfer(user, totalAmount);
   }
 
+  function getStakingPoolManager(uint poolId) external override view returns (address) {
+    return stakingPoolManagers[poolId];
+  }
+
+  function getManagerStakingPools(address manager) external override view returns (uint[] memory) {
+    return managerStakingPools[manager];
+  }
+
+  function isStakingPoolManager(address member) external override view returns (bool) {
+    return managerStakingPools[member].length > 0;
+  }
+
+  function getStakingPoolOwnershipOffer(
+    uint poolId
+  ) external override view returns (address proposedManager, uint deadline) {
+    return (
+      stakingPoolOwnershipOffers[poolId].proposedManager,
+      stakingPoolOwnershipOffers[poolId].deadline
+    );
+  }
+
+  /// Transfer ownership of all staking pools managed by a member to a new address. Used when switching membership.
+  ///
+  /// @param from  address of the member whose pools are being transferred
+  /// @param to    the new address of the member
+  function transferStakingPoolsOwnership(address from, address to) external override onlyInternal {
+
+    uint stakingPoolCount = managerStakingPools[from].length;
+
+    if (stakingPoolCount == 0) {
+      return;
+    }
+
+    while (stakingPoolCount > 0) {
+      // remove from old
+      uint poolId = managerStakingPools[from][stakingPoolCount - 1];
+      managerStakingPools[from].pop();
+
+      // add to new and update manager
+      managerStakingPools[to].push(poolId);
+      stakingPoolManagers[poolId] = to;
+
+      stakingPoolCount--;
+    }
+  }
+
+  function _assignStakingPoolManager(uint poolId, address manager) internal {
+
+    address previousManager = stakingPoolManagers[poolId];
+
+    // remove previous manager
+    if (previousManager != address(0)) {
+      uint managedPoolCount = managerStakingPools[previousManager].length;
+
+      // find staking pool id index and remove from previous manager's list
+      // on-chain iteration is expensive, but we don't expect to have many pools per manager
+      for (uint i = 0; i < managedPoolCount; i++) {
+        if (managerStakingPools[previousManager][i] == poolId) {
+          uint lastIndex = managedPoolCount - 1;
+          managerStakingPools[previousManager][i] = managerStakingPools[previousManager][lastIndex];
+          managerStakingPools[previousManager].pop();
+          break;
+        }
+      }
+    }
+
+    // add staking pool id to new manager's list
+    managerStakingPools[manager].push(poolId);
+    stakingPoolManagers[poolId] = manager;
+  }
+
+  /// Transfers the ownership of a staking pool to a new address
+  /// Used by PooledStaking during the migration
+  ///
+  /// @param poolId       id of the staking pool
+  /// @param manager      address of the new manager of the staking pool
+  function assignStakingPoolManager(uint poolId, address manager) external override onlyInternal {
+    _assignStakingPoolManager(poolId, manager);
+  }
+
+  /// Creates a ownership transfer offer for a staking pool
+  /// The offer can be accepted by the proposed manager before the deadline expires
+  ///
+  /// @param poolId           id of the staking pool
+  /// @param proposedManager  address of the proposed manager
+  /// @param deadline         timestamp after which the offer expires
+  function createStakingPoolOwnershipOffer(
+    uint poolId,
+    address proposedManager,
+    uint deadline
+  ) external override {
+    require(msg.sender == stakingPoolManagers[poolId], "TokenController: Caller is not staking pool manager");
+    require(block.timestamp < deadline, "TokenController: Deadline cannot be in the past");
+    stakingPoolOwnershipOffers[poolId] = StakingPoolOwnershipOffer(proposedManager, deadline.toUint96());
+  }
+
+  /// Accepts a staking pool ownership offer
+  ///
+  /// @param poolId  id of the staking pool
+  function acceptStakingPoolOwnershipOffer(uint poolId) external override {
+
+    address oldManager = stakingPoolManagers[poolId];
+
+    require(
+      block.timestamp > token.isLockedForMV(oldManager),
+      "TokenController: Current manager is locked for voting in governance"
+    );
+
+    require(
+      msg.sender == stakingPoolOwnershipOffers[poolId].proposedManager,
+      "TokenController: Caller is not the proposed manager"
+    );
+
+    require(
+      stakingPoolOwnershipOffers[poolId].deadline > block.timestamp,
+      "TokenController: Ownership offer has expired"
+    );
+
+    _assignStakingPoolManager(poolId, msg.sender);
+    delete stakingPoolOwnershipOffers[poolId];
+  }
+
+  /// Cancels a staking pool ownership offer
+  ///
+  /// @param poolId  id of the staking pool
+  function cancelStakingPoolOwnershipOffer(uint poolId) external override {
+    require(msg.sender == stakingPoolManagers[poolId], "TokenController: Caller is not staking pool manager");
+    delete stakingPoolOwnershipOffers[poolId];
+  }
+
   function _stakingPool(uint poolId) internal view returns (address) {
     return StakingPoolLibrary.getAddress(stakingPoolFactory, poolId);
   }
 
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
-    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
+    require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     token.mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 
   function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
-    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
+    require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
     token.burn(amount);
   }
 
   function depositStakedNXM(address from, uint amount, uint poolId) external {
-    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
+    require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
     token.operatorTransfer(from, amount);
   }
@@ -405,7 +557,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     uint rewardsToWithdraw,
     uint poolId
   ) external {
-    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
+    require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     StakingPoolNXMBalances memory poolBalances = stakingPoolNXMBalances[poolId];
     poolBalances.deposits -= stakeToWithdraw.toUint128();
     poolBalances.rewards -= rewardsToWithdraw.toUint128();
@@ -414,7 +566,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   function burnStakedNXM(uint amount, uint poolId) external {
-    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
+    require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
     token.burn(amount);
   }

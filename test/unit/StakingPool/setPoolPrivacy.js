@@ -19,12 +19,8 @@ describe('setPoolPrivacy', function () {
   };
 
   beforeEach(async function () {
-    const {
-      stakingPool,
-      stakingProducts,
-      cover,
-      accounts: { defaultSender: manager },
-    } = this;
+    const { stakingPool, stakingProducts, cover, tokenController } = this;
+    const manager = this.accounts.defaultSender;
 
     const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
@@ -33,19 +29,19 @@ describe('setPoolPrivacy', function () {
 
     await stakingPool
       .connect(coverSigner)
-      .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+      .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+    await tokenController.setStakingPoolManager(poolId, manager.address);
 
     await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
   });
 
   it('reverts if manager is not the caller', async function () {
-    const {
-      stakingPool,
-      accounts: {
-        defaultSender: manager,
-        nonMembers: [nonManager],
-      },
-    } = this;
+    const { stakingPool, tokenController } = this;
+    const { defaultSender: manager } = this.accounts;
+    const [nonManager] = this.accounts.nonMembers;
+
+    const poolId = await stakingPool.getPoolId();
+    await tokenController.setStakingPoolManager(poolId, manager.address);
 
     await expect(stakingPool.connect(nonManager).setPoolPrivacy(true)).to.be.revertedWithCustomError(
       stakingPool,
@@ -55,10 +51,8 @@ describe('setPoolPrivacy', function () {
   });
 
   it('updates isPrivatePool flag', async function () {
-    const {
-      stakingPool,
-      accounts: { defaultSender: manager },
-    } = this;
+    const { stakingPool } = this;
+    const manager = this.accounts.defaultSender;
 
     const isPrivateBefore = await stakingPool.isPrivatePool();
     await stakingPool.connect(manager).setPoolPrivacy(true);
@@ -69,10 +63,8 @@ describe('setPoolPrivacy', function () {
   });
 
   it('emits an event PoolPrivacyChanged', async function () {
-    const {
-      stakingPool,
-      accounts: { defaultSender: manager },
-    } = this;
+    const { stakingPool } = this;
+    const manager = this.accounts.defaultSender;
 
     await expect(stakingPool.connect(manager).setPoolPrivacy(true))
       .to.emit(stakingPool, 'PoolPrivacyChanged')

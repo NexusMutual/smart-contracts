@@ -40,19 +40,16 @@ const initializeParams = {
 
 describe('setPoolFee', function () {
   beforeEach(async function () {
-    const {
-      stakingPool,
-      stakingProducts,
-      cover,
-      accounts: { defaultSender: manager },
-    } = this;
+    const { stakingPool, stakingProducts, cover, tokenController } = this;
     const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+    const manager = this.accounts.defaultSender;
 
     await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
     await stakingPool
       .connect(coverSigner)
-      .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+      .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+    await tokenController.setStakingPoolManager(poolId, manager.address);
 
     await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
   });
@@ -74,10 +71,9 @@ describe('setPoolFee', function () {
   });
 
   it('reverts if new fee exceeds max pool fee', async function () {
-    const {
-      stakingPool,
-      accounts: { defaultSender: manager },
-    } = this;
+    const { stakingPool } = this;
+    const manager = this.accounts.defaultSender;
+
     const { maxPoolFee } = initializeParams;
 
     await expect(stakingPool.connect(manager).setPoolFee(maxPoolFee + 1)).to.be.revertedWithCustomError(
@@ -88,10 +84,9 @@ describe('setPoolFee', function () {
   });
 
   it('updates pool fee', async function () {
-    const {
-      stakingPool,
-      accounts: { defaultSender: manager },
-    } = this;
+    const { stakingPool } = this;
+    const manager = this.accounts.defaultSender;
+
     const { maxPoolFee } = initializeParams;
     const newPoolFee = maxPoolFee - 2;
 
@@ -103,14 +98,9 @@ describe('setPoolFee', function () {
   });
 
   it('updates pool manager rewards', async function () {
-    const {
-      stakingPool,
-      cover,
-      accounts: {
-        defaultSender: manager,
-        members: [user],
-      },
-    } = this;
+    const { stakingPool, cover } = this;
+    const manager = this.accounts.defaultSender;
+    const [user] = this.accounts.members;
 
     const allocationRequest = { ...allocationRequestTemplate };
 
@@ -153,10 +143,9 @@ describe('setPoolFee', function () {
   });
 
   it('emits and PoolFeeChanged', async function () {
-    const {
-      stakingPool,
-      accounts: { defaultSender: manager },
-    } = this;
+    const { stakingPool } = this;
+    const manager = this.accounts.defaultSender;
+
     const { maxPoolFee } = initializeParams;
     const newPoolFee = maxPoolFee - 1;
 

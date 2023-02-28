@@ -43,7 +43,6 @@ describe('buyCover', function () {
       buyCoverFixture.targetPriceRatio,
       buyCoverFixture.activeCover,
       stakingPoolManager,
-      stakingPoolManager,
       buyCoverFixture.targetPriceRatio,
     );
   });
@@ -147,7 +146,6 @@ describe('buyCover', function () {
       capacity,
       targetPriceRatio,
       activeCover,
-      stakingPoolManager,
       stakingPoolManager,
       targetPriceRatio,
     );
@@ -1157,7 +1155,6 @@ describe('buyCover', function () {
       targetPriceRatio,
       activeCover,
       stakingPoolManager,
-      stakingPoolManager,
       targetPriceRatio,
     );
 
@@ -1168,7 +1165,6 @@ describe('buyCover', function () {
       capacity,
       targetPriceRatio,
       activeCover,
-      stakingPoolManager,
       stakingPoolManager,
       targetPriceRatio,
     );

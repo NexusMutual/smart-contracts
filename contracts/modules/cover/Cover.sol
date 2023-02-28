@@ -9,7 +9,6 @@ import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
-import "../../interfaces/IIndividualClaims.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
@@ -63,9 +62,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   uint private constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
   uint private constant REWARD_DENOMINATOR = 10_000;
 
-  uint public constant MAX_COVER_PERIOD = 364 days;
+  uint private constant MAX_COVER_PERIOD = 365 days;
   uint private constant MIN_COVER_PERIOD = 28 days;
-  uint public constant BUCKET_SIZE = 7 days;
+  uint private constant BUCKET_SIZE = 7 days;
   // this constant is used for calculating the normalized yearly percentage cost of cover
   uint private constant ONE_YEAR = 365 days;
 
@@ -75,12 +74,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   uint private constant ONE_NXM = 1e18;
 
-  uint public constant ETH_ASSET_ID = 0;
-  uint public constant NXM_ASSET_ID = type(uint8).max;
+  uint private constant ETH_ASSET_ID = 0;
+  uint private constant NXM_ASSET_ID = type(uint8).max;
 
   // internally we store capacity using 2 decimals
   // 1 nxm of capacity is stored as 100
-  uint public constant ALLOCATION_UNITS_PER_NXM = 100;
+  uint private constant ALLOCATION_UNITS_PER_NXM = 100;
 
   // given capacities have 2 decimals
   // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
@@ -841,10 +840,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return IMemberRoles(internalContracts[uint(ID.MR)]);
   }
 
-  function individualClaims() internal view returns (IIndividualClaims) {
-    return IIndividualClaims(getInternalContractAddress(ID.IC));
-  }
-
   function stakingProducts() internal view returns (IStakingProducts) {
     return IStakingProducts(getInternalContractAddress(ID.SP));
   }
@@ -852,7 +847,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
-    internalContracts[uint(ID.IC)] = master.getLatestAddress("IC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.SP)] = master.getLatestAddress("SP");
   }

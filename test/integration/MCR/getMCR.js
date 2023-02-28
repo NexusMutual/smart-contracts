@@ -54,6 +54,7 @@ describe('getMCR', function () {
       productId: ethCoverTemplate.productId,
       period: daysToSeconds(60),
       gracePeriod: daysToSeconds(30),
+      amount: parseEther('1000000'),
     });
 
     expect(await mcr.getAllSumAssurance()).to.be.equal(0);
@@ -77,15 +78,12 @@ describe('getMCR', function () {
 
     const gearingFactor = BigNumber.from(await mcr.gearingFactor());
     const currentMCR = await mcr.getMCR();
-    const coverAmount = gearingFactor
-      .mul(currentMCR.add(parseEther('300')))
-      .div(parseEther('1'))
-      .div(ratioScale);
+    const coverAmount = gearingFactor.mul(currentMCR.add(parseEther('300'))).div(ratioScale);
 
     await buyCover({
       ...ethCoverTemplate,
       cover,
-      expectedPremium: parseEther('100'),
+      expectedPremium: coverAmount,
       amount: coverAmount,
       coverBuyer,
       targetPrice,

@@ -1,12 +1,9 @@
 const {
   ethers,
   ethers: { deployContract },
-  artifacts,
 } = require('hardhat');
-const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
-const { keccak256 } = require('ethereum-cryptography/keccak');
 
-const { parseEther, defaultAbiCoder, toUtf8Bytes, getCreate2Address } = ethers.utils;
+const { parseEther, defaultAbiCoder, toUtf8Bytes, formatEther } = ethers.utils;
 const { expect } = require('chai');
 const { AddressZero, MaxUint256 } = ethers.constants;
 const evm = require('./evm')();
@@ -41,15 +38,6 @@ let poolId;
 let trancheId;
 let tokenId;
 
-async function calculateStakingPoolAddressArgs() {
-  const { bytecode } = await artifacts.readArtifact('MinimalBeaconProxy');
-  const bytecodeHash = bytesToHex(keccak256(hexToBytes(bytecode.replace(/^0x/i, ''))));
-
-  const salt = Buffer.from(poolId.toString(16).padStart(64, '0'), 'hex');
-  const initCodeHash = Buffer.from(bytecodeHash, 'hex');
-  return { salt, initCodeHash };
-}
-
 async function compareProxyImplementationAddress(proxyAddress, addressToCompare) {
   const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
   const implementationAddress = await proxy.implementation();
@@ -57,7 +45,7 @@ async function compareProxyImplementationAddress(proxyAddress, addressToCompare)
 }
 
 describe('basic functionality tests', function () {
-  before(async () => {
+  before(async function () {
     // Initialize evm helper
     await evm.connect(ethers.provider);
 
@@ -251,8 +239,7 @@ describe('basic functionality tests', function () {
     poolId = stakingPoolCountAfter.toNumber();
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
 
-    const { salt, initCodeHash } = calculateStakingPoolAddressArgs();
-    const address = getCreate2Address(this.stakingPoolFactory.address, salt, initCodeHash);
+    const address = await this.cover.stakingPool(poolId);
 
     this.stakingPool = await ethers.getContractAt('StakingPool', address);
   });
@@ -442,6 +429,15 @@ describe('basic functionality tests', function () {
     expect(maxMCRFloorAfter).to.be.equal(newMaxMCRFloorChange);
   });
 
+  it('gets all pool values before upgrade', async function () {
+    // Pool value related info
+    this.poolValueBefore = await this.pool.getPoolValueInEth();
+    this.ethBalanceBefore = await ethers.provider.getBalance(this.pool.address);
+    this.daiBalanceBefore = await this.dai.balanceOf(this.pool.address);
+    this.stEthBalanceBefore = await this.stEth.balanceOf(this.pool.address);
+    this.enzymeSharesBalanceBefore = await this.enzymeShares.balanceOf(this.pool.address);
+  });
+
   it('performs hypothetical future Governance upgrade', async function () {
     const newGovernance = await deployContract('Governance');
 
@@ -596,5 +592,45 @@ describe('basic functionality tests', function () {
 
     this.mcr = mcr;
     this.pool = pool;
+  });
+
+  it('Pool value check', async function () {
+    const poolValueAfter = await this.pool.getPoolValueInEth();
+    const poolValueDiff = poolValueAfter.sub(this.poolValueBefore);
+
+    const ethBalanceAfter = await ethers.provider.getBalance(this.pool.address);
+    const daiBalanceAfter = await this.dai.balanceOf(this.pool.address);
+    const stEthBalanceAfter = await this.stEth.balanceOf(this.pool.address);
+    const enzymeSharesBalanceAfter = await this.enzymeShares.balanceOf(this.pool.address);
+
+    console.log({
+      poolValueBefore: formatEther(this.poolValueBefore),
+      poolValueAfter: formatEther(poolValueAfter),
+      poolValueDiff: formatEther(poolValueDiff),
+      ethBalanceBefore: formatEther(this.ethBalanceBefore),
+      ethBalanceAfter: formatEther(ethBalanceAfter),
+      ethBalanceDiff: formatEther(ethBalanceAfter.sub(this.ethBalanceBefore)),
+      daiBalanceBefore: formatEther(this.daiBalanceBefore),
+      daiBalanceAfter: formatEther(daiBalanceAfter),
+      daiBalanceDiff: formatEther(daiBalanceAfter.sub(this.daiBalanceBefore)),
+      stEthBalanceBefore: formatEther(this.stEthBalanceBefore),
+      stEthBalanceAfter: formatEther(stEthBalanceAfter),
+      stEthBalanceDiff: formatEther(stEthBalanceAfter.sub(this.stEthBalanceBefore)),
+      enzymeSharesBalanceBefore: formatEther(this.enzymeSharesBalanceBefore),
+      enzymeSharesBalanceAfter: formatEther(enzymeSharesBalanceAfter),
+      enzymeSharesBalanceDiff: formatEther(enzymeSharesBalanceAfter.sub(this.enzymeSharesBalanceBefore)),
+    });
+
+    // Why 2 wei difference?
+    expect(poolValueDiff.abs(), 'Pool value in ETH should be the same').lessThanOrEqual(BigNumber.from(2));
+    expect(stEthBalanceAfter.sub(this.stEthBalanceBefore).abs(), 'stETH balance should be the same').lessThanOrEqual(
+      BigNumber.from(2),
+    );
+    expect(ethBalanceAfter.sub(this.ethBalanceBefore), 'ETH balance should be the same').to.be.equal(0);
+    expect(daiBalanceAfter.sub(this.daiBalanceBefore), 'DAI balance should be the same').to.be.equal(0);
+    expect(
+      enzymeSharesBalanceAfter.sub(this.enzymeSharesBalanceBefore),
+      'Enzyme shares balance should be the same',
+    ).to.be.equal(0);
   });
 });

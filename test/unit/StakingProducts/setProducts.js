@@ -39,14 +39,14 @@ const buyCoverParamsTemplate = {
   ipfsData: 'ipfs data',
 };
 
-describe('setProducts unit tests', function () {
-  // Create a default deposit request to the staking pool
-  const verifyProduct = (product, productParam) => {
-    expect(product.targetWeight).to.be.equal(productParam.targetWeight);
-    expect(product.targetPrice).to.be.equal(productParam.targetPrice);
-    expect(product.bumpedPriceUpdateTime).to.be.equal(productParam.bumpedPriceUpdateTime);
-  };
+// Create a default deposit request to the staking pool
+const verifyProduct = (product, productParam) => {
+  expect(product.targetWeight).to.be.equal(productParam.targetWeight);
+  expect(product.targetPrice).to.be.equal(productParam.targetPrice);
+  expect(product.bumpedPriceUpdateTime).to.be.equal(productParam.bumpedPriceUpdateTime);
+};
 
+describe('setProducts unit tests', function () {
   it('should fail to be called by non manager', async function () {
     const { stakingProducts } = this;
     const [nonManager] = this.accounts.nonMembers;

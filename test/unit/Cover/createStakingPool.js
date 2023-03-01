@@ -224,14 +224,12 @@ describe('createStakingPool', function () {
   it('should fail to initialize products with targetPrice below global minimum', async function () {
     const { cover } = this;
     const { GLOBAL_MIN_PRICE_RATIO } = this.config;
-    const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;
+    const [stakingPoolCreator] = this.accounts.members;
     const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
 
     const products = [{ ...productInitializationParams[0], targetPrice: GLOBAL_MIN_PRICE_RATIO - 1 }];
-    console.log(initialPoolFee, maxPoolFee, products, stakingPoolManager.address, stakingPoolCreator);
     await expect(
       cover.connect(stakingPoolCreator).createStakingPool(
-        stakingPoolManager.address,
         false, // isPrivatePool,
         initialPoolFee,
         maxPoolFee,

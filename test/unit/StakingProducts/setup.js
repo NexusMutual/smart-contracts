@@ -99,11 +99,12 @@ async function setup() {
       cover.setPoolAllowed(productId, 1 /* poolID */, true),
     ]),
   );
-  const ret = await cover.callStatic.createStakingPool(accounts.members[0].address, false, 5, 5, [], 'ipfs hash');
+  const ret = await cover.callStatic.createStakingPool(false, 5, 5, [], 'ipfs hash');
 
-  await cover.createStakingPool(accounts.members[0].address, false, 5, 5, [], 'ipfs hash');
+  await cover.createStakingPool(false, 5, 5, [], 'ipfs hash');
 
   const stakingPool = await ethers.getContractAt('StakingPool', ret[1]);
+  tokenController.setStakingPoolManager(1 /* poolID */, accounts.members[0].address);
 
   const config = {
     REWARD_BONUS_PER_TRANCHE_RATIO: await stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO(),

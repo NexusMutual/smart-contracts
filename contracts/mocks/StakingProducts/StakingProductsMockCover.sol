@@ -151,7 +151,6 @@ contract StakingProductsMockCover {
 
   function initializeStaking(
     address staking_,
-    address _manager,
     bool _isPrivatePool,
     uint _initialPoolFee,
     uint _maxPoolFee,
@@ -160,7 +159,6 @@ contract StakingProductsMockCover {
   ) external {
 
     IStakingPool(staking_).initialize(
-      _manager,
       _isPrivatePool,
       _initialPoolFee,
       _maxPoolFee,
@@ -172,7 +170,6 @@ contract StakingProductsMockCover {
   error TargetPriceBelowGlobalMinPriceRatio();
 
   function createStakingPool(
-    address manager,
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,
@@ -194,7 +191,6 @@ contract StakingProductsMockCover {
     (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(address(this));
 
     IStakingPool(stakingPoolAddress).initialize(
-      manager,
       isPrivatePool,
       initialPoolFee,
       maxPoolFee,

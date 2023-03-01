@@ -611,8 +611,11 @@ describe('V2 upgrade', function () {
     ).to.be.equal(0);
   });
 
-  // TODO: add MCR value check
-  it('MCR Value check', async function () {});
+  it('MCR Value check', async function () {
+    const mcrValueAfter = await this.mcr.getMCR();
+
+    expect(mcrValueAfter).to.be.equal(this.mcrValueBefore);
+  });
 
   it('Cleanup storage in MemberRoles', async function () {
     const claimPayableAddressSlot = 15;

@@ -1,7 +1,11 @@
 const {
   ethers,
   ethers: { deployContract },
+  artifacts,
 } = require('hardhat');
+const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
+const { keccak256 } = require('ethereum-cryptography/keccak');
+
 const { parseEther, defaultAbiCoder, toUtf8Bytes, getCreate2Address } = ethers.utils;
 const { expect } = require('chai');
 const { AddressZero, MaxUint256 } = ethers.constants;
@@ -25,17 +29,26 @@ const { proposalCategories } = require('../utils');
 
 const { DAI_ADDRESS, STETH_ADDRESS } = Address;
 const { NXM_WHALE_1, NXM_WHALE_2, DAI_NXM_HOLDER, NXMHOLDER } = UserAddress;
-const { ENZYMEV4_VAULT_PROXY_ADDRESS, ENZYME_COMPTROLLER_PROXY_ADDRESS, ENZYME_ADDRESS_LIST_REGISTRY } = EnzymeAdress;
+const { ENZYMEV4_VAULT_PROXY_ADDRESS } = EnzymeAdress;
 const {
   DAI_PRICE_FEED_ORACLE_AGGREGATOR,
   STETH_PRICE_FEED_ORACLE_AGGREGATOR,
   ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
 } = PriceFeedOracle;
 
-let ybDAI, ybETH, ybEthProductId, ybDaiProductId, ybDaiCoverId, ybEthCoverId, ybDaiAssessmentId, ybEthAssessmentId;
+let ybDAI, ybETH, ybEthProductId, ybDaiProductId, ybDaiCoverId, ybEthCoverId;
 let poolId;
 let trancheId;
 let tokenId;
+
+async function calculateStakingPoolAddressArgs() {
+  const { bytecode } = await artifacts.readArtifact('MinimalBeaconProxy');
+  const bytecodeHash = bytesToHex(keccak256(hexToBytes(bytecode.replace(/^0x/i, ''))));
+
+  const salt = Buffer.from(poolId.toString(16).padStart(64, '0'), 'hex');
+  const initCodeHash = Buffer.from(bytecodeHash, 'hex');
+  return { salt, initCodeHash };
+}
 
 async function compareProxyImplementationAddress(proxyAddress, addressToCompare) {
   const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
@@ -238,9 +251,7 @@ describe('basic functionality tests', function () {
     poolId = stakingPoolCountAfter.toNumber();
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
 
-    const salt = Buffer.from(poolId.toString(16).padStart(64, '0'), 'hex');
-    // TODO: calculate hash
-    const initCodeHash = Buffer.from('203b477dc328f1ceb7187b20e5b1b0f0bc871114ada7e9020c9ac112bbfb6920', 'hex');
+    const { salt, initCodeHash } = calculateStakingPoolAddressArgs();
     const address = getCreate2Address(this.stakingPoolFactory.address, salt, initCodeHash);
 
     this.stakingPool = await ethers.getContractAt('StakingPool', address);

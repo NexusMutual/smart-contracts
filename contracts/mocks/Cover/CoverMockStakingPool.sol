@@ -34,6 +34,7 @@ contract CoverMockStakingPool is IStakingPool {
 
   uint internal poolId;
 
+  string public ipfsHash;
   uint public burnStakeCalledWithAmount;
   BurnStakeParams public burnStakeCalledWithParams;
 
@@ -53,12 +54,13 @@ contract CoverMockStakingPool is IStakingPool {
     uint _initialPoolFee,
     uint _maxPoolFee,
     uint _poolId,
-    string calldata /* ipfsDescriptionHash */
+    string calldata _ipfsDescriptionHash /* ipfsDescriptionHash */
   ) external {
-    _isPrivatePool;
-    _initialPoolFee;
-    _maxPoolFee;
-    poolId = _poolId;
+    isPrivatePool = _isPrivatePool;
+    poolFee = uint8(_initialPoolFee);
+    maxPoolFee = uint8(_maxPoolFee);
+    poolId = uint40(_poolId);
+    ipfsHash = _ipfsDescriptionHash;
   }
 
   function requestAllocation(
@@ -217,12 +219,12 @@ contract CoverMockStakingPool is IStakingPool {
     return (0, 0, 0);
   }
 
-  function getMaxPoolFee() external pure returns (uint) {
-    return 0;
+  function getMaxPoolFee() external view returns (uint) {
+    return maxPoolFee;
   }
 
-  function getPoolFee() external pure returns (uint) {
-    return 0;
+  function getPoolFee() external view returns (uint) {
+    return poolFee;
   }
 
   function getPoolId() external view returns (uint) {

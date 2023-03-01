@@ -76,6 +76,9 @@ async function setup() {
 
   const accounts = await getAccounts();
 
+  const pooledStakingSigner = accounts.members[4];
+  await master.setLatestAddress(hex('PS'), pooledStakingSigner.address);
+
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);
     await memberRoles.setRole(member.address, Role.Member);
@@ -185,8 +188,10 @@ async function setup() {
   this.capacityFactor = capacityFactor;
   this.stakingPoolImplementation = stakingPoolImplementation;
   this.stakingPoolFactory = stakingPoolFactory;
+  this.stakingProducts = stakingProducts;
   this.config = { GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO };
   this.assets = Assets;
+  this.pooledStakingSigner = pooledStakingSigner;
 }
 
 module.exports = setup;

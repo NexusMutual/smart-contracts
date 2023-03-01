@@ -500,9 +500,18 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint maxPoolFee,
     ProductInitializationParams[] memory productInitParams,
     string calldata ipfsDescriptionHash
-  ) external whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+  ) external whenNotPaused returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
 
     if (msg.sender != master.getLatestAddress("PS")) {
+
+      // TODO: replace this with onlyMember modifier after the v2 release
+      require(
+        IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(
+          msg.sender,
+          uint(IMemberRoles.Role.Member)
+        ),
+        "Caller is not a member"
+      );
 
       // override with initial price
       for (uint i = 0; i < productInitParams.length; i++) {

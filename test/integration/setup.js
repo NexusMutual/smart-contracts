@@ -1,4 +1,3 @@
-const { BigNumber } = require('ethers');
 const { ethers } = require('hardhat');
 
 const { ContractTypes } = require('../utils').constants;
@@ -7,6 +6,7 @@ const { proposalCategories } = require('../utils');
 const { getAccounts } = require('../utils').accounts;
 const { enrollMember } = require('./utils/enroll');
 
+const { BigNumber } = ethers;
 const { parseEther, parseUnits } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 

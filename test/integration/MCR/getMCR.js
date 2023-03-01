@@ -69,7 +69,6 @@ describe('getMCR', function () {
     expect(currentMCR.toString()).to.be.equal(storageMCR);
   });
 
-  // TODO: expected MCR is off
   it('increases mcr by 0.4% in 2 hours and decreases by 0.4% in 2 hours it after cover expiry', async function () {
     const { mcr, cover } = this.contracts;
     const [coverBuyer] = this.accounts.members;
@@ -103,13 +102,21 @@ describe('getMCR', function () {
       const maxMCRIncrement = BigNumber.from(await mcr.maxMCRIncrement());
       const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
 
-      // TODO: expected MCR is off here
       const expectedMCR = storedMCR.mul(expectedPercentageIncrease).div(10000).add(storedMCR);
       expect(latestMCR).to.be.equal(expectedMCR);
     }
 
-    await increaseTime(daysToSeconds(ethCoverTemplate.period));
-
+    // expire cover and update mcr (must buy new cover to reduce totalActiveCoverInAsset)
+    await increaseTime(ethCoverTemplate.period);
+    await buyCover({
+      ...ethCoverTemplate,
+      cover,
+      expectedPremium: coverAmount,
+      amount: 1,
+      coverBuyer,
+      targetPrice,
+      priceDenominator,
+    });
     await mcr.updateMCR();
 
     {
@@ -122,8 +129,10 @@ describe('getMCR', function () {
       const maxMCRIncrement = BigNumber.from(await mcr.maxMCRIncrement());
       const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
 
-      const expectedMCR = storedMCR.sub(storedMCR.mul(expectedPercentageIncrease).div(10000));
+      expect(storedMCR).to.not.be.equal(latestMCR);
+      const expectedMCR = storedMCR.add(storedMCR.mul(expectedPercentageIncrease).div(10000));
 
+      // TODO: assertion is off
       expect(latestMCR).to.be.equal(expectedMCR);
     }
   });

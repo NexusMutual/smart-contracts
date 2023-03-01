@@ -70,7 +70,7 @@ async function buyCover(productId, poolId, cover, buyer, amount, period, payment
 
   // Calculate premium for productId 0
   const NXM_PER_ALLOCATION_UNIT = await cover.NXM_PER_ALLOCATION_UNIT();
-  const ALLOCATION_UNITS_PER_NXM = await cover.ALLOCATION_UNITS_PER_NXM();
+  const ALLOCATION_UNITS_PER_NXM = 100;
   const TARGET_PRICE_DENOMINATOR = await stakingProducts.TARGET_PRICE_DENOMINATOR();
   const [expectedPremium] = await stakingProducts.calculatePremium(
     stakedProduct, // staked product

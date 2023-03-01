@@ -33,7 +33,7 @@ const {
   ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
 } = PriceFeedOracle;
 
-let ybDAI, ybETH, ybEthProductId, ybDaiProductId, ybDaiCoverId, ybEthCoverId;
+let ybDAI, ybETH, ybEthProductId, ybDaiProductId; // ybDaiCoverId, ybEthCoverId;
 let poolId;
 let trancheId;
 let tokenId;
@@ -312,7 +312,7 @@ describe('basic functionality tests', function () {
     );
 
     const coverCountAfter = await this.cover.coverDataCount();
-    ybDaiCoverId = coverCountBefore;
+    // ybDaiCoverId = coverCountBefore;
 
     expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
   });
@@ -348,7 +348,7 @@ describe('basic functionality tests', function () {
     );
 
     const coverCountAfter = await this.cover.coverDataCount();
-    ybEthCoverId = coverCountBefore;
+    // ybEthCoverId = coverCountBefore;
 
     expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
   });

@@ -106,9 +106,6 @@ interface IStakingProducts {
   error OnlyCoverContract();
   error OnlyManager();
 
-  // Inputs
-  error InvalidStakingPool();
-
   // Products & weights
   error PoolNotAllowedForThisProduct();
   error MustSetPriceForNewProducts();

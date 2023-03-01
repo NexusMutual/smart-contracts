@@ -1,10 +1,34 @@
 const { ethers } = require('hardhat');
-const { parseEther } = ethers.utils;
+const { parseEther, getContractAddress } = ethers.utils;
+const { AddressZero } = ethers.constants;
 const { getAccounts } = require('../utils').accounts;
 const { setEtherBalance } = require('../utils').evm;
 const { Role } = require('../utils').constants;
+const { expect } = require('chai');
+const { hex } = require('../utils').helpers;
 
+const initialProductTemplate = {
+  productId: 0,
+  weight: 100, // 1.00
+  initialPrice: 500, // 5%
+  targetPrice: 100, // 1%
+};
+
+const coverProductTemplate = {
+  productType: 1,
+  yieldTokenAddress: AddressZero,
+  coverAssets: 1111,
+  initialPriceRatio: 500,
+  capacityReductionRatio: 0,
+  useFixedPrice: false,
+};
+
+const ProductTypeFixture = {
+  claimMethod: 1,
+  gracePeriod: 7 * 24 * 3600, // 7 days
+};
 async function setup() {
+  const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
   const memberRoles = await ethers.deployContract('MemberRolesMock');
   const tokenController = await ethers.deployContract('TokenControllerMock');
@@ -14,54 +38,73 @@ async function setup() {
   const mcr = await ethers.deployContract('CoverMockMCR');
   await mcr.setMCR(parseEther('600000'));
 
-  // TODO: move to separate folder
-  const multicallMock = await ethers.deployContract('MulticallMock');
-
-  const cover = await ethers.deployContract('SPMockCover');
   const stakingNFT = await ethers.deployContract('SPMockStakingNFT');
-  const spf = await ethers.deployContract('StakingPoolFactory', [cover.address]);
-  const stakingProducts = await ethers.deployContract('SPMockStakingProducts', [cover.address, spf.address]);
 
-  const stakingPool = await ethers.deployContract('StakingPool', [
+  const nonce = (await accounts.defaultSender.getTransactionCount()) + 4;
+  const expectedCoverAddress = getContractAddress({ from: accounts.defaultSender.address, nonce });
+  const coverNFT = await ethers.deployContract('CoverNFT', ['CoverNFT', 'CNFT', expectedCoverAddress]);
+  const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [expectedCoverAddress]);
+  const stakingProducts = await ethers.deployContract('StakingProducts', [
+    expectedCoverAddress,
+    stakingPoolFactory.address,
+  ]);
+  const stakingPoolImplementation = await ethers.deployContract('StakingPool', [
     stakingNFT.address,
     nxm.address,
-    cover.address,
+    expectedCoverAddress,
     tokenController.address,
     master.address,
     stakingProducts.address,
   ]);
+  const cover = await ethers.deployContract('StakingProductsMockCover', [
+    coverNFT.address,
+    stakingNFT.address,
+    stakingPoolFactory.address,
+    stakingPoolImplementation.address,
+  ]);
+  expect(cover.address).to.equal(expectedCoverAddress);
 
-  await nxm.setOperator(tokenController.address);
+  // set contract addresses
+  await master.setTokenAddress(nxm.address);
+  await master.setLatestAddress(hex('MR'), memberRoles.address);
+  await master.setLatestAddress(hex('CO'), cover.address);
+  await master.setLatestAddress(hex('TC'), tokenController.address);
+  await master.setLatestAddress(hex('MC'), mcr.address);
+  await master.setLatestAddress(hex('SP'), stakingProducts.address);
   await tokenController.setContractAddresses(cover.address, nxm.address);
-  await cover.setStakingPool(stakingPool.address, 0);
-
-  await master.enrollInternal(cover.address);
-  await tokenController.changeMasterAddress(master.address);
+  await master.setTokenAddress(nxm.address);
+  await master.enrollInternal(accounts.defaultSender.address);
   await stakingProducts.changeMasterAddress(master.address);
-
-  const accounts = await getAccounts();
+  await nxm.setOperator(tokenController.address);
 
   for (const member of accounts.members) {
-    const amount = ethers.constants.MaxUint256.div(100);
     await master.enrollMember(member.address, Role.Member);
     await memberRoles.setRole(member.address, Role.Member);
-    await nxm.mint(member.address, amount);
-    await nxm.connect(member).approve(tokenController.address, amount);
-  }
-
-  for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
-    await master.enrollMember(advisoryBoardMember.address, Role.AdvisoryBoard);
-    await memberRoles.setRole(advisoryBoardMember.address, Role.AdvisoryBoard);
   }
 
   for (const internalContract of accounts.internalContracts) {
     await master.enrollInternal(internalContract.address);
   }
 
-  // there is only one in reality, but it doesn't matter
-  for (const governanceContract of accounts.governanceContracts) {
-    await master.enrollGovernance(governanceContract.address);
-  }
+  // Set 21 products in cover
+  let i = 0;
+  const initialProducts = Array(21)
+    .fill('')
+    .map(() => ({ ...initialProductTemplate, productId: i++ }));
+  // Add products to cover contract
+  await Promise.all(
+    initialProducts.map(({ productId, initialPrice: initialPriceRatio }) => [
+      cover.setProduct({ ...coverProductTemplate, initialPriceRatio }, productId),
+      cover.setProductType(ProductTypeFixture, productId),
+      cover.setPoolAllowed(productId, 1 /* poolID */, true),
+    ]),
+  );
+  const ret = await cover.callStatic.createStakingPool(false, 5, 5, [], 'ipfs hash');
+
+  await cover.createStakingPool(false, 5, 5, [], 'ipfs hash');
+
+  const stakingPool = await ethers.getContractAt('StakingPool', ret[1]);
+  tokenController.setStakingPoolManager(1 /* poolID */, accounts.members[0].address);
 
   const config = {
     REWARD_BONUS_PER_TRANCHE_RATIO: await stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO(),
@@ -92,8 +135,6 @@ async function setup() {
   this.accounts = accounts;
   this.coverSigner = coverSigner;
   this.config = config;
-
-  this.multicall = multicallMock;
 
   this.tokenController = tokenController;
   this.master = master;

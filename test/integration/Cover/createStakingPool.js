@@ -25,7 +25,7 @@ describe('createStakingPool', function () {
 
   it('should create a private staking pool', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, spf, stakingNFT } = this.contracts;
+    const { cover, spf, stakingNFT, tc: tokenController } = this.contracts;
     const [manager, staker] = this.accounts.members;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -57,11 +57,16 @@ describe('createStakingPool', function () {
     await expect(
       stakingPool.connect(staker).depositTo(deposit, trancheId, 0, AddressZero), // new deposit
     ).to.be.revertedWithCustomError(stakingPool, 'PrivatePool');
+
+    // check that manager was set in tokenController
+    expect(await tokenController.isStakingPoolManager(manager.address)).to.be.equal(true);
+    expect(await tokenController.getManagerStakingPools(manager.address)).to.be.deep.equal([stakingPoolCountAfter]);
+    expect(await tokenController.getStakingPoolManager(stakingPoolCountAfter)).to.be.equal(manager.address);
   });
 
   it('should create a public staking pool', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, spf, stakingNFT } = this.contracts;
+    const { cover, spf, stakingNFT, tc: tokenController } = this.contracts;
     const [manager, staker] = this.accounts.members;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -95,5 +100,25 @@ describe('createStakingPool', function () {
 
     const stakerStakingPoolNFTBalance = await stakingNFT.balanceOf(staker.address);
     expect(stakerStakingPoolNFTBalance).to.be.equal(1);
+
+    // check that manager was set in tokenController
+    expect(await tokenController.isStakingPoolManager(manager.address)).to.be.equal(true);
+    expect(await tokenController.getManagerStakingPools(manager.address)).to.be.deep.equal([stakingPoolCountAfter]);
+    expect(await tokenController.getStakingPoolManager(stakingPoolCountAfter)).to.be.equal(manager.address);
+  });
+
+  it('should revert if called by a non member', async function () {
+    const { cover } = this.contracts;
+    const [nonMember] = this.accounts.nonMembers;
+
+    await expect(
+      cover.connect(nonMember).createStakingPool(
+        false, // isPrivatePool,
+        DEFAULT_POOL_FEE, // initialPoolFee
+        DEFAULT_POOL_FEE, // maxPoolFee,
+        [], // products
+        '', // ipfsDescriptionHash
+      ),
+    ).to.be.revertedWith('Caller is not a member');
   });
 });

@@ -579,39 +579,6 @@ describe('buyCover', function () {
     ).to.be.revertedWithCustomError(cover, 'CoverAmountIsZero');
   });
 
-  // TODO: The logic has been moved in StakingPool.sol and this test will have to be moved as well.
-  it.skip('should revert when the allocated cover amount is less than the expected cover amount', async function () {
-    const { cover } = this;
-
-    const {
-      members: [member1],
-      members: [coverBuyer1],
-    } = this.accounts;
-
-    const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
-    const tooLargeExpectedAmount = amount.add(10);
-
-    await expect(
-      cover.connect(member1).buyCover(
-        {
-          coverId: 0,
-          owner: coverBuyer1.address,
-          productId,
-          coverAsset,
-          amount: tooLargeExpectedAmount,
-          period,
-          maxPremiumInAsset: expectedPremium,
-          paymentAsset: coverAsset,
-          commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
-          ipfsData: '',
-        },
-        poolAllocationRequest,
-        { value: expectedPremium },
-      ),
-    ).to.be.revertedWith('Cover: The selected pools ran out of capacity');
-  });
-
   it('reverts if system is paused', async function () {
     const { cover, master } = this;
     const [coverBuyer] = this.accounts.members;
@@ -1080,56 +1047,6 @@ describe('buyCover', function () {
     expect(ownerOfCoverId).to.be.equal(nonMemberCoverReceiver.address);
   });
 
-  // TODO: To be reenabled after rewards minting is reintroduced either in the
-  //  Cover contract, or in the StakingPool contract
-  it.skip('mints rewards to staking pool', async function () {
-    const { cover, tokenController } = this;
-
-    const {
-      governanceContracts: [gv1],
-      members: [coverBuyer, coverReceiver],
-    } = this.accounts;
-
-    const { amount, productId, coverAsset, period, poolId, targetPriceRatio, priceDenominator } = buyCoverFixture;
-
-    const globalRewardsRatio = 5000;
-    const rewardDenominator = 10000;
-
-    await cover.connect(gv1).updateUintParameters([1], [globalRewardsRatio]);
-
-    const stakingPoolRewardBefore = await tokenController.stakingPoolNXMBalances(poolId);
-
-    const expectedPremium = amount
-      .mul(targetPriceRatio)
-      .div(priceDenominator)
-      .mul(period)
-      .div(3600 * 24 * 365);
-
-    const expectedReward = expectedPremium.mul(globalRewardsRatio).div(rewardDenominator);
-
-    await cover.connect(coverBuyer).buyCover(
-      {
-        coverId: 0,
-        owner: coverReceiver.address,
-        productId,
-        coverAsset,
-        amount,
-        period,
-        maxPremiumInAsset: expectedPremium,
-        paymentAsset: coverAsset,
-        commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
-        ipfsData: '',
-      },
-      poolAllocationRequest,
-      { value: expectedPremium },
-    );
-
-    const stakingPoolRewardAfter = await tokenController.stakingPoolNXMBalances(poolId);
-    // validate that rewards increased
-    expect(stakingPoolRewardAfter.rewards).to.be.equal(stakingPoolRewardBefore.rewards.add(expectedReward));
-  });
-
   // TODO: To be reenabled after rewards minting is reintroduced either in the Cover contract,
   //  or in the StakingPool contract
   it.skip('allows to buy against multiple staking pool', async function () {
@@ -1208,8 +1125,8 @@ describe('buyCover', function () {
       { value: expectedPremium },
     );
 
-    const stakingPool1After = await tokenController.stakingPoolNXMBalances(0);
-    const stakingPool2After = await tokenController.stakingPoolNXMBalances(1);
+    const stakingPool1After = await tokenController.stakingPoolNXMBalances(1);
+    const stakingPool2After = await tokenController.stakingPoolNXMBalances(2);
     const stakingPool3After = await tokenController.stakingPoolNXMBalances(3);
 
     // validate that rewards increased

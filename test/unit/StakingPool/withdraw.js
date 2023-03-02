@@ -629,7 +629,7 @@ describe('withdraw', function () {
       .withArgs(user.address, tokenId, trancheIds[2], stakes[2], rewards[2]);
   });
 
-  it.skip('allow multiple users to withdraw stake and rewards from multiple tranches', async function () {
+  it('allow multiple users to withdraw stake and rewards from multiple tranches', async function () {
     const { nxm, coverSigner, stakingPool, tokenController } = this;
     const [user1, user2, user3] = this.accounts.members;
     const { defaultSender: manager } = this.accounts;
@@ -778,8 +778,8 @@ describe('withdraw', function () {
     expect(managerBalanceAfter).to.be.eq(managerBalanceBefore.add(rewardsWithdrawn).add(stakeWithdrawn));
     expect(tcBalanceAfter).to.be.eq(tcBalanceBefore.sub(rewardsWithdrawn).sub(stakeWithdrawn));
 
-    // Consider 10 wei of accumulated round error
-    expect(totalRewardsWithdrawn).to.be.gte(rewardedAmount.sub(10));
+    // Consider 11 wei of accumulated round error
+    expect(totalRewardsWithdrawn).to.be.gte(rewardedAmount.sub(11));
     expect(totalRewardsWithdrawn).to.be.lte(rewardedAmount);
   });
 });

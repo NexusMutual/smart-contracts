@@ -464,7 +464,7 @@ describe('requestAllocation', function () {
     }
   });
 
-  it.skip('correctly updates last bucket id in each active group', async function () {
+  it('correctly updates last bucket id in each active group', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
 
@@ -478,7 +478,7 @@ describe('requestAllocation', function () {
     const currentBucketId = await getCurrentBucket();
 
     const firstGroupId = Math.floor(currentTrancheId / COVER_TRANCHE_GROUP_SIZE);
-    const lastGroupId = (currentTrancheId + MAX_ACTIVE_TRANCHES - 1) / COVER_TRANCHE_GROUP_SIZE;
+    const lastGroupId = Math.floor((currentTrancheId + MAX_ACTIVE_TRANCHES - 1) / COVER_TRANCHE_GROUP_SIZE);
     const groupCount = lastGroupId - firstGroupId + 1;
 
     for (let i = 0; i < groupCount; i++) {
@@ -1488,5 +1488,46 @@ describe('requestAllocation', function () {
         capacityReductionRatio: 0,
       }),
     ).to.not.be.reverted;
+  });
+
+  it('mints rewards to staking pool', async function () {
+    const { tokenController, stakingPool, stakingProducts } = this;
+    const { REWARDS_DENOMINATOR, PRICE_CHANGE_PER_DAY } = this.config;
+    const [user] = this.accounts.members;
+    const { rewardRatio } = allocationRequestParams;
+
+    const currentTrancheId = await moveTimeToNextTranche(1);
+    const stakedAmount = parseEther('100');
+    await stakingPool.connect(user).depositTo(stakedAmount, currentTrancheId, 0, AddressZero);
+
+    // setup allocation request
+    const amount = parseEther('13');
+    const stakingPoolRewardBefore = await tokenController.stakingPoolNXMBalances(poolId);
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const expirationBucket = Math.ceil((currentTimestamp + allocationRequestParams.period) / BUCKET_DURATION);
+
+    // request allocation
+    await stakingPool.connect(this.coverSigner).requestAllocation(amount, 0 /* previousPremium */, {
+      ...allocationRequestParams,
+    });
+
+    // calculate premiums
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const expectedBasePrice = calculateBasePrice(
+      timestamp,
+      await stakingProducts.getProduct(1 /* poolId */, allocationRequestParams.productId),
+      PRICE_CHANGE_PER_DAY,
+    );
+    const premium = calculateBasePremium(amount, expectedBasePrice, allocationRequestParams.period, this.config);
+
+    // calculate rewards
+    const rewardStreamPeriod = BigNumber.from(expirationBucket).mul(BUCKET_DURATION).sub(timestamp);
+    const rewards = premium.mul(rewardRatio).div(REWARDS_DENOMINATOR);
+    const expectedRewardPerSecond = rewards.div(rewardStreamPeriod);
+    const expectedRewards = expectedRewardPerSecond.mul(rewardStreamPeriod);
+
+    // validate that rewards increased
+    const stakingPoolRewardAfter = await tokenController.stakingPoolNXMBalances(poolId);
+    expect(stakingPoolRewardAfter.rewards).to.be.equal(stakingPoolRewardBefore.rewards.add(expectedRewards));
   });
 });

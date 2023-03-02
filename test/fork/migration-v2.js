@@ -588,21 +588,6 @@ describe('V2 upgrade', function () {
     this.claimsReward = newClaimsReward;
   });
 
-  it('Remove CR, CD, IC, QD, QT, TF, TD, P2, PD', async function () {
-    const contractsBefore = await this.master.getInternalContracts();
-
-    await submitGovernanceProposal(
-      PROPOSAL_CATEGORIES.removeContracts, // removeContracts(bytes2[])
-      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
-      this.abMembers,
-      this.governance,
-    );
-
-    const contractsAfter = await this.master.getInternalContracts();
-    console.log('Contracts before:', formatInternalContracts(contractsBefore));
-    console.log('Contracts after:', formatInternalContracts(contractsAfter));
-  });
-
   it('Pool value check', async function () {
     const poolValueAfter = await this.pool.getPoolValueInEth();
     const poolValueDiff = poolValueAfter.sub(this.poolValueBefore);
@@ -718,6 +703,21 @@ describe('V2 upgrade', function () {
       const memberBalanceAfter = await this.nxm.balanceOf(member);
       expect(memberBalanceAfter.sub(memberBalanceBefore)).to.be.equal(0);
     }
+  });
+
+  it('Remove CR, CD, IC, QD, QT, TF, TD, P2, PD', async function () {
+    const contractsBefore = await this.master.getInternalContracts();
+
+    await submitGovernanceProposal(
+      PROPOSAL_CATEGORIES.removeContracts, // removeContracts(bytes2[])
+      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
+      this.abMembers,
+      this.governance,
+    );
+
+    const contractsAfter = await this.master.getInternalContracts();
+    console.log('Contracts before:', formatInternalContracts(contractsBefore));
+    console.log('Contracts after:', formatInternalContracts(contractsAfter));
   });
 
   it('Get CN locked amount', async function () {

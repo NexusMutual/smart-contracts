@@ -7,6 +7,7 @@ const QuoteEngine = require('./v1-quote-engine');
 
 const PRODUCT_ADDRESSES = require(path.join(__dirname, 'output/product-addresses.json'));
 const PRICES_CONTRACT_PATH = path.join(__dirname, '../../contracts/modules/legacy/PricesV1.sol');
+const CONTRACTS_URL = 'https://api.nexusmutual.io/coverables/contracts.json';
 
 const generatePricesCode = (priceMap, productIds) => {
   const prices = Object.keys(priceMap);
@@ -66,11 +67,21 @@ const main = async (provider, useCache = true) => {
   }
 
   const quoteEngine = await QuoteEngine(provider);
+  const coverables = await fetch(CONTRACTS_URL).then(r => r.json());
+  const deprecatedProducts = Object.entries(coverables)
+    .map(([address, product]) => ({ address, ...product }))
+    .filter(product => product.deprecated)
+    .map(product => product.address);
 
   console.log(`Processing ${PRODUCT_ADDRESSES.length} products`);
   const priceToProductMap = {};
 
   for (const productAddress of PRODUCT_ADDRESSES) {
+    if (deprecatedProducts.includes(productAddress)) {
+      console.log(`Skipping deprecated product ${productAddress}`);
+      continue;
+    }
+
     console.log(`Fetching price for ${productAddress}`);
     const price = await quoteEngine(productAddress);
 

@@ -881,6 +881,22 @@ describe('V2 upgrade', function () {
       this.pooledStaking.migrateToNewV2Pool('0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2'),
     ).to.be.revertedWith('You are not authorized to migrate this staker');
 
+    // id => address
+    const productAddresses = require(PRODUCT_ADDRESSES_OUTPUT_PATH).map(address => address.toLowerCase());
+
+    // address => id
+    const productIds = Object.fromEntries(productAddresses.map((address, i) => [address, i]));
+
+    console.log('Fetching product prices');
+    // id => price
+    const prices = await Promise.all(
+      // fetch price by v2 product id
+      productAddresses.map(async (_, id) => {
+        const price = await this.pooledStaking.getV1PriceForProduct(id);
+        return price.eq(MaxUint96) ? Zero : price;
+      }),
+    );
+
     console.log('Fetching stakers data before migration');
     const getStakerDataBefore = async staker => {
       const balance = await this.nxm.balanceOf(staker);
@@ -896,11 +912,19 @@ describe('V2 upgrade', function () {
         }),
       );
 
+      const filteredProducts = products
+        .filter(product => product.stake.gt(0))
+        .filter(product => {
+          const productId = productIds[product.productAddress];
+          const price = prices[productId] || Zero;
+          return !price.isZero();
+        });
+
       return {
         staker,
         balance,
         deposit,
-        products: products.filter(product => product.stake.gt(0)),
+        products: filteredProducts,
       };
     };
 
@@ -924,19 +948,6 @@ describe('V2 upgrade', function () {
     expect(await this.stakingNFT.totalSupply()).to.be.equal(expectedPoolConfigurations.length);
 
     const migratedDepositAmounts = {};
-
-    // id => address
-    const productAddresses = require(PRODUCT_ADDRESSES_OUTPUT_PATH).map(address => address.toLowerCase());
-
-    // address => id
-    const productIds = Object.fromEntries(productAddresses.map((address, i) => [address, i]));
-
-    console.log('Fetching product prices');
-    // id => price
-    const prices = await Promise.all(
-      // fetch price by v2 product id
-      productAddresses.map((_, id) => this.pooledStaking.getV1PriceForProduct(id)),
-    );
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const firstTrancheId = BigNumber.from(timestamp).div(91 * 24 * 3600);

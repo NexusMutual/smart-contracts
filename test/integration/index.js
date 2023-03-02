@@ -12,6 +12,7 @@ describe('INTEGRATION TESTS', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  require('./Assessment');
   require('./IndividualClaims');
   require('./YieldTokenIncidents');
   require('./Cover');

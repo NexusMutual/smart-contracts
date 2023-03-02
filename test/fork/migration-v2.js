@@ -202,27 +202,27 @@ describe('V2 upgrade', function () {
 
   // Generates ProductsV1.sol contract
   it('Generate ProductsV1.sol with all products to be migrated to V2', async function () {
-    await getProductAddresses();
+    await getProductAddresses(false);
   });
 
   it('Get V1 cover prices', async function () {
-    await getV1CoverPrices(ethers.provider);
+    await getV1CoverPrices(ethers.provider, false);
   });
 
   it('Get governance rewards', async function () {
-    await getGovernanceRewards(ethers.provider);
+    await getGovernanceRewards(ethers.provider, false);
   });
 
   it('Get claim assessment rewards and generate transfer calls in LegacyClaimsReward.sol', async function () {
-    await getClaimAssessmentRewards(ethers.provider);
+    await getClaimAssessmentRewards(ethers.provider, false);
   });
 
   it('Get claim assessment stakes', async function () {
-    await getClaimAssessmentStakes(ethers.provider);
+    await getClaimAssessmentStakes(ethers.provider, false);
   });
 
   it('Get TC locked amount', async function () {
-    await getTCLockedAmount(ethers.provider);
+    await getTCLockedAmount(ethers.provider, false);
   });
 
   it('Recompile contracts if needed', async function () {
@@ -428,8 +428,63 @@ describe('V2 upgrade', function () {
     );
   });
 
+  it('Add new contracts: CI, CG, AS, CO, SP', async function () {
+    const contractsBefore = await this.master.getInternalContracts();
+
+    const individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
+    const yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
+      this.nxm.address,
+      this.coverNFT.address,
+    ]);
+    const assessment = await ethers.deployContract('Assessment', [this.nxm.address]);
+
+    // CO - Cover.sol
+    const coverImpl = await ethers.deployContract('Cover', [
+      this.coverNFT.address,
+      this.stakingNFT.address,
+      this.stakingPoolFactory.address,
+      this.stakingPool.address,
+    ]);
+
+    // SP - StakingProduct.sol
+    const stakingProductsImpl = await ethers.deployContract('StakingProducts', [
+      this.coverProxyAddress,
+      this.stakingPool.address,
+    ]);
+
+    const coverTypeAndSalt = BigNumber.from(CoverCreate2Salt).shl(8).add(ContractTypes.Proxy);
+    const stakingProductsTypeAndSalt = BigNumber.from(StakingProductsCreate2Salt).shl(8).add(ContractTypes.Proxy);
+
+    await submitGovernanceProposal(
+      PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
+      defaultAbiCoder.encode(
+        ['bytes2[]', 'address[]', 'uint256[]'],
+        [
+          [toUtf8Bytes('CI'), toUtf8Bytes('CG'), toUtf8Bytes('AS'), toUtf8Bytes('CO'), toUtf8Bytes('SP')],
+          [individualClaims, yieldTokenIncidents, assessment, coverImpl, stakingProductsImpl].map(c => c.address),
+          [ContractTypes.Proxy, ContractTypes.Proxy, ContractTypes.Proxy, coverTypeAndSalt, stakingProductsTypeAndSalt],
+        ],
+      ),
+      this.abMembers,
+      this.governance,
+    );
+
+    this.cover = await ethers.getContractAt('Cover', this.coverProxyAddress);
+    this.stakingProducts = await ethers.getContractAt('StakingProducts', this.stakingProductsProxyAddress);
+
+    const contractsAfter = await this.master.getInternalContracts();
+    console.log('Contracts before:', formatInternalContracts(contractsBefore));
+    console.log('Contracts after:', formatInternalContracts(contractsAfter));
+
+    const actualCoverAddress = await this.master.getLatestAddress(toUtf8Bytes('CO'));
+    expect(actualCoverAddress).to.be.equal(this.coverProxyAddress);
+
+    const actualStakingProductsAddress = await this.master.getLatestAddress(toUtf8Bytes('SP'));
+    expect(actualStakingProductsAddress).to.be.equal(this.stakingProductsProxyAddress);
+  });
+
   // eslint-disable-next-line max-len
-  it('Deploy & upgrade: MR, MCR, TC, PS, PriceFeedOracle, P1, CL (CoverMigrator), GW, CR', async function () {
+  it('Upgrade contracts: MR, MCR, TC, PS, PriceFeedOracle, P1, CL (CoverMigrator), GW, CR', async function () {
     // CR - ClaimRewards.sol
     const newClaimsReward = await ethers.deployContract('LegacyClaimsReward', [this.master.address, DAI_ADDRESS]);
 
@@ -489,7 +544,7 @@ describe('V2 upgrade', function () {
     ]);
 
     // GW - Gateway.sol
-    const gateway = await ethers.deployContract('LegacyGateway');
+    const gateway = await ethers.deployContract('LegacyGateway', [this.quotationData.address]);
 
     const contractsBefore = await this.master.getInternalContracts();
 
@@ -531,6 +586,21 @@ describe('V2 upgrade', function () {
     this.gateway = await ethers.getContractAt('LegacyGateway', gatewayAddress);
 
     this.claimsReward = newClaimsReward;
+  });
+
+  it('Remove CR, CD, IC, QD, QT, TF, TD, P2, PD', async function () {
+    const contractsBefore = await this.master.getInternalContracts();
+
+    await submitGovernanceProposal(
+      PROPOSAL_CATEGORIES.removeContracts, // removeContracts(bytes2[])
+      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
+      this.abMembers,
+      this.governance,
+    );
+
+    const contractsAfter = await this.master.getInternalContracts();
+    console.log('Contracts before:', formatInternalContracts(contractsBefore));
+    console.log('Contracts after:', formatInternalContracts(contractsAfter));
   });
 
   it('Pool value check', async function () {
@@ -681,76 +751,6 @@ describe('V2 upgrade', function () {
     });
 
     expect(tcBalanceDiff).to.be.equal(cnLockedAmountSum);
-  });
-
-  it('Remove CR, CD, IC, QD, QT, TF, TD, P2, PD', async function () {
-    const contractsBefore = await this.master.getInternalContracts();
-
-    await submitGovernanceProposal(
-      PROPOSAL_CATEGORIES.removeContracts, // removeContracts(bytes2[])
-      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
-      this.abMembers,
-      this.governance,
-    );
-
-    const contractsAfter = await this.master.getInternalContracts();
-    console.log('Contracts before:', formatInternalContracts(contractsBefore));
-    console.log('Contracts after:', formatInternalContracts(contractsAfter));
-  });
-
-  it('Deploy & add: AS, IC, YT, CO, SP', async function () {
-    const contractsBefore = await this.master.getInternalContracts();
-
-    const individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
-    const yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
-      this.nxm.address,
-      this.coverNFT.address,
-    ]);
-    const assessment = await ethers.deployContract('Assessment', [this.nxm.address]);
-
-    // CO - Cover.sol
-    const coverImpl = await ethers.deployContract('Cover', [
-      this.coverNFT.address,
-      this.stakingNFT.address,
-      this.stakingPoolFactory.address,
-      this.stakingPool.address,
-    ]);
-
-    // SP - StakingProduct.sol
-    const stakingProductsImpl = await ethers.deployContract('StakingProducts', [
-      this.coverProxyAddress,
-      this.stakingPool.address,
-    ]);
-
-    const coverTypeAndSalt = BigNumber.from(CoverCreate2Salt).shl(8).add(ContractTypes.Proxy);
-    const stakingProductsTypeAndSalt = BigNumber.from(StakingProductsCreate2Salt).shl(8).add(ContractTypes.Proxy);
-
-    await submitGovernanceProposal(
-      PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
-      defaultAbiCoder.encode(
-        ['bytes2[]', 'address[]', 'uint256[]'],
-        [
-          [toUtf8Bytes('IC'), toUtf8Bytes('YT'), toUtf8Bytes('AS'), toUtf8Bytes('CO'), toUtf8Bytes('SP')],
-          [individualClaims, yieldTokenIncidents, assessment, coverImpl, stakingProductsImpl].map(c => c.address),
-          [ContractTypes.Proxy, ContractTypes.Proxy, ContractTypes.Proxy, coverTypeAndSalt, stakingProductsTypeAndSalt],
-        ],
-      ),
-      this.abMembers,
-      this.governance,
-    );
-
-    this.cover = await ethers.getContractAt('Cover', this.coverProxyAddress);
-    this.stakingProducts = await ethers.getContractAt('StakingProducts', this.stakingProductsProxyAddress);
-
-    const contractsAfter = await this.master.getInternalContracts();
-    console.log('Contracts before:', formatInternalContracts(contractsBefore));
-    console.log('Contracts after:', formatInternalContracts(contractsAfter));
-
-    const actualCoverAddress = await this.master.getLatestAddress(toUtf8Bytes('CO'));
-    expect(actualCoverAddress).to.be.equal(this.coverProxyAddress);
-
-    const actualStakingProductsAddress = await this.master.getLatestAddress(toUtf8Bytes('SP'));
-    expect(actualStakingProductsAddress).to.be.equal(this.stakingProductsProxyAddress);
   });
 
   it('Call function to initialize Cover.sol', async function () {

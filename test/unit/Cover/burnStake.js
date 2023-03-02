@@ -158,13 +158,10 @@ describe('burnStake', function () {
   });
 
   it('should perform a burn with globalCapacityRatio when the cover was bought', async function () {
-    const GLOBAL_CAPACITY_RATIO = 30000;
-    const { cover, accounts } = this;
+    const { cover } = this;
     const [internal] = this.accounts.internalContracts;
     const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
-
-    await cover.connect(accounts.governanceContracts[0]).updateUintParameters([0], [GLOBAL_CAPACITY_RATIO]);
 
     const payoutAmountInAsset = amount.div(2);
     const remainingAmount = amount.sub(payoutAmountInAsset);

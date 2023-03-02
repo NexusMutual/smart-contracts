@@ -53,8 +53,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   /* ========== CONSTANTS ========== */
 
-  uint private constant GLOBAL_CAPACITY_RATIO = 20000;
-  uint private constant GLOBAL_REWARDS_RATIO = 5000;
+  uint private constant GLOBAL_CAPACITY_RATIO = 20000; // 2
+  uint private constant GLOBAL_REWARDS_RATIO = 5000; // 50%
 
   uint private constant PRICE_DENOMINATOR = 10000;
   uint private constant COMMISSION_DENOMINATOR = 10000;

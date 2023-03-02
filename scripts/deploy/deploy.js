@@ -251,7 +251,6 @@ async function main() {
     spf.address,
     stakingPool.address,
   ]);
-  await cover.initialize();
 
   console.log('Deploying CoverViewer');
   await deployImmutable('CoverViewer', [master.address]);

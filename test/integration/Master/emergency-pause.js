@@ -150,7 +150,7 @@ describe('emergency pause', function () {
 
   it('stops claim payouts on redeemPayout', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as, master } = this.contracts;
+    const { ci, cover, stakingPool1, as, master } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
     const emergencyAdmin = this.accounts.emergencyAdmin;
 
@@ -192,8 +192,8 @@ describe('emergency pause', function () {
     // Submit claim
     const coverId = 1;
     const claimAmount = amount;
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -204,12 +204,12 @@ describe('emergency pause', function () {
     await master.connect(emergencyAdmin).setEmergencyPause(true);
 
     // redeem payout
-    await expect(ic.redeemClaimPayout(0)).to.be.revertedWith('System is paused');
+    await expect(ci.redeemClaimPayout(0)).to.be.revertedWith('System is paused');
   });
 
   it('stops claim voting', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as, master } = this.contracts;
+    const { ci, cover, stakingPool1, as, master } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const emergencyAdmin = this.accounts.emergencyAdmin;
 
@@ -251,8 +251,8 @@ describe('emergency pause', function () {
     // Submit claim
     const coverId = 1;
     const claimAmount = amount;
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 

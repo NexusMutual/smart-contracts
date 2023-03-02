@@ -195,9 +195,6 @@ async function main() {
   console.log('Deploying disposable Governance');
   const gv = await deployProxy('DisposableGovernance', [], { overrides: { gasLimit: 12e6 } });
 
-  console.log('Deploying disposable LegacyGateway');
-  const gw = await deployProxy('DisposableGateway');
-
   console.log('Deploying LegacyClaimsReward');
   const cr = await deployImmutable('LegacyClaimsReward', [master.address, dai.address]);
 
@@ -205,6 +202,9 @@ async function main() {
   // Replaced LegacyQuotationData with TestnetQuotationData for ability to create old v1 covers locally
   const qd = await deployImmutable('TestnetQuotationData', [owner, owner]);
   await qd.changeMasterAddress(master.address);
+
+  console.log('Deploying disposable LegacyGateway');
+  const gw = await deployProxy('DisposableGateway', [qd.address]);
 
   console.log('Deploying ProductsV1');
   const productsV1 = await deployImmutable('ProductsV1');
@@ -260,8 +260,8 @@ async function main() {
   await deployImmutable('StakingViewer', [master.address, stakingNFT.address, spf.address, stakingProducts.address]);
 
   console.log('Deploying assessment contracts');
-  const yt = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
-  const ic = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
+  const cg = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
+  const ci = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
   const assessment = await deployProxy('DisposableAssessment', []);
   const coverMigrator = await deployProxy('CoverMigrator', [qd.address, productsV1.address]);
 
@@ -358,7 +358,7 @@ async function main() {
   const replaceableContractCodes = ['MC', 'P1', 'CL'];
   const replaceableContractAddresses = [mcr, pool, coverMigrator].map(x => x.address);
 
-  const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'YT', 'IC', 'AS', 'SP'];
+  const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'CG', 'CI', 'AS', 'SP'];
   const proxyContractAddresses = [
     { address: owner }, // as governance
     mr,
@@ -367,8 +367,8 @@ async function main() {
     tc,
     gw,
     cover,
-    yt,
-    ic,
+    cg,
+    ci,
     assessment,
     stakingProducts,
   ].map(x => x.address);
@@ -434,8 +434,11 @@ async function main() {
     600, // unstake lock time
   );
 
+  console.log('Initializing IndividualClaims');
+  await ci.initialize();
+
   console.log('Initializing YieldTokenIncidents');
-  await yt.initialize();
+  await cg.initialize();
 
   console.log('Initializing LegacyGateway');
   await gw.initialize(master.address, dai.address);
@@ -499,9 +502,9 @@ async function main() {
   await upgradeProxy(pc.address, 'ProposalCategory');
   await upgradeProxy(master.address, 'NXMaster');
   await upgradeProxy(gv.address, 'Governance');
-  await upgradeProxy(gw.address, 'LegacyGateway');
-  await upgradeProxy(ic.address, 'IndividualClaims', [tk.address, coverNFT.address]);
-  await upgradeProxy(yt.address, 'YieldTokenIncidents', [tk.address, coverNFT.address]);
+  await upgradeProxy(gw.address, 'LegacyGateway', [qd.address]);
+  await upgradeProxy(ci.address, 'IndividualClaims', [tk.address, coverNFT.address]);
+  await upgradeProxy(cg.address, 'YieldTokenIncidents', [tk.address, coverNFT.address]);
   await upgradeProxy(assessment.address, 'Assessment', [tk.address]);
   await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
 
@@ -513,8 +516,8 @@ async function main() {
   await transferProxyOwnership(gv.address, master.address);
   await transferProxyOwnership(gw.address, master.address);
   await transferProxyOwnership(cover.address, master.address);
-  await transferProxyOwnership(yt.address, master.address);
-  await transferProxyOwnership(ic.address, master.address);
+  await transferProxyOwnership(cg.address, master.address);
+  await transferProxyOwnership(ci.address, master.address);
 
   await transferProxyOwnership(assessment.address, master.address);
   await assessment.changeDependentContractAddress();

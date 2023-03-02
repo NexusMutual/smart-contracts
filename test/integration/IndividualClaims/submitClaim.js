@@ -38,7 +38,7 @@ describe('submitClaim', function () {
 
   it('submits ETH claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as } = this.contracts;
+    const { ci, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -66,8 +66,8 @@ describe('submitClaim', function () {
     // Submit claim
     const coverId = 1;
     const claimAmount = amount;
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -78,18 +78,18 @@ describe('submitClaim', function () {
     const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
 
     // redeem payout
-    await ic.redeemClaimPayout(assessmentId);
+    await ci.redeemClaimPayout(assessmentId);
 
     const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
     expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(claimAmount).add(deposit));
 
-    const { payoutRedeemed } = await ic.claims(assessmentId);
+    const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(true);
   });
 
   it('submits partial ETH claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as } = this.contracts;
+    const { ci, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -118,8 +118,8 @@ describe('submitClaim', function () {
 
     // Submit partial claim - 1/2 of total amount
     const claimAmount = amount.div(2);
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -130,18 +130,18 @@ describe('submitClaim', function () {
     const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
 
     // redeem payout
-    await ic.redeemClaimPayout(assessmentId);
+    await ci.redeemClaimPayout(assessmentId);
 
     const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
     expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(claimAmount).add(deposit));
 
-    const { payoutRedeemed } = await ic.claims(assessmentId);
+    const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(true);
   });
 
   it('submits ETH claim and rejects claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as } = this.contracts;
+    const { ci, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     // Cover inputs
@@ -169,8 +169,8 @@ describe('submitClaim', function () {
     // Submit claim
     const coverId = 1;
     const claimAmount = amount;
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -183,14 +183,14 @@ describe('submitClaim', function () {
     });
 
     // attempt redemption
-    await expect(ic.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
-    const { payoutRedeemed } = await ic.claims(assessmentId);
+    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
+    const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(false);
   });
 
   it('submits partial ETH claim and rejects claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as } = this.contracts;
+    const { ci, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     // Cover inputs
@@ -218,8 +218,8 @@ describe('submitClaim', function () {
     // Submit claim - 1/2 of total amount
     const coverId = 1;
     const claimAmount = amount.div(2);
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -232,14 +232,14 @@ describe('submitClaim', function () {
     });
 
     // attempt redemption
-    await expect(ic.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
-    const { payoutRedeemed } = await ic.claims(assessmentId);
+    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
+    const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(false);
   });
 
   it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as, dai } = this.contracts;
+    const { ci, cover, stakingPool1, as, dai } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -270,8 +270,8 @@ describe('submitClaim', function () {
     // Submit claim
     const coverId = 1;
     const claimAmount = amount;
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -281,18 +281,18 @@ describe('submitClaim', function () {
 
     const daiBalanceBefore = await dai.balanceOf(coverBuyer1.address);
 
-    await ic.redeemClaimPayout(assessmentId);
+    await ci.redeemClaimPayout(assessmentId);
 
     const daiBalanceAfter = await dai.balanceOf(coverBuyer1.address);
     expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(claimAmount));
 
-    const { payoutRedeemed } = await ic.claims(assessmentId);
+    const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(true);
   });
 
   it('submits partial DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as, dai } = this.contracts;
+    const { ci, cover, stakingPool1, as, dai } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -323,8 +323,8 @@ describe('submitClaim', function () {
     // Submit claim - 1/2 of total amount
     const coverId = 1;
     const claimAmount = amount.div(2);
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -334,18 +334,18 @@ describe('submitClaim', function () {
 
     const daiBalanceBefore = await dai.balanceOf(coverBuyer1.address);
 
-    await ic.redeemClaimPayout(assessmentId);
+    await ci.redeemClaimPayout(assessmentId);
 
     const daiBalanceAfter = await dai.balanceOf(coverBuyer1.address);
     expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(claimAmount));
 
-    const { payoutRedeemed } = await ic.claims(assessmentId);
+    const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(true);
   });
 
   it('submits DAI claim and rejects claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as, dai } = this.contracts;
+    const { ci, cover, stakingPool1, as, dai } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     // Cover inputs
@@ -376,8 +376,8 @@ describe('submitClaim', function () {
     // Submit claim
     const coverId = 1;
     const claimAmount = amount;
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -390,14 +390,14 @@ describe('submitClaim', function () {
     });
 
     // attempt redemption
-    await expect(ic.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
-    const { payoutRedeemed } = await ic.claims(assessmentId);
+    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
+    const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(false);
   });
 
   it('submits partial DAI claim and rejects claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as, dai } = this.contracts;
+    const { ci, cover, stakingPool1, as, dai } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     // Cover inputs
@@ -428,8 +428,8 @@ describe('submitClaim', function () {
     // Submit claim - 1/2 of total amount
     const coverId = 1;
     const claimAmount = amount.div(2);
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -442,14 +442,14 @@ describe('submitClaim', function () {
     });
 
     // attempt redemption
-    await expect(ic.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
-    const { payoutRedeemed } = await ic.claims(assessmentId);
+    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
+    const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(false);
   });
 
   it('submits USDC claim and approves claim (token with 6 decimals)', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as, usdc } = this.contracts;
+    const { ci, cover, stakingPool1, as, usdc } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     const usdcDecimals = 6;
@@ -482,8 +482,8 @@ describe('submitClaim', function () {
     // Submit claim
     const coverId = 1;
     const claimAmount = amount;
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -493,18 +493,18 @@ describe('submitClaim', function () {
 
     const usdcBalanceBefore = await usdc.balanceOf(coverBuyer1.address);
 
-    await ic.redeemClaimPayout(assessmentId);
+    await ci.redeemClaimPayout(assessmentId);
 
     const usdcBalanceAfter = await usdc.balanceOf(coverBuyer1.address);
     expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(claimAmount));
 
-    const { payoutRedeemed } = await ic.claims(assessmentId);
+    const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(true);
   });
 
   it('submits partial USDC claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as, usdc } = this.contracts;
+    const { ci, cover, stakingPool1, as, usdc } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     const usdcDecimals = 6;
@@ -537,8 +537,8 @@ describe('submitClaim', function () {
     // Submit claim - 1/2 of total amount
     const coverId = 1;
     const claimAmount = amount.div(2);
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -548,18 +548,18 @@ describe('submitClaim', function () {
 
     const usdcBalanceBefore = await usdc.balanceOf(coverBuyer1.address);
 
-    await ic.redeemClaimPayout(assessmentId);
+    await ci.redeemClaimPayout(assessmentId);
 
     const usdcBalanceAfter = await usdc.balanceOf(coverBuyer1.address);
     expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(claimAmount));
 
-    const { payoutRedeemed } = await ic.claims(assessmentId);
+    const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(true);
   });
 
   it('submits partial USDC claim and rejects claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as, usdc } = this.contracts;
+    const { ci, cover, stakingPool1, as, usdc } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     const usdcDecimals = 6;
@@ -592,8 +592,8 @@ describe('submitClaim', function () {
     // Submit claim - 1/2 of total amount
     const coverId = 1;
     const claimAmount = amount.div(2);
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -606,14 +606,14 @@ describe('submitClaim', function () {
     });
 
     // attempt redemption
-    await expect(ic.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
-    const { payoutRedeemed } = await ic.claims(assessmentId);
+    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
+    const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(false);
   });
 
   it('multiple partial ETH claims approved on the same cover', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as } = this.contracts;
+    const { ci, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -643,8 +643,8 @@ describe('submitClaim', function () {
     // Submit First partial claim - 1/2 of total amount
     {
       const claimAmount = amount.div(2);
-      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -655,17 +655,17 @@ describe('submitClaim', function () {
       const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
 
       // redeem payout
-      await ic.redeemClaimPayout(assessmentId);
+      await ci.redeemClaimPayout(assessmentId);
 
       const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(claimAmount).add(deposit));
 
-      const { payoutRedeemed } = await ic.claims(assessmentId);
+      const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(true);
 
       const { poll } = await as.assessments(assessmentId);
       const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ic.config();
+      const { payoutRedemptionPeriodInDays } = await ci.config();
       const endPayoutTime =
         poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
 
@@ -676,8 +676,8 @@ describe('submitClaim', function () {
     {
       // Submit claim
       const claimAmount = amount.div(4);
-      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -688,17 +688,17 @@ describe('submitClaim', function () {
       const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
 
       // redeem payout
-      await ic.redeemClaimPayout(assessmentId);
+      await ci.redeemClaimPayout(assessmentId);
 
       const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(claimAmount).add(deposit));
 
-      const { payoutRedeemed } = await ic.claims(assessmentId);
+      const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(true);
 
       const { poll } = await as.assessments(assessmentId);
       const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ic.config();
+      const { payoutRedemptionPeriodInDays } = await ci.config();
       const endPayoutTime =
         poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
 
@@ -709,8 +709,8 @@ describe('submitClaim', function () {
     {
       // Submit claim
       const claimAmount = amount.div(4);
-      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -721,19 +721,19 @@ describe('submitClaim', function () {
       const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
 
       // redeem payout
-      await ic.redeemClaimPayout(assessmentId);
+      await ci.redeemClaimPayout(assessmentId);
 
       const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(claimAmount).add(deposit));
 
-      const { payoutRedeemed } = await ic.claims(assessmentId);
+      const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(true);
     }
   });
 
   it('multiple partial DAI claims approved on the same cover', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as, dai } = this.contracts;
+    const { ci, cover, stakingPool1, as, dai } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -765,8 +765,8 @@ describe('submitClaim', function () {
     {
       const coverId = 1;
       const claimAmount = amount.div(2);
-      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -776,17 +776,17 @@ describe('submitClaim', function () {
 
       const daiBalanceBefore = await dai.balanceOf(coverBuyer1.address);
 
-      await ic.redeemClaimPayout(assessmentId);
+      await ci.redeemClaimPayout(assessmentId);
 
       const daiBalanceAfter = await dai.balanceOf(coverBuyer1.address);
       expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(claimAmount));
 
-      const { payoutRedeemed } = await ic.claims(assessmentId);
+      const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(true);
 
       const { poll } = await as.assessments(assessmentId);
       const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ic.config();
+      const { payoutRedemptionPeriodInDays } = await ci.config();
       const endPayoutTime =
         poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
 
@@ -797,8 +797,8 @@ describe('submitClaim', function () {
     {
       const coverId = 1;
       const claimAmount = amount.div(4);
-      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -808,17 +808,17 @@ describe('submitClaim', function () {
 
       const daiBalanceBefore = await dai.balanceOf(coverBuyer1.address);
 
-      await ic.redeemClaimPayout(assessmentId);
+      await ci.redeemClaimPayout(assessmentId);
 
       const daiBalanceAfter = await dai.balanceOf(coverBuyer1.address);
       expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(claimAmount));
 
-      const { payoutRedeemed } = await ic.claims(assessmentId);
+      const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(true);
 
       const { poll } = await as.assessments(assessmentId);
       const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ic.config();
+      const { payoutRedemptionPeriodInDays } = await ci.config();
       const endPayoutTime =
         poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
 
@@ -829,8 +829,8 @@ describe('submitClaim', function () {
     {
       const coverId = 1;
       const claimAmount = amount.div(4);
-      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -840,19 +840,19 @@ describe('submitClaim', function () {
 
       const daiBalanceBefore = await dai.balanceOf(coverBuyer1.address);
 
-      await ic.redeemClaimPayout(assessmentId);
+      await ci.redeemClaimPayout(assessmentId);
 
       const daiBalanceAfter = await dai.balanceOf(coverBuyer1.address);
       expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(claimAmount));
 
-      const { payoutRedeemed } = await ic.claims(assessmentId);
+      const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(true);
     }
   });
 
   it('multiple partial USDC claims approved on the same cover', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as, usdc } = this.contracts;
+    const { ci, cover, stakingPool1, as, usdc } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     const usdcDecimals = 6;
@@ -886,8 +886,8 @@ describe('submitClaim', function () {
     {
       const coverId = 1;
       const claimAmount = amount.div(2);
-      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -897,17 +897,17 @@ describe('submitClaim', function () {
 
       const usdcBalanceBefore = await usdc.balanceOf(coverBuyer1.address);
 
-      await ic.redeemClaimPayout(assessmentId);
+      await ci.redeemClaimPayout(assessmentId);
 
       const usdcBalanceAfter = await usdc.balanceOf(coverBuyer1.address);
       expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(claimAmount));
 
-      const { payoutRedeemed } = await ic.claims(assessmentId);
+      const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(true);
 
       const { poll } = await as.assessments(assessmentId);
       const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ic.config();
+      const { payoutRedemptionPeriodInDays } = await ci.config();
       const endPayoutTime =
         poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
 
@@ -918,8 +918,8 @@ describe('submitClaim', function () {
     {
       const coverId = 1;
       const claimAmount = amount.div(4);
-      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -929,17 +929,17 @@ describe('submitClaim', function () {
 
       const usdcBalanceBefore = await usdc.balanceOf(coverBuyer1.address);
 
-      await ic.redeemClaimPayout(assessmentId);
+      await ci.redeemClaimPayout(assessmentId);
 
       const usdcBalanceAfter = await usdc.balanceOf(coverBuyer1.address);
       expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(claimAmount));
 
-      const { payoutRedeemed } = await ic.claims(assessmentId);
+      const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(true);
 
       const { poll } = await as.assessments(assessmentId);
       const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ic.config();
+      const { payoutRedemptionPeriodInDays } = await ci.config();
       const endPayoutTime =
         poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
 
@@ -950,8 +950,8 @@ describe('submitClaim', function () {
     {
       const coverId = 1;
       const claimAmount = amount.div(4);
-      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -961,19 +961,19 @@ describe('submitClaim', function () {
 
       const usdcBalanceBefore = await usdc.balanceOf(coverBuyer1.address);
 
-      await ic.redeemClaimPayout(assessmentId);
+      await ci.redeemClaimPayout(assessmentId);
 
       const usdcBalanceAfter = await usdc.balanceOf(coverBuyer1.address);
       expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(claimAmount));
 
-      const { payoutRedeemed } = await ic.claims(assessmentId);
+      const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(true);
     }
   });
 
   it('multiple partial claims on the same cover with combinations of approved / denied', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as } = this.contracts;
+    const { ci, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     // Cover inputs
@@ -1003,8 +1003,8 @@ describe('submitClaim', function () {
     // Submit First partial claim - 1/2 of total amount
     {
       const claimAmount = amount.div(2);
-      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -1015,17 +1015,17 @@ describe('submitClaim', function () {
       const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
 
       // redeem payout
-      await ic.redeemClaimPayout(assessmentId);
+      await ci.redeemClaimPayout(assessmentId);
 
       const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(claimAmount).add(deposit));
 
-      const { payoutRedeemed } = await ic.claims(assessmentId);
+      const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(true);
 
       const { poll } = await as.assessments(assessmentId);
       const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ic.config();
+      const { payoutRedemptionPeriodInDays } = await ci.config();
       const endPayoutTime =
         poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
 
@@ -1036,8 +1036,8 @@ describe('submitClaim', function () {
     {
       // Submit claim
       const claimAmount = amount.div(2);
-      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -1051,13 +1051,13 @@ describe('submitClaim', function () {
       });
 
       // attempt redemption
-      await expect(ic.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
-      const { payoutRedeemed } = await ic.claims(assessmentId);
+      await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
+      const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(false);
 
       const { poll } = await as.assessments(assessmentId);
       const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ic.config();
+      const { payoutRedemptionPeriodInDays } = await ci.config();
       const endPayoutTime =
         poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
 
@@ -1068,8 +1068,8 @@ describe('submitClaim', function () {
     {
       // Submit claim
       const claimAmount = amount.div(2);
-      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -1080,19 +1080,19 @@ describe('submitClaim', function () {
       const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
 
       // redeem payout
-      await ic.redeemClaimPayout(assessmentId);
+      await ci.redeemClaimPayout(assessmentId);
 
       const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(claimAmount).add(deposit));
 
-      const { payoutRedeemed } = await ic.claims(assessmentId);
+      const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(true);
     }
   });
 
   it('correctly calculates premium in cover edit after a claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { p1, ic, cover, stakingPool1, as } = this.contracts;
+    const { p1, ci, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -1126,8 +1126,8 @@ describe('submitClaim', function () {
     const claimAmount = amount.div(2);
 
     {
-      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -1138,12 +1138,12 @@ describe('submitClaim', function () {
       const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
 
       // redeem payout
-      await ic.redeemClaimPayout(assessmentId);
+      await ci.redeemClaimPayout(assessmentId);
 
       const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(claimAmount).add(deposit));
 
-      const { payoutRedeemed } = await ic.claims(assessmentId);
+      const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(true);
     }
 
@@ -1204,7 +1204,7 @@ describe('submitClaim', function () {
 
   it('correctly updates pool allocation after claim and cover edit', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool1, as } = this.contracts;
+    const { ci, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     const NXM_PER_ALLOCATION_UNIT = await stakingPool1.NXM_PER_ALLOCATION_UNIT();
@@ -1275,8 +1275,8 @@ describe('submitClaim', function () {
     const claimAmount = amount.div(2);
 
     {
-      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -1287,12 +1287,12 @@ describe('submitClaim', function () {
       const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
 
       // redeem payout
-      await ic.redeemClaimPayout(assessmentId);
+      await ci.redeemClaimPayout(assessmentId);
 
       const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(claimAmount).add(deposit));
 
-      const { payoutRedeemed } = await ic.claims(assessmentId);
+      const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(true);
 
       const coverAllocation = await cover.coverSegmentAllocations(coverId, firstSegment, 0);

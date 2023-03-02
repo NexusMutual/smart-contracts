@@ -42,8 +42,8 @@ async function setup() {
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setTokenAddress(nxm.address),
-    master.setLatestAddress(hex('IC'), individualClaims.address),
-    master.setLatestAddress(hex('YT'), yieldTokenIncidents.address),
+    master.setLatestAddress(hex('CI'), individualClaims.address),
+    master.setLatestAddress(hex('CG'), yieldTokenIncidents.address),
     master.setLatestAddress(hex('AS'), assessment.address),
     master.setLatestAddress(hex('MR'), memberRoles.address),
     master.enrollInternal(individualClaims.address),

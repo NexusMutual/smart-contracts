@@ -237,7 +237,7 @@ describe('master', function () {
       tk.address,
     );
 
-    const contractCodes = ['TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];
+    const contractCodes = ['TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'CI'];
     const newAddresses = [
       await TokenController.deploy(qd.address, lcr.address, spf.address, tk.address),
       await CoverMigrator.deploy(qd.address, productsV1.address),
@@ -248,7 +248,7 @@ describe('master', function () {
       await ProposalCategoryContract.deploy(),
       await MemberRoles.deploy(tk.address),
       await LegacyPooledStaking.deploy(cover.address, productsV1.address, AddressZero),
-      await LegacyGateway.deploy(),
+      await LegacyGateway.deploy(AddressZero),
       await IndividualClaims.deploy(tk.address, coverNFT.address),
     ].map(c => {
       return c.address;

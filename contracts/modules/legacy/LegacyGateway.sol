@@ -38,19 +38,14 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
   address public _unused_incidents;
   address public _unused_coverMigrator;
 
-  event ClaimSubmitted(
-    uint indexed claimId,
-    uint indexed coverId,
-    address indexed submitter,
-    bytes data
-  );
+  IQuotationData public immutable quotationData;
+
+  constructor(address _quotationData) {
+    quotationData = IQuotationData(_quotationData);
+  }
 
   function nxmToken() internal view returns (INXMToken) {
     return INXMToken(internalContracts[uint(ID.TK)]);
-  }
-
-  function quotationData() internal view returns (IQuotationData) {
-    return IQuotationData(internalContracts[uint(ID.QD)]);
   }
 
   function memberRoles() internal view returns (IMemberRoles) {
@@ -63,7 +58,6 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
 
   function changeDependentContractAddress() external {
     internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
-    internalContracts[uint(ID.QD)] = master.getLatestAddress("QD");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.CL)] = master.getLatestAddress("CL");
   }
@@ -79,8 +73,8 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
     address memberAddress
   ) {
     bytes4 currency;
-    (/*cid*/, memberAddress, contractAddress, currency, /*sumAssured*/, premiumInNXM) = quotationData().getCoverDetailsByCoverID1(coverId);
-    (/*cid*/, status, sumAssured, coverPeriod, validUntil) = quotationData().getCoverDetailsByCoverID2(coverId);
+    (/*cid*/, memberAddress, contractAddress, currency, /*sumAssured*/, premiumInNXM) = quotationData.getCoverDetailsByCoverID1(coverId);
+    (/*cid*/, status, sumAssured, coverPeriod, validUntil) = quotationData.getCoverDetailsByCoverID2(coverId);
 
     coverAsset = getCurrencyAssetAddress(currency);
     sumAssured = sumAssured * 10 ** assetDecimals(coverAsset);

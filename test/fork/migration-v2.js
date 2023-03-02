@@ -202,27 +202,27 @@ describe('V2 upgrade', function () {
 
   // Generates ProductsV1.sol contract
   it('Generate ProductsV1.sol with all products to be migrated to V2', async function () {
-    await getProductAddresses(false);
+    await getProductAddresses();
   });
 
   it('Get V1 cover prices', async function () {
-    await getV1CoverPrices(ethers.provider, false);
+    await getV1CoverPrices(ethers.provider);
   });
 
   it('Get governance rewards', async function () {
-    await getGovernanceRewards(ethers.provider, false);
+    await getGovernanceRewards(ethers.provider);
   });
 
   it('Get claim assessment rewards and generate transfer calls in LegacyClaimsReward.sol', async function () {
-    await getClaimAssessmentRewards(ethers.provider, false);
+    await getClaimAssessmentRewards(ethers.provider);
   });
 
   it('Get claim assessment stakes', async function () {
-    await getClaimAssessmentStakes(ethers.provider, false);
+    await getClaimAssessmentStakes(ethers.provider);
   });
 
   it('Get TC locked amount', async function () {
-    await getTCLockedAmount(ethers.provider, false);
+    await getTCLockedAmount(ethers.provider);
   });
 
   it('Recompile contracts if needed', async function () {

@@ -22,6 +22,13 @@ const getClaimAssessmentStakes = require('../../scripts/v2-migration/get-claim-a
 const getTCLockedAmount = require('../../scripts/v2-migration/get-tc-locked-amount');
 const getCNLockedAmount = require('../../scripts/v2-migration/get-cn-locked');
 
+// ACTIONS
+const blockV1 = require('../../scripts/v2-migration/actions/LegacyPooledStaking.blockV1');
+const coverInitialize = require('../../scripts/v2-migration/actions/Cover.initialize');
+const migrateToNewV2Pool = require('../../scripts/v2-migration/actions/LegacyPooledStaking.migrateToNewV2Pool');
+const processPendingActions = require('../../scripts/v2-migration/actions/LegacyPooledStaking.processPendingActions');
+const transferRewards = require('../../scripts/v2-migration/actions/LegacyClaimsReward.transferRewards');
+
 const PRODUCT_ADDRESSES_OUTPUT_PATH = '../../scripts/v2-migration/output/product-addresses.json';
 const GV_REWARDS_OUTPUT_PATH = '../../scripts/v2-migration/output/governance-rewards.json';
 const CLA_REWARDS_OUTPUT_PATH = '../../scripts/v2-migration/output/claim-assessment-rewards.json';
@@ -592,14 +599,17 @@ describe('V2 upgrade', function () {
   });
 
   it('Call function to block V1 staking', async function () {
-    const tx = await this.pooledStaking.blockV1();
-    await tx.wait();
+    await blockV1({ legacyPooledStaking: this.pooledStaking, signer: this.deployer });
+
+    const v1Blocked = await this.pooledStaking.v1Blocked();
+
+    expect(v1Blocked).to.be.equal(v1Blocked);
   });
 
   it('Transfer CLA rewards to assessors and GV rewards to TC', async function () {
     const tcNxmBalanceBefore = await this.nxm.balanceOf(this.tokenController.address);
 
-    await this.claimsReward.transferRewards();
+    await transferRewards({ legacyClaimsReward: this.claimsReward, signer: this.deployer });
 
     const tcNxmBalanceAfter = await this.nxm.balanceOf(this.tokenController.address);
     const crNxmBalanceAfter = await this.nxm.balanceOf(this.claimsReward.address);
@@ -754,7 +764,7 @@ describe('V2 upgrade', function () {
   });
 
   it('Call function to initialize Cover.sol', async function () {
-    await this.cover.initialize();
+    await coverInitialize({ cover: this.cover, signer: this.deployer });
 
     const storedGlobalCapacityRatio = await this.cover.globalCapacityRatio();
     expect(storedGlobalCapacityRatio).to.be.equal(20000); // x2
@@ -790,14 +800,10 @@ describe('V2 upgrade', function () {
 
   // TODO review
   it('Process all PooledStaking pending actions', async function () {
-    let hasPendingActions = await this.pooledStaking.hasPendingActions();
-    let i = 0;
-    while (hasPendingActions) {
-      console.log(`Calling processPendingActions(). iteration ${i++}`);
-      const tx = await this.pooledStaking.processPendingActions(100);
-      await tx.wait();
-      hasPendingActions = await this.pooledStaking.hasPendingActions();
-    }
+    await processPendingActions({ legacyPooledStaking: this.pooledStaking });
+
+    const hasPendingActions = await this.pooledStaking.hasPendingActions();
+    expect(hasPendingActions).to.be.equal(true);
   });
 
   it('deploys StakingViewer', async function () {
@@ -868,10 +874,7 @@ describe('V2 upgrade', function () {
 
     const stakingNFTSupplyBefore = await this.stakingNFT.totalSupply();
 
-    // Migrates stakers
-    for (const staker of selectedStakers) {
-      await this.pooledStaking.migrateToNewV2Pool(staker);
-    }
+    await migrateToNewV2Pool({ legacyPooledStaking: this.pooledStaking, selectedStakers, signer: this.deployer });
 
     // Get stakers NXM balances after the migration
     const nxmBalancesAfter = {};

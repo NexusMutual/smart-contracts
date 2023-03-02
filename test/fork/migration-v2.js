@@ -886,6 +886,7 @@ describe('V2 upgrade', function () {
       const balance = await this.nxm.balanceOf(staker);
       const deposit = await this.pooledStaking.stakerDeposit(staker);
       const productAddresses = await this.pooledStaking.stakerContractsArray(staker);
+      console.log(`Staker ${staker} has ${formatEther(deposit)} deposit`);
 
       const products = await Promise.all(
         productAddresses.map(async productAddress => {
@@ -967,12 +968,11 @@ describe('V2 upgrade', function () {
 
       // checks
       expect(actualDeposit).to.be.equal(expectedTotalDeposit);
-      // TODO: something's off
-      // actualTrancheAmounts.forEach((actualTrancheAmount, i) => {
-      //   // precision loss due to calculation of tranche deposit using stake shares
-      //   // max 1 wei diff allowed
-      //   expect(actualTrancheAmount.sub(expectedTrancheAmounts[i]).abs()).to.be.lte(1);
-      // });
+      actualTrancheAmounts.forEach((actualTrancheAmount, i) => {
+        // precision loss due to calculation of tranche deposit using stake shares
+        // max 0.00001% diff allowed due to stake initial stake shares being sqrt(initialDeposit)
+        expect(actualTrancheAmount.sub(expectedTrancheAmounts[i]).abs()).to.be.lte(100000000000);
+      });
 
       console.log(`${staker} migrated to pool #${poolId} ${formatEther(actualDeposit)} NXM`);
 

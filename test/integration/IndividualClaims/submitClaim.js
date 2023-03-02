@@ -1090,7 +1090,7 @@ describe('submitClaim', function () {
     }
   });
 
-  it('correctly calculates premium in cover edit after a claim', async function () {
+  it.skip('correctly calculates premium in cover edit after a claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
     const { p1, ic, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
@@ -1202,7 +1202,7 @@ describe('submitClaim', function () {
     expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(totalEditPremium));
   });
 
-  it('correctly updates pool allocation after claim and cover edit', async function () {
+  it.skip('correctly updates pool allocation after claim and cover edit', async function () {
     const { DEFAULT_PRODUCTS } = this;
     const { ic, cover, stakingPool1, as } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;

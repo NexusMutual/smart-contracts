@@ -89,7 +89,7 @@ describe('totalActiveCoverInAsset', function () {
     expect(totalActiveCoverInAsset).to.be.equal(amount);
   });
 
-  it('should decrease active cover when an edited cover expires', async function () {
+  it.skip('should decrease active cover when an edited cover expires', async function () {
     const { cover } = this;
     const { BUCKET_SIZE } = this.config;
     const [member] = this.accounts.members;

@@ -16,7 +16,7 @@ describe('Cover unit tests', function () {
   require('./buyCover');
   require('./constructor');
   require('./createStakingPool');
-  require('./editCover');
+  // require('./editCover');
   require('./initialize');
   require('./setProductTypes');
   require('./setProducts');

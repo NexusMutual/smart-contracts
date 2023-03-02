@@ -710,7 +710,10 @@ describe('V2 upgrade', function () {
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.removeContracts, // removeContracts(bytes2[])
-      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
+      defaultAbiCoder.encode(
+        ['bytes2[]'],
+        [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2', 'PD'].map(x => toUtf8Bytes(x))],
+      ),
       this.abMembers,
       this.governance,
     );

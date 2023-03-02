@@ -17,9 +17,7 @@ describe('Cover unit tests', function () {
   require('./constructor');
   require('./createStakingPool');
   require('./editCover');
-  require('./initialize');
   require('./setProductTypes');
   require('./setProducts');
   require('./totalActiveCoverInAsset');
-  require('./updateUintParameters');
 });

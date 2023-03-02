@@ -41,9 +41,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   // every time a cover is edited to deliniate the different cover periods.
   mapping(uint => CoverSegment[]) private _coverSegments;
 
-  uint24 public globalCapacityRatio;
-  uint24 public globalRewardsRatio;
-
   // assetId => { lastBucketUpdateId, totalActiveCoverInAsset }
   mapping(uint => ActiveCover) public activeCover;
   // assetId => bucketId => amount
@@ -55,6 +52,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   mapping(uint => string) public productTypeNames;
 
   /* ========== CONSTANTS ========== */
+
+  uint private constant GLOBAL_CAPACITY_RATIO = 20000;
+  uint private constant GLOBAL_REWARDS_RATIO = 5000;
 
   uint private constant PRICE_DENOMINATOR = 10000;
   uint private constant COMMISSION_DENOMINATOR = 10000;
@@ -103,14 +103,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     stakingNFT = _stakingNFT;
     stakingPoolFactory = _stakingPoolFactory;
     stakingPoolImplementation = _stakingPoolImplementation;
-  }
-
-  function initialize() external {
-    if (globalCapacityRatio != 0) {
-      revert AlreadyInitialized();
-    }
-    globalCapacityRatio = 20000; // x2
-    globalRewardsRatio = 5000; // 50%
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -164,9 +156,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         0, // previous cover start
         0, // previous cover expiration
         0, // previous rewards ratio
-        globalCapacityRatio,
+        GLOBAL_CAPACITY_RATIO,
         product.capacityReductionRatio,
-        globalRewardsRatio,
+        GLOBAL_REWARDS_RATIO,
         GLOBAL_MIN_PRICE_RATIO
       );
     }
@@ -242,8 +234,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         block.timestamp.toUint32(), // start
         params.period, // period
         allocationRequest.gracePeriod.toUint32(),
-        globalRewardsRatio,
-        globalCapacityRatio
+        GLOBAL_REWARDS_RATIO.toUint24(),
+        GLOBAL_CAPACITY_RATIO.toUint24()
       )
     );
 
@@ -792,6 +784,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return false;
   }
 
+  function globalCapacityRatio() external pure returns (uint) {
+    return GLOBAL_CAPACITY_RATIO;
+  }
+
+  function globalRewardsRatio() external pure returns (uint) {
+    return GLOBAL_REWARDS_RATIO;
+  }
+
   function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (
     uint _globalCapacityRatio,
     uint _globalMinPriceRatio,
@@ -799,7 +799,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint[] memory _capacityReductionRatios
   ) {
     _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
-    _globalCapacityRatio = uint(globalCapacityRatio);
+    _globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
     _capacityReductionRatios = new uint[](productIds.length);
     _initialPrices = new uint[](productIds.length);
 
@@ -852,28 +852,5 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.SP)] = master.getLatestAddress("SP");
-  }
-
-  /**
-     * @param paramNames  An array of elements from UintParams enum
-     * @param values An array of the new values, each one corresponding to the parameter
-    */
-  function updateUintParameters(
-    CoverUintParams[] calldata paramNames,
-    uint[] calldata values
-  ) external onlyGovernance {
-
-    for (uint i = 0; i < paramNames.length; i++) {
-
-      if (paramNames[i] == CoverUintParams.globalCapacityRatio) {
-        globalCapacityRatio = uint24(values[i]);
-        continue;
-      }
-
-      if (paramNames[i] == CoverUintParams.globalRewardsRatio) {
-        globalRewardsRatio = uint24(values[i]);
-        continue;
-      }
-    }
   }
 }

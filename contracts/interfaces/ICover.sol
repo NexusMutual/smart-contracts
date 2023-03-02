@@ -26,12 +26,6 @@ enum LegacyCoverStatus {
   Migrated
 }
 
-enum CoverUintParams {
-  globalCapacityRatio,
-  globalRewardsRatio,
-  coverAssetsFallback
-}
-
 /* io structs */
 
 struct PoolAllocationRequest {
@@ -160,7 +154,9 @@ interface ICover {
 
   function totalActiveCoverInAsset(uint coverAsset) external view returns (uint);
 
-  function globalCapacityRatio() external view returns (uint24);
+  function globalCapacityRatio() external view returns (uint);
+
+  function globalRewardsRatio() external view returns (uint);
 
   function getPriceAndCapacityRatios(uint[] calldata productIds) external view returns (
     uint _globalCapacityRatio,

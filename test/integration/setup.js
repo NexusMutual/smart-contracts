@@ -401,8 +401,6 @@ async function setup() {
     },
   ]);
 
-  await cover.initialize();
-
   await gv.changeMasterAddress(master.address);
   await master.switchGovernanceAddress(gv.address);
 

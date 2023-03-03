@@ -9,19 +9,35 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/IStakingNFT.sol";
+import "./PricesV1.sol";
 
-contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
+contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
+  /* Constants */
+
+  address constant ARMOR_STAKER = 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4;
+  address constant ARMOR_MANAGER = 0xFa760444A229e78A50Ca9b3779f4ce4CcE10E170;
+  address constant HUGH = 0x87B2a7559d85f4653f13E6546A14189cd5455d45;
+  address constant NM_FOUNDATION = 0x963Df0066ff8345922dF88eebeb1095BE4e4e12E;
+  uint constant MAX_ACTIVE_TRANCHES = 8;
+
+  ICover public immutable cover;
+  IProductsV1 public immutable productsV1;
+  IStakingNFT public immutable stakingNFT;
+
   /* Structs */
 
-  struct MigrationData {
+  struct StakingPoolMigrationData {
     address stakerAddress;
-    string ipfsDescriptionHash;
     address managerAddress;
+    string ipfsDescriptionHash;
     bool isPrivatePool;
     uint initialPoolFee;
     uint maxPoolFee;
-
+    uint deposit;
+    uint[MAX_ACTIVE_TRANCHES] trancheStakeRatio;
   }
+
   /* Events */
 
   // deposits
@@ -48,18 +64,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
   // used for logging products not listed in ProductsV1.sol when migrating to a new pool
   event ProductNotFound(address oldProductId);
-
-  /* constants */
-
-  address constant ARMOR = 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4;
-  address constant ARMOR_MANAGER = 0xFa760444A229e78A50Ca9b3779f4ce4CcE10E170;
-  address constant HUGH = 0x87B2a7559d85f4653f13E6546A14189cd5455d45;
-  address constant NEXUS_FOUNDATION = 0x963Df0066ff8345922dF88eebeb1095BE4e4e12E;
-  address constant ITRUST = 0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2;
-  uint constant TRANCHE_COUNT = 8;
-
-  ICover public immutable cover;
-  IProductsV1 public immutable productsV1;
 
   /* Storage variables */
 
@@ -137,9 +141,10 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     _;
   }
 
-  constructor(address coverAddress, address productsV1Address) {
+  constructor(address coverAddress, address productsV1Address, address stakingNFTAddress) {
     productsV1 = IProductsV1(productsV1Address);
     cover = ICover(coverAddress);
+    stakingNFT = IStakingNFT(stakingNFTAddress);
   }
 
   function min(uint x, uint y) pure internal returns (uint) {
@@ -191,7 +196,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     return stakers[staker].contracts;
   }
 
-  function stakerContractStake(address staker, address contractAddress) external override view returns (uint) {
+  function stakerContractStake(address staker, address contractAddress) public override view returns (uint) {
     uint stake = stakers[staker].stakes[contractAddress];
     uint deposit = stakers[staker].deposit;
     return stake < deposit ? stake : deposit;
@@ -375,13 +380,23 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
   }
 
   function withdraw(uint /*ignoredParam*/) external override whenNotPaused onlyMember noPendingBurns {
-    uint amount = stakers[msg.sender].deposit;
-    stakers[msg.sender].deposit = 0;
-    token().transfer(msg.sender, amount);
-    emit Withdrawn(msg.sender, amount);
+    _withdrawForUser(msg.sender);
   }
 
   function withdrawForUser(address user) external override whenNotPaused onlyMember noPendingBurns {
+    _withdrawForUser(user);
+  }
+
+  function _withdrawForUser(address user) internal {
+
+    // Stakers scheduled for automatic migration are not allowed to withdraw
+    require(
+      user != ARMOR_STAKER &&
+      user != HUGH &&
+      user != NM_FOUNDATION,
+      "Not allowed to withdraw"
+    );
+
     uint amount = stakers[user].deposit;
     stakers[user].deposit = 0;
     token().transfer(user, amount);
@@ -974,486 +989,209 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
   }
 
-  function getV1PriceForProduct(uint id) pure public returns (uint96) {
-    // {V1_PRICES_HELPER_BEGIN}
-
-    // Argent
-    if (id == 18) {
-      return 12432734161534590000; // 12.43273416153459%
-    }
-
-    if (
-      // dydx Perpetual
-      id == 21 ||
-      // Compound v2
-      id == 32 ||
-      // Gnosis Safe
-      id == 33 ||
-      // MakerDAO MCD
-      id == 35 ||
-      // Yearn Finance (all vaults)
-      id == 44 ||
-      // Curve All Pools (incl staking)
-      id == 49 ||
-      // Uniswap v2
-      id == 51 ||
-      // Synthetix
-      id == 58 ||
-      // Eth 2.0 (deposit contract)
-      id == 75 ||
-      // Aave v2
-      id == 81 ||
-      // SushiSwap v1
-      id == 82 ||
-      // Reflexer
-      id == 89 ||
-      // Stake DAO
-      id == 92 ||
-      // Liquity
-      id == 93 ||
-      // Uniswap v3
-      id == 95 ||
-      // Convex Finance v1
-      id == 97 ||
-      // Balancer v2
-      id == 100 ||
-      // Coinbase
-      id == 111 ||
-      // Kraken
-      id == 112 ||
-      // Yearn yvUSDC v2
-      id == 128 ||
-      // Curve 3pool LP (3Crv)
-      id == 130 ||
-      // Convex 3CRV (cvx3CRV)
-      id == 135 ||
-      // Ribbon Finance v2
-      id == 140 ||
-      // Trader Joe
-      id == 142 ||
-      // Ondo
-      id == 144 ||
-      // Enzyme v3
-      id == 145 ||
-      // Beefy
-      id == 146 ||
-      // Angle
-      id == 147 ||
-      // FODL
-      id == 149 ||
-      // Alchemix v2
-      id == 150 ||
-      // Bundle: Gelt + mStable + Aave v2
-      id == 151 ||
-      // Yeti Finance
-      id == 152 ||
-      // Vector
-      id == 154 ||
-      // Ease
-      id == 156 ||
-      // Stakewise operated (3 ETH / validator)
-      id == 158 ||
-      // Stakewise 3rd party (3 ETH / validator)
-      id == 159 ||
-      // Nested
-      id == 160 ||
-      // Euler
-      id == 161 ||
-      // GMX
-      id == 162 ||
-      // Sherlock
-      id == 163 ||
-      // Gearbox V2
-      id == 164 ||
-      // Aura
-      id == 165 ||
-      // Enzyme v4
-      id == 166
-    ) {
-      return 2600000000000000000; // 2.6%
-    }
-
-    // 0x v3
-    if (id == 30) {
-      return 19145488072252274000; // 19.145488072252274%
-    }
-
-    // 1Inch (DEX & Liquidity Pools)
-    if (id == 41) {
-      return 11615611571267385000; // 11.615611571267385%
-    }
-
-    // Set Protocol
-    if (id == 50) {
-      return 25776769897239860000; // 25.77676989723986%
-    }
-
-    // mStable
-    if (id == 57) {
-      return 3644413798025818000; // 3.644413798025818%
-    }
-
-    // UMA
-    if (id == 62) {
-      return 8201495783983267000; // 8.201495783983267%
-    }
-
-    // Idle v4
-    if (id == 65) {
-      return 36034804377271030000; // 36.03480437727103%
-    }
-
-    // Pool Together v3
-    if (id == 72) {
-      return 16217884130675326000; // 16.217884130675326%
-    }
-
-    // Set Protocol v2
-    if (id == 73) {
-      return 5369407919786518000; // 5.369407919786518%
-    }
-
-    // TrueFi
-    if (id == 79) {
-      return 28565302775823290000; // 28.56530277582329%
-    }
-
-    // Perpetual Protocol
-    if (id == 84) {
-      return 35119077526559266000; // 35.119077526559266%
-    }
-
-    // BadgerDAO
-    if (id == 85) {
-      return 14228404256362980000; // 14.22840425636298%
-    }
-
-    // Opyn v2
-    if (id == 88) {
-      return 31110662561945094000; // 31.11066256194509%
-    }
-
-    // Vesper
-    if (id == 90) {
-      return 23264163793413047000; // 23.264163793413047%
-    }
-
-    // Homora v2
-    if (id == 99) {
-      return 33704826520238470000; // 33.70482652023847%
-    }
-
-    // Alpaca Finance
-    if (id == 101) {
-      return 39144809221972060000; // 39.14480922197206%
-    }
-
-    // Goldfinch
-    if (id == 103) {
-      return 8374975213313965000; // 8.374975213313965%
-    }
-
-    // Binance
-    if (id == 110) {
-      return 4572366582545144000; // 4.572366582545143%
-    }
-
-    // FTX
-    if (id == 114) {
-      return 26716469402552790000; // 26.71646940255279%
-    }
-
-    // Pangolin
-    if (id == 117) {
-      return 45172738238869165000; // 45.172738238869165%
-    }
-
-    // Centrifuge Tinlake
-    if (id == 118) {
-      return 11182572081933671000; // 11.182572081933671%
-    }
-
-    // Abracadabra
-    if (id == 120) {
-      return 39776602220476825000; // 39.776602220476825%
-    }
-
-    // Premia Finance
-    if (id == 121) {
-      return 28641545311637937000; // 28.641545311637937%
-    }
-
-    // Yearn yvDAI v2
-    if (id == 127) {
-      return 2639172326859299000; // 2.639172326859299%
-    }
-
-    // Yearn ycrvstETH v2
-    if (id == 129) {
-      return 22245704685826860000; // 22.24570468582686%
-    }
-
-    // Curve sETH LP (eCrv)
-    if (id == 131) {
-      return 3337647342934265000; // 3.337647342934265%
-    }
-
-    // Idle DAI v4 (idleDAIYield)
-    if (id == 132) {
-      return 50925266656986310000; // 50.92526665698631%
-    }
-
-    // Idle USDT v4 (idleUSDTYield)
-    if (id == 133) {
-      return 55760635763374930000; // 55.760635763374935%
-    }
-
-    // Convex stethCrv (cvxstethCrv)
-    if (id == 134) {
-      return 16591126228633247000; // 16.591126228633247%
-    }
-
-    // Notional Finance v2
-    if (id == 138) {
-      return 14441080249369067000; // 14.441080249369067%
-    }
-
-    // OlympusDAO
-    if (id == 139) {
-      return 43265543057180246000; // 43.265543057180246%
-    }
-
-    // Pool Together v4
-    if (id == 141) {
-      return 23073358057585290000; // 23.073358057585292%
-    }
-
-    // Origin OUSD
-    if (id == 143) {
-      return 83061669760667070000; // 83.06166976066707%
-    }
-
-    // Platypus
-    if (id == 148) {
-      return 5959850680712226500; // 5.9598506807122265%
-    }
-
-    // Bancor v3
-    if (id == 155) {
-      return 50959912909288030000; // 50.95991290928803%
-    }
-
-    // Iron Bank
-    if (id == 157) {
-      return 62666829169994260000; // 62.66682916999426%
-    }
-    // {V1_PRICES_HELPER_END}
-
-    return type(uint96).max;
-  }
-
-  function getStakerConfig(address stakerAddress) internal returns (
-    ProductInitializationParams[] memory params,
+  function getProducts(
+    address stakerAddress,
     uint deposit
-  ) {
+  ) internal view returns (ProductInitializationParams[] memory) {
 
-    // read and set deposit to zero to avoid re-entrancy
-    deposit = stakers[stakerAddress].deposit;
-    require(deposit > 0, "Address has no stake to migrate");
-    stakers[stakerAddress].deposit = 0;
+    uint stakedProductsCount = stakers[stakerAddress].contracts.length;
+    uint migratedProductCount = 0;
 
-    uint contractCount = stakers[stakerAddress].contracts.length;
-    uint[] memory products = new uint[](contractCount);
-    uint[] memory stakes = new uint[](contractCount);
-    uint migratableCount = 0;
+    uint[] memory productIds = new uint[](stakedProductsCount);
+    uint[] memory stakes = new uint[](stakedProductsCount);
+    uint[] memory prices = new uint[](stakedProductsCount);
 
-    for (uint i = 0; i < contractCount; i++) {
-      address oldProductId = stakers[stakerAddress].contracts[i];
+    for (uint i = 0; i < stakedProductsCount; i++) {
+      address productAddress = stakers[stakerAddress].contracts[i];
+
       uint productId;
-      try productsV1.getNewProductId(oldProductId) returns (uint v) {
-        productId = v;
+      try productsV1.getNewProductId(productAddress) returns (uint id) {
+        productId = id;
       } catch {
-        emit ProductNotFound(oldProductId);
         continue;
       }
-      products[i] = productId;
-      stakes[i] = min(stakers[stakerAddress].stakes[oldProductId], deposit);
-      migratableCount++;
-    }
 
-    params = new ProductInitializationParams[](migratableCount);
-    uint migrateAtIndex = 0;
-
-
-    for (uint i = 0; i < contractCount; i++) {
-      if (stakes[i] == 0) {
+      uint stake = stakerContractStake(stakerAddress, productAddress);
+      if (stake == 0) {
         continue;
       }
-      uint96 price = getV1PriceForProduct(products[i]);
+
+      uint price = getV1PriceForProduct(productId);
       if (price == type(uint96).max) {
         continue;
       }
-      params[migrateAtIndex] = ProductInitializationParams(
-        products[i], // productId
-        uint8(min(stakes[i] * 1e18 / deposit / 1e16, 100)), // weight (0-100)
-        price / 1e16, // initialPrice with a 100_00 denominator
-        price / 1e16 // targetPrice with a 100_00 denominator
-      );
-      migrateAtIndex++;
-    }
-  }
 
+      productIds[migratedProductCount] = productId;
+      stakes[migratedProductCount] = stake;
+      prices[migratedProductCount] = price;
+      migratedProductCount++;
 
-  struct StakingPoolMigrationData {
-    uint initialPoolFee;
-    uint maxPoolFee;
-    uint[TRANCHE_COUNT] stakerTrancheRatios;
-    uint deposit;
-    address stakerAddress;
-    bool isPrivatePool;
-    string ipfsDescriptionHash;
-    address managerAddress;
-  }
-
-  function migrateToNewV2Pool(address stakerAddress) external noPendingActions {
-
-    // Addresses marked for implicit migration can be migrated by anyone.
-    // Addresses who are not can only be migrated by calling this function themselves.
-    require(
-      stakerAddress == ARMOR || // Armor
-      stakerAddress == HUGH || // Hugh
-      stakerAddress == NEXUS_FOUNDATION, // Foundation
-
-      "You are not authorized to migrate this staker"
-    );
-
-
-    INXMToken nxm = token();
-    uint nxmBalanceBefore = nxm.balanceOf(address(this));
-
-    // ratios have no decimal points. eg 5 is 5%
-    uint[TRANCHE_COUNT] memory stakerTrancheRatios;
-
-    (ProductInitializationParams[] memory params, uint deposit) = getStakerConfig(stakerAddress);
-
-    if (stakerAddress == HUGH) {
-      stakerTrancheRatios = [uint256(0), 10, 0, 0, 0, 90, 0, 0];
-
-      migrateToPool(
-        StakingPoolMigrationData(
-         10, // initialPoolFee
-         20, // maxPoolFee
-         stakerTrancheRatios,
-         deposit,
-         HUGH,
-         false, // isPrivatePool
-         '', // ipfsDescriptionHash
-         HUGH // managerAddress
-        ),
-        params
-      );
-    } else if (stakerAddress == ARMOR) {
-      stakerTrancheRatios = [uint256(20), 25, 25, 15, 10, 0, 0, 0];
-
-      uint aaaLowRiskPoolDeposit = 75 * deposit / 100;
-      uint maxFee = 25;
-      uint initialFee = 15;
-      migrateToPool(
-        StakingPoolMigrationData(
-          initialFee,
-          maxFee,
-          stakerTrancheRatios,
-          aaaLowRiskPoolDeposit,
-          ARMOR,
-          false, // isPrivatePool
-          '', // ipfsDescriptionHash
-          ARMOR_MANAGER // managerAddress
-        ),
-        params
-      );
-      uint aaRiskPoolDeposit = deposit - aaaLowRiskPoolDeposit;
-
-      migrateToPool(
-        StakingPoolMigrationData(
-          initialFee,
-          maxFee,
-          stakerTrancheRatios,
-          aaRiskPoolDeposit,
-          ARMOR,
-          false, // isPrivatePool
-          '', // ipfsDescriptionHash
-          ARMOR_MANAGER // managerAddress
-        ),
-        params
-      );
-
-    } else if (stakerAddress == NEXUS_FOUNDATION) {
-
-      stakerTrancheRatios = [uint256(0), 0, 0, 0, 0, 0, 0, 0];
-      // TODO: when switching the StakingPool manager is supported, simply make LegacyPooledStaking the manager
-      // make the deposits and then switch the manager to the foundation
-      // stakerTrancheRatios = [uint256(0), 25, 0, 25, 0, 50, 0, 0];
-
-      // TODO: waiting for final value for maxPoolFee
-      migrateToPool(
-        StakingPoolMigrationData(
-          0, // initialPoolFee
-          20, // maxPoolFee
-          stakerTrancheRatios,
-          deposit,
-          NEXUS_FOUNDATION,
-          true, // isPrivatePool
-          '', // ipfsDescriptionHash
-          NEXUS_FOUNDATION // managerAddress
-        ),
-        params
-      );
-    } else {
-      revert("Usupported migrateable staker");
     }
 
-    uint nxmBalanceAfter = nxm.balanceOf(address(this));
+    ProductInitializationParams[] memory products = new ProductInitializationParams[](migratedProductCount);
 
-    uint nexusV2StakedNXM = nxmBalanceBefore - nxmBalanceAfter;
+    for (uint i = 0; i < migratedProductCount; i++) {
+      products[i] = ProductInitializationParams(
+        productIds[i], // productId
+        uint8(100 * stakes[i] / deposit), // weight (0-100)
+        uint96(prices[i]), // initialPrice with a 100_00 denominator
+        uint96(prices[i]) // targetPrice with a 100_00 denominator
+      );
+    }
 
-    uint nxmToBeUnlocked = deposit - nexusV2StakedNXM;
-
-    // send unlocked back
-    nxm.transfer(stakerAddress, nxmToBeUnlocked);
+    return products;
   }
 
   function migrateToPool(
     StakingPoolMigrationData memory migrationData,
-    ProductInitializationParams[] memory params
-  ) internal {
+    ProductInitializationParams[] memory products
+  ) internal returns (uint depositMigrated) {
+
     (uint stakingPoolId, address stakingPoolAddress) = cover.createStakingPool(
       migrationData.isPrivatePool,
       migrationData.initialPoolFee,
       migrationData.maxPoolFee,
-      params,
+      products,
       migrationData.ipfsDescriptionHash
     );
 
-    uint firstTrancheId = block.timestamp / 91 days + 1;
-    for (uint i = 0; i < TRANCHE_COUNT; i++) {
-      uint trancheDeposit = migrationData.deposit * migrationData.stakerTrancheRatios[i] / 100;
+    token().approve(address(tokenController()), migrationData.deposit);
 
-      if (trancheDeposit == 0) {
+    uint totalStakeRatio = 0;
+    uint tokenId = 0; // 0 means a new NFT will be created that will then be reused for each tranche
+    uint firstTrancheId = block.timestamp / 91 days;
+
+    for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
+
+      if (migrationData.trancheStakeRatio[i] == 0) {
         continue;
       }
 
-      token().approve(address(tokenController()), trancheDeposit);
-      IStakingPool(stakingPoolAddress).depositTo(
+      totalStakeRatio += migrationData.trancheStakeRatio[i];
+
+      uint trancheDeposit = totalStakeRatio == 100
+        ? migrationData.deposit - depositMigrated
+        : migrationData.deposit * migrationData.trancheStakeRatio[i] / 100;
+
+      depositMigrated += trancheDeposit;
+
+      tokenId = IStakingPool(stakingPoolAddress).depositTo(
         trancheDeposit,
         firstTrancheId + i,
-        type(uint).max,
-        migrationData.managerAddress
+        tokenId,
+        address(this)
       );
     }
 
     tokenController().assignStakingPoolManager(stakingPoolId, migrationData.managerAddress);
+    stakingNFT.transferFrom(address(this), migrationData.stakerAddress, tokenId);
+
+    return depositMigrated;
   }
 
+  function migrateToNewV2Pool(address stakerAddress) external noPendingActions {
+    // Only selected stakers are automatically migrated
+    require(
+      stakerAddress == ARMOR_STAKER ||
+      stakerAddress == HUGH ||
+      stakerAddress == NM_FOUNDATION,
+      "You are not authorized to migrate this staker"
+    );
+
+    uint deposit = stakers[stakerAddress].deposit;
+    require(deposit > 0, "Address has no stake to migrate");
+
+    INXMToken nxm = token();
+    uint nxmBalanceBefore = nxm.balanceOf(address(this));
+    uint expectedMigratedAmount = 0;
+
+    ProductInitializationParams[] memory products = getProducts(stakerAddress, deposit);
+
+    // set deposit to zero to avoid re-entrancy before any side-effects are executed
+    stakers[stakerAddress].deposit = 0;
+
+    if (stakerAddress == HUGH) {
+      uint[8] memory trancheStakeRatio = [uint(0), 10, 0, 0, 0, 50, 0, 0];
+      expectedMigratedAmount += migrateToPool(
+        StakingPoolMigrationData(
+          HUGH, // stakerAddress
+          HUGH, // managerAddress
+          '', // ipfsDescriptionHash --- TODO fill in
+          false, // isPrivatePool
+          10, // initialPoolFee
+          20, // maxPoolFee
+          deposit,
+          trancheStakeRatio // stake on each tranche, as % out of the deposit
+        ),
+        products
+      );
+    } else if (stakerAddress == ARMOR_STAKER) {
+
+      uint armorAAALowRiskPoolDeposit = deposit * 75 / 100; // 75% of the deposit
+      uint[8] memory trancheStakeRatioAAA = [uint(20), 25, 25, 15, 10, 0, 0, 0];
+
+      expectedMigratedAmount += migrateToPool(
+        StakingPoolMigrationData(
+          ARMOR_STAKER, // stakerAddress
+          ARMOR_MANAGER, // managerAddress
+          '', // ipfsDescriptionHash --- TODO fill in
+          false, // isPrivatePool
+          15, // initialPoolFee
+          25, // maxPoolFee
+          armorAAALowRiskPoolDeposit, // deposit
+          trancheStakeRatioAAA // stake on each tranche, as % out of the deposit
+        ),
+        products
+      );
+
+      uint armorAAMidRiskPoolDeposit = deposit - armorAAALowRiskPoolDeposit; // 25% of the deposit
+      uint[8] memory trancheStakeRatioAA = [uint(20), 25, 25, 15, 10, 0, 0, 0];
+
+      expectedMigratedAmount += migrateToPool(
+        StakingPoolMigrationData(
+          ARMOR_STAKER, // stakerAddress
+          ARMOR_MANAGER, // managerAddress
+          '', // ipfsDescriptionHash --- TODO fill in
+          false, // isPrivatePool
+          15, // initialPoolFee
+          25, // maxPoolFee
+          armorAAMidRiskPoolDeposit,
+          trancheStakeRatioAA // stake on each tranche, as % out of the deposit
+        ),
+        products
+      );
+    } else if (stakerAddress == NM_FOUNDATION) {
+
+      uint[8] memory trancheStakeRatio = [uint(0), 25, 0, 25, 0, 0, 0, 0];
+
+      expectedMigratedAmount += migrateToPool(
+        StakingPoolMigrationData(
+          NM_FOUNDATION, // stakerAddress
+          NM_FOUNDATION, // managerAddress
+          '', // ipfsDescriptionHash --- TODO fill in
+          true, // isPrivatePool
+          0, // initialPoolFee
+          99, // maxPoolFee
+          deposit,
+          trancheStakeRatio // stake on each tranche, as % out of the deposit
+        ),
+        products
+      );
+    }
+
+    uint nxmBalanceAfter = nxm.balanceOf(address(this));
+    uint actualMigratedAmount = nxmBalanceBefore - nxmBalanceAfter;
+    require(actualMigratedAmount == expectedMigratedAmount, "NXM balance mismatch");
+
+    // Send unlocked NXM back
+    uint nxmToBeUnlocked = deposit - actualMigratedAmount;
+    if (nxmToBeUnlocked != 0) {
+      nxm.transfer(stakerAddress, nxmToBeUnlocked);
+    }
+  }
+
+  // TODO review if we want this functionality
+  // We might want to allow users to lock their deposit in multiple tranches
   function migrateToExistingV2Pool(IStakingPool stakingPool, uint trancheId) external {
     uint deposit = stakers[msg.sender].deposit;
     stakers[msg.sender].deposit = 0;

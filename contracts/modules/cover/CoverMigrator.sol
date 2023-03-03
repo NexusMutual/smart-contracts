@@ -148,7 +148,7 @@ contract CoverMigrator is MasterAwareV2 {
   }
 
   function individualClaims() internal view returns (IIndividualClaims) {
-    return IIndividualClaims(getInternalContractAddress(ID.IC));
+    return IIndividualClaims(getInternalContractAddress(ID.CI));
   }
 
   /// @dev Updates internal contract addresses to the ones stored in master. This function is
@@ -156,6 +156,6 @@ contract CoverMigrator is MasterAwareV2 {
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
-    internalContracts[uint(ID.IC)] = master.getLatestAddress("IC");
+    internalContracts[uint(ID.CI)] = master.getLatestAddress("CI");
   }
 }

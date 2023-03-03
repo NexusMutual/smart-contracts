@@ -64,9 +64,9 @@ describe('totalActiveCover', function () {
     await stakingPool.connect(staker).depositTo(stakingAmount, firstTrancheId + 1, 0, AddressZero);
   }
 
-  async function transferYieldToken({ tokenOwner, coverBuyer1, ybETH, yc }) {
+  async function transferYieldToken({ tokenOwner, coverBuyer1, ybETH, cg }) {
     await ybETH.connect(tokenOwner).transfer(coverBuyer1.address, parseEther('100'));
-    await ybETH.connect(coverBuyer1).approve(yc.address, parseEther('100'));
+    await ybETH.connect(coverBuyer1).approve(cg.address, parseEther('100'));
   }
 
   async function buyCover({
@@ -103,20 +103,20 @@ describe('totalActiveCover', function () {
     );
   }
 
-  async function submitIncident({ gv, yc, productId, period }) {
+  async function submitIncident({ gv, cg, productId, period }) {
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
 
     const gvSigner = await ethers.getImpersonatedSigner(gv.address);
     await setEtherBalance(gvSigner.address, ethers.utils.parseEther('1'));
 
-    await yc
+    await cg
       .connect(gvSigner)
       .submitIncident(productId, parseEther('1.1'), currentTime + period / 2, parseEther('100'), '');
   }
 
   it('expire a cover that had a claim paid out fully', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, stakingPool1, as, yc, gv, ybETH } = this.contracts;
+    const { cover, stakingPool1, as, cg, gv, ybETH } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
     const { BUCKET_SIZE } = this.config;
@@ -130,7 +130,7 @@ describe('totalActiveCover', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
 
     // cover buyer gets yield token
-    await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer1, yc, ybETH });
+    await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer1, cg, ybETH });
 
     // Buy Cover
     await buyCover({
@@ -141,7 +141,7 @@ describe('totalActiveCover', function () {
     });
 
     // submit incident
-    await submitIncident({ gv, yc, productId, period });
+    await submitIncident({ gv, cg, productId, period });
 
     // accept incident
     await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
@@ -155,7 +155,7 @@ describe('totalActiveCover', function () {
     }
 
     // fully paid cover
-    await yc.connect(coverBuyer1).redeemPayout(incidentId, coverId, segmentId, amount, nonMember1.address, []);
+    await cg.connect(coverBuyer1).redeemPayout(incidentId, coverId, segmentId, amount, nonMember1.address, []);
 
     {
       // advance past expire time
@@ -188,7 +188,7 @@ describe('totalActiveCover', function () {
   it('expire a cover that had a partial claim paid out', async function () {
     const { DEFAULT_PRODUCTS } = this;
     const { BUCKET_SIZE } = this.config;
-    const { cover, stakingPool1, as, yc, gv, ybETH } = this.contracts;
+    const { cover, stakingPool1, as, cg, gv, ybETH } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
 
@@ -199,7 +199,7 @@ describe('totalActiveCover', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
 
     // cover buyer gets yield token
-    await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer1, yc, ybETH });
+    await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer1, cg, ybETH });
 
     // Buy Cover
     await buyCover({
@@ -210,7 +210,7 @@ describe('totalActiveCover', function () {
     });
 
     // submit incident
-    await submitIncident({ gv, yc, productId, period });
+    await submitIncident({ gv, cg, productId, period });
 
     // accept incident
     await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
@@ -227,7 +227,7 @@ describe('totalActiveCover', function () {
     const claimAmount = amount.div(2);
     // const segmentBeforeBurn = await cover.coverSegmentWithRemainingAmount(coverId, segmentId);
 
-    await yc.connect(coverBuyer1).redeemPayout(incidentId, coverId, segmentId, claimAmount, nonMember1.address, []);
+    await cg.connect(coverBuyer1).redeemPayout(incidentId, coverId, segmentId, claimAmount, nonMember1.address, []);
 
     // TODO: convert claim amount to cover asset
     // expect(await cover.totalActiveCoverInAsset(coverAsset)).to.be.equal(segmentBeforeBurn.amount.sub(claimAmount));
@@ -264,7 +264,7 @@ describe('totalActiveCover', function () {
   it('expire a cover that had rejected claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
     const { BUCKET_SIZE } = this.config;
-    const { cover, stakingPool1, as, yc, gv, ybETH } = this.contracts;
+    const { cover, stakingPool1, as, cg, gv, ybETH } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
 
@@ -275,7 +275,7 @@ describe('totalActiveCover', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
 
     // cover buyer gets yield token
-    await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer1, yc, ybETH });
+    await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer1, cg, ybETH });
 
     // Buy Cover
     await buyCover({
@@ -286,7 +286,7 @@ describe('totalActiveCover', function () {
     });
 
     // submit incident
-    await submitIncident({ gv, yc, productId, period });
+    await submitIncident({ gv, cg, productId, period });
 
     // reject incident (requires at least 1 positive vote)
     await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
@@ -301,7 +301,7 @@ describe('totalActiveCover', function () {
     }
 
     await expect(
-      yc.connect(coverBuyer1).redeemPayout(incidentId, coverId, segmentId, parseEther('1'), nonMember1.address, []),
+      cg.connect(coverBuyer1).redeemPayout(incidentId, coverId, segmentId, parseEther('1'), nonMember1.address, []),
     ).to.be.revertedWith('The incident needs to be accepted');
 
     {

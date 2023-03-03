@@ -71,6 +71,8 @@ contract NXMaster is INXMMaster {
     for (uint i = 0; i < newContractCodes.length; i++) {
       addNewInternalContract(newContractCodes[i], newAddresses[i], _types[i]);
     }
+
+    updateAllDependencies();
   }
 
   /// @dev Adds new internal contract
@@ -123,7 +125,6 @@ contract NXMaster is INXMMaster {
 
     IMasterAwareV2 up = IMasterAwareV2(newInternalContract);
     up.changeMasterAddress(address(this));
-    up.changeDependentContractAddress();
 
     emit InternalContractAdded(contractCode, contractAddress, ContractType(contractType));
   }
@@ -202,14 +203,16 @@ contract NXMaster is INXMMaster {
     }
 
     // delete elements from contractCodes
-    for (uint i = 0; i < contractCodes.length; i++) {
+    for (uint i = 0; i < contractCodes.length;) {
       for (uint j = 0; j < contractCodesToRemove.length; j++) {
         if (contractCodes[i] == contractCodesToRemove[j]) {
           contractCodes[i] = contractCodes[contractCodes.length - 1];
           contractCodes.pop();
-          i = i == 0 ? 0 : i - 1;
+          unchecked { i--; }
+          break;
         }
       }
+      unchecked { i++; }
     }
 
     updateAllDependencies();

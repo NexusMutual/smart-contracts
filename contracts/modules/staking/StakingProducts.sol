@@ -326,9 +326,9 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint allocationUnitsPerNXM
   ) public returns (uint premium) {
 
-     if (msg.sender != StakingPoolLibrary.getAddress(stakingPoolFactory, poolId)) {
-       revert OnlyStakingPool();
-     }
+    if (msg.sender != StakingPoolLibrary.getAddress(stakingPoolFactory, poolId)) {
+      revert OnlyStakingPool();
+    }
 
     StakedProduct memory product = _products[poolId][productId];
     uint targetPrice = Math.max(product.targetPrice, globalMinPrice);

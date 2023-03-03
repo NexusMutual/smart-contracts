@@ -1,6 +1,5 @@
 require('dotenv').config();
 const { ethers } = require('hardhat');
-const ipfsClient = require('ipfs-http-client');
 const fs = require('fs');
 const path = require('path');
 
@@ -11,85 +10,23 @@ const claimMethod = {
   yieldTokenIncidents: 1,
 };
 
-const sleep = ms => {
-  return new Promise(resolve => {
-    setTimeout(resolve, ms);
-  });
-};
-
-const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
+const main = async (coverAddress, abMemberSigner) => {
   const [deployer] = await ethers.getSigners();
   const { abi } = JSON.parse(fs.readFileSync('./artifacts/contracts/modules/cover/Cover.sol/Cover.json'));
   const cover = new ethers.Contract(coverAddress, abi, deployer);
-  const ipfs = ipfsClient({
-    host: 'ipfs.infura.io',
-    port: '5001',
-    protocol: 'https',
-  });
 
-  let protocolCoverHash;
-  let custodianCoverHash;
-  let yieldTokenCoverHash;
-  let sherlockExcessCoverHash;
-  let eth2SlashingCoverHash;
-  let liquidCollectiveSlashingCoverHash;
+  const protocolCoverHash = 'Fork Test Mock Protocol Cover Hash';
+  const custodianCoverHash = 'Fork Test Mock Custodian Cover Hash';
+  const yieldTokenCoverHash = 'Test Mock Yield Token Cover Hash';
+  const sherlockExcessCoverHash = 'Test Mock Yield Token Cover Hash';
+  const eth2SlashingCoverHash = 'Test Eth 2 Slashing Cover Hash';
+  const liquidCollectiveSlashingCoverHash = 'Liquid Collective Cover Hash';
 
-  if (enableIPFSUploads) {
-    // Add product types:
-    // Protocol
-    const protocolAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/ProtocolCoverv1.0.pdf');
-    const protocolAgreement = await ipfs.add(protocolAgreementBuffer);
-
-    const protocolCover = await ipfs.add(
-      Buffer.from(
-        JSON.stringify({
-          agreement: protocolAgreement.path,
-          title: 'Protocol cover',
-        }),
-      ),
-    );
-    const protocolCoverHash = protocolCover.path;
-    ipfs.pin.add(protocolCoverHash);
-
-    // Custodian
-    const custodianAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/CustodyCoverWordingv1.0.pdf');
-    const custodianAgreement = await ipfs.add(custodianAgreementBuffer);
-    const custodianCover = await ipfs.add(
-      Buffer.from(
-        JSON.stringify({
-          agreement: custodianAgreement.path,
-          title: 'Custodian cover',
-        }),
-      ),
-    );
-    const custodianCoverHash = custodianCover.path;
-    ipfs.pin.add(custodianCoverHash);
-
-    // Yield Token
-    const yieldTokenAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/YieldTokenCoverv1.0.pdf');
-    const yieldTokenAgreement = await ipfs.add(yieldTokenAgreementBuffer);
-    const yieldTokenCover = await ipfs.add(
-      Buffer.from(
-        JSON.stringify({
-          agreement: yieldTokenAgreement.path,
-          name: 'Yield token cover',
-        }),
-      ),
-    );
-    const yieldTokenCoverHash = yieldTokenCover.path;
-    ipfs.pin.add(yieldTokenCoverHash);
-  } else {
-    protocolCoverHash = 'Fork Test Mock Protocol Cover Hash';
-    custodianCoverHash = 'Fork Test Mock Custodian Cover Hash';
-    yieldTokenCoverHash = 'Test Mock Yield Token Cover Hash';
-    sherlockExcessCoverHash = 'Test Mock Yield Token Cover Hash';
-    eth2SlashingCoverHash = 'Test Eth 2 Slashing Cover Hash';
-    liquidCollectiveSlashingCoverHash = 'Liquid Collective Cover Hash';
-  }
-
+  console.log('Calling Cover.setProductTypes');
   await cover.connect(abMemberSigner).setProductTypes([
     {
       // Protocol Cover
+      productTypeName: 'Protocol',
       productTypeId: MaxUint256,
       ipfsMetadata: protocolCoverHash,
       productType: {
@@ -100,6 +37,7 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
     },
     {
       // Custody Cover
+      productTypeName: 'Custody',
       productTypeId: MaxUint256,
       ipfsMetadata: custodianCoverHash,
       productType: {
@@ -110,6 +48,7 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
     },
     // Yield Token Cover
     {
+      productTypeName: 'Yield Token',
       productTypeId: MaxUint256,
       ipfsMetadata: yieldTokenCoverHash,
       productType: {
@@ -121,6 +60,7 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
 
     // Sherlock Excess Cover
     {
+      productTypeName: 'Sherlock Excess',
       productTypeId: MaxUint256,
       ipfsMetadata: sherlockExcessCoverHash,
       productType: {
@@ -132,6 +72,7 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
 
     // Stakewise Slashing Cover
     {
+      productTypeName: 'Stakewise ETH Staking',
       productTypeId: MaxUint256,
       ipfsMetadata: eth2SlashingCoverHash,
       productType: {
@@ -143,6 +84,7 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
 
     // Liquid Collective slashing cover
     {
+      productTypeName: 'Liquid Collective ETH Staking',
       productTypeId: MaxUint256,
       ipfsMetadata: liquidCollectiveSlashingCoverHash,
       productType: {
@@ -170,22 +112,8 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
   // const migratableProductsIpfsHashes = JSON.parse(fs.readFileSync('./deploy/migratableProductsIpfsHashes.json'));
   const migratableProductsIpfsHashes = [];
 
-  if (enableIPFSUploads) {
-    for (const product of migratableProducts) {
-      const ipfsUpload = await ipfs.add(
-        Buffer.from(
-          JSON.stringify({
-            name: product.name,
-          }),
-        ),
-      );
-      await sleep(20000); // Required to avoid "Too many requests"
-      migratableProductsIpfsHashes.push(ipfsUpload.path);
-    }
-  } else {
-    for (const product of migratableProducts) {
-      migratableProductsIpfsHashes.push(`Fork Test Mock IPFS Path Product ${product.name}`);
-    }
+  for (const product of migratableProducts) {
+    migratableProductsIpfsHashes.push(`Fork Test Mock IPFS Path Product ${product.name}`);
   }
 
   const migrateableProductsIpfsHashesPath = path.join(
@@ -195,6 +123,7 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
 
   fs.writeFileSync(migrateableProductsIpfsHashesPath, JSON.stringify(migratableProductsIpfsHashes, null, 2), 'utf8');
 
+  console.log(`Call Cover.setProducts with ${migratableProducts.length} products.`);
   await cover.connect(abMemberSigner).setProducts(
     migratableProducts.map(x => {
       const coverAssets =
@@ -204,6 +133,7 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
         0;
 
       const productParams = {
+        productName: x.name,
         productId: MaxUint256,
         ipfsMetadata: 'product 0 metadata',
         product: {

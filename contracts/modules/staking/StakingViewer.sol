@@ -37,6 +37,7 @@ contract StakingViewer is Multicall {
     uint tokenId;
     uint trancheId;
     uint stake;
+    uint stakeShares;
     uint reward;
   }
 
@@ -271,6 +272,7 @@ contract StakingViewer is Multicall {
       uint reward = pendingRewards + newRewardPerShare * rewardsShares / ONE_NXM;
 
       deposit.stake = stake;
+      deposit.stakeShares = stakeShares;
       deposit.reward = reward;
       depositsQueue[depositCount++] = deposit;
 
@@ -305,6 +307,7 @@ contract StakingViewer is Multicall {
 
       Deposit memory deposit;
       deposit.stake = stakeAmountAtExpiry * stakeShares / stakeShareSupplyAtExpiry;
+      deposit.stakeShares = stakeShares;
 
       uint newRewardPerShare = accNxmPerRewardShareAtExpiry.uncheckedSub(lastAccNxmPerRewardShare);
       deposit.reward = pendingRewards + newRewardPerShare * rewardsShares / ONE_NXM;

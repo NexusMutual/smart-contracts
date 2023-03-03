@@ -2,8 +2,17 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
+const { config } = require('hardhat');
 
-const outputDir = path.join(__dirname, 'output');
+const productsV1ContractPath = path.join(__dirname, '../../contracts/modules/cover/ProductsV1.sol');
+const CONTRACTS_URL = 'https://api.nexusmutual.io/coverables/contracts.json';
+
+const outputDir = 'scripts/v2-migration/output';
+const OUTPUT_FILE = path.join(
+  config.paths.root,
+  outputDir, // dir
+  'product-addresses.json', // filename
+);
 
 const gracePeriod = {
   protocol: 30,
@@ -34,7 +43,7 @@ const getSunsetProducts = async () => {
     decode(await fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(x => x.arrayBuffer())),
   );
 
-  const products = await fetch('https://api.nexusmutual.io/coverables/contracts.json').then(r => r.json());
+  const products = await fetch(CONTRACTS_URL).then(r => r.json());
 
   const productsWithLowerCasedKeys = {};
   for (const key in products) {
@@ -92,8 +101,14 @@ contract ProductsV1 is IProductsV1 {
 }
 `;
 
-const main = async () => {
-  const v1Products = await fetch('https://api.nexusmutual.io/coverables/contracts.json').then(r => r.json());
+const main = async (useCache = true) => {
+  // check the cache first
+  if (useCache && fs.existsSync(OUTPUT_FILE)) {
+    console.log('Using cached data for get V2 products');
+    return JSON.parse(fs.readFileSync(OUTPUT_FILE).toString());
+  }
+
+  const v1Products = await fetch(CONTRACTS_URL).then(r => r.json());
 
   console.log(`Total V1 products: ${Object.keys(v1Products).length}`);
 
@@ -110,14 +125,12 @@ const main = async () => {
   const v2Products = v2ProductAddresses.map((k, i) => ({ ...v1Products[k], productId: i, legacyProductId: k }));
   const productsV1Contract = getProductsContract(v2Products);
 
-  const productsV1ContractPath = path.join(__dirname, '../../../contracts/modules/cover/ProductsV1.sol');
   console.log(`Writing file ${productsV1ContractPath}`);
   fs.writeFileSync(productsV1ContractPath, productsV1Contract, 'utf8');
 
-  const productAddressesPath = outputDir + '/product-addresses.json';
-  console.log(`Writing file ${productAddressesPath}`);
+  console.log(`Writing file ${OUTPUT_FILE}`);
   fs.writeFileSync(
-    productAddressesPath,
+    OUTPUT_FILE,
     JSON.stringify(
       v2Products.map(x => x.legacyProductId),
       null,
@@ -151,7 +164,7 @@ const main = async () => {
 };
 
 if (require.main === module) {
-  main()
+  main(false)
     .then(() => console.log('Done!'))
     .catch(e => {
       console.log('Unhandled error encountered: ', e.stack);

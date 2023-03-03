@@ -173,6 +173,8 @@ describe('V2 upgrade', function () {
     this.claims = await factory('CL');
     this.claimsReward = await factory('CR');
     this.claimsData = await factory('CD');
+    this.pooledStaking = await factory('PS');
+    this.gateway = await factory('GW');
 
     // Pool value related info
     this.poolValueBefore = await this.pool.getPoolValueInEth();
@@ -227,49 +229,6 @@ describe('V2 upgrade', function () {
 
   it('Recompile contracts if needed', async function () {
     await run('compile');
-  });
-
-  it('Check balance of CR equals CLA + GV rewards computed above', async function () {
-    const GV_REWARDS_OUTPUT = require(GV_REWARDS_OUTPUT_PATH);
-    const CLA_REWARDS_OUTPUT = require(CLA_REWARDS_OUTPUT_PATH);
-    const CLA_STAKES_OUTPUT = require(CLA_STAKES_OUTPUT_PATH);
-    const crBalance = await this.nxm.balanceOf(this.claimsReward.address);
-
-    this.governanceRewardsSum = Object.values(GV_REWARDS_OUTPUT).reduce(
-      (sum, reward) => sum.add(reward),
-      BigNumber.from(0),
-    );
-    this.claRewardsSum = CLA_REWARDS_OUTPUT.reduce((sum, reward) => sum.add(reward.reward), BigNumber.from(0));
-    this.claStakesSum = Object.values(CLA_STAKES_OUTPUT).reduce((sum, amount) => sum.add(amount), BigNumber.from(0));
-
-    console.log({
-      governanceRewardsSum: formatEther(this.governanceRewardsSum),
-      claRewardsSum: formatEther(this.claRewardsSum),
-      totalRewardsInCR: formatEther(this.governanceRewardsSum.add(this.claRewardsSum)),
-      crBalance: formatEther(crBalance),
-      extraAmount: formatEther(crBalance.sub(this.governanceRewardsSum.add(this.claRewardsSum))),
-    });
-
-    // Currently there are still 1.655901756826619689 NXM extra when comparing
-    // the sum of governance rewards and claim assessment rewards with the balance of CR
-    expect(crBalance.sub(this.governanceRewardsSum).sub(this.claRewardsSum)).lt(parseEther('2'));
-  });
-
-  it('Check balance of TC equals sum of all locked NXM', async function () {
-    const TC_LOCKED_AMOUNT_OUTPUT = require(TC_LOCKED_AMOUNT_OUTPUT_PATH);
-    this.TCLockedAmount = Object.values(TC_LOCKED_AMOUNT_OUTPUT).reduce(
-      (sum, amount) => sum.add(amount),
-      BigNumber.from(0),
-    );
-    const tcBalanceBeforeUpgrade = await this.nxm.balanceOf(this.tokenController.address);
-
-    console.log({
-      TCBalance: formatEther(tcBalanceBeforeUpgrade),
-      TCLockedAmount: formatEther(this.TCLockedAmount),
-      Diff: formatEther(tcBalanceBeforeUpgrade.sub(this.TCLockedAmount)),
-    });
-
-    expect(tcBalanceBeforeUpgrade).to.be.equal(this.TCLockedAmount);
   });
 
   it('Impersonate AB members', async function () {
@@ -374,20 +333,6 @@ describe('V2 upgrade', function () {
     ]);
   });
 
-  it('Deploy and upgrade Governance.sol', async function () {
-    const newGovernance = await ethers.deployContract('Governance');
-
-    await submitGovernanceProposal(
-      // upgradeMultipleContracts(bytes2[],address[])
-      PROPOSAL_CATEGORIES.upgradeMultipleContracts,
-      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('GV')], [newGovernance.address]]),
-      this.abMembers,
-      this.governance,
-    );
-
-    this.governance = await ethers.getContractAt('Governance', this.governance.address);
-  });
-
   it('Calculate proxy addresses for Cover and StakingProducts', async function () {
     this.coverProxyAddress = calculateProxyAddress(this.master.address, CoverCreate2Salt);
     this.stakingProductsProxyAddress = calculateProxyAddress(this.master.address, StakingProductsCreate2Salt);
@@ -484,7 +429,7 @@ describe('V2 upgrade', function () {
   });
 
   // eslint-disable-next-line max-len
-  it('Upgrade contracts: MR, MCR, TC, PS, PriceFeedOracle, P1, CL (CoverMigrator), GW, CR', async function () {
+  it('Upgrade contracts: MR, MCR, TC, PS, PriceFeedOracle, P1, CL (CoverMigrator), GW, CR, GV', async function () {
     // CR - ClaimRewards.sol
     const newClaimsReward = await ethers.deployContract('LegacyClaimsReward', [this.master.address, DAI_ADDRESS]);
 
@@ -546,9 +491,12 @@ describe('V2 upgrade', function () {
     // GW - Gateway.sol
     const gateway = await ethers.deployContract('LegacyGateway', [this.quotationData.address]);
 
+    // GV - Governance.sol
+    const governance = await ethers.deployContract('Governance');
+
     const contractsBefore = await this.master.getInternalContracts();
 
-    const codes = ['MR', 'MC', 'CR', 'TC', 'PS', 'P1', 'CL', 'GW'].map(code => toUtf8Bytes(code));
+    const codes = ['MR', 'MC', 'CR', 'TC', 'PS', 'P1', 'CL', 'GW', 'GV'].map(code => toUtf8Bytes(code));
     const addresses = [
       memberRoles,
       mcr,
@@ -558,6 +506,7 @@ describe('V2 upgrade', function () {
       pool,
       coverMigrator,
       gateway,
+      governance,
     ].map(c => c.address);
 
     await submitGovernanceProposal(
@@ -572,19 +521,14 @@ describe('V2 upgrade', function () {
     console.log('Contracts after:', formatInternalContracts(contractsAfter));
 
     this.memberRoles = await ethers.getContractAt('MemberRoles', this.memberRoles.address);
-    this.mcr = await ethers.getContractAt('MCR', mcr.address);
+    this.tokenController = await ethers.getContractAt('TokenController', this.tokenController.address);
+    this.pooledStaking = await ethers.getContractAt('LegacyPooledStaking', this.pooledStaking.address);
+    this.gateway = await ethers.getContractAt('LegacyGateway', this.gateway.address);
+    this.governance = await ethers.getContractAt('Governance', this.governance.address);
 
-    const tokenControllerAddress = await this.master.contractAddresses(toUtf8Bytes('TC'));
-    this.tokenController = await ethers.getContractAt('TokenController', tokenControllerAddress);
-
-    const pooledStakingAddress = await this.master.contractAddresses(toUtf8Bytes('PS'));
-    this.pooledStaking = await ethers.getContractAt('LegacyPooledStaking', pooledStakingAddress);
+    this.mcr = mcr;
     this.pool = pool;
-    this.coverMigrator = await ethers.getContractAt('CoverMigrator', coverMigrator.address);
-
-    const gatewayAddress = await this.master.contractAddresses(toUtf8Bytes('GW'));
-    this.gateway = await ethers.getContractAt('LegacyGateway', gatewayAddress);
-
+    this.coverMigrator = coverMigrator;
     this.claimsReward = newClaimsReward;
   });
 
@@ -644,6 +588,49 @@ describe('V2 upgrade', function () {
     const storageValueAfter = await ethers.provider.getStorageAt(this.memberRoles.address, slot);
     const [claimPayableAddressAfter] = defaultAbiCoder.decode(['address'], storageValueAfter);
     expect(claimPayableAddressAfter).to.be.equal(AddressZero);
+  });
+
+  it('Check balance of CR equals CLA + GV rewards computed above', async function () {
+    const GV_REWARDS_OUTPUT = require(GV_REWARDS_OUTPUT_PATH);
+    const CLA_REWARDS_OUTPUT = require(CLA_REWARDS_OUTPUT_PATH);
+    const CLA_STAKES_OUTPUT = require(CLA_STAKES_OUTPUT_PATH);
+    const crBalance = await this.nxm.balanceOf(this.claimsReward.address);
+
+    this.governanceRewardsSum = Object.values(GV_REWARDS_OUTPUT).reduce(
+      (sum, reward) => sum.add(reward),
+      BigNumber.from(0),
+    );
+    this.claRewardsSum = CLA_REWARDS_OUTPUT.reduce((sum, reward) => sum.add(reward.reward), BigNumber.from(0));
+    this.claStakesSum = Object.values(CLA_STAKES_OUTPUT).reduce((sum, amount) => sum.add(amount), BigNumber.from(0));
+
+    console.log({
+      governanceRewardsSum: formatEther(this.governanceRewardsSum),
+      claRewardsSum: formatEther(this.claRewardsSum),
+      totalRewardsInCR: formatEther(this.governanceRewardsSum.add(this.claRewardsSum)),
+      crBalance: formatEther(crBalance),
+      extraAmount: formatEther(crBalance.sub(this.governanceRewardsSum.add(this.claRewardsSum))),
+    });
+
+    // Currently there are still 1.655901756826619689 NXM extra when comparing
+    // the sum of governance rewards and claim assessment rewards with the balance of CR
+    expect(crBalance.sub(this.governanceRewardsSum).sub(this.claRewardsSum)).lt(parseEther('2'));
+  });
+
+  it('Check balance of TC equals sum of all locked NXM', async function () {
+    const TC_LOCKED_AMOUNT_OUTPUT = require(TC_LOCKED_AMOUNT_OUTPUT_PATH);
+    this.TCLockedAmount = Object.values(TC_LOCKED_AMOUNT_OUTPUT).reduce(
+      (sum, amount) => sum.add(amount),
+      BigNumber.from(0),
+    );
+    const tcBalanceBeforeUpgrade = await this.nxm.balanceOf(this.tokenController.address);
+
+    console.log({
+      TCBalance: formatEther(tcBalanceBeforeUpgrade),
+      TCLockedAmount: formatEther(this.TCLockedAmount),
+      Diff: formatEther(tcBalanceBeforeUpgrade.sub(this.TCLockedAmount)),
+    });
+
+    expect(tcBalanceBeforeUpgrade).to.be.equal(this.TCLockedAmount);
   });
 
   it('Call function to block V1 staking', async function () {

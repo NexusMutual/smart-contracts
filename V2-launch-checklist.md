@@ -1,164 +1,94 @@
 # V2 Launch Checklist
 
-## Open Questions
-- Where/ what address do we call contracts functions from during the upgrade?
-- Where do we run the scripts?
-
 ## Pre-requisites
 1. [ ] No claims / incidents in progress
 
 ## Dependencies
 1. [ ] NFT indexer
 2. [ ] Cover router
-3. [ ] Other APIs?
+3. [ ] Membership worker
 
 ## Actions before upgrade
 
-### Scripts
-- [ ] Have all the scripts needed ready in `/v2-migration` folder
-  - [ ] `get-products.js`
-// Review the ones below
-  - [ ] `get-governance-rewards.js`
-  - [ ] `get-legacy-assessment-rewards.js`
-  - [ ] `get-locked-in-v1-claim-assessment.js`
-  - [ ] `get-v1-cover-prices.js`
-  - [ ] `populate-v2-products.js`
-  - [ ] `get-withdrawable-cover-notes.js`
+### Scripts to run before contracts deploy
+1. [x] `get-v2-products.js`
+  - Generates `ProductsV1.sol`
+2. [x] `get-v1-cover-prices.js`
+  - Generates `PricesV1.sol`
+3. [x] `get-governance-rewards.js`
+  - Generates codeblock in `ClaimRewards.sol`
+4. [x] `upload-to-ipfs.js`
+  - Uploads the product and product type info to ipfs
+5. [ ] TBD 
+  - Generate `setProducts()` and `setProductTypes()` txs data
 
-### Products [Status: in progress]
-**What we need**
-1. `ProductsV1.sol`: a contract containing a mapping between V1 product IDs (contract addresses) 
-   and V2 product IDs 
-  (numerical)
-2. IPFS data uploaded for `productTypes` and `products` info 
-3. Tx data for AB to write onchain all V2 `productTypes` and `products` info
+### Automatically generated contracts code
+1. [ ] `ProductsV1.sol`
+2. [ ] `PricesV1.sol`
+3. [ ] `ClaimsReward.sol` - code block addition
 
-**How we get it**
-
-#1
-- [x] Run `scripts/v2-migration/products/get-products.js`
-  - [x] Generate `scripts/v2-migration/products/output/v2ProductAddresses.json` - a subset of V1 products that are either _not deprecated_ or _deprecated, but have covers that are active / in grace period_
-  - [x] Generate `ProductsV1.sol` - a contract that includes a mapping between V1 product IDs (i.e. contract addresses) and V2 product IDs (numerical IDs)
-- [ ] Check `ProductsV1.sol` data
-- [x] Check `v2-migration/products/output/product-addresses.json` data against the list of all products below
-
-#2
-- [x] [List of all product types + metadata](https://docs.google.com/spreadsheets/d/1mhPPdmVyGTZHfhnCTK9pkyuVCwIFm5JtKiTa011e9g8/edit#gid=0) 
-  - [x] store product type name onchain in a mapping
-- [x] [List of all products + metadata](https://docs.google.com/spreadsheets/d/1mhPPdmVyGTZHfhnCTK9pkyuVCwIFm5JtKiTa011e9g8/edit#gid=1826493151)
-  - [x] store the product name onchain in a mapping
-- [x] IPFS structure for `productTypes` info:
-  - store the cover wording PDF on IPFS and use that IPFS hash
-- [x] IPFS structure for `products` info
-  - store the product exclusions on IPFS: {"exclusions": "Exclusion 1", "Exclusion 2", ...} - can be found [here](https://docs.google.com/spreadsheets/d/1mhPPdmVyGTZHfhnCTK9pkyuVCwIFm5JtKiTa011e9g8/edit#gid=1755020585) 
-- [x] Script to generate and upload all the above to IPFS
-  - `scripts/v2-migration/scripts/upload-to-ipfs.js`
-- [ ] Upload the above to IPFS
-
-#3
-- [ ] **TODO** Format input for `setProducts()` and `setProductTypes()` functions 
-- [ ] **TODO**: Script to create the tx data for AB to write `products` and `productTypes` info 
-  onchain - we need to modify a bit `scripts/populate-v2-products.js` for this
-- [ ] Simulate the above txs in the fork test
-
-### Rewards
-**What we need**
-1. List of all V1 assessment rewards
-2. ... TBD
-
-**How we get it**
-- [ ] Run `get-legacy-assessment-rewards.js` to automatically populate `LegacyClaimsRewards.sol` with the list of addresses we reimburse with the assessment rewards.
-  - [ ] Check `LegacyClaimsRewards.sol`
- 
-### Staking Pools
-**What we need**
-1. List of staking pool inputs
-2. List of V1 prices
-
-**How we get it**
-- [x] Final inputs for staking pools [here](https://docs.google.com/spreadsheets/d/1ebhsVWjc18rQJpGLMzRfmzRwwYzND7_6Q0A9zOlADvE)
-  - [x] Update `migrateToNewV2Pool` in `LegacyPooledStaking.sol` with the above info
-  - [ ] Allow changing the pool manager so we can also migrate the Foundation stake
-- [ ] Run `get-v1-cover-prices.js`
-  - [ ] !!! We need to make sure the QE is accessible to us while we run this. We should run it after we block V1 staking.   
-
-
-### Onchain
-- [ ] **Add new proposal category**: 42 Add new contracts
-- [ ] **Add new proposal category**: 43 Remove contracts
-- [ ] **Edit proposal category** 41 (Set Asset Swap Details). It needs the new function signature in
-   order to modify limits used by `SwapOperator.sol`. 
-  - [ ] **TODO** double check if needed
+### Product-related prep:
+1. [ ] Upload to IPFS data for `productTypes` and `products` info 
+2. [ ] Have handy tx data for AB to write onchain all V2 `productTypes` and `products` info
 
 ## Contract Deployment
-
-**Deployment & verification**
-Any time
 - [ ] `ProductsV1.sol` [non-internal]
+- [ ] `PricesV1.sol` [non-internal]
+- [ ] `CoverViewer.sol`[non-internal]
 - [ ] `CoverNFT.sol` [non-internal] - *NFT symbols
-- [ ] `Assessment.sol` [AS] (must be done after `CoverNFT.sol`)
-- [ ] `IndividualClaims.sol` [IC] (must be done after `CoverNFT.sol`)
-- [ ] `YieldTokenIncidents.sol` [YT] (must be done after `CoverNFT.sol`)
-- [ ] `SwapOperator.sol` [non-internal]  
-- [ ] `PriceFeedOracle.sol` [non-internal]
-- [ ] `Pool.sol` [P1] (must be done after `SwapOperator.sol` and `PriceFeedOracle.sol`)
-  - [ ] !!! Contact Enzyme to whitelist the new Pool contract as receiver for the vault
-- [ ] `Governance.sol`[GV]
-- [ ] `CoverInitializer.sol` [CO]
-- [ ] `NXMaster.sol` [NXMaster]
-- [ ] `MCR.sol` [MC]
-- [ ] `MemberRoles.sol` [MR]
-- [ ] `Gateway.sol` [GW]
-- [ ] `CoverMigrator.sol`
-- [ ] `CoverViewer.sol`
-- [ ] `LegacyClaimsReward.sol` [CR]
-- [ ] `TokenController.sol` [TC] (must be done after `LegacyClaimsReward.sol`)
+- [ ] `Cover.sol` [CO] 
+- [ ] `LegacyGateway.sol` [GW]
+- [ ] `CoverMigrator.sol`[CL]
 
-After `CoverInitializer.sol` is upgraded(!)
 - [ ] `StakingPoolFactory.sol`
 - [ ] `StakingNFT.sol` - *NFT symbols
 - [ ] `StakingPool.sol` 
 - [ ] `LegacyPooledStaking.sol` [PS]
-- [ ] `Cover.sol` [CO] (must be done after `StakingNFT.sol`)
 
-## Upgrade
+- [ ] `Assessment.sol` [AS]
+- [ ] `IndividualClaims.sol` [IC] 
+- [ ] `YieldTokenIncidents.sol` [YT]
 
-### Pre-upgrade
-- [ ] Turn off the quote engine
+- [ ] `Pool.sol` [P1]
+  - [ ] !!! Contact Enzyme to whitelist the new Pool contract as receiver for the vault
+- [ ] `SwapOperator.sol` [non-internal]  
+- [ ] `PriceFeedOracle.sol` [non-internal]
+- [ ] `MCR.sol` [MC]
+
+- [ ] `NXMaster.sol` [NXMaster]
+- [ ] `Governance.sol`[GV]
+- [ ] `MemberRoles.sol` [MR]
+- [ ] `TokenController.sol` [TC]
+- [ ] `LegacyClaimsReward.sol` [CR]
+
+### Upgrade pre-requisites
+- [ ] Turn off the quote engine & all other workers
 - [ ] Turn off the UI
+- [ ] Bring up V2 version-data endpoint
 
 ### Upgrade
----------- Proposals ----------
-- [ ] **Proposal**: Upgrade `Governance.sol` to prevent governance rewards withdrawal (`upgradeMultipleContracts()`)
-- [ ] **Proposal**: Add new internal contract: CoverInitializer.sol (CO). The proxy address is required to deploy the implementations of `Cover.sol` (`addNewInternalContracts()`)
-- [ ] **Deploy** `StakingNFT.sol` and `StakingPool.sol` (depend on `CoverInitializer.sol`)
+- [ ] **Proposal**: Add new proposal category: 42 Add new contracts 
+- [ ] **Proposal**: Add new proposal category: 43 Remove contracts
 - [ ] **Proposal**: Upgrade master `NXMaster.sol` (`upgradeMasterAddress()`)
-- [ ] **Deploy** `ClaimRewards.sol`
-- [ ] **Proposal**: Upgrade existing internal contracts: MR, MC, CO, TC, PS, P1, CL (CoverMigrator.sol), GW (``)
-- [ ] **Proposal**: Upgrade existing internal contract: CR (it depends on TC above)
-- [ ] **Call function** `initialize()` from `Cover.sol` to set `globalCapacityRatio` and `globalRewardsRatio`
+- [ ] **Proposal**: Add new internal contracts - CI, CG, AS, CO, SP (`addNewInternalContracts(bytes2[],address[],uint256[])`)
+- [ ] **Proposal**: Upgrade existing internal contracts: MR, MCR, TC, PS, PriceFeedOracle, P1, CL (CoverMigrator), GW, CR, GV (`upgradeMultipleContracts(bytes2[],address[])`)
 
----------- Staking migration ----------
-- [ ] **Call function** `blockV1()` from `LegacyPooledStaking.sol` This will prevent new deposits 
-  and any changes to stake amounts.
-- [ ] **Run script** to process all PS pending actions
-- [ ] **Call function** `migrateToNewV2Pool` in `LegacyPooledStaking.sol` for each staker to be migrated
+---------- Add new products and product types onchain ----------
+- [ ] TBD
 
----------- Claim Assessment migration ----------
-- [ ] **Run script** `get-locked-in-v1-claim-assesment.js` and save the output 
-- [ ] **Call function** `withdrawClaimAssessmentTokens` from `TokenController.sol` and pass the addresses generated above to transfer back to them the NXM staked for V1 claim assessment
+---------- Rewards migration ----------
 - [ ] **Call function** `transferRewards()` in `LegacyClaimRewards.sol` to transfer V1 claim assessment rewards to their owners
 - [ ] **Call function** `unlistClaimsReward()` in `TokenController.sol` to blacklist the CR contract, so it can't hold NXM
 
----------- Proposals ----------
-- [ ] **Proposal** to remove legacy internal contracts: CR, CD, IC, QD, QT, TF, TD
-- [ ] **Proposal** to add new internal contracts: Assessment, IndividualClaims, 
-  YieldTokenIncidents
-  - TODO: can this be done in the same proposal as `CoverInitializer.sol`? 
+---------- Staking migration ----------
+- [ ] **Run script** to push pending rewards and process all PS pending actions
+- [ ] **Call function** `migrateToNewV2Pool` in `LegacyPooledStaking.sol` for each staker to be migrated
+
+---------- Cleanup ----------
+- [ ] **Proposal**: Remove internal contracts
+- [ ] **Propoasl** Edit proposal category: 41 (Set Asset Swap Details). It needs the new function signature in order to modify limits used by `SwapOperator.sol`. 
 
 ### Post-upgrade
 - [ ] Update `version-data.json` with the new contract addresses
 - [ ] Start APIs
 - [ ] Start the new UI
-
-

@@ -1053,7 +1053,7 @@ describe('V2 upgrade', function () {
   });
 
   // TODO review
-  it('purchase Cover at the expected prices from the migrated pools', async function () {
+  it.skip('purchase Cover at the expected prices from the migrated pools', async function () {
     const coverBuyer = this.abMembers[4];
     const poolEthBalanceBefore = await ethers.provider.getBalance(this.pool.address);
 

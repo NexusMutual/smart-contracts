@@ -106,10 +106,6 @@ async function setup() {
 
   await master.setEmergencyAdmin(accounts.emergencyAdmin.address);
 
-  await cover.initialize();
-  const capacityFactor = '20000';
-  await cover.connect(accounts.governanceContracts[0]).updateUintParameters([0, 2], [capacityFactor]);
-
   await cover.connect(accounts.advisoryBoardMembers[0]).setProductTypes([
     {
       productTypeName: 'ProductType X',
@@ -174,6 +170,7 @@ async function setup() {
   const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
   const MAX_COMMISSION_RATIO = await cover.MAX_COMMISSION_RATIO();
   const BUCKET_SIZE = BigNumber.from(7 * 24 * 3600); // 7 days
+  const capacityFactor = '20000';
 
   this.master = master;
   this.pool = pool;

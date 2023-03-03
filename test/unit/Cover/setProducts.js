@@ -253,13 +253,11 @@ describe('setProducts', function () {
   it('should fail to buy cover for deprecated product', async function () {
     const { cover } = this;
     const {
-      governanceContracts: [gv1],
       members: [coverBuyer, stakingPoolManager],
       advisoryBoardMembers: [advisoryBoardMember0],
     } = this.accounts;
 
     const productId = 1;
-    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
 
     // create staking pool
     await createStakingPool(
@@ -298,13 +296,11 @@ describe('setProducts', function () {
   it('should fail to edit cover for deprecated product', async function () {
     const { cover } = this;
     const {
-      governanceContracts: [gv1],
       members: [coverBuyer, stakingPoolManager],
       advisoryBoardMembers: [advisoryBoardMember0],
     } = this.accounts;
 
     const productId = 1;
-    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
 
     // create staking pool
     await createStakingPool(
@@ -349,13 +345,11 @@ describe('setProducts', function () {
   it('should be able to buy cover on a previously deprecated product', async function () {
     const { cover } = this;
     const {
-      governanceContracts: [gv1],
       members: [coverBuyer, stakingPoolManager],
       advisoryBoardMembers: [advisoryBoardMember0],
     } = this.accounts;
 
     const productId = 1;
-    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
 
     // create staking pool
     await createStakingPool(

@@ -22,7 +22,6 @@ const buyCoverFixture = {
   priceDenominator: 10000,
   activeCover: parseEther('8000'),
   capacity: parseEther('10000'),
-  capacityFactor: 10000,
   expectedPremium: parseEther('1000').mul(260).div(10000), // amount * targetPriceRatio / priceDenominator
 };
 
@@ -31,10 +30,7 @@ const poolAllocationRequest = [{ poolId: 1, coverAmountInAsset: buyCoverFixture.
 describe('buyCover', function () {
   beforeEach(async function () {
     const { cover } = this;
-    const [governance] = this.accounts.governanceContracts;
     const [stakingPoolManager] = this.accounts.members;
-
-    await cover.connect(governance).updateUintParameters([0], [buyCoverFixture.capacityFactor]);
 
     await createStakingPool(
       cover,

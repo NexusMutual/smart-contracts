@@ -571,16 +571,6 @@ describe('V2 upgrade', function () {
     expect(claimPayableAddressAfter).to.be.equal(AddressZero);
   });
 
-  it('Call function to initialize Cover.sol', async function () {
-    await this.cover.initialize();
-
-    const storedGlobalCapacityRatio = await this.cover.globalCapacityRatio();
-    expect(storedGlobalCapacityRatio).to.be.equal(20000); // x2
-
-    const storedGlobalRewardsRatio = await this.cover.globalRewardsRatio();
-    expect(storedGlobalRewardsRatio).to.be.equal(5000); // 50%
-  });
-
   it('Call function to block V1 staking', async function () {
     const tx = await this.pooledStaking.blockV1();
     await tx.wait();

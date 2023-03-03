@@ -9,8 +9,8 @@ contract CVMockCover {
   mapping(uint => CoverSegment[]) public _coverSegments;
   mapping(uint => CoverData) public _coverData;
 
-  function addCoverData(uint coverId, CoverData memory coverData) public {
-    _coverData[coverId] = coverData;
+  function addCoverData(uint coverId, CoverData memory newCoverData) public {
+    _coverData[coverId] = newCoverData;
   }
 
   function addSegments(uint coverId, CoverSegment[] memory segments) public {

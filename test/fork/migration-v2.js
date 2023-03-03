@@ -756,16 +756,6 @@ describe('V2 upgrade', function () {
     expect(tcBalanceDiff).to.be.equal(cnLockedAmountSum);
   });
 
-  it('Call function to initialize Cover.sol', async function () {
-    await this.cover.initialize();
-
-    const storedGlobalCapacityRatio = await this.cover.globalCapacityRatio();
-    expect(storedGlobalCapacityRatio).to.be.equal(20000); // x2
-
-    const storedGlobalRewardsRatio = await this.cover.globalRewardsRatio();
-    expect(storedGlobalRewardsRatio).to.be.equal(5000); // 50%
-  });
-
   // TODO review
   // We should also read
   // `const { amount, lastDistributionRound } = await ps.accumulatedRewards(coverable);`

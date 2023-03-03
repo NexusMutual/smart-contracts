@@ -265,6 +265,14 @@ contract NXMaster is INXMMaster {
     }
   }
 
+  /**
+ * @dev returns the address of token controller
+   * @return address is returned
+   */
+  function dAppLocker() public view returns (address) {
+    return getLatestAddress("TC");
+  }
+
   /// @dev Gets latest contract address
   /// @param _contractName Contract name to fetch
   function getLatestAddress(bytes2 _contractName) public view returns (address payable contractAddress) {

@@ -449,7 +449,7 @@ describe('V2 upgrade', function () {
     // SP - StakingProduct.sol
     const stakingProductsImpl = await ethers.deployContract('StakingProducts', [
       this.coverProxyAddress,
-      this.stakingPool.address,
+      this.stakingPoolFactory.address,
     ]);
 
     const coverTypeAndSalt = BigNumber.from(CoverCreate2Salt).shl(8).add(ContractTypes.Proxy);

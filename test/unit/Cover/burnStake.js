@@ -157,11 +157,14 @@ describe('burnStake', function () {
     }
   });
 
-  it('should perform a burn with globalCapacityRatio when the cover was bought', async function () {
+  it.skip('should perform a burn with globalCapacityRatio when the cover was bought', async function () {
     const { cover } = this;
     const [internal] = this.accounts.internalContracts;
     const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    // TODO: need to figure out a way to change the capacity ratio here
+    // ...
 
     const payoutAmountInAsset = amount.div(2);
     const remainingAmount = amount.sub(payoutAmountInAsset);

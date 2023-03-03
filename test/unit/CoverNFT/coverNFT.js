@@ -9,9 +9,11 @@ describe('CoverNFT', function () {
     expect(await coverNFT.symbol()).to.be.eq('NXMC');
   });
 
-  it.skip('should return tokenURI', async function () {
+  it('should fail to return tokenURI without a coverBuy', async function () {
     const { coverNFT } = this;
-    expect(await coverNFT.tokenURI(0)).to.be.eq('');
+    const [operator, nftOwner] = this.accounts.members;
+    await coverNFT.connect(operator).mint(nftOwner.address);
+    await expect(coverNFT.tokenURI(0)).to.be.revertedWithoutReason();
   });
 
   it('should fail to mint - onlyOperator()', async function () {
@@ -84,6 +86,32 @@ describe('CoverNFT', function () {
     expect(await coverNFT.operator()).to.not.be.equal(newOperator.address);
     await coverNFT.connect(oldOperator).changeOperator(newOperator.address);
     expect(await coverNFT.operator()).to.be.equal(newOperator.address);
+  });
+
+  it('should revert if changing nft descriptor from non operator account', async function () {
+    const { coverNFT } = this;
+    const [, notOperator] = this.accounts.members;
+    await expect(coverNFT.connect(notOperator).changeNFTDescriptor(notOperator.address)).to.be.revertedWithCustomError(
+      coverNFT,
+      'NotOperator',
+    );
+  });
+
+  it('should revert if new nft descriptor address is zero', async function () {
+    const { coverNFT } = this;
+    const [operator] = this.accounts.members;
+    await expect(coverNFT.connect(operator).changeNFTDescriptor(AddressZero)).to.be.revertedWithCustomError(
+      coverNFT,
+      'InvalidNewNFTDescriptorAddress',
+    );
+  });
+
+  it('should successfully change nft descriptor address', async function () {
+    const { coverNFT } = this;
+    const [operator, newNFTDescriptor] = this.accounts.members;
+    expect(await coverNFT.nftDescriptor()).to.not.be.equal(newNFTDescriptor.address);
+    await coverNFT.connect(operator).changeNFTDescriptor(newNFTDescriptor.address);
+    expect(await coverNFT.nftDescriptor()).to.be.equal(newNFTDescriptor.address);
   });
 
   it('should increment totalSupply', async function () {

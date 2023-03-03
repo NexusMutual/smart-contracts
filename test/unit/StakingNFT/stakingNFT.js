@@ -2,8 +2,11 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { setEtherBalance } = require('../../utils/evm');
 const { toBytes } = require('../../../lib/helpers');
+const base64 = require('base64-js');
 const { BigNumber } = ethers;
+const { AddressZero } = ethers.constants;
 
+const jsonHeader = 'data:application/json;base64,';
 describe('StakingNFT', function () {
   // impersonate staking pool address
   before(async function () {
@@ -11,9 +14,12 @@ describe('StakingNFT', function () {
     const poolId = 50;
     const stakingAddress = await cover.stakingPool(poolId);
     await setEtherBalance(stakingAddress, ethers.utils.parseEther('1000'));
+    await setEtherBalance(cover.address, ethers.utils.parseEther('1000'));
     const stakingPoolSigner = await ethers.getImpersonatedSigner(stakingAddress);
+    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
 
     this.stakingPoolSigner = stakingPoolSigner;
+    this.coverSigner = coverSigner;
     this.poolId = poolId;
   });
 
@@ -24,10 +30,45 @@ describe('StakingNFT', function () {
     expect(await stakingNFT.totalSupply()).to.be.eq(0);
   });
 
-  // TODO: unskip this test when tokenURI is implemented
-  it.skip('should return empty tokenURI for unminted token', async function () {
+  it('should revert if changing operator from non operator account', async function () {
     const { stakingNFT } = this;
-    expect(await stakingNFT.tokenURI(0)).to.be.eq('');
+    const [member] = this.accounts.members;
+    await expect(stakingNFT.connect(member).changeOperator(member.address)).to.be.revertedWithCustomError(
+      stakingNFT,
+      'NotOperator',
+    );
+  });
+
+  it('should revert if changing operator to zero address account', async function () {
+    const { stakingNFT } = this;
+    await expect(stakingNFT.connect(this.coverSigner).changeOperator(AddressZero)).to.be.revertedWithCustomError(
+      stakingNFT,
+      'InvalidNewOperatorAddress',
+    );
+  });
+
+  it('should revert if changing nft descriptor from non operator account', async function () {
+    const { stakingNFT } = this;
+    const [member] = this.accounts.members;
+    await expect(stakingNFT.connect(member).changeNFTDescriptor(member.address)).to.be.revertedWithCustomError(
+      stakingNFT,
+      'NotOperator',
+    );
+  });
+
+  it('should revert if changing nft descriptor to zero address account', async function () {
+    const { stakingNFT } = this;
+    await expect(stakingNFT.connect(this.coverSigner).changeNFTDescriptor(AddressZero)).to.be.revertedWithCustomError(
+      stakingNFT,
+      'InvalidNewNFTDescriptorAddress',
+    );
+  });
+
+  it('should return empty tokenURI for unminted token', async function () {
+    const { stakingNFT } = this;
+    const uri = await stakingNFT.tokenURI(0);
+    const decodedJson = JSON.parse(new TextDecoder().decode(base64.toByteArray(uri.slice(jsonHeader.length))));
+    expect(decodedJson.description).to.contain('Token id 0 is not minted');
   });
 
   it('should revert when reading tokenInfo for a non-existent token', async function () {

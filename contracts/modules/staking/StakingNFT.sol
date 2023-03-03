@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 
 import "../../interfaces/IStakingNFT.sol";
 import "../../libraries/StakingPoolLibrary.sol";
+import "../../interfaces/IStakingNFTDescriptor.sol";
 
 /// @dev Based on Solmate https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol
 contract StakingNFT is IStakingNFT {
@@ -23,6 +24,7 @@ contract StakingNFT is IStakingNFT {
 
   uint96 internal _totalSupply;
   address public operator;
+  address public nftDescriptor;
 
   address public immutable stakingPoolFactory;
 
@@ -35,12 +37,14 @@ contract StakingNFT is IStakingNFT {
     string memory _name,
     string memory _symbol,
     address _stakingPoolFactory,
-    address _operator
+    address _operator,
+    address _nftDescriptor
   ) {
     name = _name;
     symbol = _symbol;
     stakingPoolFactory = _stakingPoolFactory;
     operator = _operator;
+    nftDescriptor = _nftDescriptor;
   }
 
   // operator functions
@@ -50,7 +54,10 @@ contract StakingNFT is IStakingNFT {
     operator = newOperator;
   }
 
-  // TODO: implement change token descriptor function here
+  function changeNFTDescriptor(address newNFTDescriptor) public onlyOperator {
+    if (newNFTDescriptor == address(0)) revert InvalidNewNFTDescriptorAddress();
+    nftDescriptor = newNFTDescriptor;
+  }
 
   // minting and supply
 
@@ -102,10 +109,15 @@ contract StakingNFT is IStakingNFT {
 
   // ERC721
 
-  function tokenURI(uint /*id*/) public view returns (string memory) {
-    name; // silence warning - remove once implemented
-    // TODO: implement token uri
-    revert("NOT IMPLEMENTED");
+  function tokenURI(uint id) public view virtual returns (string memory uri) {
+    StakingTokenURIParams memory params = StakingTokenURIParams(
+      id,
+      _tokenInfo[id].poolId,
+      StakingPoolLibrary.getAddress(stakingPoolFactory, _tokenInfo[id].poolId),
+      _tokenInfo[id].owner,
+      name
+    );
+    uri = IStakingNFTDescriptor(nftDescriptor).tokenURI(params);
   }
 
   function ownerOf(uint id) public view returns (address owner) {

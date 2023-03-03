@@ -43,10 +43,10 @@ async function setup() {
   // deploy external contracts
   const weth = await ethers.deployContract('WETH9');
 
-  const dai = await ethers.deployContract('ERC20Mock');
+  const dai = await ethers.deployContract('ERC20MockNameable', ['MockDai', 'DAI']);
   await dai.mint(owner.address, parseEther('10000000'));
 
-  const stETH = await ethers.deployContract('ERC20Mock');
+  const stETH = await ethers.deployContract('ERC20MockNameable', ['MockStETH', 'stETH']);
   await stETH.mint(owner.address, parseEther('10000000'));
 
   const enzymeVault = await ethers.deployContract('ERC20Mock');
@@ -149,10 +149,24 @@ async function setup() {
     '0',
   ]);
 
+  const stakingNFTDescriptor = await ethers.deployContract('StakingNFTDescriptor');
+  const coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [master.address]);
+
   // 1. deploy StakingPoolFactory, StakingNFT and CoverNFT with owner as temporary operator
   const spf = await ethers.deployContract('StakingPoolFactory', [owner.address]);
-  const stakingNFT = await ethers.deployContract('StakingNFT', ['Deposit', 'NMD', spf.address, owner.address]);
-  const coverNFT = await ethers.deployContract('CoverNFT', ['Cover', 'NMC', owner.address]);
+  const stakingNFT = await ethers.deployContract('StakingNFT', [
+    'Nexus Mutual Deposit',
+    'NMD',
+    spf.address,
+    owner.address,
+    stakingNFTDescriptor.address,
+  ]);
+  const coverNFT = await ethers.deployContract('CoverNFT', [
+    'Nexus Mutual Cover',
+    'NMC',
+    owner.address,
+    coverNFTDescriptor.address,
+  ]);
 
   // 2. deploy Cover, StakingProducts and TokenController proxies
   let cover = await deployProxy('Stub');
@@ -502,7 +516,7 @@ async function setup() {
   const DEFAULT_PRODUCTS = [product];
   const DEFAULT_POOL_FEE = '5';
 
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 5; i++) {
     await cover.connect(stakingPoolManagers[i]).createStakingPool(
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
@@ -518,6 +532,7 @@ async function setup() {
     this.contracts['stakingPool' + poolId] = stakingPoolInstance;
   }
   const config = {
+    TRANCHE_DURATION: await this.contracts.stakingPool1.TRANCHE_DURATION(),
     BUCKET_SIZE: BigNumber.from(7 * 24 * 3600), // 7 days
     GLOBAL_REWARDS_RATIO: BigNumber.from(5000), // 50%
     TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
@@ -526,6 +541,8 @@ async function setup() {
   };
 
   this.contracts.stakingProducts = stakingProducts;
+  // TODO: this should be a proxy
+  this.contracts.coverNFTDescriptor = coverNFTDescriptor;
   this.config = config;
   this.accounts = ethersAccounts;
   this.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS;

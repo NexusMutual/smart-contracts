@@ -22,5 +22,6 @@ describe('INTEGRATION TESTS', function () {
   require('./Pool');
   require('./MCR');
   require('./MemberRoles');
-  // require('./TokenController');
+  require('./StakingPool');
+  require('./TokenController');
 });

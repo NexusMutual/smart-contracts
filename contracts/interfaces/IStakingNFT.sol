@@ -23,6 +23,7 @@ interface IStakingNFT is IERC721 {
   error WrongFrom();
   error InvalidRecipient();
   error InvalidNewOperatorAddress();
+  error InvalidNewNFTDescriptorAddress();
   error NotAuthorized();
   error UnsafeRecipient();
   error AlreadyMinted();

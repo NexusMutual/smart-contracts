@@ -5,8 +5,15 @@ async function setup() {
   const accounts = await getAccounts();
   const [operator] = accounts.members;
 
-  const CoverNFT = await ethers.getContractFactory('CoverNFT');
-  const coverNFT = await CoverNFT.deploy('NexusMutual Cover', 'NXMC', operator.address);
+  const master = await ethers.deployContract('MasterMock');
+
+  const coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [master.address]);
+  const coverNFT = await ethers.deployContract('CoverNFT', [
+    'NexusMutual Cover',
+    'NXMC',
+    operator.address,
+    coverNFTDescriptor.address,
+  ]);
 
   this.coverNFT = coverNFT;
   this.accounts = accounts;

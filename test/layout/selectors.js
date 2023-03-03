@@ -1,32 +1,46 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-describe('Functions layout', function () {
-  it('compare selectors of proxy and upgradable contracts', async function () {
-    // proxy contracts
-    const contractsToCompare = [
-      'NXMaster',
-      'Governance',
-      'MemberRoles',
-      'ProposalCategory',
-      'LegacyPooledStaking',
-      'TokenController',
-      'LegacyGateway',
-      'IndividualClaims',
-      'YieldTokenIncidents',
-      'Assessment',
-      'Cover',
-      'CoverMigrator',
-    ];
-    const { interface: proxyInterface } = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
-    const selectorsToCompare = ['proxyOwner', 'transferProxyOwnership', 'upgradeTo'].map(func =>
-      proxyInterface.getSighash(func),
-    );
+const proxyContracts = [
+  'NXMaster',
+  'Governance',
+  'MemberRoles',
+  'ProposalCategory',
+  'LegacyPooledStaking',
+  'TokenController',
+  'LegacyGateway',
+  'IndividualClaims',
+  'YieldTokenIncidents',
+  'Assessment',
+  'Cover',
+  'CoverMigrator',
+];
 
-    for (const contract of contractsToCompare) {
+describe('Selector collisions', function () {
+  it('compare selectors of proxy and upgradable contracts', async function () {
+    // get proxy selectors
+    const { interface: proxyInterface } = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
+    const protectedFunctions = ['proxyOwner', 'transferProxyOwnership', 'upgradeTo'];
+    const protectedSelectors = protectedFunctions.map(fn => proxyInterface.getSighash(fn));
+
+    // check it fails with a known collision
+    const { interface: collidingInterface } = await ethers.getContractFactory('ProxySignatureCollider');
+
+    const foundClashes = protectedSelectors.map(selector => {
+      try {
+        return collidingInterface.getFunction(selector);
+      } catch (e) {
+        return false;
+      }
+    });
+
+    expect(foundClashes.filter(f => f !== false).length).to.equal(1);
+
+    // make sure all protected selectors are not present in the proxy contracts
+    for (const contract of proxyContracts) {
       const { interface: contractInterface } = await ethers.getContractFactory(contract);
-      for (const sigHash of selectorsToCompare) {
-        expect(() => contractInterface.getFunction(sigHash)).to.throw(`no matching function`);
+      for (const signature of protectedSelectors) {
+        expect(() => contractInterface.getFunction(signature)).to.throw('no matching function');
       }
     }
   });

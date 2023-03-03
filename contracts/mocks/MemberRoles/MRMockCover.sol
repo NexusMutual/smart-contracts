@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+pragma solidity ^0.8.18;
+
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IMemberRoles.sol";
-
-pragma solidity ^0.8.16;
 
 contract MRMockCover {
 

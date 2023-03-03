@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.18;
 
 /**
  * @dev Wrappers over Solidity's uintXX casting operators with added overflow

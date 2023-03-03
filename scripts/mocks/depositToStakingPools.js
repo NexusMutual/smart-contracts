@@ -1,12 +1,15 @@
-const { network, ethers } = require('hardhat');
+const { network, ethers, artifacts } = require('hardhat');
 const { CONTRACTS_ADDRESSES: Addresses } = require(process.env.CONFIG_FILE);
+const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
+const { keccak256 } = require('ethereum-cryptography/keccak');
 
 const { BigNumber } = ethers;
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { getCreate2Address, formatEther, parseEther, hexValue } = ethers.utils;
 
-const INIT_CODE_HASH = '203b477dc328f1ceb7187b20e5b1b0f0bc871114ada7e9020c9ac112bbfb6920';
 const { STAKER } = process.env;
+
+const beaconProxy = 'MinimalBeaconProxy';
 
 /**
  * @param {Number} poolId
@@ -14,8 +17,11 @@ const { STAKER } = process.env;
  * @returns {Promise<StakingPool>}
  */
 const getStakingPool = async (poolId, signer) => {
+  const { bytecode } = await artifacts.readArtifact(beaconProxy);
+  const bytecodeHash = bytesToHex(keccak256(hexToBytes(bytecode.replace(/^0x/i, ''))));
+
   const salt = Buffer.from(poolId.toString(16).padStart(64, '0'), 'hex');
-  const initCodeHash = Buffer.from(INIT_CODE_HASH, 'hex');
+  const initCodeHash = Buffer.from(bytecodeHash, 'hex');
   const stakingPoolAddress = getCreate2Address(Addresses.StakingPoolFactory, salt, initCodeHash);
   return ethers.getContractAt('StakingPool', stakingPoolAddress, signer);
 };

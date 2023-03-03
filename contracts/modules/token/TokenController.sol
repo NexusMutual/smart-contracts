@@ -21,8 +21,8 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   address public _unused_token;
   address public _unused_pooledStaking;
-  address public _unused_minCALockTime;
-  address public _unused_claimSubmissionGracePeriod;
+  uint public _unused_minCALockTime;
+  uint public _unused_claimSubmissionGracePeriod;
 
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;

@@ -180,7 +180,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       _coverData[coverId] = CoverData(params.productId, params.coverAsset, 0 /* amountPaidOut */);
 
     } else {
+      revert('Edit cover is not yet supported');
 
+      /*
       // existing cover
       coverId = params.coverId;
 
@@ -217,6 +219,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       uint bucketAtExpiry = Math.divCeil(lastSegment.start + lastSegment.period, BUCKET_SIZE);
       activeCoverExpirationBuckets[params.coverAsset][bucketAtExpiry] -= lastSegment.amount;
       previousSegmentAmount += lastSegment.amount;
+      */
     }
 
     uint nxmPriceInCoverAsset = pool().getTokenPriceInAsset(params.coverAsset);

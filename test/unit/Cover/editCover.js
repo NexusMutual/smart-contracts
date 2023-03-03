@@ -11,7 +11,7 @@ const { AddressZero } = ethers.constants;
 
 const gracePeriod = daysToSeconds(120);
 
-describe('editCover', function () {
+describe.skip('editCover', function () {
   const coverBuyFixture = {
     productId: 0,
     coverAsset: 0, // ETH

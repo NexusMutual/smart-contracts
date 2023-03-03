@@ -646,6 +646,21 @@ describe('V2 upgrade', function () {
     expect(claimPayableAddressAfter).to.be.equal(AddressZero);
   });
 
+  it('Migrates existing FTX covers to V2', async function () {
+    const ftxCoverIds = [
+      7907, 7881, 7863, 7643, 7598, 7572, 7542, 7313, 7134, 7908, 7691, 7874, 6228, 7838, 7830, 7829,
+    ];
+
+    for (const coverId of ftxCoverIds) {
+      const { memberAddress, status } = await this.gateway.getCover(coverId);
+      const member = await getSigner(memberAddress);
+      await evm.impersonate(memberAddress);
+      await evm.setBalance(memberAddress, parseEther('1000'));
+
+      await this.coverMigrator.connect(member).migrateCovers([coverId], memberAddress);
+    }
+  });
+
   it('Call function to block V1 staking', async function () {
     const tx = await this.pooledStaking.blockV1();
     await tx.wait();

@@ -40,6 +40,7 @@ describe('StakingNFTDescriptor', function () {
       1, // edit
       AddressZero,
     );
+    this.stakingAmount = stakingAmount;
   });
 
   it('tokenURI json output should be formatted properly', async function () {
@@ -54,6 +55,9 @@ describe('StakingNFTDescriptor', function () {
     expect(decodedJson.description.length).to.be.gt(0);
 
     expect(decodedJson.image.slice(0, svgHeader.length)).to.be.equal(svgHeader);
+    const decodedSvg = new TextDecoder().decode(base64.toByteArray(decodedJson.image.slice(svgHeader.length)));
+    expect(decodedSvg).to.contain('1' /* tokenId */);
+    expect(decodedSvg).to.contain(this.stakingAmount.mul(2).toString());
   });
 
   it('should handle non existing token', async function () {

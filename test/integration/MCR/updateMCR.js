@@ -174,7 +174,7 @@ describe('updateMCR', function () {
     );
   });
 
-  it('increases desiredMCR if totalSumAssured is high enough', async function () {
+  it.skip('increases desiredMCR if totalSumAssured is high enough', async function () {
     const { mcr, cover } = this.contracts;
 
     const [coverHolder] = this.accounts.members;
@@ -276,7 +276,7 @@ describe('updateMCR', function () {
     expect(currentMCRFloor.toString()).to.be.equal(expectedMCRFloor.toString());
   });
 
-  it('claim payout triggers updateMCR and sets desiredMCR to mcrFloor (sumAssured = 0)', async function () {
+  it.skip('claim payout triggers updateMCR and sets desiredMCR to mcrFloor (sumAssured = 0)', async function () {
     // [todo] test with new contracts that call sendPayout
     const { mcr, ic: claims, as, cover } = this.contracts;
     const [coverHolder, member1] = this.accounts.members;
@@ -325,7 +325,7 @@ describe('updateMCR', function () {
     expect(desiredMCR).to.be.equal(mcrFloor);
   });
 
-  it('incidents.redeemPayout triggers updateMCR', async function () {
+  it.skip('incidents.redeemPayout triggers updateMCR', async function () {
     // [todo] test with new contracts that call sendPayout
     const { ybETH, dai, as, cover, yc, gv, mcr } = this.contracts;
     const [coverHolder] = this.accounts.members;

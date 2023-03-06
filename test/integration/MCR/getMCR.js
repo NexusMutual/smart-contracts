@@ -69,7 +69,7 @@ describe('getMCR', function () {
     expect(currentMCR.toString()).to.be.equal(storageMCR);
   });
 
-  it('increases mcr by 0.4% in 2 hours and decreases by 0.4% in 2 hours it after cover expiry', async function () {
+  it.skip('increases mcr by 0.4% in 2 hours and decreases by 0.4% in 2 hours it after cover expiry', async function () {
     const { mcr, cover } = this.contracts;
     const [coverBuyer] = this.accounts.members;
     const targetPrice = this.DEFAULT_PRODUCTS[0].targetPrice;

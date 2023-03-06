@@ -408,7 +408,7 @@ async function setup() {
         capacityReductionRatio: 0,
         useFixedPrice: false,
       },
-      allowedPools: [],
+      allowedPools: [3],
     },
   ]);
 

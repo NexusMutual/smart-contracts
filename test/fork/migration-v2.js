@@ -175,6 +175,7 @@ describe('V2 upgrade', function () {
     this.claimsData = await factory('CD');
     this.pooledStaking = await factory('PS');
     this.gateway = await factory('GW');
+    this.priceFeedOracle = await factory('PRICEORACLE');
 
     // Pool value related info
     this.poolValueBefore = await this.pool.getPoolValueInEth();
@@ -189,6 +190,22 @@ describe('V2 upgrade', function () {
 
     this.enzymeShares = await ethers.getContractAt('ERC20Mock', ENZYMEV4_VAULT_PROXY_ADDRESS);
     this.enzymeSharesBalanceBefore = await this.enzymeShares.balanceOf(this.pool.address);
+
+    // non proxy contract data
+    this.contractData = {
+      mcr: {
+        before: {},
+        after: {},
+      },
+      pool: {
+        before: {},
+        after: {},
+      },
+      priceFeedOracle: {
+        before: {},
+        after: {},
+      },
+    };
   });
 
   // Setup needed to test that `claimPayoutAddress` storage is cleaned up
@@ -360,6 +377,47 @@ describe('V2 upgrade', function () {
       this.master.address,
       this.stakingProductsProxyAddress,
     ]);
+  });
+
+  it('collect storage data before upgrade', async function () {
+    // MCR
+    this.contractData.mcr.before.mcrFloorIncrementThreshold = await this.mcr.mcrFloorIncrementThreshold();
+    this.contractData.mcr.before.maxMCRFloorIncrement = await this.mcr.maxMCRFloorIncrement();
+    this.contractData.mcr.before.maxMCRIncrement = await this.mcr.maxMCRIncrement();
+    this.contractData.mcr.before.gearingFactor = await this.mcr.gearingFactor();
+    this.contractData.mcr.before.minUpdateTime = await this.mcr.mcrFloor();
+    this.contractData.mcr.before.mcr = await this.mcr.mcr();
+    this.contractData.mcr.before.desiredMCR = await this.mcr.desiredMCR();
+    this.contractData.mcr.before.lastUpdateTime = await this.mcr.lastUpdateTime();
+    this.contractData.mcr.before.previousMCR = await this.mcr.previousMCR();
+
+    // POOL
+    const assets = await this.pool.getAssets();
+    const assetsData = await Promise.all(assets.map(address => this.pool.assetData(address)));
+    this.contractData.pool.before.assetsData = assets.reduce((acc, asset, i) => {
+      acc[asset] = {
+        minAmount: assetsData[i].minAmount,
+        maxAmount: assetsData[i].maxAmount,
+        lastSwapTime: assetsData[i].lastSwapTime,
+        maxSlippageRatio: assetsData[i].maxSlippageRatio,
+      };
+      return acc;
+    }, {});
+    this.contractData.pool.before.minPoolEth = await this.swapOperator.minPoolEth();
+    this.contractData.pool.before.assets = assets;
+
+    // PRICE FEED
+    const assetsEthRate = await Promise.all(assets.map(address => this.priceFeedOracle.getAssetToEthRate(address)));
+    const getAssetForEth = await Promise.all(assets.map(address => this.priceFeedOracle.getAssetForEth(address, 10)));
+
+    this.contractData.priceFeedOracle.before.assetsEthRate = assets.reduce((acc, asset, i) => {
+      acc[asset] = assetsEthRate[i];
+      return acc;
+    }, {});
+    this.contractData.priceFeedOracle.before.assetsForEth = assets.reduce((acc, asset, i) => {
+      acc[asset] = getAssetForEth[i];
+      return acc;
+    }, {});
   });
 
   it('Deploy and upgrade NXMaster.sol', async function () {
@@ -588,6 +646,101 @@ describe('V2 upgrade', function () {
     const storageValueAfter = await ethers.provider.getStorageAt(this.memberRoles.address, slot);
     const [claimPayableAddressAfter] = defaultAbiCoder.decode(['address'], storageValueAfter);
     expect(claimPayableAddressAfter).to.be.equal(AddressZero);
+  });
+
+  it('compares storage of upgraded contracts', async function () {
+    // MCR
+    this.contractData.mcr.after.mcrFloorIncrementThreshold = await this.mcr.mcrFloorIncrementThreshold();
+    this.contractData.mcr.after.maxMCRFloorIncrement = await this.mcr.maxMCRFloorIncrement();
+    this.contractData.mcr.after.maxMCRIncrement = await this.mcr.maxMCRIncrement();
+    this.contractData.mcr.after.gearingFactor = await this.mcr.gearingFactor();
+    this.contractData.mcr.after.minUpdateTime = await this.mcr.mcrFloor();
+    this.contractData.mcr.after.mcr = await this.mcr.mcr();
+    this.contractData.mcr.after.desiredMCR = await this.mcr.desiredMCR();
+    this.contractData.mcr.after.lastUpdateTime = await this.mcr.lastUpdateTime();
+    this.contractData.mcr.after.previousMCR = await this.mcr.previousMCR();
+
+    Object.entries(this.contractData.mcr.before).forEach(([key, value]) => {
+      expect(this.contractData.mcr.after[key], `AssertionError: values of ${key} don't match\n`).to.be.equal(value);
+    });
+
+    // POOL
+    const assetsData = await Promise.all(
+      this.contractData.pool.before.assets.map(address => this.pool.swapDetails(address)),
+    );
+    this.contractData.pool.after.assetsData = this.contractData.pool.before.assets.reduce((acc, asset, i) => {
+      acc[asset] = {
+        minAmount: assetsData[i].minAmount,
+        maxAmount: assetsData[i].maxAmount,
+        lastSwapTime: assetsData[i].lastSwapTime,
+        maxSlippageRatio: assetsData[i].maxSlippageRatio,
+      };
+      return acc;
+    }, {});
+    this.contractData.pool.after.minPoolEth = await this.swapOperator.minPoolEth();
+    expect(this.contractData.pool.after.minPoolEth, "AssertionError: values of minPoolEth don't match\n").to.be.equal(
+      this.contractData.pool.before.minPoolEth,
+    );
+
+    const DENOMINATOR_DIFFERENCE = Math.pow(10, 14);
+    Object.entries(this.contractData.pool.before.assetsData).forEach(([asset, value]) => {
+      expect(
+        this.contractData.pool.after.assetsData[asset].minAmount,
+        `AssertionError: values of minAmount in ${asset} don't match\n`,
+      ).to.be.equal(value.minAmount);
+
+      expect(
+        this.contractData.pool.after.assetsData[asset].maxAmount,
+        `AssertionError: values of maxAmount in ${asset} don't match\n`,
+      ).to.be.equal(value.maxAmount);
+
+      expect(
+        this.contractData.pool.after.assetsData[asset].lastSwapTime,
+        `AssertionError: values of lastSwapTime in ${asset} don't match\n`,
+      ).to.be.oneOf([value.lastSwapTime, 0]);
+
+      expect(
+        this.contractData.pool.after.assetsData[asset].maxSlippageRatio,
+        `AssertionError: values of maxSlippageRatio in ${asset} don't match\n`,
+      ).to.be.equal(value.maxSlippageRatio.div(DENOMINATOR_DIFFERENCE));
+    });
+
+    // PRICE FEED
+    const assetsEthRate = await Promise.all(
+      this.contractData.pool.before.assets.map(address => this.priceFeedOracle.getAssetToEthRate(address)),
+    );
+    const getAssetForEth = await Promise.all(
+      this.contractData.pool.before.assets.map(address => this.priceFeedOracle.getAssetForEth(address, 10)),
+    );
+
+    this.contractData.priceFeedOracle.after.assetsEthRate = this.contractData.pool.before.assets.reduce(
+      (acc, asset, i) => {
+        acc[asset] = assetsEthRate[i];
+        return acc;
+      },
+      {},
+    );
+    this.contractData.priceFeedOracle.after.assetsForEth = this.contractData.pool.before.assets.reduce(
+      (acc, asset, i) => {
+        acc[asset] = getAssetForEth[i];
+        return acc;
+      },
+      {},
+    );
+
+    Object.entries(this.contractData.priceFeedOracle.before.assetsEthRate).forEach(([asset, value]) => {
+      expect(
+        this.contractData.priceFeedOracle.after.assetsEthRate[asset],
+        `AssertionError: values of assetsEthRate in ${asset} don't match\n`,
+      ).to.be.equal(value);
+    });
+
+    Object.entries(this.contractData.priceFeedOracle.before.assetsForEth).forEach(([asset, value]) => {
+      expect(
+        this.contractData.priceFeedOracle.after.assetsForEth[asset],
+        `AssertionError: values of assetsEthRate in ${asset} don't match\n`,
+      ).to.be.equal(value);
+    });
   });
 
   it('Check balance of CR equals CLA + GV rewards computed above', async function () {

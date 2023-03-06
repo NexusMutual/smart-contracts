@@ -777,10 +777,6 @@ describe('processFraud', function () {
     }
   });
 
-  it.skip('consumes less gas to process than the summed fees of the fraudulent voting transactions', async function () {
-    // [todo] Move this to integration tests instead
-  });
-
   it('reverts if system is paused', async function () {
     const { assessment, master } = this.contracts;
     const [fraudulentMember] = this.accounts.members;

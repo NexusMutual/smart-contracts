@@ -153,11 +153,12 @@ describe('switchMembershipAndAssets', function () {
     }
   });
 
-  it.skip('transfers all staking LP shares of the provided staking pools', async function () {
-    const { mr: memberRoles, tk: token, stakingPool1, stakingPool2, stakingPool3 } = this.contracts;
+  it('transfers all staking LP shares of the provided staking pools', async function () {
+    const { mr: memberRoles, tk: token, stakingPool1, stakingPool2, stakingPool3, stakingNFT } = this.contracts;
     const {
       members: [member1],
       nonMembers: [nonMember1],
+      defaultSender: staker,
     } = this.accounts;
 
     const stakingPoolsAndAmounts = [
@@ -169,47 +170,43 @@ describe('switchMembershipAndAssets', function () {
     const lastBlock = await ethers.provider.getBlock('latest');
     const firstTrancheId = calculateFirstTrancheId(lastBlock, daysToSeconds(30), daysToSeconds(30));
 
+    // Give tokens to member
+    await token.connect(staker).transfer(member1.address, parseEther('10000'));
+
+    // Stake to open up capacity
+    await token.connect(member1).approve(this.contracts.tc.address, ethers.constants.MaxUint256);
     for (const [stakingPool, stakingAmount] of stakingPoolsAndAmounts) {
-      // Stake to open up capacity
-      await stakingPool.connect(member1).depositTo([
-        {
-          amount: stakingAmount,
-          trancheId: firstTrancheId,
-          tokenId: 0, // new position
-          destination: AddressZero,
-        },
-      ]);
+      await stakingPool
+        .connect(member1)
+        .depositTo(stakingAmount, firstTrancheId, 0 /* new position */, AddressZero /* destination */);
     }
 
+    // approve tokens
     await token.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await stakingNFT.connect(member1).setApprovalForAll(memberRoles.address, true);
 
+    // switch membership
     const newMemberAddress = nonMember1.address;
-    await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [], [0, 2], [[1], [1]]);
+    await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [], [1, 3]);
 
+    // check old member address balances
     {
-      const balance = await stakingPool1.balanceOf(member1.address);
-      expect(balance).to.be.equal(0);
-    }
-    {
-      const balance = await stakingPool2.balanceOf(member1.address);
+      const balance = await stakingNFT.balanceOf(member1.address);
       expect(balance).to.be.equal(1);
-    }
-    {
-      const balance = await stakingPool3.balanceOf(member1.address);
-      expect(balance).to.be.equal(0);
+      expect(await stakingNFT.ownerOf(2)).to.be.equal(member1.address);
     }
 
+    // check new member address balances
     {
-      const balance = await stakingPool1.balanceOf(newMemberAddress);
-      expect(balance).to.be.equal(1);
+      const balance = await stakingNFT.balanceOf(newMemberAddress);
+      expect(balance).to.be.equal(2);
+      expect(await stakingNFT.ownerOf(1)).to.be.equal(newMemberAddress);
+      expect(await stakingNFT.ownerOf(3)).to.be.equal(newMemberAddress);
     }
-    {
-      const balance = await stakingPool2.balanceOf(newMemberAddress);
-      expect(balance).to.be.equal(0);
-    }
-    {
-      const balance = await stakingPool3.balanceOf(newMemberAddress);
-      expect(balance).to.be.equal(1);
-    }
+
+    // check staking pool id links
+    expect(await stakingNFT.stakingPoolOf(1)).to.be.equal(await stakingPool1.getPoolId());
+    expect(await stakingNFT.stakingPoolOf(2)).to.be.equal(await stakingPool2.getPoolId());
+    expect(await stakingNFT.stakingPoolOf(3)).to.be.equal(await stakingPool3.getPoolId());
   });
 });

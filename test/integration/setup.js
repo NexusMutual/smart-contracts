@@ -531,6 +531,7 @@ async function setup() {
   }
   const config = {
     BUCKET_SIZE: BigNumber.from(7 * 24 * 3600), // 7 days
+    GLOBAL_REWARDS_RATIO: BigNumber.from(5000), // 50%
   };
 
   this.contracts.stakingProducts = stakingProducts;

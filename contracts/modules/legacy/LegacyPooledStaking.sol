@@ -117,8 +117,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
   uint public REWARD_ROUND_DURATION;
   uint public REWARD_ROUNDS_START;
 
-  bool public v1Blocked;
-
   /* Modifiers */
 
   modifier noPendingActions {
@@ -275,108 +273,12 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
 
   /* State-changing functions */
 
-  /// Used to
-  function blockV1() external {
-    v1Blocked = true;
-  }
-
   function depositAndStake(
-    uint amount,
-    address[] calldata _contracts,
-    uint[] calldata _stakes
-  ) external whenNotPaused onlyMember noPendingActions {
-    require(!v1Blocked, "Migrate to v2");
-
-    Staker storage staker = stakers[msg.sender];
-    uint oldLength = staker.contracts.length;
-
-    require(
-      _contracts.length >= oldLength,
-      "Staking on fewer contracts is not allowed"
-    );
-
-    require(
-      _contracts.length == _stakes.length,
-      "Contracts and stakes arrays should have the same length"
-    );
-
-    uint totalStaked;
-
-    // cap old stakes to this amount
-    uint oldDeposit = staker.deposit;
-    uint newDeposit = oldDeposit + amount;
-
-    staker.deposit = newDeposit;
-    tokenController().operatorTransfer(msg.sender, address(this), amount);
-
-    for (uint i = 0; i < _contracts.length; i++) {
-
-      address contractAddress = _contracts[i];
-
-      for (uint j = 0; j < i; j++) {
-        require(_contracts[j] != contractAddress, "Contracts array should not contain duplicates");
-      }
-
-      uint initialStake = staker.stakes[contractAddress];
-      uint oldStake = oldDeposit < initialStake ? oldDeposit : initialStake;
-      uint newStake = _stakes[i];
-      bool isNewStake = i >= oldLength;
-
-      if (!isNewStake) {
-        require(contractAddress == staker.contracts[i], "Unexpected contract order");
-        require(oldStake <= newStake, "New stake is less than previous stake");
-      } else {
-        require(newStake > 0, "New stakes should be greater than 0");
-        staker.contracts.push(contractAddress);
-      }
-
-      if (oldStake == newStake) {
-
-        // if there were burns but the stake was not updated, update it now
-        if (initialStake != newStake) {
-          staker.stakes[contractAddress] = newStake;
-        }
-
-        totalStaked = totalStaked + newStake;
-
-        // no other changes to this contract
-        continue;
-      }
-
-      require(newStake >= MIN_STAKE, "Minimum stake amount not met");
-      require(newStake <= newDeposit, "Cannot stake more than deposited");
-
-      if (isNewStake || !staker.isInContractStakers[contractAddress]) {
-        staker.isInContractStakers[contractAddress] = true;
-        contractStakers[contractAddress].push(msg.sender);
-      }
-
-      staker.stakes[contractAddress] = newStake;
-      totalStaked = totalStaked + newStake;
-      uint increase = newStake - oldStake;
-
-      emit Staked(contractAddress, msg.sender, increase);
-    }
-
-    require(
-      totalStaked <= staker.deposit * MAX_EXPOSURE,
-      "Total stake exceeds maximum allowed"
-    );
-
-    if (amount > 0) {
-      emit Deposited(msg.sender, amount);
-    }
-
-    // cleanup zero-amount contracts
-    uint lastContractIndex = _contracts.length - 1;
-
-    for (uint i = oldLength; i > 0; i--) {
-      if (_stakes[i - 1] == 0) {
-        staker.contracts[i - 1] = staker.contracts[lastContractIndex];
-        staker.contracts.pop();
-        --lastContractIndex;
-      }
-    }
+    uint /*amount*/,
+    address[] calldata /*_contracts*/,
+    uint[] calldata /*_stakes*/
+  ) external pure {
+    revert("Migrate to v2");
   }
 
   function withdraw(uint /*ignoredParam*/) external override whenNotPaused onlyMember noPendingBurns {
@@ -404,95 +306,11 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
   }
 
   function requestUnstake(
-    address[] calldata _contracts,
-    uint[] calldata _amounts,
-    uint _insertAfter // unstake request id after which the new unstake request will be inserted
-  ) external whenNotPaused onlyMember {
-    require(!v1Blocked, "Migrate to v2");
-
-    require(
-      _contracts.length == _amounts.length,
-      "Contracts and amounts arrays should have the same length"
-    );
-
-    require(_insertAfter <= lastUnstakeRequestId, "Invalid unstake request id provided");
-
-    Staker storage staker = stakers[msg.sender];
-    uint deposit = staker.deposit;
-    uint previousId = _insertAfter;
-    uint unstakeAt = block.timestamp + UNSTAKE_LOCK_TIME;
-
-    UnstakeRequest storage previousRequest = unstakeRequests[previousId];
-
-    // Forbid insertion after an empty slot when there are non-empty slots
-    // previousId != 0 allows inserting on the first position (in case lock time has been reduced)
-    if (previousId != 0) {
-      require(previousRequest.unstakeAt != 0, "Provided unstake request id should not be an empty slot");
-    }
-
-    for (uint i = 0; i < _contracts.length; i++) {
-
-      address contractAddress = _contracts[i];
-      uint stake = staker.stakes[contractAddress];
-
-      if (stake > deposit) {
-        stake = deposit;
-      }
-
-      uint pendingUnstakeAmount = staker.pendingUnstakeRequestsTotal[contractAddress];
-      uint requestedAmount = _amounts[i];
-      uint max = pendingUnstakeAmount > stake ? 0 : stake - pendingUnstakeAmount;
-
-      require(max > 0, "Nothing to unstake on this contract");
-      require(requestedAmount <= max, "Cannot unstake more than staked");
-
-      // To prevent spam, small stakes and unstake requests are not allowed
-      // However, we allow the user to unstake the entire amount
-      if (requestedAmount != max) {
-        require(requestedAmount >= MIN_UNSTAKE, "Unstaked amount cannot be less than minimum unstake amount");
-        require(max - requestedAmount >= MIN_STAKE, "Remaining stake cannot be less than minimum unstake amount");
-      }
-
-      require(
-        unstakeAt >= previousRequest.unstakeAt,
-        "Unstake request time must be greater or equal to previous unstake request"
-      );
-
-      if (previousRequest.next != 0) {
-        UnstakeRequest storage nextRequest = unstakeRequests[previousRequest.next];
-        require(
-          nextRequest.unstakeAt > unstakeAt,
-          "Next unstake request time must be greater than new unstake request time"
-        );
-      }
-
-      // Note: We previously had an `id` variable that was assigned immediately to `previousId`.
-      //   It was removed in order to save some memory and previousId used instead.
-      //   This makes the next section slightly harder to read but you can read "previousId" as "newId" instead.
-
-      // get next available unstake request id. our new unstake request becomes previous for the next loop
-      previousId = ++lastUnstakeRequestId;
-
-      unstakeRequests[previousId] = UnstakeRequest(
-        requestedAmount,
-        unstakeAt,
-        contractAddress,
-        msg.sender,
-        previousRequest.next
-      );
-
-      // point to our new unstake request
-      previousRequest.next = previousId;
-
-      emit UnstakeRequested(contractAddress, msg.sender, requestedAmount, unstakeAt);
-
-      // increase pending unstake requests total so we keep track of final stake
-      uint newPending = staker.pendingUnstakeRequestsTotal[contractAddress] + requestedAmount;
-      staker.pendingUnstakeRequestsTotal[contractAddress] = newPending;
-
-      // update the reference to the unstake request at target index for the next loop
-      previousRequest = unstakeRequests[previousId];
-    }
+    address[] calldata /*_contracts*/,
+    uint[] calldata /*_amounts*/,
+    uint /*_insertAfter*/ // unstake request id after which the new unstake request will be inserted
+  ) external pure {
+    revert("Migrate to v2");
   }
 
   function withdrawReward(address stakerAddress) external override whenNotPaused {
@@ -505,19 +323,8 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
     emit RewardWithdrawn(stakerAddress, amount);
   }
 
-  function pushBurn(
-    address contractAddress, uint amount
-  ) public override onlyInternal whenNotPaused noPendingBurns {
-
-    address[] memory contractAddresses = new address[](1);
-    contractAddresses[0] = contractAddress;
-    _pushRewards(contractAddresses, true);
-
-    burn.amount = amount;
-    burn.burnedAt = block.timestamp;
-    burn.contractAddress = contractAddress;
-
-    emit BurnRequested(contractAddress, amount);
+  function pushBurn(address /*contractAddress*/, uint /*amount*/) external pure override {
+    revert("Migrate to v2");
   }
 
   function _getCurrentRewardsRound() internal view returns (uint) {
@@ -582,22 +389,14 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
    * @dev `_pushRewards` checks the current round and will only push if rewards can be distributed.
    */
   function pushRewards(address[] calldata contractAddresses) external whenNotPaused {
-    _pushRewards(contractAddresses, false);
+    _pushRewards(contractAddresses, true);
   }
 
   /**
    * @dev Add reward for contract. Automatically triggers distribution if enough time has passed.
    */
-  function accumulateReward(address contractAddress, uint amount) external override onlyInternal whenNotPaused {
-
-    // will push rewards if needed
-    address[] memory contractAddresses = new address[](1);
-    contractAddresses[0] = contractAddress;
-    _pushRewards(contractAddresses, false);
-
-    ContractReward storage contractRewards = accumulatedRewards[contractAddress];
-    contractRewards.amount = contractRewards.amount + amount;
-    emit RewardAdded(contractAddress, amount);
+  function accumulateReward(address /*contractAddress*/, uint /*amount*/) external override pure {
+    revert("Migrate to v2");
   }
 
   function processPendingActions(uint maxIterations) public override whenNotPaused returns (bool finished) {
@@ -1042,7 +841,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
     return products;
   }
 
-  function migrateToPool(
+  function createPoolAndDeposit(
     StakingPoolMigrationData memory migrationData,
     ProductInitializationParams[] memory products
   ) internal returns (uint depositMigrated) {
@@ -1112,7 +911,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
 
     if (stakerAddress == HUGH) {
       uint[8] memory trancheStakeRatio = [uint(0), 10, 0, 0, 0, 50, 0, 0];
-      expectedMigratedAmount += migrateToPool(
+      expectedMigratedAmount += createPoolAndDeposit(
         StakingPoolMigrationData(
           HUGH, // stakerAddress
           HUGH, // managerAddress
@@ -1130,7 +929,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
       uint armorAAALowRiskPoolDeposit = deposit * 75 / 100; // 75% of the deposit
       uint[8] memory trancheStakeRatioAAA = [uint(20), 25, 25, 15, 10, 0, 0, 0];
 
-      expectedMigratedAmount += migrateToPool(
+      expectedMigratedAmount += createPoolAndDeposit(
         StakingPoolMigrationData(
           ARMOR_STAKER, // stakerAddress
           ARMOR_MANAGER, // managerAddress
@@ -1147,7 +946,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
       uint armorAAMidRiskPoolDeposit = deposit - armorAAALowRiskPoolDeposit; // 25% of the deposit
       uint[8] memory trancheStakeRatioAA = [uint(20), 25, 25, 15, 10, 0, 0, 0];
 
-      expectedMigratedAmount += migrateToPool(
+      expectedMigratedAmount += createPoolAndDeposit(
         StakingPoolMigrationData(
           ARMOR_STAKER, // stakerAddress
           ARMOR_MANAGER, // managerAddress
@@ -1164,7 +963,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
 
       uint[8] memory trancheStakeRatio = [uint(0), 25, 0, 25, 0, 0, 0, 0];
 
-      expectedMigratedAmount += migrateToPool(
+      expectedMigratedAmount += createPoolAndDeposit(
         StakingPoolMigrationData(
           NM_FOUNDATION, // stakerAddress
           NM_FOUNDATION, // managerAddress
@@ -1190,9 +989,8 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
     }
   }
 
-  // TODO review if we want this functionality
-  // We might want to allow users to lock their deposit in multiple tranches
-  function migrateToExistingV2Pool(IStakingPool stakingPool, uint trancheId) external {
+  function migrateToExistingV2Pool(uint stakingPoolId, uint trancheId) external {
+    IStakingPool stakingPool = cover.stakingPool(stakingPoolId);
     uint deposit = stakers[msg.sender].deposit;
     stakers[msg.sender].deposit = 0;
     token().approve(address(tokenController()), deposit);

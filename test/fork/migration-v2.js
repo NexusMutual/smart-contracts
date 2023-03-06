@@ -11,6 +11,8 @@ const { AddressZero, Zero, Two } = ethers.constants;
 const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
 const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
 
+const SCRIPTS_NO_CACHE = !!process.env.NO_CACHE;
+
 const CoverCreate2Salt = 1000;
 const StakingProductsCreate2Salt = 1001;
 
@@ -22,6 +24,7 @@ const getClaimAssessmentStakes = require('../../scripts/v2-migration/get-claim-a
 const getTCLockedAmount = require('../../scripts/v2-migration/get-tc-locked-amount');
 const getCNLockedAmount = require('../../scripts/v2-migration/get-cn-locked');
 
+const PRODUCTS_WITH_REWARDS_PATH = '../../scripts/v2-migration/input/products-with-v1-rewards.json';
 const PRODUCT_ADDRESSES_OUTPUT_PATH = '../../scripts/v2-migration/output/product-addresses.json';
 const GV_REWARDS_OUTPUT_PATH = '../../scripts/v2-migration/output/governance-rewards.json';
 const CLA_REWARDS_OUTPUT_PATH = '../../scripts/v2-migration/output/claim-assessment-rewards.json';
@@ -221,27 +224,27 @@ describe('V2 upgrade', function () {
 
   // Generates ProductsV1.sol contract
   it('Generate ProductsV1.sol with all products to be migrated to V2', async function () {
-    await getProductAddresses();
+    await getProductAddresses(SCRIPTS_NO_CACHE);
   });
 
   it('Get V1 cover prices', async function () {
-    await getV1CoverPrices(ethers.provider);
+    await getV1CoverPrices(ethers.provider, SCRIPTS_NO_CACHE);
   });
 
   it('Get governance rewards', async function () {
-    await getGovernanceRewards(ethers.provider);
+    await getGovernanceRewards(ethers.provider, SCRIPTS_NO_CACHE);
   });
 
   it('Get claim assessment rewards and generate transfer calls in LegacyClaimsReward.sol', async function () {
-    await getClaimAssessmentRewards(ethers.provider);
+    await getClaimAssessmentRewards(ethers.provider, SCRIPTS_NO_CACHE);
   });
 
   it('Get claim assessment stakes', async function () {
-    await getClaimAssessmentStakes(ethers.provider);
+    await getClaimAssessmentStakes(ethers.provider, SCRIPTS_NO_CACHE);
   });
 
   it('Get TC locked amount', async function () {
-    await getTCLockedAmount(ethers.provider);
+    await getTCLockedAmount(ethers.provider, SCRIPTS_NO_CACHE);
   });
 
   it('Recompile contracts if needed', async function () {
@@ -786,11 +789,6 @@ describe('V2 upgrade', function () {
     expect(tcBalanceBeforeUpgrade).to.be.equal(this.TCLockedAmount);
   });
 
-  it('Call function to block V1 staking', async function () {
-    const tx = await this.pooledStaking.blockV1();
-    await tx.wait();
-  });
-
   it('Transfer CLA rewards to assessors and GV rewards to TC', async function () {
     const tcNxmBalanceBefore = await this.nxm.balanceOf(this.tokenController.address);
 
@@ -864,7 +862,7 @@ describe('V2 upgrade', function () {
   });
 
   it('Get CN locked amount', async function () {
-    await getCNLockedAmount(ethers.provider);
+    await getCNLockedAmount(ethers.provider, SCRIPTS_NO_CACHE);
   });
 
   it('Check all members with CN locked NXM can withdraw & TC has the correct balance afterwards', async function () {
@@ -896,40 +894,18 @@ describe('V2 upgrade', function () {
     expect(tcBalanceDiff).to.be.equal(cnLockedAmountSum);
   });
 
-  // TODO review
-  // We should also read
-  // `const { amount, lastDistributionRound } = await ps.accumulatedRewards(coverable);`
-  // and check if the amount > 0
-  // Also, we should iterate through all products, in case we deprecated something that had a cover buy since the
-  // last reward distribution round
   it('Call LegacyPooledStaking.pushRewards for all non-deprecated contracts', async function () {
-    const PRODUCT_ADDRESSES_OUTPUT = require(PRODUCT_ADDRESSES_OUTPUT_PATH);
-    const productAddresses = PRODUCT_ADDRESSES_OUTPUT.map(address => address.toLowerCase());
-
-    /**
-     * pushRewards is affected by 2 other code flows:
-     * accumulateRewards (that itself calls pushRewards and accumulates rewards)
-     * pushBurn (that itself calls pushRewards)
-     *
-     * Post bulk upgrade to v2 contracts at the step:
-     * Deploy & upgrade contracts: MR, MCR, CO, TC, PS, PriceFeedOracle, P1, CL (CoverMigrator), GW, CR
-     *
-     * There is no other code path that can trigger accumulateRewards and pushBurn.
-     */
-
-    console.log(`Call pushRewards with ${productAddresses.length} product addresses.`);
-    await this.pooledStaking.pushRewards(productAddresses);
+    const productsWithPossibleRewards = require(PRODUCTS_WITH_REWARDS_PATH).map(address => address.toLowerCase());
+    console.log(`Call pushRewards with ${productsWithPossibleRewards.length} product addresses.`);
+    await this.pooledStaking.pushRewards(productsWithPossibleRewards);
   });
 
-  // TODO review
   it('Process all PooledStaking pending actions', async function () {
-    let hasPendingActions = await this.pooledStaking.hasPendingActions();
     let i = 0;
-    while (hasPendingActions) {
+    while (await this.pooledStaking.hasPendingActions()) {
       console.log(`Calling processPendingActions(). iteration ${i++}`);
       const tx = await this.pooledStaking.processPendingActions(100);
       await tx.wait();
-      hasPendingActions = await this.pooledStaking.hasPendingActions();
     }
   });
 

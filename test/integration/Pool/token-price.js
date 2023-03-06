@@ -1,17 +1,19 @@
 const { ethers } = require('hardhat');
 const { parseEther, defaultAbiCoder } = ethers.utils;
+const { MaxUint256 } = ethers.constants;
 const { BigNumber } = ethers;
 const { assert, expect } = require('chai');
 const Decimal = require('decimal.js');
-const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
+const { setNextBlockTime, mineNextBlock, setEtherBalance } = require('../../utils/evm');
+const { ETH_ASSET_ID } = require('../utils/cover');
+const { daysToSeconds } = require('../../../lib/helpers');
 const { ProposalCategory } = require('../utils').constants;
-
 const { calculateEthForNXMRelativeError, calculateNXMForEthRelativeError, getTokenSpotPrice } =
   require('../utils').tokenPrice;
 
-const { buyCover } = require('../utils').buyCover;
+const { buyCover } = require('../utils/cover');
+const { stake } = require('../utils/staking');
 const { hex } = require('../utils').helpers;
-const { PoolAsset } = require('../utils').constants;
 
 const increaseTime = async interval => {
   const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -22,13 +24,37 @@ const increaseTime = async interval => {
 
 const ratioScale = BigNumber.from(10000);
 
+const ethCoverTemplate = {
+  productId: 0, // DEFAULT_PRODUCT
+  coverAsset: ETH_ASSET_ID, // ETH
+  period: daysToSeconds(30), // 30 days
+  gracePeriod: daysToSeconds(30),
+  amount: parseEther('1'),
+  priceDenominator: 10000,
+  coverId: 0,
+  segmentId: 0,
+  incidentId: 0,
+  assessmentId: 0,
+};
+
 describe('Token price functions', function () {
   beforeEach(async function () {
-    const { tc, tk } = this.contracts;
-    const [, , , , member4] = this.accounts.members;
+    const { tk, stakingPool1: stakingPool, tc } = this.contracts;
+    const [member1] = this.accounts.members;
 
-    await tk.connect(member4).approve(tc.address, ethers.constants.MaxUint256);
-    await tk.transfer(member4.address, parseEther('1000'));
+    const operator = await tk.operator();
+    await setEtherBalance(operator, parseEther('10000000'));
+    await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
+
+    await tk.connect(member1).approve(tc.address, MaxUint256);
+    await stake({
+      stakingPool,
+      staker: member1,
+      productId: ethCoverTemplate.productId,
+      period: daysToSeconds(60),
+      gracePeriod: daysToSeconds(30),
+      amount: parseEther('1000000'),
+    });
   });
 
   it('getTokenPriceInAsset returns spot price for all assets', async function () {
@@ -172,7 +198,7 @@ describe('Token price functions', function () {
 
     const buyValue = parseEther('1000');
     const expectedNXMOutPreMCRPosting = await pool.getNXMForEth(buyValue);
-    const spotTokenPricePreMCRPosting = await pool.getTokenPriceInAsset(PoolAsset.ETH);
+    const spotTokenPricePreMCRPosting = await pool.getTokenPriceInAsset(ETH_ASSET_ID);
     await pool.getPoolValueInEth();
 
     // trigger an MCR update and post a lower MCR since lowering the price (higher MCR percentage)
@@ -185,7 +211,7 @@ describe('Token price functions', function () {
     // let time pass so that mcr decreases towards desired MCR
     await increaseTime(6 * 3600);
 
-    const spotTokenPricePostMCRPosting = await pool.getTokenPriceInAsset(PoolAsset.ETH);
+    const spotTokenPricePostMCRPosting = await pool.getTokenPriceInAsset(ETH_ASSET_ID);
     const expectedNXMOutPostMCRPosting = await pool.getNXMForEth(buyValue);
 
     assert(
@@ -200,38 +226,30 @@ describe('Token price functions', function () {
     );
   });
 
-  // [todo]: enable with issue https://github.com/NexusMutual/smart-contracts/issues/387
-  it.skip('buyNXM token price reflects the latest higher MCR value (higher MCReth -> lower price)', async function () {
-    const { p1: pool, mcr } = this.contracts;
+  it('buyNXM token price reflects the latest higher MCR value (higher MCReth -> lower price)', async function () {
+    const { p1: pool, mcr, cover, stakingProducts } = this.contracts;
     const [member1, coverHolder] = this.accounts.members;
 
-    const ETH = await pool.ETH();
     const buyValue = parseEther('1000');
     const expectedNXMOutPreMCRPosting = await pool.getNXMForEth(buyValue);
-    const spotTokenPricePreMCRPosting = await pool.getTokenPriceInAsset(PoolAsset.ETH);
-    await pool.getPoolValueInEth();
-
-    const coverTemplate = {
-      amount: 1, // 1 eth
-      price: '3000000000000000', // 0.003 eth
-      priceNXM: '1000000000000000000', // 1 nxm
-      expireTime: '8000000000',
-      generationTime: '1600000000000',
-      currency: hex('ETH'),
-      period: 60,
-      contractAddress: '0xc0ffeec0ffeec0ffeec0ffeec0ffeec0ffee0000',
-    };
+    const spotTokenPricePreMCRPosting = await pool.getTokenPriceInAsset(ETH_ASSET_ID);
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
     const coverAmount = BigNumber.from(gearingFactor)
       .mul(currentMCR.add(parseEther('300')))
-      .div(parseEther('1'))
       .div(ratioScale);
-    const cover = { ...coverTemplate, amount: coverAmount };
 
+    const coverBuyParams = { ...ethCoverTemplate, amount: coverAmount };
+    const product = await stakingProducts.getProduct(1 /* poolId */, coverBuyParams.productId);
     // increase totalSumAssured to trigger MCR increase
-    await buyCover({ ...this.contracts, cover, coverHolder });
+    await buyCover({
+      ...coverBuyParams,
+      cover,
+      coverBuyer: coverHolder,
+      targetPrice: product.targetPrice,
+      expectedPremium: coverAmount,
+    });
 
     // trigger an MCR update and post a lower MCR since lowering the price (higher MCR percentage)
     const minUpdateTime = await mcr.minUpdateTime();
@@ -242,19 +260,11 @@ describe('Token price functions', function () {
     // let time pass so that mcr increases towards desired MCR
     await increaseTime(6 * 3600); // 6 hours
 
-    const spotTokenPricePostMCRPosting = await pool.getTokenPriceInAsset(ETH);
+    const spotTokenPricePostMCRPosting = await pool.getTokenPriceInAsset(ETH_ASSET_ID);
     const expectedNXMOutPostMCRPosting = await pool.getNXMForEth(buyValue);
 
-    assert(
-      spotTokenPricePostMCRPosting.lt(spotTokenPricePreMCRPosting),
-      `Expected token price to be lower than ${spotTokenPricePreMCRPosting.toString()} at a higher mcrEth.
-       Price: ${spotTokenPricePostMCRPosting.toString()}`,
-    );
-    assert(
-      expectedNXMOutPostMCRPosting.gt(expectedNXMOutPreMCRPosting),
-      `Expected to receive more tokens than ${expectedNXMOutPreMCRPosting.toString()} at a higher mcrEth.
-       Receiving: ${expectedNXMOutPostMCRPosting.toString()}`,
-    );
+    expect(spotTokenPricePostMCRPosting).to.be.lt(spotTokenPricePreMCRPosting);
+    expect(expectedNXMOutPostMCRPosting).to.be.gt(expectedNXMOutPreMCRPosting);
   });
 
   it('getPoolValueInEth calculates pool value correctly', async function () {

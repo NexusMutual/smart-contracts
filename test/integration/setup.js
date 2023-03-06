@@ -1,4 +1,3 @@
-const { BigNumber } = require('ethers');
 const { ethers } = require('hardhat');
 
 const { ContractTypes } = require('../utils').constants;
@@ -7,6 +6,7 @@ const { proposalCategories } = require('../utils');
 const { getAccounts } = require('../utils').accounts;
 const { enrollMember } = require('./utils/enroll');
 
+const { BigNumber } = ethers;
 const { parseEther, parseUnits } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 
@@ -532,6 +532,9 @@ async function setup() {
   const config = {
     BUCKET_SIZE: BigNumber.from(7 * 24 * 3600), // 7 days
     GLOBAL_REWARDS_RATIO: BigNumber.from(5000), // 50%
+    TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
+    ONE_NXM: await stakingPool.ONE_NXM(),
+    NXM_PER_ALLOCATION_UNIT: await stakingPool.NXM_PER_ALLOCATION_UNIT(),
   };
 
   this.contracts.stakingProducts = stakingProducts;

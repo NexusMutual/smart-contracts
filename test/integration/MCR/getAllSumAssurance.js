@@ -1,43 +1,58 @@
-const { accounts, ethers } = require('hardhat');
-const { assert } = require('chai');
-const { BigNumber } = ethers;
-const { buyCover, buyCoverWithDai } = require('../utils').buyCover;
+const { ethers } = require('hardhat');
+const { expect } = require('chai');
+const { buyCover, ETH_ASSET_ID, DAI_ASSET_ID } = require('../utils/cover');
+const { daysToSeconds } = require('../../../lib/helpers');
+const { stake } = require('../utils/staking');
+const { setEtherBalance } = require('../../utils/evm');
+const { assetToEthWithPrecisionLoss } = require('../utils/assetPricing');
+const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
-const { hex } = require('../utils').helpers;
-
-const [, member1] = accounts;
 
 const ethCoverTemplate = {
-  amount: 1, // 1 eth
-  price: '30000000000000000', // 0.03 eth
-  priceNXM: '10000000000000000000', // 10 nxm
-  expireTime: '8000000000',
-  generationTime: '1600000000000',
-  currency: hex('ETH'),
-  period: 60,
-  contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
+  productId: 0, // DEFAULT_PRODUCT
+  coverAsset: ETH_ASSET_ID, // ETH
+  period: daysToSeconds(30), // 30 days
+  gracePeriod: daysToSeconds(30),
+  amount: parseEther('100'),
+  priceDenominator: 10000,
+  coverId: 0,
+  segmentId: 0,
+  incidentId: 0,
+  assessmentId: 0,
 };
 
 const daiCoverTemplate = {
-  amount: 1000, // 1000 dai
-  price: (1e19).toString(), // 10 dai
-  priceNXM: '10000000000000000000', // 10 nxm
-  expireTime: '8000000000',
-  generationTime: '1600000000000',
-  currency: hex('DAI'),
-  period: 60,
-  contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
+  ...ethCoverTemplate,
+  productId: 0,
+  coverAsset: DAI_ASSET_ID, // DAI
 };
 
-// [todo] reenable with issue https://github.com/NexusMutual/smart-contracts/issues/387
-describe.skip('getAllSumAssurance', function () {
+describe('getAllSumAssurance', function () {
   beforeEach(async function () {
-    const { dai } = this.contracts;
+    const { tk, dai, stakingPool1: stakingPool, tc, mcr, cover } = this.contracts;
     const [member1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
+
+    const operator = await tk.operator();
+    await setEtherBalance(operator, parseEther('10000000'));
+
     for (const daiHolder of [member1, nonMember1]) {
-      await dai.mint(daiHolder.address, parseEther('10000000'));
+      // mint  tokens
+      await dai.mint(daiHolder.address, parseEther('1000000000000'));
+      await dai.connect(daiHolder).approve(cover.address, MaxUint256);
     }
+
+    await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
+    await tk.connect(member1).approve(tc.address, MaxUint256);
+    await stake({
+      stakingPool,
+      staker: member1,
+      productId: ethCoverTemplate.productId,
+      period: daysToSeconds(60),
+      gracePeriod: daysToSeconds(30),
+    });
+
+    expect(await mcr.getAllSumAssurance()).to.be.equal(0);
   });
 
   it('returns 0 when no covers exist', async function () {
@@ -48,54 +63,89 @@ describe.skip('getAllSumAssurance', function () {
   });
 
   it('returns total value of ETH purchased cover', async function () {
-    const { mcr } = this.contracts;
-    const cover = { ...ethCoverTemplate };
-    const member = member1;
+    const { mcr, cover, p1 } = this.contracts;
+    const [coverBuyer] = this.accounts.members;
+    const targetPrice = this.DEFAULT_PRODUCTS[0].targetPrice;
+    const priceDenominator = this.config.TARGET_PRICE_DENOMINATOR;
+    const coverBuyTemplate = { ...ethCoverTemplate };
 
-    await buyCover({ ...this.contracts, cover, coverHolder: member });
+    await buyCover({
+      ...coverBuyTemplate,
+      cover,
+      coverBuyer,
+      targetPrice,
+      priceDenominator,
+    });
     const totalAssurance = await mcr.getAllSumAssurance();
-    assert.equal(totalAssurance.toString(), parseEther(cover.amount.toString()).toString());
+    expect(totalAssurance).to.be.equal(await assetToEthWithPrecisionLoss(p1, coverBuyTemplate.amount, 0, this.config));
   });
 
   it('returns total value of DAI purchased cover', async function () {
-    const { mcr } = this.contracts;
-    const { daiToEthRate } = this.rates;
-    const cover = { ...daiCoverTemplate };
-    const member = member1;
+    const { mcr, cover, p1 } = this.contracts;
+    const [coverBuyer] = this.accounts.members;
+    const targetPrice = this.DEFAULT_PRODUCTS[0].targetPrice;
+    const priceDenominator = this.config.TARGET_PRICE_DENOMINATOR;
+    const coverBuyTemplate = { ...daiCoverTemplate };
 
-    await buyCoverWithDai({ ...this.contracts, cover, coverHolder: member });
+    await buyCover({
+      ...coverBuyTemplate,
+      cover,
+      coverBuyer,
+      targetPrice,
+      priceDenominator,
+    });
+
+    const expectedTotal = await assetToEthWithPrecisionLoss(
+      p1,
+      coverBuyTemplate.amount,
+      this.rates.daiToEthRate,
+      this.config,
+    );
+
     const totalAssurance = await mcr.getAllSumAssurance();
-    const expectedTotalAssurance = parseEther(cover.amount.toString())
-      .mul(daiToEthRate)
-      .div(BigNumber.from((1e18).toString()));
-    assert.equal(totalAssurance.toString(), expectedTotalAssurance.toString());
+    expect(totalAssurance).to.be.equal(expectedTotal);
   });
 
   it('returns total value of multiple ETH and DAI covers', async function () {
-    const { mcr } = this.contracts;
-    const { daiToEthRate } = this.rates;
-    const cover = { ...daiCoverTemplate };
-    const member = member1;
+    const { mcr, cover, p1 } = this.contracts;
+    const [coverBuyer] = this.accounts.members;
+    const targetPrice = this.DEFAULT_PRODUCTS[0].targetPrice;
+    const priceDenominator = this.config.TARGET_PRICE_DENOMINATOR;
 
     const ethCoversToBuy = 2;
-    let generationTime = parseInt(cover.generationTime);
     for (let i = 0; i < ethCoversToBuy; i++) {
-      const newCover = { ...ethCoverTemplate, generationTime: (generationTime++).toString() };
-      await buyCover({ ...this.contracts, cover: newCover, coverHolder: member });
+      await buyCover({
+        ...ethCoverTemplate,
+        cover,
+        coverBuyer,
+        targetPrice,
+        priceDenominator,
+      });
     }
 
     const daiCoversToBuy = 2;
     for (let i = 0; i < daiCoversToBuy; i++) {
-      const newCover = { ...daiCoverTemplate, generationTime: (generationTime++).toString() };
-      await buyCoverWithDai({ ...this.contracts, cover: newCover, coverHolder: member });
+      await buyCover({
+        ...daiCoverTemplate,
+        cover,
+        coverBuyer,
+        targetPrice,
+        priceDenominator,
+      });
     }
 
+    // calculate eth covers
+    const expectedEthAssurance = await assetToEthWithPrecisionLoss(p1, ethCoverTemplate.amount.mul(2), 0, this.config);
+
+    // calculate dai covers
+    const expectedDaiAssurance = await assetToEthWithPrecisionLoss(
+      p1,
+      daiCoverTemplate.amount.mul(2),
+      this.rates.daiToEthRate,
+      this.config,
+    );
+
     const totalAssurance = await mcr.getAllSumAssurance();
-    const expectedTotalAssurance = parseEther(daiCoverTemplate.amount.toString())
-      .mul(daiToEthRate)
-      .div(BigNumber.from((1e18).toString()))
-      .mul(daiCoversToBuy)
-      .add(parseEther(ethCoverTemplate.amount.toString()).mul(ethCoversToBuy));
-    assert.equal(totalAssurance.toString(), expectedTotalAssurance.toString());
+    expect(totalAssurance).to.be.equal(expectedEthAssurance.add(expectedDaiAssurance));
   });
 });

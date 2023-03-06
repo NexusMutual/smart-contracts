@@ -46,27 +46,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
     nxm = INXMToken(nxmAddress);
   }
 
-  function initialize () external {
-    Configuration memory currentConfig = config;
-    bool notInitialized = bytes32(
-      abi.encodePacked(
-        currentConfig.minVotingPeriodInDays,
-        currentConfig.payoutCooldownInDays,
-        currentConfig.stakeLockupPeriodInDays,
-        currentConfig.silentEndingPeriodInDays
-      )
-    ) == bytes32(0);
-    require(notInitialized, "Already initialized");
-
-    config.minVotingPeriodInDays = 3; // days
-    config.payoutCooldownInDays = 1; // days
-    config.stakeLockupPeriodInDays = 14; // days
-    config.silentEndingPeriodInDays = 1; // days
-
-    // to receive nxm
-    ITokenController(getInternalContractAddress(ID.TC)).addToWhitelist(address(this));
-  }
-
   /* ========== VIEWS ========== */
 
   /// @dev Returns the vote count of an assessor.
@@ -510,6 +489,26 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+
+    Configuration memory currentConfig = config;
+    bool notInitialized = bytes32(
+      abi.encodePacked(
+        currentConfig.minVotingPeriodInDays,
+        currentConfig.payoutCooldownInDays,
+        currentConfig.stakeLockupPeriodInDays,
+        currentConfig.silentEndingPeriodInDays
+      )
+    ) == bytes32(0);
+
+    if (notInitialized) {
+      // initialize config
+      config.minVotingPeriodInDays = 3; // days
+      config.payoutCooldownInDays = 1; // days
+      config.stakeLockupPeriodInDays = 14; // days
+      config.silentEndingPeriodInDays = 1; // days
+      // whitelist current contract
+      ITokenController(getInternalContractAddress(ID.TC)).addToWhitelist(address(this));
+    }
   }
 
 }

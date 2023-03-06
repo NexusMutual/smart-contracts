@@ -619,7 +619,7 @@ describe('V2 upgrade', function () {
     ).to.be.equal(0);
   });
 
-  it('MCR Value check', async function () {
+  it('MCR value check', async function () {
     const mcrValueAfter = await this.mcr.getMCR();
 
     expect(mcrValueAfter).to.be.equal(this.mcrValueBefore);
@@ -643,7 +643,7 @@ describe('V2 upgrade', function () {
     expect(claimPayableAddressAfter).to.be.equal(AddressZero);
   });
 
-  it('compares storage of upgraded contracts', async function () {
+  it('Compares storage of upgraded contracts', async function () {
     // MCR
     this.contractData.mcr.after.mcrFloorIncrementThreshold = await this.mcr.mcrFloorIncrementThreshold();
     this.contractData.mcr.after.maxMCRFloorIncrement = await this.mcr.maxMCRFloorIncrement();
@@ -857,7 +857,7 @@ describe('V2 upgrade', function () {
     await getCNLockedAmount(ethers.provider, SCRIPTS_NO_CACHE);
   });
 
-  it.skip('Check all members with CN locked NXM can withdraw & TC has the correct balance afterwards', async function () {
+  it('Check all members with CN locked NXM can withdraw & TC has the correct balance afterwards', async function () {
     const CN_LOCKED_AMOUNT_OUTPUT = require(CN_LOCKED_AMOUNT_OUTPUT_PATH);
     const tcBalanceBefore = await this.nxm.balanceOf(this.tokenController.address);
 

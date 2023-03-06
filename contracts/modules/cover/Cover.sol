@@ -674,6 +674,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     uint unsupportedCoverAssetsBitmap = type(uint).max;
 
+
     Asset[] memory assets = pool().getAssets();
     uint assetsLength = assets.length;
 

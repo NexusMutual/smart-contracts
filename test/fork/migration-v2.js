@@ -11,6 +11,8 @@ const { AddressZero, Zero, Two } = ethers.constants;
 const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
 const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
 
+const SCRIPTS_NO_CACHE = !!process.env.NO_CACHE;
+
 const CoverCreate2Salt = 1000;
 const StakingProductsCreate2Salt = 1001;
 
@@ -22,6 +24,7 @@ const getClaimAssessmentStakes = require('../../scripts/v2-migration/get-claim-a
 const getTCLockedAmount = require('../../scripts/v2-migration/get-tc-locked-amount');
 const getCNLockedAmount = require('../../scripts/v2-migration/get-cn-locked');
 
+const PRODUCTS_WITH_REWARDS_PATH = '../../scripts/v2-migration/input/products-with-v1-rewards.json';
 const PRODUCT_ADDRESSES_OUTPUT_PATH = '../../scripts/v2-migration/output/product-addresses.json';
 const GV_REWARDS_OUTPUT_PATH = '../../scripts/v2-migration/output/governance-rewards.json';
 const CLA_REWARDS_OUTPUT_PATH = '../../scripts/v2-migration/output/claim-assessment-rewards.json';
@@ -221,27 +224,27 @@ describe('V2 upgrade', function () {
 
   // Generates ProductsV1.sol contract
   it('Generate ProductsV1.sol with all products to be migrated to V2', async function () {
-    await getProductAddresses();
+    await getProductAddresses(SCRIPTS_NO_CACHE);
   });
 
   it('Get V1 cover prices', async function () {
-    await getV1CoverPrices(ethers.provider);
+    await getV1CoverPrices(ethers.provider, SCRIPTS_NO_CACHE);
   });
 
   it('Get governance rewards', async function () {
-    await getGovernanceRewards(ethers.provider);
+    await getGovernanceRewards(ethers.provider, SCRIPTS_NO_CACHE);
   });
 
   it('Get claim assessment rewards and generate transfer calls in LegacyClaimsReward.sol', async function () {
-    await getClaimAssessmentRewards(ethers.provider);
+    await getClaimAssessmentRewards(ethers.provider, SCRIPTS_NO_CACHE);
   });
 
   it('Get claim assessment stakes', async function () {
-    await getClaimAssessmentStakes(ethers.provider);
+    await getClaimAssessmentStakes(ethers.provider, SCRIPTS_NO_CACHE);
   });
 
   it('Get TC locked amount', async function () {
-    await getTCLockedAmount(ethers.provider);
+    await getTCLockedAmount(ethers.provider, SCRIPTS_NO_CACHE);
   });
 
   it('Recompile contracts if needed', async function () {
@@ -859,7 +862,7 @@ describe('V2 upgrade', function () {
   });
 
   it('Get CN locked amount', async function () {
-    await getCNLockedAmount(ethers.provider);
+    await getCNLockedAmount(ethers.provider, SCRIPTS_NO_CACHE);
   });
 
   it('Check all members with CN locked NXM can withdraw & TC has the correct balance afterwards', async function () {

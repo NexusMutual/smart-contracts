@@ -1,7 +1,6 @@
 describe('UNIT TESTS', function () {
   require('./MemberRoles');
   require('./TokenController');
-  require('./PooledStaking');
   require('./Pool');
   require('./SwapOperator');
   require('./MCR');

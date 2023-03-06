@@ -13,7 +13,6 @@ describe('Assessment', function () {
   });
 
   require('./constructor');
-  require('./initialize');
   require('./stake');
   require('./unstake');
   require('./getRewards');

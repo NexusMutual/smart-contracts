@@ -95,7 +95,6 @@ async function setup() {
 
   await individualClaims.changeMasterAddress(master.address);
   await individualClaims.changeDependentContractAddress();
-  await individualClaims.initialize();
 
   const accounts = await getAccounts();
   await master.enrollGovernance(accounts.governanceContracts[0].address);

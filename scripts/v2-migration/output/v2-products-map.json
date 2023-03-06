@@ -66,18 +66,6 @@
     "logo": "alchemix.svg"
   },
   "5": {
-    "name": "Alpaca Finance",
-    "type": "protocol",
-    "supportedChains": [
-      "bsc",
-      "fantom"
-    ],
-    "dateAdded": "2021-08-13",
-    "logo": "alpaca.png",
-    "github": "https://github.com/alpaca-finance",
-    "deprecated": true
-  },
-  "6": {
     "name": "Anchor",
     "type": "protocol",
     "supportedChains": [
@@ -89,7 +77,7 @@
     "logo": "anchor.svg",
     "deprecated": true
   },
-  "7": {
+  "6": {
     "name": "Angle",
     "type": "protocol",
     "supportedChains": [
@@ -101,7 +89,7 @@
     "dateAdded": "2022-03-08",
     "logo": "angle.svg"
   },
-  "8": {
+  "7": {
     "name": "Argent",
     "type": "protocol",
     "supportedChains": [
@@ -112,7 +100,7 @@
     "logo": "argent.png",
     "github": "https://github.com/argentlabs"
   },
-  "9": {
+  "8": {
     "name": "Aura",
     "type": "protocol",
     "supportedChains": [
@@ -121,7 +109,7 @@
     "dateAdded": "2022-11-16",
     "logo": "aura.png"
   },
-  "10": {
+  "9": {
     "name": "Babylon Finance",
     "type": "protocol",
     "supportedChains": [
@@ -131,7 +119,7 @@
     "logo": "babylon.svg",
     "deprecated": true
   },
-  "11": {
+  "10": {
     "name": "BadgerDAO",
     "type": "protocol",
     "supportedChains": [
@@ -144,7 +132,7 @@
     "logo": "badgerdao.png",
     "github": "https://github.com/Badger-Finance"
   },
-  "12": {
+  "11": {
     "name": "Balancer v2",
     "type": "protocol",
     "supportedChains": [
@@ -156,7 +144,7 @@
     "logo": "balancer.svg",
     "github": "https://github.com/balancer-labs"
   },
-  "13": {
+  "12": {
     "name": "Bancor v2",
     "type": "protocol",
     "supportedChains": [
@@ -167,7 +155,7 @@
     "github": "https://github.com/bancorprotocol/",
     "deprecated": true
   },
-  "14": {
+  "13": {
     "name": "Bancor v3",
     "type": "protocol",
     "supportedChains": [
@@ -176,7 +164,7 @@
     "dateAdded": "2022-05-12",
     "logo": "bancor.svg"
   },
-  "15": {
+  "14": {
     "name": "Beefy",
     "type": "protocol",
     "supportedChains": [
@@ -199,20 +187,20 @@
     "dateAdded": "2022-03-04",
     "logo": "beefy.svg"
   },
-  "16": {
+  "15": {
     "name": "Binance",
     "type": "custodian",
     "dateAdded": "2021-01-12",
     "logo": "binance.png"
   },
-  "17": {
+  "16": {
     "name": "BlockFi",
     "type": "custodian",
     "dateAdded": "2020-12-02",
     "logo": "blockFi.svg",
     "deprecated": true
   },
-  "18": {
+  "17": {
     "name": "Bundle: Gelt + mStable + Aave v2",
     "type": "protocol",
     "supportedChains": [
@@ -222,7 +210,7 @@
     "dateAdded": "2022-04-14",
     "logo": "gelt.svg"
   },
-  "19": {
+  "18": {
     "name": "Centrifuge Tinlake",
     "type": "protocol",
     "supportedChains": [
@@ -232,13 +220,13 @@
     "logo": "centrifuge.svg",
     "github": "https://github.com/centrifuge/"
   },
-  "20": {
+  "19": {
     "name": "Coinbase",
     "type": "custodian",
     "dateAdded": "2021-01-12",
     "logo": "coinbase.png"
   },
-  "21": {
+  "20": {
     "name": "Compound v2",
     "type": "protocol",
     "supportedChains": [
@@ -248,7 +236,7 @@
     "logo": "compoundv2.png",
     "github": "https://github.com/compound-finance/"
   },
-  "22": {
+  "21": {
     "name": "Convex 3CRV (cvx3CRV)",
     "type": "token",
     "supportedChains": [
@@ -257,7 +245,7 @@
     "dateAdded": "2021-10-28",
     "logo": "convex.png"
   },
-  "23": {
+  "22": {
     "name": "Convex Finance v1",
     "type": "protocol",
     "supportedChains": [
@@ -267,7 +255,7 @@
     "logo": "convex.png",
     "github": "https://github.com/convex-eth"
   },
-  "24": {
+  "23": {
     "name": "Convex stethCrv (cvxstethCrv)",
     "type": "token",
     "supportedChains": [
@@ -276,14 +264,14 @@
     "dateAdded": "2021-10-28",
     "logo": "convex.png"
   },
-  "25": {
+  "24": {
     "name": "Crypto.com",
     "type": "custodian",
     "dateAdded": "2021-07-06",
     "logo": "crypto-com.svg",
     "deprecated": true
   },
-  "26": {
+  "25": {
     "name": "Curve 3pool LP (3Crv)",
     "type": "token",
     "supportedChains": [
@@ -292,7 +280,7 @@
     "dateAdded": "2021-05-25",
     "logo": "curve-3crv.png"
   },
-  "27": {
+  "26": {
     "name": "Curve All Pools (incl staking)",
     "type": "protocol",
     "supportedChains": [
@@ -310,7 +298,7 @@
     "logo": "curve.png",
     "github": "https://github.com/curvefi"
   },
-  "28": {
+  "27": {
     "name": "Curve sETH LP (eCrv)",
     "type": "token",
     "supportedChains": [
@@ -319,7 +307,7 @@
     "dateAdded": "2021-05-25",
     "logo": "curve.png"
   },
-  "29": {
+  "28": {
     "name": "dydx Perpetual",
     "type": "protocol",
     "supportedChains": [
@@ -331,7 +319,7 @@
     "logo": "dydx.svg",
     "github": "https://github.com/dydxprotocol"
   },
-  "30": {
+  "29": {
     "name": "Ease",
     "type": "protocol",
     "supportedChains": [
@@ -340,7 +328,7 @@
     "dateAdded": "2022-05-31",
     "logo": "easelogo.png"
   },
-  "31": {
+  "30": {
     "name": "Enzyme v3",
     "type": "protocol",
     "supportedChains": [
@@ -350,7 +338,7 @@
     "logo": "enzyme.svg",
     "deprecated": true
   },
-  "32": {
+  "31": {
     "name": "Enzyme v4",
     "type": "protocol",
     "supportedChains": [
@@ -360,7 +348,7 @@
     "dateAdded": "2022-11-16",
     "logo": "enzyme-v4.svg"
   },
-  "33": {
+  "32": {
     "name": "Eth 2.0 (deposit contract)",
     "type": "protocol",
     "supportedChains": [
@@ -371,7 +359,7 @@
     "github": "https://github.com/ethereum/eth2.0-specs",
     "deprecated": "true"
   },
-  "34": {
+  "33": {
     "name": "Euler",
     "type": "protocol",
     "supportedChains": [
@@ -380,7 +368,7 @@
     "dateAdded": "2022-08-29",
     "logo": "euler.svg"
   },
-  "35": {
+  "34": {
     "name": "FODL",
     "type": "protocol",
     "supportedChains": [
@@ -389,14 +377,14 @@
     "dateAdded": "2022-03-24",
     "logo": "fodl.svg"
   },
-  "36": {
+  "35": {
     "name": "FTX",
     "type": "custodian",
     "dateAdded": "2021-05-04",
     "logo": "ftx.svg",
     "deprecated": true
   },
-  "37": {
+  "36": {
     "name": "Gearbox V2",
     "type": "protocol",
     "supportedChains": [
@@ -405,14 +393,14 @@
     "dateAdded": "2022-10-31",
     "logo": "gearbox.png"
   },
-  "38": {
+  "37": {
     "name": "Gemini",
     "type": "custodian",
     "dateAdded": "2021-01-12",
     "logo": "gemini.png",
     "deprecated": true
   },
-  "39": {
+  "38": {
     "name": "GMX",
     "type": "protocol",
     "supportedChains": [
@@ -422,7 +410,7 @@
     "dateAdded": "2022-09-01",
     "logo": "gmx.svg"
   },
-  "40": {
+  "39": {
     "name": "Goldfinch",
     "type": "protocol",
     "supportedChains": [
@@ -432,27 +420,27 @@
     "logo": "goldfinch.svg",
     "github": " https://github.com/goldfinch-eng/"
   },
-  "41": {
+  "40": {
     "name": "Hodlnaut",
     "type": "custodian",
     "dateAdded": "2020-12-02",
     "logo": "hodlnaut.svg",
     "deprecated": true
   },
-  "42": {
+  "41": {
     "name": "Kraken",
     "type": "custodian",
     "dateAdded": "2021-01-12",
     "logo": "kraken.png"
   },
-  "43": {
+  "42": {
     "name": "Ledn",
     "type": "custodian",
     "dateAdded": "2020-12-02",
     "logo": "ledn.svg",
     "deprecated": true
   },
-  "44": {
+  "43": {
     "name": "Liquid Collective",
     "type": "eth2slashing",
     "supportedChains": [
@@ -461,7 +449,7 @@
     "dateAdded": "2023-02-03",
     "logo": "liquidcollective.svg"
   },
-  "45": {
+  "44": {
     "name": "Liquity",
     "type": "protocol",
     "supportedChains": [
@@ -471,7 +459,7 @@
     "logo": "liquity.png",
     "github": "https://github.com/liquity"
   },
-  "46": {
+  "45": {
     "name": "MakerDAO MCD",
     "type": "protocol",
     "supportedChains": [
@@ -481,7 +469,7 @@
     "logo": "makerdao.png",
     "github": "https://github.com/makerdao"
   },
-  "47": {
+  "46": {
     "name": "mStable",
     "type": "protocol",
     "supportedChains": [
@@ -492,7 +480,7 @@
     "logo": "mstable.svg",
     "github": "https://github.com/mstable"
   },
-  "48": {
+  "47": {
     "name": "Nested",
     "type": "protocol",
     "supportedChains": [
@@ -505,14 +493,14 @@
     "dateAdded": "2022-07-05",
     "logo": "nested.svg"
   },
-  "49": {
+  "48": {
     "name": "Nexo",
     "type": "custodian",
     "dateAdded": "2020-12-02",
     "logo": "nexo.svg",
     "deprecated": true
   },
-  "50": {
+  "49": {
     "name": "Notional Finance v2",
     "type": "protocol",
     "supportedChains": [
@@ -522,7 +510,7 @@
     "logo": "notional-finance.svg",
     "github": "https://github.com/notional-finance"
   },
-  "51": {
+  "50": {
     "name": "OlympusDAO",
     "type": "protocol",
     "supportedChains": [
@@ -535,7 +523,7 @@
     "github": "https://github.com/OlympusDAO",
     "deprecated": true
   },
-  "52": {
+  "51": {
     "name": "Opyn v2",
     "type": "protocol",
     "supportedChains": [
@@ -547,7 +535,7 @@
     "logo": "opyn.png",
     "github": "https://github.com/opynfinance"
   },
-  "53": {
+  "52": {
     "name": "Origin OUSD",
     "type": "token",
     "supportedChains": [
@@ -557,7 +545,7 @@
     "logo": "originusd.svg",
     "github": "https://github.com/originprotocol/origin-dollar"
   },
-  "54": {
+  "53": {
     "name": "Pangolin",
     "type": "protocol",
     "supportedChains": [
@@ -567,7 +555,7 @@
     "logo": "pangolin.svg",
     "github": "https://github.com/pangolindex"
   },
-  "55": {
+  "54": {
     "name": "Perpetual Protocol",
     "type": "protocol",
     "supportedChains": [
@@ -580,7 +568,7 @@
     "logo": "perpetual.jpg",
     "github": "https://github.com/perpetual-protocol/"
   },
-  "56": {
+  "55": {
     "name": "Pool Together v4",
     "type": "protocol",
     "supportedChains": [
@@ -592,7 +580,7 @@
     "logo": "pooltogether.svg",
     "github": "https://github.com/pooltogether/pooltogether-pool-contracts"
   },
-  "57": {
+  "56": {
     "name": "Premia Finance",
     "type": "protocol",
     "supportedChains": [
@@ -605,7 +593,7 @@
     "dateAdded": "2021-11-04",
     "logo": "premia.svg"
   },
-  "58": {
+  "57": {
     "name": "Rari Capital",
     "type": "protocol",
     "supportedChains": [
@@ -618,7 +606,7 @@
     "github": "https://github.com/Rari-Capital",
     "deprecated": true
   },
-  "59": {
+  "58": {
     "name": "Reflexer",
     "type": "protocol",
     "supportedChains": [
@@ -628,7 +616,7 @@
     "logo": "reflexer.png",
     "github": "https://github.com/reflexer-labs"
   },
-  "60": {
+  "59": {
     "name": "Ribbon Finance v2",
     "type": "protocol",
     "supportedChains": [
@@ -639,7 +627,7 @@
     "logo": "ribbon.svg",
     "github": "https://github.com/ribbon-finance"
   },
-  "61": {
+  "60": {
     "name": "Safe (formerly, Gnosis Safe)",
     "type": "protocol",
     "supportedChains": [
@@ -656,7 +644,7 @@
     "logo": "gnosis-safe.png",
     "github": "https://github.com/gnosis/safe-protocols"
   },
-  "62": {
+  "61": {
     "name": "Set Protocol",
     "type": "protocol",
     "supportedChains": [
@@ -666,7 +654,7 @@
     "logo": "tokensets.svg",
     "github": "https://github.com/SetProtocol"
   },
-  "63": {
+  "62": {
     "name": "Set Protocol v2",
     "type": "protocol",
     "supportedChains": [
@@ -677,13 +665,13 @@
     "logo": "tokensets.svg",
     "github": "https://github.com/SetProtocol"
   },
-  "64": {
+  "63": {
     "name": "Sherlock",
     "type": "sherlock",
     "dateAdded": "2022-10-17",
     "logo": "sherlock.svg"
   },
-  "65": {
+  "64": {
     "name": "Stake DAO",
     "type": "protocol",
     "supportedChains": [
@@ -697,7 +685,7 @@
     "logo": "stakedao.png",
     "github": "https://github.com/StakeDAO"
   },
-  "66": {
+  "65": {
     "name": "Stakewise 3rd party (3 ETH / validator)",
     "type": "eth2slashing",
     "supportedChains": [
@@ -706,7 +694,7 @@
     "dateAdded": "2022-06-08",
     "logo": "stakewise.svg"
   },
-  "67": {
+  "66": {
     "name": "Stakewise operated (3 ETH / validator)",
     "type": "eth2slashing",
     "supportedChains": [
@@ -715,7 +703,7 @@
     "dateAdded": "2022-06-08",
     "logo": "stakewise.svg"
   },
-  "68": {
+  "67": {
     "name": "SushiSwap v1",
     "type": "protocol",
     "supportedChains": [
@@ -733,7 +721,7 @@
     "logo": "sushiswap.jpg",
     "github": "https://github.com/sushiswap/sushiswap"
   },
-  "69": {
+  "68": {
     "name": "Synthetix",
     "type": "protocol",
     "supportedChains": [
@@ -744,7 +732,7 @@
     "logo": "synthetix.svg",
     "github": "https://github.com/Synthetixio"
   },
-  "70": {
+  "69": {
     "name": "THORChain (Thorchain Network)",
     "type": "protocol",
     "supportedChains": [
@@ -755,7 +743,7 @@
     "logo": "thorchain.svg",
     "deprecated": true
   },
-  "71": {
+  "70": {
     "name": "Trader Joe",
     "type": "protocol",
     "supportedChains": [
@@ -765,7 +753,7 @@
     "logo": "trader-joe.svg",
     "github": "https://github.com/traderjoe-xyz/"
   },
-  "72": {
+  "71": {
     "name": "Uniswap v2",
     "type": "protocol",
     "supportedChains": [
@@ -775,7 +763,7 @@
     "logo": "uniswapv2.svg",
     "github": "https://github.com/Uniswap"
   },
-  "73": {
+  "72": {
     "name": "Uniswap v3",
     "type": "protocol",
     "supportedChains": [
@@ -789,7 +777,7 @@
     "logo": "uniswapv2.svg",
     "github": "https://github.com/Uniswap/uniswap-v3-core"
   },
-  "74": {
+  "73": {
     "name": "Vector",
     "type": "protocol",
     "supportedChains": [
@@ -798,7 +786,7 @@
     "dateAdded": "2022-05-12",
     "logo": "vector.svg"
   },
-  "75": {
+  "74": {
     "name": "Vesper",
     "type": "protocol",
     "supportedChains": [
@@ -810,7 +798,7 @@
     "logo": "vesper.svg",
     "github": "https://github.com/vesperfi"
   },
-  "76": {
+  "75": {
     "name": "Yearn Finance (all vaults)",
     "type": "protocol",
     "supportedChains": [
@@ -822,7 +810,7 @@
     "logo": "yearn.svg",
     "github": "https://github.com/iearn-finance"
   },
-  "77": {
+  "76": {
     "name": "Yearn yvUSDC v2",
     "type": "token",
     "supportedChains": [
@@ -832,7 +820,7 @@
     "logo": "yearn.svg",
     "deprecated": true
   },
-  "78": {
+  "77": {
     "name": "Yeti Finance",
     "type": "protocol",
     "supportedChains": [
@@ -841,7 +829,7 @@
     "dateAdded": "2022-04-28",
     "logo": "yeti.png"
   },
-  "79": {
+  "78": {
     "name": "Yield.app",
     "type": "custodian",
     "dateAdded": "2021-07-06",

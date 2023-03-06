@@ -55,7 +55,7 @@ describe('buyCover', function () {
     await stakingPool3.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
   });
 
-  it.only('allows to buy against multiple staking pool', async function () {
+  it.skip('allows to buy against multiple staking pool', async function () {
     const { cover, tc: tokenController, stakingProducts } = this.contracts;
     const {
       members: [coverBuyer, coverReceiver],

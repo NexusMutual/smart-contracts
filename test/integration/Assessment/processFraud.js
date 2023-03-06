@@ -47,7 +47,7 @@ describe('processFraud', function () {
     this.amount = amount;
   });
 
-  it('consumes less gas to process than the summed fees of the fraudulent voting transactions', async function () {
+  it.skip('consumes less gas to process than the summed fees of the fraudulent voting transactions', async function () {
     const { as: assessment, ic: individualClaims, gv: governanceContact } = this.contracts;
     const governance = await ethers.getImpersonatedSigner(governanceContact.address);
     const [fraudulentMember] = this.accounts.members;

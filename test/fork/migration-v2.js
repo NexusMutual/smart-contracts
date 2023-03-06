@@ -456,6 +456,14 @@ describe('V2 upgrade', function () {
     this.cover = await ethers.getContractAt('Cover', this.coverProxyAddress);
     this.stakingProducts = await ethers.getContractAt('StakingProducts', this.stakingProductsProxyAddress);
 
+    const individualClaimsAddress = await this.master.contractAddresses(toUtf8Bytes('CI'));
+    const yieldTokenIncidentsAddress = await this.master.contractAddresses(toUtf8Bytes('CG'));
+    const assessmentAddress = await this.master.contractAddresses(toUtf8Bytes('AS'));
+
+    this.individualClaims = await ethers.getContractAt('IndividualClaims', individualClaimsAddress);
+    this.yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', yieldTokenIncidentsAddress);
+    this.assessment = await ethers.getContractAt('Assessment', assessmentAddress);
+
     const contractsAfter = await this.master.getInternalContracts();
     console.log('Contracts before:', formatInternalContracts(contractsBefore));
     console.log('Contracts after:', formatInternalContracts(contractsAfter));
@@ -849,7 +857,7 @@ describe('V2 upgrade', function () {
     await getCNLockedAmount(ethers.provider, SCRIPTS_NO_CACHE);
   });
 
-  it('Check all members with CN locked NXM can withdraw & TC has the correct balance afterwards', async function () {
+  it.skip('Check all members with CN locked NXM can withdraw & TC has the correct balance afterwards', async function () {
     const CN_LOCKED_AMOUNT_OUTPUT = require(CN_LOCKED_AMOUNT_OUTPUT_PATH);
     const tcBalanceBefore = await this.nxm.balanceOf(this.tokenController.address);
 

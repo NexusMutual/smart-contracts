@@ -34,6 +34,8 @@ const {
 } = PriceFeedOracle;
 
 let ybDAI, ybETH, ybEthProductId, ybDaiProductId; // ybDaiCoverId, ybEthCoverId;
+let custodialWalletProductId, custodialWalletCoverId;
+let assessmentId;
 let poolId;
 let trancheId;
 let tokenId;
@@ -152,9 +154,23 @@ describe('basic functionality tests', function () {
     ];
     const productTypesCountBefore = await this.cover.productTypesCount();
 
+    console.log(productTypesCountBefore);
+
     await this.cover.connect(this.abMembers[0]).setProductTypes(productTypes);
 
     const productTypesCountAfter = await this.cover.productTypesCount();
+    console.log(productTypesCountAfter);
+    const a = await this.cover.productTypes(0);
+    const b = await this.cover.productTypes(1);
+    const c = await this.cover.productTypes(2);
+
+    console.log('=============================================');
+    console.log(a);
+    console.log('=============================================');
+    console.log(b);
+    console.log('=============================================');
+    console.log(c);
+    console.log('=============================================');
 
     expect(productTypesCountAfter).to.be.equal(productTypesCountBefore.add(productTypes.length));
   });
@@ -215,6 +231,37 @@ describe('basic functionality tests', function () {
     expect(productsAfter.length).to.be.equal(productsBefore.length + 1);
   });
 
+  it('add custodial product', async function () {
+    const productsBefore = await this.cover.getProducts();
+
+    await this.cover.connect(this.abMembers[0]).setProducts([
+      {
+        productName: 'Custodial Wallet',
+        productId: MaxUint256,
+        ipfsMetadata: '',
+        product: {
+          productType: 1,
+          yieldTokenAddress: AddressZero,
+          coverAssets: 0,
+          initialPriceRatio: 100,
+          capacityReductionRatio: 0,
+          useFixedPrice: false,
+          isDeprecated: false,
+        },
+        allowedPools: [],
+      },
+    ]);
+
+    const productsAfter = await this.cover.getProducts();
+    console.log(productsAfter);
+    custodialWalletProductId = productsAfter.length - 1;
+
+    console.log('custodialWalletProductId');
+    console.log(custodialWalletProductId);
+
+    expect(productsAfter.length).to.be.equal(productsBefore.length + 1);
+  });
+
   it('create staking Pool', async function () {
     const [manager] = this.abMembers;
     const products = [
@@ -226,6 +273,12 @@ describe('basic functionality tests', function () {
       },
       {
         productId: ybEthProductId, // ybETH
+        weight: 100,
+        initialPrice: 1000,
+        targetPrice: 1000,
+      },
+      {
+        productId: custodialWalletProductId,
         weight: 100,
         initialPrice: 1000,
         targetPrice: 1000,
@@ -312,7 +365,7 @@ describe('basic functionality tests', function () {
     );
 
     const coverCountAfter = await this.cover.coverDataCount();
-    // ybDaiCoverId = coverCountBefore;
+    // ybDaiCoverId = coverCountAfter;
 
     expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
   });
@@ -348,7 +401,43 @@ describe('basic functionality tests', function () {
     );
 
     const coverCountAfter = await this.cover.coverDataCount();
-    // ybEthCoverId = coverCountBefore;
+    // ybEthCoverId = coverCountAfter;
+
+    expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
+  });
+
+  it('buy custodial cover', async function () {
+    await evm.impersonate(DAI_NXM_HOLDER);
+    const coverBuyer = await getSigner(DAI_NXM_HOLDER);
+    const coverBuyerAddress = await coverBuyer.getAddress();
+
+    const coverAsset = 0; // ETH
+    const amount = parseEther('1');
+    const commissionRatio = '500'; // 5%
+
+    const coverCountBefore = await this.cover.coverDataCount();
+
+    await this.cover.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyerAddress,
+        productId: custodialWalletProductId,
+        coverAsset,
+        amount,
+        period: 3600 * 24 * 30, // 30 days
+        maxPremiumInAsset: parseEther('1').mul(260).div(10000),
+        paymentAsset: coverAsset,
+        payWithNXM: false,
+        commissionRatio,
+        commissionDestination: coverBuyerAddress,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+      { value: amount },
+    );
+
+    const coverCountAfter = await this.cover.coverDataCount();
+    custodialWalletCoverId = coverCountAfter;
 
     expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
   });
@@ -378,7 +467,7 @@ describe('basic functionality tests', function () {
     );
   });
 
-  it.skip('submit claim for ybDAI cover', async function () {
+  it('submit claim for ybDAI cover', async function () {
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
 
     await submitGovernanceProposal(
@@ -390,15 +479,9 @@ describe('basic functionality tests', function () {
       this.abMembers,
       this.governance,
     );
-    // await evm.impersonate(this.governance.address);
-    // await evm.setBalance(this.governance.address, parseEther('1000'));
-    // const gov = await getSigner(this.governance.address);
-    // await this.yieldTokenIncidents
-    //   .connect(gov)
-    //   .submitIncident(ybDaiProductId, parseEther('1.1'), currentTime, parseEther('20000'), 'hashedMetadata');
   });
 
-  it.skip('submit claim for ybETH cover', async function () {
+  it('submit claim for ybETH cover', async function () {
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
 
     await submitGovernanceProposal(
@@ -410,6 +493,51 @@ describe('basic functionality tests', function () {
       this.abMembers,
       this.governance,
     );
+  });
+
+  it('submit a claim for custodial wallet', async function () {
+    await evm.impersonate(DAI_NXM_HOLDER);
+    const coverBuyer = await getSigner(DAI_NXM_HOLDER);
+    const claimsCountBefore = await this.individualClaims.getClaimsCount();
+    const assessmentCountBefore = await this.assessment.getAssessmentsCount();
+
+    const segmentId = (await this.cover.coverSegmentsCount(custodialWalletCoverId)).sub(1);
+    const requestedAmount = parseEther('1');
+    const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
+
+    await this.individualClaims
+      .connect(coverBuyer)
+      .submitClaim(custodialWalletCoverId, segmentId, requestedAmount, ipfsHash);
+
+    const claimsCountAfter = await this.individualClaims.getClaimsCount();
+    const assessmentCountAfter = await this.assessment.getAssessmentsCount();
+
+    assessmentId = claimsCountBefore.toString();
+    expect(claimsCountAfter).to.be.equal(claimsCountBefore.add(1));
+    expect(assessmentCountAfter).to.be.equal(assessmentCountBefore.add(1));
+  });
+
+  it('process the assessment', async function () {
+    // stake
+    const amount = parseEther('5');
+    for (const abMember of this.abMembers) {
+      const memberAddress = await abMember.getAddress();
+      const { amount: stakeAmountBefore } = await this.assessment.stakeOf(memberAddress);
+      console.log(stakeAmountBefore);
+      this.assessment.connect(abMember).stake();
+      const { amount: stakeAmountAfter } = await this.assessment.stakeOf(memberAddress);
+      expect(stakeAmountAfter).to.be.equal(stakeAmountBefore.add(amount));
+    }
+
+    // vote
+    for (const abMember of this.abMembers) {
+      const assessmentPoolBefore = this.assessment.assessments[assessmentId];
+      this.assessment.connect(abMember).castVotes([], [true], [''], 0);
+      const assessmentPoolAfter = this.assessment.assessments[assessmentId];
+      expect(assessmentPoolAfter).to.be.equal(assessmentPoolBefore.add(amount));
+    }
+
+    await evm.increaseTime(7 * 24 * 3600);
   });
 
   it('sets DMCI to greater to 1% to allow floor increase', async function () {
@@ -524,19 +652,16 @@ describe('basic functionality tests', function () {
     const coverMigrator = await deployContract('CoverMigrator', [this.quotationData.address, this.productsV1.address]);
 
     // GW - Gateway.sol
-    const gateway = await deployContract('LegacyGateway');
+    const gateway = await deployContract('LegacyGateway', [this.quotationData.address]);
 
     // AS - Assessment.sol
-    const assessment = await ethers.deployContract('Assessment', [this.nxm.address]);
+    const assessment = await deployContract('Assessment', [this.nxm.address]);
 
-    // IC - IndividualClaims.sol
-    const individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
+    // CI - IndividualClaims.sol
+    const individualClaims = await deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
 
-    // YT - YieldTokenIncidents.sol
-    const yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
-      this.nxm.address,
-      this.coverNFT.address,
-    ]);
+    // CG - YieldTokenIncidents.sol
+    const yieldTokenIncidents = await deployContract('YieldTokenIncidents', [this.nxm.address, this.coverNFT.address]);
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
@@ -553,8 +678,8 @@ describe('basic functionality tests', function () {
             toUtf8Bytes('CL'),
             toUtf8Bytes('GW'),
             toUtf8Bytes('AS'),
-            toUtf8Bytes('IC'),
-            toUtf8Bytes('YT'),
+            toUtf8Bytes('CI'),
+            toUtf8Bytes('CG'),
           ],
           [
             memberRoles.address,

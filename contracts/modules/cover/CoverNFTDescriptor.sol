@@ -92,7 +92,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
     descriptionString = string(
       abi.encodePacked(
         "This NFT represents a cover purchase made for: ", productName,
-        " \\nAmount Covered: ", uint(lastSegment.amount).toString(), " ", getAssetSymbol(coverData.coverAsset),
+        " \\nAmount Covered: ", FloatingPoint.toFloat(uint(lastSegment.amount), getAssetDecimals(coverData.coverAsset))," ", getAssetSymbol(coverData.coverAsset),
         " \\nExpiry Date: ", expiry,
         " \\n", expiryMessage
       )

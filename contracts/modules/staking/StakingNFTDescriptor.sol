@@ -72,8 +72,8 @@ contract StakingNFTDescriptor is IStakingNFTDescriptor {
     }
 
     // Add deposit info
-    description = appendWithNewline(description, "Staked amount: ", totalStake.toString(), " NXM");
-    description = appendWithNewline(description, "Pending rewards: ", pendingRewards.toString(), " NXM");
+    description = appendWithNewline(description, "Staked amount: ", FloatingPoint.toFloat(totalStake, NXM_DECIMALS), " NXM");
+    description = appendWithNewline(description, "Pending rewards: ", FloatingPoint.toFloat(pendingRewards, NXM_DECIMALS), " NXM");
     description = appendWithNewline(description, "Active deposits: ", depositInfo);
 
     return (description, StakeData(poolId, totalStake, tokenId));

@@ -26,4 +26,14 @@ async function assetToEthWithPrecisionLoss(pool, coverAmountInAsset, assetToEthR
   return coverAmountInNXM.mul(nxmEthPrice).div(config.ONE_NXM);
 }
 
-module.exports = { assetToEthWithPrecisionLoss };
+// Replicates the amount stored when buying cover with asset other than NXM
+async function assetWithPrecisionLoss(pool, amountInAsset, assetID, config) {
+  const nxmPriceInCoverAsset = await pool.getTokenPriceInAsset(assetID);
+  const amountInNXM = roundUpToNearestAllocationUnit(
+    divCeil(amountInAsset.mul(config.ONE_NXM), nxmPriceInCoverAsset),
+    config.NXM_PER_ALLOCATION_UNIT,
+  );
+  return amountInNXM.mul(nxmPriceInCoverAsset).div(config.ONE_NXM);
+}
+
+module.exports = { assetToEthWithPrecisionLoss, assetWithPrecisionLoss };

@@ -4,8 +4,8 @@ const { calculateFirstTrancheId } = require('../utils/staking');
 const base64 = require('base64-js');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { daysToSeconds } = require('../../../lib/helpers');
-const { BigNumber } = require('ethers');
-
+const { ETH_ASSET_ID } = require('../utils/cover');
+const { BigNumber } = ethers;
 const { parseEther, formatEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
 
@@ -14,12 +14,12 @@ const jsonHeader = 'data:application/json;base64,';
 describe('StakingNFTDescriptor', function () {
   before(async function () {
     const {
-      members: [staker],
+      members: [staker, coverBuyer],
     } = this.accounts;
-    const { stakingPool1 } = this.contracts;
-    const stakingAmount = parseEther('17.091');
+    const { stakingPool1, cover } = this.contracts;
+    const stakingAmount = parseEther('170.091');
     const block = await ethers.provider.getBlock('latest');
-    const firstTrancheId = calculateFirstTrancheId(block, 30, 0);
+    const firstTrancheId = calculateFirstTrancheId(block, 60, 30);
 
     await stakingPool1.connect(staker).depositTo(
       stakingAmount,
@@ -30,9 +30,32 @@ describe('StakingNFTDescriptor', function () {
 
     await stakingPool1.connect(staker).depositTo(
       stakingAmount,
-      firstTrancheId,
+      firstTrancheId + 1,
       0, // new position
       AddressZero,
+    );
+
+    const amount = parseEther(Math.random().toPrecision(15));
+    // buy eth cover (tokenId = 1)
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: 0, // new cover
+        owner: coverBuyer.address,
+        productId: 0,
+        coverAsset: ETH_ASSET_ID,
+        amount,
+        period: daysToSeconds(30),
+        maxPremiumInAsset: amount,
+        paymentAsset: ETH_ASSET_ID,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
+      {
+        value: amount,
+      },
     );
 
     await stakingPool1.connect(staker).depositTo(
@@ -41,6 +64,8 @@ describe('StakingNFTDescriptor', function () {
       1, // edit
       AddressZero,
     );
+
+    this.coverAmount = amount;
     this.stakingAmount = stakingAmount;
   });
 
@@ -56,12 +81,13 @@ describe('StakingNFTDescriptor', function () {
     expect(decodedJson.name).to.be.equal('Nexus Mutual Deposit');
     expect(decodedJson.description.length).to.be.gt(0);
     expect(decodedJson.description).to.contain(Number(expectedDepositAmount).toFixed(2));
+    // TODO: check rewards
 
     // 2x deposits
     const expectedAmount = formatEther(this.stakingAmount.mul(2).toString());
     expect(decodedJson.image.slice(0, svgHeader.length)).to.be.equal(svgHeader);
     const decodedSvg = new TextDecoder().decode(base64.toByteArray(decodedJson.image.slice(svgHeader.length)));
-    expect(decodedSvg).to.contain('1' /* tokenId */);
+    expect(decodedSvg).to.match(/<tspan>1<\/tspan>/);
     expect(decodedSvg).to.contain(Number(expectedAmount).toFixed(2));
   });
 
@@ -81,7 +107,8 @@ describe('StakingNFTDescriptor', function () {
     const expectedAmount = formatEther(this.stakingAmount.toString());
     expect(decodedJson.image.slice(0, svgHeader.length)).to.be.equal(svgHeader);
     const decodedSvg = new TextDecoder().decode(base64.toByteArray(decodedJson.image.slice(svgHeader.length)));
-    expect(decodedSvg).to.contain('1' /* tokenId */);
+    // token id is 2
+    expect(decodedSvg).to.match(/<tspan>2<\/tspan>/);
     expect(decodedSvg).to.contain(Number(expectedAmount).toFixed(2));
   });
 
@@ -98,7 +125,9 @@ describe('StakingNFTDescriptor', function () {
     expect(decodedJson.description).to.contain('Deposit has expired');
 
     const decodedSvg = new TextDecoder().decode(base64.toByteArray(decodedJson.image.slice(svgHeader.length)));
-    expect(decodedSvg).to.contain('0.00');
+    // poolId + tokenID
+    expect(decodedSvg).to.match(/<tspan>1<\/tspan>/);
+    expect(decodedSvg).to.match(/<tspan>0.00 NXM<\/tspan>/);
   });
 
   it('should parse random decimals properly', async function () {

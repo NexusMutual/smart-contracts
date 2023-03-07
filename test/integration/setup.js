@@ -499,6 +499,7 @@ async function setup() {
   this.rates = {
     daiToEthRate,
     ethToDaiRate,
+    usdcToEthRate,
   };
 
   this.contractType = contractType;

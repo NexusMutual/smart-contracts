@@ -2,9 +2,11 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const base64 = require('base64-js');
 const { parseEther, formatEther } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero, MaxUint256, One } = ethers.constants;
 const { daysToSeconds } = require('../../../lib/helpers');
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+const { mineNextBlock, setNextBlockTime } = require('../../utils/').evm;
+const { assetWithPrecisionLoss } = require('../utils/assetPricing');
+const { USDC_ASSET_ID, DAI_ASSET_ID, ETH_ASSET_ID } = require('../utils/cover');
 
 const JSON_HEADER = 'data:application/json;base64,';
 const SVG_HEADER = 'data:image/svg+xml;base64,';
@@ -48,7 +50,7 @@ describe('CoverNFTDescriptor', function () {
     const amount = parseEther('4.20');
     const targetPrice = this.DEFAULT_PRODUCTS[0].targetPrice;
     const priceDenominator = 10000;
-    const coverAsset = 0; // ETH
+    const coverAsset = ETH_ASSET_ID; // ETH
     const expectedPremium = amount.mul(targetPrice).div(priceDenominator);
 
     // buy eth cover (tokenId = 1)
@@ -82,11 +84,11 @@ describe('CoverNFTDescriptor', function () {
         coverId: 0, // new cover
         owner: coverBuyer.address,
         productId: 0,
-        coverAsset: 1, // DAI
+        coverAsset: DAI_ASSET_ID, // DAI
         amount,
         period: daysToSeconds(30),
         maxPremiumInAsset: expectedPremium,
-        paymentAsset: 1,
+        paymentAsset: DAI_ASSET_ID,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
@@ -96,7 +98,7 @@ describe('CoverNFTDescriptor', function () {
     );
 
     // buy usdc cover (tokenId = 3)
-    const usdcCoverAmount = 12311e4; // 123.11 USDC
+    const usdcCoverAmount = One.mul(12311e4); // 123.11 USDC
     const usdcStakingAmount = parseEther('100');
     {
       const poolId = await stakingPool3.getPoolId();
@@ -128,11 +130,11 @@ describe('CoverNFTDescriptor', function () {
           coverId: 0, // new cover
           owner: coverBuyer.address,
           productId: usdcProductId,
-          coverAsset: 4, // usdc (0b10000)
+          coverAsset: USDC_ASSET_ID, // usdc (0b10000)
           amount: usdcCoverAmount,
           period: daysToSeconds(30),
           maxPremiumInAsset: expectedPremium,
-          paymentAsset: 4,
+          paymentAsset: USDC_ASSET_ID,
           payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
@@ -142,11 +144,11 @@ describe('CoverNFTDescriptor', function () {
       );
     }
     this.amount = amount;
-    this.usdcAmount = 12311e4;
+    this.usdcAmount = usdcCoverAmount;
   });
 
   it('tokenURI json output should be formatted properly', async function () {
-    const { coverNFT } = this.contracts;
+    const { coverNFT, p1: pool } = this.contracts;
 
     const uri = await coverNFT.tokenURI(1);
     expect(uri.slice(0, JSON_HEADER.length)).to.be.equal(JSON_HEADER);
@@ -158,18 +160,19 @@ describe('CoverNFTDescriptor', function () {
     expect(decodedJson.description).to.contain('ETH');
 
     // image
-    const expectedAmountRaw = formatEther(this.amount);
+    const expectedAmountWithPrecisionLoss = await assetWithPrecisionLoss(pool, this.amount, ETH_ASSET_ID, this.config);
+    const expectedAmountRaw = formatEther(expectedAmountWithPrecisionLoss);
     const expectedAmount = Number(expectedAmountRaw).toFixed(2);
 
     expect(decodedJson.image.slice(0, SVG_HEADER.length)).to.be.equal(SVG_HEADER);
     const decodedSvg = new TextDecoder().decode(base64.toByteArray(decodedJson.image.slice(SVG_HEADER.length)));
 
-    expect(decodedSvg.length).to.be.gt(0);
+    expect(decodedSvg).matches(/<tspan>Product 0<\/tspan>/);
     expect(decodedSvg).to.contain('ETH');
     expect(decodedSvg).to.not.contain('DAI');
     expect(decodedSvg).to.not.contain('USDC');
-    // TODO: regex
-    expect(decodedSvg).to.contain('1' /* coverId */);
+    // coverID = 1
+    expect(decodedSvg).matches(/<tspan>1<\/tspan>/);
     expect(decodedSvg).to.contain(expectedAmount);
   });
 
@@ -185,14 +188,19 @@ describe('CoverNFTDescriptor', function () {
   });
 
   it('should handle usdc covers', async function () {
-    const { coverNFT } = this.contracts;
+    const { coverNFT, p1: pool } = this.contracts;
 
     const uri = await coverNFT.tokenURI(3);
     expect(uri.slice(0, JSON_HEADER.length)).to.be.equal(JSON_HEADER);
 
+    let expectedAmountRaw = await assetWithPrecisionLoss(pool, this.usdcAmount, USDC_ASSET_ID, this.config);
+    expectedAmountRaw = ethers.utils.formatUnits(expectedAmountRaw, 6);
+    const expectedAmount = Number(expectedAmountRaw).toFixed(2);
+
     // name/description
     const decodedJson = JSON.parse(new TextDecoder().decode(base64.toByteArray(uri.slice(JSON_HEADER.length))));
     expect(decodedJson.description).to.contain('USDC');
+    expect(decodedJson.description).to.contain(expectedAmount);
 
     // image
     expect(decodedJson.image.slice(0, SVG_HEADER.length)).to.be.equal(SVG_HEADER);
@@ -202,12 +210,9 @@ describe('CoverNFTDescriptor', function () {
     expect(decodedSvg).to.contain('USDC');
     expect(decodedSvg).to.not.contain('ETH');
     expect(decodedSvg).to.not.contain('DAI');
-    // TODO: regex
-    expect(decodedSvg).to.contain('1' /* coverId */);
-    // TODO: get amount with price conversion precision loss
-    // const expectedAmountRaw = ethers.utils.formatUnits(this.usdcAmount, 6);
-    // const expectedAmount = Number(expectedAmountRaw).toFixed(2);
-    // expect(decodedSvg).to.contain(expectedAmount);
+    // coverID = 3
+    expect(decodedSvg).matches(/<tspan>3<\/tspan>/);
+    expect(decodedSvg).to.contain(expectedAmount);
   });
 
   it('should handle expired token', async function () {

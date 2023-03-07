@@ -15,7 +15,7 @@ import "../../libraries/FloatingPoint.sol";
 import "./CoverNFT.sol";
 
 
-contract CoverNFTDescriptor is ICoverNFTDescriptor, FloatingPoint {
+contract CoverNFTDescriptor is ICoverNFTDescriptor {
   using Strings for uint;
   using DateTime for uint;
 
@@ -137,7 +137,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor, FloatingPoint {
 
     string memory svgData = string(abi.encodePacked(
         '<tspan>', descriptionData.productName, '</tspan></text>  <text class="cls-9" x="93%" y="40%" text-anchor="end">',
-        '<tspan>', toFloat(descriptionData.coverAmount, descriptionData.decimals), " ", descriptionData.assetSymbol, '</tspan></text>',
+        '<tspan>', FloatingPoint.toFloat(descriptionData.coverAmount, descriptionData.decimals), " ", descriptionData.assetSymbol, '</tspan></text>',
         '<text class="cls-9" x="93%" y="45%" text-anchor="end"><tspan>', descriptionData.expiryDate,'</tspan></text>',
         '<text class="cls-9" x="93%" y="50%" text-anchor="end"><tspan>', descriptionData.id.toString(),'</tspan></text>  </g></svg>'
     ));
@@ -152,5 +152,4 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor, FloatingPoint {
       )
     );
   }
-
 }

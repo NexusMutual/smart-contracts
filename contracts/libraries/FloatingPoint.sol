@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import "@openzeppelin/contracts-v4/utils/Strings.sol";
-
 pragma solidity ^0.8.0;
 
-contract FloatingPoint {
+import "@openzeppelin/contracts-v4/utils/Strings.sol";
+
+library FloatingPoint {
   using Strings for uint;
 
   // Convert a number to a float string with 2 decimals
   function toFloat(
     uint number,
     uint decimals
-  ) public pure returns (string memory float) {
+  ) internal pure returns (string memory float) {
     if (decimals == 0) {
       return string(abi.encodePacked(number.toString(), ".00"));
     }

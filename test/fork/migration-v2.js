@@ -32,7 +32,12 @@ const getTCLockedAmount = require('../../scripts/v2-migration/get-tc-locked-amou
 const getCNLockedAmount = require('../../scripts/v2-migration/get-cn-locked');
 const generateV2ProductTxs = require('../../scripts/v2-migration/generate-v2-products-txs');
 
-const PRODUCTS_WITH_REWARDS_PATH = '../../scripts/v2-migration/input/products-with-v1-rewards.json';
+// ACTIONS
+const migrateToNewV2Pool = require('../../scripts/v2-migration/actions/LegacyPooledStaking.migrateToNewV2Pool');
+const processPendingActions = require('../../scripts/v2-migration/actions/LegacyPooledStaking.processPendingActions');
+const transferRewards = require('../../scripts/v2-migration/actions/LegacyClaimsReward.transferRewards');
+const pushRewards = require('../../scripts/v2-migration/actions/LegacyPooledStaking.pushRewards');
+
 const PRODUCT_ADDRESSES_OUTPUT_PATH = '../../scripts/v2-migration/output/product-addresses.json';
 const GV_REWARDS_OUTPUT_PATH = '../../scripts/v2-migration/output/governance-rewards.json';
 const CLA_REWARDS_OUTPUT_PATH = '../../scripts/v2-migration/output/claim-assessment-rewards.json';
@@ -847,7 +852,7 @@ describe('V2 upgrade', function () {
   it('Transfer CLA rewards to assessors and GV rewards to TC', async function () {
     const tcNxmBalanceBefore = await this.nxm.balanceOf(this.tokenController.address);
 
-    await this.claimsReward.transferRewards();
+    await transferRewards({ legacyClaimsReward: this.claimsReward, signer: this.deployer });
 
     const tcNxmBalanceAfter = await this.nxm.balanceOf(this.tokenController.address);
     const crNxmBalanceAfter = await this.nxm.balanceOf(this.claimsReward.address);
@@ -1073,18 +1078,27 @@ describe('V2 upgrade', function () {
   });
 
   it('Call LegacyPooledStaking.pushRewards for all non-deprecated contracts', async function () {
-    const productsWithPossibleRewards = require(PRODUCTS_WITH_REWARDS_PATH).map(address => address.toLowerCase());
-    console.log(`Call pushRewards with ${productsWithPossibleRewards.length} product addresses.`);
-    await this.pooledStaking.pushRewards(productsWithPossibleRewards);
+    /**
+     * pushRewards is affected by 2 other code flows:
+     * accumulateRewards (that itself calls pushRewards and accumulates rewards)
+     * pushBurn (that itself calls pushRewards)
+     *
+     * Post bulk upgrade to v2 contracts at the step:
+     * Deploy & upgrade contracts: MR, MCR, CO, TC, PS, PriceFeedOracle, P1, CL (CoverMigrator), GW, CR
+     *
+     * There is no other code path that can trigger accumulateRewards and pushBurn.
+     */
+    await pushRewards({
+      legacyPooledStaking: this.pooledStaking,
+      signer: this.deployer,
+    });
   });
 
   it('Process all PooledStaking pending actions', async function () {
-    let i = 0;
-    while (await this.pooledStaking.hasPendingActions()) {
-      console.log(`Calling processPendingActions(). iteration ${i++}`);
-      const tx = await this.pooledStaking.processPendingActions(100);
-      await tx.wait();
-    }
+    await processPendingActions({ legacyPooledStaking: this.pooledStaking, signer: this.deployer });
+
+    const hasPendingActions = await this.pooledStaking.hasPendingActions();
+    expect(hasPendingActions).to.be.equal(false);
   });
 
   it('Deploys StakingViewer', async function () {
@@ -1226,8 +1240,10 @@ describe('V2 upgrade', function () {
     expect(await this.stakingNFT.totalSupply()).to.be.equal(0);
 
     console.log('Migrating selected stakers to their own staking pools');
+
+    await migrateToNewV2Pool({ legacyPooledStaking: this.pooledStaking, selectedStakers, signer: this.deployer });
+
     for (const staker of selectedStakers) {
-      await this.pooledStaking.migrateToNewV2Pool(staker);
       expect(await this.pooledStaking.stakerDeposit(staker)).to.be.equal(0);
     }
 

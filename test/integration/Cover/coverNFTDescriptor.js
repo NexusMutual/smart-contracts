@@ -141,7 +141,6 @@ describe('CoverNFTDescriptor', function () {
         [{ poolId, coverAmountInAsset: usdcCoverAmount }],
       );
     }
-    this.timezoneOffset = new Date().getTimezoneOffset() * 60;
     this.amount = amount;
     this.usdcAmount = 12311e4;
   });
@@ -211,20 +210,12 @@ describe('CoverNFTDescriptor', function () {
     // expect(decodedSvg).to.contain(expectedAmount);
   });
 
-  it('should handle non-existent token', async function () {
-    const { coverNFT } = this.contracts;
-
-    const uri = await coverNFT.tokenURI(125);
-    const decodedJson = JSON.parse(new TextDecoder().decode(base64.toByteArray(uri.slice(JSON_HEADER.length))));
-    expect(decodedJson.description).to.be.equal('This NFT does not exist');
-  });
-
   it('should handle expired token', async function () {
     const { coverNFT, cover } = this.contracts;
 
     // expire cover
     const coverSegment = await cover.coverSegmentWithRemainingAmount(1, 0);
-    const expiryTimestamp = coverSegment.start + coverSegment.period + this.timezoneOffset;
+    const expiryTimestamp = coverSegment.start + coverSegment.period;
     await setNextBlockTime(expiryTimestamp);
     await mineNextBlock();
 
@@ -251,8 +242,7 @@ describe('CoverNFTDescriptor', function () {
     // get cover segment
     const coverSegment = await cover.coverSegmentWithRemainingAmount(1, 0);
 
-    // TODO: sort out timezone issue
-    const expiryTimestamp = coverSegment.start + coverSegment.period + this.timezoneOffset;
+    const expiryTimestamp = coverSegment.start + coverSegment.period;
     const timeAtQuery = expiryTimestamp + daysToSeconds(365 * 20);
     // expire cover
     await setNextBlockTime(timeAtQuery);

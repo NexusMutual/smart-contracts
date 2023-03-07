@@ -7,16 +7,8 @@ pragma solidity >=0.5.0;
     uint stake;
   }
 
-  struct StakingTokenURIParams {
-    uint tokenId;
-    uint poolId;
-    address stakingPool;
-    address owner;
-    string name;
-  }
-
 interface IStakingNFTDescriptor {
 
-  function tokenURI(StakingTokenURIParams calldata params) external view returns (string memory);
+  function tokenURI(uint tokenId) external view returns (string memory);
 
 }

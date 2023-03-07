@@ -111,15 +111,15 @@ contract StakingNFT is IStakingNFT {
 
   function tokenURI(uint id) public view virtual returns (string memory uri) {
     if (_tokenInfo[id].owner == address(0)) revert NotMinted();
-
-    StakingTokenURIParams memory params = StakingTokenURIParams(
-      id,
-      _tokenInfo[id].poolId,
-      StakingPoolLibrary.getAddress(stakingPoolFactory, _tokenInfo[id].poolId),
-      _tokenInfo[id].owner,
-      name
-    );
-    uri = IStakingNFTDescriptor(nftDescriptor).tokenURI(params);
+//
+//    StakingTokenURIParams memory params = StakingTokenURIParams(
+//      id,
+//      _tokenInfo[id].poolId,
+//      StakingPoolLibrary.getAddress(stakingPoolFactory, _tokenInfo[id].poolId),
+//      _tokenInfo[id].owner,
+//      name
+//    );
+    return IStakingNFTDescriptor(nftDescriptor).tokenURI(id);
   }
 
   function ownerOf(uint id) public view returns (address owner) {

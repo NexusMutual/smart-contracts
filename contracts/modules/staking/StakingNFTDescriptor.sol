@@ -5,7 +5,10 @@ import "@openzeppelin/contracts-v4/utils/Strings.sol";
 import "@openzeppelin/contracts-v4/utils/Base64.sol";
 import "../../libraries/DateTime.sol";
 import "../../libraries/FloatingPoint.sol";
+import "../../libraries/StakingPoolLibrary.sol";
 import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/IStakingPoolFactory.sol";
+import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingNFTDescriptor.sol";
 
 struct StakeData {
@@ -23,8 +26,8 @@ contract StakingNFTDescriptor is IStakingNFTDescriptor {
   uint public constant ONE_NXM = 1 ether;
   uint public constant NXM_DECIMALS = 18;
 
-  function tokenURI(StakingTokenURIParams calldata params) public view returns (string memory) {
-    (string memory description, StakeData memory stakeData) = buildDescription(params);
+  function tokenURI(uint tokenId) public view returns (string memory) {
+    (string memory description, StakeData memory stakeData) = buildDescription(tokenId);
     string memory image = Base64.encode(bytes(generateSVGImage(stakeData)));
 
     return string(
@@ -33,7 +36,7 @@ contract StakingNFTDescriptor is IStakingNFTDescriptor {
         Base64.encode(
           bytes(
             abi.encodePacked(
-              '{"name":"', params.name, '",',
+              '{"name":"', IStakingNFT(msg.sender).name(), '",',
               '"description":"', description, '",',
               '"image": "', "data:image/svg+xml;base64,", image,
               '"}'
@@ -44,38 +47,47 @@ contract StakingNFTDescriptor is IStakingNFTDescriptor {
     );
   }
 
-  function buildDescription(StakingTokenURIParams calldata params) public view returns (string memory description, StakeData memory stakeData) {
+  function buildDescription(uint tokenId) public view returns (string memory description, StakeData memory stakeData) {
+    uint poolId = IStakingNFT(msg.sender).stakingPoolOf(tokenId);
+    address stakingPoolFactory = IStakingNFT(msg.sender).stakingPoolFactory();
+    address stakingPool = StakingPoolLibrary.getAddress(stakingPoolFactory, poolId);
+
     // Check if token exists
-    if (params.poolId != 0) {
-      (string memory depositInfo, uint totalStake, uint pendingRewards) = getActiveDeposits(params);
+    (string memory depositInfo, uint totalStake, uint pendingRewards) = getActiveDeposits(
+      tokenId,
+      IStakingPool(stakingPool)
+    );
 
-      // Add pool info
-      description = append("This NFT represents a deposit into staking pool: ", uint(uint160(params.stakingPool)).toHexString());
-      description = appendWithNewline(description, "Pool ID: ", params.poolId.toString());
+    // Add pool info
+    description = append(
+      "This NFT represents a deposit into staking pool: ",
+      uint(uint160(stakingPool)).toHexString()
+    );
+    description = appendWithNewline(description, "Pool ID: ", poolId.toString());
 
-      // No active deposits, assume it has expired
-      if (totalStake == 0) {
-        description = appendWithNewline(description, "Deposit has expired!");
-        return (description, StakeData(params.poolId, 0, params.tokenId));
-      }
-
-      // Add deposit info
-      description = appendWithNewline(description, "Staked amount: ", totalStake.toString(), " NXM");
-      description = appendWithNewline(description, "Pending rewards: ", pendingRewards.toString(), " NXM");
-      description = appendWithNewline(description, "Active deposits: ", depositInfo);
-      return (description, StakeData(params.poolId, totalStake, params.tokenId));
+    // No active deposits, assume it has expired
+    if (totalStake == 0) {
+      description = appendWithNewline(description, "Deposit has expired!");
+      return (description, StakeData(poolId, 0, tokenId));
     }
 
-    description = string(abi.encodePacked("Token id ", params.tokenId.toString(), " is not minted"));
-    stakeData = StakeData(0, 0, 0);
+    // Add deposit info
+    description = appendWithNewline(description, "Staked amount: ", totalStake.toString(), " NXM");
+    description = appendWithNewline(description, "Pending rewards: ", pendingRewards.toString(), " NXM");
+    description = appendWithNewline(description, "Active deposits: ", depositInfo);
+
+    return (description, StakeData(poolId, totalStake, tokenId));
   }
 
+  function getActiveDeposits(
+    uint tokenId,
+    IStakingPool stakingPool
+  ) public view returns (
+    string memory depositInfo,
+    uint totalStake,
+    uint pendingRewards
+  ) {
 
-  function getActiveDeposits(StakingTokenURIParams calldata params)
-  public
-  view
-  returns (string memory depositInfo, uint totalStake, uint pendingRewards) {
-    IStakingPool stakingPool = IStakingPool(params.stakingPool);
     uint activeStake = stakingPool.getActiveStake();
     uint stakeSharesSupply = stakingPool.getStakeSharesSupply();
 
@@ -83,7 +95,7 @@ contract StakingNFTDescriptor is IStakingNFTDescriptor {
     for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
       // get deposit
       (uint lastAccNxmPerRewardShare, uint _pendingRewards, uint _stakeShares, uint _rewardsShares) =
-      stakingPool.getDeposit(params.tokenId, (block.timestamp / TRANCHE_DURATION) + i);
+      stakingPool.getDeposit(tokenId, (block.timestamp / TRANCHE_DURATION) + i);
 
       // no active stake, skip this tranche
       if (_rewardsShares == 0) {
@@ -158,5 +170,9 @@ contract StakingNFTDescriptor is IStakingNFTDescriptor {
 
   function appendWithNewline(string memory a, string memory b, string memory c, string memory d) internal pure returns (string memory) {
     return string(abi.encodePacked(a, "\\n", b, c, d));
+  }
+
+  function toFloat(uint number, uint decimals) public pure returns (string memory) {
+    return FloatingPoint.toFloat(number, decimals);
   }
 }

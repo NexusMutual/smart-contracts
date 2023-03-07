@@ -85,18 +85,6 @@ describe('StakingNFTDescriptor', function () {
     expect(decodedSvg).to.contain(Number(expectedAmount).toFixed(2));
   });
 
-  it('should handle non existing token', async function () {
-    const { stakingNFT } = this.contracts;
-
-    const uri = await stakingNFT.tokenURI(10);
-
-    const decodedJson = JSON.parse(new TextDecoder().decode(base64.toByteArray(uri.slice(jsonHeader.length))));
-    expect(decodedJson.description).to.be.equal('Token id 10 is not minted');
-
-    const decodedSvg = new TextDecoder().decode(base64.toByteArray(decodedJson.image.slice(svgHeader.length)));
-    expect(decodedSvg).to.contain('0.00');
-  });
-
   it('should handle expired tokens', async function () {
     const { stakingNFT } = this.contracts;
 

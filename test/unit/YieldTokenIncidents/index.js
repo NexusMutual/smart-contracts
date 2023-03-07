@@ -13,7 +13,6 @@ describe('YieldTokenIncidents', function () {
   });
 
   require('./constructor');
-  require('./initialize');
   require('./submitIncident');
   require('./redeemPayout');
   require('./withdrawAsset');

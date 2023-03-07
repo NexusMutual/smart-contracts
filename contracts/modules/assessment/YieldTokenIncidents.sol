@@ -54,25 +54,6 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     coverNFT = ICoverNFT(coverNFTAddress);
   }
 
-  function initialize() external {
-    Configuration memory currentConfig = config;
-    bool notInitialized = bytes32(
-      abi.encodePacked(
-        currentConfig.rewardRatio,
-        currentConfig.payoutDeductibleRatio,
-        currentConfig.payoutRedemptionPeriodInDays,
-        currentConfig.maxRewardInNXMWad
-      )
-    ) == bytes32(0);
-    require(notInitialized, "Already initialized");
-
-    // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 50% = 1.30%
-    config.rewardRatio = 130; // 1.3%
-    config.payoutDeductibleRatio = 9000; // 90%
-    config.payoutRedemptionPeriodInDays = 30; // days to redeem the payout
-    config.maxRewardInNXMWad = 50; // 50 NXM
-  }
-
   /* ========== VIEWS ========== */
 
   function assessment() internal view returns (IAssessment) {
@@ -376,6 +357,23 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
+
+    Configuration memory currentConfig = config;
+    bool notInitialized = bytes32(
+      abi.encodePacked(
+        currentConfig.rewardRatio,
+        currentConfig.payoutDeductibleRatio,
+        currentConfig.payoutRedemptionPeriodInDays,
+        currentConfig.maxRewardInNXMWad
+      )
+    ) == bytes32(0);
+
+    if (notInitialized) {
+      config.rewardRatio = 130; // 1.3%
+      config.payoutDeductibleRatio = 9000; // 90%
+      config.payoutRedemptionPeriodInDays = 30; // days to redeem the payout
+      config.maxRewardInNXMWad = 50; // 50 NXM
+    }
   }
 
 }

@@ -261,7 +261,7 @@ async function main() {
   console.log('Deploying assessment contracts');
   const cg = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
   const ci = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
-  const assessment = await deployProxy('DisposableAssessment', []);
+  const assessment = await deployProxy('Assessment', [tk.address]);
   const coverMigrator = await deployProxy('CoverMigrator', [qd.address, productsV1.address]);
 
   console.log('Deploying legacy claims data and claim proofs contract');
@@ -392,9 +392,6 @@ async function main() {
   console.log('Initializing TokenController');
   await tc.initialize(master.address, ps.address, assessment.address);
 
-  console.log('Initializing Assessment');
-  await assessment.initialize(master.address, tc.address);
-
   console.log('Initializing MemberRoles');
   const initialMembers = [
     owner,
@@ -432,12 +429,6 @@ async function main() {
     10, // max exposure
     600, // unstake lock time
   );
-
-  console.log('Initializing IndividualClaims');
-  await ci.initialize();
-
-  console.log('Initializing YieldTokenIncidents');
-  await cg.initialize();
 
   console.log('Initializing LegacyGateway');
   await gw.initialize(master.address, dai.address);
@@ -502,9 +493,6 @@ async function main() {
   await upgradeProxy(master.address, 'NXMaster');
   await upgradeProxy(gv.address, 'Governance');
   await upgradeProxy(gw.address, 'LegacyGateway', [qd.address]);
-  await upgradeProxy(ci.address, 'IndividualClaims', [tk.address, coverNFT.address]);
-  await upgradeProxy(cg.address, 'YieldTokenIncidents', [tk.address, coverNFT.address]);
-  await upgradeProxy(assessment.address, 'Assessment', [tk.address]);
   await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
 
   console.log('Transferring ownership of proxy contracts');
@@ -517,7 +505,6 @@ async function main() {
   await transferProxyOwnership(cover.address, master.address);
   await transferProxyOwnership(cg.address, master.address);
   await transferProxyOwnership(ci.address, master.address);
-
   await transferProxyOwnership(assessment.address, master.address);
   await assessment.changeDependentContractAddress();
 

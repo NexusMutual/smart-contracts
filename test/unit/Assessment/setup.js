@@ -59,10 +59,6 @@ async function setup() {
   await individualClaims.changeDependentContractAddress();
   await yieldTokenIncidents.changeDependentContractAddress();
 
-  await assessment.initialize();
-  await individualClaims.initialize();
-  await yieldTokenIncidents.initialize();
-
   const accounts = await getAccounts();
   await master.enrollGovernance(accounts.governanceContracts[0].address);
   for (const member of accounts.members) {

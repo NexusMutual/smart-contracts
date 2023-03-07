@@ -619,7 +619,7 @@ describe('submitClaim', function () {
     // Cover inputs
     const productId = 0;
     const coverAsset = ETH_ASSET_ID; // ETH
-    const period = 3600 * 24 * 30; // 30 days
+    const period = 3600 * 24 * 80; // 30 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseEther('1');
 
@@ -739,7 +739,7 @@ describe('submitClaim', function () {
     // Cover inputs
     const productId = 0;
     const coverAsset = DAI_ASSET_ID; // DAI
-    const period = 3600 * 24 * 30; // 30 days
+    const period = 3600 * 24 * 90; // 90 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseEther('1');
 
@@ -860,7 +860,7 @@ describe('submitClaim', function () {
     // Cover inputs
     const productId = 6;
     const coverAsset = USDC_ASSET_ID; // USDC
-    const period = 3600 * 24 * 30; // 30 days
+    const period = 3600 * 24 * 90; // 90 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseUnits('10', usdcDecimals);
 
@@ -979,7 +979,7 @@ describe('submitClaim', function () {
     // Cover inputs
     const productId = 0;
     const coverAsset = ETH_ASSET_ID; // ETH
-    const period = 3600 * 24 * 30; // 30 days
+    const period = 3600 * 24 * 90; // 90 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseEther('1');
 

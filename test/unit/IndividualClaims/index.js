@@ -13,7 +13,6 @@ describe('IndividualClaims', function () {
   });
 
   require('./constructor');
-  require('./initialize');
   require('./submitClaim');
   require('./redeemClaimPayout');
   require('./getAssessmentDepositAndReward');

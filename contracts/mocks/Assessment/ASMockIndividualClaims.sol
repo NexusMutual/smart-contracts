@@ -18,12 +18,6 @@ contract ASMockIndividualClaims is MasterAwareV2 {
     token = INXMToken(tokenAddress);
   }
 
-  function initialize() external {
-    // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
-    config.rewardRatio = 130; // 0.52%
-    config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH submission flat fee
-  }
-
   function assessment() internal view returns (IAssessment) {
     return IAssessment(getInternalContractAddress(ID.AS));
   }
@@ -50,6 +44,10 @@ contract ASMockIndividualClaims is MasterAwareV2 {
 
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
+
+    // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
+    config.rewardRatio = 130; // 0.52%
+    config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH submission flat fee
   }
 
 }

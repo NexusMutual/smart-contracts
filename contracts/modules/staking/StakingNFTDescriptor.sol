@@ -97,7 +97,7 @@ contract StakingNFTDescriptor is IStakingNFTDescriptor, FloatingPoint {
         // calculate days left until stake expires
         uint secondsLeftInTranche = (TRANCHE_DURATION - (block.timestamp % TRANCHE_DURATION));
         (uint year, uint month, uint day) = (block.timestamp + (secondsLeftInTranche + (i * TRANCHE_DURATION))).timestampToDate();
-        dateString = string(abi.encodePacked(month.getMonthString(), " ", day.toString(), " ", year.toString()));
+        dateString = string(abi.encodePacked(month.getMonthString(), " ", addZeroPrefix(day), " ", year.toString()));
       }
 
       uint stake = (activeStake * _stakeShares) / stakeSharesSupply;
@@ -132,6 +132,14 @@ contract StakingNFTDescriptor is IStakingNFTDescriptor, FloatingPoint {
         )
       )
     );
+  }
+
+  // If value is single digit, add a zero prefix
+  function addZeroPrefix(uint256 value) public pure returns (string memory) {
+    if (value < 10) {
+      return string(abi.encodePacked("0", value.toString()));
+    }
+    return value.toString();
   }
 
   function append(string memory a, string memory b) internal pure returns (string memory) {

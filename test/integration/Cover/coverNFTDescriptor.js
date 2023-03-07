@@ -141,7 +141,6 @@ describe('CoverNFTDescriptor', function () {
         [{ poolId, coverAmountInAsset: usdcCoverAmount }],
       );
     }
-    console.log('timezone offset', new Date().getTimezoneOffset());
     this.timezoneOffset = new Date().getTimezoneOffset() * 60;
     this.amount = amount;
     this.usdcAmount = 12311e4;

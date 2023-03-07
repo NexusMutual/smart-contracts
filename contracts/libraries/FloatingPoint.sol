@@ -43,7 +43,7 @@ contract FloatingPoint {
       return string(abi.encodePacked(float, remainderStr));
     }
 
-    // Encode first two digits of remainder
+    // Otherwise encode first two digits of remainder
     remainderStr = string(
       abi.encodePacked(remainderBytes[0], remainderBytes[1])
     );

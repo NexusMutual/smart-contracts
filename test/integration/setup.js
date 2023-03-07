@@ -543,6 +543,7 @@ async function setup() {
   this.contracts.stakingProducts = stakingProducts;
   // TODO: this should be a proxy
   this.contracts.coverNFTDescriptor = coverNFTDescriptor;
+  this.contracts.stakingNFTDescriptor = stakingNFTDescriptor;
   this.config = config;
   this.accounts = ethersAccounts;
   this.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS;

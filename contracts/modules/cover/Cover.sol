@@ -556,27 +556,27 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint coverId,
     uint segmentId,
     uint payoutAmountInAsset
-  ) external onlyInternal override returns (address /* owner */) {
+  ) external onlyInternal override returns (address /* coverOwner */) {
 
     CoverData storage cover = _coverData[coverId];
     ActiveCover storage _activeCover = activeCover[cover.coverAsset];
     CoverSegment memory segment = coverSegmentWithRemainingAmount(coverId, segmentId);
     PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
 
-    // Update expired buckets and calculate the amount of active cover that should be burned
+    // update expired buckets and calculate the amount of active cover that should be burned
     {
       uint coverAsset = cover.coverAsset;
-      uint lastUpdateId = _activeCover.lastBucketUpdateId;
+      uint lastUpdateBucketId = _activeCover.lastBucketUpdateId;
       uint currentBucketId = block.timestamp / BUCKET_SIZE;
 
       uint burnedSegmentBucketId = Math.divCeil((segment.start + segment.period), BUCKET_SIZE);
-      uint activeCoverToExpire = getExpiredCoverAmount(coverAsset, lastUpdateId, currentBucketId);
+      uint activeCoverToExpire = getExpiredCoverAmount(coverAsset, lastUpdateBucketId, currentBucketId);
 
-      // burn amount is accounted for in total active cover if segment has not expired
+      // if the segment has not expired - it's still accounted for in total active cover
       if (burnedSegmentBucketId > currentBucketId) {
-        uint segmentAmount = Math.min(payoutAmountInAsset, segment.amount);
-        activeCoverToExpire += segmentAmount;
-        activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId] -= segmentAmount.toUint192();
+        uint amountToSubtract = Math.min(payoutAmountInAsset, segment.amount);
+        activeCoverToExpire += amountToSubtract;
+        activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId] -= amountToSubtract.toUint192();
       }
 
       _activeCover.totalActiveCoverInAsset -= activeCoverToExpire.toUint192();
@@ -591,10 +591,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     for (uint i = 0; i < allocationCount; i++) {
       PoolAllocation memory allocation = allocations[i];
 
-      uint payoutAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / segment.amount;
-      uint burnAmountInNxm = payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / segment.globalCapacityRatio;
+      uint deallocationAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / segment.amount;
+      uint burnAmountInNxm = deallocationAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / segment.globalCapacityRatio;
 
-      allocations[i].coverAmountInNXM -= payoutAmountInNXM.toUint96();
+      allocations[i].coverAmountInNXM -= deallocationAmountInNXM.toUint96();
       allocations[i].premiumInNXM -= (allocation.premiumInNXM * payoutAmountInAsset / segment.amount).toUint96();
 
       BurnStakeParams memory params = BurnStakeParams(
@@ -602,7 +602,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         cover.productId,
         segment.start,
         segment.period,
-        payoutAmountInNXM
+        deallocationAmountInNXM
       );
 
       uint poolId = allocations[i].poolId;

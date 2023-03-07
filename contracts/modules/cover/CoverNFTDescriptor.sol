@@ -6,6 +6,7 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
 import "@openzeppelin/contracts-v4/utils/Base64.sol";
 import "../../interfaces/ICover.sol";
+import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/ICoverNFTDescriptor.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
@@ -34,11 +35,8 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
     master = _master;
   }
 
-
-  function tokenURI(CoverTokenURIParams calldata params) public view returns (string memory) {
-
-    (string memory descriptionString, CoverDescription memory descriptionData) = generateDescription(params);
-
+  function tokenURI(uint tokenId) public view returns (string memory) {
+    (string memory descriptionString, CoverDescription memory descriptionData) = generateDescription(tokenId);
     string memory image = Base64.encode(bytes(generateSVGImage(descriptionData)));
 
     return string(
@@ -47,7 +45,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
         Base64.encode(
           bytes(
             abi.encodePacked(
-              '{"name":"', params.name, '",',
+              '{"name":"', ICoverNFT(msg.sender).name(), '",',
               '"description":"', descriptionString, '",',
               '"image": "',
               'data:image/svg+xml;base64,',
@@ -60,17 +58,18 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
     );
   }
 
-  function generateDescription(CoverTokenURIParams calldata params) public view returns (string memory descriptionString, CoverDescription memory descriptionData) {
+  function generateDescription(uint tokenId) public view returns (string memory descriptionString,
+    CoverDescription memory descriptionData) {
     ICover cover = ICover(master.getLatestAddress("CO"));
 
-    if (cover.coverDataCount() < params.tokenId) {
+    if (cover.coverDataCount() < tokenId) {
       return ("This NFT does not exist", CoverDescription("", "", "", 0, 0, 0));
     }
 
     // Get cover data
-    CoverData memory coverData = cover.coverData(params.tokenId);
+    CoverData memory coverData = cover.coverData(tokenId);
     string memory productName = cover.productNames(coverData.productId);
-    CoverSegment memory lastSegment = cover.coverSegmentWithRemainingAmount(params.tokenId, cover.coverSegmentsCount(params.tokenId) - 1);
+    CoverSegment memory lastSegment = cover.coverSegmentWithRemainingAmount(tokenId, cover.coverSegmentsCount(tokenId) - 1);
 
     // Check if cover has already expired
     string memory expiryMessage;
@@ -104,7 +103,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
       getAssetSymbol(coverData.coverAsset),
       expiry,
       lastSegment.amount,
-      params.tokenId,
+      tokenId,
       getAssetDecimals(coverData.coverAsset)
     );
 

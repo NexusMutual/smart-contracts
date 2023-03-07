@@ -80,8 +80,8 @@ constructor(string memory name_, string memory symbol_, address _operator, addre
   function tokenURI(uint id) public view virtual returns (string memory uri) {
     if (_ownerOf[id] == address(0)) revert NotMinted();
 
-    CoverTokenURIParams memory params = CoverTokenURIParams(id, name);
-    uri = ICoverNFTDescriptor(nftDescriptor).tokenURI(params);
+//    CoverTokenURIParams memory params = CoverTokenURIParams(id, name);
+    uri = ICoverNFTDescriptor(nftDescriptor).tokenURI(id);
   }
 
   function ownerOf(uint id) public view returns (address owner) {

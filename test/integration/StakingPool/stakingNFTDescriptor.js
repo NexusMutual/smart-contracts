@@ -5,7 +5,7 @@ const base64 = require('base64-js');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { daysToSeconds } = require('../../../lib/helpers');
 
-const { parseEther } = ethers.utils;
+const { parseEther, formatEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
 
 const svgHeader = 'data:image/svg+xml;base64,';
@@ -16,7 +16,7 @@ describe('StakingNFTDescriptor', function () {
       members: [staker],
     } = this.accounts;
     const { stakingPool1 } = this.contracts;
-    const stakingAmount = parseEther('17');
+    const stakingAmount = parseEther('17.091');
     const block = await ethers.provider.getBlock('latest');
     const firstTrancheId = calculateFirstTrancheId(block, 30, 0);
 
@@ -50,14 +50,38 @@ describe('StakingNFTDescriptor', function () {
     const jsonHeader = 'data:application/json;base64,';
     expect(uri.slice(0, jsonHeader.length)).to.be.equal(jsonHeader);
 
+    const expectedDepositAmount = formatEther(this.stakingAmount.toString());
     const decodedJson = JSON.parse(new TextDecoder().decode(base64.toByteArray(uri.slice(jsonHeader.length))));
     expect(decodedJson.name).to.be.equal('Nexus Mutual Deposit');
     expect(decodedJson.description.length).to.be.gt(0);
+    expect(decodedJson.description).to.contain(Number(expectedDepositAmount).toFixed(2));
 
+    // 2x deposits
+    const expectedAmount = formatEther(this.stakingAmount.mul(2).toString());
     expect(decodedJson.image.slice(0, svgHeader.length)).to.be.equal(svgHeader);
     const decodedSvg = new TextDecoder().decode(base64.toByteArray(decodedJson.image.slice(svgHeader.length)));
     expect(decodedSvg).to.contain('1' /* tokenId */);
-    expect(decodedSvg).to.contain(this.stakingAmount.mul(2).toString());
+    expect(decodedSvg).to.contain(Number(expectedAmount).toFixed(2));
+  });
+
+  it('tokenURI with single deposit should be formatted properly', async function () {
+    const { stakingNFT } = this.contracts;
+    const uri = await stakingNFT.tokenURI(2);
+
+    const jsonHeader = 'data:application/json;base64,';
+    expect(uri.slice(0, jsonHeader.length)).to.be.equal(jsonHeader);
+
+    const expectedDepositAmount = formatEther(this.stakingAmount.toString());
+    const decodedJson = JSON.parse(new TextDecoder().decode(base64.toByteArray(uri.slice(jsonHeader.length))));
+    expect(decodedJson.name).to.be.equal('Nexus Mutual Deposit');
+    expect(decodedJson.description.length).to.be.gt(0);
+    expect(decodedJson.description).to.contain(Number(expectedDepositAmount).toFixed(2));
+
+    const expectedAmount = formatEther(this.stakingAmount.toString());
+    expect(decodedJson.image.slice(0, svgHeader.length)).to.be.equal(svgHeader);
+    const decodedSvg = new TextDecoder().decode(base64.toByteArray(decodedJson.image.slice(svgHeader.length)));
+    expect(decodedSvg).to.contain('1' /* tokenId */);
+    expect(decodedSvg).to.contain(Number(expectedAmount).toFixed(2));
   });
 
   it('should handle non existing token', async function () {

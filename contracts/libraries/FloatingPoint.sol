@@ -12,7 +12,7 @@ contract FloatingPoint {
     uint decimals
   ) public pure returns (string memory float) {
     if (decimals == 0) {
-      return number.toString();
+      return string(abi.encodePacked(number.toString(), ".00"));
     }
 
     uint decimalBase = 10 ** decimals;
@@ -24,18 +24,29 @@ contract FloatingPoint {
     // Get the remainder
     uint remainder = number % (decimalBase);
     string memory remainderStr = remainder.toString();
+    bytes memory remainderBytes = bytes(remainderStr);
 
-    // Pad the remainder with 0 if single digit
-    if (remainder < 10) {
-      remainderStr = string(abi.encodePacked("0", remainderStr));
+    // The number of digits should be greater than decimals - 1
+    if (remainderBytes.length + 1 < decimals) {
+      return string(abi.encodePacked(float, "00"));
     }
 
-    // Only take the first two bytes of the remainder
-    if (remainder > 99) {
-      bytes memory remainderBytes = bytes(remainderStr);
-      remainderStr = string(abi.encodePacked(remainderBytes[0], remainderBytes[1]));
+    // If the remainder is less than 10, add a leading zero before digit and return
+    if (remainder < decimalBase / 10) {
+      remainderStr = string(abi.encodePacked("0", remainderBytes[0]));
+      return string(abi.encodePacked(float, remainderStr));
     }
 
+    // If the remainder is a single digit, add a trailing zero and return
+    if (remainderBytes.length == 1) {
+      remainderStr = string(abi.encodePacked(remainderBytes[0], "0"));
+      return string(abi.encodePacked(float, remainderStr));
+    }
+
+    // Encode first two digits of remainder
+    remainderStr = string(
+      abi.encodePacked(remainderBytes[0], remainderBytes[1])
+    );
     float = string(abi.encodePacked(float, remainderStr));
   }
 }

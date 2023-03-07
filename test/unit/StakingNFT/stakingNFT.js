@@ -2,11 +2,9 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { setEtherBalance } = require('../../utils/evm');
 const { toBytes } = require('../../../lib/helpers');
-const base64 = require('base64-js');
 const { BigNumber } = ethers;
 const { AddressZero } = ethers.constants;
 
-const jsonHeader = 'data:application/json;base64,';
 describe('StakingNFT', function () {
   // impersonate staking pool address
   before(async function () {
@@ -64,11 +62,9 @@ describe('StakingNFT', function () {
     );
   });
 
-  it('should return empty tokenURI for unminted token', async function () {
+  it('should revert when calling tokenURI for unminted token', async function () {
     const { stakingNFT } = this;
-    const uri = await stakingNFT.tokenURI(0);
-    const decodedJson = JSON.parse(new TextDecoder().decode(base64.toByteArray(uri.slice(jsonHeader.length))));
-    expect(decodedJson.description).to.contain('Token id 0 is not minted');
+    await expect(stakingNFT.tokenURI(0)).to.be.revertedWithCustomError(stakingNFT, 'NotMinted');
   });
 
   it('should revert when reading tokenInfo for a non-existent token', async function () {

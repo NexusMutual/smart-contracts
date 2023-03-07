@@ -110,6 +110,8 @@ contract StakingNFT is IStakingNFT {
   // ERC721
 
   function tokenURI(uint id) public view virtual returns (string memory uri) {
+    if (_tokenInfo[id].owner == address(0)) revert NotMinted();
+
     StakingTokenURIParams memory params = StakingTokenURIParams(
       id,
       _tokenInfo[id].poolId,

@@ -9,11 +9,11 @@ describe('CoverNFT', function () {
     expect(await coverNFT.symbol()).to.be.eq('NXMC');
   });
 
-  it('should fail to return tokenURI without a coverBuy', async function () {
+  it('should revert when calling tokenURI without a coverBuy', async function () {
     const { coverNFT } = this;
     const [operator, nftOwner] = this.accounts.members;
     await coverNFT.connect(operator).mint(nftOwner.address);
-    await expect(coverNFT.tokenURI(0)).to.be.revertedWithoutReason();
+    await expect(coverNFT.tokenURI(0)).to.be.revertedWithCustomError(coverNFT, 'NotMinted');
   });
 
   it('should fail to mint - onlyOperator()', async function () {

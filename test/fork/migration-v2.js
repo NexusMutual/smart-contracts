@@ -62,6 +62,13 @@ ASSET_V1_TO_ASSET_V2[DAI_ADDRESS.toLowerCase()] = 1;
 
 const MaxUint96 = Two.pow(96).sub(1);
 
+
+const V2Addresses = {
+  SwapOperator: '0xcafea536d7f79F31Fa49bC40349f6a5F7E19D842',
+  PriceFeedOracle: '0xcafeaf0a0672360941b7f0b6d015797292e842c6',
+  Pool: '0xcafea112Db32436c2390F5EC988f3aDB96870627'
+};
+
 const getSigner = async address => {
   const provider =
     network.name !== 'hardhat' // ethers errors out when using non-local accounts
@@ -330,15 +337,17 @@ describe('V2 upgrade', function () {
   });
 
   it('Deploy SwapOperator.sol', async function () {
-    this.swapOperator = await ethers.deployContract('SwapOperator', [
-      COWSWAP_SETTLEMENT, // _cowSettlement
-      SWAP_CONTROLLER, // _swapController
-      this.master.address, // _master
-      WETH_ADDRESS, // _weth
-      ENZYMEV4_VAULT_PROXY_ADDRESS,
-      ENZYME_FUND_VALUE_CALCULATOR_ROUTER,
-      0, // Min Pool ETH
-    ]);
+    // this.swapOperator = await ethers.deployContract('SwapOperator', [
+    //   COWSWAP_SETTLEMENT, // _cowSettlement
+    //   SWAP_CONTROLLER, // _swapController
+    //   this.master.address, // _master
+    //   WETH_ADDRESS, // _weth
+    //   ENZYMEV4_VAULT_PROXY_ADDRESS,
+    //   ENZYME_FUND_VALUE_CALCULATOR_ROUTER,
+    //   0, // Min Pool ETH
+    // ]);
+
+    this.swapOperator = await ethers.getContractAt('SwapOperator', V2Addresses.SwapOperator);
   });
 
   it('Calculate proxy addresses for Cover and StakingProducts', async function () {
@@ -520,29 +529,31 @@ describe('V2 upgrade', function () {
     ]);
 
     // PriceFeedOracle.sol
-    const assetAddresses = [DAI_ADDRESS, STETH_ADDRESS, ENZYMEV4_VAULT_PROXY_ADDRESS];
-    const assetAggregators = [
-      DAI_PRICE_FEED_ORACLE_AGGREGATOR,
-      STETH_PRICE_FEED_ORACLE_AGGREGATOR,
-      ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
-    ];
-    const assetDecimals = [18, 18, 18];
-    const priceFeedOracle = await ethers.deployContract('PriceFeedOracle', [
-      assetAddresses,
-      assetAggregators,
-      assetDecimals,
-    ]);
+    // const assetAddresses = [DAI_ADDRESS, STETH_ADDRESS, ENZYMEV4_VAULT_PROXY_ADDRESS];
+    // const assetAggregators = [
+    //   DAI_PRICE_FEED_ORACLE_AGGREGATOR,
+    //   STETH_PRICE_FEED_ORACLE_AGGREGATOR,
+    //   ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
+    // ];
+    // const assetDecimals = [18, 18, 18];
+    // const priceFeedOracle = await ethers.getContractAt('PriceFeedOracle', [
+    //   assetAddresses,
+    //   assetAggregators,
+    //   assetDecimals,
+    // ]);
+    // const priceFeedOracle = await ethers.getContractAt('PriceFeedOracle', V2Addresses.PriceFeedOracle);
 
     // P1 - Pool.sol
-    const pool = await ethers.deployContract('Pool', [
-      this.master.address,
-      priceFeedOracle.address,
-      this.swapOperator.address,
-      DAI_ADDRESS,
-      STETH_ADDRESS,
-      ENZYMEV4_VAULT_PROXY_ADDRESS,
-      this.nxm.address,
-    ]);
+    // const pool = await ethers.deployContract('Pool', [
+    //   this.master.address,
+    //   priceFeedOracle.address,
+    //   this.swapOperator.address,
+    //   DAI_ADDRESS,
+    //   STETH_ADDRESS,
+    //   ENZYMEV4_VAULT_PROXY_ADDRESS,
+    //   this.nxm.address,
+    // ]);
+    const pool = await ethers.getContractAt('Pool', V2Addresses.Pool);
 
     // Enable Pool as Enzyme receiver
     await enableAsEnzymeReceiver(pool.address);
@@ -1297,7 +1308,7 @@ describe('V2 upgrade', function () {
   });
 
   // TODO review
-  it.skip('purchase Cover at the expected prices from the migrated pools', async function () {
+  it('purchase Cover at the expected prices from the migrated pools', async function () {
     const coverBuyer = this.abMembers[4];
     const poolEthBalanceBefore = await ethers.provider.getBalance(this.pool.address);
 

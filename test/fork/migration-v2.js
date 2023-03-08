@@ -1311,14 +1311,8 @@ describe('V2 upgrade', function () {
     const amount = parseEther('1');
 
     const MAX_COVER_PERIOD_IN_DAYS = 364;
-    const DAYS_IN_YEAR = 365;
     const period = MAX_COVER_PERIOD_IN_DAYS * 24 * 3600;
-    const expectedPremium = amount
-      .mul(migratedPrice)
-      .div(10000)
-      // annualized premium is for DAYS_IN_YEAR but covers can only be up to MAX_COVER_PERIOD_IN_DAYS long
-      .mul(MAX_COVER_PERIOD_IN_DAYS)
-      .div(DAYS_IN_YEAR);
+    const expectedPremium = amount.mul(migratedPrice).div(10000);
     const paymentAsset = coverAsset;
 
     // TODO: incorrect pool id?

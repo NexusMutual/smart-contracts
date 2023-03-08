@@ -32,4 +32,5 @@ interface IStakingNFT is IERC721 {
   error UnsafeRecipient();
   error AlreadyMinted();
   error NotStakingPool();
+
 }

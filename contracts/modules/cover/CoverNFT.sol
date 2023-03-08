@@ -25,9 +25,14 @@ contract CoverNFT is ICoverNFT {
     _;
   }
 
-constructor(string memory name_, string memory symbol_, address _operator, address _nftDescriptor) {
-    name = name_;
-    symbol = symbol_;
+  constructor(
+    string memory _name,
+    string memory _symbol,
+    address _operator,
+    address _nftDescriptor
+  ) {
+    name = _name;
+    symbol = _symbol;
     operator = _operator;
     nftDescriptor = _nftDescriptor;
   }
@@ -41,7 +46,6 @@ constructor(string memory name_, string memory symbol_, address _operator, addre
 
   function changeNFTDescriptor(address _newNFTDescriptor) public onlyOperator {
     if (_newNFTDescriptor == address(0)) revert InvalidNewNFTDescriptorAddress();
-
     nftDescriptor = _newNFTDescriptor;
   }
 
@@ -79,9 +83,7 @@ constructor(string memory name_, string memory symbol_, address _operator, addre
 
   function tokenURI(uint id) public view virtual returns (string memory uri) {
     if (_ownerOf[id] == address(0)) revert NotMinted();
-
-//    CoverTokenURIParams memory params = CoverTokenURIParams(id, name);
-    uri = ICoverNFTDescriptor(nftDescriptor).tokenURI(id);
+    return ICoverNFTDescriptor(nftDescriptor).tokenURI(id);
   }
 
   function ownerOf(uint id) public view returns (address owner) {
@@ -154,7 +156,7 @@ constructor(string memory name_, string memory symbol_, address _operator, addre
 }
 
 /// @notice A generic interface for a contract which properly accepts ERC721 tokens.
-/// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
+/// @dev Based on (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
 abstract contract ERC721TokenReceiver {
   function onERC721Received(address, address, uint, bytes calldata) external virtual returns
   (bytes4) {

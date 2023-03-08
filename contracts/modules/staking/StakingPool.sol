@@ -706,6 +706,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint start,
     uint expiration
   ) internal returns (uint[] memory activeAllocations) {
+
     uint packedCoverTrancheAllocation = coverTrancheAllocations[allocationId];
     activeAllocations = getActiveAllocations(productId);
 
@@ -715,6 +716,7 @@ contract StakingPool is IStakingPool, Multicall {
     // number of already expired tranches to skip
     // currentFirstActiveTranche - previousFirstActiveTranche
     uint offset = currentFirstActiveTrancheId - (start / TRANCHE_DURATION);
+
     for (uint i = offset; i < MAX_ACTIVE_TRANCHES; i++) {
       uint allocated = uint32(packedCoverTrancheAllocation >> (i * 32));
       uint currentTrancheIdx = i - offset;
@@ -737,15 +739,9 @@ contract StakingPool is IStakingPool, Multicall {
   function getActiveAllocations(
     uint productId
   ) public view returns (uint[] memory trancheAllocations) {
-    return getActiveAllocations(productId, block.timestamp);
-  }
 
-  function getActiveAllocations(
-    uint productId,
-    uint timestamp
-  ) internal view returns (uint[] memory trancheAllocations) {
-    uint _firstActiveTrancheId = timestamp / TRANCHE_DURATION;
-    uint currentBucket = (timestamp / BUCKET_DURATION).toUint16();
+    uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+    uint currentBucket = block.timestamp / BUCKET_DURATION;
     uint lastBucketId;
 
     (trancheAllocations, lastBucketId) = getStoredAllocations(productId, _firstActiveTrancheId);
@@ -1225,26 +1221,33 @@ contract StakingPool is IStakingPool, Multicall {
     // sstore
     activeStake = (_activeStake - amount).toUint96();
 
-    uint packedCoverTrancheAllocation = coverTrancheAllocations[params.allocationId];
-    uint[] memory activeAllocations = getActiveAllocations(params.productId, params.start);
+    uint initialPackedCoverTrancheAllocation = coverTrancheAllocations[params.allocationId];
+    uint[] memory activeAllocations = getActiveAllocations(params.productId);
 
-    uint firstTrancheId = params.start / TRANCHE_DURATION;
-    uint[] memory coverAllocations = new uint[](MAX_ACTIVE_TRANCHES);
+    uint currentFirstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+    uint[] memory coverDeallocations = new uint[](MAX_ACTIVE_TRANCHES);
 
-    uint remainingAmount = params.deallocationAmount / NXM_PER_ALLOCATION_UNIT;
-    uint packedCoverAllocations;
+    uint remainingDeallocationAmount = params.deallocationAmount / NXM_PER_ALLOCATION_UNIT;
+    uint newPackedCoverAllocations;
+
+    // number of already expired tranches to skip
+    // currentFirstActiveTranche - previousFirstActiveTranche
+    uint offset = currentFirstActiveTrancheId - (params.start / TRANCHE_DURATION);
 
     // iterate the tranches backward to remove allocation from future tranches first
-    for (uint i = MAX_ACTIVE_TRANCHES - 1; i >= 0 ; i--) {
-      uint allocated = uint32(packedCoverTrancheAllocation >> (i * 32));
+    for (uint i = MAX_ACTIVE_TRANCHES - 1; i >= offset; i--) {
+      // i = tranche index when the allocation was made
+      // i - offset = index of the same tranche but in currently active tranches arrays
+      uint currentTrancheIdx = i - offset;
 
-      uint deallocateAmount = Math.min(allocated, remainingAmount);
+      uint allocated = uint32(initialPackedCoverTrancheAllocation >> (i * 32));
+      uint deallocateAmount = Math.min(allocated, remainingDeallocationAmount);
 
-      activeAllocations[i] -= deallocateAmount;
-      coverAllocations[i] = deallocateAmount;
-      packedCoverAllocations |= (allocated - deallocateAmount) << i * 32;
+      activeAllocations[currentTrancheIdx] -= deallocateAmount;
+      coverDeallocations[currentTrancheIdx] = deallocateAmount;
+      newPackedCoverAllocations |= (allocated - deallocateAmount) << i * 32;
 
-      remainingAmount -= deallocateAmount;
+      remainingDeallocationAmount -= deallocateAmount;
 
       // avoids underflow in the for decrement loop
       if (i == 0) {
@@ -1252,19 +1255,19 @@ contract StakingPool is IStakingPool, Multicall {
       }
     }
 
-    coverTrancheAllocations[params.allocationId] = packedCoverAllocations;
+    coverTrancheAllocations[params.allocationId] = newPackedCoverAllocations;
 
     updateExpiringCoverAmounts(
       params.productId,
-      firstTrancheId,
+      currentFirstActiveTrancheId,
       Math.divCeil(params.start + params.period, BUCKET_DURATION), // targetBucketId
-      coverAllocations,
+      coverDeallocations,
       false // isAllocation
     );
 
     updateStoredAllocations(
       params.productId,
-      firstTrancheId,
+      currentFirstActiveTrancheId,
       activeAllocations
     );
 

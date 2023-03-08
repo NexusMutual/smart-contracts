@@ -2,6 +2,7 @@ const { ethers } = require('hardhat');
 const { assert } = require('chai');
 const fs = require('fs');
 const path = require('path');
+const fetch = require('node-fetch');
 
 const QuoteEngine = require('./v1-quote-engine');
 

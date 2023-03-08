@@ -21,8 +21,8 @@ const SCRIPTS_USE_CACHE = !process.env.NO_CACHE;
 const CoverCreate2Salt = 1000;
 const StakingProductsCreate2Salt = 1001;
 
-const getProductAddresses = require('../../scripts/v2-migration/get-v2-products');
-const getV1CoverPrices = require('../../scripts/v2-migration/get-v1-cover-prices');
+// const getProductAddresses = require('../../scripts/v2-migration/get-v2-products');
+// const getV1CoverPrices = require('../../scripts/v2-migration/get-v1-cover-prices');
 const getGovernanceRewards = require('../../scripts/v2-migration/get-governance-rewards');
 const getClaimAssessmentRewards = require('../../scripts/v2-migration/get-claim-assessment-rewards');
 const getClaimAssessmentStakes = require('../../scripts/v2-migration/get-claim-assessment-stakes');
@@ -214,9 +214,10 @@ describe('V2 upgrade', function () {
   //   await getProductAddresses(SCRIPTS_USE_CACHE);
   // });
 
-  it('Get V1 cover prices', async function () {
-    await getV1CoverPrices(ethers.provider, SCRIPTS_USE_CACHE);
-  });
+  // File locked in preparation for PricesV1.sol deployment
+  // it('Get V1 cover prices', async function () {
+  //   await getV1CoverPrices(ethers.provider, SCRIPTS_USE_CACHE);
+  // });
 
   it('Get governance rewards', async function () {
     await getGovernanceRewards(ethers.provider, SCRIPTS_USE_CACHE);

@@ -18,13 +18,19 @@ interface IStakingNFT is IERC721 {
 
   function stakingPoolOf(uint tokenId) external view returns (uint poolId);
 
+  function stakingPoolFactory() external view returns (address);
+
+  function name() external view returns (string memory);
+
   error NotOperator();
   error NotMinted();
   error WrongFrom();
   error InvalidRecipient();
   error InvalidNewOperatorAddress();
+  error InvalidNewNFTDescriptorAddress();
   error NotAuthorized();
   error UnsafeRecipient();
   error AlreadyMinted();
   error NotStakingPool();
+
 }

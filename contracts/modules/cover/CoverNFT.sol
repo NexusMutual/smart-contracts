@@ -3,6 +3,7 @@
 pragma solidity ^0.8.18;
 
 import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/ICoverNFTDescriptor.sol";
 
 /// @dev Based on Solmate https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol
 contract CoverNFT is ICoverNFT {
@@ -17,16 +18,23 @@ contract CoverNFT is ICoverNFT {
 
   uint96 internal _totalSupply;
   address public operator;
+  address public nftDescriptor;
 
   modifier onlyOperator {
     if (msg.sender != operator) revert NotOperator();
     _;
   }
 
-  constructor(string memory name_, string memory symbol_, address _operator) {
-    name = name_;
-    symbol = symbol_;
+  constructor(
+    string memory _name,
+    string memory _symbol,
+    address _operator,
+    address _nftDescriptor
+  ) {
+    name = _name;
+    symbol = _symbol;
     operator = _operator;
+    nftDescriptor = _nftDescriptor;
   }
 
   // operator functions
@@ -36,7 +44,10 @@ contract CoverNFT is ICoverNFT {
     operator = _newOperator;
   }
 
-  // TODO: implement change token descriptor function here
+  function changeNFTDescriptor(address _newNFTDescriptor) public onlyOperator {
+    if (_newNFTDescriptor == address(0)) revert InvalidNewNFTDescriptorAddress();
+    nftDescriptor = _newNFTDescriptor;
+  }
 
   // minting and supply
 
@@ -70,10 +81,9 @@ contract CoverNFT is ICoverNFT {
 
   // ERC721
 
-  function tokenURI(uint /*id*/) public view returns (string memory) {
-    name; // silence warning - remove once implemented
-    // TODO: implement me
-    revert("NOT IMPLEMENTED");
+  function tokenURI(uint id) public view virtual returns (string memory uri) {
+    if (_ownerOf[id] == address(0)) revert NotMinted();
+    return ICoverNFTDescriptor(nftDescriptor).tokenURI(id);
   }
 
   function ownerOf(uint id) public view returns (address owner) {
@@ -105,7 +115,6 @@ contract CoverNFT is ICoverNFT {
   }
 
   function transferFrom(address from, address to, uint id) public {
-
     if (from != _ownerOf[id]) revert WrongFrom();
     if (to == address(0)) revert InvalidRecipient();
 
@@ -147,7 +156,7 @@ contract CoverNFT is ICoverNFT {
 }
 
 /// @notice A generic interface for a contract which properly accepts ERC721 tokens.
-/// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
+/// @dev Based on (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
 abstract contract ERC721TokenReceiver {
   function onERC721Received(address, address, uint, bytes calldata) external virtual returns
   (bytes4) {

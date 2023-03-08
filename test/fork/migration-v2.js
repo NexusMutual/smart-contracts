@@ -336,18 +336,26 @@ describe('V2 upgrade', function () {
     this.stakingProductsProxyAddress = calculateProxyAddress(this.master.address, StakingProductsCreate2Salt);
   });
 
-  it('Deploy CoverNFT.sol', async function () {
-    this.coverNFT = await ethers.deployContract('CoverNFT', ['Nexus Mutual Cover', 'NXC', this.coverProxyAddress]);
+  it('Deploy CoverNFTDescriptor.sol and CoverNFT.sol', async function () {
+    this.coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor');
+    this.coverNFT = await ethers.deployContract('CoverNFT', [
+      'Nexus Mutual Cover',
+      'NXC',
+      this.coverProxyAddress,
+      this.coverNFTDescriptor.address,
+    ]);
   });
 
-  it('Deploy StakingPoolFactory.sol, StakingNFT.sol, StakingPool.sol', async function () {
+  it('Deploy StakingPoolFactory.sol, StakingNFT.sol, StakingNFTDescriptor.sol, StakingPool.sol', async function () {
     this.stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [this.coverProxyAddress]);
+    this.stakingNFTDescriptor = await ethers.deployContract('StakingNFTDescriptor');
 
     this.stakingNFT = await ethers.deployContract('StakingNFT', [
       'Nexus Mutual Deposit',
       'NMD',
       this.stakingPoolFactory.address,
       this.coverProxyAddress,
+      this.stakingNFTDescriptor.address,
     ]);
 
     this.stakingPool = await ethers.deployContract('StakingPool', [

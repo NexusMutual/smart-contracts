@@ -14,12 +14,16 @@ interface ICoverNFT is IERC721 {
 
   function totalSupply() external view returns (uint);
 
+  function name() external view returns (string memory);
+
   error NotOperator();
   error NotMinted();
   error WrongFrom();
   error InvalidRecipient();
   error InvalidNewOperatorAddress();
+  error InvalidNewNFTDescriptorAddress();
   error NotAuthorized();
   error UnsafeRecipient();
   error AlreadyMinted();
+
 }

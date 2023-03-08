@@ -148,6 +148,8 @@ interface ICover {
 
   function stakingPool(uint index) external view returns (IStakingPool);
 
+  function productNames(uint productId) external view returns (string memory);
+
   function productsCount() external view returns (uint);
 
   function productTypesCount() external view returns (uint);

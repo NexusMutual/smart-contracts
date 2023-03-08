@@ -216,11 +216,24 @@ async function main() {
   console.log('Deploying StakingPoolFactory');
   const spf = await deployImmutable('StakingPoolFactory', [coverStub.address]);
 
-  console.log('Deploying CoverNFT');
-  const coverNFT = await deployImmutable('CoverNFT', ['Nexus Mutual Cover', 'NMC', coverStub.address]);
+  console.log('Deploying CoverNFT and CoverNFTDescriptor');
+  const coverNFTDescriptor = await deployImmutable('CoverNFTDescriptor');
+  const coverNFT = await deployImmutable('CoverNFT', [
+    'Nexus Mutual Cover',
+    'NMC',
+    coverStub.address,
+    coverNFTDescriptor.address,
+  ]);
 
-  console.log('Deploying StakingNFT');
-  const stakingNFT = await deployImmutable('StakingNFT', ['Nexus Mutual Stake', 'NMS', spf.address, coverStub.address]);
+  console.log('Deploying StakingNFT and StakingNFTDescriptor');
+  const stakingNFTDescriptor = await deployImmutable('StakingNFTDescriptor');
+  const stakingNFT = await deployImmutable('StakingNFT', [
+    'Nexus Mutual Stake',
+    'NMS',
+    spf.address,
+    coverStub.address,
+    stakingNFTDescriptor.address,
+  ]);
 
   console.log('Deploying StakingProducts');
   const stakingProducts = await upgradeProxy(stakingProductsStub.address, 'StakingProducts', [

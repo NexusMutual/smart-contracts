@@ -45,25 +45,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     coverNFT = ICoverNFT(coverNFTAddress);
   }
 
-  function initialize() external {
-    Configuration memory currentConfig = config;
-    bool notInitialized = bytes32(
-      abi.encodePacked(
-        currentConfig.rewardRatio,
-        currentConfig.maxRewardInNXMWad,
-        currentConfig.minAssessmentDepositRatio,
-        currentConfig.payoutRedemptionPeriodInDays
-      )
-    ) == bytes32(0);
-    require(notInitialized, "Already initialized");
-
-    // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
-    config.rewardRatio = 130; // 1.3%
-    config.maxRewardInNXMWad = 50; // 50 NXM
-    config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH assessment minimum flat fee
-    config.payoutRedemptionPeriodInDays = 30; // days to redeem the payout
-  }
-
   /* ========== VIEWS ========== */
 
   function cover() internal view returns (ICover) {
@@ -440,5 +421,23 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
+
+    Configuration memory currentConfig = config;
+    bool notInitialized = bytes32(
+      abi.encodePacked(
+        currentConfig.rewardRatio,
+        currentConfig.maxRewardInNXMWad,
+        currentConfig.minAssessmentDepositRatio,
+        currentConfig.payoutRedemptionPeriodInDays
+      )
+    ) == bytes32(0);
+
+    if (notInitialized) {
+      // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
+      config.rewardRatio = 130; // 1.3%
+      config.maxRewardInNXMWad = 50; // 50 NXM
+      config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH assessment minimum flat fee
+      config.payoutRedemptionPeriodInDays = 30; // days to redeem the payout
+    }
   }
 }

@@ -149,11 +149,6 @@ async function setup() {
     '0',
   ]);
 
-  const ci = await deployProxy('DisposableIndividualClaims', []);
-  const cg = await deployProxy('DisposableYieldTokenIncidents', []);
-  let as = await deployProxy('DisposableAssessment', []);
-  const cl = await deployProxy('CoverMigrator', [qd.address, productsV1.address]);
-
   // 1. deploy StakingPoolFactory, StakingNFT and CoverNFT with owner as temporary operator
   const spf = await ethers.deployContract('StakingPoolFactory', [owner.address]);
   const stakingNFT = await ethers.deployContract('StakingNFT', ['Deposit', 'NMD', spf.address, owner.address]);
@@ -183,8 +178,12 @@ async function setup() {
   await spf.changeOperator(cover.address);
   await stakingNFT.changeOperator(cover.address);
   await coverNFT.changeOperator(cover.address);
-
   await cover.changeMasterAddress(master.address);
+
+  const ci = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
+  const cg = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
+  const as = await deployProxy('Assessment', [tk.address]);
+  const cl = await deployProxy('CoverMigrator', [qd.address, productsV1.address]);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
@@ -254,8 +253,6 @@ async function setup() {
     10, // max exposure
     90 * 24 * 3600, // unstake lock time
   );
-
-  await ci.initialize(master.address);
 
   const CLAIM_METHOD = {
     INDIVIDUAL_CLAIMS: 0,
@@ -406,8 +403,6 @@ async function setup() {
 
   await gateway.initialize(master.address, dai.address);
 
-  await cg.initialize(master.address);
-
   await upgradeProxy(mr.address, 'MemberRoles', [tk.address]);
   await upgradeProxy(tc.address, 'TokenController', [qd.address, lcr.address, spf.address, tk.address]);
   await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address, stakingNFT.address]);
@@ -415,11 +410,6 @@ async function setup() {
   await upgradeProxy(master.address, 'NXMaster');
   await upgradeProxy(gv.address, 'Governance');
   await upgradeProxy(gateway.address, 'LegacyGateway', [qd.address]);
-  await upgradeProxy(ci.address, 'IndividualClaims', [tk.address, coverNFT.address]);
-  await upgradeProxy(cg.address, 'YieldTokenIncidents', [tk.address, coverNFT.address]);
-  await upgradeProxy(as.address, 'Assessment', [tk.address]);
-
-  as = await ethers.getContractAt('Assessment', as.address);
 
   // [todo] We should probably call changeDependentContractAddress on every contract
   await gateway.changeDependentContractAddress();
@@ -461,8 +451,6 @@ async function setup() {
 
   const usdcToEthRate = BigNumber.from('10').pow(BigNumber.from('24')).div(ethToUsdcRate);
   await chainlinkUSDC.setLatestAnswer(usdcToEthRate);
-
-  await as.initialize();
 
   const external = { chainlinkDAI, dai, usdc, weth, productsV1, ybDAI, ybETH, ybUSDC };
   const nonUpgradable = { qd, productsV1, spf, coverNFT, stakingNFT };

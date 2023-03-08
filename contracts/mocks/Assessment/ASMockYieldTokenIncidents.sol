@@ -20,11 +20,6 @@ contract ASMockYieldTokenIncidents is MasterAwareV2 {
 
   Configuration public config;
 
-  function initialize() external {
-    // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
-    config.rewardRatio = 130; // 0.52%
-  }
-
   function assessment() internal view returns (IAssessment) {
     return IAssessment(getInternalContractAddress(ID.AS));
   }
@@ -51,6 +46,9 @@ contract ASMockYieldTokenIncidents is MasterAwareV2 {
 
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
+
+    // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
+    config.rewardRatio = 130; // 0.52%
   }
 
 }

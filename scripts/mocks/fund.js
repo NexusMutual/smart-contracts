@@ -42,6 +42,9 @@ async function main() {
     console.log(`Funding ${charity} with ${formatEther(amount)} ETH`);
     await setBalance(charity, amount);
   }
+
+  console.log('Done!');
+  process.exit(0);
 }
 
 main().catch(error => {

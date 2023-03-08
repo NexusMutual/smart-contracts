@@ -3,8 +3,8 @@
 pragma solidity ^0.8.18;
 
 import "../../interfaces/IStakingNFT.sol";
-import "../../libraries/StakingPoolLibrary.sol";
 import "../../interfaces/IStakingNFTDescriptor.sol";
+import "../../libraries/StakingPoolLibrary.sol";
 
 /// @dev Based on Solmate https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol
 contract StakingNFT is IStakingNFT {

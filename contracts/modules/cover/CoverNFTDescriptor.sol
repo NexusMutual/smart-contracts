@@ -2,15 +2,14 @@
 
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
-import "@openzeppelin/contracts-v4/utils/Strings.sol";
 import "@openzeppelin/contracts-v4/utils/Base64.sol";
+import "@openzeppelin/contracts-v4/utils/Strings.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/ICoverNFTDescriptor.sol";
+import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IERC20Detailed.sol";
 import "../../libraries/DateTime.sol";
 import "../../libraries/FloatingPoint.sol";
 import "./CoverNFT.sol";

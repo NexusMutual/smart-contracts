@@ -3,13 +3,13 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
 import "@openzeppelin/contracts-v4/utils/Base64.sol";
+import "../../interfaces/IStakingNFT.sol";
+import "../../interfaces/IStakingNFTDescriptor.sol";
+import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/IStakingPoolFactory.sol";
 import "../../libraries/DateTime.sol";
 import "../../libraries/FloatingPoint.sol";
 import "../../libraries/StakingPoolLibrary.sol";
-import "../../interfaces/IStakingPool.sol";
-import "../../interfaces/IStakingPoolFactory.sol";
-import "../../interfaces/IStakingNFT.sol";
-import "../../interfaces/IStakingNFTDescriptor.sol";
 
 struct StakeData {
   uint poolId;

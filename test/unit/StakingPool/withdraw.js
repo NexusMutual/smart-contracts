@@ -913,4 +913,91 @@ describe('withdraw', function () {
       expect(userBalanceAfter.sub(userBalanceBefore)).to.be.equal(balanceChange);
     }
   });
+
+  // TODO: finish this test
+  it.skip('should overflow accumulator value and withdraw after a burn', async function () {
+    const { nxm, coverSigner, stakingPool, tokenController } = this;
+    const [user] = this.accounts.members;
+
+    // Cover details
+    const { tokenId, destination } = withdrawFixture;
+    const { firstActiveTrancheId } = await getTranches();
+    const amount = parseEther('20000000');
+    const period = daysToSeconds(60);
+    const gracePeriod = daysToSeconds(10);
+
+    const allocationRequest = {
+      productId: 0,
+      coverId: 0,
+      allocationId: 0,
+      period,
+      gracePeriod,
+      previousStart: 0,
+      previousExpiration: 0,
+      previousRewardsRatio: 5000,
+      useFixedPrice: true, // using fixed price to get the exact same premium
+      globalCapacityRatio: 20000,
+      capacityReductionRatio: 0,
+      rewardRatio: 5000,
+      globalMinPrice: 10000,
+    };
+
+    const { timestamp: start } = await ethers.provider.getBlock('latest');
+
+    // Deposit to first tranche
+    await stakingPool.connect(user).depositTo(
+      amount,
+      firstActiveTrancheId,
+      0, // edit,
+      destination,
+    );
+
+    await generateRewards(stakingPool, coverSigner, period, gracePeriod, amount, true /* useFixedPrice */);
+    await generateRewards(stakingPool, coverSigner, period, gracePeriod, amount, true /* useFixedPrice */);
+
+    // burn the cover
+    const activeStake = await stakingPool.getActiveStake();
+    const burnAmount = activeStake.mul(50).div(100);
+    // TODO: calculate deallocationAmount
+    const burnStakeParams = {
+      allocationId: 1,
+      productId: 0,
+      start,
+      period,
+      deallocationAmount: 0,
+    };
+    await stakingPool.connect(coverSigner).burnStake(burnAmount, burnStakeParams);
+
+    await increaseTime(TRANCHE_DURATION);
+    await mineNextBlock();
+
+    const withdrawStake = true;
+    const withdrawRewards = true;
+    const trancheIds = [firstActiveTrancheId];
+
+    const tcBalanceBefore = await nxm.balanceOf(tokenController.address);
+    const userBalanceBefore = await nxm.balanceOf(user.address);
+    const deposit = await stakingPool.deposits(tokenId, firstActiveTrancheId);
+
+    await stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds);
+
+    const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
+    const userBalanceAfter = await nxm.balanceOf(user.address);
+
+    const { accNxmPerRewardShareAtExpiry } = await stakingPool.getExpiredTranche(firstActiveTrancheId);
+
+    const rewardPerShareDiff = ethers.constants.Two.pow(96)
+      .sub(1)
+      .sub(deposit.lastAccNxmPerRewardShare)
+      .add(accNxmPerRewardShareAtExpiry);
+
+    const rewardsWithdrawn = deposit.rewardsShares
+      .mul(rewardPerShareDiff)
+      .div(parseEther('1'))
+      .add(deposit.pendingRewards);
+
+    // TODO: these values are off
+    expect(tcBalanceAfter).to.be.eq(tcBalanceBefore.sub(rewardsWithdrawn).sub(amount).add(burnAmount));
+    expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(rewardsWithdrawn).add(amount).sub(burnAmount));
+  });
 });

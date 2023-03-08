@@ -267,7 +267,7 @@ contract StakingPool is IStakingPool, Multicall {
           ? elapsed * _rewardPerSecond * ONE_NXM / _rewardsSharesSupply
           : 0;
 
-        unchecked { _accNxmPerRewardsShare += newAccNxmPerRewardsShare.toUint96(); }
+        _accNxmPerRewardsShare = uint96(newAccNxmPerRewardsShare + _accNxmPerRewardsShare);
 
         _rewardPerSecond -= rewardPerSecondCut[_firstActiveBucketId];
         _lastAccNxmUpdate = bucketStartTime;
@@ -575,7 +575,11 @@ contract StakingPool is IStakingPool, Multicall {
 
           // calculate reward since checkpoint
           uint newRewardPerShare;
-          unchecked {newRewardPerShare = accNxmPerRewardShareToUse - deposit.lastAccNxmPerRewardShare; }
+          if (accNxmPerRewardShareToUse >= deposit.lastAccNxmPerRewardShare) {
+            newRewardPerShare = accNxmPerRewardShareToUse - deposit.lastAccNxmPerRewardShare;
+          } else {
+            newRewardPerShare = type(uint96).max - deposit.lastAccNxmPerRewardShare + accNxmPerRewardShareToUse + 1;
+          }
           trancheRewardsToWithdraw = newRewardPerShare * deposit.rewardsShares / ONE_NXM + deposit.pendingRewards;
           withdrawnRewards += trancheRewardsToWithdraw;
 

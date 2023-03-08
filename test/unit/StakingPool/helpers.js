@@ -176,6 +176,7 @@ async function generateRewards(
   period = daysToSeconds(10),
   gracePeriod = daysToSeconds(10),
   amount = parseEther('1'),
+  useFixedPrice = false,
 ) {
   const previousPremium = 0;
   const allocationRequest = {
@@ -187,7 +188,7 @@ async function generateRewards(
     previousStart: 0,
     previousExpiration: 0,
     previousRewardsRatio: 5000,
-    useFixedPrice: false,
+    useFixedPrice,
     globalCapacityRatio: 20000,
     capacityReductionRatio: 0,
     rewardRatio: 5000,

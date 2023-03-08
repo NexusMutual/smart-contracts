@@ -10,6 +10,7 @@ const {
   TRANCHE_DURATION,
   BUCKET_DURATION,
 } = require('./helpers');
+const { daysToSeconds } = require('../../../lib/helpers');
 
 const { BigNumber } = ethers;
 const { AddressZero } = ethers.constants;
@@ -781,5 +782,134 @@ describe('withdraw', function () {
     // Consider 11 wei of accumulated round error
     expect(totalRewardsWithdrawn).to.be.gte(rewardedAmount.sub(11));
     expect(totalRewardsWithdrawn).to.be.lte(rewardedAmount);
+  });
+
+  it('should overflow accumulator value and calculate rewards properly', async function () {
+    const { nxm, coverSigner, stakingPool, tokenController } = this;
+    const [user] = this.accounts.members;
+
+    // Cover details
+    const { tokenId, destination } = withdrawFixture;
+    const { firstActiveTrancheId } = await getTranches();
+    const amount = parseEther('3000000');
+    const period = daysToSeconds(20);
+    const gracePeriod = daysToSeconds(10);
+
+    const allocationRequest = {
+      productId: 0,
+      coverId: 0,
+      allocationId: 0,
+      period,
+      gracePeriod,
+      previousStart: 0,
+      previousExpiration: 0,
+      previousRewardsRatio: 5000,
+      useFixedPrice: true, // using fixed price to get the exact same premium
+      globalCapacityRatio: 20000,
+      capacityReductionRatio: 0,
+      rewardRatio: 5000,
+      globalMinPrice: 10000,
+    };
+
+    // Deposit to first tranche
+    await stakingPool.connect(user).depositTo(
+      amount,
+      firstActiveTrancheId,
+      0, // new position,
+      destination,
+    );
+
+    const { premium: previousPremium } = await stakingPool
+      .connect(coverSigner)
+      .callStatic.requestAllocation(amount, 0, allocationRequest);
+
+    await generateRewards(stakingPool, coverSigner, period, gracePeriod, amount, true /* useFixedPrice */);
+
+    await increaseTime(TRANCHE_DURATION);
+    await mineNextBlock();
+
+    const withdrawStake = true;
+    const withdrawRewards = true;
+    const trancheIds = [firstActiveTrancheId];
+
+    const tcBalanceBefore = await nxm.balanceOf(tokenController.address);
+    const userBalanceBefore = await nxm.balanceOf(user.address);
+    const deposit = await stakingPool.deposits(tokenId, firstActiveTrancheId);
+
+    await stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds);
+
+    const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
+    const userBalanceAfter = await nxm.balanceOf(user.address);
+
+    const { accNxmPerRewardShareAtExpiry } = await stakingPool.getExpiredTranche(firstActiveTrancheId);
+    const rewardsWithdrawn = deposit.rewardsShares
+      .mul(accNxmPerRewardShareAtExpiry.sub(deposit.lastAccNxmPerRewardShare))
+      .div(parseEther('1'))
+      .add(deposit.pendingRewards);
+
+    expect(tcBalanceAfter).to.be.eq(tcBalanceBefore.sub(rewardsWithdrawn).sub(amount));
+    expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(rewardsWithdrawn).add(amount));
+    const balanceChange = userBalanceAfter.sub(userBalanceBefore);
+
+    {
+      // Repeat above steps but the rewardShare accumulator will overflow
+
+      const nextTokenId = tokenId + 1;
+      const { firstActiveTrancheId } = await getTranches();
+
+      await stakingPool.connect(user).depositTo(
+        amount,
+        firstActiveTrancheId,
+        0, // new position,
+        destination,
+      );
+
+      // check that the premium is the same
+      const { premium: secondPremium } = await stakingPool
+        .connect(coverSigner)
+        .callStatic.requestAllocation(amount, 0, allocationRequest);
+      expect(secondPremium).to.be.eq(previousPremium);
+
+      // this overflows accumulator value
+      await generateRewards(stakingPool, coverSigner, period, gracePeriod, amount, true /* useFixedPrice */);
+
+      await increaseTime(TRANCHE_DURATION);
+      await mineNextBlock();
+
+      const withdrawStake = true;
+      const withdrawRewards = true;
+      const trancheIds = [firstActiveTrancheId];
+
+      const tcBalanceBefore = await nxm.balanceOf(tokenController.address);
+      const userBalanceBefore = await nxm.balanceOf(user.address);
+      const deposit = await stakingPool.deposits(nextTokenId, firstActiveTrancheId);
+
+      await stakingPool.connect(user).withdraw(nextTokenId, withdrawStake, withdrawRewards, trancheIds);
+
+      const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
+      const userBalanceAfter = await nxm.balanceOf(user.address);
+
+      const { accNxmPerRewardShareAtExpiry } = await stakingPool.getExpiredTranche(firstActiveTrancheId);
+      // accumulator should be smaller than deposit
+      expect(accNxmPerRewardShareAtExpiry).to.be.lt(deposit.lastAccNxmPerRewardShare);
+
+      // difference between accumulator at deposit time and now
+      const rewardPerShareDiff = ethers.constants.Two.pow(96)
+        .sub(1)
+        .sub(deposit.lastAccNxmPerRewardShare)
+        .add(accNxmPerRewardShareAtExpiry);
+
+      const rewardsWithdrawn = deposit.rewardsShares
+        .mul(rewardPerShareDiff)
+        .div(parseEther('1'))
+        .add(deposit.pendingRewards);
+
+      expect(tcBalanceAfter).to.be.eq(tcBalanceBefore.sub(rewardsWithdrawn).sub(amount));
+      expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(rewardsWithdrawn).add(amount));
+
+      // TODO: the second stake received slightly less rewards than the first one
+      // NOTE: this seems to happen regardless of overflow
+      expect(userBalanceAfter.sub(userBalanceBefore)).to.be.equal(balanceChange);
+    }
   });
 });

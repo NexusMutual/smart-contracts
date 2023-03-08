@@ -7,12 +7,16 @@ const { enableAsEnzymeReceiver } = require('./utils');
 const proposalCategories = require('../utils').proposalCategories;
 const { ProposalCategory: PROPOSAL_CATEGORIES, ContractTypes } = require('../../lib/constants');
 
+const {
+  Address: { ETH },
+} = require('./utils');
+
 const { BigNumber } = ethers;
 const { AddressZero, Zero, Two } = ethers.constants;
 const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
 const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
 
-const SCRIPTS_NO_CACHE = !!process.env.NO_CACHE;
+const SCRIPTS_USE_CACHE = !process.env.NO_CACHE;
 
 const CoverCreate2Salt = 1000;
 const StakingProductsCreate2Salt = 1001;
@@ -24,6 +28,7 @@ const getClaimAssessmentRewards = require('../../scripts/v2-migration/get-claim-
 const getClaimAssessmentStakes = require('../../scripts/v2-migration/get-claim-assessment-stakes');
 const getTCLockedAmount = require('../../scripts/v2-migration/get-tc-locked-amount');
 const getCNLockedAmount = require('../../scripts/v2-migration/get-cn-locked');
+const generateV2ProductTxs = require('../../scripts/v2-migration/generate-v2-products-txs');
 
 const PRODUCTS_WITH_REWARDS_PATH = '../../scripts/v2-migration/input/products-with-v1-rewards.json';
 const PRODUCT_ADDRESSES_OUTPUT_PATH = '../../scripts/v2-migration/output/product-addresses.json';
@@ -50,6 +55,10 @@ const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 
 const MEMBER_ADDRESS = '0xd7cba5b9a0240770cfd9671961dae064136fa240';
 const CLAIM_PAYABLE_ADDRESS = '0x748E712663510Bb417c1aBb1bca3d817447f118c';
+
+const ASSET_V1_TO_ASSET_V2 = {};
+ASSET_V1_TO_ASSET_V2[ETH.toLowerCase()] = 0;
+ASSET_V1_TO_ASSET_V2[DAI_ADDRESS.toLowerCase()] = 1;
 
 const MaxUint96 = Two.pow(96).sub(1);
 
@@ -202,27 +211,27 @@ describe('V2 upgrade', function () {
 
   // Generates ProductsV1.sol contract
   it('Generate ProductsV1.sol with all products to be migrated to V2', async function () {
-    await getProductAddresses(SCRIPTS_NO_CACHE);
+    await getProductAddresses(SCRIPTS_USE_CACHE);
   });
 
   it('Get V1 cover prices', async function () {
-    await getV1CoverPrices(ethers.provider, SCRIPTS_NO_CACHE);
+    await getV1CoverPrices(ethers.provider, SCRIPTS_USE_CACHE);
   });
 
   it('Get governance rewards', async function () {
-    await getGovernanceRewards(ethers.provider, SCRIPTS_NO_CACHE);
+    await getGovernanceRewards(ethers.provider, SCRIPTS_USE_CACHE);
   });
 
   it('Get claim assessment rewards and generate transfer calls in LegacyClaimsReward.sol', async function () {
-    await getClaimAssessmentRewards(ethers.provider, SCRIPTS_NO_CACHE);
+    await getClaimAssessmentRewards(ethers.provider, SCRIPTS_USE_CACHE);
   });
 
   it('Get claim assessment stakes', async function () {
-    await getClaimAssessmentStakes(ethers.provider, SCRIPTS_NO_CACHE);
+    await getClaimAssessmentStakes(ethers.provider, SCRIPTS_USE_CACHE);
   });
 
   it('Get TC locked amount', async function () {
-    await getTCLockedAmount(ethers.provider, SCRIPTS_NO_CACHE);
+    await getTCLockedAmount(ethers.provider, SCRIPTS_USE_CACHE);
   });
 
   it('Recompile contracts if needed', async function () {
@@ -337,7 +346,7 @@ describe('V2 upgrade', function () {
   });
 
   it('Deploy CoverNFTDescriptor.sol and CoverNFT.sol', async function () {
-    this.coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor');
+    this.coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [this.master.address]);
     this.coverNFT = await ethers.deployContract('CoverNFT', [
       'Nexus Mutual Cover',
       'NXC',
@@ -862,7 +871,7 @@ describe('V2 upgrade', function () {
   });
 
   it('Get CN locked amount', async function () {
-    await getCNLockedAmount(ethers.provider, SCRIPTS_NO_CACHE);
+    await getCNLockedAmount(ethers.provider, SCRIPTS_USE_CACHE);
   });
 
   it('Check all members with CN locked NXM can withdraw & TC has the correct balance afterwards', async function () {
@@ -892,6 +901,124 @@ describe('V2 upgrade', function () {
     });
 
     expect(tcBalanceDiff).to.be.equal(cnLockedAmountSum);
+  });
+
+  it('run populate-v2-products script', async function () {
+    const signerAddress = await this.abMembers[0].getAddress();
+    const { setProductTypesTransaction, setProductsTransaction, productTypeData, productData, productTypeIds } =
+      await generateV2ProductTxs(ethers.provider, this.cover.address, signerAddress);
+
+    console.log('Calling setProductTypes.');
+    await this.abMembers[0].sendTransaction(setProductTypesTransaction);
+
+    console.log('Calling setProducts.');
+    await this.abMembers[0].sendTransaction(setProductsTransaction);
+
+    const productCount = await this.cover.productsCount();
+    assert.equal(productCount.toNumber(), productData.length);
+
+    const productTypesCount = await this.cover.productTypesCount();
+    assert.equal(productTypesCount.toNumber(), productTypeData.length);
+
+    for (let i = 0; i < productTypeData.length; i++) {
+      const productType = await this.cover.productTypes(i);
+      const productTypeName = await this.cover.productTypeNames(i);
+
+      const data = productTypeData[i];
+
+      expect(productTypeName).to.be.equal(data.Name);
+      expect(productType.claimMethod.toString()).to.be.equal(data['Claim Method']);
+      expect(productType.gracePeriod.toString()).to.be.equal(data['Grace Period (days)']);
+    }
+
+    const products = await this.cover.getProducts();
+    for (let i = 0; i < products.length; i++) {
+      const product = products[i];
+      const data = productData[i];
+
+      expect(product.productType).to.be.equal(productTypeIds[data['Product Type']]);
+      expect(product.yieldTokenAddress).to.be.equal(
+        data['Product Type'] === 'Yield Token'
+          ? data['Yield Token Address']
+          : '0x0000000000000000000000000000000000000000',
+      );
+
+      const coverAssetsAsText = data['Cover Assets'];
+      const coverAssets =
+        (coverAssetsAsText === 'DAI' && 0b10) || // Yield token cover that uses DAI
+        (coverAssetsAsText === 'ETH' && 0b01) || // Yield token cover that uses ETH
+        0; // The default is 0 - this means all assets are allowed (no whitelist)
+      expect(product.coverAssets.toString()).to.be.equal(coverAssets.toString());
+      expect(product.initialPriceRatio).to.be.equal(parseInt(data['Initial Price Ratio']) * 100);
+      expect(product.capacityReductionRatio).to.be.equal(parseInt(data['Capacity Reduction Ratio']));
+      expect(product.isDeprecated).to.be.equal(false);
+      expect(product.useFixedPrice).to.be.equal(data['Use Fixed Price'] === 'Yes');
+    }
+  });
+
+  it('Deploy CoverViewer', async function () {
+    this.coverViewer = await ethers.deployContract('CoverViewer', [this.master.address]);
+  });
+
+  it('Migrates existing FTX covers to V2', async function () {
+    const ftxCoverIds = [7907, 7881, 7863, 7643, 7598, 7572, 7542, 7313, 7134];
+
+    const FTX_ID_V1 = '0xC57d000000000000000000000000000000000011';
+    const ftxProductId = await this.productsV1.getNewProductId(FTX_ID_V1);
+    const FTX_GRACE_PERIOD = 120; // 120 days
+
+    let expectedClaimId = 0;
+
+    for (const coverIdV1 of ftxCoverIds) {
+      const { memberAddress, sumAssured, coverAsset: legacyCoverAsset } = await this.gateway.getCover(coverIdV1);
+      const { coverPeriod: coverPeriodInDays, validUntil } = await this.quotationData.getCoverDetailsByCoverID2(
+        coverIdV1,
+      );
+      const expectedPeriod = coverPeriodInDays * 3600 * 24;
+      const expectedStart = validUntil.sub(expectedPeriod);
+      const expectedCoverAsset = ASSET_V1_TO_ASSET_V2[legacyCoverAsset.toLowerCase()];
+
+      const member = await getSigner(memberAddress);
+      await evm.impersonate(memberAddress);
+      await evm.setBalance(memberAddress, parseEther('1000'));
+
+      const segmentId = 0;
+
+      const tx = await this.coverMigrator.connect(member).migrateAndSubmitClaim(coverIdV1, segmentId, sumAssured, '', {
+        value: parseEther('10'),
+      });
+      const receipt = await tx.wait();
+      const coverMigratedEvent = receipt.events.find(x => x.event === 'CoverMigrated');
+      const coverIdV2 = coverMigratedEvent.args.coverIdV2;
+
+      console.log(`FTX cover ${coverIdV1} mapped to V2 cover: ${coverIdV2}`);
+
+      const covers = await this.coverViewer.getCovers([coverIdV2]);
+      const { productId, coverAsset, amountPaidOut, segments } = covers[0];
+
+      expect(productId).to.be.equal(ftxProductId);
+      expect(coverAsset).to.be.equal(expectedCoverAsset);
+      expect(amountPaidOut).to.be.equal(0);
+      expect(segments.length).to.be.equal(1);
+
+      const { amount, remainingAmount, start, period, gracePeriod } = segments[segmentId];
+      expect(amount).to.be.equal(sumAssured);
+      expect(remainingAmount).to.be.equal(sumAssured);
+      expect(period).to.be.equal(expectedPeriod);
+      expect(start).to.be.equal(expectedStart);
+      expect(gracePeriod).to.be.equal(FTX_GRACE_PERIOD);
+
+      // claim assertions
+
+      const claimsArray = await this.individualClaims.getClaimsToDisplay([expectedClaimId++]);
+      const { productId: claimProductId, coverId, amount: claimAmount, assetSymbol, claimStatus } = claimsArray[0];
+
+      expect(claimAmount).to.be.equal(sumAssured);
+      expect(claimProductId).to.be.equal(ftxProductId);
+      expect(assetSymbol).to.be.equal(expectedCoverAsset === 0 ? 'ETH' : 'DAI');
+      expect(coverId).to.be.equal(coverIdV2);
+      expect(claimStatus).to.be.equal(0); // ClaimStatus.PENDING
+    }
   });
 
   it('Call LegacyPooledStaking.pushRewards for all non-deprecated contracts', async function () {
@@ -1187,8 +1314,7 @@ describe('V2 upgrade', function () {
     const period = MAX_COVER_PERIOD_IN_DAYS * 24 * 3600;
     const expectedPremium = amount
       .mul(migratedPrice)
-      .div((1e18).toString())
-      .div(100)
+      .div(10000)
       // annualized premium is for DAYS_IN_YEAR but covers can only be up to MAX_COVER_PERIOD_IN_DAYS long
       .mul(MAX_COVER_PERIOD_IN_DAYS)
       .div(DAYS_IN_YEAR);
@@ -1238,10 +1364,6 @@ describe('V2 upgrade', function () {
     // The latter is partially accounted for in the expectedPremium computation above
     // (BigNumber doesn't support fractions)
     expect(expectedPremium.sub(premiumSentToPool)).to.be.lessThanOrEqual(amount.div(10000));
-  });
-
-  it('Deploy CoverViewer', async function () {
-    await ethers.deployContract('CoverViewer', [this.master.address]);
   });
 
   it('MemberRoles is initialized with kycAuthAddress from QuotationData', async function () {

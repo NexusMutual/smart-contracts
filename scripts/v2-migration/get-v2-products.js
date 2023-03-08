@@ -122,7 +122,24 @@ const main = async (useCache = true) => {
 
   console.log(`Total V2 products: ${v2ProductAddresses.length}`);
 
-  const v2Products = v2ProductAddresses.map((k, i) => ({ ...v1Products[k], productId: i, legacyProductId: k }));
+  const v2Products = v2ProductAddresses.map(k => ({ ...v1Products[k], legacyProductId: k }));
+
+  // Sort alphabetically according to name to have a predictable sort order.
+  v2Products.sort((a, b) => {
+    if (a.name.toLowerCase() < b.name.toLowerCase()) {
+      return -1;
+    }
+    if (a.name.toLowerCase() > b.name.toLowerCase()) {
+      return 1;
+    }
+    return 0;
+  });
+
+  // Attach id after sorting
+  v2Products.forEach((product, i) => {
+    product.productId = i;
+  });
+
   const productsV1Contract = getProductsContract(v2Products);
 
   console.log(`Writing file ${productsV1ContractPath}`);

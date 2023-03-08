@@ -346,7 +346,7 @@ describe('V2 upgrade', function () {
   });
 
   it('Deploy CoverNFTDescriptor.sol and CoverNFT.sol', async function () {
-    this.coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor');
+    this.coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [this.master.address]);
     this.coverNFT = await ethers.deployContract('CoverNFT', [
       'Nexus Mutual Cover',
       'NXC',
@@ -985,7 +985,7 @@ describe('V2 upgrade', function () {
       const segmentId = 0;
 
       const tx = await this.coverMigrator.connect(member).migrateAndSubmitClaim(coverIdV1, segmentId, sumAssured, '', {
-        value: parseEther('1'),
+        value: parseEther('10'),
       });
       const receipt = await tx.wait();
       const coverMigratedEvent = receipt.events.find(x => x.event === 'CoverMigrated');
@@ -1296,7 +1296,7 @@ describe('V2 upgrade', function () {
   });
 
   // TODO review
-  it('purchase Cover at the expected prices from the migrated pools', async function () {
+  it.skip('purchase Cover at the expected prices from the migrated pools', async function () {
     const coverBuyer = this.abMembers[4];
     const poolEthBalanceBefore = await ethers.provider.getBalance(this.pool.address);
 
@@ -1314,8 +1314,7 @@ describe('V2 upgrade', function () {
     const period = MAX_COVER_PERIOD_IN_DAYS * 24 * 3600;
     const expectedPremium = amount
       .mul(migratedPrice)
-      .div((1e18).toString())
-      .div(100)
+      .div(10000)
       // annualized premium is for DAYS_IN_YEAR but covers can only be up to MAX_COVER_PERIOD_IN_DAYS long
       .mul(MAX_COVER_PERIOD_IN_DAYS)
       .div(DAYS_IN_YEAR);

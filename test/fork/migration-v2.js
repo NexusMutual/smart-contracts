@@ -209,10 +209,10 @@ describe('V2 upgrade', function () {
     expect(claimPayableAddressAfter).to.be.equal(getAddress(CLAIM_PAYABLE_ADDRESS));
   });
 
-  // Generates ProductsV1.sol contract
-  it('Generate ProductsV1.sol with all products to be migrated to V2', async function () {
-    await getProductAddresses(SCRIPTS_USE_CACHE);
-  });
+  // File locked in preparation for ProductsV1.sol deployment
+  // it('Generate ProductsV1.sol with all products to be migrated to V2', async function () {
+  //   await getProductAddresses(SCRIPTS_USE_CACHE);
+  // });
 
   it('Get V1 cover prices', async function () {
     await getV1CoverPrices(ethers.provider, SCRIPTS_USE_CACHE);

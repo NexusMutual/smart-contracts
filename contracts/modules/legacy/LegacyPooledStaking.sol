@@ -915,7 +915,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
         StakingPoolMigrationData(
           HUGH, // stakerAddress
           HUGH, // managerAddress
-          '', // ipfsDescriptionHash --- TODO fill in
+          'QmP4qU9o4WqT2TLHzieFJQpQfECy5bTcyRjikjRPs57UNa', // ipfsDescriptionHash
           false, // isPrivatePool
           10, // initialPoolFee
           20, // maxPoolFee
@@ -933,7 +933,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
         StakingPoolMigrationData(
           ARMOR_STAKER, // stakerAddress
           ARMOR_MANAGER, // managerAddress
-          '', // ipfsDescriptionHash --- TODO fill in
+          'QmQDwQDLDnvHn4ajodwGNiHGYwqBrZvy2Y9kMAvvtfWF45', // ipfsDescriptionHash
           false, // isPrivatePool
           15, // initialPoolFee
           25, // maxPoolFee
@@ -950,7 +950,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
         StakingPoolMigrationData(
           ARMOR_STAKER, // stakerAddress
           ARMOR_MANAGER, // managerAddress
-          '', // ipfsDescriptionHash --- TODO fill in
+          'QmS76eiGiC9KxrYQJ3WByvfJzD28CzELpjSd4V4ywmwNQP', // ipfsDescriptionHash
           false, // isPrivatePool
           15, // initialPoolFee
           25, // maxPoolFee
@@ -967,7 +967,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
         StakingPoolMigrationData(
           NM_FOUNDATION, // stakerAddress
           NM_FOUNDATION, // managerAddress
-          '', // ipfsDescriptionHash --- TODO fill in
+          'QmWXrQNe7gdwo42s4grJVDG9q92Z2Eu9FsvWUPgoYUyVzs', // ipfsDescriptionHash
           true, // isPrivatePool
           0, // initialPoolFee
           99, // maxPoolFee

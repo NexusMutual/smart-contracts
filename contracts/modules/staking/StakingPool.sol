@@ -426,7 +426,7 @@ contract StakingPool is IStakingPool, Multicall {
       // if we're increasing an existing deposit
       if (deposit.rewardsShares != 0) {
         uint newEarningsPerShare;
-        unchecked { newEarningsPerShare = uint96(_accNxmPerRewardsShare - deposit.lastAccNxmPerRewardShare); }
+        newEarningsPerShare = uint96(_accNxmPerRewardsShare - deposit.lastAccNxmPerRewardShare);
         deposit.pendingRewards += (newEarningsPerShare * deposit.rewardsShares / ONE_NXM).toUint96();
       }
 
@@ -449,7 +449,7 @@ contract StakingPool is IStakingPool, Multicall {
 
         // calculate rewards until now
         uint newRewardPerShare;
-        unchecked { newRewardPerShare = uint96(_accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare); }
+        newRewardPerShare = uint96(_accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare);
         feeDeposit.pendingRewards += (newRewardPerShare * feeDeposit.rewardsShares / ONE_NXM).toUint96();
         feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
         feeDeposit.rewardsShares += newFeeRewardShares.toUint128();
@@ -576,7 +576,7 @@ contract StakingPool is IStakingPool, Multicall {
 
           // calculate reward since checkpoint
           uint newRewardPerShare;
-          unchecked {newRewardPerShare = uint96(accNxmPerRewardShareToUse - deposit.lastAccNxmPerRewardShare); }
+          newRewardPerShare = uint96(accNxmPerRewardShareToUse - deposit.lastAccNxmPerRewardShare);
 
           trancheRewardsToWithdraw = newRewardPerShare * deposit.rewardsShares / ONE_NXM + deposit.pendingRewards;
           withdrawnRewards += trancheRewardsToWithdraw;
@@ -1180,14 +1180,14 @@ contract StakingPool is IStakingPool, Multicall {
     // if there already is a deposit on the new tranche, calculate its pending rewards
     if (updatedDeposit.lastAccNxmPerRewardShare != 0) {
       uint newEarningsPerShare;
-      unchecked {newEarningsPerShare = uint96(_accNxmPerRewardsShare - updatedDeposit.lastAccNxmPerRewardShare); }
+      newEarningsPerShare = uint96(_accNxmPerRewardsShare - updatedDeposit.lastAccNxmPerRewardShare);
       updatedDeposit.pendingRewards += (newEarningsPerShare * updatedDeposit.rewardsShares / ONE_NXM).toUint96();
     }
 
     // calculate the rewards for the deposit being extended and move them to the new deposit
     {
       uint newEarningsPerShare;
-      unchecked { newEarningsPerShare = uint96(_accNxmPerRewardsShare - initialDeposit.lastAccNxmPerRewardShare); }
+       newEarningsPerShare = uint96(_accNxmPerRewardsShare - initialDeposit.lastAccNxmPerRewardShare);
       updatedDeposit.pendingRewards += (newEarningsPerShare * initialDeposit.rewardsShares / ONE_NXM).toUint96();
       updatedDeposit.pendingRewards += initialDeposit.pendingRewards;
     }
@@ -1304,7 +1304,7 @@ contract StakingPool is IStakingPool, Multicall {
 
       // update pending reward and reward shares
       uint newRewardPerRewardsShare;
-      unchecked { newRewardPerRewardsShare = uint96(_accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare); }
+      newRewardPerRewardsShare = uint96(_accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare);
       feeDeposit.pendingRewards += (newRewardPerRewardsShare * feeDeposit.rewardsShares / ONE_NXM).toUint96();
       feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
       // TODO: would using tranche.rewardsShares give a better precision?

@@ -915,7 +915,6 @@ describe('V2 upgrade', function () {
     await this.abMembers[0].sendTransaction(setProductsTransaction);
 
     const productCount = await this.cover.productsCount();
-
     assert.equal(productCount.toNumber(), productData.length);
 
     const productTypesCount = await this.cover.productTypesCount();
@@ -965,29 +964,31 @@ describe('V2 upgrade', function () {
     const ftxCoverIds = [7907, 7881, 7863, 7643, 7598, 7572, 7542, 7313, 7134];
 
     const FTX_ID_V1 = '0xC57d000000000000000000000000000000000011';
-
     const ftxProductId = await this.productsV1.getNewProductId(FTX_ID_V1);
-
     const FTX_GRACE_PERIOD = 120; // 120 days
-
 
     let expectedClaimId = 0;
 
     for (const coverIdV1 of ftxCoverIds) {
       const { memberAddress, sumAssured, coverAsset: legacyCoverAsset } = await this.gateway.getCover(coverIdV1);
+      const { coverPeriod: coverPeriodInDays, validUntil } = await this.quotationData.getCoverDetailsByCoverID2(
+        coverIdV1,
+      );
+      const expectedPeriod = coverPeriodInDays * 3600 * 24;
+      const expectedStart = validUntil.sub(expectedPeriod);
+      const expectedCoverAsset = ASSET_V1_TO_ASSET_V2[legacyCoverAsset.toLowerCase()];
 
       const member = await getSigner(memberAddress);
       await evm.impersonate(memberAddress);
       await evm.setBalance(memberAddress, parseEther('1000'));
 
       const segmentId = 0;
+
       const tx = await this.coverMigrator.connect(member).migrateAndSubmitClaim(coverIdV1, segmentId, sumAssured, '', {
-        value: parseEther('1')
+        value: parseEther('1'),
       });
       const receipt = await tx.wait();
-
       const coverMigratedEvent = receipt.events.find(x => x.event === 'CoverMigrated');
-
       const coverIdV2 = coverMigratedEvent.args.coverIdV2;
 
       console.log(`FTX cover ${coverIdV1} mapped to V2 cover: ${coverIdV2}`);
@@ -995,20 +996,12 @@ describe('V2 upgrade', function () {
       const covers = await this.coverViewer.getCovers([coverIdV2]);
       const { productId, coverAsset, amountPaidOut, segments } = covers[0];
 
-      const expectedCoverAsset = ASSET_V1_TO_ASSET_V2[legacyCoverAsset.toLowerCase()];
-
       expect(productId).to.be.equal(ftxProductId);
       expect(coverAsset).to.be.equal(expectedCoverAsset);
       expect(amountPaidOut).to.be.equal(0);
       expect(segments.length).to.be.equal(1);
-      const { amount, remainingAmount, start, period, gracePeriod } = segments[0];
 
-      const { coverPeriod: coverPeriodInDays, validUntil } = await this.quotationData.getCoverDetailsByCoverID2(
-        coverIdV1,
-      );
-
-      const expectedPeriod = coverPeriodInDays * 3600 * 24;
-      const expectedStart = validUntil.sub(period);
+      const { amount, remainingAmount, start, period, gracePeriod } = segments[segmentId];
       expect(amount).to.be.equal(sumAssured);
       expect(remainingAmount).to.be.equal(sumAssured);
       expect(period).to.be.equal(expectedPeriod);
@@ -1018,13 +1011,7 @@ describe('V2 upgrade', function () {
       // claim assertions
 
       const claimsArray = await this.individualClaims.getClaimsToDisplay([expectedClaimId++]);
-      const {
-        productId: claimProductId,
-        coverId,
-        amount: claimAmount,
-        assetSymbol,
-        claimStatus
-      } = claimsArray[0];
+      const { productId: claimProductId, coverId, amount: claimAmount, assetSymbol, claimStatus } = claimsArray[0];
 
       expect(claimAmount).to.be.equal(sumAssured);
       expect(claimProductId).to.be.equal(ftxProductId);

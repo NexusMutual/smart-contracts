@@ -14,6 +14,7 @@ const PRODUCT_DATA_PATH = path.join(__dirname, 'input/product-data.csv');
 // Output files
 const PRODUCT_TYPE_IPFS_HASHES_PATH = path.join(__dirname, 'output/product-type-ipfs-hashes.json');
 const PRODUCT_IPFS_HASHES_PATH = path.join(__dirname, 'output/product-ipfs-hashes.json');
+const STAKING_POOL_IPFS_HASHES_PATH = path.join(__dirname, 'output/staking-pool-metadata-ipfs-hashes.json');
 
 const main = async () => {
   const ipfs = ipfsClient({ url: IPFS_API_URL });
@@ -99,6 +100,38 @@ const main = async () => {
   }
 
   fs.writeFileSync(PRODUCT_IPFS_HASHES_PATH, JSON.stringify(productHashes, null, 2), 'utf8');
+
+  /* ------------------------------ Staking Pools -------------------------------- */
+
+  console.log(`Uploading Staking Pools IPFS metadata`);
+
+  const hugh = { poolName: 'Hugh', poolDescription: "Hugh's personal syndicate" };
+  const foundation = { poolName: 'Nexus Foundation', poolDescription: 'Nexus Mutual Foundation run syndicate' };
+  const armorAAALowRiskPool = {
+    poolName: 'Ease AAA Low Risk Pool',
+    poolDescription:
+      // eslint-disable-next-line max-len
+      "A pool of Nexus Mutual's lowest risk protocols. Generate a steady yield from safer protocols using lower leverage. All ratings are determined using the Ease Risk Framework. See https://ease.org/learn-crypto-defi/get-defi-cover-at-ease/ease-defi-cover/the-ease-risk-rubric/ for more details.",
+  };
+  const armorAAMediumRiskPool = {
+    poolName: 'Ease AA Medium Risk Pool',
+    poolDescription:
+      // eslint-disable-next-line max-len
+      "A pool of Nexus Mutual's medium risk portocols. Also includes all protocols from Ease's AAA pool. All ratings are determined using the Ease Risk Framework. See https://ease.org/learn-crypto-defi/get-defi-cover-at-ease/ease-defi-cover/the-ease-risk-rubric/ for more details.",
+  };
+
+  const dataToUpload = [hugh, foundation, armorAAALowRiskPool, armorAAMediumRiskPool];
+  let i = 0;
+  const stakingPoolHashes = {};
+  for (const data of dataToUpload) {
+    console.log(`Uploading IPFS data for ${data.poolName}}`);
+    const ipfsUpload = await ipfs.add(Buffer.from(JSON.stringify(data)));
+    console.log(`Pinning ${ipfsUpload.path}`);
+    await ipfs.pin.add(ipfsUpload.path);
+    stakingPoolHashes[i++] = ipfsUpload.path;
+  }
+
+  fs.writeFileSync(STAKING_POOL_IPFS_HASHES_PATH, JSON.stringify(stakingPoolHashes, null, 2), 'utf8');
 };
 
 if (require.main === module) {

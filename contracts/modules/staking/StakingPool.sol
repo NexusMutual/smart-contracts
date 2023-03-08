@@ -284,7 +284,8 @@ contract StakingPool is IStakingPool, Multicall {
         uint newAccNxmPerRewardsShare = _rewardsSharesSupply != 0
           ? elapsed * _rewardPerSecond * ONE_NXM / _rewardsSharesSupply
           : 0;
-        unchecked { _accNxmPerRewardsShare += newAccNxmPerRewardsShare.toUint96(); }
+
+        _accNxmPerRewardsShare = uint96(newAccNxmPerRewardsShare + _accNxmPerRewardsShare);
         _lastAccNxmUpdate = trancheEndTime;
 
         // SSTORE
@@ -319,7 +320,7 @@ contract StakingPool is IStakingPool, Multicall {
       uint newAccNxmPerRewardsShare = _rewardsSharesSupply != 0
         ? elapsed * _rewardPerSecond * ONE_NXM / _rewardsSharesSupply
         : 0;
-      unchecked { _accNxmPerRewardsShare += newAccNxmPerRewardsShare.toUint96(); }
+      _accNxmPerRewardsShare = uint96(newAccNxmPerRewardsShare + _accNxmPerRewardsShare);
       _lastAccNxmUpdate = block.timestamp;
     }
 
@@ -425,7 +426,7 @@ contract StakingPool is IStakingPool, Multicall {
       // if we're increasing an existing deposit
       if (deposit.rewardsShares != 0) {
         uint newEarningsPerShare;
-        unchecked { newEarningsPerShare = _accNxmPerRewardsShare - deposit.lastAccNxmPerRewardShare; }
+        unchecked { newEarningsPerShare = uint96(_accNxmPerRewardsShare - deposit.lastAccNxmPerRewardShare); }
         deposit.pendingRewards += (newEarningsPerShare * deposit.rewardsShares / ONE_NXM).toUint96();
       }
 
@@ -448,7 +449,7 @@ contract StakingPool is IStakingPool, Multicall {
 
         // calculate rewards until now
         uint newRewardPerShare;
-        unchecked { newRewardPerShare = _accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare; }
+        unchecked { newRewardPerShare = uint96(_accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare); }
         feeDeposit.pendingRewards += (newRewardPerShare * feeDeposit.rewardsShares / ONE_NXM).toUint96();
         feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
         feeDeposit.rewardsShares += newFeeRewardShares.toUint128();
@@ -575,11 +576,8 @@ contract StakingPool is IStakingPool, Multicall {
 
           // calculate reward since checkpoint
           uint newRewardPerShare;
-          if (accNxmPerRewardShareToUse >= deposit.lastAccNxmPerRewardShare) {
-            newRewardPerShare = accNxmPerRewardShareToUse - deposit.lastAccNxmPerRewardShare;
-          } else {
-            newRewardPerShare = type(uint96).max - deposit.lastAccNxmPerRewardShare + accNxmPerRewardShareToUse + 1;
-          }
+          unchecked {newRewardPerShare = uint96(accNxmPerRewardShareToUse - deposit.lastAccNxmPerRewardShare); }
+
           trancheRewardsToWithdraw = newRewardPerShare * deposit.rewardsShares / ONE_NXM + deposit.pendingRewards;
           withdrawnRewards += trancheRewardsToWithdraw;
 
@@ -1182,14 +1180,14 @@ contract StakingPool is IStakingPool, Multicall {
     // if there already is a deposit on the new tranche, calculate its pending rewards
     if (updatedDeposit.lastAccNxmPerRewardShare != 0) {
       uint newEarningsPerShare;
-      unchecked {newEarningsPerShare = _accNxmPerRewardsShare - updatedDeposit.lastAccNxmPerRewardShare; }
+      unchecked {newEarningsPerShare = uint96(_accNxmPerRewardsShare - updatedDeposit.lastAccNxmPerRewardShare); }
       updatedDeposit.pendingRewards += (newEarningsPerShare * updatedDeposit.rewardsShares / ONE_NXM).toUint96();
     }
 
     // calculate the rewards for the deposit being extended and move them to the new deposit
     {
       uint newEarningsPerShare;
-      unchecked { newEarningsPerShare = _accNxmPerRewardsShare - initialDeposit.lastAccNxmPerRewardShare; }
+      unchecked { newEarningsPerShare = uint96(_accNxmPerRewardsShare - initialDeposit.lastAccNxmPerRewardShare); }
       updatedDeposit.pendingRewards += (newEarningsPerShare * initialDeposit.rewardsShares / ONE_NXM).toUint96();
       updatedDeposit.pendingRewards += initialDeposit.pendingRewards;
     }
@@ -1306,7 +1304,7 @@ contract StakingPool is IStakingPool, Multicall {
 
       // update pending reward and reward shares
       uint newRewardPerRewardsShare;
-      unchecked { newRewardPerRewardsShare = _accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare; }
+      unchecked { newRewardPerRewardsShare = uint96(_accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare); }
       feeDeposit.pendingRewards += (newRewardPerRewardsShare * feeDeposit.rewardsShares / ONE_NXM).toUint96();
       feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
       // TODO: would using tranche.rewardsShares give a better precision?

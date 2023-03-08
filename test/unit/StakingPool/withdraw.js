@@ -894,6 +894,7 @@ describe('withdraw', function () {
       expect(accNxmPerRewardShareAtExpiry).to.be.lt(deposit.lastAccNxmPerRewardShare);
 
       // difference between accumulator at deposit time and now
+      // (uint96.max - previousAcc) + currentAcc
       const rewardPerShareDiff = ethers.constants.Two.pow(96)
         .sub(1)
         .sub(deposit.lastAccNxmPerRewardShare)

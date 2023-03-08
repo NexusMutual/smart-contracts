@@ -1078,16 +1078,6 @@ describe('V2 upgrade', function () {
   });
 
   it('Call LegacyPooledStaking.pushRewards for all non-deprecated contracts', async function () {
-    /**
-     * pushRewards is affected by 2 other code flows:
-     * accumulateRewards (that itself calls pushRewards and accumulates rewards)
-     * pushBurn (that itself calls pushRewards)
-     *
-     * Post bulk upgrade to v2 contracts at the step:
-     * Deploy & upgrade contracts: MR, MCR, CO, TC, PS, PriceFeedOracle, P1, CL (CoverMigrator), GW, CR
-     *
-     * There is no other code path that can trigger accumulateRewards and pushBurn.
-     */
     await pushRewards({
       legacyPooledStaking: this.pooledStaking,
       signer: this.deployer,

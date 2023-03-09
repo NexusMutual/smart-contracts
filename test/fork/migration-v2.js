@@ -20,7 +20,7 @@ const SCRIPTS_USE_CACHE = !process.env.NO_CACHE;
 const CoverCreate2Salt = 4924891554;
 const StakingProductsCreate2Salt = 203623750;
 const IndividualClaimsCreate2Salt = 352721057824254;
-const YieldTokenIncidentsCreate2Salt = 35274507321883;
+const YieldTokenIncidentsCreate2Salt = 2596290771;
 const AssessmentCreate2Salt = 352729799262241;
 
 // const getProductAddresses = require('../../scripts/v2-migration/get-v2-products');
@@ -263,6 +263,7 @@ describe('V2 upgrade', function () {
     }
   });
 
+  // Skipping, we already have this category on mainnet
   it.skip('Add proposal category 43 (Add new contracts)', async function () {
     await submitGovernanceProposal(
       // addCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
@@ -288,6 +289,7 @@ describe('V2 upgrade', function () {
     );
   });
 
+  // Skipping, we already have this category on mainnet
   it.skip('Add proposal category 44 (Remove contracts)', async function () {
     await submitGovernanceProposal(
       // addCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
@@ -866,7 +868,7 @@ describe('V2 upgrade', function () {
     await getCNLockedAmount(ethers.provider, SCRIPTS_USE_CACHE);
   });
 
-  it.skip('Check all members with CN locked NXM can withdraw & TC has the correct balance afterwards', async function () {
+  it('Check all members with CN locked NXM can withdraw & TC has the correct balance afterwards', async function () {
     const CN_LOCKED_AMOUNT_OUTPUT = require(CN_LOCKED_AMOUNT_OUTPUT_PATH);
     const tcBalanceBefore = await this.nxm.balanceOf(this.tokenController.address);
 

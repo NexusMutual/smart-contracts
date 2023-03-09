@@ -116,5 +116,6 @@ interface IStakingProducts {
   error MustRecalculateEffectiveWeight();
   error TotalTargetWeightExceeded();
   error TotalEffectiveWeightExceeded();
+  error ProductNotInitialized();
 
 }

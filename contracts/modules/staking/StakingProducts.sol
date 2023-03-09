@@ -94,7 +94,11 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       uint productId = productIds[i];
       StakedProduct memory _product = _products[poolId][productId];
 
-      uint16 previousEffectiveWeight = _product.lastEffectiveWeight;
+      if (_product.bumpedPriceUpdateTime == 0) {
+        revert ProductNotInitialized();
+      }
+
+    uint16 previousEffectiveWeight = _product.lastEffectiveWeight;
       _product.lastEffectiveWeight = _getEffectiveWeight(
         stakingPool,
         productId,

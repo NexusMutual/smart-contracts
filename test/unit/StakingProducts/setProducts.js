@@ -444,4 +444,23 @@ describe('setProducts unit tests', function () {
       initialProducts.map(p => p.productId),
     );
   });
+
+  it('should fail to recalculate effective weight for product not in this pool', async function () {
+    const { stakingProducts } = this;
+    const [manager] = this.accounts.members;
+
+    await stakingProducts.connect(manager).setProducts(poolId, [{ ...newProductTemplate }]);
+    await expect(stakingProducts.recalculateEffectiveWeights(poolId, [2])).to.be.revertedWithCustomError(
+      stakingProducts,
+      'ProductNotInitialized',
+    );
+  });
+
+  it('should fail to recalculate effective weight for product not in system', async function () {
+    const { stakingProducts } = this;
+    const [manager] = this.accounts.members;
+
+    await stakingProducts.connect(manager).setProducts(poolId, [{ ...newProductTemplate }]);
+    await expect(stakingProducts.recalculateEffectiveWeights(poolId, [20])).to.be.reverted;
+  });
 });

@@ -17,8 +17,8 @@ const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
 
 const SCRIPTS_USE_CACHE = !process.env.NO_CACHE;
 
-const CoverCreate2Salt = 1000;
-const StakingProductsCreate2Salt = 1001;
+const CoverCreate2Salt = 4924891554;
+const StakingProductsCreate2Salt = 203623750;
 
 // const getProductAddresses = require('../../scripts/v2-migration/get-v2-products');
 // const getV1CoverPrices = require('../../scripts/v2-migration/get-v1-cover-prices');
@@ -65,6 +65,10 @@ const V2Addresses = {
   SwapOperator: '0xcafea536d7f79F31Fa49bC40349f6a5F7E19D842',
   PriceFeedOracle: '0xcafeaf0a0672360941b7f0b6d015797292e842c6',
   Pool: '0xcafea112Db32436c2390F5EC988f3aDB96870627',
+  NXMaster: '0xcafea0047591B979c714A63283B8f902554deB66',
+  ProductsV1: '0xcafeab02966FdC69Ce5aFDD532DD51466892E32B',
+  CoverNFTDescriptor: '0xcafead1E31Ac8e4924Fc867c2C54FAB037458cb9',
+  CoverNFT: '0xcafeaCa76be547F14D0220482667B42D8E7Bc3eb',
 };
 
 const getSigner = async address => {
@@ -333,7 +337,7 @@ describe('V2 upgrade', function () {
   });
 
   it('Deploy ProductsV1.sol', async function () {
-    this.productsV1 = await ethers.deployContract('ProductsV1');
+    this.productsV1 = await ethers.getContractAt('ProductsV1', V2Addresses.ProductsV1);
   });
 
   it('Deploy SwapOperator.sol', async function () {
@@ -346,13 +350,8 @@ describe('V2 upgrade', function () {
   });
 
   it('Deploy CoverNFTDescriptor.sol and CoverNFT.sol', async function () {
-    this.coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [this.master.address]);
-    this.coverNFT = await ethers.deployContract('CoverNFT', [
-      'Nexus Mutual Cover',
-      'NXC',
-      this.coverProxyAddress,
-      this.coverNFTDescriptor.address,
-    ]);
+    this.coverNFTDescriptor = await ethers.getContractAt('CoverNFTDescriptor', V2Addresses.CoverNFTDescriptor);
+    this.coverNFT = await ethers.getContractAt('CoverNFT', V2Addresses.CoverNFT);
   });
 
   it('Deploy StakingPoolFactory.sol, StakingNFT.sol, StakingNFTDescriptor.sol, StakingPool.sol', async function () {

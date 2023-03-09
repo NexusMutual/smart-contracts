@@ -217,7 +217,7 @@ async function main() {
   const spf = await deployImmutable('StakingPoolFactory', [coverStub.address]);
 
   console.log('Deploying CoverNFT and CoverNFTDescriptor');
-  const coverNFTDescriptor = await deployImmutable('CoverNFTDescriptor');
+  const coverNFTDescriptor = await deployImmutable('CoverNFTDescriptor', [master.address]);
   const coverNFT = await deployImmutable('CoverNFT', [
     'Nexus Mutual Cover',
     'NMC',

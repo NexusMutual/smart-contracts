@@ -81,6 +81,16 @@ const V2Addresses = {
   IndividualClaimsImpl: '0xcafeaC308bC9B49d6686897270735b4Dc11Fa1Cf',
   YieldTokenIncidentsImpl: '0xcafea7F77b63E995aE864dA9F36c8012666F8Fa4',
   AssessmentImpl: '0xcafea40dE114C67925BeB6e8f0F0e2ee4a25Dd88',
+  LegacyClaimsReward: '0xcafeaDcAcAA2CD81b3c54833D6896596d218BFaB',
+  TokenController: '0xcafea53357c11b3967A8C7167Fb4973C75063DbB',
+  MCR: '0xcafea444db21dc06f34570185cF0014701c7D62e',
+  MemberRoles: '0xcafea22Faff6aEc1d1bfc146b2e2EABC73Fa7Acc',
+  LegacyPooledStaking: '0xcafea16366682a6c0083c38b2a731BC223c53D27',
+  CoverMigrator: '0xcafeac41b010299A9bec5308CCe6aFC2c4DF8D39',
+  LegacyGateway: '0xcafeaD694A05815f03F19c357200c6D95968e205',
+  Governance: '0xcafeafA258Be9aCb7C0De989be21A8e9583FBA65',
+  CoverViewer: '0xcafea84e199C85E44F34CD75374188D33FB94B4b',
+  StakingViewer: '0xcafea2B7904eE0089206ab7084bCaFB8D476BD04'
 };
 
 const getSigner = async address => {
@@ -350,14 +360,17 @@ describe('V2 upgrade', function () {
     );
   });
 
+  // Use deployed contract
   it('Deploy ProductsV1.sol', async function () {
     this.productsV1 = await ethers.getContractAt('ProductsV1', V2Addresses.ProductsV1);
   });
 
+  // Use deployed contract
   it('Deploy SwapOperator.sol', async function () {
     this.swapOperator = await ethers.getContractAt('SwapOperator', V2Addresses.SwapOperator);
   });
 
+  // Use salts for deployed contracts
   it('Calculate proxy addresses for CO, SP, AS, CI, CG', async function () {
     this.coverProxyAddress = calculateProxyAddress(this.master.address, CoverCreate2Salt);
     this.stakingProductsProxyAddress = calculateProxyAddress(this.master.address, StakingProductsCreate2Salt);
@@ -366,11 +379,13 @@ describe('V2 upgrade', function () {
     this.assessmentProxyAddress = calculateProxyAddress(this.master.address, AssessmentCreate2Salt);
   });
 
+  // Use deployed contracts
   it('Deploy CoverNFTDescriptor.sol and CoverNFT.sol', async function () {
     this.coverNFTDescriptor = await ethers.getContractAt('CoverNFTDescriptor', V2Addresses.CoverNFTDescriptor);
     this.coverNFT = await ethers.getContractAt('CoverNFT', V2Addresses.CoverNFT);
   });
 
+  // Use deployed contracts
   it('Deploy StakingPoolFactory.sol, StakingNFT.sol, StakingNFTDescriptor.sol, StakingPool.sol', async function () {
     // this.stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [this.coverProxyAddress]);
     // this.stakingNFTDescriptor = await ethers.deployContract('StakingNFTDescriptor');
@@ -398,7 +413,7 @@ describe('V2 upgrade', function () {
     this.stakingPool = await ethers.getContractAt('StakingPool', V2Addresses.StakingPool);
   });
 
-  it('collect storage data before upgrade', async function () {
+  it('Collect storage data before upgrade', async function () {
     // MCR
     this.contractData.mcr.before.mcrFloorIncrementThreshold = await this.mcr.mcrFloorIncrementThreshold();
     this.contractData.mcr.before.maxMCRFloorIncrement = await this.mcr.maxMCRFloorIncrement();
@@ -439,6 +454,7 @@ describe('V2 upgrade', function () {
     }, {});
   });
 
+  // Use deployed contract
   it('Deploy and upgrade NXMaster.sol', async function () {
     // const master = await ethers.deployContract('NXMaster');
 
@@ -450,6 +466,7 @@ describe('V2 upgrade', function () {
     );
   });
 
+  // Use deployed contracts
   it('Add new contracts: CI, CG, AS, CO, SP', async function () {
     const contractsBefore = await this.master.getInternalContracts();
 
@@ -535,31 +552,35 @@ describe('V2 upgrade', function () {
     console.log('Contracts after:', formatInternalContracts(contractsAfter));
   });
 
-  // eslint-disable-next-line max-len
   it('Upgrade contracts: MR, MCR, TC, PS, P1, CL (CoverMigrator), GW, CR, GV', async function () {
     // CR - ClaimRewards.sol
-    const newClaimsReward = await ethers.deployContract('LegacyClaimsReward', [this.master.address, DAI_ADDRESS]);
+    // const newClaimsReward = await ethers.deployContract('LegacyClaimsReward', [this.master.address, DAI_ADDRESS]);
+    const newClaimsReward = await ethers.getContractAt('LegacyClaimsReward', V2Addresses.LegacyClaimsReward);
 
     // TC - TokenController.sol
-    const tokenController = await ethers.deployContract('TokenController', [
-      this.quotationData.address,
-      newClaimsReward.address,
-      this.stakingPoolFactory.address,
-      this.nxm.address,
-    ]);
+    // const tokenController = await ethers.deployContract('TokenController', [
+    //   this.quotationData.address,
+    //   newClaimsReward.address,
+    //   this.stakingPoolFactory.address,
+    //   this.nxm.address,
+    // ]);
+    const tokenController = await ethers.getContractAt('TokenController', V2Addresses.TokenController);
 
     // MCR - MCR.sol
-    const mcr = await ethers.deployContract('MCR', [this.master.address]);
+    // const mcr = await ethers.deployContract('MCR', [this.master.address]);
+    const mcr = await ethers.getContractAt('MCR', V2Addresses.MCR);
 
     // MR - MemberRoles.sol
-    const memberRoles = await ethers.deployContract('MemberRoles', [this.nxm.address]);
+    // const memberRoles = await ethers.deployContract('MemberRoles', [this.nxm.address]);
+    const memberRoles = await ethers.getContractAt('MemberRoles', V2Addresses.MemberRoles);
 
     // PS - PooledStaking.sol
-    const pooledStaking = await ethers.deployContract('LegacyPooledStaking', [
-      this.coverProxyAddress,
-      this.productsV1.address,
-      this.stakingNFT.address,
-    ]);
+    // const pooledStaking = await ethers.deployContract('LegacyPooledStaking', [
+    //   this.coverProxyAddress,
+    //   this.productsV1.address,
+    //   this.stakingNFT.address,
+    // ]);
+    const pooledStaking = await ethers.getContractAt('LegacyPooledStaking', V2Addresses.LegacyPooledStaking);
 
     // P1 - Pool.sol
     const pool = await ethers.getContractAt('Pool', V2Addresses.Pool);
@@ -569,16 +590,19 @@ describe('V2 upgrade', function () {
     // await enableAsEnzymeReceiver(pool.address);
 
     // CL - CoverMigrator.sol
-    const coverMigrator = await ethers.deployContract('CoverMigrator', [
-      this.quotationData.address,
-      this.productsV1.address,
-    ]);
+    // const coverMigrator = await ethers.deployContract('CoverMigrator', [
+    //   this.quotationData.address,
+    //   this.productsV1.address,
+    // ]);
+    const coverMigrator = await ethers.getContractAt('CoverMigrator', V2Addresses.CoverMigrator);
 
     // GW - Gateway.sol
-    const gateway = await ethers.deployContract('LegacyGateway', [this.quotationData.address]);
+    // const gateway = await ethers.deployContract('LegacyGateway', [this.quotationData.address]);
+    const gateway = await ethers.getContractAt('LegacyGateway', V2Addresses.LegacyGateway);
 
     // GV - Governance.sol
-    const governance = await ethers.deployContract('Governance');
+    // const governance = await ethers.deployContract('Governance');
+    const governance = await ethers.getContractAt('Governance', V2Addresses.Governance);
 
     const contractsBefore = await this.master.getInternalContracts();
 
@@ -979,7 +1003,8 @@ describe('V2 upgrade', function () {
   });
 
   it('Deploy CoverViewer', async function () {
-    this.coverViewer = await ethers.deployContract('CoverViewer', [this.master.address]);
+    // this.coverViewer = await ethers.deployContract('CoverViewer', [this.master.address]);
+    this.coverViewer = await ethers.getContractAt('CoverViewer', V2Addresses.CoverViewer);
   });
 
   it('Migrates existing FTX covers to V2', async function () {
@@ -1062,13 +1087,14 @@ describe('V2 upgrade', function () {
     }
   });
 
-  it('deploys StakingViewer', async function () {
-    this.stakingViewer = await ethers.deployContract('StakingViewer', [
-      this.master.address,
-      this.stakingNFT.address,
-      this.stakingPoolFactory.address,
-      this.stakingProducts.address,
-    ]);
+  it('Deploys StakingViewer', async function () {
+    // this.stakingViewer = await ethers.deployContract('StakingViewer', [
+    //   this.master.address,
+    //   this.stakingNFT.address,
+    //   this.stakingPoolFactory.address,
+    //   this.stakingProducts.address,
+    // ]);
+    this.stakingViewer = await ethers.getContractAt('StakingViewer', V2Addresses.StakingViewer);
   });
 
   it('Migrate selected stakers to their own staking pools', async function () {

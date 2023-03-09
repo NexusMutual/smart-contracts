@@ -429,7 +429,7 @@ describe('V2 upgrade', function () {
     const master = await ethers.deployContract('NXMaster');
 
     await submitGovernanceProposal(
-      PROPOSAL_CATEGORIES.upgradeMaster, // upgradeMasterAddress(address)
+      PROPOSAL_CATEGORIES.upgradeMaster, // upgradeTo(address)
       defaultAbiCoder.encode(['address'], [master.address]),
       this.abMembers,
       this.governance,
@@ -463,7 +463,9 @@ describe('V2 upgrade', function () {
     const coverTypeAndSalt = BigNumber.from(CoverCreate2Salt).shl(8).add(ContractTypes.Proxy);
     const stakingProductsTypeAndSalt = BigNumber.from(StakingProductsCreate2Salt).shl(8).add(ContractTypes.Proxy);
     const individualClaimsTypeAndSalt = BigNumber.from(IndividualClaimsCreate2Salt).shl(8).add(ContractTypes.Proxy);
-    const yieldTokenIncidentsTypeAndSalt = BigNumber.from(YieldTokenIncidentsCreate2Salt).shl(8).add(ContractTypes.Proxy);
+    const yieldTokenIncidentsTypeAndSalt = BigNumber.from(YieldTokenIncidentsCreate2Salt)
+      .shl(8)
+      .add(ContractTypes.Proxy);
     const assessmentTypeAndSalt = BigNumber.from(AssessmentCreate2Salt).shl(8).add(ContractTypes.Proxy);
 
     await submitGovernanceProposal(
@@ -473,7 +475,13 @@ describe('V2 upgrade', function () {
         [
           [toUtf8Bytes('CI'), toUtf8Bytes('CG'), toUtf8Bytes('AS'), toUtf8Bytes('CO'), toUtf8Bytes('SP')],
           [individualClaims, yieldTokenIncidents, assessment, coverImpl, stakingProductsImpl].map(c => c.address),
-          [individualClaimsTypeAndSalt, yieldTokenIncidentsTypeAndSalt, assessmentTypeAndSalt, coverTypeAndSalt, stakingProductsTypeAndSalt],
+          [
+            individualClaimsTypeAndSalt,
+            yieldTokenIncidentsTypeAndSalt,
+            assessmentTypeAndSalt,
+            coverTypeAndSalt,
+            stakingProductsTypeAndSalt,
+          ],
         ],
       ),
       this.abMembers,

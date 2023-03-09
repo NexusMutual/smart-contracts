@@ -17,10 +17,12 @@ const main = async () => {
 };
 
 if (require.main === module) {
-  main(process.argv[1]).catch(e => {
-    console.log('Unhandled error encountered: ', e.stack);
-    process.exit(1);
-  });
+  main(process.argv[1])
+    .catch(e => {
+      console.log('Unhandled error encountered: ', e.stack);
+      process.exit(1);
+    })
+    .then(() => process.exit(0));
 }
 
 module.exports = action;

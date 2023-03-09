@@ -1,13 +1,15 @@
 const { runAction } = require('./utils');
+const { waitForInput } = require('../../../lib/helpers');
 
 const ARMOR_STAKER = '0x1337def1fc06783d4b03cb8c1bf3ebf7d0593fc4';
 const FOUNDATION = '0x963df0066ff8345922df88eebeb1095be4e4e12e';
 const HUGH = '0x87b2a7559d85f4653f13e6546a14189cd5455d45';
 
 async function action({ legacyPooledStaking, signer, selectedStakers = [FOUNDATION, HUGH, ARMOR_STAKER], opts = {} }) {
+  await waitForInput('Press enter to start...');
+
   for (const staker of selectedStakers) {
     console.log(`Migrating staker: ${staker}`);
-
     const tx = await legacyPooledStaking.connect(signer).migrateToNewV2Pool(staker, opts);
 
     console.log(`Waiting tx to be mined: https://etherscan.io/tx/${tx.hash}`);
@@ -17,6 +19,8 @@ async function action({ legacyPooledStaking, signer, selectedStakers = [FOUNDATI
       // increment nonce for next tx
       opts.nonce++;
     }
+
+    await waitForInput('Press enter to continue...');
   }
 
   console.log('Done');

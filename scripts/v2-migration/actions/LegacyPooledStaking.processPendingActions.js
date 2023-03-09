@@ -3,8 +3,9 @@ const { runAction } = require('./utils');
 async function action({ legacyPooledStaking, signer, opts = {} }) {
   let hasPendingActions = await legacyPooledStaking.hasPendingActions();
   let i = 0;
+
   while (hasPendingActions) {
-    console.log(`Calling processPendingActions(). iteration ${i++}`);
+    console.log(`Calling processPendingActions() #${++i}`);
     const tx = await legacyPooledStaking.connect(signer).processPendingActions(100, opts);
 
     console.log(`Waiting tx to be mined: https://etherscan.io/tx/${tx.hash}`);

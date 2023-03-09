@@ -1,6 +1,7 @@
 const { runAction } = require('./utils');
 
 const PRODUCTS_WITH_REWARDS_PATH = '../input/products-with-v1-rewards.json';
+
 async function action({ legacyPooledStaking, signer, opts = {} }) {
   const productsWithPossibleRewards = require(PRODUCTS_WITH_REWARDS_PATH).map(address => address.toLowerCase());
   console.log(`Call pushRewards with ${productsWithPossibleRewards.length} products.`);

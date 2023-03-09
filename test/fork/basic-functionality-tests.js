@@ -472,14 +472,23 @@ describe('basic functionality tests', function () {
   it('Submit claim for custody cover', async function () {
     await evm.impersonate(DAI_NXM_HOLDER);
     const coverBuyer = await getSigner(DAI_NXM_HOLDER);
+
     const claimsCountBefore = await this.individualClaims.getClaimsCount();
     const assessmentCountBefore = await this.assessment.getAssessmentsCount();
 
-    const segmentId = (await this.cover.coverSegmentsCount(custodyCoverId)).sub(1);
-    const requestedAmount = parseEther('1');
     const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
+    const requestedAmount = parseEther('1');
+    const segmentId = (await this.cover.coverSegmentsCount(custodyCoverId)).sub(1);
+    const segment = await this.cover.coverSegmentWithRemainingAmount(custodyCoverId, segmentId);
 
-    await this.individualClaims.connect(coverBuyer).submitClaim(custodyCoverId, segmentId, requestedAmount, ipfsHash);
+    const [deposit] = await this.individualClaims.getAssessmentDepositAndReward(
+      requestedAmount,
+      segment.period,
+      0, // ETH
+    );
+    await this.individualClaims
+      .connect(coverBuyer)
+      .submitClaim(custodyCoverId, segmentId, requestedAmount, ipfsHash, { value: deposit });
 
     const claimsCountAfter = await this.individualClaims.getClaimsCount();
     const assessmentCountAfter = await this.assessment.getAssessmentsCount();

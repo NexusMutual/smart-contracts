@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const Decimal = require('decimal.js');
+const fetch = require('node-fetch');
 
 const { BigNumber } = ethers;
 

@@ -72,6 +72,15 @@ const V2Addresses = {
   ProductsV1: '0xcafeab02966FdC69Ce5aFDD532DD51466892E32B',
   CoverNFTDescriptor: '0xcafead1E31Ac8e4924Fc867c2C54FAB037458cb9',
   CoverNFT: '0xcafeaCa76be547F14D0220482667B42D8E7Bc3eb',
+  StakingPoolFactory: '0xcafeafb97BF8831D95C0FC659b8eB3946B101CB3',
+  StakingNFTDescriptor: '0xcafea534e156a41b3e77f29Bf93C653004f1455C',
+  StakingNFT: '0xcafea508a477D94c502c253A58239fb8F948e97f',
+  StakingPool: '0xcafeacf62FB96fa1243618c4727Edf7E04D1D4Ca',
+  CoverImpl: '0xcafeaCbabeEd884AE94046d87C8aAB120958B8a6',
+  StakingProductsImpl: '0xcafea524e89514e131eE9F8462536793d49d8738',
+  IndividualClaimsImpl: '0xcafeaC308bC9B49d6686897270735b4Dc11Fa1Cf',
+  YieldTokenIncidentsImpl: '0xcafea7F77b63E995aE864dA9F36c8012666F8Fa4',
+  AssessmentImpl: '0xcafea40dE114C67925BeB6e8f0F0e2ee4a25Dd88',
 };
 
 const getSigner = async address => {
@@ -363,25 +372,30 @@ describe('V2 upgrade', function () {
   });
 
   it('Deploy StakingPoolFactory.sol, StakingNFT.sol, StakingNFTDescriptor.sol, StakingPool.sol', async function () {
-    this.stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [this.coverProxyAddress]);
-    this.stakingNFTDescriptor = await ethers.deployContract('StakingNFTDescriptor');
+    // this.stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [this.coverProxyAddress]);
+    // this.stakingNFTDescriptor = await ethers.deployContract('StakingNFTDescriptor');
+    //
+    // this.stakingNFT = await ethers.deployContract('StakingNFT', [
+    //   'Nexus Mutual Deposit',
+    //   'NMD',
+    //   this.stakingPoolFactory.address,
+    //   this.coverProxyAddress,
+    //   this.stakingNFTDescriptor.address,
+    // ]);
+    //
+    // this.stakingPool = await ethers.deployContract('StakingPool', [
+    //   this.stakingNFT.address,
+    //   this.nxm.address,
+    //   this.coverProxyAddress,
+    //   this.tokenController.address,
+    //   this.master.address,
+    //   this.stakingProductsProxyAddress,
+    // ]);
 
-    this.stakingNFT = await ethers.deployContract('StakingNFT', [
-      'Nexus Mutual Deposit',
-      'NMD',
-      this.stakingPoolFactory.address,
-      this.coverProxyAddress,
-      this.stakingNFTDescriptor.address,
-    ]);
-
-    this.stakingPool = await ethers.deployContract('StakingPool', [
-      this.stakingNFT.address,
-      this.nxm.address,
-      this.coverProxyAddress,
-      this.tokenController.address,
-      this.master.address,
-      this.stakingProductsProxyAddress,
-    ]);
+    this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', V2Addresses.StakingPoolFactory);
+    this.stakingNFTDescriptor = await ethers.getContractAt('StakingNFTDescriptor', V2Addresses.StakingNFTDescriptor);
+    this.stakingNFT = await ethers.getContractAt('StakingNFT', V2Addresses.StakingNFT);
+    this.stakingPool = await ethers.getContractAt('StakingPool', V2Addresses.StakingPool);
   });
 
   it('collect storage data before upgrade', async function () {
@@ -426,11 +440,11 @@ describe('V2 upgrade', function () {
   });
 
   it('Deploy and upgrade NXMaster.sol', async function () {
-    const master = await ethers.deployContract('NXMaster');
+    // const master = await ethers.deployContract('NXMaster');
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.upgradeMaster, // upgradeTo(address)
-      defaultAbiCoder.encode(['address'], [master.address]),
+      defaultAbiCoder.encode(['address'], [V2Addresses.NXMaster]),  // defaultAbiCoder.encode(['address'], [master.address]),
       this.abMembers,
       this.governance,
     );
@@ -439,26 +453,32 @@ describe('V2 upgrade', function () {
   it('Add new contracts: CI, CG, AS, CO, SP', async function () {
     const contractsBefore = await this.master.getInternalContracts();
 
-    const individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
-    const yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
-      this.nxm.address,
-      this.coverNFT.address,
-    ]);
-    const assessment = await ethers.deployContract('Assessment', [this.nxm.address]);
+    // const individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
+    // const yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
+    //   this.nxm.address,
+    //   this.coverNFT.address,
+    // ]);
+    // const assessment = await ethers.deployContract('Assessment', [this.nxm.address]);
 
-    // CO - Cover.sol
-    const coverImpl = await ethers.deployContract('Cover', [
-      this.coverNFT.address,
-      this.stakingNFT.address,
-      this.stakingPoolFactory.address,
-      this.stakingPool.address,
-    ]);
+    // // CO - Cover.sol
+    // const coverImpl = await ethers.deployContract('Cover', [
+    //   this.coverNFT.address,
+    //   this.stakingNFT.address,
+    //   this.stakingPoolFactory.address,
+    //   this.stakingPool.address,
+    // ]);
+    //
+    // // SP - StakingProduct.sol
+    // const stakingProductsImpl = await ethers.deployContract('StakingProducts', [
+    //   this.coverProxyAddress,
+    //   this.stakingPoolFactory.address,
+    // ]);
 
-    // SP - StakingProduct.sol
-    const stakingProductsImpl = await ethers.deployContract('StakingProducts', [
-      this.coverProxyAddress,
-      this.stakingPoolFactory.address,
-    ]);
+    const individualClaims = await ethers.getContractAt('IndividualClaims', V2Addresses.IndividualClaimsImpl);
+    const yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', V2Addresses.YieldTokenIncidentsImpl);
+    const assessment = await ethers.getContractAt('Assessment', V2Addresses.AssessmentImpl);
+    const coverImpl = await ethers.getContractAt('Cover', V2Addresses.CoverImpl);
+    const stakingProductsImpl = await ethers.getContractAt('StakingProducts', V2Addresses.StakingProductsImpl);
 
     const coverTypeAndSalt = BigNumber.from(CoverCreate2Salt).shl(8).add(ContractTypes.Proxy);
     const stakingProductsTypeAndSalt = BigNumber.from(StakingProductsCreate2Salt).shl(8).add(ContractTypes.Proxy);

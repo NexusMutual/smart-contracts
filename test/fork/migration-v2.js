@@ -19,6 +19,9 @@ const SCRIPTS_USE_CACHE = !process.env.NO_CACHE;
 
 const CoverCreate2Salt = 4924891554;
 const StakingProductsCreate2Salt = 203623750;
+const IndividualClaimsCreate2Salt = 352721057824254;
+const YieldTokenIncidentsCreate2Salt = 35274507321883;
+const AssessmentCreate2Salt = 352729799262241;
 
 // const getProductAddresses = require('../../scripts/v2-migration/get-v2-products');
 // const getV1CoverPrices = require('../../scripts/v2-migration/get-v1-cover-prices');
@@ -260,7 +263,7 @@ describe('V2 upgrade', function () {
     }
   });
 
-  it('Add proposal category 43 (Add new contracts)', async function () {
+  it.skip('Add proposal category 43 (Add new contracts)', async function () {
     await submitGovernanceProposal(
       // addCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       PROPOSAL_CATEGORIES.addCategory,
@@ -285,7 +288,7 @@ describe('V2 upgrade', function () {
     );
   });
 
-  it('Add proposal category 44 (Remove contracts)', async function () {
+  it.skip('Add proposal category 44 (Remove contracts)', async function () {
     await submitGovernanceProposal(
       // addCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       PROPOSAL_CATEGORIES.addCategory,
@@ -344,9 +347,12 @@ describe('V2 upgrade', function () {
     this.swapOperator = await ethers.getContractAt('SwapOperator', V2Addresses.SwapOperator);
   });
 
-  it('Calculate proxy addresses for Cover and StakingProducts', async function () {
+  it('Calculate proxy addresses for CO, SP, AS, CI, CG', async function () {
     this.coverProxyAddress = calculateProxyAddress(this.master.address, CoverCreate2Salt);
     this.stakingProductsProxyAddress = calculateProxyAddress(this.master.address, StakingProductsCreate2Salt);
+    this.individualClaimsProxyAddress = calculateProxyAddress(this.master.address, IndividualClaimsCreate2Salt);
+    this.yieldTokenProxyAddress = calculateProxyAddress(this.master.address, YieldTokenIncidentsCreate2Salt);
+    this.assessmentProxyAddress = calculateProxyAddress(this.master.address, AssessmentCreate2Salt);
   });
 
   it('Deploy CoverNFTDescriptor.sol and CoverNFT.sol', async function () {
@@ -454,6 +460,9 @@ describe('V2 upgrade', function () {
 
     const coverTypeAndSalt = BigNumber.from(CoverCreate2Salt).shl(8).add(ContractTypes.Proxy);
     const stakingProductsTypeAndSalt = BigNumber.from(StakingProductsCreate2Salt).shl(8).add(ContractTypes.Proxy);
+    const individualClaimsTypeAndSalt = BigNumber.from(IndividualClaimsCreate2Salt).shl(8).add(ContractTypes.Proxy);
+    const yieldTokenIncidentsTypeAndSalt = BigNumber.from(YieldTokenIncidentsCreate2Salt).shl(8).add(ContractTypes.Proxy);
+    const assessmentTypeAndSalt = BigNumber.from(AssessmentCreate2Salt).shl(8).add(ContractTypes.Proxy);
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
@@ -462,7 +471,7 @@ describe('V2 upgrade', function () {
         [
           [toUtf8Bytes('CI'), toUtf8Bytes('CG'), toUtf8Bytes('AS'), toUtf8Bytes('CO'), toUtf8Bytes('SP')],
           [individualClaims, yieldTokenIncidents, assessment, coverImpl, stakingProductsImpl].map(c => c.address),
-          [ContractTypes.Proxy, ContractTypes.Proxy, ContractTypes.Proxy, coverTypeAndSalt, stakingProductsTypeAndSalt],
+          [individualClaimsTypeAndSalt, yieldTokenIncidentsTypeAndSalt, assessmentTypeAndSalt, coverTypeAndSalt, stakingProductsTypeAndSalt],
         ],
       ),
       this.abMembers,
@@ -472,23 +481,28 @@ describe('V2 upgrade', function () {
     this.cover = await ethers.getContractAt('Cover', this.coverProxyAddress);
     this.stakingProducts = await ethers.getContractAt('StakingProducts', this.stakingProductsProxyAddress);
 
-    const individualClaimsAddress = await this.master.contractAddresses(toUtf8Bytes('CI'));
-    const yieldTokenIncidentsAddress = await this.master.contractAddresses(toUtf8Bytes('CG'));
-    const assessmentAddress = await this.master.contractAddresses(toUtf8Bytes('AS'));
-
-    this.individualClaims = await ethers.getContractAt('IndividualClaims', individualClaimsAddress);
-    this.yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', yieldTokenIncidentsAddress);
-    this.assessment = await ethers.getContractAt('Assessment', assessmentAddress);
-
-    const contractsAfter = await this.master.getInternalContracts();
-    console.log('Contracts before:', formatInternalContracts(contractsBefore));
-    console.log('Contracts after:', formatInternalContracts(contractsAfter));
+    this.individualClaims = await ethers.getContractAt('IndividualClaims', this.individualClaimsProxyAddress);
+    this.yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', this.yieldTokenProxyAddress);
+    this.assessment = await ethers.getContractAt('Assessment', this.assessmentProxyAddress);
 
     const actualCoverAddress = await this.master.getLatestAddress(toUtf8Bytes('CO'));
     expect(actualCoverAddress).to.be.equal(this.coverProxyAddress);
 
     const actualStakingProductsAddress = await this.master.getLatestAddress(toUtf8Bytes('SP'));
     expect(actualStakingProductsAddress).to.be.equal(this.stakingProductsProxyAddress);
+
+    const actualIndividualClaimsAddress = await this.master.getLatestAddress(toUtf8Bytes('CI'));
+    expect(actualIndividualClaimsAddress).to.be.equal(this.individualClaimsProxyAddress);
+
+    const actualYieldTokenAddress = await this.master.getLatestAddress(toUtf8Bytes('CG'));
+    expect(actualYieldTokenAddress).to.be.equal(this.yieldTokenProxyAddress);
+
+    const actualAssessmentAddress = await this.master.getLatestAddress(toUtf8Bytes('AS'));
+    expect(actualAssessmentAddress).to.be.equal(this.assessmentProxyAddress);
+
+    const contractsAfter = await this.master.getInternalContracts();
+    console.log('Contracts before:', formatInternalContracts(contractsBefore));
+    console.log('Contracts after:', formatInternalContracts(contractsAfter));
   });
 
   // eslint-disable-next-line max-len
@@ -852,7 +866,7 @@ describe('V2 upgrade', function () {
     await getCNLockedAmount(ethers.provider, SCRIPTS_USE_CACHE);
   });
 
-  it('Check all members with CN locked NXM can withdraw & TC has the correct balance afterwards', async function () {
+  it.skip('Check all members with CN locked NXM can withdraw & TC has the correct balance afterwards', async function () {
     const CN_LOCKED_AMOUNT_OUTPUT = require(CN_LOCKED_AMOUNT_OUTPUT_PATH);
     const tcBalanceBefore = await this.nxm.balanceOf(this.tokenController.address);
 

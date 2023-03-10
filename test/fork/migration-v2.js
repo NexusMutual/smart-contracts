@@ -90,7 +90,7 @@ const V2Addresses = {
   LegacyGateway: '0xcafeaD694A05815f03F19c357200c6D95968e205',
   Governance: '0xcafeafA258Be9aCb7C0De989be21A8e9583FBA65',
   CoverViewer: '0xcafea84e199C85E44F34CD75374188D33FB94B4b',
-  StakingViewer: '0xcafea2B7904eE0089206ab7084bCaFB8D476BD04'
+  StakingViewer: '0xcafea2B7904eE0089206ab7084bCaFB8D476BD04',
 };
 
 const getSigner = async address => {
@@ -460,7 +460,7 @@ describe('V2 upgrade', function () {
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.upgradeMaster, // upgradeTo(address)
-      defaultAbiCoder.encode(['address'], [V2Addresses.NXMaster]),  // defaultAbiCoder.encode(['address'], [master.address]),
+      defaultAbiCoder.encode(['address'], [V2Addresses.NXMaster]),
       this.abMembers,
       this.governance,
     );
@@ -470,7 +470,9 @@ describe('V2 upgrade', function () {
   it('Add new contracts: CI, CG, AS, CO, SP', async function () {
     const contractsBefore = await this.master.getInternalContracts();
 
-    // const individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
+    // const individualClaims = await ethers.deployContract('IndividualClaims',
+    //   [this.nxm.address, this.coverNFT.address]
+    // );
     // const yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
     //   this.nxm.address,
     //   this.coverNFT.address,

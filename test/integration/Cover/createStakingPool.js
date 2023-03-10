@@ -1,14 +1,15 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { AddressZero } = ethers.constants;
+const { AddressZero, One } = ethers.constants;
 const { parseEther } = ethers.utils;
+const errors = require('../../utils').errors;
 
 function calculateTrancheId(currentTime, period, gracePeriod) {
   return Math.floor((currentTime + period + gracePeriod) / (91 * 24 * 3600));
 }
 
-const DEFAULT_POOL_FEE = '5';
+const DEFAULT_POOL_FEE = One.mul(5);
 const period = 3600 * 24 * 30; // 30 days
 const gracePeriod = 3600 * 24 * 30;
 const deposit = parseEther('10');
@@ -120,5 +121,108 @@ describe('createStakingPool', function () {
         '', // ipfsDescriptionHash
       ),
     ).to.be.revertedWith('Caller is not a member');
+  });
+
+  it("should fail to create a pool with a product that doesn't exist", async function () {
+    const { cover } = this.contracts;
+    const [manager] = this.accounts.members;
+    const { DEFAULT_PRODUCTS } = this;
+
+    const nonExistingProduct = { ...DEFAULT_PRODUCTS[0], productId: 500 };
+
+    await expect(
+      cover.connect(manager).createStakingPool(
+        false, // isPrivatePool,
+        DEFAULT_POOL_FEE, // initialPoolFee
+        DEFAULT_POOL_FEE, // maxPoolFee,
+        [nonExistingProduct], // products
+        '', // ipfsDescriptionHash
+      ),
+    ).to.be.revertedWithPanic(errors.INVALID_ARRAY_ACCESS);
+    // TODO: do we want an explicit error for the non-existing product?
+  });
+
+  it("should fail to create a pool with a product that isn't allowed for this pool", async function () {
+    const { cover } = this.contracts;
+    const [manager] = this.accounts.members;
+    const { DEFAULT_PRODUCTS } = this;
+
+    const notAllowedProduct = { ...DEFAULT_PRODUCTS[0], productId: 4 };
+
+    // get new poolId
+    const [newPoolId] = await cover.connect(manager).callStatic.createStakingPool(
+      false, // isPrivatePool,
+      DEFAULT_POOL_FEE, // initialPoolFee
+      DEFAULT_POOL_FEE, // maxPoolFee,
+      DEFAULT_PRODUCTS,
+      '', // ipfsDescriptionHash
+    );
+
+    expect(await cover.isPoolAllowed(notAllowedProduct.productId, newPoolId)).to.be.equal(false);
+
+    await expect(
+      cover.connect(manager).createStakingPool(
+        false, // isPrivatePool,
+        DEFAULT_POOL_FEE, // initialPoolFee
+        DEFAULT_POOL_FEE, // maxPoolFee,
+        [notAllowedProduct], // products
+        '', // ipfsDescriptionHash
+      ),
+    )
+      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
+      .withArgs(notAllowedProduct.productId);
+  });
+
+  it("should fail to create a pool with one of several products that isn't allowed for this pool", async function () {
+    const { cover } = this.contracts;
+    const [manager] = this.accounts.members;
+    const { DEFAULT_PRODUCTS } = this;
+
+    const nonExistingProduct = { ...DEFAULT_PRODUCTS[0], productId: 4 };
+    DEFAULT_PRODUCTS.push(nonExistingProduct);
+
+    // get new poolId
+    const [newPoolId] = await cover.connect(manager).callStatic.createStakingPool(
+      false, // isPrivatePool,
+      DEFAULT_POOL_FEE, // initialPoolFee
+      DEFAULT_POOL_FEE, // maxPoolFee,
+      [],
+      '', // ipfsDescriptionHash
+    );
+
+    expect(await cover.isPoolAllowed(DEFAULT_PRODUCTS[0].productId, newPoolId)).to.be.equal(true);
+    expect(await cover.isPoolAllowed(DEFAULT_PRODUCTS[1].productId, newPoolId)).to.be.equal(false);
+
+    await expect(
+      cover.connect(manager).createStakingPool(
+        false, // isPrivatePool,
+        DEFAULT_POOL_FEE, // initialPoolFee
+        DEFAULT_POOL_FEE, // maxPoolFee,
+        DEFAULT_PRODUCTS, // products
+        '', // ipfsDescriptionHash
+      ),
+    )
+      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
+      .withArgs(nonExistingProduct.productId);
+
+    // deploy pool with first product only
+    await cover.connect(manager).createStakingPool(
+      false, // isPrivatePool,
+      DEFAULT_POOL_FEE, // initialPoolFee
+      DEFAULT_POOL_FEE, // maxPoolFee,
+      [DEFAULT_PRODUCTS[0]], // products
+      '', // ipfsDescriptionHash
+    );
+
+    // next pool is allowed to have second product
+    expect(newPoolId.add(1)).to.be.equal(7);
+    expect(await cover.isPoolAllowed(DEFAULT_PRODUCTS[1].productId, newPoolId.add(1))).to.be.equal(true);
+    await cover.connect(manager).createStakingPool(
+      false, // isPrivatePool,
+      DEFAULT_POOL_FEE, // initialPoolFee
+      DEFAULT_POOL_FEE, // maxPoolFee,
+      DEFAULT_PRODUCTS, // products
+      '', // ipfsDescriptionHash
+    );
   });
 });

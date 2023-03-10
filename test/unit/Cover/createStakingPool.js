@@ -114,6 +114,29 @@ describe('createStakingPool', function () {
     }
   });
 
+  it('should fail to create a new pool called from pooled staking with forbidden product', async function () {
+    const { cover } = this;
+    const { initialPoolFee, maxPoolFee, ipfsDescriptionHash } = newPoolFixture;
+
+    // target price is below minimum, but we're using pooled staking so we can override it
+    const initialProducts = [
+      { productId: 0, weight: 100, initialPrice: '500', targetPrice: '0' },
+      { productId: 1, weight: 70, initialPrice: '300', targetPrice: '0' },
+    ];
+
+    await expect(
+      cover.connect(this.pooledStakingSigner).createStakingPool(
+        true, // isPrivatePool,
+        initialPoolFee,
+        maxPoolFee,
+        initialProducts,
+        ipfsDescriptionHash,
+      ),
+    )
+      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
+      .withArgs(1);
+  });
+
   it('should create and initialize a new pool called from pooled staking', async function () {
     const { cover, stakingPoolFactory, stakingProducts } = this;
     const { initialPoolFee, maxPoolFee, ipfsDescriptionHash } = newPoolFixture;
@@ -121,7 +144,7 @@ describe('createStakingPool', function () {
     // target price is below minimum, but we're using pooled staking so we can override it
     const initialProducts = [
       { productId: 0, weight: 100, initialPrice: '500', targetPrice: '0' },
-      { productId: 1, weight: 70, initialPrice: '300', targetPrice: '0' },
+      { productId: 3, weight: 70, initialPrice: '300', targetPrice: '0' },
     ];
 
     const [poolId, expectedAddress] = await cover.connect(this.pooledStakingSigner).callStatic.createStakingPool(

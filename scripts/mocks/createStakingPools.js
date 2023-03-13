@@ -47,7 +47,7 @@ async function main() {
     initialPoolFee,
     maxPoolFee,
     productInitializationParams,
-    '', // ipfsDescriptionHash
+    'QmWkJ6euHiAXYkgYFm8paWtU1Ac9apLUu457EZoSy1UE5k', // ipfsDescriptionHash
   );
   console.log('1st staking pool was created.');
 
@@ -57,7 +57,7 @@ async function main() {
     initialPoolFee,
     maxPoolFee,
     productInitializationParams,
-    '', // ipfsDescriptionHash
+    'QmTBP1KxocrLqor4pLR6zRYe8pN9P84zEZrvDDpRANoZ4F', // ipfsDescriptionHash
   );
   console.log('2nd staking pool was created.');
 

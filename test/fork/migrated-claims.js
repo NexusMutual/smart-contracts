@@ -9,6 +9,14 @@ const {
 const { daysToSeconds } = require('../../lib/helpers');
 const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
+// const { newCompilerConfig } = require('@tenderly/hardhat-tenderly/dist/utils/util');
+const { signMembershipApproval } = require('../integration/utils').membership;
+const { parseUnits } = require('ethers/lib/utils');
+const path = require('path');
+const { parse: csvParse } = require('csv-parse/sync');
+const fs = require('fs');
+
+const JOINING_FEE = parseUnits('0.002');
 
 const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 
@@ -48,6 +56,8 @@ const V2Addresses = {
   StakingViewer: '0xcafea2B7904eE0089206ab7084bCaFB8D476BD04',
 };
 
+const NXM_TOKEN_ADDRESS = '0xd7c49CEE7E9188cCa6AD8FF264C1DA2e69D4Cf3B';
+
 const getSigner = async address => {
   const provider =
     network.name !== 'hardhat' // ethers errors out when using non-local accounts
@@ -79,6 +89,26 @@ async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
 
   const proposal = await gv.proposal(id);
   assert.equal(proposal[2].toNumber(), 3, 'Proposal Status != ACCEPTED');
+}
+
+async function enrollMember({ mr }, members, kycAuthSigner) {
+  for (const member of members) {
+    const memberAddress = await member.getAddress();
+
+    console.log(`Creating member ${memberAddress}`);
+    const membershipApprovalData0 = await signMembershipApproval({
+      nonce: 0,
+      address: memberAddress,
+      kycAuthSigner,
+      chainId: network.config.chainId,
+    });
+
+    console.log('calling join');
+
+    await mr.connect(member).join(memberAddress, 0, membershipApprovalData0, {
+      value: JOINING_FEE,
+    });
+  }
 }
 
 describe('Migrated claims', function () {
@@ -122,6 +152,7 @@ describe('Migrated claims', function () {
     this.cover = await ethers.getContractAt('Cover', await this.master.getLatestAddress(toUtf8Bytes('CO')));
     this.memberRoles = await ethers.getContractAt('MemberRoles', await this.master.getLatestAddress(toUtf8Bytes('MR')));
     this.governance = await ethers.getContractAt('Governance', await this.master.getLatestAddress(toUtf8Bytes('GV')));
+    this.nxmToken = await ethers.getContractAt('NXMToken', NXM_TOKEN_ADDRESS);
   });
 
   it('Impersonate AB members', async function () {
@@ -159,6 +190,38 @@ describe('Migrated claims', function () {
     );
   });
 
+  it('Fix grace period days -> seconds for product types', async function () {
+    const V2OnChainProductTypeDataProductsPath = path.join(
+      __dirname,
+      '../../scripts/v2-migration/input/product-type-data.csv',
+    );
+    const productTypeData = csvParse(fs.readFileSync(V2OnChainProductTypeDataProductsPath, 'utf8'), {
+      columns: true,
+      skip_empty_lines: true,
+    });
+
+    const productTypeIpfsHashes = require(path.join(
+      __dirname,
+      '../../scripts/v2-migration/output/product-type-ipfs-hashes.json',
+    ));
+
+    let expectedProductTypeId = 0;
+    const productTypeEntries = productTypeData.map(data => {
+      const nextProductTypeId = expectedProductTypeId++;
+      return {
+        productTypeName: data.Name,
+        productTypeId: nextProductTypeId,
+        ipfsMetadata: productTypeIpfsHashes[data.Id],
+        productType: {
+          claimMethod: data['Claim Method'],
+          gracePeriod: data['Grace Period (days)'] * 3600 * 24, // convert to secunds
+        },
+      };
+    });
+
+    await this.cover.connect(this.abMembers[0]).setProductTypes(productTypeEntries);
+  });
+
   const setTime = async timestamp => {
     await setNextBlockTime(timestamp);
     await mineNextBlock();
@@ -174,7 +237,15 @@ describe('Migrated claims', function () {
     return poll;
   }
 
-  async function migrateClaimAndRedeem({ coverIDsV1, expectedGracePeriod, v1ProductId }) {
+  async function migrateClaimAndRedeem({
+    coverIDsV1,
+    expectedGracePeriod,
+    v1ProductId,
+    submitAndClaimProcess,
+    useSubmitAndClaimProcess,
+    claimAmounts,
+    distributorCoverOwners,
+  }) {
     let expectedClaimId = (await this.individualClaims.getClaimsCount()).toNumber();
     const segmentId = 0;
 
@@ -189,7 +260,17 @@ describe('Migrated claims', function () {
 
     const coverData = [];
     for (const coverIdV1 of coverIDsV1) {
-      const { memberAddress, sumAssured, coverAsset: legacyCoverAsset } = await this.gateway.getCover(coverIdV1);
+      const {
+        memberAddress: onChainMemberAddress,
+        sumAssured,
+        coverAsset: legacyCoverAsset,
+      } = await this.gateway.getCover(coverIdV1);
+
+      const memberAddress =
+        distributorCoverOwners && distributorCoverOwners[coverIdV1]
+          ? distributorCoverOwners[coverIdV1]
+          : onChainMemberAddress;
+
       const { coverPeriod: coverPeriodInDays, validUntil } = await this.quotationData.getCoverDetailsByCoverID2(
         coverIdV1,
       );
@@ -201,17 +282,32 @@ describe('Migrated claims', function () {
       await evm.impersonate(memberAddress);
       await evm.setBalance(memberAddress, parseEther('1000'));
 
+      const requestedAmount = claimAmounts && claimAmounts[coverIdV1] ? claimAmounts[coverIdV1] : sumAssured;
+
       const [deposit] = await this.individualClaims.getAssessmentDepositAndReward(
         sumAssured,
         expectedPeriod,
         expectedCoverAsset,
       );
-      const tx = await this.coverMigrator.connect(member).migrateAndSubmitClaim(coverIdV1, segmentId, sumAssured, '', {
-        value: deposit,
-      });
-      const receipt = await tx.wait();
-      const coverMigratedEvent = receipt.events.find(x => x.event === 'CoverMigrated');
-      const coverIdV2 = coverMigratedEvent.args.coverIdV2;
+      let coverIdV2;
+      if (useSubmitAndClaimProcess && useSubmitAndClaimProcess[coverIdV1]) {
+        const { coverIdV2: newCoverIdV2 } = await submitAndClaimProcess({
+          coverIdV1,
+          segmentId,
+          requestedAmount,
+          deposit,
+        });
+        coverIdV2 = newCoverIdV2;
+      } else {
+        const tx = await this.coverMigrator
+          .connect(member)
+          .migrateAndSubmitClaim(coverIdV1, segmentId, requestedAmount, '', {
+            value: deposit,
+          });
+        const receipt = await tx.wait();
+        const coverMigratedEvent = receipt.events.find(x => x.event === 'CoverMigrated');
+        coverIdV2 = coverMigratedEvent.args.coverIdV2;
+      }
 
       console.log(`Cover V1 ${coverIdV1} mapped to V2 cover: ${coverIdV2}`);
 
@@ -229,7 +325,7 @@ describe('Migrated claims', function () {
       expect(remainingAmount).to.be.equal(sumAssured);
       expect(period).to.be.equal(expectedPeriod);
       expect(start).to.be.equal(expectedStart);
-      expect(gracePeriod).to.be.equal(expectedGracePeriod);
+      expect(gracePeriod).to.be.equal(expectedGracePeriod * 3600 * 24);
 
       const coverSegments = await this.cover.coverSegments(coverIdV2);
       expect(coverSegments[0].amount).to.be.equal(sumAssured);
@@ -238,7 +334,7 @@ describe('Migrated claims', function () {
 
       const claimId = expectedClaimId++;
 
-      console.log(`Claim ID: ${claimId}. Amount: ${amount.toString()}. Period: ${period.toString()}`);
+      console.log(`Claim ID: ${claimId}. Amount: ${requestedAmount.toString()}. Period: ${period.toString()}`);
 
       const claimsArray = await this.individualClaims.getClaimsToDisplay([claimId]);
       const {
@@ -250,7 +346,7 @@ describe('Migrated claims', function () {
         assessmentId,
       } = claimsArray[0];
 
-      expect(claimAmount).to.be.equal(sumAssured);
+      expect(claimAmount).to.be.equal(requestedAmount);
       expect(claimProductId).to.be.equal(productId);
       expect(assetSymbol).to.be.equal(expectedCoverAsset === 0 ? 'ETH' : 'DAI');
       expect(coverId).to.be.equal(coverIdV2);
@@ -266,6 +362,7 @@ describe('Migrated claims', function () {
         claimAmount,
         memberAddress,
         deposit,
+        requestedAmount,
       });
     }
 
@@ -329,7 +426,22 @@ describe('Migrated claims', function () {
     }
   }
 
-  it.skip('Migrates, claims and reedeems existing FTX covers to V2', async function () {
+  it('Migrate specific sherlock covers', async function () {
+    const coverIDsV1 = [8305];
+
+    const SHERLLOCK_GRACE_PERIOD = 35; // 35 days
+    const SHERLOCK_ID_V1 = '0x0000000000000000000000000000000000000029';
+
+    const claimAmounts = {
+      8305: parseEther('1116000'),
+    };
+
+    await migrateClaimAndRedeem.apply(this, [
+      { coverIDsV1, expectedGracePeriod: SHERLLOCK_GRACE_PERIOD, v1ProductId: SHERLOCK_ID_V1, claimAmounts },
+    ]);
+  });
+
+  it('Migrates, claims and reedeems existing FTX covers to V2', async function () {
     const coverIDsV1 = [7907, 7881, 7863, 7643, 7598, 7572, 7542, 7313, 7134];
 
     const FTX_GRACE_PERIOD = 120; // 120 days
@@ -340,34 +452,82 @@ describe('Migrated claims', function () {
     ]);
   });
 
-  it.skip('Migrates, claims and reedeems existing Euler covers to V2', async function () {
-    const coverIDsV1 = [7898, 8090, 8121, 8166, 8167, 8201, 8210, 8220, 8221, 8223, 8233, 8234, 8251, 8285, 8317];
-
-    const EULER_GRACE_PERIOD = 30; // 30 days
-    const EULER_ID_V1 = '0x0000000000000000000000000000000000000028';
-
-    await migrateClaimAndRedeem.apply(this, [
-      { coverIDsV1, expectedGracePeriod: EULER_GRACE_PERIOD, v1ProductId: EULER_ID_V1 },
-    ]);
-  });
-
-
-  it('Migrates Bright Union Euler covers to V2', async function () {
-
+  it('Migrates normal Euler and Bright Union Euler covers to V2', async function () {
     const BRIGHT_UNION_DISTRIBUTOR = '0x425b3A68f1FD5dE26b4B9F4Be8049E36406B187A';
 
     const brightUnionDistributor = await ethers.getContractAt('IBrightUnionDistributor', BRIGHT_UNION_DISTRIBUTOR);
 
-    const coverIDsV1 = [8090, 8220, 8221, 8233, 8251];
+    const simpleCoverIds = [7898, 8121, 8166, 8167, 8201, 8210, 8223, 8234, 8285, 8317];
 
-    for (const coverId of coverIDsV1) {
+    // 8220 is close to expiry - skip the other tests and only run this one to get it to be within the right time range
+    const brightUnionCoverIds = [8090, /* 8220, */ 8221, 8233, 8251];
 
+    const coverIDsV1 = [...simpleCoverIds, ...brightUnionCoverIds];
+
+    const coverContract = this.cover;
+    const individualClaims = this.individualClaims;
+    const mr = this.memberRoles;
+
+    const governanceImpersonated = await getSigner(this.governance.address);
+    await evm.impersonate(this.governance.address);
+    await evm.setBalance(this.governance.address, parseEther('1000'));
+
+    const kycAuthAddress = '0x5c422f8B5E28530e0972b75E32F4f6A03421E858';
+    const kycAuthPVK = '9fcb6d09c64316b95f17b03c66729562f85abd5299f9e653d060eb6a3ed62c0d';
+    const kycAuthSigner = new ethers.Wallet(kycAuthPVK, ethers.defaultProvider);
+
+    await mr.connect(governanceImpersonated).setKycAuthAddress(kycAuthAddress);
+
+    const distributorCoverOwners = {};
+
+    // load cover owners according to the distributor
+    for (const coverId of brightUnionCoverIds) {
       const ownerAddress = await brightUnionDistributor.ownerOf(coverId);
+      distributorCoverOwners[coverId] = ownerAddress;
+    }
+
+    const useSubmitAndClaimProcess = {};
+    for (const id of brightUnionCoverIds) {
+      useSubmitAndClaimProcess[id] = true;
+    }
+
+    async function submitAndClaimProcess({ coverIdV1, segmentId, requestedAmount, deposit }) {
+      const ownerAddress = distributorCoverOwners[coverIdV1];
 
       const owner = await getSigner(ownerAddress);
       await evm.impersonate(ownerAddress);
       await evm.setBalance(ownerAddress, parseEther('1000'));
-      await brightUnionDistributor.connect(owner).submitClaim(coverId, toUtf8Bytes(''));
+
+      console.log(`Migrating cover ${coverIdV1} from Bright Union.`);
+      // migrate cover through submitClaim
+      await brightUnionDistributor.connect(owner).submitClaim(coverIdV1, toUtf8Bytes(''));
+
+      const coverIdV2 = await coverContract.coverDataCount();
+
+      console.log(`Make owner a member so it can claim.`);
+      await enrollMember({ mr }, [owner], kycAuthSigner);
+
+      console.log(`Submit claim for new V2 cover ${coverIdV2} for former Bright Union cover.`);
+      // actually submit the claim - owner == tx.origin and becomes the new owner
+      await individualClaims.connect(owner).submitClaim(coverIdV2, segmentId, requestedAmount, '', {
+        value: deposit,
+      });
+
+      return { coverIdV2 };
     }
+
+    const EULER_GRACE_PERIOD = 35; // 35 days
+    const EULER_ID_V1 = '0x0000000000000000000000000000000000000028';
+
+    await migrateClaimAndRedeem.apply(this, [
+      {
+        coverIDsV1,
+        expectedGracePeriod: EULER_GRACE_PERIOD,
+        v1ProductId: EULER_ID_V1,
+        submitAndClaimProcess,
+        useSubmitAndClaimProcess,
+        distributorCoverOwners,
+      },
+    ]);
   });
 });

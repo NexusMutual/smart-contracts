@@ -473,8 +473,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     coverId = coverNFT.mint(newOwner);
     _coverData[coverId] = CoverData(productId.toUint24(), coverAsset.toUint8(), 0 /* amountPaidOut */);
 
-    uint burnedSegmentBucketId = Math.divCeil((start + period), BUCKET_SIZE);
-    activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId] += amount;
+    uint bucketAtExpiry = Math.divCeil((start + period), BUCKET_SIZE);
+    activeCoverExpirationBuckets[coverAsset][bucketAtExpiry] += amount;
     activeCover[coverAsset].totalActiveCoverInAsset += amount.toUint192();
 
     _coverSegments[coverId].push(
@@ -579,7 +579,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       // if the segment has not expired - it's still accounted for in total active cover
       if (burnedSegmentBucketId > currentBucketId) {
         uint amountToSubtract = Math.min(payoutAmountInAsset, segment.amount);
-
         activeCoverToExpire += amountToSubtract;
         activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId] -= amountToSubtract.toUint192();
       }

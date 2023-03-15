@@ -109,6 +109,48 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     weights[poolId].totalEffectiveWeight = _totalEffectiveWeight.toUint32();
   }
 
+  function recalculateEffectiveWeightsForAllProducts(uint poolId) external {
+
+    uint productsCount = ICover(coverContract).productsCount();
+    IStakingPool stakingPool = getStakingPool(poolId);
+
+    uint[] memory productIds = new uint[](productsCount);
+
+    for (uint i = 0; i < productsCount; i++) {
+      productIds[i] = i;
+    }
+
+    (
+      uint globalCapacityRatio,
+      /* globalMinPriceRatio */,
+      /* initialPriceRatios */,
+      /* capacityReductionRatios */
+      uint[] memory capacityReductionRatios
+    ) = ICover(coverContract).getPriceAndCapacityRatios(productIds);
+
+    uint _totalEffectiveWeight;
+
+    for (uint i = 0; i < productsCount; i++) {
+      uint productId = productIds[i];
+      StakedProduct memory _product = _products[poolId][productId];
+
+      // TODO: check if product is added to this pool and skip it if it's not
+
+      uint16 previousEffectiveWeight = _product.lastEffectiveWeight;
+      _product.lastEffectiveWeight = _getEffectiveWeight(
+        stakingPool,
+        productId,
+        _product.targetWeight,
+        globalCapacityRatio,
+        capacityReductionRatios[i]
+      );
+      _totalEffectiveWeight = _totalEffectiveWeight + _product.lastEffectiveWeight;
+      _products[poolId][productId] = _product;
+    }
+
+    weights[poolId].totalEffectiveWeight = _totalEffectiveWeight.toUint32();
+  }
+
   function setProducts(uint poolId, StakedProductParam[] memory params) external {
 
     IStakingPool stakingPool = getStakingPool(poolId);

@@ -459,8 +459,7 @@ describe('Migrated claims', function () {
 
     const simpleCoverIds = [7898, 8121, 8166, 8167, 8201, 8210, 8223, 8234, 8285, 8317];
 
-    // 8220 is close to expiry - skip the other tests and only run this one to get it to be within the right time range
-    const brightUnionCoverIds = [8090, /* 8220, */ 8221, 8233, 8251];
+    const brightUnionCoverIds = [8090, 8220, 8221, 8233, 8251];
 
     const coverIDsV1 = [...simpleCoverIds, ...brightUnionCoverIds];
 

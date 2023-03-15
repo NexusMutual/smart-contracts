@@ -88,6 +88,12 @@ describe('initializeProducts', function () {
 
     await stakingProducts.connect(internalContract).setInitialProducts(poolId, validProducts);
 
+    for (let i = 0; i < validProducts.length; i++) {
+      const product = await stakingProducts.getProduct(poolId, i);
+      // TODO: this should not be the case
+      expect(product.lastEffectiveWeight).to.be.equal(0);
+    }
+
     const block = await ethers.provider.getBlock('latest');
 
     const product = await stakingProducts.getProduct(poolId, 0);
@@ -101,5 +107,18 @@ describe('initializeProducts', function () {
     expect(weights.totalEffectiveWeight).to.be.equal(2000);
     expect(await stakingProducts.getTotalTargetWeight(poolId)).to.be.equal(2000);
     expect(await stakingProducts.getTotalEffectiveWeight(poolId)).to.be.equal(2000);
+
+    await stakingProducts.recalculateEffectiveWeightsForAllProducts(poolId);
+    for (let i = 0; i < validProducts.length; i++) {
+      const product = await stakingProducts.getProduct(poolId, i);
+      expect(product.lastEffectiveWeight).to.be.equal(validProducts[i].weight);
+    }
+    {
+      const weights = await stakingProducts.weights(poolId);
+      expect(weights.totalTargetWeight).to.be.equal(2000);
+      expect(weights.totalEffectiveWeight).to.be.equal(2000);
+      expect(await stakingProducts.getTotalTargetWeight(poolId)).to.be.equal(2000);
+      expect(await stakingProducts.getTotalEffectiveWeight(poolId)).to.be.equal(2000);
+    }
   });
 });

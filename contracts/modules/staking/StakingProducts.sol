@@ -110,15 +110,28 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   }
 
   function recalculateEffectiveWeightsForAllProducts(uint poolId) external {
-
     uint productsCount = ICover(coverContract).productsCount();
     IStakingPool stakingPool = getStakingPool(poolId);
 
-    uint[] memory productIds = new uint[](productsCount);
-
+    // initialize array for all possible products
+    uint[] memory productIdsRaw = new uint[](productsCount);
+    // filter out products that are not in this pool
+    uint numProductsInThisPool;
     for (uint i = 0; i < productsCount; i++) {
-      productIds[i] = i;
+      if (_products[poolId][i].bumpedPriceUpdateTime == 0) {
+        continue;
+      }
+      productIdsRaw[numProductsInThisPool++] = i;
     }
+
+    // use resized array
+    uint[] memory productIds = new uint[](productsCount);
+    for (uint i = 0; i < productsCount; i++) {
+      productIds[i] = productIdsRaw[i];
+    }
+
+    // update products count
+    productsCount = numProductsInThisPool;
 
     (
       uint globalCapacityRatio,
@@ -134,9 +147,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       uint productId = productIds[i];
       StakedProduct memory _product = _products[poolId][productId];
 
-      // TODO: check if product is added to this pool and skip it if it's not
-
-      uint16 previousEffectiveWeight = _product.lastEffectiveWeight;
+      // Get current effectiveWeight
       _product.lastEffectiveWeight = _getEffectiveWeight(
         stakingPool,
         productId,

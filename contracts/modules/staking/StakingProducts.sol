@@ -115,8 +115,9 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     // initialize array for all possible products
     uint[] memory productIdsRaw = new uint[](productsCount);
-    // filter out products that are not in this pool
     uint numProductsInThisPool;
+
+    // filter out products that are not in this pool
     for (uint i = 0; i < productsCount; i++) {
       if (_products[poolId][i].bumpedPriceUpdateTime == 0) {
         continue;
@@ -124,14 +125,14 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       productIdsRaw[numProductsInThisPool++] = i;
     }
 
+    // update products count
+    productsCount = numProductsInThisPool;
+
     // use resized array
     uint[] memory productIds = new uint[](productsCount);
     for (uint i = 0; i < productsCount; i++) {
       productIds[i] = productIdsRaw[i];
     }
-
-    // update products count
-    productsCount = numProductsInThisPool;
 
     (
       uint globalCapacityRatio,

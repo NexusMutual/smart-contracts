@@ -73,7 +73,7 @@ describe('initializeProducts', function () {
   });
 
   it('should initialize products successfully', async function () {
-    const { stakingProducts } = this;
+    const { stakingProducts, cover } = this;
     const [internalContract] = this.accounts.internalContracts;
 
     const { poolId } = initializeParams;
@@ -109,9 +109,15 @@ describe('initializeProducts', function () {
     expect(await stakingProducts.getTotalEffectiveWeight(poolId)).to.be.equal(2000);
 
     await stakingProducts.recalculateEffectiveWeightsForAllProducts(poolId);
-    for (let i = 0; i < validProducts.length; i++) {
+    const totalProducts = await cover.productsCount();
+    expect(totalProducts).to.be.gt(validProducts.length);
+    for (let i = 0; i < totalProducts; i++) {
       const product = await stakingProducts.getProduct(poolId, i);
-      expect(product.lastEffectiveWeight).to.be.equal(validProducts[i].weight);
+      if (i < validProducts.length) {
+        expect(product.lastEffectiveWeight).to.be.equal(validProducts[i].weight);
+      } else {
+        expect(product.lastEffectiveWeight).to.be.equal(0);
+      }
     }
     {
       const weights = await stakingProducts.weights(poolId);

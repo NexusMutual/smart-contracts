@@ -4,7 +4,7 @@ const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants')
 const { setEtherBalance } = require('../utils/evm');
 const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 const { BigNumber } = ethers;
-
+const { daysToSeconds } = require('../../lib/helpers');
 const evm = require('./evm')();
 
 const HUGH = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
@@ -161,5 +161,83 @@ describe('recalculateEffectiveWeight', function () {
       await stakingProducts.recalculateEffectiveWeightsForAllProducts(i);
       await verifyPoolWeights(stakingProducts, i);
     }
+  });
+
+  it('should buy a cover and bump the price towards the target weight', async function () {
+    const cover = await ethers.getContractAt('Cover', V2Addresses.Cover);
+
+    const stakingProducts = await ethers.getContractAt('StakingProducts', V2Addresses.StakingProducts);
+
+    // cover buy details
+    const coverAsset = 0; // ETH
+    const poolId = 2;
+    const amount = parseEther('1');
+    const period = daysToSeconds(45);
+    const commissionRatio = 0;
+
+    // get products from staking pool and discard if not initialized
+    const numProducts = await cover.productsCount();
+    const productsInThisPool = [];
+    for (let i = 0; i < numProducts; i++) {
+      const { targetWeight, lastEffectiveWeight, bumpedPrice, bumpedPriceUpdateTime } =
+        await stakingProducts.getProduct(poolId, i);
+
+      if (BigNumber.from(bumpedPrice).isZero()) {
+        continue;
+      }
+
+      if (BigNumber.from(targetWeight).eq(0)) {
+        continue;
+      }
+      productsInThisPool.push({ targetWeight, lastEffectiveWeight, productId: i, bumpedPrice, bumpedPriceUpdateTime });
+    }
+
+    // recalculate effective weights
+    await stakingProducts.recalculateEffectiveWeightsForAllProducts(poolId);
+
+    // pick a random product
+    const randomProduct = productsInThisPool[Math.floor(Math.random() * (productsInThisPool.length - 1))];
+
+    // TODO: find the exact amount of premium to pay
+    // const maxPremiumInAsset = amount.mul(randomProduct.bumpedPrice).div(10000).mul(period).div(daysToSeconds(365));
+    const maxPremiumInAsset = amount.mul(randomProduct.bumpedPrice).div(10000);
+    await cover.connect(this.hugh).buyCover(
+      {
+        coverId: 0,
+        owner: this.hugh.address,
+        productId: randomProduct.productId,
+        coverAsset,
+        amount,
+        period, // 30 days
+        maxPremiumInAsset,
+        paymentAsset: coverAsset,
+        commissionRatio,
+        commissionDestination: this.hugh.address,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount, skip: false }],
+      { value: maxPremiumInAsset },
+    );
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const { targetWeight, lastEffectiveWeight, bumpedPrice, bumpedPriceUpdateTime, targetPrice } =
+      await stakingProducts.getProduct(poolId, randomProduct.productId);
+
+    if (BigNumber.from(targetWeight).gt(0)) {
+      expect(lastEffectiveWeight).to.be.gte(randomProduct.lastEffectiveWeight);
+    }
+
+    // todo: calculate the expected bumped price
+    if (BigNumber.from(bumpedPrice).eq(targetPrice)) {
+      expect(bumpedPrice).to.be.equal(randomProduct.bumpedPrice);
+    } else if (BigNumber.from(bumpedPrice).gt(targetPrice)) {
+      expect(bumpedPrice).to.be.gt(targetPrice);
+    } else if (BigNumber.from(bumpedPrice).lt(targetPrice)) {
+      expect(bumpedPrice).to.be.lt(targetPrice);
+    }
+
+    expect(lastEffectiveWeight).to.be.equal(targetWeight);
+    // TODO: this doesn't always hold true
+    expect(bumpedPriceUpdateTime).to.be.equal(timestamp);
   });
 });

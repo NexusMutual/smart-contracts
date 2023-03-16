@@ -9,12 +9,8 @@ const {
 const { daysToSeconds } = require('../../lib/helpers');
 const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-// const { newCompilerConfig } = require('@tenderly/hardhat-tenderly/dist/utils/util');
 const { signMembershipApproval } = require('../integration/utils').membership;
 const { parseUnits } = require('ethers/lib/utils');
-const path = require('path');
-const { parse: csvParse } = require('csv-parse/sync');
-const fs = require('fs');
 
 const JOINING_FEE = parseUnits('0.002');
 
@@ -188,38 +184,6 @@ describe('Migrated claims', function () {
       this.abMembers,
       this.governance,
     );
-  });
-
-  it('Fix grace period days -> seconds for product types', async function () {
-    const V2OnChainProductTypeDataProductsPath = path.join(
-      __dirname,
-      '../../scripts/v2-migration/input/product-type-data.csv',
-    );
-    const productTypeData = csvParse(fs.readFileSync(V2OnChainProductTypeDataProductsPath, 'utf8'), {
-      columns: true,
-      skip_empty_lines: true,
-    });
-
-    const productTypeIpfsHashes = require(path.join(
-      __dirname,
-      '../../scripts/v2-migration/output/product-type-ipfs-hashes.json',
-    ));
-
-    let expectedProductTypeId = 0;
-    const productTypeEntries = productTypeData.map(data => {
-      const nextProductTypeId = expectedProductTypeId++;
-      return {
-        productTypeName: data.Name,
-        productTypeId: nextProductTypeId,
-        ipfsMetadata: productTypeIpfsHashes[data.Id],
-        productType: {
-          claimMethod: data['Claim Method'],
-          gracePeriod: data['Grace Period (days)'] * 3600 * 24, // convert to secunds
-        },
-      };
-    });
-
-    await this.cover.connect(this.abMembers[0]).setProductTypes(productTypeEntries);
   });
 
   const setTime = async timestamp => {

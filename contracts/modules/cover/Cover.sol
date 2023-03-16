@@ -473,6 +473,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     coverId = coverNFT.mint(newOwner);
     _coverData[coverId] = CoverData(productId.toUint24(), coverAsset.toUint8(), 0 /* amountPaidOut */);
 
+    uint bucketAtExpiry = Math.divCeil((start + period), BUCKET_SIZE);
+    activeCoverExpirationBuckets[coverAsset][bucketAtExpiry] += amount;
+    activeCover[coverAsset].totalActiveCoverInAsset += amount.toUint192();
+
     _coverSegments[coverId].push(
       CoverSegment(
         amount.toUint96(),

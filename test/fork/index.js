@@ -1,3 +1,3 @@
 describe('fork tests', function () {
-  require('./migration-v2');
+  require('./product-type-update');
 });

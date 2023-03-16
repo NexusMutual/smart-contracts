@@ -230,7 +230,7 @@ describe('Token price functions', function () {
     const { p1: pool, mcr, cover, stakingProducts } = this.contracts;
     const [member1, coverHolder] = this.accounts.members;
 
-    const buyValue = parseEther('2000');
+    const buyValue = parseEther('1000');
     const expectedNXMOutPreMCRPosting = await pool.getNXMForEth(buyValue);
     const spotTokenPricePreMCRPosting = await pool.getTokenPriceInAsset(ETH_ASSET_ID);
 

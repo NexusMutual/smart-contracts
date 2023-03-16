@@ -510,7 +510,7 @@ async function setup() {
   const product = {
     productId: 0,
     weight: 100,
-    initialPrice: 100,
+    initialPrice: 1000,
     targetPrice: 100,
   };
 

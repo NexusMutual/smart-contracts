@@ -162,12 +162,32 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       }
 
       if (_param.setTargetPrice) {
+
         if (_param.targetPrice > TARGET_PRICE_DENOMINATOR) {
           revert TargetPriceTooHigh();
         }
+
         if (_param.targetPrice < globalMinPriceRatio) {
           revert TargetPriceBelowMin();
         }
+
+        // if this is an existing product, when the target price is updated we need to calculate the
+        // current base price using the old target price and update the bumped price to that value
+        // uses the same logic as calculatePremium()
+        if (_product.bumpedPriceUpdateTime != 0) {
+          uint timeSinceLastUpdate = block.timestamp - _product.bumpedPriceUpdateTime;
+          uint priceDrop = PRICE_CHANGE_PER_DAY * timeSinceLastUpdate / 1 days;
+
+          // newBumpedPrice = basePrice = max(targetPrice, bumpedPrice - priceDrop)
+          // rewritten to avoid underflow
+          uint newBumpedPrice = _product.bumpedPrice < _product.targetPrice + priceDrop
+            ? _product.targetPrice
+            : _product.bumpedPrice - priceDrop;
+
+          _product.bumpedPrice = newBumpedPrice.toUint96();
+          _product.bumpedPriceUpdateTime = block.timestamp.toUint32();
+        }
+
         _product.targetPrice = _param.targetPrice;
       }
 
@@ -395,8 +415,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       // basePrice = max(targetPrice, bumpedPrice - priceDrop)
       // rewritten to avoid underflow
       basePrice = product.bumpedPrice < targetPrice + priceDrop
-      ? targetPrice
-      : product.bumpedPrice - priceDrop;
+        ? targetPrice
+        : product.bumpedPrice - priceDrop;
     }
 
     // calculate the bumped price by applying the price bump

@@ -115,22 +115,20 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     // initialize array for all possible products
     uint[] memory productIdsRaw = new uint[](productsCount);
-    uint numProductsInThisPool;
+    uint stakingPoolProductCount;
 
     // filter out products that are not in this pool
     for (uint i = 0; i < productsCount; i++) {
       if (_products[poolId][i].bumpedPriceUpdateTime == 0) {
         continue;
       }
-      productIdsRaw[numProductsInThisPool++] = i;
+      productIdsRaw[stakingPoolProductCount++] = i;
     }
 
-    // update products count
-    productsCount = numProductsInThisPool;
-
     // use resized array
-    uint[] memory productIds = new uint[](productsCount);
-    for (uint i = 0; i < productsCount; i++) {
+    uint[] memory productIds = new uint[](stakingPoolProductCount);
+
+    for (uint i = 0; i < stakingPoolProductCount; i++) {
       productIds[i] = productIdsRaw[i];
     }
 
@@ -144,7 +142,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     uint _totalEffectiveWeight;
 
-    for (uint i = 0; i < productsCount; i++) {
+    for (uint i = 0; i < stakingPoolProductCount; i++) {
       uint productId = productIds[i];
       StakedProduct memory _product = _products[poolId][productId];
 
@@ -156,7 +154,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
         globalCapacityRatio,
         capacityReductionRatios[i]
       );
-      _totalEffectiveWeight = _totalEffectiveWeight + _product.lastEffectiveWeight;
+      _totalEffectiveWeight += _product.lastEffectiveWeight;
       _products[poolId][productId] = _product;
     }
 

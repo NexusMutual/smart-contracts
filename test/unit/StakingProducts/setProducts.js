@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { getCurrentTrancheId } = require('../StakingPool/helpers');
+const { increaseTime } = require('../../utils/evm');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
@@ -12,7 +13,7 @@ const initialProductTemplate = {
   productId: 0,
   weight: 100, // 1.00
   initialPrice: 500, // 5%
-  targetPrice: 100, // 1%
+  targetPrice: 200, // 1%
 };
 
 const newProductTemplate = {
@@ -21,7 +22,7 @@ const newProductTemplate = {
   setTargetWeight: true,
   targetWeight: 100,
   setTargetPrice: true,
-  targetPrice: 500,
+  targetPrice: 200,
 };
 
 const buyCoverParamsTemplate = {
@@ -139,6 +140,41 @@ describe('setProducts unit tests', function () {
     verifyProduct(product1, { ...products[1], bumpedPriceUpdateTime: initialTimestamp });
     // product 2 should be added as a supported product
     verifyProduct(product2, { ...productEditParams[1], bumpedPriceUpdateTime: latestTimestamp });
+  });
+
+  it('should edit targetPrice and update bumpedPrice and bumpedPriceUpdateTime', async function () {
+    const { stakingProducts, cover } = this;
+    const [manager] = this.accounts.members;
+
+    const products = [{ ...newProductTemplate }];
+
+    const { _initialPrices } = await cover.getPriceAndCapacityRatios(products.map(p => p.productId));
+
+    // set products
+    await stakingProducts.connect(manager).setProducts(poolId, products);
+
+    const { timestamp: initialTimestamp } = await ethers.provider.getBlock('latest');
+
+    const { bumpedPrice: bumpedPriceBefore, bumpedPriceUpdateTime: bumpedPriceUpdateTimeBefore } =
+      await stakingProducts.getProduct(poolId, newProductTemplate.productId);
+
+    expect(bumpedPriceBefore).to.be.equal(_initialPrices[0]);
+    expect(bumpedPriceUpdateTimeBefore).to.be.equal(initialTimestamp);
+
+    await increaseTime(daysToSeconds(2)); // 1% bump
+    const bumpPercentage = BigNumber.from(100); // 1%
+
+    // increase targetPrice
+    const productEditParams = [{ ...products[0], targetPrice: 2000 }];
+    await stakingProducts.connect(manager).setProducts(poolId, productEditParams);
+    const { timestamp: latestTimestamp } = await ethers.provider.getBlock('latest');
+
+    const product0 = await stakingProducts.getProduct(poolId, 0);
+    expect(product0.bumpedPrice).to.not.equal(product0.targetPrice);
+    expect(product0.bumpedPrice).to.be.equal(BigNumber.from(bumpedPriceBefore).sub(bumpPercentage));
+    expect(product0.bumpedPriceUpdateTime).to.be.equal(latestTimestamp);
+
+    verifyProduct(product0, { ...productEditParams[0], bumpedPriceUpdateTime: latestTimestamp });
   });
 
   it('should add maximum products with full weight (20)', async function () {

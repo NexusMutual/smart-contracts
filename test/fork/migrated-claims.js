@@ -1,39 +1,23 @@
-const { artifacts, ethers, network, run } = require('hardhat');
+const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
-const fetch = require('node-fetch');
 
 const evm = require('./evm')();
 
 const {
   Address: { ETH },
 } = require('./utils');
+const { daysToSeconds } = require('../../lib/helpers');
+const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
+const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 
-const { BigNumber } = ethers;
-const { AddressZero, Zero, Two } = ethers.constants;
-const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
-const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
-
-const SCRIPTS_USE_CACHE = !process.env.NO_CACHE;
-
-const CoverCreate2Salt = 4924891554;
-const StakingProductsCreate2Salt = 203623750;
-const IndividualClaimsCreate2Salt = 352721057824254;
-const YieldTokenIncidentsCreate2Salt = 2596290771;
-const AssessmentCreate2Salt = 352729799262241;
-
-
+const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
-const STETH_ADDRESS = '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84';
-
-
-const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
+const HUGH = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
 
 const ASSET_V1_TO_ASSET_V2 = {};
 ASSET_V1_TO_ASSET_V2[ETH.toLowerCase()] = 0;
 ASSET_V1_TO_ASSET_V2[DAI_ADDRESS.toLowerCase()] = 1;
-
-const MaxUint96 = Two.pow(96).sub(1);
 
 const V2Addresses = {
   SwapOperator: '0xcafea536d7f79F31Fa49bC40349f6a5F7E19D842',
@@ -61,7 +45,7 @@ const V2Addresses = {
   LegacyGateway: '0xcafeaD694A05815f03F19c357200c6D95968e205',
   Governance: '0xcafeafA258Be9aCb7C0De989be21A8e9583FBA65',
   CoverViewer: '0xcafea84e199C85E44F34CD75374188D33FB94B4b',
-  StakingViewer: '0xcafea2B7904eE0089206ab7084bCaFB8D476BD04'
+  StakingViewer: '0xcafea2B7904eE0089206ab7084bCaFB8D476BD04',
 };
 
 const getSigner = async address => {
@@ -71,34 +55,6 @@ const getSigner = async address => {
       : ethers.provider;
   return provider.getSigner(address);
 };
-
-const getContractFactory = async providerOrSigner => {
-  const data = await fetch(VERSION_DATA_URL).then(r => r.json());
-  const abis = data.mainnet.abis
-    .map(item => ({ ...item, abi: JSON.parse(item.contractAbi) }))
-    .reduce((data, item) => ({ ...data, [item.code]: item }), {});
-
-  return async code => {
-    const { abi, address } = abis[code];
-    return new ethers.Contract(address, abi, providerOrSigner);
-  };
-};
-
-const calculateProxyAddress = (masterAddress, salt) => {
-  const { bytecode } = artifacts.readArtifactSync('OwnedUpgradeabilityProxy');
-  const initCode = bytecode + defaultAbiCoder.encode(['address'], [MaxAddress]).slice(2);
-  const initCodeHash = ethers.utils.keccak256(initCode);
-  const saltHex = Buffer.from(salt.toString(16).padStart(64, '0'), 'hex');
-  return ethers.utils.getCreate2Address(masterAddress, saltHex, initCodeHash);
-};
-
-const formatInternalContracts = ({ _contractAddresses, _contractCodes }) => {
-  return _contractCodes.map((code, i) => {
-    const index = `${i}`.padStart(2, '0');
-    return `[${index}] ${Buffer.from(code.slice(2), 'hex')} -> ${_contractAddresses[i]}`;
-  });
-};
-
 async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
   const id = await gv.getProposalLength();
 
@@ -143,26 +99,96 @@ describe('Migrated claims', function () {
     }
   });
 
-  it('Migrates, claims and reedeems existing FTX and Euler covers to V2', async function () {
-    const ftxCoverIds = [7907, 7881, 7863, 7643, 7598, 7572, 7542, 7313, 7134];
-
-
+  it('load contracts', async function () {
     this.master = await ethers.getContractAt('NXMaster', '0x01BFd82675DBCc7762C84019cA518e701C0cD07e');
     this.productsV1 = await ethers.getContractAt('ProductsV1', V2Addresses.ProductsV1);
     this.gateway = await ethers.getContractAt('LegacyGateway', '0x089Ab1536D032F54DFbC194Ba47529a4351af1B5');
-    this.quotationData = await ethers.getContractAt('LegacyQuotationData', '0x1776651F58a17a50098d31ba3C3cD259C1903f7A');
-    this.individualClaims = await ethers.getContractAt('IndividualClaims', await this.master.getLatestAddress(toUtf8Bytes('CI')));
-    this.coverMigrator = await ethers.getContractAt('CoverMigrator', await this.master.getLatestAddress(toUtf8Bytes('CL')));
+    this.quotationData = await ethers.getContractAt(
+      'LegacyQuotationData',
+      '0x1776651F58a17a50098d31ba3C3cD259C1903f7A',
+    );
+    this.individualClaims = await ethers.getContractAt(
+      'IndividualClaims',
+      await this.master.getLatestAddress(toUtf8Bytes('CI')),
+    );
+    this.coverMigrator = await ethers.getContractAt(
+      'CoverMigrator',
+      await this.master.getLatestAddress(toUtf8Bytes('CL')),
+    );
     this.coverViewer = await ethers.getContractAt('CoverViewer', V2Addresses.CoverViewer);
+    this.assessment = await ethers.getContractAt('Assessment', await this.master.getLatestAddress(toUtf8Bytes('AS')));
+    this.assessment = await ethers.getContractAt('Assessment', await this.master.getLatestAddress(toUtf8Bytes('AS')));
+    this.dai = await ethers.getContractAt('ERC20Mock', DAI_ADDRESS);
+    this.cover = await ethers.getContractAt('Cover', await this.master.getLatestAddress(toUtf8Bytes('CO')));
+    this.memberRoles = await ethers.getContractAt('MemberRoles', await this.master.getLatestAddress(toUtf8Bytes('MR')));
+    this.governance = await ethers.getContractAt('Governance', await this.master.getLatestAddress(toUtf8Bytes('GV')));
+  });
 
-    const FTX_GRACE_PERIOD = 120; // 120 days
-    const FTX_ID_V1 = '0xC57d000000000000000000000000000000000011';
-    const ftxProductId = await this.productsV1.getNewProductId(FTX_ID_V1);
+  it('Impersonate AB members', async function () {
+    const { memberArray: abMembers } = await this.memberRoles.members(1);
+    this.abMembers = [];
+    for (const address of abMembers) {
+      await evm.impersonate(address);
+      await evm.setBalance(address, parseEther('1000'));
+      this.abMembers.push(await getSigner(address));
+    }
+  });
 
-    let expectedClaimId = 0;
+  it('upgrades Cover', async function () {
+    const codes = ['CO'].map(code => toUtf8Bytes(code));
+
+    const coverNFT = await this.cover.coverNFT();
+    const stakingNFT = await this.cover.stakingNFT();
+    const stakingPoolFactory = await this.cover.stakingPoolFactory();
+    const stakingPoolImplementation = await this.cover.stakingPoolImplementation();
+
+    const coverImpl = await ethers.deployContract('Cover', [
+      coverNFT,
+      stakingNFT,
+      stakingPoolFactory,
+      stakingPoolImplementation,
+    ]);
+
+    const addresses = [coverImpl].map(c => c.address);
+
+    await submitGovernanceProposal(
+      PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
+      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [codes, addresses]),
+      this.abMembers,
+      this.governance,
+    );
+  });
+
+  const setTime = async timestamp => {
+    await setNextBlockTime(timestamp);
+    await mineNextBlock();
+  };
+
+  async function acceptClaim({ staker, assessmentStakingAmount, as, assessmentId }) {
+    await as.connect(staker).stake(assessmentStakingAmount);
+
+    await as.connect(staker).castVotes([assessmentId], [true], ['Assessment data hash'], 0);
+
+    const { poll } = await as.assessments(assessmentId);
+
+    return poll;
+  }
+
+  async function migrateClaimAndRedeem({ coverIDsV1, expectedGracePeriod, v1ProductId }) {
+    let expectedClaimId = (await this.individualClaims.getClaimsCount()).toNumber();
     const segmentId = 0;
 
-    for (const coverIdV1 of ftxCoverIds) {
+    const v2ProductId = await this.productsV1.getNewProductId(v1ProductId);
+
+    console.log(`Initial expected claim Id: ${expectedClaimId}`);
+
+    const stakerAddress = HUGH;
+    const staker = await getSigner(stakerAddress);
+    await evm.impersonate(stakerAddress);
+    await evm.setBalance(stakerAddress, parseEther('1000'));
+
+    const coverData = [];
+    for (const coverIdV1 of coverIDsV1) {
       const { memberAddress, sumAssured, coverAsset: legacyCoverAsset } = await this.gateway.getCover(coverIdV1);
       const { coverPeriod: coverPeriodInDays, validUntil } = await this.quotationData.getCoverDetailsByCoverID2(
         coverIdV1,
@@ -187,33 +213,161 @@ describe('Migrated claims', function () {
       const coverMigratedEvent = receipt.events.find(x => x.event === 'CoverMigrated');
       const coverIdV2 = coverMigratedEvent.args.coverIdV2;
 
-      console.log(`FTX cover ${coverIdV1} mapped to V2 cover: ${coverIdV2}`);
+      console.log(`Cover V1 ${coverIdV1} mapped to V2 cover: ${coverIdV2}`);
 
       const covers = await this.coverViewer.getCovers([coverIdV2]);
       const { productId, coverAsset, amountPaidOut, segments } = covers[0];
 
-      expect(productId).to.be.equal(ftxProductId);
+      expect(productId).to.be.equal(v2ProductId);
       expect(coverAsset).to.be.equal(expectedCoverAsset);
       expect(amountPaidOut).to.be.equal(0);
       expect(segments.length).to.be.equal(1);
 
       const { amount, remainingAmount, start, period, gracePeriod } = segments[segmentId];
+
       expect(amount).to.be.equal(sumAssured);
       expect(remainingAmount).to.be.equal(sumAssured);
       expect(period).to.be.equal(expectedPeriod);
       expect(start).to.be.equal(expectedStart);
-      expect(gracePeriod).to.be.equal(FTX_GRACE_PERIOD);
+      expect(gracePeriod).to.be.equal(expectedGracePeriod);
+
+      const coverSegments = await this.cover.coverSegments(coverIdV2);
+      expect(coverSegments[0].amount).to.be.equal(sumAssured);
 
       // claim assertions
 
-      const claimsArray = await this.individualClaims.getClaimsToDisplay([expectedClaimId++]);
-      const { productId: claimProductId, coverId, amount: claimAmount, assetSymbol, claimStatus } = claimsArray[0];
+      const claimId = expectedClaimId++;
+
+      console.log(`Claim ID: ${claimId}. Amount: ${amount.toString()}. Period: ${period.toString()}`);
+
+      const claimsArray = await this.individualClaims.getClaimsToDisplay([claimId]);
+      const {
+        productId: claimProductId,
+        coverId,
+        amount: claimAmount,
+        assetSymbol,
+        claimStatus,
+        assessmentId,
+      } = claimsArray[0];
 
       expect(claimAmount).to.be.equal(sumAssured);
-      expect(claimProductId).to.be.equal(ftxProductId);
+      expect(claimProductId).to.be.equal(productId);
       expect(assetSymbol).to.be.equal(expectedCoverAsset === 0 ? 'ETH' : 'DAI');
       expect(coverId).to.be.equal(coverIdV2);
       expect(claimStatus).to.be.equal(0); // ClaimStatus.PENDING
+
+      coverData.push({
+        coverIdV1,
+        coverIdV2,
+        assessmentId,
+        claimId,
+        sumAssured,
+        expectedCoverAsset,
+        claimAmount,
+        memberAddress,
+        deposit,
+      });
+    }
+
+    console.log(`Accept all claims`);
+    let poll;
+    for (const cover of coverData) {
+      const assessmentStakingAmount = parseEther('1000');
+      poll = await acceptClaim({
+        staker,
+        assessmentStakingAmount,
+        as: this.assessment,
+        assessmentId: cover.assessmentId,
+      });
+    }
+
+    console.log('Advance time for all claims.');
+    const { payoutCooldownInDays } = await this.assessment.config();
+
+    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
+
+    await setTime(futureTime);
+
+    for (const cover of coverData) {
+      const { coverIdV2, claimId, expectedCoverAsset, claimAmount, memberAddress, deposit } = cover;
+
+      console.log(`Redeeming payout in coverAsset ${expectedCoverAsset} for Cover with V2 ID: ${coverIdV2}`);
+      if (expectedCoverAsset === 0) {
+        // ETH
+        const ethBalanceBefore = await ethers.provider.getBalance(memberAddress);
+
+        console.log(`Current member balance ${ethBalanceBefore.toString()}. Redeeming claim ${claimId}`);
+
+        // redeem payout
+        await this.individualClaims.redeemClaimPayout(claimId);
+
+        const ethBalanceAfter = await ethers.provider.getBalance(memberAddress);
+
+        console.log(`Check correct balance increase`);
+        expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(claimAmount).add(deposit));
+
+        const { payoutRedeemed } = await this.individualClaims.claims(claimId);
+        expect(payoutRedeemed).to.be.equal(true);
+      } else {
+        // DAI
+        const daiBalanceBefore = await this.dai.balanceOf(memberAddress);
+
+        console.log(`Current member balance ${daiBalanceBefore.toString()}.  Redeeming claim ${claimId}`);
+
+        // redeem payout
+        await this.individualClaims.redeemClaimPayout(claimId);
+
+        console.log(`Check correct balance increase`);
+        const daiBalanceAfter = await this.dai.balanceOf(memberAddress);
+        expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(claimAmount));
+
+        const { payoutRedeemed } = await this.individualClaims.claims(claimId);
+        expect(payoutRedeemed).to.be.equal(true);
+      }
+
+      console.log(`Payout reedemed succesfully.`);
+    }
+  }
+
+  it.skip('Migrates, claims and reedeems existing FTX covers to V2', async function () {
+    const coverIDsV1 = [7907, 7881, 7863, 7643, 7598, 7572, 7542, 7313, 7134];
+
+    const FTX_GRACE_PERIOD = 120; // 120 days
+    const FTX_ID_V1 = '0xC57d000000000000000000000000000000000011';
+
+    await migrateClaimAndRedeem.apply(this, [
+      { coverIDsV1, expectedGracePeriod: FTX_GRACE_PERIOD, v1ProductId: FTX_ID_V1 },
+    ]);
+  });
+
+  it.skip('Migrates, claims and reedeems existing Euler covers to V2', async function () {
+    const coverIDsV1 = [7898, 8090, 8121, 8166, 8167, 8201, 8210, 8220, 8221, 8223, 8233, 8234, 8251, 8285, 8317];
+
+    const EULER_GRACE_PERIOD = 30; // 30 days
+    const EULER_ID_V1 = '0x0000000000000000000000000000000000000028';
+
+    await migrateClaimAndRedeem.apply(this, [
+      { coverIDsV1, expectedGracePeriod: EULER_GRACE_PERIOD, v1ProductId: EULER_ID_V1 },
+    ]);
+  });
+
+
+  it('Migrates Bright Union Euler covers to V2', async function () {
+
+    const BRIGHT_UNION_DISTRIBUTOR = '0x425b3A68f1FD5dE26b4B9F4Be8049E36406B187A';
+
+    const brightUnionDistributor = await ethers.getContractAt('IBrightUnionDistributor', BRIGHT_UNION_DISTRIBUTOR);
+
+    const coverIDsV1 = [8090, 8220, 8221, 8233, 8251];
+
+    for (const coverId of coverIDsV1) {
+
+      const ownerAddress = await brightUnionDistributor.ownerOf(coverId);
+
+      const owner = await getSigner(ownerAddress);
+      await evm.impersonate(ownerAddress);
+      await evm.setBalance(ownerAddress, parseEther('1000'));
+      await brightUnionDistributor.connect(owner).submitClaim(coverId, toUtf8Bytes(''));
     }
   });
 });

@@ -113,16 +113,13 @@ describe('Update product types', function () {
   });
 
   it('Fix grace period days -> seconds for product types', async function () {
-    const signerAddress = await this.abMembers[0].getAddress();
-
-    const { setProductTypesTransaction } = await generateProductTypesTx(
-      ethers.provider,
-      this.cover.address,
-      signerAddress,
-    );
+    const { setProductTypesTransaction } = await generateProductTypesTx();
 
     console.log('Calling setProductTypes.');
-    await this.abMembers[0].sendTransaction(setProductTypesTransaction);
+    await this.abMembers[0].sendTransaction({
+      to: setProductTypesTransaction.to,
+      data: setProductTypesTransaction.data,
+    });
 
     console.log('Assert on-chain product type data.');
     const V2OnChainProductTypeDataProductsPath = path.join(

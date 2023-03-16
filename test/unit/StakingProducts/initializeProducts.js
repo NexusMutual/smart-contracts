@@ -90,8 +90,7 @@ describe('initializeProducts', function () {
 
     for (let i = 0; i < validProducts.length; i++) {
       const product = await stakingProducts.getProduct(poolId, i);
-      // TODO: this should not be the case
-      expect(product.lastEffectiveWeight).to.be.equal(0);
+      expect(product.lastEffectiveWeight).to.be.equal(product.targetWeight);
     }
 
     const block = await ethers.provider.getBlock('latest');

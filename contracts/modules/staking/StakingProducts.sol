@@ -372,6 +372,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       product.bumpedPriceUpdateTime = block.timestamp.toUint32();
       product.targetPrice = param.targetPrice;
       product.targetWeight = param.weight;
+      product.lastEffectiveWeight = param.weight;
 
       // sstore
       _products[poolId][param.productId] = product;

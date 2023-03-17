@@ -371,4 +371,10 @@ contract StakingViewer is Multicall {
       tokens[i] = _getToken(poolIds[i], 0);
     }
   }
+
+  function processExpirations(uint[] memory poolIds) public {
+    for (uint i = 0; i < poolIds.length; i++) {
+      stakingPool(poolIds[i]).processExpirations(true);
+    }
+  }
 }

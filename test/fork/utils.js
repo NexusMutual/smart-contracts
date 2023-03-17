@@ -191,7 +191,7 @@ async function enableAsEnzymeReceiver(receiverAddress) {
 }
 
 async function getProductsInPool(params) {
-  const { stakingProducts, cover, config } = this;
+  const { stakingProducts, cover } = this;
   const { poolId } = params;
 
   // get products from staking pool and discard if not initialized

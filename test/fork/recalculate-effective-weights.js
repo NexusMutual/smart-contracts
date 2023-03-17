@@ -12,7 +12,6 @@ const {
   calculateSurgePremium,
   calculatePriceBump,
 } = require('../unit/StakingPool/helpers');
-const { formatEther } = require('ethers/lib/utils');
 const evm = require('./evm')();
 
 // Check that effective weights are calculated correctly
@@ -122,7 +121,7 @@ describe('recalculateEffectiveWeight', function () {
     }
   });
 
-  it.only('should buy a cover and bump the price towards the target weight', async function () {
+  it('should buy a cover and bump the price towards the target weight', async function () {
     // Note this test doesn't fix the effective weights first
     const { stakingProducts, cover, config } = this;
 

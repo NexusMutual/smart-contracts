@@ -20,6 +20,7 @@ contract StakingProductsMockCover {
   mapping(uint => Product) public products;
   mapping(uint => ProductType) public productTypes;
   mapping(uint => mapping(uint => bool)) public allowedPools;
+  uint public productsCount;
 
   ICoverNFT public coverNFT;
   IStakingNFT public stakingNFT;
@@ -47,11 +48,13 @@ contract StakingProductsMockCover {
 
   function setProduct(Product memory _product, uint id) public {
     products[id] = _product;
+    productsCount++;
   }
 
   function setProducts(Product[] memory _products, uint[] memory productIds) public {
     for (uint i = 0; i < _products.length; i++) {
       products[productIds[i]] = _products[i];
+      productsCount++;
     }
   }
 

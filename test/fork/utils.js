@@ -4,6 +4,38 @@ const assert = require('assert');
 const { toBN } = web3.utils;
 const { parseEther } = ethers.utils;
 
+const V2Addresses = {
+  Assessment: '0xcafeaa5f9c401b7295890f309168Bbb8173690A3',
+  Cover: '0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62',
+  CoverMigrator: '0xcafeac41b010299A9bec5308CCe6aFC2c4DF8D39',
+  CoverNFT: '0xcafeaCa76be547F14D0220482667B42D8E7Bc3eb',
+  CoverNFTDescriptor: '0xcafead1E31Ac8e4924Fc867c2C54FAB037458cb9',
+  CoverViewer: '0xcafea84e199C85E44F34CD75374188D33FB94B4b',
+  Governance: '0x4A5C681dDC32acC6ccA51ac17e9d461e6be87900',
+  IndividualClaims: '0xcafeac12feE6b65A710fA9299A98D65B4fdE7a62',
+  LegacyClaimData: '0xdc2D359F59F6a26162972c3Bd0cFBfd8C9Ef43af',
+  LegacyClaimProofs: '0xcafea81b73daB8F42C5eca7d2E821A82660B6775',
+  LegacyClaimsReward: '0xcafeaDcAcAA2CD81b3c54833D6896596d218BFaB',
+  LegacyGateway: '0x089Ab1536D032F54DFbC194Ba47529a4351af1B5',
+  LegacyPooledStaking: '0x84EdfFA16bb0b9Ab1163abb0a13Ff0744c11272f',
+  LegacyQuotationData: '0x1776651F58a17a50098d31ba3C3cD259C1903f7A',
+  MCR: '0xcafea444db21dc06f34570185cF0014701c7D62e',
+  MemberRoles: '0x055CC48f7968FD8640EF140610dd4038e1b03926',
+  NXMaster: '0x01BFd82675DBCc7762C84019cA518e701C0cD07e',
+  Pool: '0xcafea112Db32436c2390F5EC988f3aDB96870627',
+  PriceFeedOracle: '0xcafeaf0a0672360941B7F0b6D015797292e842C6',
+  ProductsV1: '0xcafeab02966FdC69Ce5aFDD532DD51466892E32B',
+  ProposalCategory: '0x888eA6Ab349c854936b98586CE6a17E98BF254b2',
+  StakingNFT: '0xcafea508a477D94c502c253A58239fb8F948e97f',
+  StakingNFTDescriptor: '0xcafea534e156a41b3e77f29Bf93C653004f1455C',
+  StakingPoolFactory: '0xcafeafb97BF8831D95C0FC659b8eB3946B101CB3',
+  StakingProducts: '0xcafea573fBd815B5f59e8049E71E554bde3477E4',
+  StakingViewer: '0xcafea2B7904eE0089206ab7084bCaFB8D476BD04',
+  SwapOperator: '0xcafea536d7f79F31Fa49bC40349f6a5F7E19D842',
+  TokenController: '0x5407381b6c251cFd498ccD4A1d877739CB7960B8',
+  YieldTokenIncidents: '0xcafeac831dC5ca0D7ef467953b7822D2f44C8f83',
+};
+
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
   DAI_ADDRESS: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
@@ -158,6 +190,67 @@ async function enableAsEnzymeReceiver(receiverAddress) {
   assert.equal(inReceiverList, true);
 }
 
+async function getProductsInPool(params) {
+  const { stakingProducts, cover } = this;
+  const { poolId } = params;
+
+  // get products from staking pool and discard if not initialized
+  const numProducts = await cover.productsCount();
+  const productsInThisPool = [];
+
+  // TODO: multicall
+  for (let i = 0; i < numProducts; i++) {
+    const { targetWeight, lastEffectiveWeight, bumpedPrice, bumpedPriceUpdateTime, targetPrice } =
+      await stakingProducts.getProduct(poolId, i);
+
+    if (ethers.constants.One.mul(bumpedPrice).isZero()) {
+      continue;
+    }
+
+    if (ethers.constants.One.mul(targetWeight).eq(0)) {
+      continue;
+    }
+    productsInThisPool.push({
+      targetWeight,
+      lastEffectiveWeight,
+      productId: i,
+      bumpedPrice,
+      targetPrice,
+      bumpedPriceUpdateTime,
+    });
+  }
+  return productsInThisPool;
+}
+
+async function getConfig() {
+  const { cover, stakingPool, stakingProducts } = this;
+
+  const config = {
+    REWARD_BONUS_PER_TRANCHE_RATIO: stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO(),
+    REWARD_BONUS_PER_TRANCHE_DENOMINATOR: stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR(),
+    PRICE_CHANGE_PER_DAY: stakingProducts.PRICE_CHANGE_PER_DAY(),
+    PRICE_BUMP_RATIO: stakingProducts.PRICE_BUMP_RATIO(),
+    SURGE_PRICE_RATIO: stakingProducts.SURGE_PRICE_RATIO(),
+    SURGE_THRESHOLD_DENOMINATOR: stakingProducts.SURGE_THRESHOLD_DENOMINATOR(),
+    SURGE_THRESHOLD_RATIO: stakingProducts.SURGE_THRESHOLD_RATIO(),
+    NXM_PER_ALLOCATION_UNIT: stakingPool.NXM_PER_ALLOCATION_UNIT(),
+    ALLOCATION_UNITS_PER_NXM: stakingPool.ALLOCATION_UNITS_PER_NXM(),
+    INITIAL_PRICE_DENOMINATOR: stakingProducts.INITIAL_PRICE_DENOMINATOR(),
+    REWARDS_DENOMINATOR: stakingPool.REWARDS_DENOMINATOR(),
+    WEIGHT_DENOMINATOR: stakingPool.WEIGHT_DENOMINATOR(),
+    CAPACITY_REDUCTION_DENOMINATOR: stakingPool.CAPACITY_REDUCTION_DENOMINATOR(),
+    TARGET_PRICE_DENOMINATOR: stakingProducts.TARGET_PRICE_DENOMINATOR(),
+    POOL_FEE_DENOMINATOR: stakingPool.POOL_FEE_DENOMINATOR(),
+    GLOBAL_CAPACITY_DENOMINATOR: stakingPool.GLOBAL_CAPACITY_DENOMINATOR(),
+    TRANCHE_DURATION: stakingProducts.TRANCHE_DURATION(),
+    GLOBAL_CAPACITY_RATIO: cover.globalCapacityRatio(),
+    GLOBAL_REWARDS_RATIO: cover.globalRewardsRatio(),
+    GLOBAL_MIN_PRICE_RATIO: cover.GLOBAL_MIN_PRICE_RATIO(),
+  };
+  await Promise.all(Object.keys(config).map(async key => (config[key] = await config[key])));
+  return config;
+}
+
 module.exports = {
   submitGovernanceProposal,
   submitMemberVoteGovernanceProposal,
@@ -173,4 +266,7 @@ module.exports = {
   unlock,
   ratioScale,
   enableAsEnzymeReceiver,
+  V2Addresses,
+  getConfig,
+  getProductsInPool,
 };

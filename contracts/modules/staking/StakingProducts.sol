@@ -109,6 +109,58 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     weights[poolId].totalEffectiveWeight = _totalEffectiveWeight.toUint32();
   }
 
+  function recalculateEffectiveWeightsForAllProducts(uint poolId) external {
+    uint productsCount = ICover(coverContract).productsCount();
+    IStakingPool stakingPool = getStakingPool(poolId);
+
+    // initialize array for all possible products
+    uint[] memory productIdsRaw = new uint[](productsCount);
+    uint stakingPoolProductCount;
+
+    // filter out products that are not in this pool
+    for (uint i = 0; i < productsCount; i++) {
+      if (_products[poolId][i].bumpedPriceUpdateTime == 0) {
+        continue;
+      }
+      productIdsRaw[stakingPoolProductCount++] = i;
+    }
+
+    // use resized array
+    uint[] memory productIds = new uint[](stakingPoolProductCount);
+
+    for (uint i = 0; i < stakingPoolProductCount; i++) {
+      productIds[i] = productIdsRaw[i];
+    }
+
+    (
+      uint globalCapacityRatio,
+      /* globalMinPriceRatio */,
+      /* initialPriceRatios */,
+      /* capacityReductionRatios */
+      uint[] memory capacityReductionRatios
+    ) = ICover(coverContract).getPriceAndCapacityRatios(productIds);
+
+    uint _totalEffectiveWeight;
+
+    for (uint i = 0; i < stakingPoolProductCount; i++) {
+      uint productId = productIds[i];
+      StakedProduct memory _product = _products[poolId][productId];
+
+      // Get current effectiveWeight
+      _product.lastEffectiveWeight = _getEffectiveWeight(
+        stakingPool,
+        productId,
+        _product.targetWeight,
+        globalCapacityRatio,
+        capacityReductionRatios[i]
+      );
+      _totalEffectiveWeight += _product.lastEffectiveWeight;
+      _products[poolId][productId] = _product;
+    }
+
+    weights[poolId].totalEffectiveWeight = _totalEffectiveWeight.toUint32();
+  }
+
   function setProducts(uint poolId, StakedProductParam[] memory params) external {
 
     IStakingPool stakingPool = getStakingPool(poolId);
@@ -318,6 +370,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       product.bumpedPriceUpdateTime = block.timestamp.toUint32();
       product.targetPrice = param.targetPrice;
       product.targetWeight = param.weight;
+      product.lastEffectiveWeight = param.weight;
 
       // sstore
       _products[poolId][param.productId] = product;

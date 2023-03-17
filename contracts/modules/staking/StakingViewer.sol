@@ -113,7 +113,7 @@ contract StakingViewer is Multicall {
     pool.activeStake = _stakingPool.getActiveStake();
     pool.currentAPY =
       _stakingPool.getActiveStake() != 0
-        ? _stakingPool.getRewardPerSecond() * 365 days / _stakingPool.getActiveStake()
+        ? 1 ether * _stakingPool.getRewardPerSecond() * 365 days / _stakingPool.getActiveStake()
         : 0;
 
     return pool;

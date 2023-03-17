@@ -161,8 +161,8 @@ describe('setProducts unit tests', function () {
     expect(bumpedPriceBefore).to.be.equal(_initialPrices[0]);
     expect(bumpedPriceUpdateTimeBefore).to.be.equal(initialTimestamp);
 
-    await increaseTime(daysToSeconds(2)); // 1% bump
-    const bumpPercentage = BigNumber.from(100); // 1%
+    await increaseTime(daysToSeconds(2)); // 1% drop
+    const priceDrop = BigNumber.from(100); // 1%
 
     // increase targetPrice
     const productEditParams = [{ ...products[0], targetPrice: 2000 }];
@@ -171,10 +171,51 @@ describe('setProducts unit tests', function () {
 
     const product0 = await stakingProducts.getProduct(poolId, 0);
     expect(product0.bumpedPrice).to.not.equal(product0.targetPrice);
-    expect(product0.bumpedPrice).to.be.equal(BigNumber.from(bumpedPriceBefore).sub(bumpPercentage));
+    expect(product0.bumpedPrice).to.be.equal(BigNumber.from(bumpedPriceBefore).sub(priceDrop));
     expect(product0.bumpedPriceUpdateTime).to.be.equal(latestTimestamp);
 
     verifyProduct(product0, { ...productEditParams[0], bumpedPriceUpdateTime: latestTimestamp });
+  });
+
+  it('should update bumpedPrice correctly when decreasing targetPrice', async function () {
+    const { stakingProducts, cover } = this;
+    const [manager] = this.accounts.members;
+
+    // target price = 300
+    const initialTargetPrice = BigNumber.from(300);
+    const products = [{ ...newProductTemplate, targetPrice: initialTargetPrice }];
+
+    // initial price = 500
+    const { _initialPrices } = await cover.getPriceAndCapacityRatios(products.map(p => p.productId));
+
+    // set products
+    await stakingProducts.connect(manager).setProducts(poolId, products);
+
+    const { timestamp: initialTimestamp } = await ethers.provider.getBlock('latest');
+    const { bumpedPrice: bumpedPriceBefore, bumpedPriceUpdateTime: bumpedPriceUpdateTimeBefore } =
+      await stakingProducts.getProduct(poolId, newProductTemplate.productId);
+
+    expect(bumpedPriceBefore).to.be.equal(_initialPrices[0]); // 500
+    expect(bumpedPriceUpdateTimeBefore).to.be.equal(initialTimestamp);
+
+    await increaseTime(daysToSeconds(8)); // 4% drop
+
+    // decrease target price, but keep it above what the base price would have been if there was no floor
+    const newTargetPrice = BigNumber.from(200);
+
+    const productEditParams = { ...products[0], targetPrice: newTargetPrice };
+    await stakingProducts.connect(manager).setProducts(poolId, [productEditParams]);
+    const { timestamp: latestTimestamp } = await ethers.provider.getBlock('latest');
+
+    const product0 = await stakingProducts.getProduct(poolId, 0);
+
+    // base price would have dropped to 500 - 400 = 100 if there was no targetPrice/floor
+    // base price should drop only to the initial target price: max(100, 300) = 300
+    expect(product0.bumpedPrice).to.be.equal(initialTargetPrice);
+    expect(product0.bumpedPriceUpdateTime).to.be.equal(latestTimestamp);
+
+    expect(product0.targetWeight).to.be.equal(productEditParams.targetWeight);
+    expect(product0.targetPrice).to.be.equal(productEditParams.targetPrice);
   });
 
   it('should add maximum products with full weight (20)', async function () {

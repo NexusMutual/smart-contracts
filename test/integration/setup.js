@@ -511,7 +511,7 @@ async function setup() {
     productId: 0,
     weight: 100,
     initialPrice: 1000,
-    targetPrice: 1000,
+    targetPrice: 100,
   };
 
   const DEFAULT_PRODUCTS = [product];

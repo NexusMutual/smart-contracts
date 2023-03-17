@@ -147,8 +147,10 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       StakedProductParam memory _param = params[i];
       StakedProduct memory _product = _products[poolId][_param.productId];
 
+      bool isNewProduct = _product.bumpedPriceUpdateTime == 0;
+
       // if this is a new product
-      if (_product.bumpedPriceUpdateTime == 0) {
+      if (isNewProduct) {
         // initialize the bumpedPrice
         _product.bumpedPrice = initialPriceRatios[i].toUint96();
         _product.bumpedPriceUpdateTime = uint32(block.timestamp);
@@ -162,12 +164,33 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       }
 
       if (_param.setTargetPrice) {
+
         if (_param.targetPrice > TARGET_PRICE_DENOMINATOR) {
           revert TargetPriceTooHigh();
         }
+
         if (_param.targetPrice < globalMinPriceRatio) {
           revert TargetPriceBelowMin();
         }
+
+        // if this is an existing product, when the target price is updated we need to calculate the
+        // current base price using the old target price and update the bumped price to that value
+        // uses the same logic as calculatePremium()
+        if (!isNewProduct) {
+
+          // apply price change per day towards previous target price
+          uint newBumpedPrice = getBasePrice(
+            _product.bumpedPrice,
+            _product.bumpedPriceUpdateTime,
+            _product.targetPrice,
+            block.timestamp
+          );
+
+          // update product with new bumped price and bumped price update time
+          _product.bumpedPrice = newBumpedPrice.toUint96();
+          _product.bumpedPriceUpdateTime = block.timestamp.toUint32();
+        }
+
         _product.targetPrice = _param.targetPrice;
       }
 
@@ -373,6 +396,24 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     return premiumPerYear * period / 365 days;
   }
 
+  function getBasePrice(
+    uint productBumpedPrice,
+    uint productBumpedPriceUpdateTime,
+    uint targetPrice,
+    uint timestamp
+  ) public pure returns (uint basePrice) {
+
+    // use previously recorded bumped price and apply time based smoothing towards target price
+    uint timeSinceLastUpdate = timestamp - productBumpedPriceUpdateTime;
+    uint priceDrop = PRICE_CHANGE_PER_DAY * timeSinceLastUpdate / 1 days;
+
+    // basePrice = max(targetPrice, bumpedPrice - priceDrop)
+    // rewritten to avoid underflow
+    return productBumpedPrice < targetPrice + priceDrop
+      ? targetPrice
+      : productBumpedPrice - priceDrop;
+  }
+
   function calculatePremium(
     StakedProduct memory product,
     uint period,
@@ -386,21 +427,18 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint targetPriceDenominator
   ) public pure returns (uint premium, StakedProduct memory) {
 
-    uint basePrice;
-    {
-      // use previously recorded bumped price and apply time based smoothing towards target price
-      uint timeSinceLastUpdate = currentBlockTimestamp - product.bumpedPriceUpdateTime;
-      uint priceDrop = PRICE_CHANGE_PER_DAY * timeSinceLastUpdate / 1 days;
-
-      // basePrice = max(targetPrice, bumpedPrice - priceDrop)
-      // rewritten to avoid underflow
-      basePrice = product.bumpedPrice < targetPrice + priceDrop
-      ? targetPrice
-      : product.bumpedPrice - priceDrop;
-    }
-
     // calculate the bumped price by applying the price bump
     uint priceBump = PRICE_BUMP_RATIO * coverAmount / totalCapacity;
+
+    // apply change in price-per-day towards the target price
+    uint basePrice = getBasePrice(
+       product.bumpedPrice,
+       product.bumpedPriceUpdateTime,
+       targetPrice,
+       currentBlockTimestamp
+     );
+
+    // update product with new bumped price and timestamp
     product.bumpedPrice = (basePrice + priceBump).toUint96();
     product.bumpedPriceUpdateTime = uint32(currentBlockTimestamp);
 

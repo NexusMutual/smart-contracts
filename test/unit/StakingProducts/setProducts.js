@@ -126,7 +126,7 @@ describe('setProducts unit tests', function () {
     const newProduct = { ...newProductTemplate, productId: 2 };
 
     // remove product0, skip product1, add product2
-    const productEditParams = [{ ...products[0], targetWeight: 0 }, newProduct];
+    const productEditParams = [{ ...products[0], setTargetPrice: false, targetWeight: 0 }, newProduct];
     await stakingProducts.connect(manager).setProducts(poolId, productEditParams);
     const { timestamp: latestTimestamp } = await ethers.provider.getBlock('latest');
 
@@ -277,9 +277,12 @@ describe('setProducts unit tests', function () {
     const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
     // lowering targetWeight should reduce effective weight
     products[0].targetWeight = 0;
-    // product1 target and effective weight  should remain at 100
+    products[0].setTargetPrice = false;
+    // should skip setting price and weight
     products[1].targetWeight = 0;
     products[1].setTargetWeight = false;
+    products[1].setTargetPrice = false;
+
     await stakingProducts.connect(manager).setProducts(poolId, products);
     const product0 = await stakingProducts.getProduct(poolId, 0);
     const product1 = await stakingProducts.getProduct(poolId, 1);
@@ -304,10 +307,12 @@ describe('setProducts unit tests', function () {
       .setProducts(poolId, [
         { ...product, targetWeight: 1, setTargetWeight: false, targetPrice: GLOBAL_MIN_PRICE_RATIO },
       ]);
+
+    const { timestamp: bumpedPriceUpdateTimeAfter } = await ethers.provider.getBlock('latest');
     verifyProduct(await stakingProducts.getProduct(poolId, 0), {
       ...newProductTemplate,
       targetPrice: GLOBAL_MIN_PRICE_RATIO,
-      bumpedPriceUpdateTime,
+      bumpedPriceUpdateTime: bumpedPriceUpdateTimeAfter,
     });
   });
 

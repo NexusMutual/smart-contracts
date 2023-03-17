@@ -178,7 +178,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
         // uses the same logic as calculatePremium()
         if (!isNewProduct) {
 
-          // apply price change per day towards target price
+          // apply price change per day towards previous target price
           uint newBumpedPrice = getBasePrice(
             _product.bumpedPrice,
             _product.bumpedPriceUpdateTime,
@@ -409,10 +409,9 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     // basePrice = max(targetPrice, bumpedPrice - priceDrop)
     // rewritten to avoid underflow
-    basePrice = productBumpedPrice < targetPrice + priceDrop
-    ? targetPrice
-    : productBumpedPrice - priceDrop;
-
+    return productBumpedPrice < targetPrice + priceDrop
+      ? targetPrice
+      : productBumpedPrice - priceDrop;
   }
 
   function calculatePremium(
@@ -438,7 +437,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
        targetPrice,
        currentBlockTimestamp
      );
-
 
     // update product with new bumped price and timestamp
     product.bumpedPrice = (basePrice + priceBump).toUint96();

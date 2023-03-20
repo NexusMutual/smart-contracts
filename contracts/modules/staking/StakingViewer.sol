@@ -31,6 +31,7 @@ contract StakingViewer is Multicall {
     uint targetWeight;
     uint targetPrice;
     uint bumpedPrice;
+    uint bumpedPriceUpdateTime;
   }
 
   struct Deposit {
@@ -201,6 +202,7 @@ contract StakingViewer is Multicall {
       product.targetWeight = targetWeight;
       product.bumpedPrice = bumpedPrice;
       product.targetPrice = targetPrice;
+      product.bumpedPriceUpdateTime = bumpedPriceUpdateTime;
 
       stakedProductsQueue[stakedProductsCount] = product;
       stakedProductsCount++;

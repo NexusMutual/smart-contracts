@@ -19,7 +19,9 @@ jobs:
             - node_modules
       - run:
           name: Compile contracts
-          command: npm run compile
+          command: |
+            set -e 
+            npm run compile
       - save_cache:
           key: nexus-mutual-contracts-{{ .Environment.CIRCLE_SHA1 }}
           paths:

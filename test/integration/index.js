@@ -24,4 +24,5 @@ describe('INTEGRATION TESTS', function () {
   require('./MemberRoles');
   require('./StakingPool');
   require('./TokenController');
+  require('./StakingProducts');
 });

@@ -8,6 +8,8 @@ import "../../interfaces/IStakingProducts.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
+import "hardhat/console.sol";
+
 
 contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   using SafeUintCast for uint;
@@ -47,7 +49,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     stakingPoolAddress = IStakingPool(StakingPoolLibrary.getAddress(stakingPoolFactory, poolId));
   }
 
-  function getProductTargetWeight(uint poolId, uint productId) external view override returns (uint) {
+  function getProductTargetWeight(uint poolId, uint productId) public view override returns (uint) {
     return uint(_products[poolId][productId].targetWeight);
   }
 
@@ -328,12 +330,14 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint capacityReductionRatio
   ) internal view returns (uint16 effectiveWeight) {
 
+    // compute tranche capacities as though target weight is 100.
+    // in order to compute the actualWeight as a function of raw capacity
     uint[] memory trancheCapacities = stakingPool.getTrancheCapacities(
-      productId,
       block.timestamp / TRANCHE_DURATION, // first active tranche id
       MAX_ACTIVE_TRANCHES,
       globalCapacityRatio,
-      capacityReductionRatio
+      capacityReductionRatio,
+      WEIGHT_DENOMINATOR
     );
 
     uint totalCapacity = Math.sum(trancheCapacities);

@@ -836,11 +836,11 @@ contract StakingPool is IStakingPool, Multicall {
   ) {
 
     trancheCapacities = getTrancheCapacities(
-      productId,
       block.timestamp / TRANCHE_DURATION, // first active tranche id
       MAX_ACTIVE_TRANCHES,
       globalCapacityRatio,
-      capacityReductionRatio
+      capacityReductionRatio,
+      stakingProducts.getProductTargetWeight(poolId, productId)
     );
 
     totalCapacity = Math.sum(trancheCapacities);
@@ -849,11 +849,11 @@ contract StakingPool is IStakingPool, Multicall {
   }
 
   function getTrancheCapacities(
-    uint productId,
     uint firstTrancheId,
     uint trancheCount,
     uint capacityRatio,
-    uint reductionRatio
+    uint reductionRatio,
+    uint productTargetWeight
   ) public view returns (uint[] memory trancheCapacities) {
 
     // will revert if with unprocessed expirations
@@ -873,7 +873,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint multiplier =
       capacityRatio
       * (CAPACITY_REDUCTION_DENOMINATOR - reductionRatio)
-      * stakingProducts.getProductTargetWeight(poolId, productId);
+      * productTargetWeight;
 
     uint denominator =
       GLOBAL_CAPACITY_DENOMINATOR
@@ -914,12 +914,13 @@ contract StakingPool is IStakingPool, Multicall {
       uint firstTrancheIdToUse = (block.timestamp + request.period + request.gracePeriod) / TRANCHE_DURATION;
       uint startIndex = firstTrancheIdToUse - _firstActiveTrancheId;
 
+      uint productTargetWeight = stakingProducts.getProductTargetWeight(poolId, request.productId);
       uint[] memory trancheCapacities = getTrancheCapacities(
-        request.productId,
         firstTrancheIdToUse,
         MAX_ACTIVE_TRANCHES - startIndex, // count
         request.globalCapacityRatio,
-        request.capacityReductionRatio
+        request.capacityReductionRatio,
+        productTargetWeight
       );
 
       uint remainingAmount = coverAllocationAmount;

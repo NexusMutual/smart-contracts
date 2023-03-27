@@ -1,8 +1,7 @@
 const { web3, ethers } = require('hardhat');
-const { time } = require('@openzeppelin/test-helpers');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { parseEther } = ethers.utils;
-const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
+const { setNextBlockTime, mineNextBlock, increaseTime } = require('../../utils/evm');
 const { toBN } = web3.utils;
 
 const setTime = async timestamp => {
@@ -14,7 +13,7 @@ async function voteClaim({ claimId, verdict, ic, cd, cr, voter }) {
   await ic.submitCAVote(claimId, toBN(verdict), { from: voter });
 
   const minVotingTime = await cd.minVotingTime();
-  await time.increase(minVotingTime.addn(1));
+  await increaseTime(minVotingTime.addn(1));
 
   const voteStatusBefore = await ic.checkVoteClosing(claimId);
   assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');

@@ -1,7 +1,7 @@
-const { ether } = require('@openzeppelin/test-helpers');
+const { ethers } = require('hardhat');
 const { getQuoteSignature } = require('./getQuote');
-const { web3 } = require('hardhat');
-const { toBN } = web3.utils;
+const { parseEther, defaultAbiCoder } = ethers.utils;
+const { BigNumber } = ethers;
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
@@ -39,7 +39,7 @@ async function buyCoverWithDai({ cover, coverHolder, qt, p1, dai }) {
     qt.address,
   );
 
-  const coverPrice = toBN(cover.price);
+  const coverPrice = BigNumber.from(cover.price);
 
   await dai.approve(p1.address, coverPrice, { from: coverHolder });
 
@@ -57,7 +57,7 @@ async function buyCoverWithDai({ cover, coverHolder, qt, p1, dai }) {
 
 async function getBuyCoverDataParameter({ qt, coverData }) {
   // encoded data and signature uses unit price.
-  const unitAmount = toBN(coverData.amount).div(ether('1')).toString();
+  const unitAmount = BigNumber.from(coverData.amount).div(parseEther('1')).toString();
   const [v, r, s] = await getQuoteSignature(
     coverToCoverDetailsArray({ ...coverData, amount: unitAmount }),
     coverData.currency,
@@ -65,14 +65,14 @@ async function getBuyCoverDataParameter({ qt, coverData }) {
     coverData.contractAddress,
     qt.address,
   );
-  return web3.eth.abi.encodeParameters(
+  return defaultAbiCoder.encode(
     ['uint', 'uint', 'uint', 'uint', 'uint8', 'bytes32', 'bytes32'],
     [coverData.price, coverData.priceNXM, coverData.expireTime, coverData.generationTime, v, r, s],
   );
 }
 
 async function buyCoverThroughGateway({ coverData, gateway, coverHolder, qt, dai }) {
-  const price = toBN(coverData.price);
+  const price = BigNumber.from(coverData.price);
   // encoded data and signature uses unit price.
   const data = await getBuyCoverDataParameter({ qt, coverData });
 

@@ -22,7 +22,6 @@
   "dependencies": {
     "@openzeppelin/contracts": "^2.5.1",
     "@openzeppelin/contracts-v4": "npm:@openzeppelin/contracts@^4.7.3",
-    "@openzeppelin/test-helpers": "^0.5.16",
     "dotenv": "^8.6.0",
     "ethereum-cryptography": "^1.0.1",
     "ethereumjs-util": "^7.0.1",

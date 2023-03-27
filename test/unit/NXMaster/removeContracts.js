@@ -1,9 +1,8 @@
 const { artifacts } = require('hardhat');
 const {
-  constants: { ZERO_ADDRESS },
-  expectRevert,
-} = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
+  constants: { AddressZero },
+} = require('ethers');
+const { assert, expect } = require('chai');
 const { hex } = require('../utils').helpers;
 const { ContractTypes } = require('../utils').constants;
 
@@ -13,13 +12,13 @@ describe('removeContracts', function () {
   it('reverts when not called by governance', async function () {
     const { master } = this;
 
-    await expectRevert(master.removeContracts([]), 'Not authorized');
+    expect(master.removeContracts([])).to.be.revertedWith('Not authorized');
   });
 
   it('reverts when contract code does not exist', async function () {
     const { governance } = this;
 
-    await expectRevert(governance.removeContracts([hex('XX')]), 'NXMaster: Address is 0');
+    expect(governance.removeContracts([hex('XX')])).to.be.revertedWith('NXMaster: Address is 0');
   });
 
   it('remove newly added contracts', async function () {
@@ -47,14 +46,14 @@ describe('removeContracts', function () {
 
     {
       const addressAfterDeletion = await master.getLatestAddress(replaceableCode);
-      assert.equal(addressAfterDeletion, ZERO_ADDRESS);
+      assert.equal(addressAfterDeletion, AddressZero);
       const isInternal = await master.isInternal(newReplaceableContract.address);
       assert.equal(isInternal, false);
     }
 
     {
       const addressAfterDeletion = await master.getLatestAddress(proxyCode);
-      assert.equal(addressAfterDeletion, ZERO_ADDRESS);
+      assert.equal(addressAfterDeletion, AddressZero);
       const isInternal = await master.isInternal(proxyAddress);
       assert.equal(isInternal, false);
     }

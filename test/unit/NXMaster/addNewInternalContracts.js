@@ -1,9 +1,8 @@
 const { artifacts } = require('hardhat');
 const {
-  constants: { ZERO_ADDRESS },
-  expectRevert,
-} = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
+  constants: { AddressZero },
+} = require('ethers');
+const { assert, expect } = require('chai');
 const { hex } = require('../utils').helpers;
 const { ContractTypes } = require('../utils').constants;
 
@@ -14,38 +13,35 @@ describe('addNewInternalContracts', function () {
   it('reverts when not called by governance', async function () {
     const { master } = this;
 
-    await expectRevert(master.addNewInternalContracts([], [], []), 'Not authorized');
+    expect(master.addNewInternalContracts([], [], [])).to.be.revertedWith('Not authorized');
   });
 
   it('reverts when contract code already in use', async function () {
     const { governance } = this;
 
-    await expectRevert(
+    expect(
       governance.addNewInternalContracts(
         [hex('GV')],
         ['0x0000000000000000000000000000000000000001'],
         [ContractTypes.Replaceable],
       ),
-      'NXMaster: Code already in use',
-    );
+    ).to.be.revertedWith('NXMaster: Code already in use');
   });
 
   it('reverts when contract address is 0', async function () {
     const { governance } = this;
 
-    await expectRevert(
-      governance.addNewInternalContracts([hex('XX')], [ZERO_ADDRESS], [ContractTypes.Replaceable]),
-      'NXMaster: Contract address is 0',
-    );
+    expect(
+      governance.addNewInternalContracts([hex('XX')], [AddressZero], [ContractTypes.Replaceable]),
+    ).to.be.revertedWith('NXMaster: Contract address is 0');
   });
 
   it('reverts when contract type is unknown', async function () {
     const { governance } = this;
 
-    await expectRevert(
+    expect(
       governance.addNewInternalContracts([hex('XX')], ['0x0000000000000000000000000000000000000001'], ['15']),
-      'NXMaster: Unsupported contract type',
-    );
+    ).to.be.revertedWith('NXMaster: Unsupported contract type');
   });
 
   it('adds new replaceable contract', async function () {

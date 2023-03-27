@@ -1,7 +1,8 @@
-const { accounts, web3 } = require('hardhat');
-const { ether, time, expectEvent } = require('@openzeppelin/test-helpers');
+const { accounts, web3, ethers } = require('hardhat');
+const { time, expectEvent } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const { BN, toBN } = web3.utils;
+const { BigNumber } = ethers;
+const { parseEther } = ethers.utils;
 
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { buyCover } = require('../utils').buyCover;
@@ -27,7 +28,7 @@ const [
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const stakers = [staker1, staker2, staker3, staker4, staker5, staker6, staker7, staker8, staker9, staker10];
-const tokensLockedForVoting = ether('200');
+const tokensLockedForVoting = parseEther('200');
 
 async function submitMemberVotes({ cd, cl, voteValue, maxVotingMembers }) {
   const claimId = (await cd.actualClaimLength()) - 1;
@@ -52,9 +53,9 @@ async function submitMemberVotes({ cd, cl, voteValue, maxVotingMembers }) {
 async function closeClaim({ cl, cd, cr, now, expectedClaimStatusNumber }) {
   const claimId = (await cd.actualClaimLength()) - 1;
   const minVotingTime = await cd.minVotingTime();
-  const minTime = new BN(minVotingTime.toString()).add(new BN(now.toString()));
+  const minTime = minVotingTime.add(now);
 
-  await time.increaseTo(new BN(minTime.toString()).add(new BN('2')));
+  await time.increaseTo(minTime.add(2));
 
   const actualVoteClosingBefore = await cl.checkVoteClosing(claimId);
   assert.equal(actualVoteClosingBefore.toString(), '1');
@@ -90,7 +91,7 @@ describe('burns', function () {
     };
 
     const secondCoveredAddress = '0xd01236c54dbc68db5db3a091b171a77407ff7234';
-    const stakeTokens = ether('20');
+    const stakeTokens = parseEther('20');
 
     await tk.approve(tc.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress, secondCoveredAddress], [stakeTokens, stakeTokens], {
@@ -106,11 +107,11 @@ describe('burns', function () {
     await ps.processPendingActions('100');
     const stakerRewardPostProcessing = await ps.stakerReward(staker1);
 
-    const rewardValue = new BN(stakerRewardPostProcessing).sub(new BN(stakerRewardPreProcessing));
+    const rewardValue = stakerRewardPostProcessing.sub(stakerRewardPreProcessing);
     const stakerRewardPercentage = 50;
-    const coverPrice = new BN(cover.priceNXM);
+    const coverPrice = cover.priceNXM;
 
-    const expectedTotalReward = coverPrice.mul(new BN(stakerRewardPercentage)).div(new BN(100));
+    const expectedTotalReward = coverPrice.mul(stakerRewardPercentage).div(100);
 
     assert.equal(rewardValue.toString(), expectedTotalReward.toString());
 
@@ -130,8 +131,8 @@ describe('burns', function () {
     const balanceAfter = await tk.balanceOf(ps.address);
     const tokenPrice = await p1.getTokenPrice(ETH);
     const totalBurn = balanceBefore.sub(balanceAfter);
-    const sumAssured = ether(cover.amount.toString());
-    const sumAssuredInNxm = sumAssured.mul(ether('1')).div(new BN(tokenPrice));
+    const sumAssured = parseEther(cover.amount.toString());
+    const sumAssuredInNxm = sumAssured.mul(parseEther('1')).div(tokenPrice);
     const expectedBurnedNXMAmount = staked.lt(sumAssuredInNxm) ? staked : sumAssuredInNxm;
 
     assert.equal(
@@ -155,7 +156,7 @@ describe('burns', function () {
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf',
     };
 
-    const stakeTokens = ether('20');
+    const stakeTokens = parseEther('20');
     const { ps, tk, qd, cl, p1, tc } = this.contracts;
 
     for (const staker of stakers) {
@@ -175,13 +176,10 @@ describe('burns', function () {
     await ps.processPendingActions('100');
     const stakerRewardPostProcessing = await ps.stakerReward(staker1);
 
-    const rewardValue = new BN(stakerRewardPostProcessing).sub(new BN(stakerRewardPreProcessing));
+    const rewardValue = stakerRewardPostProcessing.sub(stakerRewardPreProcessing);
     const stakerRewardPercentage = 50;
-    const coverPrice = new BN(cover.priceNXM);
-    const expectedRewardPerStaker = coverPrice
-      .mul(new BN(stakerRewardPercentage))
-      .div(new BN(100))
-      .div(new BN(stakers.length));
+    const coverPrice = cover.priceNXM;
+    const expectedRewardPerStaker = coverPrice.mul(stakerRewardPercentage).div(100).div(stakers.length);
 
     assert.equal(rewardValue.toString(), expectedRewardPerStaker.toString());
 
@@ -197,12 +195,12 @@ describe('burns', function () {
     const balanceAfter = await tk.balanceOf(ps.address);
 
     const tokenPrice = await p1.getTokenPrice(ETH);
-    const sumAssured = new BN(ether(cover.amount.toString()));
+    const sumAssured = parseEther(cover.amount);
     const actualBurn = balanceBefore.sub(balanceAfter);
 
-    const pushedBurnAmount = sumAssured.mul(ether('1')).div(tokenPrice);
+    const pushedBurnAmount = sumAssured.mul(parseEther('1')).div(tokenPrice);
     const stakedOnContract = await ps.contractStake(cover.contractAddress);
-    let expectedBurnedNXMAmount = ether('0');
+    let expectedBurnedNXMAmount = parseEther('0');
 
     for (const staker of stakers) {
       const stakerStake = await ps.stakerContractStake(staker, cover.contractAddress);
@@ -232,7 +230,7 @@ describe('burns', function () {
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf',
     };
 
-    const stakeTokens = ether('20');
+    const stakeTokens = parseEther('20');
 
     await tk.approve(tc.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
@@ -277,7 +275,7 @@ describe('burns', function () {
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf',
     };
 
-    const stakeTokens = ether('20');
+    const stakeTokens = parseEther('20');
     await tk.approve(tc.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
@@ -301,8 +299,8 @@ describe('burns', function () {
     assert.isFalse(await ps.hasPendingActions());
 
     const tokenPrice = await p1.getTokenPrice(ETH);
-    const sumAssured = new BN(ether(cover.amount.toString()));
-    const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div(new BN(tokenPrice));
+    const sumAssured = parseEther(cover.amount);
+    const expectedBurnedNXMAmount = sumAssured.mul(parseEther('1')).div(tokenPrice);
 
     const balanceAfter = await tk.balanceOf(ps.address);
     const totalBurn = balanceBefore.sub(balanceAfter);
@@ -329,7 +327,7 @@ describe('burns', function () {
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf',
     };
 
-    const stakeTokens = ether('20');
+    const stakeTokens = parseEther('20');
     await tk.approve(tc.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
@@ -361,8 +359,8 @@ describe('burns', function () {
     assert.equal(claimStatus.statno.toString(), '14');
 
     const tokenPrice = await p1.getTokenPrice(ETH);
-    const sumAssured = new BN(ether(cover.amount.toString()));
-    const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div(new BN(tokenPrice));
+    const sumAssured = parseEther(cover.amount);
+    const expectedBurnedNXMAmount = sumAssured.mul(parseEther('1')).div(tokenPrice);
 
     const totalBurn = balanceBefore.sub(balanceAfter);
 
@@ -387,7 +385,7 @@ describe('burns', function () {
       period: 120,
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf',
     };
-    const stakeTokens = ether('20');
+    const stakeTokens = parseEther('20');
 
     await tk.approve(ps.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
@@ -403,7 +401,7 @@ describe('burns', function () {
     const { timestamp: unstakeRequestedAt } = await web3.eth.getBlock(unstakeRequest.receipt.blockNumber);
 
     const unstakeLockTime = await ps.UNSTAKE_LOCK_TIME();
-    const expectedUnstakeTime = toBN(unstakeRequestedAt).add(unstakeLockTime);
+    const expectedUnstakeTime = BigNumber.from(unstakeRequestedAt).add(unstakeLockTime);
 
     expectEvent(unstakeRequest, 'UnstakeRequested', {
       staker: staker1,

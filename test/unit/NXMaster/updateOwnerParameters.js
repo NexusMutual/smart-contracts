@@ -1,9 +1,8 @@
 const { accounts } = require('hardhat');
 const {
-  constants: { ZERO_ADDRESS },
-  expectRevert,
-} = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
+  constants: { AddressZero },
+} = require('ethers');
+const { assert, expect } = require('chai');
 
 const { NXMasterOwnerParamType } = require('../utils').constants;
 
@@ -14,7 +13,7 @@ describe('updateOwnerParameters', function () {
     const { master } = this;
     const param = NXMasterOwnerParamType.kycAuthority;
 
-    await expectRevert.unspecified(master.updateOwnerParameters(param, ZERO_ADDRESS, { from: nonMember }));
+    expect(master.updateOwnerParameters(param, AddressZero, { from: nonMember })).to.be.revertedWith('Not authorized');
   });
 
   it('should correctly update emergency admin parameter', async function () {

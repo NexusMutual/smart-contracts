@@ -1,6 +1,6 @@
 const ethABI = require('ethereumjs-abi');
 const util = require('ethereumjs-util');
-const { toBN } = require('hardhat').web3.utils;
+const { BigNumber } = require('ethers');
 
 const quoteAuthPrivateKey = Buffer.from('45571723d6f6fa704623beb284eda724459d76cc68e82b754015d6e7af794cc8', 'hex');
 
@@ -20,14 +20,14 @@ async function getQuoteSignature(...args) {
   };
 
   const orderParts = [
-    { value: toBN(order.amount), type: 'uint' },
+    { value: BigNumber.from(order.amount), type: 'uint' },
     { value: order.curr, type: 'bytes4' },
-    { value: toBN(order.CP), type: 'uint16' },
+    { value: BigNumber.from(order.CP), type: 'uint16' },
     { value: order.smartCA, type: 'address' },
-    { value: toBN(order.Price), type: 'uint' },
-    { value: toBN(order.price_nxm), type: 'uint' },
-    { value: toBN(order.expire), type: 'uint' },
-    { value: toBN(order.generationTime), type: 'uint' },
+    { value: BigNumber.from(order.Price), type: 'uint' },
+    { value: BigNumber.from(order.price_nxm), type: 'uint' },
+    { value: BigNumber.from(order.expire), type: 'uint' },
+    { value: BigNumber.from(order.generationTime), type: 'uint' },
     { value: order.quotationContract, type: 'address' },
   ];
 

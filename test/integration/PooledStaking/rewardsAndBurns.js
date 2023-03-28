@@ -1,10 +1,10 @@
-const { accounts, web3, ethers } = require('hardhat');
-const { time, expectEvent } = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
-const { BigNumber } = ethers;
+const { accounts, ethers } = require('hardhat');
+const { assert, expect } = require('chai');
+const { BigNumber, provider } = ethers;
 const { parseEther } = ethers.utils;
 
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
+const { increaseTime } = require('../utils/').evm;
 const { buyCover } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
 
@@ -50,12 +50,11 @@ async function submitMemberVotes({ cd, cl, voteValue, maxVotingMembers }) {
   assert.equal(voters.length, expectedVotes);
 }
 
-async function closeClaim({ cl, cd, cr, now, expectedClaimStatusNumber }) {
+async function closeClaim({ cl, cd, cr, expectedClaimStatusNumber }) {
   const claimId = (await cd.actualClaimLength()) - 1;
   const minVotingTime = await cd.minVotingTime();
-  const minTime = minVotingTime.add(now);
 
-  await time.increaseTo(minTime.add(2));
+  await increaseTime(minVotingTime);
 
   const actualVoteClosingBefore = await cl.checkVoteClosing(claimId);
   assert.equal(actualVoteClosingBefore.toString(), '1');
@@ -67,6 +66,8 @@ async function closeClaim({ cl, cd, cr, now, expectedClaimStatusNumber }) {
   const actualVoteClosingAfter = await cl.checkVoteClosing(claimId);
   assert.equal(actualVoteClosingAfter.toString(), '-1');
 }
+const lastBlockTimestamp = async () =>
+  (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
 
 describe('burns', function () {
   beforeEach(async function () {
@@ -99,7 +100,9 @@ describe('burns', function () {
     });
 
     await buyCover({ ...this.contracts, cover, coverHolder });
-    await time.increase(await ps.REWARD_ROUND_DURATION());
+
+    await increaseTime(await ps.REWARD_ROUND_DURATION());
+
     await ps.pushRewards([cover.contractAddress]);
     assert(await ps.hasPendingActions());
 
@@ -119,7 +122,7 @@ describe('burns', function () {
     const coverID = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
-    const now = await time.latest();
+    const now = await lastBlockTimestamp();
     await submitMemberVotes({ ...this.contracts, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
@@ -169,7 +172,7 @@ describe('burns', function () {
     }
 
     await buyCover({ ...this.contracts, cover, coverHolder });
-    await time.increase(await ps.REWARD_ROUND_DURATION());
+    await increaseTime(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
 
     const stakerRewardPreProcessing = await ps.stakerReward(staker1);
@@ -186,7 +189,7 @@ describe('burns', function () {
     const coverID = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
-    const now = await time.latest();
+    const now = await lastBlockTimestamp();
     await submitMemberVotes({ ...this.contracts, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
@@ -236,7 +239,7 @@ describe('burns', function () {
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
     await buyCover({ ...this.contracts, cover, coverHolder });
-    await time.increase(await ps.REWARD_ROUND_DURATION());
+    await increaseTime(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
 
     assert(await ps.hasPendingActions());
@@ -245,7 +248,7 @@ describe('burns', function () {
     const coverID = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
-    const now = await time.latest();
+    const now = await lastBlockTimestamp();
     await submitMemberVotes({ ...this.contracts, voteValue: -1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
@@ -280,7 +283,7 @@ describe('burns', function () {
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
     await buyCover({ ...this.contracts, cover, coverHolder });
-    await time.increase(await ps.REWARD_ROUND_DURATION());
+    await increaseTime(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
 
     assert(await ps.hasPendingActions());
@@ -289,7 +292,7 @@ describe('burns', function () {
     const coverID = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
-    const now = await time.latest();
+    const now = await lastBlockTimestamp();
     await submitMemberVotes({ ...this.contracts, voteValue: 1 });
     const balanceBefore = await tk.balanceOf(ps.address);
     await closeClaim({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
@@ -332,7 +335,7 @@ describe('burns', function () {
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
     await buyCover({ ...this.contracts, cover, coverHolder });
-    await time.increase(await ps.REWARD_ROUND_DURATION());
+    await increaseTime(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
 
     assert(await ps.hasPendingActions());
@@ -342,7 +345,7 @@ describe('burns', function () {
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
     const minVotingTime = await cd.minVotingTime();
-    await time.increase(minVotingTime.addn(1));
+    await increaseTime(minVotingTime);
 
     const balanceBefore = await tk.balanceOf(ps.address);
     await submitMemberVotes({ ...this.contracts, voteValue: 1, maxVotingMembers: 1 });
@@ -391,25 +394,21 @@ describe('burns', function () {
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
     await buyCover({ cover, coverHolder, qt, p1 });
-    await time.increase(await ps.REWARD_ROUND_DURATION());
+    await increaseTime(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
 
     const unstakeRequest = await ps.requestUnstake([cover.contractAddress], [stakeTokens], 0, { from: staker1 });
-    const { timestamp: unstakeRequestedAt } = await web3.eth.getBlock(unstakeRequest.receipt.blockNumber);
+    const { timestamp: unstakeRequestedAt } = await provider.getBlock(unstakeRequest.receipt.blockNumber);
 
     const unstakeLockTime = await ps.UNSTAKE_LOCK_TIME();
     const expectedUnstakeTime = BigNumber.from(unstakeRequestedAt).add(unstakeLockTime);
 
-    expectEvent(unstakeRequest, 'UnstakeRequested', {
-      staker: staker1,
-      amount: stakeTokens,
-      unstakeAt: expectedUnstakeTime,
-    });
+    expect(unstakeRequest).to.emit(ps, 'UnstakeRequested').withArgs(staker1, stakeTokens, expectedUnstakeTime);
 
-    await time.increase(unstakeLockTime.addn(24 * 60 * 60).toString());
+    await increaseTime(unstakeLockTime);
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
@@ -423,7 +422,7 @@ describe('burns', function () {
     const coverID = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
-    const now = await time.latest();
+    const now = await lastBlockTimestamp();
     await submitMemberVotes({ ...this.contracts, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);

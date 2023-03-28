@@ -13,6 +13,8 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/IPooledStaking.sol";
+import "../../interfaces/ITokenController.sol";
 import "./external/Governed.sol";
 
 contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
@@ -108,6 +110,10 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     return ICover(internalContracts[uint(ID.CO)]);
   }
 
+  function legacyPooledStaking() internal view returns (IPooledStaking) {
+    return IPooledStaking(internalContracts[uint(ID.PS)]);
+  }
+
   /// Updates contracts dependencies.
   ///
   /// @dev Iupgradable Interface to update dependent contract address
@@ -122,6 +128,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
+    internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
   }
 
   /// Adds a new member role.
@@ -222,6 +229,15 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
       tokenController().isStakingPoolManager(msg.sender) == false,
       "MemberRoles: Member is a staking pool manager"
     );
+    
+    IPooledStaking _legacyPooledStaking = legacyPooledStaking();
+
+    // check that there are no NXM tokens left to withdraw in Nexus V1
+    require(_legacyPooledStaking.stakerDeposit(msg.sender) == 0, "V1 stakerDeposit != 0");
+    require(_legacyPooledStaking.stakerReward(msg.sender) == 0, "V1 stakerReward != 0");
+    require(_tokenController.tokensLocked(msg.sender, "CLA") == 0, "V1 CLA tokensLocked != 0");
+    (, , uint coverNotesAmount) = _tokenController.getWithdrawableCoverNotes(msg.sender);
+    require(coverNotesAmount == 0, "V1 coverNotesAmount != 0");
 
     _tokenController.burnFrom(msg.sender, token.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
@@ -303,6 +319,15 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     require(block.timestamp > token.isLockedForMV(currentAddress), "Locked for governance voting");
 
     ITokenController _tokenController = tokenController();
+    IPooledStaking _legacyPooledStaking = legacyPooledStaking();
+
+    // check that there are no NXM tokens left to withdraw in Nexus V1
+    require(_legacyPooledStaking.stakerDeposit(currentAddress) == 0, "V1 stakerDeposit != 0");
+    require(_legacyPooledStaking.stakerReward(currentAddress) == 0, "V1 stakerReward != 0");
+    require(_tokenController.tokensLocked(currentAddress, "CLA") == 0, "V1 CLA tokensLocked != 0");
+    (, , uint coverNotesAmount) = _tokenController.getWithdrawableCoverNotes(currentAddress);
+    require(coverNotesAmount == 0, "V1 coverNotesAmount != 0");
+
     _tokenController.addToWhitelist(newAddress);
     _updateRole(currentAddress, uint(Role.Member), false);
     _updateRole(newAddress, uint(Role.Member), true);

@@ -94,4 +94,14 @@ interface ITokenController {
   function burnStakedNXM(uint amount, uint poolId) external;
 
   function stakingPoolNXMBalances(uint poolId) external view returns(uint128 rewards, uint128 deposits);
+
+  function tokensLocked(address _of, bytes32 _reason) external view returns (uint256 amount);
+
+  function getWithdrawableCoverNotes(
+    address coverOwner
+  ) external view returns (
+    uint[] memory coverIds,
+    bytes32[] memory lockReasons,
+    uint withdrawableAmount
+  );
 }

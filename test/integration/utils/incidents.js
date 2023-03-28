@@ -1,4 +1,5 @@
-const { web3 } = require('hardhat');
+const { ethers } = require('hardhat');
+const { defaultAbiCoder } = ethers.utils;
 const { expectEvent, time } = require('@openzeppelin/test-helpers');
 
 const {
@@ -15,7 +16,7 @@ const addIncident = async (contracts, members, protocolId, incidentDate, priceBe
   await gv.submitProposalWithSolution(
     proposalId,
     'ipfshash',
-    web3.eth.abi.encodeParameters(['address', 'uint', 'uint'], [protocolId, incidentDate, priceBefore]),
+    defaultAbiCoder.encode(['address', 'uint', 'uint'], [protocolId, incidentDate, priceBefore]),
   );
 
   for (const member of members) {
@@ -45,7 +46,7 @@ const withdrawAssets = async (contracts, members, asset, destination, amount) =>
   await gv.submitProposalWithSolution(
     proposalId,
     'ipfshash',
-    web3.eth.abi.encodeParameters(['address', 'address', 'uint'], [asset, destination, amount]),
+    defaultAbiCoder.encode(['address', 'address', 'uint'], [asset, destination, amount]),
   );
 
   for (const member of members) {

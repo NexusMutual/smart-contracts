@@ -11,7 +11,14 @@ const {
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { domain: makeDomain, computeOrderUid } = require('@cowprotocol/contracts');
-const { setEtherBalance, setNextBlockTime, revertToSnapshot, takeSnapshot, increaseTime, mineNextBlock } = require('../../utils/evm');
+const {
+  setEtherBalance,
+  setNextBlockTime,
+  revertToSnapshot,
+  takeSnapshot,
+  increaseTime,
+  mineNextBlock,
+} = require('../../utils/evm');
 
 const {
   utils: { parseEther, hexZeroPad },

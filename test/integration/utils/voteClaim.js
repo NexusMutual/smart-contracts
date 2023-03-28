@@ -1,8 +1,8 @@
-const { web3, ethers } = require('hardhat');
+const { ethers } = require('hardhat');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { parseEther } = ethers.utils;
 const { setNextBlockTime, mineNextBlock, increaseTime } = require('../../utils/evm');
-const { toBN } = web3.utils;
+const { BigNumber } = ethers;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -10,7 +10,7 @@ const setTime = async timestamp => {
 };
 
 async function voteClaim({ claimId, verdict, ic, cd, cr, voter }) {
-  await ic.submitCAVote(claimId, toBN(verdict), { from: voter });
+  await ic.submitCAVote(claimId, BigNumber.from(verdict), { from: voter });
 
   const minVotingTime = await cd.minVotingTime();
   await increaseTime(minVotingTime.addn(1));

@@ -7,6 +7,7 @@ require('@nomicfoundation/hardhat-chai-matchers');
 require('solidity-coverage');
 require('hardhat-contract-sizer');
 require('hardhat-tracer');
+require('hardhat-ignore-warnings');
 
 require('./tasks');
 
@@ -40,6 +41,10 @@ const config = {
   networks: require('./networks'),
 
   solidity: require('./solidity'),
+
+  warnings: {
+    '*': 'error',
+  },
 };
 
 if (process.env.ENABLE_TENDERLY) {

@@ -43,3 +43,11 @@ task(TASK_COMPILE)
 
     await runSuper();
   });
+
+task('coverage').setAction(async function (args, hre, runSuper) {
+  hre.config.warnings = {
+    ...hre.config.warnings,
+    '*': 'warn',
+  };
+  return runSuper();
+});

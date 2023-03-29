@@ -104,4 +104,6 @@ interface ITokenController {
     bytes32[] memory lockReasons,
     uint withdrawableAmount
   );
+
+  function getPendingRewards(address member) external view returns (uint);
 }

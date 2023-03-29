@@ -15,6 +15,7 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IAssessment.sol";
 import "./external/Governed.sol";
 
 contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
@@ -114,6 +115,10 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     return IPooledStaking(internalContracts[uint(ID.PS)]);
   }
 
+  function assessment() internal view returns (IAssessment) {
+    return IAssessment(internalContracts[uint(ID.AS)]);
+  }
+
   /// Updates contracts dependencies.
   ///
   /// @dev Iupgradable Interface to update dependent contract address
@@ -129,6 +134,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
+    internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
   }
 
   /// Adds a new member role.
@@ -229,15 +235,21 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
       tokenController().isStakingPoolManager(msg.sender) == false,
       "MemberRoles: Member is a staking pool manager"
     );
-    
+
     IPooledStaking _legacyPooledStaking = legacyPooledStaking();
 
-    // check that there are no NXM tokens left to withdraw in Nexus V1
+    // check that there are no tokens left to withdraw
     require(_legacyPooledStaking.stakerDeposit(msg.sender) == 0, "V1 stakerDeposit != 0");
     require(_legacyPooledStaking.stakerReward(msg.sender) == 0, "V1 stakerReward != 0");
+
     require(_tokenController.tokensLocked(msg.sender, "CLA") == 0, "V1 CLA tokensLocked != 0");
     (, , uint coverNotesAmount) = _tokenController.getWithdrawableCoverNotes(msg.sender);
     require(coverNotesAmount == 0, "V1 coverNotesAmount != 0");
+    // _tokenController.getPendingRewards includes both assessment and governance rewards
+    require(_tokenController.getPendingRewards(msg.sender) == 0, "TC pendingRewards != 0");
+
+    (uint96 stakeAmount, ,) = assessment().stakeOf(msg.sender);
+    require(stakeAmount == 0, "Assessment stake != 0");
 
     _tokenController.burnFrom(msg.sender, token.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
@@ -321,14 +333,21 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     ITokenController _tokenController = tokenController();
     IPooledStaking _legacyPooledStaking = legacyPooledStaking();
 
-    // check that there are no NXM tokens left to withdraw in Nexus V1
+    // check that there are no tokens left to withdraw
     require(_legacyPooledStaking.stakerDeposit(currentAddress) == 0, "V1 stakerDeposit != 0");
     require(_legacyPooledStaking.stakerReward(currentAddress) == 0, "V1 stakerReward != 0");
+
     require(_tokenController.tokensLocked(currentAddress, "CLA") == 0, "V1 CLA tokensLocked != 0");
     (, , uint coverNotesAmount) = _tokenController.getWithdrawableCoverNotes(currentAddress);
     require(coverNotesAmount == 0, "V1 coverNotesAmount != 0");
+    // _tokenController.getPendingRewards includes both assessment and governance rewards
+    require(_tokenController.getPendingRewards(currentAddress) == 0, "TC pendingRewards != 0");
 
-    _tokenController.addToWhitelist(newAddress);
+    (uint96 stakeAmount, ,) = assessment().stakeOf(currentAddress);
+    require(stakeAmount == 0, "Assessment stake != 0");
+
+
+  _tokenController.addToWhitelist(newAddress);
     _updateRole(currentAddress, uint(Role.Member), false);
     _updateRole(newAddress, uint(Role.Member), true);
 

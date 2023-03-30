@@ -1,4 +1,3 @@
 describe('fork tests', function () {
-  require('./migrated-claims');
-  require('./recalculate-effective-weights');
+  require('./withdraw-switch-membership-restrictions');
 });

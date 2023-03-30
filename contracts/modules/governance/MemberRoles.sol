@@ -14,7 +14,6 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IPooledStaking.sol";
-import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IAssessment.sol";
 import "./external/Governed.sol";
 

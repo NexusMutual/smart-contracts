@@ -43,7 +43,10 @@ const config = {
   solidity: require('./solidity'),
 
   warnings: {
-    '*': 'error',
+    '*': {
+      'code-size': process.env.ENABLE_OPTIMIZER ? 'error' : 'warn',
+      default: 'error',
+    },
   },
 };
 

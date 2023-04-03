@@ -502,6 +502,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   ) external whenNotPaused returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
 
     uint numProducts = productInitParams.length;
+
+    (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(address(this));
+
     if (msg.sender != master.getLatestAddress("PS")) {
 
       // TODO: replace this with onlyMember modifier after the v2 release
@@ -514,10 +517,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       );
 
 
-      // override with initial price
+      // override with initial price and check if pool is allowed
       for (uint i = 0; i < numProducts; i++) {
 
         uint productId = productInitParams[i].productId;
+
+        // check if the pool is authorized to have this product and product exists
+        if (!isPoolAllowed(productId, poolId)) {
+          revert PoolNotAllowedForThisProduct(productId);
+        }
 
         productInitParams[i].initialPrice = _products[productId].initialPriceRatio;
 
@@ -525,16 +533,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           revert TargetPriceBelowGlobalMinPriceRatio();
         }
       }
-    }
 
-    (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(address(this));
+    } else {
+      // check if the pool is allowed to have these products
+      for (uint i = 0; i < numProducts; i++) {
 
-    // check if the pool is allowed to have these products
-    for (uint i = 0; i < numProducts; i++) {
-      if (!isPoolAllowed(productInitParams[i].productId, poolId)) {
-        revert PoolNotAllowedForThisProduct(productInitParams[i].productId);
+        if (!isPoolAllowed(productInitParams[i].productId, poolId)) {
+          revert PoolNotAllowedForThisProduct(productInitParams[i].productId);
+        }
       }
     }
+
 
     IStakingPool(stakingPoolAddress).initialize(
       isPrivatePool,
@@ -791,12 +800,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return uint(activeCover[assetId].totalActiveCoverInAsset);
   }
 
+  // Returns true if the pool exists and is allowed to have the product
   function isPoolAllowed(uint productId, uint poolId) public view returns (bool) {
 
     uint poolCount = allowedPools[productId].length;
 
     if (poolCount == 0) {
-      return true;
+      return productId < _products.length;
     }
 
     for (uint i = 0; i < poolCount; i++) {

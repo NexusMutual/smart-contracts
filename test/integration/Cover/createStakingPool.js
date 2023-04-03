@@ -1,9 +1,9 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { setEtherBalance } = require('../../utils/evm');
 
 const { AddressZero, One } = ethers.constants;
 const { parseEther } = ethers.utils;
-const errors = require('../../utils').errors;
 
 function calculateTrancheId(currentTime, period, gracePeriod) {
   return Math.floor((currentTime + period + gracePeriod) / (91 * 24 * 3600));
@@ -138,8 +138,31 @@ describe('createStakingPool', function () {
         [nonExistingProduct], // products
         '', // ipfsDescriptionHash
       ),
-    ).to.be.revertedWithPanic(errors.INVALID_ARRAY_ACCESS);
-    // TODO: do we want an explicit error for the non-existing product?
+    )
+      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
+      .withArgs(nonExistingProduct.productId);
+  });
+
+  it("should fail to create a pool with a product that doesn't exist, called by pooledStaking", async function () {
+    const { cover, ps } = this.contracts;
+    const { DEFAULT_PRODUCTS } = this;
+
+    const pooledStakingSigner = await ethers.getImpersonatedSigner(ps.address);
+    await setEtherBalance(pooledStakingSigner.address, parseEther('100'));
+
+    const nonExistingProduct = { ...DEFAULT_PRODUCTS[0], productId: 500 };
+
+    await expect(
+      cover.connect(pooledStakingSigner).createStakingPool(
+        false, // isPrivatePool,
+        DEFAULT_POOL_FEE, // initialPoolFee
+        DEFAULT_POOL_FEE, // maxPoolFee,
+        [nonExistingProduct], // products
+        '', // ipfsDescriptionHash
+      ),
+    )
+      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
+      .withArgs(nonExistingProduct.productId);
   });
 
   it("should fail to create a pool with a product that isn't allowed for this pool", async function () {

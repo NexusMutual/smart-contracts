@@ -1,4 +1,3 @@
-const { accounts } = require('hardhat');
 const {
   constants: { AddressZero },
 } = require('ethers');
@@ -6,14 +5,15 @@ const { assert, expect } = require('chai');
 
 const { NXMasterOwnerParamType } = require('../utils').constants;
 
-const [, , nonMember] = accounts;
-
 describe('updateOwnerParameters', function () {
   it('should revert when called by non governance addresses', async function () {
-    const { master } = this;
+    const { master, accounts } = this;
     const param = NXMasterOwnerParamType.kycAuthority;
+    const [nonMember] = accounts.nonMembers;
 
-    expect(master.updateOwnerParameters(param, AddressZero, { from: nonMember })).to.be.revertedWith('Not authorized');
+    await expect(master.connect(nonMember).updateOwnerParameters(param, AddressZero)).to.be.revertedWith(
+      'Not authorized',
+    );
   });
 
   it('should correctly update emergency admin parameter', async function () {

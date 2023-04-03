@@ -12,13 +12,13 @@ describe('removeContracts', function () {
   it('reverts when not called by governance', async function () {
     const { master } = this;
 
-    expect(master.removeContracts([])).to.be.revertedWith('Not authorized');
+    await expect(master.removeContracts([])).to.be.revertedWith('Not authorized');
   });
 
   it('reverts when contract code does not exist', async function () {
     const { governance } = this;
 
-    expect(governance.removeContracts([hex('XX')])).to.be.revertedWith('NXMaster: Address is 0');
+    await expect(governance.removeContracts([hex('XX')])).to.be.revertedWith('NXMaster: Address is 0');
   });
 
   it('remove newly added contracts', async function () {

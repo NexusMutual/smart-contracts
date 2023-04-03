@@ -13,13 +13,13 @@ describe('addNewInternalContracts', function () {
   it('reverts when not called by governance', async function () {
     const { master } = this;
 
-    expect(master.addNewInternalContracts([], [], [])).to.be.revertedWith('Not authorized');
+    await expect(master.addNewInternalContracts([], [], [])).to.be.revertedWith('Not authorized');
   });
 
   it('reverts when contract code already in use', async function () {
     const { governance } = this;
 
-    expect(
+    await expect(
       governance.addNewInternalContracts(
         [hex('GV')],
         ['0x0000000000000000000000000000000000000001'],
@@ -31,7 +31,7 @@ describe('addNewInternalContracts', function () {
   it('reverts when contract address is 0', async function () {
     const { governance } = this;
 
-    expect(
+    await expect(
       governance.addNewInternalContracts([hex('XX')], [AddressZero], [ContractTypes.Replaceable]),
     ).to.be.revertedWith('NXMaster: Contract address is 0');
   });
@@ -39,7 +39,7 @@ describe('addNewInternalContracts', function () {
   it('reverts when contract type is unknown', async function () {
     const { governance } = this;
 
-    expect(
+    await expect(
       governance.addNewInternalContracts([hex('XX')], ['0x0000000000000000000000000000000000000001'], ['15']),
     ).to.be.revertedWith('NXMaster: Unsupported contract type');
   });

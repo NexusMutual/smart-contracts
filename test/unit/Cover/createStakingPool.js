@@ -124,6 +124,17 @@ describe('createStakingPool', function () {
       { productId: 1, weight: 70, initialPrice: '300', targetPrice: '0' },
     ];
 
+    const [poolId] = await cover.connect(this.pooledStakingSigner).callStatic.createStakingPool(
+      true, // isPrivatePool,
+      initialPoolFee,
+      maxPoolFee,
+      [],
+      ipfsDescriptionHash,
+    );
+
+    expect(await cover.isPoolAllowed(0 /* productId */, poolId)).to.be.equal(true);
+    expect(await cover.isPoolAllowed(1 /* productId */, poolId)).to.be.equal(false);
+
     await expect(
       cover.connect(this.pooledStakingSigner).createStakingPool(
         true, // isPrivatePool,

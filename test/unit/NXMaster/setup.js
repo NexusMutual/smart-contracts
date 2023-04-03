@@ -1,18 +1,16 @@
-const { artifacts, accounts } = require('hardhat');
+const { ethers } = require('hardhat');
+const { getAccounts } = require('../../utils').accounts;
 
 const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
 async function setup() {
-  const DisposableNXMaster = artifacts.require('DisposableNXMaster');
-  const MSMockGovernance = artifacts.require('MSMockGovernance');
-  const TokenMock = artifacts.require('NXMTokenMock');
+  const master = await ethers.deployContract('DisposableNXMaster');
+  const governance = await ethers.deployContract('MSMockGovernance');
+  const token = await ethers.deployContract('NXMTokenMock');
 
-  const [owner, emergencyAdmin] = accounts;
-
-  const token = await TokenMock.new();
-  const master = await DisposableNXMaster.new();
-  const governance = await MSMockGovernance.new();
+  const accounts = await getAccounts();
+  const { defaultSender } = accounts;
 
   await governance.changeMasterAddress(master.address);
 
@@ -20,9 +18,9 @@ async function setup() {
   const addresses = [governance.address];
   const contractTypes = [ContractTypes.Replaceable];
   await master.initialize(
-    owner,
+    defaultSender.address,
     token.address,
-    emergencyAdmin,
+    defaultSender.address,
     codes.map(hex), // codes
     contractTypes, // types
     addresses, // addresses
@@ -31,6 +29,7 @@ async function setup() {
   this.master = master;
   this.token = token;
   this.governance = governance;
+  this.accounts = accounts;
 }
 
 module.exports = setup;

@@ -11,7 +11,9 @@ describe('withdrawRewardsTo', function () {
     const { assessment } = this.contracts;
     const [user] = this.accounts.members;
     await assessment.connect(user).stake(parseEther('10'));
-    expect(assessment.connect(user).withdrawRewardsTo(user.address, 0)).to.be.revertedWith('No withdrawable rewards');
+    await expect(assessment.connect(user).withdrawRewardsTo(user.address, 0)).to.be.revertedWith(
+      'No withdrawable rewards',
+    );
   });
 
   it('reverts when not called by the owner of the rewards ', async function () {

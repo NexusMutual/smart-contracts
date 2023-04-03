@@ -44,7 +44,7 @@ const submitMemberVoteProposal = async (gv, pc, categoryId, actionData, members)
   await increaseTime(speedBumpHours.muln(3600).addn(1).toString());
   const triggerTx = await gv.triggerAction(proposalId);
 
-  expect(triggerTx).to.emit(gv, 'ActionSuccess').withArgs(proposalId);
+  await expect(triggerTx).to.emit(gv, 'ActionSuccess').withArgs(proposalId);
 
   const proposal = await gv.proposal(proposalId);
   assert.equal(proposal[2].toNumber(), 3, 'proposal status != accepted');

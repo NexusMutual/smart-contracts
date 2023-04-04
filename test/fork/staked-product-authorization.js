@@ -1,36 +1,13 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const { setEtherBalance } = require('../utils/evm');
-const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
-const { V2Addresses, submitGovernanceProposal, getConfig, getProductsInPool } = require('./utils');
+const { parseEther } = ethers.utils;
+const { V2Addresses, upgradeMultipleContracts, getConfig, getActiveProductsInPool } = require('./utils');
 
 const evm = require('./evm')();
 
-async function upgradeMultipleContracts(params) {
-  const { codes, addresses } = params;
-
-  const contractCodes = codes.map(code => toUtf8Bytes(code));
-  const governance = await ethers.getContractAt('Governance', V2Addresses.Governance);
-
-  const implAddresses = [addresses].map(c => c.address);
-  const memberRoles = await ethers.getContractAt('MemberRoles', V2Addresses.MemberRoles);
-  const { memberArray: abMembersAddresses } = await memberRoles.members(1);
-
-  // Impersonate and fund advisory board members
-  await Promise.all(abMembersAddresses.map(addr => setEtherBalance(addr, parseEther('1000'))));
-  const abMembers = await Promise.all(abMembersAddresses.map(addr => ethers.getImpersonatedSigner(addr)));
-
-  await submitGovernanceProposal(
-    PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
-    defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, implAddresses]),
-    abMembers,
-    governance,
-  );
-  return abMembers;
-}
-
 describe('stakedProductAuthorization', function () {
+  // Upgrade cover contract and setup test environment
   before(async function () {
     await evm.connect(ethers.provider);
 
@@ -51,7 +28,7 @@ describe('stakedProductAuthorization', function () {
     this.config = await getConfig.call(this);
 
     // Submit governance proposal to update cover contract address
-    this.abMembers = await upgradeMultipleContracts.call(this, { codes: ['CO'], addresses: newCoverImpl });
+    this.abMembers = await upgradeMultipleContracts.call(this, { codes: ['CO'], addresses: [newCoverImpl] });
   });
 
   it('should not find any incompatible products in deployed pools', async function () {
@@ -59,11 +36,9 @@ describe('stakedProductAuthorization', function () {
 
     const poolCount = await stakingPoolFactory.stakingPoolCount();
 
+    // get all products in pool and assert they are allowed
     for (let i = 1; i <= poolCount; i++) {
-      // get all products in pool
-      const products = await getProductsInPool.call(this, { poolId: i });
-      console.log('Pool: ', i, ' Number of products: ', products.length);
-
+      const products = await getActiveProductsInPool.call(this, { poolId: i });
       // call isPoolAllowed() and assert it returns true
       const allowedResults = await Promise.all(products.map(product => cover.isPoolAllowed(i, product.productId)));
       allowedResults.map(result => expect(result).to.be.true);
@@ -71,21 +46,22 @@ describe('stakedProductAuthorization', function () {
   });
 
   it('should fail to deploy staking pool that uses a forbidden products', async function () {
-    const { cover, stakingPoolFactory } = this;
-    const [member] = this.abMembers;
+    const {
+      cover,
+      abMembers: [member],
+    } = this;
 
     const products = await cover.getProducts();
-    const poolCount = await stakingPoolFactory.stakingPoolCount();
+    const [poolId] = await cover.connect(member).callStatic.createStakingPool(true, 10, 10, [], 'ipfs hash');
 
-    const promises = [];
+    // check which products are allowed for the new pool
+    const isPoolAllowedPromises = [];
     for (let i = 0; i < products.length; i++) {
-      for (let j = 0; j < poolCount; j++) {
-        promises.push(cover.isPoolAllowed(i, j));
-      }
+      isPoolAllowedPromises.push(cover.isPoolAllowed(i, poolId));
     }
-    const allowedPools = await Promise.all(promises);
-    // const forbiddenProducts = allowedPools.reduce((acc, value, index) => {
+    const allowedPools = await Promise.all(isPoolAllowedPromises);
 
+    // setup list of forbidden products for this pool
     const forbiddenProducts = [];
     for (let i = 0; i < allowedPools.length; i++) {
       if (!allowedPools[i]) {
@@ -93,12 +69,17 @@ describe('stakedProductAuthorization', function () {
       }
     }
 
+    expect(forbiddenProducts.length).to.be.greaterThan(
+      0,
+      'No forbidden products found for the new pool on mainnet fork',
+    );
+
     // create new staking pool with forbidden products (first product should trigger revert)
     await expect(
       cover.connect(member).createStakingPool(
         true, // isPrivate
         100, // initialPoolFee
-        1000, // maxPoolFee
+        10, // maxPoolFee
         forbiddenProducts,
         'ipfs hash',
       ),
@@ -111,13 +92,16 @@ describe('stakedProductAuthorization', function () {
     const { cover } = this;
     const [member] = this.abMembers;
 
+    const [poolId] = await cover.connect(member).callStatic.createStakingPool(true, 10, 10, [], 'ipfs hash');
+
     const nonExistingProduct = { productId: 999999, weight: 10, initialPrice: 100, targetPrice: 200 };
+    expect(await cover.isPoolAllowed(nonExistingProduct.productId, poolId)).to.be.equal(false);
 
     await expect(
       cover.connect(member).createStakingPool(
         true, // isPrivate
         100, // initialPoolFee
-        1000, // maxPoolFee
+        10, // maxPoolFee
         [nonExistingProduct],
         'ipfs hash',
       ),
@@ -132,13 +116,18 @@ describe('stakedProductAuthorization', function () {
     const pooledStakingSigner = await ethers.getImpersonatedSigner(V2Addresses.LegacyPooledStaking);
     await setEtherBalance(V2Addresses.LegacyPooledStaking, parseEther('1000'));
 
+    const [poolId] = await cover
+      .connect(pooledStakingSigner)
+      .callStatic.createStakingPool(true, 10, 10, [], 'ipfs hash');
+
     const nonExistingProduct = { productId: 999999, weight: 10, initialPrice: 100, targetPrice: 200 };
+    expect(await cover.isPoolAllowed(nonExistingProduct.productId, poolId)).to.be.equal(false);
 
     await expect(
       cover.connect(pooledStakingSigner).createStakingPool(
         true, // isPrivate
         100, // initialPoolFee
-        1000, // maxPoolFee
+        10, // maxPoolFee
         [nonExistingProduct],
         'ipfs hash',
       ),

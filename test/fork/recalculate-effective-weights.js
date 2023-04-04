@@ -5,7 +5,7 @@ const { setEtherBalance } = require('../utils/evm');
 const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 const { BigNumber } = ethers;
 const { daysToSeconds } = require('../../lib/helpers');
-const { V2Addresses, UserAddress, submitGovernanceProposal, getProductsInPool } = require('./utils');
+const { V2Addresses, UserAddress, submitGovernanceProposal, getActiveProductsInPool } = require('./utils');
 const {
   calculateBasePrice,
   calculateBasePremium,
@@ -81,7 +81,7 @@ describe('recalculateEffectiveWeight', function () {
     const period = daysToSeconds(45);
     const commissionRatio = 0;
 
-    const productsInThisPool = await getProductsInPool.call(this, { poolId });
+    const productsInThisPool = await getActiveProductsInPool.call(this, { poolId });
     // pick a random product
     const randomProduct = productsInThisPool[Math.floor(Math.random() * (productsInThisPool.length - 1))];
     console.log('buying cover for product: ', randomProduct.productId, 'in pool: ', poolId);

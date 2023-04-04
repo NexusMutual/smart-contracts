@@ -225,7 +225,11 @@ async function getProductsInPool(params) {
 }
 
 async function getConfig() {
-  const { cover, stakingPool, stakingProducts } = this;
+  let { cover, stakingPool, stakingProducts } = this;
+
+  if (stakingPool === undefined) {
+    stakingPool = await ethers.getContractAt('StakingPool', await cover.stakingPool(1));
+  }
 
   const config = {
     REWARD_BONUS_PER_TRANCHE_RATIO: stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO(),

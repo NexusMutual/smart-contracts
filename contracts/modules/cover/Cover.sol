@@ -800,7 +800,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return uint(activeCover[assetId].totalActiveCoverInAsset);
   }
 
-  // Returns true if the pool exists and is allowed to have the product
+  // Returns true if the product exists and the pool is authorized to have the product
   function isPoolAllowed(uint productId, uint poolId) public view returns (bool) {
 
     uint poolCount = allowedPools[productId].length;

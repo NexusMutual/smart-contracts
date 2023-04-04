@@ -1,10 +1,13 @@
 const { ethers, accounts } = require('hardhat');
-const { parseEther, getContractAddress } = ethers.utils;
-const { AddressZero } = ethers.constants;
+const { expect } = require('chai');
+
 const { setEtherBalance } = require('../utils').evm;
 const { Role } = require('../utils').constants;
-const { expect } = require('chai');
 const { hex } = require('../utils').helpers;
+
+const { BigNumber } = ethers;
+const { parseEther, getContractAddress } = ethers.utils;
+const { AddressZero } = ethers.constants;
 
 const initialProductTemplate = {
   productId: 0,
@@ -127,13 +130,15 @@ async function setup() {
     POOL_FEE_DENOMINATOR: await stakingPool.POOL_FEE_DENOMINATOR(),
     GLOBAL_CAPACITY_DENOMINATOR: await stakingPool.GLOBAL_CAPACITY_DENOMINATOR(),
     TRANCHE_DURATION: await stakingProducts.TRANCHE_DURATION(),
-    GLOBAL_CAPACITY_RATIO: await cover.globalCapacityRatio(),
-    GLOBAL_REWARDS_RATIO: await cover.globalRewardsRatio(),
+    GLOBAL_CAPACITY_RATIO: await cover.GLOBAL_CAPACITY_RATIO(),
+    GLOBAL_REWARDS_RATIO: await cover.GLOBAL_REWARDS_RATIO(),
     GLOBAL_MIN_PRICE_RATIO: await cover.GLOBAL_MIN_PRICE_RATIO(),
   };
 
   const coverSigner = await ethers.getImpersonatedSigner(cover.address);
   await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
+
+  const poolId = BigNumber.from(await stakingPool.getPoolId());
 
   this.accounts = accounts;
   this.coverSigner = coverSigner;
@@ -146,6 +151,7 @@ async function setup() {
   this.stakingPool = stakingPool;
   this.stakingProducts = stakingProducts;
   this.cover = cover;
+  this.poolId = poolId;
 }
 
 module.exports = setup;

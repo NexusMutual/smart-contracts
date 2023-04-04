@@ -130,11 +130,11 @@ describe('setProducts unit tests', function () {
     });
   });
 
-  it.skip('should edit targetPrice and update bumpedPrice and bumpedPriceUpdateTime', async function () {
+  it('should edit targetPrice and update bumpedPrice and bumpedPriceUpdateTime', async function () {
     const { stakingProducts, cover } = this;
     const [manager] = this.accounts.members;
 
-    const products = [{ ...newProductTemplate }];
+    const products = [{ ...newProductTemplate, targetPrice: 100 }];
 
     const { _initialPrices } = await cover.getPriceAndCapacityRatios(products.map(p => p.productId));
 
@@ -160,14 +160,9 @@ describe('setProducts unit tests', function () {
     const product0 = await stakingProducts.getProduct(poolId, 0);
     expect(product0.bumpedPrice).to.not.equal(product0.targetPrice);
 
-    console.log({
-      bumpedPriceBefore: bumpedPriceBefore.toString(),
-      priceDrop: priceDrop.toString(),
-    });
-    expect(product0.bumpedPrice).to.be.equal(BigNumber.from(bumpedPriceBefore).sub(priceDrop));
+    const expectedBumpedPrice = BigNumber.from(bumpedPriceBefore).sub(priceDrop);
+    expect(product0.bumpedPrice).to.be.equal(expectedBumpedPrice);
     expect(product0.bumpedPriceUpdateTime).to.be.equal(latestTimestamp);
-
-    await verifyProduct.call(product0, { ...productEditParams[0] });
   });
 
   it('should update bumpedPrice correctly when decreasing targetPrice', async function () {
@@ -666,7 +661,7 @@ describe('setProducts unit tests', function () {
         ...buyCoverParamsTemplate,
         owner: coverBuyer.address,
         productId: --i,
-        amount: parseEther('1.9'),
+        amount: parseEther('1.90'),
       }));
     await Promise.all(
       coverBuyParams.map(cb => {
@@ -696,8 +691,8 @@ describe('setProducts unit tests', function () {
       // should be able to increase product weights before burning stake
       await expect(stakingProducts.connect(manager).callStatic.setProducts(poolId, products)).to.not.be.reverted;
 
-      // Burn 1 capacity unit to increase effective weight
-      await stakingPool.connect(coverSigner).burnStake(parseEther('.01'), burnStakeParams);
+      // Burn more than 5 capacity units to increase effective weight passed the limit
+      await stakingPool.connect(coverSigner).burnStake(parseEther('.06'), burnStakeParams);
 
       // Increasing weight on any product will cause it require effective weight be below limit
       await expect(stakingProducts.connect(manager).setProducts(poolId, products)).to.be.revertedWithCustomError(

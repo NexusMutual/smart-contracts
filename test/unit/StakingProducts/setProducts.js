@@ -23,6 +23,14 @@ const buyCoverParamsTemplate = {
   ipfsData: 'ipfs data',
 };
 
+const burnStakeParams = {
+  allocationId: 1,
+  productId: 1,
+  start: new Date().getUTCSeconds(),
+  period: buyCoverParamsTemplate.period,
+  deallocationAmount: 0,
+};
+
 describe('setProducts unit tests', function () {
   it('should fail to be called by non manager', async function () {
     const { stakingProducts } = this;
@@ -581,8 +589,8 @@ describe('setProducts unit tests', function () {
       .allocateCapacity({ ...buyCoverParamsTemplate, amount: coverBuyAmount }, coverId, 0, stakingPool.address);
   });
 
-  // TODO: max out effective weight and try to increase target weight
-  it.skip('should fail to increase target weight when effective weight is at the limit', async function () {
+  // TODO: re-enable this test after fixing issue: https://github.com/NexusMutual/smart-contracts/issues/842
+  it.skip('should fail to increase target weight after a burn leaves less than 1 capacity unit', async function () {
     const { stakingProducts, stakingPool, cover } = this;
     const [manager, staker, coverBuyer] = this.accounts.members;
 
@@ -592,36 +600,91 @@ describe('setProducts unit tests', function () {
 
     const coverId = 1;
     const amount = parseEther('10000');
-    const { timestamp: start } = await ethers.provider.getBlock('latest');
 
     // Get capacity in staking pool
     await depositTo.call(this, { staker, amount });
 
-    // Add product
-    await stakingProducts.connect(manager).setProducts(poolId, [{ ...newProductTemplate, targetWeight: 50 }]);
+    // setup 20 products at 50% weight
+    const numProducts = 20;
+    const products = Array(numProducts)
+      .fill('')
+      .map((_, i) => ({ ...newProductTemplate, productId: i, targetWeight: 50 }));
 
-    // Buy cover
-    await cover.allocateCapacity(
-      { ...buyCoverParamsTemplate, owner: coverBuyer.address, amount: parseEther('10000') },
-      coverId,
-      0,
-      stakingPool.address,
-    );
+    // Add products
+    await stakingProducts.connect(manager).setProducts(poolId, products);
+
+    // Buy max cover on all products
+    const allocatePromises = [];
+    for (let i = 0; i < numProducts; i++) {
+      allocatePromises.push(
+        cover.allocateCapacity(
+          { ...buyCoverParamsTemplate, productId: i, owner: coverBuyer.address, amount },
+          coverId,
+          0,
+          stakingPool.address,
+        ),
+      );
+    }
+    await Promise.all(allocatePromises);
 
     // Burn stake 99% of stake
-    const burnStakeParams = {
-      allocationId: 1,
-      productId: 1,
-      start,
-      period: buyCoverParamsTemplate.period,
-      deallocationAmount: 0,
-    };
     const activeStake = await stakingPool.getActiveStake();
+    // TODO: This leaves 0 capacity in the pool,
+    // so the effective weight is calculated as if it is a new pool (defaults to target weight)
     await stakingPool.connect(coverSigner).burnStake(activeStake.sub(1), burnStakeParams);
 
     // Increasing weight on any product will cause it to recalculate effective weight
+    const increaseTargetWeightParams = products.map(p => ({ ...p, targetWeight: 51 }));
     await expect(
-      stakingProducts.connect(manager).setProducts(poolId, [{ ...newProductTemplate, targetWeight: 51 }]),
+      stakingProducts.connect(manager).setProducts(poolId, increaseTargetWeightParams),
+    ).to.be.revertedWithCustomError(stakingProducts, 'TotalEffectiveWeightExceeded');
+  });
+
+  it('should fail to increase target weight when effective weight is at the limit', async function () {
+    const { stakingProducts, stakingPool, cover } = this;
+    const [manager, staker, coverBuyer] = this.accounts.members;
+
+    // Impersonate cover contract
+    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+    await setEtherBalance(cover.address, parseEther('100000'));
+
+    const coverId = 1;
+    const amount = parseEther('10000');
+
+    // Get capacity in staking pool
+    await depositTo.call(this, { staker, amount });
+
+    // setup 20 products at 50% weight
+    const numProducts = 20;
+    const products = Array(numProducts)
+      .fill('')
+      .map((_, i) => ({ ...newProductTemplate, productId: i, targetWeight: 50 }));
+
+    // Add products
+    await stakingProducts.connect(manager).setProducts(poolId, products);
+
+    // Buy max cover on all products
+    const allocatePromises = [];
+    for (let i = 0; i < numProducts; i++) {
+      allocatePromises.push(
+        cover.allocateCapacity(
+          { ...buyCoverParamsTemplate, productId: i, owner: coverBuyer.address, amount },
+          coverId,
+          0,
+          stakingPool.address,
+        ),
+      );
+    }
+    await Promise.all(allocatePromises);
+
+    // Burn stake 99% of stake
+    const activeStake = await stakingPool.getActiveStake();
+    await stakingPool.connect(coverSigner).burnStake(activeStake.sub(parseEther('.01')), burnStakeParams);
+
+    // Increasing weight on any product will cause it to recalculate effective weight
+    const increaseTargetWeightParams = products.map(p => ({ ...p, targetWeight: 51 }));
+    await expect(
+      stakingProducts.connect(manager).setProducts(poolId, increaseTargetWeightParams),
     ).to.be.revertedWithCustomError(stakingProducts, 'TotalEffectiveWeightExceeded');
   });
 

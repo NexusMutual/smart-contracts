@@ -140,4 +140,5 @@ module.exports = {
   newProductTemplate,
   setStakedProducts,
   burnStake,
+  burnStakeParams,
 };

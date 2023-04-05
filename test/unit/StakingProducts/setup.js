@@ -92,9 +92,8 @@ async function setup() {
     await master.enrollInternal(internalContract.address);
   }
 
-  // Set 21 products in cover
   let i = 0;
-  const initialProducts = Array(21)
+  const initialProducts = Array(200)
     .fill('')
     .map(() => ({ ...initialProductTemplate, productId: i++ }));
   // Add products to cover contract

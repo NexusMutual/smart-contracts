@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { setEtherBalance } = require('../../utils/').evm;
-const { verifyInitialProduct, depositTo, daysToSeconds } = require('./helpers');
+const { burnStakeParams, verifyInitialProduct, depositTo, daysToSeconds } = require('./helpers');
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
 
@@ -186,8 +186,7 @@ describe('initializeProducts', function () {
     expect(await stakingProducts.getTotalEffectiveWeight(poolId)).to.be.equal(2000);
   });
 
-  // TODO: use max products
-  it.skip('should fail to increase target weight when effective weight is at the limit', async function () {
+  it('should fail to increase target weight when effective weight is at the limit', async function () {
     const { stakingProducts, stakingPool, cover } = this;
     const [manager, staker, coverBuyer] = this.accounts.members;
     const [internalContract] = this.accounts.internalContracts;
@@ -198,36 +197,65 @@ describe('initializeProducts', function () {
 
     const coverId = 1;
     const amount = parseEther('10000');
-    const { timestamp: start } = await ethers.provider.getBlock('latest');
 
     // Get capacity in staking pool
     await depositTo.call(this, { staker, amount });
 
-    // Add product
-    await stakingProducts.connect(internalContract).setInitialProducts(poolId, [{ ...product0, weight: 50 }]);
+    // 200 products with 5 weight = 50% of max weight (200 * 5 = 1000 / 2000)
+    const products = Array(200)
+      .fill('')
+      .map((value, index) => {
+        return { ...product0, productId: index, weight: 5 };
+      });
 
-    // Buy cover
-    await cover.allocateCapacity(
-      { ...buyCoverParamsTemplate, owner: coverBuyer.address, amount: parseEther('10000') },
-      coverId,
-      0,
-      stakingPool.address,
-    );
+    // Add products
+    await stakingProducts.connect(internalContract).setInitialProducts(poolId, products);
 
-    // Burn stake 99% of stake
-    const burnStakeParams = {
-      allocationId: 1,
-      productId: 1,
-      start,
-      period: buyCoverParamsTemplate.period,
-      deallocationAmount: 0,
-    };
+    // Buy all available cover for every product
+    const allocationPromises = [];
+    for (let i = 0; i < products.length; i++) {
+      allocationPromises.push(
+        cover.allocateCapacity(
+          { ...buyCoverParamsTemplate, productId: i, owner: coverBuyer.address, amount: amount.div(10) },
+          coverId,
+          0,
+          stakingPool.address,
+        ),
+      );
+    }
+    await Promise.all(allocationPromises);
+
+    // total target and total effective weight should be at the max
+    expect(await stakingProducts.getTotalTargetWeight(poolId)).to.be.equal(1000);
+    expect(await stakingProducts.getTotalEffectiveWeight(poolId)).to.be.equal(1000);
+
+    // Burn 75% of the current stake
+    // Effective weight was at 50%, so with 3/4 of capacity reduced, allocations are twice as much as capacity
+    // ie. 50/100 = 1000 effective weight, burn 75% of stake -> 50/25 = 4000 effective weight
     const activeStake = await stakingPool.getActiveStake();
-    await stakingPool.connect(coverSigner).burnStake(activeStake.sub(1), burnStakeParams);
+    const burnAmount = activeStake.sub(activeStake.div(4));
+    await stakingPool.connect(coverSigner).burnStake(burnAmount, burnStakeParams);
+
+    // recalculate effective weight
+    await stakingProducts.recalculateEffectiveWeights(
+      poolId,
+      products.map(product => product.productId),
+    );
+    expect(await stakingProducts.getTotalTargetWeight(poolId)).to.be.equal(1000);
+    expect(await stakingProducts.getTotalEffectiveWeight(poolId)).to.be.equal(4000);
 
     // Increasing weight on any product will cause it to recalculate effective weight
+    const increaseProductWeightParams = products.map(product => {
+      return {
+        ...newProductTemplate,
+        productId: product.productId,
+        targetWeight: 10,
+        recalculateEffectiveWeight: true,
+        setPrice: false,
+      };
+    });
     await expect(
-      stakingProducts.connect(manager).setProducts(poolId, [{ ...newProductTemplate, targetWeight: 51 }]),
+      stakingProducts.connect(manager).setProducts(poolId, increaseProductWeightParams),
     ).to.be.revertedWithCustomError(stakingProducts, 'TotalEffectiveWeightExceeded');
   });
 });

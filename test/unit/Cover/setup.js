@@ -162,6 +162,21 @@ async function setup() {
       },
       allowedPools: [0],
     },
+    {
+      productName: 'Product D',
+      productId: MaxUint256,
+      ipfsMetadata: 'ipfs metadata',
+      product: {
+        productType: '0',
+        yieldTokenAddress: AddressZero,
+        coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
+        initialPriceRatio: '1000', // 10%
+        capacityReductionRatio: '0',
+        isDeprecated: false,
+        useFixedPrice: true,
+      },
+      allowedPools: [],
+    },
   ]);
 
   const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();

@@ -6,7 +6,7 @@ const { V2Addresses, upgradeMultipleContracts, getConfig, getActiveProductsInPoo
 
 const evm = require('./evm')();
 
-describe('stakedProductAuthorization', function () {
+describe('Staked Product Allowed Pools', function () {
   // Upgrade cover contract and setup test environment
   before(async function () {
     await evm.connect(ethers.provider);

@@ -522,7 +522,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
         uint productId = productInitParams[i].productId;
 
-        // check if the pool is authorized to have this product and product exists
+        // check if the pool is authorized to have this product and product isn't deprecated
         if (!isPoolAllowed(productId, poolId)) {
           revert PoolNotAllowedForThisProduct(productId);
         }

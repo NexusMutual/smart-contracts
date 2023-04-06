@@ -7,23 +7,20 @@ const evm = require('./evm')();
 const {
   Address: { ETH },
 } = require('./utils');
-const { daysToSeconds } = require('../../lib/helpers');
-const { setNextBlockTime, mineNextBlock, setEtherBalance } = require('../utils/evm');
-const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-const { signMembershipApproval } = require('../integration/utils').membership;
-const { parseUnits } = require('ethers/lib/utils');
-const { makeContractOrder, lastBlockTimestamp, daiMinAmount, daiMaxAmount, stethMinAmount, stethMaxAmount } = require('../unit/SwapOperator/helpers');
+const { makeContractOrder, lastBlockTimestamp } = require('../unit/SwapOperator/helpers');
 const { computeOrderUid, domain: makeDomain, SettlementEncoder, SigningScheme } = require("@cowprotocol/contracts");
 const { toBytes8 } = require('../unit/utils').helpers;
 
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
-const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+const DAI_ETH_ORACLE = '0x773616e4d11a78f511299002da57a0a94577f1f4';
 const HUGH = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
 const SWAP_CONTROLLER = '0x551D5500F613a4beC77BA8B834b5eEd52ad5764f';
 const COWSWAP_SETTLEMENT = '0x9008D19f58AAbD9eD0D60971565AA8510560ab41';
 const COWSWAP_RELAYER = '0xC92E8bdf79f0507f65a392b0ab4667716BFE0110';
 const STABLECOIN_WHALE = '0xc992a05d57748d88ea5eafff0ee48962d08063b0';
 const COWSWAP_SOLVER = '0x423cEc87f19F0778f549846e0801ee267a917935';
+const COWSWAP_VAULT = '0xBA12222222228d8Ba445958a75a0704d566BF2C8';
 
 const TRADER = '0x1496D418b17583431C48d66dcd332EB59721a9f9';
 const TRADER_PKEY = '489cddb08499334cf55b9649459915dfc6606cb7aa50e0aef22259b08d6d6fe4';
@@ -140,7 +137,7 @@ describe('CowSwap swaps', function () {
     this.coverViewer = await ethers.getContractAt('CoverViewer', V2Addresses.CoverViewer);
     this.assessment = await ethers.getContractAt('Assessment', await this.master.getLatestAddress(toUtf8Bytes('AS')));
     this.dai = await ethers.getContractAt('ERC20Mock', DAI_ADDRESS);
-    this.weth = await ethers.getContractAt('ERC20Mock', WETH_ADDRESS);
+    this.weth = await ethers.getContractAt('IWeth', WETH_ADDRESS);
     this.cover = await ethers.getContractAt('Cover', await this.master.getLatestAddress(toUtf8Bytes('CO')));
     this.memberRoles = await ethers.getContractAt('MemberRoles', await this.master.getLatestAddress(toUtf8Bytes('MR')));
     this.governance = await ethers.getContractAt('Governance', await this.master.getLatestAddress(toUtf8Bytes('GV')));
@@ -200,16 +197,24 @@ describe('CowSwap swaps', function () {
     await this.dai.connect(this.stablecoinWhale).transfer(traderAddress, parseEther('3000000'));
     await evm.setBalance(traderAddress, parseEther('1000'));
 
+    const amountWeth = parseEther('1');
+    await this.weth.connect(this.stablecoinWhale).deposit({ value: amountWeth });
+    await this.weth.connect(this.stablecoinWhale).transfer(traderAddress, amountWeth);
+
     await evm.impersonate(COWSWAP_SOLVER);
     await evm.setBalance(COWSWAP_SOLVER, parseEther('1000'));
     this.cowswapSolver = await getSigner(COWSWAP_SOLVER);
+
+    this.daiEthOracle = await ethers.getContractAt('Aggregator', DAI_ETH_ORACLE);
   });
 
   it('executes CowSwap swap of ETH for DAI', async function () {
     const { swapOperator, pool, swapController } = this;
 
-    const sellAmount = parseEther('1000');
-    const buyAmount = parseEther('1900000');
+    const daiPriceInEth = await this.daiEthOracle.latestAnswer();
+
+    const sellAmount = parseEther('100');
+    const buyAmount = sellAmount.mul(parseEther('1')).div(daiPriceInEth);
     // Build order struct, domain separator and calculate UID
     const order = {
       sellToken: WETH_ADDRESS,
@@ -232,19 +237,18 @@ describe('CowSwap swaps', function () {
 
     const ethBalanceBefore = await ethers.provider.getBalance(pool.address);
     const daiBalanceBefore = await this.dai.balanceOf(pool.address);
-    const wethBalanceBefore = await this.weth.balanceOf(swapOperator.address);
 
     const domain = makeDomain(chainId, COWSWAP_SETTLEMENT);
     const orderUID = computeOrderUid(domain, order, order.receiver);
 
     await swapOperator.connect(swapController).placeOrder(contractOrder, orderUID);
-    const wethBalanceAfter = await this.weth.balanceOf(swapOperator.address);
 
-    const balance = await ethers.provider.getBalance(TRADER);
+    const preSignSignature = { data: swapOperator.address, scheme: SigningScheme.PRESIGN };
+    // encode the order once SwapOperator has submitted the signature
+    await this.encoder.encodeTrade(order, preSignSignature);
 
-    console.log({
-      balance: balance.toString()
-    })
+    // lower the imaginary buy amount slightly so the limit price is respected on both sides of the trades
+    const imaginaryBuyAmount = sellAmount.sub(parseEther('0.1'));
 
     await addOrder(
       this.trader,
@@ -256,19 +260,23 @@ describe('CowSwap swaps', function () {
         sellToken: DAI_ADDRESS,
         buyToken: WETH_ADDRESS,
         sellAmount: buyAmount,
-        buyAmount: sellAmount,
+        buyAmount: imaginaryBuyAmount,
         appData: 1,
       },
-      buyAmount,
+      '0',
       this.encoder
     );
     console.log(`Settle trade`);
 
+    const sellPrice = parseEther('1');
+    const buyPrice = daiPriceInEth;
+
+    const encodedSettlement = this.encoder.encodedSettlement({
+      [DAI_ADDRESS]: buyPrice,
+      [WETH_ADDRESS]: sellPrice,
+    });
     await this.cowswapSettlement.connect(this.cowswapSolver).settle(
-      ...this.encoder.encodedSettlement({
-        [DAI_ADDRESS]: buyAmount,
-        [WETH_ADDRESS]: sellAmount,
-      }),
+      ...encodedSettlement,
     );
 
     await swapOperator.connect(swapController).closeOrder(contractOrder);
@@ -276,20 +284,11 @@ describe('CowSwap swaps', function () {
     const ethBalanceAfter = await ethers.provider.getBalance(pool.address);
     const daiBalanceAfter = await this.dai.balanceOf(pool.address);
 
-
     const daiBalanceIncrease = daiBalanceAfter.sub(daiBalanceBefore);
     const ethBalanceDecrease = ethBalanceBefore.sub(ethBalanceAfter);
 
-    console.log({
-      daiBalanceBefore: daiBalanceBefore.toString(),
-      daiBalanceAfter: daiBalanceAfter.toString(),
-      ethBalanceDecrease: ethBalanceDecrease.toString(),
-      ethBalanceBefore: ethBalanceBefore.toString(),
-      ethBalanceAfter: ethBalanceAfter.toString(),
-      wethBalanceBefore: wethBalanceBefore.toString(),
-      wethBalanceAfter: wethBalanceAfter.toString(),
-    });
+    expect(ethBalanceDecrease).to.be.equal(order.sellAmount.add(order.feeAmount));
 
-    expect(ethBalanceDecrease).to.be.equal(order.sellAmount);
+    expect(daiBalanceIncrease).to.be.equal(order.buyAmount.add(1));
   });
 });

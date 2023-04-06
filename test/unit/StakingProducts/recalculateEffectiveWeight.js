@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
 const { parseEther } = ethers.utils;
-const { Zero } = ethers.constants;
+const { Zero, One } = ethers.constants;
 
 const { allocateCapacity, depositTo, burnStake, setStakedProducts, daysToSeconds } = require('./helpers');
 const { increaseTime } = require('../../utils').evm;
@@ -140,6 +140,46 @@ describe('recalculateEffectiveWeight', function () {
       const stakedProduct = await stakingProducts.getProduct(this.poolId, productId);
       expect(stakedProduct.lastEffectiveWeight).to.be.equal(1);
       expect(stakedProduct.targetWeight).to.be.equal(1);
+    }
+  });
+
+  it('effective weight should be lowered from extra deposits', async function () {
+    const { stakingProducts } = this;
+    const [staker, coverBuyer] = this.accounts.members;
+
+    const amount = parseEther('10000');
+    // buy a quarter of the capacity
+    const coverBuyAmount = amount.mul(25).div(100).mul(2); // 8% of capacity with 2x capacity multiplier
+
+    const productIdToAdd = Zero;
+    await setStakedProducts.call(this, { productIds: [productIdToAdd], targetWeight: 25 });
+
+    // deposit stake
+    await depositTo.call(this, { staker, amount });
+
+    // buy cover
+    await allocateCapacity.call(this, { coverBuyer, amount: coverBuyAmount, productId: productIdToAdd });
+
+    // lower target weight to 0
+    await setStakedProducts.call(this, { productIds: [productIdToAdd], targetWeight: 0 });
+
+    expect(await stakingProducts.getTotalTargetWeight(this.poolId)).to.be.equal(0);
+    expect(await stakingProducts.getTotalEffectiveWeight(this.poolId)).to.be.equal(25);
+
+    // double stake
+    await depositTo.call(this, { staker, amount });
+
+    expect(await stakingProducts.getTotalEffectiveWeight(this.poolId)).to.be.equal(25);
+
+    // recalculate effective weight
+    await stakingProducts.recalculateEffectiveWeights(this.poolId, [productIdToAdd]);
+
+    const expectedEffectiveWeight = One.mul(25).div(2);
+    expect(await stakingProducts.getTotalEffectiveWeight(this.poolId)).to.be.equal(expectedEffectiveWeight);
+    {
+      const stakedProduct = await stakingProducts.getProduct(this.poolId, productIdToAdd);
+      expect(stakedProduct.lastEffectiveWeight).to.be.equal(12);
+      expect(stakedProduct.targetWeight).to.be.equal(0);
     }
   });
 

@@ -691,6 +691,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return _productTypes.length;
   }
 
+  function isProductDeprecated(uint productId) internal view returns (bool) {
+    return _products[productId].isDeprecated;
+  }
+
+  function doesProductExist(uint productId) internal view returns (bool) {
+    return productId < _products.length;
+  }
+
   /* ========== PRODUCT CONFIGURATION ========== */
 
   function setProducts(ProductParam[] calldata productParams) external override onlyAdvisoryBoard {
@@ -803,22 +811,23 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   // Returns true if the product exists and the pool is authorized to have the product
   function isPoolAllowed(uint productId, uint poolId) public view returns (bool) {
 
-    uint poolCount = allowedPools[productId].length;
+    // If product exists and is not deprecated, check if the pool is allowed
+    if (doesProductExist(productId) && !isProductDeprecated(productId)) {
 
-    // If no pools are specified, nothing is blacklisted
-    if (poolCount == 0) {
-      // If the product is deprecated, it's not allowed
-      // If the product doesn't exist, it's not allowed
-      return  productId < _products.length && !_products[productId].isDeprecated;
-    }
+      uint poolCount = allowedPools[productId].length;
+      // If no pools are specified, nothing is blacklisted
+      if (poolCount == 0) {
+        return true;
+      }
 
-    for (uint i = 0; i < poolCount; i++) {
-      if (allowedPools[productId][i] == poolId) {
-        // If allowed pools are specified, the product must already be initialized
-        return !_products[productId].isDeprecated;
+      for (uint i = 0; i < poolCount; i++) {
+        if (allowedPools[productId][i] == poolId) {
+          // If allowed pools are specified, the product must already be initialized
+          return true;
+        }
       }
     }
-
+    // product doesn't exist or is deprecated
     return false;
   }
 

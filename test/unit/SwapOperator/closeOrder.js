@@ -11,8 +11,14 @@ const {
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { domain: makeDomain, computeOrderUid } = require('@cowprotocol/contracts');
-const { setEtherBalance, setNextBlockTime, revertToSnapshot, takeSnapshot } = require('../../utils/evm');
-const { time } = require('@openzeppelin/test-helpers');
+const {
+  setEtherBalance,
+  setNextBlockTime,
+  revertToSnapshot,
+  takeSnapshot,
+  increaseTime,
+  mineNextBlock,
+} = require('../../utils/evm');
 
 const {
   utils: { parseEther, hexZeroPad },
@@ -227,7 +233,8 @@ describe('closeOrder', function () {
     await swapOperator.closeOrder(contractOrder);
 
     // Advance time to enable swapping again
-    await time.increase(MIN_TIME_BETWEEN_ORDERS);
+    await increaseTime(MIN_TIME_BETWEEN_ORDERS);
+    await mineNextBlock();
 
     // Place new order that is selling dai for weth
     const { newContractOrder, newOrderUID } = await setupSellDaiForEth({
@@ -288,7 +295,8 @@ describe('closeOrder', function () {
     await swapOperator.closeOrder(contractOrder);
 
     // Advance time to enable swapping again
-    await time.increase(MIN_TIME_BETWEEN_ORDERS);
+    await increaseTime(MIN_TIME_BETWEEN_ORDERS);
+    await mineNextBlock();
 
     // Place an order swapping DAI for ETH
     const { newOrder, newContractOrder, newOrderUID } = await setupSellDaiForEth({

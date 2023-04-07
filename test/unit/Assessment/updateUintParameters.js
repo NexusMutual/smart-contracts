@@ -12,10 +12,10 @@ describe('updateUintParameters', function () {
     const { assessment } = this.contracts;
     const [user] = this.accounts.members;
     const [governance] = this.accounts.governanceContracts;
-    expect(assessment.connect(user).updateUintParameters([], [])).to.be.revertedWith(
+    await expect(assessment.connect(user).updateUintParameters([], [])).to.be.revertedWith(
       'Caller is not authorized to govern',
     );
-    expect(assessment.connect(governance).updateUintParameters([], [])).not.to.be.revertedWith(
+    await expect(assessment.connect(governance).updateUintParameters([], [])).not.to.be.revertedWith(
       'Caller is not authorized to govern',
     );
   });

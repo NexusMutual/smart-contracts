@@ -13,7 +13,9 @@ describe('withdrawRewards', function () {
     const { assessment } = this.contracts;
     const [user] = this.accounts.members;
     await assessment.connect(user).stake(parseEther('10'));
-    expect(assessment.connect(user).withdrawRewards(user.address, 0)).to.be.revertedWith('No withdrawable rewards');
+    await expect(assessment.connect(user).withdrawRewards(user.address, 0)).to.be.revertedWith(
+      'No withdrawable rewards',
+    );
   });
 
   it("allows any address to call but the reward is withdrawn to the staker's address", async function () {

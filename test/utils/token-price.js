@@ -1,7 +1,6 @@
 /* eslint-disable max-len */
 
 const Decimal = require('decimal.js');
-const { toBN } = require('web3').utils;
 
 const A = Decimal(0.01028);
 const C = Decimal(5800000);
@@ -84,7 +83,7 @@ function getTokenSpotPrice(totalAssetValue, mcrEth) {
  */
 function calculateMCRRatio(totalAssetValue, mcrEth) {
   const MCR_RATIO_DECIMALS = 4;
-  return totalAssetValue.mul(toBN(10 ** MCR_RATIO_DECIMALS)).div(mcrEth);
+  return totalAssetValue.mul(10 ** MCR_RATIO_DECIMALS).div(mcrEth);
 }
 
 /**

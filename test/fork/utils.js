@@ -1,8 +1,8 @@
 const evm = require('./evm')();
-const { web3, ethers, network } = require('hardhat');
+const { ethers, network } = require('hardhat');
 const assert = require('assert');
-const { toBN } = web3.utils;
-const { parseEther } = ethers.utils;
+const { BigNumber } = ethers;
+const { parseEther, defaultAbiCoder } = ethers.utils;
 
 const V2Addresses = {
   Assessment: '0xcafeaa5f9c401b7295890f309168Bbb8173690A3',
@@ -68,7 +68,7 @@ const PriceFeedOracle = {
   ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR: '0xCc72039A141c6e34a779eF93AEF5eB4C82A893c7',
 };
 
-const ratioScale = toBN('10000');
+const ratioScale = BigNumber.from('10000');
 
 const ListIdForReceivers = 218;
 
@@ -178,8 +178,9 @@ async function enableAsEnzymeReceiver(receiverAddress) {
   await evm.setBalance(ownerAddress, parseEther('1000'));
 
   // Update Enzyme vault receivers
-  const selector = web3.eth.abi.encodeFunctionSignature('addToList(uint256,address[])');
-  const receiverArgs = web3.eth.abi.encodeParameters(['uint256', 'address[]'], [ListIdForReceivers, [receiverAddress]]);
+  const iface = new ethers.utils.Interface(['addToList(uint256,address[])']);
+  const selector = iface.getSighash('addToList');
+  const receiverArgs = defaultAbiCoder.encode(['uint256', 'address[]'], [ListIdForReceivers, [receiverAddress]]);
   await comptroller
     .connect(owner)
     .vaultCallOnContract(EnzymeAdress.ENZYME_ADDRESS_LIST_REGISTRY, selector, receiverArgs);

@@ -1,7 +1,9 @@
 const { network, ethers } = require('hardhat');
-const { ether } = require('@openzeppelin/test-helpers');
 const { parseUnits } = require('ethers/lib/utils');
 const { signMembershipApproval } = require('../utils').membership;
+const {
+  utils: { parseEther },
+} = ethers;
 
 const JOINING_FEE = parseUnits('0.002');
 
@@ -29,7 +31,7 @@ async function enrollMember({ mr, tk, tc }, members, kycAuthSigner, options = {}
 // eslint-disable-next-line no-unused-vars
 async function enrollClaimAssessor({ tc: _unusedTc }, assessors, options = {}) {
   // eslint-disable-next-line no-unused-vars
-  const { lockTokens = ether('2000'), validity = 180 * 24 * 60 * 60 } = options;
+  const { lockTokens = parseEther('2000'), validity = 180 * 24 * 60 * 60 } = options;
 
   // eslint-disable-next-line no-unused-vars
   for (const member of assessors) {

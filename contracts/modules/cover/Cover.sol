@@ -502,8 +502,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   ) external whenNotPaused returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
 
     uint numProducts = productInitParams.length;
-
-    (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(address(this));
+    uint expectedPoolId = stakingPoolFactory.stakingPoolCount() + 1;
 
     if (msg.sender != master.getLatestAddress("PS")) {
 
@@ -516,14 +515,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         "Caller is not a member"
       );
 
-
       // override with initial price and check if pool is allowed
       for (uint i = 0; i < numProducts; i++) {
 
         uint productId = productInitParams[i].productId;
 
         // check if the pool is authorized to have this product and product isn't deprecated
-        if (!isPoolAllowed(productId, poolId)) {
+        if (!isPoolAllowed(productId, expectedPoolId)) {
           revert PoolNotAllowedForThisProduct(productId);
         }
 
@@ -538,12 +536,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       // check if the pool is allowed to have these products
       for (uint i = 0; i < numProducts; i++) {
 
-        if (!isPoolAllowed(productInitParams[i].productId, poolId)) {
+        if (!isPoolAllowed(productInitParams[i].productId, expectedPoolId)) {
           revert PoolNotAllowedForThisProduct(productInitParams[i].productId);
         }
       }
     }
 
+    (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(address(this));
 
     IStakingPool(stakingPoolAddress).initialize(
       isPrivatePool,

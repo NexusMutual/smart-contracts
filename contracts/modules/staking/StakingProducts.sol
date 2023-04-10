@@ -25,6 +25,9 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   uint public constant TARGET_PRICE_DENOMINATOR = 100_00;
   uint public constant MAX_TOTAL_WEIGHT = 20_00; // 20x
 
+  uint public constant GLOBAL_CAPACITY_DENOMINATOR = 100_00;
+  uint public constant CAPACITY_REDUCTION_DENOMINATOR = 100_00;
+
   // The 3 constants below are also used in the StakingPool contract
   uint public constant TRANCHE_DURATION = 91 days;
   uint public constant MAX_ACTIVE_TRANCHES = 8; // 7 whole quarters + 1 partial quarter
@@ -328,15 +331,10 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint capacityReductionRatio
   ) internal view returns (uint16 effectiveWeight) {
 
-    uint[] memory trancheCapacities = stakingPool.getTrancheCapacities(
-      productId,
-      block.timestamp / TRANCHE_DURATION, // first active tranche id
-      MAX_ACTIVE_TRANCHES,
-      globalCapacityRatio,
-      capacityReductionRatio
-    );
-
-    uint totalCapacity = Math.sum(trancheCapacities);
+    uint activeStake = stakingPool.getActiveStake();
+    uint multiplier = globalCapacityRatio * (CAPACITY_REDUCTION_DENOMINATOR - capacityReductionRatio);
+    uint denominator = GLOBAL_CAPACITY_DENOMINATOR * CAPACITY_REDUCTION_DENOMINATOR;
+    uint totalCapacity = activeStake * multiplier / denominator;
 
     if (totalCapacity == 0) {
       return targetWeight.toUint16();

@@ -40,4 +40,6 @@ interface ICowSettlement {
     GPv2TradeData[] calldata trades,
     GPv2InteractionData[][3] calldata interactions
   ) external;
+
+  function preSignature(bytes memory) external returns (uint);
 }

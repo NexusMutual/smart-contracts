@@ -33,6 +33,10 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   uint public constant MAX_ACTIVE_TRANCHES = 8; // 7 whole quarters + 1 partial quarter
   uint public constant WEIGHT_DENOMINATOR = 100;
 
+  uint public constant ONE_NXM = 1 ether;
+  uint public constant ALLOCATION_UNITS_PER_NXM = 100;
+  uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
+
   // pool id => product id => Product
   mapping(uint => mapping(uint => StakedProduct)) private _products;
   // pool id => { totalEffectiveWeight, totalTargetWeight }
@@ -334,7 +338,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint activeStake = stakingPool.getActiveStake();
     uint multiplier = globalCapacityRatio * (CAPACITY_REDUCTION_DENOMINATOR - capacityReductionRatio);
     uint denominator = GLOBAL_CAPACITY_DENOMINATOR * CAPACITY_REDUCTION_DENOMINATOR;
-    uint totalCapacity = activeStake * multiplier / denominator;
+    uint totalCapacity = activeStake * multiplier / denominator / NXM_PER_ALLOCATION_UNIT;
 
     if (totalCapacity == 0) {
       return targetWeight.toUint16();

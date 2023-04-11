@@ -5,7 +5,7 @@ const networks = {
     allowUnlimitedContractSize: true,
     blockGasLimit: 30e6,
     gas: 30e6,
-    chainId: process.env.FORK_CHAIN_ID ? Number(process.env.FORK_CHAIN_ID) : 31337
+    chainId: process.env.FORK_CHAIN_ID ? Number(process.env.FORK_CHAIN_ID) : 31337,
   },
   localhost: { blockGasLimit: 30e6, gas: 30e6 },
 };

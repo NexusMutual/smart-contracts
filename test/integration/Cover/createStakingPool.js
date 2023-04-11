@@ -2,14 +2,15 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { setEtherBalance } = require('../../utils/evm');
 
-const { AddressZero, One } = ethers.constants;
+const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
+const { BigNumber } = ethers;
 
 function calculateTrancheId(currentTime, period, gracePeriod) {
   return Math.floor((currentTime + period + gracePeriod) / (91 * 24 * 3600));
 }
 
-const DEFAULT_POOL_FEE = One.mul(5);
+const DEFAULT_POOL_FEE = BigNumber.from(5);
 const period = 3600 * 24 * 30; // 30 days
 const gracePeriod = 3600 * 24 * 30;
 const deposit = parseEther('10');

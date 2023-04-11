@@ -138,6 +138,7 @@ module.exports = {
   allocateCapacity,
   initialProductTemplate,
   newProductTemplate,
+  buyCoverParamsTemplate,
   setStakedProducts,
   burnStake,
   burnStakeParams,

@@ -690,14 +690,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return _productTypes.length;
   }
 
-  function isProductDeprecated(uint productId) internal view returns (bool) {
-    return _products[productId].isDeprecated;
-  }
-
-  function doesProductExist(uint productId) internal view returns (bool) {
-    return productId < _products.length;
-  }
-
   /* ========== PRODUCT CONFIGURATION ========== */
 
   function setProducts(ProductParam[] calldata productParams) external override onlyAdvisoryBoard {
@@ -811,7 +803,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   function isPoolAllowed(uint productId, uint poolId) public view returns (bool) {
 
     // If product exists and is not deprecated, check if the pool is allowed
-    if (doesProductExist(productId) && !isProductDeprecated(productId)) {
+    if (productId < _products.length && !_products[productId].isDeprecated){
 
       uint poolCount = allowedPools[productId].length;
       // If no pools are specified, nothing is blacklisted
@@ -825,8 +817,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           return true;
         }
       }
+      // Pool is not found in the allowedPools list
+      return false;
     }
-    // product doesn't exist or is deprecated
+
+    // Product is deprecated or doesn't exist
     return false;
   }
 

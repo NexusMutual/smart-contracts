@@ -9,6 +9,7 @@ const {
   newProductTemplate,
   getNewStakedProducts,
   allocateCapacity,
+  burnStakeParams,
 } = require('./helpers');
 const { AddressZero, Zero, One, Two } = ethers.constants;
 const { parseEther } = ethers.utils;
@@ -660,36 +661,41 @@ describe('setProducts unit tests', function () {
 
     const coverId = 1;
     const amount = parseEther('10000');
-    const { timestamp: start } = await ethers.provider.getBlock('latest');
 
     // Get capacity in staking pool
     await depositTo.call(this, { staker, amount });
 
-    // Add product
-    await stakingProducts.connect(manager).setProducts(poolId, [{ ...newProductTemplate, targetWeight: 50 }]);
+    // setup 20 products at 50% weight
+    const numProducts = 20;
+    const products = Array(numProducts)
+      .fill('')
+      .map((_, i) => ({ ...newProductTemplate, productId: i, targetWeight: 50 }));
 
-    // Buy cover
-    await cover.allocateCapacity(
-      { ...buyCoverParamsTemplate, owner: coverBuyer.address, amount: parseEther('10000') },
-      coverId,
-      0,
-      stakingPool.address,
-    );
+    // Add products
+    await stakingProducts.connect(manager).setProducts(poolId, products);
+
+    // Buy max cover on all products
+    const allocatePromises = [];
+    for (let i = 0; i < numProducts; i++) {
+      allocatePromises.push(
+        cover.allocateCapacity(
+          { ...buyCoverParamsTemplate, productId: i, owner: coverBuyer.address, amount },
+          coverId,
+          0,
+          stakingPool.address,
+        ),
+      );
+    }
+    await Promise.all(allocatePromises);
 
     // Burn stake 99% of stake
-    const burnStakeParams = {
-      allocationId: 1,
-      productId: 1,
-      start,
-      period: buyCoverParamsTemplate.period,
-      deallocationAmount: 0,
-    };
     const activeStake = await stakingPool.getActiveStake();
-    await stakingPool.connect(coverSigner).burnStake(activeStake.sub(1), burnStakeParams);
+    await stakingPool.connect(coverSigner).burnStake(activeStake.sub(parseEther('.01')), burnStakeParams);
 
     // Increasing weight on any product will cause it to recalculate effective weight
+    const increaseTargetWeightParams = products.map(p => ({ ...p, targetWeight: 51 }));
     await expect(
-      stakingProducts.connect(manager).setProducts(poolId, [{ ...newProductTemplate, targetWeight: 51 }]),
+      stakingProducts.connect(manager).setProducts(poolId, increaseTargetWeightParams),
     ).to.be.revertedWithCustomError(stakingProducts, 'TotalEffectiveWeightExceeded');
   });
 

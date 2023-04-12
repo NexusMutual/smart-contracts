@@ -113,7 +113,7 @@ describe('switchMembership', function () {
 
     await pooledStaking.setStakerDeposit(member.address, 100);
     await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
-      'V1 stakerDeposit != 0',
+      'Member has NXM staked in Pooled Staking',
     );
   });
 
@@ -126,7 +126,7 @@ describe('switchMembership', function () {
 
     await pooledStaking.setStakerReward(member.address, 100);
     await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
-      'V1 stakerReward != 0',
+      'Member has NXM rewards in Pooled Staking',
     );
   });
 
@@ -139,7 +139,7 @@ describe('switchMembership', function () {
 
     await tokenController.setTokensLocked(member.address, formatBytes32String('CLA'), 100);
     await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
-      'V1 CLA tokensLocked != 0',
+      'Member has NXM staked in Claim Assessment V1',
     );
   });
 
@@ -152,7 +152,7 @@ describe('switchMembership', function () {
 
     await tokenController.setWithdrawableCoverNotes(member.address, 100);
     await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
-      'V1 coverNotesAmount != 0',
+      'Member has withdrawable cover notes',
     );
   });
 
@@ -165,7 +165,7 @@ describe('switchMembership', function () {
 
     await assessment.setStakeOf(member.address, 100);
     await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
-      'Assessment stake != 0',
+      'Member has Assessment stake',
     );
   });
 
@@ -178,7 +178,7 @@ describe('switchMembership', function () {
 
     await tokenController.setPendingRewards(member.address, 100);
     await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
-      'TC pendingRewards != 0',
+      'Member has pending rewards in Token Controller',
     );
   });
 

@@ -29,7 +29,9 @@ describe('withdrawMembership', function () {
     } = this.accounts;
 
     await pooledStaking.setStakerDeposit(member.address, 100);
-    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith('V1 stakerDeposit != 0');
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
+      'Member has NXM staked in Pooled Staking',
+    );
   });
 
   it('reverts when member has LegacyPooledStaking reward tokens', async function () {
@@ -39,7 +41,9 @@ describe('withdrawMembership', function () {
     } = this.accounts;
 
     await pooledStaking.setStakerReward(member.address, 100);
-    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith('V1 stakerReward != 0');
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
+      'Member has NXM rewards in Pooled Staking',
+    );
   });
 
   it('reverts when member has tokens locked for claim assessment', async function () {
@@ -49,7 +53,9 @@ describe('withdrawMembership', function () {
     } = this.accounts;
 
     await tokenController.setTokensLocked(member.address, formatBytes32String('CLA'), 100);
-    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith('V1 CLA tokensLocked != 0');
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
+      'Member has NXM staked in Claim Assessment V1',
+    );
   });
 
   it('reverts when member has withdrawable cover notes', async function () {
@@ -59,7 +65,9 @@ describe('withdrawMembership', function () {
     } = this.accounts;
 
     await tokenController.setWithdrawableCoverNotes(member.address, 100);
-    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith('V1 coverNotesAmount != 0');
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
+      'Member has withdrawable cover notes',
+    );
   });
 
   it('reverts when member has tokens staked for assessment', async function () {
@@ -69,7 +77,7 @@ describe('withdrawMembership', function () {
     } = this.accounts;
 
     await assessment.setStakeOf(member.address, 100);
-    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith('Assessment stake != 0');
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith('Member has Assessment stake');
   });
 
   it('reverts when member has pending rewards in TokenController', async function () {
@@ -79,7 +87,9 @@ describe('withdrawMembership', function () {
     } = this.accounts;
 
     await tokenController.setPendingRewards(member.address, 100);
-    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith('TC pendingRewards != 0');
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
+      'Member has pending rewards in Token Controller',
+    );
   });
 
   it("removes member's the address from the whitelist", async function () {

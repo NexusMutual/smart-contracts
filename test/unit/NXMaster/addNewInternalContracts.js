@@ -1,13 +1,10 @@
-const { artifacts } = require('hardhat');
+const { ethers } = require('hardhat');
 const {
   constants: { AddressZero },
 } = require('ethers');
 const { assert, expect } = require('chai');
 const { hex } = require('../utils').helpers;
 const { ContractTypes } = require('../utils').constants;
-
-const MMockNewContract = artifacts.require('MMockNewContract');
-const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 
 describe('addNewInternalContracts', function () {
   it('reverts when not called by governance', async function () {
@@ -48,7 +45,7 @@ describe('addNewInternalContracts', function () {
     const { master, governance } = this;
 
     const code = hex('XX');
-    const newContract = await MMockNewContract.new();
+    const newContract = await ethers.deployContract('MMockNewContract');
 
     const { _contractCodes: prevContractCodes } = await master.getInternalContracts();
 
@@ -72,7 +69,7 @@ describe('addNewInternalContracts', function () {
     const { master, governance } = this;
 
     const code = hex('XX');
-    const newContract = await MMockNewContract.new();
+    const newContract = await ethers.deployContract('MMockNewContract');
 
     const { _contractCodes: prevContractCodes } = await master.getInternalContracts();
 
@@ -84,7 +81,8 @@ describe('addNewInternalContracts', function () {
     const isActive = await master.contractsActive(proxyAddress);
     assert(isActive, 'Not active');
 
-    const implementation = await (await OwnedUpgradeabilityProxy.at(proxyAddress)).implementation();
+    const OwnedUpgradeabilityProxy = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
+    const implementation = await (await OwnedUpgradeabilityProxy.attach(proxyAddress)).implementation();
     assert.equal(implementation, newContract.address);
 
     // contract code gets appended to the end of the list of contract codes
@@ -99,8 +97,8 @@ describe('addNewInternalContracts', function () {
 
     const replaceableCode = hex('RE');
     const proxyCode = hex('PX');
-    const newReplaceableContract = await MMockNewContract.new();
-    const newProxyContract = await MMockNewContract.new();
+    const newReplaceableContract = await ethers.deployContract('MMockNewContract');
+    const newProxyContract = await ethers.deployContract('MMockNewContract');
 
     const { _contractCodes: prevContractCodes } = await master.getInternalContracts();
 

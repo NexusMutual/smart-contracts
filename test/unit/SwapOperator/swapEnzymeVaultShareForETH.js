@@ -124,7 +124,7 @@ describe('swapEnzymeVaultShareForETH', function () {
     await expect(swapTx).to.emit(swapOperator, 'Swapped').withArgs(enzymeV4Vault.address, ETH, sharesIn, tokensSent);
 
     expect(etherReceived).to.be.equal(sharesIn);
-    assert(tokensSent.gte(minTokenOut), 'tokensReceived < minTokenOut');
+    expect(tokensSent).to.be.greaterThanOrEqual(minTokenOut);
   });
 
   it('reverts if another balanceBefore <= max', async function () {

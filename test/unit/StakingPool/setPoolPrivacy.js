@@ -1,4 +1,5 @@
-const { ethers, expect } = require('hardhat');
+const { ethers } = require('hardhat');
+const { expect } = require('chai');
 const { setEtherBalance } = require('../utils').evm;
 
 describe('setPoolPrivacy', function () {
@@ -58,8 +59,8 @@ describe('setPoolPrivacy', function () {
     await stakingPool.connect(manager).setPoolPrivacy(true);
     const isPrivateAfter = await stakingPool.isPrivatePool();
 
-    expect(isPrivateAfter).to.not.eq(isPrivateBefore);
-    expect(isPrivateAfter).to.be.eq(true);
+    expect(isPrivateAfter).not.to.be.equal(isPrivateBefore);
+    expect(isPrivateAfter).to.be.equal(true);
   });
 
   it('emits an event PoolPrivacyChanged', async function () {

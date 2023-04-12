@@ -37,7 +37,6 @@
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.3",
     "@nomiclabs/hardhat-ethers": "^2.2.1",
     "@nomiclabs/hardhat-etherscan": "^2.1.8",
-    "@nomiclabs/hardhat-truffle5": "^2.0.7",
     "@tenderly/hardhat-tenderly": "^1.5.3",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.5",
@@ -62,8 +61,7 @@
     "nodemon": "^2.0.20",
     "prettier": "^2.7.1",
     "solidity-coverage": "^0.7.22",
-    "typechain": "^8.1.0",
-    "web3": "^1.8.0"
+    "typechain": "^8.1.0"
   },
   "scripts": {
     "compile": "hardhat compile",

@@ -1,7 +1,5 @@
 require('dotenv').config();
 require('@typechain/hardhat');
-require('@nomiclabs/hardhat-web3');
-require('@nomiclabs/hardhat-truffle5');
 require('@nomiclabs/hardhat-etherscan');
 require('@nomicfoundation/hardhat-chai-matchers');
 require('solidity-coverage');

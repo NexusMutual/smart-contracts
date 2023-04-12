@@ -19,7 +19,7 @@ const submitProposal = async (gv, category, actionData, members) => {
 
   const proposal = await gv.proposal(proposalId);
 
-  assert.equal(proposal[2].toNumber(), 3, 'proposal status != accepted');
+  expect(proposal[2].toNumber()).to.be.equal(3);
 
   return proposalId;
 };

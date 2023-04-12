@@ -59,7 +59,7 @@ describe('getAllSumAssurance', function () {
     const { mcr } = this.contracts;
 
     const totalAssurace = await mcr.getAllSumAssurance();
-    assert.equal(totalAssurace.toString(), '0');
+    expect(totalAssurace.toString()).to.be.equal('0');
   });
 
   it('returns total value of ETH purchased cover', async function () {

@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { parseEther, parseUnits } = ethers.utils;
 
 const { initMCR } = require('./common');
-const accounts = require('../utils').accounts;
+const { getAccounts } = require('../utils').accounts;
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
@@ -54,21 +54,22 @@ async function setup() {
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('CO'), cover.address);
 
+  const accounts = await getAccounts();
   for (const member of accounts.members) {
-    await master.enrollMember(member, Role.Member);
+    await master.enrollMember(member.address, Role.Member);
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
-    await master.enrollMember(advisoryBoardMember, Role.AdvisoryBoard);
+    await master.enrollMember(advisoryBoardMember.address, Role.AdvisoryBoard);
   }
 
   for (const internalContract of accounts.internalContracts) {
-    await master.enrollInternal(internalContract);
+    await master.enrollInternal(internalContract.address);
   }
 
   // there is only one in reality, but it doesn't matter
   for (const governanceContract of accounts.governanceContracts) {
-    await master.enrollGovernance(governanceContract);
+    await master.enrollGovernance(governanceContract.address);
   }
 
   this.master = master;
@@ -77,6 +78,7 @@ async function setup() {
   this.chainlinkDAI = chainlinkDAI;
   this.mcr = mcr;
   this.cover = cover;
+  this.accounts = accounts;
 }
 
 module.exports = setup;

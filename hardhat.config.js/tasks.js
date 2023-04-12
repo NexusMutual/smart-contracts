@@ -8,7 +8,7 @@ task('test', async (args, hre, runSuper) => {
 });
 
 task('test:setup-test-environment', async (_, hre) => {
-  hre.accounts = await hre.web3.eth.getAccounts();
+  hre.accounts = await hre.ethers.getSigners();
 });
 
 task(TASK_TYPECHAIN, async (args, hre, runSuper) => {

@@ -238,17 +238,17 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     IPooledStaking _legacyPooledStaking = legacyPooledStaking();
 
     // check that there are no tokens left to withdraw
-    require(_legacyPooledStaking.stakerDeposit(msg.sender) == 0, "V1 stakerDeposit != 0");
-    require(_legacyPooledStaking.stakerReward(msg.sender) == 0, "V1 stakerReward != 0");
+    require(_legacyPooledStaking.stakerDeposit(msg.sender) == 0, "Member has NXM staked in Pooled Staking");
+    require(_legacyPooledStaking.stakerReward(msg.sender) == 0, "Member has NXM rewards in Pooled Staking");
 
-    require(_tokenController.tokensLocked(msg.sender, "CLA") == 0, "V1 CLA tokensLocked != 0");
+    require(_tokenController.tokensLocked(msg.sender, "CLA") == 0, "Member has NXM staked in Claim Assessment V1");
     (, , uint coverNotesAmount) = _tokenController.getWithdrawableCoverNotes(msg.sender);
-    require(coverNotesAmount == 0, "V1 coverNotesAmount != 0");
+    require(coverNotesAmount == 0, "Member has withdrawable cover notes");
     // _tokenController.getPendingRewards includes both assessment and governance rewards
-    require(_tokenController.getPendingRewards(msg.sender) == 0, "TC pendingRewards != 0");
+    require(_tokenController.getPendingRewards(msg.sender) == 0, "Member has pending rewards in Token Controller");
 
     (uint96 stakeAmount, ,) = assessment().stakeOf(msg.sender);
-    require(stakeAmount == 0, "Assessment stake != 0");
+    require(stakeAmount == 0, "Member has Assessment stake");
 
     _tokenController.burnFrom(msg.sender, token.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
@@ -333,20 +333,20 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     IPooledStaking _legacyPooledStaking = legacyPooledStaking();
 
     // check that there are no tokens left to withdraw
-    require(_legacyPooledStaking.stakerDeposit(currentAddress) == 0, "V1 stakerDeposit != 0");
-    require(_legacyPooledStaking.stakerReward(currentAddress) == 0, "V1 stakerReward != 0");
+    require(_legacyPooledStaking.stakerDeposit(currentAddress) == 0, "Member has NXM staked in Pooled Staking");
+    require(_legacyPooledStaking.stakerReward(currentAddress) == 0, "Member has NXM rewards in Pooled Staking");
 
-    require(_tokenController.tokensLocked(currentAddress, "CLA") == 0, "V1 CLA tokensLocked != 0");
+    require(_tokenController.tokensLocked(currentAddress, "CLA") == 0, "Member has NXM staked in Claim Assessment V1");
     (, , uint coverNotesAmount) = _tokenController.getWithdrawableCoverNotes(currentAddress);
-    require(coverNotesAmount == 0, "V1 coverNotesAmount != 0");
+    require(coverNotesAmount == 0, "Member has withdrawable cover notes");
     // _tokenController.getPendingRewards includes both assessment and governance rewards
-    require(_tokenController.getPendingRewards(currentAddress) == 0, "TC pendingRewards != 0");
+    require(_tokenController.getPendingRewards(currentAddress) == 0, "Member has pending rewards in Token Controller");
 
     (uint96 stakeAmount, ,) = assessment().stakeOf(currentAddress);
-    require(stakeAmount == 0, "Assessment stake != 0");
+    require(stakeAmount == 0, "Member has Assessment stake");
 
 
-  _tokenController.addToWhitelist(newAddress);
+    _tokenController.addToWhitelist(newAddress);
     _updateRole(currentAddress, uint(Role.Member), false);
     _updateRole(newAddress, uint(Role.Member), true);
 

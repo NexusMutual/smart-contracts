@@ -1,29 +1,22 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { getCurrentTrancheId } = require('../StakingPool/helpers');
-const { increaseTime } = require('../../utils/evm');
-const { AddressZero } = ethers.constants;
+const { setEtherBalance } = require('../../utils/evm');
+const {
+  verifyProduct,
+  depositTo,
+  daysToSeconds,
+  initialProductTemplate,
+  newProductTemplate,
+  getNewStakedProducts,
+  allocateCapacity,
+} = require('./helpers');
+const { AddressZero, Zero, One, Two } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
-const daysToSeconds = days => days * 24 * 60 * 60;
+const { increaseTime } = require('../../utils/evm');
 
 const poolId = 1;
-
-const initialProductTemplate = {
-  productId: 0,
-  weight: 100, // 1.00
-  initialPrice: 500, // 5%
-  targetPrice: 200, // 1%
-};
-
-const newProductTemplate = {
-  productId: 0,
-  recalculateEffectiveWeight: true,
-  setTargetWeight: true,
-  targetWeight: 100,
-  setTargetPrice: true,
-  targetPrice: 200,
-};
+const allProducts = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
 
 const buyCoverParamsTemplate = {
   owner: AddressZero,
@@ -38,13 +31,6 @@ const buyCoverParamsTemplate = {
   commissionRatio: 1,
   commissionDestination: AddressZero,
   ipfsData: 'ipfs data',
-};
-
-// Create a default deposit request to the staking pool
-const verifyProduct = (product, productParam) => {
-  expect(product.targetWeight).to.be.equal(productParam.targetWeight);
-  expect(product.targetPrice).to.be.equal(productParam.targetPrice);
-  expect(product.bumpedPriceUpdateTime).to.be.equal(productParam.bumpedPriceUpdateTime);
 };
 
 describe('setProducts unit tests', function () {
@@ -73,15 +59,17 @@ describe('setProducts unit tests', function () {
     const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
 
     const product0 = await stakingProducts.getProduct(poolId, 0);
-    verifyProduct(product0, { ...newProductTemplate, bumpedPriceUpdateTime });
+    await verifyProduct.call(this, {
+      product: product0,
+      productParams: { ...newProductTemplate, bumpedPriceUpdateTime },
+    });
   });
 
   it('should revert if user tries to set targetWeight without recalculating effectiveWeight', async function () {
     const { stakingProducts } = this;
     const [manager] = this.accounts.members;
 
-    const product = { ...newProductTemplate };
-    product.recalculateEffectiveWeight = false;
+    const product = { ...newProductTemplate, recalculateEffectiveWeight: false };
 
     await expect(stakingProducts.connect(manager).setProducts(poolId, [product])).to.be.revertedWithCustomError(
       stakingProducts,
@@ -135,11 +123,20 @@ describe('setProducts unit tests', function () {
     const product2 = await stakingProducts.getProduct(poolId, 2);
 
     // product 0 should now have targetWeight == 0
-    verifyProduct(product0, { ...productEditParams[0], bumpedPriceUpdateTime: initialTimestamp });
+    await verifyProduct.call(this, {
+      product: product0,
+      productParams: { ...productEditParams[0], bumpedPriceUpdateTime: initialTimestamp },
+    });
     // product 1 stays the same
-    verifyProduct(product1, { ...products[1], bumpedPriceUpdateTime: initialTimestamp });
+    await verifyProduct.call(this, {
+      product: product1,
+      productParams: { ...products[1], bumpedPriceUpdateTime: initialTimestamp },
+    });
     // product 2 should be added as a supported product
-    verifyProduct(product2, { ...productEditParams[1], bumpedPriceUpdateTime: latestTimestamp });
+    await verifyProduct.call(this, {
+      product: product2,
+      productParams: { ...productEditParams[1], bumpedPriceUpdateTime: latestTimestamp },
+    });
   });
 
   it('should edit targetPrice and update bumpedPrice and bumpedPriceUpdateTime', async function () {
@@ -161,20 +158,25 @@ describe('setProducts unit tests', function () {
     expect(bumpedPriceBefore).to.be.equal(_initialPrices[0]);
     expect(bumpedPriceUpdateTimeBefore).to.be.equal(initialTimestamp);
 
+    const productEditParams = [{ ...products[0], targetPrice: 200 }];
+    await stakingProducts.connect(manager).setProducts(poolId, productEditParams);
+
     await increaseTime(daysToSeconds(2)); // 1% drop
     const priceDrop = BigNumber.from(100); // 1%
 
-    // increase targetPrice
-    const productEditParams = [{ ...products[0], targetPrice: 2000 }];
-    await stakingProducts.connect(manager).setProducts(poolId, productEditParams);
-    const { timestamp: latestTimestamp } = await ethers.provider.getBlock('latest');
+    // increase targetPrice, but bumpedPrice should decrease towards previous targer
+    {
+      const productEditParams = [{ ...products[0], targetPrice: 2000 }];
+      await stakingProducts.connect(manager).setProducts(poolId, productEditParams);
+      const { timestamp: latestTimestamp } = await ethers.provider.getBlock('latest');
 
-    const product0 = await stakingProducts.getProduct(poolId, 0);
-    expect(product0.bumpedPrice).to.not.equal(product0.targetPrice);
-    expect(product0.bumpedPrice).to.be.equal(BigNumber.from(bumpedPriceBefore).sub(priceDrop));
-    expect(product0.bumpedPriceUpdateTime).to.be.equal(latestTimestamp);
+      const product0 = await stakingProducts.getProduct(poolId, 0);
+      expect(product0.bumpedPrice).to.not.equal(product0.targetPrice);
+      expect(product0.bumpedPrice).to.be.equal(BigNumber.from(bumpedPriceBefore).sub(priceDrop));
+      expect(product0.bumpedPriceUpdateTime).to.be.equal(latestTimestamp);
 
-    verifyProduct(product0, { ...productEditParams[0], bumpedPriceUpdateTime: latestTimestamp });
+      verifyProduct(product0, { ...productEditParams[0], bumpedPriceUpdateTime: latestTimestamp });
+    }
   });
 
   it('should update bumpedPrice correctly when decreasing targetPrice', async function () {
@@ -221,22 +223,19 @@ describe('setProducts unit tests', function () {
   it('should add maximum products with full weight (20)', async function () {
     const { stakingProducts } = this;
     const [manager] = this.accounts.members;
-    let i = 0;
-    const products = await Promise.all(
-      Array(20)
-        .fill('')
-        .map(() => {
-          return { ...newProductTemplate, productId: i++ };
-        }),
-    );
+
+    const products = await getNewStakedProducts.call(this, { productIds: allProducts });
     await stakingProducts.connect(manager).setProducts(poolId, products);
-    const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
 
     const weights = await stakingProducts.weights(poolId);
     expect(weights.totalTargetWeight).to.be.equal(2000);
-    // expect(await stakingPool.getTotalTargetWeight()).to.be.equal(2000);
+    expect(weights.totalEffectiveWeight).to.be.equal(2000);
+
     const product19 = await stakingProducts.getProduct(poolId, 19);
-    verifyProduct(product19, { ...products[19], bumpedPriceUpdateTime });
+    const product1 = await stakingProducts.getProduct(poolId, 1);
+
+    await verifyProduct.call(this, { product: product19, productParams: products[19] });
+    await verifyProduct.call(this, { product: product1, productParams: products[1] });
   });
 
   it('should fail to add weights beyond 20x', async function () {
@@ -244,18 +243,19 @@ describe('setProducts unit tests', function () {
     const [manager] = this.accounts.members;
 
     // define staking products
-    const initialStakingProducts = Array.from({ length: 20 }, (_, id) => ({ ...newProductTemplate, productId: id }));
-    const newStakingProduct = { ...newProductTemplate, productId: 20 };
+    const initialStakingProducts = await getNewStakedProducts.call(this, { productIds: allProducts });
 
-    // add all except the first product to the staking pool
     await stakingProducts.connect(manager).setProducts(poolId, initialStakingProducts);
     const weights = await stakingProducts.weights(poolId);
     expect(weights.totalTargetWeight).to.be.equal(2000);
 
-    const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
     const stakingProduct = await stakingProducts.getProduct(poolId, 0);
-    verifyProduct(stakingProduct, { ...newStakingProduct, bumpedPriceUpdateTime });
+    await verifyProduct.call(this, {
+      product: stakingProduct,
+      productParams: initialStakingProducts[0],
+    });
 
+    const newStakingProduct = { ...newProductTemplate, productId: 20 };
     await expect(
       stakingProducts.connect(manager).setProducts(poolId, [newStakingProduct]),
     ).to.be.revertedWithCustomError(stakingProducts, 'TotalTargetWeightExceeded');
@@ -276,23 +276,27 @@ describe('setProducts unit tests', function () {
     const { stakingProducts } = this;
     const [manager] = this.accounts.members;
 
-    const product = { ...newProductTemplate };
-    await stakingProducts.connect(manager).setProducts(poolId, [product]);
-    const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
+    const newProductParams = { ...newProductTemplate };
+    await stakingProducts.connect(manager).setProducts(poolId, [newProductParams]);
 
-    verifyProduct(await stakingProducts.getProduct(poolId, 0), { ...product, bumpedPriceUpdateTime });
-    product.setTargetPrice = false;
-    product.targetPrice = 0;
-    product.targetWeight = 50;
-    {
-      const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
-      await stakingProducts.connect(manager).setProducts(poolId, [product]);
-      verifyProduct(await stakingProducts.getProduct(poolId, 0), {
+    await verifyProduct.call(this, {
+      product: await stakingProducts.getProduct(poolId, 0),
+      productParams: newProductParams,
+    });
+
+    newProductParams.setTargetPrice = false;
+    newProductParams.targetPrice = 0;
+    newProductParams.targetWeight = 50;
+    const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
+    await stakingProducts.connect(manager).setProducts(poolId, [newProductParams]);
+    await verifyProduct.call(this, {
+      product: await stakingProducts.getProduct(poolId, 0),
+      productParams: {
         ...newProductTemplate,
         targetWeight: 50,
         bumpedPriceUpdateTime,
-      });
-    }
+      },
+    });
   });
 
   it('should not be able to change targetWeight without recalculating effectiveWeight ', async function () {
@@ -327,8 +331,11 @@ describe('setProducts unit tests', function () {
     await stakingProducts.connect(manager).setProducts(poolId, products);
     const product0 = await stakingProducts.getProduct(poolId, 0);
     const product1 = await stakingProducts.getProduct(poolId, 1);
-    verifyProduct(product0, { ...products[0], bumpedPriceUpdateTime });
-    verifyProduct(product1, { ...newProductTemplate, productId: 1, bumpedPriceUpdateTime });
+    await verifyProduct.call(this, { product: product0, productParams: { ...products[0], bumpedPriceUpdateTime } });
+    await verifyProduct.call(this, {
+      product: product1,
+      productParams: { ...newProductTemplate, productId: 1, bumpedPriceUpdateTime },
+    });
     expect(product0.lastEffectiveWeight).to.be.equal(0);
     expect(product1.lastEffectiveWeight).to.be.equal(100);
   });
@@ -338,22 +345,30 @@ describe('setProducts unit tests', function () {
     const { GLOBAL_MIN_PRICE_RATIO } = this.config;
     const [manager] = this.accounts.members;
 
-    const product = { ...newProductTemplate };
-    await stakingProducts.connect(manager).setProducts(poolId, [product]);
+    const newProductParams = { ...newProductTemplate };
+    await stakingProducts.connect(manager).setProducts(poolId, [newProductParams]);
+
     const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
-    verifyProduct(await stakingProducts.getProduct(poolId, 0), { ...product, bumpedPriceUpdateTime });
+    await verifyProduct.call(this, {
+      product: await stakingProducts.getProduct(poolId, 0),
+      productParams: { ...newProductParams, bumpedPriceUpdateTime },
+    });
+
     // Weight calculation should be skipped
     await stakingProducts
       .connect(manager)
       .setProducts(poolId, [
-        { ...product, targetWeight: 1, setTargetWeight: false, targetPrice: GLOBAL_MIN_PRICE_RATIO },
+        { ...newProductParams, targetWeight: 1, setTargetWeight: false, targetPrice: GLOBAL_MIN_PRICE_RATIO },
       ]);
 
     const { timestamp: bumpedPriceUpdateTimeAfter } = await ethers.provider.getBlock('latest');
-    verifyProduct(await stakingProducts.getProduct(poolId, 0), {
-      ...newProductTemplate,
-      targetPrice: GLOBAL_MIN_PRICE_RATIO,
-      bumpedPriceUpdateTime: bumpedPriceUpdateTimeAfter,
+    await verifyProduct.call(this, {
+      product: await stakingProducts.getProduct(poolId, 0),
+      productParams: {
+        ...newProductTemplate,
+        targetPrice: GLOBAL_MIN_PRICE_RATIO,
+        bumpedPriceUpdateTimeAfter,
+      },
     });
   });
 
@@ -380,6 +395,66 @@ describe('setProducts unit tests', function () {
     );
   });
 
+  it('should fail to add a product and skip setting targetWeight', async function () {
+    const { stakingProducts } = this;
+    const [manager] = this.accounts.members;
+
+    const product = { ...newProductTemplate, setTargetWeight: false };
+    await expect(stakingProducts.connect(manager).setProducts(poolId, [product])).to.be.revertedWithCustomError(
+      stakingProducts,
+      'MustSetWeightForNewProducts',
+    );
+  });
+
+  it('should edit a single product', async function () {
+    const { stakingProducts } = this;
+    const [manager] = this.accounts.members;
+
+    // Add 3 products
+    const products = await getNewStakedProducts.call(this, { productIds: [0, 1, 2] });
+    await stakingProducts.connect(manager).setProducts(poolId, products);
+
+    const { timestamp: initialTimestamp } = await ethers.provider.getBlock('latest');
+
+    // Product 1: Skip weight adjustments, but set price
+    const productToEdit = {
+      ...products[1],
+      recalculateEffectiveWeight: false,
+      setTargetWeight: false,
+      setTargetPrice: true,
+      targetPrice: One.mul(499),
+    };
+
+    // Product [0,2]: Add products as param, but don't adjust anything
+    const skipProduct = {
+      ...products[0],
+      setTargetPrice: false,
+      setTargetWeight: false,
+      recalculateEffectiveWeight: false,
+    };
+
+    // Edit product 1, skip product 0 and 2
+    await stakingProducts
+      .connect(manager)
+      .setProducts(poolId, [productToEdit, { ...skipProduct, productId: 0 }, { ...skipProduct, productId: 2 }]);
+
+    const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
+
+    // product 1 has the lastest timestamp
+    await verifyProduct.call(this, {
+      product: await stakingProducts.getProduct(poolId, One),
+      productParams: { ...productToEdit, bumpedPriceUpdateTime },
+    });
+    await verifyProduct.call(this, {
+      product: await stakingProducts.getProduct(poolId, Zero),
+      productParams: { ...skipProduct, productId: 0, bumpedPriceUpdateTime: initialTimestamp },
+    });
+    await verifyProduct.call(this, {
+      product: await stakingProducts.getProduct(poolId, Two),
+      productParams: { ...skipProduct, productId: 2, bumpedPriceUpdateTime: initialTimestamp },
+    });
+  });
+
   it('should fail to add non-existing product', async function () {
     const { stakingProducts } = this;
     const [manager] = this.accounts.members;
@@ -392,16 +467,13 @@ describe('setProducts unit tests', function () {
   });
 
   it('should fail to change product weights when fully allocated', async function () {
-    const { stakingProducts, stakingPool, cover, nxm, tokenController } = this;
+    const { stakingProducts, stakingPool, cover } = this;
     const [manager, staker, coverBuyer] = this.accounts.members;
 
     const amount = parseEther('1');
 
-    // Get capacity in staking pool
-    await nxm.mint(staker.address, BigNumber.from(2).pow(128));
-    await nxm.connect(staker).approve(tokenController.address, amount);
-    const trancheId = (await getCurrentTrancheId()) + 2;
-    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ 0, staker.address);
+    // Deposit
+    await depositTo.call(this, { staker, amount });
 
     let i = 0;
     const coverId = 1;
@@ -441,7 +513,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should fail to change products when fully allocated after initializing', async function () {
-    const { stakingProducts, stakingPool, cover, nxm, tokenController } = this;
+    const { stakingProducts, stakingPool, cover } = this;
     const [manager, staker, coverBuyer] = this.accounts.members;
     const amount = parseEther('1');
 
@@ -453,10 +525,7 @@ describe('setProducts unit tests', function () {
     await stakingProducts.setInitialProducts(poolId, initialProducts);
 
     // Get capacity in staking pool
-    await nxm.mint(staker.address, BigNumber.from(2).pow(128));
-    await nxm.connect(staker).approve(tokenController.address, amount);
-    const trancheId = (await getCurrentTrancheId()) + 2;
-    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ 0, manager.address);
+    await depositTo.call(this, { staker, amount });
 
     // Initialize Products and CoverBuy requests
     const coverId = 1;
@@ -483,9 +552,9 @@ describe('setProducts unit tests', function () {
   });
 
   it('any address should be able to recalculate effective weight', async function () {
-    const { stakingProducts, stakingPool, cover, nxm, tokenController } = this;
+    const { stakingProducts, stakingPool, cover } = this;
     const {
-      members: [manager, staker, coverBuyer],
+      members: [staker, coverBuyer],
       nonMembers: [anybody],
     } = this.accounts;
     const amount = parseEther('200');
@@ -498,10 +567,7 @@ describe('setProducts unit tests', function () {
     await stakingProducts.setInitialProducts(poolId, initialProducts);
 
     // Get capacity in staking pool
-    await nxm.mint(staker.address, BigNumber.from(2).pow(128));
-    await nxm.connect(staker).approve(tokenController.address, ethers.constants.MaxUint256);
-    const trancheId = (await getCurrentTrancheId()) + 4;
-    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ 0, manager.address);
+    await depositTo.call(this, { staker, amount });
 
     // Initialize Products and CoverBuy requests
     const coverBuyParams = Array(20)
@@ -525,5 +591,225 @@ describe('setProducts unit tests', function () {
       poolId,
       initialProducts.map(p => p.productId),
     );
+  });
+
+  it('should add products with target weight 0 and have no capacity', async function () {
+    const { stakingProducts, stakingPool, cover } = this;
+    const [manager, staker, coverBuyer] = this.accounts.members;
+
+    const numProducts = 20;
+    const coverId = 1;
+    const amount = parseEther('.01');
+
+    // Get capacity in staking pool
+    await depositTo.call(this, { staker, amount });
+
+    let i = 0;
+    const products = await Promise.all(
+      Array(numProducts)
+        .fill('')
+        .map(() => {
+          return { ...newProductTemplate, productId: i++, targetWeight: 0 };
+        }),
+    );
+
+    // Set products
+    await stakingProducts.connect(manager).setProducts(poolId, products);
+
+    await expect(
+      cover
+        .connect(coverBuyer)
+        .allocateCapacity({ ...buyCoverParamsTemplate, amount: 1 }, coverId, 0, stakingPool.address),
+    ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
+  });
+
+  it('should add product with target weight 1', async function () {
+    const { stakingProducts, stakingPool, cover } = this;
+    const [manager, staker, coverBuyer] = this.accounts.members;
+
+    const coverId = 1;
+    const amount = parseEther('1');
+    const coverBuyAmount = amount.div(100); // weight is 1/100
+
+    // Get capacity in staking pool
+    await depositTo.call(this, { staker, amount });
+
+    await stakingProducts.connect(manager).setProducts(poolId, [{ ...newProductTemplate, targetWeight: 1 }]);
+
+    await stakingPool.getActiveStake();
+
+    // Fails if cover amount is too high
+    await expect(
+      cover
+        .connect(coverBuyer)
+        .allocateCapacity({ ...buyCoverParamsTemplate, amount: coverBuyAmount + 1 }, coverId, 0, stakingPool.address),
+    ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
+
+    await cover
+      .connect(coverBuyer)
+      .allocateCapacity({ ...buyCoverParamsTemplate, amount: coverBuyAmount }, coverId, 0, stakingPool.address);
+  });
+
+  it('should fail to increase target weight when effective weight is at the limit', async function () {
+    const { stakingProducts, stakingPool, cover } = this;
+    const [manager, staker, coverBuyer] = this.accounts.members;
+
+    // Impersonate cover contract
+    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+    await setEtherBalance(cover.address, parseEther('100000'));
+
+    const coverId = 1;
+    const amount = parseEther('10000');
+    const { timestamp: start } = await ethers.provider.getBlock('latest');
+
+    // Get capacity in staking pool
+    await depositTo.call(this, { staker, amount });
+
+    // Add product
+    await stakingProducts.connect(manager).setProducts(poolId, [{ ...newProductTemplate, targetWeight: 50 }]);
+
+    // Buy cover
+    await cover.allocateCapacity(
+      { ...buyCoverParamsTemplate, owner: coverBuyer.address, amount: parseEther('10000') },
+      coverId,
+      0,
+      stakingPool.address,
+    );
+
+    // Burn stake 99% of stake
+    const burnStakeParams = {
+      allocationId: 1,
+      productId: 1,
+      start,
+      period: buyCoverParamsTemplate.period,
+      deallocationAmount: 0,
+    };
+    const activeStake = await stakingPool.getActiveStake();
+    await stakingPool.connect(coverSigner).burnStake(activeStake.sub(1), burnStakeParams);
+
+    // Increasing weight on any product will cause it to recalculate effective weight
+    await expect(
+      stakingProducts.connect(manager).setProducts(poolId, [{ ...newProductTemplate, targetWeight: 51 }]),
+    ).to.be.revertedWithCustomError(stakingProducts, 'TotalEffectiveWeightExceeded');
+  });
+
+  it('should lower target weights when over allocated', async function () {
+    const { stakingProducts, stakingPool, cover } = this;
+    const [manager, staker, coverBuyer] = this.accounts.members;
+
+    // Impersonate cover contract
+    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+    await setEtherBalance(cover.address, parseEther('100000'));
+
+    const numProducts = 20;
+    const coverId = 1;
+    const amount = parseEther('1');
+    const { timestamp: start } = await ethers.provider.getBlock('latest');
+
+    // Add capacity
+    await depositTo.call(this, { staker, amount });
+
+    // 20 products with 95% weight
+    let i = 0;
+    const products = await Promise.all(
+      Array(numProducts)
+        .fill('')
+        .map(() => {
+          return { ...newProductTemplate, productId: i++, targetWeight: 95 };
+        }),
+    );
+
+    // Set products
+    await stakingProducts.connect(manager).setProducts(poolId, products);
+
+    // Buy all remaining cover (190 capacity per product)
+    const coverBuyParams = Array(20)
+      .fill('')
+      .map(() => ({
+        ...buyCoverParamsTemplate,
+        owner: coverBuyer.address,
+        productId: --i,
+        amount: parseEther('1.90'),
+      }));
+    await Promise.all(
+      coverBuyParams.map(cb => {
+        return cover.allocateCapacity(cb, coverId, 0, stakingPool.address);
+      }),
+    );
+
+    {
+      let i = 0;
+      const products = await Promise.all(
+        Array(numProducts)
+          .fill('')
+          .map(() => {
+            return { ...newProductTemplate, productId: i++, targetWeight: 100 };
+          }),
+      );
+
+      const burnStakeParams = {
+        allocationId: 1,
+        productId: 1,
+        start,
+        period: buyCoverParamsTemplate.period,
+        deallocationAmount: 0,
+      };
+
+      // Effective weight is 1900, so a 5% increase on each product weight should be ok
+      await expect(stakingProducts.connect(manager).callStatic.setProducts(poolId, products)).to.not.be.reverted;
+
+      // Burn 6 capacity units to increase effective weight to 102%
+      await stakingPool.connect(coverSigner).burnStake(parseEther('.06'), burnStakeParams);
+
+      expect(await stakingProducts.getTotalTargetWeight(poolId)).to.equal(1900);
+      expect(await stakingProducts.getTotalEffectiveWeight(poolId)).to.equal(1900);
+
+      // Increasing weight on any product will cause it require effective weight be below limit
+      await expect(stakingProducts.connect(manager).setProducts(poolId, products)).to.be.revertedWithCustomError(
+        stakingProducts,
+        'TotalEffectiveWeightExceeded',
+      );
+
+      // should be able to lower product weights however
+      const productsReduced = await Promise.all(
+        Array(numProducts)
+          .fill('')
+          .map(() => {
+            return { ...newProductTemplate, productId: --i, targetWeight: 1 };
+          }),
+      );
+      await expect(stakingProducts.connect(manager).setProducts(poolId, productsReduced)).to.not.be.reverted;
+
+      expect(await stakingProducts.getTotalTargetWeight(poolId)).to.equal(20);
+      expect(await stakingProducts.getTotalEffectiveWeight(poolId)).to.equal(2020);
+    }
+  });
+
+  it('should calculate effective weight properly', async function () {
+    const { stakingProducts } = this;
+    const [manager, coverBuyer] = this.accounts.members;
+
+    const products = await getNewStakedProducts.call(this, { productIds: allProducts, targetWeight: 50 });
+
+    // set products at 50% weight
+    await stakingProducts.connect(manager).setProducts(poolId, products);
+
+    // check weights
+    expect(await stakingProducts.getTotalEffectiveWeight(poolId)).to.equal(1000);
+    expect(await stakingProducts.getTotalTargetWeight(poolId)).to.equal(1000);
+
+    // deposit 100 capacity
+    await depositTo.call(this, { staker: manager, amount: parseEther('100') });
+
+    // buy 100 capacity for each products (100% of available capacity at 50% weight)
+    await Promise.all(
+      allProducts.map(productId => allocateCapacity.call(this, { coverBuyer, productId, amount: parseEther('100') })),
+    );
+
+    await stakingProducts.connect(manager).recalculateEffectiveWeightsForAllProducts(poolId);
+
+    // check weights
+    expect(await stakingProducts.getTotalEffectiveWeight(poolId)).to.equal(1000);
+    expect(await stakingProducts.getTotalTargetWeight(poolId)).to.equal(1000);
   });
 });

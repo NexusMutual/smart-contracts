@@ -12,6 +12,7 @@ describe('StakingProducts unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  require('./getPremium');
   require('./initializeProducts');
   require('./setProducts');
 });

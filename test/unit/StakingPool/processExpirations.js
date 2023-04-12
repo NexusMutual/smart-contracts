@@ -82,6 +82,24 @@ describe('processExpirations', function () {
     expect(expiredTranche.stakeSharesSupplyAtExpiry).to.equal(Math.sqrt(amount));
   });
 
+  it('should revert when calling getTrancheCapacities for expired tranche', async function () {
+    const { stakingPool } = this;
+    const {
+      members: [user],
+    } = this.accounts;
+
+    const { amount, tokenId, destination } = depositToFixture;
+
+    const { firstActiveTrancheId } = await getTranches();
+
+    await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
+
+    await expect(stakingPool.getTrancheCapacities(0, firstActiveTrancheId - 1, 0, 0, 0)).to.be.revertedWithCustomError(
+      stakingPool,
+      'RequestedTrancheIsExpired',
+    );
+  });
+
   it('does not revert when expires multiple tranches', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;

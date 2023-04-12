@@ -83,6 +83,17 @@ describe('extendDeposit', function () {
     ).to.be.revertedWithCustomError(stakingPool, 'InvalidTokenId');
   });
 
+  // TODO: move to integration tests
+  it.skip('reverts if token id belongs to other pool', async function () {
+    const { stakingPool } = this;
+    const manager = this.accounts.defaultSender;
+
+    await expect(stakingPool.connect(manager).extendDeposit(1, 0, 0, 0)).to.be.revertedWithCustomError(
+      stakingPool,
+      'InvalidStakingPoolForToken',
+    );
+  });
+
   it('reverts if new tranche ends before the initial tranche', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;

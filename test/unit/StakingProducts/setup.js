@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const { parseEther, getContractAddress } = ethers.utils;
 const { AddressZero } = ethers.constants;
+const { BigNumber } = ethers;
 const { getAccounts } = require('../utils').accounts;
 const { setEtherBalance } = require('../utils').evm;
 const { Role } = require('../utils').constants;
@@ -132,10 +133,14 @@ async function setup() {
     GLOBAL_CAPACITY_RATIO: await cover.globalCapacityRatio(),
     GLOBAL_REWARDS_RATIO: await cover.globalRewardsRatio(),
     GLOBAL_MIN_PRICE_RATIO: await cover.GLOBAL_MIN_PRICE_RATIO(),
+    CAPACITY_REDUCTION_RATIO: coverProductTemplate.capacityReductionRatio,
+    MAX_ACTIVE_TRANCHES: await stakingProducts.MAX_ACTIVE_TRANCHES(),
   };
 
   const coverSigner = await ethers.getImpersonatedSigner(cover.address);
   await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
+
+  const poolId = BigNumber.from(await stakingPool.getPoolId());
 
   this.accounts = accounts;
   this.coverSigner = coverSigner;
@@ -148,6 +153,7 @@ async function setup() {
   this.stakingPool = stakingPool;
   this.stakingProducts = stakingProducts;
   this.cover = cover;
+  this.poolId = poolId;
 }
 
 module.exports = setup;

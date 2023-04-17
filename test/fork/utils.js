@@ -199,7 +199,6 @@ async function getProductsInPool(params) {
   const numProducts = await cover.productsCount();
   const productsInThisPool = [];
 
-  // TODO: multicall
   for (let i = 0; i < numProducts; i++) {
     const { targetWeight, lastEffectiveWeight, bumpedPrice, bumpedPriceUpdateTime, targetPrice } =
       await stakingProducts.getProduct(poolId, i);
@@ -211,6 +210,7 @@ async function getProductsInPool(params) {
     if (ethers.constants.One.mul(targetWeight).eq(0)) {
       continue;
     }
+
     productsInThisPool.push({
       targetWeight,
       lastEffectiveWeight,
@@ -236,6 +236,7 @@ async function getConfig() {
     SURGE_THRESHOLD_RATIO: stakingProducts.SURGE_THRESHOLD_RATIO(),
     NXM_PER_ALLOCATION_UNIT: stakingPool.NXM_PER_ALLOCATION_UNIT(),
     ALLOCATION_UNITS_PER_NXM: stakingPool.ALLOCATION_UNITS_PER_NXM(),
+    ONE_NXM: stakingPool.ONE_NXM(),
     INITIAL_PRICE_DENOMINATOR: stakingProducts.INITIAL_PRICE_DENOMINATOR(),
     REWARDS_DENOMINATOR: stakingPool.REWARDS_DENOMINATOR(),
     WEIGHT_DENOMINATOR: stakingPool.WEIGHT_DENOMINATOR(),
@@ -248,8 +249,24 @@ async function getConfig() {
     GLOBAL_REWARDS_RATIO: cover.globalRewardsRatio(),
     GLOBAL_MIN_PRICE_RATIO: cover.GLOBAL_MIN_PRICE_RATIO(),
   };
-  await Promise.all(Object.keys(config).map(async key => (config[key] = await config[key])));
+  await Promise.all(Object.keys(config).map(async key => (config[key] = BigNumber.from(await config[key]))));
   return config;
+}
+
+async function getAssetContractInstance(pool, assetId) {
+  const asset = await pool.getAsset(assetId);
+  return await ethers.getContractAt('@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20', asset.assetAddress);
+}
+
+async function isCoverAssetSupported(pool, assetId, coverAssets) {
+  if (coverAssets !== 0) {
+    const index = 1 << assetId;
+    if ((index & coverAssets) === 0) {
+      return false;
+    }
+  }
+  const asset = await pool.getAsset(assetId);
+  return asset.isCoverAsset && !asset.isAbandoned;
 }
 
 module.exports = {
@@ -270,4 +287,6 @@ module.exports = {
   V2Addresses,
   getConfig,
   getProductsInPool,
+  getAssetContractInstance,
+  isCoverAssetSupported,
 };

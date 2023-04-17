@@ -1,17 +1,9 @@
-const { accounts, ethers } = require("hardhat");
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { calculateFirstTrancheId } = require("../utils/staking");
+const { calculateFirstTrancheId } = require('../utils/staking');
 const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { daysToSeconds } = require('../../../lib/helpers');
-
-const [
-  ,
-  /* owner */ member1,
-  member2,
-  member3,
-  coverHolder,
-] = accounts;
 
 const stakedProductParamTemplate = {
   productId: 1,
@@ -22,8 +14,7 @@ const stakedProductParamTemplate = {
   targetPrice: 100,
 };
 
-
-describe.only('recalculateEffectiveWeights', function () {
+describe('recalculateEffectiveWeights', function () {
   beforeEach(async function () {
     const { tk: nxm, tc: tokenController } = this.contracts;
     await nxm.approve(tokenController.address, MaxUint256);
@@ -42,16 +33,20 @@ describe.only('recalculateEffectiveWeights', function () {
 
     const targetWeight = 5;
 
-    await stakingProducts.connect(manager1).setProducts(productId, [{
-      ...stakedProductParamTemplate, targetWeight
-    }]);
+    await stakingProducts.connect(manager1).setProducts(productId, [
+      {
+        ...stakedProductParamTemplate,
+        targetWeight,
+      },
+    ]);
 
     // stake
-    const firstActiveTrancheId = await calculateFirstTrancheId(
+    const firstActiveTrancheId = calculateFirstTrancheId(
       await ethers.provider.getBlock('latest'),
       daysToSeconds(30),
       0,
     );
+
     await stakingPool1.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
 
     await stakingProducts.recalculateEffectiveWeightsForAllProducts(poolId);

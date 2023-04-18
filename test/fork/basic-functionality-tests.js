@@ -27,9 +27,8 @@ const { daysToSeconds } = require('../../lib/helpers');
 const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
 
 const { DAI_ADDRESS, STETH_ADDRESS } = Address;
-const { NXM_WHALE_1, NXM_WHALE_2, DAI_NXM_HOLDER, NXMHOLDER } = UserAddress;
+const { NXM_WHALE_1, NXM_WHALE_2, DAI_NXM_HOLDER, NXMHOLDER, DAI_HOLDER } = UserAddress;
 const { ENZYMEV4_VAULT_PROXY_ADDRESS } = EnzymeAdress;
-const HUGH = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
 const {
   DAI_PRICE_FEED_ORACLE_AGGREGATOR,
   STETH_PRICE_FEED_ORACLE_AGGREGATOR,
@@ -38,6 +37,7 @@ const {
 
 let ybDAI, ybETH, ybEthProductId, ybDaiProductId; // ybDaiCoverId, ybEthCoverId;
 let custodyProductId, custodyCoverId;
+let protocolProductId, protocolCoverId;
 let assessmentId, requestedClaimAmount, claimDeposit;
 let poolId, trancheId, tokenId;
 
@@ -51,21 +51,6 @@ const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
   await mineNextBlock();
 };
-
-async function acceptClaim({ staker, assessmentStakingAmount, as, assessmentId }) {
-  await as.connect(staker).stake(assessmentStakingAmount);
-
-  await as.connect(staker).castVotes([assessmentId], [true], ['Assessment data hash'], 0);
-
-  const { poll } = await as.assessments(assessmentId);
-
-  const { payoutCooldownInDays } = await as.config();
-
-  const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
-
-  await setTime(futureTime);
-}
-
 describe('basic functionality tests', function () {
   before(async function () {
     // Initialize evm helper
@@ -81,11 +66,15 @@ describe('basic functionality tests', function () {
     await evm.setBalance(NXM_WHALE_1, parseEther('1000'));
     await evm.setBalance(NXM_WHALE_2, parseEther('1000'));
     await evm.setBalance(NXMHOLDER, parseEther('1000'));
+    await evm.setBalance(DAI_HOLDER, parseEther('1000'));
 
     this.members = [];
     this.members.push(await getSigner(NXM_WHALE_1));
     this.members.push(await getSigner(NXM_WHALE_2));
     this.members.push(await getSigner(NXMHOLDER));
+
+    await evm.impersonate(DAI_HOLDER);
+    this.daiHolder = await getSigner(DAI_HOLDER);
   });
 
   it('Buy NXM', async function () {
@@ -233,6 +222,32 @@ describe('basic functionality tests', function () {
     expect(productsAfter.length).to.be.equal(productsBefore.length + 1);
   });
 
+  it('Add protocol product', async function () {
+    const productsBefore = await this.cover.getProducts();
+
+    await this.cover.connect(this.abMembers[0]).setProducts([
+      {
+        productName: 'Protocol Product',
+        productId: MaxUint256,
+        ipfsMetadata: '',
+        product: {
+          productType: 0,
+          yieldTokenAddress: AddressZero,
+          coverAssets: 0,
+          initialPriceRatio: 100,
+          capacityReductionRatio: 0,
+          useFixedPrice: false,
+          isDeprecated: false,
+        },
+        allowedPools: [],
+      },
+    ]);
+
+    const productsAfter = await this.cover.getProducts();
+    protocolProductId = productsAfter.length - 1;
+    expect(productsAfter.length).to.be.equal(productsBefore.length + 1);
+  });
+
   it('Add custody product', async function () {
     const productsBefore = await this.cover.getProducts();
 
@@ -276,6 +291,12 @@ describe('basic functionality tests', function () {
       },
       {
         productId: custodyProductId,
+        weight: 100,
+        initialPrice: 1000,
+        targetPrice: 1000,
+      },
+      {
+        productId: protocolProductId,
         weight: 100,
         initialPrice: 1000,
         targetPrice: 1000,
@@ -413,7 +434,6 @@ describe('basic functionality tests', function () {
 
     const coverCountBefore = await this.cover.coverDataCount();
 
-    console.log('Buying cover..');
     await this.cover.connect(coverBuyer).buyCover(
       {
         coverId: 0,
@@ -433,7 +453,6 @@ describe('basic functionality tests', function () {
       { value: amount },
     );
 
-    console.log('Bought..');
     const coverCountAfter = await this.cover.coverDataCount();
     custodyCoverId = coverCountAfter;
 
@@ -493,7 +512,7 @@ describe('basic functionality tests', function () {
     );
   });
 
-  it('Submit claim for custody cover', async function () {
+  it('Submit claim for ETH custody cover', async function () {
     await evm.impersonate(DAI_NXM_HOLDER);
     const coverBuyer = await getSigner(DAI_NXM_HOLDER);
 
@@ -517,7 +536,7 @@ describe('basic functionality tests', function () {
     const claimsCountAfter = await this.individualClaims.getClaimsCount();
     const assessmentCountAfter = await this.assessment.getAssessmentsCount();
 
-    assessmentId = claimsCountBefore.toString();
+    assessmentId = assessmentCountBefore.toString();
     expect(claimsCountAfter).to.be.equal(claimsCountBefore.add(1));
     expect(assessmentCountAfter).to.be.equal(assessmentCountBefore.add(1));
 
@@ -525,8 +544,133 @@ describe('basic functionality tests', function () {
     claimDeposit = deposit;
   });
 
-  it('process the assessment', async function () {
+  it('Process assessment for custody cover and ETH payout', async function () {
+    const voterCount = 3;
 
+    // stake
+    const amount = parseEther('500');
+    for (const abMember of this.abMembers.slice(0, voterCount)) {
+      const memberAddress = await abMember.getAddress();
+      const { amount: stakeAmountBefore } = await this.assessment.stakeOf(memberAddress);
+      await this.assessment.connect(abMember).stake(amount);
+      const { amount: stakeAmountAfter } = await this.assessment.stakeOf(memberAddress);
+      expect(stakeAmountAfter).to.be.equal(stakeAmountBefore.add(amount));
+    }
+
+    let poll;
+    // vote
+    for (const abMember of this.abMembers.slice(0, voterCount)) {
+      await this.assessment.connect(abMember).castVotes([assessmentId], [true], [''], 0);
+
+      const { poll: pollResult } = await this.assessment.assessments(assessmentId);
+      poll = pollResult;
+    }
+
+    const { payoutCooldownInDays } = await this.assessment.config();
+
+    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
+
+    await setTime(futureTime);
+
+    const coverIdV2 = custodyCoverId;
+    const coverBuyerAddress = DAI_NXM_HOLDER;
+    const claimId = (await this.individualClaims.getClaimsCount()).toNumber() - 1;
+
+    const memberAddress = await this.coverNFT.ownerOf(coverIdV2);
+
+    const ethBalanceBefore = await ethers.provider.getBalance(coverBuyerAddress);
+
+    console.log(`Current member balance ${ethBalanceBefore.toString()}. Redeeming claim ${claimId}`);
+
+    // redeem payout
+    await this.individualClaims.redeemClaimPayout(claimId);
+
+    const ethBalanceAfter = await ethers.provider.getBalance(memberAddress);
+
+    console.log(`Check correct balance increase`);
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(requestedClaimAmount).add(claimDeposit));
+
+    const { payoutRedeemed } = await this.individualClaims.claims(claimId);
+    expect(payoutRedeemed).to.be.equal(true);
+  });
+
+  it('Buy protocol DAI cover', async function () {
+    await evm.impersonate(DAI_NXM_HOLDER);
+    const coverBuyer = await getSigner(DAI_NXM_HOLDER);
+    const coverBuyerAddress = await coverBuyer.getAddress();
+
+    const coverAsset = 1; // DAI
+    const amount = parseEther('1000');
+    const commissionRatio = '500'; // 5%
+
+    const daiTopUpAmount = parseEther('1000000');
+    await this.dai.connect(this.daiHolder).transfer(DAI_NXM_HOLDER, daiTopUpAmount);
+
+    const coverCountBefore = await this.cover.coverDataCount();
+
+    await this.dai.connect(coverBuyer).approve(this.cover.address, daiTopUpAmount);
+
+    const maxPremiumInAsset = amount.mul(260).div(10000);
+
+    console.log('Buying cover..');
+    await this.cover.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyerAddress,
+        productId: protocolProductId,
+        coverAsset,
+        amount,
+        period: 3600 * 24 * 30, // 30 days
+        maxPremiumInAsset,
+        paymentAsset: coverAsset,
+        payWithNXM: false,
+        commissionRatio,
+        commissionDestination: coverBuyerAddress,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+    );
+
+    console.log('Bought..');
+    const coverCountAfter = await this.cover.coverDataCount();
+    protocolCoverId = coverCountAfter;
+
+    expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
+  });
+
+  it('Submit claim for protocol cover in DAI', async function () {
+    await evm.impersonate(DAI_NXM_HOLDER);
+    const coverBuyer = await getSigner(DAI_NXM_HOLDER);
+
+    const claimsCountBefore = await this.individualClaims.getClaimsCount();
+    const assessmentCountBefore = await this.assessment.getAssessmentsCount();
+
+    const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
+    const requestedAmount = parseEther('1000');
+    const segmentId = (await this.cover.coverSegmentsCount(custodyCoverId)).sub(1);
+    const segment = await this.cover.coverSegmentWithRemainingAmount(custodyCoverId, segmentId);
+
+    const [deposit] = await this.individualClaims.getAssessmentDepositAndReward(
+      requestedAmount,
+      segment.period,
+      1, // DAI
+    );
+    await this.individualClaims
+      .connect(coverBuyer)
+      .submitClaim(protocolCoverId, segmentId, requestedAmount, ipfsHash, { value: deposit });
+
+    const claimsCountAfter = await this.individualClaims.getClaimsCount();
+    const assessmentCountAfter = await this.assessment.getAssessmentsCount();
+
+    assessmentId = assessmentCountBefore.toString();
+    expect(claimsCountAfter).to.be.equal(claimsCountBefore.add(1));
+    expect(assessmentCountAfter).to.be.equal(assessmentCountBefore.add(1));
+
+    requestedClaimAmount = requestedAmount;
+    claimDeposit = deposit;
+  });
+
+  it('Process assessment and DAI payout for protocol cover', async function () {
     const voterCount = 3;
 
     console.log('Stake for assessment');
@@ -543,12 +687,8 @@ describe('basic functionality tests', function () {
     }
 
     let poll;
-    console.log(`Vote on assessment ${assessmentId}`);
     // vote
     for (const abMember of this.abMembers.slice(0, voterCount)) {
-      const abAddress = await abMember.getAddress();
-      console.log(`${abAddress} voting.`);
-
       await this.assessment.connect(abMember).castVotes([assessmentId], [true], [''], 0);
 
       const { poll: pollResult } = await this.assessment.assessments(assessmentId);
@@ -562,45 +702,20 @@ describe('basic functionality tests', function () {
     await setTime(futureTime);
 
     const coverIdV2 = custodyCoverId;
-    const coverBuyerAddress = DAI_NXM_HOLDER;
-    const claimId = assessmentId;
+    const claimId = (await this.individualClaims.getClaimsCount()).toNumber() - 1;
 
-    const { productId, coverAsset: expectedCoverAsset, amountPaidOut } = await this.cover.coverData(coverIdV2);
     const memberAddress = await this.coverNFT.ownerOf(coverIdV2);
 
-    console.log(`Redeeming payout in coverAsset ${expectedCoverAsset} for Cover with V2 ID: ${coverIdV2}`);
-    if (expectedCoverAsset === 0) {
-      // ETH
-      const ethBalanceBefore = await ethers.provider.getBalance(coverBuyerAddress);
+    const daiBalanceBefore = await this.dai.balanceOf(memberAddress);
 
-      console.log(`Current member balance ${ethBalanceBefore.toString()}. Redeeming claim ${claimId}`);
+    // redeem payout
+    await this.individualClaims.redeemClaimPayout(claimId);
 
-      // redeem payout
-      await this.individualClaims.redeemClaimPayout(claimId);
+    const daiBalanceAfter = await this.dai.balanceOf(memberAddress);
+    expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(requestedClaimAmount));
 
-      const ethBalanceAfter = await ethers.provider.getBalance(memberAddress);
-
-      console.log(`Check correct balance increase`);
-      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(requestedClaimAmount).add(claimDeposit));
-
-      const { payoutRedeemed } = await this.individualClaims.claims(claimId);
-      expect(payoutRedeemed).to.be.equal(true);
-    } else {
-      // DAI
-      const daiBalanceBefore = await this.dai.balanceOf(memberAddress);
-
-      console.log(`Current member balance ${daiBalanceBefore.toString()}.  Redeeming claim ${claimId}`);
-
-      // redeem payout
-      await this.individualClaims.redeemClaimPayout(claimId);
-
-      console.log(`Check correct balance increase`);
-      const daiBalanceAfter = await this.dai.balanceOf(memberAddress);
-      expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(requestedClaimAmount));
-
-      const { payoutRedeemed } = await this.individualClaims.claims(claimId);
-      expect(payoutRedeemed).to.be.equal(true);
-    }
+    const { payoutRedeemed } = await this.individualClaims.claims(claimId);
+    expect(payoutRedeemed).to.be.equal(true);
   });
 
   it('Sets DMCI to greater to 1% to allow floor increase', async function () {

@@ -1,20 +1,8 @@
 const { ethers, network } = require('hardhat');
-const { expect } = require('chai');
 
 const evm = require('./evm')();
 
-const {
-  Address: { ETH },
-} = require('./utils');
-const { daysToSeconds } = require('../../lib/helpers');
-const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
-const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-const { signMembershipApproval } = require('../integration/utils').membership;
-const { parseUnits } = require('ethers/lib/utils');
-
-const JOINING_FEE = parseUnits('0.002');
-
-const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { parseEther, toUtf8Bytes } = ethers.utils;
 
 const V2Addresses = {
   SwapOperator: '0xcafea536d7f79F31Fa49bC40349f6a5F7E19D842',
@@ -107,7 +95,10 @@ describe('Run Basic Functionality Tests', function () {
     this.stakingNFT = await ethers.getContractAt('StakingNFT', V2Addresses.StakingNFT);
     this.coverNFT = await ethers.getContractAt('CoverNFT', V2Addresses.CoverNFT);
     this.pooledStaking = await ethers.getContractAt('CoverNFT', await this.master.getLatestAddress(toUtf8Bytes('PS')));
-    this.yieldTokenIncidents = await ethers.getContractAt('CoverNFT', await this.master.getLatestAddress(toUtf8Bytes('CG')));
+    this.yieldTokenIncidents = await ethers.getContractAt(
+      'CoverNFT',
+      await this.master.getLatestAddress(toUtf8Bytes('CG')),
+    );
 
     this.tokenController = await ethers.getContractAt(
       'TokenController',

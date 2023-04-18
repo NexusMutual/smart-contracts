@@ -25,6 +25,12 @@ contract TokenControllerMock is MasterAwareV2 {
 
   mapping(address => bool) public isStakingPoolManager;
 
+  mapping(address => mapping (bytes32 => uint)) public _tokensLocked;
+
+  mapping(address => uint) public _withdrawableCoverNotes;
+
+  mapping(address => uint) public _pendingRewards;
+
   function mint(address _member, uint256 _amount) public onlyInternal {
     token().mint(_member, _amount);
   }
@@ -119,6 +125,36 @@ contract TokenControllerMock is MasterAwareV2 {
     isStakingPoolManager[member] = isManager;
   }
 
+  function setTokensLocked(address member, bytes32 reason, uint amount) external {
+    _tokensLocked[member][reason] = amount;
+  }
+
+  function setWithdrawableCoverNotes(address member, uint amount) external {
+    _withdrawableCoverNotes[member] = amount;
+  }
+
+  function setPendingRewards(address member, uint amount) external {
+    _pendingRewards[member] = amount;
+  }
+
+  function tokensLocked(address member, bytes32 reason) external view returns (uint) {
+    return _tokensLocked[member][reason];
+  }
+
+  function getWithdrawableCoverNotes(address member) external view returns (
+    uint[] memory /* coverIds */,
+    bytes32[] memory /* lockReasons */,
+    uint amount
+  ) {
+    uint[] memory coverIds;
+    bytes32[] memory lockReasons;
+    return (coverIds, lockReasons, _withdrawableCoverNotes[member]);
+  }
+
+  function getPendingRewards(address member) external view returns (uint) {
+    return _pendingRewards[member];
+  }
+
   /* unused functions */
 
   modifier unused {
@@ -127,8 +163,6 @@ contract TokenControllerMock is MasterAwareV2 {
   }
 
   function burnLockedTokens(address, bytes32, uint256) unused external {}
-
-  function tokensLocked(address, bytes32) unused external pure returns (uint256) { return 0; }
 
   function releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) unused external {}
 }

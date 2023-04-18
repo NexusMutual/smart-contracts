@@ -32,11 +32,17 @@ async function setup() {
   const stakingNFT = await StakingNFT.deploy('', '');
   await stakingNFT.deployed();
 
+  const PooledStaking = await ethers.getContractFactory('MRMockPooledStaking');
+  const pooledStaking = await PooledStaking.deploy();
+
   const Cover = await ethers.getContractFactory('MRMockCover');
   const cover = await Cover.deploy(coverNFT.address, memberRoles.address, stakingNFT.address);
 
   const Governance = await ethers.getContractFactory('MRMockGovernance');
   const governance = await Governance.deploy();
+
+  const Assessment = await ethers.getContractFactory('MRMockAssessment');
+  const assessment = await Assessment.deploy();
 
   // quotation data is currently hardcoded in the MemberRoles contract
   // using setCode to deploy the QD mock at that specific address
@@ -51,11 +57,15 @@ async function setup() {
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('MR'), memberRoles.address);
   await master.setLatestAddress(hex('GV'), governance.address);
+  await master.setLatestAddress(hex('PS'), pooledStaking.address);
+  await master.setLatestAddress(hex('AS'), assessment.address);
   await master.enrollInternal(tokenController.address);
   await master.enrollInternal(pool.address);
   await master.enrollInternal(nxm.address);
   await master.enrollInternal(cover.address);
   await master.enrollInternal(memberRoles.address);
+  await master.enrollInternal(pooledStaking.address);
+  await master.enrollInternal(assessment.address);
 
   const accounts = await getAccounts();
   await master.enrollGovernance(accounts.governanceContracts[0].address);
@@ -109,6 +119,8 @@ async function setup() {
     stakingNFT,
     tokenController,
     quotationData,
+    pooledStaking,
+    assessment,
   };
 }
 

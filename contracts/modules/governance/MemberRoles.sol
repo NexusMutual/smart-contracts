@@ -13,6 +13,8 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/IPooledStaking.sol";
+import "../../interfaces/IAssessment.sol";
 import "./external/Governed.sol";
 
 contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
@@ -108,6 +110,14 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     return ICover(internalContracts[uint(ID.CO)]);
   }
 
+  function legacyPooledStaking() internal view returns (IPooledStaking) {
+    return IPooledStaking(internalContracts[uint(ID.PS)]);
+  }
+
+  function assessment() internal view returns (IAssessment) {
+    return IAssessment(internalContracts[uint(ID.AS)]);
+  }
+
   /// Updates contracts dependencies.
   ///
   /// @dev Iupgradable Interface to update dependent contract address
@@ -122,6 +132,8 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
+    internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
+    internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
   }
 
   /// Adds a new member role.
@@ -223,6 +235,21 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
       "MemberRoles: Member is a staking pool manager"
     );
 
+    IPooledStaking _legacyPooledStaking = legacyPooledStaking();
+
+    // check that there are no tokens left to withdraw
+    require(_legacyPooledStaking.stakerDeposit(msg.sender) == 0, "Member has NXM staked in Pooled Staking");
+    require(_legacyPooledStaking.stakerReward(msg.sender) == 0, "Member has NXM rewards in Pooled Staking");
+
+    require(_tokenController.tokensLocked(msg.sender, "CLA") == 0, "Member has NXM staked in Claim Assessment V1");
+    (, , uint coverNotesAmount) = _tokenController.getWithdrawableCoverNotes(msg.sender);
+    require(coverNotesAmount == 0, "Member has withdrawable cover notes");
+    // _tokenController.getPendingRewards includes both assessment and governance rewards
+    require(_tokenController.getPendingRewards(msg.sender) == 0, "Member has pending rewards in Token Controller");
+
+    (uint96 stakeAmount, ,) = assessment().stakeOf(msg.sender);
+    require(stakeAmount == 0, "Member has Assessment stake");
+
     _tokenController.burnFrom(msg.sender, token.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
     _tokenController.removeFromWhitelist(msg.sender); // need clarification on whitelist
@@ -303,6 +330,22 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     require(block.timestamp > token.isLockedForMV(currentAddress), "Locked for governance voting");
 
     ITokenController _tokenController = tokenController();
+    IPooledStaking _legacyPooledStaking = legacyPooledStaking();
+
+    // check that there are no tokens left to withdraw
+    require(_legacyPooledStaking.stakerDeposit(currentAddress) == 0, "Member has NXM staked in Pooled Staking");
+    require(_legacyPooledStaking.stakerReward(currentAddress) == 0, "Member has NXM rewards in Pooled Staking");
+
+    require(_tokenController.tokensLocked(currentAddress, "CLA") == 0, "Member has NXM staked in Claim Assessment V1");
+    (, , uint coverNotesAmount) = _tokenController.getWithdrawableCoverNotes(currentAddress);
+    require(coverNotesAmount == 0, "Member has withdrawable cover notes");
+    // _tokenController.getPendingRewards includes both assessment and governance rewards
+    require(_tokenController.getPendingRewards(currentAddress) == 0, "Member has pending rewards in Token Controller");
+
+    (uint96 stakeAmount, ,) = assessment().stakeOf(currentAddress);
+    require(stakeAmount == 0, "Member has Assessment stake");
+
+
     _tokenController.addToWhitelist(newAddress);
     _updateRole(currentAddress, uint(Role.Member), false);
     _updateRole(newAddress, uint(Role.Member), true);

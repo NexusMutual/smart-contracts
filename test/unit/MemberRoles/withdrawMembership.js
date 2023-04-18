@@ -1,5 +1,7 @@
 const { Role } = require('../utils').constants;
 const { expect } = require('chai');
+const { ethers } = require('hardhat');
+const { formatBytes32String } = ethers.utils;
 
 describe('withdrawMembership', function () {
   it('reverts when withdrawing membership for non-member', async function () {
@@ -18,6 +20,76 @@ describe('withdrawMembership', function () {
 
     await nxm.setLock(member.address, 1000);
     await expect(memberRoles.connect(member).withdrawMembership()).to.be.reverted;
+  });
+
+  it('reverts when member has LegacyPooledStaking deposit tokens', async function () {
+    const { memberRoles, pooledStaking } = this.contracts;
+    const {
+      members: [member],
+    } = this.accounts;
+
+    await pooledStaking.setStakerDeposit(member.address, 100);
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
+      'Member has NXM staked in Pooled Staking',
+    );
+  });
+
+  it('reverts when member has LegacyPooledStaking reward tokens', async function () {
+    const { memberRoles, pooledStaking } = this.contracts;
+    const {
+      members: [member],
+    } = this.accounts;
+
+    await pooledStaking.setStakerReward(member.address, 100);
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
+      'Member has NXM rewards in Pooled Staking',
+    );
+  });
+
+  it('reverts when member has tokens locked for claim assessment', async function () {
+    const { memberRoles, tokenController } = this.contracts;
+    const {
+      members: [member],
+    } = this.accounts;
+
+    await tokenController.setTokensLocked(member.address, formatBytes32String('CLA'), 100);
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
+      'Member has NXM staked in Claim Assessment V1',
+    );
+  });
+
+  it('reverts when member has withdrawable cover notes', async function () {
+    const { memberRoles, tokenController } = this.contracts;
+    const {
+      members: [member],
+    } = this.accounts;
+
+    await tokenController.setWithdrawableCoverNotes(member.address, 100);
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
+      'Member has withdrawable cover notes',
+    );
+  });
+
+  it('reverts when member has tokens staked for assessment', async function () {
+    const { memberRoles, assessment } = this.contracts;
+    const {
+      members: [member],
+    } = this.accounts;
+
+    await assessment.setStakeOf(member.address, 100);
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith('Member has Assessment stake');
+  });
+
+  it('reverts when member has pending rewards in TokenController', async function () {
+    const { memberRoles, tokenController } = this.contracts;
+    const {
+      members: [member],
+    } = this.accounts;
+
+    await tokenController.setPendingRewards(member.address, 100);
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
+      'Member has pending rewards in Token Controller',
+    );
   });
 
   it("removes member's the address from the whitelist", async function () {

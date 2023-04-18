@@ -1,6 +1,5 @@
-const { ethers } = require('hardhat');
+const { ethers, accounts } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
-const { getAccounts } = require('../../utils/accounts');
 const { parseEther } = ethers.utils;
 
 async function setup() {
@@ -96,7 +95,6 @@ async function setup() {
   await individualClaims.changeMasterAddress(master.address);
   await individualClaims.changeDependentContractAddress();
 
-  const accounts = await getAccounts();
   await master.enrollGovernance(accounts.governanceContracts[0].address);
   for (const member of accounts.members) {
     await memberRoles.setRole(member.address, 2);

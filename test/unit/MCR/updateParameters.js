@@ -3,14 +3,6 @@ const { expect } = require('chai');
 const { MCRUintParamType } = require('../utils').constants;
 const { toBytes8 } = require('../utils').helpers;
 
-// const {
-//   nonMembers: [nonMember],
-//   members: [member],
-//   advisoryBoardMembers: [advisoryBoardMember],
-//   internalContracts: [internalContract],
-//   governanceContracts: [governanceContract],
-// } = accounts;
-
 describe('updateUintParameters', function () {
   it('should revert when called by non governance addresses', async function () {
     const { mcr } = this;

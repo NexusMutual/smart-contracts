@@ -1,7 +1,6 @@
-const { ethers, artifacts } = require('hardhat');
+const { ethers, accounts } = require('hardhat');
 
 const { hex } = require('../utils').helpers;
-const { getAccounts } = require('../utils').accounts;
 const { setCode } = require('../utils').evm;
 const { Role } = require('../utils').constants;
 
@@ -67,7 +66,6 @@ async function setup() {
   await master.enrollInternal(pooledStaking.address);
   await master.enrollInternal(assessment.address);
 
-  const accounts = await getAccounts();
   await master.enrollGovernance(accounts.governanceContracts[0].address);
 
   await memberRoles.changeMasterAddress(master.address);

@@ -1,8 +1,7 @@
-const { ethers } = require('hardhat');
+const { ethers, accounts } = require('hardhat');
 const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 
-const { getAccounts } = require('../utils').accounts;
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
@@ -38,7 +37,7 @@ async function setup() {
   const coverNFT = await ethers.deployContract('CoverMockCoverNFT');
   const stakingNFT = await ethers.deployContract('CoverMockStakingNFT');
 
-  const { defaultSender } = await getAccounts();
+  const { defaultSender } = accounts;
   const expectedCoverAddress = await getDeployAddressAfter(defaultSender, 1);
 
   const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [expectedCoverAddress]);
@@ -73,8 +72,6 @@ async function setup() {
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('SP'), stakingProducts.address);
-
-  const accounts = await getAccounts();
 
   const pooledStakingSigner = accounts.members[4];
   await master.setLatestAddress(hex('PS'), pooledStakingSigner.address);

@@ -1,8 +1,7 @@
-const { ethers } = require('hardhat');
+const { ethers, accounts } = require('hardhat');
 const { parseEther, parseUnits } = ethers.utils;
 
 const { initMCR } = require('./common');
-const { getAccounts } = require('../utils').accounts;
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
@@ -54,7 +53,6 @@ async function setup() {
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('CO'), cover.address);
 
-  const accounts = await getAccounts();
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);
   }

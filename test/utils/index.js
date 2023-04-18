@@ -1,7 +1,7 @@
 const { constants, helpers } = require('../../lib');
 const proposalCategories = require('../../lib/proposal-categories');
 
-const accounts = require('./accounts');
+// const accounts = require('./accounts');
 const addresses = require('./addresses');
 const evm = require('./evm');
 const tokenPrice = require('./token-price');
@@ -13,7 +13,7 @@ const results = require('./results');
 const errors = require('./errors');
 
 module.exports = {
-  accounts,
+  // accounts,
   addresses,
   constants,
   evm,

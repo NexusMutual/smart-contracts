@@ -181,7 +181,7 @@ async function enableAsEnzymeReceiver(receiverAddress) {
   await evm.setBalance(ownerAddress, parseEther('1000'));
 
   // Update Enzyme vault receivers
-  const iface = new ethers.utils.Interface(['addToList(uint256,address[])']);
+  const iface = new ethers.utils.Interface(['function addToList(uint256,address[])']);
   const selector = iface.getSighash('addToList');
   const receiverArgs = defaultAbiCoder.encode(['uint256', 'address[]'], [ListIdForReceivers, [receiverAddress]]);
   await comptroller

@@ -51,10 +51,29 @@ async function compareProxyImplementationAddress(proxyAddress, addressToCompare)
   expect(implementationAddress).to.be.equal(addressToCompare);
 }
 
+const ASSESSMENT_VOTER_COUNT = 3;
+
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
   await mineNextBlock();
 };
+
+async function castAssessmentVote() {
+  // vote
+  for (const abMember of this.abMembers.slice(0, ASSESSMENT_VOTER_COUNT)) {
+    await this.assessment.connect(abMember).castVotes([assessmentId], [true], [''], 0);
+  }
+
+  const { poll: pollResult } = await this.assessment.assessments(assessmentId);
+  const poll = pollResult;
+
+  const { payoutCooldownInDays } = await this.assessment.config();
+
+  const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
+
+  await setTime(futureTime);
+}
+
 describe('basic functionality tests', function () {
   before(async function () {
     // Initialize evm helper
@@ -83,6 +102,18 @@ describe('basic functionality tests', function () {
 
     await evm.impersonate(DAI_HOLDER);
     this.daiHolder = await getSigner(DAI_HOLDER);
+  });
+
+  it('Stake for assessment', async function () {
+    // stake
+    const amount = parseEther('500');
+    for (const abMember of this.abMembers.slice(0, ASSESSMENT_VOTER_COUNT)) {
+      const memberAddress = await abMember.getAddress();
+      const { amount: stakeAmountBefore } = await this.assessment.stakeOf(memberAddress);
+      await this.assessment.connect(abMember).stake(amount);
+      const { amount: stakeAmountAfter } = await this.assessment.stakeOf(memberAddress);
+      expect(stakeAmountAfter).to.be.equal(stakeAmountBefore.add(amount));
+    }
   });
 
   it('Buy NXM', async function () {
@@ -477,35 +508,7 @@ describe('basic functionality tests', function () {
       this.governance,
     );
 
-    const voterCount = 3;
-
-    console.log('Stake for assessment');
-    // stake
-    const amount = parseEther('500');
-    for (const abMember of this.abMembers.slice(0, voterCount)) {
-      const memberAddress = await abMember.getAddress();
-      const { amount: stakeAmountBefore } = await this.assessment.stakeOf(memberAddress);
-      console.log(stakeAmountBefore);
-      await this.assessment.connect(abMember).stake(amount);
-      console.log(`${memberAddress} staked succesfully`);
-      const { amount: stakeAmountAfter } = await this.assessment.stakeOf(memberAddress);
-      expect(stakeAmountAfter).to.be.equal(stakeAmountBefore.add(amount));
-    }
-
-    let poll;
-    // vote
-    for (const abMember of this.abMembers.slice(0, voterCount)) {
-      await this.assessment.connect(abMember).castVotes([assessmentId], [true], [''], 0);
-
-      const { poll: pollResult } = await this.assessment.assessments(assessmentId);
-      poll = pollResult;
-    }
-
-    const { payoutCooldownInDays } = await this.assessment.config();
-
-    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
-
-    await setTime(futureTime);
+    await castAssessmentVote.call(this);
   });
 
   it('redeem ybDAI cover', async function () {
@@ -619,32 +622,7 @@ describe('basic functionality tests', function () {
   });
 
   it('Process assessment for custody cover and ETH payout', async function () {
-    const voterCount = 3;
-
-    // stake
-    const amount = parseEther('500');
-    for (const abMember of this.abMembers.slice(0, voterCount)) {
-      const memberAddress = await abMember.getAddress();
-      const { amount: stakeAmountBefore } = await this.assessment.stakeOf(memberAddress);
-      await this.assessment.connect(abMember).stake(amount);
-      const { amount: stakeAmountAfter } = await this.assessment.stakeOf(memberAddress);
-      expect(stakeAmountAfter).to.be.equal(stakeAmountBefore.add(amount));
-    }
-
-    let poll;
-    // vote
-    for (const abMember of this.abMembers.slice(0, voterCount)) {
-      await this.assessment.connect(abMember).castVotes([assessmentId], [true], [''], 0);
-
-      const { poll: pollResult } = await this.assessment.assessments(assessmentId);
-      poll = pollResult;
-    }
-
-    const { payoutCooldownInDays } = await this.assessment.config();
-
-    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
-
-    await setTime(futureTime);
+    await castAssessmentVote.call(this);
 
     const coverIdV2 = custodyCoverId;
     const coverBuyerAddress = DAI_NXM_HOLDER;
@@ -745,34 +723,7 @@ describe('basic functionality tests', function () {
   });
 
   it('Process assessment and DAI payout for protocol cover', async function () {
-    const voterCount = 3;
-
-    console.log('Stake for assessment');
-    // stake
-    const amount = parseEther('500');
-    for (const abMember of this.abMembers.slice(0, voterCount)) {
-      const memberAddress = await abMember.getAddress();
-      const { amount: stakeAmountBefore } = await this.assessment.stakeOf(memberAddress);
-      console.log(stakeAmountBefore);
-      await this.assessment.connect(abMember).stake(amount);
-      const { amount: stakeAmountAfter } = await this.assessment.stakeOf(memberAddress);
-      expect(stakeAmountAfter).to.be.equal(stakeAmountBefore.add(amount));
-    }
-
-    let poll;
-    // vote
-    for (const abMember of this.abMembers.slice(0, voterCount)) {
-      await this.assessment.connect(abMember).castVotes([assessmentId], [true], [''], 0);
-
-      const { poll: pollResult } = await this.assessment.assessments(assessmentId);
-      poll = pollResult;
-    }
-
-    const { payoutCooldownInDays } = await this.assessment.config();
-
-    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
-
-    await setTime(futureTime);
+    await castAssessmentVote.call(this);
 
     const coverIdV2 = custodyCoverId;
     const claimId = (await this.individualClaims.getClaimsCount()).toNumber() - 1;

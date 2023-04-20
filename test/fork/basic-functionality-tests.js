@@ -38,7 +38,7 @@ const {
 let ybDAI, ybETH;
 
 let ybDaiProductId, ybDaiCoverId, ybDaiIncidentId;
-let ybEthProductId, ybEthCoverId, ybEthIncidentId;
+let ybEthProductId;
 let custodyProductId, custodyCoverId;
 let protocolProductId, protocolCoverId;
 let assessmentId, requestedClaimAmount, claimDeposit;
@@ -426,11 +426,9 @@ describe('basic functionality tests', function () {
     );
 
     const coverCountAfter = await this.cover.coverDataCount();
-    ybEthCoverId = coverCountAfter;
 
     expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
   });
-
 
   it('Add proposal category 45 (Submit Incident for Yield Token)', async function () {
     await submitGovernanceProposal(
@@ -463,7 +461,7 @@ describe('basic functionality tests', function () {
     ybDaiIncidentId = (await this.yieldTokenIncidents.getIncidentsCount()).toNumber();
 
     console.log({
-      ybDaiIncidentId
+      ybDaiIncidentId,
     });
 
     const assessmentCountBefore = await this.assessment.getAssessmentsCount();
@@ -510,24 +508,7 @@ describe('basic functionality tests', function () {
     await setTime(futureTime);
   });
 
-  it('Create Yield Token Incident for ybETH cover', async function () {
-    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-
-    ybEthIncidentId = (await this.yieldTokenIncidents.getIncidentsCount()).toNumber();
-
-    await submitGovernanceProposal(
-      PROPOSAL_CATEGORIES.submitYieldTokenIncident,
-      defaultAbiCoder.encode(
-        ['uint24', 'uint96', 'uint32', 'uint', 'string'],
-        [ybEthProductId, parseEther('1.1'), currentTime, parseEther('20000'), 'hashedMetadata'],
-      ),
-      this.abMembers,
-      this.governance,
-    );
-  });
-
   it('redeem ybDAI cover', async function () {
-
     const member = DAI_NXM_HOLDER;
     const coverBuyer = await getSigner(member);
 
@@ -555,7 +536,6 @@ describe('basic functionality tests', function () {
     const payoutAmount = claimedAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals);
     const expectedBalanceAfter = daiBalanceBefore.add(payoutAmount);
 
-
     const gainedAmount = daiBalanceAfter.sub(daiBalanceBefore);
 
     console.log({
@@ -564,7 +544,7 @@ describe('basic functionality tests', function () {
       expectedBalanceAfter: expectedBalanceAfter.toString(),
       daiBalanceBefore: daiBalanceBefore.toString(),
       payoutAmount: payoutAmount.toString(),
-      gainedAmount: gainedAmount.toString()
+      gainedAmount: gainedAmount.toString(),
     });
 
     expect(daiBalanceAfter).to.be.equal(expectedBalanceAfter);

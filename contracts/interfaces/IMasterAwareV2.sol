@@ -29,4 +29,5 @@ interface IMasterAwareV2 {
 
   function changeDependentContractAddress() external;
 
+  function internalContracts(uint) external view returns (address payable);
 }

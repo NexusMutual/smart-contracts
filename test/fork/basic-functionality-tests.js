@@ -25,6 +25,7 @@ const { BigNumber } = require('ethers');
 const { proposalCategories } = require('../utils');
 const { daysToSeconds } = require('../../lib/helpers');
 const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
+const { InternalContractsIDs } = require('../utils').constants;
 
 const { DAI_ADDRESS, STETH_ADDRESS } = Address;
 const { NXM_WHALE_1, NXM_WHALE_2, DAI_NXM_HOLDER, NXMHOLDER, DAI_HOLDER } = UserAddress;
@@ -102,6 +103,51 @@ describe('basic functionality tests', function () {
 
     await evm.impersonate(DAI_HOLDER);
     this.daiHolder = await getSigner(DAI_HOLDER);
+  });
+
+  it('Verify dependencies for each contract', async function () {
+    // IMPORTANT: This mapping needs to be updated if we add new dependencies to the contracts.
+    const dependenciesToVerify = {
+      AS: ['TC', 'MR'],
+      CI: ['TC', 'MR', 'P1', 'CO', 'AS'],
+      CG: ['TC', 'MR', 'P1', 'CO', 'AS'],
+      MC: ['P1', 'MR', 'CO'],
+      P1: ['TC', 'MC', 'MR'],
+      CO: ['P1', 'TC', 'MR', 'SP'],
+      CL: ['CO', 'TC', 'CI'],
+      MR: ['TC', 'P1', 'CO'], // add the following after MR upgrade: ['PS', 'AS'],
+      GW: ['MR', 'CL', 'TK'],
+      PS: ['TC', 'MR', 'TK'],
+      SP: [], // none
+      TC: ['PS', 'AS', 'CO', 'GV', 'P1'],
+    };
+
+    const latestAddresses = {};
+    const master = this.master;
+    const nxmAddress = this.nxm.address;
+    async function getLatestAddress(contractCode) {
+      if (contractCode === 'TK') {
+        return nxmAddress;
+      }
+      if (!latestAddresses[contractCode]) {
+        latestAddresses[contractCode] = await master.getLatestAddress(toUtf8Bytes(contractCode));
+      }
+      return latestAddresses[contractCode];
+    }
+
+    for (const contractCode of Object.keys(dependenciesToVerify)) {
+      const dependencies = dependenciesToVerify[contractCode];
+
+      const masterAwareV2 = await ethers.getContractAt('IMasterAwareV2', await getLatestAddress(contractCode));
+
+      for (const dependency of dependencies) {
+        const dependencyAddress = await getLatestAddress(dependency);
+
+        const contractId = InternalContractsIDs[dependency];
+        const storedDependencyAddress = await masterAwareV2.internalContracts(contractId);
+        expect(storedDependencyAddress).to.be.equal(dependencyAddress);
+      }
+    }
   });
 
   it('Stake for assessment', async function () {
@@ -491,10 +537,6 @@ describe('basic functionality tests', function () {
 
     ybDaiIncidentId = (await this.yieldTokenIncidents.getIncidentsCount()).toNumber();
 
-    console.log({
-      ybDaiIncidentId,
-    });
-
     const assessmentCountBefore = await this.assessment.getAssessmentsCount();
     assessmentId = assessmentCountBefore.toString();
 
@@ -538,17 +580,6 @@ describe('basic functionality tests', function () {
 
     const payoutAmount = claimedAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals);
     const expectedBalanceAfter = daiBalanceBefore.add(payoutAmount);
-
-    const gainedAmount = daiBalanceAfter.sub(daiBalanceBefore);
-
-    console.log({
-      ratio: ratio.toString(),
-      claimedAmount: claimedAmount.toString(),
-      expectedBalanceAfter: expectedBalanceAfter.toString(),
-      daiBalanceBefore: daiBalanceBefore.toString(),
-      payoutAmount: payoutAmount.toString(),
-      gainedAmount: gainedAmount.toString(),
-    });
 
     expect(daiBalanceAfter).to.be.equal(expectedBalanceAfter);
   });

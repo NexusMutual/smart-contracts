@@ -35,11 +35,18 @@ const {
   ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
 } = PriceFeedOracle;
 
-let ybDAI, ybETH, ybEthProductId, ybDaiProductId; // ybDaiCoverId, ybEthCoverId;
+let ybDAI, ybETH;
+
+let ybDaiProductId, ybDaiCoverId, ybDaiIncidentId;
+let ybEthProductId, ybEthCoverId, ybEthIncidentId;
 let custodyProductId, custodyCoverId;
 let protocolProductId, protocolCoverId;
 let assessmentId, requestedClaimAmount, claimDeposit;
 let poolId, trancheId, tokenId;
+
+const NEW_POOL_MANAGER = NXM_WHALE_1;
+
+const INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR = '10000';
 
 async function compareProxyImplementationAddress(proxyAddress, addressToCompare) {
   const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
@@ -63,15 +70,19 @@ describe('basic functionality tests', function () {
     await evm.impersonate(NXM_WHALE_1);
     await evm.impersonate(NXM_WHALE_2);
     await evm.impersonate(NXMHOLDER);
+    await evm.impersonate(NEW_POOL_MANAGER);
     await evm.setBalance(NXM_WHALE_1, parseEther('1000'));
     await evm.setBalance(NXM_WHALE_2, parseEther('1000'));
     await evm.setBalance(NXMHOLDER, parseEther('1000'));
+    await evm.setBalance(NEW_POOL_MANAGER, parseEther('1000'));
     await evm.setBalance(DAI_HOLDER, parseEther('1000'));
 
     this.members = [];
     this.members.push(await getSigner(NXM_WHALE_1));
     this.members.push(await getSigner(NXM_WHALE_2));
     this.members.push(await getSigner(NXMHOLDER));
+
+    this.manager = await getSigner(NEW_POOL_MANAGER);
 
     await evm.impersonate(DAI_HOLDER);
     this.daiHolder = await getSigner(DAI_HOLDER);
@@ -275,7 +286,7 @@ describe('basic functionality tests', function () {
   });
 
   it('Create StakingPool', async function () {
-    const [manager] = this.abMembers;
+    const manager = this.manager;
     const products = [
       {
         productId: ybDaiProductId, // ybDAI
@@ -315,7 +326,7 @@ describe('basic functionality tests', function () {
   });
 
   it('Deposit to StakingPool', async function () {
-    const [manager] = this.abMembers;
+    const manager = this.manager;
     const managerAddress = await manager.getAddress();
     const managerBalanceBefore = await this.nxm.balanceOf(managerAddress);
     const totalSupplyBefore = await this.stakingNFT.totalSupply();
@@ -334,13 +345,13 @@ describe('basic functionality tests', function () {
   });
 
   it('Extend existing deposit in StakingPool', async function () {
-    const [manager] = this.abMembers;
+    const manager = this.manager;
     const managerAddress = await manager.getAddress();
     const amount = parseEther('5000');
     const managerBalanceBefore = await this.nxm.balanceOf(managerAddress);
     const tokenControllerBalanceBefore = await this.nxm.balanceOf(this.tokenController.address);
 
-    await this.stakingPool.connect(manager).extendDeposit(tokenId, trancheId, trancheId + 7, amount);
+    await this.stakingPool.connect(manager).extendDeposit(tokenId, trancheId + 1, trancheId + 7, amount);
 
     const tokenControllerBalanceAfter = await this.nxm.balanceOf(this.tokenController.address);
     const managerBalanceAfter = await this.nxm.balanceOf(managerAddress);
@@ -382,7 +393,7 @@ describe('basic functionality tests', function () {
     );
 
     const coverCountAfter = await this.cover.coverDataCount();
-    // ybDaiCoverId = coverCountAfter;
+    ybDaiCoverId = coverCountAfter;
 
     expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
   });
@@ -418,9 +429,148 @@ describe('basic functionality tests', function () {
     );
 
     const coverCountAfter = await this.cover.coverDataCount();
-    // ybEthCoverId = coverCountAfter;
+    ybEthCoverId = coverCountAfter;
 
     expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
+  });
+
+
+  it('Add proposal category 45 (Submit Incident for Yield Token)', async function () {
+    await submitGovernanceProposal(
+      // addCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
+      PROPOSAL_CATEGORIES.addCategory,
+      defaultAbiCoder.encode(
+        [
+          'string',
+          'uint256',
+          'uint256',
+          'uint256',
+          'uint256[]',
+          'uint256',
+          'string',
+          'address',
+          'bytes2',
+          'uint256[]',
+          'string',
+        ],
+        proposalCategories[PROPOSAL_CATEGORIES.submitYieldTokenIncident],
+      ),
+      this.abMembers,
+      this.governance,
+    );
+  });
+
+  it('Create Yield Token Incident for ybDAI cover', async function () {
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+
+    ybDaiIncidentId = (await this.yieldTokenIncidents.getIncidentsCount()).toNumber();
+
+    console.log({
+      ybDaiIncidentId
+    });
+
+    const assessmentCountBefore = await this.assessment.getAssessmentsCount();
+    assessmentId = assessmentCountBefore.toString();
+
+    await submitGovernanceProposal(
+      PROPOSAL_CATEGORIES.submitYieldTokenIncident,
+      defaultAbiCoder.encode(
+        ['uint24', 'uint96', 'uint32', 'uint', 'string'],
+        [ybDaiProductId, parseEther('1.1'), currentTime, parseEther('20000'), 'hashedMetadata'],
+      ),
+      this.abMembers,
+      this.governance,
+    );
+
+    const voterCount = 3;
+
+    console.log('Stake for assessment');
+    // stake
+    const amount = parseEther('500');
+    for (const abMember of this.abMembers.slice(0, voterCount)) {
+      const memberAddress = await abMember.getAddress();
+      const { amount: stakeAmountBefore } = await this.assessment.stakeOf(memberAddress);
+      console.log(stakeAmountBefore);
+      await this.assessment.connect(abMember).stake(amount);
+      console.log(`${memberAddress} staked succesfully`);
+      const { amount: stakeAmountAfter } = await this.assessment.stakeOf(memberAddress);
+      expect(stakeAmountAfter).to.be.equal(stakeAmountBefore.add(amount));
+    }
+
+    let poll;
+    // vote
+    for (const abMember of this.abMembers.slice(0, voterCount)) {
+      await this.assessment.connect(abMember).castVotes([assessmentId], [true], [''], 0);
+
+      const { poll: pollResult } = await this.assessment.assessments(assessmentId);
+      poll = pollResult;
+    }
+
+    const { payoutCooldownInDays } = await this.assessment.config();
+
+    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
+
+    await setTime(futureTime);
+  });
+
+  it('Create Yield Token Incident for ybETH cover', async function () {
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+
+    ybEthIncidentId = (await this.yieldTokenIncidents.getIncidentsCount()).toNumber();
+
+    await submitGovernanceProposal(
+      PROPOSAL_CATEGORIES.submitYieldTokenIncident,
+      defaultAbiCoder.encode(
+        ['uint24', 'uint96', 'uint32', 'uint', 'string'],
+        [ybEthProductId, parseEther('1.1'), currentTime, parseEther('20000'), 'hashedMetadata'],
+      ),
+      this.abMembers,
+      this.governance,
+    );
+  });
+
+  it('redeem ybDAI cover', async function () {
+
+    const member = DAI_NXM_HOLDER;
+    const coverBuyer = await getSigner(member);
+
+    const claimedAmount = parseEther('1');
+
+    await ybDAI.mint(member, parseEther('10000000'));
+
+    await ybDAI.connect(coverBuyer).approve(this.yieldTokenIncidents.address, parseEther('10000000'));
+
+    const daiBalanceBefore = await this.dai.balanceOf(member);
+    await this.yieldTokenIncidents
+      .connect(coverBuyer)
+      .redeemPayout(ybDaiIncidentId, ybDaiCoverId, 0, claimedAmount, member, []);
+
+    const daiBalanceAfter = await this.dai.balanceOf(member);
+
+    const priceBefore = parseEther('1.1');
+    const coverAssetDecimals = ethers.BigNumber.from('10').pow(18);
+
+    const { payoutDeductibleRatio } = await this.yieldTokenIncidents.config();
+    const INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR = '10000';
+
+    const ratio = priceBefore.mul(payoutDeductibleRatio);
+
+    const payoutAmount = claimedAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals);
+    const expectedBalanceAfter = daiBalanceBefore.add(payoutAmount);
+
+
+    const gainedAmount = daiBalanceAfter.sub(daiBalanceBefore);
+
+    console.log({
+      ratio: ratio.toString(),
+      claimedAmount: claimedAmount.toString(),
+      expectedBalanceAfter: expectedBalanceAfter.toString(),
+      daiBalanceBefore: daiBalanceBefore.toString(),
+      payoutAmount: payoutAmount.toString(),
+      gainedAmount: gainedAmount.toString()
+    });
+
+    expect(daiBalanceAfter).to.be.equal(expectedBalanceAfter);
   });
 
   it('Buy custody cover', async function () {
@@ -457,59 +607,6 @@ describe('basic functionality tests', function () {
     custodyCoverId = coverCountAfter;
 
     expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
-  });
-
-  it('Add proposal category 45 (Submit Incident for Yield Token)', async function () {
-    await submitGovernanceProposal(
-      // addCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
-      PROPOSAL_CATEGORIES.addCategory,
-      defaultAbiCoder.encode(
-        [
-          'string',
-          'uint256',
-          'uint256',
-          'uint256',
-          'uint256[]',
-          'uint256',
-          'string',
-          'address',
-          'bytes2',
-          'uint256[]',
-          'string',
-        ],
-        proposalCategories[PROPOSAL_CATEGORIES.submitYieldTokenIncident],
-      ),
-      this.abMembers,
-      this.governance,
-    );
-  });
-
-  it('Create Yield Token Incident for ybDAI cover', async function () {
-    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-
-    await submitGovernanceProposal(
-      PROPOSAL_CATEGORIES.submitYieldTokenIncident,
-      defaultAbiCoder.encode(
-        ['uint24', 'uint96', 'uint32', 'uint', 'string'],
-        [ybDaiProductId, parseEther('1.1'), currentTime, parseEther('20000'), 'hashedMetadata'],
-      ),
-      this.abMembers,
-      this.governance,
-    );
-  });
-
-  it('Create Yield Token Incident for ybETH cover', async function () {
-    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-
-    await submitGovernanceProposal(
-      PROPOSAL_CATEGORIES.submitYieldTokenIncident,
-      defaultAbiCoder.encode(
-        ['uint24', 'uint96', 'uint32', 'uint', 'string'],
-        [ybEthProductId, parseEther('1.1'), currentTime, parseEther('20000'), 'hashedMetadata'],
-      ),
-      this.abMembers,
-      this.governance,
-    );
   });
 
   it('Submit claim for ETH custody cover', async function () {
@@ -681,7 +778,6 @@ describe('basic functionality tests', function () {
       const { amount: stakeAmountBefore } = await this.assessment.stakeOf(memberAddress);
       console.log(stakeAmountBefore);
       await this.assessment.connect(abMember).stake(amount);
-      console.log(`${memberAddress} staked succesfully`);
       const { amount: stakeAmountAfter } = await this.assessment.stakeOf(memberAddress);
       expect(stakeAmountAfter).to.be.equal(stakeAmountBefore.add(amount));
     }

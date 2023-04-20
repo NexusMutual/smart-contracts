@@ -94,9 +94,9 @@ describe('Run Basic Functionality Tests', function () {
     this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', V2Addresses.StakingPoolFactory);
     this.stakingNFT = await ethers.getContractAt('StakingNFT', V2Addresses.StakingNFT);
     this.coverNFT = await ethers.getContractAt('CoverNFT', V2Addresses.CoverNFT);
-    this.pooledStaking = await ethers.getContractAt('CoverNFT', await this.master.getLatestAddress(toUtf8Bytes('PS')));
+    this.pooledStaking = await ethers.getContractAt('LegacyPooledStaking', await this.master.getLatestAddress(toUtf8Bytes('PS')));
     this.yieldTokenIncidents = await ethers.getContractAt(
-      'CoverNFT',
+      'YieldTokenIncidents',
       await this.master.getLatestAddress(toUtf8Bytes('CG')),
     );
 

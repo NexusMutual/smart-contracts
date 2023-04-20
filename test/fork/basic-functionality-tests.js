@@ -45,9 +45,6 @@ let assessmentId, requestedClaimAmount, claimDeposit;
 let poolId, trancheId, tokenId;
 
 const NEW_POOL_MANAGER = NXM_WHALE_1;
-
-const INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR = '10000';
-
 async function compareProxyImplementationAddress(proxyAddress, addressToCompare) {
   const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
   const implementationAddress = await proxy.implementation();
@@ -66,7 +63,7 @@ describe('basic functionality tests', function () {
     trancheId = await calculateCurrentTrancheId();
   });
 
-  it('Impersonate members', async function () {
+  it('Impersonate addresses', async function () {
     await evm.impersonate(NXM_WHALE_1);
     await evm.impersonate(NXM_WHALE_2);
     await evm.impersonate(NXMHOLDER);

@@ -5,32 +5,12 @@ const evm = require('./evm')();
 const { parseEther, toUtf8Bytes } = ethers.utils;
 
 const V2Addresses = {
-  SwapOperator: '0xcafea536d7f79F31Fa49bC40349f6a5F7E19D842',
-  PriceFeedOracle: '0xcafeaf0a0672360941b7f0b6d015797292e842c6',
-  Pool: '0xcafea112Db32436c2390F5EC988f3aDB96870627',
-  NXMaster: '0xcafea0047591B979c714A63283B8f902554deB66',
   ProductsV1: '0xcafeab02966FdC69Ce5aFDD532DD51466892E32B',
-  CoverNFTDescriptor: '0xcafead1E31Ac8e4924Fc867c2C54FAB037458cb9',
   CoverNFT: '0xcafeaCa76be547F14D0220482667B42D8E7Bc3eb',
   StakingPoolFactory: '0xcafeafb97BF8831D95C0FC659b8eB3946B101CB3',
-  StakingNFTDescriptor: '0xcafea534e156a41b3e77f29Bf93C653004f1455C',
   StakingNFT: '0xcafea508a477D94c502c253A58239fb8F948e97f',
   StakingPool: '0xcafeacf62FB96fa1243618c4727Edf7E04D1D4Ca',
-  CoverImpl: '0xcafeaCbabeEd884AE94046d87C8aAB120958B8a6',
-  StakingProductsImpl: '0xcafea524e89514e131eE9F8462536793d49d8738',
-  IndividualClaimsImpl: '0xcafeaC308bC9B49d6686897270735b4Dc11Fa1Cf',
-  YieldTokenIncidentsImpl: '0xcafea7F77b63E995aE864dA9F36c8012666F8Fa4',
-  AssessmentImpl: '0xcafea40dE114C67925BeB6e8f0F0e2ee4a25Dd88',
-  LegacyClaimsReward: '0xcafeaDcAcAA2CD81b3c54833D6896596d218BFaB',
-  TokenController: '0xcafea53357c11b3967A8C7167Fb4973C75063DbB',
-  MCR: '0xcafea444db21dc06f34570185cF0014701c7D62e',
-  MemberRoles: '0xcafea22Faff6aEc1d1bfc146b2e2EABC73Fa7Acc',
-  LegacyPooledStaking: '0xcafea16366682a6c0083c38b2a731BC223c53D27',
-  CoverMigrator: '0xcafeac41b010299A9bec5308CCe6aFC2c4DF8D39',
-  LegacyGateway: '0xcafeaD694A05815f03F19c357200c6D95968e205',
-  Governance: '0xcafeafA258Be9aCb7C0De989be21A8e9583FBA65',
   CoverViewer: '0xcafea84e199C85E44F34CD75374188D33FB94B4b',
-  StakingViewer: '0xcafea2B7904eE0089206ab7084bCaFB8D476BD04',
 };
 
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
@@ -89,8 +69,8 @@ describe('Run Basic Functionality Tests', function () {
     this.memberRoles = await ethers.getContractAt('MemberRoles', await this.master.getLatestAddress(toUtf8Bytes('MR')));
     this.governance = await ethers.getContractAt('Governance', await this.master.getLatestAddress(toUtf8Bytes('GV')));
     this.nxm = await ethers.getContractAt('NXMToken', NXM_TOKEN_ADDRESS);
-    this.pool = await ethers.getContractAt('Pool', V2Addresses.Pool);
-    this.mcr = await ethers.getContractAt('MCR', V2Addresses.MCR);
+    this.pool = await ethers.getContractAt('Pool', await this.master.getLatestAddress(toUtf8Bytes('P1')));
+    this.mcr = await ethers.getContractAt('MCR', await this.master.getLatestAddress(toUtf8Bytes('MC')));
     this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', V2Addresses.StakingPoolFactory);
     this.stakingNFT = await ethers.getContractAt('StakingNFT', V2Addresses.StakingNFT);
     this.coverNFT = await ethers.getContractAt('CoverNFT', V2Addresses.CoverNFT);

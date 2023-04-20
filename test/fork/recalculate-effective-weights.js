@@ -5,7 +5,7 @@ const { setEtherBalance } = require('../utils/evm');
 const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 const { BigNumber } = ethers;
 const { daysToSeconds } = require('../../lib/helpers');
-const { V2Addresses, UserAddress, submitGovernanceProposal, getConfig, getProductsInPool } = require('./utils');
+const { V2Addresses, UserAddress, submitGovernanceProposal, getProductsInPool } = require('./utils');
 const {
   calculateBasePrice,
   calculateBasePremium,
@@ -57,18 +57,16 @@ describe('recalculateEffectiveWeight', function () {
     this.stakingPool = stakingPool2;
     this.cover = cover;
     this.stakingProducts = stakingProducts;
-
-    this.config = await getConfig.call(this);
   });
 
   it('should recalculate effective weight for all products in all pools', async function () {
-    const { stakingPoolFactory, stakingProducts, config } = this;
+    const { stakingPoolFactory, stakingProducts } = this;
 
     const poolCount = await stakingPoolFactory.stakingPoolCount();
 
     for (let i = 0; i <= poolCount; i++) {
       await stakingProducts.recalculateEffectiveWeightsForAllProducts(i);
-      await verifyPoolWeights(stakingProducts, i, config);
+      await verifyPoolWeights(stakingProducts, i);
     }
   });
 

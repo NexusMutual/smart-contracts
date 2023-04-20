@@ -1,95 +1,56 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-const { setEtherBalance } = require('../utils/evm');
 const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
-const { V2Addresses, UserAddress, submitGovernanceProposal, getConfig } = require('./utils');
+const { V2Addresses, submitGovernanceProposal, getSigner } = require('./utils');
 const evm = require('./evm')();
 const { verifyPoolWeights } = require('./staking-pool-utils');
-const NXM_TOKEN_ADDRESS = '0xd7c49CEE7E9188cCa6AD8FF264C1DA2e69D4Cf3B';
 
 describe('recalculateEffectiveWeightsForAllProducts', function () {
   before(async function () {
     // Initialize evm helper
     await evm.connect(ethers.provider);
-    const hugh = await ethers.getImpersonatedSigner(UserAddress.HUGH);
-    await setEtherBalance(hugh.address, parseEther('1000'));
 
-    this.hugh = hugh;
-
-    // Upgrade StakingProducts and Cover
-    const codes = ['SP', 'CO'].map(code => toUtf8Bytes(code));
-    this.master = await ethers.getContractAt('NXMaster', V2Addresses.NXMaster);
     const governance = await ethers.getContractAt('Governance', V2Addresses.Governance);
     this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', V2Addresses.StakingPoolFactory);
-    this.stakingProducts = await ethers.getContractAt(
-      'StakingProducts',
-      await this.master.getLatestAddress(toUtf8Bytes('SP')),
-    );
-    this.cover = await ethers.getContractAt('Cover', await this.master.getLatestAddress(toUtf8Bytes('CO')));
-    this.tokenController = await ethers.getContractAt(
-      'TokenController',
-      await this.master.getLatestAddress(toUtf8Bytes('TC')),
-    );
-    this.nxmToken = await ethers.getContractAt('NXMToken', NXM_TOKEN_ADDRESS);
+    this.stakingProducts = await ethers.getContractAt('StakingProducts', V2Addresses.StakingProducts);
 
+    // Upgrade StakingProducts
     const stakingProductsImpl = await ethers.deployContract('StakingProducts', [
-      this.cover.address,
-      this.stakingPoolFactory.address,
+      V2Addresses.Cover,
+      V2Addresses.StakingPoolFactory,
     ]);
 
-    const newStakingPoolImpl = await ethers.deployContract('StakingPool', [
-      V2Addresses.StakingNFT,
-      this.nxmToken.address,
-      this.cover.address,
-      this.tokenController.address,
-      this.master.address,
-      this.stakingProducts.address,
-    ]);
-
-    const coverImpl = await ethers.deployContract('Cover', [
-      V2Addresses.CoverNFT,
-      V2Addresses.StakingNFT,
-      this.stakingPoolFactory.address,
-      newStakingPoolImpl.address,
-    ]);
-
-    const stakingPool2 = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(2));
-
-    const addresses = [stakingProductsImpl, coverImpl].map(c => c.address);
     const memberRoles = await ethers.getContractAt('MemberRoles', V2Addresses.MemberRoles);
     const { memberArray: abMembersAddresses } = await memberRoles.members(1);
-
     const abMembers = [];
+
     for (const address of abMembersAddresses) {
-      const abSigner = await ethers.getImpersonatedSigner(address);
-      await setEtherBalance(address, parseEther('1000'));
+      await evm.impersonate(address);
+      await evm.setBalance(address, parseEther('1000'));
+      const abSigner = await getSigner(address);
       abMembers.push(abSigner);
     }
 
     console.log('Upgrading contracts');
+    const codes = [toUtf8Bytes('SP')];
+    const addresses = [stakingProductsImpl.address];
+
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
       defaultAbiCoder.encode(['bytes2[]', 'address[]'], [codes, addresses]),
       abMembers,
       governance,
     );
-
-    console.log('finished contract upgrade');
-
-    this.stakingPool = stakingPool2;
-
-    this.config = await getConfig.call(this);
   });
 
   it('should recalculate effective weight for all products in all pools', async function () {
-    const { stakingPoolFactory, stakingProducts, config } = this;
-
+    const { stakingPoolFactory, stakingProducts } = this;
     const poolCount = await stakingPoolFactory.stakingPoolCount();
 
     for (let i = 1; i <= poolCount; i++) {
       await stakingProducts.recalculateEffectiveWeightsForAllProducts(i);
-      await verifyPoolWeights(stakingProducts, i, config);
+      await verifyPoolWeights(stakingProducts, i);
     }
 
     // assert values known to be wrong in production
@@ -104,7 +65,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
 
       console.log({
         HUGH_POOL_ID,
-        targetWeight,
+        targetWeight: targetWeight.toString(),
       });
     }
 
@@ -119,7 +80,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
 
       console.log({
         FOUNDATION_POOL_ID,
-        targetWeight,
+        targetWeight: targetWeight.toString(),
       });
     }
   });

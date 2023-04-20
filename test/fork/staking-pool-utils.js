@@ -4,17 +4,16 @@ const { V2Addresses } = require('./utils');
 const { expect } = require('chai');
 const { BigNumber } = ethers;
 
-async function verifyPoolWeights(stakingProducts, poolId, config) {
+async function verifyPoolWeights(stakingProducts, poolId) {
   const cover = await ethers.getContractAt('Cover', V2Addresses.Cover);
   const numProducts = await cover.productsCount();
+  const GLOBAL_CAPACITY_RATIO = await cover.globalCapacityRatio();
   const stakedProducts = [];
 
   // get products from staking pool and discard if not initialized
   for (let i = 0; i < numProducts; i++) {
-    const { lastEffectiveWeight, targetWeight, bumpedPrice, bumpedPriceUpdateTime } = await stakingProducts.getProduct(
-      poolId,
-      i,
-    );
+    const product = await stakingProducts.getProduct(poolId, i);
+    const { lastEffectiveWeight, targetWeight, bumpedPrice, bumpedPriceUpdateTime } = product;
 
     // bumpedPrice and bumpedPriceUpdateTime should be greater than 0 if initialized
     if (BigNumber.from(bumpedPrice).isZero()) {
@@ -41,7 +40,7 @@ async function verifyPoolWeights(stakingProducts, poolId, config) {
       poolId,
       product.productId,
       product.targetWeight,
-      config.GLOBAL_CAPACITY_RATIO /* globalCapacityRatio */,
+      GLOBAL_CAPACITY_RATIO /* globalCapacityRatio */,
       capacityReductionRatio,
     );
     expect(lastEffectiveWeight).to.equal(effectiveWeightCalculated);

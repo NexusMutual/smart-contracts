@@ -139,9 +139,7 @@ describe('createStakingPool', function () {
         [nonExistingProduct], // products
         '', // ipfsDescriptionHash
       ),
-    )
-      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
-      .withArgs(nonExistingProduct.productId);
+    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExist');
   });
 
   it("should fail to create a pool with a product that doesn't exist, called by pooledStaking", async function () {
@@ -161,9 +159,7 @@ describe('createStakingPool', function () {
         [nonExistingProduct], // products
         '', // ipfsDescriptionHash
       ),
-    )
-      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
-      .withArgs(nonExistingProduct.productId);
+    ).to.be.revertedWith('Caller is not a member');
   });
 
   it("should fail to create a pool with a product that isn't allowed for this pool", async function () {
@@ -238,15 +234,19 @@ describe('createStakingPool', function () {
       '', // ipfsDescriptionHash
     );
 
-    // next pool is allowed to have second product
+    // next pool is allowed to have second product but should fail because it must be allowed after the creation
     expect(newPoolId.add(1)).to.be.equal(7);
     expect(await cover.isPoolAllowed(DEFAULT_PRODUCTS[1].productId, newPoolId.add(1))).to.be.equal(true);
-    await cover.connect(manager).createStakingPool(
-      false, // isPrivatePool,
-      DEFAULT_POOL_FEE, // initialPoolFee
-      DEFAULT_POOL_FEE, // maxPoolFee,
-      DEFAULT_PRODUCTS, // products
-      '', // ipfsDescriptionHash
-    );
+    await expect(
+      cover.connect(manager).createStakingPool(
+        false, // isPrivatePool,
+        DEFAULT_POOL_FEE, // initialPoolFee
+        DEFAULT_POOL_FEE, // maxPoolFee,
+        DEFAULT_PRODUCTS, // products
+        '', // ipfsDescriptionHash
+      ),
+    )
+      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
+      .withArgs(nonExistingProduct.productId);
   });
 });

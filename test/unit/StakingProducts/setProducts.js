@@ -395,14 +395,13 @@ describe('setProducts unit tests', function () {
   });
 
   it('should fail to add non-existing product', async function () {
-    const { stakingProducts } = this;
+    const { stakingProducts, cover } = this;
     const [manager] = this.accounts.members;
 
-    const product = { ...newProductTemplate, productId: 1000 };
-    await expect(stakingProducts.connect(manager).setProducts(poolId, [product])).to.be.revertedWithCustomError(
-      stakingProducts,
-      'PoolNotAllowedForThisProduct',
-    );
+    const product = { ...newProductTemplate, productId: 999000 };
+    await expect(stakingProducts.connect(manager).setProducts(poolId, [product]))
+      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
+      .withArgs(product.productId);
   });
 
   it('should fail to change product weights when fully allocated', async function () {

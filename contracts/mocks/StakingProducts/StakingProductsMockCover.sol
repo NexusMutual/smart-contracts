@@ -27,6 +27,8 @@ contract StakingProductsMockCover {
   IStakingPoolFactory public stakingPoolFactory;
   address public stakingPoolImplementation;
 
+  error ProductDeprecatedOrNotInitialized();
+
   constructor(
     ICoverNFT _coverNFT,
     IStakingNFT _stakingNFT,
@@ -212,5 +214,13 @@ contract StakingProductsMockCover {
       _capacityReductionRatios[i] = uint(product.capacityReductionRatio);
     }
   }
-  error ProductDeprecatedOrNotInitialized();
+
+  function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external view {
+    for (uint i = 0; i < productIds.length; i++) {
+      uint productId = productIds[i];
+      if (!allowedPools[productId][poolId]) {
+        revert ICover.PoolNotAllowedForThisProduct(productId);
+      }
+    }
+  }
 }

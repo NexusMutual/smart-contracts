@@ -208,6 +208,7 @@ interface ICover {
   ) external returns (uint poolId, address stakingPoolAddress);
 
   function isPoolAllowed(uint productId, uint poolId) external returns (bool);
+  function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external view;
 
   /* ========== EVENTS ========== */
 
@@ -229,7 +230,6 @@ interface ICover {
   error ProductDoesntExist();
   error ProductTypeNotFound();
   error ProductDeprecated();
-  error ProductDeprecatedOrNotInitialized();
   error InvalidProductType();
   error UnexpectedProductId();
   error PoolNotAllowedForThisProduct(uint productId);

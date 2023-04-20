@@ -499,47 +499,34 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint maxPoolFee,
     ProductInitializationParams[] memory productInitParams,
     string calldata ipfsDescriptionHash
-  ) external whenNotPaused returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+  ) external whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
 
     uint numProducts = productInitParams.length;
-    uint expectedPoolId = stakingPoolFactory.stakingPoolCount() + 1;
 
-    if (msg.sender != master.getLatestAddress("PS")) {
+    // override with initial price and check if pool is allowed
+    for (uint i = 0; i < numProducts; i++) {
 
-      // TODO: replace this with onlyMember modifier after the v2 release
-      require(
-        IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(
-          msg.sender,
-          uint(IMemberRoles.Role.Member)
-        ),
-        "Caller is not a member"
-      );
-
-      // override with initial price and check if pool is allowed
-      for (uint i = 0; i < numProducts; i++) {
-
-        uint productId = productInitParams[i].productId;
-
-        // check if the pool is authorized to have this product and product isn't deprecated
-        if (!isPoolAllowed(productId, expectedPoolId)) {
-          revert PoolNotAllowedForThisProduct(productId);
-        }
-
-        productInitParams[i].initialPrice = _products[productId].initialPriceRatio;
-
-        if (productInitParams[i].targetPrice < GLOBAL_MIN_PRICE_RATIO) {
-          revert TargetPriceBelowGlobalMinPriceRatio();
-        }
+      if (productInitParams[i].targetPrice < GLOBAL_MIN_PRICE_RATIO) {
+        revert TargetPriceBelowGlobalMinPriceRatio();
       }
 
-    } else {
-      // check if the pool is allowed to have these products
-      for (uint i = 0; i < numProducts; i++) {
+      uint productId = productInitParams[i].productId;
 
-        if (!isPoolAllowed(productInitParams[i].productId, expectedPoolId)) {
-          revert PoolNotAllowedForThisProduct(productInitParams[i].productId);
-        }
+      // if product has an allow list, must be added after creation of the pool
+      if (allowedPools[productId].length > 0) {
+        revert PoolNotAllowedForThisProduct(productId);
       }
+
+      if (productId >= _products.length) {
+        revert ProductDoesntExist();
+      }
+
+      if (_products[productId].isDeprecated) {
+        revert ProductDeprecated();
+      }
+
+      productInitParams[i].initialPrice = _products[productId].initialPriceRatio;
+
     }
 
     (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(address(this));
@@ -801,10 +788,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   // Returns true if the product exists and the pool is authorized to have the product
   function isPoolAllowed(uint productId, uint poolId) public view returns (bool) {
-
-    // If product exists and is not deprecated, check if the pool is allowed
-    if (productId < _products.length && !_products[productId].isDeprecated){
-
       uint poolCount = allowedPools[productId].length;
       // If no pools are specified, nothing is blacklisted
       if (poolCount == 0) {
@@ -817,12 +800,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           return true;
         }
       }
-      // Pool is not found in the allowedPools list
+      // Product has allow list and pool is not in it
       return false;
-    }
+  }
 
-    // Product is deprecated or doesn't exist
-    return false;
+  function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external view {
+    for (uint i = 0; i < productIds.length; i++) {
+      if (!isPoolAllowed(productIds[i], poolId) ) {
+        revert PoolNotAllowedForThisProduct(productIds[i]);
+      }
+    }
   }
 
   function globalCapacityRatio() external pure returns (uint) {
@@ -833,7 +820,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return GLOBAL_REWARDS_RATIO;
   }
 
-  function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (
+  function getPriceAndCapacityRatios(uint[] calldata productIds) external view returns (
     uint _globalCapacityRatio,
     uint _globalMinPriceRatio,
     uint[] memory _initialPrices,
@@ -845,10 +832,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     _initialPrices = new uint[](productIds.length);
 
     for (uint i = 0; i < productIds.length; i++) {
-      Product memory product = _products[productIds[i]];
-      if (product.initialPriceRatio == 0) {
-        revert ProductDeprecatedOrNotInitialized();
+      uint productId = productIds[i];
+      Product memory product = _products[productId];
+
+      if (productId >= _products.length) {
+        revert ProductDoesntExist();
       }
+
       _initialPrices[i] = uint(product.initialPriceRatio);
       _capacityReductionRatios[i] = uint(product.capacityReductionRatio);
     }

@@ -33,56 +33,37 @@ const main = async (provider, coverAddress, signerAddress) => {
   const signer = provider.getSigner(signerAddress);
   const { abi } = JSON.parse(fs.readFileSync('./artifacts/contracts/modules/cover/Cover.sol/Cover.json'));
 
-  const V2OnChainProductTypeDataProductsPath = path.join(__dirname, 'input/product-type-data.csv');
-  const productTypeData = csvParse(fs.readFileSync(V2OnChainProductTypeDataProductsPath, 'utf8'), {
-    columns: true,
-    skip_empty_lines: true,
-  });
-
-  const productTypeIpfsHashes = require(path.join(__dirname, 'output/product-type-ipfs-hashes.json'));
   const cover = new ethers.Contract(coverAddress, abi, signer);
 
-  let expectedProductTypeId = 0;
-  const productTypeEntries = productTypeData.map(data => {
-    return {
-      productTypeName: data.Name,
-      productTypeId: MaxUint256, // create new product type
-      ipfsMetadata: productTypeIpfsHashes[data.Id],
-      productType: {
-        claimMethod: data['Claim Method'],
-        gracePeriod: data['Grace Period (days)'],
-      },
-      expectedProductTypeId: expectedProductTypeId++,
-    };
-  });
 
-  const setProductTypesTransaction = await cover.populateTransaction.setProductTypes(productTypeEntries);
+  const productData = [{
+    Name: "Alpaca Finance",
+    'Product Type': 'Protocol',
+    'Initial Price Ratio': 10,
+    'Capacity Reduction Ratio': 0,
+    'Use Fixed Price': false,
+    'Cover Assets': 0,
+   },
+  {
+    Name: "WeFi",
+    'Product Type': 'Protocol',
+    'Initial Price Ratio': 10,
+    'Capacity Reduction Ratio': 0,
+    'Use Fixed Price': false,
+    'Cover Assets': 0,
+  },
+  {
+    Name: "Exactly",
+    'Product Type': 'Protocol',
+    'Initial Price Ratio': 10,
+    'Capacity Reduction Ratio': 0,
+    'Use Fixed Price': false,
+    'Cover Assets': 0,
+  }
+  ];
 
-  const V2OnChainProductDataProductsPath = path.join(__dirname, 'input/product-data.csv');
-  const productData = csvParse(fs.readFileSync(V2OnChainProductDataProductsPath, 'utf8'), {
-    columns: true,
-    skip_empty_lines: true,
-  });
-
-  const productAddressesPath = path.join(__dirname, 'output/product-addresses.json');
-  const productAddresses = require(productAddressesPath);
-  const productIpfsHashesPath = path.join(__dirname, 'output/product-ipfs-hashes.json');
-  const productIpfsHashes = require(productIpfsHashesPath);
-
-  assert(
-    productAddresses.length === productData.length,
-    `productAddresses JSON has ${productAddresses.length} items while CSV has ${productData.length}`,
-  );
-
-  let expectedProductId = 0;
   const productEntries = productData.map(data => {
-    const productId = productAddresses.map(a => a.toLowerCase()).indexOf(data['Product Address'].toLowerCase());
 
-    assert(
-      expectedProductId++ === productId,
-      `Product id mismatch ${expectedProductId} ${productId} for: ${data.Name}`,
-    );
-    const ipfsMetadata = productIpfsHashes[productId.toString()];
 
     const coverAssetsAsText = data['Cover Assets'];
     const coverAssets =
@@ -93,7 +74,7 @@ const main = async (provider, coverAddress, signerAddress) => {
     const productParams = {
       productName: data.Name,
       productId: MaxUint256, // create new product - use Max Uint.
-      ipfsMetadata: ipfsMetadata || '', // IPFS metadata is optional.
+      ipfsMetadata: '', // IPFS metadata is optional.
       product: {
         productType: productTypeIds[data['Product Type']],
         yieldTokenAddress:
@@ -107,24 +88,23 @@ const main = async (provider, coverAddress, signerAddress) => {
         capacityReductionRatio: parseInt(data['Capacity Reduction Ratio']),
         useFixedPrice: data['Use Fixed Price'] === 'Yes',
       },
-      allowedPools: [],
+      allowedPools: [5],
     };
 
     return productParams;
   });
 
+  console.log(productEntries);
+
   const setProductsTransaction = await cover.populateTransaction.setProducts(productEntries);
 
   const txs = {
-    setProductTypesTransaction,
     setProductsTransaction,
-    productTypeData,
-    productData,
-    productTypeIds,
   };
 
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(txs, null, 2), 'utf8');
 
+  console.log(txs);
   return txs;
 };
 

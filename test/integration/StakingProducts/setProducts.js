@@ -30,6 +30,28 @@ const coverProductParamTemplate = {
 };
 
 describe('setProducts', function () {
+  before(async function () {
+    const { cover } = this.contracts;
+    const {
+      stakingPoolManagers: [manager],
+    } = this.accounts;
+
+    const initialPoolFee = 50; // 50%
+    const maxPoolFee = 80; // 80%
+
+    const [poolId] = await cover.callStatic.createStakingPool(true, initialPoolFee, maxPoolFee, [], '');
+
+    await cover.connect(manager).createStakingPool(
+      true, // isPrivatePool,
+      initialPoolFee,
+      maxPoolFee,
+      [],
+      '', // ipfsDescriptionHash
+    );
+
+    this.poolId = poolId;
+  });
+
   it('should be able to raise and lower weights of deprecated products', async function () {
     const { stakingProducts, cover } = this.contracts;
     const {
@@ -37,7 +59,7 @@ describe('setProducts', function () {
       stakingPoolManagers: [manager1],
     } = this.accounts;
 
-    await stakingProducts.connect(manager1).setProducts(1 /* poolId */, [
+    await stakingProducts.connect(manager1).setProducts(this.poolId /* poolId */, [
       {
         ...stakedProductParamTemplate,
       },
@@ -51,7 +73,7 @@ describe('setProducts', function () {
     await cover.connect(admin).setProducts([coverProductParams]);
 
     // raise target weight
-    await stakingProducts.connect(manager1).setProducts(1 /* poolId */, [
+    await stakingProducts.connect(manager1).setProducts(this.poolId /* poolId */, [
       {
         ...stakedProductParamTemplate,
         targetWeight: 100,
@@ -59,7 +81,7 @@ describe('setProducts', function () {
     ]);
 
     // lower target weight
-    await stakingProducts.connect(manager1).setProducts(1 /* poolId */, [
+    await stakingProducts.connect(manager1).setProducts(this.poolId /* poolId */, [
       {
         ...stakedProductParamTemplate,
         targetWeight: 1,
@@ -76,7 +98,7 @@ describe('setProducts', function () {
     const nonExistentProductId = 999999;
 
     await expect(
-      stakingProducts.connect(manager1).setProducts(1 /* poolId */, [
+      stakingProducts.connect(manager1).setProducts(this.poolId /* poolId */, [
         {
           ...stakedProductParamTemplate,
           productId: nonExistentProductId,

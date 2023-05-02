@@ -788,7 +788,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   // Returns true if the product exists and the pool is authorized to have the product
   function isPoolAllowed(uint productId, uint poolId) public view returns (bool) {
+
       uint poolCount = allowedPools[productId].length;
+
       // If no pools are specified, nothing is blacklisted
       if (poolCount == 0) {
         return true;
@@ -833,11 +835,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     for (uint i = 0; i < productIds.length; i++) {
       uint productId = productIds[i];
-      Product memory product = _products[productId];
 
       if (productId >= _products.length) {
         revert ProductDoesntExist();
       }
+
+      Product memory product = _products[productId];
 
       _initialPrices[i] = uint(product.initialPriceRatio);
       _capacityReductionRatios[i] = uint(product.capacityReductionRatio);

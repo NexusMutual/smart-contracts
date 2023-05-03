@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { setEtherBalance, increaseTime } = require('../utils').evm;
+const { setEtherBalance, increaseTime, setNextBlockTime, mineNextBlock } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 const {
   getTranches,
@@ -338,9 +338,14 @@ describe('processExpirations', function () {
 
     const { amount, tokenId, destination } = depositToFixture;
 
+    // advance to the start of the next bucket
+    const currentBucketId = BigNumber.from(await getCurrentBucket());
+    await setNextBlockTime(currentBucketId.add(1).mul(BUCKET_DURATION).toNumber());
+    await mineNextBlock();
+
     const { firstActiveTrancheId } = await getTranches();
 
-    await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
+    await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId + 1, tokenId, destination);
 
     await generateRewards(stakingPool, this.coverSigner, daysToSeconds(10), 0);
 
@@ -436,9 +441,14 @@ describe('processExpirations', function () {
 
     const { amount, tokenId, destination } = depositToFixture;
 
+    // advance to the start of the next bucket
+    const currentBucketId = BigNumber.from(await getCurrentBucket());
+    await setNextBlockTime(currentBucketId.add(1).mul(BUCKET_DURATION).toNumber());
+    await mineNextBlock();
+
     const { firstActiveTrancheId } = await getTranches();
 
-    await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
+    await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId + 1, tokenId, destination);
 
     await generateRewards(stakingPool, this.coverSigner, daysToSeconds(10), 0);
 

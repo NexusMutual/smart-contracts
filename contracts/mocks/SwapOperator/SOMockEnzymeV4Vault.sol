@@ -36,4 +36,9 @@ contract SOMockEnzymeV4Vault is IEnzymeV4Vault, ERC20Detailed, ERC20 {
   function getOwner() public view returns (address) {
     return address(0);
   }
+
+
+  function mintShares(address, uint256) external {
+    revert("Unexpected SOMockEnzymeV4Vault call");
+  }
 }

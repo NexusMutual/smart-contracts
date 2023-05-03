@@ -6,6 +6,8 @@ const evm = require('./evm')();
 const { makeContractOrder, lastBlockTimestamp } = require('../unit/SwapOperator/helpers');
 const { computeOrderUid, domain: makeDomain, SettlementEncoder, SigningScheme } = require('@cowprotocol/contracts');
 
+const ENZYMEV4_VAULT_PROXY_ADDRESS = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
+
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
 const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 const DAI_ETH_ORACLE = '0x773616e4d11a78f511299002da57a0a94577f1f4';
@@ -70,6 +72,7 @@ describe('CowSwap swaps', function () {
     this.nxmToken = await ethers.getContractAt('NXMToken', NXM_TOKEN_ADDRESS);
     this.cowswapSettlement = await ethers.getContractAt('ICowSettlement', COWSWAP_SETTLEMENT);
     this.daiEthOracle = await ethers.getContractAt('Aggregator', DAI_ETH_ORACLE);
+    this.enzymeVault = await ethers.getContractAt('IEnzymeV4Vault', ENZYMEV4_VAULT_PROXY_ADDRESS);
   });
 
   it('Impersonate addresses', async function () {
@@ -273,5 +276,80 @@ describe('CowSwap swaps', function () {
     const daiBalanceDecrease = daiBalanceBefore.sub(daiBalanceAfter);
 
     expect(daiBalanceDecrease).to.be.equal(order.sellAmount.add(order.feeAmount));
+  });
+
+  it('initializes swap,closes order without fulfilment and recover enzyme asset', async function () {
+    const { swapOperator, swapController } = this;
+
+    // 1 hour
+    await evm.increaseTime(3600);
+
+    // add DAI to the pool so that it exceeds the maxAmount
+
+    const daiSwapDetails = await this.pool.swapDetails(this.dai.address);
+
+    const currentDAIBalance = await this.dai.balanceOf(this.pool.address);
+
+    const extraDAI = parseEther('100000');
+    const daiToBeTransferred = daiSwapDetails.maxAmount.sub(currentDAIBalance).add(extraDAI);
+
+    this.dai.connect(this.stablecoinWhale).transfer(this.pool.address, daiToBeTransferred);
+
+    const daiPriceInEth = await this.daiEthOracle.latestAnswer();
+
+    const sellAmount = parseEther('100000');
+    const buyAmount = sellAmount.mul(daiPriceInEth).div(parseEther('1'));
+
+    // Build order struct, domain separator and calculate UID
+    const order = {
+      sellToken: DAI_ADDRESS,
+      buyToken: WETH_ADDRESS,
+      receiver: swapOperator.address,
+      sellAmount,
+      buyAmount,
+      validTo: (await lastBlockTimestamp()) + 650,
+      appData: hexZeroPad(0, 32),
+      feeAmount: parseEther('0.001'),
+      kind: 'sell',
+      partiallyFillable: false,
+      sellTokenBalance: 'erc20',
+      buyTokenBalance: 'erc20',
+    };
+
+    const contractOrder = makeContractOrder(order);
+
+    const { chainId } = await ethers.provider.getNetwork();
+
+    const domain = makeDomain(chainId, COWSWAP_SETTLEMENT);
+    const orderUID = computeOrderUid(domain, order, order.receiver);
+
+    await swapOperator.connect(swapController).placeOrder(contractOrder, orderUID);
+
+    // deposit assets that should be recovered.
+    const excessSharesAmountInSwapOperator = parseEther('1000');
+    const accessorAddress = await this.enzymeVault.getAccessor();
+
+    await evm.impersonate(accessorAddress);
+    await evm.setBalance(accessorAddress, parseEther('1000'));
+    const accessor = await getSigner(accessorAddress);
+
+    await this.enzymeVault.connect(accessor).mintShares(swapOperator.address, excessSharesAmountInSwapOperator);
+
+    await expect(
+      swapOperator.connect(swapController).recoverAsset(this.enzymeVault.address, this.pool.address),
+    ).to.revertedWith('SwapOp: an order is already in place');
+
+    // close order prematurely
+    await swapOperator.connect(swapController).closeOrder(contractOrder);
+
+    // recover asset
+    const sharesToken = await ethers.getContractAt('ERC20Mock', this.enzymeVault.address);
+    const sharesBalanceBefore = await sharesToken.balanceOf(this.pool.address);
+    await swapOperator.connect(swapController).recoverAsset(this.enzymeVault.address, this.pool.address);
+    const sharesBalanceAfter = await sharesToken.balanceOf(this.pool.address);
+
+    const balanceIncrease = sharesBalanceAfter.sub(sharesBalanceBefore);
+
+    expect(balanceIncrease).to.be.equal(excessSharesAmountInSwapOperator);
   });
 });

@@ -21,7 +21,6 @@ describe('recalculateEffectiveWeights', function () {
   });
 
   it('recalculates effective weights', async function () {
-
     const { stakingProducts, stakingPool1 } = this.contracts;
     const staker = this.accounts.defaultSender;
     const [manager1] = this.accounts.stakingPoolManagers;

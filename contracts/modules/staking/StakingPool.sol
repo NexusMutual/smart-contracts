@@ -1210,9 +1210,11 @@ contract StakingPool is IStakingPool, Multicall {
     // sload
     uint _activeStake = activeStake;
 
-    // If all stake is burned, leave 1 wei and close pool
-    if (amount >= _activeStake) {
-      amount = _activeStake - 1;
+    uint maxStakeAvailableToBurn = _activeStake - NXM_PER_ALLOCATION_UNIT;
+
+    // If all stake is burned, leave 1 capacity unit and close pool
+    if (amount >= maxStakeAvailableToBurn) {
+      amount = maxStakeAvailableToBurn;
       isHalted = true;
     }
 

@@ -131,23 +131,31 @@ describe('burnStake', function () {
     );
   });
 
-  it('should not block pool if 99% of the stake is burned', async function () {
+  it('should not block pool if burn leaves 1 capacity unit in the pool', async function () {
     const { stakingPool } = this;
     const {
       members: [member],
     } = this.accounts;
+    const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
-    // burn activeStake - 1
+    // burn leaves 1.1 capacity unit in the pool
     const activeStake = await stakingPool.getActiveStake();
-    await stakingPool.connect(this.coverSigner).burnStake(activeStake.sub(1), burnStakeParams);
+    await stakingPool
+      .connect(this.coverSigner)
+      .burnStake(activeStake.sub(NXM_PER_ALLOCATION_UNIT.add(1)), burnStakeParams);
+    expect(await stakingPool.isHalted()).to.be.equal(false);
 
     // deposit should work
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
     await expect(stakingPool.connect(member).depositTo(stakedNxmAmount, firstActiveTrancheId, 0, AddressZero)).to.not.be
       .reverted;
 
-    // Burn all activeStake
-    await stakingPool.connect(this.coverSigner).burnStake(stakedNxmAmount.add(1), burnStakeParams);
+    // burn and leave exactly 1 capacity unit in the pool - should halt
+    const activeStakeLatest = await stakingPool.getActiveStake();
+    await stakingPool
+      .connect(this.coverSigner)
+      .burnStake(activeStakeLatest.sub(NXM_PER_ALLOCATION_UNIT), burnStakeParams);
+    expect(await stakingPool.isHalted()).to.be.equal(true);
 
     // deposit should fail
     await expect(
@@ -203,7 +211,7 @@ describe('burnStake', function () {
     const burnAmount = initialStake.add(parseEther('1'));
 
     // leaves 1 wei to avoid division by zero
-    const actualBurnedAmount = initialStake.sub(1);
+    const actualBurnedAmount = initialStake.sub(this.config.NXM_PER_ALLOCATION_UNIT);
     await expect(stakingPool.connect(this.coverSigner).burnStake(burnAmount, burnStakeParams))
       .to.emit(stakingPool, 'StakeBurned')
       .withArgs(actualBurnedAmount);

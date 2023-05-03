@@ -512,7 +512,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       uint productId = productInitParams[i].productId;
 
-      // if product has an allow list, must be added after creation of the pool
+      // the staking pool should be added to the allow list after it is created
       if (allowedPools[productId].length > 0) {
         revert PoolNotAllowedForThisProduct(productId);
       }
@@ -791,14 +791,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       uint poolCount = allowedPools[productId].length;
 
-      // If no pools are specified, nothing is blacklisted
+      // If no pools are specified, every pool is allowed
       if (poolCount == 0) {
         return true;
       }
 
       for (uint i = 0; i < poolCount; i++) {
         if (allowedPools[productId][i] == poolId) {
-          // If allowed pools are specified, the product must already be initialized
           return true;
         }
       }

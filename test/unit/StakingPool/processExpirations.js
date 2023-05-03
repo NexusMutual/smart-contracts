@@ -330,7 +330,7 @@ describe('processExpirations', function () {
     );
   });
 
-  it.only('expires buckets updating rewards per second and lastAccNxmUpdate', async function () {
+  it('expires buckets updating rewards per second and lastAccNxmUpdate', async function () {
     const { stakingPool } = this;
     const {
       members: [user],
@@ -433,7 +433,7 @@ describe('processExpirations', function () {
     expect(firstActiveBucketIdAfter).to.equal(newCurrentBucket);
   });
 
-  it.only('updates accNxmPerRewardsShare and lastAccNxmUpdate up to date when forced by param', async function () {
+  it('updates accNxmPerRewardsShare and lastAccNxmUpdate up to date when forced by param', async function () {
     const { stakingPool } = this;
     const {
       members: [user],

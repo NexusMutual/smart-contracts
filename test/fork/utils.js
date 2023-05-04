@@ -194,7 +194,7 @@ async function enableAsEnzymeReceiver(receiverAddress) {
   assert.equal(inReceiverList, true);
 }
 
-// Returns any products that are initialized have target weight > 0
+// Returns any products that are initialized and have target weight > 0
 // These products should be able to be bought if there is capacity
 async function getActiveProductsInPool(params) {
   const { stakingProducts, cover } = this;
@@ -228,13 +228,23 @@ async function getActiveProductsInPool(params) {
   return productsInThisPool;
 }
 
-async function getConfig() {
-  let { cover, stakingPool, stakingProducts } = this;
+async function getAssetContractInstance(pool, assetId) {
+  const asset = await pool.getAsset(assetId);
+  return await ethers.getContractAt('@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20', asset.assetAddress);
+}
 
-  if (stakingPool === undefined) {
-    stakingPool = await ethers.getContractAt('StakingPool', await cover.stakingPool(1));
+async function isCoverAssetSupported(pool, assetId, coverAssets) {
+  if (coverAssets !== 0) {
+    const index = 1 << assetId;
+    if ((index & coverAssets) === 0) {
+      return false;
+    }
   }
+  const asset = await pool.getAsset(assetId);
+  return asset.isCoverAsset && !asset.isAbandoned;
+}
 
+async function getConfig(cover, stakingPool, stakingProducts) {
   const config = {
     REWARD_BONUS_PER_TRANCHE_RATIO: stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO(),
     REWARD_BONUS_PER_TRANCHE_DENOMINATOR: stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR(),
@@ -245,6 +255,7 @@ async function getConfig() {
     SURGE_THRESHOLD_RATIO: stakingProducts.SURGE_THRESHOLD_RATIO(),
     NXM_PER_ALLOCATION_UNIT: stakingPool.NXM_PER_ALLOCATION_UNIT(),
     ALLOCATION_UNITS_PER_NXM: stakingPool.ALLOCATION_UNITS_PER_NXM(),
+    ONE_NXM: stakingPool.ONE_NXM(),
     INITIAL_PRICE_DENOMINATOR: stakingProducts.INITIAL_PRICE_DENOMINATOR(),
     REWARDS_DENOMINATOR: stakingPool.REWARDS_DENOMINATOR(),
     WEIGHT_DENOMINATOR: stakingPool.WEIGHT_DENOMINATOR(),
@@ -257,7 +268,7 @@ async function getConfig() {
     GLOBAL_REWARDS_RATIO: cover.globalRewardsRatio(),
     GLOBAL_MIN_PRICE_RATIO: cover.GLOBAL_MIN_PRICE_RATIO(),
   };
-  await Promise.all(Object.keys(config).map(async key => (config[key] = await config[key])));
+  await Promise.all(Object.keys(config).map(async key => (config[key] = BigNumber.from(await config[key]))));
   return config;
 }
 
@@ -301,6 +312,8 @@ module.exports = {
   enableAsEnzymeReceiver,
   V2Addresses,
   getConfig,
+  isCoverAssetSupported,
+  getAssetContractInstance,
   getActiveProductsInPool,
   upgradeMultipleContracts,
 };

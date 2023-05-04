@@ -25,15 +25,29 @@ async function assetToEthWithPrecisionLoss(pool, coverAmountInAsset, assetToEthR
 
   return coverAmountInNXM.mul(nxmEthPrice).div(config.ONE_NXM);
 }
+async function assetToNXM(pool, amountInAsset, assetID, config) {
+  const nxmPriceInCoverAsset = BigNumber.from(await pool.getTokenPriceInAsset(assetID));
+  const assetWithDecimals = BigNumber.from(amountInAsset).mul(config.ONE_NXM);
+  const amountInNXMRaw = divCeil(assetWithDecimals, nxmPriceInCoverAsset);
+  const amountInNXM = roundUpToNearestAllocationUnit(amountInNXMRaw, config.NXM_PER_ALLOCATION_UNIT);
+  return amountInNXM;
+}
 
-// Replicates the amount stored when buying cover with asset other than NXM
+async function NXMToAsset(pool, amountInNXM, assetID, config) {
+  const nxmPriceInCoverAsset = BigNumber.from(await pool.getTokenPriceInAsset(assetID));
+  const nxmWithDecimals = BigNumber.from(amountInNXM).mul(config.ONE_NXM);
+  const amountInAssetRaw = divCeil(nxmWithDecimals, nxmPriceInCoverAsset);
+  const amountInAsset = roundUpToNearestAllocationUnit(amountInAssetRaw, config.NXM_PER_ALLOCATION_UNIT);
+  return amountInAsset;
+}
+
+// Converts amount in asset to NXM and back to asset with precision loss
 async function assetWithPrecisionLoss(pool, amountInAsset, assetID, config) {
-  const nxmPriceInCoverAsset = await pool.getTokenPriceInAsset(assetID);
-  const amountInNXM = roundUpToNearestAllocationUnit(
-    divCeil(amountInAsset.mul(config.ONE_NXM), nxmPriceInCoverAsset),
-    config.NXM_PER_ALLOCATION_UNIT,
-  );
+  const nxmPriceInCoverAsset = BigNumber.from(await pool.getTokenPriceInAsset(assetID));
+  const nxmRoundedUp = BigNumber.from(amountInAsset).mul(config.ONE_NXM);
+  const amountInNXMRaw = divCeil(nxmRoundedUp, nxmPriceInCoverAsset);
+  const amountInNXM = roundUpToNearestAllocationUnit(amountInNXMRaw, config.NXM_PER_ALLOCATION_UNIT);
   return amountInNXM.mul(nxmPriceInCoverAsset).div(config.ONE_NXM);
 }
 
-module.exports = { assetToEthWithPrecisionLoss, assetWithPrecisionLoss };
+module.exports = { assetToEthWithPrecisionLoss, assetWithPrecisionLoss, assetToNXM, NXMToAsset };

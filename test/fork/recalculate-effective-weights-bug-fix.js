@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
-const { V2Addresses, submitGovernanceProposal, getSigner } = require('./utils');
+const { V2Addresses, submitGovernanceProposal, getSigner, getConfig } = require('./utils');
 const evm = require('./evm')();
 const { verifyPoolWeights } = require('./staking-pool-utils');
 
@@ -42,6 +42,10 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
       abMembers,
       governance,
     );
+
+    const cover = await ethers.getContractAt('Cover', V2Addresses.Cover);
+    const stakingPool2 = await ethers.getContractAt('StakingPool', await cover.stakingPool(2));
+    this.config = await getConfig(cover, stakingPool2, this.stakingProducts);
   });
 
   it('should recalculate effective weight for all products in all pools', async function () {
@@ -50,7 +54,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
 
     for (let i = 1; i <= poolCount; i++) {
       await stakingProducts.recalculateEffectiveWeightsForAllProducts(i);
-      await verifyPoolWeights(stakingProducts, i);
+      await verifyPoolWeights(stakingProducts, i, this.config);
     }
 
     // assert values known to be wrong in production

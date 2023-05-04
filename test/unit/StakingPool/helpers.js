@@ -24,13 +24,6 @@ function calculateBasePrice(timestamp, product, priceChangePerDay) {
   return BigNumber.from(Math.max(basePrice, product.targetPrice));
 }
 
-function calculateBasePremiumPerYear(coverAmount, basePrice, config) {
-  expect(BigNumber.isBigNumber(coverAmount)).to.be.equal(true);
-  expect(BigNumber.isBigNumber(basePrice)).to.be.equal(true);
-  const allocationAmount = divCeil(coverAmount, config.NXM_PER_ALLOCATION_UNIT);
-  return basePrice.mul(allocationAmount).mul(config.NXM_PER_ALLOCATION_UNIT).div(config.INITIAL_PRICE_DENOMINATOR);
-}
-
 function calculateBasePremium(coverAmount, basePrice, period, config) {
   // validate inputs
   expect(BigNumber.isBigNumber(coverAmount)).to.be.equal(true);
@@ -113,6 +106,7 @@ function calculatePriceBump(coverAmount, priceBumpRatio, totalCapacity, NXM_PER_
 // Rounds an integer up to the nearest multiple of NXM_PER_ALLOCATION_UNIT
 function roundUpToNearestAllocationUnit(amount, nxmPerAllocationUnit) {
   amount = BigNumber.from(amount);
+  nxmPerAllocationUnit = BigNumber.from(nxmPerAllocationUnit);
   return divCeil(amount, nxmPerAllocationUnit).mul(nxmPerAllocationUnit);
 }
 
@@ -221,10 +215,8 @@ module.exports = {
   setTime,
   calculateBasePrice,
   calculateBasePremium,
-  calculateBasePremiumPerYear,
   calculatePriceBump,
   calculateSurgePremium,
-  calculateSurgePremiumPerYear,
   divCeil,
   roundUpToNearestAllocationUnit,
   getTranches,

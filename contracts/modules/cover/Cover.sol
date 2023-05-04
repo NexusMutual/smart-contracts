@@ -512,7 +512,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       uint productId = productInitParams[i].productId;
 
-      // the staking pool should be added to the allow list after it is created
+      // if there is a list of allowed pools for this product - this pool didn't exist yet so it's not in it
       if (allowedPools[productId].length > 0) {
         revert PoolNotAllowedForThisProduct(productId);
       }
@@ -526,7 +526,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       }
 
       productInitParams[i].initialPrice = _products[productId].initialPriceRatio;
-
     }
 
     (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(address(this));
@@ -719,6 +718,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         revert CapacityReductionRatioAbove100Percent();
       }
 
+      // TODO: https://github.com/NexusMutual/smart-contracts/issues/859
       if (product.useFixedPrice) {
         uint productId = param.productId == type(uint256).max ? _products.length : param.productId;
         allowedPools[productId] = param.allowedPools;
@@ -736,6 +736,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       if (param.productId >= _products.length) {
         revert ProductDoesntExist();
       }
+
       Product storage newProductValue = _products[param.productId];
       newProductValue.isDeprecated = product.isDeprecated;
       newProductValue.coverAssets = product.coverAssets;
@@ -801,6 +802,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           return true;
         }
       }
+
       // Product has allow list and pool is not in it
       return false;
   }

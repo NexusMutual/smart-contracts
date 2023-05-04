@@ -14,14 +14,14 @@ describe('withdrawMembership', function () {
 
     await memberRoles.connect(member1).withdrawMembership();
     const hasRole = await memberRoles.checkRole(member1.address, Role.Member);
-    assert(!hasRole);
+    expect(hasRole).to.be.equal(false);
     const { memberArray } = await memberRoles.members(Role.Member);
-    assert.equal(memberArray.length, newMembers.length - 1 + membersBefore.length);
+    expect(memberArray.length).to.be.equal(newMembers.length - 1 + membersBefore.length);
 
     const whitelisted = await token.whiteListed(member1.address);
-    assert(!whitelisted);
+    expect(whitelisted).to.be.equal(false);
     const balance = await token.balanceOf(member1.address);
-    assert.equal(balance.toString(), '0');
+    expect(balance).to.be.equal(0);
   });
 
   it('reverts when withdrawing membership for non-member', async function () {

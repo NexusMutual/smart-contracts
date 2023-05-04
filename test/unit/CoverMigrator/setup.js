@@ -1,6 +1,5 @@
-const { ethers } = require('hardhat');
+const { ethers, accounts } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
-const { getAccounts } = require('../../utils/accounts');
 
 const { AddressZero } = ethers.constants;
 
@@ -23,7 +22,6 @@ async function setup() {
   await master.callChangeMaster(coverMigrator.address);
   await coverMigrator.changeDependentContractAddress();
 
-  const accounts = await getAccounts();
   await master.enrollGovernance(accounts.governanceContracts[0].address);
 
   this.accounts = accounts;

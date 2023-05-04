@@ -1,6 +1,5 @@
-const { ethers } = require('hardhat');
+const { ethers, accounts } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
-const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../../../lib/constants');
 const { parseEther } = ethers.utils;
 
@@ -21,7 +20,7 @@ async function setup() {
   const yieldTokenIncidents = await ASMockYieldTokenIncidents.deploy();
   await yieldTokenIncidents.deployed();
 
-  nxm.setOperator(tokenController.address);
+  await nxm.setOperator(tokenController.address);
 
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();
@@ -59,7 +58,6 @@ async function setup() {
   await individualClaims.changeDependentContractAddress();
   await yieldTokenIncidents.changeDependentContractAddress();
 
-  const accounts = await getAccounts();
   await master.enrollGovernance(accounts.governanceContracts[0].address);
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);

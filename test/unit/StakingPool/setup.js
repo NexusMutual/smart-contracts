@@ -1,6 +1,5 @@
-const { ethers } = require('hardhat');
+const { ethers, accounts } = require('hardhat');
 const { parseEther } = ethers.utils;
-const { getAccounts } = require('../utils').accounts;
 const { setEtherBalance } = require('../utils').evm;
 const { Role } = require('../utils').constants;
 
@@ -38,8 +37,6 @@ async function setup() {
   await master.enrollInternal(cover.address);
   await tokenController.changeMasterAddress(master.address);
   await stakingProducts.changeMasterAddress(master.address);
-
-  const accounts = await getAccounts();
 
   for (const member of accounts.members) {
     const amount = ethers.constants.MaxUint256.div(100);

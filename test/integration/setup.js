@@ -1,9 +1,8 @@
-const { ethers } = require('hardhat');
+const { ethers, accounts } = require('hardhat');
 
 const { ContractTypes } = require('../utils').constants;
 const { toBytes2, toBytes8 } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
-const { getAccounts } = require('../utils').accounts;
 const { enrollMember } = require('./utils/enroll');
 
 const { BigNumber } = ethers;
@@ -32,10 +31,9 @@ const transferProxyOwnership = async (proxyAddress, newOwner) => {
 };
 
 async function setup() {
-  const ethersAccounts = await getAccounts();
-  const { members, emergencyAdmin } = ethersAccounts;
-  const owner = ethersAccounts.defaultSender;
-  const { stakingPoolManagers } = ethersAccounts;
+  const { members, emergencyAdmin } = accounts;
+  const owner = accounts.defaultSender;
+  const { stakingPoolManagers } = accounts;
 
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
   const INITIAL_SUPPLY = parseEther('15000000000');
@@ -532,6 +530,7 @@ async function setup() {
 
     this.contracts['stakingPool' + poolId] = stakingPoolInstance;
   }
+
   const config = {
     TRANCHE_DURATION: await this.contracts.stakingPool1.TRANCHE_DURATION(),
     BUCKET_SIZE: BigNumber.from(7 * 24 * 3600), // 7 days
@@ -542,11 +541,10 @@ async function setup() {
   };
 
   this.contracts.stakingProducts = stakingProducts;
-  // TODO: this should be a proxy
   this.contracts.coverNFTDescriptor = coverNFTDescriptor;
   this.contracts.stakingNFTDescriptor = stakingNFTDescriptor;
   this.config = config;
-  this.accounts = ethersAccounts;
+  this.accounts = accounts;
   this.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS;
 }
 

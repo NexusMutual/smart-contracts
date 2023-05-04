@@ -1,4 +1,5 @@
-const { ethers, expect } = require('hardhat');
+const { ethers } = require('hardhat');
+const { expect } = require('chai');
 const { increaseTime, mineNextBlock, setNextBlockTime } = require('../utils').evm;
 const {
   getTranches,
@@ -136,11 +137,11 @@ describe('withdraw', function () {
     const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
 
     const expectedShares = Math.sqrt(depositAmount);
-    expect(depositBefore.stakeShares).to.be.eq(expectedShares);
-    expect(depositAfter.stakeShares).to.be.eq(0);
+    expect(depositBefore.stakeShares).to.be.equal(expectedShares);
+    expect(depositAfter.stakeShares).to.be.equal(0);
 
-    expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(depositAmount));
-    expect(tcBalanceAfter).to.be.eq(tcBalanceBefore.sub(depositAmount));
+    expect(userBalanceAfter).to.be.equal(userBalanceBefore.add(depositAmount));
+    expect(tcBalanceAfter).to.be.equal(tcBalanceBefore.sub(depositAmount));
   });
 
   it('transfers nxm stake and rewards from token controller to nft owner', async function () {
@@ -182,8 +183,8 @@ describe('withdraw', function () {
       .div(parseEther('1'))
       .add(deposit.pendingRewards);
 
-    expect(tcBalanceAfter).to.be.eq(tcBalanceBefore.sub(rewardsWithdrawn).sub(amount));
-    expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(rewardsWithdrawn).add(amount));
+    expect(tcBalanceAfter).to.be.equal(tcBalanceBefore.sub(rewardsWithdrawn).sub(amount));
+    expect(userBalanceAfter).to.be.equal(userBalanceBefore.add(rewardsWithdrawn).add(amount));
   });
 
   it('allows to withdraw only rewards', async function () {
@@ -348,10 +349,10 @@ describe('withdraw', function () {
     const expiredTranche = await stakingPool.getExpiredTranche(lastTrancheId);
     const depositAfter = await stakingPool.deposits(tokenId, lastTrancheId);
 
-    expect(depositAfter.stakeShares).to.be.eq(0);
-    expect(depositAfter.rewardsShares).to.be.eq(depositsBeforeWithdraw[lastTrancheId].rewardsShares);
-    expect(depositAfter.lastAccNxmPerRewardShare).to.be.eq(expiredTranche.accNxmPerRewardShareAtExpiry);
-    expect(depositAfter.pendingRewards).to.be.eq(0);
+    expect(depositAfter.stakeShares).to.be.equal(0);
+    expect(depositAfter.rewardsShares).to.be.equal(depositsBeforeWithdraw[lastTrancheId].rewardsShares);
+    expect(depositAfter.lastAccNxmPerRewardShare).to.be.equal(expiredTranche.accNxmPerRewardShareAtExpiry);
+    expect(depositAfter.pendingRewards).to.be.equal(0);
 
     let rewardsWithdrawn = BigNumber.from(0);
     let stakeWithdrawn = BigNumber.from(0);
@@ -409,11 +410,11 @@ describe('withdraw', function () {
     const stakeSharesSupplyAfter = await stakingPool.getStakeSharesSupply();
     const rewardsSharesSupplyAfter = await stakingPool.getRewardsSharesSupply();
 
-    expect(activeStakeAfter).to.not.eq(activeStakeBefore);
-    expect(accNxmPerRewardsShareAfter).to.not.eq(accNxmPerRewardsShareBefore);
-    expect(lastAccNxmUpdateAfter).to.not.eq(lastAccNxmUpdateBefore);
-    expect(stakeSharesSupplyAfter).to.not.eq(stakeSharesSupplyBefore);
-    expect(rewardsSharesSupplyAfter).to.not.eq(rewardsSharesSupplyBefore);
+    expect(activeStakeAfter).not.to.be.equal(activeStakeBefore);
+    expect(accNxmPerRewardsShareAfter).not.to.be.equal(accNxmPerRewardsShareBefore);
+    expect(lastAccNxmUpdateAfter).not.to.be.equal(lastAccNxmUpdateBefore);
+    expect(stakeSharesSupplyAfter).not.to.be.equal(stakeSharesSupplyBefore);
+    expect(rewardsSharesSupplyAfter).not.to.be.equal(rewardsSharesSupplyBefore);
   });
 
   it('anyone can call to withdraw stake and rewards for a token id', async function () {
@@ -504,8 +505,8 @@ describe('withdraw', function () {
     const aliceDeposit = await stakingPool.getDeposit(aliceTokenId, lastTrancheId);
     const bobDeposit = await stakingPool.getDeposit(bobTokenId, lastTrancheId);
 
-    expect(aliceDeposit.stakeShares).to.eq(bobDeposit.stakeShares);
-    expect(aliceDeposit.rewardsShares).to.eq(bobDeposit.rewardsShares);
+    expect(aliceDeposit.stakeShares).to.be.equal(bobDeposit.stakeShares);
+    expect(aliceDeposit.rewardsShares).to.be.equal(bobDeposit.rewardsShares);
 
     const aliceBalanceBefore = await nxm.balanceOf(alice.address);
     const bobBalanceBefore = await nxm.balanceOf(bob.address);
@@ -703,7 +704,7 @@ describe('withdraw', function () {
         depositsBeforeWithdraw[tranche][uid] = deposit;
 
         const { stakeShares } = deposit;
-        expect(stakeShares).to.eq(userShares[t][uid].stakeShares);
+        expect(stakeShares).to.be.equal(userShares[t][uid].stakeShares);
       }
     }
 

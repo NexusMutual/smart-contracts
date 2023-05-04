@@ -1,8 +1,6 @@
-const { ethers } = require('hardhat');
-const { getAccounts } = require('../utils').accounts;
+const { ethers, accounts } = require('hardhat');
 
 async function setup() {
-  const accounts = await getAccounts();
   const [operator] = accounts.members;
 
   const master = await ethers.deployContract('MasterMock');

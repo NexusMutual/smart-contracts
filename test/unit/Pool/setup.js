@@ -1,10 +1,9 @@
-const { ethers } = require('hardhat');
+const { ethers, accounts } = require('hardhat');
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 const { AddressZero, WeiPerEther } = ethers.constants;
 
 const { Role } = require('../utils').constants;
-const { getAccounts } = require('../../utils/accounts');
 const { toBytes2 } = require('../utils').helpers;
 
 async function setup() {
@@ -50,7 +49,6 @@ async function setup() {
   );
 
   const swapOperator = await P1MockSwapOperator.deploy();
-  const accounts = await getAccounts();
 
   const mcr = await MCR.deploy();
   const tokenController = await TokenController.deploy();

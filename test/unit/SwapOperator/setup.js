@@ -1,5 +1,4 @@
-const { ethers } = require('hardhat');
-const { getAccounts } = require('../../utils/accounts');
+const { ethers, accounts } = require('hardhat');
 const { hex } = require('../utils').helpers;
 
 const {
@@ -12,8 +11,6 @@ const instances = {};
 
 async function setup() {
   const [owner, governance] = await ethers.getSigners();
-
-  let accounts = await getAccounts();
 
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
@@ -129,11 +126,6 @@ async function setup() {
   // Setup pool's swap operator
   await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), swapOperator.address);
 
-  accounts = {
-    ...accounts,
-    governanceAccounts: [governance],
-  };
-
   Object.assign(instances, {
     dai,
     weth,
@@ -149,7 +141,10 @@ async function setup() {
     cowVaultRelayer,
   });
 
-  this.accounts = accounts;
+  this.accounts = {
+    ...accounts,
+    governanceAccounts: [governance],
+  };
   this.contracts = {
     dai,
     weth,

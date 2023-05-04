@@ -47,12 +47,12 @@ describe('createStakingPool', function () {
     const stakingPool = await ethers.getContractAt('StakingPool', stakingPoolAddress);
 
     const managerStakingPoolNFTBalanceBefore = await stakingNFT.balanceOf(manager.address);
-    assert.equal(managerStakingPoolNFTBalanceBefore.toNumber(), 0);
+    expect(managerStakingPoolNFTBalanceBefore).to.be.equal(0);
 
     await stakingPool.connect(manager).depositTo(deposit, trancheId, 0, AddressZero);
 
     const managerStakingPoolNFTBalanceAfter = await stakingNFT.balanceOf(manager.address);
-    assert.equal(managerStakingPoolNFTBalanceAfter.toNumber(), 1);
+    expect(managerStakingPoolNFTBalanceAfter).to.be.equal(1);
 
     await expect(
       stakingPool.connect(staker).depositTo(deposit, trancheId, 0, AddressZero), // new deposit

@@ -19,23 +19,23 @@ describe('switchMembership', function () {
       await token.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
       await memberRoles.connect(member1).switchMembership(newMemberAddress);
       const oldAddressHasRole = await memberRoles.checkRole(member1.address, Role.Member);
-      assert(!oldAddressHasRole);
+      expect(oldAddressHasRole).to.be.equal(false);
       const newAddressHasRole = await memberRoles.checkRole(newMemberAddress, Role.Member);
-      assert(newAddressHasRole);
+      expect(newAddressHasRole).to.be.equal(true);
 
       // number of members stays the same
       const { memberArray } = await memberRoles.members(Role.Member);
-      assert.equal(memberArray.length, membersBefore.length);
+      expect(memberArray.length).to.be.equal(membersBefore.length);
 
       const oldAddressWhitelisted = await token.whiteListed(member1.address);
-      assert(!oldAddressWhitelisted);
+      expect(oldAddressWhitelisted).to.be.equal(false);
       const oldAddressBalance = await token.balanceOf(member1.address);
-      assert.equal(oldAddressBalance.toString(), '0');
+      expect(oldAddressBalance).to.be.equal(0);
 
       const whitelisted = await token.whiteListed(newMemberAddress);
-      assert(whitelisted);
+      expect(whitelisted).to.be.equal(true);
       const nxmBalanceAfter = await token.balanceOf(newMemberAddress);
-      assert.equal(nxmBalanceAfter.toString(), nxmBalanceBefore.toString());
+      expect(nxmBalanceAfter).to.be.equal(nxmBalanceBefore);
     }
   });
 

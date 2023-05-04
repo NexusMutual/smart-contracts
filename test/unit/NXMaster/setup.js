@@ -1,5 +1,4 @@
-const { ethers } = require('hardhat');
-const { getAccounts } = require('../../utils').accounts;
+const { ethers, accounts } = require('hardhat');
 
 const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
@@ -9,7 +8,6 @@ async function setup() {
   const governance = await ethers.deployContract('MSMockGovernance');
   const token = await ethers.deployContract('NXMTokenMock');
 
-  const accounts = await getAccounts();
   const { defaultSender } = accounts;
 
   await governance.changeMasterAddress(master.address);

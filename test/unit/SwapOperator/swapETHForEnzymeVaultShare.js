@@ -156,7 +156,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     const tokensReceived = tokensAfter.sub(tokensBefore);
 
     expect(etherSent).to.be.equal(etherIn);
-    assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
+    expect(tokensReceived).to.be.greaterThanOrEqual(minTokenOut);
 
     await expect(swapTx).to.emit(swapOperator, 'Swapped').withArgs(ETH, enzymeV4Vault.address, etherIn, tokensReceived);
   });
@@ -194,7 +194,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     const etherSent = etherBefore.sub(etherAfter);
     const tokensReceived = tokensAfter.sub(tokensBefore);
     expect(etherSent).to.be.equal(etherIn);
-    assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
+    expect(tokensReceived).to.be.greaterThanOrEqual(minTokenOut);
   });
 
   it('should swap asset for eth in 3 sequential calls', async function () {
@@ -234,7 +234,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       const tokensReceived = tokensAfter.sub(tokensBefore);
 
       expect(etherSent).to.be.equal(etherIn);
-      assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
+      expect(tokensReceived).to.be.greaterThanOrEqual(minTokenOut);
 
       await increaseTime(TIME_BETWEEN_SWAPS);
       await mineNextBlock();
@@ -255,7 +255,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       const tokensReceived = tokensAfter.sub(tokensBefore);
 
       expect(etherSent).to.be.equal(etherIn);
-      assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
+      expect(tokensReceived).to.be.greaterThanOrEqual(minTokenOut);
 
       await increaseTime(TIME_BETWEEN_SWAPS);
       await mineNextBlock();
@@ -276,7 +276,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       const tokensReceived = tokensAfter.sub(tokensBefore);
 
       expect(etherSent).to.be.equal(etherIn);
-      assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
+      expect(tokensReceived).to.be.greaterThanOrEqual(minTokenOut);
 
       await increaseTime(TIME_BETWEEN_SWAPS);
       await mineNextBlock();

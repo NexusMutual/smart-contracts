@@ -1,4 +1,5 @@
-const { ethers, expect } = require('hardhat');
+const { ethers } = require('hardhat');
+const { expect } = require('chai');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
@@ -90,11 +91,11 @@ describe('setPoolFee', function () {
     const { maxPoolFee } = initializeParams;
     const newPoolFee = maxPoolFee - 2;
 
-    expect(await stakingPool.getPoolFee()).to.be.eq(maxPoolFee);
+    expect(await stakingPool.getPoolFee()).to.be.equal(maxPoolFee);
 
     await stakingPool.connect(manager).setPoolFee(newPoolFee);
 
-    expect(await stakingPool.getPoolFee()).to.be.eq(newPoolFee);
+    expect(await stakingPool.getPoolFee()).to.be.equal(newPoolFee);
   });
 
   it('updates pool manager rewards', async function () {

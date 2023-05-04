@@ -17,21 +17,21 @@ describe('join', function () {
 
     for (const member of newMembers) {
       const hasRole = await memberRoles.checkRole(member.address, Role.Member);
-      assert(hasRole);
+      expect(hasRole).to.be.equal(true);
       const roles = await memberRoles.roles(member.address);
-      assert.equal(roles.length, TOTAL_ROLES);
-      assert.equal(roles[0].toString(), Role.Member.toString());
+      expect(roles.length).to.be.equal(TOTAL_ROLES);
+      expect(roles[0]).to.be.equal(Role.Member);
 
       for (let i = 1; i < TOTAL_ROLES; i++) {
-        assert.equal(roles[i].toString(), '0');
+        expect(roles[i]).to.be.equal(0);
       }
 
       const whitelisted = await token.whiteListed(member.address);
-      assert(whitelisted);
+      expect(whitelisted).to.be.equal(true);
     }
 
     const { memberArray } = await memberRoles.members(Role.Member);
-    assert.equal(memberArray.length, newMembers.length + membersBefore.length);
+    expect(memberArray.length).to.be.equal(newMembers.length + membersBefore.length);
   });
 
   it('returns correct number of roles', async function () {

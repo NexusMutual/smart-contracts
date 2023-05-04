@@ -1,12 +1,11 @@
-const { artifacts } = require('hardhat');
-const {
-  constants: { AddressZero },
-} = require('ethers');
+const { ethers } = require('hardhat');
 const { assert, expect } = require('chai');
+
 const { hex } = require('../utils').helpers;
 const { ContractTypes } = require('../utils').constants;
-
-const MMockNewContract = artifacts.require('MMockNewContract');
+const {
+  constants: { AddressZero },
+} = ethers;
 
 describe('removeContracts', function () {
   it('reverts when not called by governance', async function () {
@@ -26,8 +25,8 @@ describe('removeContracts', function () {
 
     const replaceableCode = hex('RE');
     const proxyCode = hex('PX');
-    const newReplaceableContract = await MMockNewContract.new();
-    const newProxyContract = await MMockNewContract.new();
+    const newReplaceableContract = await ethers.deployContract('MMockNewContract');
+    const newProxyContract = await ethers.deployContract('MMockNewContract');
 
     const { _contractCodes: prevContractCodes } = await master.getInternalContracts();
 

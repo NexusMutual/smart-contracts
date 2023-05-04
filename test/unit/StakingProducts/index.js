@@ -12,6 +12,8 @@ describe('StakingProducts unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  require('./getEffectiveWeight');
+  require('./recalculateEffectiveWeight');
   require('./initializeProducts');
   require('./setProducts');
 });

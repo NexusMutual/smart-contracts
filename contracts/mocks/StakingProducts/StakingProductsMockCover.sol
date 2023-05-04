@@ -9,8 +9,8 @@ import "../../interfaces/IStakingPoolFactory.sol";
 
 contract StakingProductsMockCover {
 
-  uint public constant globalCapacityRatio = 20000;
-  uint public constant globalRewardsRatio = 5000;
+  uint public constant GLOBAL_CAPACITY_RATIO = 20000;
+  uint public constant GLOBAL_REWARDS_RATIO = 5000;
 
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
@@ -62,26 +62,6 @@ contract StakingProductsMockCover {
     productTypes[id] = product;
   }
 
-  function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (
-    uint _globalCapacityRatio,
-    uint _globalMinPriceRatio,
-    uint[] memory _initialPrices,
-    uint[] memory _capacityReductionRatios
-  ) {
-
-    _globalCapacityRatio = globalCapacityRatio;
-    _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
-    _capacityReductionRatios = new uint[](productIds.length);
-    _initialPrices  = new uint[](productIds.length);
-
-    for (uint i = 0; i < productIds.length; i++) {
-      Product memory product = products[productIds[i]];
-      require(product.initialPriceRatio > 0, "Cover: Product deprecated or not initialized");
-      _initialPrices[i] = uint(product.initialPriceRatio);
-      _capacityReductionRatios[i] = uint(product.capacityReductionRatio);
-    }
-  }
-
   function allocateCapacity(
     BuyCoverParams memory params,
     uint coverId,
@@ -107,9 +87,9 @@ contract StakingProductsMockCover {
         0, // previous cover start
         0,  // previous cover expiration
         0,  // previous rewards ratio
-        globalCapacityRatio,
+        GLOBAL_CAPACITY_RATIO,
         product.capacityReductionRatio,
-        globalRewardsRatio,
+        GLOBAL_REWARDS_RATIO,
         GLOBAL_MIN_PRICE_RATIO
       )
     );
@@ -211,4 +191,26 @@ contract StakingProductsMockCover {
   function isPoolAllowed(uint productId, uint poolId) external view returns (bool) {
     return allowedPools[productId][poolId];
   }
+
+  function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (
+    uint _globalCapacityRatio,
+    uint _globalMinPriceRatio,
+    uint[] memory _initialPrices,
+    uint[] memory _capacityReductionRatios
+  ) {
+    _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
+    _globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
+    _capacityReductionRatios = new uint[](productIds.length);
+    _initialPrices = new uint[](productIds.length);
+
+    for (uint i = 0; i < productIds.length; i++) {
+      Product memory product = products[productIds[i]];
+      if (product.initialPriceRatio == 0) {
+        revert ProductDeprecatedOrNotInitialized();
+      }
+      _initialPrices[i] = uint(product.initialPriceRatio);
+      _capacityReductionRatios[i] = uint(product.capacityReductionRatio);
+    }
+  }
+  error ProductDeprecatedOrNotInitialized();
 }

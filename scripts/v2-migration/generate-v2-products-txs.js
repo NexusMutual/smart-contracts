@@ -42,6 +42,10 @@ const main = async (provider, coverAddress, signerAddress) => {
   const productTypeIpfsHashes = require(path.join(__dirname, 'output/product-type-ipfs-hashes.json'));
   const cover = new ethers.Contract(coverAddress, abi, signer);
 
+  console.log({
+    productTypeData
+  });
+
   let expectedProductTypeId = 0;
   const productTypeEntries = productTypeData.map(data => {
     return {
@@ -50,13 +54,28 @@ const main = async (provider, coverAddress, signerAddress) => {
       ipfsMetadata: productTypeIpfsHashes[data.Id],
       productType: {
         claimMethod: data['Claim Method'],
-        gracePeriod: data['Grace Period (days)'],
+        gracePeriod: parseInt(data['Grace Period (days)']) * 24 * 3600,
       },
       expectedProductTypeId: expectedProductTypeId++,
     };
   });
 
+  console.log({
+    productTypeEntries
+  });
+
   const setProductTypesTransaction = await cover.populateTransaction.setProductTypes(productTypeEntries);
+
+
+  const txs = {
+    setProductTypesTransaction,
+    productTypeData,
+    productTypeIds,
+  };
+
+  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(txs, null, 2), 'utf8');
+
+  return txs;
 
   const V2OnChainProductDataProductsPath = path.join(__dirname, 'input/product-data.csv');
   const productData = csvParse(fs.readFileSync(V2OnChainProductDataProductsPath, 'utf8'), {
@@ -115,7 +134,7 @@ const main = async (provider, coverAddress, signerAddress) => {
 
   const setProductsTransaction = await cover.populateTransaction.setProducts(productEntries);
 
-  const txs = {
+  const finalTxs = {
     setProductTypesTransaction,
     setProductsTransaction,
     productTypeData,
@@ -123,9 +142,9 @@ const main = async (provider, coverAddress, signerAddress) => {
     productTypeIds,
   };
 
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(txs, null, 2), 'utf8');
+  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(finalTxs, null, 2), 'utf8');
 
-  return txs;
+  return finalTxs;
 };
 
 if (require.main === module) {

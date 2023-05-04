@@ -107,7 +107,6 @@ interface IStakingProducts {
   error OnlyManager();
 
   // Products & weights
-  error PoolNotAllowedForThisProduct();
   error MustSetPriceForNewProducts();
   error MustSetWeightForNewProducts();
   error TargetPriceTooHigh();

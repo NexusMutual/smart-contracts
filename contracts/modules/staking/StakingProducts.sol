@@ -188,10 +188,12 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
       for (uint i = 0; i < numProducts; i++) {
         productIds[i] = params[i].productId;
-        if (!ICover(coverContract).isPoolAllowed(params[i].productId, poolId)) {
-          revert PoolNotAllowedForThisProduct();
-        }
       }
+
+      // reverts if poolId is not allowed for any of these products
+      ICover(coverContract).requirePoolIsAllowed(productIds, poolId);
+
+      // reverts if any of the products do not exist
       (
         globalCapacityRatio,
         globalMinPriceRatio,

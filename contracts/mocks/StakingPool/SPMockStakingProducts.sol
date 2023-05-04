@@ -5,6 +5,7 @@ pragma solidity ^0.8.18;
 import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
 import "../../interfaces/IStakingProducts.sol";
+import "../../interfaces/ICover.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
@@ -129,7 +130,7 @@ contract SPMockStakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       for (uint i = 0; i < numProducts; i++) {
         productIds[i] = params[i].productId;
         if (!ICover(coverContract).isPoolAllowed(params[i].productId, poolId)) {
-          revert PoolNotAllowedForThisProduct();
+          revert ICover.PoolNotAllowedForThisProduct(params[i].productId);
         }
       }
       (

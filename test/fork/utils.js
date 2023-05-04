@@ -1,8 +1,10 @@
 const evm = require('./evm')();
 const { ethers, network } = require('hardhat');
 const assert = require('assert');
-const { BigNumber } = ethers;
+const { setEtherBalance } = require('../utils/evm');
+const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const { parseEther, defaultAbiCoder } = ethers.utils;
+const { BigNumber } = ethers;
 
 const V2Addresses = {
   Assessment: '0xcafeaa5f9c401b7295890f309168Bbb8173690A3',
@@ -192,7 +194,9 @@ async function enableAsEnzymeReceiver(receiverAddress) {
   assert.equal(inReceiverList, true);
 }
 
-async function getProductsInPool(params) {
+// Returns any products that are initialized have target weight > 0
+// These products should be able to be bought if there is capacity
+async function getActiveProductsInPool(params) {
   const { stakingProducts, cover } = this;
   const { poolId } = params;
 
@@ -225,7 +229,11 @@ async function getProductsInPool(params) {
 }
 
 async function getConfig() {
-  const { cover, stakingPool, stakingProducts } = this;
+  let { cover, stakingPool, stakingProducts } = this;
+
+  if (stakingPool === undefined) {
+    stakingPool = await ethers.getContractAt('StakingPool', await cover.stakingPool(1));
+  }
 
   const config = {
     REWARD_BONUS_PER_TRANCHE_RATIO: stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO(),
@@ -253,6 +261,29 @@ async function getConfig() {
   return config;
 }
 
+async function upgradeMultipleContracts(params) {
+  const { codes, addresses } = params;
+
+  const contractCodes = codes.map(code => ethers.utils.toUtf8Bytes(code));
+  const governance = await ethers.getContractAt('Governance', V2Addresses.Governance);
+
+  const implAddresses = addresses.map(c => c.address);
+  const memberRoles = await ethers.getContractAt('MemberRoles', V2Addresses.MemberRoles);
+  const { memberArray: abMembersAddresses } = await memberRoles.members(1);
+
+  // Impersonate and fund advisory board members
+  await Promise.all(abMembersAddresses.map(addr => setEtherBalance(addr, parseEther('1000'))));
+  const abMembers = await Promise.all(abMembersAddresses.map(addr => ethers.getImpersonatedSigner(addr)));
+
+  await submitGovernanceProposal(
+    PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
+    ethers.utils.defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, implAddresses]),
+    abMembers,
+    governance,
+  );
+  return abMembers;
+}
+
 module.exports = {
   submitGovernanceProposal,
   submitMemberVoteGovernanceProposal,
@@ -270,5 +301,6 @@ module.exports = {
   enableAsEnzymeReceiver,
   V2Addresses,
   getConfig,
-  getProductsInPool,
+  getActiveProductsInPool,
+  upgradeMultipleContracts,
 };

@@ -114,58 +114,37 @@ describe('createStakingPool', function () {
     }
   });
 
-  it('should create and initialize a new pool called from pooled staking', async function () {
-    const { cover, stakingPoolFactory, stakingProducts } = this;
+  it('should fail to create a new pool called from pooled staking - Not a member', async function () {
+    const { cover } = this;
     const { initialPoolFee, maxPoolFee, ipfsDescriptionHash } = newPoolFixture;
 
-    // target price is below minimum, but we're using pooled staking so we can override it
     const initialProducts = [
-      { productId: 0, weight: 100, initialPrice: '500', targetPrice: '0' },
-      { productId: 1, weight: 70, initialPrice: '300', targetPrice: '0' },
+      { productId: 0, weight: 100, initialPrice: '500', targetPrice: '1000' },
+      { productId: 1, weight: 70, initialPrice: '300', targetPrice: '1000' },
     ];
 
-    const [poolId, expectedAddress] = await cover.connect(this.pooledStakingSigner).callStatic.createStakingPool(
+    const [poolId] = await cover.connect(this.pooledStakingSigner).callStatic.createStakingPool(
       true, // isPrivatePool,
       initialPoolFee,
       maxPoolFee,
-      initialProducts,
+      [],
       ipfsDescriptionHash,
     );
 
-    const tx = await cover.connect(this.pooledStakingSigner).createStakingPool(
-      true, // isPrivatePool,
-      initialPoolFee,
-      maxPoolFee,
-      initialProducts,
-      ipfsDescriptionHash,
-    );
+    expect(await cover.isPoolAllowed(0 /* productId */, poolId)).to.be.equal(true);
+    expect(await cover.isPoolAllowed(1 /* productId */, poolId)).to.be.equal(false);
 
-    // check address
-    await expect(tx).to.emit(stakingPoolFactory, 'StakingPoolCreated').withArgs(poolId, expectedAddress);
-    const stakingPoolInstance = await ethers.getContractAt('CoverMockStakingPool', expectedAddress);
-
-    // validate variable is initialized
-    const contractPoolId = await stakingPoolInstance.getPoolId();
-    expect(contractPoolId).to.be.equal(poolId);
-
-    // check initialize values
-    expect(await stakingPoolInstance.isPrivatePool()).to.be.equal(true);
-    expect(await stakingPoolInstance.getPoolFee()).to.be.equal(initialPoolFee);
-    expect(await stakingPoolInstance.getMaxPoolFee()).to.be.equal(maxPoolFee);
-    expect(await stakingPoolInstance.ipfsHash()).to.be.equal(ipfsDescriptionHash);
-
-    // check initial product values
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    for (const product of initialProducts) {
-      const { lastEffectiveWeight, targetWeight, targetPrice, bumpedPrice, bumpedPriceUpdateTime } =
-        await stakingProducts.getProduct(poolId, product.productId);
-      expect(lastEffectiveWeight).to.be.equal(product.weight);
-      expect(targetWeight).to.be.equal(product.weight);
-      expect(targetPrice).to.be.equal(product.targetPrice);
-      // Pooled staking does not have initial price override
-      expect(bumpedPrice).to.be.equal(product.initialPrice);
-      expect(bumpedPriceUpdateTime).to.be.equal(timestamp);
-    }
+    await expect(
+      cover.connect(this.pooledStakingSigner).createStakingPool(
+        true, // isPrivatePool,
+        initialPoolFee,
+        maxPoolFee,
+        initialProducts,
+        ipfsDescriptionHash,
+      ),
+    )
+      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
+      .withArgs(1);
   });
 
   it('reverts when caller is not a member', async function () {

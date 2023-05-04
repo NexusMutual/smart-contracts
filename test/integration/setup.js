@@ -378,7 +378,7 @@ async function setup() {
         capacityReductionRatio: 0,
         useFixedPrice: true,
       },
-      allowedPools: [1],
+      allowedPools: [1, 7],
     },
     {
       productName: 'Product 5',

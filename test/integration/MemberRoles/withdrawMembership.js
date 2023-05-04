@@ -21,7 +21,7 @@ describe('withdrawMembership', function () {
     const whitelisted = await token.whiteListed(member1.address);
     expect(whitelisted).to.be.equal(false);
     const balance = await token.balanceOf(member1.address);
-    expect(balance.toString()).to.be.equal('0');
+    expect(balance).to.be.equal(0);
   });
 
   it('reverts when withdrawing membership for non-member', async function () {

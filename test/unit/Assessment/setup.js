@@ -20,7 +20,7 @@ async function setup() {
   const yieldTokenIncidents = await ASMockYieldTokenIncidents.deploy();
   await yieldTokenIncidents.deployed();
 
-  nxm.setOperator(tokenController.address);
+  await nxm.setOperator(tokenController.address);
 
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();

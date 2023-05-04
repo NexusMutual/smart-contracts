@@ -20,10 +20,10 @@ describe('join', function () {
       expect(hasRole).to.be.equal(true);
       const roles = await memberRoles.roles(member.address);
       expect(roles.length).to.be.equal(TOTAL_ROLES);
-      expect(roles[0].toString()).to.be.equal(Role.Member.toString());
+      expect(roles[0]).to.be.equal(Role.Member);
 
       for (let i = 1; i < TOTAL_ROLES; i++) {
-        expect(roles[i].toString()).to.be.equal('0');
+        expect(roles[i]).to.be.equal(0);
       }
 
       const whitelisted = await token.whiteListed(member.address);

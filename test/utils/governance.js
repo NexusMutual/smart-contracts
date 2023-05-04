@@ -19,7 +19,7 @@ const submitProposal = async (gv, category, actionData, members) => {
 
   const proposal = await gv.proposal(proposalId);
 
-  expect(proposal[2].toNumber()).to.be.equal(3);
+  expect(proposal[2]).to.be.equal(3);
 
   return proposalId;
 };
@@ -47,7 +47,7 @@ const submitMemberVoteProposal = async (gv, pc, categoryId, actionData, members)
   expect(triggerTx).to.emit(gv, 'ActionSuccess').withArgs(proposalId);
 
   const proposal = await gv.proposal(proposalId);
-  assert.equal(proposal[2].toNumber(), 3, 'proposal status != accepted');
+  expect(proposal[2]).to.be.equal(3, 'proposal status != accepted');
 };
 
 module.exports = {

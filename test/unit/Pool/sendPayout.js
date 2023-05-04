@@ -21,7 +21,7 @@ describe('sendPayout', function () {
     expect(destinationBalance).to.be.equal(amountToTransfer);
 
     const poolBalance = await dai.balanceOf(pool.address);
-    expect(poolBalance.toString()).to.be.equal(tokenAmount.sub(amountToTransfer).toString());
+    expect(poolBalance).to.be.equal(tokenAmount.sub(amountToTransfer));
   });
 
   it('transfers ETH payout to destination', async function () {

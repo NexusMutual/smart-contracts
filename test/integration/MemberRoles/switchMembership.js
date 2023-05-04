@@ -30,7 +30,7 @@ describe('switchMembership', function () {
       const oldAddressWhitelisted = await token.whiteListed(member1.address);
       expect(oldAddressWhitelisted).to.be.equal(false);
       const oldAddressBalance = await token.balanceOf(member1.address);
-      expect(oldAddressBalance.toString()).to.be.equal('0');
+      expect(oldAddressBalance).to.be.equal(0);
 
       const whitelisted = await token.whiteListed(newMemberAddress);
       expect(whitelisted).to.be.equal(true);

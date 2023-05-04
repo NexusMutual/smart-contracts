@@ -8,15 +8,6 @@ const { parse: csvParse } = require('csv-parse/sync');
 
 const { MaxUint256 } = ethers.constants;
 
-const productTypeIds = {
-  Protocol: 0,
-  Custody: 1,
-  'Yield Token': 2,
-  'Stakewise Slashing': 3,
-  'Sherlock Excess': 4,
-  'Liquid Collective Slashing': 5,
-};
-
 const OUTPUT_FILE = path.join(
   config.paths.root,
   'scripts/v2-migration/output', // dir
@@ -35,32 +26,17 @@ const main = async (provider, coverAddress, signerAddress) => {
 
   const cover = new ethers.Contract(coverAddress, abi, signer);
 
-
   const productData = [{
-    Name: "Alpaca Finance",
-    'Product Type': 'Protocol',
+    Name: "EtherFi 5ETH",
+    'Product Type': 'ETH Staking Operator',
     'Initial Price Ratio': 10,
     'Capacity Reduction Ratio': 0,
-    'Use Fixed Price': false,
+    'Use Fixed Price': 'Yes',
     'Cover Assets': 0,
-   },
-  {
-    Name: "WeFi",
-    'Product Type': 'Protocol',
-    'Initial Price Ratio': 10,
-    'Capacity Reduction Ratio': 0,
-    'Use Fixed Price': false,
-    'Cover Assets': 0,
-  },
-  {
-    Name: "Exactly",
-    'Product Type': 'Protocol',
-    'Initial Price Ratio': 10,
-    'Capacity Reduction Ratio': 0,
-    'Use Fixed Price': false,
-    'Cover Assets': 0,
-  }
-  ];
+    'allowedPools': [5],
+    'ipfsMetadata': 'QmUr5uXmEL4V8xfr2yYicRzkx27D7QDGNmpSXCXDVXieGP',
+    productTypeId: 6
+  }];
 
   const productEntries = productData.map(data => {
 
@@ -74,9 +50,9 @@ const main = async (provider, coverAddress, signerAddress) => {
     const productParams = {
       productName: data.Name,
       productId: MaxUint256, // create new product - use Max Uint.
-      ipfsMetadata: '', // IPFS metadata is optional.
+      ipfsMetadata: data.ipfsMetadata, // IPFS metadata is optional.
       product: {
-        productType: productTypeIds[data['Product Type']],
+        productType: data.productTypeId,
         yieldTokenAddress:
           data['Product Type'] === 'Yield Token'
             ? data['Yield Token Address']
@@ -88,7 +64,7 @@ const main = async (provider, coverAddress, signerAddress) => {
         capacityReductionRatio: parseInt(data['Capacity Reduction Ratio']),
         useFixedPrice: data['Use Fixed Price'] === 'Yes',
       },
-      allowedPools: [5],
+      allowedPools: data.allowedPools,
     };
 
     return productParams;

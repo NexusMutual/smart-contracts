@@ -1,12 +1,14 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { BigNumber } = require('ethers');
+
 const { calculateFirstTrancheId } = require('../utils/staking');
-const { MaxUint256 } = ethers.constants;
-const { parseEther } = ethers.utils;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { buyCover, ETH_ASSET_ID } = require('../utils/cover');
-const { BigNumber } = require('ethers');
 const { divCeil, roundUpToNearestAllocationUnit } = require('../../unit/StakingPool/helpers');
+
+const { MaxUint256 } = ethers.constants;
+const { parseEther } = ethers.utils;
 
 const stakedProductParamTemplate = {
   productId: 1,
@@ -18,7 +20,6 @@ const stakedProductParamTemplate = {
 };
 
 const ONE_NXM = parseEther('1');
-
 const ALLOCATION_UNITS_PER_NXM = 100;
 const NXM_PER_ALLOCATION_UNIT = ONE_NXM.div(ALLOCATION_UNITS_PER_NXM);
 const WEIGHT_DENOMINATOR = 100;
@@ -47,34 +48,25 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     expect(product.lastEffectiveWeight).to.be.equal(targetWeight);
   });
 
-  it('recalculates effective weights when activeWeight > targetWeight', async function () {
+  it('recalculates effective weights correctly when activeWeight > targetWeight', async function () {
     const { DEFAULT_PRODUCTS } = this;
     const { stakingProducts, stakingPool1, cover, p1: pool } = this.contracts;
     const staker = this.accounts.defaultSender;
-    const [, coverBuyer1] = this.accounts.members;
-    const [manager1] = this.accounts.stakingPoolManagers;
+    const [, coverBuyer] = this.accounts.members;
+    const [manager] = this.accounts.stakingPoolManagers;
 
     const poolId = 1;
     const productId = 1;
-
     const stakeAmount = parseEther('9000000');
 
     // setup product with an initial target weight of 10 in order to buy cover
     const initialTargetWeight = 10;
-    await stakingProducts.connect(manager1).setProducts(poolId, [
-      {
-        ...stakedProductParamTemplate,
-        productId,
-        targetWeight: initialTargetWeight,
-      },
-    ]);
+    const productParams = { ...stakedProductParamTemplate, productId, targetWeight: initialTargetWeight };
+    await stakingProducts.connect(manager).setProducts(poolId, [productParams]);
 
     // stake
-    const firstActiveTrancheId = await calculateFirstTrancheId(
-      await ethers.provider.getBlock('latest'),
-      daysToSeconds(30),
-      0,
-    );
+    const latestBlock = await ethers.provider.getBlock('latest');
+    const firstActiveTrancheId = calculateFirstTrancheId(latestBlock, daysToSeconds(30), 0);
     await stakingPool1.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
 
     // Cover inputs for cover purchase used to increase activeWeight
@@ -105,23 +97,17 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
       coverAsset,
       period,
       cover,
-      coverBuyer: coverBuyer1,
+      coverBuyer,
       targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       priceDenominator,
     });
 
-    // lower the target weight for product so that the active weight exceeds the target weight
-    const targetWeightAfterCoverBuy = 1;
-    expect(BigNumber.from(targetWeightAfterCoverBuy)).to.be.lessThan(expectedActiveWeight);
+    // make sure the new target weight we picked is lower than the currently expected weight
+    const newTargetWeight = 1;
+    expect(expectedActiveWeight).to.be.gt(newTargetWeight);
 
-    await stakingProducts.connect(manager1).setProducts(poolId, [
-      {
-        ...stakedProductParamTemplate,
-        targetWeight: targetWeightAfterCoverBuy,
-        productId,
-      },
-    ]);
-
+    const newProductParams = { ...stakedProductParamTemplate, targetWeight: newTargetWeight, productId };
+    await stakingProducts.connect(manager).setProducts(poolId, [newProductParams]);
     await stakingProducts.recalculateEffectiveWeightsForAllProducts(poolId);
 
     const product = await stakingProducts.getProduct(poolId, productId);
@@ -132,8 +118,8 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     const { DEFAULT_PRODUCTS } = this;
     const { stakingProducts, stakingPool1, cover, p1: pool } = this.contracts;
     const staker = this.accounts.defaultSender;
-    const [, coverBuyer1] = this.accounts.members;
-    const [manager1] = this.accounts.stakingPoolManagers;
+    const [, coverBuyer] = this.accounts.members;
+    const [manager] = this.accounts.stakingPoolManagers;
 
     const poolId = 1;
     const firstProductId = 1;
@@ -143,35 +129,25 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
 
     // setup products with an initial target weight of 10 in order to buy cover
     const initialTargetWeight = 10;
-    await stakingProducts.connect(manager1).setProducts(poolId, [
-      {
-        ...stakedProductParamTemplate,
-        productId: firstProductId,
-        targetWeight: initialTargetWeight,
-      },
-      {
-        ...stakedProductParamTemplate,
-        productId: secondProductId,
-        targetWeight: initialTargetWeight,
-      },
+    await stakingProducts.connect(manager).setProducts(poolId, [
+      { ...stakedProductParamTemplate, productId: firstProductId, targetWeight: initialTargetWeight },
+      { ...stakedProductParamTemplate, productId: secondProductId, targetWeight: initialTargetWeight },
     ]);
 
     // stake
-    const firstActiveTrancheId = await calculateFirstTrancheId(
-      await ethers.provider.getBlock('latest'),
-      daysToSeconds(30),
-      0,
-    );
+    const latestBlock = await ethers.provider.getBlock('latest');
+    const firstActiveTrancheId = calculateFirstTrancheId(latestBlock, daysToSeconds(30), 0);
     await stakingPool1.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
+
+    // Cover inputs for cover purchase used to increase activeWeight
+    const coverAsset = ETH_ASSET_ID; // ETH
+    const period = 3600 * 24 * 30; // 30 days
+    const priceDenominator = 10000;
+    const newTargetWeight = 1;
 
     let firstProductExpectedActiveWeight;
     {
       const productId = firstProductId;
-
-      // Cover inputs for cover purchase used to increase activeWeight
-      const coverAsset = ETH_ASSET_ID; // ETH
-      const period = 3600 * 24 * 30; // 30 days
-      const priceDenominator = 10000;
       const amount = parseEther('300000');
 
       // Compute expectedActiveWeight given how much the cover is worth in NXM and existing capacity
@@ -196,33 +172,23 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
         coverAsset,
         period,
         cover,
-        coverBuyer: coverBuyer1,
+        coverBuyer,
         targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
         priceDenominator,
       });
 
-      // lower the target weight for product so that the active weight exceeds the target weight
-      const targetWeightAfterCoverBuy = 1;
-      expect(BigNumber.from(targetWeightAfterCoverBuy)).to.be.lessThan(expectedActiveWeight);
+      expect(expectedActiveWeight).to.be.gt(newTargetWeight);
 
-      await stakingProducts.connect(manager1).setProducts(productId, [
-        {
-          ...stakedProductParamTemplate,
-          targetWeight: targetWeightAfterCoverBuy,
-          productId,
-        },
-      ]);
+      await stakingProducts
+        .connect(manager)
+        .setProducts(productId, [{ ...stakedProductParamTemplate, targetWeight: newTargetWeight, productId }]);
+
       firstProductExpectedActiveWeight = expectedActiveWeight;
     }
 
     let secondProductExpectedActiveWeight;
     {
-      // Cover inputs for cover purchase used to increase activeWeight
-      const coverAsset = ETH_ASSET_ID; // ETH
-      const period = 3600 * 24 * 30; // 30 days
-      const priceDenominator = 10000;
       const amount = parseEther('200000');
-
       const productId = secondProductId;
 
       // Compute expectedActiveWeight given how much the cover is worth in NXM and existing capacity
@@ -247,35 +213,26 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
         coverAsset,
         period,
         cover,
-        coverBuyer: coverBuyer1,
+        coverBuyer,
         targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
         priceDenominator,
       });
 
-      // lower the target weight for product so that the active weight exceeds the target weight
-      const targetWeightAfterCoverBuy = 1;
-      expect(BigNumber.from(targetWeightAfterCoverBuy)).to.be.lessThan(expectedActiveWeight);
+      expect(expectedActiveWeight).to.be.gt(newTargetWeight);
 
-      await stakingProducts.connect(manager1).setProducts(poolId, [
-        {
-          ...stakedProductParamTemplate,
-          targetWeight: targetWeightAfterCoverBuy,
-          productId,
-        },
-      ]);
+      await stakingProducts
+        .connect(manager)
+        .setProducts(poolId, [{ ...stakedProductParamTemplate, targetWeight: newTargetWeight, productId }]);
+
       secondProductExpectedActiveWeight = expectedActiveWeight;
     }
 
     await stakingProducts.recalculateEffectiveWeightsForAllProducts(poolId);
 
-    {
-      const product = await stakingProducts.getProduct(poolId, firstProductId);
-      expect(product.lastEffectiveWeight).to.be.equal(firstProductExpectedActiveWeight);
-    }
+    const firstProduct = await stakingProducts.getProduct(poolId, firstProductId);
+    expect(firstProduct.lastEffectiveWeight).to.be.equal(firstProductExpectedActiveWeight);
 
-    {
-      const product = await stakingProducts.getProduct(poolId, secondProductId);
-      expect(product.lastEffectiveWeight).to.be.equal(secondProductExpectedActiveWeight);
-    }
+    const secondProduct = await stakingProducts.getProduct(poolId, secondProductId);
+    expect(secondProduct.lastEffectiveWeight).to.be.equal(secondProductExpectedActiveWeight);
   });
 });

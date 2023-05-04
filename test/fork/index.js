@@ -1,3 +1,3 @@
 describe('fork tests', function () {
-  require('./withdraw-switch-membership-restrictions');
+  require('./recalculate-effective-weights-bug-fix');
 });

@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import "../../abstract/MasterAwareV2.sol";
+import "../../abstract/Multicall.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/IPool.sol";
@@ -20,7 +21,7 @@ import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../interfaces/IStakingProducts.sol";
 
-contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
+contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Multicall {
   using SafeERC20 for IERC20;
   using SafeUintCast for uint;
 

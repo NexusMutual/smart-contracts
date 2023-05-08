@@ -5,6 +5,7 @@ const { createStakingPool, assertCoverFields } = require('./helpers');
 const { setEtherBalance } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
+const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
 
@@ -19,7 +20,7 @@ const buyCoverFixture = {
   period: 3600 * 24 * 30, // 30 days
   amount: parseEther('1000'),
   targetPriceRatio: 260,
-  priceDenominator: 10000,
+  priceDenominator: BigNumber.from(10000),
   activeCover: parseEther('8000'),
   capacity: parseEther('10000'),
   expectedPremium: parseEther('1000').mul(260).div(10000), // amount * targetPriceRatio / priceDenominator
@@ -193,8 +194,8 @@ describe('buyCover', function () {
       .mul(period)
       .div(3600 * 24 * 365);
 
-    const expectedCommission = expectedBasePremium.mul(commissionRatio).div(priceDenominator);
-    const expectedPremium = expectedBasePremium.add(expectedCommission);
+    const expectedPremium = expectedBasePremium.mul(priceDenominator).div(priceDenominator.sub(commissionRatio));
+    const expectedCommission = expectedPremium.sub(expectedBasePremium);
 
     await nxm.mint(coverBuyer.address, parseEther('100000'));
     await nxm.connect(coverBuyer).approve(tokenController.address, parseEther('100000'));
@@ -267,8 +268,8 @@ describe('buyCover', function () {
       .mul(period)
       .div(3600 * 24 * 365);
 
-    const expectedCommission = expectedBasePremium.mul(commissionRatio).div(10000);
-    const expectedPremium = expectedBasePremium.add(expectedCommission);
+    const expectedPremium = expectedBasePremium.mul(priceDenominator).div(priceDenominator.sub(commissionRatio));
+    const expectedCommission = expectedPremium.sub(expectedBasePremium);
 
     await dai.mint(coverBuyer.address, parseEther('100000'));
     await dai.connect(coverBuyer).approve(cover.address, parseEther('100000'));
@@ -336,8 +337,8 @@ describe('buyCover', function () {
       .mul(period)
       .div(3600 * 24 * 365);
 
-    const expectedCommission = expectedBasePremium.mul(commissionRatio).div(10000);
-    const expectedPremium = expectedBasePremium.add(expectedCommission);
+    const expectedPremium = expectedBasePremium.mul(priceDenominator).div(priceDenominator.sub(commissionRatio));
+    const expectedCommission = expectedPremium.sub(expectedBasePremium);
 
     await usdc.mint(coverBuyer.address, parseEther('100000'));
 
@@ -1066,8 +1067,7 @@ describe('buyCover', function () {
       .div(priceDenominator)
       .mul(period)
       .div(3600 * 24 * 365);
-    const expectedCommission = expectedBasePremium.mul(commissionRatio).div(priceDenominator);
-    const expectedPremium = expectedBasePremium.add(expectedCommission);
+    const expectedPremium = expectedBasePremium.mul(priceDenominator).div(priceDenominator.sub(commissionRatio));
 
     const txData = await cover.connect(coverBuyer).populateTransaction.buyCover(
       {

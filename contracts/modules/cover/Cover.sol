@@ -384,15 +384,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     // NXM payment
     if (paymentAsset == NXM_ASSET_ID) {
-      if (premiumInNxm > maxPremiumInAsset) {
+      uint commissionInNxm;
+
+      if (commissionRatio > 0) {
+        commissionInNxm = (premiumInNxm * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio)) - premiumInNxm;
+      }
+
+      if (premiumInNxm + commissionInNxm > maxPremiumInAsset) {
         revert PriceExceedsMaxPremiumInAsset();
       }
 
       ITokenController _tokenController = tokenController();
       _tokenController.burnFrom(msg.sender, premiumInNxm);
 
-      if (commissionRatio > 0) {
-        uint commissionInNxm = premiumInNxm * commissionRatio / COMMISSION_DENOMINATOR;
+      if (commissionInNxm > 0) {
         // commission transfer reverts if the commissionDestination is not a member
         _tokenController.operatorTransfer(msg.sender, commissionDestination, commissionInNxm);
       }
@@ -402,9 +407,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     IPool _pool = pool();
     uint premiumInPaymentAsset = nxmPriceInCoverAsset * premiumInNxm / ONE_NXM;
-    uint commission = premiumInPaymentAsset * commissionRatio / COMMISSION_DENOMINATOR;
+    uint commission = (premiumInPaymentAsset * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio)) - premiumInPaymentAsset;
 
-    if (premiumInPaymentAsset > maxPremiumInAsset) {
+    if (premiumInPaymentAsset + commission > maxPremiumInAsset) {
       revert PriceExceedsMaxPremiumInAsset();
     }
 

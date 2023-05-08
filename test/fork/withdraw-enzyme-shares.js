@@ -9,6 +9,7 @@ const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const ENZYMEV4_VAULT_PROXY_ADDRESS = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
 const ENZYME_FUND_VALUE_CALCULATOR_ROUTER = '0x7c728cd0CfA92401E01A4849a01b57EE53F5b2b9';
 const COWSWAP_SETTLEMENT = '0x9008D19f58AAbD9eD0D60971565AA8510560ab41';
+const ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR = '0xCc72039A141c6e34a779eF93AEF5eB4C82A893c7';
 
 const V2Addresses = {
   SwapOperator: '0xcafea536d7f79F31Fa49bC40349f6a5F7E19D842',
@@ -47,6 +48,8 @@ describe('prevent switch or withdraw membership when tokens are locked', functio
     this.pool = await ethers.getContractAt('Pool', await this.master.getLatestAddress(toUtf8Bytes('P1')));
 
     this.enzymeVaultShares = await ethers.getContractAt('ERC20Mock', ENZYMEV4_VAULT_PROXY_ADDRESS);
+
+    this.enzymeSharesOracle = await ethers.getContractAt('Aggregator', ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR);
 
     const governanceAddress = await this.master.getLatestAddress(toUtf8Bytes('GV'));
 
@@ -100,8 +103,13 @@ describe('prevent switch or withdraw membership when tokens are locked', functio
 
     const swapAmount = shareAmount;
 
-    const minExpectedETHPercentage = 8581;
-    const minOut = shareAmount.mul(minExpectedETHPercentage).div(10000);
+    const latestAnswer = await this.enzymeSharesOracle.latestAnswer();
+
+    // Enzyme returns a few ethers under the oracle price currently
+    const errorMargin = parseEther('25');
+
+    const minOut = shareAmount.mul(latestAnswer).div(parseEther('1')).sub(errorMargin);
+
     await this.swapOperator.connect(swapController).swapEnzymeVaultShareForETH(swapAmount, minOut);
 
     const poolBalanceAfter = await ethers.provider.getBalance(this.pool.address);

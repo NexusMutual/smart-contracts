@@ -509,12 +509,23 @@ contract SwapOperator {
     // Validate there's no current cow swap order going on
     require(!orderInProgress(), "SwapOp: an order is already in place");
 
+    IPool pool = _pool();
+
+    if (assetAddress == ETH) {
+      uint ethBalance = address(this).balance;
+      require(ethBalance > 0, "SwapOp: Balance = 0");
+
+      // We assume ETH is always supported so we directly transfer it back to the Pool
+      (bool sent, ) = payable(address(pool)).call{value: ethBalance}("");
+      require(sent, "SwapOp: Failed to send Ether to pool");
+
+      return;
+    }
+
     IERC20 asset = IERC20(assetAddress);
 
     uint balance = asset.balanceOf(address(this));
     require(balance > 0, "SwapOp: Balance = 0");
-
-    IPool pool = _pool();
 
     SwapDetails memory swapDetails = pool.getAssetSwapDetails(assetAddress);
 

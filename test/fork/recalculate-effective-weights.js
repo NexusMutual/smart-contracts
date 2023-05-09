@@ -21,7 +21,7 @@ const {
   calculatePriceBump,
   divCeil,
 } = require('../unit/StakingPool/helpers');
-const { assetToNXM, NXMToAsset } = require('../integration/utils/assetPricing');
+const { assetToNXMAllocation, NXMToAssetAllocation } = require('../utils/assetPricing');
 const { verifyPoolWeights } = require('./staking-pool-utils');
 const { calculateFirstTrancheId } = require('../integration/utils/staking');
 const evm = require('./evm')();
@@ -124,7 +124,7 @@ describe('recalculateEffectiveWeight', function () {
       }
 
       // convert cover amount to NXM for premium calculations
-      const amountInNXM = await assetToNXM(pool, amountETH, coverAsset, config);
+      const amountInNXM = await assetToNXMAllocation(pool, amountETH, coverAsset, config);
 
       // get cover product info and make sure not deprecated
       const { capacityReductionRatio, useFixedPrice, isDeprecated } = await cover.products(stakedProduct.productId);
@@ -183,7 +183,7 @@ describe('recalculateEffectiveWeight', function () {
         config,
       );
       const maxPremiumInNXM = basePremium.add(surgePremium).sub(surgePremiumSkipped);
-      const maxPremiumInAsset = await NXMToAsset(pool, maxPremiumInNXM, coverAsset, config);
+      const maxPremiumInAsset = await NXMToAssetAllocation(pool, maxPremiumInNXM, coverAsset, config);
 
       // approve cover asset to cover contract
       if (coverAsset !== ETH_ASSET_ID) {

@@ -1,6 +1,6 @@
 const { BigNumber } = require('ethers');
-const { roundUpToNearestAllocationUnit, divCeil } = require('../../unit/StakingPool/helpers');
-const { ETH_ASSET_ID } = require('./cover');
+const { roundUpToNearestAllocationUnit, divCeil } = require('../unit/StakingPool/helpers');
+const { ETH_ASSET_ID } = require('../integration/utils/cover');
 
 // Set assetToEthRate to 0 for ETH
 async function assetToEthWithPrecisionLoss(pool, coverAmountInAsset, assetToEthRate, config) {
@@ -25,7 +25,7 @@ async function assetToEthWithPrecisionLoss(pool, coverAmountInAsset, assetToEthR
 
   return coverAmountInNXM.mul(nxmEthPrice).div(config.ONE_NXM);
 }
-async function assetToNXM(pool, amountInAsset, assetID, config) {
+async function assetToNXMAllocation(pool, amountInAsset, assetID, config) {
   const nxmPriceInCoverAsset = BigNumber.from(await pool.getTokenPriceInAsset(assetID));
   const assetWithDecimals = BigNumber.from(amountInAsset).mul(config.ONE_NXM);
   const amountInNXMRaw = divCeil(assetWithDecimals, nxmPriceInCoverAsset);
@@ -33,7 +33,7 @@ async function assetToNXM(pool, amountInAsset, assetID, config) {
   return amountInNXM;
 }
 
-async function NXMToAsset(pool, amountInNXM, assetID, config) {
+async function NXMToAssetAllocation(pool, amountInNXM, assetID, config) {
   const nxmPriceInCoverAsset = BigNumber.from(await pool.getTokenPriceInAsset(assetID));
   const nxmWithDecimals = BigNumber.from(amountInNXM).mul(config.ONE_NXM);
   const amountInAssetRaw = divCeil(nxmWithDecimals, nxmPriceInCoverAsset);
@@ -42,7 +42,7 @@ async function NXMToAsset(pool, amountInNXM, assetID, config) {
 }
 
 // Converts amount in asset to NXM and back to asset with precision loss
-async function assetWithPrecisionLoss(pool, amountInAsset, assetID, config) {
+async function assetAmountUsedForAllocation(pool, amountInAsset, assetID, config) {
   const nxmPriceInCoverAsset = BigNumber.from(await pool.getTokenPriceInAsset(assetID));
   const nxmRoundedUp = BigNumber.from(amountInAsset).mul(config.ONE_NXM);
   const amountInNXMRaw = divCeil(nxmRoundedUp, nxmPriceInCoverAsset);
@@ -50,4 +50,9 @@ async function assetWithPrecisionLoss(pool, amountInAsset, assetID, config) {
   return amountInNXM.mul(nxmPriceInCoverAsset).div(config.ONE_NXM);
 }
 
-module.exports = { assetToEthWithPrecisionLoss, assetWithPrecisionLoss, assetToNXM, NXMToAsset };
+module.exports = {
+  assetToEthWithPrecisionLoss,
+  assetAmountUsedForAllocation,
+  assetToNXMAllocation,
+  NXMToAssetAllocation,
+};

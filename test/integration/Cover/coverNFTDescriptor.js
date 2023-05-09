@@ -5,7 +5,7 @@ const { parseEther, formatEther } = ethers.utils;
 const { AddressZero, MaxUint256, One } = ethers.constants;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/').evm;
-const { assetWithPrecisionLoss } = require('../utils/assetPricing');
+const { assetAmountUsedForAllocation } = require('../../utils/assetPricing');
 const { USDC_ASSET_ID, DAI_ASSET_ID, ETH_ASSET_ID } = require('../utils/cover');
 
 const JSON_HEADER = 'data:application/json;base64,';
@@ -160,7 +160,12 @@ describe('CoverNFTDescriptor', function () {
     expect(decodedJson.description).to.contain('ETH');
 
     // image
-    const expectedAmountWithPrecisionLoss = await assetWithPrecisionLoss(pool, this.amount, ETH_ASSET_ID, this.config);
+    const expectedAmountWithPrecisionLoss = await assetAmountUsedForAllocation(
+      pool,
+      this.amount,
+      ETH_ASSET_ID,
+      this.config,
+    );
     const expectedAmountRaw = formatEther(expectedAmountWithPrecisionLoss);
     const expectedAmount = Number(expectedAmountRaw).toFixed(2);
 
@@ -193,7 +198,7 @@ describe('CoverNFTDescriptor', function () {
     const uri = await coverNFT.tokenURI(3);
     expect(uri.slice(0, JSON_HEADER.length)).to.be.equal(JSON_HEADER);
 
-    let expectedAmountRaw = await assetWithPrecisionLoss(pool, this.usdcAmount, USDC_ASSET_ID, this.config);
+    let expectedAmountRaw = await assetAmountUsedForAllocation(pool, this.usdcAmount, USDC_ASSET_ID, this.config);
     expectedAmountRaw = ethers.utils.formatUnits(expectedAmountRaw, 6);
     const expectedAmount = Number(expectedAmountRaw).toFixed(2);
 

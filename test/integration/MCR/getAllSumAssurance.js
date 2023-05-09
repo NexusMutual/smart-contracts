@@ -4,7 +4,7 @@ const { buyCover, ETH_ASSET_ID, DAI_ASSET_ID } = require('../utils/cover');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { stake } = require('../utils/staking');
 const { setEtherBalance } = require('../../utils/evm');
-const { assetToEthWithPrecisionLoss } = require('../utils/assetPricing');
+const { assetToEthWithPrecisionLoss, assetAmountUsedForAllocation } = require('../../utils/assetPricing');
 const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
@@ -76,7 +76,7 @@ describe('getAllSumAssurance', function () {
       priceDenominator,
     });
     const totalAssurance = await mcr.getAllSumAssurance();
-    expect(totalAssurance).to.be.equal(await assetToEthWithPrecisionLoss(p1, coverBuyTemplate.amount, 0, this.config));
+    expect(totalAssurance).to.be.equal(await assetAmountUsedForAllocation(p1, coverBuyTemplate.amount, 0, this.config));
   });
 
   it('returns total value of DAI purchased cover', async function () {
@@ -134,7 +134,7 @@ describe('getAllSumAssurance', function () {
     }
 
     // calculate eth covers
-    const expectedEthAssurance = await assetToEthWithPrecisionLoss(p1, ethCoverTemplate.amount.mul(2), 0, this.config);
+    const expectedEthAssurance = await assetAmountUsedForAllocation(p1, ethCoverTemplate.amount.mul(2), 0, this.config);
 
     // calculate dai covers
     const expectedDaiAssurance = await assetToEthWithPrecisionLoss(

@@ -11,7 +11,8 @@ const networks = {
 
 if (process.env.TEST_ENV_FORK) {
   networks.hardhat.forking = { url: process.env.TEST_ENV_FORK };
-  networks.hardhat.forking.blockNumber = 17224530;
+  // Specify block number to cache mainnet state
+  // networks.hardhat.forking.blockNumber = 17224530;
 }
 
 const getenv = (network, key, fallback, parser = i => i) => {

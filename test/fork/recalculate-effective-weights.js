@@ -19,6 +19,7 @@ const {
   calculateBasePremium,
   calculateSurgePremium,
   calculatePriceBump,
+  divCeil,
 } = require('../unit/StakingPool/helpers');
 const { assetToNXM, NXMToAsset } = require('../integration/utils/assetPricing');
 const { verifyPoolWeights } = require('./staking-pool-utils');
@@ -147,6 +148,13 @@ describe('recalculateEffectiveWeight', function () {
       const totalCapacity = trancheCapacities.reduce((a, b) => a.add(b), BigNumber.from(0));
       const allocations = await stakingPool.getActiveAllocations(stakedProduct.productId);
       const initialCapacityUsed = allocations.reduce((a, b) => a.add(b), BigNumber.from(0));
+
+      const allocationAmount = divCeil(amountInNXM, config.NXM_PER_ALLOCATION_UNIT);
+
+      if (allocationAmount.add(initialCapacityUsed).gte(totalCapacity)) {
+        console.log('Pool ', poolId, 'doesnt have capacity for product ', stakedProduct.productId);
+        continue;
+      }
 
       const { timestamp: now } = await ethers.provider.getBlock('latest');
 

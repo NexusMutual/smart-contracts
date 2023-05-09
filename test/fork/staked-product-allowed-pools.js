@@ -3,7 +3,6 @@ const { expect } = require('chai');
 const { setEtherBalance } = require('../utils/evm');
 const { parseEther } = ethers.utils;
 const { V2Addresses, upgradeMultipleContracts, getConfig, getActiveProductsInPool } = require('./utils');
-
 const evm = require('./evm')();
 
 describe('Staked Product Allowed Pools', function () {
@@ -25,7 +24,9 @@ describe('Staked Product Allowed Pools', function () {
     this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', V2Addresses.StakingPoolFactory);
     this.cover = coverProxy;
     this.stakingProducts = await ethers.getContractAt('StakingProducts', V2Addresses.StakingProducts);
-    this.config = await getConfig.call(this);
+
+    const stakingPool2 = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(2));
+    this.config = await getConfig(coverProxy, stakingPool2, this.stakingProducts);
 
     // Submit governance proposal to update cover contract address
     this.abMembers = await upgradeMultipleContracts.call(this, { codes: ['CO'], addresses: [newCoverImpl] });
@@ -95,7 +96,8 @@ describe('Staked Product Allowed Pools', function () {
     const [poolId] = await cover.connect(member).callStatic.createStakingPool(true, 10, 10, [], 'ipfs hash');
 
     const nonExistingProduct = { productId: 999999, weight: 10, initialPrice: 100, targetPrice: 200 };
-    expect(await cover.isPoolAllowed(nonExistingProduct.productId, poolId)).to.be.equal(false);
+    // isPoolAllowed doesnt check for product existence
+    expect(await cover.isPoolAllowed(nonExistingProduct.productId, poolId)).to.be.equal(true);
 
     await expect(
       cover.connect(member).createStakingPool(
@@ -105,23 +107,20 @@ describe('Staked Product Allowed Pools', function () {
         [nonExistingProduct],
         'ipfs hash',
       ),
-    )
-      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
-      .withArgs(nonExistingProduct.productId);
+    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExist');
   });
 
-  it('should fail to deploy pool with a non existing product, called from pooled staking', async function () {
+  it('should fail to migrate pool from pooled staking', async function () {
     const { cover } = this;
+    const [member] = this.abMembers;
 
     const pooledStakingSigner = await ethers.getImpersonatedSigner(V2Addresses.LegacyPooledStaking);
     await setEtherBalance(V2Addresses.LegacyPooledStaking, parseEther('1000'));
 
-    const [poolId] = await cover
-      .connect(pooledStakingSigner)
-      .callStatic.createStakingPool(true, 10, 10, [], 'ipfs hash');
+    const [poolId] = await cover.connect(member).callStatic.createStakingPool(true, 10, 10, [], 'ipfs hash');
 
     const nonExistingProduct = { productId: 999999, weight: 10, initialPrice: 100, targetPrice: 200 };
-    expect(await cover.isPoolAllowed(nonExistingProduct.productId, poolId)).to.be.equal(false);
+    expect(await cover.isPoolAllowed(nonExistingProduct.productId, poolId)).to.be.equal(true);
 
     await expect(
       cover.connect(pooledStakingSigner).createStakingPool(
@@ -131,8 +130,6 @@ describe('Staked Product Allowed Pools', function () {
         [nonExistingProduct],
         'ipfs hash',
       ),
-    )
-      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
-      .withArgs(nonExistingProduct.productId);
+    ).to.be.revertedWith('Caller is not a member');
   });
 });

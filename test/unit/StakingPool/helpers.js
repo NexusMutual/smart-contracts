@@ -48,6 +48,7 @@ function calculateSurgePremiumPerYear(coverAmount, initialCapacity, totalCapacit
   const surgeStartPoint = totalCapacity.mul(config.SURGE_THRESHOLD_RATIO).div(config.SURGE_THRESHOLD_DENOMINATOR);
   const allocationAmount = divCeil(coverAmount, config.NXM_PER_ALLOCATION_UNIT);
   const finalCapacity = initialCapacity.add(allocationAmount);
+
   expect(finalCapacity).to.be.lte(totalCapacity, 'Allocation exceeds available capacity');
 
   if (finalCapacity.lte(surgeStartPoint)) {

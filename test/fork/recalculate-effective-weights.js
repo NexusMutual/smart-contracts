@@ -95,7 +95,7 @@ describe('recalculateEffectiveWeight', function () {
     // cover buy details
     const coverBuyer = this.hugh;
     const poolId = 2;
-    const amountETH = parseEther('1');
+    const amountETH = parseEther('.01');
     const period = daysToSeconds(45);
     const commissionRatio = 0;
 

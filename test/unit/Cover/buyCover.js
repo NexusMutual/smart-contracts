@@ -350,8 +350,8 @@ describe('buyCover', function () {
 
     await usdc.connect(coverBuyer).approve(cover.address, parseEther('100000'));
 
-    const daiBalanceBefore = await usdc.balanceOf(coverBuyer.address);
-    const commissionDaiBalanceBefore = await usdc.balanceOf(commissionReceiver.address);
+    const usdcBalanceBefore = await usdc.balanceOf(coverBuyer.address);
+    const commissionUsdcBalanceBefore = await usdc.balanceOf(commissionReceiver.address);
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -376,14 +376,14 @@ describe('buyCover', function () {
       .to.emit(usdc, 'Transfer') // Verify usdc is transferred to pool
       .withArgs(coverBuyer.address, pool.address, expectedPremium);
 
-    const daiBalanceAfter = await usdc.balanceOf(coverBuyer.address);
-    const commissionDaiBalanceAfter = await usdc.balanceOf(commissionReceiver.address);
+    const usdcBalanceAfter = await usdc.balanceOf(coverBuyer.address);
+    const commissionUsdcBalanceAfter = await usdc.balanceOf(commissionReceiver.address);
 
-    const difference = daiBalanceBefore.sub(daiBalanceAfter);
-    expect(difference).to.be.equal(expectedPremiumWithCommission);
+    const actualPremiumWithCommission = usdcBalanceBefore.sub(usdcBalanceAfter);
+    expect(actualPremiumWithCommission).to.be.equal(expectedPremiumWithCommission);
 
-    const commissionDifference = commissionDaiBalanceAfter.sub(commissionDaiBalanceBefore);
-    expect(commissionDifference).to.be.equal(expectedCommission);
+    const actualCommission = commissionUsdcBalanceAfter.sub(commissionUsdcBalanceBefore);
+    expect(actualCommission).to.be.equal(expectedCommission);
 
     const coverId = await cover.coverDataCount();
     await assertCoverFields(cover, coverId, {
@@ -796,12 +796,18 @@ describe('buyCover', function () {
     const { cover } = this;
     const [coverBuyer] = this.accounts.members;
     const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator } = buyCoverFixture;
+    const commissionRatio = '500'; // 5%
+
     const expectedPremium = amount
       .mul(targetPriceRatio)
       .div(priceDenominator)
       .mul(period)
       .div(3600 * 24 * 365);
-    const maxPremiumInAsset = expectedPremium.div(2);
+
+    const expectedPremiumWithCommission = expectedPremium
+      .mul(priceDenominator)
+      .div(priceDenominator.sub(commissionRatio));
+
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
@@ -811,16 +817,111 @@ describe('buyCover', function () {
           coverAsset,
           amount,
           period,
-          maxPremiumInAsset,
+          maxPremiumInAsset: expectedPremiumWithCommission.sub(1),
           paymentAsset: coverAsset,
-          commissionRatio: parseEther('0'),
+          commissionRatio,
           commissionDestination: AddressZero,
           ipfsData: '',
         },
         poolAllocationRequest,
-        { value: expectedPremium },
+        { value: expectedPremiumWithCommission },
       ),
     ).to.be.revertedWithCustomError(cover, 'PriceExceedsMaxPremiumInAsset');
+
+    const balanceBefore = await ethers.provider.getBalance(await coverBuyer.getAddress());
+
+    const tx = await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremiumWithCommission,
+        paymentAsset: coverAsset,
+        commissionRatio,
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      poolAllocationRequest,
+      { value: expectedPremiumWithCommission },
+    );
+    const { gasUsed, effectiveGasPrice } = await tx.wait();
+    const balanceAfter = await ethers.provider.getBalance(await coverBuyer.getAddress());
+    expect(balanceBefore.sub(balanceAfter).sub(gasUsed.mul(effectiveGasPrice))).to.be.equal(
+      expectedPremiumWithCommission,
+    );
+  });
+
+  it('reverts if calculated premium is bigger than maxPremiumInAsset when buying with NXM', async function () {
+    const { cover, nxm, tokenController } = this;
+    const [coverBuyer, stakingPoolManager] = this.accounts.members;
+    const { amount, targetPriceRatio, productId, coverAsset, period, priceDenominator } = buyCoverFixture;
+    const commissionRatio = '500'; // 5%
+
+    const expectedPremium = amount
+      .mul(targetPriceRatio)
+      .div(priceDenominator)
+      .mul(period)
+      .div(3600 * 24 * 365);
+
+    const expectedPremiumWithCommission = expectedPremium
+      .mul(priceDenominator)
+      .div(priceDenominator.sub(commissionRatio));
+
+    await nxm.mint(coverBuyer.address, parseEther('100000'));
+    await nxm.connect(coverBuyer).approve(tokenController.address, parseEther('100000'));
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: 0,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: expectedPremiumWithCommission.sub(1),
+          paymentAsset: NXM_ASSET_ID,
+          commissionRatio,
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        poolAllocationRequest,
+        { value: '0' },
+      ),
+    ).to.be.revertedWithCustomError(cover, 'PriceExceedsMaxPremiumInAsset');
+
+    const nxmBalanceBefore = await nxm.balanceOf(coverBuyer.address);
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: 0,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: expectedPremiumWithCommission,
+          paymentAsset: NXM_ASSET_ID,
+          payWithNXM: true,
+          commissionRatio,
+          commissionDestination: stakingPoolManager.address,
+          ipfsData: '',
+        },
+        poolAllocationRequest,
+        { value: '0' },
+      ),
+    )
+      .to.emit(nxm, 'Transfer')
+      .withArgs(coverBuyer.address, AddressZero, expectedPremium);
+
+    const nxmBalanceAfter = await nxm.balanceOf(coverBuyer.address);
+
+    const difference = nxmBalanceBefore.sub(nxmBalanceAfter);
+    expect(difference).to.be.equal(expectedPremiumWithCommission);
   });
 
   it('reverts if empty array of allocationRequests', async function () {

@@ -111,7 +111,6 @@ describe('Migrated claims', function () {
   before(async function () {
     // Initialize evm helper
     await evm.connect(ethers.provider);
-    await getSigner('0x1eE3ECa7aEF17D1e74eD7C447CcBA61aC76aDbA9');
 
     // Get or revert snapshot if network is tenderly
     if (network.name === 'tenderly') {

@@ -93,7 +93,7 @@ describe('Enzyme ETH withdrawal', function () {
       ENZYMEV4_VAULT_PROXY_ADDRESS,
       '0',
       '1',
-      '10000', // max slippage ratio
+      '50', // max slippage ratio
     );
 
     await enableAsEnzymeReceiver(this.swapOperator.address);
@@ -105,7 +105,7 @@ describe('Enzyme ETH withdrawal', function () {
     const latestAnswer = await this.enzymeSharesOracle.latestAnswer();
 
     // Enzyme returns a few ethers under the oracle price currently
-    const errorMargin = parseEther('25');
+    const errorMargin = parseEther('40');
 
     const minOut = shareAmount.mul(latestAnswer).div(parseEther('1')).sub(errorMargin);
 

@@ -513,7 +513,7 @@ contract SwapOperator {
 
     if (assetAddress == ETH) {
       uint ethBalance = address(this).balance;
-      require(ethBalance > 0, "SwapOp: Balance = 0");
+      require(ethBalance > 0, "SwapOp: ETH balance to recover is 0");
 
       // We assume ETH is always supported so we directly transfer it back to the Pool
       (bool sent, ) = payable(address(pool)).call{value: ethBalance}("");

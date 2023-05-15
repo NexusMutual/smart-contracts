@@ -230,6 +230,7 @@ interface ICover {
   error ProductDoesntExist();
   error ProductTypeNotFound();
   error ProductDeprecated();
+  error ProductDoesntExistOrIsDeprecated();
   error InvalidProductType();
   error UnexpectedProductId();
   error PoolNotAllowedForThisProduct(uint productId);
@@ -240,6 +241,7 @@ interface ICover {
   error UnexpectedCoverAsset();
   error UnsupportedCoverAssets();
   error UnexpectedEthSent();
+  error EditNotSupported();
 
   // Price & Commission
   error PriceExceedsMaxPremiumInAsset();

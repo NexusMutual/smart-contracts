@@ -408,15 +408,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     IPool _pool = pool();
     uint premiumInPaymentAsset = nxmPriceInCoverAsset * premiumInNxm / ONE_NXM;
     uint commission = (premiumInPaymentAsset * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio)) - premiumInPaymentAsset;
+    uint premiumWithCommission = premiumInPaymentAsset + commission;
 
-    if (premiumInPaymentAsset + commission > maxPremiumInAsset) {
+    if (premiumWithCommission > maxPremiumInAsset) {
       revert PriceExceedsMaxPremiumInAsset();
     }
 
     // ETH payment
     if (paymentAsset == ETH_ASSET_ID) {
 
-      uint premiumWithCommission = premiumInPaymentAsset + commission;
       if (msg.value < premiumWithCommission) {
         revert InsufficientEthSent();
       }

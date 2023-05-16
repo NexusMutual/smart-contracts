@@ -1,0 +1,700 @@
+[
+  {
+    "type": "constructor",
+    "payable": false,
+    "inputs": [
+      {
+        "type": "address",
+        "name": "nxmAddress"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "FraudProcessed",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "assessmentId",
+        "indexed": false
+      },
+      {
+        "type": "address",
+        "name": "assessor",
+        "indexed": false
+      },
+      {
+        "type": "tuple",
+        "name": "poll",
+        "indexed": false,
+        "components": [
+          {
+            "type": "uint96",
+            "name": "accepted"
+          },
+          {
+            "type": "uint96",
+            "name": "denied"
+          },
+          {
+            "type": "uint32",
+            "name": "start"
+          },
+          {
+            "type": "uint32",
+            "name": "end"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "FraudSubmitted",
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "root",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "RewardWithdrawn",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "user",
+        "indexed": false
+      },
+      {
+        "type": "address",
+        "name": "to",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "StakeDeposited",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "user",
+        "indexed": false
+      },
+      {
+        "type": "uint104",
+        "name": "amount",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "StakeWithdrawn",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "user",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "to",
+        "indexed": false
+      },
+      {
+        "type": "uint96",
+        "name": "amount",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "VoteCast",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "user",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "assessmentId",
+        "indexed": false
+      },
+      {
+        "type": "uint96",
+        "name": "stakedAmount",
+        "indexed": false
+      },
+      {
+        "type": "bool",
+        "name": "accepted",
+        "indexed": false
+      },
+      {
+        "type": "string",
+        "name": "ipfsAssessmentDataHash",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "assessments",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "tuple",
+        "name": "poll",
+        "components": [
+          {
+            "type": "uint96",
+            "name": "accepted"
+          },
+          {
+            "type": "uint96",
+            "name": "denied"
+          },
+          {
+            "type": "uint32",
+            "name": "start"
+          },
+          {
+            "type": "uint32",
+            "name": "end"
+          }
+        ]
+      },
+      {
+        "type": "uint128",
+        "name": "totalRewardInNXM"
+      },
+      {
+        "type": "uint128",
+        "name": "assessmentDepositInETH"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "castVotes",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256[]",
+        "name": "assessmentIds"
+      },
+      {
+        "type": "bool[]",
+        "name": "votes"
+      },
+      {
+        "type": "string[]",
+        "name": "ipfsAssessmentDataHashes"
+      },
+      {
+        "type": "uint96",
+        "name": "stakeIncrease"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "changeDependentContractAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "changeMasterAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "masterAddress"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "config",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint8",
+        "name": "minVotingPeriodInDays"
+      },
+      {
+        "type": "uint8",
+        "name": "stakeLockupPeriodInDays"
+      },
+      {
+        "type": "uint8",
+        "name": "payoutCooldownInDays"
+      },
+      {
+        "type": "uint8",
+        "name": "silentEndingPeriodInDays"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "fraudResolution",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getAssessmentsCount",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getPoll",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "assessmentId"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "tuple",
+        "components": [
+          {
+            "type": "uint96",
+            "name": "accepted"
+          },
+          {
+            "type": "uint96",
+            "name": "denied"
+          },
+          {
+            "type": "uint32",
+            "name": "start"
+          },
+          {
+            "type": "uint32",
+            "name": "end"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getRewards",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "staker"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "totalPendingAmountInNXM"
+      },
+      {
+        "type": "uint256",
+        "name": "withdrawableAmountInNXM"
+      },
+      {
+        "type": "uint256",
+        "name": "withdrawableUntilIndex"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getVoteCountOfAssessor",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "assessor"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "hasAlreadyVotedOn",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "internalContracts",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "master",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "nxm",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "processFraud",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "rootIndex"
+      },
+      {
+        "type": "bytes32[]",
+        "name": "proof"
+      },
+      {
+        "type": "address",
+        "name": "assessor"
+      },
+      {
+        "type": "uint256",
+        "name": "lastFraudulentVoteIndex"
+      },
+      {
+        "type": "uint96",
+        "name": "burnAmount"
+      },
+      {
+        "type": "uint16",
+        "name": "fraudCount"
+      },
+      {
+        "type": "uint256",
+        "name": "voteBatchSize"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "stake",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint96",
+        "name": "amount"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "stakeOf",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint96",
+        "name": "amount"
+      },
+      {
+        "type": "uint104",
+        "name": "rewardsWithdrawableFromIndex"
+      },
+      {
+        "type": "uint16",
+        "name": "fraudCount"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "startAssessment",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "totalAssessmentReward"
+      },
+      {
+        "type": "uint256",
+        "name": "assessmentDepositInETH"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "submitFraud",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "root"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "unstake",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint96",
+        "name": "amount"
+      },
+      {
+        "type": "address",
+        "name": "to"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "updateUintParameters",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint8[]",
+        "name": "paramNames"
+      },
+      {
+        "type": "uint256[]",
+        "name": "values"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "votesOf",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint80",
+        "name": "assessmentId"
+      },
+      {
+        "type": "bool",
+        "name": "accepted"
+      },
+      {
+        "type": "uint32",
+        "name": "timestamp"
+      },
+      {
+        "type": "uint96",
+        "name": "stakedAmount"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "withdrawRewards",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "staker"
+      },
+      {
+        "type": "uint104",
+        "name": "batchSize"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "withdrawn"
+      },
+      {
+        "type": "uint256",
+        "name": "withdrawnUntilIndex"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "withdrawRewardsTo",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "destination"
+      },
+      {
+        "type": "uint104",
+        "name": "batchSize"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "withdrawn"
+      },
+      {
+        "type": "uint256",
+        "name": "withdrawnUntilIndex"
+      }
+    ]
+  }
+]

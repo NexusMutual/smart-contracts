@@ -1,0 +1,528 @@
+[
+  {
+    "type": "constructor",
+    "payable": false,
+    "inputs": [
+      {
+        "type": "address",
+        "name": "nxmAddress"
+      },
+      {
+        "type": "address",
+        "name": "coverNFTAddress"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "ClaimPayoutRedeemed",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "user",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "claimId",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "coverId",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "ClaimSubmitted",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "user",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "claimId",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "coverId",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "productId",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "MetadataSubmitted",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "claimId",
+        "indexed": true
+      },
+      {
+        "type": "string",
+        "name": "ipfsMetadata",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "changeDependentContractAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "changeMasterAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "masterAddress"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "claims",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint80",
+        "name": "assessmentId"
+      },
+      {
+        "type": "uint32",
+        "name": "coverId"
+      },
+      {
+        "type": "uint16",
+        "name": "segmentId"
+      },
+      {
+        "type": "uint96",
+        "name": "amount"
+      },
+      {
+        "type": "uint8",
+        "name": "coverAsset"
+      },
+      {
+        "type": "bool",
+        "name": "payoutRedeemed"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "config",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint8",
+        "name": "payoutRedemptionPeriodInDays"
+      },
+      {
+        "type": "uint16",
+        "name": "minAssessmentDepositRatio"
+      },
+      {
+        "type": "uint16",
+        "name": "maxRewardInNXMWad"
+      },
+      {
+        "type": "uint16",
+        "name": "rewardRatio"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "coverNFT",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getAssessmentDepositAndReward",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "requestedAmount"
+      },
+      {
+        "type": "uint256",
+        "name": "segmentPeriod"
+      },
+      {
+        "type": "uint256",
+        "name": "coverAsset"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getClaimsCount",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getClaimsToDisplay",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256[]",
+        "name": "ids"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "tuple[]",
+        "components": [
+          {
+            "type": "uint256",
+            "name": "id"
+          },
+          {
+            "type": "uint256",
+            "name": "productId"
+          },
+          {
+            "type": "uint256",
+            "name": "coverId"
+          },
+          {
+            "type": "uint256",
+            "name": "assessmentId"
+          },
+          {
+            "type": "uint256",
+            "name": "amount"
+          },
+          {
+            "type": "string",
+            "name": "assetSymbol"
+          },
+          {
+            "type": "uint256",
+            "name": "assetIndex"
+          },
+          {
+            "type": "uint256",
+            "name": "coverStart"
+          },
+          {
+            "type": "uint256",
+            "name": "coverEnd"
+          },
+          {
+            "type": "uint256",
+            "name": "pollStart"
+          },
+          {
+            "type": "uint256",
+            "name": "pollEnd"
+          },
+          {
+            "type": "uint256",
+            "name": "claimStatus"
+          },
+          {
+            "type": "uint256",
+            "name": "payoutStatus"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "internalContracts",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "lastClaimSubmissionOnCover",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint80",
+        "name": "claimId"
+      },
+      {
+        "type": "bool",
+        "name": "exists"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "master",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "nxm",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "redeemClaimPayout",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint104",
+        "name": "claimId"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "submitClaim",
+    "constant": false,
+    "stateMutability": "payable",
+    "payable": true,
+    
+    "inputs": [
+      {
+        "type": "uint32",
+        "name": "coverId"
+      },
+      {
+        "type": "uint16",
+        "name": "segmentId"
+      },
+      {
+        "type": "uint96",
+        "name": "requestedAmount"
+      },
+      {
+        "type": "string",
+        "name": "ipfsMetadata"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "tuple",
+        "name": "claim",
+        "components": [
+          {
+            "type": "uint80",
+            "name": "assessmentId"
+          },
+          {
+            "type": "uint32",
+            "name": "coverId"
+          },
+          {
+            "type": "uint16",
+            "name": "segmentId"
+          },
+          {
+            "type": "uint96",
+            "name": "amount"
+          },
+          {
+            "type": "uint8",
+            "name": "coverAsset"
+          },
+          {
+            "type": "bool",
+            "name": "payoutRedeemed"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "submitClaimFor",
+    "constant": false,
+    "stateMutability": "payable",
+    "payable": true,
+    
+    "inputs": [
+      {
+        "type": "uint32",
+        "name": "coverId"
+      },
+      {
+        "type": "uint16",
+        "name": "segmentId"
+      },
+      {
+        "type": "uint96",
+        "name": "requestedAmount"
+      },
+      {
+        "type": "string",
+        "name": "ipfsMetadata"
+      },
+      {
+        "type": "address",
+        "name": "owner"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "tuple",
+        "name": "claim",
+        "components": [
+          {
+            "type": "uint80",
+            "name": "assessmentId"
+          },
+          {
+            "type": "uint32",
+            "name": "coverId"
+          },
+          {
+            "type": "uint16",
+            "name": "segmentId"
+          },
+          {
+            "type": "uint96",
+            "name": "amount"
+          },
+          {
+            "type": "uint8",
+            "name": "coverAsset"
+          },
+          {
+            "type": "bool",
+            "name": "payoutRedeemed"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "updateUintParameters",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint8[]",
+        "name": "paramNames"
+      },
+      {
+        "type": "uint256[]",
+        "name": "values"
+      }
+    ],
+    "outputs": []
+  }
+]

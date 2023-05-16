@@ -1,0 +1,326 @@
+[
+  {
+    "type": "constructor",
+    "payable": false,
+    "inputs": [
+      {
+        "type": "address",
+        "name": "masterAddress"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "MCRUpdated",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "mcr",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "desiredMCR",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "mcrFloor",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "mcrETHWithGear",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "totalSumAssured",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "changeDependentContractAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "changeMasterAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "masterAddress"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "desiredMCR",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint112"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "gearingFactor",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint24"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getAllSumAssurance",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getGearedMCR",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getMCR",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "internalContracts",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "lastUpdateTime",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint32"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "master",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "maxMCRFloorIncrement",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint24"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "maxMCRIncrement",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint24"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "mcr",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint112"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "mcrFloor",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint112"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "mcrFloorIncrementThreshold",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint24"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "minUpdateTime",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint24"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "previousMCR",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "updateMCR",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "updateMCRInternal",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "poolValueInEth"
+      },
+      {
+        "type": "bool",
+        "name": "forceUpdate"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "updateUintParameters",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes8",
+        "name": "code"
+      },
+      {
+        "type": "uint256",
+        "name": "val"
+      }
+    ],
+    "outputs": []
+  }
+]

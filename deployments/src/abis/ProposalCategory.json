@@ -1,0 +1,550 @@
+[
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "Category",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "categoryId",
+        "indexed": true
+      },
+      {
+        "type": "string",
+        "name": "categoryName",
+        "indexed": false
+      },
+      {
+        "type": "string",
+        "name": "actionHash",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "addCategory",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "string",
+        "name": "_name"
+      },
+      {
+        "type": "uint256",
+        "name": "_memberRoleToVote"
+      },
+      {
+        "type": "uint256",
+        "name": "_majorityVotePerc"
+      },
+      {
+        "type": "uint256",
+        "name": "_quorumPerc"
+      },
+      {
+        "type": "uint256[]",
+        "name": "_allowedToCreateProposal"
+      },
+      {
+        "type": "uint256",
+        "name": "_closingTime"
+      },
+      {
+        "type": "string",
+        "name": "_actionHash"
+      },
+      {
+        "type": "address",
+        "name": "_contractAddress"
+      },
+      {
+        "type": "bytes2",
+        "name": "_contractName"
+      },
+      {
+        "type": "uint256[]",
+        "name": "_incentives"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "category",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_categoryId"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256[]"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "categoryABReq",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "categoryAction",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_categoryId"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "address"
+      },
+      {
+        "type": "bytes2"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "categoryActionDetails",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_categoryId"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "address"
+      },
+      {
+        "type": "bytes2"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "bytes"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "categoryActionHashUpdated",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "categoryActionHashes",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bytes"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "categoryExtendedData",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_categoryId"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "changeDependentContractAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "changeMasterAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_masterAddress"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "constructorCheck",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "editCategory",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_categoryId"
+      },
+      {
+        "type": "string",
+        "name": "_name"
+      },
+      {
+        "type": "uint256",
+        "name": "_memberRoleToVote"
+      },
+      {
+        "type": "uint256",
+        "name": "_majorityVotePerc"
+      },
+      {
+        "type": "uint256",
+        "name": "_quorumPerc"
+      },
+      {
+        "type": "uint256[]",
+        "name": "_allowedToCreateProposal"
+      },
+      {
+        "type": "uint256",
+        "name": "_closingTime"
+      },
+      {
+        "type": "string",
+        "name": "_actionHash"
+      },
+      {
+        "type": "address",
+        "name": "_contractAddress"
+      },
+      {
+        "type": "bytes2",
+        "name": "_contractName"
+      },
+      {
+        "type": "uint256[]",
+        "name": "_incentives"
+      },
+      {
+        "type": "string",
+        "name": "_functionHash"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "isAuthorizedToGovern",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_toCheck"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "isSpecialResolution",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "masterAddress",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "ms",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "newCategory",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "string",
+        "name": "_name"
+      },
+      {
+        "type": "uint256",
+        "name": "_memberRoleToVote"
+      },
+      {
+        "type": "uint256",
+        "name": "_majorityVotePerc"
+      },
+      {
+        "type": "uint256",
+        "name": "_quorumPerc"
+      },
+      {
+        "type": "uint256[]",
+        "name": "_allowedToCreateProposal"
+      },
+      {
+        "type": "uint256",
+        "name": "_closingTime"
+      },
+      {
+        "type": "string",
+        "name": "_actionHash"
+      },
+      {
+        "type": "address",
+        "name": "_contractAddress"
+      },
+      {
+        "type": "bytes2",
+        "name": "_contractName"
+      },
+      {
+        "type": "uint256[]",
+        "name": "_incentives"
+      },
+      {
+        "type": "string",
+        "name": "_functionHash"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "nxMasterAddress",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "proposalCategoryInitiate",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "totalCategories",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "updateCategory",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_categoryId"
+      },
+      {
+        "type": "string",
+        "name": "_name"
+      },
+      {
+        "type": "uint256",
+        "name": "_memberRoleToVote"
+      },
+      {
+        "type": "uint256",
+        "name": "_majorityVotePerc"
+      },
+      {
+        "type": "uint256",
+        "name": "_quorumPerc"
+      },
+      {
+        "type": "uint256[]",
+        "name": "_allowedToCreateProposal"
+      },
+      {
+        "type": "uint256",
+        "name": "_closingTime"
+      },
+      {
+        "type": "string",
+        "name": "_actionHash"
+      },
+      {
+        "type": "address",
+        "name": "_contractAddress"
+      },
+      {
+        "type": "bytes2",
+        "name": "_contractName"
+      },
+      {
+        "type": "uint256[]",
+        "name": "_incentives"
+      }
+    ],
+    "outputs": []
+  }
+]

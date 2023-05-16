@@ -1,0 +1,1121 @@
+[
+  {
+    "type": "constructor",
+    "payable": false,
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_authQuoteAdd"
+      },
+      {
+        "type": "address",
+        "name": "_kycAuthAdd"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "CoverDetailsEvent",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "cid",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "scAdd",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "sumAssured",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "expiry",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "premium",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "premiumNXM",
+        "indexed": false
+      },
+      {
+        "type": "bytes4",
+        "name": "curr",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "CoverStatusEvent",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "cid",
+        "indexed": true
+      },
+      {
+        "type": "uint8",
+        "name": "statusNum",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "addCover",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint16",
+        "name": "_coverPeriod"
+      },
+      {
+        "type": "uint256",
+        "name": "_sumAssured"
+      },
+      {
+        "type": "address",
+        "name": "_userAddress"
+      },
+      {
+        "type": "bytes4",
+        "name": "_currencyCode"
+      },
+      {
+        "type": "address",
+        "name": "_scAddress"
+      },
+      {
+        "type": "uint256",
+        "name": "premium"
+      },
+      {
+        "type": "uint256",
+        "name": "premiumNXM"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "addHoldCover",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "from"
+      },
+      {
+        "type": "address",
+        "name": "scAddress"
+      },
+      {
+        "type": "bytes4",
+        "name": "coverCurr"
+      },
+      {
+        "type": "uint256[]",
+        "name": "coverDetails"
+      },
+      {
+        "type": "uint16",
+        "name": "coverPeriod"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "addInTotalSumAssured",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes4",
+        "name": "_curr"
+      },
+      {
+        "type": "uint256",
+        "name": "_amount"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "addInTotalSumAssuredSC",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_add"
+      },
+      {
+        "type": "bytes4",
+        "name": "_curr"
+      },
+      {
+        "type": "uint256",
+        "name": "_amount"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "addV1Cover",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint16",
+        "name": "_coverPeriod"
+      },
+      {
+        "type": "uint256",
+        "name": "_sumAssured"
+      },
+      {
+        "type": "address",
+        "name": "_userAddress"
+      },
+      {
+        "type": "bytes4",
+        "name": "_currencyCode"
+      },
+      {
+        "type": "address",
+        "name": "_scAddress"
+      },
+      {
+        "type": "uint256",
+        "name": "premium"
+      },
+      {
+        "type": "uint256",
+        "name": "premiumNXM"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "authQuoteEngine",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "changeAuthQuoteEngine",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_add"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "changeCoverStatusNo",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_cid"
+      },
+      {
+        "type": "uint8",
+        "name": "_stat"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "changeDependentContractAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "changeMasterAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_masterAddress"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "coverStatus",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint8"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getAllCoversOfUser",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_add"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256[]",
+        "name": "allCover"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getAuthQuoteEngine",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address",
+        "name": "_add"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getCoverDetailsByCoverID1",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_cid"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "cid"
+      },
+      {
+        "type": "address",
+        "name": "_memberAddress"
+      },
+      {
+        "type": "address",
+        "name": "_scAddress"
+      },
+      {
+        "type": "bytes4",
+        "name": "_currencyCode"
+      },
+      {
+        "type": "uint256",
+        "name": "_sumAssured"
+      },
+      {
+        "type": "uint256",
+        "name": "premiumNXM"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getCoverDetailsByCoverID2",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_cid"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "cid"
+      },
+      {
+        "type": "uint8",
+        "name": "status"
+      },
+      {
+        "type": "uint256",
+        "name": "sumAssured"
+      },
+      {
+        "type": "uint16",
+        "name": "coverPeriod"
+      },
+      {
+        "type": "uint256",
+        "name": "validUntil"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getCoverLength",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "len"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getCoverMemberAddress",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_cid"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address",
+        "name": "_add"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getCoverPeriod",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_cid"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint32",
+        "name": "cp"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getCoverPremiumNXM",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_cid"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "_premiumNXM"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getCoverStatusNo",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_cid"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint8"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getCoverSumAssured",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_cid"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "sa"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getCurrencyOfCover",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_cid"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bytes4",
+        "name": "curr"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getHoldedCoverDetailsByID1",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_hcid"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "hcid"
+      },
+      {
+        "type": "address",
+        "name": "scAddress"
+      },
+      {
+        "type": "bytes4",
+        "name": "coverCurr"
+      },
+      {
+        "type": "uint16",
+        "name": "coverPeriod"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getHoldedCoverDetailsByID2",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_hcid"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "hcid"
+      },
+      {
+        "type": "address",
+        "name": "memberAddress"
+      },
+      {
+        "type": "uint256[]",
+        "name": "coverDetails"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getProductDetails",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "_minDays"
+      },
+      {
+        "type": "uint256",
+        "name": "_pm"
+      },
+      {
+        "type": "uint256",
+        "name": "_stl"
+      },
+      {
+        "type": "uint256",
+        "name": "_stlp"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getTotalSumAssured",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes4",
+        "name": "_curr"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "amount"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getTotalSumAssuredSC",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_add"
+      },
+      {
+        "type": "bytes4",
+        "name": "_curr"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "amount"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getUintParameters",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes8",
+        "name": "code"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bytes8",
+        "name": "codeVal"
+      },
+      {
+        "type": "uint256",
+        "name": "val"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getUserCoverLength",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_add"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "len"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getUserHoldedCoverByIndex",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_add"
+      },
+      {
+        "type": "uint256",
+        "name": "index"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getUserHoldedCoverLength",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_add"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getValidityOfCover",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_cid"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "date"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getscAddressOfCover",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_cid"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "holdedCoverIDStatus",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "kycAuthAddress",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "minDays",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "ms",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "nxMasterAddress",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "pm",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "refundEligible",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "setHoldedCoverIDStatus",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "holdedCoverID"
+      },
+      {
+        "type": "uint256",
+        "name": "status"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "setKycAuthAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_add"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "setRefundEligible",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_add"
+      },
+      {
+        "type": "bool",
+        "name": "status"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "setTimestampRepeated",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_timestamp"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "stl",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "stlp",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "subFromTotalSumAssured",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes4",
+        "name": "_curr"
+      },
+      {
+        "type": "uint256",
+        "name": "_amount"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "subFromTotalSumAssuredSC",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_add"
+      },
+      {
+        "type": "bytes4",
+        "name": "_curr"
+      },
+      {
+        "type": "uint256",
+        "name": "_amount"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "timestampRepeated",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "tokensRetained",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "updateUintParameters",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes8",
+        "name": "code"
+      },
+      {
+        "type": "uint256",
+        "name": "val"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "userHoldedCover",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  }
+]

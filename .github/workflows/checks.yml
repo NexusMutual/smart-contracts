@@ -1,8 +1,7 @@
-name: pull-request
+name: Checks
 
 on:
-  pull_request:
-    types: [opened, synchronize]
+  push
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

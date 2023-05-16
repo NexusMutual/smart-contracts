@@ -8,8 +8,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  CACHE_KEY: ${{ vars.CACHE_KEY }} # Change to bust caches
   NODE_VERSION: '18'
-  CACHE_KEY: ${{ secrets.CACHE_KEY }} # Change to bust caches
+  NODE_OPTIONS: ${{ vars.NODE_OPTIONS }}
+  ENABLE_OPTIMIZER: ${{ vars.ENABLE_OPTIMIZER }}
 
 jobs:
 
@@ -72,6 +74,8 @@ jobs:
   coverage:
     runs-on: ubuntu-22.04
     needs: setup
+    env:
+      COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3

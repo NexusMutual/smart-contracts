@@ -1,0 +1,86 @@
+name: pull-request
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '18'
+  CACHE_KEY: ${{ secrets.CACHE_KEY }} # Change to bust caches
+
+jobs:
+
+  setup:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          path: node_modules
+          key: node-${{ env.NODE_VERSION }}-${{ runner.os }}-node-modules-${{ env.CACHE_KEY }}-${{ hashFiles('package-lock.json') }}
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+
+  lint:
+    runs-on: ubuntu-22.04
+    needs: setup
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          path: node_modules
+          key: node-${{ env.NODE_VERSION }}-${{ runner.os }}-node-modules-${{ env.CACHE_KEY }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Lint
+        run: npm run lint
+
+  test:
+    runs-on: ubuntu-22.04
+    needs: setup
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          path: node_modules
+          key: node-${{ env.NODE_VERSION }}-${{ runner.os }}-node-modules-${{ env.CACHE_KEY }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Test
+        run: npm test
+
+  coverage:
+    runs-on: ubuntu-22.04
+    needs: setup
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          path: node_modules
+          key: node-${{ env.NODE_VERSION }}-${{ runner.os }}-node-modules-${{ env.CACHE_KEY }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Test
+        run: npm run coverage && cat coverage/lcov.info | npx coveralls

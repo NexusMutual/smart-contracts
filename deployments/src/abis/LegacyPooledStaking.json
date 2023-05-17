@@ -1,0 +1,1320 @@
+[
+  {
+    "type": "constructor",
+    "payable": false,
+    "inputs": [
+      {
+        "type": "address",
+        "name": "coverAddress"
+      },
+      {
+        "type": "address",
+        "name": "productsV1Address"
+      },
+      {
+        "type": "address",
+        "name": "stakingNFTAddress"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "BurnRequested",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "contractAddress",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "Burned",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "contractAddress",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "contractStakeBeforeBurn",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "Deposited",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "staker",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "PendingActionsProcessed",
+    "inputs": [
+      {
+        "type": "bool",
+        "name": "finished",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "ProductNotFound",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "oldProductId",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "RewardAdded",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "contractAddress",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "RewardRequested",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "contractAddress",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "RewardWithdrawn",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "staker",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "Rewarded",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "contractAddress",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "contractStake",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "Staked",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "contractAddress",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "staker",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "UnstakeRequested",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "contractAddress",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "staker",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "unstakeAt",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "Unstaked",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "contractAddress",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "staker",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "Withdrawn",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "staker",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "MAX_EXPOSURE",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "MIN_STAKE",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "MIN_UNSTAKE",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "REWARD_ROUNDS_START",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "REWARD_ROUND_DURATION",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "UNSTAKE_LOCK_TIME",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "_processPendingActions",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "maxIterations"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool",
+        "name": "finished"
+      },
+      {
+        "type": "uint256",
+        "name": "iterationsLeft"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "accumulateReward",
+    "constant": true,
+    "stateMutability": "pure",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "accumulatedRewards",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "amount"
+      },
+      {
+        "type": "uint256",
+        "name": "lastDistributionRound"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "burn",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "amount"
+      },
+      {
+        "type": "uint256",
+        "name": "burnedAt"
+      },
+      {
+        "type": "address",
+        "name": "contractAddress"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "changeDependentContractAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "changeMasterAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "masterAddress"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "contractBurned",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "contractRewarded",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "contractStake",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "contractAddress"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "contractStaked",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "contractStakerAtIndex",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "contractAddress"
+      },
+      {
+        "type": "uint256",
+        "name": "stakerIndex"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "contractStakerCount",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "contractAddress"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "contractStakers",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "contractStakersArray",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "contractAddress"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address[]",
+        "name": "_stakers"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "cover",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "depositAndStake",
+    "constant": true,
+    "stateMutability": "pure",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "address[]"
+      },
+      {
+        "type": "uint256[]"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "firstReward",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getCurrentRewardsRound",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getV1PriceForProduct",
+    "constant": true,
+    "stateMutability": "pure",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "id"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint96"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "hasPendingActions",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "hasPendingBurns",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "hasPendingRewards",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "hasPendingUnstakeRequests",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "internalContracts",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "isContractStakeCalculated",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "lastRewardId",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "lastUnstakeRequestId",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "master",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "migrateToExistingV2Pool",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "stakingPoolId"
+      },
+      {
+        "type": "uint256",
+        "name": "trancheId"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "migrateToNewV2Pool",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "stakerAddress"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "processPendingActions",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "maxIterations"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool",
+        "name": "finished"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "processPendingActionsReturnLeft",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "maxIterations"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool",
+        "name": "finished"
+      },
+      {
+        "type": "uint256",
+        "name": "iterationsLeft"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "processedToStakerIndex",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "productsV1",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "pushBurn",
+    "constant": true,
+    "stateMutability": "pure",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "pushRewards",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address[]",
+        "name": "contractAddresses"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "requestUnstake",
+    "constant": true,
+    "stateMutability": "pure",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address[]"
+      },
+      {
+        "type": "uint256[]"
+      },
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "rewards",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "amount"
+      },
+      {
+        "type": "uint256",
+        "name": "rewardedAt"
+      },
+      {
+        "type": "address",
+        "name": "contractAddress"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "stakerContractAtIndex",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "staker"
+      },
+      {
+        "type": "uint256",
+        "name": "contractIndex"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "stakerContractCount",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "staker"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "stakerContractPendingUnstakeTotal",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "staker"
+      },
+      {
+        "type": "address",
+        "name": "contractAddress"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "stakerContractStake",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "staker"
+      },
+      {
+        "type": "address",
+        "name": "contractAddress"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "stakerContractsArray",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "staker"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address[]"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "stakerDeposit",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "staker"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "stakerMaxWithdrawable",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "stakerAddress"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "stakerReward",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "staker"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "stakers",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "deposit"
+      },
+      {
+        "type": "uint256",
+        "name": "reward"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "stakingNFT",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "unstakeRequestAtIndex",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "unstakeRequestId"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "amount"
+      },
+      {
+        "type": "uint256",
+        "name": "unstakeAt"
+      },
+      {
+        "type": "address",
+        "name": "contractAddress"
+      },
+      {
+        "type": "address",
+        "name": "stakerAddress"
+      },
+      {
+        "type": "uint256",
+        "name": "next"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "unstakeRequests",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "amount"
+      },
+      {
+        "type": "uint256",
+        "name": "unstakeAt"
+      },
+      {
+        "type": "address",
+        "name": "contractAddress"
+      },
+      {
+        "type": "address",
+        "name": "stakerAddress"
+      },
+      {
+        "type": "uint256",
+        "name": "next"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "updateUintParameters",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes8",
+        "name": "code"
+      },
+      {
+        "type": "uint256",
+        "name": "value"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "withdraw",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "withdrawForUser",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "user"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "withdrawReward",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "stakerAddress"
+      }
+    ],
+    "outputs": []
+  }
+]

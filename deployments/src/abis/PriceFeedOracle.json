@@ -1,0 +1,122 @@
+[
+  {
+    "type": "constructor",
+    "payable": false,
+    "inputs": [
+      {
+        "type": "address[]",
+        "name": "_assetAddresses"
+      },
+      {
+        "type": "address[]",
+        "name": "_assetAggregators"
+      },
+      {
+        "type": "uint8[]",
+        "name": "_assetDecimals"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "ETH",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "assets",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address",
+        "name": "aggregator"
+      },
+      {
+        "type": "uint8",
+        "name": "decimals"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getAssetForEth",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "assetAddress"
+      },
+      {
+        "type": "uint256",
+        "name": "ethIn"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getAssetToEthRate",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "assetAddress"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getEthForAsset",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "assetAddress"
+      },
+      {
+        "type": "uint256",
+        "name": "amount"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  }
+]

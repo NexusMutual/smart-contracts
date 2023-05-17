@@ -1,0 +1,98 @@
+name: Checks
+
+on:
+  push
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CACHE_KEY: ${{ vars.CACHE_KEY }} # Change to bust caches
+  # https://github.com/NomicFoundation/hardhat/issues/3877
+  NODE_VERSION: '18.15'
+  NODE_OPTIONS: ${{ vars.NODE_OPTIONS }}
+  ENABLE_OPTIMIZER: ${{ vars.ENABLE_OPTIMIZER }}
+
+jobs:
+
+  setup:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          path: node_modules
+          key: node-modules-cache-node-${{ env.NODE_VERSION }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+
+  lint:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    needs: setup
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          path: node_modules
+          key: node-modules-cache-node-${{ env.NODE_VERSION }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Lint
+        run: npm run lint
+
+  test:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    needs: setup
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          path: node_modules
+          key: node-modules-cache-node-${{ env.NODE_VERSION }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Test
+        run: npm test
+
+  coverage:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    needs: setup
+    env:
+      COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          path: node_modules
+          key: node-modules-cache-node-${{ env.NODE_VERSION }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Coverage
+        run: npm run coverage && cat coverage/lcov.info | npx coveralls

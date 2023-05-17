@@ -1,0 +1,124 @@
+[
+  {
+    "type": "constructor",
+    "payable": false,
+    "inputs": [
+      {
+        "type": "address",
+        "name": "masterAddress"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getCoverSegments",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "coverId"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "tuple[]",
+        "components": [
+          {
+            "type": "uint256",
+            "name": "segmentId"
+          },
+          {
+            "type": "uint256",
+            "name": "amount"
+          },
+          {
+            "type": "uint256",
+            "name": "remainingAmount"
+          },
+          {
+            "type": "uint256",
+            "name": "start"
+          },
+          {
+            "type": "uint256",
+            "name": "period"
+          },
+          {
+            "type": "uint256",
+            "name": "gracePeriod"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getCovers",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256[]",
+        "name": "coverIds"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "tuple[]",
+        "components": [
+          {
+            "type": "uint256",
+            "name": "coverId"
+          },
+          {
+            "type": "uint256",
+            "name": "productId"
+          },
+          {
+            "type": "uint256",
+            "name": "coverAsset"
+          },
+          {
+            "type": "uint256",
+            "name": "amountPaidOut"
+          },
+          {
+            "type": "tuple[]",
+            "name": "segments",
+            "components": [
+              {
+                "type": "uint256",
+                "name": "segmentId"
+              },
+              {
+                "type": "uint256",
+                "name": "amount"
+              },
+              {
+                "type": "uint256",
+                "name": "remainingAmount"
+              },
+              {
+                "type": "uint256",
+                "name": "start"
+              },
+              {
+                "type": "uint256",
+                "name": "period"
+              },
+              {
+                "type": "uint256",
+                "name": "gracePeriod"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,179 @@
+[
+  {
+    "type": "constructor",
+    "payable": false,
+    "inputs": [
+      {
+        "type": "address",
+        "name": "masterAddress"
+      },
+      {
+        "type": "address",
+        "name": "_daiAddress"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "DAI",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "ETH",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "changeClaimStatus",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "claimid"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "changeDependentContractAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "changeMasterAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_masterAddress"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "closeClaim",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_claimId"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "getCurrencyAssetAddress",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes4",
+        "name": "currency"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "mcr",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "ms",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "nxMasterAddress",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "transferRewards",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "upgrade",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_newAdd"
+      }
+    ],
+    "outputs": []
+  }
+]

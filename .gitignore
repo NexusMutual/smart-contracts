@@ -2,9 +2,8 @@
 .idea/
 .DS_Store
 artifacts/
-/deploy/
+/build/
 cache/
-build/
 types/
 node_modules/
 coverage/

@@ -1,0 +1,1024 @@
+[
+  {
+    "type": "constructor",
+    "payable": false,
+    "inputs": [
+      {
+        "type": "address",
+        "name": "quotationDataAddress"
+      },
+      {
+        "type": "address",
+        "name": "claimsRewardAddress"
+      },
+      {
+        "type": "address",
+        "name": "stakingPoolFactoryAddress"
+      },
+      {
+        "type": "address",
+        "name": "tokenAddress"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "Locked",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_of",
+        "indexed": true
+      },
+      {
+        "type": "bytes32",
+        "name": "_reason",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "_amount",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "_validity",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "Unlocked",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_of",
+        "indexed": true
+      },
+      {
+        "type": "bytes32",
+        "name": "_reason",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "_amount",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "_unused_claimSubmissionGracePeriod",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "_unused_minCALockTime",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "_unused_pooledStaking",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "_unused_token",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "acceptStakingPoolOwnershipOffer",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "poolId"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "addToWhitelist",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_member"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "assignStakingPoolManager",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "poolId"
+      },
+      {
+        "type": "address",
+        "name": "manager"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "burnFrom",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_of"
+      },
+      {
+        "type": "uint256",
+        "name": "amount"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "burnStakedNXM",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "amount"
+      },
+      {
+        "type": "uint256",
+        "name": "poolId"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "burnStakingPoolNXMRewards",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "amount"
+      },
+      {
+        "type": "uint256",
+        "name": "poolId"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "cancelStakingPoolOwnershipOffer",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "poolId"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "changeDependentContractAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "changeMasterAddress",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "masterAddress"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "changeOperator",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_newOperator"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "claimsReward",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "coverInfo",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint16",
+        "name": "claimCount"
+      },
+      {
+        "type": "bool",
+        "name": "hasOpenClaim"
+      },
+      {
+        "type": "bool",
+        "name": "hasAcceptedClaim"
+      },
+      {
+        "type": "uint96",
+        "name": "requestedPayoutAmount"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "createStakingPoolOwnershipOffer",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "poolId"
+      },
+      {
+        "type": "address",
+        "name": "proposedManager"
+      },
+      {
+        "type": "uint256",
+        "name": "deadline"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "depositStakedNXM",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "from"
+      },
+      {
+        "type": "uint256",
+        "name": "amount"
+      },
+      {
+        "type": "uint256",
+        "name": "poolId"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "getLockReasons",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_of"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bytes32[]",
+        "name": "reasons"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getManagerStakingPools",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "manager"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256[]"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getPendingRewards",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "member"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getStakingPoolManager",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "poolId"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getStakingPoolOwnershipOffer",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "poolId"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address",
+        "name": "proposedManager"
+      },
+      {
+        "type": "uint256",
+        "name": "deadline"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getTokenPrice",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "tokenPrice"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getWithdrawableCoverNotes",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "coverOwner"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256[]",
+        "name": "coverIds"
+      },
+      {
+        "type": "bytes32[]",
+        "name": "lockReasons"
+      },
+      {
+        "type": "uint256",
+        "name": "withdrawableAmount"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "internalContracts",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "isStakingPoolManager",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "member"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "lockForMemberVote",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_of"
+      },
+      {
+        "type": "uint256",
+        "name": "_days"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "lockReason",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "locked",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "amount"
+      },
+      {
+        "type": "uint256",
+        "name": "validity"
+      },
+      {
+        "type": "bool",
+        "name": "claimed"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "master",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "mint",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_member"
+      },
+      {
+        "type": "uint256",
+        "name": "_amount"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "mintStakingPoolNXMRewards",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "amount"
+      },
+      {
+        "type": "uint256",
+        "name": "poolId"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "operatorTransfer",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_from"
+      },
+      {
+        "type": "address",
+        "name": "_to"
+      },
+      {
+        "type": "uint256",
+        "name": "_value"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "quotationData",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "removeFromWhitelist",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_member"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "stakingPoolFactory",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "stakingPoolNXMBalances",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint128",
+        "name": "rewards"
+      },
+      {
+        "type": "uint128",
+        "name": "deposits"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "token",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "tokensLocked",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_of"
+      },
+      {
+        "type": "bytes32",
+        "name": "_reason"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "amount"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "totalBalanceOf",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_of"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "totalBalanceOfWithoutDelegations",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_of"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "totalSupply",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "transferStakingPoolsOwnership",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "from"
+      },
+      {
+        "type": "address",
+        "name": "to"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "unlistClaimsReward",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "updateUintParameters",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes8",
+        "name": "code"
+      },
+      {
+        "type": "uint256",
+        "name": "value"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "withdrawClaimAssessmentTokens",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address[]",
+        "name": "users"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "withdrawCoverNote",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "user"
+      },
+      {
+        "type": "uint256[]",
+        "name": "coverIds"
+      },
+      {
+        "type": "uint256[]",
+        "name": "indexes"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "withdrawGovernanceRewards",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "memberAddress"
+      },
+      {
+        "type": "uint256",
+        "name": "batchSize"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "withdrawGovernanceRewardsTo",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "destination"
+      },
+      {
+        "type": "uint256",
+        "name": "batchSize"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "withdrawNXMStakeAndRewards",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "to"
+      },
+      {
+        "type": "uint256",
+        "name": "stakeToWithdraw"
+      },
+      {
+        "type": "uint256",
+        "name": "rewardsToWithdraw"
+      },
+      {
+        "type": "uint256",
+        "name": "poolId"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "withdrawPendingRewards",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "forUser"
+      },
+      {
+        "type": "bool",
+        "name": "fromGovernance"
+      },
+      {
+        "type": "bool",
+        "name": "fromAssessment"
+      },
+      {
+        "type": "uint256",
+        "name": "batchSize"
+      }
+    ],
+    "outputs": []
+  }
+]

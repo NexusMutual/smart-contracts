@@ -1,0 +1,108 @@
+[
+  {
+    "type": "constructor",
+    "payable": false,
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_operator"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "StakingPoolCreated",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "poolId",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "stakingPoolAddress",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "beacon",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "changeOperator",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "newOperator"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "create",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_beacon"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "poolId"
+      },
+      {
+        "type": "address",
+        "name": "stakingPoolAddress"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "operator",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "stakingPoolCount",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  }
+]

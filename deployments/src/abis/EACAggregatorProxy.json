@@ -1,0 +1,58 @@
+[
+  {
+    "type": "function",
+    "name": "decimals",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "latestAnswer",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "setDecimals",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_decimals"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "setLatestAnswer",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_latestAnswer"
+      }
+    ],
+    "outputs": []
+  }
+]

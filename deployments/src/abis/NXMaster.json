@@ -1,0 +1,501 @@
+[
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "ContractRemoved",
+    "inputs": [
+      {
+        "type": "bytes2",
+        "name": "code",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "contractAddress",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "ContractUpgraded",
+    "inputs": [
+      {
+        "type": "bytes2",
+        "name": "code",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "newAddress",
+        "indexed": false
+      },
+      {
+        "type": "address",
+        "name": "previousAddress",
+        "indexed": false
+      },
+      {
+        "type": "uint8",
+        "name": "contractType",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "InternalContractAdded",
+    "inputs": [
+      {
+        "type": "bytes2",
+        "name": "code",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "contractAddress",
+        "indexed": false
+      },
+      {
+        "type": "uint8",
+        "name": "contractType",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "anonymous": false,
+    "name": "PauseConfigured",
+    "inputs": [
+      {
+        "type": "bool",
+        "name": "paused",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "_unused0",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "_unused1",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "_unusedM",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "addNewInternalContracts",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes2[]",
+        "name": "newContractCodes"
+      },
+      {
+        "type": "address[]",
+        "name": "newAddresses"
+      },
+      {
+        "type": "uint256[]",
+        "name": "_types"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "checkIsAuthToGoverned",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_add"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "contractAddresses",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes2"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "contractCodes",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bytes2"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "contractsActive",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "dAppLocker",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "emergencyAdmin",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getInternalContracts",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bytes2[]",
+        "name": "_contractCodes"
+      },
+      {
+        "type": "address[]",
+        "name": "_contractAddresses"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getLatestAddress",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes2",
+        "name": "_contractName"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address",
+        "name": "contractAddress"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "initializeEmergencyAdmin",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "isInternal",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_contractAddress"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "isMember",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_add"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "isPause",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "isProxy",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes2"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "isReplaceable",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes2"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "masterInitialized",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "owner",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "paused",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "removeContracts",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes2[]",
+        "name": "contractCodesToRemove"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "setEmergencyPause",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bool",
+        "name": "_paused"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "tokenAddress",
+    "constant": true,
+    "stateMutability": "view",
+    "payable": false,
+    
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "updateOwnerParameters",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes8",
+        "name": "code"
+      },
+      {
+        "type": "address",
+        "name": "val"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "upgradeMultipleContracts",
+    "constant": false,
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "bytes2[]",
+        "name": "_contractCodes"
+      },
+      {
+        "type": "address[]",
+        "name": "newAddresses"
+      }
+    ],
+    "outputs": []
+  }
+]

@@ -1,0 +1,21 @@
+[
+  {
+    "type": "function",
+    "name": "getNewProductId",
+    "constant": true,
+    "stateMutability": "pure",
+    "payable": false,
+    
+    "inputs": [
+      {
+        "type": "address",
+        "name": "legacyProductId"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  }
+]

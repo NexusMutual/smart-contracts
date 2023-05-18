@@ -290,6 +290,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     if (expiration > block.timestamp) {
       revert CoverNotYetExpired(coverId);
     }
+
     for (uint segmentIndex = 0; segmentIndex < coverSegmentAllocations[coverId][segmentId].length; segmentIndex++) {
       PoolAllocation memory allocation =  coverSegmentAllocations[coverId][segmentId][segmentIndex];
       AllocationRequest memory allocationRequest;

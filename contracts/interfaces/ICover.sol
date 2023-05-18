@@ -257,6 +257,7 @@ interface ICover {
   // Misc
   error AlreadyInitialized();
   error ExpiredCoversCannotBeEdited();
+  error CoverNotYetExpired(uint coverId);
   error InsufficientCoverAmountAllocated();
   error UnexpectedPoolId();
   error CapacityReductionRatioAbove100Percent();

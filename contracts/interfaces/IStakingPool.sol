@@ -204,4 +204,6 @@ interface IStakingPool {
   error RequestedTrancheIsExpired();
   error InsufficientCapacity();
 
+  // Allocation
+  error AllocationAlreadyDeallocated(uint allocationId);
 }

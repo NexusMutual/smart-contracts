@@ -286,6 +286,47 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     emit CoverEdited(coverId, params.productId, segmentId, msg.sender, params.ipfsData);
   }
 
+  function expireCover(uint[] calldata coverIds) external onlyMember {
+    for (uint i=0; i < coverIds.length; i++) {
+      uint coverId = coverIds[i];
+      uint segmentId = _coverSegments[coverId].length;
+      CoverSegment memory lastSegment = coverSegmentWithRemainingAmount(coverId, segmentId - 1);
+      CoverData memory cover = _coverData[coverId];
+
+      // require last segment to be expired
+      if (lastSegment.start + lastSegment.period > block.timestamp) {
+        revert CoverNotYetExpired(coverId);
+      }
+      for(uint j = 0; j < coverSegmentAllocations[coverId][segmentId - 1].length; j++) {
+        PoolAllocation memory allocation =  coverSegmentAllocations[coverId][segmentId - 1][j];
+        AllocationRequest memory allocationRequest = AllocationRequest(
+          cover.productId, // productId  <-
+          coverId, // coverId
+          allocation.allocationId, // allocationId <-
+          lastSegment.period, // period
+          0, // gracePreriod
+          false, // useFixedPrice
+          lastSegment.start, // previous cover start <-
+          lastSegment.start + lastSegment.period, // previous cover expiration <-
+          lastSegment.globalRewardsRatio, // previous rewards ratio
+          GLOBAL_CAPACITY_RATIO, // global capacity ratio
+          0, // capacity reduction ratio
+          GLOBAL_REWARDS_RATIO, // global rewards ratio
+          GLOBAL_MIN_PRICE_RATIO // global min price ratio
+        );
+        stakingPool(allocation.poolId).requestAllocation(
+          0, // amount
+          0, // previous premium
+          allocationRequest
+        );
+
+      }
+      // remove cover amount from from expiration buckets
+      uint bucketAtExpiry = Math.divCeil(lastSegment.start + lastSegment.period, BUCKET_SIZE);
+      activeCoverExpirationBuckets[cover.coverAsset][bucketAtExpiry] -= lastSegment.amount;
+    }
+  }
+
   function requestAllocation(
     AllocationRequest memory allocationRequest,
     PoolAllocationRequest[] memory poolAllocationRequests,

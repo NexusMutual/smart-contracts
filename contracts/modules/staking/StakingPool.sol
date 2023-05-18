@@ -625,6 +625,11 @@ contract StakingPool is IStakingPool, Multicall {
     // rewards streaming is left as is
     if (amount == 0) {
 
+      // revert with cover already deallocated
+      if (coverTrancheAllocations[request.allocationId] == 0) {
+        revert AllocationAlreadyDeallocated(request.allocationId);
+      }
+
       // store deallocated amount
       updateStoredAllocations(
         request.productId,
@@ -632,9 +637,8 @@ contract StakingPool is IStakingPool, Multicall {
         trancheAllocations
       );
 
-      // no need to charge any premium
-      // returning 0 as allocationId since there was no allocation
-      // and since amount is 0 allocation will not be saved in the segment
+      // update coverTrancheAllocations when deallocating so we can track deallocation
+      delete coverTrancheAllocations[request.allocationId];
       return (0, 0);
     }
 

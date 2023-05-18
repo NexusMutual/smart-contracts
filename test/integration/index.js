@@ -1,15 +1,21 @@
 const { takeSnapshot, revertToSnapshot } = require('./utils').evm;
 const setup = require('./setup');
 
-describe('INTEGRATION TESTS', function () {
+describe.only('INTEGRATION TESTS', function () {
   before(setup);
 
   beforeEach(async function () {
     this.snapshotId = await takeSnapshot();
+    console.log(this.snapshotId);
   });
 
   afterEach(async function () {
-    await revertToSnapshot(this.snapshotId);
+    console.log(this.snapshotId);
+    try {
+      await revertToSnapshot(this.snapshotId);
+    } catch (ex) {
+      console.log(ex);
+    }
   });
 
   require('./Assessment');

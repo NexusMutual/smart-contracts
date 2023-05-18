@@ -24,7 +24,7 @@ function sum(arr) {
   return arr.reduce((x, y) => x.add(y), BigNumber.from(0));
 }
 
-describe.only('expireCover', function () {
+describe('expireCover', function () {
   const buyCoverFixture = {
     coverId: 0,
     owner: AddressZero,
@@ -78,7 +78,7 @@ describe.only('expireCover', function () {
 
     const coverId = await cover.coverDataCount();
 
-    await expect(cover.connect(coverBuyer).expireCover([coverId])).to.be.revertedWithCustomError(
+    await expect(cover.connect(coverBuyer).expireCover(coverId)).to.be.revertedWithCustomError(
       cover,
       `CoverNotYetExpired`,
     );
@@ -104,7 +104,7 @@ describe.only('expireCover', function () {
 
     const allocationsBefore = await stakingPool1.getActiveAllocations(1);
 
-    await cover.connect(coverBuyer).expireCover([coverId]);
+    await cover.connect(coverBuyer).expireCover(coverId);
     const allocationsAfter = await stakingPool1.getActiveAllocations(1);
 
     expect(sum(allocationsBefore)).to.be.equal(sum(allocationsAfter).add(allocationAmount));
@@ -132,7 +132,7 @@ describe.only('expireCover', function () {
     const allocationsPool1Before = await stakingPool1.getActiveAllocations(1);
     const allocationsPool2Before = await stakingPool2.getActiveAllocations(1);
 
-    await cover.connect(coverBuyer).expireCover([coverId]);
+    await cover.connect(coverBuyer).expireCover(coverId);
 
     const allocationsPool1After = await stakingPool1.getActiveAllocations(1);
     const allocationsPool2After = await stakingPool2.getActiveAllocations(1);
@@ -161,8 +161,8 @@ describe.only('expireCover', function () {
 
     await increaseTime(period + 1);
 
-    await cover.connect(coverBuyer).expireCover([coverId]);
-    await expect(cover.connect(coverBuyer).expireCover([coverId])).to.be.revertedWithCustomError(
+    await cover.connect(coverBuyer).expireCover(coverId);
+    await expect(cover.connect(coverBuyer).expireCover(coverId)).to.be.revertedWithCustomError(
       stakingPool1,
       'AllocationAlreadyDeallocated',
     );

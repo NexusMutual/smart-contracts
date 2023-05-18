@@ -133,18 +133,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     AllocationRequest memory allocationRequest;
     {
+
+      if (_products.length <= params.productId) {
+        revert ProductDoesntExist();
+      }
+
       Product memory product = _products[params.productId];
 
-      if (_products.length <= params.productId || product.isDeprecated) {
-        revert ProductDoesntExistOrIsDeprecated();
-      }
-      // if (_products.length <= params.productId) {
-      //   revert ProductDoesntExist();
-      // }
-
-      // if (product.isDeprecated) {
-      //   revert ProductDeprecated();
-      // }
+       if (product.isDeprecated) {
+         revert ProductDeprecated();
+       }
 
       if (!isCoverAssetSupported(params.coverAsset, product.coverAssets)) {
         revert CoverAssetNotSupported();
@@ -554,14 +552,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         revert ProductDoesntExistOrIsDeprecated();
       }
 
-      // if (productId >= _products.length) {
-      //  revert ProductDoesntExist();
-      //  }
-
-      // if (product.isDeprecated) {
-      //  revert ProductDeprecated();
-      //  }
-
       productInitParams[i].initialPrice = _products[productId].initialPriceRatio;
     }
 
@@ -631,9 +621,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     // increase amountPaidOut only *after* you read the segment
     cover.amountPaidOut += payoutAmountInAsset.toUint96();
 
-    uint allocationCount = allocations.length;
-
-    for (uint i = 0; i < allocationCount; i++) {
+    for (uint i = 0; i < allocations.length; i++) {
       PoolAllocation memory allocation = allocations[i];
 
       uint deallocationAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / segment.amount;
@@ -878,10 +866,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         revert ProductDoesntExist();
       }
 
-      Product memory product = _products[productId];
-
-      _initialPrices[i] = uint(product.initialPriceRatio);
-      _capacityReductionRatios[i] = uint(product.capacityReductionRatio);
+      _initialPrices[i] = uint(_products[productId].initialPriceRatio);
+      _capacityReductionRatios[i] = uint(_products[productId].capacityReductionRatio);
     }
   }
 

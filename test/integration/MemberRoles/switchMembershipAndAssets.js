@@ -187,26 +187,26 @@ describe('switchMembershipAndAssets', function () {
 
     // switch membership
     const newMemberAddress = nonMember1.address;
-    await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [], [4, 6]);
+    await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [], [1, 3]);
 
     // check old member address balances
     {
       const balance = await stakingNFT.balanceOf(member1.address);
       expect(balance).to.be.equal(1);
-      expect(await stakingNFT.ownerOf(5)).to.be.equal(member1.address);
+      expect(await stakingNFT.ownerOf(2)).to.be.equal(member1.address);
     }
 
     // check new member address balances
     {
       const balance = await stakingNFT.balanceOf(newMemberAddress);
       expect(balance).to.be.equal(2);
-      expect(await stakingNFT.ownerOf(4)).to.be.equal(newMemberAddress);
-      expect(await stakingNFT.ownerOf(6)).to.be.equal(newMemberAddress);
+      expect(await stakingNFT.ownerOf(1)).to.be.equal(newMemberAddress);
+      expect(await stakingNFT.ownerOf(3)).to.be.equal(newMemberAddress);
     }
 
     // check staking pool id links
-    expect(await stakingNFT.stakingPoolOf(4)).to.be.equal(await stakingPool1.getPoolId());
-    expect(await stakingNFT.stakingPoolOf(5)).to.be.equal(await stakingPool2.getPoolId());
-    expect(await stakingNFT.stakingPoolOf(6)).to.be.equal(await stakingPool3.getPoolId());
+    expect(await stakingNFT.stakingPoolOf(1)).to.be.equal(await stakingPool1.getPoolId());
+    expect(await stakingNFT.stakingPoolOf(2)).to.be.equal(await stakingPool2.getPoolId());
+    expect(await stakingNFT.stakingPoolOf(3)).to.be.equal(await stakingPool3.getPoolId());
   });
 });

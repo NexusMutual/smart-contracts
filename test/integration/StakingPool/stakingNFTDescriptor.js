@@ -61,7 +61,7 @@ describe('StakingNFTDescriptor', function () {
     await stakingPool1.connect(staker).depositTo(
       stakingAmount,
       firstTrancheId + 2,
-      4, // edit
+      1, // edit
       AddressZero,
     );
 

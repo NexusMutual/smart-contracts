@@ -39,7 +39,7 @@ describe('expireCover', function () {
     ipfsData: 'ipfs data',
   };
 
-  before(async function () {
+  beforeEach(async function () {
     const { tk: nxm, stakingProducts, stakingPool1, stakingPool2, stakingPool3, tc: tokenController } = this.contracts;
     const staker = this.accounts.defaultSender;
     const [manager1, manager2, manager3] = this.accounts.stakingPoolManagers;

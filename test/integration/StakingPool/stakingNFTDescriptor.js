@@ -12,7 +12,7 @@ const { AddressZero } = ethers.constants;
 const svgHeader = 'data:image/svg+xml;base64,';
 const jsonHeader = 'data:application/json;base64,';
 describe('StakingNFTDescriptor', function () {
-  before(async function () {
+  beforeEach(async function () {
     const {
       members: [staker, coverBuyer],
     } = this.accounts;

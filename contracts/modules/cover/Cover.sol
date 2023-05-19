@@ -291,8 +291,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       revert CoverNotYetExpired(coverId);
     }
 
-    for (uint segmentIndex = 0; segmentIndex < coverSegmentAllocations[coverId][segmentId].length; segmentIndex++) {
-      PoolAllocation memory allocation =  coverSegmentAllocations[coverId][segmentId][segmentIndex];
+    for (uint allocationIndex = 0; allocationIndex < coverSegmentAllocations[coverId][segmentId].length; allocationIndex++) {
+      PoolAllocation memory allocation =  coverSegmentAllocations[coverId][segmentId][allocationIndex];
       AllocationRequest memory allocationRequest;
       // editing just the needed props for deallocation
       allocationRequest.productId = cover.productId;

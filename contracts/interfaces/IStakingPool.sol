@@ -205,5 +205,5 @@ interface IStakingPool {
   error InsufficientCapacity();
 
   // Allocation
-  error AllocationAlreadyDeallocated(uint allocationId);
+  error AlreadyDeallocated(uint allocationId);
 }

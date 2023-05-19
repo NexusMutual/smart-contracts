@@ -229,7 +229,6 @@ interface ICover {
   // Products
   error ProductDoesntExist();
   error ProductTypeNotFound();
-  error ProductDeprecated();
   error ProductDoesntExistOrIsDeprecated();
   error InvalidProductType();
   error UnexpectedProductId();

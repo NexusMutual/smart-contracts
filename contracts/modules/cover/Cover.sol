@@ -281,17 +281,28 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   }
 
   function expireCover(uint coverId) external {
+
     uint segmentId = _coverSegments[coverId].length - 1;
     CoverSegment memory lastSegment = coverSegmentWithRemainingAmount(coverId, segmentId);
     CoverData memory cover = _coverData[coverId];
     uint expiration = lastSegment.start + lastSegment.period;
 
-    // require last segment to be expired
     if (expiration > block.timestamp) {
       revert CoverNotYetExpired(coverId);
     }
 
-    for (uint allocationIndex = 0; allocationIndex < coverSegmentAllocations[coverId][segmentId].length; allocationIndex++) {
+    uint currentBucketId = block.timestamp / BUCKET_SIZE;
+    uint bucketAtExpiry = Math.divCeil(expiration, BUCKET_SIZE);
+
+    if (currentBucketId >= bucketAtExpiry) {
+      revert CoverAlreadyExpired(coverId);
+    }
+
+    for (
+      uint allocationIndex = 0;
+      allocationIndex < coverSegmentAllocations[coverId][segmentId].length;
+      allocationIndex++
+    ) {
       PoolAllocation memory allocation =  coverSegmentAllocations[coverId][segmentId][allocationIndex];
       AllocationRequest memory allocationRequest;
       // editing just the needed props for deallocation
@@ -307,8 +318,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       );
 
     }
+
     // remove cover amount from from expiration buckets
-    uint bucketAtExpiry = Math.divCeil(expiration, BUCKET_SIZE);
     activeCoverExpirationBuckets[cover.coverAsset][bucketAtExpiry] -= lastSegment.amount;
   }
 

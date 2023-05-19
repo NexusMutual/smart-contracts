@@ -291,13 +291,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       revert CoverNotYetExpired(coverId);
     }
 
-    uint currentBucketId = block.timestamp / BUCKET_SIZE;
-    uint bucketAtExpiry = Math.divCeil(expiration, BUCKET_SIZE);
-
-    if (currentBucketId >= bucketAtExpiry) {
-      revert CoverAlreadyExpired(coverId);
-    }
-
     for (
       uint allocationIndex = 0;
       allocationIndex < coverSegmentAllocations[coverId][segmentId].length;
@@ -319,8 +312,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     }
 
-    // remove cover amount from from expiration buckets
-    activeCoverExpirationBuckets[cover.coverAsset][bucketAtExpiry] -= lastSegment.amount;
+    uint currentBucketId = block.timestamp / BUCKET_SIZE;
+    uint bucketAtExpiry = Math.divCeil(expiration, BUCKET_SIZE);
+
+    if (currentBucketId < bucketAtExpiry) {
+      // remove cover amount from from expiration buckets
+      activeCoverExpirationBuckets[cover.coverAsset][bucketAtExpiry] -= lastSegment.amount;
+    }
   }
 
   function requestAllocation(

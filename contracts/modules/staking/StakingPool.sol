@@ -624,9 +624,10 @@ contract StakingPool is IStakingPool, Multicall {
     // we are only deallocating
     // rewards streaming is left as is
     if (amount == 0) {
+      uint expirationBucketId = request.previousExpiration / BUCKET_DURATION;
 
       // revert with cover already deallocated
-      if (coverTrancheAllocations[request.allocationId] == 0) {
+      if (coverTrancheAllocations[request.allocationId] == 0 || firstActiveBucketId > expirationBucketId) {
         revert AlreadyDeallocated(request.allocationId);
       }
 

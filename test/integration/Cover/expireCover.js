@@ -87,7 +87,7 @@ describe('expireCover', function () {
   it('should expire a cover', async function () {
     const { cover, stakingPool1 } = this.contracts;
     const [coverBuyer] = this.accounts.members;
-    const { amount, period } = buyCoverFixture;
+    const { amount, period, productId } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
     await cover
@@ -102,10 +102,10 @@ describe('expireCover', function () {
 
     await increaseTime(period + 1);
 
-    const allocationsBefore = await stakingPool1.getActiveAllocations(1);
+    const allocationsBefore = await stakingPool1.getActiveAllocations(productId);
 
     await cover.connect(coverBuyer).expireCover(coverId);
-    const allocationsAfter = await stakingPool1.getActiveAllocations(1);
+    const allocationsAfter = await stakingPool1.getActiveAllocations(productId);
 
     expect(sum(allocationsBefore)).to.be.equal(sum(allocationsAfter).add(allocationAmount));
   });
@@ -113,7 +113,7 @@ describe('expireCover', function () {
   it('should expire a cover from multiple pools', async function () {
     const { cover, stakingPool1, stakingPool2 } = this.contracts;
     const [coverBuyer] = this.accounts.members;
-    const { amount, period } = buyCoverFixture;
+    const { amount, period, productId } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
     await cover.connect(coverBuyer).buyCover(
@@ -129,13 +129,13 @@ describe('expireCover', function () {
 
     await increaseTime(period + 1);
 
-    const allocationsPool1Before = await stakingPool1.getActiveAllocations(1);
-    const allocationsPool2Before = await stakingPool2.getActiveAllocations(1);
+    const allocationsPool1Before = await stakingPool1.getActiveAllocations(productId);
+    const allocationsPool2Before = await stakingPool2.getActiveAllocations(productId);
 
     await cover.connect(coverBuyer).expireCover(coverId);
 
-    const allocationsPool1After = await stakingPool1.getActiveAllocations(1);
-    const allocationsPool2After = await stakingPool2.getActiveAllocations(1);
+    const allocationsPool1After = await stakingPool1.getActiveAllocations(productId);
+    const allocationsPool2After = await stakingPool2.getActiveAllocations(productId);
 
     expect(sum(allocationsPool1After)).to.be.equal(0);
     expect(sum(allocationsPool2After)).to.be.equal(0);
@@ -162,6 +162,51 @@ describe('expireCover', function () {
     await increaseTime(period + 1);
 
     await cover.connect(coverBuyer).expireCover(coverId);
+    await expect(cover.connect(coverBuyer).expireCover(coverId)).to.be.revertedWithCustomError(
+      stakingPool1,
+      'AlreadyDeallocated',
+    );
+  });
+
+  it('should revert when cover already expired with the bucket', async function () {
+    const { cover, stakingPool1 } = this.contracts;
+    const { BUCKET_DURATION } = this.config;
+    const [coverBuyer] = this.accounts.members;
+    const { amount, period, coverAsset, productId } = buyCoverFixture;
+    const coverBuyerAddress = await coverBuyer.getAddress();
+
+    const currentTime = BigNumber.from(Date.now()).div(1000);
+    const coverBucket = currentTime.add(period).div(BUCKET_DURATION);
+    const coverBucketExpirationPeriod = coverBucket.add(1).mul(BUCKET_DURATION).sub(currentTime);
+
+    await cover
+      .connect(coverBuyer)
+      .buyCover(
+        { ...buyCoverFixture, owner: coverBuyerAddress },
+        [{ poolId: 1, coverAmountInAsset: buyCoverFixture.amount }],
+        { value: amount },
+      );
+
+    const coverId = await cover.coverDataCount();
+
+    await increaseTime(coverBucketExpirationPeriod.toNumber());
+    const allocationsBefore = await stakingPool1.getActiveAllocations(productId);
+    const { totalActiveCoverInAsset: activeCoverBefore } = await cover.activeCover(coverAsset);
+
+    await cover
+      .connect(coverBuyer)
+      .buyCover(
+        { ...buyCoverFixture, owner: coverBuyerAddress },
+        [{ poolId: 1, coverAmountInAsset: buyCoverFixture.amount }],
+        { value: amount },
+      );
+
+    const allocationsAfter = await stakingPool1.getActiveAllocations(productId);
+    const { totalActiveCoverInAsset: activeCoverAfter } = await cover.activeCover(coverAsset);
+
+    // stays the same because same amount expired and was allocated
+    expect(sum(allocationsBefore)).to.be.equal(sum(allocationsAfter));
+    expect(activeCoverBefore).to.be.equal(activeCoverAfter);
     await expect(cover.connect(coverBuyer).expireCover(coverId)).to.be.revertedWithCustomError(
       stakingPool1,
       'AlreadyDeallocated',

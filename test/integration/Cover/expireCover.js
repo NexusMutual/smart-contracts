@@ -71,7 +71,7 @@ describe('expireCover', function () {
     await cover
       .connect(coverBuyer)
       .buyCover(
-        { ...buyCoverFixture, commissionDestination: coverBuyerAddress, owner: coverBuyerAddress },
+        { ...buyCoverFixture, owner: coverBuyerAddress },
         [{ poolId: 1, coverAmountInAsset: buyCoverFixture.amount }],
         { value: amount },
       );
@@ -84,7 +84,7 @@ describe('expireCover', function () {
     );
   });
 
-  it('should expire an cover', async function () {
+  it('should expire a cover', async function () {
     const { cover, stakingPool1 } = this.contracts;
     const [coverBuyer] = this.accounts.members;
     const { amount, period } = buyCoverFixture;
@@ -93,7 +93,7 @@ describe('expireCover', function () {
     await cover
       .connect(coverBuyer)
       .buyCover(
-        { ...buyCoverFixture, commissionDestination: coverBuyerAddress, owner: coverBuyerAddress },
+        { ...buyCoverFixture, owner: coverBuyerAddress },
         [{ poolId: 1, coverAmountInAsset: buyCoverFixture.amount }],
         { value: amount },
       );
@@ -110,14 +110,14 @@ describe('expireCover', function () {
     expect(sum(allocationsBefore)).to.be.equal(sum(allocationsAfter).add(allocationAmount));
   });
 
-  it('should expire an cover an multiple pools', async function () {
+  it('should expire a cover from multiple pools', async function () {
     const { cover, stakingPool1, stakingPool2 } = this.contracts;
     const [coverBuyer] = this.accounts.members;
     const { amount, period } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
     await cover.connect(coverBuyer).buyCover(
-      { ...buyCoverFixture, commissionDestination: coverBuyerAddress, owner: coverBuyerAddress },
+      { ...buyCoverFixture, owner: coverBuyerAddress },
       [
         { poolId: 1, coverAmountInAsset: buyCoverFixture.amount.div(2) },
         { poolId: 2, coverAmountInAsset: buyCoverFixture.amount.div(2) },
@@ -152,7 +152,7 @@ describe('expireCover', function () {
     await cover
       .connect(coverBuyer)
       .buyCover(
-        { ...buyCoverFixture, commissionDestination: coverBuyerAddress, owner: coverBuyerAddress },
+        { ...buyCoverFixture, owner: coverBuyerAddress },
         [{ poolId: 1, coverAmountInAsset: buyCoverFixture.amount }],
         { value: amount },
       );
@@ -164,7 +164,7 @@ describe('expireCover', function () {
     await cover.connect(coverBuyer).expireCover(coverId);
     await expect(cover.connect(coverBuyer).expireCover(coverId)).to.be.revertedWithCustomError(
       stakingPool1,
-      'AllocationAlreadyDeallocated',
+      'AlreadyDeallocated',
     );
   });
 });

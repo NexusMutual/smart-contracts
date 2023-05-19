@@ -290,7 +290,7 @@ describe('setProducts', function () {
       cover.connect(coverBuyer).buyCover(buyCoverParams, [poolAllocationRequestTemplate], {
         value: expectedPremium,
       }),
-    ).to.be.revertedWithCustomError(cover, 'ProductDeprecated');
+    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExistOrIsDeprecated');
   });
 
   it('should fail to edit cover for deprecated product', async function () {
@@ -339,7 +339,7 @@ describe('setProducts', function () {
     // edit cover
     await expect(
       cover.connect(coverBuyer).buyCover(editCoverParams, [poolAllocationRequestTemplate], { value: expectedPremium }),
-    ).to.be.revertedWithCustomError(cover, 'ProductDeprecated');
+    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExistOrIsDeprecated');
   });
 
   it('should be able to buy cover on a previously deprecated product', async function () {

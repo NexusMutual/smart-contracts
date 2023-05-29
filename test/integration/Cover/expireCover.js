@@ -110,6 +110,29 @@ describe('expireCover', function () {
     expect(sum(allocationsBefore)).to.be.equal(sum(allocationsAfter).add(allocationAmount));
   });
 
+  it('should emit an event on expire a cover', async function () {
+    const { cover, stakingPool1 } = this.contracts;
+    const [coverBuyer] = this.accounts.members;
+    const { amount, period, productId } = buyCoverFixture;
+    const coverBuyerAddress = await coverBuyer.getAddress();
+
+    await cover
+      .connect(coverBuyer)
+      .buyCover(
+        { ...buyCoverFixture, owner: coverBuyerAddress },
+        [{ poolId: 1, coverAmountInAsset: buyCoverFixture.amount }],
+        { value: amount },
+      );
+
+    const coverId = await cover.coverDataCount();
+
+    await increaseTime(period + 1);
+
+    await expect(cover.connect(coverBuyer).expireCover(coverId))
+      .to.emit(stakingPool1, 'Deallocate')
+      .withArgs(productId);
+  });
+
   it('should expire a cover from multiple pools', async function () {
     const { cover, stakingPool1, stakingPool2 } = this.contracts;
     const [coverBuyer] = this.accounts.members;

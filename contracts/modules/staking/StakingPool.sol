@@ -628,7 +628,7 @@ contract StakingPool is IStakingPool, Multicall {
 
       // revert with cover already deallocated
       if (coverTrancheAllocations[request.allocationId] == 0 || firstActiveBucketId > expirationBucketId) {
-        revert AlreadyDeallocated(request.allocationId);
+        revert AlreadyDeallocated(request.productId);
       }
 
       // store deallocated amount
@@ -640,6 +640,7 @@ contract StakingPool is IStakingPool, Multicall {
 
       // update coverTrancheAllocations when deallocating so we can track deallocation
       delete coverTrancheAllocations[request.allocationId];
+      emit Deallocate(request.allocationId);
       return (0, 0);
     }
 

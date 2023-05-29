@@ -174,6 +174,8 @@ interface IStakingPool {
 
   event StakeBurned(uint amount);
 
+  event Deallocate(uint productId);
+
   // Auth
   error OnlyCoverContract();
   error OnlyManager();

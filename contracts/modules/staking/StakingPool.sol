@@ -640,7 +640,7 @@ contract StakingPool is IStakingPool, Multicall {
 
       // update coverTrancheAllocations when deallocating so we can track deallocation
       delete coverTrancheAllocations[request.allocationId];
-      emit Deallocate(request.allocationId);
+      emit Deallocated(request.allocationId);
       return (0, 0);
     }
 

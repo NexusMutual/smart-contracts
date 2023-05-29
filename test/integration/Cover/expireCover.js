@@ -129,7 +129,7 @@ describe('expireCover', function () {
     await increaseTime(period + 1);
 
     await expect(cover.connect(coverBuyer).expireCover(coverId))
-      .to.emit(stakingPool1, 'Deallocate')
+      .to.emit(stakingPool1, 'Deallocated')
       .withArgs(productId);
   });
 

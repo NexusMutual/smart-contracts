@@ -133,6 +133,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     AllocationRequest memory allocationRequest;
     {
+
       if (_products.length <= params.productId) {
         revert ProductDoesntExist();
       }
@@ -140,28 +141,21 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       Product memory product = _products[params.productId];
 
       if (product.isDeprecated) {
-        revert ProductDeprecated();
+        revert ProductDoesntExistOrIsDeprecated();
       }
 
       if (!isCoverAssetSupported(params.coverAsset, product.coverAssets)) {
         revert CoverAssetNotSupported();
       }
 
-      allocationRequest = AllocationRequest(
-        params.productId,
-        coverId,
-        0,
-        params.period,
-        _productTypes[product.productType].gracePeriod,
-        product.useFixedPrice,
-        0, // previous cover start
-        0, // previous cover expiration
-        0, // previous rewards ratio
-        GLOBAL_CAPACITY_RATIO,
-        product.capacityReductionRatio,
-        GLOBAL_REWARDS_RATIO,
-        GLOBAL_MIN_PRICE_RATIO
-      );
+      allocationRequest.productId = params.productId;
+      allocationRequest.coverId = coverId;
+      allocationRequest.period = params.period;
+      allocationRequest.gracePeriod = _productTypes[product.productType].gracePeriod;
+      allocationRequest.globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
+      allocationRequest.capacityReductionRatio = product.capacityReductionRatio;
+      allocationRequest.rewardRatio = GLOBAL_REWARDS_RATIO;
+      allocationRequest.globalMinPrice = GLOBAL_MIN_PRICE_RATIO;
     }
 
     uint previousSegmentAmount;
@@ -173,7 +167,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       _coverData[coverId] = CoverData(params.productId, params.coverAsset, 0 /* amountPaidOut */);
 
     } else {
-      revert('Edit cover is not yet supported');
+      revert EditNotSupported();
 
       /*
       // existing cover
@@ -284,6 +278,47 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     );
 
     emit CoverEdited(coverId, params.productId, segmentId, msg.sender, params.ipfsData);
+  }
+
+  function expireCover(uint coverId) external {
+
+    uint segmentId = _coverSegments[coverId].length - 1;
+    CoverSegment memory lastSegment = coverSegmentWithRemainingAmount(coverId, segmentId);
+    CoverData memory cover = _coverData[coverId];
+    uint expiration = lastSegment.start + lastSegment.period;
+
+    if (expiration > block.timestamp) {
+      revert CoverNotYetExpired(coverId);
+    }
+
+    for (
+      uint allocationIndex = 0;
+      allocationIndex < coverSegmentAllocations[coverId][segmentId].length;
+      allocationIndex++
+    ) {
+      PoolAllocation memory allocation =  coverSegmentAllocations[coverId][segmentId][allocationIndex];
+      AllocationRequest memory allocationRequest;
+      // editing just the needed props for deallocation
+      allocationRequest.productId = cover.productId;
+      allocationRequest.allocationId = allocation.allocationId;
+      allocationRequest.previousStart = lastSegment.start;
+      allocationRequest.previousExpiration = expiration;
+
+      stakingPool(allocation.poolId).requestAllocation(
+        0, // amount
+        0, // previous premium
+        allocationRequest
+      );
+
+    }
+
+    uint currentBucketId = block.timestamp / BUCKET_SIZE;
+    uint bucketAtExpiry = Math.divCeil(expiration, BUCKET_SIZE);
+
+    if (currentBucketId < bucketAtExpiry) {
+      // remove cover amount from from expiration buckets
+      activeCoverExpirationBuckets[cover.coverAsset][bucketAtExpiry] -= lastSegment.amount;
+    }
   }
 
   function requestAllocation(
@@ -523,12 +558,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         revert PoolNotAllowedForThisProduct(productId);
       }
 
-      if (productId >= _products.length) {
-        revert ProductDoesntExist();
-      }
-
-      if (_products[productId].isDeprecated) {
-        revert ProductDeprecated();
+      if (productId >= _products.length || _products[productId].isDeprecated) {
+        revert ProductDoesntExistOrIsDeprecated();
       }
 
       productInitParams[i].initialPrice = _products[productId].initialPriceRatio;
@@ -600,9 +631,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     // increase amountPaidOut only *after* you read the segment
     cover.amountPaidOut += payoutAmountInAsset.toUint96();
 
-    uint allocationCount = allocations.length;
-
-    for (uint i = 0; i < allocationCount; i++) {
+    for (uint i = 0; i < allocations.length; i++) {
       PoolAllocation memory allocation = allocations[i];
 
       uint deallocationAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / segment.amount;
@@ -847,10 +876,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         revert ProductDoesntExist();
       }
 
-      Product memory product = _products[productId];
-
-      _initialPrices[i] = uint(product.initialPriceRatio);
-      _capacityReductionRatios[i] = uint(product.capacityReductionRatio);
+      _initialPrices[i] = uint(_products[productId].initialPriceRatio);
+      _capacityReductionRatios[i] = uint(_products[productId].capacityReductionRatio);
     }
   }
 

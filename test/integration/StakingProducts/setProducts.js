@@ -30,7 +30,7 @@ const coverProductParamTemplate = {
 };
 
 describe('setProducts', function () {
-  before(async function () {
+  beforeEach(async function () {
     const { cover } = this.contracts;
     const {
       stakingPoolManagers: [manager],

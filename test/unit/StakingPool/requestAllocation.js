@@ -604,7 +604,7 @@ describe('requestAllocation', function () {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
       // coverTrancheAllocations for allocationId is not updated as it is not needed
       // allocationId can't be used again for future allocations
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(amount.div(NXM_PER_ALLOCATION_UNIT));
+      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(0);
     }
   });
 

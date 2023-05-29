@@ -139,7 +139,7 @@ describe('createStakingPool', function () {
         [nonExistingProduct], // products
         '', // ipfsDescriptionHash
       ),
-    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExist');
+    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExistOrIsDeprecated');
   });
 
   it("should fail to create a pool with a product that doesn't exist, called by pooledStaking", async function () {

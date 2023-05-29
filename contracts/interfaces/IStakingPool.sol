@@ -174,6 +174,8 @@ interface IStakingPool {
 
   event StakeBurned(uint amount);
 
+  event Deallocated(uint productId);
+
   // Auth
   error OnlyCoverContract();
   error OnlyManager();
@@ -204,4 +206,6 @@ interface IStakingPool {
   error RequestedTrancheIsExpired();
   error InsufficientCapacity();
 
+  // Allocation
+  error AlreadyDeallocated(uint allocationId);
 }

@@ -3,7 +3,7 @@ const { ethers, accounts } = require('hardhat');
 const { ContractTypes } = require('../utils').constants;
 const { toBytes2, toBytes8 } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
-const { enrollMember } = require('./utils/enroll');
+const { enrollMember, enrollABMember } = require('./utils/enroll');
 
 const { BigNumber } = ethers;
 const { parseEther, parseUnits } = ethers.utils;
@@ -31,7 +31,7 @@ const transferProxyOwnership = async (proxyAddress, newOwner) => {
 };
 
 async function setup() {
-  const { members, emergencyAdmin } = accounts;
+  const { members, emergencyAdmin, advisoryBoardMembers } = accounts;
   const owner = accounts.defaultSender;
   const { stakingPoolManagers } = accounts;
 
@@ -504,6 +504,8 @@ async function setup() {
 
   await enrollMember(this.contracts, members, owner);
   await enrollMember(this.contracts, stakingPoolManagers, owner);
+  await enrollMember(this.contracts, advisoryBoardMembers, owner);
+  await enrollABMember(this.contracts, advisoryBoardMembers, owner);
 
   const product = {
     productId: 0,

@@ -1,6 +1,8 @@
 const { network, ethers } = require('hardhat');
 const { parseUnits } = require('ethers/lib/utils');
+const { Role } = require('../../../lib/constants');
 const { signMembershipApproval } = require('../utils').membership;
+const { impersonateAccount, setEtherBalance } = require('../utils').evm;
 const {
   utils: { parseEther },
 } = ethers;
@@ -26,6 +28,14 @@ async function enrollMember({ mr, tk, tc }, members, kycAuthSigner, options = {}
     await tk.transfer(member.address, initialTokens);
   }
 }
+async function enrollABMember({ mr, gv }, members) {
+  await impersonateAccount(gv.address);
+  await setEtherBalance(gv.address, parseEther('1000'));
+  const governanceSigner = await ethers.getSigner(gv.address);
+  for (const member of members) {
+    await mr.connect(governanceSigner).updateRole(member.address, Role.AdvisoryBoard, true);
+  }
+}
 
 // TODO: remove eslint disable once the function is implemented
 // eslint-disable-next-line no-unused-vars
@@ -42,5 +52,6 @@ async function enrollClaimAssessor({ tc: _unusedTc }, assessors, options = {}) {
 
 module.exports = {
   enrollMember,
+  enrollABMember,
   enrollClaimAssessor,
 };

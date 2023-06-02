@@ -25,4 +25,5 @@ describe('INTEGRATION TESTS', function () {
   require('./StakingPool');
   require('./TokenController');
   require('./StakingProducts');
+  require('./Governance');
 });

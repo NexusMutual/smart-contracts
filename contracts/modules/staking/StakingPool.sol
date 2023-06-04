@@ -15,6 +15,7 @@ import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
+import "hardhat/console.sol";
 
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
@@ -683,11 +684,18 @@ contract StakingPool is IStakingPool, Multicall {
     // remove previous rewards
     if (previousPremium > 0) {
 
+      console.log("poolId", poolId);
+      console.log("previousPremium", previousPremium);
+
       uint prevRewards = previousPremium * request.previousRewardsRatio / REWARDS_DENOMINATOR;
       uint prevExpirationBucket = Math.divCeil(request.previousExpiration, BUCKET_DURATION);
       uint rewardStreamPeriod = prevExpirationBucket * BUCKET_DURATION - request.previousStart;
       uint prevRewardsPerSecond = prevRewards / rewardStreamPeriod;
 
+      console.log("prevExpirationBucket", prevExpirationBucket);
+      console.log("rewardPerSecondCut[prevExpirationBucket]", rewardPerSecondCut[prevExpirationBucket]);
+
+      console.log("prevRewardsPerSecond", prevRewardsPerSecond);
       // store
       rewardPerSecondCut[prevExpirationBucket] -= prevRewardsPerSecond;
       rewardPerSecond -= prevRewardsPerSecond.toUint96();

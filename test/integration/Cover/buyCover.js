@@ -107,4 +107,5 @@ describe('buyCover', function () {
       expect(segmentAllocation.coverAmountInNXM).to.be.equal(coverAmountAllocationPerPool);
     }
   });
+
 });

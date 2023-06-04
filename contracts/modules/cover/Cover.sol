@@ -20,6 +20,7 @@ import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../interfaces/IStakingProducts.sol";
+import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Multicall {
   using SafeERC20 for IERC20;
@@ -173,9 +174,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       _coverData[coverId] = CoverData(params.productId, params.coverAsset, 0 /* amountPaidOut */);
 
     } else {
-      revert('Edit cover is not yet supported');
 
-      /*
+      console.log("Existing cover");
       // existing cover
       coverId = params.coverId;
 
@@ -212,7 +212,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       uint bucketAtExpiry = Math.divCeil(lastSegment.start + lastSegment.period, BUCKET_SIZE);
       activeCoverExpirationBuckets[params.coverAsset][bucketAtExpiry] -= lastSegment.amount;
       previousSegmentAmount += lastSegment.amount;
-      */
     }
 
     uint nxmPriceInCoverAsset = pool().getTokenPriceInAsset(params.coverAsset);
@@ -305,9 +304,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     for (uint i = 0; i < poolAllocationRequests.length; i++) {
 
+
+      console.log("i index", i);
+
+      console.log("vars.previousPoolAllocationsLength", vars.previousPoolAllocationsLength);
       // if there is a previous segment and this index is present on it
       if (vars.previousPoolAllocationsLength > i) {
-
         PoolAllocation memory previousPoolAllocation =
           coverSegmentAllocations[allocationRequest.coverId][segmentId - 1][i];
 
@@ -334,6 +336,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       } else {
         // request new allocation id
         allocationRequest.allocationId = 0;
+
+        // zero out previous premium or refund
+        vars.previousPremiumInNXM = 0;
+        vars.refund = 0;
       }
 
       // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT

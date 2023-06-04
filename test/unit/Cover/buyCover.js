@@ -28,7 +28,7 @@ const buyCoverFixture = {
 
 const poolAllocationRequest = [{ poolId: 1, coverAmountInAsset: buyCoverFixture.amount }];
 
-describe('buyCover', function () {
+describe.only('buyCover', function () {
   beforeEach(async function () {
     const { cover } = this;
     const [stakingPoolManager] = this.accounts.members;
@@ -1304,5 +1304,69 @@ describe('buyCover', function () {
     const segmentAllocations = await cover.coverSegmentAllocations(coverId, segmentId, segmentPoolAllocationIndex);
     expect(segmentAllocations.poolId).to.be.equal(poolId);
     expect(segmentAllocations.coverAmountInNXM).to.be.equal(amount);
+  });
+
+  it.only('correctly store cover, segment and allocation data', async function () {
+    const { cover } = this;
+
+    const {
+      members: [coverBuyer1, coverBuyer2],
+    } = this.accounts;
+
+    const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator, poolId, segmentId } =
+      buyCoverFixture;
+
+    const expectedPremium = amount
+      .mul(targetPriceRatio)
+      .div(priceDenominator)
+      .mul(period)
+      .div(3600 * 24 * 365);
+
+    await cover.connect(coverBuyer1).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyer1.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      poolAllocationRequest,
+      { value: expectedPremium },
+    );
+
+
+    const globalRewardsRatio = await cover.globalRewardsRatio();
+    const { timestamp } = await ethers.provider.getBlock('latest');
+
+    // Validate data for second cover
+    const coverId = await cover.coverDataCount();
+    const storedCoverData = await cover.coverData(coverId);
+    expect(storedCoverData.productId).to.be.equal(productId);
+    expect(storedCoverData.coverAsset).to.be.equal(coverAsset);
+    expect(storedCoverData.amountPaidOut).to.be.equal(0);
+
+    await cover.connect(coverBuyer1).buyCover(
+      {
+        coverId,
+        owner: coverBuyer1.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      poolAllocationRequest,
+      { value: expectedPremium },
+    );
   });
 });

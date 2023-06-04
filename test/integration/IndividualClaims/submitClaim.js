@@ -25,7 +25,7 @@ const setTime = async timestamp => {
 
 const priceDenominator = '10000';
 
-describe('submitClaim', function () {
+describe.only('submitClaim', function () {
   beforeEach(async function () {
     const { tk } = this.contracts;
     const members = this.accounts.members.slice(0, 5);
@@ -34,6 +34,258 @@ describe('submitClaim', function () {
     for (const member of members) {
       await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
     }
+  });
+
+  it('buys ETH cover and edits to expand amount', async function () {
+    const { DEFAULT_PRODUCTS } = this;
+    const { ci, cover, stakingPool1, stakingPool2, stakingPool3, as } = this.contracts;
+    const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
+
+    // Cover inputs
+    const productId = 0;
+    const coverAsset = ETH_ASSET_ID; // ETH
+    const period = 3600 * 24 * 60; // 60 days
+    const gracePeriod = 3600 * 24 * 30;
+    const amount = parseEther('1');
+
+    console.log('Staking..');
+    // Stake to open up capacity
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+
+    await stake({ stakingPool: stakingPool2, staker: staker2, gracePeriod, period, productId });
+
+    await stake({ stakingPool: stakingPool3, staker: staker3, gracePeriod, period, productId });
+
+    console.log('Staking performed');
+
+    console.log('Buy cover');
+    // Buy Cover
+    await buyCover({
+      amount,
+      productId,
+      coverAsset,
+      period,
+      cover,
+      coverBuyer: coverBuyer1,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
+      priceDenominator,
+    });
+
+    // Submit claim
+    const coverId = 1;
+
+    const extraPeriod = period;
+
+    console.log('Edit cover');
+
+    const expectedPremium = parseEther('10000000');
+    // edit cover
+    await cover.connect(coverBuyer1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        coverId,
+        productId,
+        coverAsset,
+        amount,
+        period: extraPeriod,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: 1, coverAmountInAsset: amount }, { poolId: 2, coverAmountInAsset: amount }, { poolId: 3, coverAmountInAsset: amount }],
+      { value: coverAsset === ETH_ASSET_ID ? expectedPremium : 0 },
+    );
+
+    console.log('Done editing');
+  });
+
+  it('buys ETH cover and edits to extend amount and period', async function () {
+    const { DEFAULT_PRODUCTS } = this;
+    const { ci, cover, stakingPool1, stakingPool2, stakingPool3, as } = this.contracts;
+    const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
+
+    // Cover inputs
+    const productId = 0;
+    const coverAsset = ETH_ASSET_ID; // ETH
+    const period = 3600 * 24 * 60; // 60 days
+    const gracePeriod = 3600 * 24 * 30;
+    const amount = parseEther('1');
+
+    const trancheIncrement = 1;
+
+    console.log('Staking..');
+    // Stake to open up capacity
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId, trancheIncrement });
+
+    await stake({ stakingPool: stakingPool2, staker: staker2, gracePeriod, period, productId, trancheIncrement });
+
+    await stake({ stakingPool: stakingPool3, staker: staker3, gracePeriod, period, productId, trancheIncrement });
+
+    console.log('Staking performed');
+
+    console.log('Buy cover');
+
+
+    {
+      const coverBuyer = coverBuyer1;
+      const targetPrice = DEFAULT_PRODUCTS[0].targetPrice;
+
+      let expectedPremium = 0;
+
+      if (!expectedPremium) {
+        expectedPremium = amount.mul(targetPrice).div(priceDenominator);
+      }
+
+      await cover.connect(coverBuyer).buyCover(
+        {
+          owner: coverBuyer.address,
+          coverId: 0,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: expectedPremium,
+          paymentAsset: coverAsset,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: 1, coverAmountInAsset: amount }, { poolId: 2, coverAmountInAsset: amount }],
+        { value: coverAsset === ETH_ASSET_ID ? expectedPremium : 0 },
+      );
+    }
+
+    // Submit claim
+    const coverId = 1;
+
+    const extraPeriod = period * 2;
+
+    console.log({
+      extraPeriod: extraPeriod / (24 * 3600)
+    })
+
+    console.log('Edit cover');
+
+    const expectedPremium = parseEther('10000000');
+    // edit cover
+    await cover.connect(coverBuyer1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        coverId,
+        productId,
+        coverAsset,
+        amount,
+        period: extraPeriod,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: 1, coverAmountInAsset: amount.mul(2) }, { poolId: 2, coverAmountInAsset: amount }], //  { poolId: 3, coverAmountInAsset: amount }],
+      { value: coverAsset === ETH_ASSET_ID ? expectedPremium : 0 },
+    );
+
+    console.log('Done editing');
+  });
+
+  it.only('buys ETH cover and edits to extend amount and period with an extra pool', async function () {
+    const { DEFAULT_PRODUCTS } = this;
+    const { ci, cover, stakingPool1, stakingPool2, stakingPool3, stakingPool4, as } = this.contracts;
+    const [coverBuyer1, staker1, staker2, staker3, staker4 ] = this.accounts.members;
+
+    // Cover inputs
+    const productId = 0;
+    const coverAsset = ETH_ASSET_ID; // ETH
+    const period = 3600 * 24 * 60; // 60 days
+    const gracePeriod = 3600 * 24 * 30;
+    const amount = parseEther('1');
+
+    const trancheIncrement = 1;
+
+    console.log('Staking..');
+    // Stake to open up capacity
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId, trancheIncrement });
+
+    await stake({ stakingPool: stakingPool2, staker: staker2, gracePeriod, period, productId, trancheIncrement });
+
+    await stake({ stakingPool: stakingPool3, staker: staker3, gracePeriod, period, productId, trancheIncrement });
+
+    await stake({ stakingPool: stakingPool4, staker: staker4, gracePeriod, period, productId, trancheIncrement });
+
+    console.log('Staking performed');
+
+    console.log('Buy cover');
+
+
+    {
+      const coverBuyer = coverBuyer1;
+      const targetPrice = DEFAULT_PRODUCTS[0].targetPrice;
+
+      let expectedPremium = 0;
+
+      if (!expectedPremium) {
+        expectedPremium = amount.mul(targetPrice).div(priceDenominator);
+      }
+
+      await cover.connect(coverBuyer).buyCover(
+        {
+          owner: coverBuyer.address,
+          coverId: 0,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: expectedPremium,
+          paymentAsset: coverAsset,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: 1, coverAmountInAsset: amount }, { poolId: 2, coverAmountInAsset: amount }],
+        { value: coverAsset === ETH_ASSET_ID ? expectedPremium : 0 },
+      );
+    }
+
+    // Submit claim
+    const coverId = 1;
+
+    const extraPeriod = period * 2;
+
+    console.log({
+      extraPeriod: extraPeriod / (24 * 3600)
+    })
+
+    console.log('Edit cover');
+
+    const expectedPremium = parseEther('10000000');
+    // edit cover
+    await cover.connect(coverBuyer1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        coverId,
+        productId,
+        coverAsset,
+        amount,
+        period: extraPeriod,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [
+        { poolId: 1, coverAmountInAsset: amount.mul(2) },
+        { poolId: 2, coverAmountInAsset: amount },
+        { poolId: 3, coverAmountInAsset: amount },
+        { poolId: 4, coverAmountInAsset: amount }
+      ],
+      { value: coverAsset === ETH_ASSET_ID ? expectedPremium : 0 },
+    );
+
+    console.log('Done editing');
   });
 
   it('submits ETH claim and approves claim', async function () {

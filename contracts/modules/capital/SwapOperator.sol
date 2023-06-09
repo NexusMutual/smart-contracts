@@ -392,7 +392,7 @@ contract SwapOperator {
       (, uint netShareValue) = enzymeFundValueCalculatorRouter.calcNetShareValue(enzymeV4VaultProxyAddress);
 
       uint avgAmountOut = amountIn * 1e18 / netShareValue;
-      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / 1e18;
+      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / MAX_SLIPPAGE_DENOMINATOR;
       uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
       require(amountOutMin >= minOutOnMaxSlippage, "SwapOp: amountOutMin < minOutOnMaxSlippage");
@@ -458,7 +458,7 @@ contract SwapOperator {
 
       // avgAmountOut in ETH
       uint avgAmountOut = amountIn * netShareValue / (10 ** fromToken.decimals());
-      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / 1e18;
+      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / MAX_SLIPPAGE_DENOMINATOR;
       uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
       // slippage check

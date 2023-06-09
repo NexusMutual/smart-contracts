@@ -5,4 +5,5 @@ describe('fork tests', function () {
   require('./recalculate-effective-weights');
   require('./withdraw-switch-membership-restrictions');
   require('./run-basic-functionality-tests');
+  require('./cowswap-swaps');
 });

@@ -17,6 +17,7 @@ import "../../external/enzyme/IEnzymeFundValueCalculatorRouter.sol";
 import "../../external/enzyme/IEnzymeV4Vault.sol";
 import "../../external/enzyme/IEnzymeV4Comptroller.sol";
 import "../../external/enzyme/IEnzymePolicyManager.sol";
+import "hardhat/console.sol";
 
 /**
   @title A contract for swapping Pool's assets using CoW protocol
@@ -138,6 +139,8 @@ contract SwapOperator {
 
       validateSwapFrequency(swapDetails);
 
+      console.log("order.sellAmount", order.sellAmount);
+
       validateMaxFee(priceFeedOracle, ETH, order.feeAmount);
 
       // Validate minimum pool eth reserve
@@ -157,6 +160,9 @@ contract SwapOperator {
       // Transfer ETH from pool and wrap it
       pool.transferAssetToSwapOperator(ETH, totalOutAmount);
       weth.deposit{value: totalOutAmount}();
+
+
+      console.log("totalOutAmount", totalOutAmount);
 
       // Set pool's swapValue
       pool.setSwapValue(totalOutAmount);
@@ -195,11 +201,16 @@ contract SwapOperator {
     // Approve Cow's contract to spend sellToken
     approveVaultRelayer(order.sellToken, totalOutAmount);
 
+    console.log("WETH 1", weth.balanceOf(address(this)));
+
     // Store the order UID
     currentOrderUID = orderUID;
 
     // Sign the Cow order
     cowSettlement.setPreSignature(orderUID, true);
+
+
+    console.log("WETH 2", weth.balanceOf(address(this)));
 
     // Emit an event
     emit OrderPlaced(order);

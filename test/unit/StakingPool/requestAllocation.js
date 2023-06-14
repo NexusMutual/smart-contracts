@@ -17,7 +17,7 @@ const {
 const { increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
-const { AddressZero, Two } = ethers.constants;
+const { AddressZero, Two, Zero } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 
@@ -1531,7 +1531,7 @@ describe('requestAllocation', function () {
     expect(stakingPoolRewardAfter.rewards).to.be.equal(stakingPoolRewardBefore.rewards.add(expectedRewards));
   });
 
-  it('accounts for carried over allocations', async function () {
+  it('accounts for carried over allocations filling all capacity', async function () {
     const { stakingPool, stakingNFT } = this;
     const [staker] = this.accounts.members;
     const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT } = this.config;
@@ -1584,5 +1584,63 @@ describe('requestAllocation', function () {
         unfullfillableRequest,
       ),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
+  });
+
+  it('accounts for carried over allocations partially filling the capacity', async function () {
+    const { stakingPool, stakingNFT } = this;
+    const [staker] = this.accounts.members;
+    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+
+    const { productId } = allocationRequestParams;
+    const firstCoverAmount = parseEther('80000');
+    const secondCoverAmount = parseEther('20000');
+    const previousPremium = 0;
+
+    const allocationRequest = {
+      ...allocationRequestParams,
+      period: daysToSeconds(10),
+      gracePeriod: 0,
+    };
+
+    const currentTrancheId = await moveTimeToNextTranche(1);
+    const stakeTrancheId = currentTrancheId + trancheOffset - 1;
+
+    const initialAllocations = await stakingPool.getActiveAllocations(productId);
+    initialAllocations.forEach(allocation => {
+      expect(allocation).to.be.equal(0);
+    });
+
+    // allocate all available capacity
+    await stakingPool.connect(this.coverSigner).requestAllocation(firstCoverAmount, previousPremium, allocationRequest);
+
+    // expect all available capacity to be used
+    const midAllocations = await stakingPool.getActiveAllocations(productId);
+    const expectedTrancheAllocation = firstCoverAmount.div(NXM_PER_ALLOCATION_UNIT);
+    const expectedAllocations = [Zero, Zero, Zero, Zero, expectedTrancheAllocation, Zero, Zero, Zero];
+    expect(midAllocations).to.be.deep.equal(expectedAllocations);
+
+    const tokenId = await stakingNFT.totalSupply();
+    await stakingPool.connect(staker).extendDeposit(tokenId, stakeTrancheId, stakeTrancheId + 1, 0);
+
+    const unfullfillableRequest = {
+      ...allocationRequestParams,
+      // targetting tranche idx 5
+      period: daysToSeconds(91 * 4),
+      gracePeriod: daysToSeconds(91),
+    };
+
+    await expect(
+      stakingPool.connect(this.coverSigner).requestAllocation(
+        secondCoverAmount.add(1), // slightly over the limit
+        previousPremium,
+        unfullfillableRequest,
+      ),
+    ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
+
+    stakingPool.connect(this.coverSigner).requestAllocation(
+      secondCoverAmount, // exact available amount
+      previousPremium,
+      unfullfillableRequest,
+    );
   });
 });

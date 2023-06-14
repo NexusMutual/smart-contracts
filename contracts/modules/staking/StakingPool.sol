@@ -274,6 +274,7 @@ contract StakingPool is IStakingPool, Multicall {
         _rewardPerSecond -= rewardPerSecondCut[_firstActiveBucketId];
         _lastAccNxmUpdate = bucketStartTime;
 
+        emit BucketExpired(_firstActiveBucketId - 1);
         continue;
       }
 
@@ -309,6 +310,7 @@ contract StakingPool is IStakingPool, Multicall {
         _stakeSharesSupply -= expiringTranche.stakeShares;
         _rewardsSharesSupply -= expiringTranche.rewardsShares;
 
+        emit TrancheExpired(_firstActiveTrancheId);
         // advance to the next tranche
         _firstActiveTrancheId++;
       }

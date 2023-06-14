@@ -394,7 +394,9 @@ describe('processExpirations', function () {
     const increasedTranches = 7;
     await increaseTime(TRANCHE_DURATION * increasedTranches);
 
-    await stakingPool.processExpirations(true);
+    await expect(stakingPool.processExpirations(true))
+      .to.emit(stakingPool, 'TrancheExpired')
+      .withArgs(firstActiveTrancheIdBefore);
 
     const { firstActiveTrancheId: newFirstActiveTrancheId } = await getTranches();
     const firstActiveTrancheIdAfter = await stakingPool.getFirstActiveTrancheId();
@@ -424,7 +426,9 @@ describe('processExpirations', function () {
     const increasedBuckets = 7;
     await increaseTime(BUCKET_DURATION * increasedBuckets);
 
-    await stakingPool.processExpirations(true);
+    await expect(stakingPool.processExpirations(true))
+      .to.emit(stakingPool, 'BucketExpired')
+      .withArgs(firstActiveBucketIdBefore);
 
     const newCurrentBucket = await getCurrentBucket();
     const firstActiveBucketIdAfter = await stakingPool.getFirstActiveBucketId();

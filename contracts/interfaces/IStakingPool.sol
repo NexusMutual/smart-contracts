@@ -176,6 +176,10 @@ interface IStakingPool {
 
   event Deallocated(uint productId);
 
+  event BucketExpired(uint bucketId);
+
+  event TrancheExpired(uint trancheId);
+
   // Auth
   error OnlyCoverContract();
   error OnlyManager();

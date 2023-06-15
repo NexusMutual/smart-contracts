@@ -24,15 +24,17 @@ async function setup() {
 
   await master.enrollGovernance(accounts.governanceContracts[0].address);
 
-  this.accounts = accounts;
-  this.contracts = {
-    coverMigrator,
-    cover,
-    distributor,
-    master,
-    quotationData,
-    tokenController,
-    productsV1,
+  return {
+    accounts,
+    contracts: {
+      coverMigrator,
+      cover,
+      distributor,
+      master,
+      quotationData,
+      tokenController,
+      productsV1,
+    },
   };
 }
 

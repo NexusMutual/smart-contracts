@@ -1,5 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 const { setEtherBalance } = require('../utils').evm;
 
 describe('setPoolPrivacy', function () {
@@ -18,10 +20,12 @@ describe('setPoolPrivacy', function () {
     products: [product0],
     ipfsDescriptionHash: 'Descrition Hash',
   };
+  let fixture;
 
   beforeEach(async function () {
-    const { stakingPool, stakingProducts, cover, tokenController } = this;
-    const manager = this.accounts.defaultSender;
+    fixture = await loadFixture(setup);
+    const { stakingPool, stakingProducts, cover, tokenController } = fixture;
+    const manager = fixture.accounts.defaultSender;
 
     const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
@@ -33,13 +37,13 @@ describe('setPoolPrivacy', function () {
       .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
     await tokenController.setStakingPoolManager(poolId, manager.address);
 
-    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
+    await stakingProducts.connect(fixture.coverSigner).setInitialProducts(poolId, products);
   });
 
   it('reverts if manager is not the caller', async function () {
-    const { stakingPool, tokenController } = this;
-    const { defaultSender: manager } = this.accounts;
-    const [nonManager] = this.accounts.nonMembers;
+    const { stakingPool, tokenController } = fixture;
+    const { defaultSender: manager } = fixture.accounts;
+    const [nonManager] = fixture.accounts.nonMembers;
 
     const poolId = await stakingPool.getPoolId();
     await tokenController.setStakingPoolManager(poolId, manager.address);
@@ -52,8 +56,8 @@ describe('setPoolPrivacy', function () {
   });
 
   it('updates isPrivatePool flag', async function () {
-    const { stakingPool } = this;
-    const manager = this.accounts.defaultSender;
+    const { stakingPool } = fixture;
+    const manager = fixture.accounts.defaultSender;
 
     const isPrivateBefore = await stakingPool.isPrivatePool();
     await stakingPool.connect(manager).setPoolPrivacy(true);
@@ -64,8 +68,8 @@ describe('setPoolPrivacy', function () {
   });
 
   it('emits an event PoolPrivacyChanged', async function () {
-    const { stakingPool } = this;
-    const manager = this.accounts.defaultSender;
+    const { stakingPool } = fixture;
+    const manager = fixture.accounts.defaultSender;
 
     await expect(stakingPool.connect(manager).setPoolPrivacy(true))
       .to.emit(stakingPool, 'PoolPrivacyChanged')

@@ -1,9 +1,16 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 
 describe('constructor', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('should set nxm, cover and tokenController addresses correctly', async function () {
-    const { stakingProducts, stakingNFT, nxm, cover, tokenController, master } = this;
+    const { stakingProducts, stakingNFT, nxm, cover, tokenController, master } = fixture;
 
     const StakingPool = await ethers.getContractFactory('StakingPool');
     const stakingPool = await StakingPool.deploy(

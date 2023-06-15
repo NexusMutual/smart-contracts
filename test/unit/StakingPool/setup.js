@@ -86,19 +86,20 @@ async function setup() {
   const coverSigner = await ethers.getImpersonatedSigner(cover.address);
   await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
 
-  this.accounts = accounts;
-  this.coverSigner = coverSigner;
-  this.config = config;
+  return {
+    accounts,
+    coverSigner,
+    config,
 
-  this.multicall = multicallMock;
-
-  this.tokenController = tokenController;
-  this.master = master;
-  this.nxm = nxm;
-  this.stakingNFT = stakingNFT;
-  this.stakingPool = stakingPool;
-  this.stakingProducts = stakingProducts;
-  this.cover = cover;
+    multicall: multicallMock,
+    tokenController,
+    master,
+    nxm,
+    stakingNFT,
+    stakingPool,
+    stakingProducts,
+    cover,
+  };
 }
 
 module.exports = setup;

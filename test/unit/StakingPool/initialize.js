@@ -1,5 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 const { setEtherBalance } = require('../utils').evm;
 
 const product0 = {
@@ -19,8 +21,13 @@ const initializeParams = {
 };
 
 describe('initialize', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('reverts if cover contract is not the caller', async function () {
-    const { stakingPool, cover } = this;
+    const { stakingPool, cover } = fixture;
     const { poolId, initialPoolFee, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
     await expect(
@@ -38,7 +45,7 @@ describe('initialize', function () {
   });
 
   it('reverts if initial pool fee exceeds max pool fee', async function () {
-    const { stakingPool, cover } = this;
+    const { stakingPool, cover } = fixture;
 
     const { poolId, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
@@ -53,7 +60,7 @@ describe('initialize', function () {
   });
 
   it('reverts if max pool fee is 100%', async function () {
-    const { stakingPool, cover } = this;
+    const { stakingPool, cover } = fixture;
     const { poolId, initialPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
@@ -65,7 +72,7 @@ describe('initialize', function () {
   });
 
   it('correctly initialize pool parameters', async function () {
-    const { stakingPool, cover } = this;
+    const { stakingPool, cover } = fixture;
     const { poolId, initialPoolFee, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);

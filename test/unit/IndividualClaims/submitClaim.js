@@ -117,7 +117,9 @@ describe('submitClaim', function () {
         [segment],
       );
     }
-    await expect(submitClaim(fixture)({ coverId: 3, sender: coverOwner })).not.to.be.revertedWith('Invalid redeem method');
+    await expect(submitClaim(fixture)({ coverId: 3, sender: coverOwner })).not.to.be.revertedWith(
+      'Invalid redeem method',
+    );
   });
 
   it('allows claim submission if an accepted claim is not redeemed during the redemption period', async function () {
@@ -419,7 +421,9 @@ describe('submitClaim', function () {
     );
     const coverId = 1;
     coverNFT.connect(coverOwner).transferFrom(coverOwner.address, nonMemberOwner.address, coverId);
-    await expect(submitClaim(fixture)({ coverId, sender: nonMemberOwner })).to.be.revertedWith('Caller is not a member');
+    await expect(submitClaim(fixture)({ coverId, sender: nonMemberOwner })).to.be.revertedWith(
+      'Caller is not a member',
+    );
   });
 
   it('reverts if it is not called by cover owner or an approved address', async function () {
@@ -487,7 +491,10 @@ describe('submitClaim', function () {
       [segment],
     );
     const coverId = 1;
-    await expect(submitClaim(fixture)({ coverId, sender: coverOwner })).not.to.emit(individualClaims, 'MetadataSubmitted');
+    await expect(submitClaim(fixture)({ coverId, sender: coverOwner })).not.to.emit(
+      individualClaims,
+      'MetadataSubmitted',
+    );
   });
 
   it('stores the claimId in lastClaimSubmissionOnCover', async function () {

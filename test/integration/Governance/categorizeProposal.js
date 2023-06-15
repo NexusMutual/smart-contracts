@@ -12,7 +12,7 @@ describe('categorizeProposal', function () {
     await governance.connect(member).createProposal(proposalTitle, proposalSD, proposalDescHash, categoryId);
   });
 
-  it('should fail to categorize proposal if sender is not owner', async function () {
+  it('should fail to categorize proposal if sender role is not authorized', async function () {
     const { gv: governance } = this.contracts;
     const [, member] = this.accounts.members;
     const categoryId = 1;

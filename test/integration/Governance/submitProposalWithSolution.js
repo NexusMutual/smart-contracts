@@ -11,7 +11,7 @@ describe('submitProposalWithSolution', function () {
     await governance.connect(member).createProposal(proposalTitle, proposalSD, proposalDescHash, categoryId);
   });
 
-  it('should fail to submit proposal proposal if sender is not owner', async function () {
+  it('should fail to submit proposal proposal if sender role is not authorized', async function () {
     const { gv: governance } = this.contracts;
     const [, member] = this.accounts.members;
 

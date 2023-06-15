@@ -20,7 +20,7 @@ describe('updateProposal', function () {
     await governance.connect(member).createProposal(proposalTitle, proposalSD, proposalDescHash, categoryId);
   });
 
-  it('should fail to update the proposal if sender is not an owner', async function () {
+  it('should fail to update the proposal if sender role is not authorized', async function () {
     const { gv: governance } = this.contracts;
     const [, member] = this.accounts.members;
     const { proposalTitle, proposalSD, proposalDescHash } = updateProposalFixture;

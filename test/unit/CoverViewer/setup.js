@@ -13,9 +13,11 @@ async function setup() {
   // set contract addresses
   await master.setLatestAddress(hex('CO'), cover.address);
 
-  this.master = master;
-  this.cover = cover;
-  this.coverViewer = coverViewer;
+  return {
+    master,
+    cover,
+    coverViewer,
+  };
 }
 
 module.exports = setup;

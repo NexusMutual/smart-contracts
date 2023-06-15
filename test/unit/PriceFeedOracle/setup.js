@@ -23,14 +23,13 @@ async function setup() {
     [18, 8],
   );
 
-  Object.assign(contracts, {
+  return {
     dai,
     wbtc,
     daiAggregator,
     wbtcAggregator,
     priceFeedOracle,
-  });
+  };
 }
 
 module.exports = setup;
-module.exports.contracts = contracts;

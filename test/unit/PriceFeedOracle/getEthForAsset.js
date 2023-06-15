@@ -9,19 +9,17 @@ const {
   },
   ethers,
 } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 
 describe('getEthForAsset', function () {
-  let dai, wbtc, daiAggregator, wbtcAggregator, priceFeedOracle;
-
-  beforeEach(async () => {
-    dai = contracts.dai;
-    wbtc = contracts.wbtc;
-    wbtcAggregator = contracts.wbtcAggregator;
-    daiAggregator = contracts.daiAggregator;
-    priceFeedOracle = contracts.priceFeedOracle;
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
   });
 
   it('reverts if the asset is unknown', async function () {
+    const { priceFeedOracle } = fixture;
     const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
     const newToken = await ERC20Mock.deploy();
     await expect(priceFeedOracle.getEthForAsset(newToken.address, 1234)).to.be.revertedWith(
@@ -30,11 +28,13 @@ describe('getEthForAsset', function () {
   });
 
   it('returns asset amount if asset is ETH', async function () {
+    const { priceFeedOracle } = fixture;
     const ethAmount = await priceFeedOracle.getEthForAsset(ETH, 1234);
     expect(ethAmount).to.eq(1234);
   });
 
   it('uses chainlink aggregators and decimals setup to determine eth amount', async function () {
+    const { daiAggregator, wbtcAggregator, wbtc, dai, priceFeedOracle } = fixture;
     await daiAggregator.setLatestAnswer(0.0002 * 1e18); // 1 dai = 0.0002 eth, 1 eth = 5000 dai
     await wbtcAggregator.setLatestAnswer(parseEther('16')); // 1 wbtc = 16 eth; 1 eth = 0,0625 wbtc
 

@@ -5,9 +5,11 @@ async function setup() {
 
   const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [operator.address]);
 
-  this.operator = operator;
-  this.stakingPoolFactory = stakingPoolFactory;
-  this.accounts = accounts;
+  return {
+    operator,
+    stakingPoolFactory,
+    accounts,
+  };
 }
 
 module.exports = setup;

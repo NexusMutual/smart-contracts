@@ -53,6 +53,7 @@ describe('emergency pause', function () {
     const emergencyAdmin = this.accounts.emergencyAdmin;
     const owner = this.accounts.defaultSender;
 
+    const voters = [owner, ...this.accounts.advisoryBoardMembers];
     assert.equal(await master.isPause(), false);
 
     await master.connect(emergencyAdmin).setEmergencyPause(true);
@@ -74,7 +75,7 @@ describe('emergency pause', function () {
     const newAddresses = [newMCR.address, newTokenControllerImplementation.address];
 
     const upgradeContractsData = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, newAddresses]);
-    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, voters);
 
     const tcAddress = await master.getLatestAddress(tcCode);
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', tcAddress);
@@ -94,7 +95,10 @@ describe('emergency pause', function () {
 
     const upgradeContractsData = defaultAbiCoder.encode(['address'], [newMaster.address]);
 
-    await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [
+      owner,
+      ...this.accounts.advisoryBoardMembers,
+    ]);
 
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', master.address);
     const implementation = await proxy.implementation();

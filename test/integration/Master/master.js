@@ -49,7 +49,10 @@ describe('master', function () {
       [[code], [newContract.address], [ContractTypes.Replaceable]],
     );
 
-    await submitProposal(gv, ProposalCategory.newContracts, actionData, [this.accounts.defaultSender]);
+    await submitProposal(gv, ProposalCategory.newContracts, actionData, [
+      this.accounts.defaultSender,
+      ...this.accounts.advisoryBoardMembers,
+    ]);
 
     const address = await master.getLatestAddress(code);
     assert.equal(address, newContract.address);
@@ -69,7 +72,10 @@ describe('master', function () {
       ['bytes2[]', 'address[]', 'uint[]'],
       [[code], [newContract.address], [ContractTypes.Proxy]],
     );
-    await submitProposal(gv, ProposalCategory.newContracts, actionData, [this.accounts.defaultSender]);
+    await submitProposal(gv, ProposalCategory.newContracts, actionData, [
+      this.accounts.defaultSender,
+      ...this.accounts.advisoryBoardMembers,
+    ]);
 
     const address = await master.getLatestAddress(code);
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', address);
@@ -96,7 +102,10 @@ describe('master', function () {
       ['bytes2[]', 'address[]', 'uint[]'],
       [[code], [newContract.address], [contractTypeAndSalt]],
     );
-    await submitProposal(gv, ProposalCategory.newContracts, actionData, [this.accounts.defaultSender]);
+    await submitProposal(gv, ProposalCategory.newContracts, actionData, [
+      this.accounts.defaultSender,
+      ...this.accounts.advisoryBoardMembers,
+    ]);
 
     const address = await master.getLatestAddress(code);
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', address);
@@ -118,7 +127,6 @@ describe('master', function () {
 
   it('replace contract', async function () {
     const { master, gv } = this.contracts;
-    const owner = this.accounts.defaultSender;
 
     const code = hex('MC');
     const MCR = await ethers.getContractFactory('MCR');
@@ -129,7 +137,10 @@ describe('master', function () {
 
     const upgradeContractsData = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, newAddresses]);
 
-    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [
+      this.accounts.defaultSender,
+      ...this.accounts.advisoryBoardMembers,
+    ]);
 
     const address = await master.getLatestAddress(code);
     assert.equal(address, newMCR.address);
@@ -137,7 +148,6 @@ describe('master', function () {
 
   it('upgrade proxy contract', async function () {
     const { master, gv, qd, lcr, spf, tk } = this.contracts;
-    const owner = this.accounts.defaultSender;
 
     const code = hex('TC');
     const TokenController = await ethers.getContractFactory('TokenController');
@@ -153,7 +163,10 @@ describe('master', function () {
 
     const upgradeContractsData = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, newAddresses]);
 
-    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [
+      this.accounts.defaultSender,
+      ...this.accounts.advisoryBoardMembers,
+    ]);
 
     const address = await master.getLatestAddress(code);
 
@@ -164,7 +177,6 @@ describe('master', function () {
 
   it('upgrade proxies and replaceables', async function () {
     const { master, gv, qd, lcr, spf, tk } = this.contracts;
-    const owner = this.accounts.defaultSender;
 
     const mcrCode = hex('MC');
     const tcCode = hex('TC');
@@ -184,7 +196,10 @@ describe('master', function () {
 
     const upgradeContractsData = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, newAddresses]);
 
-    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [
+      this.accounts.defaultSender,
+      ...this.accounts.advisoryBoardMembers,
+    ]);
 
     const tcAddress = await master.getLatestAddress(tcCode);
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', tcAddress);
@@ -197,14 +212,16 @@ describe('master', function () {
 
   it('upgrades master', async function () {
     const { master, gv } = this.contracts;
-    const owner = this.accounts.defaultSender;
 
     const NXMaster = await ethers.getContractFactory('NXMaster');
     const newMaster = await NXMaster.deploy();
 
     const upgradeContractsData = defaultAbiCoder.encode(['address'], [newMaster.address]);
 
-    await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [
+      this.accounts.defaultSender,
+      ...this.accounts.advisoryBoardMembers,
+    ]);
 
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', master.address);
     const implementation = await proxy.implementation();
@@ -267,7 +284,10 @@ describe('master', function () {
 
     const claimsRewardNXMBalanceBefore = await tk.balanceOf(lcr.address);
 
-    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [
+      this.accounts.defaultSender,
+      ...this.accounts.advisoryBoardMembers,
+    ]);
 
     await assertNewAddresses(master, contractCodes, newAddresses, this.contractType);
 
@@ -285,7 +305,6 @@ describe('master', function () {
 
   it('upgrades Governance, TokenController and MemberRoles 2 times in a row', async function () {
     const { master, gv, qd, lcr, spf, tk } = this.contracts;
-    const owner = this.accounts.defaultSender;
 
     const TokenController = await ethers.getContractFactory('TokenController');
     const MemberRoles = await ethers.getContractFactory('MemberRoles');
@@ -304,7 +323,10 @@ describe('master', function () {
         [contractCodes.map(code => hex(code)), newAddresses],
       );
 
-      await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [owner]);
+      await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [
+        this.accounts.defaultSender,
+        ...this.accounts.advisoryBoardMembers,
+      ]);
       await assertNewAddresses(master, contractCodes, newAddresses, this.contractType);
     }
 
@@ -321,14 +343,16 @@ describe('master', function () {
         [contractCodes.map(code => hex(code)), newAddresses],
       );
 
-      await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [owner]);
+      await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [
+        this.accounts.defaultSender,
+        ...this.accounts.advisoryBoardMembers,
+      ]);
       await assertNewAddresses(master, contractCodes, newAddresses, this.contractType);
     }
   });
 
   it('removes newly added replaceable contract and existing contract', async function () {
     const { master, gv } = this.contracts;
-    const owner = this.accounts.defaultSender;
 
     const code = hex('RE');
     const existingCode = hex('GW');
@@ -338,13 +362,19 @@ describe('master', function () {
       ['bytes2[]', 'address[]', 'uint[]'],
       [[code], [newContract.address], [ContractTypes.Replaceable]],
     );
-    await submitProposal(gv, ProposalCategory.newContracts, actionData, [owner]);
+    await submitProposal(gv, ProposalCategory.newContracts, actionData, [
+      this.accounts.defaultSender,
+      ...this.accounts.advisoryBoardMembers,
+    ]);
 
     const address = await master.getLatestAddress(code);
     assert.equal(address, newContract.address);
 
     const actionDataRemove = defaultAbiCoder.encode(['bytes2[]'], [[code, existingCode]]);
-    await submitProposal(gv, ProposalCategory.removeContracts, actionDataRemove, [owner]);
+    await submitProposal(gv, ProposalCategory.removeContracts, actionDataRemove, [
+      this.accounts.defaultSender,
+      ...this.accounts.advisoryBoardMembers,
+    ]);
 
     {
       const addressAfterDeletion = await master.getLatestAddress(code);

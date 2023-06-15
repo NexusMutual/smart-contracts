@@ -13,8 +13,10 @@ async function setup() {
     coverNFTDescriptor.address,
   ]);
 
-  this.coverNFT = coverNFT;
-  this.accounts = accounts;
+  return {
+    coverNFT,
+    accounts,
+  };
 }
 
 module.exports = setup;

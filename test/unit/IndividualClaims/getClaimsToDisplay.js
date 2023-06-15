@@ -3,6 +3,8 @@ const { expect } = require('chai');
 
 const { ASSET, CLAIM_STATUS, PAYOUT_STATUS, getCoverSegment } = require('./helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 
@@ -14,9 +16,13 @@ const setTime = async timestamp => {
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('getClaimsToDisplay', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
   it('aggregates and displays claims related data in a human-readable form', async function () {
-    const { individualClaims, cover, assessment } = this.contracts;
-    const [coverOwner] = this.accounts.members;
+    const { individualClaims, cover, assessment } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
     segment.period = daysToSeconds('66');
     const expectedProductIds = ['1', '0', '1', '0', '1'];

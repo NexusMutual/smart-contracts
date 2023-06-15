@@ -6,6 +6,8 @@ const { parseEther } = ethers.utils;
 const { daysToSeconds } = require('../utils').helpers;
 const { setEtherBalance, increaseTime } = require('../utils').evm;
 const { getTranches } = require('./helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 
 const allocationRequestTemplate = {
   productId: 0,
@@ -40,11 +42,13 @@ const initializeParams = {
 };
 
 describe('setPoolFee', function () {
+  let fixture;
   beforeEach(async function () {
-    const { stakingPool, stakingProducts, cover, tokenController } = this;
+    fixture = await loadFixture(setup);
+    const { stakingPool, stakingProducts, cover, tokenController } = fixture;
     const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
-    const manager = this.accounts.defaultSender;
+    const manager = fixture.accounts.defaultSender;
 
     await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
     await stakingPool
@@ -52,7 +56,7 @@ describe('setPoolFee', function () {
       .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
     await tokenController.setStakingPoolManager(poolId, manager.address);
 
-    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
+    await stakingProducts.connect(fixture.coverSigner).setInitialProducts(poolId, products);
   });
 
   it('reverts if manager is not the caller', async function () {
@@ -62,7 +66,7 @@ describe('setPoolFee', function () {
         defaultSender: manager,
         nonMembers: [nonManager],
       },
-    } = this;
+    } = fixture;
 
     await expect(stakingPool.connect(nonManager).setPoolFee(5)).to.be.revertedWithCustomError(
       stakingPool,
@@ -72,8 +76,8 @@ describe('setPoolFee', function () {
   });
 
   it('reverts if new fee exceeds max pool fee', async function () {
-    const { stakingPool } = this;
-    const manager = this.accounts.defaultSender;
+    const { stakingPool } = fixture;
+    const manager = fixture.accounts.defaultSender;
 
     const { maxPoolFee } = initializeParams;
 
@@ -85,8 +89,8 @@ describe('setPoolFee', function () {
   });
 
   it('updates pool fee', async function () {
-    const { stakingPool } = this;
-    const manager = this.accounts.defaultSender;
+    const { stakingPool } = fixture;
+    const manager = fixture.accounts.defaultSender;
 
     const { maxPoolFee } = initializeParams;
     const newPoolFee = maxPoolFee - 2;
@@ -99,9 +103,9 @@ describe('setPoolFee', function () {
   });
 
   it('updates pool manager rewards', async function () {
-    const { stakingPool, cover } = this;
-    const manager = this.accounts.defaultSender;
-    const [user] = this.accounts.members;
+    const { stakingPool, cover } = fixture;
+    const manager = fixture.accounts.defaultSender;
+    const [user] = fixture.accounts.members;
 
     const allocationRequest = { ...allocationRequestTemplate };
 
@@ -144,8 +148,8 @@ describe('setPoolFee', function () {
   });
 
   it('emits and PoolFeeChanged', async function () {
-    const { stakingPool } = this;
-    const manager = this.accounts.defaultSender;
+    const { stakingPool } = fixture;
+    const manager = fixture.accounts.defaultSender;
 
     const { maxPoolFee } = initializeParams;
     const newPoolFee = maxPoolFee - 1;

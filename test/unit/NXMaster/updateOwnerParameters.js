@@ -2,12 +2,19 @@ const {
   constants: { AddressZero },
 } = require('ethers');
 const { assert, expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 
 const { NXMasterOwnerParamType } = require('../utils').constants;
 
 describe('updateOwnerParameters', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('should revert when called by non governance addresses', async function () {
-    const { master, accounts } = this;
+    const { master, accounts } = fixture;
     const param = NXMasterOwnerParamType.kycAuthority;
     const [nonMember] = accounts.nonMembers;
 
@@ -17,7 +24,7 @@ describe('updateOwnerParameters', function () {
   });
 
   it('should correctly update emergency admin parameter', async function () {
-    const { master, governance } = this;
+    const { master, governance } = fixture;
 
     const newAdmin = '0x0000000000000000000000000000000000000001';
     await governance.updateOwnerParameters(NXMasterOwnerParamType.emergencyAdmin, newAdmin);

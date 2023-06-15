@@ -1,5 +1,7 @@
 const { ethers } = require('hardhat');
 const { assert, expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 
 const { hex } = require('../utils').helpers;
 const { ContractTypes } = require('../utils').constants;
@@ -8,20 +10,25 @@ const {
 } = ethers;
 
 describe('removeContracts', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('reverts when not called by governance', async function () {
-    const { master } = this;
+    const { master } = fixture;
 
     await expect(master.removeContracts([])).to.be.revertedWith('Not authorized');
   });
 
   it('reverts when contract code does not exist', async function () {
-    const { governance } = this;
+    const { governance } = fixture;
 
     await expect(governance.removeContracts([hex('XX')])).to.be.revertedWith('NXMaster: Address is 0');
   });
 
   it('remove newly added contracts', async function () {
-    const { master, governance } = this;
+    const { master, governance } = fixture;
 
     const replaceableCode = hex('RE');
     const proxyCode = hex('PX');

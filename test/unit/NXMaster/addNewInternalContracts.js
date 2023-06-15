@@ -3,18 +3,25 @@ const {
   constants: { AddressZero },
 } = require('ethers');
 const { assert, expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 const { hex } = require('../utils').helpers;
 const { ContractTypes } = require('../utils').constants;
 
 describe('addNewInternalContracts', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('reverts when not called by governance', async function () {
-    const { master } = this;
+    const { master } = fixture;
 
     await expect(master.addNewInternalContracts([], [], [])).to.be.revertedWith('Not authorized');
   });
 
   it('reverts when contract code already in use', async function () {
-    const { governance } = this;
+    const { governance } = fixture;
 
     await expect(
       governance.addNewInternalContracts(
@@ -26,7 +33,7 @@ describe('addNewInternalContracts', function () {
   });
 
   it('reverts when contract address is 0', async function () {
-    const { governance } = this;
+    const { governance } = fixture;
 
     await expect(
       governance.addNewInternalContracts([hex('XX')], [AddressZero], [ContractTypes.Replaceable]),
@@ -34,7 +41,7 @@ describe('addNewInternalContracts', function () {
   });
 
   it('reverts when contract type is unknown', async function () {
-    const { governance } = this;
+    const { governance } = fixture;
 
     await expect(
       governance.addNewInternalContracts([hex('XX')], ['0x0000000000000000000000000000000000000001'], ['15']),
@@ -42,7 +49,7 @@ describe('addNewInternalContracts', function () {
   });
 
   it('adds new replaceable contract', async function () {
-    const { master, governance } = this;
+    const { master, governance } = fixture;
 
     const code = hex('XX');
     const newContract = await ethers.deployContract('MMockNewContract');
@@ -66,7 +73,7 @@ describe('addNewInternalContracts', function () {
   });
 
   it('adds new proxy contract', async function () {
-    const { master, governance } = this;
+    const { master, governance } = fixture;
 
     const code = hex('XX');
     const newContract = await ethers.deployContract('MMockNewContract');
@@ -93,7 +100,7 @@ describe('addNewInternalContracts', function () {
   });
 
   it('adds new replaceable contract and new proxy contract', async function () {
-    const { master, governance } = this;
+    const { master, governance } = fixture;
 
     const replaceableCode = hex('RE');
     const proxyCode = hex('PX');

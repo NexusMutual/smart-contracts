@@ -1,10 +1,17 @@
 const { expect } = require('chai');
 const { parseEther } = require('ethers/lib/utils');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 
 describe('burnFrom', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('reverts if caller is not an internal contract', async function () {
-    const { tokenController } = this.contracts;
-    const [member1] = this.accounts.members;
+    const { tokenController } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
 
     const amount = parseEther('10');
     await expect(tokenController.connect(member1).burnFrom(member1.address, amount)).to.be.revertedWith(
@@ -13,9 +20,9 @@ describe('burnFrom', function () {
   });
 
   it('burns nxm from member', async function () {
-    const { tokenController, nxm } = this.contracts;
-    const [internalContract] = this.accounts.internalContracts;
-    const [member1] = this.accounts.members;
+    const { tokenController, nxm } = fixture.contracts;
+    const [internalContract] = fixture.accounts.internalContracts;
+    const [member1] = fixture.accounts.members;
 
     const initialBalanceMember1 = await nxm.balanceOf(member1.address);
 

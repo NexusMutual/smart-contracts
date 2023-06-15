@@ -57,15 +57,17 @@ async function setup() {
 
   await tokenController.changeDependentContractAddress();
 
-  this.accounts = accounts;
-  this.contracts = {
-    nxm,
-    master,
-    governance,
-    tokenController,
-    assessment,
-    stakingPoolFactory,
-    pooledStaking,
+  return {
+    accounts,
+    contracts: {
+      nxm,
+      master,
+      governance,
+      tokenController,
+      assessment,
+      stakingPoolFactory,
+      pooledStaking,
+    },
   };
 }
 

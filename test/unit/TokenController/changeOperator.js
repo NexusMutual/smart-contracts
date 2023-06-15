@@ -1,9 +1,16 @@
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 
 describe('changeOperator', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('reverts if governance is not the caller', async function () {
-    const { tokenController } = this.contracts;
-    const [member] = this.accounts.members;
+    const { tokenController } = fixture.contracts;
+    const [member] = fixture.accounts.members;
 
     await expect(tokenController.connect(member).changeOperator(member.address)).to.be.revertedWith(
       'Caller is not authorized to govern',
@@ -11,9 +18,9 @@ describe('changeOperator', function () {
   });
 
   it('updates operator in the token contract', async function () {
-    const { tokenController, nxm } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
-    const [member] = this.accounts.members;
+    const { tokenController, nxm } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
+    const [member] = fixture.accounts.members;
 
     const initialOperator = await nxm.operator();
 

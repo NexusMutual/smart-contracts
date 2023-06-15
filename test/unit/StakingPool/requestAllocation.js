@@ -1593,10 +1593,10 @@ describe('requestAllocation', function () {
 
     const { productId } = allocationRequestParams;
     const firstCoverAmount = parseEther('80000');
-    const secondCoverAmount = parseEther('20000');
+    const maxCoverAmount = parseEther('20000');
     const previousPremium = 0;
 
-    const allocationRequest = {
+    const firstAllocationRequest = {
       ...allocationRequestParams,
       period: daysToSeconds(10),
       gracePeriod: 0,
@@ -1611,7 +1611,9 @@ describe('requestAllocation', function () {
     });
 
     // allocate all available capacity
-    await stakingPool.connect(this.coverSigner).requestAllocation(firstCoverAmount, previousPremium, allocationRequest);
+    await stakingPool
+      .connect(this.coverSigner)
+      .requestAllocation(firstCoverAmount, previousPremium, firstAllocationRequest);
 
     // expect all available capacity to be used
     const midAllocations = await stakingPool.getActiveAllocations(productId);
@@ -1622,7 +1624,7 @@ describe('requestAllocation', function () {
     const tokenId = await stakingNFT.totalSupply();
     await stakingPool.connect(staker).extendDeposit(tokenId, stakeTrancheId, stakeTrancheId + 1, 0);
 
-    const unfullfillableRequest = {
+    const secondAllocationRequest = {
       ...allocationRequestParams,
       // targetting tranche idx 5
       period: daysToSeconds(91 * 4),
@@ -1631,16 +1633,16 @@ describe('requestAllocation', function () {
 
     await expect(
       stakingPool.connect(this.coverSigner).requestAllocation(
-        secondCoverAmount.add(1), // slightly over the limit
+        maxCoverAmount.add(1), // slightly over the limit
         previousPremium,
-        unfullfillableRequest,
+        secondAllocationRequest,
       ),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     stakingPool.connect(this.coverSigner).requestAllocation(
-      secondCoverAmount, // exact available amount
+      maxCoverAmount, // exact available amount
       previousPremium,
-      unfullfillableRequest,
+      secondAllocationRequest,
     );
   });
 });

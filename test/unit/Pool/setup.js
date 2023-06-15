@@ -103,26 +103,28 @@ async function setup() {
     await master.enrollGovernance(governanceContract.address);
   }
 
-  this.accounts = accounts;
-  this.master = master;
-  this.token = token;
-  this.pool = pool;
-  this.mcr = mcr;
-  this.tokenController = tokenController;
-  this.memberRoles = memberRoles;
-  this.swapOperator = swapOperator;
-  this.priceFeedOracle = priceFeedOracle;
+  return {
+    accounts,
+    master,
+    token,
+    pool,
+    mcr,
+    tokenController,
+    memberRoles,
+    swapOperator,
+    priceFeedOracle,
 
-  // tokens
-  this.dai = dai;
-  this.stETH = stETH;
-  this.enzymeVault = enzymeVault;
-  this.otherAsset = otherAsset;
+    // tokens
+    dai,
+    stETH,
+    enzymeVault,
+    otherAsset,
 
-  // oracles
-  this.chainlinkDAI = chainlinkDAI;
-  this.chainlinkSteth = chainlinkSteth;
-  this.chainlinkEnzymeVault = chainlinkEnzymeVault;
+    // oracles
+    chainlinkDAI,
+    chainlinkSteth,
+    chainlinkEnzymeVault,
+  };
 }
 
 module.exports = setup;

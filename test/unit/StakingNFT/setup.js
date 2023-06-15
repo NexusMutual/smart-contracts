@@ -1,4 +1,5 @@
 const { ethers, accounts } = require('hardhat');
+const { setEtherBalance } = require('../../utils/evm');
 
 async function setup() {
   const [operator] = accounts.members;
@@ -17,11 +18,26 @@ async function setup() {
 
   await cover.setStakingNFT(stakingNFT.address);
 
-  this.nftDescriptor = stakingNFTDescriptor;
-  this.cover = cover;
-  this.stakingPoolFactory = stakingPoolFactory;
-  this.stakingNFT = stakingNFT;
-  this.accounts = accounts;
+  // impersonate staking pool address
+  const poolId = 50;
+  const stakingAddress = await cover.stakingPool(poolId);
+  await setEtherBalance(stakingAddress, ethers.utils.parseEther('1000'));
+  await setEtherBalance(cover.address, ethers.utils.parseEther('1000'));
+  const stakingPoolSigner = await ethers.getImpersonatedSigner(stakingAddress);
+  const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+
+  return {
+    contracts: {
+      nftDescriptor: stakingNFTDescriptor,
+      cover,
+      stakingPoolFactory,
+      stakingNFT,
+    },
+    accounts,
+    stakingPoolSigner,
+    coverSigner,
+    poolId,
+  };
 }
 
 module.exports = setup;

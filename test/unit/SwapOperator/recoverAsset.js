@@ -1,15 +1,22 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 const {
   utils: { parseEther },
 } = ethers;
 
 describe('recoverAsset', function () {
-  it('recovers enzyme vault shares', async function () {
-    const { swapOperator, enzymeV4Vault, pool } = this.contracts;
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
 
-    const [governance] = this.accounts.governanceAccounts;
-    const [receiver] = this.accounts.nonMembers;
+  it('recovers enzyme vault shares', async function () {
+    const { swapOperator, enzymeV4Vault, pool } = fixture.contracts;
+
+    const [governance] = fixture.accounts.governanceAccounts;
+    const [receiver] = fixture.accounts.nonMembers;
 
     await pool.connect(governance).setSwapDetails(
       enzymeV4Vault.address,
@@ -32,9 +39,9 @@ describe('recoverAsset', function () {
   });
 
   it('recovers arbitrary unknown asset', async function () {
-    const { swapOperator } = this.contracts;
+    const { swapOperator } = fixture.contracts;
 
-    const [receiver] = this.accounts.nonMembers;
+    const [receiver] = fixture.accounts.nonMembers;
 
     const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
     const arbitraryAsset = await ERC20Mock.deploy();

@@ -1,4 +1,3 @@
-const { contracts } = require('./setup');
 const {
   makeWrongValue,
   makeContractOrder,
@@ -13,6 +12,8 @@ const { expect } = require('chai');
 const { domain: makeDomain, computeOrderUid } = require('@cowprotocol/contracts');
 
 const { setEtherBalance, setNextBlockTime } = require('../../utils/evm');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 const { parseEther, hexZeroPad, hexlify, randomBytes } = ethers.utils;
 
 describe('placeOrder', function () {
@@ -42,18 +43,20 @@ describe('placeOrder', function () {
     const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
     return { newOrder, newContractOrder, newOrderUID };
   };
+  let fixture;
 
   beforeEach(async () => {
+    fixture = await loadFixture(setup);
     [controller, governance] = await ethers.getSigners();
 
     // Assign contracts (destructuring isn't working)
-    dai = contracts.dai;
-    stEth = contracts.stEth;
-    weth = contracts.weth;
-    pool = contracts.pool;
-    swapOperator = contracts.swapOperator;
-    cowSettlement = contracts.cowSettlement;
-    cowVaultRelayer = contracts.cowVaultRelayer;
+    dai = fixture.contracts.dai;
+    stEth = fixture.contracts.stEth;
+    weth = fixture.contracts.weth;
+    pool = fixture.contracts.pool;
+    swapOperator = fixture.contracts.swapOperator;
+    cowSettlement = fixture.contracts.cowSettlement;
+    cowVaultRelayer = fixture.contracts.cowVaultRelayer;
 
     // Read constants
     MIN_TIME_BETWEEN_ORDERS = (await swapOperator.MIN_TIME_BETWEEN_ORDERS()).toNumber();

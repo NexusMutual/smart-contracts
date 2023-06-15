@@ -109,19 +109,21 @@ async function setup() {
 
   const config = await yieldTokenIncidents.config();
 
-  this.config = config;
-  this.accounts = accounts;
-  this.contracts = {
-    nxm,
-    dai,
-    ybDai,
-    ybEth,
-    ybPermitDai,
-    assessment,
-    yieldTokenIncidents,
-    cover,
-    coverNFT,
-    master,
+  return {
+    config,
+    accounts,
+    contracts: {
+      nxm,
+      dai,
+      ybDai,
+      ybEth,
+      ybPermitDai,
+      assessment,
+      yieldTokenIncidents,
+      cover,
+      coverNFT,
+      master,
+    },
   };
 }
 

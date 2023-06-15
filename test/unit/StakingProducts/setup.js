@@ -139,18 +139,20 @@ async function setup() {
 
   const poolId = BigNumber.from(await stakingPool.getPoolId());
 
-  this.accounts = accounts;
-  this.coverSigner = coverSigner;
-  this.config = config;
+  return {
+    accounts,
+    coverSigner,
+    config,
 
-  this.tokenController = tokenController;
-  this.master = master;
-  this.nxm = nxm;
-  this.stakingNFT = stakingNFT;
-  this.stakingPool = stakingPool;
-  this.stakingProducts = stakingProducts;
-  this.cover = cover;
-  this.poolId = poolId;
+    tokenController,
+    master,
+    nxm,
+    stakingNFT,
+    stakingPool,
+    stakingProducts,
+    cover,
+    poolId,
+  };
 }
 
 module.exports = setup;

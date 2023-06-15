@@ -3,17 +3,24 @@ const { expect } = require('chai');
 const { AddressZero } = ethers.constants;
 const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 
 describe('StakingPoolFactory', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('should verify that constructor variables were set correctly', async function () {
-    const { stakingPoolFactory, operator } = this;
+    const { stakingPoolFactory, operator } = fixture;
 
     expect(await stakingPoolFactory.operator()).to.be.equal(operator.address);
   });
 
   it('should revert if trying to change operator from non-operator', async function () {
-    const { stakingPoolFactory } = this;
-    const [nonOperator] = this.accounts.members;
+    const { stakingPoolFactory } = fixture;
+    const [nonOperator] = fixture.accounts.members;
 
     await expect(stakingPoolFactory.connect(nonOperator).changeOperator(nonOperator.address)).to.be.revertedWith(
       'StakingPoolFactory: Not operator',
@@ -21,22 +28,22 @@ describe('StakingPoolFactory', function () {
   });
 
   it('should fail to change operator to 0 address', async function () {
-    const { stakingPoolFactory, operator } = this;
+    const { stakingPoolFactory, operator } = fixture;
     await expect(stakingPoolFactory.connect(operator).changeOperator(AddressZero)).to.be.revertedWith(
       'StakingPoolFactory: Invalid operator',
     );
   });
 
   it('should successfully change operator', async function () {
-    const { stakingPoolFactory, operator } = this;
-    const [newOperator] = this.accounts.members;
+    const { stakingPoolFactory, operator } = fixture;
+    const [newOperator] = fixture.accounts.members;
     await stakingPoolFactory.connect(operator).changeOperator(newOperator.address);
     expect(await stakingPoolFactory.operator()).to.be.equal(newOperator.address);
   });
 
   it('should revert if trying to create a pool from non-operator', async function () {
-    const { stakingPoolFactory } = this;
-    const [nonOperator] = this.accounts.members;
+    const { stakingPoolFactory } = fixture;
+    const [nonOperator] = fixture.accounts.members;
 
     await expect(stakingPoolFactory.connect(nonOperator).create(nonOperator.address)).to.be.revertedWith(
       'StakingPoolFactory: Not operator',
@@ -44,8 +51,8 @@ describe('StakingPoolFactory', function () {
   });
 
   it('should successfully create staking pools with with the expected address', async function () {
-    const { stakingPoolFactory, operator } = this;
-    const [beacon] = this.accounts.members;
+    const { stakingPoolFactory, operator } = fixture;
+    const [beacon] = fixture.accounts.members;
 
     const { bytecode: proxyBytecode } = await artifacts.readArtifact('MinimalBeaconProxy');
     const proxyHash = bytesToHex(keccak256(hexToBytes(proxyBytecode.replace(/^0x/i, ''))));

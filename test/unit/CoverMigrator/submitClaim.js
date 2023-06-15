@@ -1,12 +1,18 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 
 describe('submitClaim', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
   it('calls migrateCoverFrom with the correct parameters when a legacy coverId is provided', async function () {
-    const { coverMigrator, cover, quotationData, tokenController, productsV1, distributor } = this.contracts;
-    const [coverOwner] = this.accounts.members;
+    const { coverMigrator, cover, quotationData, tokenController, productsV1, distributor } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
 
     const ETH = '0x45544800';
     const DAI = '0x44414900';

@@ -2,15 +2,21 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { submitFraud, getProof, finalizePoll } = require('./helpers');
 const { setTime } = require('./helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('processFraud', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
   it('reverts if the proof is invalid', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
-    const [fraudulentMember, honestMember] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const governance = fixture.accounts.governanceContracts[0];
+    const [fraudulentMember, honestMember] = fixture.accounts.members;
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
@@ -75,9 +81,9 @@ describe('processFraud', function () {
   });
 
   it("cancels staker's votes from last vote where reward was withdrawn to lastFraudulentVoteIndex", async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
-    const [fraudulentMember, otherMember1, otherMember2] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const governance = fixture.accounts.governanceContracts[0];
+    const [fraudulentMember, otherMember1, otherMember2] = fixture.accounts.members;
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
     await assessment.connect(otherMember1).stake(parseEther('50'));
@@ -173,9 +179,9 @@ describe('processFraud', function () {
   });
 
   it("cancels the staker's votes in batches", async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
-    const [fraudulentMember] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const governance = fixture.accounts.governanceContracts[0];
+    const [fraudulentMember] = fixture.accounts.members;
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
 
@@ -276,9 +282,9 @@ describe('processFraud', function () {
   });
 
   it('skips polls that are outside the cooldown period', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
-    const [fraudulentMember, otherMember1, otherMember2] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const governance = fixture.accounts.governanceContracts[0];
+    const [fraudulentMember, otherMember1, otherMember2] = fixture.accounts.members;
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
     await assessment.connect(otherMember1).stake(parseEther('100'));
@@ -341,9 +347,9 @@ describe('processFraud', function () {
   });
 
   it('extends the poll voting period by a maximum of 24h if it ends in less than 24h', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
-    const [fraudulentMember] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const governance = fixture.accounts.governanceContracts[0];
+    const [fraudulentMember] = fixture.accounts.members;
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
 
@@ -381,9 +387,9 @@ describe('processFraud', function () {
   });
 
   it('emits a FraudProcessed event for every cancelled vote', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
-    const [fraudulentMember1, fraudulentMember2] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const governance = fixture.accounts.governanceContracts[0];
+    const [fraudulentMember1, fraudulentMember2] = fixture.accounts.members;
 
     await assessment.connect(fraudulentMember1).stake(parseEther('100'));
     await assessment.connect(fraudulentMember2).stake(parseEther('50'));
@@ -475,9 +481,9 @@ describe('processFraud', function () {
   });
 
   it("burns the fraudulent member's stake by burnAmount", async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
-    const [fraudulentMember] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const governance = fixture.accounts.governanceContracts[0];
+    const [fraudulentMember] = fixture.accounts.members;
 
     const stakeAmount = parseEther('100');
     await assessment.connect(fraudulentMember).stake(stakeAmount);
@@ -517,9 +523,9 @@ describe('processFraud', function () {
   });
 
   it('allows vote correction without burning stake', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
-    const [fraudulentMember] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const governance = fixture.accounts.governanceContracts[0];
+    const [fraudulentMember] = fixture.accounts.members;
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
 
@@ -560,9 +566,9 @@ describe('processFraud', function () {
   });
 
   it("skips burning if the provided fraudCount doesn't match the staker's fraudCount", async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
-    const [fraudulentMember] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const governance = fixture.accounts.governanceContracts[0];
+    const [fraudulentMember] = fixture.accounts.members;
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
 
@@ -652,9 +658,9 @@ describe('processFraud', function () {
   });
 
   it("increases the fraudulent staker's fraudCount on the first call", async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
-    const [fraudulentMember] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const governance = fixture.accounts.governanceContracts[0];
+    const [fraudulentMember] = fixture.accounts.members;
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
 
@@ -715,9 +721,9 @@ describe('processFraud', function () {
   });
 
   it('sets rewardsWithdrawableFromIndex to the last cancelled vote', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
-    const [fraudulentMember] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const governance = fixture.accounts.governanceContracts[0];
+    const [fraudulentMember] = fixture.accounts.members;
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
 
@@ -778,8 +784,8 @@ describe('processFraud', function () {
   });
 
   it('reverts if system is paused', async function () {
-    const { assessment, master } = this.contracts;
-    const [fraudulentMember] = this.accounts.members;
+    const { assessment, master } = fixture.contracts;
+    const [fraudulentMember] = fixture.accounts.members;
 
     await master.setEmergencyPause(true);
 
@@ -797,9 +803,9 @@ describe('processFraud', function () {
   });
 
   it('allows to set voteBatchSize to 0', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
-    const [fraudulentMember] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const governance = fixture.accounts.governanceContracts[0];
+    const [fraudulentMember] = fixture.accounts.members;
 
     const stakeAmount = parseEther('100');
     await assessment.connect(fraudulentMember).stake(stakeAmount);
@@ -850,9 +856,9 @@ describe('processFraud', function () {
   });
 
   it('should do nothing when trying to process an already processed fraud', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
-    const [fraudulentMember] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const governance = fixture.accounts.governanceContracts[0];
+    const [fraudulentMember] = fixture.accounts.members;
 
     const stakeAmount = parseEther('100');
     await assessment.connect(fraudulentMember).stake(stakeAmount);
@@ -926,9 +932,9 @@ describe('processFraud', function () {
   });
 
   it('burn all fraudulent member rewards not claimed up to the latest assessment revoked', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
-    const [fraudulentMember] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const governance = fixture.accounts.governanceContracts[0];
+    const [fraudulentMember] = fixture.accounts.members;
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
 

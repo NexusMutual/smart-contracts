@@ -4,14 +4,20 @@ const { expect } = require('chai');
 const { setNextBlockBaseFee } = require('../utils').evm;
 const { setTime, finalizePoll, generateRewards } = require('./helpers');
 const { Role } = require('../../../lib/constants');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('withdrawRewards', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
   it('reverts if there are no withdrawable rewards', async function () {
-    const { assessment } = this.contracts;
-    const [user] = this.accounts.members;
+    const { assessment } = fixture.contracts;
+    const [user] = fixture.accounts.members;
     await assessment.connect(user).stake(parseEther('10'));
     await expect(assessment.connect(user).withdrawRewards(user.address, 0)).to.be.revertedWith(
       'No withdrawable rewards',
@@ -19,14 +25,14 @@ describe('withdrawRewards', function () {
   });
 
   it("allows any address to call but the reward is withdrawn to the staker's address", async function () {
-    const { nxm, assessment, individualClaims } = this.contracts;
-    const [staker] = this.accounts.members;
+    const { nxm, assessment, individualClaims } = fixture.contracts;
+    const [staker] = fixture.accounts.members;
 
     await generateRewards({ assessment, individualClaims, staker });
 
     await finalizePoll(assessment);
 
-    const [nonMember] = this.accounts.nonMembers;
+    const [nonMember] = fixture.accounts.nonMembers;
     const { totalRewardInNXM } = await assessment.assessments(0);
     const nonMemberBalanceBefore = await nxm.balanceOf(nonMember.address);
     const stakerBalanceBefore = await nxm.balanceOf(staker.address);
@@ -39,8 +45,8 @@ describe('withdrawRewards', function () {
   });
 
   it('withdraws rewards up to the last finalized assessment when an unfinalized assessment follows', async function () {
-    const { nxm, assessment, individualClaims } = this.contracts;
-    const [user] = this.accounts.members;
+    const { nxm, assessment, individualClaims } = fixture.contracts;
+    const [user] = fixture.accounts.members;
 
     await assessment.connect(user).stake(parseEther('10'));
 
@@ -67,8 +73,8 @@ describe('withdrawRewards', function () {
   });
 
   it("mints rewards based on user's stake at vote time", async function () {
-    const { nxm, assessment, individualClaims } = this.contracts;
-    const [user1, user2, user3] = this.accounts.members;
+    const { nxm, assessment, individualClaims } = fixture.contracts;
+    const [user1, user2, user3] = fixture.accounts.members;
 
     {
       await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
@@ -166,8 +172,8 @@ describe('withdrawRewards', function () {
   });
 
   it('emits RewardWithdrawn event with staker and withdrawn amount', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const [staker] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const [staker] = fixture.accounts.members;
 
     await generateRewards({ assessment, individualClaims, staker });
     const { totalRewardInNXM } = await assessment.assessments(0);
@@ -180,8 +186,8 @@ describe('withdrawRewards', function () {
   });
 
   it('reverts if system is paused', async function () {
-    const { assessment, master, individualClaims } = this.contracts;
-    const [staker] = this.accounts.members;
+    const { assessment, master, individualClaims } = fixture.contracts;
+    const [staker] = fixture.accounts.members;
 
     await generateRewards({ assessment, individualClaims, staker });
 
@@ -191,9 +197,9 @@ describe('withdrawRewards', function () {
   });
 
   it('reverts if staker is not a member', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const [staker] = this.accounts.members;
-    const [nonMember] = this.accounts.nonMembers;
+    const { assessment, individualClaims } = fixture.contracts;
+    const [staker] = fixture.accounts.members;
+    const [nonMember] = fixture.accounts.nonMembers;
 
     await generateRewards({ assessment, individualClaims, staker });
 
@@ -203,8 +209,8 @@ describe('withdrawRewards', function () {
   });
 
   it('reverts if assessment rewards already claimed', async function () {
-    const { assessment, individualClaims, nxm } = this.contracts;
-    const [staker] = this.accounts.members;
+    const { assessment, individualClaims, nxm } = fixture.contracts;
+    const [staker] = fixture.accounts.members;
 
     await generateRewards({ assessment, individualClaims, staker });
 
@@ -229,8 +235,8 @@ describe('withdrawRewards', function () {
   });
 
   it('withdraws zero amount if poll is not final', async function () {
-    const { assessment, individualClaims, nxm } = this.contracts;
-    const [staker] = this.accounts.members;
+    const { assessment, individualClaims, nxm } = fixture.contracts;
+    const [staker] = fixture.accounts.members;
 
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
     await generateRewards({ assessment, individualClaims, staker });
@@ -251,8 +257,8 @@ describe('withdrawRewards', function () {
   });
 
   it('should withdraw multiple rewards in one tx', async function () {
-    const { nxm, assessment, individualClaims } = this.contracts;
-    const [staker] = this.accounts.members;
+    const { nxm, assessment, individualClaims } = fixture.contracts;
+    const [staker] = fixture.accounts.members;
 
     {
       await individualClaims.connect(staker).submitClaim(0, 0, parseEther('100'), '');
@@ -280,13 +286,13 @@ describe('withdrawRewards', function () {
   });
 
   it('allows multiple members to correctly withdraw their rewards', async function () {
-    const { nxm, assessment, individualClaims, memberRoles, tokenController } = this.contracts;
+    const { nxm, assessment, individualClaims, memberRoles, tokenController } = fixture.contracts;
 
     // 5 members + 5 AB
-    const voters = [...this.accounts.members, ...this.accounts.advisoryBoardMembers];
+    const voters = [...fixture.accounts.members, ...fixture.accounts.advisoryBoardMembers];
 
     // Add AB accounts as new members
-    for (const member of this.accounts.advisoryBoardMembers) {
+    for (const member of fixture.accounts.advisoryBoardMembers) {
       await memberRoles.enrollMember(member.address, Role.Member);
       await nxm.mint(member.address, parseEther('10000'));
       await nxm.connect(member).approve(tokenController.address, parseEther('10000'));

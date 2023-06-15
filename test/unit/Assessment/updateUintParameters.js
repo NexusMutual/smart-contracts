@@ -1,4 +1,6 @@
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { setup } = require('./setup');
 
 const uintParams = {
   minVotingPeriodInDays: 0,
@@ -8,10 +10,14 @@ const uintParams = {
 };
 
 describe('updateUintParameters', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
   it('can only be called by governance', async function () {
-    const { assessment } = this.contracts;
-    const [user] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const { assessment } = fixture.contracts;
+    const [user] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     await expect(assessment.connect(user).updateUintParameters([], [])).to.be.revertedWith(
       'Caller is not authorized to govern',
     );
@@ -21,8 +27,8 @@ describe('updateUintParameters', function () {
   });
 
   it('sets each parameter to the given new values', async function () {
-    const { assessment } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const { assessment } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
     const newValues = {
       minVotingPeriodInDays: 111,
       stakeLockupPeriodInDays: 222,
@@ -58,8 +64,8 @@ describe('updateUintParameters', function () {
   });
 
   it('sets only the given parameters to the new values', async function () {
-    const { assessment } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const { assessment } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
     const newValues = {
       minVotingPeriodInDays: 11,
       stakeLockupPeriodInDays: 22,
@@ -122,8 +128,8 @@ describe('updateUintParameters', function () {
   });
 
   it('allows parameters to be given in any order', async function () {
-    const { assessment } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const { assessment } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
 
     {
       const newValues = {

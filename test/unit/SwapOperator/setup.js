@@ -126,44 +126,30 @@ async function setup() {
   // Setup pool's swap operator
   await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), swapOperator.address);
 
-  Object.assign(instances, {
-    dai,
-    weth,
-    stEth,
-    usdc,
-    master,
-    pool,
-    mcr,
-    swapOperator,
-    priceFeedOracle,
-    daiAggregator,
-    cowSettlement,
-    cowVaultRelayer,
-  });
-
-  this.accounts = {
-    ...accounts,
-    governanceAccounts: [governance],
-  };
-  this.contracts = {
-    dai,
-    weth,
-    stEth,
-    usdc,
-    master,
-    pool,
-    mcr,
-    swapOperator,
-    priceFeedOracle,
-    daiAggregator,
-    cowSettlement,
-    cowVaultRelayer,
-    enzymeV4Vault,
-    enzymeV4Comptroller,
-    enzymeFundValueCalculatorRouter,
-    nxmToken,
+  return {
+    accounts: {
+      ...accounts,
+      governanceAccounts: [governance],
+    },
+    contracts: {
+      dai,
+      weth,
+      stEth,
+      usdc,
+      master,
+      pool,
+      mcr,
+      swapOperator,
+      priceFeedOracle,
+      daiAggregator,
+      cowSettlement,
+      cowVaultRelayer,
+      enzymeV4Vault,
+      enzymeV4Comptroller,
+      enzymeFundValueCalculatorRouter,
+      nxmToken,
+    },
   };
 }
 
 module.exports = setup;
-module.exports.contracts = instances;

@@ -107,19 +107,21 @@ async function setup() {
 
   const config = await individualClaims.config();
 
-  this.config = config;
-  this.accounts = accounts;
-  this.contracts = {
-    pool,
-    nxm,
-    dai,
-    individualClaims,
-    assessment,
-    cover,
-    distributor,
-    coverNFT,
-    master,
-    memberRoles,
+  return {
+    config,
+    accounts,
+    contracts: {
+      pool,
+      nxm,
+      dai,
+      individualClaims,
+      assessment,
+      cover,
+      distributor,
+      coverNFT,
+      master,
+      memberRoles,
+    },
   };
 }
 

@@ -924,31 +924,61 @@ contract StakingPool is IStakingPool, Multicall {
 
       uint[] memory trancheCapacities = getTrancheCapacities(
         request.productId,
-        firstTrancheIdToUse,
-        MAX_ACTIVE_TRANCHES - startIndex, // count
+        _firstActiveTrancheId,
+        MAX_ACTIVE_TRANCHES, // count
         request.globalCapacityRatio,
         request.capacityReductionRatio
       );
 
       uint remainingAmount = coverAllocationAmount;
+      uint carryOver;
       uint packedCoverAllocations;
+
+      for (uint i = 0; i < startIndex; i++) {
+
+        uint allocated = trancheAllocations[i];
+        uint capacity = trancheCapacities[i];
+
+        if (allocated > capacity) {
+          carryOver += allocated - capacity;
+        } else if (carryOver > 0) {
+          carryOver -= Math.min(carryOver, capacity - allocated);
+        }
+      }
+
+      initialCapacityUsed = carryOver;
 
       for (uint i = startIndex; i < MAX_ACTIVE_TRANCHES; i++) {
 
         initialCapacityUsed += trancheAllocations[i];
-        totalCapacity += trancheCapacities[i - startIndex];
+        totalCapacity += trancheCapacities[i];
+
+        if (trancheAllocations[i] >= trancheCapacities[i]) {
+          // carry over overallocation
+          carryOver += trancheAllocations[i] - trancheCapacities[i];
+          continue;
+        }
 
         if (remainingAmount == 0) {
           // not breaking out of the for loop because we need the total capacity calculated above
           continue;
         }
 
-        if (trancheAllocations[i] >= trancheCapacities[i - startIndex]) {
-          // no capacity left in this tranche
-          continue;
-        }
+        uint allocatedAmount;
 
-        uint allocatedAmount = Math.min(trancheCapacities[i - startIndex] - trancheAllocations[i], remainingAmount);
+        {
+          uint available = trancheCapacities[i] - trancheAllocations[i];
+
+          if (carryOver > available) {
+            // no capacity left in this tranche
+            carryOver -= available;
+            continue;
+          }
+
+          available -= carryOver;
+          carryOver = 0;
+          allocatedAmount = Math.min(available, remainingAmount);
+        }
 
         coverAllocations[i] = allocatedAmount;
         trancheAllocations[i] += allocatedAmount;

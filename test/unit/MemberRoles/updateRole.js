@@ -1,26 +1,33 @@
 const { Role } = require('../utils').constants;
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { setup } = require('./setup');
 
 describe('updateRole', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('should update a role of a member', async function () {
-    const { memberRoles } = this.contracts;
-    const { advisoryBoardMembers, governanceContracts } = this.accounts;
+    const { memberRoles } = fixture.contracts;
+    const { advisoryBoardMembers, governanceContracts } = fixture.accounts;
     const [member] = advisoryBoardMembers;
 
     await memberRoles.connect(governanceContracts[0]).updateRole(member.address, Role.Member, false);
   });
 
   it('should revert if role already active', async function () {
-    const { memberRoles } = this.contracts;
-    const { advisoryBoardMembers, governanceContracts } = this.accounts;
+    const { memberRoles } = fixture.contracts;
+    const { advisoryBoardMembers, governanceContracts } = fixture.accounts;
     const [member] = advisoryBoardMembers;
 
     await expect(memberRoles.connect(governanceContracts[0]).updateRole(member.address, Role.Member, true)).to.be
       .reverted;
   });
   it('should revert if role already inactive', async function () {
-    const { memberRoles } = this.contracts;
-    const { advisoryBoardMembers, governanceContracts } = this.accounts;
+    const { memberRoles } = fixture.contracts;
+    const { advisoryBoardMembers, governanceContracts } = fixture.accounts;
     const [member] = advisoryBoardMembers;
 
     await memberRoles.connect(governanceContracts[0]).updateRole(member.address, Role.Member, false);

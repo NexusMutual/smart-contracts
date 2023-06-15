@@ -1,32 +1,39 @@
 const { Role } = require('../utils').constants;
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { setup } = require('./setup');
 const { formatBytes32String } = ethers.utils;
 
 describe('withdrawMembership', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('reverts when withdrawing membership for non-member', async function () {
-    const { memberRoles } = this.contracts;
+    const { memberRoles } = fixture.contracts;
     const {
       nonMembers: [nonMember1],
-    } = this.accounts;
+    } = fixture.accounts;
     await expect(memberRoles.connect(nonMember1).withdrawMembership()).to.be.reverted;
   });
 
   it('reverts when token is locked', async function () {
-    const { memberRoles, nxm } = this.contracts;
+    const { memberRoles, nxm } = fixture.contracts;
     const {
       members: [member],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await nxm.setLock(member.address, 1000);
     await expect(memberRoles.connect(member).withdrawMembership()).to.be.reverted;
   });
 
   it('reverts when member has LegacyPooledStaking deposit tokens', async function () {
-    const { memberRoles, pooledStaking } = this.contracts;
+    const { memberRoles, pooledStaking } = fixture.contracts;
     const {
       members: [member],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await pooledStaking.setStakerDeposit(member.address, 100);
     await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
@@ -35,10 +42,10 @@ describe('withdrawMembership', function () {
   });
 
   it('reverts when member has LegacyPooledStaking reward tokens', async function () {
-    const { memberRoles, pooledStaking } = this.contracts;
+    const { memberRoles, pooledStaking } = fixture.contracts;
     const {
       members: [member],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await pooledStaking.setStakerReward(member.address, 100);
     await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
@@ -47,10 +54,10 @@ describe('withdrawMembership', function () {
   });
 
   it('reverts when member has tokens locked for claim assessment', async function () {
-    const { memberRoles, tokenController } = this.contracts;
+    const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await tokenController.setTokensLocked(member.address, formatBytes32String('CLA'), 100);
     await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
@@ -59,10 +66,10 @@ describe('withdrawMembership', function () {
   });
 
   it('reverts when member has withdrawable cover notes', async function () {
-    const { memberRoles, tokenController } = this.contracts;
+    const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await tokenController.setWithdrawableCoverNotes(member.address, 100);
     await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
@@ -71,20 +78,20 @@ describe('withdrawMembership', function () {
   });
 
   it('reverts when member has tokens staked for assessment', async function () {
-    const { memberRoles, assessment } = this.contracts;
+    const { memberRoles, assessment } = fixture.contracts;
     const {
       members: [member],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await assessment.setStakeOf(member.address, 100);
     await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith('Member has Assessment stake');
   });
 
   it('reverts when member has pending rewards in TokenController', async function () {
-    const { memberRoles, tokenController } = this.contracts;
+    const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await tokenController.setPendingRewards(member.address, 100);
     await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
@@ -93,10 +100,10 @@ describe('withdrawMembership', function () {
   });
 
   it("removes member's the address from the whitelist", async function () {
-    const { memberRoles, tokenController } = this.contracts;
+    const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member1],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await tokenController.setIsStakingPoolManager(member1.address, false);
     await memberRoles.connect(member1).withdrawMembership();
@@ -106,10 +113,10 @@ describe('withdrawMembership', function () {
   });
 
   it('prevents withdrawing membership if the member is a staking pool manager', async function () {
-    const { memberRoles, tokenController } = this.contracts;
+    const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member1],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await tokenController.setIsStakingPoolManager(member1.address, true);
 
@@ -119,10 +126,10 @@ describe('withdrawMembership', function () {
   });
 
   it("burns all the tokens from the member's address", async function () {
-    const { memberRoles, nxm } = this.contracts;
+    const { memberRoles, nxm } = fixture.contracts;
     const {
       members: [member1],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const balanceBefore = await nxm.balanceOf(member1.address);
     await memberRoles.connect(member1).withdrawMembership();
@@ -133,10 +140,10 @@ describe('withdrawMembership', function () {
   });
 
   it('decreases the members count', async function () {
-    const { memberRoles } = this.contracts;
+    const { memberRoles } = fixture.contracts;
     const {
       members: [member1],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const membersBefore = await memberRoles.numberOfMembers(Role.Member);
     await memberRoles.connect(member1).withdrawMembership();
@@ -145,10 +152,10 @@ describe('withdrawMembership', function () {
   });
 
   it("removes the role of member from the mebmber's address", async function () {
-    const { memberRoles } = this.contracts;
+    const { memberRoles } = fixture.contracts;
     const {
       members: [member1],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const hadMemberRoleBefore = await memberRoles.checkRole(member1.address, Role.Member);
     await memberRoles.connect(member1).withdrawMembership();

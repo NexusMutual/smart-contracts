@@ -1,11 +1,18 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { setup } = require('./setup');
 const { Role } = require('../utils').constants;
 
 describe('switchMembershipAndAssets', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('grants the member role to the new address', async function () {
-    const { memberRoles, nxm } = this.contracts;
-    const { members, nonMembers } = this.accounts;
+    const { memberRoles, nxm } = fixture.contracts;
+    const { members, nonMembers } = fixture.accounts;
 
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await memberRoles.connect(members[0]).switchMembershipAndAssets(nonMembers[0].address, [], []);
@@ -15,8 +22,8 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('removes the member role from the initial address', async function () {
-    const { memberRoles, nxm } = this.contracts;
-    const { members, nonMembers } = this.accounts;
+    const { memberRoles, nxm } = fixture.contracts;
+    const { members, nonMembers } = fixture.accounts;
 
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await memberRoles.connect(members[0]).switchMembershipAndAssets(nonMembers[0].address, [], []);
@@ -26,8 +33,8 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('whitelists the new address', async function () {
-    const { memberRoles, nxm, tokenController } = this.contracts;
-    const { members, nonMembers } = this.accounts;
+    const { memberRoles, nxm, tokenController } = fixture.contracts;
+    const { members, nonMembers } = fixture.accounts;
 
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await memberRoles.connect(members[0]).switchMembershipAndAssets(nonMembers[0].address, [], []);
@@ -37,8 +44,8 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('removes the initial address from the whitelist', async function () {
-    const { memberRoles, nxm, tokenController } = this.contracts;
-    const { members, nonMembers } = this.accounts;
+    const { memberRoles, nxm, tokenController } = fixture.contracts;
+    const { members, nonMembers } = fixture.accounts;
 
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await memberRoles.connect(members[0]).switchMembershipAndAssets(nonMembers[0].address, [], []);
@@ -48,8 +55,8 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('keeps the number of members the same', async function () {
-    const { memberRoles, nxm } = this.contracts;
-    const { members, nonMembers } = this.accounts;
+    const { memberRoles, nxm } = fixture.contracts;
+    const { members, nonMembers } = fixture.accounts;
 
     const membersBefore = await memberRoles.numberOfMembers(Role.Member);
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
@@ -60,8 +67,8 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('reverts when switching membership to another member address', async function () {
-    const { memberRoles, nxm } = this.contracts;
-    const { members } = this.accounts;
+    const { memberRoles, nxm } = fixture.contracts;
+    const { members } = fixture.accounts;
 
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await expect(
@@ -70,8 +77,8 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('reverts when switching membership of non-member address', async function () {
-    const { memberRoles, nxm } = this.contracts;
-    const { nonMembers, members } = this.accounts;
+    const { memberRoles, nxm } = fixture.contracts;
+    const { nonMembers, members } = fixture.accounts;
 
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await expect(
@@ -80,8 +87,8 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('transfers the NXM balance amount to the new address', async function () {
-    const { memberRoles, nxm } = this.contracts;
-    const { members, nonMembers } = this.accounts;
+    const { memberRoles, nxm } = fixture.contracts;
+    const { members, nonMembers } = fixture.accounts;
 
     const initialAddressBalance = await nxm.balanceOf(members[0].address);
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
@@ -92,9 +99,9 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('transfers the provided covers to the new address', async function () {
-    const { memberRoles, nxm, cover, coverNFT } = this.contracts;
-    const [member] = this.accounts.members;
-    const [nonMember] = this.accounts.nonMembers;
+    const { memberRoles, nxm, cover, coverNFT } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+    const [nonMember] = fixture.accounts.nonMembers;
 
     for (let i = 0; i < 3; i++) {
       await cover.createMockCover(member.address);
@@ -121,9 +128,9 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('transfers all staking NFTs to the new address', async function () {
-    const { memberRoles, nxm, stakingNFT } = this.contracts;
-    const [member, otherMember] = this.accounts.members;
-    const [newMember] = this.accounts.nonMembers;
+    const { memberRoles, nxm, stakingNFT } = fixture.contracts;
+    const [member, otherMember] = fixture.accounts.members;
+    const [newMember] = fixture.accounts.nonMembers;
 
     await stakingNFT.mint(member.address);
     await stakingNFT.mint(otherMember.address);
@@ -142,9 +149,9 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('reverts when trying to transfer staking nfts of another member', async function () {
-    const { memberRoles, nxm, stakingNFT } = this.contracts;
-    const [member, otherMember] = this.accounts.members;
-    const [nonMember] = this.accounts.nonMembers;
+    const { memberRoles, nxm, stakingNFT } = fixture.contracts;
+    const [member, otherMember] = fixture.accounts.members;
+    const [nonMember] = fixture.accounts.nonMembers;
 
     await stakingNFT.mint(otherMember.address);
     await stakingNFT.mint(member.address);
@@ -163,9 +170,9 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('reverts when trying to transfer cover nfts of another member', async function () {
-    const { memberRoles, nxm, cover } = this.contracts;
-    const [member, otherMember] = this.accounts.members;
-    const [nonMember] = this.accounts.nonMembers;
+    const { memberRoles, nxm, cover } = fixture.contracts;
+    const [member, otherMember] = fixture.accounts.members;
+    const [nonMember] = fixture.accounts.nonMembers;
 
     for (let i = 0; i < 3; i++) {
       await cover.createMockCover(otherMember.address);

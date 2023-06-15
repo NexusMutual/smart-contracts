@@ -105,20 +105,21 @@ async function setup() {
   await memberRoles.connect(accounts.governanceContracts[0]).updateRole(abMember.address, Role.AdvisoryBoard, true);
   await master.enrollMember(abMember.address, Role.Member);
   await memberRoles.connect(accounts.governanceContracts[0]).updateRole(abMember.address, Role.Member, true);
-
-  this.accounts = accounts;
-  this.contracts = {
-    nxm,
-    master,
-    pool,
-    memberRoles,
-    cover,
-    coverNFT,
-    stakingNFT,
-    tokenController,
-    quotationData,
-    pooledStaking,
-    assessment,
+  return {
+    accounts,
+    contracts: {
+      nxm,
+      master,
+      pool,
+      memberRoles,
+      cover,
+      coverNFT,
+      stakingNFT,
+      tokenController,
+      quotationData,
+      pooledStaking,
+      assessment,
+    },
   };
 }
 

@@ -1,13 +1,20 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 
 describe('withdrawAsset', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('transfers the specified amount of a given asset to the destination address', async function () {
-    const { yieldTokenIncidents, ybDai } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
-    const [nonMember] = this.accounts.nonMembers;
+    const { yieldTokenIncidents, ybDai } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
+    const [nonMember] = fixture.accounts.nonMembers;
 
     ybDai.mint(yieldTokenIncidents.address, parseEther('1000'));
 
@@ -20,9 +27,9 @@ describe('withdrawAsset', function () {
   });
 
   it('transfers the maximum available amount when it exceeds the contract balance', async function () {
-    const { yieldTokenIncidents, ybDai } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
-    const [nonMember] = this.accounts.nonMembers;
+    const { yieldTokenIncidents, ybDai } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
+    const [nonMember] = fixture.accounts.nonMembers;
 
     ybDai.mint(yieldTokenIncidents.address, parseEther('10'));
 
@@ -38,8 +45,8 @@ describe('withdrawAsset', function () {
   });
 
   it('should revert if caller is not governance', async function () {
-    const { yieldTokenIncidents, ybDai } = this.contracts;
-    const [nonMember1, nonMember2] = this.accounts.nonMembers;
+    const { yieldTokenIncidents, ybDai } = fixture.contracts;
+    const [nonMember1, nonMember2] = fixture.accounts.nonMembers;
 
     ybDai.mint(yieldTokenIncidents.address, parseEther('10'));
 

@@ -1,56 +1,60 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { setEtherBalance } = require('../../utils/evm');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 describe('depositStakedNXM', function () {
+  let fixture;
   beforeEach(async function () {
-    const { stakingPoolFactory } = this.contracts;
+    fixture = await loadFixture(setup);
+    const { stakingPoolFactory } = fixture.contracts;
 
     const createPoolTx = await stakingPoolFactory.create(AddressZero);
     const { events } = await createPoolTx.wait();
     const { poolId, stakingPoolAddress } = events[0].args;
 
-    this.poolId = poolId;
-    this.poolSigner = await ethers.getImpersonatedSigner(stakingPoolAddress);
+    fixture.poolId = poolId;
+    fixture.poolSigner = await ethers.getImpersonatedSigner(stakingPoolAddress);
     await setEtherBalance(stakingPoolAddress, parseEther('1'));
   });
 
   it('reverts if caller is not pool contract', async function () {
-    const { tokenController } = this.contracts;
-    const [member] = this.accounts.members;
+    const { tokenController } = fixture.contracts;
+    const [member] = fixture.accounts.members;
 
     const amount = parseEther('10');
-    await expect(tokenController.depositStakedNXM(member.address, amount, this.poolId)).to.be.revertedWith(
+    await expect(tokenController.depositStakedNXM(member.address, amount, fixture.poolId)).to.be.revertedWith(
       'TokenController: Caller not a staking pool',
     );
   });
 
   it('increases staking pool deposits', async function () {
-    const { tokenController } = this.contracts;
-    const [member] = this.accounts.members;
+    const { tokenController } = fixture.contracts;
+    const [member] = fixture.accounts.members;
 
-    const initialStakingPoolNXMBalances = await tokenController.stakingPoolNXMBalances(this.poolId);
+    const initialStakingPoolNXMBalances = await tokenController.stakingPoolNXMBalances(fixture.poolId);
 
     const amount = parseEther('10');
-    await tokenController.connect(this.poolSigner).depositStakedNXM(member.address, amount, this.poolId);
+    await tokenController.connect(fixture.poolSigner).depositStakedNXM(member.address, amount, fixture.poolId);
 
-    const stakingPoolNXMBalances = await tokenController.stakingPoolNXMBalances(this.poolId);
+    const stakingPoolNXMBalances = await tokenController.stakingPoolNXMBalances(fixture.poolId);
     expect(stakingPoolNXMBalances.deposits).to.equal(initialStakingPoolNXMBalances.deposits.add(amount));
     expect(stakingPoolNXMBalances.rewards).to.equal(initialStakingPoolNXMBalances.rewards);
   });
 
   it('transfer nxm from the specified account to the contract', async function () {
-    const { tokenController, nxm } = this.contracts;
-    const [member] = this.accounts.members;
+    const { tokenController, nxm } = fixture.contracts;
+    const [member] = fixture.accounts.members;
 
     const initialTcBalance = await nxm.balanceOf(tokenController.address);
     const initialUserBalance = await nxm.balanceOf(member.address);
 
     const amount = parseEther('10');
-    await tokenController.connect(this.poolSigner).depositStakedNXM(member.address, amount, this.poolId);
+    await tokenController.connect(fixture.poolSigner).depositStakedNXM(member.address, amount, fixture.poolId);
 
     const tcBalance = await nxm.balanceOf(tokenController.address);
     const userBalance = await nxm.balanceOf(member.address);

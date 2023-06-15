@@ -1,10 +1,17 @@
 const { expect } = require('chai');
 const { parseEther } = require('ethers/lib/utils');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 
 describe('operatorTransfer', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('reverts if caller is not an internal contract', async function () {
-    const { tokenController } = this.contracts;
-    const [member1, member2] = this.accounts.members;
+    const { tokenController } = fixture.contracts;
+    const [member1, member2] = fixture.accounts.members;
 
     const amount = parseEther('10');
     await expect(
@@ -13,9 +20,9 @@ describe('operatorTransfer', function () {
   });
 
   it('transfer nxm from source address to destination address', async function () {
-    const { tokenController, nxm } = this.contracts;
-    const [internalContract] = this.accounts.internalContracts;
-    const [member1, member2] = this.accounts.members;
+    const { tokenController, nxm } = fixture.contracts;
+    const [internalContract] = fixture.accounts.internalContracts;
+    const [member1, member2] = fixture.accounts.members;
 
     const initialBalanceMember1 = await nxm.balanceOf(member1.address);
     const initialBalanceMember2 = await nxm.balanceOf(member2.address);
@@ -31,9 +38,9 @@ describe('operatorTransfer', function () {
   });
 
   it('transfer nxm from source address to token controller', async function () {
-    const { tokenController, nxm } = this.contracts;
-    const [internalContract] = this.accounts.internalContracts;
-    const [member2] = this.accounts.members;
+    const { tokenController, nxm } = fixture.contracts;
+    const [internalContract] = fixture.accounts.internalContracts;
+    const [member2] = fixture.accounts.members;
 
     const initialBalanceTC = await nxm.balanceOf(tokenController.address);
     const initialBalanceMember2 = await nxm.balanceOf(member2.address);

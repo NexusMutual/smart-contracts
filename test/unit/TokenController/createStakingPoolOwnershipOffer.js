@@ -1,14 +1,19 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 const { Two } = ethers.constants;
 
 const poolId = 150;
 describe('createStakingPoolOwnershipOffer', function () {
-  beforeEach(async function () {});
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
 
   it('should revert if caller is not the staking pool manager', async function () {
-    const { tokenController } = this.contracts;
-    const [caller] = this.accounts.members;
+    const { tokenController } = fixture.contracts;
+    const [caller] = fixture.accounts.members;
 
     await expect(
       tokenController.connect(caller).createStakingPoolOwnershipOffer(poolId, caller.address, 1000000),
@@ -16,11 +21,11 @@ describe('createStakingPoolOwnershipOffer', function () {
   });
 
   it('should revert if the deadline is not in the future', async function () {
-    const { tokenController } = this.contracts;
+    const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
       internalContracts: [internalContract],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Set old manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
@@ -33,11 +38,11 @@ describe('createStakingPoolOwnershipOffer', function () {
   });
 
   it('should successfully create a new pool ownership offer', async function () {
-    const { tokenController } = this.contracts;
+    const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
       internalContracts: [internalContract],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Set old manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
@@ -54,11 +59,11 @@ describe('createStakingPoolOwnershipOffer', function () {
   });
 
   it('should be able to overwrite a previous pool ownership offer', async function () {
-    const { tokenController } = this.contracts;
+    const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager, newManager2],
       internalContracts: [internalContract],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Set old manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
@@ -82,11 +87,11 @@ describe('createStakingPoolOwnershipOffer', function () {
   });
 
   it('should successfully transfer ownership to the same address', async function () {
-    const { tokenController } = this.contracts;
+    const { tokenController } = fixture.contracts;
     const {
       members: [manager],
       internalContracts: [internalContract],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Set manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, manager.address);

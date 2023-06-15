@@ -1,14 +1,20 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { setTime } = require('./helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('unstake', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
   it("decreases the user's stake", async function () {
-    const { assessment } = this.contracts;
-    const user = this.accounts.members[0];
+    const { assessment } = fixture.contracts;
+    const user = fixture.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
 
     {
@@ -37,9 +43,9 @@ describe('unstake', function () {
   });
 
   it('transfers the staked NXM to the provided address', async function () {
-    const { assessment, nxm } = this.contracts;
-    const user1 = this.accounts.members[0];
-    const user2 = this.accounts.members[1];
+    const { assessment, nxm } = fixture.contracts;
+    const user1 = fixture.accounts.members[0];
+    const user2 = fixture.accounts.members[1];
     await assessment.connect(user1).stake(parseEther('100'));
 
     {
@@ -58,8 +64,8 @@ describe('unstake', function () {
   });
 
   it("reverts if less than stakeLockupPeriodInDays passed since the staker's last vote", async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const user = this.accounts.members[0];
+    const { assessment, individualClaims } = fixture.contracts;
+    const user = fixture.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], 0);
@@ -82,23 +88,23 @@ describe('unstake', function () {
   });
 
   it('reverts if system is paused', async function () {
-    const { assessment, master } = this.contracts;
+    const { assessment, master } = fixture.contracts;
     await master.setEmergencyPause(true);
 
     await expect(assessment.stake(parseEther('100'))).to.revertedWith('System is paused');
   });
 
   it('does not revert if amount is 0', async function () {
-    const { assessment } = this.contracts;
-    const user = this.accounts.members[0];
+    const { assessment } = fixture.contracts;
+    const user = fixture.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
 
     await expect(assessment.connect(user).unstake(0, user.address)).to.not.reverted;
   });
 
   it('reverts if amount is bigger than the stake', async function () {
-    const { assessment } = this.contracts;
-    const user = this.accounts.members[0];
+    const { assessment } = fixture.contracts;
+    const user = fixture.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
 
     // reverts with math underflow check: panic code 0x11
@@ -106,8 +112,8 @@ describe('unstake', function () {
   });
 
   it('emits StakeWithdrawn event with staker, destination and amount', async function () {
-    const { assessment } = this.contracts;
-    const [user1, user2] = this.accounts.members;
+    const { assessment } = fixture.contracts;
+    const [user1, user2] = fixture.accounts.members;
     await assessment.connect(user1).stake(parseEther('100'));
 
     {
@@ -126,8 +132,8 @@ describe('unstake', function () {
   });
 
   it('reverts if attempting to stake while NXM is locked for voting in governance', async function () {
-    const { nxm, assessment } = this.contracts;
-    const [user, otherUser] = this.accounts.members;
+    const { nxm, assessment } = fixture.contracts;
+    const [user, otherUser] = fixture.accounts.members;
     await nxm.setLock(user.address, 100);
     await expect(assessment.connect(user).unstake(parseEther('100'), otherUser.address)).to.be.revertedWith(
       'Assessment: NXM is locked for voting in governance',
@@ -135,8 +141,8 @@ describe('unstake', function () {
   });
 
   it('allows to unstake to own address while NXM is locked for voting in governance', async function () {
-    const { nxm, assessment } = this.contracts;
-    const [user] = this.accounts.members;
+    const { nxm, assessment } = fixture.contracts;
+    const [user] = fixture.accounts.members;
     const amount = parseEther('100');
 
     await assessment.connect(user).stake(amount);

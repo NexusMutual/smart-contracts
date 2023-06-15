@@ -2,14 +2,20 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { setNextBlockBaseFee } = require('../utils').evm;
 const { setTime, finalizePoll, generateRewards } = require('./helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('withdrawRewardsTo', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
   it('reverts if there are no withdrawable rewards', async function () {
-    const { assessment } = this.contracts;
-    const [user] = this.accounts.members;
+    const { assessment } = fixture.contracts;
+    const [user] = fixture.accounts.members;
     await assessment.connect(user).stake(parseEther('10'));
     await expect(assessment.connect(user).withdrawRewardsTo(user.address, 0)).to.be.revertedWith(
       'No withdrawable rewards',
@@ -17,14 +23,14 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('reverts when not called by the owner of the rewards ', async function () {
-    const { nxm, assessment, individualClaims } = this.contracts;
-    const [staker] = this.accounts.members;
+    const { nxm, assessment, individualClaims } = fixture.contracts;
+    const [staker] = fixture.accounts.members;
 
     await generateRewards({ assessment, individualClaims, staker });
 
     await finalizePoll(assessment);
 
-    const [nonMember] = this.accounts.nonMembers;
+    const [nonMember] = fixture.accounts.nonMembers;
     const { totalRewardInNXM } = await assessment.assessments(0);
     const nonMemberBalanceBefore = await nxm.balanceOf(nonMember.address);
     const stakerBalanceBefore = await nxm.balanceOf(staker.address);
@@ -41,8 +47,8 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('sends the rewards to any member address', async function () {
-    const { nxm, assessment, individualClaims } = this.contracts;
-    const [staker, otherMember] = this.accounts.members;
+    const { nxm, assessment, individualClaims } = fixture.contracts;
+    const [staker, otherMember] = fixture.accounts.members;
 
     await generateRewards({ assessment, individualClaims, staker });
 
@@ -61,8 +67,8 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('withdraws rewards up to the last finalized assessment when an unfinalized assessment follows', async function () {
-    const { nxm, assessment, individualClaims } = this.contracts;
-    const [user] = this.accounts.members;
+    const { nxm, assessment, individualClaims } = fixture.contracts;
+    const [user] = fixture.accounts.members;
 
     await assessment.connect(user).stake(parseEther('10'));
 
@@ -89,8 +95,8 @@ describe('withdrawRewardsTo', function () {
   });
 
   it("mints rewards based on user's stake at vote time", async function () {
-    const { nxm, assessment, individualClaims } = this.contracts;
-    const [user1, user2, user3] = this.accounts.members;
+    const { nxm, assessment, individualClaims } = fixture.contracts;
+    const [user1, user2, user3] = fixture.accounts.members;
 
     {
       await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
@@ -188,8 +194,8 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('reverts if the destination address is not a member', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const [user1] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const [user1] = fixture.accounts.members;
     const nonMember = '0xDECAF00000000000000000000000000000000000';
 
     await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
@@ -204,8 +210,8 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('should withdraw multiple rewards consecutively', async function () {
-    const { nxm, assessment, individualClaims } = this.contracts;
-    const [user1] = this.accounts.members;
+    const { nxm, assessment, individualClaims } = fixture.contracts;
+    const [user1] = fixture.accounts.members;
 
     {
       await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
@@ -247,8 +253,8 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('should withdraw multiple rewards in one tx', async function () {
-    const { nxm, assessment, individualClaims } = this.contracts;
-    const [user1] = this.accounts.members;
+    const { nxm, assessment, individualClaims } = fixture.contracts;
+    const [user1] = fixture.accounts.members;
 
     {
       await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
@@ -278,8 +284,8 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('emits RewardWithdrawn event with staker, destination and withdrawn amount', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const [staker, user1] = this.accounts.members;
+    const { assessment, individualClaims } = fixture.contracts;
+    const [staker, user1] = fixture.accounts.members;
 
     await generateRewards({ assessment, individualClaims, staker });
     const { totalRewardInNXM } = await assessment.assessments(0);
@@ -292,8 +298,8 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('reverts if system is paused', async function () {
-    const { assessment, master, individualClaims } = this.contracts;
-    const [staker] = this.accounts.members;
+    const { assessment, master, individualClaims } = fixture.contracts;
+    const [staker] = fixture.accounts.members;
 
     await generateRewards({ assessment, individualClaims, staker });
 
@@ -305,8 +311,8 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('reverts if assessment rewards already claimed', async function () {
-    const { assessment, individualClaims, nxm } = this.contracts;
-    const [staker] = this.accounts.members;
+    const { assessment, individualClaims, nxm } = fixture.contracts;
+    const [staker] = fixture.accounts.members;
 
     await generateRewards({ assessment, individualClaims, staker });
 
@@ -331,8 +337,8 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('withdraws zero amount if poll is not final', async function () {
-    const { assessment, individualClaims, nxm } = this.contracts;
-    const [staker] = this.accounts.members;
+    const { assessment, individualClaims, nxm } = fixture.contracts;
+    const [staker] = fixture.accounts.members;
 
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
     await generateRewards({ assessment, individualClaims, staker });

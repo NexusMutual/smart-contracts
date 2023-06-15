@@ -68,17 +68,19 @@ async function setup() {
 
   const config = await assessment.config();
 
-  this.config = config;
-  this.accounts = accounts;
-  this.contracts = {
-    nxm,
-    dai,
-    assessment,
-    master,
-    individualClaims,
-    yieldTokenIncidents,
-    tokenController,
-    memberRoles,
+  return {
+    config,
+    accounts,
+    contracts: {
+      nxm,
+      dai,
+      assessment,
+      master,
+      individualClaims,
+      yieldTokenIncidents,
+      tokenController,
+      memberRoles,
+    },
   };
 }
 

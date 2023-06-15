@@ -1,15 +1,21 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 const { Zero } = ethers.constants;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('startAssessment', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
   it('returns the index of the newly created assessment', async function () {
-    const { individualClaims, yieldTokenIncidents } = this.contracts;
-    const [member] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const { individualClaims, yieldTokenIncidents } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
 
@@ -49,9 +55,9 @@ describe('startAssessment', function () {
   });
 
   it('stores assessmentDepositInETH and totalRewardInNXM', async function () {
-    const { individualClaims, yieldTokenIncidents, assessment } = this.contracts;
-    const [member] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const { individualClaims, yieldTokenIncidents, assessment } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     {
@@ -76,9 +82,9 @@ describe('startAssessment', function () {
   });
 
   it('stores a poll that starts at the block timestamp and ends after minVotingPeriodInDays', async function () {
-    const { individualClaims, yieldTokenIncidents, assessment } = this.contracts;
-    const [member] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const { individualClaims, yieldTokenIncidents, assessment } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
 
     {
       await individualClaims.connect(member).submitClaim(0, 0, parseEther('100'), '');
@@ -104,8 +110,8 @@ describe('startAssessment', function () {
   });
 
   it('reverts if caller is not an internal contract', async function () {
-    const { assessment } = this.contracts;
-    const [member] = this.accounts.members;
+    const { assessment } = fixture.contracts;
+    const [member] = fixture.accounts.members;
 
     await expect(assessment.connect(member).startAssessment(parseEther('100'), parseEther('10'))).to.be.revertedWith(
       'Caller is not an internal contract',

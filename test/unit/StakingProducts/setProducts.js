@@ -239,7 +239,10 @@ describe('setProducts unit tests', function () {
     expect(weights.totalTargetWeight).to.be.equal(2000);
     // expect(await stakingPool.getTotalTargetWeight()).to.be.equal(2000);
     const product19 = await stakingProducts.getProduct(poolId, 19);
-    await verifyProduct.call(fixture, { product: product19, productParams: { ...products[19], bumpedPriceUpdateTime } });
+    await verifyProduct.call(fixture, {
+      product: product19,
+      productParams: { ...products[19], bumpedPriceUpdateTime },
+    });
   });
 
   it('should fail to add weights beyond 20x', async function () {

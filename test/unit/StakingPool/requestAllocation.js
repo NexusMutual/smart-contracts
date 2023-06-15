@@ -237,7 +237,12 @@ describe('requestAllocation', function () {
       GLOBAL_CAPACITY_RATIO,
       coverProductTemplate.capacityReductionRatio,
     );
-    const priceBump = calculatePriceBump(amount, fixture.config.PRICE_BUMP_RATIO, totalCapacity, NXM_PER_ALLOCATION_UNIT);
+    const priceBump = calculatePriceBump(
+      amount,
+      fixture.config.PRICE_BUMP_RATIO,
+      totalCapacity,
+      NXM_PER_ALLOCATION_UNIT,
+    );
 
     {
       // buy cover and check premium + new price

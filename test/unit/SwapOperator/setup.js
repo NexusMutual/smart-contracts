@@ -6,9 +6,6 @@ const {
   utils: { parseEther },
 } = ethers;
 
-// will be assigned by setup()
-const instances = {};
-
 async function setup() {
   const [owner, governance] = await ethers.getSigners();
 

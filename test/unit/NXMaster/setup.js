@@ -24,10 +24,12 @@ async function setup() {
     addresses, // addresses
   );
 
-  this.master = master;
-  this.token = token;
-  this.governance = governance;
-  this.accounts = accounts;
+  return {
+    master,
+    token,
+    governance,
+    accounts,
+  };
 }
 
 module.exports = setup;

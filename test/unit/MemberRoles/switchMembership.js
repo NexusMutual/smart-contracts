@@ -1,12 +1,19 @@
 const { ethers } = require('hardhat');
 const { Role } = require('../utils').constants;
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { setup } = require('./setup');
 const { formatBytes32String } = ethers.utils;
 
 describe('switchMembership', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('grants the member role to the new address', async function () {
-    const { memberRoles, nxm } = this.contracts;
-    const { members, nonMembers } = this.accounts;
+    const { memberRoles, nxm } = fixture.contracts;
+    const { members, nonMembers } = fixture.accounts;
 
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await memberRoles.connect(members[0]).switchMembership(nonMembers[0].address);
@@ -16,8 +23,8 @@ describe('switchMembership', function () {
   });
 
   it('grants the AB member role to the new address', async function () {
-    const { memberRoles, nxm } = this.contracts;
-    const { nonMembers, advisoryBoardMembers } = this.accounts;
+    const { memberRoles, nxm } = fixture.contracts;
+    const { nonMembers, advisoryBoardMembers } = fixture.accounts;
 
     await nxm.connect(advisoryBoardMembers[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await memberRoles.connect(advisoryBoardMembers[0]).switchMembership(nonMembers[0].address);
@@ -27,8 +34,8 @@ describe('switchMembership', function () {
   });
 
   it('removes the member role from the initial address', async function () {
-    const { memberRoles, nxm } = this.contracts;
-    const { members, nonMembers } = this.accounts;
+    const { memberRoles, nxm } = fixture.contracts;
+    const { members, nonMembers } = fixture.accounts;
 
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await memberRoles.connect(members[0]).switchMembership(nonMembers[0].address);
@@ -38,8 +45,8 @@ describe('switchMembership', function () {
   });
 
   it('whitelists the new address', async function () {
-    const { memberRoles, nxm, tokenController } = this.contracts;
-    const { members, nonMembers } = this.accounts;
+    const { memberRoles, nxm, tokenController } = fixture.contracts;
+    const { members, nonMembers } = fixture.accounts;
 
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await memberRoles.connect(members[0]).switchMembership(nonMembers[0].address);
@@ -49,8 +56,8 @@ describe('switchMembership', function () {
   });
 
   it('removes the initial address from the whitelist', async function () {
-    const { memberRoles, nxm, tokenController } = this.contracts;
-    const { members, nonMembers } = this.accounts;
+    const { memberRoles, nxm, tokenController } = fixture.contracts;
+    const { members, nonMembers } = fixture.accounts;
 
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await memberRoles.connect(members[0]).switchMembership(nonMembers[0].address);
@@ -60,8 +67,8 @@ describe('switchMembership', function () {
   });
 
   it('keeps the number of members the same', async function () {
-    const { memberRoles, nxm } = this.contracts;
-    const { members, nonMembers } = this.accounts;
+    const { memberRoles, nxm } = fixture.contracts;
+    const { members, nonMembers } = fixture.accounts;
 
     const membersBefore = await memberRoles.numberOfMembers(Role.Member);
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
@@ -72,8 +79,8 @@ describe('switchMembership', function () {
   });
 
   it('reverts when switching membership to another member address', async function () {
-    const { memberRoles, nxm } = this.contracts;
-    const { members } = this.accounts;
+    const { memberRoles, nxm } = fixture.contracts;
+    const { members } = fixture.accounts;
 
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await expect(memberRoles.connect(members[0]).switchMembership(members[1].address)).to.be.revertedWith(
@@ -82,8 +89,8 @@ describe('switchMembership', function () {
   });
 
   it('reverts when switching membership of non-member address', async function () {
-    const { memberRoles, nxm } = this.contracts;
-    const { nonMembers, members } = this.accounts;
+    const { memberRoles, nxm } = fixture.contracts;
+    const { nonMembers, members } = fixture.accounts;
 
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await expect(memberRoles.connect(nonMembers[0]).switchMembership(nonMembers[1].address)).to.be.revertedWith(
@@ -92,11 +99,11 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member tokens are locked', async function () {
-    const { memberRoles, nxm } = this.contracts;
+    const { memberRoles, nxm } = fixture.contracts;
     const {
       members: [member],
       nonMembers: [nonMember],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await nxm.setLock(member.address, 1000);
     await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
@@ -105,11 +112,11 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member has LegacyPooledStaking deposit tokens', async function () {
-    const { memberRoles, pooledStaking } = this.contracts;
+    const { memberRoles, pooledStaking } = fixture.contracts;
     const {
       members: [member],
       nonMembers: [nonMember],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await pooledStaking.setStakerDeposit(member.address, 100);
     await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
@@ -118,11 +125,11 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member has LegacyPooledStaking reward tokens', async function () {
-    const { memberRoles, pooledStaking } = this.contracts;
+    const { memberRoles, pooledStaking } = fixture.contracts;
     const {
       members: [member],
       nonMembers: [nonMember],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await pooledStaking.setStakerReward(member.address, 100);
     await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
@@ -131,11 +138,11 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member has tokens locked for claim assessment', async function () {
-    const { memberRoles, tokenController } = this.contracts;
+    const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member],
       nonMembers: [nonMember],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await tokenController.setTokensLocked(member.address, formatBytes32String('CLA'), 100);
     await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
@@ -144,11 +151,11 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member has withdrawable cover notes', async function () {
-    const { memberRoles, tokenController } = this.contracts;
+    const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member],
       nonMembers: [nonMember],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await tokenController.setWithdrawableCoverNotes(member.address, 100);
     await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
@@ -157,11 +164,11 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member has tokens staked for assessment', async function () {
-    const { memberRoles, assessment } = this.contracts;
+    const { memberRoles, assessment } = fixture.contracts;
     const {
       members: [member],
       nonMembers: [nonMember],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await assessment.setStakeOf(member.address, 100);
     await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
@@ -170,11 +177,11 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member has pending rewards in TokenController', async function () {
-    const { memberRoles, tokenController } = this.contracts;
+    const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member],
       nonMembers: [nonMember],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await tokenController.setPendingRewards(member.address, 100);
     await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
@@ -183,11 +190,11 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member system is paused', async function () {
-    const { memberRoles, master } = this.contracts;
+    const { memberRoles, master } = fixture.contracts;
     const {
       members: [member],
       nonMembers: [nonMember],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await master.pause();
 
@@ -197,8 +204,8 @@ describe('switchMembership', function () {
   });
 
   it('transfers the NXM balance amount to the new address', async function () {
-    const { memberRoles, nxm } = this.contracts;
-    const { members, nonMembers } = this.accounts;
+    const { memberRoles, nxm } = fixture.contracts;
+    const { members, nonMembers } = fixture.accounts;
 
     const initialAddressBalance = await nxm.balanceOf(members[0].address);
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);

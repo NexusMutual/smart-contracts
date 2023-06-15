@@ -1,12 +1,20 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+
+const setup = require('./setup');
 const { getTokenSpotPrice } = require('../utils').tokenPrice;
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 
 describe('calculateTokenSpotPrice', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('calculates token spot price correctly', async function () {
-    const { pool } = this;
+    const { pool } = fixture;
 
     const mcrEth = parseEther('162424');
     const totalAssetValue = parseEther('200000');
@@ -20,7 +28,7 @@ describe('calculateTokenSpotPrice', function () {
   });
 
   it('calculates token spot price correctly for totalAssetValue = 0', async function () {
-    const { pool } = this;
+    const { pool } = fixture;
 
     const mcrEth = parseEther('162424');
     const totalAssetValue = parseEther('0');
@@ -31,7 +39,7 @@ describe('calculateTokenSpotPrice', function () {
   });
 
   it('should revert when mcrEth = 0', async function () {
-    const { pool } = this;
+    const { pool } = fixture;
     const mcrEth = parseEther('0');
     const totalAssetValue = parseEther('200000');
 

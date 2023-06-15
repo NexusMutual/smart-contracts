@@ -1,12 +1,20 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+
+const setup = require('./setup');
 const { toBytes8 } = require('../utils').helpers;
 
 const { AddressZero, WeiPerEther } = ethers.constants;
 
 describe('addAsset', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('reverts when not called by goverance', async function () {
-    const { pool } = this;
+    const { pool } = fixture;
 
     await expect(pool.addAsset(AddressZero, true, '0', '1', '0')).to.be.revertedWith(
       'Caller is not authorized to govern',
@@ -18,8 +26,8 @@ describe('addAsset', function () {
   });
 
   it('reverts when asset address is zero address', async function () {
-    const { pool } = this;
-    const [governance] = this.accounts.governanceContracts;
+    const { pool } = fixture;
+    const [governance] = fixture.accounts.governanceContracts;
 
     await expect(pool.connect(governance).addAsset(AddressZero, false, '0', '1', '0')).to.be.revertedWith(
       'Pool: Asset is zero address',
@@ -27,8 +35,8 @@ describe('addAsset', function () {
   });
 
   it('reverts when max < min', async function () {
-    const { pool, otherAsset } = this;
-    const [governance] = this.accounts.governanceContracts;
+    const { pool, otherAsset } = fixture;
+    const [governance] = fixture.accounts.governanceContracts;
 
     await expect(pool.connect(governance).addAsset(otherAsset.address, true, '1', '0', '0')).to.be.revertedWith(
       'Pool: max < min',
@@ -36,8 +44,8 @@ describe('addAsset', function () {
   });
 
   it('reverts when max slippage ratio > 1', async function () {
-    const { pool, otherAsset } = this;
-    const [governance] = this.accounts.governanceContracts;
+    const { pool, otherAsset } = fixture;
+    const [governance] = fixture.accounts.governanceContracts;
     await expect(
       pool.connect(governance).addAsset(otherAsset.address, true, '0', '1', '10001' /* 100.01% */),
     ).to.be.revertedWith('Pool: Max slippage ratio > 1');
@@ -47,8 +55,8 @@ describe('addAsset', function () {
   });
 
   it('reverts when asset exists', async function () {
-    const { pool, dai } = this;
-    const [governance] = this.accounts.governanceContracts;
+    const { pool, dai } = fixture;
+    const [governance] = fixture.accounts.governanceContracts;
 
     await expect(pool.connect(governance).addAsset(dai.address, false, '0', '1', '0')).to.be.revertedWith(
       'Pool: Asset exists',
@@ -56,8 +64,8 @@ describe('addAsset', function () {
   });
 
   it('reverts when asset lacks an oracle', async function () {
-    const { pool } = this;
-    const [governance] = this.accounts.governanceContracts;
+    const { pool } = fixture;
+    const [governance] = fixture.accounts.governanceContracts;
 
     const arbitraryAddress = '0x47ec31abc6b86e49933dC7B2969EBEbE3De662cA';
 
@@ -67,9 +75,9 @@ describe('addAsset', function () {
   });
 
   it('should add assets setting min, max, slippage ratio, and their bool flags', async function () {
-    const { pool, dai, stETH, enzymeVault } = this;
-    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = this;
-    const [governance] = this.accounts.governanceContracts;
+    const { pool, dai, stETH, enzymeVault } = fixture;
+    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
+    const [governance] = fixture.accounts.governanceContracts;
 
     const coverToken = await ethers.deployContract('ERC20Mock');
     const clCoverToken = await ethers.deployContract('ChainlinkAggregatorMock');

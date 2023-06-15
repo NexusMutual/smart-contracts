@@ -1,61 +1,43 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { BigNumber } = ethers;
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+
+const setup = require('./setup');
 const { parseEther } = ethers.utils;
-const { toBytes8 } = require('../utils').helpers;
 
 describe('transferAsset', function () {
-  before(async function () {
-    const { pool, dai, stETH, enzymeVault } = this;
-    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = this;
-    const [governance] = this.accounts.governanceContracts;
-
-    const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
-    const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
-    const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
-
-    const otherToken = await ERC20Mock.deploy();
-    const chainlinkNewAsset = await ChainlinkAggregatorMock.deploy();
-    await chainlinkNewAsset.setLatestAnswer(BigNumber.from((1e18).toString()));
-
-    const priceFeedOracle = await PriceFeedOracle.deploy(
-      [dai.address, stETH.address, enzymeVault.address, otherToken.address],
-      [chainlinkDAI.address, chainlinkSteth.address, chainlinkEnzymeVault.address, chainlinkNewAsset.address],
-      [18, 18, 18, 18],
-    );
-
-    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
-
-    this.otherToken = otherToken;
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
   });
 
   it('transfers added ERC20 asset to destination', async function () {
-    const { pool, otherToken } = this;
+    const { pool, otherAsset } = fixture;
     const {
       governanceContracts: [governance],
       nonMembers: [destination],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const tokenAmount = parseEther('100000');
-    await pool.connect(governance).addAsset(otherToken.address, true, '0', '0', 100 /* 1% */);
-    await otherToken.mint(pool.address, tokenAmount);
+    await pool.connect(governance).addAsset(otherAsset.address, true, '0', '0', 100 /* 1% */);
+    await otherAsset.mint(pool.address, tokenAmount);
 
     const amountToTransfer = tokenAmount.div(2);
 
-    await pool.connect(governance).transferAsset(otherToken.address, destination.address, amountToTransfer);
-    const destinationBalance = await otherToken.balanceOf(destination.address);
+    await pool.connect(governance).transferAsset(otherAsset.address, destination.address, amountToTransfer);
+    const destinationBalance = await otherAsset.balanceOf(destination.address);
     expect(destinationBalance).to.eq(amountToTransfer);
 
-    const poolBalance = await otherToken.balanceOf(pool.address);
+    const poolBalance = await otherAsset.balanceOf(pool.address);
     expect(poolBalance).to.eq(tokenAmount.sub(amountToTransfer));
   });
 
   it('transfers arbitrary ERC20 asset in the Pool to destination', async function () {
-    const { pool } = this;
+    const { pool } = fixture;
     const {
       governanceContracts: [governance],
       nonMembers: [destination],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
     const tokenAmount = parseEther('100000');
@@ -73,11 +55,11 @@ describe('transferAsset', function () {
   });
 
   it('transfers entire balance of arbitrary ERC20 asset in the Pool if amount < balance', async function () {
-    const { pool } = this;
+    const { pool } = fixture;
     const {
       governanceContracts: [governance],
       nonMembers: [destination],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
     const tokenAmount = parseEther('100000');
@@ -96,26 +78,26 @@ describe('transferAsset', function () {
   });
 
   it('reverts on asset transfer if asset maxAmount > 0', async function () {
-    const { pool, otherToken } = this;
+    const { pool, otherAsset } = fixture;
     const {
       governanceContracts: [governance],
       nonMembers: [destination],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const tokenAmount = parseEther('100000');
-    await pool.connect(governance).addAsset(otherToken.address, true, '0', '1', 100 /* 1% */);
-    await otherToken.mint(pool.address, tokenAmount);
+    await pool.connect(governance).addAsset(otherAsset.address, true, '0', '1', 100 /* 1% */);
+    await otherAsset.mint(pool.address, tokenAmount);
     await expect(
-      pool.connect(governance).transferAsset(otherToken.address, destination.address, tokenAmount),
+      pool.connect(governance).transferAsset(otherAsset.address, destination.address, tokenAmount),
     ).to.be.revertedWith('Pool: Max not zero');
   });
 
   it('reverts on asset transfer if caller is not authorized to govern', async function () {
-    const { pool } = this;
+    const { pool } = fixture;
     const {
       governanceContracts: [governance],
       nonMembers: [destination],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
     const tokenAmount = parseEther('100000');

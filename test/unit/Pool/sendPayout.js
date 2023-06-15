@@ -2,14 +2,22 @@ const { ethers } = require('hardhat');
 const { parseEther } = ethers.utils;
 const { expect } = require('chai');
 const { PoolAsset } = require('../../../lib/constants');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+
+const setup = require('./setup');
 
 describe('sendPayout', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('transfers ERC20 payout to destination', async function () {
-    const { pool, dai } = this;
+    const { pool, dai } = fixture;
     const {
       internalContracts: [internal],
       generalPurpose: [destination],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const tokenAmount = parseEther('100000');
     await dai.mint(pool.address, tokenAmount);
@@ -25,11 +33,11 @@ describe('sendPayout', function () {
   });
 
   it('transfers ETH payout to destination', async function () {
-    const { pool } = this;
+    const { pool } = fixture;
     const {
       internalContracts: [internal],
       nonMembers: [destination, fundSource],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const ethAmount = parseEther('10000');
     await fundSource.sendTransaction({ to: pool.address, value: ethAmount });

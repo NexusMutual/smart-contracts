@@ -1,5 +1,4 @@
 const { expect } = require('chai');
-const { contracts } = require('./setup');
 const {
   Assets: { ETH },
 } = require('../../../lib/constants');

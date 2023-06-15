@@ -70,13 +70,15 @@ async function setup() {
     await master.enrollGovernance(governanceContract.address);
   }
 
-  this.master = master;
-  this.pool = pool;
-  this.dai = dai;
-  this.chainlinkDAI = chainlinkDAI;
-  this.mcr = mcr;
-  this.cover = cover;
-  this.accounts = accounts;
+  return {
+    master,
+    pool,
+    dai,
+    chainlinkDAI,
+    mcr,
+    cover,
+    accounts,
+  };
 }
 
 module.exports = setup;

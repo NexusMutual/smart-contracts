@@ -1,7 +1,9 @@
 const { expect } = require('chai');
 const { initMCR } = require('./common');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
 
+const setup = require('./setup');
 const { increaseTime, mineNextBlock } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
@@ -22,8 +24,13 @@ const DEFAULT_MCR_PARAMS = {
 const ratioScale = BigNumber.from('10000');
 
 describe('updateMCR', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('does not update if minUpdateTime has not passed', async function () {
-    const { master, pool } = this;
+    const { master, pool } = fixture;
 
     const poolValueInEth = parseEther('200000');
     await pool.setPoolValueInEth(poolValueInEth);
@@ -42,7 +49,7 @@ describe('updateMCR', function () {
   });
 
   it('keeps values the same if MCR = MCR floor and mcrWithGear is too low', async function () {
-    const { master, cover, pool } = this;
+    const { master, cover, pool } = fixture;
 
     await pool.setPoolValueInEth(parseEther('160000'));
     await cover.setTotalActiveCoverInAsset(0, '100000');
@@ -68,7 +75,7 @@ describe('updateMCR', function () {
   });
 
   it('increases desiredMCR when mcrWithGear exceeds current MCR', async function () {
-    const { master, cover, pool } = this;
+    const { master, cover, pool } = fixture;
 
     await pool.setPoolValueInEth(parseEther('160000'));
     await cover.setTotalActiveCoverInAsset(0, parseEther('800000'));
@@ -98,7 +105,7 @@ describe('updateMCR', function () {
   });
 
   it('increases desiredMCR when mcrFloor increases (MCR% > 130%)', async function () {
-    const { master, cover, pool } = this;
+    const { master, cover, pool } = fixture;
 
     const poolValueInEth = DEFAULT_MCR_PARAMS.mcrValue.mul(131).div(100);
     await pool.setPoolValueInEth(poolValueInEth);
@@ -127,7 +134,7 @@ describe('updateMCR', function () {
   });
 
   it('increases desiredMCR when both mcrFloor and mcrWithGear increase', async function () {
-    const { master, cover, pool } = this;
+    const { master, cover, pool } = fixture;
 
     const poolValueInEth = DEFAULT_MCR_PARAMS.mcrValue.mul(131).div(100);
     await pool.setPoolValueInEth(poolValueInEth);
@@ -160,7 +167,7 @@ describe('updateMCR', function () {
   });
 
   it('increases/decreases desiredMCR when mcrWithGear increases/decreases', async function () {
-    const { master, cover, pool } = this;
+    const { master, cover, pool } = fixture;
 
     const poolValueInEth = parseEther('160000');
     await pool.setPoolValueInEth(poolValueInEth);
@@ -200,7 +207,7 @@ describe('updateMCR', function () {
   });
 
   it('increases desiredMCR when mcrWithGear increases and then decreases down to mcrFloor', async function () {
-    const { master, cover, pool } = this;
+    const { master, cover, pool } = fixture;
 
     const poolValueInEth = parseEther('160000');
     await pool.setPoolValueInEth(poolValueInEth);
@@ -238,7 +245,7 @@ describe('updateMCR', function () {
   });
 
   it('increases mcrFloor by 1% after 2 days pass', async function () {
-    const { master, pool } = this;
+    const { master, pool } = fixture;
 
     const poolValueInEth = parseEther('200000');
     await pool.setPoolValueInEth(poolValueInEth);
@@ -258,7 +265,7 @@ describe('updateMCR', function () {
   });
 
   it('increases mcrFloor by 1% on multiple updates that are 2 days apart', async function () {
-    const { master, pool } = this;
+    const { master, pool } = fixture;
 
     const poolValueInEth = parseEther('200000');
     await pool.setPoolValueInEth(poolValueInEth);
@@ -293,7 +300,7 @@ describe('updateMCR', function () {
   });
 
   it('increases desiredMCR when mcrWithGear exceeds current MCR if MCR% < 100%', async function () {
-    const { master, cover, pool } = this;
+    const { master, cover, pool } = fixture;
     await pool.setPoolValueInEth(parseEther('120000'));
     await cover.setTotalActiveCoverInAsset(0, parseEther('800000'));
 
@@ -313,7 +320,7 @@ describe('updateMCR', function () {
   });
 
   it('decreases desiredMCR towards mcrFloor when poolValueInEth = 0 and totalSumAssured = 0', async function () {
-    const { master, pool } = this;
+    const { master, pool } = fixture;
 
     const poolValueInEth = parseEther('120000');
     await pool.setPoolValueInEth(poolValueInEth);

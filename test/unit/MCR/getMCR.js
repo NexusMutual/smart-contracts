@@ -1,6 +1,8 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
 
+const setup = require('./setup');
 const { initMCR, MAX_PERCENTAGE_ADJUSTMENT } = require('./common');
 const { increaseTime, mineNextBlock } = require('../utils').evm;
 const { daysToSeconds, hoursToSeconds } = require('../utils').helpers;
@@ -20,8 +22,13 @@ const DEFAULT_MCR_PARAMS = {
 };
 
 describe('getMCR', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('should return the stored MCR value if MCR == desiredMCR', async function () {
-    const { master } = this;
+    const { master } = fixture;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
 
@@ -34,7 +41,7 @@ describe('getMCR', function () {
   });
 
   it('increases MCR by MAX_PERCENTAGE_ADJUSTMENT towards the higher desired MCR if 24 hours pass', async function () {
-    const { master } = this;
+    const { master } = fixture;
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: parseEther('160000'), master });
 
     await increaseTime(daysToSeconds(1));
@@ -51,7 +58,7 @@ describe('getMCR', function () {
   });
 
   it('decreases MCR by MAX_PERCENTAGE_ADJUSTMENT towards the lower desired MCR if 24 hours pass', async function () {
-    const { master } = this;
+    const { master } = fixture;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: parseEther('140000'), master });
     await increaseTime(hoursToSeconds(24));
@@ -65,7 +72,7 @@ describe('getMCR', function () {
   });
 
   it('increases MCR by 0.4% towards higher desired MCR if 2 hour pass', async function () {
-    const { master } = this;
+    const { master } = fixture;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: parseEther('160000'), master });
 
@@ -83,7 +90,7 @@ describe('getMCR', function () {
   });
 
   it('increases MCR by 0.8% towards higher desired MCR if 4 hour pass', async function () {
-    const { master } = this;
+    const { master } = fixture;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: parseEther('160000'), master });
 
@@ -101,7 +108,7 @@ describe('getMCR', function () {
   });
 
   it('decreases MCR by 0.4% towards lower desired MCR if 2 hours pass', async function () {
-    const { master } = this;
+    const { master } = fixture;
 
     const mcr = await initMCR({
       ...DEFAULT_MCR_PARAMS,
@@ -124,7 +131,7 @@ describe('getMCR', function () {
   });
 
   it('decreases MCR by 0.8% towards lower desired MCR if 4 hours pass', async function () {
-    const { master } = this;
+    const { master } = fixture;
 
     const mcr = await initMCR({
       ...DEFAULT_MCR_PARAMS,
@@ -147,7 +154,7 @@ describe('getMCR', function () {
   });
 
   it('increases MCR to desiredMCR value if it is within 1% of stored mcr after 24 hours', async function () {
-    const { master } = this;
+    const { master } = fixture;
 
     const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.mul(1008).div(1000);
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR, master });
@@ -160,7 +167,7 @@ describe('getMCR', function () {
   });
 
   it('decreases MCR to desiredMCR value if it is within 1% of stored mcr after 24 hours', async function () {
-    const { master } = this;
+    const { master } = fixture;
 
     const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.mul(992).div(1000);
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR, master });
@@ -173,7 +180,7 @@ describe('getMCR', function () {
   });
 
   it('increases MCR by 1% if desiredMCR is 1% higher than current MCR', async function () {
-    const { master } = this;
+    const { master } = fixture;
 
     const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.mul(101).div(100);
     const mcrFloor = desiredMCR;
@@ -187,7 +194,7 @@ describe('getMCR', function () {
   });
 
   it('increases MCR by 1% if desiredMCR is 2% higher than current MCR', async function () {
-    const { master } = this;
+    const { master } = fixture;
 
     const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.mul(102).div(100);
     const mcrFloor = desiredMCR;

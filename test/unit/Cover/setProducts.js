@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
 
 const { createStakingPool } = require('./helpers');
 const { daysToSeconds } = require('../utils').helpers;
@@ -7,6 +8,8 @@ const { resultAsObject } = require('../utils').results;
 
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
+
+const setup = require('./setup');
 
 describe('setProducts', function () {
   const amount = parseEther('1000');
@@ -57,10 +60,14 @@ describe('setProducts', function () {
     product: { ...productTemplate },
     allowedPools: [],
   };
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
 
   it('should add a single product and emit ProductSet event', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productParams = { ...productParamsTemplate };
     const expectedProductId = await cover.productsCount();
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams]))
@@ -72,8 +79,8 @@ describe('setProducts', function () {
   });
 
   it('should edit a single product and emit ProductSet event with updated args', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productParams = { ...productParamsTemplate };
     // add product
     await cover.connect(advisoryBoardMember0).setProducts([productParams]);
@@ -92,8 +99,8 @@ describe('setProducts', function () {
   });
 
   it('should revert if called by address not on advisory board', async function () {
-    const { cover } = this;
-    const [member] = this.accounts.members;
+    const { cover } = fixture;
+    const [member] = fixture.accounts.members;
     const productParams = Array.from({ length: 20 }, () => ({ ...productParamsTemplate }));
     await expect(cover.connect(member).setProducts(productParams)).to.be.revertedWith(
       'Caller is not an advisory board member',
@@ -101,8 +108,8 @@ describe('setProducts', function () {
   });
 
   it('should add many products', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
     const previousProductsCount = await cover.productsCount();
     const newProductsCount = 40;
@@ -115,8 +122,8 @@ describe('setProducts', function () {
   });
 
   it('should revert if trying to edit a non-existing product', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = await cover.productsCount();
     const productParams = { ...productParamsTemplate, productId };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWithCustomError(
@@ -126,8 +133,8 @@ describe('setProducts', function () {
   });
 
   it('should revert if updated coverAssets are unsupported', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember] = fixture.accounts.advisoryBoardMembers;
 
     // ETH = 1, DAI = 2, 3 & 4 don't exist
     const coverAssets = 0b1111;
@@ -141,8 +148,8 @@ describe('setProducts', function () {
   });
 
   it('should revert if updated coverAssets are unsupported when editing a product', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = await cover.productsCount();
     const productParams = { ...productParamsTemplate };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams]))
@@ -160,8 +167,8 @@ describe('setProducts', function () {
   });
 
   it('should revert if initialPriceRatio > 100', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const initialPriceRatio = priceDenominator + 1;
     const product = { ...productTemplate, initialPriceRatio };
     const productParams = { ...productParamsTemplate, product };
@@ -172,8 +179,8 @@ describe('setProducts', function () {
   });
 
   it('should revert if initialPriceRatio > 100 when editing a product', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = await cover.productsCount();
     const productParams = { ...productParamsTemplate };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams]))
@@ -191,9 +198,9 @@ describe('setProducts', function () {
   });
 
   it('should revert if initialPriceRatio is below GLOBAL_MIN_PRICE_RATIO', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
-    const { GLOBAL_MIN_PRICE_RATIO } = this.config;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+    const { GLOBAL_MIN_PRICE_RATIO } = fixture.config;
     const initialPriceRatio = GLOBAL_MIN_PRICE_RATIO - 1;
     const product = { ...productTemplate, initialPriceRatio };
     const productParams = { ...productParamsTemplate, product };
@@ -204,10 +211,10 @@ describe('setProducts', function () {
   });
 
   it('should revert if initialPriceRatio is below GLOBAL_MIN_PRICE_RATIO when editing a product', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = 1;
-    const { GLOBAL_MIN_PRICE_RATIO } = this.config;
+    const { GLOBAL_MIN_PRICE_RATIO } = fixture.config;
     const productParams = { ...productParamsTemplate };
     await cover.connect(advisoryBoardMember0).setProducts([productParams]);
     {
@@ -222,8 +229,8 @@ describe('setProducts', function () {
   });
 
   it('should revert if capacityReductionRatio > 100% when adding a product', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const capacityReductionRatio = capacityFactor + 1; // 100.01 %
     const product = { ...productTemplate, capacityReductionRatio };
     const productParams = { ...productParamsTemplate, product };
@@ -234,8 +241,8 @@ describe('setProducts', function () {
   });
 
   it('should revert if capacityReductionRatio > 100% when editing a product', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = await cover.productsCount();
     const productParams = { ...productParamsTemplate };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams]))
@@ -251,11 +258,11 @@ describe('setProducts', function () {
   });
 
   it('should fail to buy cover for deprecated product', async function () {
-    const { cover } = this;
+    const { cover } = fixture;
     const {
       members: [coverBuyer, stakingPoolManager],
       advisoryBoardMembers: [advisoryBoardMember0],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const productId = 1;
 
@@ -294,11 +301,11 @@ describe('setProducts', function () {
   });
 
   it('should fail to edit cover for deprecated product', async function () {
-    const { cover } = this;
+    const { cover } = fixture;
     const {
       members: [coverBuyer, stakingPoolManager],
       advisoryBoardMembers: [advisoryBoardMember0],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const productId = 1;
 
@@ -343,11 +350,11 @@ describe('setProducts', function () {
   });
 
   it('should be able to buy cover on a previously deprecated product', async function () {
-    const { cover } = this;
+    const { cover } = fixture;
     const {
       members: [coverBuyer, stakingPoolManager],
       advisoryBoardMembers: [advisoryBoardMember0],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const productId = 1;
 
@@ -392,8 +399,8 @@ describe('setProducts', function () {
   });
 
   it('should store product name for existing product', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
     const expectedProductId = 0;
     const expectedProductName = 'Product Test';
@@ -410,8 +417,8 @@ describe('setProducts', function () {
   });
 
   it('should not change product name for existing product if passed empty string', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
     const expectedProductId = 0;
     const productNameBefore = await cover.productNames(expectedProductId);
@@ -428,8 +435,8 @@ describe('setProducts', function () {
   });
 
   it('should store product name for new product', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
     const expectedProductName = 'Product Test';
 

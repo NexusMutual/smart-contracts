@@ -1,5 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('./setup');
 const { resultAsObject } = require('../../utils/').results;
 const { MaxUint256 } = ethers.constants;
 
@@ -20,9 +22,13 @@ const ProductTypeParamTemplate = {
 };
 
 describe('setProductTypes', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
   it('should revert if called by an account not on the advisory board', async function () {
-    const { cover } = this;
-    const [member] = this.accounts.members;
+    const { cover } = fixture;
+    const [member] = fixture.accounts.members;
     const productTypeParams = { ...ProductTypeParamTemplate };
     await expect(cover.connect(member).setProductTypes([productTypeParams])).to.be.revertedWith(
       'Caller is not an advisory board member',
@@ -30,8 +36,8 @@ describe('setProductTypes', function () {
   });
 
   it('should add a new product type', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productTypeId = 1;
     const productTypeParams = { ...ProductTypeParamTemplate };
     await expect(cover.connect(advisoryBoardMember0).setProductTypes([productTypeParams]))
@@ -40,8 +46,8 @@ describe('setProductTypes', function () {
   });
 
   it('should edit gracePeriod on an existing product', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productTypeId = 1;
     const productTypeParams = { ...ProductTypeParamTemplate };
     await expect(cover.connect(advisoryBoardMember0).setProductTypes([productTypeParams]))
@@ -64,8 +70,8 @@ describe('setProductTypes', function () {
   });
 
   it('should revert if trying to edit a non existing productType', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productTypeId = 99;
     const productTypeParams = { ...ProductTypeParamTemplate, productTypeId };
     await expect(
@@ -74,8 +80,8 @@ describe('setProductTypes', function () {
   });
 
   it('should store product type name for existing productType', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
     const expectedProductTypeId = 0;
     const expectedProductTypeName = 'Product Type Test';
@@ -92,8 +98,8 @@ describe('setProductTypes', function () {
   });
 
   it('should not change productTyype name for existing productType if passed empty string', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
     const expectedProductTypeId = 0;
     const productTypeNameBefore = await cover.productTypeNames(expectedProductTypeId);
@@ -110,8 +116,8 @@ describe('setProductTypes', function () {
   });
 
   it('should store product type name for new productType', async function () {
-    const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+    const { cover } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
     const expectedProductTypeName = 'Product Type Test';
 

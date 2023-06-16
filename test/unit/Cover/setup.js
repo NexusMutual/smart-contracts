@@ -1,4 +1,5 @@
-const { ethers, accounts } = require('hardhat');
+const hre = require('hardhat');
+const { ethers, accounts } = hre;
 const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 
@@ -79,6 +80,8 @@ async function setup() {
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);
     await memberRoles.setRole(member.address, Role.Member);
+    await dai.mint(member.address, parseEther('100000'));
+    await dai.connect(member).approve(cover.address, parseEther('100000'));
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
@@ -184,23 +187,25 @@ async function setup() {
   const BUCKET_SIZE = BigNumber.from(7 * 24 * 3600); // 7 days
   const capacityFactor = '20000';
 
-  this.master = master;
-  this.pool = pool;
-  this.dai = dai;
-  this.usdc = usdc;
-  this.nxm = nxm;
-  this.tokenController = tokenController;
-  this.memberRoles = memberRoles;
-  this.cover = cover;
-  this.coverNFT = coverNFT;
-  this.accounts = accounts;
-  this.capacityFactor = capacityFactor;
-  this.stakingPoolImplementation = stakingPoolImplementation;
-  this.stakingPoolFactory = stakingPoolFactory;
-  this.stakingProducts = stakingProducts;
-  this.config = { GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO };
-  this.assets = Assets;
-  this.pooledStakingSigner = pooledStakingSigner;
+  return {
+    master,
+    pool,
+    dai,
+    usdc,
+    nxm,
+    tokenController,
+    memberRoles,
+    cover,
+    coverNFT,
+    accounts,
+    capacityFactor,
+    stakingPoolImplementation,
+    stakingPoolFactory,
+    stakingProducts,
+    config: { GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO },
+    Assets,
+    pooledStakingSigner,
+  };
 }
 
 module.exports = setup;

@@ -16,8 +16,6 @@ import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
 
-import "hardhat/console.sol";
-
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
 // total product capacity = total capacity * capacity reduction factor * product weight

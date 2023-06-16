@@ -1667,11 +1667,9 @@ describe('requestAllocation', function () {
     const allocationReceipt = await allocationTx.wait();
     const { blockNumber: allocationBlockNumber } = allocationReceipt;
     const { timestamp: allocationTimestamp } = await ethers.provider.getBlock(allocationBlockNumber);
-    console.log({ allocationTimestamp });
 
     {
       const allocations = await stakingPool.getActiveAllocations(productId);
-      console.log(allocations);
       const allocatedAmount = allocations.reduce((acc, allocation) => acc.add(allocation), Zero);
       expect(allocatedAmount).to.be.equal(amount.div(NXM_PER_ALLOCATION_UNIT));
     }
@@ -1681,7 +1679,6 @@ describe('requestAllocation', function () {
 
     {
       const allocations = await stakingPool.getActiveAllocations(productId);
-      console.log(allocations);
       const allocatedAmount = allocations.reduce((acc, allocation) => acc.add(allocation), Zero);
       expect(allocatedAmount).to.be.equal(Zero);
     }
@@ -1690,7 +1687,7 @@ describe('requestAllocation', function () {
       ...allocationRequest,
       allocationId,
       previousStart: allocationTimestamp,
-      previousEnd: allocationTimestamp + allocationRequest.period,
+      previousExpiration: allocationTimestamp + allocationRequest.period,
     };
 
     await expect(stakingPool.requestAllocation(0, 0, expireAllocationRequest))

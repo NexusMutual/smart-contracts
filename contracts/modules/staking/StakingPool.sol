@@ -16,6 +16,8 @@ import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
 
+import "hardhat/console.sol";
+
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
 // total product capacity = total capacity * capacity reduction factor * product weight
@@ -614,6 +616,14 @@ contract StakingPool is IStakingPool, Multicall {
     // passing true because we change the reward per second
     processExpirations(true);
 
+    // prevent allocation requests (edits and forced expirations) for expired covers
+    if (request.allocationId != 0) {
+      uint expirationBucketId = request.previousExpiration / BUCKET_DURATION;
+      if (coverTrancheAllocations[request.allocationId] == 0 || firstActiveBucketId >= expirationBucketId) {
+        revert AlreadyDeallocated(request.allocationId);
+      }
+    }
+
     uint[] memory trancheAllocations = request.allocationId == 0
       ? getActiveAllocations(request.productId)
       : getActiveAllocationsWithoutCover(
@@ -626,13 +636,6 @@ contract StakingPool is IStakingPool, Multicall {
     // we are only deallocating
     // rewards streaming is left as is
     if (amount == 0) {
-      uint expirationBucketId = request.previousExpiration / BUCKET_DURATION;
-
-      // revert with cover already deallocated
-      if (coverTrancheAllocations[request.allocationId] == 0 || firstActiveBucketId > expirationBucketId) {
-        revert AlreadyDeallocated(request.allocationId);
-      }
-
       // store deallocated amount
       updateStoredAllocations(
         request.productId,

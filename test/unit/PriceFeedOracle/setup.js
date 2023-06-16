@@ -1,5 +1,4 @@
 const { ethers } = require('hardhat');
-const { getAccounts } = require('../../utils/accounts');
 
 async function setup() {
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');

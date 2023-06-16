@@ -164,7 +164,12 @@ describe('CoverNFTDescriptor', function () {
     expect(decodedJson.description).to.contain('ETH');
 
     // image
-    const expectedAmountWithPrecisionLoss = await assetWithPrecisionLoss(pool, fixture.amount, ETH_ASSET_ID, fixture.config);
+    const expectedAmountWithPrecisionLoss = await assetWithPrecisionLoss(
+      pool,
+      fixture.amount,
+      ETH_ASSET_ID,
+      fixture.config,
+    );
     const expectedAmountRaw = formatEther(expectedAmountWithPrecisionLoss);
     const expectedAmount = Number(expectedAmountRaw).toFixed(2);
 

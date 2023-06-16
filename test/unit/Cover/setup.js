@@ -106,7 +106,8 @@ async function setup() {
     await master.enrollInternal(contract.address);
   }
 
-  await master.setEmergencyAdmin(accounts.emergencyAdmin.address);
+  console.log(accounts.emergencyAdmin);
+  await master.setEmergencyAdmin(await accounts.emergencyAdmin.getAddress());
 
   await cover.connect(accounts.advisoryBoardMembers[0]).setProductTypes([
     {

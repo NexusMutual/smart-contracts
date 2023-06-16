@@ -1,4 +1,4 @@
-const { ethers, accounts } = require('hardhat');
+const { ethers } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;

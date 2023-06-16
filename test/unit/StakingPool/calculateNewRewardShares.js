@@ -5,7 +5,7 @@ const {
   },
 } = require('hardhat');
 const { TRANCHE_DURATION } = require('./helpers');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('calculateNewRewardShares', function () {

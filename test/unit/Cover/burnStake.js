@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { assertCoverFields, buyCoverOnOnePool, buyCoverOnMultiplePools, createStakingPool } = require('./helpers');
 const { expect } = require('chai');

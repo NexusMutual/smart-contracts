@@ -4,7 +4,7 @@ const { ethers } = require('hardhat');
 const { setNextBlockTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 const { assertCoverFields, buyCoverOnOnePool, MAX_COVER_PERIOD, createStakingPool } = require('./helpers');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 const { BigNumber } = ethers;

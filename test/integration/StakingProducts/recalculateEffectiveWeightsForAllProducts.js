@@ -6,7 +6,7 @@ const { calculateFirstTrancheId } = require('../utils/staking');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { buyCover, ETH_ASSET_ID } = require('../utils/cover');
 const { divCeil, roundUpToNearestAllocationUnit } = require('../../unit/StakingPool/helpers');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
 const { MaxUint256 } = ethers.constants;

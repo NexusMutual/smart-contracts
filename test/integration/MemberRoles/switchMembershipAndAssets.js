@@ -6,7 +6,7 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
 const { calculateFirstTrancheId } = require('../utils/staking');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
 describe('switchMembershipAndAssets', function () {

@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { parseEther } = require('ethers/lib/utils');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('mint', function () {

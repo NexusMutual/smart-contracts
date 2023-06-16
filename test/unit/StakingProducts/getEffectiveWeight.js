@@ -4,7 +4,7 @@ const { expect } = require('chai');
 const { parseEther } = ethers.utils;
 
 const { allocateCapacity, depositTo, burnStake, setStakedProducts } = require('./helpers');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 const poolId = 1;

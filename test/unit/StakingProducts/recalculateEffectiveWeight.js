@@ -12,7 +12,7 @@ const {
   buyCoverParamsTemplate,
   newProductTemplate,
 } = require('./helpers');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { increaseTime, setEtherBalance } = require('../../utils').evm;
 

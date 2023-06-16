@@ -6,7 +6,7 @@ const { increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 const { calculateFirstTrancheId } = require('../utils/staking');
 const { BigNumber } = require('ethers');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
 const { parseEther } = ethers.utils;

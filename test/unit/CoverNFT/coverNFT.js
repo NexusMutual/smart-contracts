@@ -2,7 +2,7 @@ const { ethers } = require('ethers');
 const { expect } = require('chai');
 const setup = require('./setup');
 const { AddressZero } = ethers.constants;
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 describe('CoverNFT', function () {
   let fixture;

@@ -618,7 +618,7 @@ contract StakingPool is IStakingPool, Multicall {
 
     // prevent allocation requests (edits and forced expirations) for expired covers
     if (request.allocationId != 0) {
-      uint expirationBucketId = request.previousExpiration / BUCKET_DURATION;
+      uint expirationBucketId = Math.divCeil(request.previousExpiration, BUCKET_DURATION);
       if (coverTrancheAllocations[request.allocationId] == 0 || firstActiveBucketId >= expirationBucketId) {
         revert AlreadyDeallocated(request.allocationId);
       }

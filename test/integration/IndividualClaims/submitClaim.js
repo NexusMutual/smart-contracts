@@ -257,7 +257,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: fixture.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: dai,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -310,7 +315,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: fixture.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: dai,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -363,7 +373,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: fixture.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: dai,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -415,7 +430,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: fixture.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: dai,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -469,7 +489,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: fixture.accounts.defaultSender, coverBuyer: coverBuyer1, asset: usdc, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: usdc,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -524,7 +549,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: fixture.accounts.defaultSender, coverBuyer: coverBuyer1, asset: usdc, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: usdc,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -579,7 +609,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: fixture.accounts.defaultSender, coverBuyer: coverBuyer1, asset: usdc, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: usdc,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -751,7 +786,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: fixture.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: dai,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -872,7 +912,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: fixture.accounts.defaultSender, coverBuyer: coverBuyer1, asset: usdc, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: usdc,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({

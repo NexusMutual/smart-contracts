@@ -80,7 +80,9 @@ describe('getAllSumAssurance', function () {
       priceDenominator,
     });
     const totalAssurance = await mcr.getAllSumAssurance();
-    expect(totalAssurance).to.be.equal(await assetToEthWithPrecisionLoss(p1, coverBuyTemplate.amount, 0, fixture.config));
+    expect(totalAssurance).to.be.equal(
+      await assetToEthWithPrecisionLoss(p1, coverBuyTemplate.amount, 0, fixture.config),
+    );
   });
 
   it('returns total value of DAI purchased cover', async function () {
@@ -138,7 +140,12 @@ describe('getAllSumAssurance', function () {
     }
 
     // calculate eth covers
-    const expectedEthAssurance = await assetToEthWithPrecisionLoss(p1, ethCoverTemplate.amount.mul(2), 0, fixture.config);
+    const expectedEthAssurance = await assetToEthWithPrecisionLoss(
+      p1,
+      ethCoverTemplate.amount.mul(2),
+      0,
+      fixture.config,
+    );
 
     // calculate dai covers
     const expectedDaiAssurance = await assetToEthWithPrecisionLoss(

@@ -6,11 +6,11 @@ describe('UNIT TESTS', function () {
   require('./MCR');
   require('./Assessment');
   require('./Cover');
+  require('./StakingPool');
   require('./CoverNFT');
   require('./CoverMigrator');
   require('./IndividualClaims');
   require('./YieldTokenIncidents');
-  require('./StakingPool');
   require('./StakingProducts');
   require('./PriceFeedOracle');
   require('./CoverViewer');

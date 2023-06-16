@@ -38,7 +38,14 @@ describe('buyCover', function () {
   let fixture;
   beforeEach(async function () {
     fixture = await loadFixture(setup);
-    const { tk: nxm, stakingProducts, stakingPool1, stakingPool2, stakingPool3, tc: tokenController } = fixture.contracts;
+    const {
+      tk: nxm,
+      stakingProducts,
+      stakingPool1,
+      stakingPool2,
+      stakingPool3,
+      tc: tokenController,
+    } = fixture.contracts;
     const staker = fixture.accounts.defaultSender;
     const [manager1, manager2, manager3] = fixture.accounts.stakingPoolManagers;
     const stakeAmount = parseEther('9000000');

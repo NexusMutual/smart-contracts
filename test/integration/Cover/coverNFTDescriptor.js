@@ -7,16 +7,20 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/').evm;
 const { assetWithPrecisionLoss } = require('../utils/assetPricing');
 const { USDC_ASSET_ID, DAI_ASSET_ID, ETH_ASSET_ID } = require('../utils/cover');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('../setup');
 
 const JSON_HEADER = 'data:application/json;base64,';
 const SVG_HEADER = 'data:image/svg+xml;base64,';
 
 describe('CoverNFTDescriptor', function () {
+  let fixture;
   beforeEach(async function () {
+    fixture = await loadFixture(setup);
     const {
       members: [staker, coverBuyer],
       stakingPoolManagers: [, , stakingPoolManager],
-    } = this.accounts;
+    } = fixture.accounts;
     const {
       stakingProducts,
       stakingPool1,
@@ -26,9 +30,9 @@ describe('CoverNFTDescriptor', function () {
       usdc,
       tk: nxm,
       tc: tokenController,
-    } = this.contracts;
+    } = fixture.contracts;
 
-    const { TRANCHE_DURATION } = this.config;
+    const { TRANCHE_DURATION } = fixture.config;
 
     const stakingAmount = parseEther('50');
     const usdcProductId = 6;
@@ -48,7 +52,7 @@ describe('CoverNFTDescriptor', function () {
     // Cover details
     const poolId = await stakingPool1.getPoolId();
     const amount = parseEther('4.20');
-    const targetPrice = this.DEFAULT_PRODUCTS[0].targetPrice;
+    const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
     const priceDenominator = 10000;
     const coverAsset = ETH_ASSET_ID; // ETH
     const expectedPremium = amount.mul(targetPrice).div(priceDenominator);
@@ -143,12 +147,12 @@ describe('CoverNFTDescriptor', function () {
         [{ poolId, coverAmountInAsset: usdcCoverAmount }],
       );
     }
-    this.amount = amount;
-    this.usdcAmount = usdcCoverAmount;
+    fixture.amount = amount;
+    fixture.usdcAmount = usdcCoverAmount;
   });
 
   it('tokenURI json output should be formatted properly', async function () {
-    const { coverNFT, p1: pool } = this.contracts;
+    const { coverNFT, p1: pool } = fixture.contracts;
 
     const uri = await coverNFT.tokenURI(1);
     expect(uri.slice(0, JSON_HEADER.length)).to.be.equal(JSON_HEADER);
@@ -160,7 +164,7 @@ describe('CoverNFTDescriptor', function () {
     expect(decodedJson.description).to.contain('ETH');
 
     // image
-    const expectedAmountWithPrecisionLoss = await assetWithPrecisionLoss(pool, this.amount, ETH_ASSET_ID, this.config);
+    const expectedAmountWithPrecisionLoss = await assetWithPrecisionLoss(pool, fixture.amount, ETH_ASSET_ID, fixture.config);
     const expectedAmountRaw = formatEther(expectedAmountWithPrecisionLoss);
     const expectedAmount = Number(expectedAmountRaw).toFixed(2);
 
@@ -177,7 +181,7 @@ describe('CoverNFTDescriptor', function () {
   });
 
   it('should handle dai covers', async function () {
-    const { coverNFT } = this.contracts;
+    const { coverNFT } = fixture.contracts;
 
     const uri = await coverNFT.tokenURI(2);
     expect(uri.slice(0, JSON_HEADER.length)).to.be.equal(JSON_HEADER);
@@ -188,12 +192,12 @@ describe('CoverNFTDescriptor', function () {
   });
 
   it('should handle usdc covers', async function () {
-    const { coverNFT, p1: pool } = this.contracts;
+    const { coverNFT, p1: pool } = fixture.contracts;
 
     const uri = await coverNFT.tokenURI(3);
     expect(uri.slice(0, JSON_HEADER.length)).to.be.equal(JSON_HEADER);
 
-    let expectedAmountRaw = await assetWithPrecisionLoss(pool, this.usdcAmount, USDC_ASSET_ID, this.config);
+    let expectedAmountRaw = await assetWithPrecisionLoss(pool, fixture.usdcAmount, USDC_ASSET_ID, fixture.config);
     expectedAmountRaw = ethers.utils.formatUnits(expectedAmountRaw, 6);
     const expectedAmount = Number(expectedAmountRaw).toFixed(2);
 
@@ -216,7 +220,7 @@ describe('CoverNFTDescriptor', function () {
   });
 
   it('should handle expired token', async function () {
-    const { coverNFT, cover } = this.contracts;
+    const { coverNFT, cover } = fixture.contracts;
 
     // expire cover
     const coverSegment = await cover.coverSegmentWithRemainingAmount(1, 0);
@@ -242,7 +246,7 @@ describe('CoverNFTDescriptor', function () {
   });
 
   it('should handle token that expired decades ago', async function () {
-    const { coverNFT, cover } = this.contracts;
+    const { coverNFT, cover } = fixture.contracts;
 
     // get cover segment
     const coverSegment = await cover.coverSegmentWithRemainingAmount(1, 0);

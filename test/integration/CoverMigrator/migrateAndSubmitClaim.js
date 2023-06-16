@@ -1,5 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('../setup');
 const { toBytes4 } = require('../utils').helpers;
 
 const { AddressZero } = ethers.constants;
@@ -7,8 +9,9 @@ const { parseEther } = ethers.utils;
 
 describe('migrateAndSubmitClaim', function () {
   it('should migrate cover from v1 to v2 and submit claim', async function () {
-    const { qd, tk, cl: coverMigrator, coverNFT } = this.contracts;
-    const coverOwner = this.accounts.members[1];
+    const fixture = await loadFixture(setup);
+    const { qd, tk, cl: coverMigrator, coverNFT } = fixture.contracts;
+    const coverOwner = fixture.accounts.members[1];
 
     const amountNXM = parseEther('10000');
     const period = 30;

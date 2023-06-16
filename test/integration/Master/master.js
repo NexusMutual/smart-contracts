@@ -1,5 +1,7 @@
 const { ethers } = require('hardhat');
 const { assert, expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('../setup');
 const { ProposalCategory, ContractTypes } = require('../utils').constants;
 const { submitProposal } = require('../utils').governance;
 const { hex } = require('../utils').helpers;
@@ -36,8 +38,13 @@ const encoder = (types, values) => {
 };
 
 describe('master', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
+
   it('adds new replaceable contract which can execute internal functions', async function () {
-    const { master, gv } = this.contracts;
+    const { master, gv } = fixture.contracts;
 
     const code = hex('XX');
 
@@ -50,19 +57,19 @@ describe('master', function () {
     );
 
     await submitProposal(gv, ProposalCategory.newContracts, actionData, [
-      this.accounts.defaultSender,
-      ...this.accounts.advisoryBoardMembers,
+      fixture.accounts.defaultSender,
+      ...fixture.accounts.advisoryBoardMembers,
     ]);
 
     const address = await master.getLatestAddress(code);
     assert.equal(address, newContract.address);
 
     // can perform onlyInternal action
-    await newContract.mint(this.accounts.defaultSender.address, parseEther('1'));
+    await newContract.mint(fixture.accounts.defaultSender.address, parseEther('1'));
   });
 
   it('adds new proxy contract which can execute internal functions', async function () {
-    const { master, gv } = this.contracts;
+    const { master, gv } = fixture.contracts;
 
     const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
     const newContract = await MMockNewContract.deploy();
@@ -73,8 +80,8 @@ describe('master', function () {
       [[code], [newContract.address], [ContractTypes.Proxy]],
     );
     await submitProposal(gv, ProposalCategory.newContracts, actionData, [
-      this.accounts.defaultSender,
-      ...this.accounts.advisoryBoardMembers,
+      fixture.accounts.defaultSender,
+      ...fixture.accounts.advisoryBoardMembers,
     ]);
 
     const address = await master.getLatestAddress(code);
@@ -84,11 +91,11 @@ describe('master', function () {
 
     const newContractInstance = await ethers.getContractAt('MMockNewContract', address);
     // can perform onlyInternal action
-    await newContractInstance.mint(this.accounts.defaultSender.address, parseEther('1'));
+    await newContractInstance.mint(fixture.accounts.defaultSender.address, parseEther('1'));
   });
 
   it('adds new proxy contract with a predictable address', async function () {
-    const { master, gv } = this.contracts;
+    const { master, gv } = fixture.contracts;
 
     const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
     const newContract = await MMockNewContract.deploy();
@@ -103,8 +110,8 @@ describe('master', function () {
       [[code], [newContract.address], [contractTypeAndSalt]],
     );
     await submitProposal(gv, ProposalCategory.newContracts, actionData, [
-      this.accounts.defaultSender,
-      ...this.accounts.advisoryBoardMembers,
+      fixture.accounts.defaultSender,
+      ...fixture.accounts.advisoryBoardMembers,
     ]);
 
     const address = await master.getLatestAddress(code);
@@ -126,7 +133,7 @@ describe('master', function () {
   });
 
   it('replace contract', async function () {
-    const { master, gv } = this.contracts;
+    const { master, gv } = fixture.contracts;
 
     const code = hex('MC');
     const MCR = await ethers.getContractFactory('MCR');
@@ -138,8 +145,8 @@ describe('master', function () {
     const upgradeContractsData = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, newAddresses]);
 
     await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [
-      this.accounts.defaultSender,
-      ...this.accounts.advisoryBoardMembers,
+      fixture.accounts.defaultSender,
+      ...fixture.accounts.advisoryBoardMembers,
     ]);
 
     const address = await master.getLatestAddress(code);
@@ -147,7 +154,7 @@ describe('master', function () {
   });
 
   it('upgrade proxy contract', async function () {
-    const { master, gv, qd, lcr, spf, tk } = this.contracts;
+    const { master, gv, qd, lcr, spf, tk } = fixture.contracts;
 
     const code = hex('TC');
     const TokenController = await ethers.getContractFactory('TokenController');
@@ -164,8 +171,8 @@ describe('master', function () {
     const upgradeContractsData = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, newAddresses]);
 
     await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [
-      this.accounts.defaultSender,
-      ...this.accounts.advisoryBoardMembers,
+      fixture.accounts.defaultSender,
+      ...fixture.accounts.advisoryBoardMembers,
     ]);
 
     const address = await master.getLatestAddress(code);
@@ -176,7 +183,7 @@ describe('master', function () {
   });
 
   it('upgrade proxies and replaceables', async function () {
-    const { master, gv, qd, lcr, spf, tk } = this.contracts;
+    const { master, gv, qd, lcr, spf, tk } = fixture.contracts;
 
     const mcrCode = hex('MC');
     const tcCode = hex('TC');
@@ -197,8 +204,8 @@ describe('master', function () {
     const upgradeContractsData = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, newAddresses]);
 
     await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [
-      this.accounts.defaultSender,
-      ...this.accounts.advisoryBoardMembers,
+      fixture.accounts.defaultSender,
+      ...fixture.accounts.advisoryBoardMembers,
     ]);
 
     const tcAddress = await master.getLatestAddress(tcCode);
@@ -211,7 +218,7 @@ describe('master', function () {
   });
 
   it('upgrades master', async function () {
-    const { master, gv } = this.contracts;
+    const { master, gv } = fixture.contracts;
 
     const NXMaster = await ethers.getContractFactory('NXMaster');
     const newMaster = await NXMaster.deploy();
@@ -219,8 +226,8 @@ describe('master', function () {
     const upgradeContractsData = defaultAbiCoder.encode(['address'], [newMaster.address]);
 
     await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [
-      this.accounts.defaultSender,
-      ...this.accounts.advisoryBoardMembers,
+      fixture.accounts.defaultSender,
+      ...fixture.accounts.advisoryBoardMembers,
     ]);
 
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', master.address);
@@ -229,8 +236,8 @@ describe('master', function () {
   });
 
   it('upgrades all contracts', async function () {
-    const { master, gv, dai, priceFeedOracle, p1, tk, qd, lcr, spf, cover, productsV1, coverNFT } = this.contracts;
-    const owner = this.accounts.defaultSender;
+    const { master, gv, dai, priceFeedOracle, p1, tk, qd, lcr, spf, cover, productsV1, coverNFT } = fixture.contracts;
+    const owner = fixture.accounts.defaultSender;
 
     const TokenController = await ethers.getContractFactory('TokenController');
     const CoverMigrator = await ethers.getContractFactory('CoverMigrator');
@@ -285,11 +292,11 @@ describe('master', function () {
     const claimsRewardNXMBalanceBefore = await tk.balanceOf(lcr.address);
 
     await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [
-      this.accounts.defaultSender,
-      ...this.accounts.advisoryBoardMembers,
+      fixture.accounts.defaultSender,
+      ...fixture.accounts.advisoryBoardMembers,
     ]);
 
-    await assertNewAddresses(master, contractCodes, newAddresses, this.contractType);
+    await assertNewAddresses(master, contractCodes, newAddresses, fixture.contractType);
 
     const newPoolAddress = await master.getLatestAddress(hex('P1'));
 
@@ -304,7 +311,7 @@ describe('master', function () {
   });
 
   it('upgrades Governance, TokenController and MemberRoles 2 times in a row', async function () {
-    const { master, gv, qd, lcr, spf, tk } = this.contracts;
+    const { master, gv, qd, lcr, spf, tk } = fixture.contracts;
 
     const TokenController = await ethers.getContractFactory('TokenController');
     const MemberRoles = await ethers.getContractFactory('MemberRoles');
@@ -324,8 +331,8 @@ describe('master', function () {
       );
 
       await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [
-        this.accounts.defaultSender,
-        ...this.accounts.advisoryBoardMembers,
+        fixture.accounts.defaultSender,
+        ...fixture.accounts.advisoryBoardMembers,
       ]);
       await assertNewAddresses(master, contractCodes, newAddresses, this.contractType);
     }
@@ -344,15 +351,15 @@ describe('master', function () {
       );
 
       await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [
-        this.accounts.defaultSender,
-        ...this.accounts.advisoryBoardMembers,
+        fixture.accounts.defaultSender,
+        ...fixture.accounts.advisoryBoardMembers,
       ]);
-      await assertNewAddresses(master, contractCodes, newAddresses, this.contractType);
+      await assertNewAddresses(master, contractCodes, newAddresses, fixture.contractType);
     }
   });
 
   it('removes newly added replaceable contract and existing contract', async function () {
-    const { master, gv } = this.contracts;
+    const { master, gv } = fixture.contracts;
 
     const code = hex('RE');
     const existingCode = hex('GW');
@@ -363,8 +370,8 @@ describe('master', function () {
       [[code], [newContract.address], [ContractTypes.Replaceable]],
     );
     await submitProposal(gv, ProposalCategory.newContracts, actionData, [
-      this.accounts.defaultSender,
-      ...this.accounts.advisoryBoardMembers,
+      fixture.accounts.defaultSender,
+      ...fixture.accounts.advisoryBoardMembers,
     ]);
 
     const address = await master.getLatestAddress(code);
@@ -372,8 +379,8 @@ describe('master', function () {
 
     const actionDataRemove = defaultAbiCoder.encode(['bytes2[]'], [[code, existingCode]]);
     await submitProposal(gv, ProposalCategory.removeContracts, actionDataRemove, [
-      this.accounts.defaultSender,
-      ...this.accounts.advisoryBoardMembers,
+      fixture.accounts.defaultSender,
+      ...fixture.accounts.advisoryBoardMembers,
     ]);
 
     {

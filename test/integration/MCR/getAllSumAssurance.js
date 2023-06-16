@@ -5,6 +5,8 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { stake } = require('../utils/staking');
 const { setEtherBalance } = require('../../utils/evm');
 const { assetToEthWithPrecisionLoss } = require('../utils/assetPricing');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('../setup');
 const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
@@ -28,10 +30,12 @@ const daiCoverTemplate = {
 };
 
 describe('getAllSumAssurance', function () {
+  let fixture;
   beforeEach(async function () {
-    const { tk, dai, stakingPool1: stakingPool, tc, mcr, cover } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [nonMember1] = this.accounts.nonMembers;
+    fixture = await loadFixture(setup);
+    const { tk, dai, stakingPool1: stakingPool, tc, mcr, cover } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [nonMember1] = fixture.accounts.nonMembers;
 
     const operator = await tk.operator();
     await setEtherBalance(operator, parseEther('10000000'));
@@ -56,16 +60,16 @@ describe('getAllSumAssurance', function () {
   });
 
   it('returns 0 when no covers exist', async function () {
-    const { mcr } = this.contracts;
+    const { mcr } = fixture.contracts;
     const totalAssurace = await mcr.getAllSumAssurance();
     expect(totalAssurace).to.be.equal(0);
   });
 
   it('returns total value of ETH purchased cover', async function () {
-    const { mcr, cover, p1 } = this.contracts;
-    const [coverBuyer] = this.accounts.members;
-    const targetPrice = this.DEFAULT_PRODUCTS[0].targetPrice;
-    const priceDenominator = this.config.TARGET_PRICE_DENOMINATOR;
+    const { mcr, cover, p1 } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.members;
+    const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
+    const priceDenominator = fixture.config.TARGET_PRICE_DENOMINATOR;
     const coverBuyTemplate = { ...ethCoverTemplate };
 
     await buyCover({
@@ -76,14 +80,14 @@ describe('getAllSumAssurance', function () {
       priceDenominator,
     });
     const totalAssurance = await mcr.getAllSumAssurance();
-    expect(totalAssurance).to.be.equal(await assetToEthWithPrecisionLoss(p1, coverBuyTemplate.amount, 0, this.config));
+    expect(totalAssurance).to.be.equal(await assetToEthWithPrecisionLoss(p1, coverBuyTemplate.amount, 0, fixture.config));
   });
 
   it('returns total value of DAI purchased cover', async function () {
-    const { mcr, cover, p1 } = this.contracts;
-    const [coverBuyer] = this.accounts.members;
-    const targetPrice = this.DEFAULT_PRODUCTS[0].targetPrice;
-    const priceDenominator = this.config.TARGET_PRICE_DENOMINATOR;
+    const { mcr, cover, p1 } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.members;
+    const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
+    const priceDenominator = fixture.config.TARGET_PRICE_DENOMINATOR;
     const coverBuyTemplate = { ...daiCoverTemplate };
 
     await buyCover({
@@ -97,8 +101,8 @@ describe('getAllSumAssurance', function () {
     const expectedTotal = await assetToEthWithPrecisionLoss(
       p1,
       coverBuyTemplate.amount,
-      this.rates.daiToEthRate,
-      this.config,
+      fixture.rates.daiToEthRate,
+      fixture.config,
     );
 
     const totalAssurance = await mcr.getAllSumAssurance();
@@ -106,10 +110,10 @@ describe('getAllSumAssurance', function () {
   });
 
   it('returns total value of multiple ETH and DAI covers', async function () {
-    const { mcr, cover, p1 } = this.contracts;
-    const [coverBuyer] = this.accounts.members;
-    const targetPrice = this.DEFAULT_PRODUCTS[0].targetPrice;
-    const priceDenominator = this.config.TARGET_PRICE_DENOMINATOR;
+    const { mcr, cover, p1 } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.members;
+    const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
+    const priceDenominator = fixture.config.TARGET_PRICE_DENOMINATOR;
 
     const ethCoversToBuy = 2;
     for (let i = 0; i < ethCoversToBuy; i++) {
@@ -134,14 +138,14 @@ describe('getAllSumAssurance', function () {
     }
 
     // calculate eth covers
-    const expectedEthAssurance = await assetToEthWithPrecisionLoss(p1, ethCoverTemplate.amount.mul(2), 0, this.config);
+    const expectedEthAssurance = await assetToEthWithPrecisionLoss(p1, ethCoverTemplate.amount.mul(2), 0, fixture.config);
 
     // calculate dai covers
     const expectedDaiAssurance = await assetToEthWithPrecisionLoss(
       p1,
       daiCoverTemplate.amount.mul(2),
-      this.rates.daiToEthRate,
-      this.config,
+      fixture.rates.daiToEthRate,
+      fixture.config,
     );
 
     const totalAssurance = await mcr.getAllSumAssurance();

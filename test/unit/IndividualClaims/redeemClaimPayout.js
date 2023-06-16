@@ -3,7 +3,7 @@ const { expect } = require('chai');
 
 const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee } = require('../utils').evm;
 const { submitClaim, ASSET, getCoverSegment } = require('./helpers');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;

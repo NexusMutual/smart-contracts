@@ -3,7 +3,7 @@ const {
   constants: { AddressZero },
 } = require('ethers');
 const { assert, expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { hex } = require('../utils').helpers;
 const { ContractTypes } = require('../utils').constants;

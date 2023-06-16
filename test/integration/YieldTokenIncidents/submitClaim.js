@@ -6,7 +6,7 @@ const { buyCover, transferCoverAsset } = require('../utils/cover');
 
 const { daysToSeconds } = require('../utils').helpers;
 const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee, setEtherBalance } = require('../../utils/evm');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
 const { parseEther, parseUnits } = ethers.utils;

@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { initMCR } = require('./common');
 const { ethers } = require('hardhat');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
 const { increaseTime, mineNextBlock } = require('../utils').evm;

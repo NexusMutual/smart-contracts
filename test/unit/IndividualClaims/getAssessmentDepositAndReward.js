@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { assert } = require('chai');
 
 const { ASSET } = require('./helpers');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;

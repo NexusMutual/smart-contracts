@@ -7,7 +7,7 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/').evm;
 const { assetWithPrecisionLoss } = require('../utils/assetPricing');
 const { USDC_ASSET_ID, DAI_ASSET_ID, ETH_ASSET_ID } = require('../utils/cover');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
 const JSON_HEADER = 'data:application/json;base64,';

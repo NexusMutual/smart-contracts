@@ -4,7 +4,7 @@ const { assert, expect } = require('chai');
 const { submitClaim, ASSET, getCoverSegment } = require('./helpers');
 const { mineNextBlock, setNextBlockTime, setEtherBalance, setNextBlockBaseFee } = require('../../utils/evm');
 const { hex } = require('../../../lib/helpers');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;

@@ -9,7 +9,7 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee } = require('../../utils/evm');
 const { MAX_COVER_PERIOD } = require('../../unit/Cover/helpers');
 const { BUCKET_DURATION, moveTimeToNextTranche } = require('../../unit/StakingPool/helpers');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
 const { BigNumber } = ethers;

@@ -13,7 +13,7 @@ const { calculateEthForNXMRelativeError, calculateNXMForEthRelativeError, getTok
 
 const { buyCover } = require('../utils/cover');
 const { stake } = require('../utils/staking');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 const { hex } = require('../utils').helpers;
 

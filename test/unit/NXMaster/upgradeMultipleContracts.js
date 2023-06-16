@@ -3,7 +3,7 @@ const {
 } = require('ethers');
 const { hex } = require('../utils').helpers;
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('upgradeMultipleContracts', function () {

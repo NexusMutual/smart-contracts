@@ -7,7 +7,7 @@ const { MaxUint256 } = ethers.constants;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { stake } = require('../utils/staking');
 const { buyCover, ETH_ASSET_ID } = require('../utils/cover');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
 const increaseTime = async interval => {

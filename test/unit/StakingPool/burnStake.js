@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getTranches, moveTimeToNextTranche, BUCKET_DURATION } = require('./helpers');
 const { daysToSeconds } = require('../../../lib/helpers');

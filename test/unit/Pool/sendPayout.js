@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { parseEther } = ethers.utils;
 const { expect } = require('chai');
 const { PoolAsset } = require('../../../lib/constants');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
 

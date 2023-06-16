@@ -8,7 +8,7 @@ const { acceptClaim } = require('../utils/voteClaim');
 const { setNextBlockTime, mineNextBlock, setEtherBalance } = require('../../utils/evm');
 const { stake } = require('../utils/staking');
 const { buyCover, ETH_ASSET_ID } = require('../utils/cover');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 const { setNextBlockBaseFee } = require('../utils').evm;
 

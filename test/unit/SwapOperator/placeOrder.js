@@ -12,7 +12,7 @@ const { expect } = require('chai');
 const { domain: makeDomain, computeOrderUid } = require('@cowprotocol/contracts');
 
 const { setEtherBalance, setNextBlockTime } = require('../../utils/evm');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { parseEther, hexZeroPad, hexlify, randomBytes } = ethers.utils;
 

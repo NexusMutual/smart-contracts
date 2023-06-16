@@ -6,7 +6,7 @@ const { parseEther } = ethers.utils;
 const { daysToSeconds } = require('../utils').helpers;
 const { setEtherBalance, increaseTime } = require('../utils').evm;
 const { getTranches } = require('./helpers');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 const allocationRequestTemplate = {

@@ -9,7 +9,7 @@ const { BigNumber } = require('ethers');
 const { parseEther, defaultAbiCoder } = ethers.utils;
 const { AddressZero } = ethers.constants;
 const { acceptClaim } = require('../utils/voteClaim');
-const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
 const priceDenominator = '10000';

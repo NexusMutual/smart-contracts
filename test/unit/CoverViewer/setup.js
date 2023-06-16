@@ -1,4 +1,5 @@
 const { ethers } = require('hardhat');
+const { getAccounts } = require('../../utils/accounts');
 const { hex } = require('../utils').helpers;
 
 async function setup() {

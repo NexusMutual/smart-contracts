@@ -1,4 +1,5 @@
-const { ethers, accounts } = require('hardhat');
+const { ethers } = require('hardhat');
+const { getAccounts } = require('../utils').accounts;
 
 const { hex } = require('../utils').helpers;
 const { setCode } = require('../utils').evm;
@@ -8,6 +9,7 @@ const { AddressZero } = ethers.constants;
 const { parseEther, formatBytes32String } = ethers.utils;
 
 async function setup() {
+  const accounts = await getAccounts();
   const TokenControllerMock = await ethers.getContractFactory('TokenControllerMock');
   const tokenController = await TokenControllerMock.deploy();
 

@@ -1,7 +1,8 @@
 const hre = require('hardhat');
-const { ethers, accounts } = hre;
+const { ethers } = hre;
 const { expect } = require('chai');
 const { BigNumber } = require('ethers');
+const { getAccounts } = require('../../utils/accounts');
 
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
@@ -22,6 +23,7 @@ const Assets = {
 };
 
 async function setup() {
+  const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
   const memberRoles = await ethers.deployContract('MemberRolesMock');
   const tokenController = await ethers.deployContract('TokenControllerMock');

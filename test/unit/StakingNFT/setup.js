@@ -1,7 +1,9 @@
-const { ethers, accounts } = require('hardhat');
+const { ethers } = require('hardhat');
 const { setEtherBalance } = require('../../utils/evm');
+const { getAccounts } = require('../../utils/accounts');
 
 async function setup() {
+  const accounts = await getAccounts();
   const [operator] = accounts.members;
 
   const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [operator.address]);

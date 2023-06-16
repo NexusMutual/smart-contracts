@@ -1,4 +1,5 @@
-const { ethers, accounts } = require('hardhat');
+const { ethers } = require('hardhat');
+const { getAccounts } = require('../../utils/accounts');
 const { hex } = require('../utils').helpers;
 
 const {
@@ -7,6 +8,7 @@ const {
 } = ethers;
 
 async function setup() {
+  const accounts = await getAccounts();
   const [owner, governance] = await ethers.getSigners();
 
   const MasterMock = await ethers.getContractFactory('MasterMock');

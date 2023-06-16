@@ -173,7 +173,6 @@ async function enableAsEnzymeReceiver(receiverAddress) {
   const comptroller = await ethers.getContractAt('IEnzymeV4Comptroller', EnzymeAdress.ENZYME_COMPTROLLER_PROXY_ADDRESS);
   const vault = await ethers.getContractAt('IEnzymeV4Vault', EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS);
   const ownerAddress = await vault.getOwner();
-  console.log('Enzyme vault owner address:', ownerAddress);
 
   // Unlock and funding vault owner
   const owner = await getSigner(ownerAddress);

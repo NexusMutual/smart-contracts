@@ -1,9 +1,11 @@
 const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
-const { parseEther, toUtf8Bytes } = ethers.utils;
 const evm = require('./evm')();
 const { enableAsEnzymeReceiver } = require('./utils');
 const { toBytes8 } = require('../../lib/helpers');
+
+const { formatEther, parseEther, toUtf8Bytes } = ethers.utils;
+const { WeiPerEther } = ethers.constants;
 
 const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const ENZYMEV4_VAULT_PROXY_ADDRESS = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
@@ -83,41 +85,36 @@ describe('Enzyme ETH withdrawal', function () {
     await evm.setBalance(swapControllerAddress, parseEther('1000'));
     const swapController = await getSigner(swapControllerAddress);
 
-    const shareAmount = await this.enzymeVaultShares.balanceOf(this.pool.address);
+    const poolBalanceBefore = await ethers.provider.getBalance(this.pool.address);
+    const sharesBalance = await this.enzymeVaultShares.balanceOf(this.pool.address);
+    const sharePrice = await this.enzymeSharesOracle.latestAnswer();
 
-    console.log({
-      shareAmount: shareAmount.toString(),
-    });
+    console.log(`Pool balance  : ${formatEther(poolBalanceBefore)}`);
+    console.log(`Shares balance: ${formatEther(sharesBalance)}`);
+    console.log(`Share price   : ${formatEther(sharePrice)}`);
 
-    await this.pool.connect(this.governanceImpersonated).setSwapDetails(
-      ENZYMEV4_VAULT_PROXY_ADDRESS,
-      '0',
-      '1',
-      '50', // max slippage ratio
-    );
+    const maxSlippageDenominator = 10000;
+    const maxSlippageRatio = 50;
+
+    await this.pool
+      .connect(this.governanceImpersonated)
+      .setSwapDetails(ENZYMEV4_VAULT_PROXY_ADDRESS, 0, 1, maxSlippageRatio);
 
     await enableAsEnzymeReceiver(this.swapOperator.address);
 
-    const poolBalanceBefore = await ethers.provider.getBalance(this.pool.address);
-
-    const swapAmount = shareAmount;
-
-    const latestAnswer = await this.enzymeSharesOracle.latestAnswer();
-
-    // Enzyme returns a few ethers under the oracle price currently
-    const errorMargin = parseEther('40');
-
-    const minOut = shareAmount.mul(latestAnswer).div(parseEther('1')).sub(errorMargin);
-
-    await this.swapOperator.connect(swapController).swapEnzymeVaultShareForETH(swapAmount, minOut);
+    const sharesValue = sharesBalance.mul(sharePrice).div(WeiPerEther);
+    const maxSlippage = sharesValue.mul(maxSlippageRatio).div(maxSlippageDenominator);
+    const minOut = sharesValue.sub(maxSlippage);
+    await this.swapOperator.connect(swapController).swapEnzymeVaultShareForETH(sharesBalance, minOut);
 
     const poolBalanceAfter = await ethers.provider.getBalance(this.pool.address);
-
     const poolBalanceIncrease = poolBalanceAfter.sub(poolBalanceBefore);
 
-    console.log({
-      poolBalanceIncrease: poolBalanceIncrease.toString(),
-    });
+    console.log(`New balance   : ${formatEther(poolBalanceAfter)}`);
+    console.log(`Withdrawn ETH : ${formatEther(poolBalanceIncrease)}`);
     expect(poolBalanceIncrease).to.be.greaterThanOrEqual(minOut);
+
+    const sharesBalanceAfter = await this.enzymeVaultShares.balanceOf(this.pool.address);
+    expect(sharesBalanceAfter).to.be.equal(0);
   });
 });

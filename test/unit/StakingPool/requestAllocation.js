@@ -11,6 +11,7 @@ const {
   getCurrentBucket,
   MAX_ACTIVE_TRANCHES,
   BUCKET_DURATION,
+  moveTimeToNextBucket,
   moveTimeToNextTranche,
 } = require('./helpers');
 
@@ -1644,5 +1645,56 @@ describe('requestAllocation', function () {
       previousPremium,
       secondAllocationRequest,
     );
+  });
+
+  it('correctly removes allocations when expiring a cover', async function () {
+    const stakingPool = this.stakingPool.connect(this.coverSigner);
+    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+
+    const { productId } = allocationRequestParams;
+    const amount = parseEther('100');
+    const previousPremium = 0;
+
+    const allocationRequest = {
+      ...allocationRequestParams,
+      period: daysToSeconds(1),
+      gracePeriod: 0,
+    };
+
+    await moveTimeToNextBucket(1);
+    const allocationId = await stakingPool.getNextAllocationId();
+    const allocationTx = await stakingPool.requestAllocation(amount, previousPremium, allocationRequest);
+    const allocationReceipt = await allocationTx.wait();
+    const { blockNumber: allocationBlockNumber } = allocationReceipt;
+    const { timestamp: allocationTimestamp } = await ethers.provider.getBlock(allocationBlockNumber);
+    console.log({ allocationTimestamp });
+
+    {
+      const allocations = await stakingPool.getActiveAllocations(productId);
+      console.log(allocations);
+      const allocatedAmount = allocations.reduce((acc, allocation) => acc.add(allocation), Zero);
+      expect(allocatedAmount).to.be.equal(amount.div(NXM_PER_ALLOCATION_UNIT));
+    }
+
+    await moveTimeToNextBucket(1);
+    await stakingPool.processExpirations(true);
+
+    {
+      const allocations = await stakingPool.getActiveAllocations(productId);
+      console.log(allocations);
+      const allocatedAmount = allocations.reduce((acc, allocation) => acc.add(allocation), Zero);
+      expect(allocatedAmount).to.be.equal(Zero);
+    }
+
+    const expireAllocationRequest = {
+      ...allocationRequest,
+      allocationId,
+      previousStart: allocationTimestamp,
+      previousEnd: allocationTimestamp + allocationRequest.period,
+    };
+
+    await expect(stakingPool.requestAllocation(0, 0, expireAllocationRequest))
+      .to.be.revertedWithCustomError(stakingPool, 'AlreadyDeallocated')
+      .withArgs(allocationId);
   });
 });

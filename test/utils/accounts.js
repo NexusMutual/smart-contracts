@@ -1,4 +1,4 @@
-const { accounts, ethers } = require('hardhat');
+const { ethers } = require('hardhat');
 
 const assingRoles = accounts => ({
   defaultSender: accounts[0],
@@ -18,9 +18,9 @@ const getAccounts = async () => {
   return assingRoles(accounts);
 };
 
-const accountRoles = assingRoles(accounts);
+// const accountRoles = assingRoles(accounts);
 
 module.exports = {
   getAccounts,
-  ...accountRoles,
+  // ...accountRoles,
 };

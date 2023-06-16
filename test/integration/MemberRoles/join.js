@@ -1,19 +1,26 @@
 const { enrollMember } = require('../utils/enroll');
 const { Role } = require('../utils').constants;
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('../setup');
 
 const TOTAL_ROLES = 4;
 
 describe('join', function () {
-  it('enrolls members by paying joining fee confirming KYC', async function () {
-    const { mr: memberRoles, tk: token } = this.contracts;
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
 
-    const [member1, member2, member3] = this.accounts.nonMembers;
+  it('enrolls members by paying joining fee confirming KYC', async function () {
+    const { mr: memberRoles, tk: token } = fixture.contracts;
+
+    const [member1, member2, member3] = fixture.accounts.nonMembers;
     const newMembers = [member1, member2, member3];
 
     const { memberArray: membersBefore } = await memberRoles.members(Role.Member);
 
-    await enrollMember(this.contracts, newMembers, this.accounts.defaultSender);
+    await enrollMember(fixture.contracts, newMembers, fixture.accounts.defaultSender);
 
     for (const member of newMembers) {
       const hasRole = await memberRoles.checkRole(member.address, Role.Member);
@@ -35,7 +42,7 @@ describe('join', function () {
   });
 
   it('returns correct number of roles', async function () {
-    const { mr: memberRoles } = this.contracts;
+    const { mr: memberRoles } = fixture.contracts;
     const totalRoles = await memberRoles.totalRoles();
     expect(totalRoles).to.be.equal(TOTAL_ROLES);
   });

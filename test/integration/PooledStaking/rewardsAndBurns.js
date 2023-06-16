@@ -4,6 +4,8 @@ const { BigNumber, provider } = ethers;
 const { parseEther } = ethers.utils;
 
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('../setup');
 const { increaseTime } = require('../utils/').evm;
 const { buyCover } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
@@ -70,14 +72,16 @@ const lastBlockTimestamp = async () =>
   (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
 
 describe('burns', function () {
+  let fixture;
   beforeEach(async function () {
+    fixture = await loadFixture(setup);
     const members = [member1, member2, member3, ...stakers, coverHolder];
-    await enrollMember(this.contracts, members);
-    await enrollClaimAssessor(this.contracts, members, { lockTokens: tokensLockedForVoting });
+    await enrollMember(fixture.contracts, members);
+    await enrollClaimAssessor(fixture.contracts, members, { lockTokens: tokensLockedForVoting });
   });
 
   it('claim is accepted for contract whose staker that staked on multiple contracts', async function () {
-    const { ps, tk, qd, cl, tc, p1 } = this.contracts;
+    const { ps, tk, qd, cl, tc, p1 } = fixture.contracts;
 
     const currency = hex('ETH');
     const cover = {
@@ -99,7 +103,7 @@ describe('burns', function () {
       from: staker1,
     });
 
-    await buyCover({ ...this.contracts, cover, coverHolder });
+    await buyCover({ ...fixture.contracts, cover, coverHolder });
 
     await increaseTime(await ps.REWARD_ROUND_DURATION());
 
@@ -123,10 +127,10 @@ describe('burns', function () {
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
     const now = await lastBlockTimestamp();
-    await submitMemberVotes({ ...this.contracts, voteValue: 1 });
+    await submitMemberVotes({ ...fixture.contracts, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await closeClaim({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
+    await closeClaim({ ...fixture.contracts, now, expectedClaimStatusNumber: '14' });
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
@@ -160,7 +164,7 @@ describe('burns', function () {
     };
 
     const stakeTokens = parseEther('20');
-    const { ps, tk, qd, cl, p1, tc } = this.contracts;
+    const { ps, tk, qd, cl, p1, tc } = fixture.contracts;
 
     for (const staker of stakers) {
       await tk.approve(tc.address, stakeTokens, {
@@ -171,7 +175,7 @@ describe('burns', function () {
       });
     }
 
-    await buyCover({ ...this.contracts, cover, coverHolder });
+    await buyCover({ ...fixture.contracts, cover, coverHolder });
     await increaseTime(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
 
@@ -190,10 +194,10 @@ describe('burns', function () {
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
     const now = await lastBlockTimestamp();
-    await submitMemberVotes({ ...this.contracts, voteValue: 1 });
+    await submitMemberVotes({ ...fixture.contracts, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await closeClaim({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
+    await closeClaim({ ...fixture.contracts, now, expectedClaimStatusNumber: '14' });
     await ps.processPendingActions('100');
     const balanceAfter = await tk.balanceOf(ps.address);
 
@@ -219,7 +223,7 @@ describe('burns', function () {
   });
 
   it('claim is rejected', async function () {
-    const { ps, tk, qd, cl, tc } = this.contracts;
+    const { ps, tk, qd, cl, tc } = fixture.contracts;
     const currency = hex('ETH');
 
     const cover = {
@@ -238,7 +242,7 @@ describe('burns', function () {
     await tk.approve(tc.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
-    await buyCover({ ...this.contracts, cover, coverHolder });
+    await buyCover({ ...fixture.contracts, cover, coverHolder });
     await increaseTime(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
 
@@ -249,10 +253,10 @@ describe('burns', function () {
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
     const now = await lastBlockTimestamp();
-    await submitMemberVotes({ ...this.contracts, voteValue: -1 });
+    await submitMemberVotes({ ...fixture.contracts, voteValue: -1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await closeClaim({ ...this.contracts, now, expectedClaimStatusNumber: '6' });
+    await closeClaim({ ...fixture.contracts, now, expectedClaimStatusNumber: '6' });
 
     await ps.processPendingActions('100');
     const balanceAfter = await tk.balanceOf(ps.address);
@@ -264,7 +268,7 @@ describe('burns', function () {
   });
 
   it('claim is accepted and burn happens after an unprocessed unstake request by staker', async function () {
-    const { p1, ps, tk, qd, cl, tc } = this.contracts;
+    const { p1, ps, tk, qd, cl, tc } = fixture.contracts;
     const currency = hex('ETH');
 
     const cover = {
@@ -282,7 +286,7 @@ describe('burns', function () {
     await tk.approve(tc.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
-    await buyCover({ ...this.contracts, cover, coverHolder });
+    await buyCover({ ...fixture.contracts, cover, coverHolder });
     await increaseTime(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
 
@@ -293,9 +297,9 @@ describe('burns', function () {
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
     const now = await lastBlockTimestamp();
-    await submitMemberVotes({ ...this.contracts, voteValue: 1 });
+    await submitMemberVotes({ ...fixture.contracts, voteValue: 1 });
     const balanceBefore = await tk.balanceOf(ps.address);
-    await closeClaim({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
+    await closeClaim({ ...fixture.contracts, now, expectedClaimStatusNumber: '14' });
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
@@ -316,7 +320,7 @@ describe('burns', function () {
   });
 
   it('claim is accepted and burn happens when the final vote is submitted', async function () {
-    const { ps, tk, cd, qd, cl, p1, tc } = this.contracts;
+    const { ps, tk, cd, qd, cl, p1, tc } = fixture.contracts;
     const currency = hex('ETH');
 
     const cover = {
@@ -334,7 +338,7 @@ describe('burns', function () {
     await tk.approve(tc.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
-    await buyCover({ ...this.contracts, cover, coverHolder });
+    await buyCover({ ...fixture.contracts, cover, coverHolder });
     await increaseTime(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
 
@@ -348,7 +352,7 @@ describe('burns', function () {
     await increaseTime(minVotingTime);
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await submitMemberVotes({ ...this.contracts, voteValue: 1, maxVotingMembers: 1 });
+    await submitMemberVotes({ ...fixture.contracts, voteValue: 1, maxVotingMembers: 1 });
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
@@ -375,7 +379,7 @@ describe('burns', function () {
   });
 
   it('claim is accepted and burn happens after an unstake request by staker is processed', async function () {
-    const { ps, tk, qd, cl, qt, p1 } = this.contracts;
+    const { ps, tk, qd, cl, qt, p1 } = fixture.contracts;
     const currency = hex('ETH');
 
     const cover = {
@@ -423,10 +427,10 @@ describe('burns', function () {
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
     const now = await lastBlockTimestamp();
-    await submitMemberVotes({ ...this.contracts, voteValue: 1 });
+    await submitMemberVotes({ ...fixture.contracts, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await closeClaim({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
+    await closeClaim({ ...fixture.contracts, now, expectedClaimStatusNumber: '14' });
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');

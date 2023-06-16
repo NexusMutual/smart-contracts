@@ -2,6 +2,8 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime, setEtherBalance } = require('../../utils/evm');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('../setup');
 
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
@@ -34,14 +36,16 @@ const buyCoverFixture = {
 };
 
 describe('totalActiveCover', function () {
+  let fixture;
   beforeEach(async function () {
-    const { tk, stakingProducts, stakingPool1 } = this.contracts;
-    const { stakingPoolManagers } = this.accounts;
+    fixture = await loadFixture(setup);
+    const { tk, stakingProducts, stakingPool1 } = fixture.contracts;
+    const { stakingPoolManagers } = fixture.accounts;
 
-    const members = this.accounts.members.slice(0, 5);
+    const members = fixture.accounts.members.slice(0, 5);
     const amount = parseEther('10000');
     for (const member of members) {
-      await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
+      await tk.connect(fixture.accounts.defaultSender).transfer(member.address, amount);
     }
 
     await stakingProducts
@@ -115,11 +119,11 @@ describe('totalActiveCover', function () {
   }
 
   it('expire a cover that had a claim paid out fully', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { cover, stakingPool1, as, cg, gv, ybETH } = this.contracts;
-    const [coverBuyer1, staker1] = this.accounts.members;
-    const [nonMember1] = this.accounts.nonMembers;
-    const { BUCKET_SIZE } = this.config;
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { cover, stakingPool1, as, cg, gv, ybETH } = fixture.contracts;
+    const [coverBuyer1, staker1] = fixture.accounts.members;
+    const [nonMember1] = fixture.accounts.nonMembers;
+    const { BUCKET_SIZE } = fixture.config;
 
     const { productId, coverAsset, period, gracePeriod, amount, coverId, segmentId, incidentId, assessmentId } =
       buyCoverFixture;
@@ -130,7 +134,7 @@ describe('totalActiveCover', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
 
     // cover buyer gets yield token
-    await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer1, cg, ybETH });
+    await transferYieldToken({ tokenOwner: fixture.accounts.defaultSender, coverBuyer1, cg, ybETH });
 
     // Buy Cover
     await buyCover({
@@ -186,11 +190,11 @@ describe('totalActiveCover', function () {
   });
 
   it('expire a cover that had a partial claim paid out', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { BUCKET_SIZE } = this.config;
-    const { cover, stakingPool1, as, cg, gv, ybETH } = this.contracts;
-    const [coverBuyer1, staker1] = this.accounts.members;
-    const [nonMember1] = this.accounts.nonMembers;
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { BUCKET_SIZE } = fixture.config;
+    const { cover, stakingPool1, as, cg, gv, ybETH } = fixture.contracts;
+    const [coverBuyer1, staker1] = fixture.accounts.members;
+    const [nonMember1] = fixture.accounts.nonMembers;
 
     const { productId, coverAsset, period, gracePeriod, amount, coverId, segmentId, incidentId, assessmentId } =
       buyCoverFixture;
@@ -199,7 +203,7 @@ describe('totalActiveCover', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
 
     // cover buyer gets yield token
-    await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer1, cg, ybETH });
+    await transferYieldToken({ tokenOwner: fixture.accounts.defaultSender, coverBuyer1, cg, ybETH });
 
     // Buy Cover
     await buyCover({
@@ -262,11 +266,11 @@ describe('totalActiveCover', function () {
   });
 
   it('expire a cover that had rejected claim', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { BUCKET_SIZE } = this.config;
-    const { cover, stakingPool1, as, cg, gv, ybETH } = this.contracts;
-    const [coverBuyer1, staker1, staker2] = this.accounts.members;
-    const [nonMember1] = this.accounts.nonMembers;
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { BUCKET_SIZE } = fixture.config;
+    const { cover, stakingPool1, as, cg, gv, ybETH } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
+    const [nonMember1] = fixture.accounts.nonMembers;
 
     const { productId, coverAsset, period, gracePeriod, coverId, segmentId, incidentId, assessmentId } =
       buyCoverFixture;
@@ -275,7 +279,7 @@ describe('totalActiveCover', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
 
     // cover buyer gets yield token
-    await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer1, cg, ybETH });
+    await transferYieldToken({ tokenOwner: fixture.accounts.defaultSender, coverBuyer1, cg, ybETH });
 
     // Buy Cover
     await buyCover({

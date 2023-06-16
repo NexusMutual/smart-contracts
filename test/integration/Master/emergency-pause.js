@@ -9,33 +9,37 @@ const { BigNumber } = require('ethers');
 const { parseEther, defaultAbiCoder } = ethers.utils;
 const { AddressZero } = ethers.constants;
 const { acceptClaim } = require('../utils/voteClaim');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('../setup');
 
 const priceDenominator = '10000';
 
 describe('emergency pause', function () {
+  let fixture;
   beforeEach(async function () {
-    const { tk } = this.contracts;
-    const [member1, member2, member3] = this.accounts.members;
-    await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
+    fixture = await loadFixture(setup);
+    const { tk } = fixture.contracts;
+    const [member1, member2, member3] = fixture.accounts.members;
+    await enrollClaimAssessor(fixture.contracts, [member1, member2, member3]);
 
-    const members = this.accounts.members.slice(0, 5);
+    const members = fixture.accounts.members.slice(0, 5);
     const amount = parseEther('10000');
 
     for (const member of members) {
-      await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
+      await tk.connect(fixture.accounts.defaultSender).transfer(member.address, amount);
     }
   });
 
   it('should revert when not called by emergency admin', async function () {
-    const { master } = this.contracts;
-    const [unknown] = this.accounts.nonMembers;
+    const { master } = fixture.contracts;
+    const [unknown] = fixture.accounts.nonMembers;
 
     await expect(master.connect(unknown).setEmergencyPause(true), 'NXMaster: Not emergencyAdmin');
   });
 
   it('should be able to start and end emergency pause', async function () {
-    const { master } = this.contracts;
-    const emergencyAdmin = this.accounts.emergencyAdmin;
+    const { master } = fixture.contracts;
+    const emergencyAdmin = fixture.accounts.emergencyAdmin;
 
     assert.equal(await master.isPause(), false);
 
@@ -49,9 +53,9 @@ describe('emergency pause', function () {
   });
 
   it('should be able to perform proxy and replaceable upgrades during emergency pause', async function () {
-    const { master, gv, qd, lcr, spf, tk } = this.contracts;
-    const emergencyAdmin = this.accounts.emergencyAdmin;
-    const owner = this.accounts.defaultSender;
+    const { master, gv, qd, lcr, spf, tk } = fixture.contracts;
+    const emergencyAdmin = fixture.accounts.emergencyAdmin;
+    const owner = fixture.accounts.defaultSender;
 
     const voters = [owner, ...this.accounts.advisoryBoardMembers];
     assert.equal(await master.isPause(), false);
@@ -84,9 +88,9 @@ describe('emergency pause', function () {
   });
 
   it('should be able to perform master upgrade during emergency pause', async function () {
-    const { master, gv } = this.contracts;
-    const emergencyAdmin = this.accounts.emergencyAdmin;
-    const owner = this.accounts.defaultSender;
+    const { master, gv } = fixture.contracts;
+    const emergencyAdmin = fixture.accounts.emergencyAdmin;
+    const owner = fixture.accounts.defaultSender;
 
     await master.connect(emergencyAdmin).setEmergencyPause(true);
 
@@ -106,8 +110,8 @@ describe('emergency pause', function () {
   });
 
   it('stops token buys and sells', async function () {
-    const { master, p1: pool } = this.contracts;
-    const emergencyAdmin = this.accounts.emergencyAdmin;
+    const { master, p1: pool } = fixture.contracts;
+    const emergencyAdmin = fixture.accounts.emergencyAdmin;
 
     await master.connect(emergencyAdmin).setEmergencyPause(true);
 
@@ -116,9 +120,9 @@ describe('emergency pause', function () {
   });
 
   it('stops cover purchases', async function () {
-    const { master, cover } = this.contracts;
-    const emergencyAdmin = this.accounts.emergencyAdmin;
-    const [member] = this.accounts.members;
+    const { master, cover } = fixture.contracts;
+    const emergencyAdmin = fixture.accounts.emergencyAdmin;
+    const [member] = fixture.accounts.members;
 
     // Cover inputs
     const productId = 0;
@@ -153,10 +157,10 @@ describe('emergency pause', function () {
   });
 
   it('stops claim payouts on redeemPayout', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as, master } = this.contracts;
-    const [coverBuyer1, staker1, staker2] = this.accounts.members;
-    const emergencyAdmin = this.accounts.emergencyAdmin;
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as, master } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
+    const emergencyAdmin = fixture.accounts.emergencyAdmin;
 
     // Cover inputs
     const productId = 0;
@@ -212,10 +216,10 @@ describe('emergency pause', function () {
   });
 
   it('stops claim voting', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as, master } = this.contracts;
-    const [coverBuyer1, staker1] = this.accounts.members;
-    const emergencyAdmin = this.accounts.emergencyAdmin;
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as, master } = fixture.contracts;
+    const [coverBuyer1, staker1] = fixture.accounts.members;
+    const emergencyAdmin = fixture.accounts.emergencyAdmin;
 
     // Cover inputs
     const productId = 0;

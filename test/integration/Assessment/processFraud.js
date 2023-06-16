@@ -1,5 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+
+const setup = require('../setup');
 const { getProof, submitFraud } = require('../../unit/Assessment/helpers');
 const { calculateFirstTrancheId } = require('../utils/staking');
 const { daysToSeconds } = require('../../../lib/helpers');
@@ -8,10 +11,12 @@ const { parseEther } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 
 describe('processFraud', function () {
+  let fixture;
   beforeEach(async function () {
+    fixture = await loadFixture(setup);
     // stake and buy cover
-    const { stakingPool1, cover, tk: nxm, tc: tokenController } = this.contracts;
-    const staker = this.accounts.defaultSender;
+    const { stakingPool1, cover, tk: nxm, tc: tokenController } = fixture.contracts;
+    const staker = fixture.accounts.defaultSender;
 
     // stake
     const firstTrancheId = calculateFirstTrancheId(
@@ -44,34 +49,34 @@ describe('processFraud', function () {
       { value: amount },
     );
 
-    this.amount = amount;
+    fixture.amount = amount;
   });
 
   it.skip('consumes less gas to process than the summed fees of the fraudulent voting transactions', async function () {
-    const { as: assessment, ic: individualClaims, gv: governanceContact } = this.contracts;
+    const { as: assessment, ic: individualClaims, gv: governanceContact } = fixture.contracts;
     const governance = await ethers.getImpersonatedSigner(governanceContact.address);
-    const [fraudulentMember] = this.accounts.members;
+    const [fraudulentMember] = fixture.accounts.members;
     await setEtherBalance(governance.address, parseEther('1000'));
 
-    await assessment.connect(fraudulentMember).stake(this.amount.mul(100));
-    await individualClaims.submitClaim(1, 0, this.amount, '', { value: this.amount });
+    await assessment.connect(fraudulentMember).stake(fixture.amount.mul(100));
+    await individualClaims.submitClaim(1, 0, fixture.amount, '', { value: fixture.amount });
     await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
     const merkleTree = await submitFraud({
       assessment,
       signer: governance,
       addresses: [fraudulentMember.address],
-      amounts: [this.amount],
+      amounts: [fixture.amount],
     });
 
     const proof = getProof({
       address: fraudulentMember.address,
       lastFraudulentVoteIndex: 0,
-      amount: this.amount,
+      amount: fixture.amount,
       fraudCount: 0,
       merkleTree,
     });
 
-    const tx = await assessment.processFraud(0, proof, fraudulentMember.address, 0, this.amount, 0, 100);
+    const tx = await assessment.processFraud(0, proof, fraudulentMember.address, 0, fixture.amount, 0, 100);
     const receipt = await tx.wait();
     // TODO: this is a temporary value..what fees should be summed?
     expect(receipt.gasUsed).to.be.eq(92691);

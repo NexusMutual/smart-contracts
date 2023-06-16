@@ -7,6 +7,8 @@ const { MaxUint256 } = ethers.constants;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { stake } = require('../utils/staking');
 const { buyCover, ETH_ASSET_ID } = require('../utils/cover');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('../setup');
 
 const increaseTime = async interval => {
   const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -30,10 +32,12 @@ const ethCoverTemplate = {
   assessmentId: 0,
 };
 describe('getMCR', function () {
+  let fixture;
   beforeEach(async function () {
-    const { tk, dai, stakingPool1: stakingPool, tc, mcr, cover } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [nonMember1] = this.accounts.nonMembers;
+    fixture = await loadFixture(setup);
+    const { tk, dai, stakingPool1: stakingPool, tc, mcr, cover } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [nonMember1] = fixture.accounts.nonMembers;
 
     const operator = await tk.operator();
     await setEtherBalance(operator, parseEther('10000000'));
@@ -61,7 +65,7 @@ describe('getMCR', function () {
   });
 
   it('returns current MCR value when desiredMCR = mcr', async function () {
-    const { mcr } = this.contracts;
+    const { mcr } = fixture.contracts;
 
     const storageMCR = await mcr.mcr();
     const currentMCR = await mcr.getMCR();
@@ -70,10 +74,10 @@ describe('getMCR', function () {
   });
 
   it.skip('increases mcr by 0.4% in 2 hours and decreases by 0.4% in 2 hours it after cover expiry', async function () {
-    const { mcr, cover } = this.contracts;
-    const [coverBuyer] = this.accounts.members;
-    const targetPrice = this.DEFAULT_PRODUCTS[0].targetPrice;
-    const priceDenominator = this.config.TARGET_PRICE_DENOMINATOR;
+    const { mcr, cover } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.members;
+    const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
+    const priceDenominator = fixture.config.TARGET_PRICE_DENOMINATOR;
 
     const gearingFactor = BigNumber.from(await mcr.gearingFactor());
     const currentMCR = await mcr.getMCR();

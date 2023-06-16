@@ -6,24 +6,28 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
 const { calculateFirstTrancheId } = require('../utils/staking');
+const { loadFixture } = require('@nomicfoundation/hardhat-toolbox/network-helpers');
+const setup = require('../setup');
 
 describe('switchMembershipAndAssets', function () {
+  let fixture;
   beforeEach(async function () {
-    const { tk } = this.contracts;
+    fixture = await loadFixture(setup);
+    const { tk } = fixture.contracts;
 
-    const members = this.accounts.members.slice(0, 5);
+    const members = fixture.accounts.members.slice(0, 5);
     const amount = parseEther('10000');
     for (const member of members) {
-      await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
+      await tk.connect(fixture.accounts.defaultSender).transfer(member.address, amount);
     }
   });
 
   it('switches membership from one address to another', async function () {
-    const { mr: memberRoles, tk: token } = this.contracts;
+    const { mr: memberRoles, tk: token } = fixture.contracts;
     const {
       members: [member1],
       nonMembers: [nonMember1],
-    } = this.accounts;
+    } = fixture.accounts;
 
     {
       const { memberArray: membersBefore } = await memberRoles.members(Role.Member);
@@ -55,11 +59,11 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('switches membership and transfers manager staking pools from one address to another', async function () {
-    const { mr: memberRoles, tk: token, tc: tokenController } = this.contracts;
+    const { mr: memberRoles, tk: token, tc: tokenController } = fixture.contracts;
     const {
       nonMembers: [newMember],
       stakingPoolManagers: [stakingPoolManager],
-    } = this.accounts;
+    } = fixture.accounts;
 
     {
       const newMemberAddress = newMember.address;
@@ -81,28 +85,28 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('reverts when switching membership for non-member', async function () {
-    const { mr: memberRoles } = this.contracts;
+    const { mr: memberRoles } = fixture.contracts;
     const {
       nonMembers: [nonMember1, nonMember2],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await expect(memberRoles.connect(nonMember1).switchMembershipAndAssets(nonMember2.address, [], [], [])).to.be
       .reverted;
   });
 
   it("reverts when switching membership to an address that's already a member", async function () {
-    const { mr: memberRoles } = this.contracts;
+    const { mr: memberRoles } = fixture.contracts;
     const {
       members: [member1, member2],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await expect(memberRoles.connect(member1).switchMembershipAndAssets(member2.address, [], [], [])).to.be.reverted;
   });
 
   it('transfers the provided covers to the new address', async function () {
-    const { mr: memberRoles, tk: token, cover, coverNFT, stakingPool1 } = this.contracts;
-    const [member, staker] = this.accounts.members;
-    const [nonMember] = this.accounts.nonMembers;
+    const { mr: memberRoles, tk: token, cover, coverNFT, stakingPool1 } = fixture.contracts;
+    const [member, staker] = fixture.accounts.members;
+    const [nonMember] = fixture.accounts.nonMembers;
 
     // Cover inputs
     const productId = 0;
@@ -154,12 +158,12 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('transfers all staking LP shares of the provided staking pools', async function () {
-    const { mr: memberRoles, tk: token, stakingPool1, stakingPool2, stakingPool3, stakingNFT } = this.contracts;
+    const { mr: memberRoles, tk: token, stakingPool1, stakingPool2, stakingPool3, stakingNFT } = fixture.contracts;
     const {
       members: [member1],
       nonMembers: [nonMember1],
       defaultSender: staker,
-    } = this.accounts;
+    } = fixture.accounts;
 
     const stakingPoolsAndAmounts = [
       [stakingPool1, parseEther('1000')],
@@ -174,7 +178,7 @@ describe('switchMembershipAndAssets', function () {
     await token.connect(staker).transfer(member1.address, parseEther('10000'));
 
     // Stake to open up capacity
-    await token.connect(member1).approve(this.contracts.tc.address, ethers.constants.MaxUint256);
+    await token.connect(member1).approve(fixture.contracts.tc.address, ethers.constants.MaxUint256);
     for (const [stakingPool, stakingAmount] of stakingPoolsAndAmounts) {
       await stakingPool
         .connect(member1)

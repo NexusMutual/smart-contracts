@@ -1,8 +1,43 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { config } = require('hardhat');
+const { artifacts, config, run } = require('hardhat');
 
 const rootPath = config.paths.root;
+const contractList = [
+  'Assessment',
+  'Cover',
+  'CoverMigrator',
+  'CoverNFTDescriptor',
+  'CoverNFT',
+  'CoverViewer',
+  ['Aggregator', 'EACAggregatorProxy'],
+  ['@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20', 'ERC20'],
+  'Governance',
+  'IndividualClaims',
+  'LegacyClaimProofs',
+  'LegacyClaimsData',
+  'LegacyClaimsReward',
+  'LegacyGateway',
+  'LegacyPooledStaking',
+  'LegacyQuotationData',
+  'MCR',
+  'MemberRoles',
+  'NXMaster',
+  'NXMToken',
+  'Pool',
+  'PriceFeedOracle',
+  'ProductsV1',
+  'ProposalCategory',
+  'StakingNFTDescriptor',
+  'StakingNFT',
+  'StakingPoolFactory',
+  'StakingPool',
+  'StakingProducts',
+  'StakingViewer',
+  'SwapOperator',
+  'TokenController',
+  'YieldTokenIncidents',
+];
 
 const updateVersion = () => {
   const rootPackageJson = path.join(rootPath, 'package.json');
@@ -12,8 +47,9 @@ const updateVersion = () => {
   const deploymentJson = require(path.join(deploymentsPackageJson));
 
   const updatedJson = JSON.stringify({ ...deploymentJson, version }, null, 2);
-  fs.writeFileSync(deploymentsPackageJson, updatedJson);
-  console.log('Updated deployments/package.json with version: ', version);
+  fs.writeFileSync(deploymentsPackageJson, updatedJson + '\n');
+
+  return version;
 };
 
 const rimraf = file => {
@@ -31,10 +67,7 @@ const rimraf = file => {
 };
 
 const generateExports = () => {
-  console.log('Generating abi exports');
-
   // input
-  const abisPath = path.join(__dirname, 'src/abis/');
   const addressesPath = path.join(__dirname, 'src/addresses.json');
 
   // output
@@ -46,18 +79,23 @@ const generateExports = () => {
   rimraf(abiExportsDir);
   fs.mkdirSync(abiExportsDir, { recursive: true });
 
-  const abis = fs
-    .readdirSync(abisPath)
-    .filter(file => file.endsWith('.json'))
-    .map(file => file.replace('.json', ''));
+  const abis = contractList.map(contract => {
+    const [, exportedName] = contract;
+    return typeof contract === 'string' ? contract : exportedName;
+  });
 
-  for (const name of abis) {
-    const abi = fs.readFileSync(path.join(abisPath, `${name}.json`)).toString();
-    fs.writeFileSync(path.join(abiExportsDir, `${name}.js`), `module.exports = ${abi.trim()};\n`);
+  // make pairs of [filename, exportedName]
+  const pairs = contractList.map(contract => (typeof contract === 'string' ? [contract, contract] : contract));
+
+  for (const contract of pairs) {
+    const [contractName, exportedName] = contract;
+    const artifact = artifacts.readArtifactSync(contractName);
+    const abi = JSON.stringify(artifact.abi, null, 2);
+    fs.writeFileSync(path.join(abiExportsDir, `${exportedName}.js`), `module.exports = ${abi.trim()};\n`);
   }
 
-  const imports = abis.map(abi => `const ${abi} = require('./abis/${abi}.js');`);
-  const moduleExports = `module.exports = {\n${abis.map(abi => `  ${abi},`).join('\n')}\n};`;
+  const imports = abis.map(contract => `const ${contract} = require('./abis/${contract}.js');`);
+  const moduleExports = `module.exports = {\n${abis.map(contract => `  ${contract},`).join('\n')}\n};`;
   fs.writeFileSync(abiExportsFile, [...imports, '', moduleExports, ''].join('\n'));
 
   const addresses = fs.readFileSync(addressesPath).toString().trim().replace(/"/g, "'");
@@ -73,7 +111,23 @@ const generateExports = () => {
   fs.writeFileSync(entrypointExportsFile, entrypointExports);
 };
 
-updateVersion();
-generateExports();
+const main = async () => {
+  console.log('Recompiling contracts');
+  await run('compile');
 
-process.exit(0);
+  console.log('Updating package version');
+  const version = updateVersion();
+  console.log('Updated deployments/package.json with version: ', version);
+
+  console.log('Generating exports');
+  generateExports();
+
+  console.log('Done');
+};
+
+main()
+  .then(() => process.exit(0))
+  .catch(e => {
+    console.error(e);
+    process.exit(1);
+  });

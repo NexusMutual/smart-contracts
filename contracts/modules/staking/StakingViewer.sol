@@ -70,7 +70,6 @@ contract StakingViewer is Multicall {
   INXMMaster public immutable master;
   IStakingNFT public immutable stakingNFT;
   IStakingPoolFactory public immutable stakingPoolFactory;
-  IStakingProducts public immutable stakingProducts;
 
   uint public constant TRANCHE_DURATION = 91 days;
   uint public constant MAX_ACTIVE_TRANCHES = 8;
@@ -81,17 +80,19 @@ contract StakingViewer is Multicall {
   constructor(
     INXMMaster _master,
     IStakingNFT _stakingNFT,
-    IStakingPoolFactory _stakingPoolFactory,
-    IStakingProducts _stakingProducts
+    IStakingPoolFactory _stakingPoolFactory
   ) {
     master = _master;
     stakingNFT = _stakingNFT;
     stakingPoolFactory = _stakingPoolFactory;
-    stakingProducts = _stakingProducts;
   }
 
   function cover() internal view returns (ICover) {
     return ICover(master.contractAddresses('CO'));
+  }
+
+  function stakingProducts() internal view returns (IStakingProducts) {
+    return IStakingProducts(master.contractAddresses('SP'));
   }
 
   function stakingPool(uint poolId) public view returns (IStakingPool) {
@@ -156,7 +157,7 @@ contract StakingViewer is Multicall {
         /* uint targetPrice */,
         /* uint bumpedPrice */,
         uint bumpedPriceUpdateTime
-      ) = stakingProducts.getProduct(i, productId);
+      ) = stakingProducts().getProduct(i, productId);
 
       if (targetWeight == 0 && lastEffectiveWeight == 0 && bumpedPriceUpdateTime == 0) {
         continue;
@@ -190,7 +191,7 @@ contract StakingViewer is Multicall {
         uint targetPrice,
         uint bumpedPrice,
         uint bumpedPriceUpdateTime
-      ) = stakingProducts.getProduct(poolId, i);
+      ) = stakingProducts().getProduct(poolId, i);
 
       if (targetWeight == 0 && lastEffectiveWeight == 0 && bumpedPriceUpdateTime == 0) {
         continue;

@@ -117,7 +117,7 @@ describe('initializeProducts', function () {
     await cover.allocateCapacity(
       { ...buyCoverParamsTemplate, owner: coverBuyer.address, amount: parseEther('10') },
       0,
-      800,
+      0,
       stakingPool.address,
     );
   });

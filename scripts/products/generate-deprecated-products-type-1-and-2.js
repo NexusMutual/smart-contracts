@@ -49,37 +49,24 @@ const main = async (provider, productsDataFilePath) => {
   const yieldTokenAndCustodyProducts = allProducts.filter(p => !p.isDeprecated && (p.productType === 1 || p.productType === 2));
 
   const cover = await ethers.getContractAt('Cover', COVER_PROXY_ADDRESS);
-  //const stakingProducts = await ethers.getContractAt('StakingProducts', STAKING_PRODUCTS);
-
-  // const productData = csvParse(fs.readFileSync(productsDataFilePath, 'utf8'), {
-  //   columns: true,
-  //   skip_empty_lines: true,
-  // });
 
   const productEntries = await Promise.all(yieldTokenAndCustodyProducts.map(async data => {
-    const coverAssetsAsText = data['Cover Assets'];
-    const coverAssets =
-      (coverAssetsAsText === 'DAI' && 0b10) || // Yield token cover that uses DAI
-      (coverAssetsAsText === 'ETH' && 0b01) || // Yield token cover that uses ETH
-      0; // The default is 0 - this means all assets are allowed (no whitelist)
-
-
-    console.log({
-      data
-    })
-
-    console.log('Fetching product')
 
     const productName = await cover.productNames(data.id);
-    console.log({
-      productName
-    })
-    const product = await cover.products(data.id);
+    const rawProduct = await cover.products(data.id);
 
-    console.log({
-      product
-    });
-    product.isDeprecated = true;
+    const product = {
+      productType: rawProduct.productType,
+      yieldTokenAddress: rawProduct.yieldTokenAddress,
+      coverAssets: rawProduct.coverAssets,
+      initialPriceRatio: rawProduct.initialPriceRatio,
+      capacityReductionRatio: rawProduct.capacityReductionRatio,
+      isDeprecated: true,
+      useFixedPrice: rawProduct.useFixedPrice
+    };
+
+    rawProduct.isDeprecated = true;
+
     const productParams = {
       productName: productName,
       productId: data.id, // create new product - use Max Uint.

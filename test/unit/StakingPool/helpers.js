@@ -209,12 +209,16 @@ async function calculateStakeAndRewardsWithdrawAmounts(stakingPool, deposit, tra
   };
 }
 
-async function moveTimeToNextTranche(amountOfTranches) {
-  const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-  const nextTrancheId = currentTrancheId + amountOfTranches;
+async function moveTimeToNextTranche(trancheCount) {
+  const nextTrancheId = (await getCurrentTrancheId()) + trancheCount;
   await setTime(nextTrancheId * TRANCHE_DURATION);
-
   return nextTrancheId;
+}
+
+async function moveTimeToNextBucket(bucketCount) {
+  const nextBucketId = (await getCurrentBucket()) + bucketCount;
+  await setTime(nextBucketId * BUCKET_DURATION);
+  return nextBucketId;
 }
 
 module.exports = {
@@ -234,6 +238,7 @@ module.exports = {
   estimateStakeShares,
   generateRewards,
   calculateStakeAndRewardsWithdrawAmounts,
+  moveTimeToNextBucket,
   moveTimeToNextTranche,
   TRANCHE_DURATION,
   BUCKET_DURATION,

@@ -1,6 +1,6 @@
 {
   "name": "@nexusmutual/deployments",
-  "version": "This value is set automatically by pre-publish.js. Do not edit this value directly.",
+  "version": "2.1.0-rc2",
   "description": "Nexus Mutual deployed contract addresses and abis",
   "exports": {
     ".": "./dist/index.js",

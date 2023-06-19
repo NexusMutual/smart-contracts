@@ -28,8 +28,8 @@
   "StakingNFT": "0xcafea508a477D94c502c253A58239fb8F948e97f",
   "StakingPoolFactory": "0xcafeafb97BF8831D95C0FC659b8eB3946B101CB3",
   "StakingProducts": "0xcafea573fBd815B5f59e8049E71E554bde3477E4",
-  "StakingViewer": "0xcafea91e78C9a9Ac83c84c51656c278dE599cf8E",
-  "SwapOperator": "0xcafea536d7f79F31Fa49bC40349f6a5F7E19D842",
+  "StakingViewer": "0xcafea970135C07B07a3eCA76C6c00AAC849767b3",
+  "SwapOperator": "0xcafea5C050E74a21C11Af78C927e17853153097D",
   "TokenController": "0x5407381b6c251cFd498ccD4A1d877739CB7960B8",
   "YieldTokenIncidents": "0xcafeac831dC5ca0D7ef467953b7822D2f44C8f83"
 }

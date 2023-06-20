@@ -1,6 +1,6 @@
 {
   "name": "@nexusmutual/deployments",
-  "version": "2.1.0-rc2",
+  "version": "2.1.0",
   "description": "Nexus Mutual deployed contract addresses and abis",
   "exports": {
     ".": "./dist/index.js",

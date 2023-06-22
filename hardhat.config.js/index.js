@@ -6,6 +6,7 @@ require('solidity-coverage');
 require('hardhat-contract-sizer');
 require('hardhat-tracer');
 require('hardhat-ignore-warnings');
+require('@nomicfoundation/hardhat-foundry');
 
 require('./tasks');
 

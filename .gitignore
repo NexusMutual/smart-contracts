@@ -4,8 +4,10 @@
 artifacts/
 /build/
 cache/
+cache_forge/
 types/
 node_modules/
+out/
 coverage/
 coverage.json
 tenderly.yaml

@@ -95,6 +95,14 @@ interface IStakingProducts {
     uint allocationUnitsPerNxm
   ) external pure returns (uint);
 
+  function createStakingPool(
+    bool isPrivatePool,
+    uint initialPoolFee,
+    uint maxPoolFee,
+    ProductInitializationParams[] calldata productInitParams,
+    string calldata ipfsDescriptionHash
+  ) external returns (uint poolId, address stakingPoolAddress);
+
   /* ============= EVENTS ============= */
 
   event ProductUpdated(uint productId, uint8 targetWeight, uint96 targetPrice);

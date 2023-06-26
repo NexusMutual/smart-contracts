@@ -504,4 +504,14 @@ contract SPMockStakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     // none :)
   }
 
+  function createStakingPool(
+    bool /*  isPrivatePool */,
+    uint /*  initialPoolFee */,
+    uint /* maxPoolFee */,
+    ProductInitializationParams[] memory /* productInitParams */,
+    string calldata /* ipfsDescriptionHash */
+  ) external pure returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+    revert('CoverMockStakingProducts: Not callable');
+  }
+
 }

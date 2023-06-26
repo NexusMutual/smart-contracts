@@ -20,7 +20,6 @@ import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../interfaces/IStakingProducts.sol";
-import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Multicall {
   using SafeERC20 for IERC20;
@@ -174,8 +173,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       _coverData[coverId] = CoverData(params.productId, params.coverAsset, 0 /* amountPaidOut */);
 
     } else {
-
-      console.log("Existing cover");
       // existing cover
       coverId = params.coverId;
 
@@ -303,11 +300,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       : 0;
 
     for (uint i = 0; i < poolAllocationRequests.length; i++) {
-
-
-      console.log("i index", i);
-
-      console.log("vars.previousPoolAllocationsLength", vars.previousPoolAllocationsLength);
       // if there is a previous segment and this index is present on it
       if (vars.previousPoolAllocationsLength > i) {
         PoolAllocation memory previousPoolAllocation =
@@ -505,58 +497,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return coverId;
   }
 
-  function createStakingPool(
-    bool isPrivatePool,
-    uint initialPoolFee,
-    uint maxPoolFee,
-    ProductInitializationParams[] memory productInitParams,
-    string calldata ipfsDescriptionHash
-  ) external whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
-
-    uint numProducts = productInitParams.length;
-
-    // override with initial price and check if pool is allowed
-    for (uint i = 0; i < numProducts; i++) {
-
-      if (productInitParams[i].targetPrice < GLOBAL_MIN_PRICE_RATIO) {
-        revert TargetPriceBelowGlobalMinPriceRatio();
-      }
-
-      uint productId = productInitParams[i].productId;
-
-      // if there is a list of allowed pools for this product - this pool didn't exist yet so it's not in it
-      if (allowedPools[productId].length > 0) {
-        revert PoolNotAllowedForThisProduct(productId);
-      }
-
-      if (productId >= _products.length) {
-        revert ProductDoesntExist();
-      }
-
-      if (_products[productId].isDeprecated) {
-        revert ProductDeprecated();
-      }
-
-      productInitParams[i].initialPrice = _products[productId].initialPriceRatio;
-    }
-
-    (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(address(this));
-
-    IStakingPool(stakingPoolAddress).initialize(
-      isPrivatePool,
-      initialPoolFee,
-      maxPoolFee,
-      poolId,
-      ipfsDescriptionHash
-    );
-
-    tokenController().assignStakingPoolManager(poolId, msg.sender);
-
-    stakingProducts().setInitialProducts(poolId, productInitParams);
-
-    return (poolId, stakingPoolAddress);
-  }
-
   // Gets the total amount of active cover that is currently expired for this asset
   function getExpiredCoverAmount(
     uint coverAsset,
@@ -654,6 +594,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       ? segment.amount - amountPaidOut
       : 0;
     return segment;
+  }
+
+  function allowedPoolsCount(uint productId) external view returns (uint) {
+    return allowedPools[productId].length;
   }
 
   function coverSegments(uint coverId) external override view returns (CoverSegment[] memory) {

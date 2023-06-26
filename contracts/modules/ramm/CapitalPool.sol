@@ -18,7 +18,7 @@ contract CapitalPool {
     daiRate = _daiRate;
   }
 
-  function sendPayout(address payable to, uint amount) external {
+  function sendEth(address payable to, uint amount) external {
     (bool ok,) = to.call{value: amount}("");
     require(ok, "CapitalPool: payout failed");
   }

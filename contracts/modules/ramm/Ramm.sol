@@ -3,9 +3,36 @@
 pragma solidity ^0.8.18;
 
 import "forge-std/console.sol";
+import "solmate/src/utils/LibString.sol";
+
 import "../../libraries/Math.sol";
 import "./CapitalPool.sol";
 import "./NXM.sol";
+
+function format(uint n, uint decimals) pure returns (string memory) {
+  string memory result;
+  uint decimalsUsed = 0;
+  uint fraction = n % 10 ** decimals;
+  bool rightmost = true;
+
+  while (decimalsUsed++ < decimals) {
+    uint digit = fraction % 10;
+    rightmost = rightmost && digit == 0;
+    fraction /= 10;
+
+    if (rightmost && digit == 0 && decimalsUsed != decimals) {
+      continue;
+    }
+
+    result = string(abi.encodePacked(digit + 48, result));
+  }
+
+  return string(abi.encodePacked(LibString.toString(n / 10 ** decimals), ".", result));
+}
+
+function format(uint n) pure returns (string memory) {
+  return format(n, 18);
+}
 
 contract Ramm {
 
@@ -70,8 +97,7 @@ contract Ramm {
       revert("PRICE_TRANSITION_NOT_IMPLEMENTED");
     }
 
-    // book value
-    return capital / nxm.totalSupply();
+    return 1e18 * capital / nxm.totalSupply();
   }
 
   function swap(uint nxmIn) external payable {
@@ -95,14 +121,15 @@ contract Ramm {
       a.eth > a.targetLiquidity ? a.eth - a.targetLiquidity : 0 // extraLiquidity
     );
 
+    uint r = getPriceTarget(capital, mcr) * elapsed * a.ratchetSpeed;
     uint ethReserve = a.eth - extractedAmount;
+    uint nxmReserve = ethReserve * a.nxm / (ethReserve - a.nxm - r / RATCHET_PERIOD / RATCHET_DENOMINATOR);
 
-    uint r = getPriceTarget(capital, mcr) * elapsed * a.ratchetSpeed / RATCHET_PERIOD / RATCHET_DENOMINATOR;
-    uint nxmReserve = ethReserve * a.nxm / (ethReserve - r * a.nxm);
+    console.log("Initial nxm reserve: %s NXM", format(a.nxm));
+    console.log("Ratchet nxm reserve: %s NXM", format(nxmReserve));
 
     uint ethReserveNew = ethReserve + ethIn;
     uint nxmReserveNew = (ethReserve * nxmReserve) / ethReserveNew;
-
     uint nxmOut = nxmReserve - nxmReserveNew;
 
     a.nxm = nxmReserveNew;
@@ -111,26 +138,73 @@ contract Ramm {
 
     // todo: update b pool
 
-    nxm.mint(to, nxmOut);
-
-    // send eth to capital pool
+    // transfer assets
     (bool ok,) = address(capitalPool).call{value: msg.value}("");
     require(ok, "CAPITAL_POOL_TRANSFER_FAILED");
+    nxm.mint(to, nxmOut);
 
     return nxmOut;
   }
 
-  function swapNxmForEth(uint nxmIn, address to) internal returns (uint ethOut) {
+  function swapNxmForEth(uint nxmIn, address to) internal returns (uint /*ethOut*/) {
 
     uint capital = capitalPool.getPoolValueInEth();
     uint mcr = capitalPool.mcr();
 
     uint elapsed = block.timestamp - b.lastSwapTimestamp;
-    uint maxInjectedAmount = elapsed * b.liquiditySpeed / LIQUIDITY_SPEED_PERIOD;
     uint injectedAmount = Math.min(
-      maxInjectedAmount,
+      elapsed * b.liquiditySpeed / LIQUIDITY_SPEED_PERIOD,
       b.targetLiquidity - b.eth // missingLiquidity
     );
+
+    console.log("Injected amount: %s ETH", format(injectedAmount));
+
+    uint r = getPriceTarget(capital, mcr) * elapsed * b.ratchetSpeed;
+    uint ethReserve = b.eth + injectedAmount;
+    uint nxmReserve = ethReserve * b.nxm / (ethReserve + b.nxm * r / RATCHET_PERIOD / RATCHET_DENOMINATOR);
+
+    console.log("Initial nxm reserve: %s NXM", format(b.nxm));
+    console.log("Ratchet nxm reserve: %s NXM", format(nxmReserve));
+
+    uint nxmReserveNew = nxmReserve + nxmIn;
+    uint ethReserveNew = (ethReserve * nxmReserve) / nxmReserveNew;
+    uint ethOut = ethReserve - ethReserveNew;
+
+    b.nxm = nxmReserveNew;
+    b.eth = ethReserveNew;
+    b.lastSwapTimestamp = block.timestamp;
+
+    // todo: update a pool
+
+    // transfer assets
+    nxm.burn(msg.sender, nxmIn);
+    capitalPool.sendEth(payable(to), ethOut);
+
+    return ethOut;
+  }
+
+  function getSpotPriceB() external view returns (uint /*ethPerNxm*/) {
+    uint capital = capitalPool.getPoolValueInEth();
+    uint mcr = capitalPool.mcr();
+
+    uint elapsed = block.timestamp - b.lastSwapTimestamp;
+    uint injectedAmount = Math.min(
+      elapsed * b.liquiditySpeed / LIQUIDITY_SPEED_PERIOD,
+      b.targetLiquidity - b.eth // missingLiquidity
+    );
+
+    uint priceTarget = getPriceTarget(capital, mcr);
+    uint r = priceTarget * elapsed * b.ratchetSpeed;
+
+    console.log("Elapsed: %s days", format(1e2 * elapsed / 1 days, 2));
+    console.log("Price target: %s ETH/NXM", format(priceTarget));
+    console.log("r: %s", format(r / RATCHET_PERIOD / RATCHET_DENOMINATOR));
+
+    uint ethReserve = b.eth + injectedAmount;
+    uint nxmReserve = ethReserve * b.nxm / (ethReserve + b.nxm * r / RATCHET_PERIOD / RATCHET_DENOMINATOR / 1e18);
+    uint ethReserveNew = (ethReserve * nxmReserve) / (nxmReserve + 1 ether);
+
+    return ethReserve - ethReserveNew;
   }
 
 }

@@ -24,35 +24,37 @@ contract RammTest is Test {
   }
 
   function testBuy100() public {
-    console.log("Pool value: %s ETH", capitalPool.getPoolValueInEth() / 1e18);
-    console.log("NXM Supply: %s NXM", nxm.totalSupply() / 1e18);
+    console.log("Pool value: %s ETH", format(capitalPool.getPoolValueInEth()));
+    console.log("NXM Supply: %s NXM", format(nxm.totalSupply()));
+
+    uint eth = 100 ether;
 
     uint nxmBefore = nxm.balanceOf(address(this));
-    ramm.swap{value: 100 ether}(0);
+    ramm.swap{value: eth}(0);
     uint nxmAfter = nxm.balanceOf(address(this));
 
-    console.log("NXM before:", nxmBefore / 1e18);
-    console.log("NXM after:", nxmAfter / 1e18);
-    console.log("Average price per nxm: %s wei", (1e18 * 100 ether / (nxmAfter - nxmBefore)));
+    console.log("NXM before:", format(nxmBefore));
+    console.log("NXM after:", format(nxmAfter));
+    console.log("Average price per nxm: %s wei", format(1e18 * eth / (nxmAfter - nxmBefore)));
   }
 
   function testBuy50x2() public {
-    console.log("Pool value: %s ETH", capitalPool.getPoolValueInEth() / 1e18);
-    console.log("NXM Supply: %s NXM", nxm.totalSupply() / 1e18);
+    console.log("Pool value: %s ETH", format(capitalPool.getPoolValueInEth()));
+    console.log("NXM Supply: %s NXM", format(nxm.totalSupply()));
 
     uint nxmBefore = nxm.balanceOf(address(this));
     ramm.swap{value: 50 ether}(0);
     ramm.swap{value: 50 ether}(0);
     uint nxmAfter = nxm.balanceOf(address(this));
 
-    console.log("NXM before:", nxmBefore / 1e18);
-    console.log("NXM after:", nxmAfter / 1e18);
-    console.log("Average price per nxm: %s wei", (1e18 * 100 ether / (nxmAfter - nxmBefore)));
+    console.log("NXM before:", format(nxmBefore));
+    console.log("NXM after:", format(nxmAfter));
+    console.log("Average price per nxm: %s ETH", format(1e18 * 100 ether / (nxmAfter - nxmBefore)));
   }
 
   function testSell4000() public {
-    console.log("Pool value: %s ETH", capitalPool.getPoolValueInEth() / 1e18);
-    console.log("NXM Supply: %s NXM", nxm.totalSupply() / 1e18);
+    console.log("Pool value: %s ETH", format(capitalPool.getPoolValueInEth()));
+    console.log("NXM Supply: %s NXM", format(nxm.totalSupply()));
 
     uint nxmOut = 4000 ether;
 
@@ -61,9 +63,20 @@ contract RammTest is Test {
     ramm.swap(nxmOut);
     uint ethAfter = address(1337).balance;
 
-    console.log("ETH before:", ethBefore / 1e18);
-    console.log("ETH after:", ethAfter / 1e18);
-    console.log("Average price per nxm: %s wei", (1e18 * (ethAfter - ethBefore) / 4000 ether));
+    console.log("ETH before: %s", format(ethBefore));
+    console.log("ETH after:  %s", format(ethAfter));
+    console.log("NXM sold:   %s", format(nxmOut));
+
+    console.log("Average price per nxm: %s ETH", format(1e18 * (ethAfter - ethBefore) / nxmOut));
+  }
+
+  function testPlayground() public {
+    uint time = block.timestamp;
+    for (uint i = 0; i < 10; i++) {
+      console.log("--------------------");
+      vm.warp(time + i * 7 days);
+      console.log("Spot price B: %s ETH", format(ramm.getSpotPriceB()));
+    }
   }
 
 }

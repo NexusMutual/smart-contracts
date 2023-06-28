@@ -35,7 +35,7 @@ contract RammTest is Test {
 
     console.log("NXM before:", format(nxmBefore));
     console.log("NXM after:", format(nxmAfter));
-    console.log("Average price per nxm: %s wei", format(1e18 * eth / (nxmAfter - nxmBefore)));
+    console.log("Average price: %s ETH/NXM", format(1e18 * eth / (nxmAfter - nxmBefore)));
   }
 
   function testBuy50x2() public {
@@ -49,7 +49,7 @@ contract RammTest is Test {
 
     console.log("NXM before:", format(nxmBefore));
     console.log("NXM after:", format(nxmAfter));
-    console.log("Average price per nxm: %s ETH", format(1e18 * 100 ether / (nxmAfter - nxmBefore)));
+    console.log("Average price: %s ETH/NXM", format(1e18 * 100 ether / (nxmAfter - nxmBefore)));
   }
 
   function testSell4000() public {
@@ -67,15 +67,15 @@ contract RammTest is Test {
     console.log("ETH after:  %s", format(ethAfter));
     console.log("NXM sold:   %s", format(nxmOut));
 
-    console.log("Average price per nxm: %s ETH", format(1e18 * (ethAfter - ethBefore) / nxmOut));
+    console.log("Average price: %s ETH/NXM", format(1e18 * (ethAfter - ethBefore) / nxmOut));
   }
 
   function testPlayground() public {
     uint time = block.timestamp;
     for (uint i = 0; i < 10; i++) {
       console.log("--------------------");
-      vm.warp(time + i * 7 days);
-      console.log("Spot price B: %s ETH", format(ramm.getSpotPriceB()));
+      vm.warp(time + i * 3 days);
+      console.log("***** Spot B: %s ETH/NXM", format(ramm.getSpotPriceB()));
     }
   }
 

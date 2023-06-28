@@ -172,18 +172,25 @@ contract Ramm {
     );
 
     console.log("Injected amount: %s ETH", format(injectedAmount));
-
     console.log("BV: %s", format(1e18 * capital / supply));
-    uint R = getPriceTarget(capital, mcr, supply) * elapsed * b.ratchetSpeed;
+
     uint ethReserve = b.eth + injectedAmount;
-    bool useRatchet = capital * b.nxm > ethReserve * supply + b.nxm * capital * elapsed * b.ratchetSpeed / RATCHET_PERIOD / RATCHET_DENOMINATOR;
+    uint target = getPriceTarget(capital, mcr, supply);
+    uint nxmReserve;
 
-    uint nxmReserve = useRatchet
-      ? ethReserve * b.nxm / (ethReserve + R * b.nxm * capital / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR / 1e18)
-      : ethReserve * supply / capital;
-
-    console.log("Initial nxm reserve: %s NXM", format(b.nxm));
-    console.log("Ratchet nxm reserve: %s NXM", format(nxmReserve));
+    // check if we should be using the ratchet or the book value price using:
+    // Nbv > Nr <=>
+    // ... <=>
+    // cap * n < e * sup + r * cap * n
+    if (
+      capital * b.nxm < ethReserve * supply + b.nxm * capital * elapsed * b.ratchetSpeed / RATCHET_PERIOD / RATCHET_DENOMINATOR
+    ) {
+      nxmReserve = ethReserve * supply / capital;
+    } else {
+      uint r = elapsed * b.ratchetSpeed;
+      uint nr_denom_addend = b.nxm * r * target / RATCHET_PERIOD / RATCHET_DENOMINATOR / 1e18;
+      nxmReserve = ethReserve * b.nxm / (ethReserve + nr_denom_addend);
+    }
 
     uint ethOut;
     {

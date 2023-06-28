@@ -70,6 +70,26 @@ contract RammTest is Test {
     console.log("Average price: %s ETH/NXM", format(1e18 * (ethAfter - ethBefore) / nxmOut));
   }
 
+  function testSell2000x2() public {
+    console.log("Pool value: %s ETH", format(capitalPool.getPoolValueInEth()));
+    console.log("NXM Supply: %s NXM", format(nxm.totalSupply()));
+
+    uint nxmOut = 4000 ether;
+
+    uint ethBefore = address(1337).balance;
+    vm.prank(address(1337));
+    ramm.swap(nxmOut / 2);
+    vm.prank(address(1337));
+    ramm.swap(nxmOut / 2);
+    uint ethAfter = address(1337).balance;
+
+    console.log("ETH before: %s", format(ethBefore));
+    console.log("ETH after:  %s", format(ethAfter));
+    console.log("NXM sold:   %s", format(nxmOut));
+
+    console.log("Average price: %s ETH/NXM", format(1e18 * (ethAfter - ethBefore) / nxmOut));
+  }
+
   function testPlayground() public {
     uint time = block.timestamp;
     for (uint i = 0; i < 10; i++) {

@@ -17,6 +17,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IYieldTokenIncidents.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
+import "../../interfaces/ICoverProducts.sol";
 
 /// Allows cover owners to redeem payouts from yield token depeg incidents. It is an entry point
 /// to the assessment process where the members of the mutual decides the validity of the
@@ -139,9 +140,9 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     uint expectedPayoutInNXM,
     string calldata ipfsMetadata
   ) external override onlyGovernance whenNotPaused {
-    ICover coverContract = cover();
-    Product memory product = coverContract.products(productId);
-    ProductType memory productType = coverContract.productTypes(product.productType);
+    ICoverProducts coverProductsContract = coverProducts();
+    Product memory product = coverProductsContract.products(productId);
+    ProductType memory productType = coverProductsContract.productTypes(product.productType);
     require(
       productType.claimMethod == uint8(ClaimMethod.YieldTokenIncidents),
       "Invalid claim method for this product type"
@@ -192,7 +193,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
 
     ICover coverContract = ICover(getInternalContractAddress(ID.CO));
     CoverData memory coverData = coverContract.coverData(coverId);
-    Product memory product = coverContract.products(coverData.productId);
+    Product memory product = coverProducts().products(coverData.productId);
 
     uint payoutAmount;
     {
@@ -347,6 +348,10 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
 
   function pool() internal view returns (IPool) {
     return IPool(internalContracts[uint(ID.P1)]);
+  }
+
+  function coverProducts() internal view returns (ICoverProducts) {
+    return ICoverProducts(getInternalContractAddress(ID.CP));
   }
 
   /// @dev Updates internal contract addresses to the ones stored in master. This function is

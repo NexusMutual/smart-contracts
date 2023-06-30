@@ -10,6 +10,7 @@ import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../interfaces/ICoverProducts.sol";
 
 contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   using SafeUintCast for uint;
@@ -122,7 +123,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   }
 
   function recalculateEffectiveWeightsForAllProducts(uint poolId) external {
-    uint productsCount = ICover(coverContract).productsCount();
+
+    uint productsCount = coverProducts().productsCount();
     IStakingPool stakingPool = getStakingPool(poolId);
 
     // initialize array for all possible products
@@ -195,7 +197,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       }
 
       // reverts if poolId is not allowed for any of these products
-      ICover(coverContract).requirePoolIsAllowed(productIds, poolId);
+      coverProducts().requirePoolIsAllowed(productIds, poolId);
 
       // reverts if any of the products do not exist
       (
@@ -611,6 +613,9 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     return ICover(coverContract);
   }
 
+  function coverProducts() internal view returns (ICoverProducts) {
+    return ICoverProducts(getInternalContractAddress(ID.CP));
+  }
 
   function changeDependentContractAddress() external {
     // none :)
@@ -635,17 +640,17 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
       uint productId = productInitParams[i].productId;
 
-      ICover _cover = cover();
+      ICoverProducts _coverProducts = coverProducts();
       // if there is a list of allowed pools for this product - this pool didn't exist yet so it's not in it
-      if (_cover.allowedPoolsCount(productId) > 0) {
+      if (_coverProducts.allowedPoolsCount(productId) > 0) {
         // revert PoolNotAllowedForThisProduct(productId);
       }
 
-      if (productId >= _cover.productsCount()) {
+      if (productId >= _coverProducts.productsCount()) {
         // revert ProductDoesntExist();
       }
 
-      Product memory product = _cover.products(productId);
+      Product memory product = _coverProducts.products(productId);
 
       if (product.isDeprecated) {
         // revert ProductDeprecated();

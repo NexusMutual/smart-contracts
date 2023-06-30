@@ -11,6 +11,7 @@ import "../../interfaces/IIndividualClaims.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/ICoverProducts.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
@@ -49,6 +50,10 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
   function cover() internal view returns (ICover) {
     return ICover(getInternalContractAddress(ID.CO));
+  }
+
+  function coverProducts() internal view returns (ICoverProducts) {
+    return ICoverProducts(getInternalContractAddress(ID.CP));
   }
 
   function assessment() internal view returns (IAssessment) {
@@ -259,13 +264,13 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       lastClaimSubmissionOnCover[coverId] = ClaimSubmission(uint80(claims.length), true);
     }
 
-    ICover coverContract = cover();
+    ICoverProducts coverProductsContract = coverProducts();
     CoverData memory coverData = cover().coverData(coverId);
     CoverSegment memory segment = cover().coverSegmentWithRemainingAmount(coverId, segmentId);
 
     {
-      Product memory product = coverContract.products(coverData.productId);
-      ProductType memory productType = coverContract.productTypes(product.productType);
+      Product memory product = coverProductsContract.products(coverData.productId);
+      ProductType memory productType = coverProductsContract.productTypes(product.productType);
 
       require(
         productType.claimMethod == uint8(ClaimMethod.IndividualClaims),

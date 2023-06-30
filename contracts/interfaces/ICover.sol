@@ -55,21 +55,6 @@ struct BuyCoverParams {
   string ipfsData;
 }
 
-struct ProductParam {
-  string productName;
-  uint productId;
-  string ipfsMetadata;
-  Product product;
-  uint[] allowedPools;
-}
-
-struct ProductTypeParam {
-  string productTypeName;
-  uint productTypeId;
-  string ipfsMetadata;
-  ProductType productType;
-}
-
 struct ProductInitializationParams {
   uint productId;
   uint8 weight;
@@ -142,17 +127,7 @@ interface ICover {
     uint segmentId
   ) external view returns (CoverSegment memory);
 
-  function products(uint id) external view returns (Product memory);
-
-  function productTypes(uint id) external view returns (ProductType memory);
-
   function stakingPool(uint index) external view returns (IStakingPool);
-
-  function productNames(uint productId) external view returns (string memory);
-
-  function productsCount() external view returns (uint);
-
-  function productTypesCount() external view returns (uint);
 
   function totalActiveCoverInAsset(uint coverAsset) external view returns (uint);
 
@@ -183,10 +158,6 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint coverId);
 
-  function setProductTypes(ProductTypeParam[] calldata productTypes) external;
-
-  function setProducts(ProductParam[] calldata params) external;
-
   function burnStake(
     uint coverId,
     uint segmentId,
@@ -199,15 +170,8 @@ interface ICover {
 
   function stakingPoolFactory() external returns (IStakingPoolFactory);
 
-  function isPoolAllowed(uint productId, uint poolId) external returns (bool);
-  function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external view;
-
-  function allowedPoolsCount(uint productId) external view returns (uint);
-
   /* ========== EVENTS ========== */
 
-  event ProductSet(uint id, string ipfsMetadata);
-  event ProductTypeSet(uint id, string ipfsMetadata);
   event CoverEdited(uint indexed coverId, uint indexed productId, uint indexed segmentId, address buyer, string ipfsMetadata);
 
   // Auth
@@ -222,7 +186,6 @@ interface ICover {
 
   // Products
   error ProductDoesntExist();
-  error ProductTypeNotFound();
   error ProductDeprecated();
   error InvalidProductType();
   error UnexpectedProductId();

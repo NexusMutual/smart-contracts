@@ -39,6 +39,9 @@ struct RequestAllocationVariables {
   uint previousPremiumInNXM;
   uint refund;
   uint coverAmountInNXM;
+  PoolAllocation[] allocations;
+  uint previousCoverAmountTotalInNXM;
+  uint coverAmountInNXMOldRepriced;
 }
 
 struct BuyCoverParams {
@@ -108,6 +111,12 @@ struct ActiveCover {
   uint192 totalActiveCoverInAsset;
   // The last time activeCoverExpirationBuckets was updated
   uint64 lastBucketUpdateId;
+}
+
+struct AllocationParams {
+  uint nxmPriceInCoverAsset;
+  uint previousSegmentAmount;
+  uint segmentId;
 }
 
 interface ICover {

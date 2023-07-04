@@ -1,8 +1,9 @@
 const hre = require('hardhat');
-const { ethers } = hre;
+const { ethers, accounts: testAccounts } = hre;
 const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 const { getAccounts } = require('../../utils/accounts');
+const { reset } = require('../../utils/evm');
 
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
@@ -23,6 +24,7 @@ const Assets = {
 };
 
 async function setup() {
+  await reset();
   const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
   const memberRoles = await ethers.deployContract('MemberRolesMock');
@@ -106,7 +108,6 @@ async function setup() {
     await master.enrollInternal(contract.address);
   }
 
-  console.log(accounts.emergencyAdmin);
   await master.setEmergencyAdmin(await accounts.emergencyAdmin.getAddress());
 
   await cover.connect(accounts.advisoryBoardMembers[0]).setProductTypes([

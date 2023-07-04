@@ -1,10 +1,12 @@
 const { ethers } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
+const { reset } = require('../../utils/evm');
 
 const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
 async function setup() {
+  await reset();
   const accounts = await getAccounts();
   const master = await ethers.deployContract('DisposableNXMaster');
   const governance = await ethers.deployContract('MSMockGovernance');

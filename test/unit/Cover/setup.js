@@ -1,5 +1,5 @@
 const hre = require('hardhat');
-const { ethers, accounts: testAccounts } = hre;
+const { ethers } = hre;
 const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 const { getAccounts } = require('../../utils/accounts');

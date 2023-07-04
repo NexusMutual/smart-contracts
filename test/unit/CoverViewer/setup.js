@@ -1,7 +1,9 @@
 const { ethers } = require('hardhat');
+const { reset } = require('../../utils/evm');
 const { hex } = require('../utils').helpers;
 
 async function setup() {
+  await reset();
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const Cover = await ethers.getContractFactory('CVMockCover');
   const CoverViewer = await ethers.getContractFactory('CoverViewer');

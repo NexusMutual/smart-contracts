@@ -1,8 +1,9 @@
 const { ethers } = require('hardhat');
-const { setEtherBalance } = require('../../utils/evm');
+const { setEtherBalance, reset } = require('../../utils/evm');
 const { getAccounts } = require('../../utils/accounts');
 
 async function setup() {
+  await reset();
   const accounts = await getAccounts();
   const [operator] = accounts.members;
 

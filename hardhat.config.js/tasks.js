@@ -1,11 +1,6 @@
 const { task } = require('hardhat/config');
 const { TASK_TYPECHAIN } = require('@typechain/hardhat/dist/constants');
-const { TASK_COMPILE, TASK_TEST_SETUP_TEST_ENVIRONMENT, TASK_TEST } = require('hardhat/builtin-tasks/task-names');
-
-task(TASK_TEST, async (args, hre, runSuper) => {
-  const testFiles = args.testFiles.filter(el => !/setup/.test(el));
-  await runSuper({ ...args, testFiles });
-});
+const { TASK_COMPILE, TASK_TEST_SETUP_TEST_ENVIRONMENT } = require('hardhat/builtin-tasks/task-names');
 
 task(TASK_TEST_SETUP_TEST_ENVIRONMENT, async (_, hre) => {
   const accounts = await hre.ethers.getSigners();

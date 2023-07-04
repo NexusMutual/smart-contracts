@@ -2,12 +2,16 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { increaseTime } = require('../../utils').evm;
 const { proposalTitle, proposalSD, proposalDescHash, categoryId, solutionHash, action } = require('./proposalFixture');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('../setup');
 
 describe('submitVoteWithoutDelegations', function () {
   let proposalId;
+  let fixture;
   beforeEach(async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.members;
+    fixture = await loadFixture(setup);
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.members;
     proposalId = await governance.getProposalLength();
 
     await governance
@@ -16,8 +20,8 @@ describe('submitVoteWithoutDelegations', function () {
   });
 
   it('should fail to submit vote for proposal if sender is not authorize', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.members;
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.members;
 
     await expect(governance.connect(member).submitVoteWithoutDelegations(proposalId, 1)).to.revertedWith(
       'Not Authorized',
@@ -25,8 +29,8 @@ describe('submitVoteWithoutDelegations', function () {
   });
 
   it('should submit vote for proposal', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.advisoryBoardMembers;
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.advisoryBoardMembers;
     const solution = 1;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -37,8 +41,8 @@ describe('submitVoteWithoutDelegations', function () {
   });
 
   it('should submit vote against proposal', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.advisoryBoardMembers;
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.advisoryBoardMembers;
     const solution = 0;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -49,8 +53,8 @@ describe('submitVoteWithoutDelegations', function () {
   });
 
   it('should fail to submit vote twice', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.advisoryBoardMembers;
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.advisoryBoardMembers;
     const solution = 0;
 
     await governance.connect(member).submitVoteWithoutDelegations(proposalId, solution);
@@ -60,9 +64,9 @@ describe('submitVoteWithoutDelegations', function () {
   });
 
   it('should fail to submit vote when closed', async function () {
-    const { gv: governance, pc: proposalCategory } = this.contracts;
+    const { gv: governance, pc: proposalCategory } = fixture.contracts;
     const { 5: closingTime } = await proposalCategory.category(categoryId);
-    const [member] = this.accounts.advisoryBoardMembers;
+    const [member] = fixture.accounts.advisoryBoardMembers;
     const solution = 0;
     await increaseTime(closingTime.toNumber());
     await expect(governance.connect(member).submitVoteWithoutDelegations(proposalId, solution)).to.revertedWith(

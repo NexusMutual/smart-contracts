@@ -57,7 +57,7 @@ describe('emergency pause', function () {
     const emergencyAdmin = fixture.accounts.emergencyAdmin;
     const owner = fixture.accounts.defaultSender;
 
-    const voters = [owner, ...this.accounts.advisoryBoardMembers];
+    const voters = [owner, ...fixture.accounts.advisoryBoardMembers];
     assert.equal(await master.isPause(), false);
 
     await master.connect(emergencyAdmin).setEmergencyPause(true);
@@ -101,7 +101,7 @@ describe('emergency pause', function () {
 
     await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [
       owner,
-      ...this.accounts.advisoryBoardMembers,
+      ...fixture.accounts.advisoryBoardMembers,
     ]);
 
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', master.address);

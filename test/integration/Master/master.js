@@ -334,7 +334,7 @@ describe('master', function () {
         fixture.accounts.defaultSender,
         ...fixture.accounts.advisoryBoardMembers,
       ]);
-      await assertNewAddresses(master, contractCodes, newAddresses, this.contractType);
+      await assertNewAddresses(master, contractCodes, newAddresses, fixture.contractType);
     }
 
     {

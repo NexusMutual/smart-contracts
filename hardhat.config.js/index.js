@@ -34,6 +34,7 @@ const config = {
     recursive: false,
     timeout: 0,
     slow: 5000,
+    jobs: 3,
   },
 
   networks: require('./networks'),

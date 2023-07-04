@@ -3,7 +3,7 @@ const { TASK_TYPECHAIN } = require('@typechain/hardhat/dist/constants');
 const { TASK_COMPILE, TASK_TEST_SETUP_TEST_ENVIRONMENT, TASK_TEST } = require('hardhat/builtin-tasks/task-names');
 
 task(TASK_TEST, async (args, hre, runSuper) => {
-  const testFiles = args.testFiles.length ? args.testFiles : ['test/index.js'];
+  const testFiles = args.testFiles.filter(el => !/setup/.test(el));
   await runSuper({ ...args, testFiles });
 });
 

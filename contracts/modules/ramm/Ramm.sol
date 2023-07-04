@@ -9,30 +9,30 @@ import "../../libraries/Math.sol";
 import "./CapitalPool.sol";
 import "./NXM.sol";
 
-  function format(uint n, uint decimals) pure returns (string memory) {
-    string memory result;
-    uint decimalsUsed = 0;
-    uint fraction = n % 10 ** decimals;
-    bool rightmost = true;
+function format(uint n, uint decimals) pure returns (string memory) {
+  string memory result;
+  uint decimalsUsed = 0;
+  uint fraction = n % 10 ** decimals;
+  bool rightmost = true;
 
-    while (decimalsUsed++ < decimals) {
-      uint digit = fraction % 10;
-      rightmost = rightmost && digit == 0;
-      fraction /= 10;
+  while (decimalsUsed++ < decimals) {
+    uint digit = fraction % 10;
+    rightmost = rightmost && digit == 0;
+    fraction /= 10;
 
-      if (rightmost && digit == 0 && decimalsUsed != decimals) {
-        continue;
-      }
-
-      result = string(abi.encodePacked(digit + 48, result));
+    if (rightmost && digit == 0 && decimalsUsed != decimals) {
+      continue;
     }
 
-    return string(abi.encodePacked(LibString.toString(n / 10 ** decimals), ".", result));
+    result = string(abi.encodePacked(digit + 48, result));
   }
 
-  function format(uint n) pure returns (string memory) {
-    return format(n, 18);
-  }
+  return string(abi.encodePacked(LibString.toString(n / 10 ** decimals), ".", result));
+}
+
+function format(uint n) pure returns (string memory) {
+  return format(n, 18);
+}
 
 contract Ramm {
 

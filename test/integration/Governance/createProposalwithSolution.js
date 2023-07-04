@@ -2,12 +2,18 @@ const { expect } = require('chai');
 
 const { setNextBlockTime } = require('../../utils').evm;
 const createProposalFixture = require('./proposalFixture');
+const setup = require('../setup');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 describe('createProposalwithSolution', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
   it('should fail to create proposal with solution if category not allowed', async function () {
-    const { gv: governance } = this.contracts;
+    const { gv: governance } = fixture.contracts;
     const { proposalTitle, proposalSD, proposalDescHash, solutionHash, action } = createProposalFixture;
-    const [nonMember] = this.accounts.nonMembers;
+    const [nonMember] = fixture.accounts.nonMembers;
     const categoryId = 3;
 
     await expect(
@@ -18,9 +24,9 @@ describe('createProposalwithSolution', function () {
   });
 
   it('should fail to create proposal with solution if category is Uncategorized', async function () {
-    const { gv: governance } = this.contracts;
+    const { gv: governance } = fixture.contracts;
     const { proposalTitle, proposalSD, proposalDescHash, solutionHash, action } = createProposalFixture;
-    const [nonMember] = this.accounts.nonMembers;
+    const [nonMember] = fixture.accounts.nonMembers;
     const categoryId = 0;
 
     await expect(
@@ -31,9 +37,9 @@ describe('createProposalwithSolution', function () {
   });
 
   it('should create proposal with solution', async function () {
-    const { gv: governance, pc: proposalCategory } = this.contracts;
+    const { gv: governance, pc: proposalCategory } = fixture.contracts;
     const { categoryId, proposalTitle, proposalSD, proposalDescHash, solutionHash, action } = createProposalFixture;
-    const [member] = this.accounts.members;
+    const [member] = fixture.accounts.members;
     const memberAddress = await member.getAddress();
     const proposalId = await governance.getProposalLength();
 

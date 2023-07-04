@@ -2,12 +2,16 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { increaseTime } = require('../../utils').evm;
 const { proposalTitle, proposalSD, proposalDescHash, solutionHash, action, categoryId } = require('./proposalFixture');
+const setup = require('../setup');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 describe('submitVote', function () {
   let proposalId;
+  let fixture;
   beforeEach(async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.members;
+    fixture = await loadFixture(setup);
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.members;
 
     proposalId = await governance.getProposalLength();
 
@@ -17,15 +21,15 @@ describe('submitVote', function () {
   });
 
   it('should fail to submit vote for proposal if sender is not authorize', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.members;
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.members;
 
     await expect(governance.connect(member).submitVote(proposalId, 1)).to.revertedWith('Not Authorized');
   });
 
   it('should submit vote for proposal', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.advisoryBoardMembers;
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.advisoryBoardMembers;
     const solution = 1;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -36,8 +40,8 @@ describe('submitVote', function () {
   });
 
   it('should submit vote against proposal', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.advisoryBoardMembers;
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.advisoryBoardMembers;
     const solution = 0;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -48,8 +52,8 @@ describe('submitVote', function () {
   });
 
   it('should fail to submit vote twice', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.advisoryBoardMembers;
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.advisoryBoardMembers;
     const solution = 0;
 
     await governance.connect(member).submitVote(proposalId, solution);
@@ -57,9 +61,9 @@ describe('submitVote', function () {
   });
 
   it('should fail to submit vote when closed', async function () {
-    const { gv: governance, pc: proposalCategory } = this.contracts;
+    const { gv: governance, pc: proposalCategory } = fixture.contracts;
     const { 5: closingTime } = await proposalCategory.category(categoryId);
-    const [member] = this.accounts.advisoryBoardMembers;
+    const [member] = fixture.accounts.advisoryBoardMembers;
     const solution = 0;
     await increaseTime(closingTime.toNumber());
     await expect(governance.connect(member).submitVote(proposalId, solution)).to.revertedWith('Closed');

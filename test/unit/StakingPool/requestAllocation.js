@@ -1543,9 +1543,9 @@ describe('requestAllocation', function () {
   });
 
   it('accounts for carried over allocations filling all capacity', async function () {
-    const { stakingPool, stakingNFT } = this;
-    const [staker] = this.accounts.members;
-    const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { stakingPool, stakingNFT } = fixture;
+    const [staker] = fixture.accounts.members;
+    const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const { productId } = allocationRequestParams;
     const amount = parseEther('100000');
@@ -1572,7 +1572,7 @@ describe('requestAllocation', function () {
     });
 
     // allocate all available capacity
-    await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequest);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequest);
 
     // expect all available capacity to be used
     const midAllocations = await stakingPool.getActiveAllocations(productId);
@@ -1589,7 +1589,7 @@ describe('requestAllocation', function () {
     };
 
     await expect(
-      stakingPool.connect(this.coverSigner).requestAllocation(
+      stakingPool.connect(fixture.coverSigner).requestAllocation(
         NXM_PER_ALLOCATION_UNIT, // smallest amount
         previousPremium,
         unfullfillableRequest,
@@ -1598,9 +1598,9 @@ describe('requestAllocation', function () {
   });
 
   it('accounts for carried over allocations partially filling the capacity', async function () {
-    const { stakingPool, stakingNFT } = this;
-    const [staker] = this.accounts.members;
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { stakingPool, stakingNFT } = fixture;
+    const [staker] = fixture.accounts.members;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const { productId } = allocationRequestParams;
     const firstCoverAmount = parseEther('80000');
@@ -1623,7 +1623,7 @@ describe('requestAllocation', function () {
 
     // allocate all available capacity
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(fixture.coverSigner)
       .requestAllocation(firstCoverAmount, previousPremium, firstAllocationRequest);
 
     // expect all available capacity to be used
@@ -1643,14 +1643,14 @@ describe('requestAllocation', function () {
     };
 
     await expect(
-      stakingPool.connect(this.coverSigner).requestAllocation(
+      stakingPool.connect(fixture.coverSigner).requestAllocation(
         maxCoverAmount.add(1), // slightly over the limit
         previousPremium,
         secondAllocationRequest,
       ),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
-    stakingPool.connect(this.coverSigner).requestAllocation(
+    stakingPool.connect(fixture.coverSigner).requestAllocation(
       maxCoverAmount, // exact available amount
       previousPremium,
       secondAllocationRequest,
@@ -1658,8 +1658,8 @@ describe('requestAllocation', function () {
   });
 
   it('correctly removes allocations when expiring a cover', async function () {
-    const stakingPool = this.stakingPool.connect(this.coverSigner);
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const stakingPool = fixture.stakingPool.connect(fixture.coverSigner);
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const { productId } = allocationRequestParams;
     const amount = parseEther('100');

@@ -1,11 +1,17 @@
 const { expect } = require('chai');
 const { setNextBlockTime } = require('../../utils').evm;
 const { proposalTitle, proposalSD, proposalDescHash } = require('./proposalFixture');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('../setup');
 
 describe('createProposal', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
   it('should fail to create proposal if category not allowed', async function () {
-    const { gv: governance } = this.contracts;
-    const [nonMember] = this.accounts.nonMembers;
+    const { gv: governance } = fixture.contracts;
+    const [nonMember] = fixture.accounts.nonMembers;
     const categoryId = 1;
 
     await expect(
@@ -14,8 +20,8 @@ describe('createProposal', function () {
   });
 
   it('should fail to create proposal if sender is not a member', async function () {
-    const { gv: governance } = this.contracts;
-    const [nonMember] = this.accounts.nonMembers;
+    const { gv: governance } = fixture.contracts;
+    const [nonMember] = fixture.accounts.nonMembers;
     const categoryId = 0;
 
     await expect(
@@ -24,8 +30,8 @@ describe('createProposal', function () {
   });
 
   it('should create proposal', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.members;
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.members;
     const memberAddress = await member.getAddress();
     const categoryId = 0;
 

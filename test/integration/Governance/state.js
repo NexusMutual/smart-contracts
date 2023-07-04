@@ -1,11 +1,17 @@
 const { expect } = require('chai');
 
 const { proposalTitle, proposalSD, proposalDescHash } = require('./proposalFixture');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('../setup');
 
 describe('state', function () {
+  let fixture;
+  beforeEach(async function () {
+    fixture = await loadFixture(setup);
+  });
   it('should get proposal', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.members;
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.members;
     const categoryId = 0;
 
     const proposalId = await governance.getProposalLength();
@@ -21,8 +27,8 @@ describe('state', function () {
   });
 
   it('should get proposalDetails', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.members;
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.members;
     const categoryId = 0;
 
     const proposalId = await governance.getProposalLength();
@@ -36,16 +42,16 @@ describe('state', function () {
   });
 
   it('should get followers', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.members;
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.members;
 
     const result = await governance.getFollowers(member.address);
     expect(result.length).to.be.equal(0);
   });
 
   it('should get pending rewards', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.members;
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.members;
 
     const reward = await governance.getPendingReward(member.address);
     expect(reward).to.be.equal(0);

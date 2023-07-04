@@ -57,18 +57,18 @@ describe('recoverAsset', function () {
   });
 
   it('recovers ETH', async function () {
-    const { swapOperator, pool } = this.contracts;
+    const { swapOperator, pool } = fixture.contracts;
 
-    const [receiver] = this.accounts.nonMembers;
+    const [receiver] = fixture.accounts.nonMembers;
 
     const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
     const amountInPool = parseEther('2000');
-    await this.accounts.defaultSender.sendTransaction({ to: swapOperator.address, value: amountInPool });
+    await fixture.accounts.defaultSender.sendTransaction({ to: swapOperator.address, value: amountInPool });
 
     const amountInSwapOperator = parseEther('10');
 
-    await this.accounts.defaultSender.sendTransaction({ to: swapOperator.address, value: amountInSwapOperator });
+    await fixture.accounts.defaultSender.sendTransaction({ to: swapOperator.address, value: amountInSwapOperator });
 
     await swapOperator.recoverAsset(ETH, receiver.address);
 

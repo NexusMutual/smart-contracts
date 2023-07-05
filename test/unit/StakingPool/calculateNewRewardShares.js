@@ -9,12 +9,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('calculateNewRewardShares', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('grants bonus shares proportionally to the time left of the first active tranche', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPool, config } = fixture;
 
     const blockTimestamps = [
@@ -62,6 +58,7 @@ describe('calculateNewRewardShares', function () {
   });
 
   it('grants REWARD_BONUS_PER_TRANCHE_RATIO worth of bonus shares for the entirety of each tranche', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPool, config } = fixture;
 
     const firstActiveTrancheStart = 1651104000;
@@ -89,6 +86,7 @@ describe('calculateNewRewardShares', function () {
   });
 
   it('grants new rewards shares for new stake shares but not for already existing ones', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPool, config } = fixture;
 
     const firstActiveTrancheStart = 1651104000;
@@ -117,6 +115,7 @@ describe('calculateNewRewardShares', function () {
   });
 
   it('grants new bonus shares for extending the period of an existing deposit', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPool, config } = fixture;
 
     const firstActiveTrancheStart = 1651104000;
@@ -142,6 +141,7 @@ describe('calculateNewRewardShares', function () {
   });
 
   it('new reward shares are always grater than or equal to the new stake shares', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPool } = fixture;
 
     const blockTimestamps = [

@@ -21,12 +21,8 @@ const initializeParams = {
 };
 
 describe('initialize', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts if cover contract is not the caller', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPool, cover } = fixture;
     const { poolId, initialPoolFee, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
@@ -45,6 +41,7 @@ describe('initialize', function () {
   });
 
   it('reverts if initial pool fee exceeds max pool fee', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPool, cover } = fixture;
 
     const { poolId, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
@@ -60,6 +57,7 @@ describe('initialize', function () {
   });
 
   it('reverts if max pool fee is 100%', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPool, cover } = fixture;
     const { poolId, initialPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
@@ -72,6 +70,7 @@ describe('initialize', function () {
   });
 
   it('correctly initialize pool parameters', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPool, cover } = fixture;
     const { poolId, initialPoolFee, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 

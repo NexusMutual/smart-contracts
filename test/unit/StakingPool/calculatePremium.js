@@ -97,12 +97,8 @@ const spreadsheetStartTime = new Date('2020-04-10 00:00:00').getTime() / 1000;
 const totalCapacityInNxm = parseEther('50000');
 
 describe('calculatePremium', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should calculate premium on multiple cover buys over time, based on pre-defined numbers', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const {
       NXM_PER_ALLOCATION_UNIT,
@@ -170,6 +166,7 @@ describe('calculatePremium', function () {
   });
 
   it('should return 0 premium when period is 0', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     let { timestamp } = await ethers.provider.getBlock('latest');
     timestamp = BigNumber.from(timestamp);
@@ -199,6 +196,7 @@ describe('calculatePremium', function () {
   });
 
   it('should calculate the premium correctly when cover amount is equal to total capacity', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = fixture.config;
 
@@ -235,6 +233,7 @@ describe('calculatePremium', function () {
   });
 
   it('should calculate the premium when the initialCapacityUsed == surgeStartPoint', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const {
       SURGE_THRESHOLD_RATIO,
@@ -281,6 +280,7 @@ describe('calculatePremium', function () {
   });
 
   it('should calculate premium when initialCapacityUsed > surgeStartPoint', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const {
       SURGE_THRESHOLD_RATIO,
@@ -329,6 +329,7 @@ describe('calculatePremium', function () {
   });
 
   it('should calculate 0 premium for 0 cover amount', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = fixture.config;
     const timestamp = 0;
@@ -356,6 +357,7 @@ describe('calculatePremium', function () {
   });
 
   it('should calculate the correct premium when the coverAmount is 1 wei', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = fixture.config;
     const timestamp = 0;
@@ -395,6 +397,7 @@ describe('calculatePremium', function () {
   });
 
   it('initialCapacityUsed < surgeStartPoint & finalCapacityUsed < surgeStartPoint', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = fixture.config;
 
@@ -435,6 +438,7 @@ describe('calculatePremium', function () {
   });
 
   it('initialCapacityUsed < surgeStartPoint & finalCapacityUsed > surgeStartPoint', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const {
       SURGE_THRESHOLD_RATIO,
@@ -492,6 +496,7 @@ describe('calculatePremium', function () {
   });
 
   it('should revert with divide by 0 panic, when totalCapacity is zero', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = fixture.config;
 
@@ -535,6 +540,7 @@ describe('calculatePremium', function () {
   });
 
   it('should correctly calculate fixed price premium', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const { NXM_PER_ALLOCATION_UNIT, TARGET_PRICE_DENOMINATOR } = fixture.config;
 

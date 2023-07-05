@@ -24,12 +24,8 @@ const initializeParams = {
 };
 
 describe('initializeProducts', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts if product target price is too high', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
 
     const { poolId, products } = initializeParams;
@@ -48,6 +44,7 @@ describe('initializeProducts', function () {
   });
 
   it('reverts if product weight bigger than 1', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
 
     const { poolId, products } = initializeParams;
@@ -63,6 +60,7 @@ describe('initializeProducts', function () {
   });
 
   it('reverts if products total target exceeds max total weight', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
 
     const { poolId } = initializeParams;
@@ -84,6 +82,7 @@ describe('initializeProducts', function () {
   });
 
   it('should initialize 1000 products with target weight set to 2', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const {
       internalContracts: [internalContract],
@@ -130,6 +129,7 @@ describe('initializeProducts', function () {
   });
 
   it('should initialize products successfully', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [internalContract] = fixture.accounts.internalContracts;
 

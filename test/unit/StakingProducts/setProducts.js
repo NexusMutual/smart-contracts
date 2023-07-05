@@ -34,12 +34,8 @@ const burnStakeParams = {
 };
 
 describe('setProducts unit tests', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should fail to be called by non manager', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [nonManager] = fixture.accounts.nonMembers;
 
@@ -49,6 +45,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should fail to set products for a non existent staking pool', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -57,6 +54,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should set products and store values correctly', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -71,6 +69,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should revert if user tries to set targetWeight without recalculating effectiveWeight', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -84,6 +83,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should revert if adding a product without setting the targetPrice', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -96,6 +96,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should emit ProductUpdated event when setting a product ', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -109,6 +110,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should add and remove products in same tx', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -146,6 +148,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should edit targetPrice and update bumpedPrice and bumpedPriceUpdateTime', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, cover } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -181,6 +184,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should update bumpedPrice correctly when decreasing targetPrice', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, cover } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -222,6 +226,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should add maximum products with full weight (20)', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [manager] = fixture.accounts.members;
     let i = 0;
@@ -246,6 +251,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should fail to add weights beyond 20x', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -271,6 +277,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should fail to make product weight higher than 1', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -282,6 +289,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should edit weights, and skip price', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -309,6 +317,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should not be able to change targetWeight without recalculating effectiveWeight ', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -323,6 +332,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('effective weight should lower if targetWeight is reduced and there are no allocations', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -350,6 +360,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should edit prices and skip weights', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const { GLOBAL_MIN_PRICE_RATIO } = fixture.config;
     const [manager] = fixture.accounts.members;
@@ -382,6 +393,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should fail with targetPrice too high', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -393,6 +405,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should fail with targetPrice below global min price ratio', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const { GLOBAL_MIN_PRICE_RATIO } = fixture.config;
     const [manager] = fixture.accounts.members;
@@ -405,6 +418,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should fail to add non-existing product', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, cover } = fixture;
     const [manager] = fixture.accounts.members;
 
@@ -415,6 +429,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should fail to change product weights when fully allocated', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const [manager, staker, coverBuyer] = fixture.accounts.members;
 
@@ -461,6 +476,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should fail to change products when fully allocated after initializing', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const [manager, staker, coverBuyer] = fixture.accounts.members;
     const amount = parseEther('1');
@@ -500,6 +516,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('any address should be able to recalculate effective weight', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const {
       members: [staker, coverBuyer],
@@ -542,6 +559,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should add products with target weight 0 and have no capacity', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const [manager, staker, coverBuyer] = fixture.accounts.members;
 
@@ -572,6 +590,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should add product with target weight 1', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const [manager, staker, coverBuyer] = fixture.accounts.members;
 
@@ -600,6 +619,7 @@ describe('setProducts unit tests', function () {
 
   // TODO: re-enable this test after fixing issue: https://github.com/NexusMutual/smart-contracts/issues/842
   it.skip('should fail to increase target weight after a burn leaves less than 1 capacity unit', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const [manager, staker, coverBuyer] = fixture.accounts.members;
 
@@ -650,6 +670,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should fail to increase target weight when effective weight is at the limit', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const [manager, staker, coverBuyer] = fixture.accounts.members;
 
@@ -698,6 +719,7 @@ describe('setProducts unit tests', function () {
   });
 
   it('should lower target weights when over allocated', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const [manager, staker, coverBuyer] = fixture.accounts.members;
 

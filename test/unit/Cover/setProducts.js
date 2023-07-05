@@ -60,12 +60,9 @@ describe('setProducts', function () {
     product: { ...productTemplate },
     allowedPools: [],
   };
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
 
   it('should add a single product and emit ProductSet event', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productParams = { ...productParamsTemplate };
@@ -79,6 +76,7 @@ describe('setProducts', function () {
   });
 
   it('should edit a single product and emit ProductSet event with updated args', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productParams = { ...productParamsTemplate };
@@ -99,6 +97,7 @@ describe('setProducts', function () {
   });
 
   it('should revert if called by address not on advisory board', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [member] = fixture.accounts.members;
     const productParams = Array.from({ length: 20 }, () => ({ ...productParamsTemplate }));
@@ -108,6 +107,7 @@ describe('setProducts', function () {
   });
 
   it('should add many products', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
@@ -122,6 +122,7 @@ describe('setProducts', function () {
   });
 
   it('should revert if trying to edit a non-existing product', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = await cover.productsCount();
@@ -133,6 +134,7 @@ describe('setProducts', function () {
   });
 
   it('should revert if updated coverAssets are unsupported', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember] = fixture.accounts.advisoryBoardMembers;
 
@@ -148,6 +150,7 @@ describe('setProducts', function () {
   });
 
   it('should revert if updated coverAssets are unsupported when editing a product', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = await cover.productsCount();
@@ -167,6 +170,7 @@ describe('setProducts', function () {
   });
 
   it('should revert if initialPriceRatio > 100', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const initialPriceRatio = priceDenominator + 1;
@@ -179,6 +183,7 @@ describe('setProducts', function () {
   });
 
   it('should revert if initialPriceRatio > 100 when editing a product', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = await cover.productsCount();
@@ -198,6 +203,7 @@ describe('setProducts', function () {
   });
 
   it('should revert if initialPriceRatio is below GLOBAL_MIN_PRICE_RATIO', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const { GLOBAL_MIN_PRICE_RATIO } = fixture.config;
@@ -211,6 +217,7 @@ describe('setProducts', function () {
   });
 
   it('should revert if initialPriceRatio is below GLOBAL_MIN_PRICE_RATIO when editing a product', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = 1;
@@ -229,6 +236,7 @@ describe('setProducts', function () {
   });
 
   it('should revert if capacityReductionRatio > 100% when adding a product', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const capacityReductionRatio = capacityFactor + 1; // 100.01 %
@@ -241,6 +249,7 @@ describe('setProducts', function () {
   });
 
   it('should revert if capacityReductionRatio > 100% when editing a product', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = await cover.productsCount();
@@ -258,6 +267,7 @@ describe('setProducts', function () {
   });
 
   it('should fail to buy cover for deprecated product', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const {
       members: [coverBuyer, stakingPoolManager],
@@ -301,6 +311,7 @@ describe('setProducts', function () {
   });
 
   it('should fail to edit cover for deprecated product', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const {
       members: [coverBuyer, stakingPoolManager],
@@ -350,6 +361,7 @@ describe('setProducts', function () {
   });
 
   it('should be able to buy cover on a previously deprecated product', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const {
       members: [coverBuyer, stakingPoolManager],
@@ -399,6 +411,7 @@ describe('setProducts', function () {
   });
 
   it('should store product name for existing product', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
@@ -417,6 +430,7 @@ describe('setProducts', function () {
   });
 
   it('should not change product name for existing product if passed empty string', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
@@ -435,6 +449,7 @@ describe('setProducts', function () {
   });
 
   it('should store product name for new product', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 

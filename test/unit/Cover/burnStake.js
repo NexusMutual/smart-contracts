@@ -22,12 +22,9 @@ describe('burnStake', function () {
     capacity: parseEther('10000'),
     capacityFactor: '10000',
   };
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
 
   it('should perform a burn a cover with 1 segment and 1 pool allocation', async function () {
+    const fixture = await loadFixture(setup);
     const { cover, accounts } = fixture;
     const [internal] = accounts.internalContracts;
     const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
@@ -60,6 +57,7 @@ describe('burnStake', function () {
   });
 
   it('reverts if caller is not an internal contract', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [member] = fixture.accounts.members;
     const { amount } = coverBuyFixture;
@@ -74,6 +72,7 @@ describe('burnStake', function () {
   });
 
   it('updates segment allocation cover amount in nxm', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [internal] = fixture.accounts.internalContracts;
     const { amount } = coverBuyFixture;
@@ -93,6 +92,7 @@ describe('burnStake', function () {
   });
 
   it('should perform a burn on a cover with 1 segment and 2 pool allocations', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [internal] = fixture.accounts.internalContracts;
     const [, stakingPoolManager] = fixture.accounts.members;
@@ -164,6 +164,7 @@ describe('burnStake', function () {
   });
 
   it.skip('should perform a burn with globalCapacityRatio when the cover was bought', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [internal] = fixture.accounts.internalContracts;
     const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
@@ -199,6 +200,7 @@ describe('burnStake', function () {
   });
 
   it('updates segment allocation premium in nxm', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [internal] = fixture.accounts.internalContracts;
     const { amount } = coverBuyFixture;
@@ -218,6 +220,7 @@ describe('burnStake', function () {
   });
 
   it('call stakingPool with correct parameters', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [internal] = fixture.accounts.internalContracts;
     const { amount, productId } = coverBuyFixture;

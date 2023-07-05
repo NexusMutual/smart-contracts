@@ -22,11 +22,8 @@ const ProductTypeParamTemplate = {
 };
 
 describe('setProductTypes', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('should revert if called by an account not on the advisory board', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [member] = fixture.accounts.members;
     const productTypeParams = { ...ProductTypeParamTemplate };
@@ -36,6 +33,7 @@ describe('setProductTypes', function () {
   });
 
   it('should add a new product type', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productTypeId = 1;
@@ -46,6 +44,7 @@ describe('setProductTypes', function () {
   });
 
   it('should edit gracePeriod on an existing product', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productTypeId = 1;
@@ -70,6 +69,7 @@ describe('setProductTypes', function () {
   });
 
   it('should revert if trying to edit a non existing productType', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productTypeId = 99;
@@ -80,6 +80,7 @@ describe('setProductTypes', function () {
   });
 
   it('should store product type name for existing productType', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
@@ -98,6 +99,7 @@ describe('setProductTypes', function () {
   });
 
   it('should not change productTyype name for existing productType if passed empty string', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
@@ -116,6 +118,7 @@ describe('setProductTypes', function () {
   });
 
   it('should store product type name for new productType', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 

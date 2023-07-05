@@ -6,12 +6,8 @@ const { setup } = require('./setup');
 const { parseEther } = ethers.utils;
 
 describe('getIncidentsCount', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('returns the total number of incidents', async function () {
+    const fixture = await loadFixture(setup);
     const { yieldTokenIncidents } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
 

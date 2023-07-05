@@ -9,12 +9,8 @@ const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('getIncidentsToDisplay', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('aggregates and displays claims related data in a human-readable form', async function () {
+    const fixture = await loadFixture(setup);
     const { yieldTokenIncidents, assessment } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
 

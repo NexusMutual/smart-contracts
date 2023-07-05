@@ -31,32 +31,35 @@ const coverProductParamTemplate = {
   allowedPools: [],
 };
 
+async function loadSetProductsFixture() {
+  const fixture = await loadFixture(setup);
+  const { cover } = fixture.contracts;
+  const {
+    stakingPoolManagers: [manager],
+  } = fixture.accounts;
+
+  const initialPoolFee = 50; // 50%
+  const maxPoolFee = 80; // 80%
+
+  const [poolId] = await cover.callStatic.createStakingPool(true, initialPoolFee, maxPoolFee, [], '');
+
+  await cover.connect(manager).createStakingPool(
+    true, // isPrivatePool,
+    initialPoolFee,
+    maxPoolFee,
+    [],
+    '', // ipfsDescriptionHash
+  );
+
+  return {
+    ...fixture,
+    poolId,
+  };
+}
+
 describe('setProducts', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { cover } = fixture.contracts;
-    const {
-      stakingPoolManagers: [manager],
-    } = fixture.accounts;
-
-    const initialPoolFee = 50; // 50%
-    const maxPoolFee = 80; // 80%
-
-    const [poolId] = await cover.callStatic.createStakingPool(true, initialPoolFee, maxPoolFee, [], '');
-
-    await cover.connect(manager).createStakingPool(
-      true, // isPrivatePool,
-      initialPoolFee,
-      maxPoolFee,
-      [],
-      '', // ipfsDescriptionHash
-    );
-
-    fixture.poolId = poolId;
-  });
-
   it('should be able to raise and lower weights of deprecated products', async function () {
+    const fixture = await loadSetProductsFixture();
     const { stakingProducts, cover } = fixture.contracts;
     const {
       defaultSender: admin,
@@ -94,6 +97,7 @@ describe('setProducts', function () {
   });
 
   it('should fail to set product that doesnt exist', async function () {
+    const fixture = await loadSetProductsFixture();
     const { stakingProducts, cover } = fixture.contracts;
     const {
       stakingPoolManagers: [manager1],

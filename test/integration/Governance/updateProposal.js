@@ -11,20 +11,22 @@ const updateProposalFixture = {
   categoryId: 0,
 };
 
+async function loadUpdateProposalFixture() {
+  const fixture = await loadFixture(setup);
+  const { gv: governance } = fixture.contracts;
+  const categoryId = 0;
+  const [member] = fixture.accounts.members;
+  const proposalId = await governance.getProposalLength();
+
+  await governance.connect(member).createProposal(proposalTitle, proposalSD, proposalDescHash, categoryId);
+
+  return { ...fixture, proposalId };
+}
+
 describe('updateProposal', function () {
-  let proposalId;
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { gv: governance } = fixture.contracts;
-    const categoryId = 0;
-    const [member] = fixture.accounts.members;
-    proposalId = await governance.getProposalLength();
-
-    await governance.connect(member).createProposal(proposalTitle, proposalSD, proposalDescHash, categoryId);
-  });
-
   it('should fail to update the proposal if sender role is not authorized', async function () {
+    const fixture = await loadUpdateProposalFixture();
+    const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [, member] = fixture.accounts.members;
     const { proposalTitle, proposalSD, proposalDescHash } = updateProposalFixture;
@@ -35,6 +37,8 @@ describe('updateProposal', function () {
   });
 
   it('should update the proposal', async function () {
+    const fixture = await loadUpdateProposalFixture();
+    const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.members;
     const memberAddress = await member.getAddress();

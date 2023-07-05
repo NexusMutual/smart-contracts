@@ -6,18 +6,23 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 const { impersonateAccount, setEtherBalance } = require('../../utils').evm;
 
-describe('updateUintParameters', function () {
-  let governanceSigner;
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { gv: governance } = fixture.contracts;
-    await impersonateAccount(governance.address);
-    await setEtherBalance(governance.address, parseEther('1000'));
-    governanceSigner = await ethers.provider.getSigner(governance.address);
-  });
+async function loadUpdateUintParametersFixture() {
+  const fixture = await loadFixture(setup);
+  const { gv: governance } = fixture.contracts;
+  await impersonateAccount(governance.address);
+  await setEtherBalance(governance.address, parseEther('1000'));
+  const governanceSigner = await ethers.provider.getSigner(governance.address);
 
+  return {
+    ...fixture,
+    governanceSigner,
+  };
+}
+
+describe('updateUintParameters', function () {
   it('should update tokenHoldingTime', async function () {
+    const fixture = await loadUpdateUintParametersFixture();
+    const { governanceSigner } = fixture;
     const { gv: governance } = fixture.contracts;
     const { val: tokenHoldingTimeBefore } = await governance.getUintParameters(toBytes8('GOVHOLD'));
 
@@ -29,6 +34,8 @@ describe('updateUintParameters', function () {
   });
 
   it('should update maxDraftTime', async function () {
+    const fixture = await loadUpdateUintParametersFixture();
+    const { governanceSigner } = fixture;
     const { gv: governance } = fixture.contracts;
     const { val: maxDraftTimeBefore } = await governance.getUintParameters(toBytes8('MAXDRFT'));
 
@@ -40,6 +47,8 @@ describe('updateUintParameters', function () {
   });
 
   it('should update maxFollowers', async function () {
+    const fixture = await loadUpdateUintParametersFixture();
+    const { governanceSigner } = fixture;
     const { gv: governance } = fixture.contracts;
     const { val: maxDraftTimeBefore } = await governance.getUintParameters(toBytes8('MAXFOL'));
 
@@ -51,6 +60,8 @@ describe('updateUintParameters', function () {
   });
 
   it('should update actionWaitingTime', async function () {
+    const fixture = await loadUpdateUintParametersFixture();
+    const { governanceSigner } = fixture;
     const { gv: governance } = fixture.contracts;
     const { val: actionWaitingTimeBefore } = await governance.getUintParameters(toBytes8('ACWT'));
 
@@ -62,6 +73,8 @@ describe('updateUintParameters', function () {
   });
 
   it('should update roleIdAllowedToCatgorize', async function () {
+    const fixture = await loadUpdateUintParametersFixture();
+    const { governanceSigner } = fixture;
     const { gv: governance } = fixture.contracts;
     const { val: roleIdAllowedToCatgorizeBefore } = await governance.getUintParameters(toBytes8('CATROLE'));
 
@@ -73,6 +86,8 @@ describe('updateUintParameters', function () {
   });
 
   it('should update maxVoteWeigthPer', async function () {
+    const fixture = await loadUpdateUintParametersFixture();
+    const { governanceSigner } = fixture;
     const { gv: governance } = fixture.contracts;
     const { val: maxVoteWeigthPerBefore } = await governance.getUintParameters(toBytes8('MAXVTW'));
 
@@ -84,6 +99,8 @@ describe('updateUintParameters', function () {
   });
 
   it('should update specialResolutionMajPerc', async function () {
+    const fixture = await loadUpdateUintParametersFixture();
+    const { governanceSigner } = fixture;
     const { gv: governance } = fixture.contracts;
     const { val: specialResolutionMajPercBefore } = await governance.getUintParameters(toBytes8('SPRESM'));
 

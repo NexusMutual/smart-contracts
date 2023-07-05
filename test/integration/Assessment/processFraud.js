@@ -10,49 +10,52 @@ const { setEtherBalance } = require('../../utils/evm');
 const { parseEther } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 
+async function loadProcessFraudFixture() {
+  const fixture = await loadFixture(setup);
+  // stake and buy cover
+  const { stakingPool1, cover, tk: nxm, tc: tokenController } = fixture.contracts;
+  const staker = fixture.accounts.defaultSender;
+
+  // stake
+  const firstTrancheId = calculateFirstTrancheId(
+    await ethers.provider.getBlock('latest'),
+    daysToSeconds(30),
+    daysToSeconds(30),
+  );
+  await nxm.connect(staker).approve(tokenController.address, MaxUint256);
+  await stakingPool1
+    .connect(staker)
+    .depositTo(parseEther('1000'), firstTrancheId + 1, 0 /* new stake */, staker.address);
+
+  // buy cover
+  const amount = parseEther('1');
+  await cover.buyCover(
+    {
+      coverId: 0,
+      owner: staker.address,
+      productId: 0,
+      coverAsset: 0b0,
+      amount,
+      period: daysToSeconds(30),
+      maxPremiumInAsset: MaxUint256,
+      paymentAsset: 0b0,
+      commissionRatio: 0,
+      commissionDestination: staker.address,
+      ipfsData: 'ipfs data',
+    },
+    [{ poolId: 1, coverAmountInAsset: amount }],
+    { value: amount },
+  );
+
+  return {
+    ...fixture,
+    amount,
+  };
+}
+
 describe('processFraud', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    // stake and buy cover
-    const { stakingPool1, cover, tk: nxm, tc: tokenController } = fixture.contracts;
-    const staker = fixture.accounts.defaultSender;
-
-    // stake
-    const firstTrancheId = calculateFirstTrancheId(
-      await ethers.provider.getBlock('latest'),
-      daysToSeconds(30),
-      daysToSeconds(30),
-    );
-    await nxm.connect(staker).approve(tokenController.address, MaxUint256);
-    await stakingPool1
-      .connect(staker)
-      .depositTo(parseEther('1000'), firstTrancheId + 1, 0 /* new stake */, staker.address);
-
-    // buy cover
-    const amount = parseEther('1');
-    await cover.buyCover(
-      {
-        coverId: 0,
-        owner: staker.address,
-        productId: 0,
-        coverAsset: 0b0,
-        amount,
-        period: daysToSeconds(30),
-        maxPremiumInAsset: MaxUint256,
-        paymentAsset: 0b0,
-        commissionRatio: 0,
-        commissionDestination: staker.address,
-        ipfsData: 'ipfs data',
-      },
-      [{ poolId: 1, coverAmountInAsset: amount }],
-      { value: amount },
-    );
-
-    fixture.amount = amount;
-  });
-
   it.skip('consumes less gas to process than the summed fees of the fraudulent voting transactions', async function () {
+    const fixture = await loadProcessFraudFixture();
     const { as: assessment, ic: individualClaims, gv: governanceContact } = fixture.contracts;
     const governance = await ethers.getImpersonatedSigner(governanceContact.address);
     const [fraudulentMember] = fixture.accounts.members;

@@ -5,11 +5,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
 describe('createProposal', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('should fail to create proposal if category not allowed', async function () {
+    const fixture = await loadFixture(setup);
     const { gv: governance } = fixture.contracts;
     const [nonMember] = fixture.accounts.nonMembers;
     const categoryId = 1;
@@ -20,6 +17,7 @@ describe('createProposal', function () {
   });
 
   it('should fail to create proposal if sender is not a member', async function () {
+    const fixture = await loadFixture(setup);
     const { gv: governance } = fixture.contracts;
     const [nonMember] = fixture.accounts.nonMembers;
     const categoryId = 0;
@@ -30,6 +28,7 @@ describe('createProposal', function () {
   });
 
   it('should create proposal', async function () {
+    const fixture = await loadFixture(setup);
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.members;
     const memberAddress = await member.getAddress();

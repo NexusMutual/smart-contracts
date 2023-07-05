@@ -29,43 +29,46 @@ const daiCoverTemplate = {
   coverAsset: DAI_ASSET_ID, // DAI
 };
 
-describe('getAllSumAssurance', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { tk, dai, stakingPool1: stakingPool, tc, mcr, cover } = fixture.contracts;
-    const [member1] = fixture.accounts.members;
-    const [nonMember1] = fixture.accounts.nonMembers;
+async function loadGetAllSumAssuranceFixture() {
+  const fixture = await loadFixture(setup);
+  const { tk, dai, stakingPool1: stakingPool, tc, mcr, cover } = fixture.contracts;
+  const [member1] = fixture.accounts.members;
+  const [nonMember1] = fixture.accounts.nonMembers;
 
-    const operator = await tk.operator();
-    await setEtherBalance(operator, parseEther('10000000'));
+  const operator = await tk.operator();
+  await setEtherBalance(operator, parseEther('10000000'));
 
-    for (const daiHolder of [member1, nonMember1]) {
-      // mint  tokens
-      await dai.mint(daiHolder.address, parseEther('1000000000000'));
-      await dai.connect(daiHolder).approve(cover.address, MaxUint256);
-    }
+  for (const daiHolder of [member1, nonMember1]) {
+    // mint  tokens
+    await dai.mint(daiHolder.address, parseEther('1000000000000'));
+    await dai.connect(daiHolder).approve(cover.address, MaxUint256);
+  }
 
-    await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
-    await tk.connect(member1).approve(tc.address, MaxUint256);
-    await stake({
-      stakingPool,
-      staker: member1,
-      productId: ethCoverTemplate.productId,
-      period: daysToSeconds(60),
-      gracePeriod: daysToSeconds(30),
-    });
-
-    expect(await mcr.getAllSumAssurance()).to.be.equal(0);
+  await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
+  await tk.connect(member1).approve(tc.address, MaxUint256);
+  await stake({
+    stakingPool,
+    staker: member1,
+    productId: ethCoverTemplate.productId,
+    period: daysToSeconds(60),
+    gracePeriod: daysToSeconds(30),
   });
 
+  expect(await mcr.getAllSumAssurance()).to.be.equal(0);
+
+  return fixture;
+}
+
+describe('getAllSumAssurance', function () {
   it('returns 0 when no covers exist', async function () {
+    const fixture = await loadGetAllSumAssuranceFixture();
     const { mcr } = fixture.contracts;
     const totalAssurace = await mcr.getAllSumAssurance();
     expect(totalAssurace).to.be.equal(0);
   });
 
   it('returns total value of ETH purchased cover', async function () {
+    const fixture = await loadGetAllSumAssuranceFixture();
     const { mcr, cover, p1 } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
@@ -86,6 +89,7 @@ describe('getAllSumAssurance', function () {
   });
 
   it('returns total value of DAI purchased cover', async function () {
+    const fixture = await loadGetAllSumAssuranceFixture();
     const { mcr, cover, p1 } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
@@ -112,6 +116,7 @@ describe('getAllSumAssurance', function () {
   });
 
   it('returns total value of multiple ETH and DAI covers', async function () {
+    const fixture = await loadGetAllSumAssuranceFixture();
     const { mcr, cover, p1 } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;

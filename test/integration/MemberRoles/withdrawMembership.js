@@ -5,12 +5,8 @@ const setup = require('../setup');
 const { Role } = require('../utils').constants;
 
 describe('withdrawMembership', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('withdraws membership for current member', async function () {
+    const fixture = await loadFixture(setup);
     const { mr: memberRoles, tk: token } = fixture.contracts;
 
     const [member1, member2] = fixture.accounts.nonMembers;
@@ -32,12 +28,14 @@ describe('withdrawMembership', function () {
   });
 
   it('reverts when withdrawing membership for non-member', async function () {
+    const fixture = await loadFixture(setup);
     const { mr: memberRoles } = fixture.contracts;
     const [nonMember1] = fixture.accounts.nonMembers;
     await expect(memberRoles.connect(nonMember1).withdrawMembership()).to.be.reverted;
   });
 
   it('reverts when withdrawing membership for staking pool manager', async function () {
+    const fixture = await loadFixture(setup);
     const { mr: memberRoles } = fixture.contracts;
     const [stakingPoolManager] = fixture.accounts.stakingPoolManagers;
     await expect(memberRoles.connect(stakingPoolManager).withdrawMembership()).to.be.revertedWith(

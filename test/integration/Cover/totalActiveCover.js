@@ -35,24 +35,25 @@ const buyCoverFixture = {
   assessmentId: 0,
 };
 
+async function loadTotalActiveCoverFixture() {
+  const fixture = await loadFixture(setup);
+  const { tk, stakingProducts, stakingPool1 } = fixture.contracts;
+  const { stakingPoolManagers } = fixture.accounts;
+
+  const members = fixture.accounts.members.slice(0, 5);
+  const amount = parseEther('10000');
+  for (const member of members) {
+    await tk.connect(fixture.accounts.defaultSender).transfer(member.address, amount);
+  }
+
+  await stakingProducts
+    .connect(stakingPoolManagers[0])
+    .setProducts(await stakingPool1.getPoolId(), [stakedProductParamTemplate]);
+
+  return fixture;
+}
+
 describe('totalActiveCover', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { tk, stakingProducts, stakingPool1 } = fixture.contracts;
-    const { stakingPoolManagers } = fixture.accounts;
-
-    const members = fixture.accounts.members.slice(0, 5);
-    const amount = parseEther('10000');
-    for (const member of members) {
-      await tk.connect(fixture.accounts.defaultSender).transfer(member.address, amount);
-    }
-
-    await stakingProducts
-      .connect(stakingPoolManagers[0])
-      .setProducts(await stakingPool1.getPoolId(), [stakedProductParamTemplate]);
-  });
-
   function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
     return Math.floor((lastBlock.timestamp + period + gracePeriod) / daysToSeconds(91));
   }
@@ -119,6 +120,7 @@ describe('totalActiveCover', function () {
   }
 
   it('expire a cover that had a claim paid out fully', async function () {
+    const fixture = await loadTotalActiveCoverFixture();
     const { DEFAULT_PRODUCTS } = fixture;
     const { cover, stakingPool1, as, cg, gv, ybETH } = fixture.contracts;
     const [coverBuyer1, staker1] = fixture.accounts.members;
@@ -190,6 +192,7 @@ describe('totalActiveCover', function () {
   });
 
   it('expire a cover that had a partial claim paid out', async function () {
+    const fixture = await loadTotalActiveCoverFixture();
     const { DEFAULT_PRODUCTS } = fixture;
     const { BUCKET_SIZE } = fixture.config;
     const { cover, stakingPool1, as, cg, gv, ybETH } = fixture.contracts;
@@ -266,6 +269,7 @@ describe('totalActiveCover', function () {
   });
 
   it('expire a cover that had rejected claim', async function () {
+    const fixture = await loadTotalActiveCoverFixture();
     const { DEFAULT_PRODUCTS } = fixture;
     const { BUCKET_SIZE } = fixture.config;
     const { cover, stakingPool1, as, cg, gv, ybETH } = fixture.contracts;

@@ -17,19 +17,20 @@ const period = 3600 * 24 * 30; // 30 days
 const gracePeriod = 3600 * 24 * 30;
 const deposit = parseEther('10');
 
-describe('createStakingPool', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { tk } = fixture.contracts;
-    const members = fixture.accounts.members.slice(0, 5);
-    const amount = parseEther('10000');
-    for (const member of members) {
-      await tk.connect(fixture.accounts.defaultSender).transfer(member.address, amount);
-    }
-  });
+async function loadCreateStakingPoolFixture() {
+  const fixture = await loadFixture(setup);
+  const { tk } = fixture.contracts;
+  const members = fixture.accounts.members.slice(0, 5);
+  const amount = parseEther('10000');
+  for (const member of members) {
+    await tk.connect(fixture.accounts.defaultSender).transfer(member.address, amount);
+  }
+  return fixture;
+}
 
+describe('createStakingPool', function () {
   it('should create a private staking pool', async function () {
+    const fixture = await loadCreateStakingPoolFixture();
     const { DEFAULT_PRODUCTS } = fixture;
     const { cover, spf, stakingNFT, tc: tokenController } = fixture.contracts;
     const [manager, staker] = fixture.accounts.members;
@@ -71,6 +72,7 @@ describe('createStakingPool', function () {
   });
 
   it('should create a public staking pool', async function () {
+    const fixture = await loadCreateStakingPoolFixture();
     const { DEFAULT_PRODUCTS } = fixture;
     const { cover, spf, stakingNFT, tc: tokenController } = fixture.contracts;
     const [manager, staker] = fixture.accounts.members;
@@ -114,6 +116,7 @@ describe('createStakingPool', function () {
   });
 
   it('should revert if called by a non member', async function () {
+    const fixture = await loadCreateStakingPoolFixture();
     const { cover } = fixture.contracts;
     const [nonMember] = fixture.accounts.nonMembers;
 
@@ -129,6 +132,7 @@ describe('createStakingPool', function () {
   });
 
   it("should fail to create a pool with a product that doesn't exist", async function () {
+    const fixture = await loadCreateStakingPoolFixture();
     const { cover } = fixture.contracts;
     const [manager] = fixture.accounts.members;
     const { DEFAULT_PRODUCTS } = fixture;
@@ -147,6 +151,7 @@ describe('createStakingPool', function () {
   });
 
   it("should fail to create a pool with a product that doesn't exist, called by pooledStaking", async function () {
+    const fixture = await loadCreateStakingPoolFixture();
     const { cover, ps } = fixture.contracts;
     const { DEFAULT_PRODUCTS } = fixture;
 
@@ -167,6 +172,7 @@ describe('createStakingPool', function () {
   });
 
   it("should fail to create a pool with a product that isn't allowed for fixture pool", async function () {
+    const fixture = await loadCreateStakingPoolFixture();
     const { cover } = fixture.contracts;
     const [manager] = fixture.accounts.members;
     const { DEFAULT_PRODUCTS } = fixture;
@@ -198,6 +204,7 @@ describe('createStakingPool', function () {
   });
 
   it("should fail to create a pool with one of several products that isn't allowed for this pool", async function () {
+    const fixture = await loadCreateStakingPoolFixture();
     const { cover } = fixture.contracts;
     const [manager] = fixture.accounts.members;
     const { DEFAULT_PRODUCTS } = fixture;

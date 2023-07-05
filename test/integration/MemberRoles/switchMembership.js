@@ -5,12 +5,8 @@ const setup = require('../setup');
 const { Role } = require('../utils').constants;
 
 describe('switchMembership', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('switches membership from one address to another', async function () {
+    const fixture = await loadFixture(setup);
     const { contracts, accounts } = fixture;
     const { mr: memberRoles, tk: token } = contracts;
     const {
@@ -47,6 +43,7 @@ describe('switchMembership', function () {
   });
 
   it('switches membership and transfers manager staking pools from one address to another', async function () {
+    const fixture = await loadFixture(setup);
     const { mr: memberRoles, tk: token, tc: tokenController } = fixture.contracts;
     const {
       nonMembers: [newMember],
@@ -73,6 +70,7 @@ describe('switchMembership', function () {
   });
 
   it('reverts when switching membership for non-member', async function () {
+    const fixture = await loadFixture(setup);
     const { mr: memberRoles } = fixture.contracts;
     const {
       nonMembers: [nonMember1, nonMember2],
@@ -82,6 +80,7 @@ describe('switchMembership', function () {
   });
 
   it("reverts when switching membership to an address that's already a member", async function () {
+    const fixture = await loadFixture(setup);
     const { mr: memberRoles } = fixture.contracts;
     const {
       members: [member1, member2],

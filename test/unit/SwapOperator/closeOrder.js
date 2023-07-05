@@ -25,16 +25,73 @@ const {
   utils: { parseEther, hexZeroPad },
 } = ethers;
 
+async function loadCloseOrderFixture() {
+  const fixture = await loadFixture(setup);
+  const [controller, governance] = await ethers.getSigners();
+
+  // Assign contracts (destructuring isn't working)
+  const dai = fixture.contracts.dai;
+  const weth = fixture.contracts.weth;
+  const pool = fixture.contracts.pool;
+  const swapOperator = fixture.contracts.swapOperator;
+  const cowSettlement = fixture.contracts.cowSettlement;
+  const cowVaultRelayer = fixture.contracts.cowVaultRelayer;
+
+  // Read constants
+  const MIN_TIME_BETWEEN_ORDERS = (await swapOperator.MIN_TIME_BETWEEN_ORDERS()).toNumber();
+
+  // Build order struct, domain separator and calculate UID
+  const order = {
+    sellToken: weth.address,
+    buyToken: dai.address,
+    sellAmount: parseEther('0.999'),
+    buyAmount: parseEther('4995'),
+    validTo: (await lastBlockTimestamp()) + 650,
+    appData: hexZeroPad(0, 32),
+    feeAmount: parseEther('0.001'),
+    kind: 'sell',
+    receiver: swapOperator.address,
+    partiallyFillable: false,
+    sellTokenBalance: 'erc20',
+    buyTokenBalance: 'erc20',
+  };
+
+  const contractOrder = makeContractOrder(order);
+
+  const { chainId } = await ethers.provider.getNetwork();
+  const domain = makeDomain(chainId, cowSettlement.address);
+  const orderUID = computeOrderUid(domain, order, order.receiver);
+
+  // Fund the contracts
+  await setEtherBalance(pool.address, parseEther('1000000'));
+  await setEtherBalance(weth.address, parseEther('1000000'));
+  await dai.mint(cowVaultRelayer.address, parseEther('1000000'));
+
+  // Set asset details for DAI
+  await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
+
+  // place order
+  await swapOperator.placeOrder(contractOrder, orderUID);
+
+  return {
+    ...fixture,
+    controller,
+    governance,
+    order,
+    contractOrder,
+    domain,
+    orderUID,
+    dai,
+    weth,
+    swapOperator,
+    cowSettlement,
+    cowVaultRelayer,
+    MIN_TIME_BETWEEN_ORDERS,
+  };
+}
+
 describe('closeOrder', function () {
-  let controller, governance;
-
-  let order, contractOrder, domain, orderUID;
-
-  let dai, weth, pool, swapOperator, cowSettlement, cowVaultRelayer;
-
-  let MIN_TIME_BETWEEN_ORDERS;
-
-  const setupSellDaiForEth = async (overrides = {}) => {
+  const setupSellDaiForEth = async (overrides = {}, { dai, pool, order, weth, domain }) => {
     // Set DAI balance above asset max, so we can sell it
     await dai.setBalance(pool.address, parseEther('25000'));
 
@@ -53,57 +110,14 @@ describe('closeOrder', function () {
     return { newOrder, newContractOrder, newOrderUID };
   };
 
-  let fixture;
-  beforeEach(async () => {
-    fixture = await loadFixture(setup);
-    [controller, governance] = await ethers.getSigners();
-
-    // Assign contracts (destructuring isn't working)
-    dai = fixture.contracts.dai;
-    weth = fixture.contracts.weth;
-    pool = fixture.contracts.pool;
-    swapOperator = fixture.contracts.swapOperator;
-    cowSettlement = fixture.contracts.cowSettlement;
-    cowVaultRelayer = fixture.contracts.cowVaultRelayer;
-
-    // Read constants
-    MIN_TIME_BETWEEN_ORDERS = (await swapOperator.MIN_TIME_BETWEEN_ORDERS()).toNumber();
-
-    // Build order struct, domain separator and calculate UID
-    order = {
-      sellToken: weth.address,
-      buyToken: dai.address,
-      sellAmount: parseEther('0.999'),
-      buyAmount: parseEther('4995'),
-      validTo: (await lastBlockTimestamp()) + 650,
-      appData: hexZeroPad(0, 32),
-      feeAmount: parseEther('0.001'),
-      kind: 'sell',
-      receiver: swapOperator.address,
-      partiallyFillable: false,
-      sellTokenBalance: 'erc20',
-      buyTokenBalance: 'erc20',
-    };
-
-    contractOrder = makeContractOrder(order);
-
-    const { chainId } = await ethers.provider.getNetwork();
-    domain = makeDomain(chainId, cowSettlement.address);
-    orderUID = computeOrderUid(domain, order, order.receiver);
-
-    // Fund the contracts
-    await setEtherBalance(pool.address, parseEther('1000000'));
-    await setEtherBalance(weth.address, parseEther('1000000'));
-    await dai.mint(cowVaultRelayer.address, parseEther('1000000'));
-
-    // Set asset details for DAI
-    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
-
-    // place order
-    await swapOperator.placeOrder(contractOrder, orderUID);
-  });
-
   it('before deadline, its callable only by controller', async function () {
+    const {
+      contracts: { swapOperator },
+      order,
+      governance,
+      contractOrder,
+      controller,
+    } = await loadCloseOrderFixture();
     const deadline = order.validTo;
     const snapshot = await takeSnapshot();
 
@@ -120,6 +134,12 @@ describe('closeOrder', function () {
   });
 
   it('after deadline, its callable by anyone', async function () {
+    const {
+      contracts: { swapOperator },
+      order,
+      contractOrder,
+      controller,
+    } = await loadCloseOrderFixture();
     const deadline = order.validTo;
     const snapshot = await takeSnapshot();
     const { 36: generalPurposeAddress } = await ethers.getSigners();
@@ -135,6 +155,10 @@ describe('closeOrder', function () {
   });
 
   it('computes order UID on-chain and validates against placed order UID', async function () {
+    const {
+      contracts: { swapOperator },
+      contractOrder,
+    } = await loadCloseOrderFixture();
     // the contract's currentOrderUID is the one for the placed order in beforeEach step
     // we call with multiple invalid orders, with each individual field modified. it should fail
     for (const [key, value] of Object.entries(contractOrder)) {
@@ -152,6 +176,10 @@ describe('closeOrder', function () {
   });
 
   it('validates that theres an order in place', async function () {
+    const {
+      contracts: { swapOperator },
+      contractOrder,
+    } = await loadCloseOrderFixture();
     // cancel the current order, leaving no order in place
     await expect(swapOperator.closeOrder(contractOrder)).to.not.be.reverted;
 
@@ -159,6 +187,12 @@ describe('closeOrder', function () {
   });
 
   it('presignature is false and allowance is 0 when order was not filled at all', async function () {
+    const {
+      contracts: { swapOperator, cowSettlement, weth, cowVaultRelayer },
+      contractOrder,
+      orderUID,
+      order,
+    } = await loadCloseOrderFixture();
     expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(
       order.sellAmount.add(order.feeAmount),
@@ -171,6 +205,12 @@ describe('closeOrder', function () {
   });
 
   it('cancels presignature and allowance when the order is partially filled', async function () {
+    const {
+      contracts: { swapOperator, cowSettlement, weth, dai, cowVaultRelayer },
+      contractOrder,
+      orderUID,
+      order,
+    } = await loadCloseOrderFixture();
     // intially there is some sellToken, no buyToken
     expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
     expect(await weth.balanceOf(swapOperator.address)).to.gt(0);
@@ -202,6 +242,12 @@ describe('closeOrder', function () {
   });
 
   it('cancels presignature and allowance when the order is fully filled', async function () {
+    const {
+      contracts: { swapOperator, weth, dai, cowSettlement, cowVaultRelayer },
+      contractOrder,
+      orderUID,
+      order,
+    } = await loadCloseOrderFixture();
     expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(
       order.sellAmount.add(order.feeAmount),
@@ -224,6 +270,11 @@ describe('closeOrder', function () {
   });
 
   it('clears the currentOrderUID variable', async function () {
+    const {
+      contracts: { swapOperator },
+      contractOrder,
+      orderUID,
+    } = await loadCloseOrderFixture();
     expect(await swapOperator.currentOrderUID()).to.eq(orderUID);
 
     await swapOperator.closeOrder(contractOrder);
@@ -232,6 +283,13 @@ describe('closeOrder', function () {
   });
 
   it('withdraws buyToken to pool and unwraps ether if buyToken is weth', async function () {
+    const {
+      contracts: { pool, swapOperator, cowSettlement, weth, dai, cowVaultRelayer },
+      order,
+      domain,
+      contractOrder,
+      MIN_TIME_BETWEEN_ORDERS,
+    } = await loadCloseOrderFixture();
     // Cancel current order
     await swapOperator.closeOrder(contractOrder);
 
@@ -240,9 +298,12 @@ describe('closeOrder', function () {
     await mineNextBlock();
 
     // Place new order that is selling dai for weth
-    const { newContractOrder, newOrderUID } = await setupSellDaiForEth({
-      validTo: (await lastBlockTimestamp()) + 650,
-    });
+    const { newContractOrder, newOrderUID } = await setupSellDaiForEth(
+      {
+        validTo: (await lastBlockTimestamp()) + 650,
+      },
+      { dai, pool, order, weth, domain },
+    );
 
     await dai.mint(pool.address, order.sellAmount.add(order.feeAmount));
     await weth.mint(cowVaultRelayer.address, order.buyAmount);
@@ -262,6 +323,12 @@ describe('closeOrder', function () {
   });
 
   it('withdraws buyToken to pool when buyToken is an erc20 token', async function () {
+    const {
+      contracts: { dai, swapOperator, pool, cowSettlement },
+      contractOrder,
+      orderUID,
+      order,
+    } = await loadCloseOrderFixture();
     expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
     expect(await dai.balanceOf(pool.address)).to.eq(0);
 
@@ -281,6 +348,10 @@ describe('closeOrder', function () {
   });
 
   it('returns sellToken to pool and unwraps ether if sellToken is weth', async function () {
+    const {
+      contracts: { weth, swapOperator, pool },
+      contractOrder,
+    } = await loadCloseOrderFixture();
     const initialPoolEth = await ethers.provider.getBalance(pool.address);
     const initialOperatorWeth = await weth.balanceOf(swapOperator.address);
 
@@ -294,6 +365,13 @@ describe('closeOrder', function () {
   });
 
   it('returns sellToken to pool when sellToken is an erc20 token', async function () {
+    const {
+      contracts: { weth, dai, swapOperator, pool, cowVaultRelayer },
+      contractOrder,
+      order,
+      MIN_TIME_BETWEEN_ORDERS,
+      domain,
+    } = await loadCloseOrderFixture();
     // Cancel current order
     await swapOperator.closeOrder(contractOrder);
 
@@ -302,9 +380,12 @@ describe('closeOrder', function () {
     await mineNextBlock();
 
     // Place an order swapping DAI for ETH
-    const { newOrder, newContractOrder, newOrderUID } = await setupSellDaiForEth({
-      validTo: (await lastBlockTimestamp()) + 650,
-    });
+    const { newOrder, newContractOrder, newOrderUID } = await setupSellDaiForEth(
+      {
+        validTo: (await lastBlockTimestamp()) + 650,
+      },
+      { dai, pool, order, weth, domain },
+    );
     await weth.mint(cowVaultRelayer.address, order.buyAmount);
     await swapOperator.placeOrder(newContractOrder, newOrderUID);
 
@@ -323,12 +404,22 @@ describe('closeOrder', function () {
   });
 
   it('emits OrderClosed event when order was not filled', async function () {
+    const {
+      contracts: { swapOperator },
+      contractOrder,
+    } = await loadCloseOrderFixture();
     await expect(swapOperator.closeOrder(contractOrder))
       .to.emit(swapOperator, 'OrderClosed')
       .withArgs(makeOrderTuple(contractOrder), 0);
   });
 
   it('emits OrderClosed event when order was partially filled', async function () {
+    const {
+      contracts: { cowSettlement, swapOperator },
+      contractOrder,
+      order,
+      orderUID,
+    } = await loadCloseOrderFixture();
     await cowSettlement.fill(
       contractOrder,
       orderUID,
@@ -342,6 +433,12 @@ describe('closeOrder', function () {
   });
 
   it('emits OrderClosed event when order was fully filled', async function () {
+    const {
+      contracts: { cowSettlement, swapOperator },
+      contractOrder,
+      order,
+      orderUID,
+    } = await loadCloseOrderFixture();
     await cowSettlement.fill(contractOrder, orderUID, order.sellAmount, order.feeAmount, order.buyAmount);
 
     await expect(swapOperator.closeOrder(contractOrder))
@@ -350,6 +447,10 @@ describe('closeOrder', function () {
   });
 
   it('sets swapValue to 0 on the pool', async function () {
+    const {
+      contracts: { swapOperator, pool },
+      contractOrder,
+    } = await loadCloseOrderFixture();
     const oldSwapValue = await pool.swapValue();
     expect(oldSwapValue).to.be.gt(0);
 

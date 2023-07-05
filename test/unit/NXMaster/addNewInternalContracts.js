@@ -9,18 +9,15 @@ const { hex } = require('../utils').helpers;
 const { ContractTypes } = require('../utils').constants;
 
 describe('addNewInternalContracts', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts when not called by governance', async function () {
+    const fixture = await loadFixture(setup);
     const { master } = fixture;
 
     await expect(master.addNewInternalContracts([], [], [])).to.be.revertedWith('Not authorized');
   });
 
   it('reverts when contract code already in use', async function () {
+    const fixture = await loadFixture(setup);
     const { governance } = fixture;
 
     await expect(
@@ -33,6 +30,7 @@ describe('addNewInternalContracts', function () {
   });
 
   it('reverts when contract address is 0', async function () {
+    const fixture = await loadFixture(setup);
     const { governance } = fixture;
 
     await expect(
@@ -41,6 +39,7 @@ describe('addNewInternalContracts', function () {
   });
 
   it('reverts when contract type is unknown', async function () {
+    const fixture = await loadFixture(setup);
     const { governance } = fixture;
 
     await expect(
@@ -49,6 +48,7 @@ describe('addNewInternalContracts', function () {
   });
 
   it('adds new replaceable contract', async function () {
+    const fixture = await loadFixture(setup);
     const { master, governance } = fixture;
 
     const code = hex('XX');
@@ -73,6 +73,7 @@ describe('addNewInternalContracts', function () {
   });
 
   it('adds new proxy contract', async function () {
+    const fixture = await loadFixture(setup);
     const { master, governance } = fixture;
 
     const code = hex('XX');
@@ -100,6 +101,7 @@ describe('addNewInternalContracts', function () {
   });
 
   it('adds new replaceable contract and new proxy contract', async function () {
+    const fixture = await loadFixture(setup);
     const { master, governance } = fixture;
 
     const replaceableCode = hex('RE');

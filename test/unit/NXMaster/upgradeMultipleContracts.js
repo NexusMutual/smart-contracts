@@ -7,17 +7,14 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('upgradeMultipleContracts', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts when not called by governance', async function () {
+    const fixture = await loadFixture(setup);
     const { master } = fixture;
     await expect(master.upgradeMultipleContracts([], [])).to.be.revertedWith('Not authorized');
   });
 
   it('reverts when contract code does not exist', async function () {
+    const fixture = await loadFixture(setup);
     const { governance } = fixture;
 
     await expect(
@@ -26,6 +23,7 @@ describe('upgradeMultipleContracts', function () {
   });
 
   it('reverts when contract address is 0t', async function () {
+    const fixture = await loadFixture(setup);
     const { governance } = fixture;
 
     await expect(governance.upgradeMultipleContracts([hex('GV')], [AddressZero])).to.be.revertedWith(

@@ -34,13 +34,8 @@ const daiCoverBuyFixture = {
 };
 
 describe('totalActiveCoverInAsset', function () {
-  let fixture;
-
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should compute active cover amount for ETH correctly after cover purchase', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const { BUCKET_SIZE } = fixture.config;
 
@@ -56,6 +51,7 @@ describe('totalActiveCoverInAsset', function () {
   });
 
   it('should compute active cover amount for DAI correctly after cover purchase', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const { BUCKET_SIZE } = fixture.config;
 
@@ -71,6 +67,7 @@ describe('totalActiveCoverInAsset', function () {
   });
 
   it('should decrease active cover amount when cover expires', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const { BUCKET_SIZE } = fixture.config;
     const { coverAsset, amount } = daiCoverBuyFixture;
@@ -88,6 +85,7 @@ describe('totalActiveCoverInAsset', function () {
   });
 
   it('should increase/decrease active cover amount when a legacy cover is migrated/expired', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const { BUCKET_SIZE } = fixture.config;
     const [internalContract] = fixture.accounts.internalContracts;
@@ -136,6 +134,7 @@ describe('totalActiveCoverInAsset', function () {
   });
 
   it('should decrease active cover amount on legacy cover burned', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const { BUCKET_SIZE } = fixture.config;
     const [internalContract] = fixture.accounts.internalContracts;
@@ -188,6 +187,7 @@ describe('totalActiveCoverInAsset', function () {
   });
 
   it.skip('should decrease active cover when an edited cover expires', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const { BUCKET_SIZE } = fixture.config;
     const [member] = fixture.accounts.members;
@@ -259,6 +259,7 @@ describe('totalActiveCoverInAsset', function () {
   });
 
   it('should be able to burn all active cover', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [internalContract] = fixture.accounts.internalContracts;
 
@@ -271,6 +272,7 @@ describe('totalActiveCoverInAsset', function () {
   });
 
   it('should decrease active cover by 1 WEI, and not cause rounding issues', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [internalContract] = fixture.accounts.internalContracts;
 
@@ -283,6 +285,7 @@ describe('totalActiveCoverInAsset', function () {
   });
 
   it('should calculate active cover correctly after multiple purchases and burns', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const { BUCKET_SIZE } = fixture.config;
 

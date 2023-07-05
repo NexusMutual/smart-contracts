@@ -3,11 +3,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
 describe('migrateCoversFrom', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('reverts if system is paused', async function () {
+    const fixture = await loadFixture(setup);
     const { coverMigrator, master } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
 

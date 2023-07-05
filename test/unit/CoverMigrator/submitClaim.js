@@ -6,11 +6,8 @@ const { setup } = require('./setup');
 const { parseEther } = ethers.utils;
 
 describe('submitClaim', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('calls migrateCoverFrom with the correct parameters when a legacy coverId is provided', async function () {
+    const fixture = await loadFixture(setup);
     const { coverMigrator, cover, quotationData, tokenController, productsV1, distributor } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
 

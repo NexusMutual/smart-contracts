@@ -72,7 +72,7 @@
     "dev-unit": "nodemon --ext js,sol -x 'hardhat test test/unit/index.js --show-stack-traces'",
     "dev-ui": "hardhat run scripts/local-deploy.js",
     "coverage": "NODE_OPTIONS='--max-old-space-size=8192' hardhat coverage --testfiles 'test/(integration|unit)/**/*.js'",
-    "test": "hardhat test test/unit/**/*.js test/integration/**/*.js test/layout/*.js",
+    "test": "hardhat test test/unit/**/*.js test/integration/**/*.js",
     "test-integration": "hardhat test test/integration/**/*.js",
     "test-unit": "hardhat test test/unit/**/*.js",
     "test-layout": "hardhat test test/layout/*.js",

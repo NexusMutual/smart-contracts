@@ -7,12 +7,8 @@ const { parseEther } = ethers.utils;
 const { toBytes8 } = require('../utils').helpers;
 
 describe('transferAssetToSwapOperator', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('transfers added ERC20 asset to swap operator', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, otherAsset } = fixture;
     const {
       governanceContracts: [governance],
@@ -37,6 +33,7 @@ describe('transferAssetToSwapOperator', function () {
   });
 
   it('revers if not called by swap operator', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, otherAsset } = fixture;
     const {
       governanceContracts: [governance],

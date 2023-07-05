@@ -6,12 +6,8 @@ const setup = require('./setup');
 const { parseEther } = ethers.utils;
 
 describe('buyNXM', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts on purchase with msg.value = 0', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr } = fixture;
     const [member] = fixture.accounts.members;
 
@@ -25,6 +21,7 @@ describe('buyNXM', function () {
   });
 
   it('reverts on purchase higher than of 5% ETH of mcrEth', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr } = fixture;
     const [member] = fixture.accounts.members;
 
@@ -41,6 +38,7 @@ describe('buyNXM', function () {
   });
 
   it('reverts on purchase where the bought tokens are below min expected out token amount', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr } = fixture;
     const [member] = fixture.accounts.members;
 
@@ -58,6 +56,7 @@ describe('buyNXM', function () {
   });
 
   it('reverts on purchase if current MCR% exceeds 400%', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr } = fixture;
     const [member] = fixture.accounts.members;
 
@@ -74,6 +73,7 @@ describe('buyNXM', function () {
   });
 
   it('reverts when MCReth is 0', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr } = fixture;
     const [member] = fixture.accounts.members;
 
@@ -88,6 +88,7 @@ describe('buyNXM', function () {
   });
 
   it('mints expected number of tokens for 5% of MCReth for mcrEth = 160k and MCR% = 150%', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr, token } = fixture;
     const [member] = fixture.accounts.members;
 

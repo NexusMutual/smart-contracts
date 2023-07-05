@@ -8,12 +8,8 @@ const { toBytes8 } = require('../utils').helpers;
 const { AddressZero, WeiPerEther } = ethers.constants;
 
 describe('addAsset', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts when not called by goverance', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
     await expect(pool.addAsset(AddressZero, true, '0', '1', '0')).to.be.revertedWith(
@@ -26,6 +22,7 @@ describe('addAsset', function () {
   });
 
   it('reverts when asset address is zero address', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
 
@@ -35,6 +32,7 @@ describe('addAsset', function () {
   });
 
   it('reverts when max < min', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, otherAsset } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
 
@@ -44,6 +42,7 @@ describe('addAsset', function () {
   });
 
   it('reverts when max slippage ratio > 1', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, otherAsset } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
     await expect(
@@ -55,6 +54,7 @@ describe('addAsset', function () {
   });
 
   it('reverts when asset exists', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, dai } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
 
@@ -64,6 +64,7 @@ describe('addAsset', function () {
   });
 
   it('reverts when asset lacks an oracle', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
 
@@ -75,6 +76,7 @@ describe('addAsset', function () {
   });
 
   it('should add assets setting min, max, slippage ratio, and their bool flags', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, dai, stETH, enzymeVault } = fixture;
     const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
     const [governance] = fixture.accounts.governanceContracts;

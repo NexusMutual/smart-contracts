@@ -6,12 +6,8 @@ const setup = require('./setup');
 const { BigNumber } = ethers;
 
 describe('getMCRRatio', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('gets MCR ratio value', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr } = fixture;
     const [member] = fixture.accounts.members;
 

@@ -18,12 +18,8 @@ function errorMessage({ ethOut, expectedEthOut, relativeError }) {
 }
 
 describe('calculateEthForNXM', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts when mcrEth = 0', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
     const mcrEth = parseEther('0');
@@ -35,6 +31,7 @@ describe('calculateEthForNXM', function () {
   });
 
   it('reverts when sellValue > 5% * mcrEth', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
     const mcrEth = parseEther('160000');
@@ -49,6 +46,7 @@ describe('calculateEthForNXM', function () {
   });
 
   it('calculates at mcrEth = 7k, MCR% = 100%, sellValue = 5% * mcrEth', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
     const mcrEth = parseEther('7000');
@@ -65,6 +63,7 @@ describe('calculateEthForNXM', function () {
   });
 
   it('calculates at mcrEth = 7k, MCR% = 400%, sellValue = 5% * mcrEth', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
     const mcrEth = parseEther('7000');
@@ -82,6 +81,7 @@ describe('calculateEthForNXM', function () {
   });
 
   it('calculates at mcrEth = 160k, MCR% = 100%, sellValue = 1% * mcrEth', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
     const mcrEth = parseEther('160000');
@@ -99,6 +99,7 @@ describe('calculateEthForNXM', function () {
   });
 
   it('calculates at mcrEth = 160k, MCR% = 400%, sellValue = 1% * mcrEth', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
     const mcrEth = parseEther('160000');
@@ -116,6 +117,7 @@ describe('calculateEthForNXM', function () {
   });
 
   it('calculates at mcrEth = 160k, MCR% = 600%, sellValue = 1% * mcrEth', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
     const mcrEth = parseEther('160000');
@@ -137,6 +139,7 @@ describe('calculateEthForNXM', function () {
   });
 
   it('calculates at mcrEth = 160k, MCR% = 150%, sellValue = 5% * mcrEth (high spread)', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
     const mcrEth = parseEther('160000');
@@ -161,6 +164,7 @@ describe('calculateEthForNXM', function () {
   });
 
   it('calculates at mcrEth = 1e9, MCR% = 100%, sellValue = 1% * mcrEth', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
     const mcrEth = parseEther((1e9).toString());
@@ -178,6 +182,7 @@ describe('calculateEthForNXM', function () {
   });
 
   it('calculates at mcrEth = 1e9, MCR% = 600%, sellValue = 1% * mcrEth', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
     const mcrEth = parseEther((1e9).toString());
@@ -195,6 +200,7 @@ describe('calculateEthForNXM', function () {
   });
 
   it('calculates at mcrEth = 1e9, MCR% = 150%, sellValue = 5% * mcrEth (high spread)', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
     const mcrEth = parseEther((1e9).toString());

@@ -8,12 +8,8 @@ const { toBytes8 } = require('../utils').helpers;
 const { PoolUintParamType, PoolAddressParamType } = require('../utils').constants;
 
 describe('updateUintParameters', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should revert when called by non governance addresses', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
     const {
       nonMembers: [nonMember],
@@ -33,12 +29,8 @@ describe('updateUintParameters', function () {
 });
 
 describe('updateAddressParameters', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should revert when called by non governance addresses', async function () {
+    const fixture = await loadFixture(setup);
     const {
       nonMembers: [nonMember],
       members: [member],
@@ -58,6 +50,7 @@ describe('updateAddressParameters', function () {
   });
 
   it('should revert when called with a PRC_FEED oracle parameter that lacks an investment asset', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, dai, chainlinkDAI } = fixture;
     const {
       governanceContracts: [governanceContract],
@@ -72,6 +65,7 @@ describe('updateAddressParameters', function () {
   });
 
   it('should revert when called with a PRC_FEED oracle parameter that lacks a cover asset', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, chainlinkSteth, stETH } = fixture;
     const {
       governanceContracts: [governanceContract],
@@ -86,6 +80,7 @@ describe('updateAddressParameters', function () {
   });
 
   it('should correctly update the address parameters', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
     const {
       governanceContracts: [governanceContract],
@@ -106,6 +101,7 @@ describe('updateAddressParameters', function () {
   });
 
   it('should correctly update the PRC_FEED parameter', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, dai, stETH, enzymeVault, chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
     const [governanceContract] = fixture.accounts.governanceContracts;
 

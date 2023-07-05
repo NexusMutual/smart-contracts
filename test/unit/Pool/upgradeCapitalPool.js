@@ -9,12 +9,8 @@ const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
 
 describe('upgradeCapitalPool', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('moves pool funds to new pool', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, master, dai, stETH, enzymeVault, token } = fixture;
     const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
@@ -72,6 +68,7 @@ describe('upgradeCapitalPool', function () {
   });
 
   it('abandons marked assets on pool upgrade', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, master, dai, stETH, enzymeVault, token } = fixture;
     const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
     const [governance] = fixture.accounts.governanceContracts;

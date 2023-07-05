@@ -10,12 +10,8 @@ const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 
 describe('getPoolValueInEth', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('gets total value of ETH and DAI assets in the pool', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr, chainlinkDAI, dai } = fixture;
     const [nonMember] = fixture.accounts.nonMembers;
 
@@ -37,6 +33,7 @@ describe('getPoolValueInEth', function () {
   });
 
   it('should not fail when pool asset balanceOf reverts', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, dai, stETH, enzymeVault } = fixture;
     const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
@@ -71,6 +68,7 @@ describe('getPoolValueInEth', function () {
   });
 
   it('includes swapValue in the calculation', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
     const { defaultSender } = fixture.accounts;

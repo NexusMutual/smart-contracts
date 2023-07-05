@@ -6,11 +6,8 @@ const { setup } = require('./setup');
 const { parseEther } = ethers.utils;
 
 describe('submitIncident', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('reverts if the product uses a different claim method', async function () {
+    const fixture = await loadFixture(setup);
     const { yieldTokenIncidents } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
 
@@ -36,6 +33,7 @@ describe('submitIncident', function () {
   });
 
   it('calls startAssessment and stores the returned assessmentId in the incident', async function () {
+    const fixture = await loadFixture(setup);
     const { yieldTokenIncidents } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
 
@@ -63,6 +61,7 @@ describe('submitIncident', function () {
   });
 
   it('pushes an incident with productId, date and priceBefore to incidents', async function () {
+    const fixture = await loadFixture(setup);
     const { yieldTokenIncidents } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
 
@@ -79,6 +78,7 @@ describe('submitIncident', function () {
   });
 
   it('calculates the total reward using the expected payout amount parameter provided', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, yieldTokenIncidents } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
 
@@ -94,6 +94,7 @@ describe('submitIncident', function () {
   });
 
   it('calculates the totalRewardInNXM capped at config.maxRewardInNXMWad', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, yieldTokenIncidents } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -109,6 +110,7 @@ describe('submitIncident', function () {
   });
 
   it('emits MetadataSubmitted event with the provided ipfsMetadata when it is not empty string', async function () {
+    const fixture = await loadFixture(setup);
     const { yieldTokenIncidents } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -132,6 +134,7 @@ describe('submitIncident', function () {
   });
 
   it('emits IncidentSubmitted event with sender incident and product ids and payout in NXM', async function () {
+    const fixture = await loadFixture(setup);
     const { yieldTokenIncidents } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -155,6 +158,7 @@ describe('submitIncident', function () {
   });
 
   it('reverts if system is paused', async function () {
+    const fixture = await loadFixture(setup);
     const { yieldTokenIncidents, master } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
 
@@ -170,6 +174,7 @@ describe('submitIncident', function () {
   });
 
   it('reverts if caller is not advisory board', async function () {
+    const fixture = await loadFixture(setup);
     const { yieldTokenIncidents } = fixture.contracts;
     const [nonGovernance] = fixture.accounts.members;
 

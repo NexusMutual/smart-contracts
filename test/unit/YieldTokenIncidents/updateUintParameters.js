@@ -9,12 +9,8 @@ const uintParams = {
   rewardRatio: 4,
 };
 describe('updateUintParameters', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('can only be called by governance', async function () {
+    const fixture = await loadFixture(setup);
     const { yieldTokenIncidents } = fixture.contracts;
     const {
       governanceContracts: [governance],
@@ -29,6 +25,7 @@ describe('updateUintParameters', function () {
   });
 
   it('sets each parameter to the given new values', async function () {
+    const fixture = await loadFixture(setup);
     const { yieldTokenIncidents } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
     const newValues = {
@@ -66,6 +63,7 @@ describe('updateUintParameters', function () {
   });
 
   it('sets only the given parameters to the new values', async function () {
+    const fixture = await loadFixture(setup);
     const { yieldTokenIncidents } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
 
@@ -113,6 +111,7 @@ describe('updateUintParameters', function () {
   });
 
   it('allows parameters to be given in any order', async function () {
+    const fixture = await loadFixture(setup);
     const { yieldTokenIncidents } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
 

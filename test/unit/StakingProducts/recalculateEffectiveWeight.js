@@ -21,12 +21,8 @@ const MAX_TARGET_WEIGHT = 100;
 const MAX_TOTAL_EFFECTIVE_WEIGHT = 2000;
 const UINT16_MAX = 65535;
 describe('recalculateEffectiveWeight', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('recalculating effective weight should have no effect for products not found in stakingPool', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const productIdToAdd = Zero;
     const unknownProductId = productIdToAdd.add(1);
@@ -60,6 +56,7 @@ describe('recalculateEffectiveWeight', function () {
   it.skip('effective weight should be > target when allocations are greater than capacity', async function () {});
 
   it('should calculate effective weight properly when decreasing target weight', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [staker, coverBuyer] = fixture.accounts.members;
 
@@ -120,6 +117,7 @@ describe('recalculateEffectiveWeight', function () {
   });
 
   it('should reduce effective weight when allocations expire', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [staker, coverBuyer] = fixture.accounts.members;
 
@@ -169,6 +167,7 @@ describe('recalculateEffectiveWeight', function () {
   });
 
   it('effective weight should be lowered from extra deposits', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [staker, coverBuyer] = fixture.accounts.members;
 
@@ -211,6 +210,7 @@ describe('recalculateEffectiveWeight', function () {
   });
 
   it('it should return uint16.max when allocation is much larger than capacity', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const [staker, coverBuyer] = fixture.accounts.members;
     const amount = parseEther('12345');
@@ -252,6 +252,7 @@ describe('recalculateEffectiveWeight', function () {
   });
 
   it('effective weight should be equal to target weight if capacity and allocations are 0', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const productIdToAdd = Zero;
 
@@ -285,6 +286,7 @@ describe('recalculateEffectiveWeight', function () {
   });
 
   it('should correctly calculate effective weight after several burns', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool } = fixture;
     const [staker, coverBuyer] = fixture.accounts.members;
     const amount = parseEther('1');
@@ -349,6 +351,7 @@ describe('recalculateEffectiveWeight', function () {
   });
 
   it('should fail to recalculate effective weight for product not in system', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, cover } = fixture;
 
     const nonExistentProductId = 9999999;
@@ -360,6 +363,7 @@ describe('recalculateEffectiveWeight', function () {
   });
 
   it('should fail to increase target weight when effective weight is at the limit', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const [manager, staker, coverBuyer] = fixture.accounts.members;
     const [internalContract] = fixture.accounts.internalContracts;

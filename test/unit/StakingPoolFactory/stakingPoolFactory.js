@@ -7,18 +7,15 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('StakingPoolFactory', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should verify that constructor variables were set correctly', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPoolFactory, operator } = fixture;
 
     expect(await stakingPoolFactory.operator()).to.be.equal(operator.address);
   });
 
   it('should revert if trying to change operator from non-operator', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPoolFactory } = fixture;
     const [nonOperator] = fixture.accounts.members;
 
@@ -28,6 +25,7 @@ describe('StakingPoolFactory', function () {
   });
 
   it('should fail to change operator to 0 address', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPoolFactory, operator } = fixture;
     await expect(stakingPoolFactory.connect(operator).changeOperator(AddressZero)).to.be.revertedWith(
       'StakingPoolFactory: Invalid operator',
@@ -35,6 +33,7 @@ describe('StakingPoolFactory', function () {
   });
 
   it('should successfully change operator', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPoolFactory, operator } = fixture;
     const [newOperator] = fixture.accounts.members;
     await stakingPoolFactory.connect(operator).changeOperator(newOperator.address);
@@ -42,6 +41,7 @@ describe('StakingPoolFactory', function () {
   });
 
   it('should revert if trying to create a pool from non-operator', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPoolFactory } = fixture;
     const [nonOperator] = fixture.accounts.members;
 
@@ -51,6 +51,7 @@ describe('StakingPoolFactory', function () {
   });
 
   it('should successfully create staking pools with with the expected address', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingPoolFactory, operator } = fixture;
     const [beacon] = fixture.accounts.members;
 

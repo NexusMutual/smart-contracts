@@ -9,12 +9,8 @@ const { arrayify, parseUnits, splitSignature } = ethers.utils;
 const JOINING_FEE = parseUnits('0.002');
 
 describe('join', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts when using a signature from another chain', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = fixture.accounts;
 
@@ -57,6 +53,7 @@ describe('join', function () {
   });
 
   it('reverts when reusing the same nonce', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = fixture.accounts;
 
@@ -89,6 +86,7 @@ describe('join', function () {
   });
 
   it('reverts when using the signature of another address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = fixture.accounts;
 
@@ -112,6 +110,7 @@ describe('join', function () {
   });
 
   it('reverts when trying to sign up the 0 address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = fixture.accounts;
 
@@ -135,6 +134,7 @@ describe('join', function () {
   });
 
   it('reverts when the address is already a member', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = fixture.accounts;
 
@@ -155,6 +155,7 @@ describe('join', function () {
   });
 
   it('reverts when the system is paused', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, master } = fixture.contracts;
 
     await master.pause();
@@ -174,6 +175,7 @@ describe('join', function () {
   });
 
   it('reverts when the value sent is different than the joining fee', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = fixture.accounts;
 
@@ -204,6 +206,7 @@ describe('join', function () {
   });
 
   it('reverts when the signature is invalid', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { nonMembers } = fixture.accounts;
 
@@ -220,6 +223,7 @@ describe('join', function () {
   });
 
   it('reverts when provided compact signature', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = fixture.accounts;
 
@@ -237,6 +241,7 @@ describe('join', function () {
   });
 
   it('reverts if the transfer of the joining fee to the pool fails', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, pool } = fixture.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = fixture.accounts;
 
@@ -262,6 +267,7 @@ describe('join', function () {
   });
 
   it('transfers the joining fee to the pool', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, pool } = fixture.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = fixture.accounts;
 
@@ -280,6 +286,7 @@ describe('join', function () {
   });
 
   it('whitelists the address through token controller to allow it to transfer tokens', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, tokenController } = fixture.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = fixture.accounts;
 
@@ -300,6 +307,7 @@ describe('join', function () {
   });
 
   it('assigns the member role to the address and emits MemberJoined event', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = fixture.accounts;
 

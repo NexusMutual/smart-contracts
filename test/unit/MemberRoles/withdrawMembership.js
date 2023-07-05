@@ -6,12 +6,8 @@ const { setup } = require('./setup');
 const { formatBytes32String } = ethers.utils;
 
 describe('withdrawMembership', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts when withdrawing membership for non-member', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const {
       nonMembers: [nonMember1],
@@ -20,6 +16,7 @@ describe('withdrawMembership', function () {
   });
 
   it('reverts when token is locked', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const {
       members: [member],
@@ -30,6 +27,7 @@ describe('withdrawMembership', function () {
   });
 
   it('reverts when member has LegacyPooledStaking deposit tokens', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, pooledStaking } = fixture.contracts;
     const {
       members: [member],
@@ -42,6 +40,7 @@ describe('withdrawMembership', function () {
   });
 
   it('reverts when member has LegacyPooledStaking reward tokens', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, pooledStaking } = fixture.contracts;
     const {
       members: [member],
@@ -54,6 +53,7 @@ describe('withdrawMembership', function () {
   });
 
   it('reverts when member has tokens locked for claim assessment', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member],
@@ -66,6 +66,7 @@ describe('withdrawMembership', function () {
   });
 
   it('reverts when member has withdrawable cover notes', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member],
@@ -78,6 +79,7 @@ describe('withdrawMembership', function () {
   });
 
   it('reverts when member has tokens staked for assessment', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, assessment } = fixture.contracts;
     const {
       members: [member],
@@ -88,6 +90,7 @@ describe('withdrawMembership', function () {
   });
 
   it('reverts when member has pending rewards in TokenController', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member],
@@ -100,6 +103,7 @@ describe('withdrawMembership', function () {
   });
 
   it("removes member's the address from the whitelist", async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member1],
@@ -113,6 +117,7 @@ describe('withdrawMembership', function () {
   });
 
   it('prevents withdrawing membership if the member is a staking pool manager', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member1],
@@ -126,6 +131,7 @@ describe('withdrawMembership', function () {
   });
 
   it("burns all the tokens from the member's address", async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const {
       members: [member1],
@@ -140,6 +146,7 @@ describe('withdrawMembership', function () {
   });
 
   it('decreases the members count', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const {
       members: [member1],
@@ -152,6 +159,7 @@ describe('withdrawMembership', function () {
   });
 
   it("removes the role of member from the mebmber's address", async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const {
       members: [member1],

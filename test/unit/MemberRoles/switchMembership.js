@@ -6,12 +6,8 @@ const { setup } = require('./setup');
 const { formatBytes32String } = ethers.utils;
 
 describe('switchMembership', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('grants the member role to the new address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
@@ -23,6 +19,7 @@ describe('switchMembership', function () {
   });
 
   it('grants the AB member role to the new address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const { nonMembers, advisoryBoardMembers } = fixture.accounts;
 
@@ -34,6 +31,7 @@ describe('switchMembership', function () {
   });
 
   it('removes the member role from the initial address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
@@ -45,6 +43,7 @@ describe('switchMembership', function () {
   });
 
   it('whitelists the new address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm, tokenController } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
@@ -56,6 +55,7 @@ describe('switchMembership', function () {
   });
 
   it('removes the initial address from the whitelist', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm, tokenController } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
@@ -67,6 +67,7 @@ describe('switchMembership', function () {
   });
 
   it('keeps the number of members the same', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
@@ -79,6 +80,7 @@ describe('switchMembership', function () {
   });
 
   it('reverts when switching membership to another member address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const { members } = fixture.accounts;
 
@@ -89,6 +91,7 @@ describe('switchMembership', function () {
   });
 
   it('reverts when switching membership of non-member address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const { nonMembers, members } = fixture.accounts;
 
@@ -99,6 +102,7 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member tokens are locked', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const {
       members: [member],
@@ -112,6 +116,7 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member has LegacyPooledStaking deposit tokens', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, pooledStaking } = fixture.contracts;
     const {
       members: [member],
@@ -125,6 +130,7 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member has LegacyPooledStaking reward tokens', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, pooledStaking } = fixture.contracts;
     const {
       members: [member],
@@ -138,6 +144,7 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member has tokens locked for claim assessment', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member],
@@ -151,6 +158,7 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member has withdrawable cover notes', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member],
@@ -164,6 +172,7 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member has tokens staked for assessment', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, assessment } = fixture.contracts;
     const {
       members: [member],
@@ -177,6 +186,7 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member has pending rewards in TokenController', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, tokenController } = fixture.contracts;
     const {
       members: [member],
@@ -190,6 +200,7 @@ describe('switchMembership', function () {
   });
 
   it('reverts when member system is paused', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, master } = fixture.contracts;
     const {
       members: [member],
@@ -204,6 +215,7 @@ describe('switchMembership', function () {
   });
 
   it('transfers the NXM balance amount to the new address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 

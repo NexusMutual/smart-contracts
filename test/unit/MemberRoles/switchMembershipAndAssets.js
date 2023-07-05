@@ -5,12 +5,8 @@ const { setup } = require('./setup');
 const { Role } = require('../utils').constants;
 
 describe('switchMembershipAndAssets', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('grants the member role to the new address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
@@ -22,6 +18,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('removes the member role from the initial address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
@@ -33,6 +30,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('whitelists the new address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm, tokenController } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
@@ -44,6 +42,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('removes the initial address from the whitelist', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm, tokenController } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
@@ -55,6 +54,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('keeps the number of members the same', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
@@ -67,6 +67,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('reverts when switching membership to another member address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const { members } = fixture.accounts;
 
@@ -77,6 +78,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('reverts when switching membership of non-member address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const { nonMembers, members } = fixture.accounts;
 
@@ -87,6 +89,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('transfers the NXM balance amount to the new address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
@@ -99,6 +102,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('transfers the provided covers to the new address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm, cover, coverNFT } = fixture.contracts;
     const [member] = fixture.accounts.members;
     const [nonMember] = fixture.accounts.nonMembers;
@@ -128,6 +132,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('transfers all staking NFTs to the new address', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm, stakingNFT } = fixture.contracts;
     const [member, otherMember] = fixture.accounts.members;
     const [newMember] = fixture.accounts.nonMembers;
@@ -149,6 +154,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('reverts when trying to transfer staking nfts of another member', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm, stakingNFT } = fixture.contracts;
     const [member, otherMember] = fixture.accounts.members;
     const [nonMember] = fixture.accounts.nonMembers;
@@ -170,6 +176,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('reverts when trying to transfer cover nfts of another member', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles, nxm, cover } = fixture.contracts;
     const [member, otherMember] = fixture.accounts.members;
     const [nonMember] = fixture.accounts.nonMembers;

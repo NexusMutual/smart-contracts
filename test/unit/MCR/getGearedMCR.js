@@ -21,12 +21,8 @@ const DEFAULT_MCR_PARAMS = {
 };
 
 describe('getGearedMCR', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should return gearedMCR = 0 if there are no active covers', async function () {
+    const fixture = await loadFixture(setup);
     const { master, cover } = fixture;
 
     await cover.setTotalActiveCoverInAsset(0, '0'); // ETH
@@ -40,6 +36,7 @@ describe('getGearedMCR', function () {
   });
 
   it('should return correct geared MCR value', async function () {
+    const fixture = await loadFixture(setup);
     const { master, cover } = fixture;
 
     const GEARING_FACTOR = 48000;

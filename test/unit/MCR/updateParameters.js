@@ -6,12 +6,8 @@ const { MCRUintParamType } = require('../utils').constants;
 const { toBytes8 } = require('../utils').helpers;
 
 describe('updateUintParameters', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should revert when called by non governance addresses', async function () {
+    const fixture = await loadFixture(setup);
     const { mcr } = fixture;
     const param = MCRUintParamType.mcrFloorIncrementThreshold;
     const [nonMember] = fixture.accounts.nonMembers;
@@ -26,6 +22,7 @@ describe('updateUintParameters', function () {
   });
 
   it('should correctly update the uint parameters', async function () {
+    const fixture = await loadFixture(setup);
     const { mcr } = fixture;
     const params = Object.keys(MCRUintParamType);
 
@@ -44,6 +41,7 @@ describe('updateUintParameters', function () {
   });
 
   it('should revert on unknown parameter code', async function () {
+    const fixture = await loadFixture(setup);
     const { mcr } = fixture;
 
     const [governanceContract] = fixture.accounts.governanceContracts;

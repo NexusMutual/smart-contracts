@@ -22,12 +22,8 @@ const DEFAULT_MCR_PARAMS = {
 };
 
 describe('getMCR', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should return the stored MCR value if MCR == desiredMCR', async function () {
+    const fixture = await loadFixture(setup);
     const { master } = fixture;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
@@ -41,6 +37,7 @@ describe('getMCR', function () {
   });
 
   it('increases MCR by MAX_PERCENTAGE_ADJUSTMENT towards the higher desired MCR if 24 hours pass', async function () {
+    const fixture = await loadFixture(setup);
     const { master } = fixture;
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: parseEther('160000'), master });
 
@@ -58,6 +55,7 @@ describe('getMCR', function () {
   });
 
   it('decreases MCR by MAX_PERCENTAGE_ADJUSTMENT towards the lower desired MCR if 24 hours pass', async function () {
+    const fixture = await loadFixture(setup);
     const { master } = fixture;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: parseEther('140000'), master });
@@ -72,6 +70,7 @@ describe('getMCR', function () {
   });
 
   it('increases MCR by 0.4% towards higher desired MCR if 2 hour pass', async function () {
+    const fixture = await loadFixture(setup);
     const { master } = fixture;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: parseEther('160000'), master });
@@ -90,6 +89,7 @@ describe('getMCR', function () {
   });
 
   it('increases MCR by 0.8% towards higher desired MCR if 4 hour pass', async function () {
+    const fixture = await loadFixture(setup);
     const { master } = fixture;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: parseEther('160000'), master });
@@ -108,6 +108,7 @@ describe('getMCR', function () {
   });
 
   it('decreases MCR by 0.4% towards lower desired MCR if 2 hours pass', async function () {
+    const fixture = await loadFixture(setup);
     const { master } = fixture;
 
     const mcr = await initMCR({
@@ -131,6 +132,7 @@ describe('getMCR', function () {
   });
 
   it('decreases MCR by 0.8% towards lower desired MCR if 4 hours pass', async function () {
+    const fixture = await loadFixture(setup);
     const { master } = fixture;
 
     const mcr = await initMCR({
@@ -154,6 +156,7 @@ describe('getMCR', function () {
   });
 
   it('increases MCR to desiredMCR value if it is within 1% of stored mcr after 24 hours', async function () {
+    const fixture = await loadFixture(setup);
     const { master } = fixture;
 
     const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.mul(1008).div(1000);
@@ -167,6 +170,7 @@ describe('getMCR', function () {
   });
 
   it('decreases MCR to desiredMCR value if it is within 1% of stored mcr after 24 hours', async function () {
+    const fixture = await loadFixture(setup);
     const { master } = fixture;
 
     const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.mul(992).div(1000);
@@ -180,6 +184,7 @@ describe('getMCR', function () {
   });
 
   it('increases MCR by 1% if desiredMCR is 1% higher than current MCR', async function () {
+    const fixture = await loadFixture(setup);
     const { master } = fixture;
 
     const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.mul(101).div(100);
@@ -194,6 +199,7 @@ describe('getMCR', function () {
   });
 
   it('increases MCR by 1% if desiredMCR is 2% higher than current MCR', async function () {
+    const fixture = await loadFixture(setup);
     const { master } = fixture;
 
     const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.mul(102).div(100);

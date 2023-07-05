@@ -4,12 +4,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('withdrawGovernanceRewardsTo', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts if the system is paused', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController, master } = fixture.contracts;
     const { members } = fixture.accounts;
 
@@ -21,6 +17,7 @@ describe('withdrawGovernanceRewardsTo', function () {
   });
 
   it("calls claimReward with the sender's address and the given batchSize", async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController, governance } = fixture.contracts;
     const { members } = fixture.accounts;
 
@@ -42,6 +39,7 @@ describe('withdrawGovernanceRewardsTo', function () {
   });
 
   it('reverts if there are no rewards to withdraw', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController, governance } = fixture.contracts;
     const { members } = fixture.accounts;
 
@@ -56,6 +54,7 @@ describe('withdrawGovernanceRewardsTo', function () {
   });
 
   it('tranfers the rewards to the destination address', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController, governance, nxm } = fixture.contracts;
     const { members } = fixture.accounts;
 
@@ -67,6 +66,7 @@ describe('withdrawGovernanceRewardsTo', function () {
   });
 
   it('allows non-member addresses to send unwithdrawn rewards to member addresses', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController, governance, nxm } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 

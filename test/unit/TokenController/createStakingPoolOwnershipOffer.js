@@ -6,12 +6,8 @@ const { Two } = ethers.constants;
 
 const poolId = 150;
 describe('createStakingPoolOwnershipOffer', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should revert if caller is not the staking pool manager', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const [caller] = fixture.accounts.members;
 
@@ -21,6 +17,7 @@ describe('createStakingPoolOwnershipOffer', function () {
   });
 
   it('should revert if the deadline is not in the future', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
@@ -38,6 +35,7 @@ describe('createStakingPoolOwnershipOffer', function () {
   });
 
   it('should successfully create a new pool ownership offer', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
@@ -59,6 +57,7 @@ describe('createStakingPoolOwnershipOffer', function () {
   });
 
   it('should be able to overwrite a previous pool ownership offer', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager, newManager2],
@@ -87,6 +86,7 @@ describe('createStakingPoolOwnershipOffer', function () {
   });
 
   it('should successfully transfer ownership to the same address', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [manager],

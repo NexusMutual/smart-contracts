@@ -4,12 +4,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('operatorTransfer', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts if caller is not an internal contract', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const [member1, member2] = fixture.accounts.members;
 
@@ -20,6 +16,7 @@ describe('operatorTransfer', function () {
   });
 
   it('transfer nxm from source address to destination address', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController, nxm } = fixture.contracts;
     const [internalContract] = fixture.accounts.internalContracts;
     const [member1, member2] = fixture.accounts.members;
@@ -38,6 +35,7 @@ describe('operatorTransfer', function () {
   });
 
   it('transfer nxm from source address to token controller', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController, nxm } = fixture.contracts;
     const [internalContract] = fixture.accounts.internalContracts;
     const [member2] = fixture.accounts.members;

@@ -8,12 +8,8 @@ const poolId = Two.pow(95); // overflows at uint96
 const maxDeadline = Two.pow(31);
 
 describe('cancelStakingPoolOwnershipOffer', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should revert if caller is not manager of pool', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [newManager],
@@ -25,6 +21,7 @@ describe('cancelStakingPoolOwnershipOffer', function () {
   });
 
   it('should successfully remove ownership offer', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
@@ -52,6 +49,7 @@ describe('cancelStakingPoolOwnershipOffer', function () {
   });
 
   it('should be able to cancel the same pool twice - noop', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager],

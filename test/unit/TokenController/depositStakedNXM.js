@@ -7,22 +7,27 @@ const setup = require('./setup');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
+async function loadDepositStakedNXM() {
+  const fixture = await loadFixture(setup);
+  const { stakingPoolFactory } = fixture.contracts;
+
+  const createPoolTx = await stakingPoolFactory.create(AddressZero);
+  const { events } = await createPoolTx.wait();
+  const { poolId, stakingPoolAddress } = events[0].args;
+
+  const poolSigner = await ethers.getImpersonatedSigner(stakingPoolAddress);
+  await setEtherBalance(stakingPoolAddress, parseEther('1'));
+
+  return {
+    ...fixture,
+    poolId,
+    poolSigner,
+  };
+}
+
 describe('depositStakedNXM', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { stakingPoolFactory } = fixture.contracts;
-
-    const createPoolTx = await stakingPoolFactory.create(AddressZero);
-    const { events } = await createPoolTx.wait();
-    const { poolId, stakingPoolAddress } = events[0].args;
-
-    fixture.poolId = poolId;
-    fixture.poolSigner = await ethers.getImpersonatedSigner(stakingPoolAddress);
-    await setEtherBalance(stakingPoolAddress, parseEther('1'));
-  });
-
   it('reverts if caller is not pool contract', async function () {
+    const fixture = await loadDepositStakedNXM();
     const { tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -33,6 +38,7 @@ describe('depositStakedNXM', function () {
   });
 
   it('increases staking pool deposits', async function () {
+    const fixture = await loadDepositStakedNXM();
     const { tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -47,6 +53,7 @@ describe('depositStakedNXM', function () {
   });
 
   it('transfer nxm from the specified account to the contract', async function () {
+    const fixture = await loadDepositStakedNXM();
     const { tokenController, nxm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 

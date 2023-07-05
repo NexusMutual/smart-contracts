@@ -7,12 +7,8 @@ const { Two } = ethers.constants;
 const poolId = Two.pow(95); // overflows at uint96
 
 describe('assignStakingPoolManager', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should revert if not called from internal address', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
 
     await expect(tokenController.assignStakingPoolManager(poolId, ethers.constants.AddressZero)).to.be.revertedWith(
@@ -21,6 +17,7 @@ describe('assignStakingPoolManager', function () {
   });
 
   it('should transfer a staking pool when there is a previous manager', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
@@ -45,6 +42,7 @@ describe('assignStakingPoolManager', function () {
   });
 
   it('should transfer a staking pool when there is no previous manager', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [newManager],
@@ -59,6 +57,7 @@ describe('assignStakingPoolManager', function () {
   });
 
   it('should transfer staking pools when the new owner is already a manager of another pool', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
@@ -86,6 +85,7 @@ describe('assignStakingPoolManager', function () {
   });
 
   it('should transfer several staking pools to a new manager', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],

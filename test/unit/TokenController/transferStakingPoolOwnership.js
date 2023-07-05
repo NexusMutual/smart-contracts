@@ -7,12 +7,8 @@ const { AddressZero, Two } = ethers.constants;
 const poolId = Two.pow(95); // overflows at uint96
 
 describe('transferStakingPoolOwnership', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should revert if not called from internal address', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
@@ -24,6 +20,7 @@ describe('transferStakingPoolOwnership', function () {
   });
 
   it('should return with no state changes if staking pool count is 0', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
@@ -43,6 +40,7 @@ describe('transferStakingPoolOwnership', function () {
   });
 
   it('should set new address of manager of pools, and remove from old', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
@@ -69,6 +67,7 @@ describe('transferStakingPoolOwnership', function () {
   });
 
   it('should transfer 20 pools from old manager to new manager', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
@@ -97,6 +96,7 @@ describe('transferStakingPoolOwnership', function () {
   });
 
   it('should transfer pool ownership to zero address', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager],

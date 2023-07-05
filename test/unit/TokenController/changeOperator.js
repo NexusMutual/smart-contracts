@@ -3,12 +3,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('changeOperator', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts if governance is not the caller', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -18,6 +14,7 @@ describe('changeOperator', function () {
   });
 
   it('updates operator in the token contract', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController, nxm } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
     const [member] = fixture.accounts.members;

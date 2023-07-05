@@ -7,29 +7,34 @@ const setup = require('./setup');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
+async function loadWithdrawNXMStakeAndRewardsFixture() {
+  const fixture = await loadFixture(setup);
+  const { stakingPoolFactory, tokenController } = fixture.contracts;
+  const [member] = fixture.accounts.members;
+
+  const createPoolTx = await stakingPoolFactory.create(AddressZero);
+  const { events } = await createPoolTx.wait();
+  const { poolId, stakingPoolAddress } = events[0].args;
+
+  const poolSigner = await ethers.getImpersonatedSigner(stakingPoolAddress);
+  await setEtherBalance(stakingPoolAddress, parseEther('1'));
+
+  const depositAmount = parseEther('100');
+  await tokenController.connect(poolSigner).depositStakedNXM(member.address, depositAmount, poolId);
+
+  const rewardsAmount = parseEther('20');
+  await tokenController.connect(poolSigner).mintStakingPoolNXMRewards(rewardsAmount, poolId);
+
+  return {
+    ...fixture,
+    poolId,
+    poolSigner,
+  };
+}
+
 describe('withdrawNXMStakeAndRewards', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { stakingPoolFactory, tokenController } = fixture.contracts;
-    const [member] = fixture.accounts.members;
-
-    const createPoolTx = await stakingPoolFactory.create(AddressZero);
-    const { events } = await createPoolTx.wait();
-    const { poolId, stakingPoolAddress } = events[0].args;
-
-    fixture.poolId = poolId;
-    fixture.poolSigner = await ethers.getImpersonatedSigner(stakingPoolAddress);
-    await setEtherBalance(stakingPoolAddress, parseEther('1'));
-
-    const depositAmount = parseEther('100');
-    await tokenController.connect(fixture.poolSigner).depositStakedNXM(member.address, depositAmount, fixture.poolId);
-
-    const rewardsAmount = parseEther('20');
-    await tokenController.connect(fixture.poolSigner).mintStakingPoolNXMRewards(rewardsAmount, fixture.poolId);
-  });
-
   it('reverts if caller is not staking pool contract', async function () {
+    const fixture = await loadWithdrawNXMStakeAndRewardsFixture();
     const { tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -41,6 +46,7 @@ describe('withdrawNXMStakeAndRewards', function () {
   });
 
   it('reduces staking pool deposits', async function () {
+    const fixture = await loadWithdrawNXMStakeAndRewardsFixture();
     const { tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -58,6 +64,7 @@ describe('withdrawNXMStakeAndRewards', function () {
   });
 
   it('reduces staking pool rewards', async function () {
+    const fixture = await loadWithdrawNXMStakeAndRewardsFixture();
     const { tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -75,6 +82,7 @@ describe('withdrawNXMStakeAndRewards', function () {
   });
 
   it('transfer nxm from the contract to the receiver', async function () {
+    const fixture = await loadWithdrawNXMStakeAndRewardsFixture();
     const { tokenController, nxm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 

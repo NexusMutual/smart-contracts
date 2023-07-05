@@ -7,12 +7,8 @@ const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 describe('withdrawPendingRewards', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts if system is paused', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController, master } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -24,6 +20,7 @@ describe('withdrawPendingRewards', function () {
   });
 
   it('withdraws assessment rewards when fromAssessment param is true', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController, assessment } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -54,6 +51,7 @@ describe('withdrawPendingRewards', function () {
   });
 
   it('withdraws governance rewards when fromGovernance param is true', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController, governance, nxm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -91,6 +89,7 @@ describe('withdrawPendingRewards', function () {
   });
 
   it('reverts if no withdrawable governance rewards', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 

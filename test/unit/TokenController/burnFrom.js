@@ -4,12 +4,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('burnFrom', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts if caller is not an internal contract', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
     const [member1] = fixture.accounts.members;
 
@@ -20,6 +16,7 @@ describe('burnFrom', function () {
   });
 
   it('burns nxm from member', async function () {
+    const fixture = await loadFixture(setup);
     const { tokenController, nxm } = fixture.contracts;
     const [internalContract] = fixture.accounts.internalContracts;
     const [member1] = fixture.accounts.members;

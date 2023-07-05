@@ -7,23 +7,27 @@ const setup = require('./setup');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
+async function loadMintStakingPoolNXMRewardsFixture() {
+  const fixture = await loadFixture(setup);
+  const { stakingPoolFactory } = fixture.contracts;
+
+  const createPoolTx = await stakingPoolFactory.create(AddressZero);
+  const { events } = await createPoolTx.wait();
+  const { poolId, stakingPoolAddress } = events[0].args;
+
+  const poolSigner = await ethers.getImpersonatedSigner(stakingPoolAddress);
+  await setEtherBalance(stakingPoolAddress, parseEther('1'));
+
+  return {
+    ...fixture,
+    poolId,
+    poolSigner,
+  };
+}
+
 describe('mintStakingPoolNXMRewards', function () {
-  let fixture;
-
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { stakingPoolFactory } = fixture.contracts;
-
-    const createPoolTx = await stakingPoolFactory.create(AddressZero);
-    const { events } = await createPoolTx.wait();
-    const { poolId, stakingPoolAddress } = events[0].args;
-
-    fixture.poolId = poolId;
-    fixture.poolSigner = await ethers.getImpersonatedSigner(stakingPoolAddress);
-    await setEtherBalance(stakingPoolAddress, parseEther('1'));
-  });
-
   it('reverts if caller is not pool contract', async function () {
+    const fixture = await loadMintStakingPoolNXMRewardsFixture();
     const { tokenController } = fixture.contracts;
 
     const amount = parseEther('10');
@@ -33,6 +37,7 @@ describe('mintStakingPoolNXMRewards', function () {
   });
 
   it('increases staking pool rewards', async function () {
+    const fixture = await loadMintStakingPoolNXMRewardsFixture();
     const { tokenController } = fixture.contracts;
 
     const initialStakingPoolNXMBalances = await tokenController.stakingPoolNXMBalances(fixture.poolId);
@@ -46,6 +51,7 @@ describe('mintStakingPoolNXMRewards', function () {
   });
 
   it('mints nxm to the contract', async function () {
+    const fixture = await loadMintStakingPoolNXMRewardsFixture();
     const { tokenController, nxm } = fixture.contracts;
 
     const initialTcBalance = await nxm.balanceOf(tokenController.address);

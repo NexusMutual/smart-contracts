@@ -8,6 +8,9 @@ import "../../interfaces/IStakingProducts.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
+import "../../interfaces/ICover.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/ICoverProducts.sol";
 
 contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   using SafeUintCast for uint;
@@ -37,6 +40,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   uint public constant ONE_NXM = 1 ether;
   uint public constant ALLOCATION_UNITS_PER_NXM = 100;
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
+
+  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   // pool id => product id => Product
   mapping(uint => mapping(uint => StakedProduct)) private _products;
@@ -118,7 +123,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   }
 
   function recalculateEffectiveWeightsForAllProducts(uint poolId) external {
-    uint productsCount = ICover(coverContract).productsCount();
+
+    uint productsCount = coverProducts().productsCount();
     IStakingPool stakingPool = getStakingPool(poolId);
 
     // initialize array for all possible products
@@ -191,7 +197,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       }
 
       // reverts if poolId is not allowed for any of these products
-      ICover(coverContract).requirePoolIsAllowed(productIds, poolId);
+      coverProducts().requirePoolIsAllowed(productIds, poolId);
 
       // reverts if any of the products do not exist
       (
@@ -599,8 +605,75 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   /* dependencies */
 
+  function tokenController() internal view returns (ITokenController) {
+    return ITokenController(internalContracts[uint(ID.TC)]);
+  }
+
+  function cover() internal view returns (ICover) {
+    return ICover(coverContract);
+  }
+
+  function coverProducts() internal view returns (ICoverProducts) {
+    return ICoverProducts(getInternalContractAddress(ID.CP));
+  }
+
   function changeDependentContractAddress() external {
     // none :)
+  }
+
+  function createStakingPool(
+    bool isPrivatePool,
+    uint initialPoolFee,
+    uint maxPoolFee,
+    ProductInitializationParams[] memory productInitParams,
+    string calldata ipfsDescriptionHash
+  ) external whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+
+    uint numProducts = productInitParams.length;
+
+    // override with initial price and check if pool is allowed
+    for (uint i = 0; i < numProducts; i++) {
+
+      if (productInitParams[i].targetPrice < GLOBAL_MIN_PRICE_RATIO) {
+        // revert TargetPriceBelowGlobalMinPriceRatio();
+      }
+
+      uint productId = productInitParams[i].productId;
+
+      ICoverProducts _coverProducts = coverProducts();
+      // if there is a list of allowed pools for this product - this pool didn't exist yet so it's not in it
+      if (_coverProducts.allowedPoolsCount(productId) > 0) {
+        // revert PoolNotAllowedForThisProduct(productId);
+      }
+
+      if (productId >= _coverProducts.productsCount()) {
+        // revert ProductDoesntExist();
+      }
+
+      Product memory product = _coverProducts.products(productId);
+
+      if (product.isDeprecated) {
+        // revert ProductDeprecated();
+      }
+
+      productInitParams[i].initialPrice = product.initialPriceRatio;
+    }
+
+    (uint poolId, address stakingPoolAddress) = IStakingPoolFactory(stakingPoolFactory).create(address(this));
+
+    IStakingPool(stakingPoolAddress).initialize(
+      isPrivatePool,
+      initialPoolFee,
+      maxPoolFee,
+      poolId,
+      ipfsDescriptionHash
+    );
+
+    tokenController().assignStakingPoolManager(poolId, msg.sender);
+
+    setInitialProducts(poolId, productInitParams);
+
+    return (poolId, stakingPoolAddress);
   }
 
 }

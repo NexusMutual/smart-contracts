@@ -114,4 +114,13 @@ contract CoverMockStakingProducts is IStakingProducts {
     revert('CoverMockStakingProducts: Not callable');
   }
 
+  function createStakingPool(
+    bool /*  isPrivatePool */,
+    uint /*  initialPoolFee */,
+    uint /* maxPoolFee */,
+    ProductInitializationParams[] memory /* productInitParams */,
+    string calldata /* ipfsDescriptionHash */
+  ) pure external returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+    revert('CoverMockStakingProducts: Not callable');
+  }
 }

@@ -6,6 +6,7 @@ import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
 import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/ICover.sol";
+import "../../interfaces/ICoverProducts.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
@@ -37,11 +38,13 @@ contract SPMockStakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   mapping(uint => Weights) public weights;
 
   address public immutable coverContract;
+  address public immutable coverProductsContract;
   address public immutable stakingPoolFactory;
 
-  constructor(address _coverContract, address _stakingPoolFactory) {
+  constructor(address _coverContract, address _stakingPoolFactory, address _coverProductsContract) {
     coverContract = _coverContract;
     stakingPoolFactory = _stakingPoolFactory;
+    coverProductsContract = _coverProductsContract;
   }
 
   function getStakingPool(uint poolId) internal view returns (IStakingPool stakingPoolAddress) {
@@ -129,7 +132,7 @@ contract SPMockStakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
       for (uint i = 0; i < numProducts; i++) {
         productIds[i] = params[i].productId;
-        if (!ICover(coverContract).isPoolAllowed(params[i].productId, poolId)) {
+        if (!ICoverProducts(coverProductsContract).isPoolAllowed(params[i].productId, poolId)) {
           revert ICover.PoolNotAllowedForThisProduct(params[i].productId);
         }
       }
@@ -502,6 +505,16 @@ contract SPMockStakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function changeDependentContractAddress() external {
     // none :)
+  }
+
+  function createStakingPool(
+    bool /*  isPrivatePool */,
+    uint /*  initialPoolFee */,
+    uint /* maxPoolFee */,
+    ProductInitializationParams[] memory /* productInitParams */,
+    string calldata /* ipfsDescriptionHash */
+  ) external pure returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+    revert('CoverMockStakingProducts: Not callable');
   }
 
 }

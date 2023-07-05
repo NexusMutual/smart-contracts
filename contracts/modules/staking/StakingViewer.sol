@@ -11,6 +11,7 @@ import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../libraries/UncheckedMath.sol";
+import "../../interfaces/ICoverProducts.sol";
 
 contract StakingViewer is Multicall {
   using UncheckedMath for uint;
@@ -93,6 +94,10 @@ contract StakingViewer is Multicall {
 
   function stakingProducts() internal view returns (IStakingProducts) {
     return IStakingProducts(master.contractAddresses('SP'));
+  }
+  
+  function coverProducts() internal view returns (ICoverProducts) {
+    return ICoverProducts(master.contractAddresses('CP'));
   }
 
   function stakingPool(uint poolId) public view returns (IStakingPool) {
@@ -181,7 +186,7 @@ contract StakingViewer is Multicall {
   function getPoolProducts(uint poolId) public view returns (StakingProduct[] memory products) {
 
     uint stakedProductsCount = 0;
-    uint coverProductCount = cover().productsCount();
+    uint coverProductCount = coverProducts().productsCount();
     StakingProduct[] memory stakedProductsQueue = new StakingProduct[](coverProductCount);
 
     for (uint i = 0; i < coverProductCount; i++) {

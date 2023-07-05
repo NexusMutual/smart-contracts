@@ -7,13 +7,9 @@ const { parseEther } = ethers.utils;
 const { percentageBigNumber } = require('../utils').tokenPrice;
 
 describe('getters', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   describe('getEthForNXM', function () {
     it('returns value as calculated by calculateEthForNXM', async function () {
+      const fixture = await loadFixture(setup);
       const { pool, mcr } = fixture;
       const [member] = fixture.accounts.members;
 
@@ -32,6 +28,7 @@ describe('getters', function () {
 
   describe('getNXMForEth', function () {
     it('returns value as calculated by calculateNXMForEth', async function () {
+      const fixture = await loadFixture(setup);
       const { pool, mcr } = fixture;
       const [member] = fixture.accounts.members;
 

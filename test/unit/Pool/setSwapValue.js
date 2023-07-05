@@ -7,12 +7,8 @@ const { BigNumber } = ethers;
 const { toBytes8 } = require('../utils').helpers;
 
 describe('setSwapValue', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('is only callabe by swap operator', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
     const {
       governanceContracts: [governance],
@@ -30,6 +26,7 @@ describe('setSwapValue', function () {
   });
 
   it('sets the swapValue value', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
     const {
       governanceContracts: [governance],

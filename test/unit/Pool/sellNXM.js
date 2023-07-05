@@ -10,12 +10,8 @@ const { setNextBlockBaseFee } = require('../utils').evm;
 const { percentageBigNumber } = require('../utils').tokenPrice;
 
 describe('sellNXM', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts on sell that decreases the MCR% below 100%', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr, token } = fixture;
     const {
       members: [memberOne],
@@ -37,6 +33,7 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sell worth more than 5% of MCReth', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr, token } = fixture;
     const {
       members: [memberOne],
@@ -60,6 +57,7 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sell that exceeds member balance', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr, token } = fixture;
     const {
       members: [memberOne],
@@ -82,6 +80,7 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sell from member that is a contract whose fallback function reverts', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr, token, tokenController, memberRoles } = fixture;
     const {
       nonMembers: [fundSource],
@@ -104,6 +103,7 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sell from member when ethOut < minEthOut', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr, token, tokenController } = fixture;
     const {
       members: [member],
@@ -128,6 +128,7 @@ describe('sellNXM', function () {
   });
 
   it('burns tokens from member in exchange for ETH worth 1% of mcrEth', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr, token, tokenController } = fixture;
     const {
       members: [member],

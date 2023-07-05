@@ -6,12 +6,8 @@ const setup = require('./setup');
 const { parseEther } = ethers.utils;
 
 describe('transferAsset', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('transfers added ERC20 asset to destination', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, otherAsset } = fixture;
     const {
       governanceContracts: [governance],
@@ -33,6 +29,7 @@ describe('transferAsset', function () {
   });
 
   it('transfers arbitrary ERC20 asset in the Pool to destination', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
     const {
       governanceContracts: [governance],
@@ -55,6 +52,7 @@ describe('transferAsset', function () {
   });
 
   it('transfers entire balance of arbitrary ERC20 asset in the Pool if amount < balance', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
     const {
       governanceContracts: [governance],
@@ -78,6 +76,7 @@ describe('transferAsset', function () {
   });
 
   it('reverts on asset transfer if asset maxAmount > 0', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, otherAsset } = fixture;
     const {
       governanceContracts: [governance],
@@ -93,6 +92,7 @@ describe('transferAsset', function () {
   });
 
   it('reverts on asset transfer if caller is not authorized to govern', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
     const {
       governanceContracts: [governance],

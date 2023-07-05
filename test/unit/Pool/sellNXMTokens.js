@@ -9,12 +9,8 @@ const { setNextBlockBaseFee } = require('../utils').evm;
 const { percentageBigNumber } = require('../utils').tokenPrice;
 
 describe('sellNXMTokens', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('burns tokens from member in exchange for ETH worth 1% of mcrEth', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr, token, tokenController } = fixture;
     const {
       members: [member],

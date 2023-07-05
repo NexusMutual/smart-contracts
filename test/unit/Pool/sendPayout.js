@@ -7,12 +7,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('sendPayout', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('transfers ERC20 payout to destination', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, dai } = fixture;
     const {
       internalContracts: [internal],
@@ -33,6 +29,7 @@ describe('sendPayout', function () {
   });
 
   it('transfers ETH payout to destination', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
     const {
       internalContracts: [internal],

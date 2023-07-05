@@ -8,12 +8,8 @@ const { parseEther } = ethers.utils;
 const { toBytes8 } = require('../utils').helpers;
 
 describe('setSwapDetailsLastSwapTime', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('set last swap time for asset', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, otherAsset } = fixture;
     const {
       governanceContracts: [governance],
@@ -35,6 +31,7 @@ describe('setSwapDetailsLastSwapTime', function () {
   });
 
   it('revers if not called by swap operator', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, otherAsset } = fixture;
     const {
       governanceContracts: [governance],

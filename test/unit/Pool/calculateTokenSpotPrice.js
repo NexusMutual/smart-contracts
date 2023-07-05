@@ -8,12 +8,8 @@ const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 
 describe('calculateTokenSpotPrice', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('calculates token spot price correctly', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
     const mcrEth = parseEther('162424');
@@ -28,6 +24,7 @@ describe('calculateTokenSpotPrice', function () {
   });
 
   it('calculates token spot price correctly for totalAssetValue = 0', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
     const mcrEth = parseEther('162424');
@@ -39,6 +36,7 @@ describe('calculateTokenSpotPrice', function () {
   });
 
   it('should revert when mcrEth = 0', async function () {
+    const fixture = await loadFixture(setup);
     const { pool } = fixture;
     const mcrEth = parseEther('0');
     const totalAssetValue = parseEther('200000');

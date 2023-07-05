@@ -11,12 +11,8 @@ const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 
 describe('getTokenPrice', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('calculates token price correctly in ETH', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr } = fixture;
 
     const initialAssetValue = BigNumber.from('210959924071154460525457');
@@ -31,6 +27,7 @@ describe('getTokenPrice', function () {
   });
 
   it('calculates token price correctly in DAI', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, chainlinkDAI, mcr } = fixture;
 
     const initialAssetValue = BigNumber.from('210959924071154460525457');
@@ -50,6 +47,7 @@ describe('getTokenPrice', function () {
   });
 
   it('reverts if asset is unknown', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, mcr, chainlinkDAI } = fixture;
 
     const initialAssetValue = BigNumber.from('210959924071154460525457');

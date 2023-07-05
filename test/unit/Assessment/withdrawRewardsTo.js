@@ -9,11 +9,8 @@ const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('withdrawRewardsTo', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('reverts if there are no withdrawable rewards', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment } = fixture.contracts;
     const [user] = fixture.accounts.members;
     await assessment.connect(user).stake(parseEther('10'));
@@ -23,6 +20,7 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('reverts when not called by the owner of the rewards ', async function () {
+    const fixture = await loadFixture(setup);
     const { nxm, assessment, individualClaims } = fixture.contracts;
     const [staker] = fixture.accounts.members;
 
@@ -47,6 +45,7 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('sends the rewards to any member address', async function () {
+    const fixture = await loadFixture(setup);
     const { nxm, assessment, individualClaims } = fixture.contracts;
     const [staker, otherMember] = fixture.accounts.members;
 
@@ -67,6 +66,7 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('withdraws rewards up to the last finalized assessment when an unfinalized assessment follows', async function () {
+    const fixture = await loadFixture(setup);
     const { nxm, assessment, individualClaims } = fixture.contracts;
     const [user] = fixture.accounts.members;
 
@@ -95,6 +95,7 @@ describe('withdrawRewardsTo', function () {
   });
 
   it("mints rewards based on user's stake at vote time", async function () {
+    const fixture = await loadFixture(setup);
     const { nxm, assessment, individualClaims } = fixture.contracts;
     const [user1, user2, user3] = fixture.accounts.members;
 
@@ -194,6 +195,7 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('reverts if the destination address is not a member', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user1] = fixture.accounts.members;
     const nonMember = '0xDECAF00000000000000000000000000000000000';
@@ -210,6 +212,7 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('should withdraw multiple rewards consecutively', async function () {
+    const fixture = await loadFixture(setup);
     const { nxm, assessment, individualClaims } = fixture.contracts;
     const [user1] = fixture.accounts.members;
 
@@ -253,6 +256,7 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('should withdraw multiple rewards in one tx', async function () {
+    const fixture = await loadFixture(setup);
     const { nxm, assessment, individualClaims } = fixture.contracts;
     const [user1] = fixture.accounts.members;
 
@@ -284,6 +288,7 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('emits RewardWithdrawn event with staker, destination and withdrawn amount', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [staker, user1] = fixture.accounts.members;
 
@@ -298,6 +303,7 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('reverts if system is paused', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, master, individualClaims } = fixture.contracts;
     const [staker] = fixture.accounts.members;
 
@@ -311,6 +317,7 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('reverts if assessment rewards already claimed', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims, nxm } = fixture.contracts;
     const [staker] = fixture.accounts.members;
 
@@ -337,6 +344,7 @@ describe('withdrawRewardsTo', function () {
   });
 
   it('withdraws zero amount if poll is not final', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims, nxm } = fixture.contracts;
     const [staker] = fixture.accounts.members;
 

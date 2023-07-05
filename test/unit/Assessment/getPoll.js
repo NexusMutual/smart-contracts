@@ -5,11 +5,8 @@ const { setup } = require('./setup');
 const { parseEther } = ethers.utils;
 
 describe('getPoll', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('returns the poll of a given assessment', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const user = fixture.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));

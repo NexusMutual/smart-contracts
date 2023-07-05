@@ -11,11 +11,8 @@ const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('withdrawRewards', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('reverts if there are no withdrawable rewards', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment } = fixture.contracts;
     const [user] = fixture.accounts.members;
     await assessment.connect(user).stake(parseEther('10'));
@@ -25,6 +22,7 @@ describe('withdrawRewards', function () {
   });
 
   it("allows any address to call but the reward is withdrawn to the staker's address", async function () {
+    const fixture = await loadFixture(setup);
     const { nxm, assessment, individualClaims } = fixture.contracts;
     const [staker] = fixture.accounts.members;
 
@@ -45,6 +43,7 @@ describe('withdrawRewards', function () {
   });
 
   it('withdraws rewards up to the last finalized assessment when an unfinalized assessment follows', async function () {
+    const fixture = await loadFixture(setup);
     const { nxm, assessment, individualClaims } = fixture.contracts;
     const [user] = fixture.accounts.members;
 
@@ -73,6 +72,7 @@ describe('withdrawRewards', function () {
   });
 
   it("mints rewards based on user's stake at vote time", async function () {
+    const fixture = await loadFixture(setup);
     const { nxm, assessment, individualClaims } = fixture.contracts;
     const [user1, user2, user3] = fixture.accounts.members;
 
@@ -172,6 +172,7 @@ describe('withdrawRewards', function () {
   });
 
   it('emits RewardWithdrawn event with staker and withdrawn amount', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [staker] = fixture.accounts.members;
 
@@ -186,6 +187,7 @@ describe('withdrawRewards', function () {
   });
 
   it('reverts if system is paused', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, master, individualClaims } = fixture.contracts;
     const [staker] = fixture.accounts.members;
 
@@ -197,6 +199,7 @@ describe('withdrawRewards', function () {
   });
 
   it('reverts if staker is not a member', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [staker] = fixture.accounts.members;
     const [nonMember] = fixture.accounts.nonMembers;
@@ -209,6 +212,7 @@ describe('withdrawRewards', function () {
   });
 
   it('reverts if assessment rewards already claimed', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims, nxm } = fixture.contracts;
     const [staker] = fixture.accounts.members;
 
@@ -235,6 +239,7 @@ describe('withdrawRewards', function () {
   });
 
   it('withdraws zero amount if poll is not final', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims, nxm } = fixture.contracts;
     const [staker] = fixture.accounts.members;
 
@@ -257,6 +262,7 @@ describe('withdrawRewards', function () {
   });
 
   it('should withdraw multiple rewards in one tx', async function () {
+    const fixture = await loadFixture(setup);
     const { nxm, assessment, individualClaims } = fixture.contracts;
     const [staker] = fixture.accounts.members;
 
@@ -286,6 +292,7 @@ describe('withdrawRewards', function () {
   });
 
   it('allows multiple members to correctly withdraw their rewards', async function () {
+    const fixture = await loadFixture(setup);
     const { nxm, assessment, individualClaims, memberRoles, tokenController } = fixture.contracts;
 
     // 5 members + 5 AB

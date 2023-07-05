@@ -8,11 +8,8 @@ const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('getRewards', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it("returns the pending rewards pro-rated to the user's stake", async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user1, user2] = fixture.accounts.members;
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
@@ -90,6 +87,7 @@ describe('getRewards', function () {
   });
 
   it('returns the withdrawable reward', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user] = fixture.accounts.members;
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
@@ -156,6 +154,7 @@ describe('getRewards', function () {
   });
 
   it('returns the index of the first vote on an assessment that has not ended or still in cooldown', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user] = fixture.accounts.members;
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();

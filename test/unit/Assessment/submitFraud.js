@@ -5,11 +5,8 @@ const { setup } = require('./setup');
 const { arrayify } = ethers.utils;
 
 describe('submitFraud', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('can only be called by governance contract', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment } = fixture.contracts;
     const [user] = fixture.accounts.members;
     const [governance] = fixture.accounts.governanceContracts;
@@ -23,6 +20,7 @@ describe('submitFraud', function () {
   });
 
   it('should store the merkle tree root', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
     const merkleTreeRoot = '0x1111111111111111111111111111111111111111111111111111111111111111';
@@ -33,6 +31,7 @@ describe('submitFraud', function () {
   });
 
   it('should emit the event FraudSubmitted', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
     const merkleTreeRoot = '0x1111111111111111111111111111111111111111111111111111111111111111';
@@ -43,6 +42,7 @@ describe('submitFraud', function () {
   });
 
   it("should allow adding another root even if the existing fraud tree hasn't been processed", async function () {
+    const fixture = await loadFixture(setup);
     const { assessment } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
     const merkleTreeRoot1 = '0x1111111111111111111111111111111111111111111111111111111111111111';

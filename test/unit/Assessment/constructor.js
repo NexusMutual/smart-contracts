@@ -4,11 +4,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
 describe('constructor', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('should set nxm address correctly', async function () {
+    const fixture = await loadFixture(setup);
     const { nxm } = fixture.contracts;
 
     const Assessment = await ethers.getContractFactory('Assessment');

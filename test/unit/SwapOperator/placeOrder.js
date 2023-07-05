@@ -21,7 +21,7 @@ async function loadPlaceOrderFixture() {
   const [controller, governance] = await ethers.getSigners();
 
   // Assign contracts (destructuring isn't working)
-  const { dai, stEth, weth, pool, swapOperator, cowSettlement, cowVaultRelayer } = fixture.contracts;
+  const { dai, stEth, weth, pool, swapOperator, cowSettlement } = fixture.contracts;
 
   // Read constants
   const MIN_TIME_BETWEEN_ORDERS = (await swapOperator.MIN_TIME_BETWEEN_ORDERS()).toNumber();
@@ -340,7 +340,7 @@ describe('placeOrder', function () {
 
   it('validates that pools eth balance is not brought below established minimum', async function () {
     const {
-      contracts: { swapOperator, dai, pool },
+      contracts: { swapOperator, pool },
       contractOrder,
       orderUID,
     } = await loadPlaceOrderFixture();

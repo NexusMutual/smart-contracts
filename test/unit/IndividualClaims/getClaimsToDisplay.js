@@ -16,11 +16,8 @@ const setTime = async timestamp => {
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('getClaimsToDisplay', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('aggregates and displays claims related data in a human-readable form', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover, assessment } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();

@@ -16,12 +16,8 @@ const setTime = async timestamp => {
 };
 
 describe('submitClaim', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts if the submission deposit is not sent', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -40,6 +36,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts if a payout on the same cover can be redeemed ', async function () {
+    const fixture = await loadFixture(setup);
     const { cover, assessment } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -60,6 +57,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts if a claim on the same cover is already being assessed', async function () {
+    const fixture = await loadFixture(setup);
     const { cover, assessment } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -82,6 +80,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts if covered product uses a claimMethod other than individual claims', async function () {
+    const fixture = await loadFixture(setup);
     const { cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -123,6 +122,7 @@ describe('submitClaim', function () {
   });
 
   it('allows claim submission if an accepted claim is not redeemed during the redemption period', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover, assessment } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -142,6 +142,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts if the submission deposit is less than the expected amount', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const coverAsset = ASSET.ETH;
@@ -164,6 +165,7 @@ describe('submitClaim', function () {
   });
 
   it('refunds any excess ETH sent as a submission deposit', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const coverAsset = ASSET.ETH;
@@ -226,6 +228,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts if the requested amount exceeds cover segment amount', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const coverAsset = ASSET.ETH;
@@ -256,6 +259,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts if the cover segment starts in the future', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const coverAsset = ASSET.ETH;
@@ -290,6 +294,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts if the cover segment is outside the grace period', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const coverAsset = ASSET.ETH;
@@ -331,6 +336,7 @@ describe('submitClaim', function () {
   });
 
   it('Assessment should use cover segment grace period and not product.gracePeriod', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const [boardMember] = fixture.accounts.advisoryBoardMembers;
@@ -376,6 +382,7 @@ describe('submitClaim', function () {
   });
 
   it('calls startAssessment and stores the returned assessmentId in the claim', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const coverAsset = ASSET.ETH;
@@ -408,6 +415,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts if called by non-member address', async function () {
+    const fixture = await loadFixture(setup);
     const { coverNFT, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const [nonMemberOwner] = fixture.accounts.nonMembers;
@@ -427,6 +435,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts if it is not called by cover owner or an approved address', async function () {
+    const fixture = await loadFixture(setup);
     const { cover, coverNFT } = fixture.contracts;
     const [coverOwner, otherMember] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -463,6 +472,7 @@ describe('submitClaim', function () {
   });
 
   it('emits MetadataSubmitted event with the provided ipfsMetadata when it is not an empty string', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover } = fixture.contracts;
     const ipfsMetadata = 'ipfsProofHashMock';
     const [coverOwner] = fixture.accounts.members;
@@ -481,6 +491,7 @@ describe('submitClaim', function () {
   });
 
   it("doesn't emit MetadataSubmitted event if ipfsMetadata is an empty string", async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -498,6 +509,7 @@ describe('submitClaim', function () {
   });
 
   it('stores the claimId in lastClaimSubmissionOnCover', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     await cover.createMockCover(
@@ -544,6 +556,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts if the system is paused', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover, master } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -565,6 +578,7 @@ describe('submitClaim', function () {
   });
 
   it('Should revert if the sender is not the NFT owner or an approved contract', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover } = fixture.contracts;
     const [coverOwner, coverNonOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -584,6 +598,7 @@ describe('submitClaim', function () {
   });
 
   it('Should transfer assessment deposit to pool', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover, pool } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -604,6 +619,7 @@ describe('submitClaim', function () {
   });
 
   it('Should emit ClaimSubmitted event', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -623,6 +639,7 @@ describe('submitClaim', function () {
   });
 
   it('should revert if ETH refund fails', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, memberRoles, cover, nxm: fallbackWillFailContract } = fixture.contracts;
     const coverAsset = ASSET.ETH;
     const segment = await getCoverSegment();
@@ -650,6 +667,7 @@ describe('submitClaim', function () {
   });
 
   it('should revert if assessment deposit to pool fails', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover, master } = fixture.contracts;
     const coverAsset = ASSET.ETH;
     const segment = await getCoverSegment();

@@ -12,12 +12,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('getAssetToEthRate', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('reverts if the asset is unknown', async function () {
+    const fixture = await loadFixture(setup);
     const { priceFeedOracle } = fixture;
     const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
     const newToken = await ERC20Mock.deploy();
@@ -27,12 +23,14 @@ describe('getAssetToEthRate', function () {
   });
 
   it('returns 1 ether if asset is ETH', async function () {
+    const fixture = await loadFixture(setup);
     const { priceFeedOracle } = fixture;
     const ethRate = await priceFeedOracle.getAssetToEthRate(ETH);
     expect(ethRate).to.eq(parseEther('1'));
   });
 
   it('returns latestAnswer from chainlink aggregator', async function () {
+    const fixture = await loadFixture(setup);
     const { dai, wbtc, daiAggregator, wbtcAggregator, priceFeedOracle } = fixture;
     await daiAggregator.setLatestAnswer(1111);
     await wbtcAggregator.setLatestAnswer(2222);

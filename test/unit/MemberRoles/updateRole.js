@@ -4,12 +4,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
 describe('updateRole', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should update a role of a member', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { advisoryBoardMembers, governanceContracts } = fixture.accounts;
     const [member] = advisoryBoardMembers;
@@ -18,6 +14,7 @@ describe('updateRole', function () {
   });
 
   it('should revert if role already active', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { advisoryBoardMembers, governanceContracts } = fixture.accounts;
     const [member] = advisoryBoardMembers;
@@ -26,6 +23,7 @@ describe('updateRole', function () {
       .reverted;
   });
   it('should revert if role already inactive', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { advisoryBoardMembers, governanceContracts } = fixture.accounts;
     const [member] = advisoryBoardMembers;

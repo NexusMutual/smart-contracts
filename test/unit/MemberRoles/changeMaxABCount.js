@@ -4,12 +4,9 @@ const { setup } = require('./setup');
 
 describe('changeMaxABCount', function () {
   const newMaxABCount = 2;
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
 
   it('should change max AB count', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { governanceContracts } = fixture.accounts;
 
@@ -22,6 +19,7 @@ describe('changeMaxABCount', function () {
   });
 
   it('should revert if the caller is not authorized to govern', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { defaultSender } = fixture.accounts;
 

@@ -4,12 +4,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
 describe('switchMembershipOf', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('changes membership to another address', async function () {
+    const fixture = await loadFixture(setup);
     const { master, memberRoles } = fixture.contracts;
     const [oldMember] = fixture.accounts.members;
     const [newMember] = fixture.accounts.nonMembers;
@@ -26,6 +22,7 @@ describe('switchMembershipOf', function () {
   });
 
   it('should revert if not called by internal contract', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const [oldMember] = fixture.accounts.members;
     const [newMember] = fixture.accounts.nonMembers;

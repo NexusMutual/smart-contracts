@@ -4,12 +4,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
 describe('swapABMember', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('removes address from AdvisoryBoard and add another one', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { advisoryBoardMembers, governanceContracts } = fixture.accounts;
     const [oldABMember, newABMember] = advisoryBoardMembers;
@@ -23,6 +19,7 @@ describe('swapABMember', function () {
   });
 
   it('should allow only authorized addresses to swap AB member', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const { advisoryBoardMembers } = fixture.accounts;
     const [oldABMember, newABMember] = advisoryBoardMembers;

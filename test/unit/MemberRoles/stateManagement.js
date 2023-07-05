@@ -8,20 +8,14 @@ const { Role } = require('../utils').constants;
 const { AddressZero } = ethers.constants;
 
 describe('state management', function () {
-  let membersCount;
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { members } = fixture.accounts;
-    membersCount = members.length + 1; // additional AB member
-  });
-
   it('should return all members', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const {
       members,
       advisoryBoardMembers: [abMember],
     } = fixture.accounts;
+    const membersCount = members.length + 1; // additional AB member
 
     const { memberArray } = await memberRoles.members(Role.Member);
     expect(memberArray.length).to.be.equal(membersCount);
@@ -30,6 +24,7 @@ describe('state management', function () {
   });
 
   it('should return all roles for a member', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -43,6 +38,7 @@ describe('state management', function () {
   });
 
   it('should return authorized address for role', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
 
     const authorizedAddress = await memberRoles.authorized(Role.Member);
@@ -50,8 +46,11 @@ describe('state management', function () {
   });
 
   it('should return length of all roles', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
+    const { members } = fixture.accounts;
     const actualLengths = await memberRoles.getMemberLengthForAllRoles();
+    const membersCount = members.length + 1; // additional AB member
 
     // unassigned length (0), ab array length, member array length
     const expectedLengths = [0, 1, membersCount];
@@ -60,12 +59,16 @@ describe('state management', function () {
   });
 
   it('should return members length', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
+    const { members } = fixture.accounts;
     const membersLength = await memberRoles.membersLength(Role.Member);
+    const membersCount = members.length + 1; // additional AB member
     expect(membersLength).to.be.equal(membersCount);
   });
 
   it('should return member at index', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const {
       members: [member],
@@ -77,11 +80,13 @@ describe('state management', function () {
   });
 
   it('should clear storage', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     await expect(memberRoles.storageCleanup([])).to.not.be.reverted;
   });
 
   it('should check the role of a member', async function () {
+    const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const {
       members: [member],

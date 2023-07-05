@@ -9,12 +9,8 @@ const { hex } = require('../utils').helpers;
 const { AddressZero } = ethers.constants;
 
 describe('changeDependentContractAddress', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should change authorized address for the role', async function () {
+    const fixture = await loadFixture(setup);
     const { quotationData, memberRoles, master } = fixture.contracts;
     const { governanceContracts, defaultSender } = fixture.accounts;
 

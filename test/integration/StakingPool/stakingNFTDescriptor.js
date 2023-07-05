@@ -13,67 +13,71 @@ const { AddressZero } = ethers.constants;
 
 const svgHeader = 'data:image/svg+xml;base64,';
 const jsonHeader = 'data:application/json;base64,';
+
+async function loadStakingNFTDescriptor() {
+  const fixture = await loadFixture(setup);
+  const {
+    members: [staker, coverBuyer],
+  } = fixture.accounts;
+  const { stakingPool1, cover } = fixture.contracts;
+  const stakingAmount = parseEther('170.091');
+  const block = await ethers.provider.getBlock('latest');
+  const firstTrancheId = calculateFirstTrancheId(block, 60, 30);
+
+  await stakingPool1.connect(staker).depositTo(
+    stakingAmount,
+    firstTrancheId,
+    0, // new position
+    AddressZero,
+  );
+
+  await stakingPool1.connect(staker).depositTo(
+    stakingAmount,
+    firstTrancheId + 1,
+    0, // new position
+    AddressZero,
+  );
+
+  const amount = parseEther(Math.random().toPrecision(15));
+  // buy eth cover (tokenId = 1)
+  await cover.connect(coverBuyer).buyCover(
+    {
+      coverId: 0, // new cover
+      owner: coverBuyer.address,
+      productId: 0,
+      coverAsset: ETH_ASSET_ID,
+      amount,
+      period: daysToSeconds(30),
+      maxPremiumInAsset: amount,
+      paymentAsset: ETH_ASSET_ID,
+      payWitNXM: false,
+      commissionRatio: parseEther('0'),
+      commissionDestination: AddressZero,
+      ipfsData: '',
+    },
+    [{ poolId: 1, coverAmountInAsset: amount.toString() }],
+    {
+      value: amount,
+    },
+  );
+
+  await stakingPool1.connect(staker).depositTo(
+    stakingAmount,
+    firstTrancheId + 2,
+    1, // edit
+    AddressZero,
+  );
+
+  return {
+    ...fixture,
+    coverAmount: amount,
+    stakingAmount,
+  };
+}
+
 describe('StakingNFTDescriptor', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const {
-      members: [staker, coverBuyer],
-    } = fixture.accounts;
-    const { stakingPool1, cover } = fixture.contracts;
-    const stakingAmount = parseEther('170.091');
-    const block = await ethers.provider.getBlock('latest');
-    const firstTrancheId = calculateFirstTrancheId(block, 60, 30);
-
-    await stakingPool1.connect(staker).depositTo(
-      stakingAmount,
-      firstTrancheId,
-      0, // new position
-      AddressZero,
-    );
-
-    await stakingPool1.connect(staker).depositTo(
-      stakingAmount,
-      firstTrancheId + 1,
-      0, // new position
-      AddressZero,
-    );
-
-    const amount = parseEther(Math.random().toPrecision(15));
-    // buy eth cover (tokenId = 1)
-    await cover.connect(coverBuyer).buyCover(
-      {
-        coverId: 0, // new cover
-        owner: coverBuyer.address,
-        productId: 0,
-        coverAsset: ETH_ASSET_ID,
-        amount,
-        period: daysToSeconds(30),
-        maxPremiumInAsset: amount,
-        paymentAsset: ETH_ASSET_ID,
-        payWitNXM: false,
-        commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
-        ipfsData: '',
-      },
-      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
-      {
-        value: amount,
-      },
-    );
-
-    await stakingPool1.connect(staker).depositTo(
-      stakingAmount,
-      firstTrancheId + 2,
-      1, // edit
-      AddressZero,
-    );
-
-    fixture.coverAmount = amount;
-    fixture.stakingAmount = stakingAmount;
-  });
-
   it('tokenURI json output should be formatted properly', async function () {
+    const fixture = await loadStakingNFTDescriptor();
     const { stakingNFT } = fixture.contracts;
     const uri = await stakingNFT.tokenURI(1);
 
@@ -96,6 +100,7 @@ describe('StakingNFTDescriptor', function () {
   });
 
   it('tokenURI with single deposit should be formatted properly', async function () {
+    const fixture = await loadStakingNFTDescriptor();
     const { stakingNFT } = fixture.contracts;
     const uri = await stakingNFT.tokenURI(2);
 
@@ -117,6 +122,7 @@ describe('StakingNFTDescriptor', function () {
   });
 
   it('should handle expired tokens', async function () {
+    const fixture = await loadStakingNFTDescriptor();
     const { stakingNFT } = fixture.contracts;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -135,6 +141,7 @@ describe('StakingNFTDescriptor', function () {
   });
 
   it('should parse random decimals properly', async function () {
+    const fixture = await loadStakingNFTDescriptor();
     const { stakingNFTDescriptor } = fixture.contracts;
 
     const promises = [];
@@ -152,6 +159,7 @@ describe('StakingNFTDescriptor', function () {
     await Promise.all(promises);
   });
   it('should parse decimals properly', async function () {
+    const fixture = await loadStakingNFTDescriptor();
     const { stakingNFTDescriptor } = fixture.contracts;
     expect(await stakingNFTDescriptor.toFloat(BigNumber.from('614955363329695600'), 18)).to.be.equal('0.61');
     expect('0.00').to.be.equal(await stakingNFTDescriptor.toFloat(1, 3));

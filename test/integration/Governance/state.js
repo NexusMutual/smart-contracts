@@ -5,11 +5,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
 describe('state', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('should get proposal', async function () {
+    const fixture = await loadFixture(setup);
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.members;
     const categoryId = 0;
@@ -27,6 +24,7 @@ describe('state', function () {
   });
 
   it('should get proposalDetails', async function () {
+    const fixture = await loadFixture(setup);
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.members;
     const categoryId = 0;
@@ -42,6 +40,7 @@ describe('state', function () {
   });
 
   it('should get followers', async function () {
+    const fixture = await loadFixture(setup);
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -50,6 +49,7 @@ describe('state', function () {
   });
 
   it('should get pending rewards', async function () {
+    const fixture = await loadFixture(setup);
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.members;
 

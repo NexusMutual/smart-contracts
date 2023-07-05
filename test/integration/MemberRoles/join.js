@@ -7,12 +7,8 @@ const setup = require('../setup');
 const TOTAL_ROLES = 4;
 
 describe('join', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('enrolls members by paying joining fee confirming KYC', async function () {
+    const fixture = await loadFixture(setup);
     const { mr: memberRoles, tk: token } = fixture.contracts;
 
     const [member1, member2, member3] = fixture.accounts.nonMembers;
@@ -42,6 +38,7 @@ describe('join', function () {
   });
 
   it('returns correct number of roles', async function () {
+    const fixture = await loadFixture(setup);
     const { mr: memberRoles } = fixture.contracts;
     const totalRoles = await memberRoles.totalRoles();
     expect(totalRoles).to.be.equal(TOTAL_ROLES);

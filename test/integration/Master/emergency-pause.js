@@ -14,23 +14,25 @@ const setup = require('../setup');
 
 const priceDenominator = '10000';
 
+async function loadEmergencyPauseFixture() {
+  const fixture = await loadFixture(setup);
+  const { tk } = fixture.contracts;
+  const [member1, member2, member3] = fixture.accounts.members;
+  await enrollClaimAssessor(fixture.contracts, [member1, member2, member3]);
+
+  const members = fixture.accounts.members.slice(0, 5);
+  const amount = parseEther('10000');
+
+  for (const member of members) {
+    await tk.connect(fixture.accounts.defaultSender).transfer(member.address, amount);
+  }
+
+  return fixture;
+}
+
 describe('emergency pause', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { tk } = fixture.contracts;
-    const [member1, member2, member3] = fixture.accounts.members;
-    await enrollClaimAssessor(fixture.contracts, [member1, member2, member3]);
-
-    const members = fixture.accounts.members.slice(0, 5);
-    const amount = parseEther('10000');
-
-    for (const member of members) {
-      await tk.connect(fixture.accounts.defaultSender).transfer(member.address, amount);
-    }
-  });
-
   it('should revert when not called by emergency admin', async function () {
+    const fixture = await loadEmergencyPauseFixture();
     const { master } = fixture.contracts;
     const [unknown] = fixture.accounts.nonMembers;
 
@@ -38,6 +40,7 @@ describe('emergency pause', function () {
   });
 
   it('should be able to start and end emergency pause', async function () {
+    const fixture = await loadEmergencyPauseFixture();
     const { master } = fixture.contracts;
     const emergencyAdmin = fixture.accounts.emergencyAdmin;
 
@@ -53,6 +56,7 @@ describe('emergency pause', function () {
   });
 
   it('should be able to perform proxy and replaceable upgrades during emergency pause', async function () {
+    const fixture = await loadEmergencyPauseFixture();
     const { master, gv, qd, lcr, spf, tk } = fixture.contracts;
     const emergencyAdmin = fixture.accounts.emergencyAdmin;
     const owner = fixture.accounts.defaultSender;
@@ -88,6 +92,7 @@ describe('emergency pause', function () {
   });
 
   it('should be able to perform master upgrade during emergency pause', async function () {
+    const fixture = await loadEmergencyPauseFixture();
     const { master, gv } = fixture.contracts;
     const emergencyAdmin = fixture.accounts.emergencyAdmin;
     const owner = fixture.accounts.defaultSender;
@@ -110,6 +115,7 @@ describe('emergency pause', function () {
   });
 
   it('stops token buys and sells', async function () {
+    const fixture = await loadEmergencyPauseFixture();
     const { master, p1: pool } = fixture.contracts;
     const emergencyAdmin = fixture.accounts.emergencyAdmin;
 
@@ -120,6 +126,7 @@ describe('emergency pause', function () {
   });
 
   it('stops cover purchases', async function () {
+    const fixture = await loadEmergencyPauseFixture();
     const { master, cover } = fixture.contracts;
     const emergencyAdmin = fixture.accounts.emergencyAdmin;
     const [member] = fixture.accounts.members;
@@ -157,6 +164,7 @@ describe('emergency pause', function () {
   });
 
   it('stops claim payouts on redeemPayout', async function () {
+    const fixture = await loadEmergencyPauseFixture();
     const { DEFAULT_PRODUCTS } = fixture;
     const { ci, cover, stakingPool1, as, master } = fixture.contracts;
     const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
@@ -216,6 +224,7 @@ describe('emergency pause', function () {
   });
 
   it('stops claim voting', async function () {
+    const fixture = await loadEmergencyPauseFixture();
     const { DEFAULT_PRODUCTS } = fixture;
     const { ci, cover, stakingPool1, as, master } = fixture.contracts;
     const [coverBuyer1, staker1] = fixture.accounts.members;

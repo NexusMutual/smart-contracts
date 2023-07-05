@@ -39,29 +39,31 @@ const ethCoverTemplate = {
   assessmentId: 0,
 };
 
-describe('Token price functions', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { tk, stakingPool1: stakingPool, tc } = fixture.contracts;
-    const [member1] = fixture.accounts.members;
+async function loadTokenPriceFixture() {
+  const fixture = await loadFixture(setup);
+  const { tk, stakingPool1: stakingPool, tc } = fixture.contracts;
+  const [member1] = fixture.accounts.members;
 
-    const operator = await tk.operator();
-    await setEtherBalance(operator, parseEther('10000000'));
-    await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
+  const operator = await tk.operator();
+  await setEtherBalance(operator, parseEther('10000000'));
+  await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
 
-    await tk.connect(member1).approve(tc.address, MaxUint256);
-    await stake({
-      stakingPool,
-      staker: member1,
-      productId: ethCoverTemplate.productId,
-      period: daysToSeconds(60),
-      gracePeriod: daysToSeconds(30),
-      amount: parseEther('1000000'),
-    });
+  await tk.connect(member1).approve(tc.address, MaxUint256);
+  await stake({
+    stakingPool,
+    staker: member1,
+    productId: ethCoverTemplate.productId,
+    period: daysToSeconds(60),
+    gracePeriod: daysToSeconds(30),
+    amount: parseEther('1000000'),
   });
 
+  return fixture;
+}
+
+describe('Token price functions', function () {
   it('getTokenPriceInAsset returns spot price for all assets', async function () {
+    const fixture = await loadTokenPriceFixture();
     const { p1: pool, mcr } = fixture.contracts;
     const { ethToDaiRate } = fixture.rates;
 
@@ -87,6 +89,7 @@ describe('Token price functions', function () {
   });
 
   it('getTokenPrice returns the price in ETH', async function () {
+    const fixture = await loadTokenPriceFixture();
     const { p1: pool, mcr } = fixture.contracts;
 
     const ethTokenPrice = await pool.getTokenPriceInAsset(0);
@@ -105,6 +108,7 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM reverts for non-member', async function () {
+    const fixture = await loadTokenPriceFixture();
     const { p1: pool } = fixture.contracts;
     const [nonMember1] = fixture.accounts.nonMembers;
 
@@ -115,6 +119,7 @@ describe('Token price functions', function () {
   });
 
   it('sellNXM reverts for non-member', async function () {
+    const fixture = await loadTokenPriceFixture();
     const { p1: pool } = fixture.contracts;
     const [nonMember1] = fixture.accounts.nonMembers;
 
@@ -122,6 +127,7 @@ describe('Token price functions', function () {
   });
 
   it('sellNXM reverts if member does not have enough NXM balance', async function () {
+    const fixture = await loadTokenPriceFixture();
     const { p1: pool, tk: token } = fixture.contracts;
 
     const [member1] = fixture.accounts.members;
@@ -133,6 +139,7 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM mints tokens for member in exchange of ETH', async function () {
+    const fixture = await loadTokenPriceFixture();
     const { tk: token, p1: pool, mcr } = fixture.contracts;
 
     const [member] = fixture.accounts.members;
@@ -158,6 +165,7 @@ describe('Token price functions', function () {
   });
 
   it('sellNXM burns tokens for member and returns ETH', async function () {
+    const fixture = await loadTokenPriceFixture();
     const { tk: token, p1: pool } = fixture.contracts;
 
     const [member] = fixture.accounts.members;
@@ -196,6 +204,7 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM token price reflects the latest lower MCR value (lower MCReth -> higher price)', async function () {
+    const fixture = await loadTokenPriceFixture();
     const { p1: pool, mcr } = fixture.contracts;
 
     const [member1] = fixture.accounts.members;
@@ -231,6 +240,7 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM token price reflects the latest higher MCR value (higher MCReth -> lower price)', async function () {
+    const fixture = await loadTokenPriceFixture();
     const { p1: pool, mcr, cover, stakingProducts } = fixture.contracts;
     const [member1, coverHolder] = fixture.accounts.members;
 
@@ -272,6 +282,7 @@ describe('Token price functions', function () {
   });
 
   it('getPoolValueInEth calculates pool value correctly', async function () {
+    const fixture = await loadTokenPriceFixture();
     const { p1: pool, dai } = fixture.contracts;
     const { daiToEthRate } = fixture.rates;
 
@@ -284,12 +295,14 @@ describe('Token price functions', function () {
   });
 
   it('getMCRRatio calculates MCR ratio correctly', async function () {
+    const fixture = await loadTokenPriceFixture();
     const { p1: pool } = fixture.contracts;
     const mcrRatio = await pool.getMCRRatio();
     assert.equal(mcrRatio.toString(), '22000'); // ETH + DAI + USDC
   });
 
   it('sellNXM reverts for member if tokens are locked for member vote', async function () {
+    const fixture = await loadTokenPriceFixture();
     // [todo] Use new contracts
     const { gv, master, p1: pool } = fixture.contracts;
 

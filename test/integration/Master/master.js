@@ -38,12 +38,8 @@ const encoder = (types, values) => {
 };
 
 describe('master', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('adds new replaceable contract which can execute internal functions', async function () {
+    const fixture = await loadFixture(setup);
     const { master, gv } = fixture.contracts;
 
     const code = hex('XX');
@@ -69,6 +65,7 @@ describe('master', function () {
   });
 
   it('adds new proxy contract which can execute internal functions', async function () {
+    const fixture = await loadFixture(setup);
     const { master, gv } = fixture.contracts;
 
     const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
@@ -95,6 +92,7 @@ describe('master', function () {
   });
 
   it('adds new proxy contract with a predictable address', async function () {
+    const fixture = await loadFixture(setup);
     const { master, gv } = fixture.contracts;
 
     const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
@@ -133,6 +131,7 @@ describe('master', function () {
   });
 
   it('replace contract', async function () {
+    const fixture = await loadFixture(setup);
     const { master, gv } = fixture.contracts;
 
     const code = hex('MC');
@@ -154,6 +153,7 @@ describe('master', function () {
   });
 
   it('upgrade proxy contract', async function () {
+    const fixture = await loadFixture(setup);
     const { master, gv, qd, lcr, spf, tk } = fixture.contracts;
 
     const code = hex('TC');
@@ -183,6 +183,7 @@ describe('master', function () {
   });
 
   it('upgrade proxies and replaceables', async function () {
+    const fixture = await loadFixture(setup);
     const { master, gv, qd, lcr, spf, tk } = fixture.contracts;
 
     const mcrCode = hex('MC');
@@ -218,6 +219,7 @@ describe('master', function () {
   });
 
   it('upgrades master', async function () {
+    const fixture = await loadFixture(setup);
     const { master, gv } = fixture.contracts;
 
     const NXMaster = await ethers.getContractFactory('NXMaster');
@@ -236,6 +238,7 @@ describe('master', function () {
   });
 
   it('upgrades all contracts', async function () {
+    const fixture = await loadFixture(setup);
     const { master, gv, dai, priceFeedOracle, p1, tk, qd, lcr, spf, cover, productsV1, coverNFT } = fixture.contracts;
     const owner = fixture.accounts.defaultSender;
 
@@ -311,6 +314,7 @@ describe('master', function () {
   });
 
   it('upgrades Governance, TokenController and MemberRoles 2 times in a row', async function () {
+    const fixture = await loadFixture(setup);
     const { master, gv, qd, lcr, spf, tk } = fixture.contracts;
 
     const TokenController = await ethers.getContractFactory('TokenController');
@@ -359,6 +363,7 @@ describe('master', function () {
   });
 
   it('removes newly added replaceable contract and existing contract', async function () {
+    const fixture = await loadFixture(setup);
     const { master, gv } = fixture.contracts;
 
     const code = hex('RE');

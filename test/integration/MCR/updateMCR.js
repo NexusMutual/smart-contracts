@@ -34,37 +34,39 @@ const increaseTime = async interval => {
   await mineNextBlock();
 };
 
-describe('updateMCR', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { tk, stakingPool1: stakingPool, tc, mcr } = fixture.contracts;
-    const [member1] = fixture.accounts.members;
+async function loadUpdateMCRFixture() {
+  const fixture = await loadFixture(setup);
+  const { tk, stakingPool1: stakingPool, tc, mcr } = fixture.contracts;
+  const [member1] = fixture.accounts.members;
 
-    const operator = await tk.operator();
-    await setEtherBalance(operator, parseEther('10000000'));
+  const operator = await tk.operator();
+  await setEtherBalance(operator, parseEther('10000000'));
 
-    await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
-    await tk.connect(member1).approve(tc.address, MaxUint256);
-    await stake({
-      stakingPool,
-      staker: member1,
-      productId: newEthCoverTemplate.productId,
-      period: daysToSeconds(60),
-      gracePeriod: daysToSeconds(90),
-      amount: parseEther('1000000'),
-    });
-    await stake({
-      stakingPool,
-      staker: member1,
-      productId: 2,
-      period: daysToSeconds(60),
-      gracePeriod: daysToSeconds(90),
-    });
-    expect(await mcr.getAllSumAssurance()).to.be.equal(0);
+  await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
+  await tk.connect(member1).approve(tc.address, MaxUint256);
+  await stake({
+    stakingPool,
+    staker: member1,
+    productId: newEthCoverTemplate.productId,
+    period: daysToSeconds(60),
+    gracePeriod: daysToSeconds(90),
+    amount: parseEther('1000000'),
   });
+  await stake({
+    stakingPool,
+    staker: member1,
+    productId: 2,
+    period: daysToSeconds(60),
+    gracePeriod: daysToSeconds(90),
+  });
+  expect(await mcr.getAllSumAssurance()).to.be.equal(0);
 
+  return fixture;
+}
+
+describe('updateMCR', function () {
   it('buyNXM does not trigger updateMCR if minUpdateTime has not passed', async function () {
+    const fixture = await loadUpdateMCRFixture();
     const { p1: pool, mcr } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -78,6 +80,7 @@ describe('updateMCR', function () {
   });
 
   it('sellNXM does not trigger updateMCR if minUpdateTime has not passed', async function () {
+    const fixture = await loadUpdateMCRFixture();
     const { p1: pool, mcr } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -89,6 +92,7 @@ describe('updateMCR', function () {
   });
 
   it('buyNXM triggers updateMCR if minUpdateTime passes, increases mcrFloor, decreases desiredMCR', async function () {
+    const fixture = await loadUpdateMCRFixture();
     const { p1: pool, mcr } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -121,6 +125,7 @@ describe('updateMCR', function () {
   });
 
   it('sellNXM triggers updateMCR if minUpdateTime passes, increases mcrFloor, decreases desiredMCR', async function () {
+    const fixture = await loadUpdateMCRFixture();
     const { p1: pool, mcr } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -151,6 +156,7 @@ describe('updateMCR', function () {
   });
 
   it('increases mcrFloor and decreases desiredMCR (0 sumAssured) if minUpdateTime has passed', async function () {
+    const fixture = await loadUpdateMCRFixture();
     const { mcr } = fixture.contracts;
 
     const lastUpdateTimeBefore = await mcr.lastUpdateTime();
@@ -179,6 +185,7 @@ describe('updateMCR', function () {
   });
 
   it.skip('increases desiredMCR if totalSumAssured is high enough', async function () {
+    const fixture = await loadUpdateMCRFixture();
     const { mcr, cover } = fixture.contracts;
 
     const [coverHolder] = fixture.accounts.members;
@@ -227,6 +234,7 @@ describe('updateMCR', function () {
 
   // eslint-disable-next-line max-len
   it('increases desiredMCR if totalSumAssured is high enough and subsequently decreases to mcrFloor it when totalSumAssured falls to 0', async function () {
+    const fixture = await loadUpdateMCRFixture();
     const { mcr, cover } = fixture.contracts;
     const [coverHolder] = fixture.accounts.members;
 
@@ -266,6 +274,7 @@ describe('updateMCR', function () {
   });
 
   it('increases mcrFloor by 1% after 2 days pass', async function () {
+    const fixture = await loadUpdateMCRFixture();
     const { mcr } = fixture.contracts;
 
     const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
@@ -281,6 +290,7 @@ describe('updateMCR', function () {
   });
 
   it.skip('claim payout triggers updateMCR and sets desiredMCR to mcrFloor (sumAssured = 0)', async function () {
+    const fixture = await loadUpdateMCRFixture();
     // [todo] test with new contracts that call sendPayout
     const { mcr, ic: claims, as, cover } = fixture.contracts;
     const [coverHolder, member1] = fixture.accounts.members;
@@ -330,6 +340,7 @@ describe('updateMCR', function () {
   });
 
   it.skip('incidents.redeemPayout triggers updateMCR', async function () {
+    const fixture = await loadUpdateMCRFixture();
     // [todo] test with new contracts that call sendPayout
     const { ybETH, dai, as, cover, yc, gv, mcr } = fixture.contracts;
     const [coverHolder] = fixture.accounts.members;

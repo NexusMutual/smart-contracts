@@ -8,12 +8,8 @@ const { BigNumber } = ethers;
 const { AddressZero } = ethers.constants;
 
 describe('StakingNFT', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should verify that constructor variables were set correctly', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     expect(await stakingNFT.name()).to.be.eq('NexusMutual Staking');
     expect(await stakingNFT.symbol()).to.be.eq('NXMS');
@@ -21,6 +17,7 @@ describe('StakingNFT', function () {
   });
 
   it('should revert if changing operator from non operator account', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     const [member] = fixture.accounts.members;
     await expect(stakingNFT.connect(member).changeOperator(member.address)).to.be.revertedWithCustomError(
@@ -30,6 +27,7 @@ describe('StakingNFT', function () {
   });
 
   it('should revert if changing operator to zero address account', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     await expect(stakingNFT.connect(fixture.coverSigner).changeOperator(AddressZero)).to.be.revertedWithCustomError(
       stakingNFT,
@@ -38,6 +36,7 @@ describe('StakingNFT', function () {
   });
 
   it('should revert if changing nft descriptor from non operator account', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     const [member] = fixture.accounts.members;
     await expect(stakingNFT.connect(member).changeNFTDescriptor(member.address)).to.be.revertedWithCustomError(
@@ -47,6 +46,7 @@ describe('StakingNFT', function () {
   });
 
   it('should revert if changing nft descriptor to zero address account', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     await expect(
       stakingNFT.connect(fixture.coverSigner).changeNFTDescriptor(AddressZero),
@@ -54,21 +54,25 @@ describe('StakingNFT', function () {
   });
 
   it('should revert when calling tokenURI for unminted token', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     await expect(stakingNFT.tokenURI(0)).to.be.revertedWithCustomError(stakingNFT, 'NotMinted');
   });
 
   it('should revert when reading tokenInfo for a non-existent token', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     await expect(stakingNFT.tokenInfo(0)).to.be.revertedWithCustomError(stakingNFT, 'NotMinted');
   });
 
   it('should revert if calling stakingPoolOf for a non existent token', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     await expect(stakingNFT.stakingPoolOf(0)).to.be.revertedWithCustomError(stakingNFT, 'NotMinted');
   });
 
   it('should fail to mint to zero address', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     await expect(
       stakingNFT.connect(fixture.stakingPoolSigner).mint(fixture.poolId, ethers.constants.AddressZero),
@@ -76,6 +80,7 @@ describe('StakingNFT', function () {
   });
 
   it('should fail to mint - OnlyStakingPool()', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     const [member] = fixture.accounts.members;
     await expect(stakingNFT.connect(member).mint(fixture.poolId, member.address)).to.be.revertedWithCustomError(
@@ -85,6 +90,7 @@ describe('StakingNFT', function () {
   });
 
   it('should successfully mint', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     const [nftOwner] = fixture.accounts.members;
     const tokenId = 1;
@@ -98,6 +104,7 @@ describe('StakingNFT', function () {
   });
 
   it('should return success for isApproveOrOwner() - owner == sender', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     const [operator, nftOwner] = fixture.accounts.members;
     await stakingNFT.connect(fixture.stakingPoolSigner).mint(fixture.poolId, nftOwner.address);
@@ -106,6 +113,7 @@ describe('StakingNFT', function () {
   });
 
   it('should increment totalSupply properly', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     const [nftOwner] = fixture.accounts.members;
     for (let i = 0; i < 10; i++) {
@@ -122,6 +130,7 @@ describe('StakingNFT', function () {
   });
 
   it('should revert when msg.sender is not the owner of the token - NOT_AUTHORIZED', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     const [owner, nonOwner] = fixture.accounts.members;
     await stakingNFT.connect(fixture.stakingPoolSigner).mint(fixture.poolId, owner.address);
@@ -132,6 +141,7 @@ describe('StakingNFT', function () {
   });
 
   it('should revert if reading balance of 0 address - NotMinted', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     await expect(stakingNFT.balanceOf(ethers.constants.AddressZero)).to.be.revertedWithCustomError(
       stakingNFT,
@@ -140,6 +150,7 @@ describe('StakingNFT', function () {
   });
 
   it('should revert if trying to transferFrom a token from a non-owner - WrongFrom', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     const [nonOwner, owner] = fixture.accounts.members;
     await stakingNFT.connect(fixture.stakingPoolSigner).mint(fixture.poolId, owner.address);
@@ -150,6 +161,7 @@ describe('StakingNFT', function () {
   });
 
   it('should revert if trying to transferFrom a token to a zero address - ZeroAddress', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     const [owner] = fixture.accounts.members;
     await stakingNFT.connect(fixture.stakingPoolSigner).mint(fixture.poolId, owner.address);
@@ -160,6 +172,7 @@ describe('StakingNFT', function () {
   });
 
   it('should revert if not approved to transferFrom a token - NOT_AUTHORIZED', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     const [owner, nonOwner] = fixture.accounts.members;
     await stakingNFT.connect(fixture.stakingPoolSigner).mint(fixture.poolId, owner.address);
@@ -169,6 +182,7 @@ describe('StakingNFT', function () {
   });
 
   it('should transferFrom a token', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     const [owner, nonOwner] = fixture.accounts.members;
     await stakingNFT.connect(fixture.stakingPoolSigner).mint(fixture.poolId, owner.address);
@@ -178,6 +192,7 @@ describe('StakingNFT', function () {
   });
 
   it('should fail to safeTransfer with bytes to a contract without onERC721Received function', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT, cover } = fixture.contracts;
     const [owner] = fixture.accounts.members;
     await stakingNFT.connect(fixture.stakingPoolSigner).mint(fixture.poolId, owner.address);
@@ -195,6 +210,7 @@ describe('StakingNFT', function () {
   });
 
   it('should fail to safeTransfer to a contract that does not implement onERC721Received', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT, cover } = fixture.contracts;
     const [owner] = fixture.accounts.members;
     await stakingNFT.connect(fixture.stakingPoolSigner).mint(fixture.poolId, owner.address);
@@ -207,6 +223,7 @@ describe('StakingNFT', function () {
   });
 
   it('should support erc721 and ERC165 interfaces', async function () {
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     // 0x80ac58cd // ERC165 Interface ID for ERC721
     expect(await stakingNFT.supportsInterface('0x80ac58cd')).to.be.equal(true);

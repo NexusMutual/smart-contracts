@@ -5,11 +5,8 @@ const { setup } = require('./setup');
 const { parseEther } = ethers.utils;
 
 describe('getAssessmentsCount', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('returns the total number of claims', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     {
       const count = await assessment.getAssessmentsCount();

@@ -7,11 +7,8 @@ const { parseEther } = ethers.utils;
 const { Zero } = ethers.constants;
 
 describe('stake', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it("increases the sender's stake", async function () {
+    const fixture = await loadFixture(setup);
     const { assessment } = fixture.contracts;
     const user = fixture.accounts.members[0];
     let stake = { amount: Zero };
@@ -32,6 +29,7 @@ describe('stake', function () {
   });
 
   it('transfers the staked NXM to the assessment contract', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, nxm } = fixture.contracts;
     const user = fixture.accounts.members[0];
     {
@@ -48,6 +46,7 @@ describe('stake', function () {
   });
 
   it('reverts if system is paused', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, master } = fixture.contracts;
     await master.setEmergencyPause(true);
 
@@ -55,6 +54,7 @@ describe('stake', function () {
   });
 
   it('emits StakeDeposited event with staker and amount', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment } = fixture.contracts;
     const [user] = fixture.accounts.members;
 

@@ -8,11 +8,8 @@ const { Zero } = ethers.constants;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('startAssessment', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('returns the index of the newly created assessment', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, yieldTokenIncidents } = fixture.contracts;
     const [member] = fixture.accounts.members;
     const [governance] = fixture.accounts.governanceContracts;
@@ -55,6 +52,7 @@ describe('startAssessment', function () {
   });
 
   it('stores assessmentDepositInETH and totalRewardInNXM', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, yieldTokenIncidents, assessment } = fixture.contracts;
     const [member] = fixture.accounts.members;
     const [governance] = fixture.accounts.governanceContracts;
@@ -82,6 +80,7 @@ describe('startAssessment', function () {
   });
 
   it('stores a poll that starts at the block timestamp and ends after minVotingPeriodInDays', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, yieldTokenIncidents, assessment } = fixture.contracts;
     const [member] = fixture.accounts.members;
     const [governance] = fixture.accounts.governanceContracts;
@@ -110,6 +109,7 @@ describe('startAssessment', function () {
   });
 
   it('reverts if caller is not an internal contract', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment } = fixture.contracts;
     const [member] = fixture.accounts.members;
 

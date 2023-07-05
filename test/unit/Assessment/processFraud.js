@@ -9,11 +9,8 @@ const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('processFraud', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('reverts if the proof is invalid', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const governance = fixture.accounts.governanceContracts[0];
     const [fraudulentMember, honestMember] = fixture.accounts.members;
@@ -81,6 +78,7 @@ describe('processFraud', function () {
   });
 
   it("cancels staker's votes from last vote where reward was withdrawn to lastFraudulentVoteIndex", async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const governance = fixture.accounts.governanceContracts[0];
     const [fraudulentMember, otherMember1, otherMember2] = fixture.accounts.members;
@@ -179,6 +177,7 @@ describe('processFraud', function () {
   });
 
   it("cancels the staker's votes in batches", async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const governance = fixture.accounts.governanceContracts[0];
     const [fraudulentMember] = fixture.accounts.members;
@@ -282,6 +281,7 @@ describe('processFraud', function () {
   });
 
   it('skips polls that are outside the cooldown period', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const governance = fixture.accounts.governanceContracts[0];
     const [fraudulentMember, otherMember1, otherMember2] = fixture.accounts.members;
@@ -347,6 +347,7 @@ describe('processFraud', function () {
   });
 
   it('extends the poll voting period by a maximum of 24h if it ends in less than 24h', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const governance = fixture.accounts.governanceContracts[0];
     const [fraudulentMember] = fixture.accounts.members;
@@ -387,6 +388,7 @@ describe('processFraud', function () {
   });
 
   it('emits a FraudProcessed event for every cancelled vote', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const governance = fixture.accounts.governanceContracts[0];
     const [fraudulentMember1, fraudulentMember2] = fixture.accounts.members;
@@ -481,6 +483,7 @@ describe('processFraud', function () {
   });
 
   it("burns the fraudulent member's stake by burnAmount", async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const governance = fixture.accounts.governanceContracts[0];
     const [fraudulentMember] = fixture.accounts.members;
@@ -523,6 +526,7 @@ describe('processFraud', function () {
   });
 
   it('allows vote correction without burning stake', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const governance = fixture.accounts.governanceContracts[0];
     const [fraudulentMember] = fixture.accounts.members;
@@ -566,6 +570,7 @@ describe('processFraud', function () {
   });
 
   it("skips burning if the provided fraudCount doesn't match the staker's fraudCount", async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const governance = fixture.accounts.governanceContracts[0];
     const [fraudulentMember] = fixture.accounts.members;
@@ -658,6 +663,7 @@ describe('processFraud', function () {
   });
 
   it("increases the fraudulent staker's fraudCount on the first call", async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const governance = fixture.accounts.governanceContracts[0];
     const [fraudulentMember] = fixture.accounts.members;
@@ -721,6 +727,7 @@ describe('processFraud', function () {
   });
 
   it('sets rewardsWithdrawableFromIndex to the last cancelled vote', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const governance = fixture.accounts.governanceContracts[0];
     const [fraudulentMember] = fixture.accounts.members;
@@ -784,6 +791,7 @@ describe('processFraud', function () {
   });
 
   it('reverts if system is paused', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, master } = fixture.contracts;
     const [fraudulentMember] = fixture.accounts.members;
 
@@ -803,6 +811,7 @@ describe('processFraud', function () {
   });
 
   it('allows to set voteBatchSize to 0', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const governance = fixture.accounts.governanceContracts[0];
     const [fraudulentMember] = fixture.accounts.members;
@@ -856,6 +865,7 @@ describe('processFraud', function () {
   });
 
   it('should do nothing when trying to process an already processed fraud', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const governance = fixture.accounts.governanceContracts[0];
     const [fraudulentMember] = fixture.accounts.members;
@@ -932,6 +942,7 @@ describe('processFraud', function () {
   });
 
   it('burn all fraudulent member rewards not claimed up to the latest assessment revoked', async function () {
+    const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const governance = fixture.accounts.governanceContracts[0];
     const [fraudulentMember] = fixture.accounts.members;

@@ -5,12 +5,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('views', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('getCoverSegments returns segments', async function () {
+    const fixture = await loadFixture(setup);
     const { cover, coverViewer } = fixture;
 
     const coverSegment = {

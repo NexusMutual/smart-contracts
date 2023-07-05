@@ -8,12 +8,8 @@ const {
 } = ethers;
 
 describe('swapEnzymeVaultShareForETH', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('should revert when called while the system is paused', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, master, enzymeV4Vault, swapOperator } = fixture.contracts;
     const governance = fixture.accounts.governanceAccounts[0];
 
@@ -31,6 +27,7 @@ describe('swapEnzymeVaultShareForETH', function () {
   });
 
   it('should revert when called by an address that is not swap controller', async function () {
+    const fixture = await loadFixture(setup);
     const { swapOperator } = fixture.contracts;
 
     const nobody = fixture.accounts.nonMembers[0];
@@ -41,6 +38,7 @@ describe('swapEnzymeVaultShareForETH', function () {
   });
 
   it('should revert when asset is not enabled', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, swapOperator, enzymeV4Vault } = fixture.contracts;
     const governance = fixture.accounts.governanceAccounts[0];
 
@@ -57,6 +55,7 @@ describe('swapEnzymeVaultShareForETH', function () {
   });
 
   it('should revert if Enzyme does not sent enough shares back', async function () {
+    const fixture = await loadFixture(setup);
     const { swapOperator, enzymeV4Comptroller, pool, enzymeV4Vault } = fixture.contracts;
 
     const governance = fixture.accounts.governanceAccounts[0];
@@ -81,6 +80,7 @@ describe('swapEnzymeVaultShareForETH', function () {
   });
 
   it('should revert if tokenBalanceAfter <  min', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, swapOperator, enzymeV4Vault } = fixture.contracts;
 
     const governance = fixture.accounts.governanceAccounts[0];
@@ -102,6 +102,7 @@ describe('swapEnzymeVaultShareForETH', function () {
   });
 
   it('should swap asset for eth and emit a Swapped event with correct values', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, swapOperator, enzymeV4Vault } = fixture.contracts;
 
     const governance = fixture.accounts.governanceAccounts[0];
@@ -135,6 +136,7 @@ describe('swapEnzymeVaultShareForETH', function () {
   });
 
   it('reverts if another balanceBefore <= max', async function () {
+    const fixture = await loadFixture(setup);
     const { pool, swapOperator, enzymeV4Vault } = fixture.contracts;
 
     const governance = fixture.accounts.governanceAccounts[0];

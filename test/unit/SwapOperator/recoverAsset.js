@@ -7,12 +7,8 @@ const {
 } = ethers;
 
 describe('recoverAsset', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
-
   it('recovers enzyme vault shares', async function () {
+    const fixture = await loadFixture(setup);
     const { swapOperator, enzymeV4Vault, pool } = fixture.contracts;
 
     const [governance] = fixture.accounts.governanceAccounts;
@@ -39,6 +35,7 @@ describe('recoverAsset', function () {
   });
 
   it('recovers arbitrary unknown asset', async function () {
+    const fixture = await loadFixture(setup);
     const { swapOperator } = fixture.contracts;
 
     const [receiver] = fixture.accounts.nonMembers;
@@ -57,6 +54,7 @@ describe('recoverAsset', function () {
   });
 
   it('recovers ETH', async function () {
+    const fixture = await loadFixture(setup);
     const { swapOperator, pool } = fixture.contracts;
 
     const [receiver] = fixture.accounts.nonMembers;

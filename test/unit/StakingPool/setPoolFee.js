@@ -41,25 +41,27 @@ const initializeParams = {
   ipfsDescriptionHash: 'Description Hash',
 };
 
+async function loadSetPoolFeeFixture() {
+  const fixture = await loadFixture(setup);
+  const { stakingPool, stakingProducts, cover, tokenController } = fixture;
+  const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
+  const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+  const manager = fixture.accounts.defaultSender;
+
+  await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
+  await stakingPool
+    .connect(coverSigner)
+    .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+  await tokenController.setStakingPoolManager(poolId, manager.address);
+
+  await stakingProducts.connect(fixture.coverSigner).setInitialProducts(poolId, products);
+
+  return fixture;
+}
+
 describe('setPoolFee', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { stakingPool, stakingProducts, cover, tokenController } = fixture;
-    const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
-    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
-    const manager = fixture.accounts.defaultSender;
-
-    await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
-    await stakingPool
-      .connect(coverSigner)
-      .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
-    await tokenController.setStakingPoolManager(poolId, manager.address);
-
-    await stakingProducts.connect(fixture.coverSigner).setInitialProducts(poolId, products);
-  });
-
   it('reverts if manager is not the caller', async function () {
+    const fixture = await loadSetPoolFeeFixture();
     const {
       stakingPool,
       accounts: {
@@ -76,6 +78,7 @@ describe('setPoolFee', function () {
   });
 
   it('reverts if new fee exceeds max pool fee', async function () {
+    const fixture = await loadSetPoolFeeFixture();
     const { stakingPool } = fixture;
     const manager = fixture.accounts.defaultSender;
 
@@ -89,6 +92,7 @@ describe('setPoolFee', function () {
   });
 
   it('updates pool fee', async function () {
+    const fixture = await loadSetPoolFeeFixture();
     const { stakingPool } = fixture;
     const manager = fixture.accounts.defaultSender;
 
@@ -103,6 +107,7 @@ describe('setPoolFee', function () {
   });
 
   it('updates pool manager rewards', async function () {
+    const fixture = await loadSetPoolFeeFixture();
     const { stakingPool, cover } = fixture;
     const manager = fixture.accounts.defaultSender;
     const [user] = fixture.accounts.members;
@@ -148,6 +153,7 @@ describe('setPoolFee', function () {
   });
 
   it('emits and PoolFeeChanged', async function () {
+    const fixture = await loadSetPoolFeeFixture();
     const { stakingPool } = fixture;
     const manager = fixture.accounts.defaultSender;
 

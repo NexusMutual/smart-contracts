@@ -39,36 +39,37 @@ const managerDepositId = 0;
 const DEFAULT_PERIOD = daysToSeconds(30);
 const DEFAULT_GRACE_PERIOD = daysToSeconds(30);
 
+async function loadDepositToFixture() {
+  const fixture = await loadFixture(setup);
+  const { stakingPool, stakingProducts, cover, tokenController } = fixture;
+  const { defaultSender: manager } = fixture.accounts;
+  const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
+
+  const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+  await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
+  fixture.coverSigner = coverSigner;
+
+  await stakingPool.connect(coverSigner).initialize(
+    false, // isPrivatePool
+    initialPoolFee,
+    maxPoolFee,
+    poolId,
+    ipfsDescriptionHash,
+  );
+  await tokenController.setStakingPoolManager(poolId, manager.address);
+
+  await stakingProducts.connect(fixture.coverSigner).setInitialProducts(poolId, products);
+
+  // Move to the beginning of the next tranche
+  const { firstActiveTrancheId: trancheId } = await getTranches();
+  await setTime((trancheId + 1) * TRANCHE_DURATION);
+
+  return fixture;
+}
+
 describe('depositTo', function () {
-  let fixture;
-
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-    const { stakingPool, stakingProducts, cover, tokenController } = fixture;
-    const { defaultSender: manager } = fixture.accounts;
-    const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
-
-    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
-    await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
-    fixture.coverSigner = coverSigner;
-
-    await stakingPool.connect(coverSigner).initialize(
-      false, // isPrivatePool
-      initialPoolFee,
-      maxPoolFee,
-      poolId,
-      ipfsDescriptionHash,
-    );
-    await tokenController.setStakingPoolManager(poolId, manager.address);
-
-    await stakingProducts.connect(fixture.coverSigner).setInitialProducts(poolId, products);
-
-    // Move to the beginning of the next tranche
-    const { firstActiveTrancheId: trancheId } = await getTranches();
-    await setTime((trancheId + 1) * TRANCHE_DURATION);
-  });
-
   it('reverts if system is paused', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool, master } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -84,6 +85,7 @@ describe('depositTo', function () {
   });
 
   it('reverts if caller is not manager when pool is private', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool, nxm, tokenController } = fixture;
     const manager = fixture.accounts.defaultSender;
     const [user] = fixture.accounts.members;
@@ -107,6 +109,7 @@ describe('depositTo', function () {
   });
 
   it('reverts if deposit amount is 0', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const { trancheId, tokenId, destination } = depositToFixture;
@@ -118,6 +121,7 @@ describe('depositTo', function () {
   });
 
   it('reverts if tranche id is not active', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -131,6 +135,7 @@ describe('depositTo', function () {
   });
 
   it('reverts if requested tranche expired', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -144,6 +149,7 @@ describe('depositTo', function () {
   });
 
   it('mints a new nft if token id is 0', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool, stakingNFT } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -165,6 +171,7 @@ describe('depositTo', function () {
   });
 
   it('mints a new nft to destination if token id is 0', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool, stakingNFT } = fixture;
     const [user1, user2] = fixture.accounts.members;
     const { amount, tokenId } = depositToFixture;
@@ -187,6 +194,7 @@ describe('depositTo', function () {
   });
 
   it('register deposit to the new nft', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool, stakingNFT } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -213,6 +221,7 @@ describe('depositTo', function () {
   });
 
   it('register deposit to an existing nft', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool, stakingNFT } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -246,6 +255,7 @@ describe('depositTo', function () {
   });
 
   it('reverts deposit to an existing nft that msg.sender is not an owner of / approved for', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool, stakingNFT } = fixture;
     const [user1, user2] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -265,6 +275,7 @@ describe('depositTo', function () {
   });
 
   it('updates deposit pendingRewards and lastAccNxmPerRewardShare', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -331,6 +342,7 @@ describe('depositTo', function () {
   });
 
   it('updates global variables accNxmPerRewardsShare and lastAccNxmUpdate', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -388,6 +400,7 @@ describe('depositTo', function () {
   });
 
   it('should not revert with division by zero', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -424,6 +437,7 @@ describe('depositTo', function () {
   });
 
   it('updates global variables activeStake, stakeSharesSupply and rewardsSharesSupply', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -458,6 +472,7 @@ describe('depositTo', function () {
   });
 
   it('updates pool manager rewards shares', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool } = fixture;
     const { POOL_FEE_DENOMINATOR } = fixture.config;
     const [user] = fixture.accounts.members;
@@ -485,6 +500,7 @@ describe('depositTo', function () {
   });
 
   it('updates tranche stake and reward shares', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -511,6 +527,7 @@ describe('depositTo', function () {
   });
 
   it('transfer staked nxm to token controller contract', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool, nxm, tokenController } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -529,6 +546,7 @@ describe('depositTo', function () {
   });
 
   it('allows to deposit to multiple tranches', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool, nxm, tokenController } = fixture;
     const { POOL_FEE_DENOMINATOR } = fixture.config;
     const [user] = fixture.accounts.members;
@@ -598,6 +616,7 @@ describe('depositTo', function () {
   });
 
   it('emits StakeDeposited event', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -611,6 +630,7 @@ describe('depositTo', function () {
   });
 
   it('reverts if provided tokenId is not valid', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, destination } = depositToFixture;
@@ -630,6 +650,7 @@ describe('depositTo', function () {
   });
 
   it('multicall should bubble up string revert', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, destination } = depositToFixture;
@@ -648,6 +669,7 @@ describe('depositTo', function () {
   });
 
   it('should revert if trying to deposit, while nxm is locked for governance vote', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool, nxm } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -671,6 +693,7 @@ describe('depositTo', function () {
   });
 
   it('should revert if trying to deposit with token from other pool', async function () {
+    const fixture = await loadDepositToFixture();
     const { stakingPool, stakingNFT } = fixture;
     const [user] = fixture.accounts.members;
 

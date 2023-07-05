@@ -15,11 +15,8 @@ const setTime = async timestamp => {
 };
 
 describe('redeemClaimPayout', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('reverts if the claim is not accepted', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover, assessment } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -60,6 +57,7 @@ describe('redeemClaimPayout', function () {
   });
 
   it('reverts while the claim is being assessed', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover, assessment } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -96,6 +94,7 @@ describe('redeemClaimPayout', function () {
   });
 
   it('reverts while the claim is in cooldown period', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover, assessment } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -120,6 +119,7 @@ describe('redeemClaimPayout', function () {
   });
 
   it('reverts if the redemption period expired', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover, assessment } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -143,6 +143,7 @@ describe('redeemClaimPayout', function () {
   });
 
   it('reverts if a payout has already been redeemed', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover, assessment } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -166,6 +167,7 @@ describe('redeemClaimPayout', function () {
   });
 
   it('reverts if system is paused', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover, assessment, master } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -189,6 +191,7 @@ describe('redeemClaimPayout', function () {
   });
 
   it('Should emit ClaimPayoutRedeemed event', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover, assessment } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -212,6 +215,7 @@ describe('redeemClaimPayout', function () {
   });
 
   it("sets the claim's payoutRedeemed property to true", async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover, assessment } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
@@ -233,6 +237,7 @@ describe('redeemClaimPayout', function () {
   });
 
   it('sends the payout amount in ETH and the assessment deposit to the cover owner', async function () {
+    const fixture = await loadFixture(setup);
     // also check after NFT transfer
     const { individualClaims, cover, coverNFT, assessment } = fixture.contracts;
     const [originalOwner, newOwner, otherMember] = fixture.accounts.members;
@@ -308,6 +313,7 @@ describe('redeemClaimPayout', function () {
   });
 
   it('sends the payout amount in DAI and the assessment deposit to the cover owner', async function () {
+    const fixture = await loadFixture(setup);
     // also check after NFT transfer
     const { individualClaims, cover, coverNFT, assessment, dai } = fixture.contracts;
     const [originalOwner, newOwner, otherMember] = fixture.accounts.members;
@@ -369,6 +375,7 @@ describe('redeemClaimPayout', function () {
   });
 
   it('calls burnStake from Cover.sol with the amount to be burned, cover and segment IDs', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover, assessment } = fixture.contracts;
     const [coverOwner, otherMember] = fixture.accounts.members;
     const segment = await getCoverSegment();

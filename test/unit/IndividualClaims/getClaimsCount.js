@@ -15,11 +15,8 @@ const setTime = async timestamp => {
 };
 
 describe('getClaimsCount', function () {
-  let fixture;
-  beforeEach(async function () {
-    fixture = await loadFixture(setup);
-  });
   it('returns the total number of claims', async function () {
+    const fixture = await loadFixture(setup);
     const { individualClaims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
 

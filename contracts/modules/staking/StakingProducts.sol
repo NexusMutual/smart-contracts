@@ -360,7 +360,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     return Math.max(targetWeight, actualWeight).toUint16();
   }
 
-  function setInitialProducts(uint poolId, ProductInitializationParams[] memory params) public onlyInternal {
+  function setInitialProducts(uint poolId, ProductInitializationParams[] memory params) internal {
 
     uint totalTargetWeight;
 
@@ -618,7 +618,9 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   }
 
   function changeDependentContractAddress() external {
-    // none :)
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+    internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
+    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
   }
 
   function createStakingPool(
@@ -659,8 +661,9 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       productInitParams[i].initialPrice = product.initialPriceRatio;
     }
 
-    (uint poolId, address stakingPoolAddress) = IStakingPoolFactory(stakingPoolFactory).create(address(this));
+    (uint poolId, address stakingPoolAddress) = IStakingPoolFactory(stakingPoolFactory).create(coverContract);
 
+    console.log("stakingPoolAddress", stakingPoolAddress);
     IStakingPool(stakingPoolAddress).initialize(
       isPrivatePool,
       initialPoolFee,
@@ -668,6 +671,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       poolId,
       ipfsDescriptionHash
     );
+
+    console.log("poolId", poolId);
 
     tokenController().assignStakingPoolManager(poolId, msg.sender);
 

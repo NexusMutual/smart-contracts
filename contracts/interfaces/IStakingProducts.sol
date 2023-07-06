@@ -25,7 +25,7 @@ interface IStakingProducts {
 
   function setProducts(uint poolId, StakedProductParam[] memory params) external;
 
-  function setInitialProducts(uint poolId, ProductInitializationParams[] memory params) external;
+  // function setInitialProducts(uint poolId, ProductInitializationParams[] memory params) external;
 
   function getProductTargetWeight(uint poolId, uint productId) external view returns (uint);
 

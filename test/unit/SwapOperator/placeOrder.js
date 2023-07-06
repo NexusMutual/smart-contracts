@@ -16,8 +16,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { parseEther, hexZeroPad, hexlify, randomBytes } = ethers.utils;
 
-async function loadPlaceOrderFixture() {
-  const fixture = await loadFixture(setup);
+async function placeOrderSetup() {
+  const fixture = await setup();
   const [controller, governance] = await ethers.getSigners();
 
   // Assign contracts (destructuring isn't working)
@@ -94,7 +94,7 @@ describe('placeOrder', function () {
       controller,
       contractOrder,
       orderUID,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     // call with non-controller, should fail
     await expect(swapOperator.connect(governance).placeOrder(contractOrder, orderUID)).to.revertedWith(
       'SwapOp: only controller can execute',
@@ -109,7 +109,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator },
       contractOrder,
       orderUID,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     // call with invalid UID, should fail
     const wrongUID = hexlify(randomBytes(56));
     await expect(swapOperator.placeOrder(contractOrder, wrongUID)).to.revertedWith(
@@ -136,7 +136,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator },
       contractOrder,
       orderUID,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     // calling with valid data should succeed first time
     await swapOperator.placeOrder(contractOrder, orderUID);
 
@@ -151,7 +151,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, dai, stEth, pool },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const newOrder = {
       ...order,
       sellToken: dai.address,
@@ -174,7 +174,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const newOrder = {
       ...order,
       sellTokenBalance: 'external',
@@ -191,7 +191,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const newOrder = {
       ...order,
       buyTokenBalance: 'internal',
@@ -210,7 +210,7 @@ describe('placeOrder', function () {
       governance,
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const newOrder = {
       ...order,
       receiver: governance.address,
@@ -227,7 +227,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const newOrder = {
       ...order,
       validTo: Math.floor(new Date().getTime() / 1000 + 500),
@@ -244,7 +244,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, weth, pool },
       contractOrder,
       orderUID,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     // Ensure eth (weth) is disabled by checking min and max amount
     const swapDetails = await pool.getAssetSwapDetails(weth.address);
     expect(swapDetails.minAmount).to.eq(0);
@@ -260,7 +260,7 @@ describe('placeOrder', function () {
       order,
       domain,
       governance,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     // Set up an order to swap DAI for ETH
     const { newContractOrder, newOrderUID } = await setupSellDaiForEth({}, { dai, pool, order, weth, domain });
 
@@ -278,7 +278,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, dai, weth, pool },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const { newContractOrder, newOrderUID } = await setupSellDaiForEth({}, { dai, pool, order, weth, domain });
 
     // Try to run when balance is at maxAmount,
@@ -297,7 +297,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, dai, weth, pool },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const sellAmount = parseEther('24999');
     const feeAmount = parseEther('1');
     const buyAmount = parseEther('4.9998');
@@ -324,7 +324,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, dai, weth, pool },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const sellAmount = parseEther('24999');
     const feeAmount = parseEther('1');
     const buyAmount = parseEther('4.9998');
@@ -343,7 +343,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, pool },
       contractOrder,
       orderUID,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     // Set pool balance to 2 eth - 1 wei
     await setEtherBalance(pool.address, parseEther('2').sub(1));
 
@@ -363,7 +363,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, dai, weth, pool },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     // Ensure eth (weth) is disabled by checking min and max amount
     const swapDetails = await pool.getAssetSwapDetails(weth.address);
     expect(swapDetails.minAmount).to.eq(0);
@@ -381,7 +381,7 @@ describe('placeOrder', function () {
       governance,
       contractOrder,
       orderUID,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     // Since DAI was already registered on setup, set its details to 0
     await pool.connect(governance).setSwapDetails(dai.address, 0, 0, 0); // otherSigner is governant
 
@@ -396,7 +396,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, dai, pool },
       contractOrder,
       orderUID,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     // set buyToken balance to be minAmount, txn should fail
     await dai.setBalance(pool.address, daiMinAmount);
     await expect(swapOperator.placeOrder(contractOrder, orderUID)).to.be.revertedWith(
@@ -413,7 +413,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, dai, pool },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     await dai.setBalance(pool.address, 0);
 
     // try to place an order that will bring balance 1 wei above max, should fail
@@ -436,7 +436,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, dai, pool },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     await dai.setBalance(pool.address, 0);
 
     // place an order that will bring balance 1 wei below min, should succeed
@@ -457,7 +457,7 @@ describe('placeOrder', function () {
       orderUID,
       domain,
       MIN_TIME_BETWEEN_ORDERS,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     // Place and close an order
     await swapOperator.placeOrder(contractOrder, orderUID);
     await swapOperator.closeOrder(contractOrder);
@@ -495,7 +495,7 @@ describe('placeOrder', function () {
       domain,
       governance,
       MIN_TIME_BETWEEN_ORDERS,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const { newContractOrder, newOrderUID } = await setupSellDaiForEth({}, { dai, pool, order, weth, domain });
 
     // Place and close an order
@@ -536,7 +536,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const maxFee = await swapOperator.maxFee();
 
     // Place order with fee 1 wei higher than maximum, should fail
@@ -561,7 +561,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, pool, dai, weth },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const maxFee = await swapOperator.maxFee();
 
     // Place order with fee 1 wei higher than maximum, should fail
@@ -592,7 +592,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const newOrder = {
       ...order,
       sellAmount: parseEther('1'),
@@ -622,7 +622,7 @@ describe('placeOrder', function () {
       governance,
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     // 1% slippage
     await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
 
@@ -654,7 +654,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, dai, weth, pool },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     let { newOrder, newContractOrder, newOrderUID } = await setupSellDaiForEth({}, { dai, pool, order, weth, domain });
 
     // Since buyAmount is short by 1 wei, txn should revert
@@ -680,7 +680,7 @@ describe('placeOrder', function () {
       governance,
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     // 1% slippage
     await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
 
@@ -710,7 +710,7 @@ describe('placeOrder', function () {
       order,
       contractOrder,
       orderUID,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const poolEthBefore = await ethers.provider.getBalance(pool.address);
     const swapOpWethBefore = await weth.balanceOf(swapOperator.address);
 
@@ -728,7 +728,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, dai, weth, pool },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const { newOrder, newContractOrder, newOrderUID } = await setupSellDaiForEth(
       {},
       { dai, pool, order, weth, domain },
@@ -751,7 +751,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, dai, pool },
       contractOrder,
       orderUID,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     let lastSwapTime = (await pool.getAssetSwapDetails(dai.address)).lastSwapTime;
     expect(lastSwapTime).to.not.eq(await lastBlockTimestamp());
 
@@ -766,7 +766,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, dai, weth, pool },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const { newContractOrder, newOrderUID } = await setupSellDaiForEth({}, { dai, pool, order, weth, domain });
     let lastSwapTime = (await pool.getAssetSwapDetails(dai.address)).lastSwapTime;
     expect(lastSwapTime).to.not.eq(await lastBlockTimestamp());
@@ -783,7 +783,7 @@ describe('placeOrder', function () {
       order,
       contractOrder,
       orderUID,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     expect(await pool.swapValue()).to.eq(0);
 
     await swapOperator.placeOrder(contractOrder, orderUID);
@@ -796,7 +796,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, pool, weth, dai },
       order,
       domain,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     const { newContractOrder, newOrderUID } = await setupSellDaiForEth({}, { dai, pool, order, weth, domain });
 
     expect(await pool.swapValue()).to.eq(0);
@@ -812,7 +812,7 @@ describe('placeOrder', function () {
       order,
       contractOrder,
       orderUID,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(0);
 
     await swapOperator.placeOrder(contractOrder, orderUID);
@@ -827,7 +827,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator },
       contractOrder,
       orderUID,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     expect(await swapOperator.currentOrderUID()).to.eq('0x');
 
     await swapOperator.placeOrder(contractOrder, orderUID);
@@ -840,7 +840,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator, cowSettlement },
       contractOrder,
       orderUID,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     expect(await cowSettlement.presignatures(orderUID)).to.eq(false);
 
     await swapOperator.placeOrder(contractOrder, orderUID);
@@ -853,7 +853,7 @@ describe('placeOrder', function () {
       contracts: { swapOperator },
       contractOrder,
       orderUID,
-    } = await loadPlaceOrderFixture();
+    } = await loadFixture(placeOrderSetup);
     await expect(swapOperator.placeOrder(contractOrder, orderUID))
       .to.emit(swapOperator, 'OrderPlaced')
       .withArgs(Object.values(contractOrder));

@@ -1,13 +1,11 @@
 const { ethers } = require('hardhat');
 const { Role } = require('../../../lib/constants');
 const { getAccounts } = require('../../utils/accounts');
-const { reset } = require('../../utils/evm');
 const { hex } = require('../utils').helpers;
 
 const { parseEther } = ethers.utils;
 
 async function setup() {
-  await reset();
   const accounts = await getAccounts();
   const { internalContracts, members } = accounts;
   const internal = internalContracts[0];

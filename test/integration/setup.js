@@ -5,7 +5,6 @@ const { toBytes2, toBytes8 } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
 const { enrollMember, enrollABMember } = require('./utils/enroll');
 const { getAccounts } = require('../utils/accounts');
-const { reset } = require('../utils/evm');
 
 const { BigNumber } = ethers;
 const { parseEther, parseUnits } = ethers.utils;
@@ -33,7 +32,6 @@ const transferProxyOwnership = async (proxyAddress, newOwner) => {
 };
 
 async function setup() {
-  await reset();
   const fixture = {};
   const accounts = await getAccounts();
   const { members, emergencyAdmin, advisoryBoardMembers } = accounts;

@@ -1,12 +1,10 @@
 const { ethers } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
-const { reset } = require('../../utils/evm');
 const { parseEther } = ethers.utils;
 const { setEtherBalance } = require('../utils').evm;
 const { Role } = require('../utils').constants;
 
 async function setup() {
-  await reset();
   const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
   const memberRoles = await ethers.deployContract('MemberRolesMock');

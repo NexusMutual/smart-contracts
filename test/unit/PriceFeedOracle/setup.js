@@ -1,8 +1,6 @@
 const { ethers } = require('hardhat');
-const { reset } = require('../../utils/evm');
 
 async function setup() {
-  await reset();
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');

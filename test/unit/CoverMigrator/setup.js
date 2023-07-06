@@ -1,12 +1,10 @@
 const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
-const { reset } = require('../../utils/evm');
 
 const { AddressZero } = ethers.constants;
 
 async function setup() {
-  await reset();
   const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
   const productsV1 = await ethers.deployContract('ProductsV1');

@@ -1,6 +1,5 @@
 const { ethers } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
-const { reset } = require('../../utils/evm');
 const { hex } = require('../utils').helpers;
 
 const {
@@ -9,7 +8,6 @@ const {
 } = ethers;
 
 async function setup() {
-  await reset();
   const accounts = await getAccounts();
   const [owner, governance] = await ethers.getSigners();
 

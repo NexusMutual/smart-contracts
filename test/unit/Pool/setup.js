@@ -1,6 +1,5 @@
 const { ethers } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
-const { reset } = require('../../utils/evm');
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 const { AddressZero, WeiPerEther } = ethers.constants;
@@ -9,7 +8,6 @@ const { Role } = require('../utils').constants;
 const { toBytes2 } = require('../utils').helpers;
 
 async function setup() {
-  await reset();
   const accounts = await getAccounts();
   // rewrite above artifact imports using ethers.js
   const MasterMock = await ethers.getContractFactory('MasterMock');

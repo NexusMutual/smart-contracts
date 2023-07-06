@@ -1,7 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { getAccounts } = require('../../utils/accounts');
-const { reset } = require('../../utils/evm');
 
 const { setEtherBalance } = require('../utils').evm;
 const { Role } = require('../utils').constants;
@@ -32,7 +31,6 @@ const ProductTypeFixture = {
   gracePeriod: 7 * 24 * 3600, // 7 days
 };
 async function setup() {
-  await reset();
   const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
   const memberRoles = await ethers.deployContract('MemberRolesMock');

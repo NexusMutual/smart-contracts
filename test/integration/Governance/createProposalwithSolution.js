@@ -1,4 +1,5 @@
 const { expect } = require('chai');
+const { ethers } = require('hardhat');
 
 const { setNextBlockTime } = require('../../utils').evm;
 const createProposalFixture = require('./proposalFixture');
@@ -44,7 +45,9 @@ describe('createProposalwithSolution', function () {
 
     const [, , , , , closingTime] = await proposalCategory.category(categoryId);
     const solutionId = 1;
-    const timestamp = Math.floor(Date.now());
+
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const timestamp = currentTimestamp + 1;
     await setNextBlockTime(timestamp);
 
     await expect(

@@ -28,7 +28,7 @@ const buyCoverFixture = {
   productId: 1,
   coverAsset: 0,
   amount: parseEther('1'),
-  period: daysToSeconds((Date.now() / 1000 / 60 / 60 / 24) % 28 ? 28 : 29),
+  period: daysToSeconds(28),
   maxPremiumInAsset: MaxUint256,
   paymentAsset: 0,
   commissionRatio: 0,
@@ -209,8 +209,8 @@ describe('expireCover', function () {
     const { amount, period, coverAsset, productId } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
-    const currentTime = BigNumber.from(Date.now()).div(1000);
-    const coverBucket = currentTime.add(period).div(BUCKET_DURATION);
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+    const coverBucket = BigNumber.from(currentTime).add(period).div(BUCKET_DURATION);
     const coverBucketExpirationPeriod = coverBucket.add(1).mul(BUCKET_DURATION).sub(currentTime);
 
     await cover

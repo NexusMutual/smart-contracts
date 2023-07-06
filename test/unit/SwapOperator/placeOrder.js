@@ -228,9 +228,11 @@ describe('placeOrder', function () {
       order,
       domain,
     } = await loadFixture(placeOrderSetup);
+    const { timestamp } = await ethers.provider.getBlock('latest');
+
     const newOrder = {
       ...order,
-      validTo: Math.floor(new Date().getTime() / 1000 + 500),
+      validTo: timestamp + 500,
     };
     const newContractOrder = makeContractOrder(newOrder);
     const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);

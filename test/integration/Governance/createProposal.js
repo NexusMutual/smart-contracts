@@ -1,7 +1,9 @@
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const { setNextBlockTime } = require('../../utils').evm;
 const { proposalTitle, proposalSD, proposalDescHash } = require('./proposalFixture');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
 describe('createProposal', function () {
@@ -35,7 +37,8 @@ describe('createProposal', function () {
     const categoryId = 0;
 
     const proposalCountBefore = await governance.getProposalLength();
-    const timestamp = Math.floor(Date.now());
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const timestamp = currentTimestamp + 1;
     await setNextBlockTime(timestamp);
 
     await expect(governance.connect(member).createProposal(proposalTitle, proposalSD, proposalDescHash, categoryId))

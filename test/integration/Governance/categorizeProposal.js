@@ -3,8 +3,8 @@ const { proposalTitle, proposalSD, proposalDescHash } = require('./proposalFixtu
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
-async function loadCategorizeProposalFixture() {
-  const fixture = await loadFixture(setup);
+async function categorizeProposalSetup() {
+  const fixture = await setup();
   const { gv: governance } = fixture.contracts;
   const categoryId = 0;
   const [member] = fixture.accounts.members;
@@ -16,7 +16,7 @@ async function loadCategorizeProposalFixture() {
 
 describe('categorizeProposal', function () {
   it('should fail to categorize proposal if sender role is not authorized', async function () {
-    const fixture = await loadCategorizeProposalFixture();
+    const fixture = await loadFixture(categorizeProposalSetup);
     const { gv: governance } = fixture.contracts;
     const [, member] = fixture.accounts.members;
     const { proposalId } = fixture;
@@ -28,7 +28,7 @@ describe('categorizeProposal', function () {
   });
 
   it('should categorize proposal', async function () {
-    const fixture = await loadCategorizeProposalFixture();
+    const fixture = await loadFixture(categorizeProposalSetup);
     const { gv: governance } = fixture.contracts;
     const { defaultSender } = fixture.accounts;
     const { proposalId } = fixture;

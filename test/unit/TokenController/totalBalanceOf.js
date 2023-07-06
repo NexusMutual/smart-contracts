@@ -8,8 +8,8 @@ const { Two, MaxUint256 } = ethers.constants;
 
 const poolId = 234;
 
-async function loadTotalBalanceOfFixture() {
-  const fixture = await loadFixture(setup);
+async function totalBalanceOfSetup() {
+  const fixture = await setup();
   const { nxm } = fixture.contracts;
   const [member] = fixture.accounts.members;
   const nxmBalanceBefore = await nxm.balanceOf(member.address);
@@ -21,7 +21,7 @@ async function loadTotalBalanceOfFixture() {
 
 describe('totalBalanceOf', function () {
   it('should return 0 if address has no balance', async function () {
-    const fixture = await loadTotalBalanceOfFixture();
+    const fixture = await loadFixture(totalBalanceOfSetup);
     const { tokenController } = fixture.contracts;
     const [nonMember1] = fixture.accounts.nonMembers;
 
@@ -30,7 +30,7 @@ describe('totalBalanceOf', function () {
   });
 
   it('should correctly calculate simple balance', async function () {
-    const fixture = await loadTotalBalanceOfFixture();
+    const fixture = await loadFixture(totalBalanceOfSetup);
     const { tokenController, nxm } = fixture.contracts;
     const [internalContract] = fixture.accounts.internalContracts;
     const [member] = fixture.accounts.members;
@@ -47,7 +47,7 @@ describe('totalBalanceOf', function () {
   });
 
   it('should correctly calculate staker rewards', async function () {
-    const fixture = await loadTotalBalanceOfFixture();
+    const fixture = await loadFixture(totalBalanceOfSetup);
     const { tokenController, pooledStaking, nxm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -62,7 +62,7 @@ describe('totalBalanceOf', function () {
   });
 
   it('should correctly calculate staker deposits', async function () {
-    const fixture = await loadTotalBalanceOfFixture();
+    const fixture = await loadFixture(totalBalanceOfSetup);
     const { tokenController, pooledStaking, nxm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -80,7 +80,7 @@ describe('totalBalanceOf', function () {
   });
 
   it('should correctly calculate assessment stake', async function () {
-    const fixture = await loadTotalBalanceOfFixture();
+    const fixture = await loadFixture(totalBalanceOfSetup);
     const { assessment, tokenController, nxm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -95,7 +95,7 @@ describe('totalBalanceOf', function () {
   });
 
   it('should correctly calculate manager delegations', async function () {
-    const fixture = await loadTotalBalanceOfFixture();
+    const fixture = await loadFixture(totalBalanceOfSetup);
     const { tokenController, stakingPoolFactory, nxm } = fixture.contracts;
     const {
       members: [member],
@@ -127,7 +127,7 @@ describe('totalBalanceOf', function () {
   });
 
   it('should correctly calculate all balances', async function () {
-    const fixture = await loadTotalBalanceOfFixture();
+    const fixture = await loadFixture(totalBalanceOfSetup);
     const { tokenController, stakingPoolFactory, pooledStaking, nxm } = fixture.contracts;
     const {
       members: [member],

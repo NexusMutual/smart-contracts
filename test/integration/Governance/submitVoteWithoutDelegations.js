@@ -5,8 +5,8 @@ const { proposalTitle, proposalSD, proposalDescHash, categoryId, solutionHash, a
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
-async function loadSubmitVoteWithoutDelegationsFixture() {
-  const fixture = await loadFixture(setup);
+async function submitVoteWithoutDelegationsSetup() {
+  const fixture = await setup();
   const { gv: governance } = fixture.contracts;
   const [member] = fixture.accounts.members;
   const proposalId = await governance.getProposalLength();
@@ -20,7 +20,7 @@ async function loadSubmitVoteWithoutDelegationsFixture() {
 
 describe('submitVoteWithoutDelegations', function () {
   it('should fail to submit vote for proposal if sender is not authorize', async function () {
-    const fixture = await loadSubmitVoteWithoutDelegationsFixture();
+    const fixture = await loadFixture(submitVoteWithoutDelegationsSetup);
     const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.members;
@@ -31,7 +31,7 @@ describe('submitVoteWithoutDelegations', function () {
   });
 
   it('should submit vote for proposal', async function () {
-    const fixture = await loadSubmitVoteWithoutDelegationsFixture();
+    const fixture = await loadFixture(submitVoteWithoutDelegationsSetup);
     const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.advisoryBoardMembers;
@@ -45,7 +45,7 @@ describe('submitVoteWithoutDelegations', function () {
   });
 
   it('should submit vote against proposal', async function () {
-    const fixture = await loadSubmitVoteWithoutDelegationsFixture();
+    const fixture = await loadFixture(submitVoteWithoutDelegationsSetup);
     const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.advisoryBoardMembers;
@@ -59,7 +59,7 @@ describe('submitVoteWithoutDelegations', function () {
   });
 
   it('should fail to submit vote twice', async function () {
-    const fixture = await loadSubmitVoteWithoutDelegationsFixture();
+    const fixture = await loadFixture(submitVoteWithoutDelegationsSetup);
     const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.advisoryBoardMembers;
@@ -72,7 +72,7 @@ describe('submitVoteWithoutDelegations', function () {
   });
 
   it('should fail to submit vote when closed', async function () {
-    const fixture = await loadSubmitVoteWithoutDelegationsFixture();
+    const fixture = await loadFixture(submitVoteWithoutDelegationsSetup);
     const { proposalId } = fixture;
     const { gv: governance, pc: proposalCategory } = fixture.contracts;
     const { 5: closingTime } = await proposalCategory.category(categoryId);

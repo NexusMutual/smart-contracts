@@ -29,8 +29,8 @@ const daiCoverTemplate = {
   coverAsset: DAI_ASSET_ID, // DAI
 };
 
-async function loadGetAllSumAssuranceFixture() {
-  const fixture = await loadFixture(setup);
+async function getAllSumAssuranceSetup() {
+  const fixture = await setup();
   const { tk, dai, stakingPool1: stakingPool, tc, mcr, cover } = fixture.contracts;
   const [member1] = fixture.accounts.members;
   const [nonMember1] = fixture.accounts.nonMembers;
@@ -61,14 +61,14 @@ async function loadGetAllSumAssuranceFixture() {
 
 describe('getAllSumAssurance', function () {
   it('returns 0 when no covers exist', async function () {
-    const fixture = await loadGetAllSumAssuranceFixture();
+    const fixture = await loadFixture(getAllSumAssuranceSetup);
     const { mcr } = fixture.contracts;
     const totalAssurace = await mcr.getAllSumAssurance();
     expect(totalAssurace).to.be.equal(0);
   });
 
   it('returns total value of ETH purchased cover', async function () {
-    const fixture = await loadGetAllSumAssuranceFixture();
+    const fixture = await loadFixture(getAllSumAssuranceSetup);
     const { mcr, cover, p1 } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
@@ -89,7 +89,7 @@ describe('getAllSumAssurance', function () {
   });
 
   it('returns total value of DAI purchased cover', async function () {
-    const fixture = await loadGetAllSumAssuranceFixture();
+    const fixture = await loadFixture(getAllSumAssuranceSetup);
     const { mcr, cover, p1 } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
@@ -116,7 +116,7 @@ describe('getAllSumAssurance', function () {
   });
 
   it('returns total value of multiple ETH and DAI covers', async function () {
-    const fixture = await loadGetAllSumAssuranceFixture();
+    const fixture = await loadFixture(getAllSumAssuranceSetup);
     const { mcr, cover, p1 } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;

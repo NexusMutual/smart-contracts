@@ -39,8 +39,8 @@ async function submitIncident({ gv, cg, productId, period, priceBefore }) {
   await cg.connect(gvSigner).submitIncident(productId, priceBefore, currentTime + period / 2, parseEther('100'), '');
 }
 
-async function loadSubmitClaimFixture() {
-  const fixture = await loadFixture(setup);
+async function submitClaimSetup() {
+  const fixture = await setup();
   const { tk } = fixture.contracts;
   const members = fixture.accounts.members.slice(0, 5);
   const amount = parseEther('30000');
@@ -54,7 +54,7 @@ async function loadSubmitClaimFixture() {
 
 describe('submitClaim', function () {
   it('submits ETH claim and approves claim', async function () {
-    const fixture = await loadSubmitClaimFixture();
+    const fixture = await loadFixture(submitClaimSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { cover, stakingPool1, as, cg, ybETH, gv } = fixture.contracts;
     const [coverBuyer1, staker1] = fixture.accounts.members;
@@ -126,7 +126,7 @@ describe('submitClaim', function () {
   });
 
   it('submits DAI claim and approves claim', async function () {
-    const fixture = await loadSubmitClaimFixture();
+    const fixture = await loadFixture(submitClaimSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { cover, stakingPool1, as, dai, cg, ybDAI, gv } = fixture.contracts;
     const [coverBuyer1, staker1] = fixture.accounts.members;
@@ -206,7 +206,7 @@ describe('submitClaim', function () {
   });
 
   it('submits ETH claim and rejects claim', async function () {
-    const fixture = await loadSubmitClaimFixture();
+    const fixture = await loadFixture(submitClaimSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { cover, stakingPool1, as, cg, ybETH, gv } = fixture.contracts;
     const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
@@ -261,7 +261,7 @@ describe('submitClaim', function () {
   });
 
   it('submits DAI claim and rejects claim', async function () {
-    const fixture = await loadSubmitClaimFixture();
+    const fixture = await loadFixture(submitClaimSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { cover, stakingPool1, as, dai, cg, ybDAI, gv } = fixture.contracts;
     const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
@@ -323,7 +323,7 @@ describe('submitClaim', function () {
   });
 
   it('submits and redeems full amount of ETH claim', async function () {
-    const fixture = await loadSubmitClaimFixture();
+    const fixture = await loadFixture(submitClaimSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { cover, stakingPool1, as, cg, ybETH, gv } = fixture.contracts;
     const [coverBuyer1, staker1] = fixture.accounts.members;
@@ -381,7 +381,7 @@ describe('submitClaim', function () {
   });
 
   it('submits and redeems full amount of DAI claim', async function () {
-    const fixture = await loadSubmitClaimFixture();
+    const fixture = await loadFixture(submitClaimSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { cover, stakingPool1, as, dai, cg, ybDAI, gv } = fixture.contracts;
     const [coverBuyer1, staker1] = fixture.accounts.members;
@@ -444,7 +444,7 @@ describe('submitClaim', function () {
   });
 
   it('submits and redeems claims from multiple users', async function () {
-    const fixture = await loadSubmitClaimFixture();
+    const fixture = await loadFixture(submitClaimSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { cover, stakingPool1, as, cg, ybETH, gv } = fixture.contracts;
     const [coverBuyer1, coverBuyer2, coverBuyer3, staker1] = fixture.accounts.members;
@@ -568,7 +568,7 @@ describe('submitClaim', function () {
   });
 
   it('submits and redeems claims from multiple products', async function () {
-    const fixture = await loadSubmitClaimFixture();
+    const fixture = await loadFixture(submitClaimSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { cover, stakingPool1, as, cg, ybETH, gv, dai, ybDAI } = fixture.contracts;
     const [coverBuyer1, coverBuyer2, staker1] = fixture.accounts.members;
@@ -682,7 +682,7 @@ describe('submitClaim', function () {
   });
 
   it('submits USDC claim and approves claim', async function () {
-    const fixture = await loadSubmitClaimFixture();
+    const fixture = await loadFixture(submitClaimSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { cover, stakingPool1, as, usdc, cg, ybUSDC, gv } = fixture.contracts;
     const [coverBuyer, staker] = fixture.accounts.members;
@@ -735,7 +735,7 @@ describe('submitClaim', function () {
   });
 
   it('submits and redeems full amount of USDC claim', async function () {
-    const fixture = await loadSubmitClaimFixture();
+    const fixture = await loadFixture(submitClaimSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { cover, stakingPool1, as, usdc, cg, ybUSDC, gv } = fixture.contracts;
     const [coverBuyer1, staker1] = fixture.accounts.members;

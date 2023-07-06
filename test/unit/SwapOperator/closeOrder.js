@@ -25,8 +25,8 @@ const {
   utils: { parseEther, hexZeroPad },
 } = ethers;
 
-async function loadCloseOrderFixture() {
-  const fixture = await loadFixture(setup);
+async function closeOrderSetup() {
+  const fixture = await setup();
   const [controller, governance] = await ethers.getSigners();
 
   // Assign contracts (destructuring isn't working)
@@ -117,7 +117,7 @@ describe('closeOrder', function () {
       governance,
       contractOrder,
       controller,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     const deadline = order.validTo;
     const snapshot = await takeSnapshot();
 
@@ -139,7 +139,7 @@ describe('closeOrder', function () {
       order,
       contractOrder,
       controller,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     const deadline = order.validTo;
     const snapshot = await takeSnapshot();
     const { 36: generalPurposeAddress } = await ethers.getSigners();
@@ -158,7 +158,7 @@ describe('closeOrder', function () {
     const {
       contracts: { swapOperator },
       contractOrder,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     // the contract's currentOrderUID is the one for the placed order in beforeEach step
     // we call with multiple invalid orders, with each individual field modified. it should fail
     for (const [key, value] of Object.entries(contractOrder)) {
@@ -179,7 +179,7 @@ describe('closeOrder', function () {
     const {
       contracts: { swapOperator },
       contractOrder,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     // cancel the current order, leaving no order in place
     await expect(swapOperator.closeOrder(contractOrder)).to.not.be.reverted;
 
@@ -192,7 +192,7 @@ describe('closeOrder', function () {
       contractOrder,
       orderUID,
       order,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(
       order.sellAmount.add(order.feeAmount),
@@ -210,7 +210,7 @@ describe('closeOrder', function () {
       contractOrder,
       orderUID,
       order,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     // intially there is some sellToken, no buyToken
     expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
     expect(await weth.balanceOf(swapOperator.address)).to.gt(0);
@@ -247,7 +247,7 @@ describe('closeOrder', function () {
       contractOrder,
       orderUID,
       order,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(
       order.sellAmount.add(order.feeAmount),
@@ -274,7 +274,7 @@ describe('closeOrder', function () {
       contracts: { swapOperator },
       contractOrder,
       orderUID,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     expect(await swapOperator.currentOrderUID()).to.eq(orderUID);
 
     await swapOperator.closeOrder(contractOrder);
@@ -289,7 +289,7 @@ describe('closeOrder', function () {
       domain,
       contractOrder,
       MIN_TIME_BETWEEN_ORDERS,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     // Cancel current order
     await swapOperator.closeOrder(contractOrder);
 
@@ -328,7 +328,7 @@ describe('closeOrder', function () {
       contractOrder,
       orderUID,
       order,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
     expect(await dai.balanceOf(pool.address)).to.eq(0);
 
@@ -351,7 +351,7 @@ describe('closeOrder', function () {
     const {
       contracts: { weth, swapOperator, pool },
       contractOrder,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     const initialPoolEth = await ethers.provider.getBalance(pool.address);
     const initialOperatorWeth = await weth.balanceOf(swapOperator.address);
 
@@ -371,7 +371,7 @@ describe('closeOrder', function () {
       order,
       MIN_TIME_BETWEEN_ORDERS,
       domain,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     // Cancel current order
     await swapOperator.closeOrder(contractOrder);
 
@@ -407,7 +407,7 @@ describe('closeOrder', function () {
     const {
       contracts: { swapOperator },
       contractOrder,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     await expect(swapOperator.closeOrder(contractOrder))
       .to.emit(swapOperator, 'OrderClosed')
       .withArgs(makeOrderTuple(contractOrder), 0);
@@ -419,7 +419,7 @@ describe('closeOrder', function () {
       contractOrder,
       order,
       orderUID,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     await cowSettlement.fill(
       contractOrder,
       orderUID,
@@ -438,7 +438,7 @@ describe('closeOrder', function () {
       contractOrder,
       order,
       orderUID,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     await cowSettlement.fill(contractOrder, orderUID, order.sellAmount, order.feeAmount, order.buyAmount);
 
     await expect(swapOperator.closeOrder(contractOrder))
@@ -450,7 +450,7 @@ describe('closeOrder', function () {
     const {
       contracts: { swapOperator, pool },
       contractOrder,
-    } = await loadCloseOrderFixture();
+    } = await loadFixture(closeOrderSetup);
     const oldSwapValue = await pool.swapValue();
     expect(oldSwapValue).to.be.gt(0);
 

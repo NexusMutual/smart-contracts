@@ -105,8 +105,8 @@ const product3 = {
 const poolId = 1;
 const trancheOffset = 5;
 
-async function loadRequestAllocationFixture() {
-  const fixture = await loadFixture(setup);
+async function requestAllocationSetup() {
+  const fixture = await setup();
   const { stakingPool, stakingProducts, cover } = fixture;
   const [staker] = fixture.accounts.members;
   const productId = 0;
@@ -138,7 +138,7 @@ async function loadRequestAllocationFixture() {
 
 describe('requestAllocation', function () {
   it('should allocate the amount for tranches and generate new allocation Id', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool, cover } = fixture;
     const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
     const buyCoverParams = { ...buyCoverParamsTemplate, period: daysToSeconds(365) };
@@ -158,7 +158,7 @@ describe('requestAllocation', function () {
   });
 
   it('should update allocation amount', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool, cover } = fixture;
     const { GLOBAL_CAPACITY_RATIO, GLOBAL_MIN_PRICE_RATIO, GLOBAL_REWARDS_RATIO, NXM_PER_ALLOCATION_UNIT } =
       fixture.config;
@@ -198,7 +198,7 @@ describe('requestAllocation', function () {
   });
 
   it('should correctly calculate the premium and price for year long cover', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = fixture.config;
 
@@ -229,7 +229,7 @@ describe('requestAllocation', function () {
   });
 
   it('should correctly calculate the premium and price for a very small cover', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = fixture.config;
 
@@ -267,7 +267,7 @@ describe('requestAllocation', function () {
   });
 
   it('should correctly calculate the premium using the initial price', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = fixture.config;
 
@@ -302,7 +302,7 @@ describe('requestAllocation', function () {
   });
 
   it('should decrease price by PRICE_CHANGE_PER_DAY until it reaches product target price', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const { PRICE_CHANGE_PER_DAY, INITIAL_PRICE_DENOMINATOR } = fixture.config;
     const initialPrice = coverProductTemplate.initialPriceRatio;
@@ -329,7 +329,7 @@ describe('requestAllocation', function () {
   });
 
   it('shouldnt underflow while expiring cover during allocate capacity', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const { PRICE_CHANGE_PER_DAY, INITIAL_PRICE_DENOMINATOR } = fixture.config;
     const initialPrice = coverProductTemplate.initialPriceRatio;
@@ -356,7 +356,7 @@ describe('requestAllocation', function () {
   });
 
   it('should correctly calculate price when all coverage is bought in a single purchase', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const {
@@ -421,7 +421,7 @@ describe('requestAllocation', function () {
   });
 
   it('should overflow uint32 tranche allocation when cover amount is too large', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool, cover } = fixture;
     const [coverBuyer, staker] = fixture.accounts.members;
     const amount = BigNumber.from(2).pow(95).sub(1);
@@ -440,7 +440,7 @@ describe('requestAllocation', function () {
   });
 
   it('reverts if caller is not cover contract', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -453,7 +453,7 @@ describe('requestAllocation', function () {
   });
 
   it('correctly allocates capacity to the correct product and current tranche', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -487,7 +487,7 @@ describe('requestAllocation', function () {
   });
 
   it('correctly updates last bucket id in each active group', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -518,7 +518,7 @@ describe('requestAllocation', function () {
   });
 
   it('correctly stores expiring cover amounts', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -553,7 +553,7 @@ describe('requestAllocation', function () {
   });
 
   it('just deallocates if amount is 0', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -634,7 +634,7 @@ describe('requestAllocation', function () {
   });
 
   it('correctly allocates capacity to multiple tranches', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -700,7 +700,7 @@ describe('requestAllocation', function () {
   });
 
   it('correctly allocates capacity to multiple covers allocations', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -779,7 +779,7 @@ describe('requestAllocation', function () {
   });
 
   it('correctly allocates capacity to multiple products', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -847,7 +847,7 @@ describe('requestAllocation', function () {
   });
 
   it('calls process expirations updating accNxmPerRewardsShare and lastAccNxmUpdate', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -872,7 +872,7 @@ describe('requestAllocation', function () {
   });
 
   it('calculates, update bucket rewards and mint rewards in NXM', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool, cover, tokenController, nxm } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -950,7 +950,7 @@ describe('requestAllocation', function () {
   });
 
   it('removes and burns previous NXM premium in case of update', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool, cover, tokenController, nxm } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -1030,7 +1030,7 @@ describe('requestAllocation', function () {
   });
 
   it('revers if insufficient capacity', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -1104,7 +1104,7 @@ describe('requestAllocation', function () {
   });
 
   it('updates expiring cover amounts', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -1190,7 +1190,7 @@ describe('requestAllocation', function () {
   });
 
   it('updates stored tranche allocations', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -1282,7 +1282,7 @@ describe('requestAllocation', function () {
   });
 
   it('updates stored cover allocations', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -1401,7 +1401,7 @@ describe('requestAllocation', function () {
   });
 
   it('capacity considers global capacity ratio', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -1443,7 +1443,7 @@ describe('requestAllocation', function () {
   });
 
   it('capacity considers product target weight', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -1490,7 +1490,7 @@ describe('requestAllocation', function () {
   });
 
   it('capacity considers reduction ratio', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -1529,7 +1529,7 @@ describe('requestAllocation', function () {
   });
 
   it('mints rewards to staking pool', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { tokenController, stakingPool, stakingProducts } = fixture;
     const { REWARDS_DENOMINATOR, PRICE_CHANGE_PER_DAY } = fixture.config;
     const [user] = fixture.accounts.members;
@@ -1571,7 +1571,7 @@ describe('requestAllocation', function () {
   });
 
   it('accounts for carried over allocations filling all capacity', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool, stakingNFT } = fixture;
     const [staker] = fixture.accounts.members;
     const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT } = fixture.config;
@@ -1627,7 +1627,7 @@ describe('requestAllocation', function () {
   });
 
   it('accounts for carried over allocations partially filling the capacity', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool, stakingNFT } = fixture;
     const [staker] = fixture.accounts.members;
     const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
@@ -1688,7 +1688,7 @@ describe('requestAllocation', function () {
   });
 
   it('correctly removes allocations when expiring a cover', async function () {
-    const fixture = await loadRequestAllocationFixture();
+    const fixture = await loadFixture(requestAllocationSetup);
     const stakingPool = fixture.stakingPool.connect(fixture.coverSigner);
     const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 

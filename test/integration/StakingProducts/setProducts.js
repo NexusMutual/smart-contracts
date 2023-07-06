@@ -31,8 +31,8 @@ const coverProductParamTemplate = {
   allowedPools: [],
 };
 
-async function loadSetProductsFixture() {
-  const fixture = await loadFixture(setup);
+async function setProductsSetup() {
+  const fixture = await setup();
   const { cover } = fixture.contracts;
   const {
     stakingPoolManagers: [manager],
@@ -59,7 +59,7 @@ async function loadSetProductsFixture() {
 
 describe('setProducts', function () {
   it('should be able to raise and lower weights of deprecated products', async function () {
-    const fixture = await loadSetProductsFixture();
+    const fixture = await loadFixture(setProductsSetup);
     const { stakingProducts, cover } = fixture.contracts;
     const {
       defaultSender: admin,
@@ -97,7 +97,7 @@ describe('setProducts', function () {
   });
 
   it('should fail to set product that doesnt exist', async function () {
-    const fixture = await loadSetProductsFixture();
+    const fixture = await loadFixture(setProductsSetup);
     const { stakingProducts, cover } = fixture.contracts;
     const {
       stakingPoolManagers: [manager1],

@@ -7,8 +7,8 @@ const setup = require('./setup');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
-async function loadWithdrawNXMStakeAndRewardsFixture() {
-  const fixture = await loadFixture(setup);
+async function withdrawNXMStakeAndRewardsSetup() {
+  const fixture = await setup();
   const { stakingPoolFactory, tokenController } = fixture.contracts;
   const [member] = fixture.accounts.members;
 
@@ -34,7 +34,7 @@ async function loadWithdrawNXMStakeAndRewardsFixture() {
 
 describe('withdrawNXMStakeAndRewards', function () {
   it('reverts if caller is not staking pool contract', async function () {
-    const fixture = await loadWithdrawNXMStakeAndRewardsFixture();
+    const fixture = await loadFixture(withdrawNXMStakeAndRewardsSetup);
     const { tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -46,7 +46,7 @@ describe('withdrawNXMStakeAndRewards', function () {
   });
 
   it('reduces staking pool deposits', async function () {
-    const fixture = await loadWithdrawNXMStakeAndRewardsFixture();
+    const fixture = await loadFixture(withdrawNXMStakeAndRewardsSetup);
     const { tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -64,7 +64,7 @@ describe('withdrawNXMStakeAndRewards', function () {
   });
 
   it('reduces staking pool rewards', async function () {
-    const fixture = await loadWithdrawNXMStakeAndRewardsFixture();
+    const fixture = await loadFixture(withdrawNXMStakeAndRewardsSetup);
     const { tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -82,7 +82,7 @@ describe('withdrawNXMStakeAndRewards', function () {
   });
 
   it('transfer nxm from the contract to the receiver', async function () {
-    const fixture = await loadWithdrawNXMStakeAndRewardsFixture();
+    const fixture = await loadFixture(withdrawNXMStakeAndRewardsSetup);
     const { tokenController, nxm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 

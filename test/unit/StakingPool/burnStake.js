@@ -74,8 +74,8 @@ const stakedNxmAmount = parseEther('100');
 const burnAmount = parseEther('10');
 const setup = require('./setup');
 
-async function loadBurnStakeFixture() {
-  const fixture = await loadFixture(setup);
+async function burnStakeSetup() {
+  const fixture = await setup();
   const { stakingPool, stakingProducts, cover } = fixture;
   const [staker] = fixture.accounts.members;
   const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
@@ -109,7 +109,7 @@ async function loadBurnStakeFixture() {
 
 describe('burnStake', function () {
   it('should revert if the caller is not the cover contract', async function () {
-    const fixture = await loadBurnStakeFixture();
+    const fixture = await loadFixture(burnStakeSetup);
     const { stakingPool } = fixture;
     await expect(stakingPool.burnStake(10, burnStakeParams)).to.be.revertedWithCustomError(
       stakingPool,
@@ -118,7 +118,7 @@ describe('burnStake', function () {
   });
 
   it('should block the pool if 100% of the stake is burned', async function () {
-    const fixture = await loadBurnStakeFixture();
+    const fixture = await loadFixture(burnStakeSetup);
     const { stakingPool } = fixture;
     const {
       members: [member],
@@ -140,7 +140,7 @@ describe('burnStake', function () {
   });
 
   it('should not block pool if 99% of the stake is burned', async function () {
-    const fixture = await loadBurnStakeFixture();
+    const fixture = await loadFixture(burnStakeSetup);
     const { stakingPool } = fixture;
     const {
       members: [member],
@@ -165,7 +165,7 @@ describe('burnStake', function () {
   });
 
   it('reduces activeStake', async function () {
-    const fixture = await loadBurnStakeFixture();
+    const fixture = await loadFixture(burnStakeSetup);
     const { stakingPool } = fixture;
 
     const activeStakeBefore = await stakingPool.getActiveStake();
@@ -177,7 +177,7 @@ describe('burnStake', function () {
   });
 
   it('emits StakeBurned event', async function () {
-    const fixture = await loadBurnStakeFixture();
+    const fixture = await loadFixture(burnStakeSetup);
     const { stakingPool } = fixture;
 
     await expect(stakingPool.connect(fixture.coverSigner).burnStake(burnAmount, burnStakeParams))
@@ -186,7 +186,7 @@ describe('burnStake', function () {
   });
 
   it('burns staked NXM in token controller', async function () {
-    const fixture = await loadBurnStakeFixture();
+    const fixture = await loadFixture(burnStakeSetup);
     const { stakingPool, nxm, tokenController } = fixture;
 
     const poolId = await stakingPool.getPoolId();
@@ -204,7 +204,7 @@ describe('burnStake', function () {
   });
 
   it('works correctly if burnAmount > initialStake', async function () {
-    const fixture = await loadBurnStakeFixture();
+    const fixture = await loadFixture(burnStakeSetup);
     const { stakingPool, nxm, tokenController } = fixture;
 
     const poolId = await stakingPool.getPoolId();
@@ -231,7 +231,7 @@ describe('burnStake', function () {
   });
 
   it('correctly deallocates cover tranche allocations', async function () {
-    const fixture = await loadBurnStakeFixture();
+    const fixture = await loadFixture(burnStakeSetup);
     const { stakingPool } = fixture;
     const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
@@ -314,7 +314,7 @@ describe('burnStake', function () {
   });
 
   it('correctly deallocates stored tranche allocations', async function () {
-    const fixture = await loadBurnStakeFixture();
+    const fixture = await loadFixture(burnStakeSetup);
     const { stakingPool } = fixture;
     const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
@@ -403,7 +403,7 @@ describe('burnStake', function () {
   });
 
   it('correctly deallocates expiring cover amounts', async function () {
-    const fixture = await loadBurnStakeFixture();
+    const fixture = await loadFixture(burnStakeSetup);
     const { stakingPool } = fixture;
     const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
@@ -604,7 +604,7 @@ describe('burnStake', function () {
   });
 
   it('calls process expirations', async function () {
-    const fixture = await loadBurnStakeFixture();
+    const fixture = await loadFixture(burnStakeSetup);
     const { stakingPool } = fixture;
 
     const initialFirstActiveBucketId = await stakingPool.getFirstActiveBucketId();

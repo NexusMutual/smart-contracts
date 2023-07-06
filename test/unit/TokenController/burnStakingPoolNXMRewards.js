@@ -7,8 +7,8 @@ const setup = require('./setup');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
-async function loadBurnStakingPoolNXMRewardsFixture() {
-  const fixture = await loadFixture(setup);
+async function burnStakingPoolNXMRewardsSetup() {
+  const fixture = await setup();
   const { stakingPoolFactory, tokenController } = fixture.contracts;
 
   const createPoolTx = await stakingPoolFactory.create(AddressZero);
@@ -30,7 +30,7 @@ async function loadBurnStakingPoolNXMRewardsFixture() {
 
 describe('burnStakingPoolNXMRewards', function () {
   it('reverts if caller is not pool contract', async function () {
-    const fixture = await loadBurnStakingPoolNXMRewardsFixture();
+    const fixture = await loadFixture(burnStakingPoolNXMRewardsSetup);
     const { tokenController } = fixture.contracts;
 
     const amount = parseEther('10');
@@ -40,7 +40,7 @@ describe('burnStakingPoolNXMRewards', function () {
   });
 
   it('reduces staking pool rewards', async function () {
-    const fixture = await loadBurnStakingPoolNXMRewardsFixture();
+    const fixture = await loadFixture(burnStakingPoolNXMRewardsSetup);
     const { tokenController } = fixture.contracts;
 
     const initialStakingPoolNXMBalances = await tokenController.stakingPoolNXMBalances(fixture.poolId);
@@ -54,7 +54,7 @@ describe('burnStakingPoolNXMRewards', function () {
   });
 
   it('burns nxm from the contract', async function () {
-    const fixture = await loadBurnStakingPoolNXMRewardsFixture();
+    const fixture = await loadFixture(burnStakingPoolNXMRewardsSetup);
     const { tokenController, nxm } = fixture.contracts;
 
     const initialTcBalance = await nxm.balanceOf(tokenController.address);

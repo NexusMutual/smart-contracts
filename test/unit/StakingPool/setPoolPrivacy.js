@@ -20,8 +20,8 @@ const initializeParams = {
   ipfsDescriptionHash: 'Descrition Hash',
 };
 
-async function loadSetPoolPrivacyFixture() {
-  const fixture = await loadFixture(setup);
+async function setPoolPrivacySetup() {
+  const fixture = await setup();
   const { stakingPool, stakingProducts, cover, tokenController } = fixture;
   const manager = fixture.accounts.defaultSender;
 
@@ -42,7 +42,7 @@ async function loadSetPoolPrivacyFixture() {
 
 describe('setPoolPrivacy', function () {
   it('reverts if manager is not the caller', async function () {
-    const fixture = await loadSetPoolPrivacyFixture();
+    const fixture = await loadFixture(setPoolPrivacySetup);
     const { stakingPool, tokenController } = fixture;
     const { defaultSender: manager } = fixture.accounts;
     const [nonManager] = fixture.accounts.nonMembers;
@@ -58,7 +58,7 @@ describe('setPoolPrivacy', function () {
   });
 
   it('updates isPrivatePool flag', async function () {
-    const fixture = await loadSetPoolPrivacyFixture();
+    const fixture = await loadFixture(setPoolPrivacySetup);
     const { stakingPool } = fixture;
     const manager = fixture.accounts.defaultSender;
 
@@ -71,7 +71,7 @@ describe('setPoolPrivacy', function () {
   });
 
   it('emits an event PoolPrivacyChanged', async function () {
-    const fixture = await loadSetPoolPrivacyFixture();
+    const fixture = await loadFixture(setPoolPrivacySetup);
     const { stakingPool } = fixture;
     const manager = fixture.accounts.defaultSender;
 

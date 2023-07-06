@@ -41,8 +41,8 @@ const initializeParams = {
   ipfsDescriptionHash: 'Description Hash',
 };
 
-async function loadSetPoolFeeFixture() {
-  const fixture = await loadFixture(setup);
+async function setPoolFeeSetup() {
+  const fixture = await setup();
   const { stakingPool, stakingProducts, cover, tokenController } = fixture;
   const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
   const coverSigner = await ethers.getImpersonatedSigner(cover.address);
@@ -61,7 +61,7 @@ async function loadSetPoolFeeFixture() {
 
 describe('setPoolFee', function () {
   it('reverts if manager is not the caller', async function () {
-    const fixture = await loadSetPoolFeeFixture();
+    const fixture = await loadFixture(setPoolFeeSetup);
     const {
       stakingPool,
       accounts: {
@@ -78,7 +78,7 @@ describe('setPoolFee', function () {
   });
 
   it('reverts if new fee exceeds max pool fee', async function () {
-    const fixture = await loadSetPoolFeeFixture();
+    const fixture = await loadFixture(setPoolFeeSetup);
     const { stakingPool } = fixture;
     const manager = fixture.accounts.defaultSender;
 
@@ -92,7 +92,7 @@ describe('setPoolFee', function () {
   });
 
   it('updates pool fee', async function () {
-    const fixture = await loadSetPoolFeeFixture();
+    const fixture = await loadFixture(setPoolFeeSetup);
     const { stakingPool } = fixture;
     const manager = fixture.accounts.defaultSender;
 
@@ -107,7 +107,7 @@ describe('setPoolFee', function () {
   });
 
   it('updates pool manager rewards', async function () {
-    const fixture = await loadSetPoolFeeFixture();
+    const fixture = await loadFixture(setPoolFeeSetup);
     const { stakingPool, cover } = fixture;
     const manager = fixture.accounts.defaultSender;
     const [user] = fixture.accounts.members;
@@ -153,7 +153,7 @@ describe('setPoolFee', function () {
   });
 
   it('emits and PoolFeeChanged', async function () {
-    const fixture = await loadSetPoolFeeFixture();
+    const fixture = await loadFixture(setPoolFeeSetup);
     const { stakingPool } = fixture;
     const manager = fixture.accounts.defaultSender;
 

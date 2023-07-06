@@ -10,8 +10,8 @@ const setup = require('./setup');
 const poolId = 1;
 const productId = 0;
 
-async function loadGetEffectiveWeightFixture() {
-  const fixture = await loadFixture(setup);
+async function getEffectiveWeightSetup() {
+  const fixture = await setup();
   const { cover } = fixture;
   const capacityRatio = await cover.GLOBAL_CAPACITY_RATIO();
   const product = await cover.products(productId);
@@ -28,7 +28,7 @@ async function loadGetEffectiveWeightFixture() {
 
 describe('getEffectiveWeight', function () {
   it('should return target weight when there is no active stake or allocations', async function () {
-    const fixture = await loadGetEffectiveWeightFixture();
+    const fixture = await loadFixture(getEffectiveWeightSetup);
     const { stakingProducts } = fixture;
 
     {
@@ -65,7 +65,7 @@ describe('getEffectiveWeight', function () {
   });
 
   it('should return effective weight when there is active stake but no active allocation', async function () {
-    const fixture = await loadGetEffectiveWeightFixture();
+    const fixture = await loadFixture(getEffectiveWeightSetup);
     const { stakingProducts } = fixture;
     const [staker] = fixture.accounts.members;
 
@@ -83,7 +83,7 @@ describe('getEffectiveWeight', function () {
   });
 
   it('effective weight should be 100 when capacity == allocations', async function () {
-    const fixture = await loadGetEffectiveWeightFixture();
+    const fixture = await loadFixture(getEffectiveWeightSetup);
     const { stakingProducts } = fixture;
     const [staker, coverBuyer] = fixture.accounts.members;
 
@@ -116,7 +116,7 @@ describe('getEffectiveWeight', function () {
   });
 
   it('should return effective weight, when actual weight is greater than the target weight', async function () {
-    const fixture = await loadGetEffectiveWeightFixture();
+    const fixture = await loadFixture(getEffectiveWeightSetup);
     const { stakingProducts } = fixture;
     const [staker, coverBuyer] = fixture.accounts.members;
 
@@ -139,7 +139,7 @@ describe('getEffectiveWeight', function () {
   });
 
   it('should return targetWeight if capacity ratio is 0', async function () {
-    const fixture = await loadGetEffectiveWeightFixture();
+    const fixture = await loadFixture(getEffectiveWeightSetup);
     // capacity will be 0 when capacity ratio is 0
     const { stakingProducts } = fixture;
     const [staker, coverBuyer] = fixture.accounts.members;
@@ -170,7 +170,7 @@ describe('getEffectiveWeight', function () {
   });
 
   it('should return target weight if capacity reduction ratio is 10000', async function () {
-    const fixture = await loadGetEffectiveWeightFixture();
+    const fixture = await loadFixture(getEffectiveWeightSetup);
     // capacity will be 0
     const { stakingProducts } = fixture;
     const [staker, coverBuyer] = fixture.accounts.members;
@@ -190,7 +190,7 @@ describe('getEffectiveWeight', function () {
   });
 
   it('increasing capacity reduction ratio should increase effective weight', async function () {
-    const fixture = await loadGetEffectiveWeightFixture();
+    const fixture = await loadFixture(getEffectiveWeightSetup);
     const { stakingProducts } = fixture;
     const [staker, coverBuyer] = fixture.accounts.members;
 
@@ -221,7 +221,7 @@ describe('getEffectiveWeight', function () {
   });
 
   it('increasing capacity ratio should decrease effective weight', async function () {
-    const fixture = await loadGetEffectiveWeightFixture();
+    const fixture = await loadFixture(getEffectiveWeightSetup);
     const { stakingProducts } = fixture;
     const [staker, coverBuyer] = fixture.accounts.members;
 

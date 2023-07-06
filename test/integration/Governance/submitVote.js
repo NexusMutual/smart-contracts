@@ -5,8 +5,8 @@ const { proposalTitle, proposalSD, proposalDescHash, solutionHash, action, categ
 const setup = require('../setup');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-async function loadSubmitVoteFixture() {
-  const fixture = await loadFixture(setup);
+async function submitVoteSetup() {
+  const fixture = await setup();
   const { gv: governance } = fixture.contracts;
   const [member] = fixture.accounts.members;
 
@@ -21,7 +21,7 @@ async function loadSubmitVoteFixture() {
 
 describe('submitVote', function () {
   it('should fail to submit vote for proposal if sender is not authorize', async function () {
-    const fixture = await loadSubmitVoteFixture();
+    const fixture = await loadFixture(submitVoteSetup);
     const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.members;
@@ -30,7 +30,7 @@ describe('submitVote', function () {
   });
 
   it('should submit vote for proposal', async function () {
-    const fixture = await loadSubmitVoteFixture();
+    const fixture = await loadFixture(submitVoteSetup);
     const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.advisoryBoardMembers;
@@ -44,7 +44,7 @@ describe('submitVote', function () {
   });
 
   it('should submit vote against proposal', async function () {
-    const fixture = await loadSubmitVoteFixture();
+    const fixture = await loadFixture(submitVoteSetup);
     const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.advisoryBoardMembers;
@@ -58,7 +58,7 @@ describe('submitVote', function () {
   });
 
   it('should fail to submit vote twice', async function () {
-    const fixture = await loadSubmitVoteFixture();
+    const fixture = await loadFixture(submitVoteSetup);
     const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.advisoryBoardMembers;
@@ -69,7 +69,7 @@ describe('submitVote', function () {
   });
 
   it('should fail to submit vote when closed', async function () {
-    const fixture = await loadSubmitVoteFixture();
+    const fixture = await loadFixture(submitVoteSetup);
     const { proposalId } = fixture;
     const { gv: governance, pc: proposalCategory } = fixture.contracts;
     const { 5: closingTime } = await proposalCategory.category(categoryId);

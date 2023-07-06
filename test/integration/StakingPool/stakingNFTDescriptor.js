@@ -14,8 +14,8 @@ const { AddressZero } = ethers.constants;
 const svgHeader = 'data:image/svg+xml;base64,';
 const jsonHeader = 'data:application/json;base64,';
 
-async function loadStakingNFTDescriptor() {
-  const fixture = await loadFixture(setup);
+async function stakingNFTDescriptorSetup() {
+  const fixture = await setup();
   const {
     members: [staker, coverBuyer],
   } = fixture.accounts;
@@ -77,7 +77,7 @@ async function loadStakingNFTDescriptor() {
 
 describe('StakingNFTDescriptor', function () {
   it('tokenURI json output should be formatted properly', async function () {
-    const fixture = await loadStakingNFTDescriptor();
+    const fixture = await loadFixture(stakingNFTDescriptorSetup);
     const { stakingNFT } = fixture.contracts;
     const uri = await stakingNFT.tokenURI(1);
 
@@ -100,7 +100,7 @@ describe('StakingNFTDescriptor', function () {
   });
 
   it('tokenURI with single deposit should be formatted properly', async function () {
-    const fixture = await loadStakingNFTDescriptor();
+    const fixture = await loadFixture(stakingNFTDescriptorSetup);
     const { stakingNFT } = fixture.contracts;
     const uri = await stakingNFT.tokenURI(2);
 
@@ -122,7 +122,7 @@ describe('StakingNFTDescriptor', function () {
   });
 
   it('should handle expired tokens', async function () {
-    const fixture = await loadStakingNFTDescriptor();
+    const fixture = await loadFixture(stakingNFTDescriptorSetup);
     const { stakingNFT } = fixture.contracts;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -141,7 +141,7 @@ describe('StakingNFTDescriptor', function () {
   });
 
   it('should parse random decimals properly', async function () {
-    const fixture = await loadStakingNFTDescriptor();
+    const fixture = await loadFixture(stakingNFTDescriptorSetup);
     const { stakingNFTDescriptor } = fixture.contracts;
 
     const promises = [];
@@ -159,7 +159,7 @@ describe('StakingNFTDescriptor', function () {
     await Promise.all(promises);
   });
   it('should parse decimals properly', async function () {
-    const fixture = await loadStakingNFTDescriptor();
+    const fixture = await loadFixture(stakingNFTDescriptorSetup);
     const { stakingNFTDescriptor } = fixture.contracts;
     expect(await stakingNFTDescriptor.toFloat(BigNumber.from('614955363329695600'), 18)).to.be.equal('0.61');
     expect('0.00').to.be.equal(await stakingNFTDescriptor.toFloat(1, 3));

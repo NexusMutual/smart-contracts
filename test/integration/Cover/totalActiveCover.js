@@ -35,8 +35,8 @@ const buyCoverFixture = {
   assessmentId: 0,
 };
 
-async function loadTotalActiveCoverFixture() {
-  const fixture = await loadFixture(setup);
+async function totalActiveCoverSetup() {
+  const fixture = await setup();
   const { tk, stakingProducts, stakingPool1 } = fixture.contracts;
   const { stakingPoolManagers } = fixture.accounts;
 
@@ -120,7 +120,7 @@ describe('totalActiveCover', function () {
   }
 
   it('expire a cover that had a claim paid out fully', async function () {
-    const fixture = await loadTotalActiveCoverFixture();
+    const fixture = await loadFixture(totalActiveCoverSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { cover, stakingPool1, as, cg, gv, ybETH } = fixture.contracts;
     const [coverBuyer1, staker1] = fixture.accounts.members;
@@ -192,7 +192,7 @@ describe('totalActiveCover', function () {
   });
 
   it('expire a cover that had a partial claim paid out', async function () {
-    const fixture = await loadTotalActiveCoverFixture();
+    const fixture = await loadFixture(totalActiveCoverSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { BUCKET_SIZE } = fixture.config;
     const { cover, stakingPool1, as, cg, gv, ybETH } = fixture.contracts;
@@ -269,7 +269,7 @@ describe('totalActiveCover', function () {
   });
 
   it('expire a cover that had rejected claim', async function () {
-    const fixture = await loadTotalActiveCoverFixture();
+    const fixture = await loadFixture(totalActiveCoverSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { BUCKET_SIZE } = fixture.config;
     const { cover, stakingPool1, as, cg, gv, ybETH } = fixture.contracts;

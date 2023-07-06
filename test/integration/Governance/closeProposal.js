@@ -5,8 +5,8 @@ const { action, proposalTitle, proposalDescHash, proposalSD, solutionHash } = re
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
-async function loadCloseProposalFixture() {
-  const fixture = await loadFixture(setup);
+async function closeProposalSetup() {
+  const fixture = await setup();
   const { gv: governance } = fixture.contracts;
   const categoryId = 3;
 
@@ -22,7 +22,7 @@ async function loadCloseProposalFixture() {
 
 describe('closeProposal', function () {
   it('should fail to close the proposal before vote', async function () {
-    const fixture = await loadCloseProposalFixture();
+    const fixture = await loadFixture(closeProposalSetup);
     const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.members;
@@ -31,7 +31,7 @@ describe('closeProposal', function () {
   });
 
   it('should close the proposal if no vote and set status to denied', async function () {
-    const fixture = await loadCloseProposalFixture();
+    const fixture = await loadFixture(closeProposalSetup);
     const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.members;
@@ -44,7 +44,7 @@ describe('closeProposal', function () {
   });
 
   it('should close proposal', async function () {
-    const fixture = await loadCloseProposalFixture();
+    const fixture = await loadFixture(closeProposalSetup);
     const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.members;

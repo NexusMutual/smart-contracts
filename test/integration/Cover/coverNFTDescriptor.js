@@ -13,8 +13,8 @@ const setup = require('../setup');
 const JSON_HEADER = 'data:application/json;base64,';
 const SVG_HEADER = 'data:image/svg+xml;base64,';
 
-async function loadCoverNFTDescriptorFixture() {
-  const fixture = await loadFixture(setup);
+async function coverNFTDescriptorSetup() {
+  const fixture = await setup();
   const {
     members: [staker, coverBuyer],
     stakingPoolManagers: [, , stakingPoolManager],
@@ -155,7 +155,7 @@ async function loadCoverNFTDescriptorFixture() {
 
 describe('CoverNFTDescriptor', function () {
   it('tokenURI json output should be formatted properly', async function () {
-    const fixture = await loadCoverNFTDescriptorFixture();
+    const fixture = await loadFixture(coverNFTDescriptorSetup);
     const { coverNFT, p1: pool } = fixture.contracts;
 
     const uri = await coverNFT.tokenURI(1);
@@ -190,7 +190,7 @@ describe('CoverNFTDescriptor', function () {
   });
 
   it('should handle dai covers', async function () {
-    const fixture = await loadCoverNFTDescriptorFixture();
+    const fixture = await loadFixture(coverNFTDescriptorSetup);
     const { coverNFT } = fixture.contracts;
 
     const uri = await coverNFT.tokenURI(2);
@@ -202,7 +202,7 @@ describe('CoverNFTDescriptor', function () {
   });
 
   it('should handle usdc covers', async function () {
-    const fixture = await loadCoverNFTDescriptorFixture();
+    const fixture = await loadFixture(coverNFTDescriptorSetup);
     const { coverNFT, p1: pool } = fixture.contracts;
 
     const uri = await coverNFT.tokenURI(3);
@@ -231,7 +231,7 @@ describe('CoverNFTDescriptor', function () {
   });
 
   it('should handle expired token', async function () {
-    const fixture = await loadCoverNFTDescriptorFixture();
+    const fixture = await loadFixture(coverNFTDescriptorSetup);
     const { coverNFT, cover } = fixture.contracts;
 
     // expire cover
@@ -258,7 +258,7 @@ describe('CoverNFTDescriptor', function () {
   });
 
   it('should handle token that expired decades ago', async function () {
-    const fixture = await loadCoverNFTDescriptorFixture();
+    const fixture = await loadFixture(coverNFTDescriptorSetup);
     const { coverNFT, cover } = fixture.contracts;
 
     // get cover segment

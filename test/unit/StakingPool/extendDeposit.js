@@ -33,8 +33,8 @@ const poolInitParams = {
 const depositNftId = 1;
 const managerDepositId = 0;
 
-async function loadExtendDepositFixture() {
-  const fixture = await loadFixture(setup);
+async function extendDepositSetup() {
+  const fixture = await setup();
   const { stakingPool, stakingProducts, stakingNFT, cover, tokenController } = fixture;
   const [user] = fixture.accounts.members;
   const manager = fixture.accounts.defaultSender;
@@ -66,7 +66,7 @@ async function loadExtendDepositFixture() {
 
 describe('extendDeposit', function () {
   it('reverts if system is paused', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool, master } = fixture;
     const [user] = fixture.accounts.members;
     const { firstActiveTrancheId, maxTranche } = await getTranches();
@@ -80,7 +80,7 @@ describe('extendDeposit', function () {
   });
 
   it('reverts if token id is 0', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const { firstActiveTrancheId, maxTranche } = await getTranches();
     const manager = fixture.accounts.defaultSender;
@@ -91,7 +91,7 @@ describe('extendDeposit', function () {
   });
 
   it('reverts if new tranche ends before the initial tranche', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -103,7 +103,7 @@ describe('extendDeposit', function () {
   });
 
   it('reverts if new tranche is not yet available', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -115,7 +115,7 @@ describe('extendDeposit', function () {
   });
 
   it('reverts if the new tranche already expired', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -129,7 +129,7 @@ describe('extendDeposit', function () {
   });
 
   it('reverts when the user is not token owner nor approved tries to extend the deposit', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [notNFTOwnerNorApproved] = fixture.accounts.nonMembers;
     const { firstActiveTrancheId } = await getTranches();
@@ -142,7 +142,7 @@ describe('extendDeposit', function () {
   });
 
   it('withdraws and make a new deposit if initial tranche is expired', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -158,7 +158,7 @@ describe('extendDeposit', function () {
   });
 
   it('updates tranches including accNxmPerRewardsShare and lastAccNxmUpdate', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -185,7 +185,7 @@ describe('extendDeposit', function () {
   });
 
   it('removes the initial tranche deposit and stores the new tranche deposit', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -228,7 +228,7 @@ describe('extendDeposit', function () {
   });
 
   it('allows to increase the deposit', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -267,7 +267,7 @@ describe('extendDeposit', function () {
   });
 
   it('allows to increase the deposit in expired tranche', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const { amount } = depositToFixture;
@@ -300,7 +300,7 @@ describe('extendDeposit', function () {
   });
 
   it('updates the initial and new tranche stake shares and reward shares', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -329,7 +329,7 @@ describe('extendDeposit', function () {
   });
 
   it('updates global stake and reward shares supply', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -362,7 +362,7 @@ describe('extendDeposit', function () {
   });
 
   it('transfers increased deposit amount to token controller', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool, nxm, tokenController } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -383,7 +383,7 @@ describe('extendDeposit', function () {
   });
 
   it('transfers correctly increased deposit amount if previous deposit exists', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool, nxm, tokenController } = fixture;
     const [user] = fixture.accounts.members;
     const { amount } = depositToFixture;
@@ -408,7 +408,7 @@ describe('extendDeposit', function () {
   });
 
   it('emits DepositExtended event', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -421,7 +421,7 @@ describe('extendDeposit', function () {
   });
 
   it('does not emit DepositExtended if initial tranche is expired', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -436,7 +436,7 @@ describe('extendDeposit', function () {
   });
 
   it('reverts if pool is private', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const manager = fixture.accounts.defaultSender;
@@ -452,7 +452,7 @@ describe('extendDeposit', function () {
   });
 
   it('reverts if pool is private and tranche expired', async function () {
-    const fixture = await loadExtendDepositFixture();
+    const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const manager = fixture.accounts.defaultSender;

@@ -32,8 +32,8 @@ const ethCoverTemplate = {
   assessmentId: 0,
 };
 
-async function loadGetMCRFixture() {
-  const fixture = await loadFixture(setup);
+async function getMCRSetup() {
+  const fixture = await setup();
   const { tk, dai, stakingPool1: stakingPool, tc, mcr, cover } = fixture.contracts;
   const [member1] = fixture.accounts.members;
   const [nonMember1] = fixture.accounts.nonMembers;
@@ -67,7 +67,7 @@ async function loadGetMCRFixture() {
 
 describe('getMCR', function () {
   it('returns current MCR value when desiredMCR = mcr', async function () {
-    const fixture = await loadGetMCRFixture();
+    const fixture = await loadFixture(getMCRSetup);
     const { mcr } = fixture.contracts;
 
     const storageMCR = await mcr.mcr();
@@ -77,7 +77,7 @@ describe('getMCR', function () {
   });
 
   it.skip('increases mcr by 0.4% in 2 hours and decreases by 0.4% in 2 hours it after cover expiry', async function () {
-    const fixture = await loadGetMCRFixture();
+    const fixture = await loadFixture(getMCRSetup);
     const { mcr, cover } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;

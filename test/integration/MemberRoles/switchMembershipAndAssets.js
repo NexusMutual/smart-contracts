@@ -9,8 +9,8 @@ const { calculateFirstTrancheId } = require('../utils/staking');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
-async function loadSwitchMembershipAndAssetsFixture() {
-  const fixture = await loadFixture(setup);
+async function switchMembershipAndAssetsSetup() {
+  const fixture = await setup();
   const { tk } = fixture.contracts;
 
   const members = fixture.accounts.members.slice(0, 5);
@@ -24,7 +24,7 @@ async function loadSwitchMembershipAndAssetsFixture() {
 
 describe('switchMembershipAndAssets', function () {
   it('switches membership from one address to another', async function () {
-    const fixture = await loadSwitchMembershipAndAssetsFixture();
+    const fixture = await loadFixture(switchMembershipAndAssetsSetup);
     const { mr: memberRoles, tk: token } = fixture.contracts;
     const {
       members: [member1],
@@ -61,7 +61,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('switches membership and transfers manager staking pools from one address to another', async function () {
-    const fixture = await loadSwitchMembershipAndAssetsFixture();
+    const fixture = await loadFixture(switchMembershipAndAssetsSetup);
     const { mr: memberRoles, tk: token, tc: tokenController } = fixture.contracts;
     const {
       nonMembers: [newMember],
@@ -88,7 +88,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('reverts when switching membership for non-member', async function () {
-    const fixture = await loadSwitchMembershipAndAssetsFixture();
+    const fixture = await loadFixture(switchMembershipAndAssetsSetup);
     const { mr: memberRoles } = fixture.contracts;
     const {
       nonMembers: [nonMember1, nonMember2],
@@ -99,7 +99,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it("reverts when switching membership to an address that's already a member", async function () {
-    const fixture = await loadSwitchMembershipAndAssetsFixture();
+    const fixture = await loadFixture(switchMembershipAndAssetsSetup);
     const { mr: memberRoles } = fixture.contracts;
     const {
       members: [member1, member2],
@@ -109,7 +109,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('transfers the provided covers to the new address', async function () {
-    const fixture = await loadSwitchMembershipAndAssetsFixture();
+    const fixture = await loadFixture(switchMembershipAndAssetsSetup);
     const { mr: memberRoles, tk: token, cover, coverNFT, stakingPool1 } = fixture.contracts;
     const [member, staker] = fixture.accounts.members;
     const [nonMember] = fixture.accounts.nonMembers;
@@ -164,7 +164,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('transfers all staking LP shares of the provided staking pools', async function () {
-    const fixture = await loadSwitchMembershipAndAssetsFixture();
+    const fixture = await loadFixture(switchMembershipAndAssetsSetup);
     const { mr: memberRoles, tk: token, stakingPool1, stakingPool2, stakingPool3, stakingNFT } = fixture.contracts;
     const {
       members: [member1],

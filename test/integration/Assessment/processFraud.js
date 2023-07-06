@@ -10,8 +10,8 @@ const { setEtherBalance } = require('../../utils/evm');
 const { parseEther } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 
-async function loadProcessFraudFixture() {
-  const fixture = await loadFixture(setup);
+async function processFraudSetup() {
+  const fixture = await setup();
   // stake and buy cover
   const { stakingPool1, cover, tk: nxm, tc: tokenController } = fixture.contracts;
   const staker = fixture.accounts.defaultSender;
@@ -55,7 +55,7 @@ async function loadProcessFraudFixture() {
 
 describe('processFraud', function () {
   it.skip('consumes less gas to process than the summed fees of the fraudulent voting transactions', async function () {
-    const fixture = await loadProcessFraudFixture();
+    const fixture = await loadFixture(processFraudSetup);
     const { as: assessment, ic: individualClaims, gv: governanceContact } = fixture.contracts;
     const governance = await ethers.getImpersonatedSigner(governanceContact.address);
     const [fraudulentMember] = fixture.accounts.members;

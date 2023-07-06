@@ -30,8 +30,8 @@ const buyCoverFixture = {
 
 const poolAllocationRequest = [{ poolId: 1, coverAmountInAsset: buyCoverFixture.amount }];
 
-async function loadBuyCoverFixture() {
-  const fixture = await loadFixture(setup);
+async function buyCoverSetup() {
+  const fixture = await setup();
   const { cover } = fixture;
   const [stakingPoolManager] = fixture.accounts.members;
 
@@ -49,7 +49,7 @@ async function loadBuyCoverFixture() {
 
 describe('buyCover', function () {
   it('should purchase new cover using 1 staking pool', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, pool } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
@@ -90,7 +90,7 @@ describe('buyCover', function () {
   });
 
   it('should purchase new cover with fixed price using 1 staking pool', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, pool } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, targetPriceRatio, coverAsset, period, expectedPremium } = buyCoverFixture;
@@ -137,7 +137,7 @@ describe('buyCover', function () {
   });
 
   it('should purchase new cover using 2 staking pools', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, pool } = fixture;
     const [coverBuyer, stakingPoolManager] = fixture.accounts.members;
     const { amount, targetPriceRatio, productId, coverAsset, period, expectedPremium, capacity, activeCover } =
@@ -190,7 +190,7 @@ describe('buyCover', function () {
   });
 
   it('should purchase new cover using NXM with commission', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, nxm, tokenController, pool } = fixture;
     const [coverBuyer, stakingPoolManager] = fixture.accounts.members;
     const { amount, targetPriceRatio, productId, coverAsset, period, priceDenominator } = buyCoverFixture;
@@ -260,7 +260,7 @@ describe('buyCover', function () {
   });
 
   it('should purchase new cover using DAI with commission', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, dai, pool } = fixture;
 
     const {
@@ -333,7 +333,7 @@ describe('buyCover', function () {
   });
 
   it('should purchase new cover using USDC with commission', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, usdc, pool } = fixture;
 
     const {
@@ -407,7 +407,7 @@ describe('buyCover', function () {
   });
 
   it('should revert for unavailable product', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const productId = 1337;
@@ -435,7 +435,7 @@ describe('buyCover', function () {
   });
 
   it('should revert if cover asset does not exist', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const coverAsset = 10; // inexistent asset id
@@ -463,7 +463,7 @@ describe('buyCover', function () {
   });
 
   it('should revert for unsupported cover asset', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, Assets } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const coverAsset = Assets.USDC; // inexistent asset id
@@ -491,7 +491,7 @@ describe('buyCover', function () {
   });
 
   it('should revert for period too short', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const period = 3600 * 24 * 27; // 27 days
@@ -520,7 +520,7 @@ describe('buyCover', function () {
   });
 
   it('should revert for period too long', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const period = 3600 * 24 * 366;
@@ -548,7 +548,7 @@ describe('buyCover', function () {
   });
 
   it('should revert for commission rate too high', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, productId, coverAsset, period } = buyCoverFixture;
@@ -575,7 +575,7 @@ describe('buyCover', function () {
   });
 
   it('should revert when cover amount is 0', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
 
@@ -604,7 +604,7 @@ describe('buyCover', function () {
   });
 
   it('reverts if system is paused', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, master } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
@@ -633,7 +633,7 @@ describe('buyCover', function () {
   });
 
   it('reverts if caller is not member', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover } = fixture;
 
     const {
@@ -664,7 +664,7 @@ describe('buyCover', function () {
   });
 
   it('reverts if owner is address zero', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
@@ -691,7 +691,7 @@ describe('buyCover', function () {
   });
 
   it('reverts if payment asset does not exist', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
 
@@ -721,7 +721,7 @@ describe('buyCover', function () {
   });
 
   it('reverts when payment asset is not a cover asset', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, pool } = fixture;
     const [coverBuyer] = fixture.accounts.members;
 
@@ -753,7 +753,7 @@ describe('buyCover', function () {
   });
 
   it('reverts when payment asset is not a cover asset', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, pool } = fixture;
     const [coverBuyer] = fixture.accounts.members;
 
@@ -785,7 +785,7 @@ describe('buyCover', function () {
   });
 
   it('reverts when payment asset is abandoned', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, pool } = fixture;
     const [coverBuyer] = fixture.accounts.members;
 
@@ -817,7 +817,7 @@ describe('buyCover', function () {
   });
 
   it('reverts if calculated premium is bigger than maxPremiumInAsset', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator } = buyCoverFixture;
@@ -880,7 +880,7 @@ describe('buyCover', function () {
   });
 
   it('reverts if calculated premium is bigger than maxPremiumInAsset when buying with NXM', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, nxm, tokenController } = fixture;
     const [coverBuyer, stakingPoolManager] = fixture.accounts.members;
     const { amount, targetPriceRatio, productId, coverAsset, period, priceDenominator } = buyCoverFixture;
@@ -951,7 +951,7 @@ describe('buyCover', function () {
   });
 
   it('reverts if empty array of allocationRequests', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
@@ -978,7 +978,7 @@ describe('buyCover', function () {
   });
 
   it('reverts if allocationRequest coverAmountInAsset is 0', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
@@ -1005,7 +1005,7 @@ describe('buyCover', function () {
   });
 
   it('retrieves ERC20 payment from caller and transfers it to the Pool', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, dai, pool } = fixture;
 
     const {
@@ -1054,7 +1054,7 @@ describe('buyCover', function () {
   });
 
   it('store cover and segment data', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator, poolId, segmentId } =
@@ -1109,7 +1109,7 @@ describe('buyCover', function () {
   });
 
   it('mints NFT to owner', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, coverNFT } = fixture;
 
     const {
@@ -1148,7 +1148,7 @@ describe('buyCover', function () {
   });
 
   it('allows to set a non member as owner', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, coverNFT } = fixture;
 
     const {
@@ -1188,7 +1188,7 @@ describe('buyCover', function () {
   });
 
   it('reverts if reentrant', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, memberRoles } = fixture;
 
     const {
@@ -1262,7 +1262,7 @@ describe('buyCover', function () {
   });
 
   it('correctly store cover, segment and allocation data', async function () {
-    const fixture = await loadFixture(loadBuyCoverFixture);
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover } = fixture;
 
     const {

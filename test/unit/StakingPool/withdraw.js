@@ -42,8 +42,8 @@ const withdrawFixture = {
   destination: AddressZero,
 };
 
-async function loadWithdrawFixture() {
-  const fixture = await loadFixture(setup);
+async function withdrawSetup() {
+  const fixture = await setup();
   const { stakingPool, stakingProducts, coverSigner, tokenController } = fixture;
   const manager = fixture.accounts.defaultSender;
 
@@ -66,7 +66,7 @@ async function loadWithdrawFixture() {
 
 describe('withdraw', function () {
   it('reverts if system is paused', async function () {
-    const fixture = await loadWithdrawFixture();
+    const fixture = await loadFixture(withdrawSetup);
     const { stakingPool, master } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -82,7 +82,7 @@ describe('withdraw', function () {
   });
 
   it('reverts if trying to withdraw stake locked in governance', async function () {
-    const fixture = await loadWithdrawFixture();
+    const fixture = await loadFixture(withdrawSetup);
     const { nxm, stakingPool } = fixture;
     const manager = fixture.accounts.defaultSender;
     const [user] = fixture.accounts.members;
@@ -113,7 +113,7 @@ describe('withdraw', function () {
   });
 
   it('allows to withdraw only stake', async function () {
-    const fixture = await loadWithdrawFixture();
+    const fixture = await loadFixture(withdrawSetup);
     const { nxm, coverSigner, stakingPool, tokenController } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -153,7 +153,7 @@ describe('withdraw', function () {
   });
 
   it('transfers nxm stake and rewards from token controller to nft owner', async function () {
-    const fixture = await loadWithdrawFixture();
+    const fixture = await loadFixture(withdrawSetup);
     const { nxm, coverSigner, stakingPool, tokenController } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -197,7 +197,7 @@ describe('withdraw', function () {
   });
 
   it('allows to withdraw only rewards', async function () {
-    const fixture = await loadWithdrawFixture();
+    const fixture = await loadFixture(withdrawSetup);
     const { nxm, coverSigner, stakingPool, tokenController } = fixture;
     const [user] = fixture.accounts.members;
     const { defaultSender: manager } = fixture.accounts;
@@ -280,7 +280,7 @@ describe('withdraw', function () {
   });
 
   it('allows to withdraw stake only if tranche is expired', async function () {
-    const fixture = await loadWithdrawFixture();
+    const fixture = await loadFixture(withdrawSetup);
     const { tokenController, nxm, stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -317,7 +317,7 @@ describe('withdraw', function () {
   });
 
   it('allows to withdraw stake and rewards from multiple tranches', async function () {
-    const fixture = await loadWithdrawFixture();
+    const fixture = await loadFixture(withdrawSetup);
     const { nxm, coverSigner, stakingPool, tokenController } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = withdrawFixture;
@@ -385,7 +385,7 @@ describe('withdraw', function () {
   });
 
   it('update tranches', async function () {
-    const fixture = await loadWithdrawFixture();
+    const fixture = await loadFixture(withdrawSetup);
     const { coverSigner, stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
@@ -431,7 +431,7 @@ describe('withdraw', function () {
   });
 
   it('anyone can call to withdraw stake and rewards for a token id', async function () {
-    const fixture = await loadWithdrawFixture();
+    const fixture = await loadFixture(withdrawSetup);
     const { coverSigner, stakingPool, nxm } = fixture;
     const [user] = fixture.accounts.members;
     const [randomUser] = fixture.accounts.nonMembers;
@@ -472,7 +472,7 @@ describe('withdraw', function () {
   });
 
   it('allows withdrawing rewards multiple times', async function () {
-    const fixture = await loadWithdrawFixture();
+    const fixture = await loadFixture(withdrawSetup);
     const { coverSigner, stakingPool, stakingNFT, nxm, tokenController } = fixture;
     const [alice, bob] = fixture.accounts.members;
     const manager = fixture.accounts.defaultSender;
@@ -589,7 +589,7 @@ describe('withdraw', function () {
   });
 
   it('should emit some event', async function () {
-    const fixture = await loadWithdrawFixture();
+    const fixture = await loadFixture(withdrawSetup);
     const { coverSigner, stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = withdrawFixture;
@@ -647,7 +647,7 @@ describe('withdraw', function () {
   });
 
   it('allow multiple users to withdraw stake and rewards from multiple tranches', async function () {
-    const fixture = await loadWithdrawFixture();
+    const fixture = await loadFixture(withdrawSetup);
     const { nxm, coverSigner, stakingPool, tokenController } = fixture;
     const [user1, user2, user3] = fixture.accounts.members;
     const { defaultSender: manager } = fixture.accounts;

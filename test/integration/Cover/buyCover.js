@@ -34,8 +34,8 @@ const buyCoverFixture = {
   ipfsData: 'ipfs data',
 };
 
-async function loadBuyCoverFixture() {
-  const fixture = await loadFixture(setup);
+async function buyCoverSetup() {
+  const fixture = await setup();
   const { tk: nxm, stakingProducts, stakingPool1, stakingPool2, stakingPool3, tc: tokenController } = fixture.contracts;
   const staker = fixture.accounts.defaultSender;
   const [manager1, manager2, manager3] = fixture.accounts.stakingPoolManagers;
@@ -62,7 +62,7 @@ async function loadBuyCoverFixture() {
 
 describe('buyCover', function () {
   it.skip('allows to buy against multiple staking pool', async function () {
-    const fixture = await loadBuyCoverFixture();
+    const fixture = await loadFixture(buyCoverSetup);
     const { cover, tc: tokenController, stakingProducts } = fixture.contracts;
     const {
       members: [coverBuyer, coverReceiver],

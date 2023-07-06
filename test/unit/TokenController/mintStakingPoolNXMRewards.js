@@ -7,8 +7,8 @@ const setup = require('./setup');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
-async function loadMintStakingPoolNXMRewardsFixture() {
-  const fixture = await loadFixture(setup);
+async function mintStakingPoolNXMRewardsSetup() {
+  const fixture = await setup();
   const { stakingPoolFactory } = fixture.contracts;
 
   const createPoolTx = await stakingPoolFactory.create(AddressZero);
@@ -27,7 +27,7 @@ async function loadMintStakingPoolNXMRewardsFixture() {
 
 describe('mintStakingPoolNXMRewards', function () {
   it('reverts if caller is not pool contract', async function () {
-    const fixture = await loadMintStakingPoolNXMRewardsFixture();
+    const fixture = await loadFixture(mintStakingPoolNXMRewardsSetup);
     const { tokenController } = fixture.contracts;
 
     const amount = parseEther('10');
@@ -37,7 +37,7 @@ describe('mintStakingPoolNXMRewards', function () {
   });
 
   it('increases staking pool rewards', async function () {
-    const fixture = await loadMintStakingPoolNXMRewardsFixture();
+    const fixture = await loadFixture(mintStakingPoolNXMRewardsSetup);
     const { tokenController } = fixture.contracts;
 
     const initialStakingPoolNXMBalances = await tokenController.stakingPoolNXMBalances(fixture.poolId);
@@ -51,7 +51,7 @@ describe('mintStakingPoolNXMRewards', function () {
   });
 
   it('mints nxm to the contract', async function () {
-    const fixture = await loadMintStakingPoolNXMRewardsFixture();
+    const fixture = await loadFixture(mintStakingPoolNXMRewardsSetup);
     const { tokenController, nxm } = fixture.contracts;
 
     const initialTcBalance = await nxm.balanceOf(tokenController.address);

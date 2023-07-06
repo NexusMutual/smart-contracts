@@ -3,8 +3,8 @@ const { proposalTitle, proposalDescHash, proposalSD, categoryId, solutionHash, a
 const setup = require('../setup');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-async function loadSubmitProposalWithSolutionFixture() {
-  const fixture = await loadFixture(setup);
+async function submitProposalWithSolutionSetup() {
+  const fixture = await setup();
   const { gv: governance } = fixture.contracts;
   const [member] = fixture.accounts.members;
   const proposalId = await governance.getProposalLength();
@@ -19,7 +19,7 @@ async function loadSubmitProposalWithSolutionFixture() {
 
 describe('submitProposalWithSolution', function () {
   it('should fail to submit proposal proposal if sender role is not authorized', async function () {
-    const fixture = await loadSubmitProposalWithSolutionFixture();
+    const fixture = await loadFixture(submitProposalWithSolutionSetup);
     const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [, member] = fixture.accounts.members;
@@ -30,7 +30,7 @@ describe('submitProposalWithSolution', function () {
   });
 
   it('should submit a solution for a proposal', async function () {
-    const fixture = await loadSubmitProposalWithSolutionFixture();
+    const fixture = await loadFixture(submitProposalWithSolutionSetup);
     const { proposalId } = fixture;
     const { gv: governance } = fixture.contracts;
     const [member] = fixture.accounts.members;

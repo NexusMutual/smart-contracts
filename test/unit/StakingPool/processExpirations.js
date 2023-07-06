@@ -41,8 +41,8 @@ const poolInitParams = {
   ipfsDescriptionHash: 'Description Hash',
 };
 
-async function loadProccessExpirationFixture() {
-  const fixture = await loadFixture(setup);
+async function proccessExpirationSetup() {
+  const fixture = await setup();
   const { stakingPool, stakingProducts, cover } = fixture;
   const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 
@@ -63,7 +63,7 @@ async function loadProccessExpirationFixture() {
 
 describe('processExpirations', function () {
   it('expires tranche with no previous updates', async function () {
-    const fixture = await loadProccessExpirationFixture();
+    const fixture = await loadFixture(proccessExpirationSetup);
     const { stakingPool } = fixture;
     const {
       members: [user],
@@ -89,7 +89,7 @@ describe('processExpirations', function () {
   });
 
   it('does not revert when expires multiple tranches', async function () {
-    const fixture = await loadProccessExpirationFixture();
+    const fixture = await loadFixture(proccessExpirationSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
@@ -106,7 +106,7 @@ describe('processExpirations', function () {
   });
 
   it('anyone can call this method', async function () {
-    const fixture = await loadProccessExpirationFixture();
+    const fixture = await loadFixture(proccessExpirationSetup);
     const { stakingPool } = fixture;
     const {
       nonMembers: [anyone],
@@ -116,7 +116,7 @@ describe('processExpirations', function () {
   });
 
   it('expires tranches updating active stake, stake shares and rewards shares supply', async function () {
-    const fixture = await loadProccessExpirationFixture();
+    const fixture = await loadFixture(proccessExpirationSetup);
     const { stakingPool } = fixture;
     const { POOL_FEE_DENOMINATOR } = fixture.config;
     const [user] = fixture.accounts.members;
@@ -201,7 +201,7 @@ describe('processExpirations', function () {
   });
 
   it('expires tranches correctly storing expiredTranches struct', async function () {
-    const fixture = await loadProccessExpirationFixture();
+    const fixture = await loadFixture(proccessExpirationSetup);
     const { stakingPool } = fixture;
     const {
       members: [user],
@@ -251,7 +251,7 @@ describe('processExpirations', function () {
   });
 
   it('correctly calculates accNxmPerRewardShare', async function () {
-    const fixture = await loadProccessExpirationFixture();
+    const fixture = await loadFixture(proccessExpirationSetup);
     const { stakingPool } = fixture;
     const {
       members: [user],
@@ -342,7 +342,7 @@ describe('processExpirations', function () {
   });
 
   it('expires buckets updating rewards per second and lastAccNxmUpdate', async function () {
-    const fixture = await loadProccessExpirationFixture();
+    const fixture = await loadFixture(proccessExpirationSetup);
     const { stakingPool } = fixture;
     const {
       members: [user],
@@ -388,7 +388,7 @@ describe('processExpirations', function () {
   });
 
   it('updates first active tranche id', async function () {
-    const fixture = await loadProccessExpirationFixture();
+    const fixture = await loadFixture(proccessExpirationSetup);
     const { stakingPool } = fixture;
     const {
       members: [user],
@@ -419,7 +419,7 @@ describe('processExpirations', function () {
   });
 
   it('updates first active bucket id', async function () {
-    const fixture = await loadProccessExpirationFixture();
+    const fixture = await loadFixture(proccessExpirationSetup);
     const { stakingPool } = fixture;
     const {
       members: [user],
@@ -452,7 +452,7 @@ describe('processExpirations', function () {
   });
 
   it('updates accNxmPerRewardsShare and lastAccNxmUpdate up to date when forced by param', async function () {
-    const fixture = await loadProccessExpirationFixture();
+    const fixture = await loadFixture(proccessExpirationSetup);
     const { stakingPool } = fixture;
     const {
       members: [user],

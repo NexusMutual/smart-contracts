@@ -111,6 +111,7 @@ async function requestAllocationSetup() {
   const [staker] = fixture.accounts.members;
   const productId = 0;
   const trancheId = (await getCurrentTrancheId()) + trancheOffset;
+  console.log('trancheId in fixture:', trancheId);
 
   // Set global product and product type
   await cover.setProduct(coverProductTemplate, productId);
@@ -162,7 +163,7 @@ describe('requestAllocation', function () {
     const { stakingPool, cover } = fixture;
     const { GLOBAL_CAPACITY_RATIO, GLOBAL_MIN_PRICE_RATIO, GLOBAL_REWARDS_RATIO, NXM_PER_ALLOCATION_UNIT } =
       fixture.config;
-    const timestamp = Math.floor(Date.now() / 1000);
+    const { timestamp } = await ethers.provider.getBlock('latest');
     const allocationId = await stakingPool.getNextAllocationId();
 
     const request = {

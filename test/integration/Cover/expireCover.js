@@ -40,8 +40,8 @@ function sum(arr) {
   return arr.reduce((x, y) => x.add(y), BigNumber.from(0));
 }
 
-async function loadExpireCoverFixture() {
-  const fixture = await loadFixture(setup);
+async function expireCoverSetup() {
+  const fixture = await setup();
   const { tk: nxm, stakingProducts, stakingPool1, stakingPool2, stakingPool3, tc: tokenController } = fixture.contracts;
   const staker = fixture.accounts.defaultSender;
   const [manager1, manager2, manager3] = fixture.accounts.stakingPoolManagers;
@@ -52,7 +52,7 @@ async function loadExpireCoverFixture() {
   await stakingProducts.connect(manager3).setProducts(3, [stakedProductParamTemplate]);
 
   // stake
-  const firstActiveTrancheId = await calculateFirstTrancheId(
+  const firstActiveTrancheId = calculateFirstTrancheId(
     await ethers.provider.getBlock('latest'),
     buyCoverFixture.period,
     0,
@@ -68,7 +68,7 @@ async function loadExpireCoverFixture() {
 
 describe('expireCover', function () {
   it('should revert when cover is not expired', async function () {
-    const fixture = await loadExpireCoverFixture();
+    const fixture = await loadFixture(expireCoverSetup);
     const { cover } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const { amount } = buyCoverFixture;
@@ -91,7 +91,7 @@ describe('expireCover', function () {
   });
 
   it('should expire a cover', async function () {
-    const fixture = await loadExpireCoverFixture();
+    const fixture = await loadFixture(expireCoverSetup);
     const { cover, stakingPool1 } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, period, productId } = buyCoverFixture;
@@ -118,7 +118,7 @@ describe('expireCover', function () {
   });
 
   it('should emit an event on expire a cover', async function () {
-    const fixture = await loadExpireCoverFixture();
+    const fixture = await loadFixture(expireCoverSetup);
     const { cover, stakingPool1 } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, period, productId } = buyCoverFixture;
@@ -142,7 +142,7 @@ describe('expireCover', function () {
   });
 
   it('should expire a cover from multiple pools', async function () {
-    const fixture = await loadExpireCoverFixture();
+    const fixture = await loadFixture(expireCoverSetup);
     const { cover, stakingPool1, stakingPool2 } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, period, productId } = buyCoverFixture;
@@ -176,7 +176,7 @@ describe('expireCover', function () {
   });
 
   it('should revert when trying to expire already expired cover', async function () {
-    const fixture = await loadExpireCoverFixture();
+    const fixture = await loadFixture(expireCoverSetup);
     const { cover, stakingPool1 } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, period } = buyCoverFixture;
@@ -202,7 +202,7 @@ describe('expireCover', function () {
   });
 
   it('should revert when cover already expired with the bucket', async function () {
-    const fixture = await loadExpireCoverFixture();
+    const fixture = await loadFixture(expireCoverSetup);
     const { cover, stakingPool1 } = fixture.contracts;
     const { BUCKET_DURATION } = fixture.config;
     const [coverBuyer] = fixture.accounts.members;

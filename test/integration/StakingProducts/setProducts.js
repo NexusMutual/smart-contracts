@@ -31,7 +31,7 @@ const coverProductParamTemplate = {
 
 describe('setProducts', function () {
   beforeEach(async function () {
-    const { cover } = this.contracts;
+    const { stakingProducts } = this.contracts;
     const {
       stakingPoolManagers: [manager],
     } = this.accounts;
@@ -39,9 +39,9 @@ describe('setProducts', function () {
     const initialPoolFee = 50; // 50%
     const maxPoolFee = 80; // 80%
 
-    const [poolId] = await cover.callStatic.createStakingPool(true, initialPoolFee, maxPoolFee, [], '');
+    const [poolId] = await stakingProducts.callStatic.createStakingPool(true, initialPoolFee, maxPoolFee, [], '');
 
-    await cover.connect(manager).createStakingPool(
+    await stakingProducts.connect(manager).createStakingPool(
       true, // isPrivatePool,
       initialPoolFee,
       maxPoolFee,
@@ -53,7 +53,7 @@ describe('setProducts', function () {
   });
 
   it('should be able to raise and lower weights of deprecated products', async function () {
-    const { stakingProducts, cover } = this.contracts;
+    const { stakingProducts, coverProducts } = this.contracts;
     const {
       defaultSender: admin,
       stakingPoolManagers: [manager1],
@@ -70,7 +70,7 @@ describe('setProducts', function () {
       ...coverProductParamTemplate,
       product: { ...coverProductTemplate, isDeprecated: true },
     };
-    await cover.connect(admin).setProducts([coverProductParams]);
+    await coverProducts.connect(admin).setProducts([coverProductParams]);
 
     // raise target weight
     await stakingProducts.connect(manager1).setProducts(this.poolId /* poolId */, [
@@ -90,7 +90,7 @@ describe('setProducts', function () {
   });
 
   it('should fail to set product that doesnt exist', async function () {
-    const { stakingProducts, cover } = this.contracts;
+    const { stakingProducts, coverProducts } = this.contracts;
     const {
       stakingPoolManagers: [manager1],
     } = this.accounts;
@@ -104,6 +104,6 @@ describe('setProducts', function () {
           productId: nonExistentProductId,
         },
       ]),
-    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExist');
+    ).to.be.revertedWithCustomError(coverProducts, 'ProductDoesntExist');
   });
 });

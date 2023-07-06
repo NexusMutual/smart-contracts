@@ -127,8 +127,6 @@ interface ICover {
     uint segmentId
   ) external view returns (CoverSegment memory);
 
-  function stakingPool(uint index) external view returns (IStakingPool);
-
   function totalActiveCoverInAsset(uint coverAsset) external view returns (uint);
 
   function globalCapacityRatio() external view returns (uint);
@@ -202,7 +200,6 @@ interface ICover {
 
   // Price & Commission
   error PriceExceedsMaxPremiumInAsset();
-  error TargetPriceBelowGlobalMinPriceRatio();
   error InitialPriceRatioBelowGlobalMinPriceRatio();
   error InitialPriceRatioAbove100Percent();
   error CommissionRateTooHigh();

@@ -95,6 +95,10 @@ interface IStakingProducts {
     uint allocationUnitsPerNxm
   ) external pure returns (uint);
 
+  /* ========== STAKING POOL CREATION ========== */
+
+  function stakingPool(uint poolId) external view returns (IStakingPool);
+
   function createStakingPool(
     bool isPrivatePool,
     uint initialPoolFee,
@@ -123,5 +127,11 @@ interface IStakingProducts {
   error MustRecalculateEffectiveWeight();
   error TotalTargetWeightExceeded();
   error TotalEffectiveWeightExceeded();
+
+  // Staking Pool creation
+  error ProductDoesntExistOrIsDeprecated();
+  error InvalidProductType();
+  error PoolNotAllowedForThisProduct(uint productId);
+  error TargetPriceBelowGlobalMinPriceRatio();
 
 }

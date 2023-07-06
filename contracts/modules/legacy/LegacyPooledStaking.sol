@@ -840,12 +840,4 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
 
     return products;
   }
-
-  function migrateToExistingV2Pool(uint stakingPoolId, uint trancheId) external {
-    IStakingPool stakingPool = cover.stakingPool(stakingPoolId);
-    uint deposit = stakers[msg.sender].deposit;
-    stakers[msg.sender].deposit = 0;
-    token().approve(address(tokenController()), deposit);
-    stakingPool.depositTo(deposit, trancheId, 0, msg.sender);
-  }
 }

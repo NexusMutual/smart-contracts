@@ -362,6 +362,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
+    internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
 
     Configuration memory currentConfig = config;
     bool notInitialized = bytes32(

@@ -27,14 +27,14 @@ describe('createStakingPool', function () {
 
   it('should create a private staking pool', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, spf, stakingNFT, tc: tokenController } = this.contracts;
+    const { spf, stakingNFT, tc: tokenController, stakingProducts } = this.contracts;
     const [manager, staker] = this.accounts.members;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const trancheId = calculateTrancheId(timestamp, period, gracePeriod);
     const stakingPoolCountBefore = await spf.stakingPoolCount();
 
-    await cover.connect(manager).createStakingPool(
+    await stakingProducts.connect(manager).createStakingPool(
       true, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,
@@ -45,7 +45,7 @@ describe('createStakingPool', function () {
     const stakingPoolCountAfter = await spf.stakingPoolCount();
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
 
-    const stakingPoolAddress = await cover.stakingPool(stakingPoolCountAfter);
+    const stakingPoolAddress = await stakingProducts.stakingPool(stakingPoolCountAfter);
     const stakingPool = await ethers.getContractAt('StakingPool', stakingPoolAddress);
 
     const managerStakingPoolNFTBalanceBefore = await stakingNFT.balanceOf(manager.address);
@@ -68,7 +68,7 @@ describe('createStakingPool', function () {
 
   it('should create a public staking pool', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, spf, stakingNFT, tc: tokenController } = this.contracts;
+    const { cover, spf, stakingNFT, tc: tokenController, stakingProducts } = this.contracts;
     const [manager, staker] = this.accounts.members;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -76,7 +76,7 @@ describe('createStakingPool', function () {
 
     const stakingPoolCountBefore = await spf.stakingPoolCount();
 
-    await cover.connect(manager).createStakingPool(
+    await stakingProducts.connect(manager).createStakingPool(
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,
@@ -87,7 +87,7 @@ describe('createStakingPool', function () {
     const stakingPoolCountAfter = await spf.stakingPoolCount();
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
 
-    const stakingPoolAddress = await cover.stakingPool(stakingPoolCountAfter);
+    const stakingPoolAddress = await stakingProducts.stakingPool(stakingPoolCountAfter);
     const stakingPool = await ethers.getContractAt('StakingPool', stakingPoolAddress);
 
     const managerStakingPoolNFTBalanceBefore = await stakingNFT.balanceOf(manager.address);
@@ -110,11 +110,11 @@ describe('createStakingPool', function () {
   });
 
   it('should revert if called by a non member', async function () {
-    const { cover } = this.contracts;
+    const { stakingProducts } = this.contracts;
     const [nonMember] = this.accounts.nonMembers;
 
     await expect(
-      cover.connect(nonMember).createStakingPool(
+      stakingProducts.connect(nonMember).createStakingPool(
         false, // isPrivatePool,
         DEFAULT_POOL_FEE, // initialPoolFee
         DEFAULT_POOL_FEE, // maxPoolFee,
@@ -125,25 +125,25 @@ describe('createStakingPool', function () {
   });
 
   it("should fail to create a pool with a product that doesn't exist", async function () {
-    const { cover } = this.contracts;
+    const { stakingProducts } = this.contracts;
     const [manager] = this.accounts.members;
     const { DEFAULT_PRODUCTS } = this;
 
     const nonExistingProduct = { ...DEFAULT_PRODUCTS[0], productId: 500 };
 
     await expect(
-      cover.connect(manager).createStakingPool(
+      stakingProducts.connect(manager).createStakingPool(
         false, // isPrivatePool,
         DEFAULT_POOL_FEE, // initialPoolFee
         DEFAULT_POOL_FEE, // maxPoolFee,
         [nonExistingProduct], // products
         '', // ipfsDescriptionHash
       ),
-    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExistOrIsDeprecated');
+    ).to.be.revertedWithCustomError(stakingProducts, 'ProductDoesntExistOrIsDeprecated');
   });
 
   it("should fail to create a pool with a product that doesn't exist, called by pooledStaking", async function () {
-    const { cover, ps } = this.contracts;
+    const { ps, stakingProducts } = this.contracts;
     const { DEFAULT_PRODUCTS } = this;
 
     const pooledStakingSigner = await ethers.getImpersonatedSigner(ps.address);
@@ -152,7 +152,7 @@ describe('createStakingPool', function () {
     const nonExistingProduct = { ...DEFAULT_PRODUCTS[0], productId: 500 };
 
     await expect(
-      cover.connect(pooledStakingSigner).createStakingPool(
+      stakingProducts.connect(pooledStakingSigner).createStakingPool(
         false, // isPrivatePool,
         DEFAULT_POOL_FEE, // initialPoolFee
         DEFAULT_POOL_FEE, // maxPoolFee,
@@ -163,14 +163,14 @@ describe('createStakingPool', function () {
   });
 
   it("should fail to create a pool with a product that isn't allowed for this pool", async function () {
-    const { cover } = this.contracts;
+    const { stakingProducts, coverProducts } = this.contracts;
     const [manager] = this.accounts.members;
     const { DEFAULT_PRODUCTS } = this;
 
     const notAllowedProduct = { ...DEFAULT_PRODUCTS[0], productId: 4 };
 
     // get new poolId
-    const [newPoolId] = await cover.connect(manager).callStatic.createStakingPool(
+    const [newPoolId] = await stakingProducts.connect(manager).callStatic.createStakingPool(
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,
@@ -178,10 +178,10 @@ describe('createStakingPool', function () {
       '', // ipfsDescriptionHash
     );
 
-    expect(await cover.isPoolAllowed(notAllowedProduct.productId, newPoolId)).to.be.equal(false);
+    expect(await coverProducts.isPoolAllowed(notAllowedProduct.productId, newPoolId)).to.be.equal(false);
 
     await expect(
-      cover.connect(manager).createStakingPool(
+      stakingProducts.connect(manager).createStakingPool(
         false, // isPrivatePool,
         DEFAULT_POOL_FEE, // initialPoolFee
         DEFAULT_POOL_FEE, // maxPoolFee,
@@ -189,12 +189,12 @@ describe('createStakingPool', function () {
         '', // ipfsDescriptionHash
       ),
     )
-      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
+      .to.be.revertedWithCustomError(stakingProducts, 'PoolNotAllowedForThisProduct')
       .withArgs(notAllowedProduct.productId);
   });
 
   it("should fail to create a pool with one of several products that isn't allowed for this pool", async function () {
-    const { cover } = this.contracts;
+    const { cover, stakingProducts, coverProducts } = this.contracts;
     const [manager] = this.accounts.members;
     const { DEFAULT_PRODUCTS } = this;
 
@@ -202,7 +202,7 @@ describe('createStakingPool', function () {
     DEFAULT_PRODUCTS.push(nonExistingProduct);
 
     // get new poolId
-    const [newPoolId] = await cover.connect(manager).callStatic.createStakingPool(
+    const [newPoolId] = await stakingProducts.connect(manager).callStatic.createStakingPool(
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,
@@ -210,11 +210,11 @@ describe('createStakingPool', function () {
       '', // ipfsDescriptionHash
     );
 
-    expect(await cover.isPoolAllowed(DEFAULT_PRODUCTS[0].productId, newPoolId)).to.be.equal(true);
-    expect(await cover.isPoolAllowed(DEFAULT_PRODUCTS[1].productId, newPoolId)).to.be.equal(false);
+    expect(await coverProducts.isPoolAllowed(DEFAULT_PRODUCTS[0].productId, newPoolId)).to.be.equal(true);
+    expect(await coverProducts.isPoolAllowed(DEFAULT_PRODUCTS[1].productId, newPoolId)).to.be.equal(false);
 
     await expect(
-      cover.connect(manager).createStakingPool(
+      stakingProducts.connect(manager).createStakingPool(
         false, // isPrivatePool,
         DEFAULT_POOL_FEE, // initialPoolFee
         DEFAULT_POOL_FEE, // maxPoolFee,
@@ -226,7 +226,7 @@ describe('createStakingPool', function () {
       .withArgs(nonExistingProduct.productId);
 
     // deploy pool with first product only
-    await cover.connect(manager).createStakingPool(
+    await stakingProducts.connect(manager).createStakingPool(
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,
@@ -236,9 +236,9 @@ describe('createStakingPool', function () {
 
     // next pool is allowed to have second product but should fail because it must be allowed after the creation
     expect(newPoolId.add(1)).to.be.equal(7);
-    expect(await cover.isPoolAllowed(DEFAULT_PRODUCTS[1].productId, newPoolId.add(1))).to.be.equal(true);
+    expect(await coverProducts.isPoolAllowed(DEFAULT_PRODUCTS[1].productId, newPoolId.add(1))).to.be.equal(true);
     await expect(
-      cover.connect(manager).createStakingPool(
+      stakingProducts.connect(manager).createStakingPool(
         false, // isPrivatePool,
         DEFAULT_POOL_FEE, // initialPoolFee
         DEFAULT_POOL_FEE, // maxPoolFee,
@@ -246,7 +246,7 @@ describe('createStakingPool', function () {
         '', // ipfsDescriptionHash
       ),
     )
-      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
+      .to.be.revertedWithCustomError(stakingProducts, 'PoolNotAllowedForThisProduct')
       .withArgs(nonExistingProduct.productId);
   });
 });

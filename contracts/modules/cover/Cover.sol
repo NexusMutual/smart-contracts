@@ -28,9 +28,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   /* ========== STATE VARIABLES ========== */
 
-  Product[] internal _products;
-  ProductType[] internal _productTypes;
-
   mapping(uint => CoverData) private _coverData;
 
   // cover id => segment id => pool allocations array
@@ -126,14 +123,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     uint segmentId;
 
+
     AllocationRequest memory allocationRequest;
     {
 
-      if (_products.length <= params.productId) {
+      ICoverProducts _coverProducts = coverProducts();
+      if (_coverProducts.productsCount() <= params.productId) {
         revert ProductDoesntExist();
       }
 
-      Product memory product = _products[params.productId];
+      Product memory product = _coverProducts.products(params.productId);
 
       if (product.isDeprecated) {
         revert ProductDoesntExistOrIsDeprecated();
@@ -146,7 +145,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.productId = params.productId;
       allocationRequest.coverId = coverId;
       allocationRequest.period = params.period;
-      allocationRequest.gracePeriod = _productTypes[product.productType].gracePeriod;
+      allocationRequest.gracePeriod = _coverProducts.productTypes(product.productType).gracePeriod;
       allocationRequest.globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
       allocationRequest.capacityReductionRatio = product.capacityReductionRatio;
       allocationRequest.rewardRatio = GLOBAL_REWARDS_RATIO;
@@ -299,7 +298,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.previousStart = lastSegment.start;
       allocationRequest.previousExpiration = expiration;
 
-      stakingPool(allocation.poolId).requestAllocation(
+      stakingProducts().stakingPool(allocation.poolId).requestAllocation(
         0, // amount
         0, // previous premium
         allocationRequest
@@ -374,7 +373,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         NXM_PER_ALLOCATION_UNIT
       );
 
-      (uint premiumInNXM, uint allocationId) = stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
+      (uint premiumInNXM, uint allocationId) = stakingProducts().stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
         coverAmountInNXM,
         vars.previousPremiumInNXM,
         allocationRequest
@@ -501,7 +500,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     address newOwner
   ) external onlyInternal returns (uint coverId) {
 
-    ProductType memory productType = _productTypes[_products[productId].productType];
+    ICoverProducts _coverProducts = coverProducts();
+    ProductType memory productType = _coverProducts.productTypes(_coverProducts.products(productId).productType);
 
     // uses the current v2 grace period
     if (block.timestamp >= start + period + productType.gracePeriod) {
@@ -580,6 +580,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     // increase amountPaidOut only *after* you read the segment
     cover.amountPaidOut += payoutAmountInAsset.toUint96();
 
+    IStakingProducts _stakingProducts = stakingProducts();
     for (uint i = 0; i < allocations.length; i++) {
       PoolAllocation memory allocation = allocations[i];
 
@@ -598,19 +599,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       );
 
       uint poolId = allocations[i].poolId;
-      stakingPool(poolId).burnStake(burnAmountInNxm, params);
+      _stakingProducts.stakingPool(poolId).burnStake(burnAmountInNxm, params);
     }
 
     return coverNFT.ownerOf(coverId);
   }
 
   /* ========== VIEWS ========== */
-
-  function stakingPool(uint poolId) public view returns (IStakingPool) {
-    return IStakingPool(
-      StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId)
-    );
-  }
 
   function coverData(uint coverId) external override view returns (CoverData memory) {
     return _coverData[coverId];
@@ -665,15 +660,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     _capacityReductionRatios = new uint[](productIds.length);
     _initialPrices = new uint[](productIds.length);
 
+    ICoverProducts _coverProducts = coverProducts();
     for (uint i = 0; i < productIds.length; i++) {
       uint productId = productIds[i];
 
-      if (productId >= _products.length) {
+      if (productId >= _coverProducts.productsCount()) {
         revert ProductDoesntExist();
       }
 
-      _initialPrices[i] = uint(_products[productId].initialPriceRatio);
-      _capacityReductionRatios[i] = uint(_products[productId].capacityReductionRatio);
+      _initialPrices[i] = uint(_coverProducts.products(productId).initialPriceRatio);
+      _capacityReductionRatios[i] = uint(_coverProducts.products(productId).capacityReductionRatio);
     }
   }
 

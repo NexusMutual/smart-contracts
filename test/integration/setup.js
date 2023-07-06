@@ -535,7 +535,7 @@ async function setup() {
     );
 
     const poolId = i + 1;
-    const stakingPoolAddress = await cover.stakingPool(poolId);
+    const stakingPoolAddress = await stakingProducts.stakingPool(poolId);
     const stakingPoolInstance = await ethers.getContractAt('StakingPool', stakingPoolAddress);
 
     this.contracts['stakingPool' + poolId] = stakingPoolInstance;
@@ -552,6 +552,7 @@ async function setup() {
   };
 
   this.contracts.stakingProducts = stakingProducts;
+  this.contracts.coverProducts = coverProducts;
   this.contracts.coverNFTDescriptor = coverNFTDescriptor;
   this.contracts.stakingNFTDescriptor = stakingNFTDescriptor;
   this.config = config;

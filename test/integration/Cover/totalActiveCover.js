@@ -116,7 +116,7 @@ describe('totalActiveCover', function () {
 
   it('expire a cover that had a claim paid out fully', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { cover, stakingPool1, as, cg, gv, ybETH } = this.contracts;
+    const { cover, stakingProducts, stakingPool1, as, cg, gv, ybETH } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
     const { BUCKET_SIZE } = this.config;
@@ -124,7 +124,7 @@ describe('totalActiveCover', function () {
     const { productId, coverAsset, period, gracePeriod, amount, coverId, segmentId, incidentId, assessmentId } =
       buyCoverFixture;
 
-    expect(await cover.stakingPool(1)).to.be.equal(stakingPool1.address);
+    expect(await stakingProducts.stakingPool(1)).to.be.equal(stakingPool1.address);
 
     // Stake to open up capacity
     await stake({ stakingPool: stakingPool1, staker: staker1, period, gracePeriod });

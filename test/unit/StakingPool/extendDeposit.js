@@ -34,7 +34,7 @@ const depositNftId = 1;
 const managerDepositId = 0;
 
 async function extendDepositSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts, stakingNFT, cover, tokenController } = fixture;
   const [user] = fixture.accounts.members;
   const manager = fixture.accounts.defaultSender;

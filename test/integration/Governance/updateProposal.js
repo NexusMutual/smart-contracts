@@ -12,7 +12,7 @@ const updateProposalFixture = {
 };
 
 async function updateProposalSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { gv: governance } = fixture.contracts;
   const categoryId = 0;
   const [member] = fixture.accounts.members;

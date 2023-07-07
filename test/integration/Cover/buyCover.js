@@ -35,7 +35,7 @@ const buyCoverFixture = {
 };
 
 async function buyCoverSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { tk: nxm, stakingProducts, stakingPool1, stakingPool2, stakingPool3, tc: tokenController } = fixture.contracts;
   const staker = fixture.accounts.defaultSender;
   const [manager1, manager2, manager3] = fixture.accounts.stakingPoolManagers;

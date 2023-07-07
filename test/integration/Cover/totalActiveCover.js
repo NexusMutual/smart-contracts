@@ -36,7 +36,7 @@ const buyCoverFixture = {
 };
 
 async function totalActiveCoverSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { tk, stakingProducts, stakingPool1 } = fixture.contracts;
   const { stakingPoolManagers } = fixture.accounts;
 

@@ -21,7 +21,7 @@ const initializeParams = {
 };
 
 async function setPoolPrivacySetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts, cover, tokenController } = fixture;
   const manager = fixture.accounts.defaultSender;
 

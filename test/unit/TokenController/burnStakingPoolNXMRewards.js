@@ -8,7 +8,7 @@ const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 async function burnStakingPoolNXMRewardsSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { stakingPoolFactory, tokenController } = fixture.contracts;
 
   const createPoolTx = await stakingPoolFactory.create(AddressZero);

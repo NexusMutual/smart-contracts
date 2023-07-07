@@ -40,7 +40,7 @@ async function submitIncident({ gv, cg, productId, period, priceBefore }) {
 }
 
 async function submitClaimSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { tk } = fixture.contracts;
   const members = fixture.accounts.members.slice(0, 5);
   const amount = parseEther('30000');

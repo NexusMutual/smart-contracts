@@ -40,7 +40,7 @@ const DEFAULT_PERIOD = daysToSeconds(30);
 const DEFAULT_GRACE_PERIOD = daysToSeconds(30);
 
 async function depositToSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts, cover, tokenController } = fixture;
   const { defaultSender: manager } = fixture.accounts;
   const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;

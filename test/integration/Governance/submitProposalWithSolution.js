@@ -4,7 +4,7 @@ const setup = require('../setup');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 async function submitProposalWithSolutionSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { gv: governance } = fixture.contracts;
   const [member] = fixture.accounts.members;
   const proposalId = await governance.getProposalLength();

@@ -9,7 +9,7 @@ const { Two, MaxUint256 } = ethers.constants;
 const poolId = 234;
 
 async function totalBalanceOfSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { nxm } = fixture.contracts;
   const [member] = fixture.accounts.members;
   const nxmBalanceBefore = await nxm.balanceOf(member.address);

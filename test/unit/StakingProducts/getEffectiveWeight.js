@@ -11,7 +11,7 @@ const poolId = 1;
 const productId = 0;
 
 async function getEffectiveWeightSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { cover } = fixture;
   const capacityRatio = await cover.GLOBAL_CAPACITY_RATIO();
   const product = await cover.products(productId);

@@ -7,7 +7,7 @@ const setup = require('../setup');
 const { impersonateAccount, setEtherBalance } = require('../../utils').evm;
 
 async function updateUintParametersSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { gv: governance } = fixture.contracts;
   await impersonateAccount(governance.address);
   await setEtherBalance(governance.address, parseEther('1000'));

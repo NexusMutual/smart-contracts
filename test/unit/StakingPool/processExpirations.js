@@ -42,7 +42,7 @@ const poolInitParams = {
 };
 
 async function proccessExpirationSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts, cover } = fixture;
   const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 

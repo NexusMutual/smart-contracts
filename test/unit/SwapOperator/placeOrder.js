@@ -17,7 +17,7 @@ const setup = require('./setup');
 const { parseEther, hexZeroPad, hexlify, randomBytes } = ethers.utils;
 
 async function placeOrderSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const [controller, governance] = await ethers.getSigners();
 
   // Assign contracts (destructuring isn't working)

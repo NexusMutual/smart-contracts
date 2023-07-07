@@ -15,7 +15,7 @@ const setup = require('../setup');
 const priceDenominator = '10000';
 
 async function emergencyPauseSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { tk } = fixture.contracts;
   const [member1, member2, member3] = fixture.accounts.members;
   await enrollClaimAssessor(fixture.contracts, [member1, member2, member3]);

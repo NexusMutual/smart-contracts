@@ -29,7 +29,7 @@ const GLOBAL_CAPACITY_DENOMINATOR = BigNumber.from(10000);
 const CAPACITY_REDUCTION_DENOMINATOR = BigNumber.from(10000);
 
 async function recalculateEffectiveWeightsForAllProductsSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { tk: nxm, tc: tokenController } = fixture.contracts;
   await nxm.approve(tokenController.address, MaxUint256);
 

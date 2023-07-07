@@ -43,7 +43,7 @@ const withdrawFixture = {
 };
 
 async function withdrawSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts, coverSigner, tokenController } = fixture;
   const manager = fixture.accounts.defaultSender;
 

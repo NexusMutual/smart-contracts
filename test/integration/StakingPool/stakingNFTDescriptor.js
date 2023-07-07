@@ -15,7 +15,7 @@ const svgHeader = 'data:image/svg+xml;base64,';
 const jsonHeader = 'data:application/json;base64,';
 
 async function stakingNFTDescriptorSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const {
     members: [staker, coverBuyer],
   } = fixture.accounts;

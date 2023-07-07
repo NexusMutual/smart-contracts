@@ -6,7 +6,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
 async function closeProposalSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { gv: governance } = fixture.contracts;
   const categoryId = 3;
 

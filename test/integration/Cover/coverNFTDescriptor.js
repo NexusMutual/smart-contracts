@@ -14,7 +14,7 @@ const JSON_HEADER = 'data:application/json;base64,';
 const SVG_HEADER = 'data:image/svg+xml;base64,';
 
 async function coverNFTDescriptorSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const {
     members: [staker, coverBuyer],
     stakingPoolManagers: [, , stakingPoolManager],

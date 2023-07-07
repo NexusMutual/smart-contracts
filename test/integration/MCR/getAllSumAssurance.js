@@ -30,7 +30,7 @@ const daiCoverTemplate = {
 };
 
 async function getAllSumAssuranceSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { tk, dai, stakingPool1: stakingPool, tc, mcr, cover } = fixture.contracts;
   const [member1] = fixture.accounts.members;
   const [nonMember1] = fixture.accounts.nonMembers;

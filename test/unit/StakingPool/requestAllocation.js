@@ -106,7 +106,7 @@ const poolId = 1;
 const trancheOffset = 5;
 
 async function requestAllocationSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts, cover } = fixture;
   const [staker] = fixture.accounts.members;
   const productId = 0;

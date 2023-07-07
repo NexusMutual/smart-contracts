@@ -11,7 +11,7 @@ const { parseEther } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 
 async function processFraudSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   // stake and buy cover
   const { stakingPool1, cover, tk: nxm, tc: tokenController } = fixture.contracts;
   const staker = fixture.accounts.defaultSender;

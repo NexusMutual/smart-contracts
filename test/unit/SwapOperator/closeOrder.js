@@ -26,7 +26,7 @@ const {
 } = ethers;
 
 async function closeOrderSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const [controller, governance] = await ethers.getSigners();
 
   // Assign contracts (destructuring isn't working)

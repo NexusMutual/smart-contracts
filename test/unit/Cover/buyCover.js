@@ -31,7 +31,7 @@ const buyCoverFixture = {
 const poolAllocationRequest = [{ poolId: 1, coverAmountInAsset: buyCoverFixture.amount }];
 
 async function buyCoverSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { cover } = fixture;
   const [stakingPoolManager] = fixture.accounts.members;
 

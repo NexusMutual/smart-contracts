@@ -42,7 +42,7 @@ const initializeParams = {
 };
 
 async function setPoolFeeSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts, cover, tokenController } = fixture;
   const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
   const coverSigner = await ethers.getImpersonatedSigner(cover.address);

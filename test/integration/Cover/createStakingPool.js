@@ -18,7 +18,7 @@ const gracePeriod = 3600 * 24 * 30;
 const deposit = parseEther('10');
 
 async function createStakingPoolSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { tk } = fixture.contracts;
   const members = fixture.accounts.members.slice(0, 5);
   const amount = parseEther('10000');

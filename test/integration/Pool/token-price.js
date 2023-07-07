@@ -40,7 +40,7 @@ const ethCoverTemplate = {
 };
 
 async function tokenPriceSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { tk, stakingPool1: stakingPool, tc } = fixture.contracts;
   const [member1] = fixture.accounts.members;
 

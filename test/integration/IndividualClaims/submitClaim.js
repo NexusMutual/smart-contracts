@@ -28,7 +28,7 @@ const setTime = async timestamp => {
 const priceDenominator = '10000';
 
 async function submitClaimSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { tk } = fixture.contracts;
   const members = fixture.accounts.members.slice(0, 5);
   const amount = parseEther('10000');

@@ -75,7 +75,7 @@ const burnAmount = parseEther('10');
 const setup = require('./setup');
 
 async function burnStakeSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts, cover } = fixture;
   const [staker] = fixture.accounts.members;
   const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;

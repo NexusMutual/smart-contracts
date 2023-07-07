@@ -32,7 +32,7 @@ const coverProductParamTemplate = {
 };
 
 async function setProductsSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { cover } = fixture.contracts;
   const {
     stakingPoolManagers: [manager],

@@ -10,7 +10,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
 async function switchMembershipAndAssetsSetup() {
-  const fixture = await setup();
+  const fixture = await loadFixture(setup);
   const { tk } = fixture.contracts;
 
   const members = fixture.accounts.members.slice(0, 5);

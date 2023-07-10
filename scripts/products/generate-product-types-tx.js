@@ -59,7 +59,7 @@ const main = async productsTypesDataFilePath => {
 
       return {
         productTypeName: data.Name,
-        productTypeId: MaxUint256, // create new product type
+        productTypeId: data.Id || MaxUint256, // create new product type if no ID is specified; otherwise apply edit
         ipfsMetadata: productTypeHash,
         productType: {
           claimMethod: data['Claim Method'],

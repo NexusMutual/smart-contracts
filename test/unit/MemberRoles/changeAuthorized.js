@@ -1,13 +1,17 @@
 const { Role } = require('../utils').constants;
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const { setup } = require('./setup');
 
 describe('changeAuthorized', function () {
   it('should change authorized address for the role', async function () {
-    const { memberRoles } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { memberRoles } = fixture.contracts;
     const {
       advisoryBoardMembers: [advisoryBoardMember],
       governanceContracts,
-    } = this.accounts;
+    } = fixture.accounts;
 
     const authorizedAddressBefore = await memberRoles.authorized(Role.AdvisoryBoard);
     await memberRoles.connect(governanceContracts[0]).changeAuthorized(Role.AdvisoryBoard, advisoryBoardMember.address);
@@ -25,8 +29,9 @@ describe('changeAuthorized', function () {
   });
 
   it('should revert if the caller is not authorized', async function () {
-    const { memberRoles } = this.contracts;
-    const { defaultSender } = this.accounts;
+    const fixture = await loadFixture(setup);
+    const { memberRoles } = fixture.contracts;
+    const { defaultSender } = fixture.accounts;
 
     await expect(
       memberRoles.connect(defaultSender).changeAuthorized(Role.AdvisoryBoard, defaultSender.address),

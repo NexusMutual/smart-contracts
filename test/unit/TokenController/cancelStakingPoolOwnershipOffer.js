@@ -1,5 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('./setup');
 const { Two } = ethers.constants;
 
 const poolId = Two.pow(95); // overflows at uint96
@@ -7,10 +9,11 @@ const maxDeadline = Two.pow(31);
 
 describe('cancelStakingPoolOwnershipOffer', function () {
   it('should revert if caller is not manager of pool', async function () {
-    const { tokenController } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { tokenController } = fixture.contracts;
     const {
       members: [newManager],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await expect(tokenController.connect(newManager).cancelStakingPoolOwnershipOffer(poolId)).to.be.revertedWith(
       'TokenController: Caller is not staking pool manager',
@@ -18,11 +21,12 @@ describe('cancelStakingPoolOwnershipOffer', function () {
   });
 
   it('should successfully remove ownership offer', async function () {
-    const { tokenController } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
       internalContracts: [internalContract],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Set old manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
@@ -45,11 +49,12 @@ describe('cancelStakingPoolOwnershipOffer', function () {
   });
 
   it('should be able to cancel the same pool twice - noop', async function () {
-    const { tokenController } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { tokenController } = fixture.contracts;
     const {
       members: [oldManager],
       internalContracts: [internalContract],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Set old manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);

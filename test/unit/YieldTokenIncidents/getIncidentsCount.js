@@ -1,12 +1,15 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 
 describe('getIncidentsCount', function () {
   it('returns the total number of incidents', async function () {
-    const { yieldTokenIncidents } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
 
     {
       const count = await yieldTokenIncidents.getIncidentsCount();

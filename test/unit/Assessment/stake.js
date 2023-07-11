@@ -1,13 +1,16 @@
 const { assert, expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 const { Zero } = ethers.constants;
 
 describe('stake', function () {
   it("increases the sender's stake", async function () {
-    const { assessment } = this.contracts;
-    const user = this.accounts.members[0];
+    const fixture = await loadFixture(setup);
+    const { assessment } = fixture.contracts;
+    const user = fixture.accounts.members[0];
     let stake = { amount: Zero };
 
     {
@@ -26,8 +29,9 @@ describe('stake', function () {
   });
 
   it('transfers the staked NXM to the assessment contract', async function () {
-    const { assessment, nxm } = this.contracts;
-    const user = this.accounts.members[0];
+    const fixture = await loadFixture(setup);
+    const { assessment, nxm } = fixture.contracts;
+    const user = fixture.accounts.members[0];
     {
       await assessment.connect(user).stake(parseEther('100'));
       const balance = await nxm.balanceOf(assessment.address);
@@ -42,15 +46,17 @@ describe('stake', function () {
   });
 
   it('reverts if system is paused', async function () {
-    const { assessment, master } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { assessment, master } = fixture.contracts;
     await master.setEmergencyPause(true);
 
     await expect(assessment.stake(parseEther('100'))).to.revertedWith('System is paused');
   });
 
   it('emits StakeDeposited event with staker and amount', async function () {
-    const { assessment } = this.contracts;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment } = fixture.contracts;
+    const [user] = fixture.accounts.members;
 
     const amount = parseEther('100');
     await expect(assessment.connect(user).stake(amount))

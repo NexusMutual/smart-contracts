@@ -1,5 +1,6 @@
-const { ethers, accounts } = require('hardhat');
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { getAccounts } = require('../../utils/accounts');
 
 const { setEtherBalance } = require('../utils').evm;
 const { Role } = require('../utils').constants;
@@ -30,6 +31,7 @@ const ProductTypeFixture = {
   gracePeriod: 7 * 24 * 3600, // 7 days
 };
 async function setup() {
+  const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
   const memberRoles = await ethers.deployContract('MemberRolesMock');
   const tokenController = await ethers.deployContract('TokenControllerMock');
@@ -139,18 +141,20 @@ async function setup() {
 
   const poolId = BigNumber.from(await stakingPool.getPoolId());
 
-  this.accounts = accounts;
-  this.coverSigner = coverSigner;
-  this.config = config;
+  return {
+    accounts,
+    coverSigner,
+    config,
 
-  this.tokenController = tokenController;
-  this.master = master;
-  this.nxm = nxm;
-  this.stakingNFT = stakingNFT;
-  this.stakingPool = stakingPool;
-  this.stakingProducts = stakingProducts;
-  this.cover = cover;
-  this.poolId = poolId;
+    tokenController,
+    master,
+    nxm,
+    stakingNFT,
+    stakingPool,
+    stakingProducts,
+    cover,
+    poolId,
+  };
 }
 
 module.exports = setup;

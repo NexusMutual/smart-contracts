@@ -1,10 +1,25 @@
-const { artifacts, run } = require('hardhat');
+const { artifacts, config } = require('hardhat');
 const fs = require('fs');
 const path = require('path');
 
 async function main(outputFile) {
-  console.log('Recompiling all contracts and generating storage layout...');
-  await run('compile', { generateStorageLayout: true, force: true });
+  const { compilers, overrides } = config.solidity;
+
+  // add storageLayout to compilers if missing
+  for (const compiler of compilers) {
+    const output = compiler.settings.outputSelection['*']['*'];
+    if (!output.includes('storageLayout')) {
+      throw new Error('Storage layout generation was not included in the compiler settings');
+    }
+  }
+
+  // add storageLayout to overrides if missing
+  for (const source of Object.keys(overrides)) {
+    const output = overrides[source].settings.outputSelection['*']['*'];
+    if (!output.includes('storageLayout')) {
+      throw new Error('Storage layout generation was not included in the compiler settings');
+    }
+  }
 
   // a build includes multiple source files
   // a source file can include multiple contracts

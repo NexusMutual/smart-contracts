@@ -13,6 +13,8 @@ const { calculateEthForNXMRelativeError, calculateNXMForEthRelativeError, getTok
 
 const { buyCover } = require('../utils/cover');
 const { stake } = require('../utils/staking');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('../setup');
 const { hex } = require('../utils').helpers;
 
 const increaseTime = async interval => {
@@ -37,29 +39,33 @@ const ethCoverTemplate = {
   assessmentId: 0,
 };
 
-describe('Token price functions', function () {
-  beforeEach(async function () {
-    const { tk, stakingPool1: stakingPool, tc } = this.contracts;
-    const [member1] = this.accounts.members;
+async function tokenPriceSetup() {
+  const fixture = await loadFixture(setup);
+  const { tk, stakingPool1: stakingPool, tc } = fixture.contracts;
+  const [member1] = fixture.accounts.members;
 
-    const operator = await tk.operator();
-    await setEtherBalance(operator, parseEther('10000000'));
-    await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
+  const operator = await tk.operator();
+  await setEtherBalance(operator, parseEther('10000000'));
+  await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
 
-    await tk.connect(member1).approve(tc.address, MaxUint256);
-    await stake({
-      stakingPool,
-      staker: member1,
-      productId: ethCoverTemplate.productId,
-      period: daysToSeconds(60),
-      gracePeriod: daysToSeconds(30),
-      amount: parseEther('1000000'),
-    });
+  await tk.connect(member1).approve(tc.address, MaxUint256);
+  await stake({
+    stakingPool,
+    staker: member1,
+    productId: ethCoverTemplate.productId,
+    period: daysToSeconds(60),
+    gracePeriod: daysToSeconds(30),
+    amount: parseEther('1000000'),
   });
 
+  return fixture;
+}
+
+describe('Token price functions', function () {
   it('getTokenPriceInAsset returns spot price for all assets', async function () {
-    const { p1: pool, mcr } = this.contracts;
-    const { ethToDaiRate } = this.rates;
+    const fixture = await loadFixture(tokenPriceSetup);
+    const { p1: pool, mcr } = fixture.contracts;
+    const { ethToDaiRate } = fixture.rates;
 
     const ethTokenPrice = await pool.getTokenPriceInAsset(0);
     const daiTokenPrice = await pool.getTokenPriceInAsset(1);
@@ -83,7 +89,8 @@ describe('Token price functions', function () {
   });
 
   it('getTokenPrice returns the price in ETH', async function () {
-    const { p1: pool, mcr } = this.contracts;
+    const fixture = await loadFixture(tokenPriceSetup);
+    const { p1: pool, mcr } = fixture.contracts;
 
     const ethTokenPrice = await pool.getTokenPriceInAsset(0);
     const tokenPriceInEthImplicit = await pool.getTokenPrice();
@@ -101,8 +108,9 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM reverts for non-member', async function () {
-    const { p1: pool } = this.contracts;
-    const [nonMember1] = this.accounts.nonMembers;
+    const fixture = await loadFixture(tokenPriceSetup);
+    const { p1: pool } = fixture.contracts;
+    const [nonMember1] = fixture.accounts.nonMembers;
 
     const buyValue = parseEther('10');
     await expect(pool.connect(nonMember1).buyNXM('0', { value: buyValue })).to.be.revertedWith(
@@ -111,16 +119,18 @@ describe('Token price functions', function () {
   });
 
   it('sellNXM reverts for non-member', async function () {
-    const { p1: pool } = this.contracts;
-    const [nonMember1] = this.accounts.nonMembers;
+    const fixture = await loadFixture(tokenPriceSetup);
+    const { p1: pool } = fixture.contracts;
+    const [nonMember1] = fixture.accounts.nonMembers;
 
     await expect(pool.connect(nonMember1).sellNXM('1', '0')).to.be.revertedWith('Caller is not a member');
   });
 
   it('sellNXM reverts if member does not have enough NXM balance', async function () {
-    const { p1: pool, tk: token } = this.contracts;
+    const fixture = await loadFixture(tokenPriceSetup);
+    const { p1: pool, tk: token } = fixture.contracts;
 
-    const [member1] = this.accounts.members;
+    const [member1] = fixture.accounts.members;
     const memberBalance = await token.balanceOf(member1.address);
 
     await expect(pool.connect(member1).sellNXM(memberBalance.add(1), '0')).to.be.revertedWith(
@@ -129,9 +139,10 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM mints tokens for member in exchange of ETH', async function () {
-    const { tk: token, p1: pool, mcr } = this.contracts;
+    const fixture = await loadFixture(tokenPriceSetup);
+    const { tk: token, p1: pool, mcr } = fixture.contracts;
 
-    const [member] = this.accounts.members;
+    const [member] = fixture.accounts.members;
     const buyValue = parseEther('1000');
     const expectedTokensReceived = await pool.getNXMForEth(buyValue);
     const totalAssetValue = await pool.getPoolValueInEth();
@@ -154,9 +165,10 @@ describe('Token price functions', function () {
   });
 
   it('sellNXM burns tokens for member and returns ETH', async function () {
-    const { tk: token, p1: pool } = this.contracts;
+    const fixture = await loadFixture(tokenPriceSetup);
+    const { tk: token, p1: pool } = fixture.contracts;
 
-    const [member] = this.accounts.members;
+    const [member] = fixture.accounts.members;
     const ethIn = parseEther('500');
     const nxmAmount = await pool.getNXMForEth(ethIn);
 
@@ -192,9 +204,10 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM token price reflects the latest lower MCR value (lower MCReth -> higher price)', async function () {
-    const { p1: pool, mcr } = this.contracts;
+    const fixture = await loadFixture(tokenPriceSetup);
+    const { p1: pool, mcr } = fixture.contracts;
 
-    const [member1] = this.accounts.members;
+    const [member1] = fixture.accounts.members;
 
     const buyValue = parseEther('1000');
     const expectedNXMOutPreMCRPosting = await pool.getNXMForEth(buyValue);
@@ -227,8 +240,9 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM token price reflects the latest higher MCR value (higher MCReth -> lower price)', async function () {
-    const { p1: pool, mcr, cover, stakingProducts } = this.contracts;
-    const [member1, coverHolder] = this.accounts.members;
+    const fixture = await loadFixture(tokenPriceSetup);
+    const { p1: pool, mcr, cover, stakingProducts } = fixture.contracts;
+    const [member1, coverHolder] = fixture.accounts.members;
 
     const buyValue = parseEther('1000');
     const expectedNXMOutPreMCRPosting = await pool.getNXMForEth(buyValue);
@@ -268,8 +282,9 @@ describe('Token price functions', function () {
   });
 
   it('getPoolValueInEth calculates pool value correctly', async function () {
-    const { p1: pool, dai } = this.contracts;
-    const { daiToEthRate } = this.rates;
+    const fixture = await loadFixture(tokenPriceSetup);
+    const { p1: pool, dai } = fixture.contracts;
+    const { daiToEthRate } = fixture.rates;
 
     const poolBalance = BigNumber.from(await ethers.provider.getBalance(pool.address));
     const daiBalance = await dai.balanceOf(pool.address);
@@ -280,16 +295,18 @@ describe('Token price functions', function () {
   });
 
   it('getMCRRatio calculates MCR ratio correctly', async function () {
-    const { p1: pool } = this.contracts;
+    const fixture = await loadFixture(tokenPriceSetup);
+    const { p1: pool } = fixture.contracts;
     const mcrRatio = await pool.getMCRRatio();
     assert.equal(mcrRatio.toString(), '22000'); // ETH + DAI + USDC
   });
 
   it('sellNXM reverts for member if tokens are locked for member vote', async function () {
+    const fixture = await loadFixture(tokenPriceSetup);
     // [todo] Use new contracts
-    const { gv, master, p1: pool } = this.contracts;
+    const { gv, master, p1: pool } = fixture.contracts;
 
-    const [member] = this.accounts.members;
+    const [member] = fixture.accounts.members;
 
     const mcrCode = hex('MC');
     const MCR = await ethers.getContractFactory('MCR');

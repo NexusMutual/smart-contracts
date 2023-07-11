@@ -17,6 +17,7 @@ const stopImpersonatingAccount = async address => provider.send('hardhat_stopImp
 
 const takeSnapshot = async () => provider.send('evm_snapshot', []);
 const revertToSnapshot = async id => provider.send('evm_revert', [id]);
+const reset = async () => provider.send('hardhat_reset', []);
 
 const setEtherBalance = async (address, wei) => provider.send('hardhat_setBalance', [address, hex(wei)]);
 const setNextBlockBaseFee = async fee => provider.send('hardhat_setNextBlockBaseFeePerGas', [hex(fee)]);
@@ -35,4 +36,5 @@ module.exports = {
   setNextBlockBaseFee,
   setCode,
   setNonce,
+  reset,
 };

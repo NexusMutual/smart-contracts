@@ -1,5 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const setup = require('./setup');
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 const { Role } = require('../utils').constants;
@@ -8,11 +11,12 @@ const { percentageBigNumber } = require('../utils').tokenPrice;
 
 describe('sellNXM', function () {
   it('reverts on sell that decreases the MCR% below 100%', async function () {
-    const { pool, mcr, token } = this;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr, token } = fixture;
     const {
       members: [memberOne],
       nonMembers: [fundSource],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const mcrEth = parseEther('160000');
     const initialAssetValue = mcrEth;
@@ -29,11 +33,12 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sell worth more than 5% of MCReth', async function () {
-    const { pool, mcr, token } = this;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr, token } = fixture;
     const {
       members: [memberOne],
       nonMembers: [fundSource],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const mcrEth = parseEther('160000');
     const initialAssetValue = mcrEth;
@@ -52,11 +57,12 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sell that exceeds member balance', async function () {
-    const { pool, mcr, token } = this;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr, token } = fixture;
     const {
       members: [memberOne],
       nonMembers: [fundSource],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const mcrEth = parseEther('160000');
     const initialAssetValue = mcrEth;
@@ -74,10 +80,11 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sell from member that is a contract whose fallback function reverts', async function () {
-    const { pool, mcr, token, tokenController, memberRoles } = this;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr, token, tokenController, memberRoles } = fixture;
     const {
       nonMembers: [fundSource],
-    } = this.accounts;
+    } = fixture.accounts;
     const P1MockMember = await ethers.getContractFactory('P1MockMember');
 
     const mcrEth = parseEther('160000');
@@ -96,11 +103,12 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sell from member when ethOut < minEthOut', async function () {
-    const { pool, mcr, token, tokenController } = this;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr, token, tokenController } = fixture;
     const {
       members: [member],
       nonMembers: [fundSource],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const mcrEth = parseEther('160000');
     const initialAssetValue = percentageBigNumber(mcrEth, 150);
@@ -120,11 +128,12 @@ describe('sellNXM', function () {
   });
 
   it('burns tokens from member in exchange for ETH worth 1% of mcrEth', async function () {
-    const { pool, mcr, token, tokenController } = this;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr, token, tokenController } = fixture;
     const {
       members: [member],
       nonMembers: [fundSource],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const mcrEth = parseEther('160000');
     const initialAssetValue = mcrEth;

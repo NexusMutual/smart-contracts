@@ -1,4 +1,6 @@
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('./setup');
 const { assertCoverFields, buyCoverOnOnePool, buyCoverOnMultiplePools, createStakingPool } = require('./helpers');
 const { expect } = require('chai');
 
@@ -22,10 +24,11 @@ describe('burnStake', function () {
   };
 
   it('should perform a burn a cover with 1 segment and 1 pool allocation', async function () {
-    const { cover } = this;
-    const [internal] = this.accounts.internalContracts;
+    const fixture = await loadFixture(setup);
+    const { cover, accounts } = fixture;
+    const [internal] = accounts.internalContracts;
     const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
-    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const payoutAmountInAsset = amount.div(2);
     const remainingAmount = amount.sub(payoutAmountInAsset);
@@ -54,10 +57,11 @@ describe('burnStake', function () {
   });
 
   it('reverts if caller is not an internal contract', async function () {
-    const { cover } = this;
-    const [member] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [member] = fixture.accounts.members;
     const { amount } = coverBuyFixture;
-    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const burnAmountDivisor = 2;
     const burnAmount = amount.div(burnAmountDivisor);
@@ -68,10 +72,11 @@ describe('burnStake', function () {
   });
 
   it('updates segment allocation cover amount in nxm', async function () {
-    const { cover } = this;
-    const [internal] = this.accounts.internalContracts;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [internal] = fixture.accounts.internalContracts;
     const { amount } = coverBuyFixture;
-    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const burnAmountDivisor = 2;
     const burnAmount = amount.div(burnAmountDivisor);
@@ -87,9 +92,10 @@ describe('burnStake', function () {
   });
 
   it('should perform a burn on a cover with 1 segment and 2 pool allocations', async function () {
-    const { cover } = this;
-    const [internal] = this.accounts.internalContracts;
-    const [, stakingPoolManager] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [internal] = fixture.accounts.internalContracts;
+    const [, stakingPoolManager] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, capacity, activeCover } = coverBuyFixture;
     const amountOfPools = 4;
@@ -109,7 +115,7 @@ describe('burnStake', function () {
       allocationRequest.push({ poolId: i, coverAmountInAsset: amountPerPool });
     }
 
-    const { segmentId, coverId: expectedCoverId } = await buyCoverOnMultiplePools.call(this, {
+    const { segmentId, coverId: expectedCoverId } = await buyCoverOnMultiplePools.call(fixture, {
       ...coverBuyFixture,
       allocationRequest,
     });
@@ -158,10 +164,11 @@ describe('burnStake', function () {
   });
 
   it.skip('should perform a burn with globalCapacityRatio when the cover was bought', async function () {
-    const { cover } = this;
-    const [internal] = this.accounts.internalContracts;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [internal] = fixture.accounts.internalContracts;
     const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
-    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     // TODO: need to figure out a way to change the capacity ratio here
     // ...
@@ -193,10 +200,11 @@ describe('burnStake', function () {
   });
 
   it('updates segment allocation premium in nxm', async function () {
-    const { cover } = this;
-    const [internal] = this.accounts.internalContracts;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [internal] = fixture.accounts.internalContracts;
     const { amount } = coverBuyFixture;
-    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const burnAmountDivisor = 2;
     const burnAmount = amount.div(burnAmountDivisor);
@@ -212,10 +220,11 @@ describe('burnStake', function () {
   });
 
   it('call stakingPool with correct parameters', async function () {
-    const { cover } = this;
-    const [internal] = this.accounts.internalContracts;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [internal] = fixture.accounts.internalContracts;
     const { amount, productId } = coverBuyFixture;
-    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const burnAmountDivisor = 2;
     const payoutAmountInAsset = amount.div(burnAmountDivisor);

@@ -1,12 +1,15 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { setup } = require('./setup');
 const { arrayify } = ethers.utils;
 
 describe('submitFraud', function () {
   it('can only be called by governance contract', async function () {
-    const { assessment } = this.contracts;
-    const [user] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { assessment } = fixture.contracts;
+    const [user] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const merkleTreeRootMock = arrayify('0x1111111111111111111111111111111111111111111111111111111111111111');
     await expect(assessment.connect(user).submitFraud(merkleTreeRootMock)).to.be.revertedWith(
       'Caller is not authorized to govern',
@@ -17,8 +20,9 @@ describe('submitFraud', function () {
   });
 
   it('should store the merkle tree root', async function () {
-    const { assessment } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { assessment } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
     const merkleTreeRoot = '0x1111111111111111111111111111111111111111111111111111111111111111';
 
     await assessment.connect(governance).submitFraud(arrayify(merkleTreeRoot));
@@ -27,8 +31,9 @@ describe('submitFraud', function () {
   });
 
   it('should emit the event FraudSubmitted', async function () {
-    const { assessment } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { assessment } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
     const merkleTreeRoot = '0x1111111111111111111111111111111111111111111111111111111111111111';
 
     await expect(assessment.connect(governance).submitFraud(arrayify(merkleTreeRoot)))
@@ -37,8 +42,9 @@ describe('submitFraud', function () {
   });
 
   it("should allow adding another root even if the existing fraud tree hasn't been processed", async function () {
-    const { assessment } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { assessment } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
     const merkleTreeRoot1 = '0x1111111111111111111111111111111111111111111111111111111111111111';
     const merkleTreeRoot2 = '0x1111111111111111111111111111111111111111111111111111111111111112';
 

@@ -1,12 +1,15 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 
 describe('submitIncident', function () {
   it('reverts if the product uses a different claim method', async function () {
-    const { yieldTokenIncidents } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
 
     {
       const productId = 0;
@@ -30,8 +33,9 @@ describe('submitIncident', function () {
   });
 
   it('calls startAssessment and stores the returned assessmentId in the incident', async function () {
-    const { yieldTokenIncidents } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
 
     {
       const productId = 2;
@@ -57,8 +61,9 @@ describe('submitIncident', function () {
   });
 
   it('pushes an incident with productId, date and priceBefore to incidents', async function () {
-    const { yieldTokenIncidents } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
 
     const expectedProductId = 2;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -73,8 +78,9 @@ describe('submitIncident', function () {
   });
 
   it('calculates the total reward using the expected payout amount parameter provided', async function () {
-    const { assessment, yieldTokenIncidents } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { assessment, yieldTokenIncidents } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
 
     const productId = 2;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -82,29 +88,31 @@ describe('submitIncident', function () {
     await yieldTokenIncidents
       .connect(governance)
       .submitIncident(productId, parseEther('1.1'), currentTime, expectedPayoutAmount, '');
-    const expectedTotalReward = expectedPayoutAmount.mul(this.config.rewardRatio).div(10000);
+    const expectedTotalReward = expectedPayoutAmount.mul(fixture.config.rewardRatio).div(10000);
     const { totalRewardInNXM } = await assessment.assessments(0);
     expect(totalRewardInNXM).to.be.equal(expectedTotalReward);
   });
 
   it('calculates the totalRewardInNXM capped at config.maxRewardInNXMWad', async function () {
-    const { assessment, yieldTokenIncidents } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { assessment, yieldTokenIncidents } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const productId = 2;
 
     await yieldTokenIncidents
       .connect(governance)
       .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100000000'), '');
-    const expectedTotalReward = parseEther(this.config.maxRewardInNXMWad.toString());
+    const expectedTotalReward = parseEther(fixture.config.maxRewardInNXMWad.toString());
 
     const { totalRewardInNXM } = await assessment.assessments(0);
     expect(totalRewardInNXM).to.be.equal(expectedTotalReward);
   });
 
   it('emits MetadataSubmitted event with the provided ipfsMetadata when it is not empty string', async function () {
-    const { yieldTokenIncidents } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const productId = 2;
 
@@ -126,8 +134,9 @@ describe('submitIncident', function () {
   });
 
   it('emits IncidentSubmitted event with sender incident and product ids and payout in NXM', async function () {
-    const { yieldTokenIncidents } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const productId = 2;
 
@@ -149,8 +158,9 @@ describe('submitIncident', function () {
   });
 
   it('reverts if system is paused', async function () {
-    const { yieldTokenIncidents, master } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, master } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
 
     await master.pause();
 
@@ -164,8 +174,9 @@ describe('submitIncident', function () {
   });
 
   it('reverts if caller is not advisory board', async function () {
-    const { yieldTokenIncidents } = this.contracts;
-    const [nonGovernance] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents } = fixture.contracts;
+    const [nonGovernance] = fixture.accounts.members;
 
     const productId = 2;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');

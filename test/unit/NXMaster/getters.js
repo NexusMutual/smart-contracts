@@ -1,9 +1,12 @@
 const { assert } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('./setup');
 const { hex } = require('../utils').helpers;
 
 describe('getters', function () {
   it('retrieves existing contracts using getInternalContracts', async function () {
-    const { master, governance } = this;
+    const fixture = await loadFixture(setup);
+    const { master, governance } = fixture;
 
     const { _contractCodes, _contractAddresses } = await master.getInternalContracts();
 
@@ -14,7 +17,8 @@ describe('getters', function () {
   });
 
   it('retrieves existing contracts using getLatestAddress', async function () {
-    const { master, governance } = this;
+    const fixture = await loadFixture(setup);
+    const { master, governance } = fixture;
 
     const address = await master.getLatestAddress(hex('GV'));
 

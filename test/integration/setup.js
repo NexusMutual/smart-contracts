@@ -1,9 +1,10 @@
-const { ethers, accounts } = require('hardhat');
+const { ethers } = require('hardhat');
 
 const { ContractTypes } = require('../utils').constants;
 const { toBytes2, toBytes8 } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
 const { enrollMember, enrollABMember } = require('./utils/enroll');
+const { getAccounts } = require('../utils/accounts');
 
 const { BigNumber } = ethers;
 const { parseEther, parseUnits } = ethers.utils;
@@ -31,6 +32,8 @@ const transferProxyOwnership = async (proxyAddress, newOwner) => {
 };
 
 async function setup() {
+  const fixture = {};
+  const accounts = await getAccounts();
   const { members, emergencyAdmin, advisoryBoardMembers } = accounts;
   const owner = accounts.defaultSender;
   const { stakingPoolManagers } = accounts;
@@ -486,7 +489,7 @@ async function setup() {
 
   const nonInternal = { priceFeedOracle, swapOperator };
 
-  this.contracts = {
+  fixture.contracts = {
     ...external,
     ...nonUpgradable,
     ...instances,
@@ -494,18 +497,18 @@ async function setup() {
     ...nonInternal,
   };
 
-  this.rates = {
+  fixture.rates = {
     daiToEthRate,
     ethToDaiRate,
     usdcToEthRate,
   };
 
-  this.contractType = contractType;
+  fixture.contractType = contractType;
 
-  await enrollMember(this.contracts, members, owner);
-  await enrollMember(this.contracts, stakingPoolManagers, owner);
-  await enrollMember(this.contracts, advisoryBoardMembers, owner);
-  await enrollABMember(this.contracts, advisoryBoardMembers, owner);
+  await enrollMember(fixture.contracts, members, owner);
+  await enrollMember(fixture.contracts, stakingPoolManagers, owner);
+  await enrollMember(fixture.contracts, advisoryBoardMembers, owner);
+  await enrollABMember(fixture.contracts, advisoryBoardMembers, owner);
 
   const product = {
     productId: 0,
@@ -530,11 +533,11 @@ async function setup() {
     const stakingPoolAddress = await cover.stakingPool(poolId);
     const stakingPoolInstance = await ethers.getContractAt('StakingPool', stakingPoolAddress);
 
-    this.contracts['stakingPool' + poolId] = stakingPoolInstance;
+    fixture.contracts['stakingPool' + poolId] = stakingPoolInstance;
   }
 
   const config = {
-    TRANCHE_DURATION: await this.contracts.stakingPool1.TRANCHE_DURATION(),
+    TRANCHE_DURATION: await fixture.contracts.stakingPool1.TRANCHE_DURATION(),
     BUCKET_SIZE: BigNumber.from(7 * 24 * 3600), // 7 days
     BUCKET_DURATION: BigNumber.from(28 * 24 * 3600), // 28 days
     GLOBAL_REWARDS_RATIO: BigNumber.from(5000), // 50%
@@ -543,12 +546,13 @@ async function setup() {
     NXM_PER_ALLOCATION_UNIT: await stakingPool.NXM_PER_ALLOCATION_UNIT(),
   };
 
-  this.contracts.stakingProducts = stakingProducts;
-  this.contracts.coverNFTDescriptor = coverNFTDescriptor;
-  this.contracts.stakingNFTDescriptor = stakingNFTDescriptor;
-  this.config = config;
-  this.accounts = accounts;
-  this.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS;
+  fixture.contracts.stakingProducts = stakingProducts;
+  fixture.contracts.coverNFTDescriptor = coverNFTDescriptor;
+  fixture.contracts.stakingNFTDescriptor = stakingNFTDescriptor;
+  fixture.config = config;
+  fixture.accounts = accounts;
+  fixture.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS;
+  return fixture;
 }
 
 module.exports = setup;

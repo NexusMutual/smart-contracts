@@ -1,6 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { setEtherBalance } = require('../../utils/evm');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('../setup');
 
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
@@ -15,20 +17,23 @@ const period = 3600 * 24 * 30; // 30 days
 const gracePeriod = 3600 * 24 * 30;
 const deposit = parseEther('10');
 
-describe('createStakingPool', function () {
-  beforeEach(async function () {
-    const { tk } = this.contracts;
-    const members = this.accounts.members.slice(0, 5);
-    const amount = parseEther('10000');
-    for (const member of members) {
-      await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
-    }
-  });
+async function createStakingPoolSetup() {
+  const fixture = await loadFixture(setup);
+  const { tk } = fixture.contracts;
+  const members = fixture.accounts.members.slice(0, 5);
+  const amount = parseEther('10000');
+  for (const member of members) {
+    await tk.connect(fixture.accounts.defaultSender).transfer(member.address, amount);
+  }
+  return fixture;
+}
 
+describe('createStakingPool', function () {
   it('should create a private staking pool', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { cover, spf, stakingNFT, tc: tokenController } = this.contracts;
-    const [manager, staker] = this.accounts.members;
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { cover, spf, stakingNFT, tc: tokenController } = fixture.contracts;
+    const [manager, staker] = fixture.accounts.members;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const trancheId = calculateTrancheId(timestamp, period, gracePeriod);
@@ -67,9 +72,10 @@ describe('createStakingPool', function () {
   });
 
   it('should create a public staking pool', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { cover, spf, stakingNFT, tc: tokenController } = this.contracts;
-    const [manager, staker] = this.accounts.members;
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { cover, spf, stakingNFT, tc: tokenController } = fixture.contracts;
+    const [manager, staker] = fixture.accounts.members;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const trancheId = calculateTrancheId(timestamp, period, gracePeriod);
@@ -110,8 +116,9 @@ describe('createStakingPool', function () {
   });
 
   it('should revert if called by a non member', async function () {
-    const { cover } = this.contracts;
-    const [nonMember] = this.accounts.nonMembers;
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { cover } = fixture.contracts;
+    const [nonMember] = fixture.accounts.nonMembers;
 
     await expect(
       cover.connect(nonMember).createStakingPool(
@@ -125,9 +132,10 @@ describe('createStakingPool', function () {
   });
 
   it("should fail to create a pool with a product that doesn't exist", async function () {
-    const { cover } = this.contracts;
-    const [manager] = this.accounts.members;
-    const { DEFAULT_PRODUCTS } = this;
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { cover } = fixture.contracts;
+    const [manager] = fixture.accounts.members;
+    const { DEFAULT_PRODUCTS } = fixture;
 
     const nonExistingProduct = { ...DEFAULT_PRODUCTS[0], productId: 500 };
 
@@ -143,8 +151,9 @@ describe('createStakingPool', function () {
   });
 
   it("should fail to create a pool with a product that doesn't exist, called by pooledStaking", async function () {
-    const { cover, ps } = this.contracts;
-    const { DEFAULT_PRODUCTS } = this;
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { cover, ps } = fixture.contracts;
+    const { DEFAULT_PRODUCTS } = fixture;
 
     const pooledStakingSigner = await ethers.getImpersonatedSigner(ps.address);
     await setEtherBalance(pooledStakingSigner.address, parseEther('100'));
@@ -162,10 +171,11 @@ describe('createStakingPool', function () {
     ).to.be.revertedWith('Caller is not a member');
   });
 
-  it("should fail to create a pool with a product that isn't allowed for this pool", async function () {
-    const { cover } = this.contracts;
-    const [manager] = this.accounts.members;
-    const { DEFAULT_PRODUCTS } = this;
+  it("should fail to create a pool with a product that isn't allowed for fixture pool", async function () {
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { cover } = fixture.contracts;
+    const [manager] = fixture.accounts.members;
+    const { DEFAULT_PRODUCTS } = fixture;
 
     const notAllowedProduct = { ...DEFAULT_PRODUCTS[0], productId: 4 };
 
@@ -194,9 +204,10 @@ describe('createStakingPool', function () {
   });
 
   it("should fail to create a pool with one of several products that isn't allowed for this pool", async function () {
-    const { cover } = this.contracts;
-    const [manager] = this.accounts.members;
-    const { DEFAULT_PRODUCTS } = this;
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { cover } = fixture.contracts;
+    const [manager] = fixture.accounts.members;
+    const { DEFAULT_PRODUCTS } = fixture;
 
     const nonExistingProduct = { ...DEFAULT_PRODUCTS[0], productId: 4 };
     DEFAULT_PRODUCTS.push(nonExistingProduct);

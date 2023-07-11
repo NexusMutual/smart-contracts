@@ -1,11 +1,13 @@
-const { ethers, accounts } = require('hardhat');
+const { ethers } = require('hardhat');
 const { parseEther, parseUnits } = ethers.utils;
 
 const { initMCR } = require('./common');
+const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
 async function setup() {
+  const accounts = await getAccounts();
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const Pool = await ethers.getContractFactory('MCRMockPool');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
@@ -70,13 +72,15 @@ async function setup() {
     await master.enrollGovernance(governanceContract.address);
   }
 
-  this.master = master;
-  this.pool = pool;
-  this.dai = dai;
-  this.chainlinkDAI = chainlinkDAI;
-  this.mcr = mcr;
-  this.cover = cover;
-  this.accounts = accounts;
+  return {
+    master,
+    pool,
+    dai,
+    chainlinkDAI,
+    mcr,
+    cover,
+    accounts,
+  };
 }
 
 module.exports = setup;

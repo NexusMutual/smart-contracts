@@ -6,6 +6,8 @@ const { increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 const { calculateFirstTrancheId } = require('../utils/staking');
 const { BigNumber } = require('ethers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('../setup');
 
 const { parseEther } = ethers.utils;
 
@@ -20,51 +22,55 @@ const stakedProductParamTemplate = {
   targetPrice: 100,
 };
 
+const buyCoverFixture = {
+  coverId: 0,
+  owner: AddressZero,
+  productId: 1,
+  coverAsset: 0,
+  amount: parseEther('1'),
+  period: daysToSeconds(28),
+  maxPremiumInAsset: MaxUint256,
+  paymentAsset: 0,
+  commissionRatio: 0,
+  commissionDestination: AddressZero,
+  ipfsData: 'ipfs data',
+};
+
 function sum(arr) {
   return arr.reduce((x, y) => x.add(y), BigNumber.from(0));
 }
 
+async function expireCoverSetup() {
+  const fixture = await loadFixture(setup);
+  const { tk: nxm, stakingProducts, stakingPool1, stakingPool2, stakingPool3, tc: tokenController } = fixture.contracts;
+  const staker = fixture.accounts.defaultSender;
+  const [manager1, manager2, manager3] = fixture.accounts.stakingPoolManagers;
+  const stakeAmount = parseEther('9000000');
+
+  await stakingProducts.connect(manager1).setProducts(1, [stakedProductParamTemplate]);
+  await stakingProducts.connect(manager2).setProducts(2, [stakedProductParamTemplate]);
+  await stakingProducts.connect(manager3).setProducts(3, [stakedProductParamTemplate]);
+
+  // stake
+  const firstActiveTrancheId = calculateFirstTrancheId(
+    await ethers.provider.getBlock('latest'),
+    buyCoverFixture.period,
+    0,
+  );
+
+  await nxm.approve(tokenController.address, MaxUint256);
+  await stakingPool1.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
+  await stakingPool2.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
+  await stakingPool3.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
+
+  return fixture;
+}
+
 describe('expireCover', function () {
-  const buyCoverFixture = {
-    coverId: 0,
-    owner: AddressZero,
-    productId: 1,
-    coverAsset: 0,
-    amount: parseEther('1'),
-    period: daysToSeconds((Date.now() / 1000 / 60 / 60 / 24) % 28 ? 28 : 29),
-    maxPremiumInAsset: MaxUint256,
-    paymentAsset: 0,
-    commissionRatio: 0,
-    commissionDestination: AddressZero,
-    ipfsData: 'ipfs data',
-  };
-
-  beforeEach(async function () {
-    const { tk: nxm, stakingProducts, stakingPool1, stakingPool2, stakingPool3, tc: tokenController } = this.contracts;
-    const staker = this.accounts.defaultSender;
-    const [manager1, manager2, manager3] = this.accounts.stakingPoolManagers;
-    const stakeAmount = parseEther('9000000');
-
-    await stakingProducts.connect(manager1).setProducts(1, [stakedProductParamTemplate]);
-    await stakingProducts.connect(manager2).setProducts(2, [stakedProductParamTemplate]);
-    await stakingProducts.connect(manager3).setProducts(3, [stakedProductParamTemplate]);
-
-    // stake
-    const firstActiveTrancheId = await calculateFirstTrancheId(
-      await ethers.provider.getBlock('latest'),
-      buyCoverFixture.period,
-      0,
-    );
-
-    await nxm.approve(tokenController.address, MaxUint256);
-    await stakingPool1.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
-    await stakingPool2.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
-    await stakingPool3.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
-  });
-
   it('should revert when cover is not expired', async function () {
-    const { cover } = this.contracts;
-    const [coverBuyer] = this.accounts.members;
+    const fixture = await loadFixture(expireCoverSetup);
+    const { cover } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.members;
     const { amount } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
@@ -85,8 +91,9 @@ describe('expireCover', function () {
   });
 
   it('should expire a cover', async function () {
-    const { cover, stakingPool1 } = this.contracts;
-    const [coverBuyer] = this.accounts.members;
+    const fixture = await loadFixture(expireCoverSetup);
+    const { cover, stakingPool1 } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.members;
     const { amount, period, productId } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
@@ -111,8 +118,9 @@ describe('expireCover', function () {
   });
 
   it('should emit an event on expire a cover', async function () {
-    const { cover, stakingPool1 } = this.contracts;
-    const [coverBuyer] = this.accounts.members;
+    const fixture = await loadFixture(expireCoverSetup);
+    const { cover, stakingPool1 } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.members;
     const { amount, period, productId } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
@@ -134,8 +142,9 @@ describe('expireCover', function () {
   });
 
   it('should expire a cover from multiple pools', async function () {
-    const { cover, stakingPool1, stakingPool2 } = this.contracts;
-    const [coverBuyer] = this.accounts.members;
+    const fixture = await loadFixture(expireCoverSetup);
+    const { cover, stakingPool1, stakingPool2 } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.members;
     const { amount, period, productId } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
@@ -167,8 +176,9 @@ describe('expireCover', function () {
   });
 
   it('should revert when trying to expire already expired cover', async function () {
-    const { cover, stakingPool1 } = this.contracts;
-    const [coverBuyer] = this.accounts.members;
+    const fixture = await loadFixture(expireCoverSetup);
+    const { cover, stakingPool1 } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.members;
     const { amount, period } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
@@ -192,14 +202,15 @@ describe('expireCover', function () {
   });
 
   it('should revert when cover already expired with the bucket', async function () {
-    const { cover, stakingPool1 } = this.contracts;
-    const { BUCKET_DURATION } = this.config;
-    const [coverBuyer] = this.accounts.members;
+    const fixture = await loadFixture(expireCoverSetup);
+    const { cover, stakingPool1 } = fixture.contracts;
+    const { BUCKET_DURATION } = fixture.config;
+    const [coverBuyer] = fixture.accounts.members;
     const { amount, period, coverAsset, productId } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
-    const currentTime = BigNumber.from(Date.now()).div(1000);
-    const coverBucket = currentTime.add(period).div(BUCKET_DURATION);
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+    const coverBucket = BigNumber.from(currentTime).add(period).div(BUCKET_DURATION);
     const coverBucketExpirationPeriod = coverBucket.add(1).mul(BUCKET_DURATION).sub(currentTime);
 
     await cover

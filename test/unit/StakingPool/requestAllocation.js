@@ -14,6 +14,8 @@ const {
   moveTimeToNextBucket,
   moveTimeToNextTranche,
 } = require('./helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('./setup');
 
 const { increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
@@ -103,38 +105,43 @@ const product3 = {
 const poolId = 1;
 const trancheOffset = 5;
 
+async function requestAllocationSetup() {
+  const fixture = await loadFixture(setup);
+  const { stakingPool, stakingProducts, cover } = fixture;
+  const [staker] = fixture.accounts.members;
+  const productId = 0;
+  const trancheId = (await getCurrentTrancheId()) + trancheOffset;
+  console.log('trancheId in fixture:', trancheId);
+
+  // Set global product and product type
+  await cover.setProduct(coverProductTemplate, productId);
+  await cover.setProductType({ claimMethod: 1, gracePeriod: daysToSeconds(7) }, productId);
+
+  // Initialize staking pool
+  const poolId = 1;
+  const isPrivatePool = false;
+  const ipfsDescriptionHash = 'Staking pool 1';
+  const maxPoolFee = 10; // 10%
+  const initialPoolFee = 7; // 7%
+
+  await stakingPool
+    .connect(fixture.coverSigner)
+    .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+
+  await stakingProducts.connect(fixture.coverSigner).setInitialProducts(poolId, [defaultProduct, product2, product3]);
+
+  // Deposit into pool
+  const amount = stakedNxmAmount;
+  await stakingPool.connect(staker).depositTo(amount, trancheId, 0, staker.address);
+
+  return fixture;
+}
+
 describe('requestAllocation', function () {
-  beforeEach(async function () {
-    const { stakingPool, stakingProducts, cover } = this;
-    const [staker] = this.accounts.members;
-    const productId = 0;
-    const trancheId = (await getCurrentTrancheId()) + trancheOffset;
-
-    // Set global product and product type
-    await cover.setProduct(coverProductTemplate, productId);
-    await cover.setProductType({ claimMethod: 1, gracePeriod: daysToSeconds(7) }, productId);
-
-    // Initialize staking pool
-    const poolId = 1;
-    const isPrivatePool = false;
-    const ipfsDescriptionHash = 'Staking pool 1';
-    const maxPoolFee = 10; // 10%
-    const initialPoolFee = 7; // 7%
-
-    await stakingPool
-      .connect(this.coverSigner)
-      .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
-
-    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, [defaultProduct, product2, product3]);
-
-    // Deposit into pool
-    const amount = stakedNxmAmount;
-    await stakingPool.connect(staker).depositTo(amount, trancheId, 0, staker.address);
-  });
-
   it('should allocate the amount for tranches and generate new allocation Id', async function () {
-    const { stakingPool, cover } = this;
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool, cover } = fixture;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
     const buyCoverParams = { ...buyCoverParamsTemplate, period: daysToSeconds(365) };
     const coverAmount = Math.ceil(buyCoverParams.amount / NXM_PER_ALLOCATION_UNIT);
 
@@ -152,10 +159,11 @@ describe('requestAllocation', function () {
   });
 
   it('should update allocation amount', async function () {
-    const { stakingPool, cover } = this;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool, cover } = fixture;
     const { GLOBAL_CAPACITY_RATIO, GLOBAL_MIN_PRICE_RATIO, GLOBAL_REWARDS_RATIO, NXM_PER_ALLOCATION_UNIT } =
-      this.config;
-    const timestamp = Math.floor(Date.now() / 1000);
+      fixture.config;
+    const { timestamp } = await ethers.provider.getBlock('latest');
     const allocationId = await stakingPool.getNextAllocationId();
 
     const request = {
@@ -191,8 +199,9 @@ describe('requestAllocation', function () {
   });
 
   it('should correctly calculate the premium and price for year long cover', async function () {
-    const { stakingProducts, stakingPool, cover } = this;
-    const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = this.config;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingProducts, stakingPool, cover } = fixture;
+    const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = fixture.config;
 
     const product = await stakingProducts.getProduct(poolId, productId);
     const initialPrice = BigNumber.from(coverProductTemplate.initialPriceRatio);
@@ -206,7 +215,7 @@ describe('requestAllocation', function () {
     const expectedPremium = buyCoverParamsTemplate.amount.mul(initialPrice).div(INITIAL_PRICE_DENOMINATOR);
     const priceBump = calculatePriceBump(
       buyCoverParamsTemplate.amount,
-      this.config.PRICE_BUMP_RATIO,
+      fixture.config.PRICE_BUMP_RATIO,
       totalCapacity,
       NXM_PER_ALLOCATION_UNIT,
     );
@@ -221,8 +230,9 @@ describe('requestAllocation', function () {
   });
 
   it('should correctly calculate the premium and price for a very small cover', async function () {
-    const { stakingProducts, stakingPool, cover } = this;
-    const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = this.config;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingProducts, stakingPool, cover } = fixture;
+    const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = fixture.config;
 
     const amount = BigNumber.from(1);
     const initialPrice = BigNumber.from(coverProductTemplate.initialPriceRatio);
@@ -232,7 +242,12 @@ describe('requestAllocation', function () {
       GLOBAL_CAPACITY_RATIO,
       coverProductTemplate.capacityReductionRatio,
     );
-    const priceBump = calculatePriceBump(amount, this.config.PRICE_BUMP_RATIO, totalCapacity, NXM_PER_ALLOCATION_UNIT);
+    const priceBump = calculatePriceBump(
+      amount,
+      fixture.config.PRICE_BUMP_RATIO,
+      totalCapacity,
+      NXM_PER_ALLOCATION_UNIT,
+    );
 
     {
       // buy cover and check premium + new price
@@ -253,8 +268,9 @@ describe('requestAllocation', function () {
   });
 
   it('should correctly calculate the premium using the initial price', async function () {
-    const { stakingProducts, stakingPool, cover } = this;
-    const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = this.config;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingProducts, stakingPool, cover } = fixture;
+    const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = fixture.config;
 
     const product = await stakingProducts.getProduct(poolId, productId);
     const initialPrice = BigNumber.from(coverProductTemplate.initialPriceRatio);
@@ -271,7 +287,7 @@ describe('requestAllocation', function () {
       .div(periodsInYear);
     const priceBump = calculatePriceBump(
       buyCoverParamsTemplate.amount,
-      this.config.PRICE_BUMP_RATIO,
+      fixture.config.PRICE_BUMP_RATIO,
       totalCapacity,
       NXM_PER_ALLOCATION_UNIT,
     );
@@ -287,8 +303,9 @@ describe('requestAllocation', function () {
   });
 
   it('should decrease price by PRICE_CHANGE_PER_DAY until it reaches product target price', async function () {
-    const { stakingProducts, stakingPool, cover } = this;
-    const { PRICE_CHANGE_PER_DAY, INITIAL_PRICE_DENOMINATOR } = this.config;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingProducts, stakingPool, cover } = fixture;
+    const { PRICE_CHANGE_PER_DAY, INITIAL_PRICE_DENOMINATOR } = fixture.config;
     const initialPrice = coverProductTemplate.initialPriceRatio;
     const daysForward = 1;
     const expectedPrice = initialPrice - PRICE_CHANGE_PER_DAY * daysForward;
@@ -313,8 +330,9 @@ describe('requestAllocation', function () {
   });
 
   it('shouldnt underflow while expiring cover during allocate capacity', async function () {
-    const { stakingProducts, stakingPool, cover } = this;
-    const { PRICE_CHANGE_PER_DAY, INITIAL_PRICE_DENOMINATOR } = this.config;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingProducts, stakingPool, cover } = fixture;
+    const { PRICE_CHANGE_PER_DAY, INITIAL_PRICE_DENOMINATOR } = fixture.config;
     const initialPrice = coverProductTemplate.initialPriceRatio;
     const daysForward = 1;
     const expectedPrice = initialPrice - PRICE_CHANGE_PER_DAY * daysForward;
@@ -339,15 +357,16 @@ describe('requestAllocation', function () {
   });
 
   it('should correctly calculate price when all coverage is bought in a single purchase', async function () {
-    const { stakingProducts, stakingPool, cover } = this;
-    const [coverBuyer] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingProducts, stakingPool, cover } = fixture;
+    const [coverBuyer] = fixture.accounts.members;
     const {
       GLOBAL_CAPACITY_RATIO,
       PRICE_CHANGE_PER_DAY,
       NXM_PER_ALLOCATION_UNIT,
       ALLOCATION_UNITS_PER_NXM,
       TARGET_PRICE_DENOMINATOR,
-    } = this.config;
+    } = fixture.config;
     const GLOBAL_CAPACITY_DENOMINATOR = BigNumber.from(10000);
 
     const amount = stakedNxmAmount.mul(GLOBAL_CAPACITY_RATIO).div(GLOBAL_CAPACITY_DENOMINATOR);
@@ -365,12 +384,12 @@ describe('requestAllocation', function () {
 
     // calculate premiums
     const expectedBasePrice = calculateBasePrice(timestamp, product, PRICE_CHANGE_PER_DAY);
-    const expectedBasePremium = calculateBasePremium(amount, expectedBasePrice, buyCoverParams.period, this.config);
+    const expectedBasePremium = calculateBasePremium(amount, expectedBasePrice, buyCoverParams.period, fixture.config);
 
     const {
       surgePremium: expectedSurgePremium, // should be 0
       surgePremiumSkipped: expectedSurgePremiumSkipped,
-    } = calculateSurgePremium(amount, initialCapacityUsed, totalCapacity, buyCoverParams.period, this.config);
+    } = calculateSurgePremium(amount, initialCapacityUsed, totalCapacity, buyCoverParams.period, fixture.config);
 
     const actualPremium = await stakingProducts.calculatePremium(
       product,
@@ -403,8 +422,9 @@ describe('requestAllocation', function () {
   });
 
   it('should overflow uint32 tranche allocation when cover amount is too large', async function () {
-    const { stakingPool, cover } = this;
-    const [coverBuyer, staker] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool, cover } = fixture;
+    const [coverBuyer, staker] = fixture.accounts.members;
     const amount = BigNumber.from(2).pow(95).sub(1);
     const buyCoverParams = { ...buyCoverParamsTemplate, amount };
 
@@ -421,8 +441,9 @@ describe('requestAllocation', function () {
   });
 
   it('reverts if caller is not cover contract', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
     const amount = parseEther('1');
     const previousPremium = 0;
@@ -433,10 +454,11 @@ describe('requestAllocation', function () {
   });
 
   it('correctly allocates capacity to the correct product and current tranche', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
@@ -453,7 +475,7 @@ describe('requestAllocation', function () {
       expect(trancheAllocationGroup).to.equal(0);
     }
 
-    await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
 
     {
       const trancheAllocationGroup = await stakingPool.trancheAllocationGroups(productId, groupId);
@@ -466,8 +488,9 @@ describe('requestAllocation', function () {
   });
 
   it('correctly updates last bucket id in each active group', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
@@ -487,7 +510,7 @@ describe('requestAllocation', function () {
       expect(trancheAllocationGroup).to.equal(0);
     }
 
-    await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
 
     for (let i = 0; i < groupCount; i++) {
       const trancheAllocationGroup = await stakingPool.trancheAllocationGroups(productId, firstGroupId + i);
@@ -496,10 +519,11 @@ describe('requestAllocation', function () {
   });
 
   it('correctly stores expiring cover amounts', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
@@ -519,7 +543,7 @@ describe('requestAllocation', function () {
       expect(expiringCoverBuckets).to.equal(0);
     }
 
-    await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
 
     {
       const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(productId, targetBucketId, groupId);
@@ -530,10 +554,11 @@ describe('requestAllocation', function () {
   });
 
   it('just deallocates if amount is 0', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
@@ -566,7 +591,7 @@ describe('requestAllocation', function () {
     }
 
     // Allocate
-    await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
 
     {
       const trancheAllocationGroup = await stakingPool.trancheAllocationGroups(productId, trancheGroupId);
@@ -587,7 +612,7 @@ describe('requestAllocation', function () {
 
     // Deallocate only:
     // set amount = 0 to only deallocate
-    await stakingPool.connect(this.coverSigner).requestAllocation(0, previousPremium, {
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(0, previousPremium, {
       ...allocationRequestParams,
       allocationId,
       previousStart: lastBlock.timestamp,
@@ -610,10 +635,11 @@ describe('requestAllocation', function () {
   });
 
   it('correctly allocates capacity to multiple tranches', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
-    const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT } = fixture.config;
     const GLOBAL_CAPACITY_DENOMINATOR = BigNumber.from(10000);
 
     const currentTrancheId = await moveTimeToNextTranche(8);
@@ -644,7 +670,7 @@ describe('requestAllocation', function () {
     }
 
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(fixture.coverSigner)
       .requestAllocation(allocationAmount, previousPremium, allocationRequestParams);
 
     {
@@ -662,7 +688,7 @@ describe('requestAllocation', function () {
 
     // double allocation
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(fixture.coverSigner)
       .requestAllocation(allocationAmount, previousPremium, allocationRequestParams);
 
     {
@@ -675,10 +701,11 @@ describe('requestAllocation', function () {
   });
 
   it('correctly allocates capacity to multiple covers allocations', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const currentTrancheId = await moveTimeToNextTranche(8);
 
@@ -707,7 +734,7 @@ describe('requestAllocation', function () {
 
     // allocation will allocate 2/3 of amount to first tranche + 1/3 amount other second tranche
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(fixture.coverSigner)
       .requestAllocation(allocationAmount, previousPremium, allocationRequestParams);
 
     {
@@ -731,7 +758,7 @@ describe('requestAllocation', function () {
 
     // allocation will allocate 1/3 amount to the second tranche + 2/3 amount to the third tranche
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(fixture.coverSigner)
       .requestAllocation(allocationAmount, previousPremium, allocationRequestParams);
 
     {
@@ -753,10 +780,11 @@ describe('requestAllocation', function () {
   });
 
   it('correctly allocates capacity to multiple products', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
@@ -789,11 +817,11 @@ describe('requestAllocation', function () {
 
     // allocate to product 1
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(fixture.coverSigner)
       .requestAllocation(amountProduct1, previousPremium, allocationRequestParams);
 
     // allocate to product 2
-    await stakingPool.connect(this.coverSigner).requestAllocation(amountProduct2, previousPremium, {
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amountProduct2, previousPremium, {
       ...allocationRequestParams,
       productId: productId2,
     });
@@ -820,8 +848,9 @@ describe('requestAllocation', function () {
   });
 
   it('calls process expirations updating accNxmPerRewardsShare and lastAccNxmUpdate', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
@@ -829,12 +858,12 @@ describe('requestAllocation', function () {
     const amount = parseEther('100');
     const previousPremium = 0;
 
-    await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
 
     const accNxmPerRewardsShareBefore = await stakingPool.getAccNxmPerRewardsShare();
     const lastAccNxmUpdateBefore = await stakingPool.getLastAccNxmUpdate();
 
-    await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
 
     const accNxmPerRewardsShareAfter = await stakingPool.getAccNxmPerRewardsShare();
     const lastAccNxmUpdateAfter = await stakingPool.getLastAccNxmUpdate();
@@ -844,10 +873,11 @@ describe('requestAllocation', function () {
   });
 
   it('calculates, update bucket rewards and mint rewards in NXM', async function () {
-    const { stakingPool, cover, tokenController, nxm } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool, cover, tokenController, nxm } = fixture;
+    const [user] = fixture.accounts.members;
 
-    const { REWARDS_DENOMINATOR } = this.config;
+    const { REWARDS_DENOMINATOR } = fixture.config;
     const { rewardRatio } = allocationRequestParams;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
@@ -921,10 +951,11 @@ describe('requestAllocation', function () {
   });
 
   it('removes and burns previous NXM premium in case of update', async function () {
-    const { stakingPool, cover, tokenController, nxm } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool, cover, tokenController, nxm } = fixture;
+    const [user] = fixture.accounts.members;
 
-    const { REWARDS_DENOMINATOR } = this.config;
+    const { REWARDS_DENOMINATOR } = fixture.config;
     const { rewardRatio } = allocationRequestParams;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
@@ -1000,8 +1031,9 @@ describe('requestAllocation', function () {
   });
 
   it('revers if insufficient capacity', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
     const currentTrancheId = await moveTimeToNextTranche(8);
 
@@ -1018,7 +1050,7 @@ describe('requestAllocation', function () {
     // exceed max allocation
     await expect(
       stakingPool
-        .connect(this.coverSigner)
+        .connect(fixture.coverSigner)
         .requestAllocation(maxAllocationAmount.add(1), previousPremium, allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
@@ -1026,7 +1058,7 @@ describe('requestAllocation', function () {
       const allocationAmount = parseEther('10');
 
       await stakingPool
-        .connect(this.coverSigner)
+        .connect(fixture.coverSigner)
         .requestAllocation(allocationAmount, previousPremium, allocationRequestParams);
 
       maxAllocationAmount = maxAllocationAmount.sub(allocationAmount);
@@ -1035,7 +1067,7 @@ describe('requestAllocation', function () {
     // exceed max allocation
     await expect(
       stakingPool
-        .connect(this.coverSigner)
+        .connect(fixture.coverSigner)
         .requestAllocation(maxAllocationAmount.add(1), previousPremium, allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
@@ -1043,7 +1075,7 @@ describe('requestAllocation', function () {
       const allocationAmount = parseEther('20');
 
       await stakingPool
-        .connect(this.coverSigner)
+        .connect(fixture.coverSigner)
         .requestAllocation(allocationAmount, previousPremium, allocationRequestParams);
 
       maxAllocationAmount = maxAllocationAmount.sub(allocationAmount);
@@ -1052,7 +1084,7 @@ describe('requestAllocation', function () {
     // exceed max allocation
     await expect(
       stakingPool
-        .connect(this.coverSigner)
+        .connect(fixture.coverSigner)
         .requestAllocation(maxAllocationAmount.add(1), previousPremium, allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
@@ -1060,7 +1092,7 @@ describe('requestAllocation', function () {
       const allocationAmount = parseEther('30');
 
       await stakingPool
-        .connect(this.coverSigner)
+        .connect(fixture.coverSigner)
         .requestAllocation(allocationAmount, previousPremium, allocationRequestParams);
 
       maxAllocationAmount = maxAllocationAmount.sub(allocationAmount);
@@ -1068,15 +1100,16 @@ describe('requestAllocation', function () {
 
     // exceed max allocation
     await expect(
-      stakingPool.connect(this.coverSigner).requestAllocation(1, previousPremium, allocationRequestParams),
+      stakingPool.connect(fixture.coverSigner).requestAllocation(1, previousPremium, allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
   });
 
   it('updates expiring cover amounts', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
@@ -1097,7 +1130,7 @@ describe('requestAllocation', function () {
       expect(expiringCoverBuckets).to.equal(0);
     }
 
-    await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
 
     {
       const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(productId, targetBucketId, groupId);
@@ -1108,7 +1141,7 @@ describe('requestAllocation', function () {
 
     const newPeriod = daysToSeconds(35);
     const secondAllocationAmount = parseEther('20');
-    await stakingPool.connect(this.coverSigner).requestAllocation(secondAllocationAmount, previousPremium, {
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(secondAllocationAmount, previousPremium, {
       ...allocationRequestParams,
       allocationId: nextAllocationId,
       previousStart: lastBlock.timestamp,
@@ -1132,12 +1165,12 @@ describe('requestAllocation', function () {
 
     const thirdAllocationAmount = parseEther('5');
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(fixture.coverSigner)
       .requestAllocation(thirdAllocationAmount, previousPremium, allocationRequestParams);
 
     const fourthAllocationAmount = parseEther('15');
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(fixture.coverSigner)
       .requestAllocation(fourthAllocationAmount, previousPremium, { ...allocationRequestParams, period: newPeriod });
 
     {
@@ -1158,10 +1191,11 @@ describe('requestAllocation', function () {
   });
 
   it('updates stored tranche allocations', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const currentTrancheId = await moveTimeToNextTranche(8);
 
@@ -1179,7 +1213,7 @@ describe('requestAllocation', function () {
       expect(activeAllocations[0]).to.equal(0);
     }
 
-    await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -1190,7 +1224,7 @@ describe('requestAllocation', function () {
 
     const secondAllocationAmount = amount.div(2);
     // edit previous allocation, decrease amount to half
-    await stakingPool.connect(this.coverSigner).requestAllocation(secondAllocationAmount, previousPremium, {
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(secondAllocationAmount, previousPremium, {
       ...allocationRequestParams,
       allocationId: nextAllocationId,
       previousStart: secondAllocationBlock.timestamp,
@@ -1206,7 +1240,7 @@ describe('requestAllocation', function () {
 
     // should fully allocate tranche again
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(fixture.coverSigner)
       .requestAllocation(thirdAllocationAmount, previousPremium, allocationRequestParams);
 
     {
@@ -1218,7 +1252,7 @@ describe('requestAllocation', function () {
 
     const fourthAllocationAmount = parseEther('180');
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(fixture.coverSigner)
       .requestAllocation(fourthAllocationAmount, previousPremium, allocationRequestParams);
 
     {
@@ -1232,7 +1266,7 @@ describe('requestAllocation', function () {
 
     const fifthAllocationAmount = parseEther('40');
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(fixture.coverSigner)
       .requestAllocation(fifthAllocationAmount, previousPremium, allocationRequestParams);
 
     {
@@ -1249,15 +1283,16 @@ describe('requestAllocation', function () {
   });
 
   it('updates stored cover allocations', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const otherAllocationId = await stakingPool.getNextAllocationId();
 
     // add a previous unrelated allocation in order to generate an allocation id > 0
-    await stakingPool.connect(this.coverSigner).requestAllocation(
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(
       parseEther('100'), // amount
       '0', // previousPremium
       allocationRequestParams,
@@ -1281,7 +1316,7 @@ describe('requestAllocation', function () {
       expect(coverTrancheAllocations).to.equal(0);
     }
 
-    await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
@@ -1293,7 +1328,7 @@ describe('requestAllocation', function () {
 
     const secondAllocationAmount = amount.div(2);
     // edit previous allocation, decrease amount to half
-    await stakingPool.connect(this.coverSigner).requestAllocation(secondAllocationAmount, previousPremium, {
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(secondAllocationAmount, previousPremium, {
       ...allocationRequestParams,
       allocationId,
       previousStart: lastBlock.timestamp,
@@ -1309,7 +1344,7 @@ describe('requestAllocation', function () {
     const thirdAllocationAmount = amount;
 
     // should fully allocate tranche again
-    await stakingPool.connect(this.coverSigner).requestAllocation(thirdAllocationAmount, previousPremium, {
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(thirdAllocationAmount, previousPremium, {
       ...allocationRequestParams,
       allocationId,
       previousStart: lastBlock.timestamp,
@@ -1324,7 +1359,7 @@ describe('requestAllocation', function () {
 
     const fourthAllocationIncreaseAmount = parseEther('180');
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(fixture.coverSigner)
       .requestAllocation(thirdAllocationAmount.add(fourthAllocationIncreaseAmount), previousPremium, {
         ...allocationRequestParams,
         allocationId,
@@ -1341,7 +1376,7 @@ describe('requestAllocation', function () {
 
     const fifthAllocationIncreaseAmount = parseEther('40');
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(fixture.coverSigner)
       .requestAllocation(
         thirdAllocationAmount.add(fourthAllocationIncreaseAmount).add(fifthAllocationIncreaseAmount),
         previousPremium,
@@ -1367,10 +1402,11 @@ describe('requestAllocation', function () {
   });
 
   it('capacity considers global capacity ratio', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
-    const { GLOBAL_CAPACITY_RATIO, GLOBAL_CAPACITY_DENOMINATOR } = this.config;
+    const { GLOBAL_CAPACITY_RATIO, GLOBAL_CAPACITY_DENOMINATOR } = fixture.config;
 
     const currentTrancheId = await moveTimeToNextTranche(8);
 
@@ -1385,7 +1421,7 @@ describe('requestAllocation', function () {
     // exceed max allocation
     await expect(
       stakingPool
-        .connect(this.coverSigner)
+        .connect(fixture.coverSigner)
         .requestAllocation(maxAllocationAmount.add(1), previousPremium, allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
@@ -1393,14 +1429,14 @@ describe('requestAllocation', function () {
     maxAllocationAmount = depositAmount.mul(newGlobalCapacityRatio).div(GLOBAL_CAPACITY_DENOMINATOR);
 
     await expect(
-      stakingPool.connect(this.coverSigner).requestAllocation(maxAllocationAmount.add(1), previousPremium, {
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), previousPremium, {
         ...allocationRequestParams,
         globalCapacityRatio: newGlobalCapacityRatio,
       }),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     await expect(
-      stakingPool.connect(this.coverSigner).requestAllocation(maxAllocationAmount, previousPremium, {
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount, previousPremium, {
         ...allocationRequestParams,
         globalCapacityRatio: newGlobalCapacityRatio,
       }),
@@ -1408,10 +1444,11 @@ describe('requestAllocation', function () {
   });
 
   it('capacity considers product target weight', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
-    const { GLOBAL_CAPACITY_RATIO, GLOBAL_CAPACITY_DENOMINATOR, WEIGHT_DENOMINATOR } = this.config;
+    const { GLOBAL_CAPACITY_RATIO, GLOBAL_CAPACITY_DENOMINATOR, WEIGHT_DENOMINATOR } = fixture.config;
 
     const { weight: product1Weight } = defaultProduct;
     const { weight: product3Weight, productId: productId3 } = product3;
@@ -1439,14 +1476,14 @@ describe('requestAllocation', function () {
 
     // exceed max allocation given product1 weight is bigger than product 3
     await expect(
-      stakingPool.connect(this.coverSigner).requestAllocation(maxAllocationAmountProduct1, previousPremium, {
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmountProduct1, previousPremium, {
         ...allocationRequestParams,
         productId: productId3,
       }),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     await expect(
-      stakingPool.connect(this.coverSigner).requestAllocation(maxAllocationAmountProduct3, previousPremium, {
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmountProduct3, previousPremium, {
         ...allocationRequestParams,
         productId: productId3,
       }),
@@ -1454,10 +1491,11 @@ describe('requestAllocation', function () {
   });
 
   it('capacity considers reduction ratio', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
 
-    const { GLOBAL_CAPACITY_RATIO, GLOBAL_CAPACITY_DENOMINATOR, CAPACITY_REDUCTION_DENOMINATOR } = this.config;
+    const { GLOBAL_CAPACITY_RATIO, GLOBAL_CAPACITY_DENOMINATOR, CAPACITY_REDUCTION_DENOMINATOR } = fixture.config;
 
     const currentTrancheId = await moveTimeToNextTranche(8);
 
@@ -1477,14 +1515,14 @@ describe('requestAllocation', function () {
 
     // exceed max allocation
     await expect(
-      stakingPool.connect(this.coverSigner).requestAllocation(maxAllocationAmount.add(1), previousPremium, {
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), previousPremium, {
         ...allocationRequestParams,
         capacityReductionRatio,
       }),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     await expect(
-      stakingPool.connect(this.coverSigner).requestAllocation(maxAllocationAmount.add(1), previousPremium, {
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), previousPremium, {
         ...allocationRequestParams,
         capacityReductionRatio: 0,
       }),
@@ -1492,9 +1530,10 @@ describe('requestAllocation', function () {
   });
 
   it('mints rewards to staking pool', async function () {
-    const { tokenController, stakingPool, stakingProducts } = this;
-    const { REWARDS_DENOMINATOR, PRICE_CHANGE_PER_DAY } = this.config;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { tokenController, stakingPool, stakingProducts } = fixture;
+    const { REWARDS_DENOMINATOR, PRICE_CHANGE_PER_DAY } = fixture.config;
+    const [user] = fixture.accounts.members;
     const { rewardRatio } = allocationRequestParams;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
@@ -1508,7 +1547,7 @@ describe('requestAllocation', function () {
     const expirationBucket = Math.ceil((currentTimestamp + allocationRequestParams.period) / BUCKET_DURATION);
 
     // request allocation
-    await stakingPool.connect(this.coverSigner).requestAllocation(amount, 0 /* previousPremium */, {
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, 0 /* previousPremium */, {
       ...allocationRequestParams,
     });
 
@@ -1519,7 +1558,7 @@ describe('requestAllocation', function () {
       await stakingProducts.getProduct(1 /* poolId */, allocationRequestParams.productId),
       PRICE_CHANGE_PER_DAY,
     );
-    const premium = calculateBasePremium(amount, expectedBasePrice, allocationRequestParams.period, this.config);
+    const premium = calculateBasePremium(amount, expectedBasePrice, allocationRequestParams.period, fixture.config);
 
     // calculate rewards
     const rewardStreamPeriod = BigNumber.from(expirationBucket).mul(BUCKET_DURATION).sub(timestamp);
@@ -1533,9 +1572,10 @@ describe('requestAllocation', function () {
   });
 
   it('accounts for carried over allocations filling all capacity', async function () {
-    const { stakingPool, stakingNFT } = this;
-    const [staker] = this.accounts.members;
-    const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT } = this.config;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool, stakingNFT } = fixture;
+    const [staker] = fixture.accounts.members;
+    const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const { productId } = allocationRequestParams;
     const amount = parseEther('100000');
@@ -1562,7 +1602,7 @@ describe('requestAllocation', function () {
     });
 
     // allocate all available capacity
-    await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequest);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequest);
 
     // expect all available capacity to be used
     const midAllocations = await stakingPool.getActiveAllocations(productId);
@@ -1579,7 +1619,7 @@ describe('requestAllocation', function () {
     };
 
     await expect(
-      stakingPool.connect(this.coverSigner).requestAllocation(
+      stakingPool.connect(fixture.coverSigner).requestAllocation(
         NXM_PER_ALLOCATION_UNIT, // smallest amount
         previousPremium,
         unfullfillableRequest,
@@ -1588,9 +1628,10 @@ describe('requestAllocation', function () {
   });
 
   it('accounts for carried over allocations partially filling the capacity', async function () {
-    const { stakingPool, stakingNFT } = this;
-    const [staker] = this.accounts.members;
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingPool, stakingNFT } = fixture;
+    const [staker] = fixture.accounts.members;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const { productId } = allocationRequestParams;
     const firstCoverAmount = parseEther('80000');
@@ -1613,7 +1654,7 @@ describe('requestAllocation', function () {
 
     // allocate all available capacity
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(fixture.coverSigner)
       .requestAllocation(firstCoverAmount, previousPremium, firstAllocationRequest);
 
     // expect all available capacity to be used
@@ -1633,14 +1674,14 @@ describe('requestAllocation', function () {
     };
 
     await expect(
-      stakingPool.connect(this.coverSigner).requestAllocation(
+      stakingPool.connect(fixture.coverSigner).requestAllocation(
         maxCoverAmount.add(1), // slightly over the limit
         previousPremium,
         secondAllocationRequest,
       ),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
-    stakingPool.connect(this.coverSigner).requestAllocation(
+    stakingPool.connect(fixture.coverSigner).requestAllocation(
       maxCoverAmount, // exact available amount
       previousPremium,
       secondAllocationRequest,
@@ -1648,8 +1689,9 @@ describe('requestAllocation', function () {
   });
 
   it('correctly removes allocations when expiring a cover', async function () {
-    const stakingPool = this.stakingPool.connect(this.coverSigner);
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const fixture = await loadFixture(requestAllocationSetup);
+    const stakingPool = fixture.stakingPool.connect(fixture.coverSigner);
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const { productId } = allocationRequestParams;
     const amount = parseEther('100');

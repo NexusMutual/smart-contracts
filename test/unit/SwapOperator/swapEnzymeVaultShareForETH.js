@@ -1,5 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('./setup');
 const { ETH } = require('../../../lib/constants').Assets;
 const {
   utils: { parseEther },
@@ -7,8 +9,9 @@ const {
 
 describe('swapEnzymeVaultShareForETH', function () {
   it('should revert when called while the system is paused', async function () {
-    const { pool, master, enzymeV4Vault, swapOperator } = this.contracts;
-    const governance = this.accounts.governanceAccounts[0];
+    const fixture = await loadFixture(setup);
+    const { pool, master, enzymeV4Vault, swapOperator } = fixture.contracts;
+    const governance = fixture.accounts.governanceAccounts[0];
 
     await enzymeV4Vault.mint(pool.address, parseEther('2000'));
     await pool.connect(governance).setSwapDetails(
@@ -24,9 +27,10 @@ describe('swapEnzymeVaultShareForETH', function () {
   });
 
   it('should revert when called by an address that is not swap controller', async function () {
-    const { swapOperator } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { swapOperator } = fixture.contracts;
 
-    const nobody = this.accounts.nonMembers[0];
+    const nobody = fixture.accounts.nonMembers[0];
 
     await expect(swapOperator.connect(nobody).swapEnzymeVaultShareForETH('0', '0')).to.be.revertedWith(
       'SwapOp: only controller can execute',
@@ -34,8 +38,9 @@ describe('swapEnzymeVaultShareForETH', function () {
   });
 
   it('should revert when asset is not enabled', async function () {
-    const { pool, swapOperator, enzymeV4Vault } = this.contracts;
-    const governance = this.accounts.governanceAccounts[0];
+    const fixture = await loadFixture(setup);
+    const { pool, swapOperator, enzymeV4Vault } = fixture.contracts;
+    const governance = fixture.accounts.governanceAccounts[0];
 
     await pool.connect(governance).setSwapDetails(
       enzymeV4Vault.address,
@@ -50,9 +55,10 @@ describe('swapEnzymeVaultShareForETH', function () {
   });
 
   it('should revert if Enzyme does not sent enough shares back', async function () {
-    const { swapOperator, enzymeV4Comptroller, pool, enzymeV4Vault } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { swapOperator, enzymeV4Comptroller, pool, enzymeV4Vault } = fixture.contracts;
 
-    const governance = this.accounts.governanceAccounts[0];
+    const governance = fixture.accounts.governanceAccounts[0];
 
     await pool.connect(governance).setSwapDetails(
       enzymeV4Vault.address,
@@ -74,9 +80,10 @@ describe('swapEnzymeVaultShareForETH', function () {
   });
 
   it('should revert if tokenBalanceAfter <  min', async function () {
-    const { pool, swapOperator, enzymeV4Vault } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { pool, swapOperator, enzymeV4Vault } = fixture.contracts;
 
-    const governance = this.accounts.governanceAccounts[0];
+    const governance = fixture.accounts.governanceAccounts[0];
 
     await pool.connect(governance).setSwapDetails(
       enzymeV4Vault.address,
@@ -95,9 +102,10 @@ describe('swapEnzymeVaultShareForETH', function () {
   });
 
   it('should swap asset for eth and emit a Swapped event with correct values', async function () {
-    const { pool, swapOperator, enzymeV4Vault } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { pool, swapOperator, enzymeV4Vault } = fixture.contracts;
 
-    const governance = this.accounts.governanceAccounts[0];
+    const governance = fixture.accounts.governanceAccounts[0];
 
     await pool.connect(governance).setSwapDetails(
       enzymeV4Vault.address,
@@ -128,9 +136,10 @@ describe('swapEnzymeVaultShareForETH', function () {
   });
 
   it('reverts if another balanceBefore <= max', async function () {
-    const { pool, swapOperator, enzymeV4Vault } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { pool, swapOperator, enzymeV4Vault } = fixture.contracts;
 
-    const governance = this.accounts.governanceAccounts[0];
+    const governance = fixture.accounts.governanceAccounts[0];
 
     await pool.connect(governance).setSwapDetails(
       enzymeV4Vault.address,

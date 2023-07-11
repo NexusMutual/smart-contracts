@@ -18,9 +18,6 @@ const getAccounts = async () => {
   return assingRoles(accounts);
 };
 
-// const accountRoles = assingRoles(accounts);
-
 module.exports = {
   getAccounts,
-  // ...accountRoles,
 };

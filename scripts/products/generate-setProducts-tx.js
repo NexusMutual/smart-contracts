@@ -68,7 +68,7 @@ const main = async (provider, productsDataFilePath) => {
         initialPriceRatio: parseInt(data['Initial Price Ratio']) * 100,
         // works for integers: parseInt('0%') === 0
         capacityReductionRatio: parseInt(data['Capacity Reduction Ratio']),
-        useFixedPrice: data['Use fixed price'].trim() === 'yes',
+        useFixedPrice: data['Use fixed price'].trim() === 'TRUE',
       },
       allowedPools: data['Allowed Pools'].split(',').map(parseInt),
     };

@@ -48,6 +48,8 @@ contract Ramm {
   uint public eth;
   uint public targetLiquidity;
   uint public lastSwapTimestamp;
+  uint public budget;
+  uint public aggresiveLiqSpeed;
 
   NXM public nxm;
   CapitalPool public capitalPool;
@@ -65,9 +67,12 @@ contract Ramm {
     uint price_a = 0.03 ether;
     uint price_b = 0.01 ether;
 
-    eth = 2500 ether;
+    eth = 2000 ether;
     targetLiquidity = 2500 ether;
     lastSwapTimestamp = block.timestamp;
+
+    budget = 250 ether;
+    aggresiveLiqSpeed = 200 ether;
 
     a.nxm = eth * 1 ether / price_a;
     a.liqSpeed = 100 ether;
@@ -144,7 +149,7 @@ contract Ramm {
     return 0;
   }
 
-  function getReserves() public view returns (uint eth_new, uint nxm_a, uint nxm_b) {
+  function getReserves() public view returns (uint eth_new, uint nxm_a, uint nxm_b, uint new_budget) {
     uint capital = capitalPool.getPoolValueInEth();
     uint supply = nxm.totalSupply();
 
@@ -152,22 +157,41 @@ contract Ramm {
     // TODO: check for capital > mcr + buffer
     // oracle
 
-    uint elapsed = block.timestamp - lastSwapTimestamp;
     uint ka = eth * a.nxm;
     uint kb = eth * b.nxm;
 
+    uint elapsed = block.timestamp - lastSwapTimestamp;
+
     if (eth < targetLiquidity) {
       // inject liquidity
-      // TODO: implement injection budget checks
-      uint injectedAmount = Math.min(
-        elapsed * b.liqSpeed / LIQ_SPEED_PERIOD,
-        targetLiquidity - eth // diff to target
-      );
-      eth_new = eth + injectedAmount;
+      uint timeLeftOnBudget = budget * LIQ_SPEED_PERIOD / aggresiveLiqSpeed;
+      uint maxInjectedAmount = targetLiquidity - eth;
+      uint injectedAmount;
+
+      if (elapsed <= timeLeftOnBudget) {
+
+        injectedAmount = Math.min(
+          elapsed * aggresiveLiqSpeed / LIQ_SPEED_PERIOD,
+          maxInjectedAmount
+        );
+
+        new_budget = budget - injectedAmount;
+
+      } else {
+
+        uint injectedAmountOnBudget = timeLeftOnBudget * aggresiveLiqSpeed / LIQ_SPEED_PERIOD;
+        new_budget = maxInjectedAmount < injectedAmountOnBudget ? budget - maxInjectedAmount : 0;
+
+        uint injectedAmountWoBudget = (elapsed - timeLeftOnBudget) * b.liqSpeed / LIQ_SPEED_PERIOD;
+        injectedAmount = Math.min(maxInjectedAmount, injectedAmountOnBudget + injectedAmountWoBudget);
+      }
 
       if (injectedAmount > 0) {
         console.log("Injected amount: %s ETH", format(injectedAmount));
       }
+
+      eth_new = eth + injectedAmount;
+
     } else {
       // extract liquidity
       uint extractedAmount = Math.min(
@@ -222,7 +246,10 @@ contract Ramm {
       }
     }
 
-    return (eth_new, nxm_a, nxm_b);
+    console.log("ETHLIQ: %s ETH", format(eth_new));
+    console.log("BUDGET: %s ETH", format(new_budget));
+
+    return (eth_new, nxm_a, nxm_b, new_budget);
   }
 
   function swapNxmForEth(uint nxmIn, address to) internal returns (uint /*ethOut*/) {
@@ -283,12 +310,12 @@ contract Ramm {
   }
 
   function getSpotPriceA() external view returns (uint /*ethPerNxm*/) {
-    (uint eth_new, uint nxm_a, /*uint nxm_b*/) = getReserves();
+    (uint eth_new, uint nxm_a, /*uint nxm_b*/, /*uint new_budget*/) = getReserves();
     return 1 ether * eth_new / nxm_a;
   }
 
   function getSpotPriceB() external view returns (uint /*ethPerNxm*/) {
-    (uint eth_new, /*uint nxm_a*/, uint nxm_b) = getReserves();
+    (uint eth_new, /*uint nxm_a*/, uint nxm_b, /*uint new_budget*/) = getReserves();
     return 1 ether * eth_new / nxm_b;
   }
 

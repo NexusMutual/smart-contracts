@@ -23,33 +23,27 @@ task(TASK_TYPECHAIN, async (args, hre, runSuper) => {
   await runSuper();
 });
 
-task(TASK_COMPILE)
-  .addFlag('generateStorageLayout', 'Generate storage layout')
-  .setAction(async function ({ generateStorageLayout }, hre, runSuper) {
-    if (!generateStorageLayout) {
-      return runSuper();
+task(TASK_COMPILE).setAction(async function (_, hre, runSuper) {
+  const { compilers, overrides } = hre.config.solidity;
+
+  // add storageLayout to compilers if missing
+  for (const compiler of compilers) {
+    const output = compiler.settings.outputSelection['*']['*'];
+    if (!output.includes('storageLayout')) {
+      output.push('storageLayout');
     }
+  }
 
-    const { compilers, overrides } = hre.config.solidity;
-
-    // add storageLayout to compilers if missing
-    for (const compiler of compilers) {
-      const output = compiler.settings.outputSelection['*']['*'];
-      if (!output.includes('storageLayout')) {
-        output.push('storageLayout');
-      }
+  // add storageLayout to overrides if missing
+  for (const source of Object.keys(overrides)) {
+    const output = overrides[source].settings.outputSelection['*']['*'];
+    if (!output.includes('storageLayout')) {
+      output.push('storageLayout');
     }
+  }
 
-    // add storageLayout to overrides if missing
-    for (const source of Object.keys(overrides)) {
-      const output = overrides[source].settings.outputSelection['*']['*'];
-      if (!output.includes('storageLayout')) {
-        output.push('storageLayout');
-      }
-    }
-
-    await runSuper();
-  });
+  await runSuper();
+});
 
 task('coverage').setAction(async function (args, hre, runSuper) {
   hre.config.warnings = {

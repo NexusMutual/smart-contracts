@@ -1,11 +1,16 @@
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const { setNextBlockTime } = require('../../utils').evm;
 const { proposalTitle, proposalSD, proposalDescHash } = require('./proposalFixture');
+const setup = require('../setup');
 
 describe('createProposal', function () {
   it('should fail to create proposal if category not allowed', async function () {
-    const { gv: governance } = this.contracts;
-    const [nonMember] = this.accounts.nonMembers;
+    const fixture = await loadFixture(setup);
+    const { gv: governance } = fixture.contracts;
+    const [nonMember] = fixture.accounts.nonMembers;
     const categoryId = 1;
 
     await expect(
@@ -14,8 +19,9 @@ describe('createProposal', function () {
   });
 
   it('should fail to create proposal if sender is not a member', async function () {
-    const { gv: governance } = this.contracts;
-    const [nonMember] = this.accounts.nonMembers;
+    const fixture = await loadFixture(setup);
+    const { gv: governance } = fixture.contracts;
+    const [nonMember] = fixture.accounts.nonMembers;
     const categoryId = 0;
 
     await expect(
@@ -24,13 +30,15 @@ describe('createProposal', function () {
   });
 
   it('should create proposal', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.members;
     const memberAddress = await member.getAddress();
     const categoryId = 0;
 
     const proposalCountBefore = await governance.getProposalLength();
-    const timestamp = Math.floor(Date.now());
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const timestamp = currentTimestamp + 1;
     await setNextBlockTime(timestamp);
 
     await expect(governance.connect(member).createProposal(proposalTitle, proposalSD, proposalDescHash, categoryId))

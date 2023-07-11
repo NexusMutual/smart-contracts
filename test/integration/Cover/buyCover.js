@@ -2,6 +2,8 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { calculateFirstTrancheId } = require('../utils/staking');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('../setup');
 
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
@@ -32,35 +34,40 @@ const buyCoverFixture = {
   ipfsData: 'ipfs data',
 };
 
+async function buyCoverSetup() {
+  const fixture = await loadFixture(setup);
+  const { tk: nxm, stakingProducts, stakingPool1, stakingPool2, stakingPool3, tc: tokenController } = fixture.contracts;
+  const staker = fixture.accounts.defaultSender;
+  const [manager1, manager2, manager3] = fixture.accounts.stakingPoolManagers;
+  const stakeAmount = parseEther('9000000');
+
+  await stakingProducts.connect(manager1).setProducts(1, [stakedProductParamTemplate]);
+  await stakingProducts.connect(manager2).setProducts(2, [stakedProductParamTemplate]);
+  await stakingProducts.connect(manager3).setProducts(3, [stakedProductParamTemplate]);
+
+  // stake
+  const firstActiveTrancheId = await calculateFirstTrancheId(
+    await ethers.provider.getBlock('latest'),
+    buyCoverFixture.period,
+    0,
+  );
+  await nxm.approve(tokenController.address, MaxUint256);
+  await stakingPool1.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
+  await stakingPool2.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
+  await stakingPool3.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
+  return {
+    ...fixture,
+  };
+}
+
 describe('buyCover', function () {
-  beforeEach(async function () {
-    const { tk: nxm, stakingProducts, stakingPool1, stakingPool2, stakingPool3, tc: tokenController } = this.contracts;
-    const staker = this.accounts.defaultSender;
-    const [manager1, manager2, manager3] = this.accounts.stakingPoolManagers;
-    const stakeAmount = parseEther('9000000');
-
-    await stakingProducts.connect(manager1).setProducts(1, [stakedProductParamTemplate]);
-    await stakingProducts.connect(manager2).setProducts(2, [stakedProductParamTemplate]);
-    await stakingProducts.connect(manager3).setProducts(3, [stakedProductParamTemplate]);
-
-    // stake
-    const firstActiveTrancheId = await calculateFirstTrancheId(
-      await ethers.provider.getBlock('latest'),
-      buyCoverFixture.period,
-      0,
-    );
-    await nxm.approve(tokenController.address, MaxUint256);
-    await stakingPool1.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
-    await stakingPool2.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
-    await stakingPool3.connect(staker).depositTo(stakeAmount, firstActiveTrancheId + 5, 0, staker.address);
-  });
-
   it.skip('allows to buy against multiple staking pool', async function () {
-    const { cover, tc: tokenController, stakingProducts } = this.contracts;
+    const fixture = await loadFixture(buyCoverSetup);
+    const { cover, tc: tokenController, stakingProducts } = fixture.contracts;
     const {
       members: [coverBuyer, coverReceiver],
-    } = this.accounts;
-    const { GLOBAL_REWARDS_RATIO } = this.config;
+    } = fixture.accounts;
+    const { GLOBAL_REWARDS_RATIO } = fixture.config;
     const { productId, period, amount, segmentId } = buyCoverFixture;
 
     const product = await stakingProducts.getProduct(1, productId);

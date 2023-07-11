@@ -1,6 +1,8 @@
 const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
+const { setup } = require('./setup');
 const { setNextBlockBaseFee } = require('../utils').evm;
 const { setTime, ASSET, signPermit } = require('./helpers');
 const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
@@ -22,7 +24,6 @@ describe('redeemPayout', function () {
   const priceBefore = parseEther('1.1');
   const productIdYbEth = 2;
   const productIdYbDai = 3;
-
   const getCoverSegment = async () => {
     const { timestamp } = await ethers.provider.getBlock('latest');
     const cover = { ...coverSegmentFixture };
@@ -31,9 +32,10 @@ describe('redeemPayout', function () {
   };
 
   it("reverts if the address is not the cover owner's or approved", async function () {
-    const { yieldTokenIncidents, assessment, cover, coverNFT } = this.contracts;
-    const [coverOwner, nonCoverOwner] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover, coverNFT } = fixture.contracts;
+    const [coverOwner, nonCoverOwner] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
 
@@ -82,9 +84,10 @@ describe('redeemPayout', function () {
   });
 
   it('reverts if the incident is not accepted', async function () {
-    const { yieldTokenIncidents, assessment, cover } = this.contracts;
-    const [member1, member2] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover } = fixture.contracts;
+    const [member1, member2] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
 
@@ -124,9 +127,10 @@ describe('redeemPayout', function () {
   });
 
   it("reverts if the voting and cooldown period haven't ended", async function () {
-    const { yieldTokenIncidents, assessment, cover } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
 
@@ -165,9 +169,10 @@ describe('redeemPayout', function () {
   });
 
   it('reverts if the redemption period expired', async function () {
-    const { yieldTokenIncidents, assessment, cover } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const { payoutRedemptionPeriodInDays } = await yieldTokenIncidents.config();
     const { payoutCooldownInDays } = await assessment.config();
     const segment = await getCoverSegment();
@@ -195,9 +200,10 @@ describe('redeemPayout', function () {
   });
 
   it('reverts if the payout exceeds the covered amount', async function () {
-    const { yieldTokenIncidents, assessment, cover } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const { payoutCooldownInDays } = await assessment.config();
     const segment = await getCoverSegment();
     await cover.createMockCover(member1.address, productIdYbEth, ASSET.ETH, [segment]);
@@ -231,9 +237,10 @@ describe('redeemPayout', function () {
   });
 
   it('reverts if the cover segment ends before the incident occured', async function () {
-    const { yieldTokenIncidents, assessment, cover } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const { payoutCooldownInDays } = await assessment.config();
 
     const segment0 = await getCoverSegment();
@@ -270,9 +277,10 @@ describe('redeemPayout', function () {
   });
 
   it('reverts if the cover segment starts after or when the incident occured', async function () {
-    const { yieldTokenIncidents, assessment, cover } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const { payoutCooldownInDays } = await assessment.config();
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -322,9 +330,10 @@ describe('redeemPayout', function () {
   });
 
   it('reverts if the cover segment is outside the grace period', async function () {
-    const { yieldTokenIncidents, assessment, cover } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const { gracePeriod } = await cover.productTypes(2);
     const segment0 = await getCoverSegment();
     segment0.gracePeriod = gracePeriod;
@@ -356,9 +365,10 @@ describe('redeemPayout', function () {
   });
 
   it('should use coverSegment grace period and not product level grace period', async function () {
-    const { yieldTokenIncidents, assessment, cover } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const { gracePeriod } = await cover.productTypes(2);
     const segment0 = await getCoverSegment();
     const segment1 = await getCoverSegment();
@@ -395,9 +405,10 @@ describe('redeemPayout', function () {
   });
 
   it("reverts if the cover's productId mismatches the incident's productId", async function () {
-    const { yieldTokenIncidents, assessment, cover } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const validProductId = 2;
     const segment = await getCoverSegment();
     await cover.createMockCover(
@@ -459,10 +470,11 @@ describe('redeemPayout', function () {
   });
 
   it('transfers ETH amount to payoutAddress, as per requested amount and priceBefore', async function () {
-    const { yieldTokenIncidents, assessment, cover, ybEth } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [nonMember1, nonMember2] = this.accounts.nonMembers;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover, ybEth } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [nonMember1, nonMember2] = fixture.accounts.nonMembers;
+    const [governance] = fixture.accounts.governanceContracts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
 
@@ -538,10 +550,11 @@ describe('redeemPayout', function () {
   });
 
   it('transfers DAI amount to payoutAddress, as per requested amount and priceBefore', async function () {
-    const { yieldTokenIncidents, assessment, cover, ybEth, dai } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [nonMember1, nonMember2] = this.accounts.nonMembers;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover, ybEth, dai } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [nonMember1, nonMember2] = fixture.accounts.nonMembers;
+    const [governance] = fixture.accounts.governanceContracts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
 
@@ -617,10 +630,11 @@ describe('redeemPayout', function () {
   });
 
   it("uses permit when it's provided in optionalParams", async function () {
-    const { yieldTokenIncidents, assessment, cover, ybPermitDai, dai } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [nonMember] = this.accounts.nonMembers;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover, ybPermitDai, dai } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [nonMember] = fixture.accounts.nonMembers;
+    const [governance] = fixture.accounts.governanceContracts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
     const productId = 4;
@@ -692,9 +706,10 @@ describe('redeemPayout', function () {
   });
 
   it('emits IncidentPayoutRedeemed event with owner, payout amount, incident and cover ids', async function () {
-    const { yieldTokenIncidents, cover, assessment, ybEth, ybDai } = this.contracts;
-    const [coverOwner1, coverOwner2, member] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, cover, assessment, ybEth, ybDai } = fixture.contracts;
+    const [coverOwner1, coverOwner2, member] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const segment = await getCoverSegment();
 
@@ -735,9 +750,10 @@ describe('redeemPayout', function () {
   });
 
   it('reverts if system is paused', async function () {
-    const { yieldTokenIncidents, cover, assessment, ybEth, master } = this.contracts;
-    const [coverOwner1, member] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, cover, assessment, ybEth, master } = fixture.contracts;
+    const [coverOwner1, member] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const segment = await getCoverSegment();
     await cover.createMockCover(coverOwner1.address, productIdYbEth, ASSET.ETH, [segment]);
@@ -763,10 +779,11 @@ describe('redeemPayout', function () {
   });
 
   it('reverts if caller is not a member', async function () {
-    const { yieldTokenIncidents, cover, assessment, ybEth } = this.contracts;
-    const [coverOwner1, member] = this.accounts.members;
-    const [nonMember] = this.accounts.nonMembers;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, cover, assessment, ybEth } = fixture.contracts;
+    const [coverOwner1, member] = fixture.accounts.members;
+    const [nonMember] = fixture.accounts.nonMembers;
+    const [governance] = fixture.accounts.governanceContracts;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const segment = await getCoverSegment();
@@ -791,9 +808,10 @@ describe('redeemPayout', function () {
   });
 
   it('should transfer product underlying asset amount to the contract', async function () {
-    const { yieldTokenIncidents, assessment, cover, ybEth } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover, ybEth } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
 
@@ -828,9 +846,10 @@ describe('redeemPayout', function () {
   });
 
   it('should burn the stake of associated staking pools', async function () {
-    const { yieldTokenIncidents, assessment, cover, ybEth } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment, cover, ybEth } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
 

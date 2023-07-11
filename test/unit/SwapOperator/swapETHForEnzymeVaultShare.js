@@ -3,13 +3,16 @@ const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 const { ETH } = require('../../../lib/constants').Assets;
 const { mineNextBlock, increaseTime } = require('../../utils/evm');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('./setup');
 const {
   utils: { parseEther },
 } = ethers;
 
 describe('swapETHForEnzymeVaultShare', function () {
   it('should revert when called while the system is paused', async function () {
-    const { master, swapOperator } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { master, swapOperator } = fixture.contracts;
 
     await master.pause();
 
@@ -17,9 +20,10 @@ describe('swapETHForEnzymeVaultShare', function () {
   });
 
   it('should revert when called by an address that is not swap controller', async function () {
-    const { swapOperator } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { swapOperator } = fixture.contracts;
 
-    const nobody = this.accounts.nonMembers[0];
+    const nobody = fixture.accounts.nonMembers[0];
 
     await expect(swapOperator.connect(nobody).swapETHForEnzymeVaultShare('0', '0')).to.be.revertedWith(
       'SwapOp: only controller can execute',
@@ -27,8 +31,9 @@ describe('swapETHForEnzymeVaultShare', function () {
   });
 
   it('should revert when asset is not enabled', async function () {
-    const { pool, swapOperator, enzymeV4Vault } = this.contracts;
-    const governance = this.accounts.governanceAccounts[0];
+    const fixture = await loadFixture(setup);
+    const { pool, swapOperator, enzymeV4Vault } = fixture.contracts;
+    const governance = fixture.accounts.governanceAccounts[0];
 
     await pool.connect(governance).setSwapDetails(
       enzymeV4Vault.address,
@@ -43,11 +48,12 @@ describe('swapETHForEnzymeVaultShare', function () {
   });
 
   it('should revert if ether left in pool is less than minPoolEth', async function () {
-    const { pool, swapOperator } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { pool, swapOperator } = fixture.contracts;
 
     const currentEther = parseEther('10000');
     // add ether to pool
-    await this.accounts.defaultSender.sendTransaction({
+    await fixture.accounts.defaultSender.sendTransaction({
       to: pool.address,
       value: parseEther('10000'),
     });
@@ -67,11 +73,12 @@ describe('swapETHForEnzymeVaultShare', function () {
   });
 
   it('should revert if amountIn > pool balance', async function () {
-    const { pool, swapOperator } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { pool, swapOperator } = fixture.contracts;
 
     const currentEther = parseEther('10000');
     // add ether to pool
-    await this.accounts.defaultSender.sendTransaction({
+    await fixture.accounts.defaultSender.sendTransaction({
       to: pool.address,
       value: parseEther('10000'),
     });
@@ -81,10 +88,11 @@ describe('swapETHForEnzymeVaultShare', function () {
   });
 
   it('should revert if Enzyme does not sent enough shares back', async function () {
-    const { pool, swapOperator, enzymeV4Comptroller } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { pool, swapOperator, enzymeV4Comptroller } = fixture.contracts;
 
     // add ether to pool
-    await this.accounts.defaultSender.sendTransaction({
+    await fixture.accounts.defaultSender.sendTransaction({
       to: pool.address,
       value: parseEther('10000'),
     });
@@ -99,9 +107,10 @@ describe('swapETHForEnzymeVaultShare', function () {
   });
 
   it('should revert if balanceAfter > max', async function () {
-    const { pool, swapOperator, enzymeV4Vault } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { pool, swapOperator, enzymeV4Vault } = fixture.contracts;
 
-    const governance = this.accounts.governanceAccounts[0];
+    const governance = fixture.accounts.governanceAccounts[0];
 
     const max = parseEther('1000');
     await pool.connect(governance).setSwapDetails(
@@ -112,7 +121,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     );
 
     // add ether to pool
-    await this.accounts.defaultSender.sendTransaction({
+    await fixture.accounts.defaultSender.sendTransaction({
       to: pool.address,
       value: parseEther('10000'),
     });
@@ -124,9 +133,10 @@ describe('swapETHForEnzymeVaultShare', function () {
   });
 
   it('should swap asset for eth and emit a Swapped event with correct values', async function () {
-    const { pool, swapOperator, enzymeV4Vault } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { pool, swapOperator, enzymeV4Vault } = fixture.contracts;
 
-    const governance = this.accounts.governanceAccounts[0];
+    const governance = fixture.accounts.governanceAccounts[0];
 
     const max = parseEther('1000');
     await pool.connect(governance).setSwapDetails(
@@ -137,7 +147,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     );
 
     // add ether to pool
-    await this.accounts.defaultSender.sendTransaction({
+    await fixture.accounts.defaultSender.sendTransaction({
       to: pool.address,
       value: parseEther('10000'),
     });
@@ -162,9 +172,10 @@ describe('swapETHForEnzymeVaultShare', function () {
   });
 
   it('should swap asset for eth for a dust amount of wei equal to the precision error tolerance', async function () {
-    const { pool, swapOperator, enzymeV4Vault } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { pool, swapOperator, enzymeV4Vault } = fixture.contracts;
 
-    const governance = this.accounts.governanceAccounts[0];
+    const governance = fixture.accounts.governanceAccounts[0];
 
     const max = parseEther('1000');
     await pool.connect(governance).setSwapDetails(
@@ -175,7 +186,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     );
 
     // add ether to pool
-    await this.accounts.defaultSender.sendTransaction({
+    await fixture.accounts.defaultSender.sendTransaction({
       to: pool.address,
       value: parseEther('10000'),
     });
@@ -198,9 +209,10 @@ describe('swapETHForEnzymeVaultShare', function () {
   });
 
   it('should swap asset for eth in 3 sequential calls', async function () {
-    const { pool, swapOperator, enzymeV4Vault } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { pool, swapOperator, enzymeV4Vault } = fixture.contracts;
 
-    const governance = this.accounts.governanceAccounts[0];
+    const governance = fixture.accounts.governanceAccounts[0];
 
     const minAssetAmount = parseEther('100');
     const maxAssetAmount = parseEther('1000');
@@ -212,7 +224,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     );
 
     // add ether to pool
-    await this.accounts.defaultSender.sendTransaction({
+    await fixture.accounts.defaultSender.sendTransaction({
       to: pool.address,
       value: parseEther('10000'),
     });

@@ -1,5 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('./setup');
 const { setNextBlockTime } = require('../../utils').evm;
 const { Two } = ethers.constants;
 
@@ -7,7 +9,8 @@ const poolId = Two.pow(95); // overflows at uint96
 const maxDeadline = Two.pow(31);
 describe('acceptStakingPoolOwnershipOffer', function () {
   it('should revert if the caller is not the proposed manager', async function () {
-    const { tokenController } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { tokenController } = fixture.contracts;
 
     await expect(tokenController.acceptStakingPoolOwnershipOffer(poolId)).to.be.revertedWith(
       'TokenController: Caller is not the proposed manager',
@@ -15,11 +18,12 @@ describe('acceptStakingPoolOwnershipOffer', function () {
   });
 
   it('should fail to accept a canceled offer', async function () {
-    const { tokenController } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
       internalContracts: [internalContract],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Set old manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
@@ -36,11 +40,12 @@ describe('acceptStakingPoolOwnershipOffer', function () {
   });
 
   it('should revert if the ownership offer has expired', async function () {
-    const { tokenController } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
       internalContracts: [internalContract],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Set old manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
@@ -57,11 +62,12 @@ describe('acceptStakingPoolOwnershipOffer', function () {
   });
 
   it('should successfully remove pools from last manager and add them to new managers list', async function () {
-    const { tokenController } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
       internalContracts: [internalContract],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Set old manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
@@ -91,11 +97,12 @@ describe('acceptStakingPoolOwnershipOffer', function () {
   });
 
   it('should revert if current manager is locked for voting', async function () {
-    const { tokenController, nxm } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { tokenController, nxm } = fixture.contracts;
     const {
       members: [oldManager, newManager],
       internalContracts: [internalContract],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Set old manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);

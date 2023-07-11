@@ -1,10 +1,13 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { parseEther } = ethers.utils;
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('./setup');
 
 describe('views', function () {
   it('getCoverSegments returns segments', async function () {
-    const { cover, coverViewer } = this;
+    const fixture = await loadFixture(setup);
+    const { cover, coverViewer } = fixture;
 
     const coverSegment = {
       amount: parseEther('100'),

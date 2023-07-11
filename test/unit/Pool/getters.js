@@ -1,13 +1,17 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const setup = require('./setup');
 const { parseEther } = ethers.utils;
 const { percentageBigNumber } = require('../utils').tokenPrice;
 
 describe('getters', function () {
   describe('getEthForNXM', function () {
     it('returns value as calculated by calculateEthForNXM', async function () {
-      const { pool, mcr } = this;
-      const [member] = this.accounts.members;
+      const fixture = await loadFixture(setup);
+      const { pool, mcr } = fixture;
+      const [member] = fixture.accounts.members;
 
       const mcrEth = parseEther('160000');
       const totalAssetValue = percentageBigNumber(mcrEth, 150);
@@ -24,8 +28,9 @@ describe('getters', function () {
 
   describe('getNXMForEth', function () {
     it('returns value as calculated by calculateNXMForEth', async function () {
-      const { pool, mcr } = this;
-      const [member] = this.accounts.members;
+      const fixture = await loadFixture(setup);
+      const { pool, mcr } = fixture;
+      const [member] = fixture.accounts.members;
 
       const mcrEth = parseEther('160000');
       const totalAssetValue = percentageBigNumber(mcrEth, 150);

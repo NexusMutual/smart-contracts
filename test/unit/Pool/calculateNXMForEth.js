@@ -1,6 +1,9 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const Decimal = require('decimal.js');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const setup = require('./setup');
 const { calculateNXMForEthRelativeError, percentageBigNumber } = require('../utils').tokenPrice;
 const { DIVISION_BY_ZERO } = require('../utils').errors;
 const { BigNumber } = ethers;
@@ -20,7 +23,8 @@ const maxRelativeError = Decimal(0.0006);
 
 describe('calculateNXMForEth', function () {
   it('reverts when mcrEth = 0', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
 
     const mcrEth = parseEther('0');
     const totalAssetValue = BigNumber.from('160000');
@@ -30,7 +34,8 @@ describe('calculateNXMForEth', function () {
   });
 
   it('reverts when purchase value > 5% * mcrEth', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
 
     const mcrEth = parseEther('160000');
     const totalAssetValue = mcrEth;
@@ -42,7 +47,8 @@ describe('calculateNXMForEth', function () {
   });
 
   it('calculates at mcrEth = 7k, MCR% = 0%, buyValue = 5% * mcrEth', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
 
     const mcrEth = parseEther('7000');
     const totalAssetValue = BigNumber.from('0');
@@ -63,7 +69,8 @@ describe('calculateNXMForEth', function () {
   });
 
   it('calculates at mcrEth = 7k, MCR% = 400%, buyValue = 5% * mcrEth', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
 
     const mcrEth = parseEther('7000');
     const totalAssetValue = percentageBigNumber(mcrEth, 400);
@@ -84,7 +91,8 @@ describe('calculateNXMForEth', function () {
   });
 
   it('calculates at mcrEth = 160k, MCR% = 150%, buyValue = 0.00001', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
 
     const mcrEth = parseEther('160000');
     const totalAssetValue = percentageBigNumber(mcrEth, 150);
@@ -105,7 +113,8 @@ describe('calculateNXMForEth', function () {
   });
 
   it('calculates at mcrEth = 160k, MCR% = 0%, buyValue = 5% * mcrEth', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
 
     const mcrEth = parseEther('160000');
     const totalAssetValue = BigNumber.from(0);
@@ -126,7 +135,8 @@ describe('calculateNXMForEth', function () {
   });
 
   it('calculates at mcrEth = 160k, MCR% = 100%, buyValue = 5% * mcrEth', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
 
     const mcrEth = parseEther('160000');
     const totalAssetValue = percentageBigNumber(mcrEth, 100);
@@ -147,7 +157,8 @@ describe('calculateNXMForEth', function () {
   });
 
   it('calculates at mcrEth = 160k, MCR% = 150%, buyValue = 5% * mcrEth', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
 
     const mcrEth = parseEther('160000');
     const totalAssetValue = percentageBigNumber(mcrEth, 150);
@@ -168,7 +179,8 @@ describe('calculateNXMForEth', function () {
   });
 
   it('calculates at mcrEth = 160k, MCR% = 400%, buyValue = 5% * mcrEth', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
 
     const mcrEth = parseEther('160000');
     const totalAssetValue = percentageBigNumber(mcrEth, 400);
@@ -189,7 +201,8 @@ describe('calculateNXMForEth', function () {
   });
 
   it('calculates at mcrEth = 1e9, MCR% = 400%, buyValue = 0.001', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
 
     const mcrEth = parseEther((1e9).toString());
     const totalAssetValue = percentageBigNumber(mcrEth, 400);
@@ -212,7 +225,8 @@ describe('calculateNXMForEth', function () {
   });
 
   it('calculates at mcrEth = 1e9, MCR% = 400%, buyValue = 5% * mcrEth', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
 
     const mcrEth = parseEther((1e9).toString());
     const totalAssetValue = percentageBigNumber(mcrEth, 400);
@@ -233,7 +247,8 @@ describe('calculateNXMForEth', function () {
   });
 
   it('calculates at mcrEth = 1e9, MCR% = 15%, buyValue = 5% * mcrEth', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
 
     // In the interval 0-75% MCR% for large mcrEth (100 million ETH here) tokens are sold cheaper than they should be
     // and the relative error goes as large as 3.7% (error increases with mcrEth here) which peaks around

@@ -1,9 +1,12 @@
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { setup } = require('./setup');
 
 describe('migrateCoversFrom', function () {
   it('reverts if system is paused', async function () {
-    const { coverMigrator, master } = this.contracts;
-    const [coverOwner] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { coverMigrator, master } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
 
     // enable emergency pause
     await master.setEmergencyPause(true);

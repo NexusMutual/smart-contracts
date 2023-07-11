@@ -1,8 +1,10 @@
-const { ethers, accounts } = require('hardhat');
+const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
+const { getAccounts } = require('../../utils/accounts');
 const { parseEther, parseUnits } = ethers.utils;
 
 async function setup() {
+  const accounts = await getAccounts();
   const NXM = await ethers.getContractFactory('NXMTokenMock');
   const nxm = await NXM.deploy();
   await nxm.deployed();
@@ -109,19 +111,21 @@ async function setup() {
 
   const config = await yieldTokenIncidents.config();
 
-  this.config = config;
-  this.accounts = accounts;
-  this.contracts = {
-    nxm,
-    dai,
-    ybDai,
-    ybEth,
-    ybPermitDai,
-    assessment,
-    yieldTokenIncidents,
-    cover,
-    coverNFT,
-    master,
+  return {
+    config,
+    accounts,
+    contracts: {
+      nxm,
+      dai,
+      ybDai,
+      ybEth,
+      ybPermitDai,
+      assessment,
+      yieldTokenIncidents,
+      cover,
+      coverNFT,
+      master,
+    },
   };
 }
 

@@ -1,13 +1,16 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('./setup');
 
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 describe('withdrawPendingRewards', function () {
   it('reverts if system is paused', async function () {
-    const { tokenController, master } = this.contracts;
-    const [member] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { tokenController, master } = fixture.contracts;
+    const [member] = fixture.accounts.members;
 
     await master.setEmergencyPause(true);
 
@@ -17,8 +20,9 @@ describe('withdrawPendingRewards', function () {
   });
 
   it('withdraws assessment rewards when fromAssessment param is true', async function () {
-    const { tokenController, assessment } = this.contracts;
-    const [member] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { tokenController, assessment } = fixture.contracts;
+    const [member] = fixture.accounts.members;
 
     const forUser = member.address;
     const batchSize = 1;
@@ -47,8 +51,9 @@ describe('withdrawPendingRewards', function () {
   });
 
   it('withdraws governance rewards when fromGovernance param is true', async function () {
-    const { tokenController, governance, nxm } = this.contracts;
-    const [member] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { tokenController, governance, nxm } = fixture.contracts;
+    const [member] = fixture.accounts.members;
 
     const forUser = member.address;
     const batchSize = 1;
@@ -84,8 +89,9 @@ describe('withdrawPendingRewards', function () {
   });
 
   it('reverts if no withdrawable governance rewards', async function () {
-    const { tokenController } = this.contracts;
-    const [member] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { tokenController } = fixture.contracts;
+    const [member] = fixture.accounts.members;
 
     const forUser = member.address;
     const batchSize = 1;

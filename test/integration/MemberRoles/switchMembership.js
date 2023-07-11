@@ -1,10 +1,13 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('../setup');
 const { Role } = require('../utils').constants;
 
 describe('switchMembership', function () {
   it('switches membership from one address to another', async function () {
-    const { contracts, accounts } = this;
+    const fixture = await loadFixture(setup);
+    const { contracts, accounts } = fixture;
     const { mr: memberRoles, tk: token } = contracts;
     const {
       members: [member1],
@@ -40,11 +43,12 @@ describe('switchMembership', function () {
   });
 
   it('switches membership and transfers manager staking pools from one address to another', async function () {
-    const { mr: memberRoles, tk: token, tc: tokenController } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { mr: memberRoles, tk: token, tc: tokenController } = fixture.contracts;
     const {
       nonMembers: [newMember],
       stakingPoolManagers: [stakingPoolManager],
-    } = this.accounts;
+    } = fixture.accounts;
 
     {
       const newMemberAddress = newMember.address;
@@ -66,19 +70,21 @@ describe('switchMembership', function () {
   });
 
   it('reverts when switching membership for non-member', async function () {
-    const { mr: memberRoles } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { mr: memberRoles } = fixture.contracts;
     const {
       nonMembers: [nonMember1, nonMember2],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await expect(memberRoles.connect(nonMember1).switchMembership(nonMember2.address)).to.be.reverted;
   });
 
   it("reverts when switching membership to an address that's already a member", async function () {
-    const { mr: memberRoles } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { mr: memberRoles } = fixture.contracts;
     const {
       members: [member1, member2],
-    } = this.accounts;
+    } = fixture.accounts;
 
     await expect(memberRoles.connect(member1).switchMembership(member2.address)).to.be.reverted;
   });

@@ -4,6 +4,8 @@ const { ethers } = require('hardhat');
 const { setNextBlockTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 const { assertCoverFields, buyCoverOnOnePool, MAX_COVER_PERIOD, createStakingPool } = require('./helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('./setup');
 
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
@@ -27,8 +29,9 @@ describe.skip('editCover', function () {
   };
 
   it('should edit purchased cover and increase amount', async function () {
-    const { cover } = this;
-    const [coverBuyer] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
     const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
@@ -87,9 +90,10 @@ describe.skip('editCover', function () {
   });
 
   it('should allow to reduce amount', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount } = coverBuyFixture;
 
@@ -131,8 +135,9 @@ describe.skip('editCover', function () {
   });
 
   it('should edit purchased cover and add coverage from a new staking pool', async function () {
-    const { cover } = this;
-    const [coverBuyer, manager] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [coverBuyer, manager] = fixture.accounts.members;
     const { productId, coverAsset, period, amount } = coverBuyFixture;
 
     const { expectedPremium, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
@@ -197,9 +202,10 @@ describe.skip('editCover', function () {
   });
 
   it('should edit purchased cover and increase period', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
 
@@ -259,9 +265,10 @@ describe.skip('editCover', function () {
   });
 
   it('should allow to reduce period', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount } = coverBuyFixture;
 
@@ -301,9 +308,10 @@ describe.skip('editCover', function () {
   });
 
   it('should edit purchased cover and increase period and amount', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
 
@@ -366,9 +374,10 @@ describe.skip('editCover', function () {
   });
 
   it('should edit purchased cover and increase period and decrease amount', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
 
@@ -431,8 +440,9 @@ describe.skip('editCover', function () {
   });
 
   it('should allow to reduce period and increase amount', async function () {
-    const { cover } = this;
-    const [coverBuyer] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [coverBuyer] = fixture.accounts.members;
 
     const {
       productId,
@@ -504,9 +514,10 @@ describe.skip('editCover', function () {
   });
 
   it('should allow to reduce period and reduce amount', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount } = coverBuyFixture;
 
@@ -552,9 +563,10 @@ describe.skip('editCover', function () {
   });
 
   it('should fail to edit an expired cover', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, targetPriceRatio, priceDenominator, coverAsset, period, amount } = coverBuyFixture;
     const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
@@ -602,9 +614,10 @@ describe.skip('editCover', function () {
   });
 
   it('should revert when period is too long', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
@@ -652,10 +665,11 @@ describe.skip('editCover', function () {
   });
 
   it('should revert when commission rate too high', async function () {
-    const { cover } = this;
-    const { MAX_COMMISSION_RATIO } = this.config;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const { MAX_COMMISSION_RATIO } = fixture.config;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, amount, period, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
@@ -704,9 +718,10 @@ describe.skip('editCover', function () {
   });
 
   it('should store new grace period when editing cover', async function () {
-    const { cover } = this;
-    const [boardMember] = this.accounts.advisoryBoardMembers;
-    const [coverBuyer] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [boardMember] = fixture.accounts.advisoryBoardMembers;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, targetPriceRatio, priceDenominator, coverAsset, amount, period } = coverBuyFixture;
 
@@ -768,9 +783,10 @@ describe.skip('editCover', function () {
   });
 
   it('reverts if caller is not NFT owner or approved', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer, otherUser] = this.accounts.members;
+    const [coverBuyer, otherUser] = fixture.accounts.members;
 
     const { productId, targetPriceRatio, priceDenominator, coverAsset, period, amount } = coverBuyFixture;
     const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
@@ -808,9 +824,10 @@ describe.skip('editCover', function () {
   });
 
   it('reverts if invalid coverId', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, targetPriceRatio, priceDenominator, coverAsset, period, amount } = coverBuyFixture;
     const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
@@ -849,9 +866,10 @@ describe.skip('editCover', function () {
   });
 
   it('reverts if period is too short', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
@@ -899,9 +917,10 @@ describe.skip('editCover', function () {
   });
 
   it('reverts if calculated premium is bigger than maxPremiumInAsset', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, amount, period, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
@@ -950,9 +969,10 @@ describe.skip('editCover', function () {
   });
 
   it('works if caller is the owner of the NFT', async function () {
-    const { cover, coverNFT } = this;
+    const fixture = await loadFixture(setup);
+    const { cover, coverNFT } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
     const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
@@ -1004,9 +1024,10 @@ describe.skip('editCover', function () {
   });
 
   it('works if caller approved by the owner of the NFT', async function () {
-    const { cover, coverNFT } = this;
+    const fixture = await loadFixture(setup);
+    const { cover, coverNFT } = fixture;
 
-    const [coverBuyer, otherUser] = this.accounts.members;
+    const [coverBuyer, otherUser] = fixture.accounts.members;
 
     const { productId, targetPriceRatio, priceDenominator, coverAsset, period, amount } = coverBuyFixture;
     const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
@@ -1049,9 +1070,10 @@ describe.skip('editCover', function () {
   });
 
   it('reverts if incorrect cover asset', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
     const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
@@ -1096,9 +1118,10 @@ describe.skip('editCover', function () {
   });
 
   it('reverts if incorrect productId', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
     const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
@@ -1144,9 +1167,10 @@ describe.skip('editCover', function () {
   });
 
   it('reverts if empty array of allocationRequests', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
     const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
@@ -1190,9 +1214,10 @@ describe.skip('editCover', function () {
   });
 
   it('emits CoverEdited event', async function () {
-    const { cover, coverNFT } = this;
+    const fixture = await loadFixture(setup);
+    const { cover, coverNFT } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
     const { segment, coverId: expectedCoverId, segmentId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
@@ -1248,9 +1273,10 @@ describe.skip('editCover', function () {
   });
 
   it('retrieves the premium difference from the user in ETH', async function () {
-    const { cover, pool } = this;
+    const fixture = await loadFixture(setup);
+    const { cover, pool } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
@@ -1314,9 +1340,10 @@ describe.skip('editCover', function () {
   });
 
   it('retrieves the premium difference from the user in NXM', async function () {
-    const { cover, nxm, tokenController } = this;
+    const fixture = await loadFixture(setup);
+    const { cover, nxm, tokenController } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
@@ -1386,9 +1413,10 @@ describe.skip('editCover', function () {
   });
 
   it('allows editing the cover multiple times against multiple staking pools', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer, manager] = this.accounts.members;
+    const [coverBuyer, manager] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
 
@@ -1527,9 +1555,10 @@ describe.skip('editCover', function () {
   });
 
   it('creates a segment and does not affect other state all pools are skipped', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer, manager] = this.accounts.members;
+    const [coverBuyer, manager] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount } = coverBuyFixture;
 
@@ -1584,9 +1613,10 @@ describe.skip('editCover', function () {
   });
 
   it('reverts if incorrect pool id in request array', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer, manager] = this.accounts.members;
+    const [coverBuyer, manager] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount } = coverBuyFixture;
 
@@ -1628,9 +1658,10 @@ describe.skip('editCover', function () {
 
   // TODO: update test after totalActiveCoverInAsset is implemented in buckets
   it.skip('correctly updates totalActiveCoverInAsset', async function () {
-    const { cover } = this;
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
 
-    const [coverBuyer] = this.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
 

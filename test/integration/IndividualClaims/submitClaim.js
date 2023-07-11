@@ -9,6 +9,8 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee } = require('../../utils/evm');
 const { MAX_COVER_PERIOD } = require('../../unit/Cover/helpers');
 const { BUCKET_DURATION, moveTimeToNextTranche } = require('../../unit/StakingPool/helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('../setup');
 
 const { BigNumber } = ethers;
 const { parseEther, parseUnits } = ethers.utils;
@@ -25,21 +27,25 @@ const setTime = async timestamp => {
 
 const priceDenominator = '10000';
 
+async function submitClaimSetup() {
+  const fixture = await loadFixture(setup);
+  const { tk } = fixture.contracts;
+  const members = fixture.accounts.members.slice(0, 5);
+  const amount = parseEther('10000');
+
+  for (const member of members) {
+    await tk.connect(fixture.accounts.defaultSender).transfer(member.address, amount);
+  }
+
+  return fixture;
+}
+
 describe('submitClaim', function () {
-  beforeEach(async function () {
-    const { tk } = this.contracts;
-    const members = this.accounts.members.slice(0, 5);
-    const amount = parseEther('10000');
-
-    for (const member of members) {
-      await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
-    }
-  });
-
   it('submits ETH claim and approves claim', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as } = this.contracts;
-    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
 
     // Cover inputs
     const productId = 0;
@@ -88,9 +94,10 @@ describe('submitClaim', function () {
   });
 
   it('submits partial ETH claim and approves claim', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as } = this.contracts;
-    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
 
     // Cover inputs
     const productId = 0;
@@ -140,9 +147,10 @@ describe('submitClaim', function () {
   });
 
   it('submits ETH claim and rejects claim', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as } = this.contracts;
-    const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2, staker3] = fixture.accounts.members;
 
     // Cover inputs
     const productId = 0;
@@ -189,9 +197,10 @@ describe('submitClaim', function () {
   });
 
   it('submits partial ETH claim and rejects claim', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as } = this.contracts;
-    const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2, staker3] = fixture.accounts.members;
 
     // Cover inputs
     const productId = 0;
@@ -238,9 +247,10 @@ describe('submitClaim', function () {
   });
 
   it('submits DAI claim and approves claim', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as, dai } = this.contracts;
-    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as, dai } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
 
     // Cover inputs
     const productId = 0;
@@ -253,7 +263,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: dai,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -291,9 +306,10 @@ describe('submitClaim', function () {
   });
 
   it('submits partial DAI claim and approves claim', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as, dai } = this.contracts;
-    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as, dai } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
 
     // Cover inputs
     const productId = 0;
@@ -306,7 +322,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: dai,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -344,9 +365,10 @@ describe('submitClaim', function () {
   });
 
   it('submits DAI claim and rejects claim', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as, dai } = this.contracts;
-    const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as, dai } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2, staker3] = fixture.accounts.members;
 
     // Cover inputs
     const productId = 0;
@@ -359,7 +381,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: dai,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -396,9 +423,10 @@ describe('submitClaim', function () {
   });
 
   it('submits partial DAI claim and rejects claim', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as, dai } = this.contracts;
-    const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as, dai } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2, staker3] = fixture.accounts.members;
 
     // Cover inputs
     const productId = 0;
@@ -411,7 +439,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: dai,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -448,9 +481,10 @@ describe('submitClaim', function () {
   });
 
   it('submits USDC claim and approves claim (token with 6 decimals)', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as, usdc } = this.contracts;
-    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as, usdc } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
 
     const usdcDecimals = 6;
 
@@ -465,7 +499,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: usdc, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: usdc,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -503,9 +542,10 @@ describe('submitClaim', function () {
   });
 
   it('submits partial USDC claim and approves claim', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as, usdc } = this.contracts;
-    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as, usdc } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
 
     const usdcDecimals = 6;
 
@@ -520,7 +560,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: usdc, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: usdc,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -558,9 +603,10 @@ describe('submitClaim', function () {
   });
 
   it('submits partial USDC claim and rejects claim', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as, usdc } = this.contracts;
-    const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as, usdc } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2, staker3] = fixture.accounts.members;
 
     const usdcDecimals = 6;
 
@@ -575,7 +621,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: usdc, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: usdc,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -612,9 +663,10 @@ describe('submitClaim', function () {
   });
 
   it('multiple partial ETH claims approved on the same cover', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as } = this.contracts;
-    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
 
     // Cover inputs
     const productId = 0;
@@ -732,9 +784,10 @@ describe('submitClaim', function () {
   });
 
   it('multiple partial DAI claims approved on the same cover', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as, dai } = this.contracts;
-    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as, dai } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
 
     // Cover inputs
     const productId = 0;
@@ -747,7 +800,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: dai, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: dai,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -851,9 +909,10 @@ describe('submitClaim', function () {
   });
 
   it('multiple partial USDC claims approved on the same cover', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as, usdc } = this.contracts;
-    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as, usdc } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
 
     const usdcDecimals = 6;
 
@@ -868,7 +927,12 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: usdc, cover });
+    await transferCoverAsset({
+      tokenOwner: fixture.accounts.defaultSender,
+      coverBuyer: coverBuyer1,
+      asset: usdc,
+      cover,
+    });
 
     // Buy Cover
     await buyCover({
@@ -972,9 +1036,10 @@ describe('submitClaim', function () {
   });
 
   it('multiple partial claims on the same cover with combinations of approved / denied', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as } = this.contracts;
-    const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2, staker3] = fixture.accounts.members;
 
     // Cover inputs
     const productId = 0;
@@ -1091,9 +1156,10 @@ describe('submitClaim', function () {
   });
 
   it.skip('correctly calculates premium in cover edit after a claim', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { p1, ci, cover, stakingPool1, as } = this.contracts;
-    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { p1, ci, cover, stakingPool1, as } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
 
     // Cover inputs
     const productId = 0;
@@ -1203,9 +1269,10 @@ describe('submitClaim', function () {
   });
 
   it.skip('correctly updates pool allocation after claim and cover edit', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { ci, cover, stakingPool1, as } = this.contracts;
-    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as } = fixture.contracts;
+    const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
 
     const NXM_PER_ALLOCATION_UNIT = await stakingPool1.NXM_PER_ALLOCATION_UNIT();
 

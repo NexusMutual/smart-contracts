@@ -2,13 +2,16 @@ const { ethers } = require('hardhat');
 const { assert } = require('chai');
 
 const { ASSET } = require('./helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('getAssessmentDepositAndReward', function () {
   it('returns a total reward in NXM no greater than config.maxRewardInNXMWad', async function () {
-    const { individualClaims } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { individualClaims } = fixture.contracts;
     const { maxRewardInNXMWad } = await individualClaims.config();
     const max = parseEther(maxRewardInNXMWad.toString());
 
@@ -47,7 +50,8 @@ describe('getAssessmentDepositAndReward', function () {
   });
 
   it('returns a deposit of at least config.minAssessmentDepositRatio * 1 ETH', async function () {
-    const { individualClaims } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { individualClaims } = fixture.contracts;
     const { minAssessmentDepositRatio } = await individualClaims.config();
     const minDeposit = parseEther('1').mul(minAssessmentDepositRatio).div('10000');
 
@@ -78,7 +82,8 @@ describe('getAssessmentDepositAndReward', function () {
   });
 
   it('totalReward increases proportionately to the requestedAmount', async function () {
-    const { individualClaims } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { individualClaims } = fixture.contracts;
 
     {
       const [, /* deposit */ totalReward1] = await individualClaims.getAssessmentDepositAndReward(
@@ -108,7 +113,8 @@ describe('getAssessmentDepositAndReward', function () {
   });
 
   it('totalReward increases proportionately to the coverPeriod', async function () {
-    const { individualClaims } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { individualClaims } = fixture.contracts;
 
     {
       const [, /* deposit */ totalReward1] = await individualClaims.getAssessmentDepositAndReward(
@@ -138,7 +144,8 @@ describe('getAssessmentDepositAndReward', function () {
   });
 
   it('the NXM equivalent of the deposit should always cover the totalReward', async function () {
-    const { individualClaims, pool } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { individualClaims, pool } = fixture.contracts;
     const nxmPriceInETH = await pool.getTokenPriceInAsset(ASSET.ETH);
     {
       const [deposit, totalReward1] = await individualClaims.getAssessmentDepositAndReward(

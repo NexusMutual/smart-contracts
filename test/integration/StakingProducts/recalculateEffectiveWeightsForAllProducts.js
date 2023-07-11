@@ -6,6 +6,8 @@ const { calculateFirstTrancheId } = require('../utils/staking');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { buyCover, ETH_ASSET_ID } = require('../utils/cover');
 const { divCeil, roundUpToNearestAllocationUnit } = require('../../unit/StakingPool/helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('../setup');
 
 const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
@@ -26,15 +28,19 @@ const WEIGHT_DENOMINATOR = 100;
 const GLOBAL_CAPACITY_DENOMINATOR = BigNumber.from(10000);
 const CAPACITY_REDUCTION_DENOMINATOR = BigNumber.from(10000);
 
-describe('recalculateEffectiveWeightsForAllProducts', function () {
-  beforeEach(async function () {
-    const { tk: nxm, tc: tokenController } = this.contracts;
-    await nxm.approve(tokenController.address, MaxUint256);
-  });
+async function recalculateEffectiveWeightsForAllProductsSetup() {
+  const fixture = await loadFixture(setup);
+  const { tk: nxm, tc: tokenController } = fixture.contracts;
+  await nxm.approve(tokenController.address, MaxUint256);
 
+  return fixture;
+}
+
+describe('recalculateEffectiveWeightsForAllProducts', function () {
   it('recalculates effective weights when there is 0 activeStake and targetWeight = 5', async function () {
-    const { stakingProducts } = this.contracts;
-    const [manager] = this.accounts.stakingPoolManagers;
+    const fixture = await loadFixture(recalculateEffectiveWeightsForAllProductsSetup);
+    const { stakingProducts } = fixture.contracts;
+    const [manager] = fixture.accounts.stakingPoolManagers;
 
     const poolId = 1;
     const productId = 1;
@@ -49,11 +55,12 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
   });
 
   it('recalculates effective weights correctly when activeWeight > targetWeight', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { stakingProducts, stakingPool1, cover, p1: pool } = this.contracts;
-    const staker = this.accounts.defaultSender;
-    const [, coverBuyer] = this.accounts.members;
-    const [manager] = this.accounts.stakingPoolManagers;
+    const fixture = await loadFixture(recalculateEffectiveWeightsForAllProductsSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { stakingProducts, stakingPool1, cover, p1: pool } = fixture.contracts;
+    const staker = fixture.accounts.defaultSender;
+    const [, coverBuyer] = fixture.accounts.members;
+    const [manager] = fixture.accounts.stakingPoolManagers;
 
     const poolId = 1;
     const productId = 1;
@@ -115,11 +122,12 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
   });
 
   it('recalculates effective weights for 2 products when activeWeight > targetWeight', async function () {
-    const { DEFAULT_PRODUCTS } = this;
-    const { stakingProducts, stakingPool1, cover, p1: pool } = this.contracts;
-    const staker = this.accounts.defaultSender;
-    const [, coverBuyer] = this.accounts.members;
-    const [manager] = this.accounts.stakingPoolManagers;
+    const fixture = await loadFixture(recalculateEffectiveWeightsForAllProductsSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { stakingProducts, stakingPool1, cover, p1: pool } = fixture.contracts;
+    const staker = fixture.accounts.defaultSender;
+    const [, coverBuyer] = fixture.accounts.members;
+    const [manager] = fixture.accounts.stakingPoolManagers;
 
     const poolId = 1;
     const firstProductId = 1;

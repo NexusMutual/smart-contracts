@@ -3,6 +3,8 @@ const { expect } = require('chai');
 
 const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee } = require('../utils').evm;
 const { submitClaim, ASSET, getCoverSegment } = require('./helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
@@ -14,8 +16,9 @@ const setTime = async timestamp => {
 
 describe('redeemClaimPayout', function () {
   it('reverts if the claim is not accepted', async function () {
-    const { individualClaims, cover, assessment } = this.contracts;
-    const [coverOwner] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { individualClaims, cover, assessment } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
 
     await cover.createMockCover(
@@ -26,7 +29,7 @@ describe('redeemClaimPayout', function () {
     );
 
     {
-      await submitClaim(this)({ coverId: 1, sender: coverOwner });
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
       const { payoutCooldownInDays } = await assessment.config();
       const { poll } = await assessment.assessments(0);
       await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
@@ -34,7 +37,7 @@ describe('redeemClaimPayout', function () {
     }
 
     {
-      await submitClaim(this)({ coverId: 1, sender: coverOwner });
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
       const { payoutCooldownInDays } = await assessment.config();
       const { poll } = await assessment.assessments(1);
       await assessment.castVote(1, true, parseEther('1'));
@@ -44,7 +47,7 @@ describe('redeemClaimPayout', function () {
     }
 
     {
-      await submitClaim(this)({ coverId: 1, sender: coverOwner });
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
       const { payoutCooldownInDays } = await assessment.config();
       const { poll } = await assessment.assessments(2);
       await assessment.castVote(2, true, parseEther('1'));
@@ -54,8 +57,9 @@ describe('redeemClaimPayout', function () {
   });
 
   it('reverts while the claim is being assessed', async function () {
-    const { individualClaims, cover, assessment } = this.contracts;
-    const [coverOwner] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { individualClaims, cover, assessment } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
 
     await cover.createMockCover(
@@ -65,7 +69,7 @@ describe('redeemClaimPayout', function () {
       [segment],
     );
 
-    await submitClaim(this)({ coverId: 1, sender: coverOwner });
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     {
       const { poll } = await assessment.assessments(0);
@@ -90,8 +94,9 @@ describe('redeemClaimPayout', function () {
   });
 
   it('reverts while the claim is in cooldown period', async function () {
-    const { individualClaims, cover, assessment } = this.contracts;
-    const [coverOwner] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { individualClaims, cover, assessment } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
 
     await cover.createMockCover(
@@ -101,7 +106,7 @@ describe('redeemClaimPayout', function () {
       [segment],
     );
 
-    await submitClaim(this)({ coverId: 1, sender: coverOwner });
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
@@ -114,8 +119,9 @@ describe('redeemClaimPayout', function () {
   });
 
   it('reverts if the redemption period expired', async function () {
-    const { individualClaims, cover, assessment } = this.contracts;
-    const [coverOwner] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { individualClaims, cover, assessment } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
 
     await cover.createMockCover(
@@ -125,7 +131,7 @@ describe('redeemClaimPayout', function () {
       [segment],
     );
 
-    await submitClaim(this)({ coverId: 1, sender: coverOwner });
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     const { payoutCooldownInDays } = await assessment.config();
@@ -137,8 +143,9 @@ describe('redeemClaimPayout', function () {
   });
 
   it('reverts if a payout has already been redeemed', async function () {
-    const { individualClaims, cover, assessment } = this.contracts;
-    const [coverOwner] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { individualClaims, cover, assessment } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
 
     await cover.createMockCover(
@@ -148,7 +155,7 @@ describe('redeemClaimPayout', function () {
       [segment],
     );
 
-    await submitClaim(this)({ coverId: 1, sender: coverOwner });
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     const { payoutCooldownInDays } = await assessment.config();
@@ -160,8 +167,9 @@ describe('redeemClaimPayout', function () {
   });
 
   it('reverts if system is paused', async function () {
-    const { individualClaims, cover, assessment, master } = this.contracts;
-    const [coverOwner] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { individualClaims, cover, assessment, master } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
 
     await cover.createMockCover(
@@ -171,7 +179,7 @@ describe('redeemClaimPayout', function () {
       [segment],
     );
 
-    await submitClaim(this)({ coverId: 1, sender: coverOwner });
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     const { payoutCooldownInDays } = await assessment.config();
@@ -183,8 +191,9 @@ describe('redeemClaimPayout', function () {
   });
 
   it('Should emit ClaimPayoutRedeemed event', async function () {
-    const { individualClaims, cover, assessment } = this.contracts;
-    const [coverOwner] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { individualClaims, cover, assessment } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
 
     await cover.createMockCover(
@@ -194,7 +203,7 @@ describe('redeemClaimPayout', function () {
       [segment],
     );
 
-    await submitClaim(this)({ coverId: 1, sender: coverOwner });
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     const { payoutCooldownInDays } = await assessment.config();
@@ -206,8 +215,9 @@ describe('redeemClaimPayout', function () {
   });
 
   it("sets the claim's payoutRedeemed property to true", async function () {
-    const { individualClaims, cover, assessment } = this.contracts;
-    const [coverOwner] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { individualClaims, cover, assessment } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
 
     await cover.createMockCover(
@@ -216,7 +226,7 @@ describe('redeemClaimPayout', function () {
       ASSET.ETH,
       [segment],
     );
-    await submitClaim(this)({ coverId: 1, sender: coverOwner });
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     const { payoutCooldownInDays } = await assessment.config();
@@ -227,9 +237,10 @@ describe('redeemClaimPayout', function () {
   });
 
   it('sends the payout amount in ETH and the assessment deposit to the cover owner', async function () {
+    const fixture = await loadFixture(setup);
     // also check after NFT transfer
-    const { individualClaims, cover, coverNFT, assessment } = this.contracts;
-    const [originalOwner, newOwner, otherMember] = this.accounts.members;
+    const { individualClaims, cover, coverNFT, assessment } = fixture.contracts;
+    const [originalOwner, newOwner, otherMember] = fixture.accounts.members;
     const segment = await getCoverSegment();
 
     await cover.createMockCover(
@@ -302,9 +313,10 @@ describe('redeemClaimPayout', function () {
   });
 
   it('sends the payout amount in DAI and the assessment deposit to the cover owner', async function () {
+    const fixture = await loadFixture(setup);
     // also check after NFT transfer
-    const { individualClaims, cover, coverNFT, assessment, dai } = this.contracts;
-    const [originalOwner, newOwner, otherMember] = this.accounts.members;
+    const { individualClaims, cover, coverNFT, assessment, dai } = fixture.contracts;
+    const [originalOwner, newOwner, otherMember] = fixture.accounts.members;
     const segment = await getCoverSegment();
 
     await cover.createMockCover(originalOwner.address, 0 /* productId */, ASSET.DAI, [segment]);
@@ -363,8 +375,9 @@ describe('redeemClaimPayout', function () {
   });
 
   it('calls burnStake from Cover.sol with the amount to be burned, cover and segment IDs', async function () {
-    const { individualClaims, cover, assessment } = this.contracts;
-    const [coverOwner, otherMember] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { individualClaims, cover, assessment } = fixture.contracts;
+    const [coverOwner, otherMember] = fixture.accounts.members;
     const segment = await getCoverSegment();
 
     for (let i = 0; i <= 3; i++) {

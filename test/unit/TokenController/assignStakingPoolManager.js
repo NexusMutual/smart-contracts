@@ -1,12 +1,15 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('./setup');
 const { Two } = ethers.constants;
 
 const poolId = Two.pow(95); // overflows at uint96
 
 describe('assignStakingPoolManager', function () {
   it('should revert if not called from internal address', async function () {
-    const { tokenController } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { tokenController } = fixture.contracts;
 
     await expect(tokenController.assignStakingPoolManager(poolId, ethers.constants.AddressZero)).to.be.revertedWith(
       'Caller is not an internal contract',
@@ -14,11 +17,12 @@ describe('assignStakingPoolManager', function () {
   });
 
   it('should transfer a staking pool when there is a previous manager', async function () {
-    const { tokenController } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
       internalContracts: [internalContract],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Set old manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
@@ -38,11 +42,12 @@ describe('assignStakingPoolManager', function () {
   });
 
   it('should transfer a staking pool when there is no previous manager', async function () {
-    const { tokenController } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { tokenController } = fixture.contracts;
     const {
       members: [newManager],
       internalContracts: [internalContract],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Set new manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, newManager.address);
@@ -52,11 +57,12 @@ describe('assignStakingPoolManager', function () {
   });
 
   it('should transfer staking pools when the new owner is already a manager of another pool', async function () {
-    const { tokenController } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
       internalContracts: [internalContract],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Set old manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
@@ -79,11 +85,12 @@ describe('assignStakingPoolManager', function () {
   });
 
   it('should transfer several staking pools to a new manager', async function () {
-    const { tokenController } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
       internalContracts: [internalContract],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Set old manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);

@@ -95,8 +95,13 @@ contract RammTest is Test {
     for (uint i = 0; i < 10; i++) {
       console.log("--------------------");
       vm.warp(time + i * 3 days);
-      console.log("***** Spot B: %s ETH/NXM", format(ramm.getSpotPriceB()));
+      console.log("SPOT A: %s ETH/NXM", format(ramm.getSpotPriceA()));
+      console.log("SPOT B: %s ETH/NXM", format(ramm.getSpotPriceB()));
     }
+
+    uint capital = capitalPool.getPoolValueInEth();
+    uint supply = nxm.totalSupply();
+    console.log("BV    : %s", format(1e18 * capital / supply));
   }
 
 }

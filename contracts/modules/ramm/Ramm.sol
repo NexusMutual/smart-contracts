@@ -37,28 +37,27 @@ function format(uint n) pure returns (string memory) {
 contract Ramm {
 
   struct Pool {
-    uint eth;
     uint nxm;
-    uint targetLiquidity;
-    uint liquiditySpeed;
+    uint liqSpeed;
     uint ratchetSpeed;
-    uint lastSwapTimestamp;
   }
 
   Pool public a;
   Pool public b;
 
+  uint public eth;
+  uint public targetLiquidity;
+  uint public lastSwapTimestamp;
+
   NXM public nxm;
   CapitalPool public capitalPool;
 
-  uint public constant LIQUIDITY_SPEED_PERIOD = 1 days;
+  uint public constant LIQ_SPEED_PERIOD = 1 days;
   uint public constant RATCHET_PERIOD = 1 days;
   uint public constant RATCHET_DENOMINATOR = 10_000;
-
-  uint public constant liqZone = 1_000 ether;
-  uint public constant gapZone = 1_000 ether;
-  uint public constant prcZone = 1_000 ether;
-  uint public constant lowZone = 1_000 ether;
+  uint public constant BUFFER_ZONE = 1_000 ether;
+  uint public constant PRICE_BUFFER = 100;
+  uint public constant PRICE_BUFFER_DENOMINATOR = 10_000;
 
   constructor (NXM _nxm, CapitalPool _capitalPool) {
     // middle price: 0.02 ether
@@ -66,66 +65,49 @@ contract Ramm {
     uint price_a = 0.03 ether;
     uint price_b = 0.01 ether;
 
-    a.eth = 2500 ether;
-    a.nxm = a.eth * 1 ether / price_a;
-    a.targetLiquidity = 2500 ether;
-    a.liquiditySpeed = 100 ether;
-    a.ratchetSpeed = 400;
-    a.lastSwapTimestamp = block.timestamp;
+    eth = 2500 ether;
+    targetLiquidity = 2500 ether;
+    lastSwapTimestamp = block.timestamp;
 
-    b.eth = 2500 ether;
-    b.nxm = b.eth * 1 ether / price_b;
-    b.targetLiquidity = 2500 ether;
-    b.liquiditySpeed = 100 ether;
+    a.nxm = eth * 1 ether / price_a;
+    a.liqSpeed = 100 ether;
+    a.ratchetSpeed = 400;
+
+    b.nxm = eth * 1 ether / price_b;
+    b.liqSpeed = 100 ether;
     b.ratchetSpeed = 400;
-    b.lastSwapTimestamp = block.timestamp;
 
     nxm = _nxm;
     capitalPool = _capitalPool;
   }
 
-  function getPriceTarget(uint capital, uint mcr, uint supply) public pure returns (uint) {
-
-    uint limit = mcr + lowZone;
-
-    if (capital < limit) {
-      revert("MOVING_TARGET_NOT_IMPLEMENTED");
-    }
-
-    limit += prcZone;
-
-    if (capital < limit) {
-      revert("PRICE_TRANSITION_NOT_IMPLEMENTED");
-    }
-
-    return 1e18 * capital / supply;
-  }
-
   function swap(uint nxmIn) external payable {
 
     require(msg.value == 0 || nxmIn == 0, "ONE_INPUT_ONLY");
+    require(msg.value > 0 || nxmIn > 0, "ONE_INPUT_REQUIRED");
 
     msg.value > 0
       ? swapEthForNxm(msg.value, msg.sender)
       : swapNxmForEth(nxmIn, msg.sender);
   }
 
-  function swapEthForNxm(uint ethIn, address to) internal returns (uint /*nxmOut*/) {
+  function swapEthForNxm(uint /*ethIn*/, address /*to*/) internal returns (uint /*nxmOut*/) {
 
+    /*
     uint capital = capitalPool.getPoolValueInEth();
     uint mcr = capitalPool.mcr();
     uint supply = nxm.totalSupply();
 
-    uint elapsed = block.timestamp - a.lastSwapTimestamp;
-    uint maxExtractedAmount = elapsed * a.liquiditySpeed / LIQUIDITY_SPEED_PERIOD;
+    uint elapsed = block.timestamp - lastSwapTimestamp;
+    uint maxExtractedAmount = elapsed * a.liqSpeed / LIQ_SPEED_PERIOD;
     uint extractedAmount = Math.min(
       maxExtractedAmount,
-      a.eth > a.targetLiquidity ? a.eth - a.targetLiquidity : 0 // extraLiquidity
+      eth > a.targetLiquidity ? eth - a.targetLiquidity : 0 // extraLiquidity
     );
 
     console.log("BV: %s", format(1e18 * capital / supply));
-    uint r = getPriceTarget(capital, mcr, supply) * elapsed * a.ratchetSpeed;
-    uint ethReserve = a.eth - extractedAmount;
+    uint r = 1e18 * capital / supply * elapsed * a.ratchetSpeed;
+    uint ethReserve = eth - extractedAmount;
     uint nxmReserve;
 
     {
@@ -145,8 +127,8 @@ contract Ramm {
       nxmOut = nxmReserve - nxmReserveNew;
 
       a.nxm = nxmReserveNew;
-      a.eth = ethReserveNew;
-      a.lastSwapTimestamp = block.timestamp;
+      eth = ethReserveNew;
+      lastSwapTimestamp = block.timestamp;
     }
 
     // todo: update b pool
@@ -157,6 +139,90 @@ contract Ramm {
     nxm.mint(to, nxmOut);
 
     return nxmOut;
+    */
+
+    return 0;
+  }
+
+  function getReserves() public view returns (uint eth_new, uint nxm_a, uint nxm_b) {
+    uint capital = capitalPool.getPoolValueInEth();
+    uint supply = nxm.totalSupply();
+
+    // uint mcr = capitalPool.mcr();
+    // TODO: check for capital > mcr + buffer
+    // oracle
+
+    uint elapsed = block.timestamp - lastSwapTimestamp;
+    uint ka = eth * a.nxm;
+    uint kb = eth * b.nxm;
+
+    if (eth < targetLiquidity) {
+      // inject liquidity
+      // TODO: implement injection budget checks
+      uint injectedAmount = Math.min(
+        elapsed * b.liqSpeed / LIQ_SPEED_PERIOD,
+        targetLiquidity - eth // diff to target
+      );
+      eth_new = eth + injectedAmount;
+
+      if (injectedAmount > 0) {
+        console.log("Injected amount: %s ETH", format(injectedAmount));
+      }
+    } else {
+      // extract liquidity
+      uint extractedAmount = Math.min(
+        elapsed * a.liqSpeed / LIQ_SPEED_PERIOD,
+        eth - targetLiquidity // diff to target
+      );
+      eth_new = eth - extractedAmount;
+
+      if (extractedAmount > 0) {
+        console.log("Extracted amount: %s ETH", format(extractedAmount));
+      }
+    }
+
+    nxm_a = ka / eth_new;
+    nxm_b = kb / eth_new;
+
+    // apply ratchet above
+    {
+      // if cap*n*(1+r) > e*sup
+      // if cap*n + cap*n*r > e*sup
+      //   set n(new) = n(BV)
+      // else
+      //   set n(new) = n(R)
+      uint r = elapsed * a.ratchetSpeed;
+      uint bufferedCapitalA = capital * ( PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR;
+
+      if (bufferedCapitalA * nxm_a + capital * nxm_a * r / RATCHET_PERIOD / RATCHET_DENOMINATOR > eth_new * supply) {
+        // use bv
+        nxm_a = eth_new * supply / bufferedCapitalA;
+      } else {
+        // use ratchet
+        uint nr_denom_addend = r * capital * nxm_a / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR;
+        nxm_a = eth_new * nxm_a / (eth_new - nr_denom_addend);
+      }
+    }
+
+    // apply ratchet below
+    {
+      // check if we should be using the ratchet or the book value price using:
+      // Nbv > Nr <=>
+      // ... <=>
+      // cap * n < e * sup + r * cap * n
+      uint bufferedCapitalB = capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR;
+
+      if (
+        bufferedCapitalB * nxm_b < eth_new * supply + nxm_b * capital * elapsed * b.ratchetSpeed / RATCHET_PERIOD / RATCHET_DENOMINATOR
+      ) {
+        nxm_b = eth_new * supply / bufferedCapitalB;
+      } else {
+        uint nr_denom_addend = nxm_b * elapsed * b.ratchetSpeed * capital / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR;
+        nxm_b = eth_new * nxm_b / (eth_new + nr_denom_addend);
+      }
+    }
+
+    return (eth_new, nxm_a, nxm_b);
   }
 
   function swapNxmForEth(uint nxmIn, address to) internal returns (uint /*ethOut*/) {
@@ -165,17 +231,21 @@ contract Ramm {
     uint mcr = capitalPool.mcr();
     uint supply = nxm.totalSupply();
 
-    uint elapsed = block.timestamp - b.lastSwapTimestamp;
+    if (capital < mcr + BUFFER_ZONE) {
+      revert("NO_SWAPS_IN_BUFFER_ZONE");
+    }
+
+    uint elapsed = block.timestamp - lastSwapTimestamp;
     uint injectedAmount = Math.min(
-      elapsed * b.liquiditySpeed / LIQUIDITY_SPEED_PERIOD,
-      b.targetLiquidity - b.eth // diff to target
+      elapsed * b.liqSpeed / LIQ_SPEED_PERIOD,
+      targetLiquidity - eth // diff to target
     );
 
     console.log("Injected amount: %s ETH", format(injectedAmount));
     console.log("BV: %s", format(1e18 * capital / supply));
 
-    uint ethReserve = b.eth + injectedAmount;
-    uint target = getPriceTarget(capital, mcr, supply);
+    uint ethReserve = eth + injectedAmount;
+    uint target = 1e18 * capital / supply;
     uint nxmReserve;
 
     // check if we should be using the ratchet or the book value price using:
@@ -199,8 +269,8 @@ contract Ramm {
       ethOut = ethReserve - ethReserveNew;
 
       b.nxm = nxmReserveNew;
-      b.eth = ethReserveNew;
-      b.lastSwapTimestamp = block.timestamp;
+      eth = ethReserveNew;
+      lastSwapTimestamp = block.timestamp;
     }
 
     // todo: update a pool
@@ -212,40 +282,14 @@ contract Ramm {
     return ethOut;
   }
 
+  function getSpotPriceA() external view returns (uint /*ethPerNxm*/) {
+    (uint eth_new, uint nxm_a, /*uint nxm_b*/) = getReserves();
+    return 1 ether * eth_new / nxm_a;
+  }
+
   function getSpotPriceB() external view returns (uint /*ethPerNxm*/) {
-    uint capital = capitalPool.getPoolValueInEth();
-    uint mcr = capitalPool.mcr();
-    uint supply = nxm.totalSupply();
-
-    uint elapsed = block.timestamp - b.lastSwapTimestamp;
-    uint injectedAmount = Math.min(
-      elapsed * b.liquiditySpeed / LIQUIDITY_SPEED_PERIOD,
-      b.targetLiquidity - b.eth // missingLiquidity
-    );
-
-    uint ethReserve = b.eth + injectedAmount;
-    uint target = getPriceTarget(capital, mcr, supply);
-    uint nxmReserve;
-
-    // TODO: might need `nxm_l` instead of `b.nxm` due to injected liquidity
-
-    // check if we should be using the ratchet or the book value price using:
-    // Nbv > Nr <=>
-    // ... <=>
-    // cap * n < e * sup + r * cap * n
-    if (
-      capital * b.nxm < ethReserve * supply + b.nxm * capital * elapsed * b.ratchetSpeed / RATCHET_PERIOD / RATCHET_DENOMINATOR
-    ) {
-      nxmReserve = ethReserve * supply / capital;
-    } else {
-      uint r = elapsed * b.ratchetSpeed;
-      uint nr_denom_addend = b.nxm * r * target / RATCHET_PERIOD / RATCHET_DENOMINATOR / 1e18;
-      nxmReserve = ethReserve * b.nxm / (ethReserve + nr_denom_addend);
-    }
-
-    console.log("BV          : %s ETH/NXM", format(1e18 * capital / supply));
-
-    return 1 ether * ethReserve / nxmReserve;
+    (uint eth_new, /*uint nxm_a*/, uint nxm_b) = getReserves();
+    return 1 ether * eth_new / nxm_b;
   }
 
 }

@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const { setEtherBalance } = require('../utils/evm');
 const { parseEther, defaultAbiCoder, hexZeroPad, toUtf8Bytes } = ethers.utils;
-const { V2Addresses, UserAddress, submitGovernanceProposal, submitGovernanceProposalWithCreateProposalWithSolution,
+const { V2Addresses, UserAddress, submitGovernanceProposal, voteGovernanceProposal, closeGovernanceProposal, submitGovernanceProposalWithCreateProposalWithSolution,
   PriceFeedOracle, Address, EnzymeAddress } = require('./utils');
 const { proposalCategories, constants: { PoolAddressParamType } } = require("../utils");
 const { lastBlockTimestamp, makeContractOrder } = require("../unit/SwapOperator/helpers");
@@ -58,6 +58,12 @@ describe('Swap ETH for rETH', function () {
     await setEtherBalance(hugh.address, parseEther('2000000'));
 
     this.hugh = hugh;
+
+    const blockNumber = await ethers.provider.getBlockNumber();
+    console.log({
+      blockNumber
+    })
+
 
     // Upgrade StakingProducts
     const governance = await ethers.getContractAt('Governance', V2Addresses.Governance);
@@ -116,6 +122,39 @@ describe('Swap ETH for rETH', function () {
     this.cowswapSolver = await getSigner(COWSWAP_SOLVER);
   });
 
+  it('should edit proposal category 42 to match new signature', async function () {
+
+    const proposalCategoryParameters = [42, ...proposalCategories[42]];
+
+    proposalCategoryParameters[7] = 'QmR4HufqCMP6kYUCMPxQNLnJTYsnudPiVErhZAFQghc78B';
+    proposalCategoryParameters[8] = '0xcafea112Db32436c2390F5EC988f3aDB96870627';
+    console.log({
+      proposalCategoryParametersForCategory42: proposalCategoryParameters,
+    });
+
+
+
+    // the current signature of addAsset is addAsset(address,bool,uint256,uint256,uint256)
+    // and does not match the signature of category 42
+
+    await voteGovernanceProposal(199, this.abMembers, this.governance);
+
+
+  });
+
+  it('should edit proposal category 41 to match new signature', async function () {
+
+    const proposalCategoryParameters = [41, ...proposalCategories[41]];
+
+    console.log({
+      proposalCategoryParametersforCategory41: proposalCategoryParameters
+    });
+    // the current signature of addAsset is setSwapDetails(address,uint,uint,uint)
+    // and does not match the signature of category 41
+    await closeGovernanceProposal(200, this.abMembers, this.governance);
+  });
+
+
   it('should upgrade PriceFeedOracle contract', async function () {
 
     const { pool } = this;
@@ -154,95 +193,6 @@ describe('Swap ETH for rETH', function () {
 
     const priceFeedOracleAddress = await pool.priceFeedOracle();
     expect(priceFeedOracleAddress).to.be.equal(priceFeedOracle.address);
-  });
-
-  it('should edit proposal category 42 to match new signature', async function () {
-
-    const proposalCategoryParameters = [42, ...proposalCategories[42]];
-
-    proposalCategoryParameters[7] = 'QmR4HufqCMP6kYUCMPxQNLnJTYsnudPiVErhZAFQghc78B';
-    proposalCategoryParameters[8] = '0xcafea112Db32436c2390F5EC988f3aDB96870627';
-    console.log({
-      proposalCategoryParametersForCategory42: proposalCategoryParameters,
-    });
-
-    const decoded = defaultAbiCoder.decode([
-      'uint256',
-      'string',
-      'uint256',
-      'uint256',
-      'uint256',
-      'uint256[]',
-      'uint256',
-      'string',
-      'address',
-      'bytes2',
-      'uint256[]',
-      'string',
-    ], '0x000000000000000000000000000000000000000000000000000000000000002a000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000032000000000000000000000000000000000000000000000000000000000000000f00000000000000000000000000000000000000000000000000000000000001c0000000000000000000000000000000000000000000000000000000000003f4800000000000000000000000000000000000000000000000000000000000000200000000000000000000000000cafea112db32436c2390f5ec988f3adb96870627503100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002600000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000001141646420417373657420746f20506f6f6c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002e516d523448756671434d50366b5955434d5078514e4c6e4a5459736e75645069564572685a41465167686337384200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002e616464417373657428616464726573732c626f6f6c2c75696e743235362c75696e743235362c75696e7432353629000000000000000000000000000000000000');
-
-    console.log({
-      decoded
-    })
-    // the current signature of addAsset is addAsset(address,bool,uint256,uint256,uint256)
-    // and does not match the signature of category 42
-    await submitGovernanceProposal(
-      // editCategory(uint256,string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
-      PROPOSAL_CATEGORIES.editCategory,
-      defaultAbiCoder.encode(
-        [
-          'uint256',
-          'string',
-          'uint256',
-          'uint256',
-          'uint256',
-          'uint256[]',
-          'uint256',
-          'string',
-          'address',
-          'bytes2',
-          'uint256[]',
-          'string',
-        ],
-        proposalCategoryParameters,
-      ),
-      this.abMembers,
-      this.governance,
-    );
-  });
-
-  it('should edit proposal category 41 to match new signature', async function () {
-
-    const proposalCategoryParameters = [41, ...proposalCategories[41]];
-
-    console.log({
-      proposalCategoryParametersforCategory41: proposalCategoryParameters
-    });
-    // the current signature of addAsset is setSwapDetails(address,uint,uint,uint)
-    // and does not match the signature of category 41
-    await submitGovernanceProposal(
-      // editCategory(uint256,string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
-      PROPOSAL_CATEGORIES.editCategory,
-      defaultAbiCoder.encode(
-        [
-          'uint256',
-          'string',
-          'uint256',
-          'uint256',
-          'uint256',
-          'uint256[]',
-          'uint256',
-          'string',
-          'address',
-          'bytes2',
-          'uint256[]',
-          'string',
-        ],
-        proposalCategoryParameters,
-      ),
-      this.abMembers,
-      this.governance,
-    );
   });
 
   it('add new category for setAssetDetails', async function () {

@@ -70,7 +70,7 @@ const PriceFeedOracle = {
   DAI_PRICE_FEED_ORACLE_AGGREGATOR: '0x773616E4d11A78F511299002da57A0a94577F1f4',
   STETH_PRICE_FEED_ORACLE_AGGREGATOR: '0x86392dC19c0b719886221c78AB11eb8Cf5c52812',
   ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR: '0xCc72039A141c6e34a779eF93AEF5eB4C82A893c7',
-  RETH_PRICE_FEED_ORACLE_AGGREGATOR: '0xf3272cafe65b190e76caaf483db13424a3e23dd2'
+  RETH_PRICE_FEED_ORACLE_AGGREGATOR: '0x536218f9e9eb48863970252233c8f271f554c2d0'
 };
 
 const ratioScale = BigNumber.from('10000');
@@ -84,7 +84,89 @@ async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
 
   await gv.connect(signers[0]).createProposal('', '', '', 0);
   await gv.connect(signers[0]).categorizeProposal(id, categoryId, 0);
+
+  console.log({
+    actionData
+  })
+
   await gv.connect(signers[0]).submitProposalWithSolution(id, '', actionData);
+
+  for (let i = 0; i < signers.length; i++) {
+    await gv.connect(signers[i]).submitVote(id, 1);
+  }
+
+  const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
+  const receipt = await tx.wait();
+
+  assert.equal(
+    receipt.events.some(x => x.event === 'ActionSuccess' && x.address === gv.address),
+    true,
+    'ActionSuccess was expected',
+  );
+
+  const proposal = await gv.proposal(id);
+  assert.equal(proposal[2].toNumber(), 3, 'Proposal Status != ACCEPTED');
+}
+
+async function voteGovernanceProposal(id, signers, gv) {
+
+  console.log(`Proposal ${id}`);
+
+  console.log(`Voting Proposal ${id}`);
+
+
+
+  for (const i of [4]) {
+
+    const address = await signers[i].getAddress();
+    console.log(`Signer ${i} is voting ${address}`);
+    await gv.connect(signers[i]).submitVote(id, 1);
+  }
+
+  console.log('Voted on proposal. Closing proposal.')
+
+  const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
+  const receipt = await tx.wait();
+
+  assert.equal(
+    receipt.events.some(x => x.event === 'ActionSuccess' && x.address === gv.address),
+    true,
+    'ActionSuccess was expected',
+  );
+
+  console.log('Checking execution status.')
+
+  const proposal = await gv.proposal(id);
+  assert.equal(proposal[2].toNumber(), 3, 'Proposal Status != ACCEPTED');
+}
+
+async function closeGovernanceProposal(id, signers, gv) {
+
+  console.log(`Proposal ${id}`);
+
+  console.log(' Closing proposal.')
+
+  const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
+  const receipt = await tx.wait();
+
+  assert.equal(
+    receipt.events.some(x => x.event === 'ActionSuccess' && x.address === gv.address),
+    true,
+    'ActionSuccess was expected',
+  );
+
+  console.log('Checking execution status.')
+
+  const proposal = await gv.proposal(id);
+  assert.equal(proposal[2].toNumber(), 3, 'Proposal Status != ACCEPTED');
+}
+
+async function submitGovernanceProposalWithCreateProposalWithSolution(categoryId, actionData, signers, gv) {
+  const id = await gv.getProposalLength();
+
+  console.log(`Proposal ${id}`);
+
+  await gv.connect(signers[0]).createProposalwithSolution('', '', '', categoryId, '', actionData);
 
   for (let i = 0; i < signers.length; i++) {
     await gv.connect(signers[i]).submitVote(id, 1);
@@ -287,6 +369,7 @@ async function upgradeMultipleContracts(params) {
 
 module.exports = {
   submitGovernanceProposal,
+  submitGovernanceProposalWithCreateProposalWithSolution,
   submitMemberVoteGovernanceProposal,
   calculateCurrentTrancheId,
   getSigner,
@@ -304,4 +387,6 @@ module.exports = {
   getConfig,
   getActiveProductsInPool,
   upgradeMultipleContracts,
+  voteGovernanceProposal,
+  closeGovernanceProposal
 };

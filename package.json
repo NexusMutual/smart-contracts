@@ -78,7 +78,7 @@
     "test-fuzzing": "hardhat test test/fuzzing/index.js",
     "deploy": "hardhat run scripts/deploy/deploy.js",
     "deploy-local": "hardhat run scripts/deploy/start.js",
-    "test-fork": "TEST_ENV_FORK=http://10.2.0.7:8545 hardhat test test/fork/index.js",
+    "test-fork": "TEST_ENV_FORK=https://mainnet.infura.io/v3/0755a63409454181863b2938a61d2210 hardhat test test/fork/index.js",
     "typechain": "hardhat typechain",
     "distributor-deploy-kovan": "hardhat run --network kovan scripts/distributor/deploy-distributor.js",
     "self-kyc-kovan": "hardhat run --network kovan scripts/distributor/self-kyc.js"

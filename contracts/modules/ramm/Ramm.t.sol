@@ -92,6 +92,8 @@ contract RammTest is Test {
 
   function testPlayground() public {
     uint time = block.timestamp;
+    uint capital = capitalPool.getPoolValueInEth();
+    uint supply = nxm.totalSupply();
     for (uint i = 0; i < 10; i++) {
       uint timeUnit = 6;
       vm.warp(time + i * 1 hours * timeUnit);
@@ -101,14 +103,12 @@ contract RammTest is Test {
         console.log("SPOT A: %s ETH/NXM", format(ramm.getSpotPriceA()));
         console.log("SPOT B: %s ETH/NXM", format(ramm.getSpotPriceB()));
         ramm.swap{value: 100 ether}(0);
+        console.log("BV    : %s", format(1e18 * capital / supply));
       } else {
         console.log("SPOT A: %s ETH/NXM", format(ramm.getSpotPriceA()));
         console.log("SPOT B: %s ETH/NXM", format(ramm.getSpotPriceB()));
       }
     }
-
-    uint capital = capitalPool.getPoolValueInEth();
-    uint supply = nxm.totalSupply();
     console.log("BV    : %s", format(1e18 * capital / supply));
   }
 

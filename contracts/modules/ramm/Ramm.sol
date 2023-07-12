@@ -269,60 +269,73 @@ contract Ramm {
     return (eth_new, nxm_a, nxm_b, new_budget);
   }
 
-  function swapNxmForEth(uint nxmIn, address to) internal returns (uint /*ethOut*/) {
-
+  function swapNxmForEth(uint nxmIn, address to) internal returns (uint ethOut) {
     uint capital = capitalPool.getPoolValueInEth();
     uint mcr = capitalPool.mcr();
-    uint supply = nxm.totalSupply();
 
     if (capital < mcr + BUFFER_ZONE) {
       revert("NO_SWAPS_IN_BUFFER_ZONE");
     }
 
-    uint elapsed = block.timestamp - lastSwapTimestamp;
-    uint injectedAmount = Math.min(
-      elapsed * b.liqSpeed / LIQ_SPEED_PERIOD,
-      targetLiquidity - eth // diff to target
-    );
+    (uint eth_new, uint nxm_a, uint nxm_b, uint new_budget) = getReserves();
+    uint k = eth_new * nxm_b;
+    b.nxm = nxm_b  + nxmIn;
+    a.nxm = nxm_b  + nxmIn;
 
-    console.log("Injected amount: %s ETH", format(injectedAmount));
-    console.log("BV: %s", format(1e18 * capital / supply));
+    eth = k / b.nxm;
 
-    uint ethReserve = eth + injectedAmount;
-    uint target = 1e18 * capital / supply;
-    uint nxmReserve;
+    a.nxm = nxm_a * eth_new / eth;
+    budget = new_budget;
+    lastSwapTimestamp = block.timestamp;
+    ethOut = eth_new - eth;
 
-    // check if we should be using the ratchet or the book value price using:
-    // Nbv > Nr <=>
-    // ... <=>
-    // cap * n < e * sup + r * cap * n
-    if (
-      capital * b.nxm < ethReserve * supply + b.nxm * capital * elapsed * b.ratchetSpeed / RATCHET_PERIOD / RATCHET_DENOMINATOR
-    ) {
-      nxmReserve = ethReserve * supply / capital;
-    } else {
-      uint r = elapsed * b.ratchetSpeed;
-      uint nr_denom_addend = b.nxm * r * target / RATCHET_PERIOD / RATCHET_DENOMINATOR / 1e18;
-      nxmReserve = ethReserve * b.nxm / (ethReserve + nr_denom_addend);
-    }
-
-    uint ethOut;
-    {
-      uint nxmReserveNew = nxmReserve + nxmIn;
-      uint ethReserveNew = (ethReserve * nxmReserve) / nxmReserveNew;
-      ethOut = ethReserve - ethReserveNew;
-
-      b.nxm = nxmReserveNew;
-      eth = ethReserveNew;
-      lastSwapTimestamp = block.timestamp;
-    }
-
-    // todo: update a pool
-
-    // transfer assets
+    console.log("SWAP %s NXM for: %s ETH", format(nxmIn), format(ethOut));
     nxm.burn(msg.sender, nxmIn);
     capitalPool.sendEth(payable(to), ethOut);
 
+
+//
+//    uint elapsed = block.timestamp - lastSwapTimestamp;
+//    uint injectedAmount = Math.min(
+//      elapsed * b.liqSpeed / LIQ_SPEED_PERIOD,
+//      targetLiquidity - eth // diff to target
+//    );
+//
+//    console.log("Injected amount: %s ETH", format(injectedAmount));
+//    console.log("BV: %s", format(1e18 * capital / supply));
+//
+//    uint ethReserve = eth + injectedAmount;
+//    uint target = 1e18 * capital / supply;
+//    uint nxmReserve;
+//
+//    // check if we should be using the ratchet or the book value price using:
+//    // Nbv > Nr <=>
+//    // ... <=>
+//    // cap * n < e * sup + r * cap * n
+//    if (
+//      capital * b.nxm < ethReserve * supply + b.nxm * capital * elapsed * b.ratchetSpeed / RATCHET_PERIOD / RATCHET_DENOMINATOR
+//    ) {
+//      nxmReserve = ethReserve * supply / capital;
+//    } else {
+//      uint r = elapsed * b.ratchetSpeed;
+//      uint nr_denom_addend = b.nxm * r * target / RATCHET_PERIOD / RATCHET_DENOMINATOR / 1e18;
+//      nxmReserve = ethReserve * b.nxm / (ethReserve + nr_denom_addend);
+//    }
+//
+//    uint ethOut;
+//    {
+//      uint nxmReserveNew = nxmReserve + nxmIn;
+//      uint ethReserveNew = (ethReserve * nxmReserve) / nxmReserveNew;
+//      ethOut = ethReserve - ethReserveNew;
+//
+//      b.nxm = nxmReserveNew;
+//      eth = ethReserveNew;
+//      lastSwapTimestamp = block.timestamp;
+//    }
+//
+//    // todo: update a pool
+//
+//    // transfer assets
     return ethOut;
   }
 

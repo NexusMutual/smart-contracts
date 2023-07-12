@@ -96,8 +96,21 @@ contract Ramm {
       : swapNxmForEth(nxmIn, msg.sender);
   }
 
-  function swapEthForNxm(uint /*ethIn*/, address /*to*/) internal returns (uint /*nxmOut*/) {
+  function swapEthForNxm(uint ethIn, address to) internal returns (uint nxmOut) {
+    (uint eth_new, uint nxm_a, uint nxm_b, uint new_budget) = getReserves();
+    uint k = eth_new * nxm_a;
+    eth = eth_new + ethIn;
 
+    b.nxm = nxm_b * eth / eth_new;
+    a.nxm = k / eth;
+    budget = new_budget;
+    lastSwapTimestamp = block.timestamp;
+    nxmOut = nxm_a - a.nxm;
+
+    console.log("SWAP %s ETH for: %s NXM", format(ethIn), format(nxmOut));
+
+    nxm.mint(to, nxmOut);
+    payable(capitalPool).transfer(msg.value);
     /*
     uint capital = capitalPool.getPoolValueInEth();
     uint mcr = capitalPool.mcr();
@@ -146,7 +159,7 @@ contract Ramm {
     return nxmOut;
     */
 
-    return 0;
+//    return 0;
   }
 
   function getReserves() public view returns (uint eth_new, uint nxm_a, uint nxm_b, uint new_budget) {
@@ -322,5 +335,4 @@ contract Ramm {
     (uint eth_new, /*uint nxm_a*/, uint nxm_b, /*uint new_budget*/) = getReserves();
     return 1 ether * eth_new / nxm_b;
   }
-
 }

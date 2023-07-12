@@ -49,7 +49,7 @@ contract Ramm {
   uint public targetLiquidity;
   uint public lastSwapTimestamp;
   uint public budget;
-  uint public aggresiveLiqSpeed;
+  uint public aggressiveLiqSpeed;
 
   NXM public nxm;
   CapitalPool public capitalPool;
@@ -72,7 +72,7 @@ contract Ramm {
     lastSwapTimestamp = block.timestamp;
 
     budget = 250 ether;
-    aggresiveLiqSpeed = 200 ether;
+    aggressiveLiqSpeed = 200 ether;
 
     a.nxm = eth * 1 ether / price_a;
     a.liqSpeed = 100 ether;
@@ -163,14 +163,14 @@ contract Ramm {
 
     if (eth_new < targetLiquidity) {
       // inject liquidity
-      uint timeLeftOnBudget = budget * LIQ_SPEED_PERIOD / aggresiveLiqSpeed;
+      uint timeLeftOnBudget = budget * LIQ_SPEED_PERIOD / aggressiveLiqSpeed;
       uint maxInjectedAmount = targetLiquidity - eth_new;
       uint injectedAmount;
 
       if (elapsed <= timeLeftOnBudget) {
 
         injectedAmount = Math.min(
-          elapsed * aggresiveLiqSpeed / LIQ_SPEED_PERIOD,
+          elapsed * aggressiveLiqSpeed / LIQ_SPEED_PERIOD,
           maxInjectedAmount
         );
 
@@ -178,7 +178,7 @@ contract Ramm {
 
       } else {
 
-        uint injectedAmountOnBudget = timeLeftOnBudget * aggresiveLiqSpeed / LIQ_SPEED_PERIOD;
+        uint injectedAmountOnBudget = timeLeftOnBudget * aggressiveLiqSpeed / LIQ_SPEED_PERIOD;
         new_budget = maxInjectedAmount < injectedAmountOnBudget ? new_budget - maxInjectedAmount : 0;
 
         uint injectedAmountWoBudget = (elapsed - timeLeftOnBudget) * b.liqSpeed / LIQ_SPEED_PERIOD;

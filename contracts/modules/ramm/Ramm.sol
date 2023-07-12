@@ -157,15 +157,14 @@ contract Ramm {
     // TODO: check for capital > mcr + buffer
     // oracle
 
-    uint ka = eth * a.nxm;
-    uint kb = eth * b.nxm;
-
+    eth_new = eth;
+    new_budget = budget;
     uint elapsed = block.timestamp - lastSwapTimestamp;
 
-    if (eth < targetLiquidity) {
+    if (eth_new < targetLiquidity) {
       // inject liquidity
       uint timeLeftOnBudget = budget * LIQ_SPEED_PERIOD / aggresiveLiqSpeed;
-      uint maxInjectedAmount = targetLiquidity - eth;
+      uint maxInjectedAmount = targetLiquidity - eth_new;
       uint injectedAmount;
 
       if (elapsed <= timeLeftOnBudget) {
@@ -175,12 +174,12 @@ contract Ramm {
           maxInjectedAmount
         );
 
-        new_budget = budget - injectedAmount;
+        new_budget -= injectedAmount;
 
       } else {
 
         uint injectedAmountOnBudget = timeLeftOnBudget * aggresiveLiqSpeed / LIQ_SPEED_PERIOD;
-        new_budget = maxInjectedAmount < injectedAmountOnBudget ? budget - maxInjectedAmount : 0;
+        new_budget = maxInjectedAmount < injectedAmountOnBudget ? new_budget - maxInjectedAmount : 0;
 
         uint injectedAmountWoBudget = (elapsed - timeLeftOnBudget) * b.liqSpeed / LIQ_SPEED_PERIOD;
         injectedAmount = Math.min(maxInjectedAmount, injectedAmountOnBudget + injectedAmountWoBudget);
@@ -190,23 +189,28 @@ contract Ramm {
         console.log("Injected amount: %s ETH", format(injectedAmount));
       }
 
-      eth_new = eth + injectedAmount;
+      eth_new += injectedAmount;
 
     } else {
       // extract liquidity
       uint extractedAmount = Math.min(
         elapsed * a.liqSpeed / LIQ_SPEED_PERIOD,
-        eth - targetLiquidity // diff to target
+        eth_new - targetLiquidity // diff to target
       );
-      eth_new = eth - extractedAmount;
 
       if (extractedAmount > 0) {
         console.log("Extracted amount: %s ETH", format(extractedAmount));
       }
+
+      eth_new -= extractedAmount;
     }
 
-    nxm_a = ka / eth_new;
-    nxm_b = kb / eth_new;
+    // pi = eth / nxm
+    // pf = eth_new / nxm_new
+    // pf = eth_new /(nxm * eth_new / eth)
+    // nxm_new = nxm * eth_new / eth
+    nxm_a = a.nxm * eth_new / eth;
+    nxm_b = b.nxm * eth_new / eth;
 
     // apply ratchet above
     {
@@ -216,7 +220,7 @@ contract Ramm {
       // else
       //   set n(new) = n(R)
       uint r = elapsed * a.ratchetSpeed;
-      uint bufferedCapitalA = capital * ( PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR;
+      uint bufferedCapitalA = capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR;
 
       if (bufferedCapitalA * nxm_a + capital * nxm_a * r / RATCHET_PERIOD / RATCHET_DENOMINATOR > eth_new * supply) {
         // use bv

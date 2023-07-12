@@ -94,8 +94,9 @@ contract RammTest is Test {
     uint time = block.timestamp;
     for (uint i = 0; i < 10; i++) {
       console.log("--------------------");
-      vm.warp(time + i * 3 hours);
-      console.log("Time  : %s hours", i * 3);
+      uint timeUnit = 6;
+      vm.warp(time + i * 1 hours * timeUnit);
+      console.log("Time  : %s hours", i * timeUnit);
       console.log("SPOT A: %s ETH/NXM", format(ramm.getSpotPriceA()));
       console.log("SPOT B: %s ETH/NXM", format(ramm.getSpotPriceB()));
     }

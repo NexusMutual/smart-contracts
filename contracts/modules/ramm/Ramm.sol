@@ -98,68 +98,46 @@ contract Ramm {
 
   function swapEthForNxm(uint ethIn, address to) internal returns (uint nxmOut) {
     (uint eth_new, uint nxm_a, uint nxm_b, uint new_budget) = getReserves();
+    console.log("Spot Price A before swap    : %s ETH/NXM", format(1 ether * eth_new / nxm_a));
+    console.log("Spot Price B before swap    : %s ETH/NXM", format(1 ether * eth_new / nxm_b));
     uint k = eth_new * nxm_a;
     eth = eth_new + ethIn;
 
-    b.nxm = nxm_b * eth / eth_new;
+    // edge case: bellow goes over bv due to eth-dai price changing
     a.nxm = k / eth;
+    b.nxm = nxm_b * eth / eth_new;
     budget = new_budget;
     lastSwapTimestamp = block.timestamp;
     nxmOut = nxm_a - a.nxm;
 
-    console.log("SWAP %s ETH for: %s NXM", format(ethIn), format(nxmOut));
-
-    nxm.mint(to, nxmOut);
-    payable(capitalPool).transfer(msg.value);
-    /*
-    uint capital = capitalPool.getPoolValueInEth();
-    uint mcr = capitalPool.mcr();
-    uint supply = nxm.totalSupply();
-
-    uint elapsed = block.timestamp - lastSwapTimestamp;
-    uint maxExtractedAmount = elapsed * a.liqSpeed / LIQ_SPEED_PERIOD;
-    uint extractedAmount = Math.min(
-      maxExtractedAmount,
-      eth > a.targetLiquidity ? eth - a.targetLiquidity : 0 // extraLiquidity
-    );
-
-    console.log("BV: %s", format(1e18 * capital / supply));
-    uint r = 1e18 * capital / supply * elapsed * a.ratchetSpeed;
-    uint ethReserve = eth - extractedAmount;
-    uint nxmReserve;
-
-    {
-      bool useRatchet = capital * a.nxm + b.nxm * capital * r / RATCHET_PERIOD / RATCHET_DENOMINATOR / 1e18 > ethReserve * supply;
-      nxmReserve = useRatchet
-        ? ethReserve * a.nxm / (ethReserve - b.nxm * capital * r / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR / 1e18)
-        : ethReserve * supply / capital;
-    }
-
-    console.log("Initial nxm reserve: %s NXM", format(a.nxm));
-    console.log("Ratchet nxm reserve: %s NXM", format(nxmReserve));
-
-    uint nxmOut;
-    {
-      uint ethReserveNew = ethReserve + ethIn;
-      uint nxmReserveNew = (ethReserve * nxmReserve) / ethReserveNew;
-      nxmOut = nxmReserve - nxmReserveNew;
-
-      a.nxm = nxmReserveNew;
-      eth = ethReserveNew;
-      lastSwapTimestamp = block.timestamp;
-    }
-
-    // todo: update b pool
+    console.log("Swap                        : %s ETH for %s NXM", format(ethIn), format(nxmOut));
 
     // transfer assets
+    uint cap_before = capitalPool.getPoolValueInEth();
+    uint sup_before = nxm.totalSupply();
+    uint bv_before = 1e18 * cap_before / sup_before;
+
+    console.log("BV Before                   : %s", format(bv_before));
+    console.log("Capital Pool Capacity Before: %s ETH", format(cap_before));
+    console.log("Supply Before               : %s NXM", format(sup_before));
+
     (bool ok,) = address(capitalPool).call{value: msg.value}("");
     require(ok, "CAPITAL_POOL_TRANSFER_FAILED");
     nxm.mint(to, nxmOut);
 
-    return nxmOut;
-    */
 
-//    return 0;
+    uint cap_after = capitalPool.getPoolValueInEth();
+    uint sup_after = nxm.totalSupply();
+    uint bv_after = 1e18 * cap_after / sup_after;
+
+    console.log("Capital Pool Capacity After : %s ETH", format(cap_after));
+    console.log("Supply After                : %s NXM", format(sup_after));
+    console.log("BV After                    : %s", format(bv_after));
+
+    console.log("Spot Price A after swap     : %s ETH/NXM", format(1 ether * eth / a.nxm));
+    console.log("Spot Price B after swap     : %s ETH/NXM", format(1 ether * eth / b.nxm));
+
+    return nxmOut;
   }
 
   function getReserves() public view returns (uint eth_new, uint nxm_a, uint nxm_b, uint new_budget) {
@@ -199,7 +177,7 @@ contract Ramm {
       }
 
       if (injectedAmount > 0) {
-        console.log("Injected amount: %s ETH", format(injectedAmount));
+        console.log("Injected amount             : %s ETH", format(injectedAmount));
       }
 
       eth_new += injectedAmount;
@@ -212,7 +190,7 @@ contract Ramm {
       );
 
       if (extractedAmount > 0) {
-        console.log("Extracted amount: %s ETH", format(extractedAmount));
+        console.log("Extracted amount            : %s ETH", format(extractedAmount));
       }
 
       eth_new -= extractedAmount;
@@ -263,79 +241,58 @@ contract Ramm {
       }
     }
 
-    console.log("ETHLIQ: %s ETH", format(eth_new));
-    console.log("BUDGET: %s ETH", format(new_budget));
+    console.log("ETH liquidity               : %s ETH", format(eth_new));
+    console.log("Budget                      : %s ETH", format(new_budget));
 
     return (eth_new, nxm_a, nxm_b, new_budget);
   }
 
   function swapNxmForEth(uint nxmIn, address to) internal returns (uint ethOut) {
-    uint capital = capitalPool.getPoolValueInEth();
-    uint mcr = capitalPool.mcr();
-
-    if (capital < mcr + BUFFER_ZONE) {
-      revert("NO_SWAPS_IN_BUFFER_ZONE");
-    }
 
     (uint eth_new, uint nxm_a, uint nxm_b, uint new_budget) = getReserves();
+
+    console.log("SPOT PRICE A BEFORE SWAP:  %s ETH/NXM", format(1 ether * eth_new / nxm_a));
+    console.log("SPOT PRICE B BEFORE SWAP:  %s ETH/NXM", format(1 ether * eth_new / nxm_b));
+
     uint k = eth_new * nxm_b;
     b.nxm = nxm_b  + nxmIn;
     a.nxm = nxm_b  + nxmIn;
 
     eth = k / b.nxm;
 
-    a.nxm = nxm_a * eth_new / eth;
+    a.nxm = nxm_a * eth / eth_new;
     budget = new_budget;
     lastSwapTimestamp = block.timestamp;
     ethOut = eth_new - eth;
 
-    console.log("SWAP %s NXM for: %s ETH", format(nxmIn), format(ethOut));
+    console.log("SWAP                        : %s NXM for %s ETH", format(nxmIn), format(ethOut));
+    uint cap_before = capitalPool.getPoolValueInEth();
+    uint sup_before = nxm.totalSupply();
+    uint bv_before = 1e18 * cap_before / sup_before;
+
+    console.log("Capital Pool Capacity Before: %s ETH", format(cap_before));
+    console.log("Supply Before               : %s NXM", format(sup_before));
+    console.log("BV Before                   : %s", format(bv_before));
+
     nxm.burn(msg.sender, nxmIn);
     capitalPool.sendEth(payable(to), ethOut);
 
+    uint mcr = capitalPool.mcr();
+    uint cap_after = capitalPool.getPoolValueInEth();
+    uint sup_after = nxm.totalSupply();
+    uint bv_after = 1e18 * cap_after / sup_after;
 
-//
-//    uint elapsed = block.timestamp - lastSwapTimestamp;
-//    uint injectedAmount = Math.min(
-//      elapsed * b.liqSpeed / LIQ_SPEED_PERIOD,
-//      targetLiquidity - eth // diff to target
-//    );
-//
-//    console.log("Injected amount: %s ETH", format(injectedAmount));
-//    console.log("BV: %s", format(1e18 * capital / supply));
-//
-//    uint ethReserve = eth + injectedAmount;
-//    uint target = 1e18 * capital / supply;
-//    uint nxmReserve;
-//
-//    // check if we should be using the ratchet or the book value price using:
-//    // Nbv > Nr <=>
-//    // ... <=>
-//    // cap * n < e * sup + r * cap * n
-//    if (
-//      capital * b.nxm < ethReserve * supply + b.nxm * capital * elapsed * b.ratchetSpeed / RATCHET_PERIOD / RATCHET_DENOMINATOR
-//    ) {
-//      nxmReserve = ethReserve * supply / capital;
-//    } else {
-//      uint r = elapsed * b.ratchetSpeed;
-//      uint nr_denom_addend = b.nxm * r * target / RATCHET_PERIOD / RATCHET_DENOMINATOR / 1e18;
-//      nxmReserve = ethReserve * b.nxm / (ethReserve + nr_denom_addend);
-//    }
-//
-//    uint ethOut;
-//    {
-//      uint nxmReserveNew = nxmReserve + nxmIn;
-//      uint ethReserveNew = (ethReserve * nxmReserve) / nxmReserveNew;
-//      ethOut = ethReserve - ethReserveNew;
-//
-//      b.nxm = nxmReserveNew;
-//      eth = ethReserveNew;
-//      lastSwapTimestamp = block.timestamp;
-//    }
-//
-//    // todo: update a pool
-//
-//    // transfer assets
+    if (cap_after < mcr + BUFFER_ZONE) {
+      revert("NO_SWAPS_IN_BUFFER_ZONE");
+    }
+
+    console.log("Capital Pool Capacity After : %s ETH", format(cap_after));
+    console.log("Supply After                : %s NXM", format(sup_after));
+    console.log("BV After                    : %s", format(bv_after));
+
+    console.log("Spot Price A after swap     : %s ETH/NXM", format(1 ether * eth / a.nxm));
+    console.log("Spot Price B after swap     : %s ETH/NXM", format(1 ether * eth / b.nxm));
+
     return ethOut;
   }
 
@@ -347,5 +304,10 @@ contract Ramm {
   function getSpotPriceB() external view returns (uint /*ethPerNxm*/) {
     (uint eth_new, /*uint nxm_a*/, uint nxm_b, /*uint new_budget*/) = getReserves();
     return 1 ether * eth_new / nxm_b;
+  }
+
+  function getSpotPrices() external view returns (uint /*ethPerNxm*/, uint) {
+    (uint eth_new, uint nxm_a, uint nxm_b, /*uint new_budget*/) = getReserves();
+    return (1 ether * eth_new / nxm_a, 1 ether * eth_new / nxm_b);
   }
 }

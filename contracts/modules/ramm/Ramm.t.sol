@@ -92,24 +92,28 @@ contract RammTest is Test {
 
   function testPlayground() public {
     uint time = block.timestamp;
-    uint capital = capitalPool.getPoolValueInEth();
-    uint supply = nxm.totalSupply();
+
     for (uint i = 0; i < 10; i++) {
       uint timeUnit = 6;
       vm.warp(time + i * 1 hours * timeUnit);
       console.log("--------------------");
-      console.log("Time  : %s hours", i * timeUnit);
-      if (i % 3 == 0) {
-        console.log("SPOT A: %s ETH/NXM", format(ramm.getSpotPriceA()));
-        console.log("SPOT B: %s ETH/NXM", format(ramm.getSpotPriceB()));
+      console.log("Time                        : %s hours", i * timeUnit);
+
+      if (i % timeUnit == 1) {
+        console.log("Swap                        : ETH to NXM");
+        vm.prank(address(1337));
         ramm.swap{value: 100 ether}(0);
-        console.log("BV    : %s", format(1e18 * capital / supply));
+      } else if (i % timeUnit == 2) {
+        console.log("Swap                        : NXM to ETH");
+        vm.prank(address(1337));
+        ramm.swap(3500 ether);
       } else {
-        console.log("SPOT A: %s ETH/NXM", format(ramm.getSpotPriceA()));
-        console.log("SPOT B: %s ETH/NXM", format(ramm.getSpotPriceB()));
+        console.log("Swap                        : false");
+        (uint spot_a, uint spot_b) = ramm.getSpotPrices();
+        console.log("Spot A                      : %s ETH/NXM", format(spot_a));
+        console.log("Spot B                      : %s ETH/NXM", format(spot_b));
       }
     }
-    console.log("BV    : %s", format(1e18 * capital / supply));
   }
 
 }

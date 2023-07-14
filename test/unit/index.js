@@ -6,6 +6,7 @@ describe('UNIT TESTS', function () {
   require('./MCR');
   require('./Assessment');
   require('./Cover');
+  require('./CoverProducts');
   require('./CoverNFT');
   require('./CoverMigrator');
   require('./IndividualClaims');

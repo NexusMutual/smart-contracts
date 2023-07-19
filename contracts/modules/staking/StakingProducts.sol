@@ -415,7 +415,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint targetPrice = Math.max(product.targetPrice, globalMinPrice);
 
     if (useFixedPrice) {
-      return calculateFixedPricePremium(period, coverAmount, targetPrice, nxmPerAllocationUnit, TARGET_PRICE_DENOMINATOR);
+      return calculateFixedPricePremium(coverAmount, period, targetPrice, nxmPerAllocationUnit, TARGET_PRICE_DENOMINATOR);
     }
 
     (premium, product) = calculatePremium(

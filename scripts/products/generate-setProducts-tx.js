@@ -55,7 +55,7 @@ const main = async (provider, productsDataFilePath) => {
 
     const productParams = {
       productName: data['Product Name'],
-      productId: MaxUint256, // create new product - use Max Uint.
+      productId: data['Product Id'] || MaxUint256, // create new product - use Max Uint.
       ipfsMetadata: data['IPFS Metadata'], // IPFS metadata is optional.
       product: {
         productType: data['Product Type'],
@@ -70,7 +70,7 @@ const main = async (provider, productsDataFilePath) => {
         capacityReductionRatio: parseInt(data['Capacity Reduction Ratio']),
         useFixedPrice: data['Use fixed price'].trim() === 'TRUE',
       },
-      allowedPools: data['Allowed Pools'].split(',').map(parseInt),
+      allowedPools: data['Allowed Pools'].split(',').map(v => v.trim()).filter(v => v.length > 0).map(parseInt),
     };
 
     return productParams;

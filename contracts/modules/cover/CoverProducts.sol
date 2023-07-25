@@ -67,6 +67,10 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     return _products.length;
   }
 
+  function getProducts() external view returns (Product[] memory) {
+    return _products;
+  }
+
   /* ========== PRODUCT CONFIGURATION ========== */
 
   function setProducts(ProductParam[] calldata productParams) external override onlyAdvisoryBoard {

@@ -101,16 +101,16 @@ describe('setProducts', function () {
   });
 
   it('should add many products', async function () {
-    const { cover } = this;
+    const { coverProducts } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
 
-    const previousProductsCount = await cover.productsCount();
+    const previousProductsCount = await coverProducts.productsCount();
     const newProductsCount = 40;
     const productParams = Array.from({ length: newProductsCount }, () => ({ ...productParamsTemplate }));
-    await expect(cover.connect(advisoryBoardMember0).setProducts(productParams))
-      .to.emit(cover, 'ProductSet')
+    await expect(coverProducts.connect(advisoryBoardMember0).setProducts(productParams))
+      .to.emit(coverProducts, 'ProductSet')
       .withArgs(40, defaultIpfsData);
-    const products = await cover.getProducts();
+    const products = await coverProducts.getProducts();
     expect(products.length).to.be.equal(previousProductsCount.add(newProductsCount).toNumber());
   });
 

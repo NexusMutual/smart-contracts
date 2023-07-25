@@ -37,6 +37,8 @@ interface ICoverProducts {
 
   function productTypes(uint id) external view returns (ProductType memory);
 
+  function getProducts() external view returns (Product[] memory);
+
   function isPoolAllowed(uint productId, uint poolId) external view returns (bool);
 
   function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external view;

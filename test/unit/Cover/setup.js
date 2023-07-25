@@ -31,16 +31,14 @@ async function setup() {
   const mcr = await ethers.deployContract('CoverMockMCR');
   await mcr.setMCR(parseEther('600000'));
 
-  const stakingProducts = await ethers.deployContract('CoverMockStakingProducts');
-
   const stakingPoolImplementation = await ethers.deployContract('CoverMockStakingPool');
   const coverNFT = await ethers.deployContract('CoverMockCoverNFT');
   const stakingNFT = await ethers.deployContract('CoverMockStakingNFT');
 
   const { defaultSender } = accounts;
-  const expectedCoverAddress = await getDeployAddressAfter(defaultSender, 1);
+  const expectedStakingProductsAddress = await getDeployAddressAfter(defaultSender, 3);
 
-  const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [expectedCoverAddress]);
+  const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [expectedStakingProductsAddress]);
 
   const cover = await ethers.deployContract('Cover', [
     coverNFT.address,
@@ -49,7 +47,15 @@ async function setup() {
     stakingPoolImplementation.address,
   ]);
 
-  expect(expectedCoverAddress).to.equal(cover.address);
+  const coverProducts = await ethers.deployContract('CoverProducts');
+
+  const stakingProducts = await ethers.deployContract('CoverMockStakingProducts', [
+    cover.address,
+    stakingPoolFactory.address,
+    tokenController.address,
+    coverProducts.address
+  ]);
+  expect(expectedStakingProductsAddress).to.equal(stakingProducts.address);
 
   const dai = await ethers.deployContract('ERC20Mock');
   const usdc = await ethers.deployContract('ERC20CustomDecimalsMock', [6]); // 6 decimals
@@ -72,6 +78,7 @@ async function setup() {
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('SP'), stakingProducts.address);
+  await master.setLatestAddress(hex('CP'), coverProducts.address);
 
   const pooledStakingSigner = accounts.members[4];
   await master.setLatestAddress(hex('PS'), pooledStakingSigner.address);
@@ -95,7 +102,7 @@ async function setup() {
     await master.enrollGovernance(governanceContract.address);
   }
 
-  for (const contract of [cover, tokenController]) {
+  for (const contract of [cover, coverProducts, tokenController]) {
     await contract.changeMasterAddress(master.address);
     await contract.changeDependentContractAddress();
     await master.enrollInternal(contract.address);
@@ -103,7 +110,7 @@ async function setup() {
 
   await master.setEmergencyAdmin(accounts.emergencyAdmin.address);
 
-  await cover.connect(accounts.advisoryBoardMembers[0]).setProductTypes([
+  await coverProducts.connect(accounts.advisoryBoardMembers[0]).setProductTypes([
     {
       productTypeName: 'ProductType X',
       productTypeId: MaxUint256,
@@ -116,7 +123,7 @@ async function setup() {
   ]);
 
   // add products
-  await cover.connect(accounts.advisoryBoardMembers[0]).setProducts([
+  await coverProducts.connect(accounts.advisoryBoardMembers[0]).setProducts([
     {
       productName: 'Product A',
       productId: MaxUint256,

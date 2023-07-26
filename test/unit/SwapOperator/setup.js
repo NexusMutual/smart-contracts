@@ -1,4 +1,5 @@
-const { ethers, accounts } = require('hardhat');
+const { ethers } = require('hardhat');
+const { getAccounts } = require('../../utils/accounts');
 const { hex } = require('../utils').helpers;
 
 const {
@@ -6,10 +7,8 @@ const {
   utils: { parseEther },
 } = ethers;
 
-// will be assigned by setup()
-const instances = {};
-
 async function setup() {
+  const accounts = await getAccounts();
   const [owner, governance] = await ethers.getSigners();
 
   const MasterMock = await ethers.getContractFactory('MasterMock');
@@ -126,44 +125,30 @@ async function setup() {
   // Setup pool's swap operator
   await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), swapOperator.address);
 
-  Object.assign(instances, {
-    dai,
-    weth,
-    stEth,
-    usdc,
-    master,
-    pool,
-    mcr,
-    swapOperator,
-    priceFeedOracle,
-    daiAggregator,
-    cowSettlement,
-    cowVaultRelayer,
-  });
-
-  this.accounts = {
-    ...accounts,
-    governanceAccounts: [governance],
-  };
-  this.contracts = {
-    dai,
-    weth,
-    stEth,
-    usdc,
-    master,
-    pool,
-    mcr,
-    swapOperator,
-    priceFeedOracle,
-    daiAggregator,
-    cowSettlement,
-    cowVaultRelayer,
-    enzymeV4Vault,
-    enzymeV4Comptroller,
-    enzymeFundValueCalculatorRouter,
-    nxmToken,
+  return {
+    accounts: {
+      ...accounts,
+      governanceAccounts: [governance],
+    },
+    contracts: {
+      dai,
+      weth,
+      stEth,
+      usdc,
+      master,
+      pool,
+      mcr,
+      swapOperator,
+      priceFeedOracle,
+      daiAggregator,
+      cowSettlement,
+      cowVaultRelayer,
+      enzymeV4Vault,
+      enzymeV4Comptroller,
+      enzymeFundValueCalculatorRouter,
+      nxmToken,
+    },
   };
 }
 
 module.exports = setup;
-module.exports.contracts = instances;

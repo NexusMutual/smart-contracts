@@ -1,5 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const setup = require('./setup');
 
 const { toBytes8 } = require('../utils').helpers;
 
@@ -8,8 +11,9 @@ const { parseEther } = ethers.utils;
 
 describe('getPoolValueInEth', function () {
   it('gets total value of ETH and DAI assets in the pool', async function () {
-    const { pool, mcr, chainlinkDAI, dai } = this;
-    const [nonMember] = this.accounts.nonMembers;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr, chainlinkDAI, dai } = fixture;
+    const [nonMember] = fixture.accounts.nonMembers;
 
     const initialAssetValue = BigNumber.from('210959924071154460525457');
     const mcrEth = BigNumber.from('162424730681679380000000');
@@ -29,9 +33,10 @@ describe('getPoolValueInEth', function () {
   });
 
   it('should not fail when pool asset balanceOf reverts', async function () {
-    const { pool, dai, stETH, enzymeVault } = this;
-    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = this;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { pool, dai, stETH, enzymeVault } = fixture;
+    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
+    const [governance] = fixture.accounts.governanceContracts;
 
     const ERC20RevertingBalanceOfMock = await ethers.getContractFactory('ERC20RevertingBalanceOfMock');
     const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
@@ -63,9 +68,10 @@ describe('getPoolValueInEth', function () {
   });
 
   it('includes swapValue in the calculation', async function () {
-    const { pool } = this;
-    const [governance] = this.accounts.governanceContracts;
-    const { defaultSender } = this.accounts;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
+    const [governance] = fixture.accounts.governanceContracts;
+    const { defaultSender } = fixture.accounts;
 
     const oldPoolValue = await pool.getPoolValueInEth();
 

@@ -1,5 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { setup } = require('./setup');
 
 const { InternalContractsIDs } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
@@ -8,8 +10,9 @@ const { AddressZero } = ethers.constants;
 
 describe('changeDependentContractAddress', function () {
   it('should change authorized address for the role', async function () {
-    const { quotationData, memberRoles, master } = this.contracts;
-    const { governanceContracts, defaultSender } = this.accounts;
+    const fixture = await loadFixture(setup);
+    const { quotationData, memberRoles, master } = fixture.contracts;
+    const { governanceContracts, defaultSender } = fixture.accounts;
 
     await quotationData.connect(governanceContracts[0]).setKycAuthAddress(defaultSender.address);
     await memberRoles.connect(governanceContracts[0]).setKycAuthAddress(quotationData.address);

@@ -1,6 +1,8 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
+const setup = require('./setup');
 const { initMCR } = require('./common');
 const { increaseTime, mineNextBlock } = require('../utils').evm;
 const { hoursToSeconds } = require('../utils').helpers;
@@ -20,7 +22,8 @@ const DEFAULT_MCR_PARAMS = {
 
 describe('getGearedMCR', function () {
   it('should return gearedMCR = 0 if there are no active covers', async function () {
-    const { master, cover } = this;
+    const fixture = await loadFixture(setup);
+    const { master, cover } = fixture;
 
     await cover.setTotalActiveCoverInAsset(0, '0'); // ETH
 
@@ -33,7 +36,8 @@ describe('getGearedMCR', function () {
   });
 
   it('should return correct geared MCR value', async function () {
-    const { master, cover } = this;
+    const fixture = await loadFixture(setup);
+    const { master, cover } = fixture;
 
     const GEARING_FACTOR = 48000;
     const BASIS_PRECISION = 10000;

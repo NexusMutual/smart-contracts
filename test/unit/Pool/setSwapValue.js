@@ -1,15 +1,19 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const setup = require('./setup');
 const { BigNumber } = ethers;
 const { toBytes8 } = require('../utils').helpers;
 
 describe('setSwapValue', function () {
   it('is only callabe by swap operator', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
     const {
       governanceContracts: [governance],
       nonMembers: [swapOperator],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // Not calling from swap operator reverts
     await expect(pool.setSwapValue(BigNumber.from('123'))).to.be.revertedWith('Pool: Not swapOperator');
@@ -22,11 +26,12 @@ describe('setSwapValue', function () {
   });
 
   it('sets the swapValue value', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
     const {
       governanceContracts: [governance],
       nonMembers: [swapOperator],
-    } = this.accounts;
+    } = fixture.accounts;
 
     expect(await pool.swapValue()).to.eq(0);
     // Set swap operator and set swap value

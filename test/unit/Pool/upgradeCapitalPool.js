@@ -1,5 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const setup = require('./setup');
 const { toBytes8 } = require('../utils').helpers;
 
 const { parseEther } = ethers.utils;
@@ -7,10 +10,11 @@ const { AddressZero } = ethers.constants;
 
 describe('upgradeCapitalPool', function () {
   it('moves pool funds to new pool', async function () {
-    const { pool, master, dai, stETH, enzymeVault, token } = this;
-    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = this;
-    const [governance] = this.accounts.governanceContracts;
-    const { defaultSender } = this.accounts;
+    const fixture = await loadFixture(setup);
+    const { pool, master, dai, stETH, enzymeVault, token } = fixture;
+    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
+    const [governance] = fixture.accounts.governanceContracts;
+    const { defaultSender } = fixture.accounts;
 
     const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
     const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
@@ -64,10 +68,11 @@ describe('upgradeCapitalPool', function () {
   });
 
   it('abandons marked assets on pool upgrade', async function () {
-    const { pool, master, dai, stETH, enzymeVault, token } = this;
-    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = this;
-    const [governance] = this.accounts.governanceContracts;
-    const { defaultSender } = this.accounts;
+    const fixture = await loadFixture(setup);
+    const { pool, master, dai, stETH, enzymeVault, token } = fixture;
+    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
+    const [governance] = fixture.accounts.governanceContracts;
+    const { defaultSender } = fixture.accounts;
 
     const ethAmount = parseEther('10000');
     const tokenAmount = parseEther('100000');

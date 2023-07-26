@@ -1,5 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const { getTranches, moveTimeToNextTranche, BUCKET_DURATION } = require('./helpers');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { setEtherBalance } = require('../utils').evm;
@@ -70,40 +72,45 @@ const allocationRequestParams = {
 
 const stakedNxmAmount = parseEther('100');
 const burnAmount = parseEther('10');
+const setup = require('./setup');
+
+async function burnStakeSetup() {
+  const fixture = await loadFixture(setup);
+  const { stakingPool, stakingProducts, cover } = fixture;
+  const [staker] = fixture.accounts.members;
+  const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
+
+  fixture.coverSigner = await ethers.getImpersonatedSigner(cover.address);
+  await setEtherBalance(fixture.coverSigner.address, parseEther('1'));
+
+  await cover.setProductType(productTypeFixture, initialProduct.productId);
+  await cover.setProduct(coverProductTemplate, initialProduct.productId);
+
+  await stakingPool.connect(fixture.coverSigner).initialize(
+    false, // isPrivatePool
+    initialPoolFee,
+    maxPoolFee,
+    poolId,
+    ipfsDescriptionHash,
+  );
+
+  await stakingProducts.connect(fixture.coverSigner).setInitialProducts(poolId, products);
+
+  // Move to the beginning of the next tranche
+  const currentTrancheId = await moveTimeToNextTranche(1);
+
+  // Deposit into pool
+  await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId, 0, AddressZero);
+  await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId + 1, 0, AddressZero);
+  await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId + 2, 0, AddressZero);
+
+  return fixture;
+}
 
 describe('burnStake', function () {
-  beforeEach(async function () {
-    const { stakingPool, stakingProducts, cover } = this;
-    const [staker] = this.accounts.members;
-    const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
-
-    this.coverSigner = await ethers.getImpersonatedSigner(cover.address);
-    await setEtherBalance(this.coverSigner.address, parseEther('1'));
-
-    await cover.setProductType(productTypeFixture, initialProduct.productId);
-    await cover.setProduct(coverProductTemplate, initialProduct.productId);
-
-    await stakingPool.connect(this.coverSigner).initialize(
-      false, // isPrivatePool
-      initialPoolFee,
-      maxPoolFee,
-      poolId,
-      ipfsDescriptionHash,
-    );
-
-    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
-
-    // Move to the beginning of the next tranche
-    const currentTrancheId = await moveTimeToNextTranche(1);
-
-    // Deposit into pool
-    await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId, 0, AddressZero);
-    await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId + 1, 0, AddressZero);
-    await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId + 2, 0, AddressZero);
-  });
-
   it('should revert if the caller is not the cover contract', async function () {
-    const { stakingPool } = this;
+    const fixture = await loadFixture(burnStakeSetup);
+    const { stakingPool } = fixture;
     await expect(stakingPool.burnStake(10, burnStakeParams)).to.be.revertedWithCustomError(
       stakingPool,
       'OnlyCoverContract',
@@ -111,14 +118,15 @@ describe('burnStake', function () {
   });
 
   it('should block the pool if 100% of the stake is burned', async function () {
-    const { stakingPool } = this;
+    const fixture = await loadFixture(burnStakeSetup);
+    const { stakingPool } = fixture;
     const {
       members: [member],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // burn all of the active stake
     const activeStake = await stakingPool.getActiveStake();
-    await stakingPool.connect(this.coverSigner).burnStake(activeStake, burnStakeParams);
+    await stakingPool.connect(fixture.coverSigner).burnStake(activeStake, burnStakeParams);
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
 
     // depositTo and extendDeposit should revert
@@ -132,14 +140,15 @@ describe('burnStake', function () {
   });
 
   it('should not block pool if 99% of the stake is burned', async function () {
-    const { stakingPool } = this;
+    const fixture = await loadFixture(burnStakeSetup);
+    const { stakingPool } = fixture;
     const {
       members: [member],
-    } = this.accounts;
+    } = fixture.accounts;
 
     // burn activeStake - 1
     const activeStake = await stakingPool.getActiveStake();
-    await stakingPool.connect(this.coverSigner).burnStake(activeStake.sub(1), burnStakeParams);
+    await stakingPool.connect(fixture.coverSigner).burnStake(activeStake.sub(1), burnStakeParams);
 
     // deposit should work
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
@@ -147,7 +156,7 @@ describe('burnStake', function () {
       .reverted;
 
     // Burn all activeStake
-    await stakingPool.connect(this.coverSigner).burnStake(stakedNxmAmount.add(1), burnStakeParams);
+    await stakingPool.connect(fixture.coverSigner).burnStake(stakedNxmAmount.add(1), burnStakeParams);
 
     // deposit should fail
     await expect(
@@ -156,33 +165,36 @@ describe('burnStake', function () {
   });
 
   it('reduces activeStake', async function () {
-    const { stakingPool } = this;
+    const fixture = await loadFixture(burnStakeSetup);
+    const { stakingPool } = fixture;
 
     const activeStakeBefore = await stakingPool.getActiveStake();
 
-    await stakingPool.connect(this.coverSigner).burnStake(burnAmount, burnStakeParams);
+    await stakingPool.connect(fixture.coverSigner).burnStake(burnAmount, burnStakeParams);
 
     const activeStakeAfter = await stakingPool.getActiveStake();
     expect(activeStakeAfter).to.equal(activeStakeBefore.sub(burnAmount));
   });
 
   it('emits StakeBurned event', async function () {
-    const { stakingPool } = this;
+    const fixture = await loadFixture(burnStakeSetup);
+    const { stakingPool } = fixture;
 
-    await expect(stakingPool.connect(this.coverSigner).burnStake(burnAmount, burnStakeParams))
+    await expect(stakingPool.connect(fixture.coverSigner).burnStake(burnAmount, burnStakeParams))
       .to.emit(stakingPool, 'StakeBurned')
       .withArgs(burnAmount);
   });
 
   it('burns staked NXM in token controller', async function () {
-    const { stakingPool, nxm, tokenController } = this;
+    const fixture = await loadFixture(burnStakeSetup);
+    const { stakingPool, nxm, tokenController } = fixture;
 
     const poolId = await stakingPool.getPoolId();
 
     const balanceBefore = await nxm.balanceOf(tokenController.address);
     const tcBalancesBefore = await tokenController.stakingPoolNXMBalances(poolId);
 
-    await stakingPool.connect(this.coverSigner).burnStake(burnAmount, burnStakeParams);
+    await stakingPool.connect(fixture.coverSigner).burnStake(burnAmount, burnStakeParams);
 
     const balanceAfter = await nxm.balanceOf(tokenController.address);
     const tcBalancesAfter = await tokenController.stakingPoolNXMBalances(poolId);
@@ -192,7 +204,8 @@ describe('burnStake', function () {
   });
 
   it('works correctly if burnAmount > initialStake', async function () {
-    const { stakingPool, nxm, tokenController } = this;
+    const fixture = await loadFixture(burnStakeSetup);
+    const { stakingPool, nxm, tokenController } = fixture;
 
     const poolId = await stakingPool.getPoolId();
 
@@ -204,7 +217,7 @@ describe('burnStake', function () {
 
     // leaves 1 wei to avoid division by zero
     const actualBurnedAmount = initialStake.sub(1);
-    await expect(stakingPool.connect(this.coverSigner).burnStake(burnAmount, burnStakeParams))
+    await expect(stakingPool.connect(fixture.coverSigner).burnStake(burnAmount, burnStakeParams))
       .to.emit(stakingPool, 'StakeBurned')
       .withArgs(actualBurnedAmount);
 
@@ -218,8 +231,9 @@ describe('burnStake', function () {
   });
 
   it('correctly deallocates cover tranche allocations', async function () {
-    const { stakingPool } = this;
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const fixture = await loadFixture(burnStakeSetup);
+    const { stakingPool } = fixture;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const coverTrancheAllocationAmount = stakedNxmAmount.div(NXM_PER_ALLOCATION_UNIT);
 
@@ -227,7 +241,7 @@ describe('burnStake', function () {
     const allocationAmount1 = stakedNxmAmount;
 
     // allocates 50% of first tranche
-    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount1, 0, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount1, 0, allocationRequestParams);
     const firstAllocationBlock = await ethers.provider.getBlock('latest');
 
     {
@@ -241,7 +255,7 @@ describe('burnStake', function () {
     const allocationId2 = await stakingPool.getNextAllocationId();
 
     // allocates 50% of first tranche and 50% of second tranche
-    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount2, 0, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount2, 0, allocationRequestParams);
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId2);
@@ -253,7 +267,7 @@ describe('burnStake', function () {
     const allocationAmount3 = stakedNxmAmount.mul(3);
 
     // updates allocation to be 50% of first tranche, 50% of second tranche and 50% of third tranche
-    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount3, 0, {
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount3, 0, {
       ...allocationRequestParams,
       allocationId: allocationId1,
       previousStart: firstAllocationBlock.timestamp,
@@ -278,7 +292,7 @@ describe('burnStake', function () {
       deallocationAmount: firstDeallocationAmount,
     };
 
-    await stakingPool.connect(this.coverSigner).burnStake(0, params);
+    await stakingPool.connect(fixture.coverSigner).burnStake(0, params);
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId1);
@@ -289,7 +303,7 @@ describe('burnStake', function () {
 
     // deallocates 100%
     const deallocationAmount = allocationAmount3.sub(firstDeallocationAmount);
-    await stakingPool.connect(this.coverSigner).burnStake(0, { ...params, deallocationAmount });
+    await stakingPool.connect(fixture.coverSigner).burnStake(0, { ...params, deallocationAmount });
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId1);
@@ -300,8 +314,9 @@ describe('burnStake', function () {
   });
 
   it('correctly deallocates stored tranche allocations', async function () {
-    const { stakingPool } = this;
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const fixture = await loadFixture(burnStakeSetup);
+    const { stakingPool } = fixture;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const { productId } = allocationRequestParams;
 
@@ -314,7 +329,7 @@ describe('burnStake', function () {
     }
 
     // allocates 50% of first tranche
-    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount1, 0, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount1, 0, allocationRequestParams);
     const firstAllocationBlock = await ethers.provider.getBlock('latest');
 
     const allocationAmountInUnit = stakedNxmAmount.div(NXM_PER_ALLOCATION_UNIT);
@@ -329,7 +344,7 @@ describe('burnStake', function () {
     const allocationAmount2 = stakedNxmAmount.mul(2);
 
     // allocates 50% of first tranche and 50% of second tranche
-    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount2, 0, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount2, 0, allocationRequestParams);
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -341,7 +356,7 @@ describe('burnStake', function () {
     const allocationAmount3 = stakedNxmAmount.mul(3);
 
     // updates allocation to be 50% of first tranche, 50% of second tranche and 50% of third tranche
-    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount3, 0, {
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount3, 0, {
       ...allocationRequestParams,
       allocationId: allocationId1,
       previousStart: firstAllocationBlock.timestamp,
@@ -366,7 +381,7 @@ describe('burnStake', function () {
       deallocationAmount: firstDeallocationAmount,
     };
 
-    await stakingPool.connect(this.coverSigner).burnStake(0, params);
+    await stakingPool.connect(fixture.coverSigner).burnStake(0, params);
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -377,7 +392,7 @@ describe('burnStake', function () {
 
     // deallocates 100%
     const deallocationAmount = allocationAmount3.sub(firstDeallocationAmount);
-    await stakingPool.connect(this.coverSigner).burnStake(0, { ...params, deallocationAmount });
+    await stakingPool.connect(fixture.coverSigner).burnStake(0, { ...params, deallocationAmount });
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -388,8 +403,9 @@ describe('burnStake', function () {
   });
 
   it('correctly deallocates expiring cover amounts', async function () {
-    const { stakingPool } = this;
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+    const fixture = await loadFixture(burnStakeSetup);
+    const { stakingPool } = fixture;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
     const { productId, period } = allocationRequestParams;
 
@@ -402,7 +418,7 @@ describe('burnStake', function () {
     }
 
     // allocates 50% of first tranche
-    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount1, 0, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount1, 0, allocationRequestParams);
     const firstAllocationBlock = await ethers.provider.getBlock('latest');
 
     const { firstActiveTrancheId: currentTrancheId } = await getTranches();
@@ -436,7 +452,7 @@ describe('burnStake', function () {
     const allocationAmount2 = stakedNxmAmount.mul(2);
 
     // allocates 50% of first tranche and 50% of second tranche
-    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount2, 0, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount2, 0, allocationRequestParams);
 
     {
       const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
@@ -463,7 +479,7 @@ describe('burnStake', function () {
     const allocationAmount3 = stakedNxmAmount.mul(3);
 
     // updates allocation to be 50% of first tranche, 50% of second tranche and 50% of third tranche
-    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount3, 0, {
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount3, 0, {
       ...allocationRequestParams,
       allocationId: allocationId1,
       previousStart: firstAllocationBlock.timestamp,
@@ -514,7 +530,7 @@ describe('burnStake', function () {
       deallocationAmount: firstDeallocationAmount,
     };
 
-    await stakingPool.connect(this.coverSigner).burnStake(0, params);
+    await stakingPool.connect(fixture.coverSigner).burnStake(0, params);
 
     {
       const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
@@ -551,7 +567,7 @@ describe('burnStake', function () {
 
     // deallocates 100%
     const deallocationAmount = allocationAmount3.sub(firstDeallocationAmount);
-    await stakingPool.connect(this.coverSigner).burnStake(0, { ...params, deallocationAmount });
+    await stakingPool.connect(fixture.coverSigner).burnStake(0, { ...params, deallocationAmount });
 
     {
       const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
@@ -588,14 +604,15 @@ describe('burnStake', function () {
   });
 
   it('calls process expirations', async function () {
-    const { stakingPool } = this;
+    const fixture = await loadFixture(burnStakeSetup);
+    const { stakingPool } = fixture;
 
     const initialFirstActiveBucketId = await stakingPool.getFirstActiveBucketId();
     const initialFirstActiveTrancheId = await stakingPool.getFirstActiveTrancheId();
 
     await moveTimeToNextTranche(2);
 
-    await stakingPool.connect(this.coverSigner).burnStake(burnAmount, burnStakeParams);
+    await stakingPool.connect(fixture.coverSigner).burnStake(burnAmount, burnStakeParams);
 
     const firstActiveBucketId = await stakingPool.getFirstActiveBucketId();
     const firstActiveTrancheId = await stakingPool.getFirstActiveTrancheId();

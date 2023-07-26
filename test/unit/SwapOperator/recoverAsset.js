@@ -1,15 +1,18 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('./setup');
 const {
   utils: { parseEther },
 } = ethers;
 
 describe('recoverAsset', function () {
   it('recovers enzyme vault shares', async function () {
-    const { swapOperator, enzymeV4Vault, pool } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { swapOperator, enzymeV4Vault, pool } = fixture.contracts;
 
-    const [governance] = this.accounts.governanceAccounts;
-    const [receiver] = this.accounts.nonMembers;
+    const [governance] = fixture.accounts.governanceAccounts;
+    const [receiver] = fixture.accounts.nonMembers;
 
     await pool.connect(governance).setSwapDetails(
       enzymeV4Vault.address,
@@ -32,9 +35,10 @@ describe('recoverAsset', function () {
   });
 
   it('recovers arbitrary unknown asset', async function () {
-    const { swapOperator } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { swapOperator } = fixture.contracts;
 
-    const [receiver] = this.accounts.nonMembers;
+    const [receiver] = fixture.accounts.nonMembers;
 
     const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
     const arbitraryAsset = await ERC20Mock.deploy();
@@ -50,18 +54,19 @@ describe('recoverAsset', function () {
   });
 
   it('recovers ETH', async function () {
-    const { swapOperator, pool } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { swapOperator, pool } = fixture.contracts;
 
-    const [receiver] = this.accounts.nonMembers;
+    const [receiver] = fixture.accounts.nonMembers;
 
     const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
     const amountInPool = parseEther('2000');
-    await this.accounts.defaultSender.sendTransaction({ to: swapOperator.address, value: amountInPool });
+    await fixture.accounts.defaultSender.sendTransaction({ to: swapOperator.address, value: amountInPool });
 
     const amountInSwapOperator = parseEther('10');
 
-    await this.accounts.defaultSender.sendTransaction({ to: swapOperator.address, value: amountInSwapOperator });
+    await fixture.accounts.defaultSender.sendTransaction({ to: swapOperator.address, value: amountInSwapOperator });
 
     await swapOperator.recoverAsset(ETH, receiver.address);
 

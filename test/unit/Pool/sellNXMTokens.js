@@ -1,5 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const setup = require('./setup');
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 const { setNextBlockBaseFee } = require('../utils').evm;
@@ -7,11 +10,12 @@ const { percentageBigNumber } = require('../utils').tokenPrice;
 
 describe('sellNXMTokens', function () {
   it('burns tokens from member in exchange for ETH worth 1% of mcrEth', async function () {
-    const { pool, mcr, token, tokenController } = this;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr, token, tokenController } = fixture;
     const {
       members: [member],
       nonMembers: [fundSource],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const mcrEth = parseEther('160000');
     const initialAssetValue = mcrEth;

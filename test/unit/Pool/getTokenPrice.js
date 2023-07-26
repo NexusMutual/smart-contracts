@@ -1,6 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
+const setup = require('./setup');
 const { getTokenSpotPrice } = require('../utils').tokenPrice;
 const { PoolAsset } = require('../utils').constants;
 const { setEtherBalance } = require('../utils').evm;
@@ -10,7 +12,8 @@ const { parseEther } = ethers.utils;
 
 describe('getTokenPrice', function () {
   it('calculates token price correctly in ETH', async function () {
-    const { pool, mcr } = this;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr } = fixture;
 
     const initialAssetValue = BigNumber.from('210959924071154460525457');
     const mcrEth = BigNumber.from('162424730681679380000000');
@@ -24,7 +27,8 @@ describe('getTokenPrice', function () {
   });
 
   it('calculates token price correctly in DAI', async function () {
-    const { pool, chainlinkDAI, mcr } = this;
+    const fixture = await loadFixture(setup);
+    const { pool, chainlinkDAI, mcr } = fixture;
 
     const initialAssetValue = BigNumber.from('210959924071154460525457');
     const mcrEth = BigNumber.from('162424730681679380000000');
@@ -43,7 +47,8 @@ describe('getTokenPrice', function () {
   });
 
   it('reverts if asset is unknown', async function () {
-    const { pool, mcr, chainlinkDAI } = this;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr, chainlinkDAI } = fixture;
 
     const initialAssetValue = BigNumber.from('210959924071154460525457');
     const mcrEth = BigNumber.from('162424730681679380000000');

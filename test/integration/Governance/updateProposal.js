@@ -1,6 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { proposalTitle, proposalSD, proposalDescHash } = require('./proposalFixture');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('../setup');
 
 const updateProposalFixture = {
   proposalTitle: 'Proposal Title on Update',
@@ -9,20 +11,24 @@ const updateProposalFixture = {
   categoryId: 0,
 };
 
+async function updateProposalSetup() {
+  const fixture = await loadFixture(setup);
+  const { gv: governance } = fixture.contracts;
+  const categoryId = 0;
+  const [member] = fixture.accounts.members;
+  const proposalId = await governance.getProposalLength();
+
+  await governance.connect(member).createProposal(proposalTitle, proposalSD, proposalDescHash, categoryId);
+
+  return { ...fixture, proposalId };
+}
+
 describe('updateProposal', function () {
-  let proposalId;
-  beforeEach(async function () {
-    const { gv: governance } = this.contracts;
-    const categoryId = 0;
-    const [member] = this.accounts.members;
-    proposalId = await governance.getProposalLength();
-
-    await governance.connect(member).createProposal(proposalTitle, proposalSD, proposalDescHash, categoryId);
-  });
-
   it('should fail to update the proposal if sender role is not authorized', async function () {
-    const { gv: governance } = this.contracts;
-    const [, member] = this.accounts.members;
+    const fixture = await loadFixture(updateProposalSetup);
+    const { proposalId } = fixture;
+    const { gv: governance } = fixture.contracts;
+    const [, member] = fixture.accounts.members;
     const { proposalTitle, proposalSD, proposalDescHash } = updateProposalFixture;
 
     await expect(
@@ -31,8 +37,10 @@ describe('updateProposal', function () {
   });
 
   it('should update the proposal', async function () {
-    const { gv: governance } = this.contracts;
-    const [member] = this.accounts.members;
+    const fixture = await loadFixture(updateProposalSetup);
+    const { proposalId } = fixture;
+    const { gv: governance } = fixture.contracts;
+    const [member] = fixture.accounts.members;
     const memberAddress = await member.getAddress();
     const { proposalTitle, proposalSD, proposalDescHash } = updateProposalFixture;
     const { timestamp } = await ethers.provider.getBlock('latest');

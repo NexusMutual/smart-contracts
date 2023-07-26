@@ -1,16 +1,19 @@
 const { enrollMember } = require('../utils/enroll');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('../setup');
 const { Role } = require('../utils').constants;
 
 describe('withdrawMembership', function () {
   it('withdraws membership for current member', async function () {
-    const { mr: memberRoles, tk: token } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { mr: memberRoles, tk: token } = fixture.contracts;
 
-    const [member1, member2] = this.accounts.nonMembers;
+    const [member1, member2] = fixture.accounts.nonMembers;
 
     const newMembers = [member1, member2];
     const { memberArray: membersBefore } = await memberRoles.members(Role.Member);
-    await enrollMember(this.contracts, newMembers, this.accounts.defaultSender);
+    await enrollMember(fixture.contracts, newMembers, fixture.accounts.defaultSender);
 
     await memberRoles.connect(member1).withdrawMembership();
     const hasRole = await memberRoles.checkRole(member1.address, Role.Member);
@@ -25,14 +28,16 @@ describe('withdrawMembership', function () {
   });
 
   it('reverts when withdrawing membership for non-member', async function () {
-    const { mr: memberRoles } = this.contracts;
-    const [nonMember1] = this.accounts.nonMembers;
+    const fixture = await loadFixture(setup);
+    const { mr: memberRoles } = fixture.contracts;
+    const [nonMember1] = fixture.accounts.nonMembers;
     await expect(memberRoles.connect(nonMember1).withdrawMembership()).to.be.reverted;
   });
 
   it('reverts when withdrawing membership for staking pool manager', async function () {
-    const { mr: memberRoles } = this.contracts;
-    const [stakingPoolManager] = this.accounts.stakingPoolManagers;
+    const fixture = await loadFixture(setup);
+    const { mr: memberRoles } = fixture.contracts;
+    const [stakingPoolManager] = fixture.accounts.stakingPoolManagers;
     await expect(memberRoles.connect(stakingPoolManager).withdrawMembership()).to.be.revertedWith(
       'MemberRoles: Member is a staking pool manager',
     );

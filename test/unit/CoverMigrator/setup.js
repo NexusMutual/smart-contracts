@@ -1,9 +1,11 @@
-const { ethers, accounts } = require('hardhat');
+const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
+const { getAccounts } = require('../../utils/accounts');
 
 const { AddressZero } = ethers.constants;
 
 async function setup() {
+  const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
   const productsV1 = await ethers.deployContract('ProductsV1');
   const quotationData = await ethers.deployContract('TestnetQuotationData', [AddressZero, AddressZero]);
@@ -24,15 +26,17 @@ async function setup() {
 
   await master.enrollGovernance(accounts.governanceContracts[0].address);
 
-  this.accounts = accounts;
-  this.contracts = {
-    coverMigrator,
-    cover,
-    distributor,
-    master,
-    quotationData,
-    tokenController,
-    productsV1,
+  return {
+    accounts,
+    contracts: {
+      coverMigrator,
+      cover,
+      distributor,
+      master,
+      quotationData,
+      tokenController,
+      productsV1,
+    },
   };
 }
 

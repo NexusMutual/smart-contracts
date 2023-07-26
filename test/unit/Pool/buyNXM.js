@@ -1,11 +1,15 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const setup = require('./setup');
 const { parseEther } = ethers.utils;
 
 describe('buyNXM', function () {
   it('reverts on purchase with msg.value = 0', async function () {
-    const { pool, mcr } = this;
-    const [member] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr } = fixture;
+    const [member] = fixture.accounts.members;
 
     const mcrEth = parseEther('160000');
     const initialAssetValue = mcrEth;
@@ -17,8 +21,9 @@ describe('buyNXM', function () {
   });
 
   it('reverts on purchase higher than of 5% ETH of mcrEth', async function () {
-    const { pool, mcr } = this;
-    const [member] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr } = fixture;
+    const [member] = fixture.accounts.members;
 
     const mcrEth = parseEther('160000');
     const initialAssetValue = mcrEth;
@@ -33,8 +38,9 @@ describe('buyNXM', function () {
   });
 
   it('reverts on purchase where the bought tokens are below min expected out token amount', async function () {
-    const { pool, mcr } = this;
-    const [member] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr } = fixture;
+    const [member] = fixture.accounts.members;
 
     const mcrEth = parseEther('160000');
     const initialAssetValue = mcrEth;
@@ -50,8 +56,9 @@ describe('buyNXM', function () {
   });
 
   it('reverts on purchase if current MCR% exceeds 400%', async function () {
-    const { pool, mcr } = this;
-    const [member] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr } = fixture;
+    const [member] = fixture.accounts.members;
 
     const mcrEth = parseEther('160000');
     const initialAssetValue = mcrEth.mul(4).add(parseEther('100'));
@@ -66,8 +73,9 @@ describe('buyNXM', function () {
   });
 
   it('reverts when MCReth is 0', async function () {
-    const { pool, mcr } = this;
-    const [member] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr } = fixture;
+    const [member] = fixture.accounts.members;
 
     const mcrEth = parseEther('0');
     const initialAssetValue = parseEther('160000');
@@ -80,8 +88,9 @@ describe('buyNXM', function () {
   });
 
   it('mints expected number of tokens for 5% of MCReth for mcrEth = 160k and MCR% = 150%', async function () {
-    const { pool, mcr, token } = this;
-    const [member] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { pool, mcr, token } = fixture;
+    const [member] = fixture.accounts.members;
 
     const mcrEth = parseEther('160000');
     const initialAssetValue = mcrEth.mul(150).div(100);

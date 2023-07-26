@@ -2,6 +2,8 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { setTime } = require('./helpers');
 const { Role } = require('../../../lib/constants');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
@@ -10,8 +12,9 @@ const ASSESSMENT_DATA_HASH = 'Assessment data ipfs hash';
 
 describe('castVotes', function () {
   it('reverts if the user has already voted on the same assessment', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const user = this.accounts.members[0];
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims } = fixture.contracts;
+    const user = fixture.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
@@ -24,8 +27,9 @@ describe('castVotes', function () {
   });
 
   it('reverts if the user has no stake', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const user = this.accounts.members[0];
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims } = fixture.contracts;
+    const user = fixture.accounts.members[0];
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
     await expect(assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
       'A stake is required to cast votes',
@@ -36,8 +40,9 @@ describe('castVotes', function () {
   });
 
   it('reverts if the voting period has ended', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const [user1, user2] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims } = fixture.contracts;
+    const [user1, user2] = fixture.accounts.members;
     await assessment.connect(user1).stake(parseEther('100'));
     await assessment.connect(user2).stake(parseEther('100'));
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
@@ -69,8 +74,9 @@ describe('castVotes', function () {
   });
 
   it('reverts if the first vote is deny', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const user = this.accounts.members[0];
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims } = fixture.contracts;
+    const user = fixture.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
     await expect(assessment.connect(user).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
@@ -79,8 +85,9 @@ describe('castVotes', function () {
   });
 
   it('resets the voting period to minVotingPeriodInDays after the first accept vote', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const user = this.accounts.members[0];
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims } = fixture.contracts;
+    const user = fixture.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
     {
@@ -103,8 +110,9 @@ describe('castVotes', function () {
   });
 
   it("extends the voting period up to 24h based on the user's stake if the poll ends in < 24h", async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const [user1, user2, user3, user4, user5] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims } = fixture.contracts;
+    const [user1, user2, user3, user4, user5] = fixture.accounts.members;
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
     await assessment.connect(user1).stake(parseEther('100'));
@@ -159,8 +167,9 @@ describe('castVotes', function () {
   });
 
   it("increases the poll's accepted token count if the user vote is to accept", async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const [user1, user2, user3] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims } = fixture.contracts;
+    const [user1, user2, user3] = fixture.accounts.members;
     await assessment.connect(user1).stake(parseEther('100'));
     await assessment.connect(user2).stake(parseEther('100'));
     await assessment.connect(user3).stake(parseEther('100'));
@@ -187,8 +196,9 @@ describe('castVotes', function () {
   });
 
   it("increases the poll's denied token count if the user vote is to deny", async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const [user1, user2, user3, user4] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims } = fixture.contracts;
+    const [user1, user2, user3, user4] = fixture.accounts.members;
     await assessment.connect(user1).stake(parseEther('100'));
     await assessment.connect(user2).stake(parseEther('100'));
     await assessment.connect(user3).stake(parseEther('100'));
@@ -222,8 +232,9 @@ describe('castVotes', function () {
   });
 
   it("pushes the vote details to the user's array votes", async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const [user1, user2] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims } = fixture.contracts;
+    const [user1, user2] = fixture.accounts.members;
     await assessment.connect(user1).stake(parseEther('100'));
     await assessment.connect(user2).stake(parseEther('1000'));
 
@@ -272,8 +283,9 @@ describe('castVotes', function () {
   });
 
   it('increases stake in the same transaction before casting votes', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const [user1] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims } = fixture.contracts;
+    const [user1] = fixture.accounts.members;
     await assessment.connect(user1).stake(parseEther('100'));
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
@@ -309,8 +321,9 @@ describe('castVotes', function () {
   });
 
   it('emits VoteCast event with user, assessment id, stake amount, vote and ipfs hashes', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const [user1, user2] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims } = fixture.contracts;
+    const [user1, user2] = fixture.accounts.members;
     await assessment.connect(user1).stake(parseEther('100'));
     await assessment.connect(user2).stake(parseEther('1000'));
 
@@ -339,8 +352,9 @@ describe('castVotes', function () {
   });
 
   it('reverts if system is paused', async function () {
-    const { assessment, master } = this.contracts;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment, master } = fixture.contracts;
+    const [user] = fixture.accounts.members;
 
     await master.setEmergencyPause(true);
 
@@ -350,8 +364,9 @@ describe('castVotes', function () {
   });
 
   it('reverts if caller is not a member', async function () {
-    const { assessment } = this.contracts;
-    const [nonMember] = this.accounts.nonMembers;
+    const fixture = await loadFixture(setup);
+    const { assessment } = fixture.contracts;
+    const [nonMember] = fixture.accounts.nonMembers;
 
     await expect(assessment.connect(nonMember).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0)).to.revertedWith(
       'Caller is not a member',
@@ -359,8 +374,9 @@ describe('castVotes', function () {
   });
 
   it('reverts if array length of assessments id and votes does not match', async function () {
-    const { assessment } = this.contracts;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment } = fixture.contracts;
+    const [user] = fixture.accounts.members;
 
     await expect(
       assessment.connect(user).castVotes([0], [true, true], [ASSESSMENT_DATA_HASH, ASSESSMENT_DATA_HASH], 0),
@@ -368,8 +384,9 @@ describe('castVotes', function () {
   });
 
   it('reverts if array length of assessments id and ipfsHashes does not match', async function () {
-    const { assessment } = this.contracts;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment } = fixture.contracts;
+    const [user] = fixture.accounts.members;
 
     await expect(
       assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH, ASSESSMENT_DATA_HASH], 0),
@@ -377,15 +394,17 @@ describe('castVotes', function () {
   });
 
   it('does not revert on empty arrays', async function () {
-    const { assessment } = this.contracts;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment } = fixture.contracts;
+    const [user] = fixture.accounts.members;
 
     await expect(assessment.connect(user).castVotes([], [], [], 0)).to.not.be.reverted;
   });
 
   it('allows to stake without voting', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims } = fixture.contracts;
+    const [user] = fixture.accounts.members;
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
@@ -405,8 +424,9 @@ describe('castVotes', function () {
   });
 
   it('allows to cast votes on multiple assessments', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims } = fixture.contracts;
+    const [user] = fixture.accounts.members;
     await assessment.connect(user).stake(parseEther('100'));
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
@@ -441,8 +461,9 @@ describe('castVotes', function () {
   });
 
   it('allows to stake for the first time and vote', async function () {
-    const { assessment, individualClaims } = this.contracts;
-    const [user] = this.accounts.members;
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims } = fixture.contracts;
+    const [user] = fixture.accounts.members;
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
@@ -468,13 +489,14 @@ describe('castVotes', function () {
   });
 
   it('accounts votes from multiple members correctly', async function () {
-    const { assessment, individualClaims, memberRoles, nxm, tokenController } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { assessment, individualClaims, memberRoles, nxm, tokenController } = fixture.contracts;
 
     // 5 members + 5 AB
-    const voters = [...this.accounts.members, ...this.accounts.advisoryBoardMembers];
+    const voters = [...fixture.accounts.members, ...fixture.accounts.advisoryBoardMembers];
 
     // Add AB and nonMember accounts as new members
-    for (const member of this.accounts.advisoryBoardMembers) {
+    for (const member of fixture.accounts.advisoryBoardMembers) {
       await memberRoles.enrollMember(member.address, Role.Member);
       await nxm.mint(member.address, parseEther('10000'));
       await nxm.connect(member).approve(tokenController.address, parseEther('10000'));

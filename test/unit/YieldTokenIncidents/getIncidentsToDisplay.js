@@ -2,14 +2,17 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
 const { setTime, INCIDENT_STATUS } = require('./helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('getIncidentsToDisplay', function () {
   it('aggregates and displays claims related data in a human-readable form', async function () {
-    const { yieldTokenIncidents, assessment } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, assessment } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
 
     const expectedIncidentIds = ['0', '1', '2', '3', '4'];
     const expectedProductIds = ['2', '3', '2', '2', '3'];

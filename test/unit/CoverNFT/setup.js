@@ -1,6 +1,8 @@
-const { ethers, accounts } = require('hardhat');
+const { ethers } = require('hardhat');
+const { getAccounts } = require('../../utils/accounts');
 
 async function setup() {
+  const accounts = await getAccounts();
   const [operator] = accounts.members;
 
   const master = await ethers.deployContract('MasterMock');
@@ -13,8 +15,10 @@ async function setup() {
     coverNFTDescriptor.address,
   ]);
 
-  this.coverNFT = coverNFT;
-  this.accounts = accounts;
+  return {
+    coverNFT,
+    accounts,
+  };
 }
 
 module.exports = setup;

@@ -1,10 +1,12 @@
-const { ethers, accounts } = require('hardhat');
+const { ethers } = require('hardhat');
 const { Role } = require('../../../lib/constants');
+const { getAccounts } = require('../../utils/accounts');
 const { hex } = require('../utils').helpers;
 
 const { parseEther } = ethers.utils;
 
 async function setup() {
+  const accounts = await getAccounts();
   const { internalContracts, members } = accounts;
   const internal = internalContracts[0];
 
@@ -57,15 +59,17 @@ async function setup() {
 
   await tokenController.changeDependentContractAddress();
 
-  this.accounts = accounts;
-  this.contracts = {
-    nxm,
-    master,
-    governance,
-    tokenController,
-    assessment,
-    stakingPoolFactory,
-    pooledStaking,
+  return {
+    accounts,
+    contracts: {
+      nxm,
+      master,
+      governance,
+      tokenController,
+      assessment,
+      stakingPoolFactory,
+      pooledStaking,
+    },
   };
 }
 

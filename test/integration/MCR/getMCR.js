@@ -7,6 +7,8 @@ const { MaxUint256 } = ethers.constants;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { stake } = require('../utils/staking');
 const { buyCover, ETH_ASSET_ID } = require('../utils/cover');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('../setup');
 
 const increaseTime = async interval => {
   const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -29,39 +31,44 @@ const ethCoverTemplate = {
   incidentId: 0,
   assessmentId: 0,
 };
-describe('getMCR', function () {
-  beforeEach(async function () {
-    const { tk, dai, stakingPool1: stakingPool, tc, mcr, cover } = this.contracts;
-    const [member1] = this.accounts.members;
-    const [nonMember1] = this.accounts.nonMembers;
 
-    const operator = await tk.operator();
-    await setEtherBalance(operator, parseEther('10000000'));
+async function getMCRSetup() {
+  const fixture = await loadFixture(setup);
+  const { tk, dai, stakingPool1: stakingPool, tc, mcr, cover } = fixture.contracts;
+  const [member1] = fixture.accounts.members;
+  const [nonMember1] = fixture.accounts.nonMembers;
 
-    for (const daiHolder of [member1, nonMember1]) {
-      // mint  tokens
-      await dai.mint(daiHolder.address, parseEther('1000000000000'));
+  const operator = await tk.operator();
+  await setEtherBalance(operator, parseEther('10000000'));
 
-      // approve token controller and cover
-      await dai.connect(daiHolder).approve(cover.address, MaxUint256);
-    }
+  for (const daiHolder of [member1, nonMember1]) {
+    // mint  tokens
+    await dai.mint(daiHolder.address, parseEther('1000000000000'));
 
-    await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
-    await tk.connect(member1).approve(tc.address, MaxUint256);
-    await stake({
-      stakingPool,
-      staker: member1,
-      productId: ethCoverTemplate.productId,
-      period: daysToSeconds(60),
-      gracePeriod: daysToSeconds(30),
-      amount: parseEther('1000000'),
-    });
+    // approve token controller and cover
+    await dai.connect(daiHolder).approve(cover.address, MaxUint256);
+  }
 
-    expect(await mcr.getAllSumAssurance()).to.be.equal(0);
+  await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
+  await tk.connect(member1).approve(tc.address, MaxUint256);
+  await stake({
+    stakingPool,
+    staker: member1,
+    productId: ethCoverTemplate.productId,
+    period: daysToSeconds(60),
+    gracePeriod: daysToSeconds(30),
+    amount: parseEther('1000000'),
   });
 
+  expect(await mcr.getAllSumAssurance()).to.be.equal(0);
+
+  return fixture;
+}
+
+describe('getMCR', function () {
   it('returns current MCR value when desiredMCR = mcr', async function () {
-    const { mcr } = this.contracts;
+    const fixture = await loadFixture(getMCRSetup);
+    const { mcr } = fixture.contracts;
 
     const storageMCR = await mcr.mcr();
     const currentMCR = await mcr.getMCR();
@@ -70,10 +77,11 @@ describe('getMCR', function () {
   });
 
   it.skip('increases mcr by 0.4% in 2 hours and decreases by 0.4% in 2 hours it after cover expiry', async function () {
-    const { mcr, cover } = this.contracts;
-    const [coverBuyer] = this.accounts.members;
-    const targetPrice = this.DEFAULT_PRODUCTS[0].targetPrice;
-    const priceDenominator = this.config.TARGET_PRICE_DENOMINATOR;
+    const fixture = await loadFixture(getMCRSetup);
+    const { mcr, cover } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.members;
+    const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
+    const priceDenominator = fixture.config.TARGET_PRICE_DENOMINATOR;
 
     const gearingFactor = BigNumber.from(await mcr.gearingFactor());
     const currentMCR = await mcr.getMCR();

@@ -1,9 +1,11 @@
-const { ethers, accounts } = require('hardhat');
+const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
 const { Role } = require('../../../lib/constants');
+const { getAccounts } = require('../../utils/accounts');
 const { parseEther } = ethers.utils;
 
 async function setup() {
+  const accounts = await getAccounts();
   const NXM = await ethers.getContractFactory('NXMTokenMock');
   const nxm = await NXM.deploy();
   await nxm.deployed();
@@ -68,17 +70,19 @@ async function setup() {
 
   const config = await assessment.config();
 
-  this.config = config;
-  this.accounts = accounts;
-  this.contracts = {
-    nxm,
-    dai,
-    assessment,
-    master,
-    individualClaims,
-    yieldTokenIncidents,
-    tokenController,
-    memberRoles,
+  return {
+    config,
+    accounts,
+    contracts: {
+      nxm,
+      dai,
+      assessment,
+      master,
+      individualClaims,
+      yieldTokenIncidents,
+      tokenController,
+      memberRoles,
+    },
   };
 }
 

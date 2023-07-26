@@ -1,10 +1,13 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('./setup');
 
 describe('withdrawGovernanceRewards', function () {
   it('reverts if the system is paused', async function () {
-    const { tokenController, master } = this.contracts;
-    const { members } = this.accounts;
+    const fixture = await loadFixture(setup);
+    const { tokenController, master } = fixture.contracts;
+    const { members } = fixture.accounts;
 
     await master.setEmergencyPause(true);
 
@@ -14,8 +17,9 @@ describe('withdrawGovernanceRewards', function () {
   });
 
   it('calls claimReward with the address owning the rewards and the given batchSize', async function () {
-    const { tokenController, governance } = this.contracts;
-    const { members } = this.accounts;
+    const fixture = await loadFixture(setup);
+    const { tokenController, governance } = fixture.contracts;
+    const { members } = fixture.accounts;
 
     {
       await governance.setUnclaimedGovernanceRewards(members[2].address, ethers.utils.parseUnits('1'));
@@ -35,8 +39,9 @@ describe('withdrawGovernanceRewards', function () {
   });
 
   it('reverts if there are no rewards to withdraw', async function () {
-    const { tokenController, governance } = this.contracts;
-    const { members } = this.accounts;
+    const fixture = await loadFixture(setup);
+    const { tokenController, governance } = fixture.contracts;
+    const { members } = fixture.accounts;
 
     await expect(tokenController.withdrawGovernanceRewards(members[0].address, 1)).to.be.revertedWith(
       'TokenController: No withdrawable governance rewards',
@@ -49,8 +54,9 @@ describe('withdrawGovernanceRewards', function () {
   });
 
   it('tranfers the rewards to the destination address', async function () {
-    const { tokenController, governance, nxm } = this.contracts;
-    const { members } = this.accounts;
+    const fixture = await loadFixture(setup);
+    const { tokenController, governance, nxm } = fixture.contracts;
+    const { members } = fixture.accounts;
 
     const balanceBefore = await nxm.balanceOf(members[1].address);
     await governance.setUnclaimedGovernanceRewards(members[1].address, ethers.utils.parseUnits('123'));

@@ -1,4 +1,6 @@
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { setup } = require('./setup');
 
 const uintParams = {
   payoutRedemptionPeriodInDays: 0,
@@ -8,11 +10,12 @@ const uintParams = {
 };
 describe('updateUintParameters', function () {
   it('can only be called by governance', async function () {
-    const { yieldTokenIncidents } = this.contracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents } = fixture.contracts;
     const {
       governanceContracts: [governance],
       members: [member],
-    } = this.accounts;
+    } = fixture.accounts;
     await expect(yieldTokenIncidents.connect(member).updateUintParameters([], [])).to.be.revertedWith(
       'Caller is not authorized to govern',
     );
@@ -22,8 +25,9 @@ describe('updateUintParameters', function () {
   });
 
   it('sets each parameter to the given new values', async function () {
-    const { yieldTokenIncidents } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
     const newValues = {
       payoutRedemptionPeriodInDays: 111,
       payoutDeductibleRatio: 3333,
@@ -59,8 +63,9 @@ describe('updateUintParameters', function () {
   });
 
   it('sets only the given parameters to the new values', async function () {
-    const { yieldTokenIncidents } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
 
     {
       const newValues = {
@@ -106,8 +111,9 @@ describe('updateUintParameters', function () {
   });
 
   it('allows parameters to be given in any order', async function () {
-    const { yieldTokenIncidents } = this.contracts;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents } = fixture.contracts;
+    const [governance] = fixture.accounts.governanceContracts;
 
     {
       const newValues = {

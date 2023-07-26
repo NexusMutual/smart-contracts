@@ -1,5 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const setup = require('../setup');
 const { AddressZero } = ethers.constants;
 
 const stakedProductParamTemplate = {
@@ -29,37 +31,42 @@ const coverProductParamTemplate = {
   allowedPools: [],
 };
 
+async function setProductsSetup() {
+  const fixture = await loadFixture(setup);
+  const { cover } = fixture.contracts;
+  const {
+    stakingPoolManagers: [manager],
+  } = fixture.accounts;
+
+  const initialPoolFee = 50; // 50%
+  const maxPoolFee = 80; // 80%
+
+  const [poolId] = await cover.callStatic.createStakingPool(true, initialPoolFee, maxPoolFee, [], '');
+
+  await cover.connect(manager).createStakingPool(
+    true, // isPrivatePool,
+    initialPoolFee,
+    maxPoolFee,
+    [],
+    '', // ipfsDescriptionHash
+  );
+
+  return {
+    ...fixture,
+    poolId,
+  };
+}
+
 describe('setProducts', function () {
-  beforeEach(async function () {
-    const { cover } = this.contracts;
-    const {
-      stakingPoolManagers: [manager],
-    } = this.accounts;
-
-    const initialPoolFee = 50; // 50%
-    const maxPoolFee = 80; // 80%
-
-    const [poolId] = await cover.callStatic.createStakingPool(true, initialPoolFee, maxPoolFee, [], '');
-
-    await cover.connect(manager).createStakingPool(
-      true, // isPrivatePool,
-      initialPoolFee,
-      maxPoolFee,
-      [],
-      '', // ipfsDescriptionHash
-    );
-
-    this.poolId = poolId;
-  });
-
   it('should be able to raise and lower weights of deprecated products', async function () {
-    const { stakingProducts, cover } = this.contracts;
+    const fixture = await loadFixture(setProductsSetup);
+    const { stakingProducts, cover } = fixture.contracts;
     const {
       defaultSender: admin,
       stakingPoolManagers: [manager1],
-    } = this.accounts;
+    } = fixture.accounts;
 
-    await stakingProducts.connect(manager1).setProducts(this.poolId /* poolId */, [
+    await stakingProducts.connect(manager1).setProducts(fixture.poolId /* poolId */, [
       {
         ...stakedProductParamTemplate,
       },
@@ -73,7 +80,7 @@ describe('setProducts', function () {
     await cover.connect(admin).setProducts([coverProductParams]);
 
     // raise target weight
-    await stakingProducts.connect(manager1).setProducts(this.poolId /* poolId */, [
+    await stakingProducts.connect(manager1).setProducts(fixture.poolId /* poolId */, [
       {
         ...stakedProductParamTemplate,
         targetWeight: 100,
@@ -81,7 +88,7 @@ describe('setProducts', function () {
     ]);
 
     // lower target weight
-    await stakingProducts.connect(manager1).setProducts(this.poolId /* poolId */, [
+    await stakingProducts.connect(manager1).setProducts(fixture.poolId /* poolId */, [
       {
         ...stakedProductParamTemplate,
         targetWeight: 1,
@@ -90,15 +97,16 @@ describe('setProducts', function () {
   });
 
   it('should fail to set product that doesnt exist', async function () {
-    const { stakingProducts, cover } = this.contracts;
+    const fixture = await loadFixture(setProductsSetup);
+    const { stakingProducts, cover } = fixture.contracts;
     const {
       stakingPoolManagers: [manager1],
-    } = this.accounts;
+    } = fixture.accounts;
 
     const nonExistentProductId = 999999;
 
     await expect(
-      stakingProducts.connect(manager1).setProducts(this.poolId /* poolId */, [
+      stakingProducts.connect(manager1).setProducts(fixture.poolId /* poolId */, [
         {
           ...stakedProductParamTemplate,
           productId: nonExistentProductId,

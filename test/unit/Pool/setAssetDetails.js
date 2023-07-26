@@ -1,14 +1,19 @@
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const setup = require('./setup');
 
 describe('setAssetDetails', function () {
   it('reverts when not called by goverance', async function () {
-    const { pool } = this;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
     await expect(pool.setAssetDetails(0, false, false)).to.be.revertedWith('Caller is not authorized to govern');
   });
 
   it('reverts when asset does not exist', async function () {
-    const { pool } = this;
-    const [governance] = this.accounts.governanceContracts;
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
+    const [governance] = fixture.accounts.governanceContracts;
 
     const assets = await pool.getAssets();
     const nextAssetId = assets.length;
@@ -19,8 +24,9 @@ describe('setAssetDetails', function () {
   });
 
   it('marks asset as cover asset, or abandoned', async function () {
-    const [governance] = this.accounts.governanceContracts;
-    const pool = this.pool.connect(governance);
+    const fixture = await loadFixture(setup);
+    const [governance] = fixture.accounts.governanceContracts;
+    const pool = fixture.pool.connect(governance);
 
     const assets = await pool.getAssets();
     const lastAssetId = assets.length - 1;

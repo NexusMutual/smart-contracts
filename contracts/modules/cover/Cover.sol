@@ -152,6 +152,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.coverId = coverId;
       allocationRequest.period = params.period;
       allocationRequest.gracePeriod = _productTypes[product.productType].gracePeriod;
+      allocationRequest.useFixedPrice = product.useFixedPrice;
       allocationRequest.globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
       allocationRequest.capacityReductionRatio = product.capacityReductionRatio;
       allocationRequest.rewardRatio = GLOBAL_REWARDS_RATIO;

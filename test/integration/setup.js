@@ -312,7 +312,7 @@ async function setup() {
     },
   ]);
 
-  await cover.setProducts([
+  const productList = [
     {
       productName: 'Product 0',
       productId: MaxUint256,
@@ -349,7 +349,7 @@ async function setup() {
         productType: 2, // Yield Token Cover
         yieldTokenAddress: ybETH.address,
         coverAssets: 0b01, // ETH
-        initialPriceRatio: 100,
+        initialPriceRatio: 500,
         capacityReductionRatio: 0,
         useFixedPrice: false,
       },
@@ -377,7 +377,7 @@ async function setup() {
         productType: 0, // Protocol Cover
         yieldTokenAddress: AddressZero,
         coverAssets: 0, // Use fallback
-        initialPriceRatio: 100,
+        initialPriceRatio: 500,
         capacityReductionRatio: 0,
         useFixedPrice: true,
       },
@@ -411,7 +411,24 @@ async function setup() {
       },
       allowedPools: [3],
     },
-  ]);
+    {
+      productName: 'Product 7',
+      productId: MaxUint256,
+      ipfsMetadata: 'product 7 metadata',
+      product: {
+        productType: 0, // Protocol Cover
+        yieldTokenAddress: AddressZero,
+        coverAssets: 0, // Use fallback
+        initialPriceRatio: 100,
+        capacityReductionRatio: 0,
+        useFixedPrice: true,
+        isDeprecated: true,
+      },
+      allowedPools: [],
+    },
+  ];
+
+  await cover.setProducts(productList);
 
   await gv.changeMasterAddress(master.address);
   await master.switchGovernanceAddress(gv.address);
@@ -541,6 +558,7 @@ async function setup() {
     BUCKET_SIZE: BigNumber.from(7 * 24 * 3600), // 7 days
     BUCKET_DURATION: BigNumber.from(28 * 24 * 3600), // 28 days
     GLOBAL_REWARDS_RATIO: BigNumber.from(5000), // 50%
+    COMMISSION_DENOMINATOR: BigNumber.from(10000),
     TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
     ONE_NXM: await stakingPool.ONE_NXM(),
     NXM_PER_ALLOCATION_UNIT: await stakingPool.NXM_PER_ALLOCATION_UNIT(),
@@ -552,6 +570,8 @@ async function setup() {
   fixture.config = config;
   fixture.accounts = accounts;
   fixture.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS;
+  fixture.productList = productList;
+
   return fixture;
 }
 

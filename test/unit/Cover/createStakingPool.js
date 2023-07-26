@@ -115,7 +115,7 @@ describe('createStakingPool', function () {
   });
 
   it('should fail to create a new pool called from pooled staking - Not a member', async function () {
-    const { cover } = this;
+    const { stakingProducts } = this;
     const { initialPoolFee, maxPoolFee, ipfsDescriptionHash } = newPoolFixture;
 
     const initialProducts = [

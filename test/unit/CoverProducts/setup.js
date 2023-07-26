@@ -1,18 +1,11 @@
 const { ethers, accounts } = require('hardhat');
-const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
 const { AddressZero, MaxUint256 } = ethers.constants;
-const { getContractAddress, parseEther } = ethers.utils;
-
-const getDeployAddressAfter = async (account, txCount) => {
-  const from = account.address;
-  const nonce = (await account.getTransactionCount()) + txCount;
-  return getContractAddress({ from, nonce });
-};
+const { parseEther } = ethers.utils;
 
 const Assets = {
   ETH: 1,
@@ -31,31 +24,14 @@ async function setup() {
   const mcr = await ethers.deployContract('CoverMockMCR');
   await mcr.setMCR(parseEther('600000'));
 
-  const stakingPoolImplementation = await ethers.deployContract('CoverMockStakingPool');
-  const coverNFT = await ethers.deployContract('CoverMockCoverNFT');
-  const stakingNFT = await ethers.deployContract('CoverMockStakingNFT');
-
-  const { defaultSender } = accounts;
-  const expectedStakingProductsAddress = await getDeployAddressAfter(defaultSender, 3);
-
-  const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [expectedStakingProductsAddress]);
-
-  const cover = await ethers.deployContract('Cover', [
-    coverNFT.address,
-    stakingNFT.address,
-    stakingPoolFactory.address,
-    stakingPoolImplementation.address,
-  ]);
-
   const coverProducts = await ethers.deployContract('CoverProducts');
 
-  const stakingProducts = await ethers.deployContract('CoverMockStakingProducts', [
-    cover.address,
-    stakingPoolFactory.address,
-    tokenController.address,
-    coverProducts.address
-  ]);
-  expect(expectedStakingProductsAddress).to.equal(stakingProducts.address);
+  const stakingProducts = await ethers.deployContract(
+    'CoverMockStakingProducts',
+    [AddressZero, AddressZero, AddressZero, AddressZero]
+  );
+
+  const coverNFT = await ethers.deployContract('CoverMockCoverNFT');
 
   const dai = await ethers.deployContract('ERC20Mock');
   const usdc = await ethers.deployContract('ERC20CustomDecimalsMock', [6]); // 6 decimals
@@ -74,11 +50,10 @@ async function setup() {
   await master.setTokenAddress(nxm.address);
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('MR'), memberRoles.address);
-  await master.setLatestAddress(hex('CO'), cover.address);
+  await master.setLatestAddress(hex('CP'), coverProducts.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('SP'), stakingProducts.address);
-  await master.setLatestAddress(hex('CP'), coverProducts.address);
 
   const pooledStakingSigner = accounts.members[4];
   await master.setLatestAddress(hex('PS'), pooledStakingSigner.address);
@@ -102,7 +77,7 @@ async function setup() {
     await master.enrollGovernance(governanceContract.address);
   }
 
-  for (const contract of [cover, coverProducts, tokenController]) {
+  for (const contract of [coverProducts, tokenController]) {
     await contract.changeMasterAddress(master.address);
     await contract.changeDependentContractAddress();
     await master.enrollInternal(contract.address);
@@ -186,8 +161,7 @@ async function setup() {
     },
   ]);
 
-  const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
-  const MAX_COMMISSION_RATIO = await cover.MAX_COMMISSION_RATIO();
+  const GLOBAL_MIN_PRICE_RATIO = await coverProducts.GLOBAL_MIN_PRICE_RATIO();
   const BUCKET_SIZE = BigNumber.from(7 * 24 * 3600); // 7 days
   const capacityFactor = '20000';
 
@@ -198,15 +172,12 @@ async function setup() {
   this.nxm = nxm;
   this.tokenController = tokenController;
   this.memberRoles = memberRoles;
-  this.cover = cover;
+  this.coverProducts = coverProducts;
   this.coverNFT = coverNFT;
   this.accounts = accounts;
   this.capacityFactor = capacityFactor;
-  this.stakingPoolImplementation = stakingPoolImplementation;
-  this.stakingPoolFactory = stakingPoolFactory;
   this.stakingProducts = stakingProducts;
-  this.coverProducts = coverProducts;
-  this.config = { GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO };
+  this.config = { GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE };
   this.assets = Assets;
   this.pooledStakingSigner = pooledStakingSigner;
 }

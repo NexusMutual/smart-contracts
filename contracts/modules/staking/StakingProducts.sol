@@ -11,6 +11,7 @@ import "../../libraries/StakingPoolLibrary.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICoverProducts.sol";
+import "hardhat/console.sol";
 
 contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   using SafeUintCast for uint;
@@ -619,6 +620,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     string calldata ipfsDescriptionHash
   ) external whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
 
+    console.log("createStakingPool ", initialPoolFee);
+
     uint numProducts = productInitParams.length;
 
     // override with initial price and check if pool is allowed
@@ -651,6 +654,9 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     (uint poolId, address stakingPoolAddress) = IStakingPoolFactory(stakingPoolFactory).create(coverContract);
 
+    console.log("poolId", poolId);
+    console.log("stakingPoolAddress", stakingPoolAddress);
+
     IStakingPool(stakingPoolAddress).initialize(
       isPrivatePool,
       initialPoolFee,
@@ -658,6 +664,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       poolId,
       ipfsDescriptionHash
     );
+
+    console.log("initialized", stakingPoolAddress);
 
     tokenController().assignStakingPoolManager(poolId, msg.sender);
 

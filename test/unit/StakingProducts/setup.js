@@ -41,7 +41,7 @@ async function setup() {
 
   const stakingNFT = await ethers.deployContract('SPMockStakingNFT');
 
-  const coverProducts = await ethers.deployContract('CoverProducts');
+  const coverProducts = await ethers.deployContract('StakingProductsMockCoverProducts');
 
   const nonce = (await accounts.defaultSender.getTransactionCount()) + 2;
   const expectedStakingProductsAddress = getContractAddress({ from: accounts.defaultSender.address, nonce });
@@ -53,6 +53,10 @@ async function setup() {
     expectedStakingProductsAddress,
   ]);
 
+  console.log({
+    expectedCoverAddress
+  })
+
   const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [expectedStakingProductsAddress]);
   const stakingProducts = await ethers.deployContract('StakingProducts', [
     expectedCoverAddress,
@@ -63,7 +67,7 @@ async function setup() {
   const stakingPoolImplementation = await ethers.deployContract('StakingPool', [
     stakingNFT.address,
     nxm.address,
-    expectedStakingProductsAddress,
+    expectedCoverAddress,
     tokenController.address,
     master.address,
     stakingProducts.address,
@@ -73,6 +77,7 @@ async function setup() {
     stakingNFT.address,
     stakingPoolFactory.address,
     stakingPoolImplementation.address,
+    coverProducts.address
   ]);
   expect(cover.address).to.be.equal(expectedCoverAddress);
 
@@ -98,7 +103,7 @@ async function setup() {
     await master.enrollInternal(internalContract.address);
   }
 
-  for (const contract of [stakingProducts, coverProducts]) {
+  for (const contract of [stakingProducts]) {
     await contract.changeMasterAddress(master.address);
     await contract.changeDependentContractAddress();
     await master.enrollInternal(contract.address);
@@ -111,9 +116,9 @@ async function setup() {
   // Add products to cover contract
   await Promise.all(
     initialProducts.map(({ productId, initialPrice: initialPriceRatio }) => [
-      cover.setProduct({ ...coverProductTemplate, initialPriceRatio }, productId),
-      cover.setProductType(ProductTypeFixture, productId),
-      cover.setPoolAllowed(productId, 1 /* poolID */, true),
+      coverProducts.setProduct({ ...coverProductTemplate, initialPriceRatio }, productId),
+      coverProducts.setProductType(ProductTypeFixture, productId),
+      coverProducts.setPoolAllowed(productId, 1 /* poolID */, true),
     ]),
   );
 

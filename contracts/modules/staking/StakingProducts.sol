@@ -361,7 +361,11 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     return Math.max(targetWeight, actualWeight).toUint16();
   }
 
-  function setInitialProducts(uint poolId, ProductInitializationParams[] memory params) internal {
+  function setInitialProducts(uint poolId, ProductInitializationParams[] memory params) public onlyInternal {
+    _setInitialProducts(poolId, params);
+  }
+
+  function _setInitialProducts(uint poolId, ProductInitializationParams[] memory params) internal {
 
     uint totalTargetWeight;
 
@@ -669,7 +673,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     tokenController().assignStakingPoolManager(poolId, msg.sender);
 
-    setInitialProducts(poolId, productInitParams);
+    _setInitialProducts(poolId, productInitParams);
 
     return (poolId, stakingPoolAddress);
   }

@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const setup = require('./setup');
 
-describe('StakingProducts unit tests', function () {
+describe.only('StakingProducts unit tests', function () {
   before(setup);
 
   beforeEach(async function () {

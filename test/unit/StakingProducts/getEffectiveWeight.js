@@ -9,10 +9,10 @@ const poolId = 1;
 const productId = 0;
 describe('getEffectiveWeight', function () {
   before(async function () {
-    const { cover } = this;
+    const { coverProducts, cover } = this;
 
     const capacityRatio = await cover.GLOBAL_CAPACITY_RATIO();
-    const product = await cover.products(productId);
+    const product = await coverProducts.products(productId);
 
     this.globalCapacityRatio = capacityRatio;
     this.capacityReductionRatio = product.capacityReductionRatio;

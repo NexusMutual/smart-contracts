@@ -10,11 +10,12 @@ const { parseEther, formatBytes32String } = ethers.utils;
 
 async function setup() {
   const accounts = await getAccounts();
-  const TokenControllerMock = await ethers.getContractFactory('TokenControllerMock');
-  const tokenController = await TokenControllerMock.deploy();
-
   const NXM = await ethers.getContractFactory('NXMTokenMock');
   const nxm = await NXM.deploy();
+
+  const TokenControllerMock = await ethers.getContractFactory('TokenControllerMock');
+  const tokenController = await TokenControllerMock.deploy(nxm.address);
+
   await nxm.setOperator(tokenController.address);
 
   const MemberRoles = await ethers.getContractFactory('MemberRoles');

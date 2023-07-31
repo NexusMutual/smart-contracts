@@ -27,10 +27,11 @@ contract DisposablePooledStaking is LegacyPooledStaking {
     REWARD_ROUNDS_START = block.timestamp;
   }
 
-  constructor() LegacyPooledStaking(
+  constructor(address _tokenAddress) LegacyPooledStaking(
     0x0000000000000000000000000000000000000000,
     0x0000000000000000000000000000000000000000,
-    0x0000000000000000000000000000000000000000
+    0x0000000000000000000000000000000000000000,
+    _tokenAddress
   ) {
     // noop
   }

@@ -31,12 +31,18 @@ contract TokenControllerMock is MasterAwareV2 {
 
   mapping(address => uint) public _pendingRewards;
 
+  INXMToken public token;
+
+  constructor(address _tokenAddress) {
+    token = INXMToken(_tokenAddress);
+  }
+
   function mint(address _member, uint256 _amount) public onlyInternal {
-    token().mint(_member, _amount);
+    token.mint(_member, _amount);
   }
 
   function burnFrom(address _of, uint amount) public onlyInternal returns (bool) {
-    return token().burnFrom(_of, amount);
+    return token.burnFrom(_of, amount);
   }
 
   function addToWhitelist(address _member) public onlyInternal {
@@ -49,16 +55,11 @@ contract TokenControllerMock is MasterAwareV2 {
 
   /* ========== DEPENDENCIES ========== */
 
-  function token() public view returns (INXMToken) {
-    return INXMToken(internalContracts[uint(ID.TK)]);
-  }
-
   function cover() internal view returns (ICover) {
     return ICover(internalContracts[uint(ID.CO)]);
   }
 
   function changeDependentContractAddress() public {
-    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
   }
 
@@ -67,40 +68,40 @@ contract TokenControllerMock is MasterAwareV2 {
       msg.sender == master.getLatestAddress("PS") || msg.sender == master.getLatestAddress("CO"),
       "Call is only allowed from PooledStaking or Cover address"
     );
-    require(token().operatorTransfer(_from, _value), "Operator transfer failed");
-    require(token().transfer(_to, _value), "Internal transfer failed");
+    require(token.operatorTransfer(_from, _value), "Operator transfer failed");
+    require(token.transfer(_to, _value), "Internal transfer failed");
     return true;
   }
 
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
     stakingPoolNXMBalances[poolId].rewards += uint128(amount);
-    token().mint(address(this), amount);
+    token.mint(address(this), amount);
   }
 
   function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
     stakingPoolNXMBalances[poolId].rewards -= uint128(amount);
-    token().burn(amount);
+    token.burn(amount);
   }
 
   function depositStakedNXM(address from, uint amount, uint poolId) external {
     stakingPoolNXMBalances[poolId].deposits += uint128(amount);
-    token().operatorTransfer(from, amount);
+    token.operatorTransfer(from, amount);
   }
 
   function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {
     stakingPoolNXMBalances[poolId].deposits -= uint128(stakeToWithdraw);
     stakingPoolNXMBalances[poolId].rewards -= uint128(rewardsToWithdraw);
-    token().transfer(to, stakeToWithdraw + rewardsToWithdraw);
+    token.transfer(to, stakeToWithdraw + rewardsToWithdraw);
   }
 
   function burnStakedNXM(uint amount, uint poolId) external {
     stakingPoolNXMBalances[poolId].deposits -= uint128(amount);
-    token().burn(amount);
+    token.burn(amount);
   }
 
   function setContractAddresses(address payable coverAddr, address payable tokenAddr) public {
-    internalContracts[uint(ID.TK)] = tokenAddr;
     internalContracts[uint(ID.CO)] = coverAddr;
+    token = INXMToken(tokenAddr);
   }
 
   function setStakingPoolManager(uint poolId, address manager) external {

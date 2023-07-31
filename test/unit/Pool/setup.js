@@ -53,9 +53,9 @@ async function setup() {
   const swapOperator = await P1MockSwapOperator.deploy();
 
   const mcr = await MCR.deploy();
-  const tokenController = await TokenController.deploy();
-
   const token = await TokenMock.deploy();
+  const tokenController = await TokenController.deploy(token.address);
+
   await token.setOperator(tokenController.address);
   await token.mint(accounts.defaultSender.address, parseEther('10000'));
 

@@ -86,10 +86,10 @@ async function setup() {
   // proxy contracts
   const master = await deployProxy('DisposableNXMaster');
   const mr = await deployProxy('DisposableMemberRoles', [tk.address]);
-  const ps = await deployProxy('DisposablePooledStaking');
+  const ps = await deployProxy('DisposablePooledStaking', [tk.address]);
   const pc = await deployProxy('DisposableProposalCategory');
   const gv = await deployProxy('DisposableGovernance');
-  const gateway = await deployProxy('DisposableGateway', [qd.address]);
+  const gateway = await deployProxy('DisposableGateway', [qd.address, tk.address]);
 
   // non-proxy contracts
   const lcr = await ethers.deployContract('LegacyClaimsReward', [master.address, dai.address]);
@@ -437,11 +437,16 @@ async function setup() {
 
   await upgradeProxy(mr.address, 'MemberRoles', [tk.address]);
   await upgradeProxy(tc.address, 'TokenController', [qd.address, lcr.address, spf.address, tk.address]);
-  await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address, stakingNFT.address]);
+  await upgradeProxy(ps.address, 'LegacyPooledStaking', [
+    cover.address,
+    productsV1.address,
+    stakingNFT.address,
+    tk.address,
+  ]);
   await upgradeProxy(pc.address, 'ProposalCategory');
   await upgradeProxy(master.address, 'NXMaster');
   await upgradeProxy(gv.address, 'Governance');
-  await upgradeProxy(gateway.address, 'LegacyGateway', [qd.address]);
+  await upgradeProxy(gateway.address, 'LegacyGateway', [qd.address, tk.address]);
 
   // [todo] We should probably call changeDependentContractAddress on every contract
   await gateway.changeDependentContractAddress();

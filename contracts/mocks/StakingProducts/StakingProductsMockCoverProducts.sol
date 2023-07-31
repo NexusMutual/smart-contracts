@@ -13,6 +13,7 @@ contract StakingProductsMockCoverProducts {
   mapping(uint => ProductType) public productTypes;
   mapping(uint => mapping(uint => bool)) public allowedPools;
   uint public productsCount;
+  mapping(uint => uint)  private _allowedPoolsCount;
 
   constructor(
 
@@ -22,6 +23,10 @@ contract StakingProductsMockCoverProducts {
   function setProduct(Product memory _product, uint id) public {
     products[id] = _product;
     productsCount++;
+  }
+
+  function allowedPoolsCount(uint productId) external view returns (uint) {
+    return _allowedPoolsCount[productId];
   }
 
   function setProducts(Product[] memory _products, uint[] memory productIds) public {
@@ -55,6 +60,7 @@ contract StakingProductsMockCoverProducts {
 
   function setPoolAllowed(uint productId, uint poolId, bool allowed) external {
     allowedPools[productId][poolId] = allowed;
+    _allowedPoolsCount[productId]++;
   }
 
   function isPoolAllowed(uint productId, uint poolId) external view returns (bool) {

@@ -47,7 +47,7 @@ async function setup() {
   await cover.deployed();
 
 
-  const CoverProducts = await ethers.getContractFactory('CLMockCoverProducts');
+  const CoverProducts = await ethers.getContractFactory('ICMockCoverProducts');
   const coverProducts = await CoverProducts.deploy();
   await coverProducts.deployed();
 

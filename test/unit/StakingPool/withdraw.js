@@ -42,18 +42,18 @@ const withdrawFixture = {
 
 describe('withdraw', function () {
   beforeEach(async function () {
-    const { stakingPool, stakingProducts, coverSigner, tokenController } = this;
+    const { stakingPool, stakingProducts, tokenController } = this;
     const manager = this.accounts.defaultSender;
 
     const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
     await stakingPool
-      .connect(coverSigner)
+      .connect(this.stakingProductsSigner)
       .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
 
     await tokenController.setStakingPoolManager(poolId, manager.address);
 
-    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
+    await stakingProducts.connect(this.stakingProductsSigner).setInitialProducts(poolId, products);
 
     // Move to the beginning of the next tranche
     const { firstActiveTrancheId: trancheId } = await getTranches();

@@ -43,11 +43,7 @@ describe('depositTo', function () {
     const { defaultSender: manager } = this.accounts;
     const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 
-    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
-    await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
-    this.coverSigner = coverSigner;
-
-    await stakingPool.connect(coverSigner).initialize(
+    await stakingPool.connect(this.stakingProductsSigner).initialize(
       false, // isPrivatePool
       initialPoolFee,
       maxPoolFee,
@@ -56,7 +52,7 @@ describe('depositTo', function () {
     );
     await tokenController.setStakingPoolManager(poolId, manager.address);
 
-    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
+    await stakingProducts.connect(this.stakingProductsSigner).setInitialProducts(poolId, products);
 
     // Move to the beginning of the next tranche
     const { firstActiveTrancheId: trancheId } = await getTranches();

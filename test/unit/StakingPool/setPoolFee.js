@@ -41,18 +41,16 @@ const initializeParams = {
 
 describe('setPoolFee', function () {
   beforeEach(async function () {
-    const { stakingPool, stakingProducts, cover, tokenController } = this;
+    const { stakingPool, stakingProducts, tokenController } = this;
     const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
-    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
     const manager = this.accounts.defaultSender;
 
-    await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
     await stakingPool
-      .connect(coverSigner)
+      .connect(this.stakingProductsSigner)
       .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
     await tokenController.setStakingPoolManager(poolId, manager.address);
 
-    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
+    await stakingProducts.connect(this.stakingProductsSigner).setInitialProducts(poolId, products);
   });
 
   it('reverts if manager is not the caller', async function () {

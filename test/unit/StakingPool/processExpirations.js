@@ -44,13 +44,9 @@ describe('processExpirations', function () {
     const { stakingPool, stakingProducts, cover } = this;
     const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 
-    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
-    await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
-    this.coverSigner = coverSigner;
+    await stakingPool.connect(this.stakingProductsSigner).initialize(false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
 
-    await stakingPool.connect(coverSigner).initialize(false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
-
-    await stakingProducts.connect(coverSigner).setInitialProducts(poolId, products);
+    await stakingProducts.connect(this.stakingProductsSigner).setInitialProducts(poolId, products);
 
     // Move to the beginning of the next tranche
     const { firstActiveTrancheId: trancheId } = await getTranches();

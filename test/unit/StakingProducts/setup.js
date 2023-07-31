@@ -89,6 +89,10 @@ async function setup() {
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('SP'), stakingProducts.address);
   await master.setLatestAddress(hex('CP'), coverProducts.address);
+
+  const pooledStakingSigner = accounts.members[4];
+  await master.setLatestAddress(hex('PS'), pooledStakingSigner.address);
+
   await tokenController.setContractAddresses(cover.address, nxm.address);
   await master.setTokenAddress(nxm.address);
   await master.enrollInternal(accounts.defaultSender.address);
@@ -115,11 +119,11 @@ async function setup() {
     .map(() => ({ ...initialProductTemplate, productId: i++ }));
   // Add products to cover contract
   await Promise.all(
-    initialProducts.map(({ productId, initialPrice: initialPriceRatio }) => [
-      coverProducts.setProduct({ ...coverProductTemplate, initialPriceRatio }, productId),
-      coverProducts.setProductType(ProductTypeFixture, productId),
-      coverProducts.setPoolAllowed(productId, 1 /* poolID */, true),
-    ]),
+    initialProducts.map(async ({ productId, initialPrice: initialPriceRatio }) => {
+      await coverProducts.setProduct({ ...coverProductTemplate, initialPriceRatio }, productId);
+      await coverProducts.setProductType(ProductTypeFixture, productId);
+      await coverProducts.setPoolAllowed(productId, 1 /* poolID */, true);
+    })
   );
 
   const ret = await stakingProducts.connect(accounts.members[0]).callStatic.createStakingPool(false, 5, 5, [], 'ipfs hash');
@@ -171,6 +175,8 @@ async function setup() {
   this.poolId = poolId;
   this.stakingPoolFactory = stakingPoolFactory;
   this.coverProducts = coverProducts;
+  this.initialProducts = initialProducts;
+  this.pooledStakingSigner = pooledStakingSigner;
 }
 
 module.exports = setup;

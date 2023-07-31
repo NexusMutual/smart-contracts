@@ -33,19 +33,15 @@ const managerDepositId = 0;
 
 describe('extendDeposit', function () {
   beforeEach(async function () {
-    const { stakingPool, stakingProducts, stakingNFT, cover, tokenController } = this;
+    const { stakingPool, stakingProducts, stakingNFT, tokenController } = this;
     const [user] = this.accounts.members;
     const manager = this.accounts.defaultSender;
 
-    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
-    await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
-    this.coverSigner = coverSigner;
-
     const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
-    await stakingPool.connect(coverSigner).initialize(false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+    await stakingPool.connect(this.stakingProductsSigner).initialize(false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
     await tokenController.setStakingPoolManager(poolId, manager.address);
 
-    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, products);
+    await stakingProducts.connect(this.stakingProductsSigner).setInitialProducts(poolId, products);
 
     // Move to the beginning of the next tranche
     const { firstActiveTrancheId: trancheId } = await getTranches();

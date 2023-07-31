@@ -15,7 +15,7 @@ const {
   moveTimeToNextTranche,
 } = require('./helpers');
 
-const { increaseTime } = require('../utils').evm;
+const { increaseTime, setEtherBalance } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
 const { AddressZero, Two, Zero } = ethers.constants;
@@ -122,10 +122,10 @@ describe('requestAllocation', function () {
     const initialPoolFee = 7; // 7%
 
     await stakingPool
-      .connect(this.coverSigner)
+      .connect(this.stakingProductsSigner)
       .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
 
-    await stakingProducts.connect(this.coverSigner).setInitialProducts(poolId, [defaultProduct, product2, product3]);
+    await stakingProducts.connect(this.stakingProductsSigner).setInitialProducts(poolId, [defaultProduct, product2, product3]);
 
     // Deposit into pool
     const amount = stakedNxmAmount;

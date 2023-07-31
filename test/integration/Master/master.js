@@ -274,8 +274,8 @@ describe('master', function () {
       await Governance.deploy(),
       await ProposalCategoryContract.deploy(),
       await MemberRoles.deploy(tk.address),
-      await LegacyPooledStaking.deploy(cover.address, productsV1.address, AddressZero),
-      await LegacyGateway.deploy(AddressZero),
+      await LegacyPooledStaking.deploy(cover.address, productsV1.address, AddressZero, tk.address),
+      await LegacyGateway.deploy(AddressZero, tk.address),
       await IndividualClaims.deploy(tk.address, coverNFT.address),
     ].map(c => {
       return c.address;

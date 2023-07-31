@@ -39,13 +39,11 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
   address public _unused_coverMigrator;
 
   IQuotationData public immutable quotationData;
+  INXMToken internal immutable nxmToken;
 
-  constructor(address _quotationData) {
+  constructor(address _quotationData, address _tokenAddress) {
     quotationData = IQuotationData(_quotationData);
-  }
-
-  function nxmToken() internal view returns (INXMToken) {
-    return INXMToken(internalContracts[uint(ID.TK)]);
+    nxmToken = INXMToken(_tokenAddress);
   }
 
   function memberRoles() internal view returns (IMemberRoles) {
@@ -57,7 +55,6 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
   }
 
   function changeDependentContractAddress() external {
-    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.CL)] = master.getLatestAddress("CL");
   }
@@ -117,7 +114,7 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
 
   function switchMembership(address newAddress) external override {
     memberRoles().switchMembershipOf(msg.sender, newAddress);
-    nxmToken().transferFrom(msg.sender, newAddress, nxmToken().balanceOf(msg.sender));
+    nxmToken.transferFrom(msg.sender, newAddress, nxmToken.balanceOf(msg.sender));
   }
 
   /* ===== DEPRECATED ===== */

@@ -44,8 +44,9 @@ async function setup() {
   const master = await MasterMock.deploy();
   const mcr = await MCR.deploy(master.address);
 
-  const tokenController = await TokenController.deploy();
   const nxmToken = await TokenMock.deploy();
+  const tokenController = await TokenController.deploy(nxmToken.address);
+
   await nxmToken.setOperator(tokenController.address);
 
   // Deploy price aggregators

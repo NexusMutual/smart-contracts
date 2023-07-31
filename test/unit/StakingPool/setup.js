@@ -8,9 +8,8 @@ async function setup() {
   const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
   const memberRoles = await ethers.deployContract('MemberRolesMock');
-  const tokenController = await ethers.deployContract('TokenControllerMock');
-
   const nxm = await ethers.deployContract('NXMTokenMock');
+  const tokenController = await ethers.deployContract('TokenControllerMock', [nxm.address]);
 
   const mcr = await ethers.deployContract('CoverMockMCR');
   await mcr.setMCR(parseEther('600000'));

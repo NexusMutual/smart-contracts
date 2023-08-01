@@ -180,7 +180,11 @@ contract StakingPool is IStakingPool, Multicall {
     uint _maxPoolFee,
     uint _poolId,
     string  calldata ipfsDescriptionHash
-  ) external onlyCoverContract {
+  ) external {
+
+    if (msg.sender != address(stakingProducts)) {
+      revert OnlyStakingProductsContract();
+    }
 
     if (_initialPoolFee > _maxPoolFee) {
       revert PoolFeeExceedsMax();

@@ -20,6 +20,7 @@ import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../interfaces/IStakingProducts.sol";
+import "../../interfaces/ICoverProducts.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Multicall {
   using SafeERC20 for IERC20;
@@ -27,16 +28,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   /* ========== STATE VARIABLES ========== */
 
-  Product[] internal _products;
-  ProductType[] internal _productTypes;
-
   mapping(uint => CoverData) private _coverData;
 
   // cover id => segment id => pool allocations array
   mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
-  // product id => allowed pool ids
-  mapping(uint => uint[]) public allowedPools;
+
 
   // Each cover has an array of segments. A new segment is created
   // every time a cover is edited to deliniate the different cover periods.
@@ -46,11 +43,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   mapping(uint => ActiveCover) public activeCover;
   // assetId => bucketId => amount
   mapping(uint => mapping(uint => uint)) internal activeCoverExpirationBuckets;
-
-  // productId => product name
-  mapping(uint => string) public productNames;
-  // productTypeId => productType name
-  mapping(uint => string) public productTypeNames;
 
   /* ========== CONSTANTS ========== */
 
@@ -131,14 +123,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     uint segmentId;
 
+
     AllocationRequest memory allocationRequest;
     {
 
-      if (_products.length <= params.productId) {
+      ICoverProducts _coverProducts = coverProducts();
+      if (_coverProducts.productsCount() <= params.productId) {
         revert ProductDoesntExist();
       }
 
-      Product memory product = _products[params.productId];
+      Product memory product = _coverProducts.products(params.productId);
 
       if (product.isDeprecated) {
         revert ProductDoesntExistOrIsDeprecated();
@@ -151,7 +145,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.productId = params.productId;
       allocationRequest.coverId = coverId;
       allocationRequest.period = params.period;
-      allocationRequest.gracePeriod = _productTypes[product.productType].gracePeriod;
+      allocationRequest.gracePeriod = _coverProducts.productTypes(product.productType).gracePeriod;
       allocationRequest.useFixedPrice = product.useFixedPrice;
       allocationRequest.globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
       allocationRequest.capacityReductionRatio = product.capacityReductionRatio;
@@ -305,7 +299,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.previousStart = lastSegment.start;
       allocationRequest.previousExpiration = expiration;
 
-      stakingPool(allocation.poolId).requestAllocation(
+      stakingProducts().stakingPool(allocation.poolId).requestAllocation(
         0, // amount
         0, // previous premium
         allocationRequest
@@ -340,10 +334,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       : 0;
 
     for (uint i = 0; i < poolAllocationRequests.length; i++) {
-
       // if there is a previous segment and this index is present on it
       if (vars.previousPoolAllocationsLength > i) {
-
         PoolAllocation memory previousPoolAllocation =
           coverSegmentAllocations[allocationRequest.coverId][segmentId - 1][i];
 
@@ -370,6 +362,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       } else {
         // request new allocation id
         allocationRequest.allocationId = 0;
+
+        // zero out previous premium or refund
+        vars.previousPremiumInNXM = 0;
+        vars.refund = 0;
       }
 
       // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
@@ -378,7 +374,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         NXM_PER_ALLOCATION_UNIT
       );
 
-      (uint premiumInNXM, uint allocationId) = stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
+      (uint premiumInNXM, uint allocationId) = stakingProducts().stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
         coverAmountInNXM,
         vars.previousPremiumInNXM,
         allocationRequest
@@ -505,7 +501,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     address newOwner
   ) external onlyInternal returns (uint coverId) {
 
-    ProductType memory productType = _productTypes[_products[productId].productType];
+    ICoverProducts _coverProducts = coverProducts();
+    ProductType memory productType = _coverProducts.productTypes(_coverProducts.products(productId).productType);
 
     // uses the current v2 grace period
     if (block.timestamp >= start + period + productType.gracePeriod) {
@@ -533,54 +530,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     emit CoverEdited(coverId, productId, 0, msg.sender, "");
 
     return coverId;
-  }
-
-  function createStakingPool(
-    bool isPrivatePool,
-    uint initialPoolFee,
-    uint maxPoolFee,
-    ProductInitializationParams[] memory productInitParams,
-    string calldata ipfsDescriptionHash
-  ) external whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
-
-    uint numProducts = productInitParams.length;
-
-    // override with initial price and check if pool is allowed
-    for (uint i = 0; i < numProducts; i++) {
-
-      if (productInitParams[i].targetPrice < GLOBAL_MIN_PRICE_RATIO) {
-        revert TargetPriceBelowGlobalMinPriceRatio();
-      }
-
-      uint productId = productInitParams[i].productId;
-
-      // if there is a list of allowed pools for this product - this pool didn't exist yet so it's not in it
-      if (allowedPools[productId].length > 0) {
-        revert PoolNotAllowedForThisProduct(productId);
-      }
-
-      if (productId >= _products.length || _products[productId].isDeprecated) {
-        revert ProductDoesntExistOrIsDeprecated();
-      }
-
-      productInitParams[i].initialPrice = _products[productId].initialPriceRatio;
-    }
-
-    (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(address(this));
-
-    IStakingPool(stakingPoolAddress).initialize(
-      isPrivatePool,
-      initialPoolFee,
-      maxPoolFee,
-      poolId,
-      ipfsDescriptionHash
-    );
-
-    tokenController().assignStakingPoolManager(poolId, msg.sender);
-
-    stakingProducts().setInitialProducts(poolId, productInitParams);
-
-    return (poolId, stakingPoolAddress);
   }
 
   // Gets the total amount of active cover that is currently expired for this asset
@@ -632,6 +581,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     // increase amountPaidOut only *after* you read the segment
     cover.amountPaidOut += payoutAmountInAsset.toUint96();
 
+    IStakingProducts _stakingProducts = stakingProducts();
     for (uint i = 0; i < allocations.length; i++) {
       PoolAllocation memory allocation = allocations[i];
 
@@ -650,19 +600,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       );
 
       uint poolId = allocations[i].poolId;
-      stakingPool(poolId).burnStake(burnAmountInNxm, params);
+      _stakingProducts.stakingPool(poolId).burnStake(burnAmountInNxm, params);
     }
 
     return coverNFT.ownerOf(coverId);
   }
 
   /* ========== VIEWS ========== */
-
-  function stakingPool(uint poolId) public view returns (IStakingPool) {
-    return IStakingPool(
-      StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId)
-    );
-  }
 
   function coverData(uint coverId) external override view returns (CoverData memory) {
     return _coverData[coverId];
@@ -692,163 +636,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return coverNFT.totalSupply();
   }
 
-  function products(uint id) external override view returns (Product memory) {
-    return _products[id];
-  }
-
-  function productsCount() external override view returns (uint) {
-    return _products.length;
-  }
-
-  function getProducts() external view returns (Product[] memory) {
-    return _products;
-  }
-
-  function productTypes(uint id) external override view returns (ProductType memory) {
-    return _productTypes[id];
-  }
-
-  function productTypesCount() external override view returns (uint) {
-    return _productTypes.length;
-  }
-
-  /* ========== PRODUCT CONFIGURATION ========== */
-
-  function setProducts(ProductParam[] calldata productParams) external override onlyAdvisoryBoard {
-
-    uint unsupportedCoverAssetsBitmap = type(uint).max;
-
-
-    Asset[] memory assets = pool().getAssets();
-    uint assetsLength = assets.length;
-
-    for (uint i = 0; i < assetsLength; i++) {
-      if (assets[i].isCoverAsset && !assets[i].isAbandoned) {
-        // clear the bit at index i
-        unsupportedCoverAssetsBitmap ^= 1 << i;
-      }
-    }
-
-    for (uint i = 0; i < productParams.length; i++) {
-
-      ProductParam calldata param = productParams[i];
-      Product calldata product = param.product;
-
-      if (product.productType >= _productTypes.length) {
-        revert InvalidProductType();
-      }
-
-      if (unsupportedCoverAssetsBitmap & product.coverAssets != 0) {
-        revert UnsupportedCoverAssets();
-      }
-
-      if (product.initialPriceRatio < GLOBAL_MIN_PRICE_RATIO) {
-        revert InitialPriceRatioBelowGlobalMinPriceRatio();
-      }
-
-      if (product.initialPriceRatio > PRICE_DENOMINATOR) {
-        revert InitialPriceRatioAbove100Percent();
-      }
-
-      if (product.capacityReductionRatio > CAPACITY_REDUCTION_DENOMINATOR) {
-        revert CapacityReductionRatioAbove100Percent();
-      }
-
-      // TODO: https://github.com/NexusMutual/smart-contracts/issues/859
-      if (product.useFixedPrice) {
-        uint productId = param.productId == type(uint256).max ? _products.length : param.productId;
-        allowedPools[productId] = param.allowedPools;
-      }
-
-      // New product has id == uint256.max
-      if (param.productId == type(uint256).max) {
-        emit ProductSet(_products.length, param.ipfsMetadata);
-        productNames[_products.length] = param.productName;
-        _products.push(product);
-        continue;
-      }
-
-      // Existing product
-      if (param.productId >= _products.length) {
-        revert ProductDoesntExist();
-      }
-
-      Product storage newProductValue = _products[param.productId];
-      newProductValue.isDeprecated = product.isDeprecated;
-      newProductValue.coverAssets = product.coverAssets;
-      newProductValue.initialPriceRatio = product.initialPriceRatio;
-      newProductValue.capacityReductionRatio = product.capacityReductionRatio;
-
-      if (bytes(param.productName).length > 0) {
-        productNames[param.productId] = param.productName;
-      }
-
-      if (bytes(param.ipfsMetadata).length > 0) {
-        emit ProductSet(param.productId, param.ipfsMetadata);
-      }
-    }
-  }
-
-  function setProductTypes(ProductTypeParam[] calldata productTypeParams) external onlyAdvisoryBoard {
-
-    for (uint i = 0; i < productTypeParams.length; i++) {
-      ProductTypeParam calldata param = productTypeParams[i];
-
-      // New product has id == uint256.max
-      if (param.productTypeId == type(uint256).max) {
-        emit ProductTypeSet(_productTypes.length, param.ipfsMetadata);
-        productTypeNames[_productTypes.length] = param.productTypeName;
-        _productTypes.push(param.productType);
-        continue;
-      }
-
-      if (param.productTypeId >= _productTypes.length) {
-        revert ProductTypeNotFound();
-      }
-      _productTypes[param.productTypeId].gracePeriod = param.productType.gracePeriod;
-
-      if (bytes(param.productTypeName).length > 0) {
-        productTypeNames[param.productTypeId] = param.productTypeName;
-      }
-
-      if (bytes(param.ipfsMetadata).length > 0) {
-        emit ProductTypeSet(param.productTypeId, param.ipfsMetadata);
-      }
-    }
-  }
-
   /* ========== COVER ASSETS HELPERS ========== */
 
   function totalActiveCoverInAsset(uint assetId) public view returns (uint) {
     return uint(activeCover[assetId].totalActiveCoverInAsset);
-  }
-
-  // Returns true if the product exists and the pool is authorized to have the product
-  function isPoolAllowed(uint productId, uint poolId) public view returns (bool) {
-
-      uint poolCount = allowedPools[productId].length;
-
-      // If no pools are specified, every pool is allowed
-      if (poolCount == 0) {
-        return true;
-      }
-
-      for (uint i = 0; i < poolCount; i++) {
-        if (allowedPools[productId][i] == poolId) {
-          return true;
-        }
-      }
-
-      // Product has allow list and pool is not in it
-      return false;
-  }
-
-  function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external view {
-    for (uint i = 0; i < productIds.length; i++) {
-      if (!isPoolAllowed(productIds[i], poolId) ) {
-        revert PoolNotAllowedForThisProduct(productIds[i]);
-      }
-    }
   }
 
   function globalCapacityRatio() external pure returns (uint) {
@@ -870,15 +661,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     _capacityReductionRatios = new uint[](productIds.length);
     _initialPrices = new uint[](productIds.length);
 
+    ICoverProducts _coverProducts = coverProducts();
     for (uint i = 0; i < productIds.length; i++) {
       uint productId = productIds[i];
 
-      if (productId >= _products.length) {
+      if (productId >= _coverProducts.productsCount()) {
         revert ProductDoesntExist();
       }
 
-      _initialPrices[i] = uint(_products[productId].initialPriceRatio);
-      _capacityReductionRatios[i] = uint(_products[productId].capacityReductionRatio);
+      _initialPrices[i] = uint(_coverProducts.products(productId).initialPriceRatio);
+      _capacityReductionRatios[i] = uint(_coverProducts.products(productId).capacityReductionRatio);
     }
   }
 
@@ -916,10 +708,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return IStakingProducts(getInternalContractAddress(ID.SP));
   }
 
+  function coverProducts() internal view returns (ICoverProducts) {
+    return ICoverProducts(getInternalContractAddress(ID.CP));
+  }
+
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.SP)] = master.getLatestAddress("SP");
+    internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
   }
 }

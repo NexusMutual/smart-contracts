@@ -3,6 +3,7 @@ const { getAccounts } = require('../../utils/accounts');
 const { parseEther } = ethers.utils;
 const { setEtherBalance } = require('../utils').evm;
 const { Role } = require('../utils').constants;
+const { AddressZero } = ethers.constants;
 
 async function setup() {
   const accounts = await getAccounts();
@@ -21,7 +22,13 @@ async function setup() {
   const cover = await ethers.deployContract('SPMockCover');
   const stakingNFT = await ethers.deployContract('SPMockStakingNFT');
   const spf = await ethers.deployContract('StakingPoolFactory', [cover.address]);
-  const stakingProducts = await ethers.deployContract('SPMockStakingProducts', [cover.address, spf.address]);
+
+  // address _coverContract, address _stakingPoolFactory, address _coverProductsContract
+  const stakingProducts = await ethers.deployContract('SPMockStakingProducts', [
+    cover.address,
+    spf.address,
+    AddressZero,
+  ]);
 
   const stakingPool = await ethers.deployContract('StakingPool', [
     stakingNFT.address,
@@ -39,6 +46,8 @@ async function setup() {
   await master.enrollInternal(cover.address);
   await tokenController.changeMasterAddress(master.address);
   await stakingProducts.changeMasterAddress(master.address);
+
+  await master.enrollInternal(stakingProducts.address);
 
   for (const member of accounts.members) {
     const amount = ethers.constants.MaxUint256.div(100);
@@ -88,11 +97,13 @@ async function setup() {
   const coverSigner = await ethers.getImpersonatedSigner(cover.address);
   await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
 
+  const stakingProductsSigner = await ethers.getImpersonatedSigner(stakingProducts.address);
+  await setEtherBalance(stakingProductsSigner.address, ethers.utils.parseEther('100'));
+
   return {
     accounts,
     coverSigner,
     config,
-
     multicall: multicallMock,
     tokenController,
     master,
@@ -101,6 +112,7 @@ async function setup() {
     stakingPool,
     stakingProducts,
     cover,
+    stakingProductsSigner,
   };
 }
 

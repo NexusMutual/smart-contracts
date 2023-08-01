@@ -1,0 +1,21 @@
+describe('UNIT TESTS', function () {
+  require('./MemberRoles');
+  require('./TokenController');
+  require('./Pool');
+  require('./SwapOperator');
+  require('./MCR');
+  require('./Assessment');
+  require('./Cover');
+  require('./CoverProducts');
+  require('./CoverNFT');
+  require('./CoverMigrator');
+  require('./IndividualClaims');
+  require('./YieldTokenIncidents');
+  require('./StakingPool');
+  require('./StakingProducts');
+  require('./PriceFeedOracle');
+  require('./CoverViewer');
+  require('./StakingNFT');
+  require('./StakingPoolFactory');
+  require('./NXMaster');
+});

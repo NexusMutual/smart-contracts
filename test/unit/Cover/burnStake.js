@@ -25,7 +25,7 @@ describe('burnStake', function () {
 
   it('should perform a burn a cover with 1 segment and 1 pool allocation', async function () {
     const fixture = await loadFixture(setup);
-    const { cover, accounts } = fixture;
+    const { cover, stakingProducts, accounts } = fixture;
     const [internal] = accounts.internalContracts;
     const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
@@ -51,7 +51,7 @@ describe('burnStake', function () {
       amountPaidOut: payoutAmountInAsset,
     });
 
-    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(1));
+    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await stakingProducts.stakingPool(1));
     const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
     expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount);
   });
@@ -93,7 +93,7 @@ describe('burnStake', function () {
 
   it('should perform a burn on a cover with 1 segment and 2 pool allocations', async function () {
     const fixture = await loadFixture(setup);
-    const { cover } = fixture;
+    const { cover, stakingProducts } = fixture;
     const [internal] = fixture.accounts.internalContracts;
     const [, stakingPoolManager] = fixture.accounts.members;
 
@@ -104,7 +104,7 @@ describe('burnStake', function () {
     const allocationRequest = [];
     for (let i = 1; i <= amountOfPools; i++) {
       await createStakingPool(
-        cover,
+        stakingProducts,
         productId,
         capacity,
         targetPriceRatio,
@@ -149,7 +149,7 @@ describe('burnStake', function () {
     });
 
     for (let i = 0; i < amountOfPools; i++) {
-      const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(i + 1));
+      const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await stakingProducts.stakingPool(i + 1));
 
       const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
       expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount[i]);
@@ -221,7 +221,7 @@ describe('burnStake', function () {
 
   it('call stakingPool with correct parameters', async function () {
     const fixture = await loadFixture(setup);
-    const { cover } = fixture;
+    const { cover, stakingProducts } = fixture;
     const [internal] = fixture.accounts.internalContracts;
     const { amount, productId } = coverBuyFixture;
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
@@ -238,7 +238,7 @@ describe('burnStake', function () {
 
     await cover.connect(internal).burnStake(expectedCoverId, segmentId, burnAmount);
 
-    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(1));
+    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await stakingProducts.stakingPool(1));
 
     const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
     expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount);

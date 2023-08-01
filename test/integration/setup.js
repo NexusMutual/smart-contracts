@@ -169,9 +169,10 @@ async function setup() {
     coverNFTDescriptor.address,
   ]);
 
-  // 2. deploy Cover, StakingProducts and TokenController proxies
+  // 2. deploy Cover, StakingProducts, CoverProducts and TokenController proxies
   let cover = await deployProxy('Stub');
   let stakingProducts = await deployProxy('Stub');
+  let coverProducts = await deployProxy('Stub');
   let tc = await deployProxy('Stub');
 
   // 3. deploy StakingPool implementation
@@ -185,15 +186,20 @@ async function setup() {
   await upgradeProxy(stakingProducts.address, 'StakingProducts', [cover.address, spf.address]);
   stakingProducts = await ethers.getContractAt('StakingProducts', stakingProducts.address);
 
+  await upgradeProxy(coverProducts.address, 'CoverProducts', []);
+  coverProducts = await ethers.getContractAt('CoverProducts', coverProducts.address);
+
   // TODO: get rid of DisposableTokenController and use TokenController instead with owner as operator
   await upgradeProxy(tc.address, 'DisposableTokenController', [qd.address, lcr.address, spf.address, tk.address]);
   tc = await ethers.getContractAt('DisposableTokenController', tc.address);
 
   // 5. update operators
-  await spf.changeOperator(cover.address);
+  await spf.changeOperator(stakingProducts.address);
   await stakingNFT.changeOperator(cover.address);
   await coverNFT.changeOperator(cover.address);
   await cover.changeMasterAddress(master.address);
+  await stakingProducts.changeMasterAddress(master.address);
+  await coverProducts.changeMasterAddress(master.address);
 
   const ci = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
   const cg = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
@@ -202,7 +208,7 @@ async function setup() {
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CI', 'CG', 'AS', 'CO', 'CL', 'SP'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CI', 'CG', 'AS', 'CO', 'CL', 'SP', 'CP'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -216,8 +222,26 @@ async function setup() {
   };
 
   const addr = c => c.address;
-  const addresses = [qd, tc, p1, mc, owner, pc, mr, ps, gateway, ci, cg, cl, as, cover, lcr, stakingProducts].map(addr);
-  const codes = ['QD', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'CI', 'CG', 'CL', 'AS', 'CO', 'CR', 'SP'];
+  const addresses = [
+    qd,
+    tc,
+    p1,
+    mc,
+    owner,
+    pc,
+    mr,
+    ps,
+    gateway,
+    ci,
+    cg,
+    cl,
+    as,
+    cover,
+    lcr,
+    stakingProducts,
+    coverProducts,
+  ].map(addr);
+  const codes = ['QD', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'CI', 'CG', 'CL', 'AS', 'CO', 'CR', 'SP', 'CP'];
 
   await master.initialize(
     owner.address,
@@ -275,8 +299,10 @@ async function setup() {
   };
 
   await cover.changeDependentContractAddress();
+  await stakingProducts.changeDependentContractAddress();
+  await coverProducts.changeDependentContractAddress();
 
-  await cover.setProductTypes([
+  await coverProducts.setProductTypes([
     {
       // Protocol Cover
       productTypeName: 'Protocol',
@@ -428,7 +454,7 @@ async function setup() {
     },
   ];
 
-  await cover.setProducts(productList);
+  await coverProducts.setProducts(productList);
 
   await gv.changeMasterAddress(master.address);
   await master.switchGovernanceAddress(gv.address);
@@ -538,7 +564,7 @@ async function setup() {
   const DEFAULT_POOL_FEE = '5';
 
   for (let i = 0; i < 5; i++) {
-    await cover.connect(stakingPoolManagers[i]).createStakingPool(
+    await stakingProducts.connect(stakingPoolManagers[i]).createStakingPool(
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,
@@ -547,7 +573,7 @@ async function setup() {
     );
 
     const poolId = i + 1;
-    const stakingPoolAddress = await cover.stakingPool(poolId);
+    const stakingPoolAddress = await stakingProducts.stakingPool(poolId);
     const stakingPoolInstance = await ethers.getContractAt('StakingPool', stakingPoolAddress);
 
     fixture.contracts['stakingPool' + poolId] = stakingPoolInstance;
@@ -565,6 +591,7 @@ async function setup() {
   };
 
   fixture.contracts.stakingProducts = stakingProducts;
+  fixture.contracts.coverProducts = coverProducts;
   fixture.contracts.coverNFTDescriptor = coverNFTDescriptor;
   fixture.contracts.stakingNFTDescriptor = stakingNFTDescriptor;
   fixture.config = config;

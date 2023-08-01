@@ -22,7 +22,8 @@ interface IMasterAwareV2 {
     // TODO: 2) TK is not an internal contract!
     //          If you want to add a new contract below TK, remove TK and make it immutable in all
     //          contracts that are using it (currently LegacyGateway and LegacyPooledStaking).
-    TK  // NXMToken.sol
+    TK,  // NXMToken.sol
+    CP
   }
 
   function changeMasterAddress(address masterAddress) external;

@@ -19,7 +19,8 @@ interface IMasterAwareV2 {
     AS, // Assessment.sol
     CI, // IndividualClaims.sol - Claims for Individuals
     CG, // YieldTokenIncidents.sol - Claims for Groups
-    RA  // Ramm.sol
+    RA, // Ramm.sol
+    CP  // CoverProducts.sol
   }
 
   function changeMasterAddress(address masterAddress) external;

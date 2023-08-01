@@ -4,7 +4,6 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getTranches, moveTimeToNextTranche, BUCKET_DURATION } = require('./helpers');
 const { daysToSeconds } = require('../../../lib/helpers');
-const { setEtherBalance } = require('../utils').evm;
 
 const { AddressZero, Two } = ethers.constants;
 const { parseEther } = ethers.utils;
@@ -80,13 +79,10 @@ async function burnStakeSetup() {
   const [staker] = fixture.accounts.members;
   const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 
-  fixture.coverSigner = await ethers.getImpersonatedSigner(cover.address);
-  await setEtherBalance(fixture.coverSigner.address, parseEther('1'));
-
   await cover.setProductType(productTypeFixture, initialProduct.productId);
   await cover.setProduct(coverProductTemplate, initialProduct.productId);
 
-  await stakingPool.connect(fixture.coverSigner).initialize(
+  await stakingPool.connect(fixture.stakingProductsSigner).initialize(
     false, // isPrivatePool
     initialPoolFee,
     maxPoolFee,
@@ -94,7 +90,7 @@ async function burnStakeSetup() {
     ipfsDescriptionHash,
   );
 
-  await stakingProducts.connect(fixture.coverSigner).setInitialProducts(poolId, products);
+  await stakingProducts.connect(fixture.stakingProductsSigner).setInitialProducts(poolId, products);
 
   // Move to the beginning of the next tranche
   const currentTrancheId = await moveTimeToNextTranche(1);

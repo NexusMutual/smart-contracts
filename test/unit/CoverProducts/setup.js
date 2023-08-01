@@ -1,20 +1,11 @@
-const hre = require('hardhat');
-const { ethers } = hre;
-const { expect } = require('chai');
+const { ethers, accounts } = require('hardhat');
 const { BigNumber } = require('ethers');
-const { getAccounts } = require('../../utils/accounts');
 
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
 const { AddressZero, MaxUint256 } = ethers.constants;
-const { getContractAddress, parseEther } = ethers.utils;
-
-const getDeployAddressAfter = async (account, txCount) => {
-  const from = account.address;
-  const nonce = (await account.getTransactionCount()) + txCount;
-  return getContractAddress({ from, nonce });
-};
+const { parseEther } = ethers.utils;
 
 const Assets = {
   ETH: 1,
@@ -23,47 +14,31 @@ const Assets = {
 };
 
 async function setup() {
-  const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
   const memberRoles = await ethers.deployContract('MemberRolesMock');
-  const nxm = await ethers.deployContract('NXMTokenMock');
-  const tokenController = await ethers.deployContract('TokenControllerMock', [nxm.address]);
+  const tokenController = await ethers.deployContract('TokenControllerMock');
 
+  const nxm = await ethers.deployContract('NXMTokenMock');
   await nxm.setOperator(tokenController.address);
 
   const mcr = await ethers.deployContract('CoverMockMCR');
   await mcr.setMCR(parseEther('600000'));
 
-  const stakingPoolImplementation = await ethers.deployContract('CoverMockStakingPool');
-  const coverNFT = await ethers.deployContract('CoverMockCoverNFT');
-  const stakingNFT = await ethers.deployContract('CoverMockStakingNFT');
-
-  const { defaultSender } = accounts;
-  const expectedStakingProductsAddress = await getDeployAddressAfter(defaultSender, 3);
-
-  const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [expectedStakingProductsAddress]);
-
-  const cover = await ethers.deployContract('Cover', [
-    coverNFT.address,
-    stakingNFT.address,
-    stakingPoolFactory.address,
-    stakingPoolImplementation.address,
-  ]);
-
   const coverProducts = await ethers.deployContract('CoverProducts');
 
   const stakingProducts = await ethers.deployContract('CoverMockStakingProducts', [
-    cover.address,
-    stakingPoolFactory.address,
-    tokenController.address,
-    coverProducts.address,
+    AddressZero,
+    AddressZero,
+    AddressZero,
+    AddressZero,
   ]);
-  expect(expectedStakingProductsAddress).to.equal(stakingProducts.address);
+
+  const coverNFT = await ethers.deployContract('CoverMockCoverNFT');
 
   const dai = await ethers.deployContract('ERC20Mock');
   const usdc = await ethers.deployContract('ERC20CustomDecimalsMock', [6]); // 6 decimals
 
-  const pool = await ethers.deployContract('PoolMock');
+  const pool = await ethers.deployContract('CoverMockPool');
   await pool.setAssets([
     { assetAddress: dai.address, isCoverAsset: true, isAbandoned: false },
     { assetAddress: usdc.address, isCoverAsset: true, isAbandoned: false },
@@ -77,11 +52,10 @@ async function setup() {
   await master.setTokenAddress(nxm.address);
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('MR'), memberRoles.address);
-  await master.setLatestAddress(hex('CO'), cover.address);
+  await master.setLatestAddress(hex('CP'), coverProducts.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('SP'), stakingProducts.address);
-  await master.setLatestAddress(hex('CP'), coverProducts.address);
 
   const pooledStakingSigner = accounts.members[4];
   await master.setLatestAddress(hex('PS'), pooledStakingSigner.address);
@@ -89,8 +63,6 @@ async function setup() {
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);
     await memberRoles.setRole(member.address, Role.Member);
-    await dai.mint(member.address, parseEther('100000'));
-    await dai.connect(member).approve(cover.address, parseEther('100000'));
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
@@ -107,13 +79,13 @@ async function setup() {
     await master.enrollGovernance(governanceContract.address);
   }
 
-  for (const contract of [cover, coverProducts, tokenController]) {
+  for (const contract of [coverProducts, tokenController]) {
     await contract.changeMasterAddress(master.address);
     await contract.changeDependentContractAddress();
     await master.enrollInternal(contract.address);
   }
 
-  await master.setEmergencyAdmin(await accounts.emergencyAdmin.getAddress());
+  await master.setEmergencyAdmin(accounts.emergencyAdmin.address);
 
   await coverProducts.connect(accounts.advisoryBoardMembers[0]).setProductTypes([
     {
@@ -191,8 +163,7 @@ async function setup() {
     },
   ]);
 
-  const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
-  const MAX_COMMISSION_RATIO = await cover.MAX_COMMISSION_RATIO();
+  const GLOBAL_MIN_PRICE_RATIO = await coverProducts.GLOBAL_MIN_PRICE_RATIO();
   const BUCKET_SIZE = BigNumber.from(7 * 24 * 3600); // 7 days
   const capacityFactor = '20000';
 
@@ -204,15 +175,12 @@ async function setup() {
     nxm,
     tokenController,
     memberRoles,
-    cover,
     coverNFT,
     accounts,
     capacityFactor,
-    stakingPoolImplementation,
-    stakingPoolFactory,
     stakingProducts,
     coverProducts,
-    config: { GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO },
+    config: { GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE },
     Assets,
     pooledStakingSigner,
   };

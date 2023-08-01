@@ -25,8 +25,6 @@ interface IStakingProducts {
 
   function setProducts(uint poolId, StakedProductParam[] memory params) external;
 
-  function setInitialProducts(uint poolId, ProductInitializationParams[] memory params) external;
-
   function getProductTargetWeight(uint poolId, uint productId) external view returns (uint);
 
   function getTotalTargetWeight(uint poolId) external view returns (uint);
@@ -95,6 +93,18 @@ interface IStakingProducts {
     uint allocationUnitsPerNxm
   ) external pure returns (uint);
 
+  /* ========== STAKING POOL CREATION ========== */
+
+  function stakingPool(uint poolId) external view returns (IStakingPool);
+
+  function createStakingPool(
+    bool isPrivatePool,
+    uint initialPoolFee,
+    uint maxPoolFee,
+    ProductInitializationParams[] calldata productInitParams,
+    string calldata ipfsDescriptionHash
+  ) external returns (uint poolId, address stakingPoolAddress);
+
   /* ============= EVENTS ============= */
 
   event ProductUpdated(uint productId, uint8 targetWeight, uint96 targetPrice);
@@ -115,5 +125,11 @@ interface IStakingProducts {
   error MustRecalculateEffectiveWeight();
   error TotalTargetWeightExceeded();
   error TotalEffectiveWeightExceeded();
+
+  // Staking Pool creation
+  error ProductDoesntExistOrIsDeprecated();
+  error InvalidProductType();
+  error PoolNotAllowedForThisProduct(uint productId);
+  error TargetPriceBelowGlobalMinPriceRatio();
 
 }

@@ -13,6 +13,8 @@ contract StakingPoolFactory is IStakingPoolFactory {
   // temporary beacon address storage to avoid constructor arguments in the proxy
   address public beacon;
 
+  address public coverAddress;
+
   constructor(address _operator) {
     operator = _operator;
   }
@@ -27,7 +29,7 @@ contract StakingPoolFactory is IStakingPoolFactory {
     return _stakingPoolCount;
   }
 
-  function create(address _beacon) external returns (uint poolId, address stakingPoolAddress) {
+  function create(address _beacon) public returns (uint poolId, address stakingPoolAddress) {
 
     require(msg.sender == operator, "StakingPoolFactory: Not operator");
 

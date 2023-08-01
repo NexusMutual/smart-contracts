@@ -331,10 +331,10 @@ describe('redeemPayout', function () {
 
   it('reverts if the cover segment is outside the grace period', async function () {
     const fixture = await loadFixture(setup);
-    const { yieldTokenIncidents, assessment, cover } = fixture.contracts;
+    const { yieldTokenIncidents, assessment, coverProducts, cover } = fixture.contracts;
     const [member1] = fixture.accounts.members;
     const [governance] = fixture.accounts.governanceContracts;
-    const { gracePeriod } = await cover.productTypes(2);
+    const { gracePeriod } = await coverProducts.productTypes(2);
     const segment0 = await getCoverSegment();
     segment0.gracePeriod = gracePeriod;
     const segment1 = { ...segment0 };
@@ -366,10 +366,11 @@ describe('redeemPayout', function () {
 
   it('should use coverSegment grace period and not product level grace period', async function () {
     const fixture = await loadFixture(setup);
-    const { yieldTokenIncidents, assessment, cover } = fixture.contracts;
+    const { yieldTokenIncidents, assessment, coverProducts, cover } = fixture.contracts;
     const [member1] = fixture.accounts.members;
     const [governance] = fixture.accounts.governanceContracts;
-    const { gracePeriod } = await cover.productTypes(2);
+    const { gracePeriod } = await coverProducts.productTypes(2);
+
     const segment0 = await getCoverSegment();
     const segment1 = await getCoverSegment();
     segment0.gracePeriod = gracePeriod;
@@ -382,8 +383,8 @@ describe('redeemPayout', function () {
 
     // Change product grace period
     const newGracePeriod = gracePeriod * 1000;
-    await cover.connect(governance).editProductTypes([2], [newGracePeriod], ['ipfs hash']);
-    const { gracePeriod: actualNewGracePeriod } = await cover.productTypes(2);
+    await coverProducts.connect(governance).editProductTypes([2], [newGracePeriod], ['ipfs hash']);
+    const { gracePeriod: actualNewGracePeriod } = await coverProducts.productTypes(2);
     expect(actualNewGracePeriod).to.equal(newGracePeriod);
 
     await yieldTokenIncidents

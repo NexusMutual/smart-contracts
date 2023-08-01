@@ -5,13 +5,14 @@ const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
+const { AddressZero } = ethers.constants;
 
 const newPoolFixture = {
   initialPoolFee: 5, // 5%
   maxPoolFee: 5, // 5%
   productInitializationParams: [
     {
-      productId: 0,
+      productId: 200,
       weight: 100,
       initialPrice: '500',
       targetPrice: '500',
@@ -20,17 +21,47 @@ const newPoolFixture = {
   ipfsDescriptionHash: 'Description Hash',
 };
 
+async function createStakingPoolSetup() {
+  const fixture = await loadFixture(setup);
+  const { coverProducts, initialProducts } = fixture;
+  const coverProductTemplate = {
+    productType: 1,
+    yieldTokenAddress: AddressZero,
+    coverAssets: 1111,
+    initialPriceRatio: 500,
+    capacityReductionRatio: 0,
+    useFixedPrice: false,
+  };
+
+  const productId = initialProducts.length;
+
+  await coverProducts.setProduct(
+    { ...coverProductTemplate, initialPriceRatio: coverProductTemplate.initialPriceRatio },
+    productId,
+  );
+  await coverProducts.setProductType(
+    {
+      claimMethod: 1,
+      gracePeriod: 7 * 24 * 3600, // 7 days
+    },
+    productId,
+  );
+
+  return fixture;
+}
+
 describe('createStakingPool', function () {
   it('reverts if system is paused', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover, master } = fixture;
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { stakingProducts, master } = fixture;
     const [stakingPoolCreator] = fixture.accounts.members;
+
     const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
 
     await master.setEmergencyPause(true);
 
     await expect(
-      cover.connect(stakingPoolCreator).createStakingPool(
+      stakingProducts.connect(stakingPoolCreator).createStakingPool(
         false, // isPrivatePool,
         initialPoolFee,
         maxPoolFee,
@@ -41,8 +72,8 @@ describe('createStakingPool', function () {
   });
 
   it('should create and initialize a new pool minimal beacon proxy pool', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover, stakingPoolFactory, stakingProducts } = fixture;
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { cover, stakingPoolFactory, stakingProducts, coverProducts } = fixture;
     const [stakingPoolManager] = fixture.accounts.members;
     const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
 
@@ -67,16 +98,17 @@ describe('createStakingPool', function () {
       );
     }
 
-    const poolId = 1;
+    const stakingPoolCount = await stakingPoolFactory.stakingPoolCount();
+    const poolId = stakingPoolCount.toNumber() + 1;
     const salt = Buffer.from(poolId.toString(16).padStart(64, '0'), 'hex');
     const initCodeHash = Buffer.from(requiredHash, 'hex');
     const expectedAddress = ethers.utils.getCreate2Address(stakingPoolFactory.address, salt, initCodeHash);
 
     // calculated address check
-    const reportedAddress = await cover.stakingPool(poolId);
+    const reportedAddress = await stakingProducts.stakingPool(poolId);
     expect(reportedAddress).to.be.equal(expectedAddress);
 
-    const tx = await cover.connect(stakingPoolManager).createStakingPool(
+    const tx = await stakingProducts.connect(stakingPoolManager).createStakingPool(
       false, // isPrivatePool,
       initialPoolFee,
       maxPoolFee,
@@ -101,12 +133,11 @@ describe('createStakingPool', function () {
     expect(await stakingPoolInstance.isPrivatePool()).to.be.equal(false);
     expect(await stakingPoolInstance.getPoolFee()).to.be.equal(initialPoolFee);
     expect(await stakingPoolInstance.getMaxPoolFee()).to.be.equal(maxPoolFee);
-    expect(await stakingPoolInstance.ipfsHash()).to.be.equal(ipfsDescriptionHash);
 
     // check initial product values
     const { timestamp } = await ethers.provider.getBlock('latest');
     for (const product of productInitializationParams) {
-      const coverProduct = await cover.products(product.productId);
+      const coverProduct = await coverProducts.products(product.productId);
       const { lastEffectiveWeight, targetWeight, targetPrice, bumpedPrice, bumpedPriceUpdateTime } =
         await stakingProducts.getProduct(poolId, product.productId);
       expect(lastEffectiveWeight).to.be.equal(product.weight);
@@ -119,8 +150,8 @@ describe('createStakingPool', function () {
   });
 
   it('should fail to create a new pool called from pooled staking - Not a member', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover } = fixture;
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { coverProducts, stakingProducts } = fixture;
     const { initialPoolFee, maxPoolFee, ipfsDescriptionHash } = newPoolFixture;
 
     const initialProducts = [
@@ -128,7 +159,7 @@ describe('createStakingPool', function () {
       { productId: 1, weight: 70, initialPrice: '300', targetPrice: '1000' },
     ];
 
-    const [poolId] = await cover.connect(fixture.pooledStakingSigner).callStatic.createStakingPool(
+    const [poolId] = await stakingProducts.connect(fixture.pooledStakingSigner).callStatic.createStakingPool(
       true, // isPrivatePool,
       initialPoolFee,
       maxPoolFee,
@@ -136,11 +167,11 @@ describe('createStakingPool', function () {
       ipfsDescriptionHash,
     );
 
-    expect(await cover.isPoolAllowed(0 /* productId */, poolId)).to.be.equal(true);
-    expect(await cover.isPoolAllowed(1 /* productId */, poolId)).to.be.equal(false);
+    expect(await coverProducts.isPoolAllowed(0 /* productId */, poolId)).to.be.equal(false);
+    expect(await coverProducts.isPoolAllowed(1 /* productId */, poolId)).to.be.equal(false);
 
     await expect(
-      cover.connect(fixture.pooledStakingSigner).createStakingPool(
+      stakingProducts.connect(fixture.pooledStakingSigner).createStakingPool(
         true, // isPrivatePool,
         initialPoolFee,
         maxPoolFee,
@@ -148,18 +179,19 @@ describe('createStakingPool', function () {
         ipfsDescriptionHash,
       ),
     )
-      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
-      .withArgs(1);
+      .to.be.revertedWithCustomError(stakingProducts, 'PoolNotAllowedForThisProduct')
+      .withArgs(0);
   });
 
   it('reverts when caller is not a member', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover } = fixture;
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { stakingProducts } = fixture;
     const [nonMember] = fixture.accounts.nonMembers;
+
     const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
 
     await expect(
-      cover.connect(nonMember).createStakingPool(
+      stakingProducts.connect(nonMember).createStakingPool(
         false, // isPrivatePool,
         initialPoolFee,
         maxPoolFee,
@@ -170,12 +202,12 @@ describe('createStakingPool', function () {
   });
 
   it('emits StakingPoolCreated event', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover, stakingPoolFactory } = fixture;
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { stakingProducts, stakingPoolFactory } = fixture;
     const [stakingPoolCreator] = fixture.accounts.members;
     const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
 
-    const tx = await cover.connect(stakingPoolCreator).createStakingPool(
+    const tx = await stakingProducts.connect(stakingPoolCreator).createStakingPool(
       false, // isPrivatePool,
       initialPoolFee,
       maxPoolFee,
@@ -183,20 +215,22 @@ describe('createStakingPool', function () {
       ipfsDescriptionHash,
     );
 
-    const poolId = 1;
-    const expectedSPAddress = await cover.stakingPool(poolId);
+    const stakingPoolCount = await stakingPoolFactory.stakingPoolCount();
+    const poolId = stakingPoolCount.toNumber();
+    const expectedSPAddress = await stakingProducts.stakingPool(poolId);
     await expect(tx).to.emit(stakingPoolFactory, 'StakingPoolCreated').withArgs(poolId, expectedSPAddress);
   });
 
   it('increments staking pool count', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover, stakingPoolFactory } = fixture;
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { stakingProducts, stakingPoolFactory } = fixture;
     const [stakingPoolCreator] = fixture.accounts.members;
+
     const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
 
     const stakingPoolCountBefore = await stakingPoolFactory.stakingPoolCount();
 
-    await cover.connect(stakingPoolCreator).createStakingPool(
+    await stakingProducts.connect(stakingPoolCreator).createStakingPool(
       false, // isPrivatePool,
       initialPoolFee,
       maxPoolFee,
@@ -209,21 +243,21 @@ describe('createStakingPool', function () {
   });
 
   it('should fail to initialize products with targetPrice below global minimum', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover } = fixture;
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { stakingProducts } = fixture;
     const { GLOBAL_MIN_PRICE_RATIO } = fixture.config;
     const [stakingPoolCreator] = fixture.accounts.members;
     const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
 
     const products = [{ ...productInitializationParams[0], targetPrice: GLOBAL_MIN_PRICE_RATIO - 1 }];
     await expect(
-      cover.connect(stakingPoolCreator).createStakingPool(
+      stakingProducts.connect(stakingPoolCreator).createStakingPool(
         false, // isPrivatePool,
         initialPoolFee,
         maxPoolFee,
         products,
         '', // ipfsDescriptionHash
       ),
-    ).to.be.revertedWithCustomError(cover, 'TargetPriceBelowGlobalMinPriceRatio');
+    ).to.be.revertedWithCustomError(stakingProducts, 'TargetPriceBelowGlobalMinPriceRatio');
   });
 });

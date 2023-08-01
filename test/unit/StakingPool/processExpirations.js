@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { setEtherBalance, increaseTime, setNextBlockTime, mineNextBlock } = require('../utils').evm;
+const { increaseTime, setNextBlockTime, mineNextBlock } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 const {
   getTranches,
@@ -43,16 +43,14 @@ const poolInitParams = {
 
 async function proccessExpirationSetup() {
   const fixture = await loadFixture(setup);
-  const { stakingPool, stakingProducts, cover } = fixture;
+  const { stakingPool, stakingProducts } = fixture;
   const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 
-  const coverSigner = await ethers.getImpersonatedSigner(cover.address);
-  await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
-  fixture.coverSigner = coverSigner;
+  await stakingPool
+    .connect(fixture.stakingProductsSigner)
+    .initialize(false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
 
-  await stakingPool.connect(coverSigner).initialize(false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
-
-  await stakingProducts.connect(coverSigner).setInitialProducts(poolId, products);
+  await stakingProducts.connect(fixture.stakingProductsSigner).setInitialProducts(poolId, products);
 
   // Move to the beginning of the next tranche
   const { firstActiveTrancheId: trancheId } = await getTranches();

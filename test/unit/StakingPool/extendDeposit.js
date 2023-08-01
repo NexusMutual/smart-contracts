@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { getTranches, getNewRewardShares, TRANCHE_DURATION, generateRewards, setTime } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { setEtherBalance, increaseTime } = require('../utils').evm;
+const { increaseTime } = require('../utils').evm;
 
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
@@ -35,19 +35,17 @@ const managerDepositId = 0;
 
 async function extendDepositSetup() {
   const fixture = await loadFixture(setup);
-  const { stakingPool, stakingProducts, stakingNFT, cover, tokenController } = fixture;
+  const { stakingPool, stakingProducts, stakingNFT, tokenController } = fixture;
   const [user] = fixture.accounts.members;
   const manager = fixture.accounts.defaultSender;
 
-  const coverSigner = await ethers.getImpersonatedSigner(cover.address);
-  await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
-  fixture.coverSigner = coverSigner;
-
   const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
-  await stakingPool.connect(coverSigner).initialize(false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+  await stakingPool
+    .connect(fixture.stakingProductsSigner)
+    .initialize(false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
   await tokenController.setStakingPoolManager(poolId, manager.address);
 
-  await stakingProducts.connect(fixture.coverSigner).setInitialProducts(poolId, products);
+  await stakingProducts.connect(fixture.stakingProductsSigner).setInitialProducts(poolId, products);
 
   // Move to the beginning of the next tranche
   const { firstActiveTrancheId: trancheId } = await getTranches();

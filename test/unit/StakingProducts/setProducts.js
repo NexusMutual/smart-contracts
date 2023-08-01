@@ -419,12 +419,12 @@ describe('setProducts unit tests', function () {
 
   it('should fail to add non-existing product', async function () {
     const fixture = await loadFixture(setup);
-    const { stakingProducts, cover } = fixture;
+    const { stakingProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
     const product = { ...newProductTemplate, productId: 999000 };
     await expect(stakingProducts.connect(manager).setProducts(poolId, [product]))
-      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
+      .to.be.revertedWithCustomError(stakingProducts, 'PoolNotAllowedForThisProduct')
       .withArgs(product.productId);
   });
 

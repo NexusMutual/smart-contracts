@@ -12,6 +12,7 @@ import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IRamm.sol";
+import "../../interfaces/ICoverProducts.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
@@ -52,6 +53,10 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     return ICover(getInternalContractAddress(ID.CO));
   }
 
+  function coverProducts() internal view returns (ICoverProducts) {
+    return ICoverProducts(getInternalContractAddress(ID.CP));
+  }
+
   function assessment() internal view returns (IAssessment) {
     return IAssessment(getInternalContractAddress(ID.AS));
   }
@@ -81,7 +86,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint segmentPeriod,
     uint coverAsset
   ) public view returns (uint, uint) {
-
     IPool poolContract = pool();
 
     uint nxmPriceInETH = poolContract.getInternalTokenPriceInAsset(0);
@@ -266,13 +270,13 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       lastClaimSubmissionOnCover[coverId] = ClaimSubmission(uint80(claims.length), true);
     }
 
-    ICover coverContract = cover();
+    ICoverProducts coverProductsContract = coverProducts();
     CoverData memory coverData = cover().coverData(coverId);
     CoverSegment memory segment = cover().coverSegmentWithRemainingAmount(coverId, segmentId);
 
     {
-      Product memory product = coverContract.products(coverData.productId);
-      ProductType memory productType = coverContract.productTypes(product.productType);
+      Product memory product = coverProductsContract.products(coverData.productId);
+      ProductType memory productType = coverProductsContract.productTypes(product.productType);
 
       require(
         productType.claimMethod == uint8(ClaimMethod.IndividualClaims),
@@ -342,7 +346,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   ///
   /// @param claimId  Claim identifier
   function redeemClaimPayout(uint104 claimId) external override whenNotPaused {
-
     Claim memory claim = claims[claimId];
     (
       IAssessment.Poll memory poll,
@@ -419,6 +422,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
     internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
+    internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
 
     Configuration memory currentConfig = config;
     bool notInitialized = bytes32(

@@ -22,8 +22,6 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public liquidity;
   uint public lastSwapTimestamp;
   uint public budget;
-  uint public twapDuration;
-  uint public oracleBuffer;
 
   /* ========== CONSTANTS ========== */
 

@@ -22,7 +22,7 @@ async function stakeOnly({ stakingPool, staker, period, gracePeriod, trancheIdOf
   );
 }
 
-async function stake({ stakingPool, staker, productId, period, gracePeriod, amount = 0 }) {
+async function stake({ stakingPool, staker, productId, period, gracePeriod, amount = 0, trancheIncrement = 0 }) {
   // Staking inputs
   const stakingAmount = amount !== 0 ? BigNumber.from(amount) : parseEther('10000');
   const lastBlock = await ethers.provider.getBlock('latest');
@@ -31,7 +31,7 @@ async function stake({ stakingPool, staker, productId, period, gracePeriod, amou
   // Stake to open up capacity
   await stakingPool.connect(staker).depositTo(
     stakingAmount,
-    firstTrancheId,
+    firstTrancheId + trancheIncrement,
     0, // new position
     AddressZero, // destination
   );

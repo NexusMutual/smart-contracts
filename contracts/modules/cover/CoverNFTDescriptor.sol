@@ -13,6 +13,7 @@ import "../../interfaces/IPool.sol";
 import "../../libraries/DateTime.sol";
 import "../../libraries/FloatingPoint.sol";
 import "./CoverNFT.sol";
+import "../../interfaces/ICoverProducts.sol";
 
 
 contract CoverNFTDescriptor is ICoverNFTDescriptor {
@@ -60,6 +61,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
   function generateDescription(uint tokenId) public view returns (string memory descriptionString,
     CoverDescription memory descriptionData) {
     ICover cover = ICover(master.getLatestAddress("CO"));
+    ICoverProducts coverProducts = ICoverProducts(master.getLatestAddress("CP"));
 
     if (cover.coverDataCount() < tokenId) {
       return ("This NFT does not exist", CoverDescription("", "", "", 0, 0, 0));
@@ -67,7 +69,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
 
     // Get cover data
     CoverData memory coverData = cover.coverData(tokenId);
-    string memory productName = cover.productNames(coverData.productId);
+    string memory productName = coverProducts.productNames(coverData.productId);
     CoverSegment memory lastSegment = cover.coverSegmentWithRemainingAmount(tokenId, cover.coverSegmentsCount(tokenId) - 1);
 
     // Check if cover has already expired

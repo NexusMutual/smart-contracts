@@ -15,13 +15,15 @@ contract Ramm is IRamm, MasterAwareV2 {
 
   // Parameters configurable through governance.
   Configuration public config;
+
   Pool public a;
   Pool public b;
   /* ========== STATE VARIABLES ========== */
 
-  uint public liquidity;
+  uint public ethReserve;
   uint public lastSwapTimestamp;
   uint public budget;
+  mapping(address => Observation[]) public pairObservations; // uni v2 copy code
 
   /* ========== CONSTANTS ========== */
 
@@ -30,6 +32,13 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public constant RATCHET_DENOMINATOR = 10_000;
   uint public constant PRICE_BUFFER = 100;
   uint public constant PRICE_BUFFER_DENOMINATOR = 10_000;
+
+
+  /* =========== IMMUTABLES ========== */
+
+  uint public immutable ORACLE_BUFFER;
+  uint public immutable AGGRESSIVE_LIQUIDITY_SPEED;
+  uint public immutable TARGET_LIQUIDITY;
 
   /* ========== CONSTRUCTOR ========== */
 

@@ -15,16 +15,19 @@ enum UintParams {
 }
 
 struct Pool {
-  uint nxm;
-  uint liquiditySpeed;
-  uint ratchetSpeed;
+  uint96 nxmReserve;
+  uint16 liquiditySpeed;
+  uint16 ratchetSpeed;
 }
 
 struct Configuration {
   uint targetLiquidity;
-  uint twapDuration;
   uint aggressiveLiqSpeed;
-  uint oracleBuffer;
+}
+
+struct Observation {
+  uint32 timestamp;
+  uint80 priceCumulative;
 }
 
 interface IRamm {

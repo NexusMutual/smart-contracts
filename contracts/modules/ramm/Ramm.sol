@@ -255,8 +255,8 @@ contract Ramm {
     console.log("SPOT PRICE B BEFORE SWAP:  %s ETH/NXM", format(1 ether * eth_new / nxm_b));
 
     uint k = eth_new * nxm_b;
-    b.nxm = nxm_b  + nxmIn;
-    a.nxm = nxm_b  + nxmIn;
+    b.nxm = nxm_b + nxmIn;
+    a.nxm = nxm_b + nxmIn;
 
     eth = k / b.nxm;
 
@@ -309,5 +309,29 @@ contract Ramm {
   function getSpotPrices() external view returns (uint /*ethPerNxm*/, uint) {
     (uint eth_new, uint nxm_a, uint nxm_b, /*uint new_budget*/) = getReserves();
     return (1 ether * eth_new / nxm_a, 1 ether * eth_new / nxm_b);
+  }
+
+  function getInternalPrice() returns (uint) {
+
+    uint capital = capitalPool.getPoolValueInEth();
+    uint mcr = capitalPool.mcr();
+
+    if (capital < mcr + BUFFER_ZONE) {
+      revert("LOW_CAP_ZONE");
+    }
+
+    uint supply = nxm.totalSupply();
+    uint bv = 1e18 * capital / supply;
+
+    uint twapA;
+    uint twapB;
+
+    uint spotA = getSpotPriceA();
+    uint spotB = getSpotPriceB();
+
+    priceA = Math.min(spotA, priceA);
+    priceB = Math.max(spotB, priceB);
+
+    return priceA + priceB - bv;
   }
 }

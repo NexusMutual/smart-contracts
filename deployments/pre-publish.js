@@ -104,6 +104,9 @@ const main = async () => {
     publicDir: 'generated', // copy generated files to dist
   });
 
+  // copy addresses.json to dist
+  fs.copyFileSync(path.join(__dirname, 'src/addresses.json'), path.join(__dirname, 'dist/addresses.json'));
+
   console.log('Done');
 };
 

@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { artifacts, config, run } = require('hardhat');
+const { build } = require('tsup');
 
 const rootPath = config.paths.root;
 const contractList = [
@@ -67,51 +68,21 @@ const rimraf = file => {
 };
 
 const generateExports = () => {
-  // input
-  const addressesPath = path.join(__dirname, 'src/addresses.json');
+  const abiExportsDir = path.join(__dirname, 'generated/abis');
 
-  // output
-  const abiExportsDir = path.join(__dirname, 'dist/abis');
-  const abiExportsFile = path.join(__dirname, 'dist/abis.js');
-  const addressesExportsFile = path.join(__dirname, 'dist/addresses.js');
-  const entrypointExportsFile = path.join(__dirname, 'dist/index.js');
-
-  rimraf(abiExportsDir);
   fs.mkdirSync(abiExportsDir, { recursive: true });
 
-  const abis = contractList.map(contract => {
-    const [, exportedName] = contract;
-    return typeof contract === 'string' ? contract : exportedName;
-  });
-
-  // make pairs of [filename, exportedName]
-  const pairs = contractList.map(contract => (typeof contract === 'string' ? [contract, contract] : contract));
-
-  for (const contract of pairs) {
-    const [contractName, exportedName] = contract;
+  for (const contract of contractList) {
+    const [contractName, exportedName] = typeof contract === 'string' ? [contract, contract] : contract;
     const artifact = artifacts.readArtifactSync(contractName);
     const abi = JSON.stringify(artifact.abi, null, 2);
-    fs.writeFileSync(path.join(abiExportsDir, `${exportedName}.js`), `module.exports = ${abi.trim()};\n`);
+    fs.writeFileSync(path.join(abiExportsDir, `${exportedName}.json`), abi.trim());
   }
-
-  const imports = abis.map(contract => `const ${contract} = require('./abis/${contract}.js');`);
-  const moduleExports = `module.exports = {\n${abis.map(contract => `  ${contract},`).join('\n')}\n};`;
-  fs.writeFileSync(abiExportsFile, [...imports, '', moduleExports, ''].join('\n'));
-
-  const addresses = fs.readFileSync(addressesPath).toString().trim().replace(/"/g, "'");
-  fs.writeFileSync(addressesExportsFile, `module.exports = ${addresses};\n`);
-
-  const entrypointExports = [
-    `const abis = require('./abis.js');`,
-    `const addresses = require('./addresses.js');`,
-    `module.exports = { abis, addresses };`,
-    '',
-  ].join('\n');
-
-  fs.writeFileSync(entrypointExportsFile, entrypointExports);
 };
 
 const main = async () => {
+  rimraf(path.join(__dirname, './dist'));
+
   console.log('Recompiling contracts');
   await run('compile');
 
@@ -121,6 +92,16 @@ const main = async () => {
 
   console.log('Generating exports');
   generateExports();
+
+  console.log('Building source');
+  await build({
+    entry: ['src/index.ts'],
+    format: ['cjs', 'esm'],
+    splitting: false,
+    sourcemap: true,
+    clean: true,
+    dts: true,
+  });
 
   console.log('Done');
 };

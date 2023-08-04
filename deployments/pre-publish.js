@@ -101,6 +101,7 @@ const main = async () => {
     sourcemap: true,
     clean: true,
     dts: true,
+    publicDir: 'generated', // copy generated files to dist
   });
 
   console.log('Done');

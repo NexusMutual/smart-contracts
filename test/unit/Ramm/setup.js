@@ -17,38 +17,36 @@ async function setup() {
   const tokenController = await ethers.deployContract('RammMockTokenController', [nxm.address]);
   const mcr = await ethers.deployContract('RammMockMCR', [master.address]);
   const pool = await ethers.deployContract('RammMockPool', [master.address, mcr.address, nxm.address]);
+  const twapOracle = await ethers.deployContract('TwapOracle');
 
   await mcr.setPool(pool.address);
 
-  const RAMM_CONFIG = {
-    targetLiquidity: parseEther('2500'),
-    aggressiveLiqSpeed: parseEther('200'),
-    twapDuration: 0,
-    oracleBuffer: 0,
-  };
+  const TARGET_LIQUIDITY = parseEther('2500');
+  const AGGRESSICE_LIQUIDITY_SPEED = parseEther('200');
   const LIQUIDITY = parseEther('2000');
   const BUDGET = parseEther('250');
-  const LIQUIDITY_SPEED_OUT = parseEther('100');
-  const LIQUIDITY_SPEED_IN = parseEther('100');
+  const LIQUIDITY_SPEED_OUT = 100; // 100ETH
+  const LIQUIDITY_SPEED_IN = 100; // 100ETH
   const RATCHET_SPEED_A = 400;
   const RATCHET_SPEED_B = 400;
   const SPOT_PRICE_A = parseEther('0.03');
   const SPOT_PRICE_B = parseEther('0.01');
 
   const ramm = await ethers.deployContract('Ramm', [
-    RAMM_CONFIG,
+    TARGET_LIQUIDITY,
     LIQUIDITY,
     BUDGET,
+    AGGRESSICE_LIQUIDITY_SPEED,
     LIQUIDITY_SPEED_OUT,
     LIQUIDITY_SPEED_IN,
     RATCHET_SPEED_A,
     RATCHET_SPEED_B,
     SPOT_PRICE_A,
     SPOT_PRICE_B,
+    twapOracle.address,
   ]);
 
   await setEtherBalance(pool.address, parseEther('145000'));
-
 
   await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
@@ -63,8 +61,10 @@ async function setup() {
   await ramm.changeMasterAddress(master.address);
   await ramm.changeDependentContractAddress();
 
-  await master.enrollGovernance(accounts.governanceContracts[0].address);
+  await twapOracle.changeMasterAddress(master.address);
+  await twapOracle.changeDependentContractAddress();
 
+  await master.enrollGovernance(accounts.governanceContracts[0].address);
 
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);
@@ -83,9 +83,9 @@ async function setup() {
       tokenController,
       pool,
       mcr,
+      twapOracle,
       ramm,
     },
-    initialConfiguration: RAMM_CONFIG,
   };
 }
 

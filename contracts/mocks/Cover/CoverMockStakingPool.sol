@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 
 import "../../interfaces/IStakingPool.sol";
 import "../../libraries/Math.sol";
+import "hardhat/console.sol";
 
 contract CoverMockStakingPool is IStakingPool {
 
@@ -65,7 +66,7 @@ contract CoverMockStakingPool is IStakingPool {
 
   function requestAllocation(
     uint amount,
-    uint /*previousPremium*/,
+    uint coverAmountInNXMOldRepriced,
     AllocationRequest calldata request
   ) external override returns (uint premium, uint allocationId) {
 
@@ -75,7 +76,13 @@ contract CoverMockStakingPool is IStakingPool {
       ? calculateFixedPricePremium(amount, request.period, mockPrices[request.productId])
       : calculatePremium(mockPrices[request.productId], amount, request.period);
 
-    return (premium, allocationId);
+    console.log("coverAmountInNXMOldRepriced", coverAmountInNXMOldRepriced);
+    console.log("amount", amount);
+    console.log("premium", premium);
+    uint extraPremium = premium * Math.max(
+      (amount - coverAmountInNXMOldRepriced), 0) / amount;
+
+    return (extraPremium, allocationId);
   }
 
   function calculateFixedPricePremium(

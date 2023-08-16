@@ -15,6 +15,7 @@ import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
+import "hardhat/console.sol";
 
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
@@ -611,7 +612,7 @@ contract StakingPool is IStakingPool, Multicall {
 
   function requestAllocation(
     uint amount,
-    uint previousPremium,
+    uint coverAmountInNXMOldRepriced,
     AllocationRequest calldata request
   ) external onlyCoverContract returns (uint premium, uint allocationId) {
 
@@ -675,6 +676,13 @@ contract StakingPool is IStakingPool, Multicall {
       ALLOCATION_UNITS_PER_NXM
     );
 
+    console.log("coverAmountInNXMOldRepriced", coverAmountInNXMOldRepriced);
+    console.log("amount", amount);
+    console.log("premium", premium);
+    // TODO: add extraPremium computation for extension of period
+    uint extraPremium = Math.max(
+      (amount - coverAmountInNXMOldRepriced), 0) / amount * premium;
+
     // add new rewards
     {
       if (request.rewardRatio > REWARDS_DENOMINATOR) {
@@ -683,7 +691,7 @@ contract StakingPool is IStakingPool, Multicall {
 
       uint expirationBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
       uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
-      uint _rewardPerSecond = (premium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
+      uint _rewardPerSecond = (extraPremium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
 
       // store
       rewardPerSecondCut[expirationBucket] += _rewardPerSecond;
@@ -691,23 +699,6 @@ contract StakingPool is IStakingPool, Multicall {
 
       uint rewardsToMint = _rewardPerSecond * rewardStreamPeriod;
       tokenController.mintStakingPoolNXMRewards(rewardsToMint, poolId);
-    }
-
-    // remove previous rewards
-    if (previousPremium > 0) {
-
-      uint prevRewards = previousPremium * request.previousRewardsRatio / REWARDS_DENOMINATOR;
-      uint prevExpirationBucket = Math.divCeil(request.previousExpiration, BUCKET_DURATION);
-      uint rewardStreamPeriod = prevExpirationBucket * BUCKET_DURATION - request.previousStart;
-      uint prevRewardsPerSecond = prevRewards / rewardStreamPeriod;
-
-      // store
-      rewardPerSecondCut[prevExpirationBucket] -= prevRewardsPerSecond;
-      rewardPerSecond -= prevRewardsPerSecond.toUint96();
-
-      // prevRewardsPerSecond * rewardStreamPeriodLeft
-      uint rewardsToBurn = prevRewardsPerSecond * (prevExpirationBucket * BUCKET_DURATION - block.timestamp);
-      tokenController.burnStakingPoolNXMRewards(rewardsToBurn, poolId);
     }
 
     return (premium, allocationId);

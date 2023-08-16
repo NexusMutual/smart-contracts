@@ -13,7 +13,7 @@ const { AddressZero } = ethers.constants;
 
 const gracePeriod = daysToSeconds(120);
 
-describe.only('editCover', function () {
+describe('editCover', function () {
   const coverBuyFixture = {
     productId: 0,
     coverAsset: 0, // ETH
@@ -924,13 +924,8 @@ describe.only('editCover', function () {
 
     const { productId, coverAsset, amount, period, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const expectedRefund = segment.amount
-      .mul(targetPriceRatio)
-      .mul(segment.period)
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
 
     const increasedAmount = amount.mul(2);
 
@@ -940,9 +935,13 @@ describe.only('editCover', function () {
       .mul(period)
       .div(priceDenominator)
       .div(3600 * 24 * 365);
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
 
-    const smallExpectedEditPremium = expectedEditPremium.div(10);
+    const extraAmount = increasedAmount.sub(amount);
+    const extraPremium =
+      (extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
+        .div(increasedAmount).mul(expectedEditPremium);
+
+    const smallExpectedEditPremium = extraPremium.div(10);
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -1280,7 +1279,7 @@ describe.only('editCover', function () {
 
     const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
     const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
@@ -1289,19 +1288,17 @@ describe.only('editCover', function () {
 
     const increasedAmount = amount.mul(2);
 
-    const expectedRefund = segment.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
-
     // premium for the new amount, without refunds
     const expectedEditPremium = increasedAmount
       .mul(targetPriceRatio)
       .mul(period)
       .div(priceDenominator)
       .div(3600 * 24 * 365);
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+
+    const extraAmount = increasedAmount.sub(amount);
+    const extraPremium =
+      expectedEditPremium.mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
+      .div(increasedAmount);
 
     const poolEthBalanceBefore = await ethers.provider.getBalance(pool.address);
 
@@ -1352,7 +1349,7 @@ describe.only('editCover', function () {
     await nxm.mint(coverBuyer.address, parseEther('1000'));
     await nxm.connect(coverBuyer).approve(tokenController.address, parseEther('1000'));
 
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
     const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
@@ -1361,19 +1358,17 @@ describe.only('editCover', function () {
 
     const increasedAmount = amount.mul(2);
 
-    const expectedRefund = segment.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
-
     // premium for the new amount, without refunds
     const expectedEditPremium = increasedAmount
       .mul(targetPriceRatio)
       .mul(period)
       .div(priceDenominator)
       .div(3600 * 24 * 365);
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+
+    const extraAmount = increasedAmount.sub(amount);
+    const extraPremium =
+      expectedEditPremium.mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
+        .div(increasedAmount);
 
     const userBalanceBefore = await nxm.balanceOf(coverBuyer.address);
 

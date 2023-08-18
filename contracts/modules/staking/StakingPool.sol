@@ -15,7 +15,6 @@ import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
-import "hardhat/console.sol";
 
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
@@ -676,12 +675,9 @@ contract StakingPool is IStakingPool, Multicall {
       ALLOCATION_UNITS_PER_NXM
     );
 
-    console.log("coverAmountInNXMOldRepriced", coverAmountInNXMOldRepriced);
-    console.log("amount", amount);
-    console.log("premium", premium);
     // TODO: add extraPremium computation for extension of period
-    uint extraPremium = Math.max(
-      (amount - coverAmountInNXMOldRepriced), 0) / amount * premium;
+    uint extraPremium = premium * Math.max(
+      (amount - coverAmountInNXMOldRepriced), 0) / amount;
 
     // add new rewards
     {
@@ -698,10 +694,11 @@ contract StakingPool is IStakingPool, Multicall {
       rewardPerSecond += _rewardPerSecond.toUint96();
 
       uint rewardsToMint = _rewardPerSecond * rewardStreamPeriod;
+
       tokenController.mintStakingPoolNXMRewards(rewardsToMint, poolId);
     }
 
-    return (premium, allocationId);
+    return (extraPremium, allocationId);
   }
 
   function getActiveAllocationsWithoutCover(

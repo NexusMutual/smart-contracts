@@ -71,7 +71,7 @@ contract SPMockCover {
     (premium, allocationId) = _stakingPool.requestAllocation(
       params.amount,
       // TODO: figure out if these need to be populated
-      0, // previousPremium
+      0, // coverAmountInNXMOldRepriced
       AllocationRequest(
         params.productId,
         coverId,

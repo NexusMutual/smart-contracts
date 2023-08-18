@@ -952,7 +952,7 @@ describe('requestAllocation', function () {
     }
   });
 
-  it('removes and burns previous NXM premium in case of update', async function () {
+  it('adds extra premium and rewards when doubling the amount allocation', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool, cover, tokenController, nxm } = fixture;
     const [user] = fixture.accounts.members;
@@ -1003,32 +1003,46 @@ describe('requestAllocation', function () {
 
     const previousExpiration = firstAllocationBlock.timestamp + allocationRequestParams.period;
 
+    const secondAllocationBlockBeforeEdit = await ethers.provider.getBlock('latest');
+    const period =
+      allocationRequestParams.period - (secondAllocationBlockBeforeEdit.timestamp - firstAllocationBlock.timestamp);
+
+    const coverAmountInNXMOldRepriced = amount;
+
+    const newAmount = amount.mul(2);
+
+    const tcBalanceBeforeEdit = await nxm.balanceOf(tokenController.address);
+
     await cover.requestAllocation(
-      amount,
-      premium,
+      newAmount,
+      coverAmountInNXMOldRepriced,
       {
         ...allocationRequestParams,
         previousStart: firstAllocationBlock.timestamp,
         previousExpiration,
-        period: 0, // set period to 0 so premium is 0
+        period,
       },
       stakingPool.address,
     );
 
     const secondAllocationBlock = await ethers.provider.getBlock('latest');
-    const expectedBurnedRewards = expectedRewardPerSecond.mul(
-      expirationBucket * BUCKET_DURATION - secondAllocationBlock.timestamp,
-    );
-
     {
+      // edit rewards
+      const premiumForEdit = await cover.lastPremium();
+
+      const rewardStreamPeriodForEdit = expirationBucket * BUCKET_DURATION - secondAllocationBlock.timestamp;
+      const rewardsForEdit = premiumForEdit.mul(rewardRatio).div(REWARDS_DENOMINATOR);
+      const expectedRewardPerSecondForEdit = rewardsForEdit.div(rewardStreamPeriodForEdit);
+      const expectedRewards = expectedRewardPerSecondForEdit.mul(rewardStreamPeriodForEdit);
+
       const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
-      expect(tcBalanceAfter).to.equal(tcBalanceBefore.add(expectedRewards).sub(expectedBurnedRewards));
+      expect(tcBalanceAfter).to.equal(tcBalanceBeforeEdit.add(expectedRewards));
 
       const rewardPerSecond = await stakingPool.getRewardPerSecond();
-      expect(rewardPerSecond).to.equal(0);
+      expect(rewardPerSecond).to.equal(expectedRewardPerSecond.add(expectedRewardPerSecondForEdit));
 
       const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
-      expect(rewardPerSecondCut).to.equal(0);
+      expect(rewardPerSecondCut).to.equal(expectedRewardPerSecond.add(expectedRewardPerSecondForEdit));
     }
   });
 

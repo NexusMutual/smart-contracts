@@ -4,7 +4,6 @@ pragma solidity ^0.8.18;
 
 import "../../interfaces/IStakingPool.sol";
 import "../../libraries/Math.sol";
-import "hardhat/console.sol";
 
 contract CoverMockStakingPool is IStakingPool {
 
@@ -76,9 +75,9 @@ contract CoverMockStakingPool is IStakingPool {
       ? calculateFixedPricePremium(amount, request.period, mockPrices[request.productId])
       : calculatePremium(mockPrices[request.productId], amount, request.period);
 
-    console.log("coverAmountInNXMOldRepriced", coverAmountInNXMOldRepriced);
-    console.log("amount", amount);
-    console.log("premium", premium);
+    if (amount == 0) {
+      return (0, 0);
+    }
     uint extraPremium = premium * Math.max(
       (amount - coverAmountInNXMOldRepriced), 0) / amount;
 

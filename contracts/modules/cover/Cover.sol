@@ -21,7 +21,6 @@ import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/ICoverProducts.sol";
-import "hardhat/console.sol";
 import "../../libraries/Math.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Multicall {
@@ -221,6 +220,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.coverId = coverId;
 
       if (params.amount > 0) {
+
+        // set the period to be the remaining period
+        allocationRequest.period = allocationRequest.previousExpiration - block.timestamp + 1;
+
         (coverAmountInCoverAsset, amountDueInNXM) = requestAmountAllocation(
           allocationRequest,
           poolAllocationRequests,
@@ -234,7 +237,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         revert("Not yet implemented");
       }
     }
-
 
     if (coverAmountInCoverAsset < params.amount) {
       revert InsufficientCoverAmountAllocated();
@@ -397,8 +399,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       params.previousSegmentAmount, params.nxmPriceInCoverAsset
     );
 
-    console.log("oldSegmentAmountInNXMRepriced", oldSegmentAmountInNXMRepriced);
-
     RequestAllocationVariables memory vars; // = RequestAllocationVariables(0, 0, 0, 0);
 
     uint totalCoverAmountInNXM;
@@ -469,14 +469,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         allocationRequest
       );
 
-      console.log("premiumInNXM", premiumInNXM);
-
       // omit deallocated pools from the segment
       if (coverAmountInNXM != 0) {
         coverSegmentAllocations[allocationRequest.coverId][params.segmentId].push(
           PoolAllocation(
             poolAllocationRequests[i].poolId,
             coverAmountInNXM.toUint96(),
+            // TODO: should be full amount or only the amount paid for editing?
             premiumInNXM.toUint96(),
             allocationId.toUint24()
           )
@@ -498,10 +497,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       NXM_PER_ALLOCATION_UNIT
     );
   }
-
-//  function getPreviousSegmentCoverAmountTotalInNXM(CoverAllocation[] memory allocations) {
-//
-//  }
 
   function retrievePayment(
     uint premiumInNxm,
@@ -544,9 +539,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint commission = (premiumInPaymentAsset * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio)) - premiumInPaymentAsset;
     uint premiumWithCommission = premiumInPaymentAsset + commission;
 
-
-    console.log("premiumWithCommission", premiumWithCommission);
-    console.log("maxPremiumInAsset", maxPremiumInAsset);
     if (premiumWithCommission > maxPremiumInAsset) {
       revert PriceExceedsMaxPremiumInAsset();
     }

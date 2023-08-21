@@ -17,7 +17,6 @@ async function setup() {
   const tokenController = await ethers.deployContract('RammMockTokenController', [nxm.address]);
   const mcr = await ethers.deployContract('RammMockMCR', [master.address]);
   const pool = await ethers.deployContract('RammMockPool', [master.address, mcr.address, nxm.address]);
-  const twapOracle = await ethers.deployContract('TwapOracle');
 
   await mcr.setPool(pool.address);
 
@@ -43,7 +42,6 @@ async function setup() {
     RATCHET_SPEED_B,
     SPOT_PRICE_A,
     SPOT_PRICE_B,
-    twapOracle.address,
   ]);
 
   await setEtherBalance(pool.address, parseEther('145000'));
@@ -60,9 +58,6 @@ async function setup() {
 
   await ramm.changeMasterAddress(master.address);
   await ramm.changeDependentContractAddress();
-
-  await twapOracle.changeMasterAddress(master.address);
-  await twapOracle.changeDependentContractAddress();
 
   await master.enrollGovernance(accounts.governanceContracts[0].address);
 
@@ -83,7 +78,6 @@ async function setup() {
       tokenController,
       pool,
       mcr,
-      twapOracle,
       ramm,
     },
   };

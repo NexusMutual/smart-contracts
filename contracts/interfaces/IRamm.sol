@@ -20,6 +20,11 @@ struct Pool {
   uint16 ratchetSpeed;
 }
 
+struct Observation {
+  uint32 timestamp;
+  uint80 priceCumulative;
+}
+
 interface IRamm {
 
   /* ========== VIEWS ========== */
@@ -30,7 +35,7 @@ interface IRamm {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function swap(uint96 nxmIn)  external payable;
+  function swap(uint nxmIn)  external payable;
 
   function addBudget(uint amount) external;
 

@@ -7,7 +7,6 @@ import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ITokenController.sol";
-import "../../interfaces/ITwapOracle.sol";
 import "../../interfaces/IMCR.sol";
 import "../../libraries/Math.sol";
 
@@ -19,8 +18,8 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public ethReserve;
   uint public lastSwapTimestamp;
   uint public budget;
-  Observation[] public aboveObservations;
-  Observation[] public belowObservations;
+  Observation[8] public aboveObservations;
+  Observation[8] public belowObservations;
 
   /* ========== CONSTANTS ========== */
 
@@ -38,7 +37,6 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public immutable periodSize;
   uint8 public immutable granularity;
   uint public immutable windowSize;
-  address public immutable twapOracleAddress;
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -47,40 +45,34 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint _liquidity,
   uint _budget,
   uint _aggressiveLiquiditySpeed,
-  uint16 liqSpeedOut,
-  uint16 liqSpeedIn,
-  uint16 ratchetSpeedA,
-  uint16 ratchetSpeedB,
+  uint liqSpeedOut,
+  uint liqSpeedIn,
+  uint ratchetSpeedA,
+  uint ratchetSpeedB,
   uint spotPriceA,
-  uint spotPriceB,
-  address _twapOracleAddress
+  uint spotPriceB
   ) {
     targetLiquidity = _targetLiquidity;
     aggressiveLiquiditySpeed = _aggressiveLiquiditySpeed;
 
-    twapOracleAddress = _twapOracleAddress;
     windowSize = 14400; // 4 hours
     granularity = 8;
     periodSize = 1800; // windowSize / granularity;
-    for (uint i = 0; i < granularity; i++) {
-      aboveObservations.push();
-      belowObservations.push();
-    }
 
     ethReserve = _liquidity;
     budget = _budget;
     lastSwapTimestamp = block.timestamp;
 
     a.nxmReserve = uint96(_liquidity * 1 ether / spotPriceA);
-    a.liquiditySpeed  = liqSpeedOut;
-    a.ratchetSpeed  = ratchetSpeedA;
+    a.liquiditySpeed  = uint16(liqSpeedOut);
+    a.ratchetSpeed  = uint16(ratchetSpeedA);
 
     b.nxmReserve = uint96(_liquidity * 1 ether / spotPriceB);
-    b.liquiditySpeed  = liqSpeedIn;
-    b.ratchetSpeed  = ratchetSpeedB;
+    b.liquiditySpeed  = uint16(liqSpeedIn);
+    b.ratchetSpeed  = uint16(ratchetSpeedB);
   }
 
-  function swap(uint96 nxmIn) external payable {
+  function swap(uint nxmIn) external payable {
 
     require(msg.value == 0 || nxmIn == 0, "ONE_INPUT_ONLY");
     require(msg.value > 0 || nxmIn > 0, "ONE_INPUT_REQUIRED");
@@ -106,16 +98,16 @@ contract Ramm is IRamm, MasterAwareV2 {
     (bool ok,) = address(pool()).call{value: msg.value}("");
     require(ok, "CAPITAL_POOL_TRANSFER_FAILED");
     tokenController().mint(msg.sender, nxmOut);
-    twapOracle().update(true, _liquidity, nxmA, nxmB);
+    update(true, _liquidity, nxmA, nxmB);
   }
 
-  function swapNxmForEth(uint96 nxmIn) internal returns (uint ethOut) {
+  function swapNxmForEth(uint nxmIn) internal returns (uint ethOut) {
 
     (uint _liquidity, uint96 nxmA, uint96 nxmB, uint _budget) = getReserves();
 
     uint k = _liquidity * nxmB;
-    b.nxmReserve = nxmB  + nxmIn;
-    a.nxmReserve = nxmB  + nxmIn;
+    b.nxmReserve = uint96(nxmB  + nxmIn);
+    a.nxmReserve = uint96(nxmB  + nxmIn);
 
     ethReserve = k / b.nxmReserve;
 
@@ -136,7 +128,7 @@ contract Ramm is IRamm, MasterAwareV2 {
       revert("NO_SWAPS_IN_BUFFER_ZONE");
     }
 
-    twapOracle().update(false, _liquidity, nxmA, nxmB);
+    update(false, _liquidity, nxmA, nxmB);
   }
 
   function addBudget(uint amount) external override onlyGovernance {
@@ -246,7 +238,102 @@ contract Ramm is IRamm, MasterAwareV2 {
     return (1 ether * _liquidity / nxmA, 1 ether * _liquidity / nxmB);
   }
 
+  /* ========== ORACLE ========== */
+
+  function currentBlockTimestamp() internal view returns (uint32) {
+    return uint32(block.timestamp % 2 ** 32);
+  }
+
+  function observationIndexOf(uint timestamp) public view returns (uint8 index) {
+    uint epochPeriod = timestamp / periodSize;
+    return uint8(epochPeriod % granularity);
+  }
+
+  function getLatestObservationInWindow(bool above) private view returns (Observation storage lastObservation) {
+    Observation[8] storage observations = above ? aboveObservations : belowObservations;
+
+    uint8 lastObservationIndex = observationIndexOf(block.timestamp - periodSize);
+
+    lastObservation = observations[lastObservationIndex];
+    uint epochStartTimestamp = (block.timestamp / periodSize - 1) * periodSize;
+    if (lastObservation.timestamp > epochStartTimestamp) {
+      return lastObservation;
+    }
+    for (uint i = 0; i < granularity; i++) {
+      if (observations[i].timestamp > lastObservation.timestamp) {
+        lastObservation = observations[i];
+      }
+    }
+  }
+
+
+  function currentCumulativePrice(
+    bool above,
+    uint _ethReserve,
+    uint96 _nxmA,
+    uint96 _nxmB
+  ) internal view returns (uint priceCumulative) {
+    uint32 blockTimestamp = currentBlockTimestamp();
+    Observation storage lastObservation = getLatestObservationInWindow(above);
+    uint96 nxmReserve = above ? _nxmA : _nxmB;
+
+    // subtraction overflow is desired
+    uint32 timeElapsed = blockTimestamp - lastObservation.timestamp;
+
+    if (lastObservation.timestamp == blockTimestamp) {
+      return lastObservation.priceCumulative;
+    }
+    priceCumulative = lastObservation.priceCumulative + (_ethReserve / nxmReserve) * timeElapsed;
+  }
+
+
+  function update(
+    bool above,
+    uint _ethReserve,
+    uint96 _nxmA,
+    uint96 _nxmB
+  ) internal {
+    uint8 observationIndex = observationIndexOf(block.timestamp);
+    Observation storage observation = above ? aboveObservations[observationIndex] : belowObservations[observationIndex];
+
+    // we only want to commit updates once per period (i.e. windowSize / granularity)
+    uint timeElapsed = block.timestamp - observation.timestamp;
+    if (timeElapsed > periodSize) {
+      uint priceCumulative = currentCumulativePrice(above, _ethReserve, _nxmA, _nxmB);
+      observation.timestamp = currentBlockTimestamp();
+      observation.priceCumulative = uint80(priceCumulative);
+    }
+  }
+
+  function consult(
+    bool above,
+    uint _ethReserve,
+    uint96 _nxmA,
+    uint96 _nxmB,
+    uint amount
+  ) external view returns (uint amountOut) {
+    Observation storage lastObservation = getLatestObservationInWindow(above);
+
+    uint timeElapsed = block.timestamp - lastObservation.timestamp;
+    require(timeElapsed <= windowSize, 'Missing historical observation');
+    require(timeElapsed >= windowSize - periodSize * 2, 'Unexpected time elapsed');
+
+    uint priceCumulative = currentCumulativePrice(above, _ethReserve, _nxmA, _nxmB);
+    return computeAmountOut(lastObservation.priceCumulative, priceCumulative, timeElapsed, amount);
+  }
+
+  function computeAmountOut(
+    uint priceCumulativeStart,
+    uint priceCumulativeEnd,
+    uint timeElapsed,
+    uint amountIn
+  ) private pure returns (uint amountOut) {
+    uint priceAverage = (priceCumulativeEnd - priceCumulativeStart) / timeElapsed;
+    return priceAverage * amountIn;
+  }
+
   /* ========== DEPENDENCIES ========== */
+
   function pool() internal view returns (IPool) {
     return IPool(internalContracts[uint(ID.P1)]);
   }
@@ -257,10 +344,6 @@ contract Ramm is IRamm, MasterAwareV2 {
 
   function tokenController() internal view returns (ITokenController) {
     return ITokenController(internalContracts[uint(ID.TC)]);
-  }
-
-  function twapOracle() internal view returns (ITwapOracle) {
-    return ITwapOracle(twapOracleAddress);
   }
 
   function changeDependentContractAddress() external override {

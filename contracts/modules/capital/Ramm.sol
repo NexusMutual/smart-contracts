@@ -37,10 +37,12 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public immutable aggressiveLiquiditySpeed;
   uint public immutable targetLiquidity;
   uint public immutable periodSize;
-  uint8 public immutable granularity;
+  uint public immutable granularity;
   uint public immutable windowSize;
 
   /* ========== CONSTRUCTOR ========== */
+
+  // TODO: all in-memory variables, immutables and constants should use uint256
 
   constructor(
   uint _targetLiquidity,
@@ -57,6 +59,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     targetLiquidity = _targetLiquidity;
     aggressiveLiquiditySpeed = _aggressiveLiquiditySpeed;
 
+    // TODO: use constants insteads
     windowSize = 14400; // 4 hours
     granularity = 8;
     periodSize = 1800; // windowSize / granularity;
@@ -242,10 +245,6 @@ contract Ramm is IRamm, MasterAwareV2 {
 
   /* ========== ORACLE ========== */
 
-  function currentBlockTimestamp() internal view returns (uint32) {
-    return uint32(block.timestamp % 2 ** 32);
-  }
-
   function observationIndexOf(uint timestamp) public view returns (uint8 index) {
     uint epochPeriod = timestamp / periodSize;
     return uint8(epochPeriod % granularity);
@@ -259,26 +258,24 @@ contract Ramm is IRamm, MasterAwareV2 {
     }
   }
 
-
   function currentCumulativePrice(
     bool above,
     uint _ethReserve,
     uint96 _nxmA,
     uint96 _nxmB
   ) internal view returns (uint priceCumulative) {
-    uint32 blockTimestamp = currentBlockTimestamp();
+    uint32 blockTimestamp = block.timestamp;
     Observation storage lastObservation = getLatestObservationInWindow(above);
     uint96 nxmReserve = above ? _nxmA : _nxmB;
 
-    // subtraction overflow is desired
-    uint32 timeElapsed = blockTimestamp - lastObservation.timestamp;
+    uint timeElapsed = blockTimestamp - lastObservation.timestamp;
 
     if (lastObservation.timestamp == blockTimestamp) {
       return lastObservation.priceCumulative;
     }
-    priceCumulative = lastObservation.priceCumulative + (_ethReserve / nxmReserve) * timeElapsed;
-  }
 
+    return lastObservation.priceCumulative + (_ethReserve / nxmReserve) * timeElapsed;
+  }
 
   function update(
     bool above,
@@ -289,17 +286,16 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint8 observationIndex = observationIndexOf(block.timestamp);
     Observation storage observation = above ? aboveObservations[observationIndex] : belowObservations[observationIndex];
 
-    // we only want to commit updates once per period (i.e. windowSize / granularity)
-    uint timeElapsed = block.timestamp - observation.timestamp;
-    if (timeElapsed > periodSize) {
-      uint priceCumulative = currentCumulativePrice(above, _ethReserve, _nxmA, _nxmB);
-      observation.timestamp = currentBlockTimestamp();
-      observation.priceCumulative = uint80(priceCumulative);
-      if (above) {
-        aboveLastUpdatedObservationIndex = observationIndex;
-      } else {
-        belowLastUpdatedObservationIndex = observationIndex;
-      }
+    uint priceCumulative = currentCumulativePrice(above, _ethReserve, _nxmA, _nxmB);
+
+    // overflow is desired
+    observation.priceCumulative = uint80(priceCumulative % (2 ** 80));
+    observation.timestamp = block.timestamp;
+
+    if (above) {
+      aboveLastUpdatedObservationIndex = observationIndex;
+    } else {
+      belowLastUpdatedObservationIndex = observationIndex;
     }
   }
 
@@ -310,24 +306,19 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint96 _nxmB,
     uint amount
   ) external view returns (uint amountOut) {
+    // TODO: use the latest one from the previous
     Observation storage lastObservation = getLatestObservationInWindow(above);
+
+    //   10    11    12    13    14    15    16    17
+    //   |--x--|--y--|-z-c-|-----|-----|-----|-----|
+    //      0     1     0     1     0     1     0
 
     uint timeElapsed = block.timestamp - lastObservation.timestamp;
     require(timeElapsed <= windowSize, 'Missing historical observation');
     require(timeElapsed >= windowSize - periodSize * 2, 'Unexpected time elapsed');
 
     uint priceCumulative = currentCumulativePrice(above, _ethReserve, _nxmA, _nxmB);
-    return computeAmountOut(lastObservation.priceCumulative, priceCumulative, timeElapsed, amount);
-  }
-
-  function computeAmountOut(
-    uint priceCumulativeStart,
-    uint priceCumulativeEnd,
-    uint timeElapsed,
-    uint amountIn
-  ) private pure returns (uint amountOut) {
-    uint priceAverage = (priceCumulativeEnd - priceCumulativeStart) / timeElapsed;
-    return priceAverage * amountIn;
+    return (priceCumulative - lastObservation.priceCumulative) / timeElapsed;
   }
 
   /* ========== DEPENDENCIES ========== */

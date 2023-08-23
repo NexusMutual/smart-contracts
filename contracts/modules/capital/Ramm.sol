@@ -9,6 +9,7 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IMCR.sol";
 import "../../libraries/Math.sol";
+import "hardhat/console.sol";
 
 contract Ramm is IRamm, MasterAwareV2 {
   Pool public a;
@@ -18,8 +19,10 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public ethReserve;
   uint public lastSwapTimestamp;
   uint public budget;
-  Observation[8] public aboveObservations;
-  Observation[8] public belowObservations;
+  uint32[8] public aboveObservationTimestamps;
+  uint80[8] public aboveObservationCumulativePrices;
+  uint32[8] public belowObservationTimestamps;
+  uint80[8] public belowObservationCumulativePrices;
 
   /* ========== CONSTANTS ========== */
 
@@ -249,19 +252,22 @@ contract Ramm is IRamm, MasterAwareV2 {
     return uint8(epochPeriod % granularity);
   }
 
-  function getLatestObservationInWindow(bool above) private view returns (Observation storage lastObservation) {
-    Observation[8] storage observations = above ? aboveObservations : belowObservations;
+  function getLatestObservationInWindow(bool above) private view returns (uint80 cumulativePrices, uint32 timestamp) {
+    uint32[8] memory observationTimestamps = above ? aboveObservationTimestamps : belowObservationTimestamps;
+    uint80[8] memory observationsPrices = above ? aboveObservationCumulativePrices : belowObservationCumulativePrices;
 
     uint8 lastObservationIndex = observationIndexOf(block.timestamp - periodSize);
 
-    lastObservation = observations[lastObservationIndex];
+    timestamp = observationTimestamps[lastObservationIndex];
+    cumulativePrices = observationsPrices[lastObservationIndex];
     uint epochStartTimestamp = (block.timestamp / periodSize - 1) * periodSize;
-    if (lastObservation.timestamp > epochStartTimestamp) {
-      return lastObservation;
+    if (timestamp > epochStartTimestamp) {
+      return (cumulativePrices, timestamp);
     }
     for (uint i = 0; i < granularity; i++) {
-      if (observations[i].timestamp > lastObservation.timestamp) {
-        lastObservation = observations[i];
+      if (observationTimestamps[i] > timestamp) {
+        timestamp = observationTimestamps[i];
+        cumulativePrices = observationsPrices[i];
       }
     }
   }
@@ -274,16 +280,16 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint96 _nxmB
   ) internal view returns (uint priceCumulative) {
     uint32 blockTimestamp = currentBlockTimestamp();
-    Observation storage lastObservation = getLatestObservationInWindow(above);
+    (uint80 cumulativePrice, uint32 timestamp) = getLatestObservationInWindow(above);
     uint96 nxmReserve = above ? _nxmA : _nxmB;
 
     // subtraction overflow is desired
-    uint32 timeElapsed = blockTimestamp - lastObservation.timestamp;
+    uint32 timeElapsed = blockTimestamp - timestamp;
 
-    if (lastObservation.timestamp == blockTimestamp) {
-      return lastObservation.priceCumulative;
+    if (timestamp == blockTimestamp) {
+      return cumulativePrice;
     }
-    priceCumulative = lastObservation.priceCumulative + (_ethReserve / nxmReserve) * timeElapsed;
+    priceCumulative = cumulativePrice + (_ethReserve / nxmReserve) * timeElapsed;
   }
 
 
@@ -292,16 +298,23 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint _ethReserve,
     uint96 _nxmA,
     uint96 _nxmB
-  ) internal {
+  ) public {
     uint8 observationIndex = observationIndexOf(block.timestamp);
-    Observation storage observation = above ? aboveObservations[observationIndex] : belowObservations[observationIndex];
+    uint80 timestamp = above
+      ? aboveObservationTimestamps[observationIndex]
+      : belowObservationTimestamps[observationIndex];
 
     // we only want to commit updates once per period (i.e. windowSize / granularity)
-    uint timeElapsed = block.timestamp - observation.timestamp;
+    uint timeElapsed = block.timestamp - timestamp;
     if (timeElapsed > periodSize) {
       uint priceCumulative = currentCumulativePrice(above, _ethReserve, _nxmA, _nxmB);
-      observation.timestamp = currentBlockTimestamp();
-      observation.priceCumulative = uint80(priceCumulative);
+      if (above) {
+        aboveObservationTimestamps[observationIndex] = currentBlockTimestamp();
+        aboveObservationCumulativePrices[observationIndex] = uint80(priceCumulative);
+      } else {
+        belowObservationTimestamps[observationIndex] = currentBlockTimestamp();
+        belowObservationCumulativePrices[observationIndex] = uint80(priceCumulative);
+      }
     }
   }
 
@@ -312,14 +325,14 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint96 _nxmB,
     uint amount
   ) external view returns (uint amountOut) {
-    Observation storage lastObservation = getLatestObservationInWindow(above);
+    (uint80 cumulativePrice, uint32 timestamp) = getLatestObservationInWindow(above);
 
-    uint timeElapsed = block.timestamp - lastObservation.timestamp;
+    uint timeElapsed = block.timestamp - timestamp;
     require(timeElapsed <= windowSize, 'Missing historical observation');
     require(timeElapsed >= windowSize - periodSize * 2, 'Unexpected time elapsed');
 
     uint priceCumulative = currentCumulativePrice(above, _ethReserve, _nxmA, _nxmB);
-    return computeAmountOut(lastObservation.priceCumulative, priceCumulative, timeElapsed, amount);
+    return computeAmountOut(cumulativePrice, priceCumulative, timeElapsed, amount);
   }
 
   function computeAmountOut(

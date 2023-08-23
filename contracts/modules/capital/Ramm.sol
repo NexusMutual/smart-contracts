@@ -20,6 +20,8 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public budget;
   Observation[8] public aboveObservations;
   Observation[8] public belowObservations;
+  uint8 aboveLastUpdatedObservationIndex;
+  uint8 belowLastUpdatedObservationIndex;
 
   /* ========== CONSTANTS ========== */
 
@@ -250,19 +252,10 @@ contract Ramm is IRamm, MasterAwareV2 {
   }
 
   function getLatestObservationInWindow(bool above) private view returns (Observation storage lastObservation) {
-    Observation[8] storage observations = above ? aboveObservations : belowObservations;
-
-    uint8 lastObservationIndex = observationIndexOf(block.timestamp - periodSize);
-
-    lastObservation = observations[lastObservationIndex];
-    uint epochStartTimestamp = (block.timestamp / periodSize - 1) * periodSize;
-    if (lastObservation.timestamp > epochStartTimestamp) {
-      return lastObservation;
-    }
-    for (uint i = 0; i < granularity; i++) {
-      if (observations[i].timestamp > lastObservation.timestamp) {
-        lastObservation = observations[i];
-      }
+     if (above) {
+      return aboveObservations[aboveLastUpdatedObservationIndex];
+    } else {
+      return belowObservations[belowLastUpdatedObservationIndex];
     }
   }
 
@@ -302,6 +295,11 @@ contract Ramm is IRamm, MasterAwareV2 {
       uint priceCumulative = currentCumulativePrice(above, _ethReserve, _nxmA, _nxmB);
       observation.timestamp = currentBlockTimestamp();
       observation.priceCumulative = uint80(priceCumulative);
+      if (above) {
+        aboveLastUpdatedObservationIndex = observationIndex;
+      } else {
+        belowLastUpdatedObservationIndex = observationIndex;
+      }
     }
   }
 

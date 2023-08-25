@@ -22,7 +22,8 @@ struct Pool {
 
 struct Observation {
   uint32 timestamp;
-  uint80 priceCumulative;
+  uint64 priceCumulativeAbove;
+  uint64 priceCumulativeBelow;
 }
 
 interface IRamm {

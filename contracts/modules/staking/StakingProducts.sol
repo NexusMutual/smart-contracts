@@ -56,10 +56,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     stakingPoolFactory = _stakingPoolFactory;
   }
 
-  function getStakingPool(uint poolId) internal view returns (IStakingPool stakingPoolAddress) {
-    stakingPoolAddress = IStakingPool(StakingPoolLibrary.getAddress(stakingPoolFactory, poolId));
-  }
-
   function getProductTargetWeight(uint poolId, uint productId) external view override returns (uint) {
     return uint(_products[poolId][productId].targetWeight);
   }
@@ -91,7 +87,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function recalculateEffectiveWeights(uint poolId, uint[] calldata productIds) external {
 
-    IStakingPool _stakingPool = getStakingPool(poolId);
+    IStakingPool _stakingPool = stakingPool(poolId);
 
     (
       uint globalCapacityRatio,
@@ -125,7 +121,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   function recalculateEffectiveWeightsForAllProducts(uint poolId) external {
 
     uint productsCount = coverProducts().productsCount();
-    IStakingPool _stakingPool = getStakingPool(poolId);
+    IStakingPool _stakingPool = stakingPool(poolId);
 
     // initialize array for all possible products
     uint[] memory productIdsRaw = new uint[](productsCount);
@@ -177,7 +173,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function setProducts(uint poolId, StakedProductParam[] memory params) external {
 
-    IStakingPool _stakingPool = getStakingPool(poolId);
+    IStakingPool _stakingPool = stakingPool(poolId);
 
     if (msg.sender != _stakingPool.manager()) {
       revert OnlyManager();
@@ -325,7 +321,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint capacityReductionRatio
   ) public view returns (uint effectiveWeight) {
 
-    IStakingPool _stakingPool = getStakingPool(poolId);
+    IStakingPool _stakingPool = stakingPool(poolId);
 
     return _getEffectiveWeight(
       _stakingPool,
@@ -674,10 +670,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function tokenController() internal view returns (ITokenController) {
     return ITokenController(internalContracts[uint(ID.TC)]);
-  }
-
-  function cover() internal view returns (ICover) {
-    return ICover(coverContract);
   }
 
   function coverProducts() internal view returns (ICoverProducts) {

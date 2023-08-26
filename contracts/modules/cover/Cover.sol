@@ -28,6 +28,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   /* ========== STATE VARIABLES ========== */
 
+  Product[] internal _products;
+  ProductType[] internal _productTypes;
+
   mapping(uint => CoverData) private _coverData;
 
   // cover id => segment id => pool allocations array
@@ -657,20 +660,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   ) {
     _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
     _globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
-    _capacityReductionRatios = new uint[](productIds.length);
-    _initialPrices = new uint[](productIds.length);
-
     ICoverProducts _coverProducts = coverProducts();
-    for (uint i = 0; i < productIds.length; i++) {
-      uint productId = productIds[i];
 
-      if (productId >= _coverProducts.productsCount()) {
-        revert ProductDoesntExist();
-      }
+    (_initialPrices, _capacityReductionRatios) = _coverProducts.getPriceAndCapacityRatios(productIds);
 
-      _initialPrices[i] = uint(_coverProducts.products(productId).initialPriceRatio);
-      _capacityReductionRatios[i] = uint(_coverProducts.products(productId).capacityReductionRatio);
-    }
   }
 
   function isCoverAssetSupported(uint assetId, uint productCoverAssetsBitmap) internal view returns (bool) {

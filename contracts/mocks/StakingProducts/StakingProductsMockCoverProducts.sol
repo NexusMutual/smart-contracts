@@ -5,12 +5,13 @@ pragma solidity ^0.8.18;
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingProducts.sol";
+import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
 
-contract StakingProductsMockCoverProducts {
+contract StakingProductsMockCoverProducts is ICoverProducts {
 
-  mapping(uint => Product) public products;
-  mapping(uint => ProductType) public productTypes;
+  mapping(uint => Product) public _products;
+  mapping(uint => ProductType) public _productTypes;
   mapping(uint => mapping(uint => bool)) public allowedPools;
   uint public productsCount;
   mapping(uint => uint)  private _allowedPoolsCount;
@@ -21,7 +22,7 @@ contract StakingProductsMockCoverProducts {
   }
 
   function setProduct(Product memory _product, uint id) public {
-    products[id] = _product;
+    _products[id] = _product;
     productsCount++;
   }
 
@@ -29,15 +30,15 @@ contract StakingProductsMockCoverProducts {
     return _allowedPoolsCount[productId];
   }
 
-  function setProducts(Product[] memory _products, uint[] memory productIds) public {
-    for (uint i = 0; i < _products.length; i++) {
-      products[productIds[i]] = _products[i];
-      productsCount++;
-    }
-  }
+//  function setProducts(Product[] memory newProducts, uint[] memory productIds) public {
+//    for (uint i = 0; i < newProducts.length; i++) {
+//      _products[productIds[i]] = newProducts[i];
+//      productsCount++;
+//    }
+//  }
 
   function setProductType(ProductType calldata product, uint id) public {
-    productTypes[id] = product;
+    _productTypes[id] = product;
   }
 
   function initializeStaking(
@@ -74,5 +75,44 @@ contract StakingProductsMockCoverProducts {
         revert ICover.PoolNotAllowedForThisProduct(productId);
       }
     }
+  }
+
+  function products(uint id) external view returns (Product memory) {
+    return _products[id];
+  }
+
+  function productTypes(uint id) external view returns (ProductType memory) {
+    return _productTypes[id];
+  }
+
+  function getProducts() external pure returns (Product[] memory) {
+    revert("Unsupported");
+  }
+
+  function productTypesCount() external pure returns (uint) {
+    revert("Unsupported");
+  }
+
+  function getPriceAndCapacityRatios(uint[] calldata /* productIds */ ) external pure returns (
+    uint[] memory /* _initialPrices */,
+    uint[] memory /* _capacityReductionRatios */
+  ) {
+    revert("Unsupported");
+  }
+
+  function productNames(uint /* productId */) external pure returns (string memory) {
+    revert("Unsupported");
+  }
+
+  function getProductWithType(uint /* productId */ )  external pure returns (Product memory, ProductType memory) {
+    revert("Unsupported");
+  }
+
+  function setProductTypes(ProductTypeParam[] calldata /*  productTypes */ ) external pure {
+    revert("Unsupported");
+  }
+
+  function setProducts(ProductParam[] calldata /* params */ ) external pure {
+    revert("Unsupported");
   }
 }

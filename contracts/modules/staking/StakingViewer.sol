@@ -88,10 +88,6 @@ contract StakingViewer is Multicall {
     stakingPoolFactory = _stakingPoolFactory;
   }
 
-  function cover() internal view returns (ICover) {
-    return ICover(master.contractAddresses('CO'));
-  }
-
   function stakingProducts() internal view returns (IStakingProducts) {
     return IStakingProducts(master.contractAddresses('SP'));
   }

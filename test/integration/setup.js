@@ -172,7 +172,6 @@ async function setup() {
   // 2. deploy Cover, StakingProducts, CoverProducts and TokenController proxies
   let cover = await deployProxy('Stub');
   let stakingProducts = await deployProxy('Stub');
-  let coverProducts = await deployProxy('Stub');
   let tc = await deployProxy('Stub');
 
   // 3. deploy StakingPool implementation
@@ -186,9 +185,6 @@ async function setup() {
   await upgradeProxy(stakingProducts.address, 'StakingProducts', [cover.address, spf.address]);
   stakingProducts = await ethers.getContractAt('StakingProducts', stakingProducts.address);
 
-  await upgradeProxy(coverProducts.address, 'CoverProducts', []);
-  coverProducts = await ethers.getContractAt('CoverProducts', coverProducts.address);
-
   // TODO: get rid of DisposableTokenController and use TokenController instead with owner as operator
   await upgradeProxy(tc.address, 'DisposableTokenController', [qd.address, lcr.address, spf.address, tk.address]);
   tc = await ethers.getContractAt('DisposableTokenController', tc.address);
@@ -199,12 +195,14 @@ async function setup() {
   await coverNFT.changeOperator(cover.address);
   await cover.changeMasterAddress(master.address);
   await stakingProducts.changeMasterAddress(master.address);
-  await coverProducts.changeMasterAddress(master.address);
 
   const ci = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
   const cg = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
   const as = await deployProxy('Assessment', [tk.address]);
   const cl = await deployProxy('CoverMigrator', [qd.address, productsV1.address]);
+  const coverProducts = await deployProxy('CoverProducts');
+
+  await coverProducts.changeMasterAddress(master.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];

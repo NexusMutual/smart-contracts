@@ -63,12 +63,37 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     return _productTypes.length;
   }
 
-  function productsCount() external view returns (uint) {
+  function productsCount() public view returns (uint) {
     return _products.length;
   }
 
   function getProducts() external view returns (Product[] memory) {
     return _products;
+  }
+
+  function getProductWithType(uint productId)  external override view returns (Product memory product, ProductType memory) {
+    product = _products[productId];
+    return (product, _productTypes[product.productType]);
+  }
+
+  function getPriceAndCapacityRatios(uint[] calldata productIds) external view returns (
+    uint[] memory _initialPrices,
+    uint[] memory _capacityReductionRatios
+  ) {
+    _capacityReductionRatios = new uint[](productIds.length);
+    _initialPrices = new uint[](productIds.length);
+
+    for (uint i = 0; i < productIds.length; i++) {
+      uint productId = productIds[i];
+
+      uint _productsCount = _products.length;
+      if (productId >= _productsCount) {
+        revert ProductDoesntExist();
+      }
+
+      _initialPrices[i] = uint(_products[productId].initialPriceRatio);
+      _capacityReductionRatios[i] = uint(_products[productId].capacityReductionRatio);
+    }
   }
 
   /* ========== PRODUCT CONFIGURATION ========== */

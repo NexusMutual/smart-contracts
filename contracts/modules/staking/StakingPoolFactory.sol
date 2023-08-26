@@ -13,8 +13,6 @@ contract StakingPoolFactory is IStakingPoolFactory {
   // temporary beacon address storage to avoid constructor arguments in the proxy
   address public beacon;
 
-  address public coverAddress;
-
   constructor(address _operator) {
     operator = _operator;
   }

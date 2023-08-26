@@ -47,7 +47,7 @@ contract SPMockStakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     coverProductsContract = _coverProductsContract;
   }
 
-  function getStakingPool(uint poolId) internal view returns (IStakingPool stakingPoolAddress) {
+  function stakingPool(uint poolId) public view returns (IStakingPool stakingPoolAddress) {
     stakingPoolAddress = IStakingPool(StakingPoolLibrary.getAddress(stakingPoolFactory, poolId));
   }
 
@@ -82,7 +82,7 @@ contract SPMockStakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function recalculateEffectiveWeights(uint poolId, uint[] calldata productIds) external {
 
-    IStakingPool _stakingPool = getStakingPool(poolId);
+    IStakingPool _stakingPool = stakingPool(poolId);
 
     (
     uint globalCapacityRatio,
@@ -115,7 +115,7 @@ contract SPMockStakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function setProducts(uint poolId, StakedProductParam[] memory params) external {
 
-    IStakingPool _stakingPool = getStakingPool(poolId);
+    IStakingPool _stakingPool = stakingPool(poolId);
 
     if (msg.sender != _stakingPool.manager()) {
       revert OnlyManager();
@@ -238,7 +238,7 @@ contract SPMockStakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint capacityReductionRatio
   ) public view returns (uint effectiveWeight) {
 
-    IStakingPool _stakingPool = getStakingPool(poolId);
+    IStakingPool _stakingPool = stakingPool(poolId);
 
     return _getEffectiveWeight(
       _stakingPool,
@@ -505,12 +505,6 @@ contract SPMockStakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function changeDependentContractAddress() external {
     // none :)
-  }
-
-  function stakingPool(uint poolId) public view returns (IStakingPool) {
-    return IStakingPool(
-      StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId)
-    );
   }
 
   function createStakingPool(

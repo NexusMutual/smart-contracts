@@ -43,6 +43,8 @@ interface ICoverProducts {
 
   function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external view;
 
+  function getProductWithType(uint productId)  external view returns (Product memory, ProductType memory);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function setProductTypes(ProductTypeParam[] calldata productTypes) external;
@@ -76,4 +78,9 @@ interface ICoverProducts {
 
   // Misc
   error CapacityReductionRatioAbove100Percent();
+
+  function getPriceAndCapacityRatios(uint[] calldata productIds) external view returns (
+    uint[] memory _initialPrices,
+    uint[] memory _capacityReductionRatios
+  );
 }

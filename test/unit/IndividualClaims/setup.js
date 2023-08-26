@@ -61,10 +61,6 @@ async function setup() {
   const coverProducts = await CoverProducts.deploy();
   await coverProducts.deployed();
 
-  const Distributor = await ethers.getContractFactory('CLMockDistributor');
-  const distributor = await Distributor.deploy(individualClaims.address);
-  await distributor.deployed();
-
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setLatestAddress(hex('MR'), memberRoles.address),
@@ -135,7 +131,6 @@ async function setup() {
       assessment,
       cover,
       coverProducts,
-      distributor,
       coverNFT,
       master,
       memberRoles,

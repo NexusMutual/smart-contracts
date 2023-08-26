@@ -275,8 +275,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     CoverSegment memory segment = cover().coverSegmentWithRemainingAmount(coverId, segmentId);
 
     {
-      Product memory product = coverProductsContract.products(coverData.productId);
-      ProductType memory productType = coverProductsContract.productTypes(product.productType);
+      (, ProductType memory productType) = coverProductsContract.getProductWithType(coverData.productId);
 
       require(
         productType.claimMethod == uint8(ClaimMethod.IndividualClaims),

@@ -140,6 +140,8 @@ interface ICover {
     uint[] memory _capacityReductionRatios
   );
 
+  function GLOBAL_MIN_PRICE_RATIO() external view returns (uint);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function addLegacyCover(

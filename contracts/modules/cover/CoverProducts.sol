@@ -39,8 +39,6 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
   /* ========== CONSTANTS ========== */
 
-  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
-
   uint private constant PRICE_DENOMINATOR = 10000;
 
   uint private constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
@@ -126,7 +124,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
         revert UnsupportedCoverAssets();
       }
 
-      if (product.initialPriceRatio < GLOBAL_MIN_PRICE_RATIO) {
+      if (product.initialPriceRatio < cover().GLOBAL_MIN_PRICE_RATIO()) {
         revert InitialPriceRatioBelowGlobalMinPriceRatio();
       }
 
@@ -238,9 +236,13 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     return IPool(internalContracts[uint(ID.P1)]);
   }
 
+  function cover() internal view returns (ICover) {
+    return ICover(internalContracts[uint(ID.CO)]);
+  }
+
   function changeDependentContractAddress() public {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
-    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
+    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.SP)] = master.getLatestAddress("SP");
     internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");

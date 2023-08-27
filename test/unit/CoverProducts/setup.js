@@ -25,6 +25,7 @@ async function setup() {
   await mcr.setMCR(parseEther('600000'));
 
   const coverProducts = await ethers.deployContract('CoverProducts');
+  const cover = await ethers.deployContract('CoverProductsMockCover');
 
   const stakingProducts = await ethers.deployContract('CoverMockStakingProducts', [
     AddressZero,
@@ -56,6 +57,7 @@ async function setup() {
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('SP'), stakingProducts.address);
+  await master.setLatestAddress(hex('CO'), cover.address);
 
   const pooledStakingSigner = accounts.members[4];
   await master.setLatestAddress(hex('PS'), pooledStakingSigner.address);
@@ -163,7 +165,7 @@ async function setup() {
     },
   ]);
 
-  const GLOBAL_MIN_PRICE_RATIO = await coverProducts.GLOBAL_MIN_PRICE_RATIO();
+  const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
   const BUCKET_SIZE = BigNumber.from(7 * 24 * 3600); // 7 days
   const capacityFactor = '20000';
 

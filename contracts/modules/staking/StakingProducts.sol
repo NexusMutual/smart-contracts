@@ -41,8 +41,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   uint public constant ALLOCATION_UNITS_PER_NXM = 100;
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
-  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
-
   // pool id => product id => Product
   mapping(uint => mapping(uint => StakedProduct)) private _products;
   // pool id => { totalEffectiveWeight, totalTargetWeight }
@@ -624,7 +622,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     // override with initial price and check if pool is allowed
     for (uint i = 0; i < numProducts; i++) {
 
-      if (productInitParams[i].targetPrice < GLOBAL_MIN_PRICE_RATIO) {
+      if (productInitParams[i].targetPrice < ICover(coverContract).GLOBAL_MIN_PRICE_RATIO()) {
         revert TargetPriceBelowGlobalMinPriceRatio();
       }
 

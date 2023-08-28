@@ -30,7 +30,7 @@ interface IRamm {
 
   /* ========== VIEWS ========== */
 
-  function getReserves() external view returns (uint eth, uint96 nxmA, uint96 nxmB, uint budget);
+  function getReserves() external view returns (uint eth, uint nxmA, uint nxmB, uint budget);
 
   function getSpotPrices() external view returns (uint spotPriceA, uint spotPriceB);
 

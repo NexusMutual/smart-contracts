@@ -236,6 +236,13 @@ contract Ramm is IRamm, MasterAwareV2 {
     return (1 ether * _liquidity / nxmA, 1 ether * _liquidity / nxmB);
   }
 
+  function getBookValue() public view returns (uint bookValue) {
+    uint capital = pool().getPoolValueInEth();
+    uint supply = tokenController().totalSupply();
+
+    return capital / supply;
+  }
+
   /* ========== ORACLE ========== */
 
   function observationIndexOf(uint timestamp) public pure returns (uint8 index) {
@@ -244,9 +251,18 @@ contract Ramm is IRamm, MasterAwareV2 {
   }
 
   function getLatestObservationInWindow() private view returns (Observation storage lastObservation) {
-
     uint lastObservationIndex = observationIndexOf(lastSwapTimestamp);
     return observations[lastObservationIndex];
+  }
+
+  function getFirstObservationInWindow() internal view returns (Observation memory firstObservation) {
+    uint firstObservationStartTimestamp = (block.timestamp / PERIOD_SIZE - 2) * PERIOD_SIZE;
+    uint firstObservationIndex = observationIndexOf(firstObservationStartTimestamp);
+    firstObservation = observations[firstObservationIndex];
+
+    if (firstObservationStartTimestamp > firstObservation.timestamp) {
+      firstObservation = getLatestObservationInWindow();
+    }
   }
 
 //  local variables use uint
@@ -258,13 +274,13 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint _newEthReserve,
     uint nxmA,
     uint nxmB,
+    uint ratchetSpeed,
     uint _lastSwapTimestamp,
-    uint rachetSpeed,
     uint timestamp
   ) internal pure returns (uint priceCumulativeAbove, uint priceCumulativeBelow) {
 
     // depending if it's injection or extraction this can be negative or positive number
-    uint ratchetSeconds = (_newEthReserve - _oldEthReserve) / rachetSpeed;
+    uint ratchetSeconds = (_newEthReserve - _oldEthReserve) / ratchetSpeed;
     uint bvSeconds;
 
     if (ratchetSeconds > 0) {
@@ -273,20 +289,20 @@ contract Ramm is IRamm, MasterAwareV2 {
       bvSeconds = timestamp - _lastSwapTimestamp + ratchetSeconds;
     }
 
-    priceCumulativeAbove = (ratchetSeconds * _oldEthReserve + rachetSpeed * (ratchetSeconds * (ratchetSeconds + 1) / 2)) / nxmA + (_newEthReserve / nxmA) * bvSeconds;
-    priceCumulativeBelow = (ratchetSeconds * _oldEthReserve + rachetSpeed * (ratchetSeconds * (ratchetSeconds + 1) / 2)) / nxmB + (_newEthReserve / nxmB) * bvSeconds;
+    priceCumulativeAbove = (ratchetSeconds * _oldEthReserve + ratchetSpeed * (ratchetSeconds * (ratchetSeconds + 1) / 2)) / nxmA + (_newEthReserve / nxmA) * bvSeconds;
+    priceCumulativeBelow = (ratchetSeconds * _oldEthReserve + ratchetSpeed * (ratchetSeconds * (ratchetSeconds + 1) / 2)) / nxmB + (_newEthReserve / nxmB) * bvSeconds;
   }
 
   function update(uint _latestEthReserve, uint nxmA, uint nxmB) internal {
     uint _ethReserve = ethReserve;
     uint _lastSwapTimestamp = lastSwapTimestamp;
     uint missingPeriods = Math.max((block.timestamp - _lastSwapTimestamp) / PERIOD_SIZE, 2);
-    uint rachetSpeed = _latestEthReserve > _ethReserve ? b.ratchetSpeed : a.ratchetSpeed;
+    uint ratchetSpeed = _latestEthReserve > _ethReserve ? b.ratchetSpeed : a.ratchetSpeed;
 
     for (uint i = missingPeriods; i > 0 ; i--) {
       uint timestamp = (block.timestamp / PERIOD_SIZE - i) * PERIOD_SIZE;
       uint previousObservationIndex = observationIndexOf(timestamp);
-      uint _newEthReserve = _ethReserve + (timestamp - _lastSwapTimestamp) * rachetSpeed;
+      uint _newEthReserve = _ethReserve + (timestamp - _lastSwapTimestamp) * ratchetSpeed;
 
       if (_latestEthReserve > _ethReserve && _newEthReserve > _latestEthReserve) {
         _newEthReserve = _lastSwapTimestamp;
@@ -301,8 +317,8 @@ contract Ramm is IRamm, MasterAwareV2 {
         _newEthReserve,
         nxmA,
         nxmB,
+        ratchetSpeed,
         _lastSwapTimestamp,
-        rachetSpeed,
         timestamp
       );
 
@@ -318,8 +334,8 @@ contract Ramm is IRamm, MasterAwareV2 {
       _latestEthReserve,
       nxmA,
       nxmB,
+      ratchetSpeed,
       _lastSwapTimestamp,
-      rachetSpeed,
       block.timestamp
     );
 
@@ -329,36 +345,40 @@ contract Ramm is IRamm, MasterAwareV2 {
     observations[observationIndex].timestamp = uint32(block.timestamp);
   }
 
-//  function consult(
-//    bool above,
-//    uint _ethReserve,
-//    uint96 _nxmA,
-//    uint96 _nxmB,
-//    uint amount
-//  ) external view returns (uint amountOut) {
-//    // TODO: use the latest one from the previous
-//    uint previousObservationIndex = observationIndexOf(block.timestamp - PERIOD_SIZE);
-//    Observation memory previousObservation = observations[previousObservationIndex];
-//    uint epochStartTimestamp = (block.timestamp / PERIOD_SIZE - 1) * PERIOD_SIZE;
-//
-//    //   10    11    12    13    14    15    16    17
-//    //   |-----|-----|--x--|-----|-----|--y--|-----|
-//    //      0     1     2     0     1     2     0
-//
-//    if (epochStartTimestamp > previousObservationIndex) {
-//      (uint _oldEthReserve, uint _oldNxmA, uint _oldNxmB) = getReserves();
-//      (uint previousPriceCumulativeAbove, uint previousPriceCumulativeBelow) = calculateCumulativePrice(
-//        _oldEthReserve,
-//        _oldNxmA,
-//        _oldNxmB,
-//        previousEpochStart
-//      );
-//      uint priceCumulative = calculateCumulativePrice(_ethReserve, _nxmA, _nxmB, epochStartTimestamp);
-//    }
-//
-//    uint priceCumulative = calculateCumulativePrice(_ethReserve, _nxmA, _nxmB, block.timestamp);
-//    return (priceCumulative - lastObservation.priceCumulative) / timeElapsed;
-//  }
+  function internalPrice() external view returns (uint price) {
+    Observation memory firstObservation = getFirstObservationInWindow();
+    (uint _ethReserve, uint nxmA, uint nxmB, ) = getReserves();
+
+    //   10    11    12    13    14    15    16    17
+    //   |-----|-----|--x--|-----|-----|--y--|-----|
+    //      0     1     2     0     1     2     0
+
+    uint ratchetSpeed = _ethReserve > ethReserve ? b.ratchetSpeed : a.ratchetSpeed;
+
+    (uint currentPriceCumulativeAbove, uint currentPriceCumulativeBelow) = calculateCumulativePrice(
+      ethReserve,
+      _ethReserve,
+      nxmA,
+      nxmB,
+      ratchetSpeed,
+      lastSwapTimestamp,
+      block.timestamp
+    );
+
+    uint timeElapsed = block.timestamp - firstObservation.timestamp;
+
+    uint twapPriceAbove = (currentPriceCumulativeAbove - firstObservation.priceCumulativeAbove) / timeElapsed;
+    uint twapPricBelow = (currentPriceCumulativeBelow - firstObservation.priceCumulativeBelow) / timeElapsed;
+
+    uint spotPriceAbove = _ethReserve / nxmA;
+    uint spotPriceBelow = _ethReserve / nxmB;
+
+    uint priceAbove  = Math.min(twapPriceAbove, spotPriceAbove);
+    uint priceBelow  = Math.max(twapPricBelow, spotPriceBelow);
+
+    uint bookValue = getBookValue();
+    return priceAbove - priceBelow - bookValue;
+  }
 
   /* ========== DEPENDENCIES ========== */
 

@@ -69,6 +69,10 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     return _products;
   }
 
+  function getProductTypes() external view returns (ProductType[] memory) {
+    return _productTypes;
+  }
+
   function getProductWithType(uint productId)  external override view returns (Product memory product, ProductType memory) {
     product = _products[productId];
     return (product, _productTypes[product.productType]);
@@ -227,6 +231,28 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       if (!isPoolAllowed(productIds[i], poolId) ) {
         revert PoolNotAllowedForThisProduct(productIds[i]);
       }
+    }
+  }
+
+  /* ========== MIGRATION ========== */
+
+  function migrateProductsAndProductTypes() external {
+    require(_products.length == 0, "CoverProducts: _products already migrated");
+    require(_productTypes.length == 0,  "CoverProducts: _productTypes already migrated");
+
+    ICover _cover = cover();
+    Product[] memory _productsToMigrate = _cover.getProductsToMigrate();
+    ProductType[] memory _productTypesToMigrate = _cover.getProductTypesToMigrate();
+
+    for (uint i = 0; i < _productsToMigrate.length; i++) {
+      _products.push(_productsToMigrate[i]);
+      productNames[i] = _cover.productNames(i);
+      allowedPools[i] = _cover.allowedPools(i);
+    }
+
+    for (uint i = 0; i < _productTypesToMigrate.length; i++) {
+      _productTypes.push(_productTypesToMigrate[i]);
+      productTypeNames[i] = _cover.productTypeNames(i);
     }
   }
 

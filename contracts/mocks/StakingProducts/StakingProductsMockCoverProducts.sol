@@ -89,6 +89,10 @@ contract StakingProductsMockCoverProducts is ICoverProducts {
     revert("Unsupported");
   }
 
+  function getProductTypes() external pure returns (ProductType[] memory) {
+    revert("Unsupported");
+  }
+
   function productTypesCount() external pure returns (uint) {
     revert("Unsupported");
   }

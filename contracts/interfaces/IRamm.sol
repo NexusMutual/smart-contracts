@@ -34,6 +34,8 @@ interface IRamm {
 
   function getSpotPrices() external view returns (uint spotPriceA, uint spotPriceB);
 
+  function getBookValue() external view returns (uint bookValue);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function swap(uint nxmIn)  external payable;

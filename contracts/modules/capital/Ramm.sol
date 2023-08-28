@@ -81,12 +81,12 @@ contract Ramm is IRamm, MasterAwareV2 {
   }
 
   function swapEthForNxm(uint ethIn) internal returns (uint nxmOut) {
-    (uint _liquidity, uint nxmA, uint nxmB, uint _budget) = getReserves(block.timestamp);
+    (uint _liquidity, uint nxmA, uint nxmB, uint _budget) = getReserves();
+    update(_liquidity, nxmA, nxmB);
     uint k = _liquidity * nxmA;
     ethReserve = _liquidity + ethIn;
 
     // edge case: bellow goes over bv due to eth-dai price changing
-    update();
     a.nxmReserve = uint96(k / ethReserve);
     b.nxmReserve = uint96(nxmB * ethReserve / _liquidity);
     budget = _budget;
@@ -101,9 +101,9 @@ contract Ramm is IRamm, MasterAwareV2 {
 
   function swapNxmForEth(uint nxmIn) internal returns (uint ethOut) {
 
-    (uint _liquidity, uint96 nxmA, uint96 nxmB, uint _budget) = getReserves(block.timestamp);
+    (uint _liquidity, uint nxmA, uint nxmB, uint _budget) = getReserves();
+    update(_liquidity, nxmA, nxmB);
 
-    update();
     uint k = _liquidity * nxmB;
     b.nxmReserve = uint96(nxmB  + nxmIn);
     a.nxmReserve = uint96(nxmB  + nxmIn);
@@ -135,7 +135,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
   /* ============== VIEWS ============= */
 
-  function getReserves(uint timestamp) public view returns (uint currentLiquidity, uint nxmA, uint nxmB, uint currentBudget) {
+  function getReserves() public view returns (uint currentLiquidity, uint nxmA, uint nxmB, uint currentBudget) {
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
     uint mcrEth = mcr().getMCR();
@@ -145,7 +145,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     uint _liquidity = ethReserve;
     uint _budget = budget;
-    uint elapsed = timestamp - lastSwapTimestamp;
+    uint elapsed = block.timestamp - lastSwapTimestamp;
 
     if (_liquidity < targetLiquidity) {
       // inject eth
@@ -202,7 +202,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
       if (bufferedCapitalA * nxmA + bufferedCapitalA * nxmA * r / RATCHET_PERIOD / RATCHET_DENOMINATOR > _liquidity * supply) {
         // use bv
-        nxmA = uint_liquidity * supply / bufferedCapitalA;
+        nxmA = _liquidity * supply / bufferedCapitalA;
       } else {
         // use ratchet
         uint nr_denom_addend = r * capital * nxmA / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR;
@@ -232,13 +232,13 @@ contract Ramm is IRamm, MasterAwareV2 {
   }
 
   function getSpotPrices() external view returns (uint spotPriceA, uint spotPriceB) {
-    (uint _liquidity, uint nxmA, uint nxmB, ) = getReserves(block.timestamp);
+    (uint _liquidity, uint nxmA, uint nxmB, ) = getReserves();
     return (1 ether * _liquidity / nxmA, 1 ether * _liquidity / nxmB);
   }
 
   /* ========== ORACLE ========== */
 
-  function observationIndexOf(uint timestamp) public view returns (uint8 index) {
+  function observationIndexOf(uint timestamp) public pure returns (uint8 index) {
     uint epochPeriod = timestamp / PERIOD_SIZE;
     return uint8(epochPeriod % GRANULARITY);
   }
@@ -254,68 +254,111 @@ contract Ramm is IRamm, MasterAwareV2 {
 
 
   function calculateCumulativePrice(
+    uint _oldEthReserve,
+    uint _newEthReserve,
+    uint nxmA,
+    uint nxmB,
+    uint _lastSwapTimestamp,
+    uint rachetSpeed,
     uint timestamp
-  ) internal view returns (uint priceCumulativeAbove, uint priceCumulativeBelow) {
-    Observation storage lastObservation = getLatestObservationInWindow();
-    (uint _ethReserve, uint _nxmA, uint _nxmB, ) = getReserves(timestamp);
-    uint timeElapsed = blockTimestamp - lastSwapTimestamp;
+  ) internal pure returns (uint priceCumulativeAbove, uint priceCumulativeBelow) {
 
-    priceCumulativeAbove = lastObservation.priceCumulative + (_ethReserve / _nxmA) * timeElapsed;
-    priceCumulativeBelow = lastObservation.priceCumulative + (_ethReserve / _nxmB) * timeElapsed;
+    // depending if it's injection or extraction this can be negative or positive number
+    uint ratchetSeconds = (_newEthReserve - _oldEthReserve) / rachetSpeed;
+    uint bvSeconds;
+
+    if (ratchetSeconds > 0) {
+      bvSeconds = timestamp - _lastSwapTimestamp - ratchetSeconds;
+    } else {
+      bvSeconds = timestamp - _lastSwapTimestamp + ratchetSeconds;
+    }
+
+    priceCumulativeAbove = (ratchetSeconds * _oldEthReserve + rachetSpeed * (ratchetSeconds * (ratchetSeconds + 1) / 2)) / nxmA + (_newEthReserve / nxmA) * bvSeconds;
+    priceCumulativeBelow = (ratchetSeconds * _oldEthReserve + rachetSpeed * (ratchetSeconds * (ratchetSeconds + 1) / 2)) / nxmB + (_newEthReserve / nxmB) * bvSeconds;
   }
 
-  function update() internal {
-    uint missingPeriods = Math.max((block.timestamp - lastSwapTimestamp) / PERIOD_SIZE, 2);
+  function update(uint _latestEthReserve, uint nxmA, uint nxmB) internal {
+    uint _ethReserve = ethReserve;
+    uint _lastSwapTimestamp = lastSwapTimestamp;
+    uint missingPeriods = Math.max((block.timestamp - _lastSwapTimestamp) / PERIOD_SIZE, 2);
+    uint rachetSpeed = _latestEthReserve > _ethReserve ? b.ratchetSpeed : a.ratchetSpeed;
 
     for (uint i = missingPeriods; i > 0 ; i--) {
       uint timestamp = (block.timestamp / PERIOD_SIZE - i) * PERIOD_SIZE;
       uint previousObservationIndex = observationIndexOf(timestamp);
-      (uint priceCumulativeAbove, uint priceCumulativeBelow) = calculateCumulativePrice(timestamp);
+      uint _newEthReserve = _ethReserve + (timestamp - _lastSwapTimestamp) * rachetSpeed;
 
-      observations[previousObservationIndex].priceCumulativeAbove = uint80(abovePriceCumulative % (2 ** 80));
-      observations[previousObservationIndex].priceCumulativeBelow = uint80(belowPriceCumulative % (2 ** 80));
+      if (_latestEthReserve > _ethReserve && _newEthReserve > _latestEthReserve) {
+        _newEthReserve = _lastSwapTimestamp;
+      }
+
+      if (_latestEthReserve < _ethReserve && _newEthReserve < _latestEthReserve) {
+        _newEthReserve = _lastSwapTimestamp;
+      }
+
+      (uint _priceCumulativeAbove, uint _priceCumulativeBelow) = calculateCumulativePrice(
+        _ethReserve,
+        _newEthReserve,
+        nxmA,
+        nxmB,
+        _lastSwapTimestamp,
+        rachetSpeed,
+        timestamp
+      );
+
+      observations[previousObservationIndex].priceCumulativeAbove = uint64(_priceCumulativeAbove % (2 ** 64));
+      observations[previousObservationIndex].priceCumulativeBelow = uint64(_priceCumulativeBelow % (2 ** 64));
       observations[previousObservationIndex].timestamp = uint32(timestamp);
-      lastSwapTimestamp = timestamp;
+      _lastSwapTimestamp = timestamp;
+      _ethReserve = _newEthReserve;
     }
 
-    (uint priceCumulativeAbove, uint priceCumulativeBelow) = calculateCumulativePrice(timestamp);
+    (uint priceCumulativeAbove, uint priceCumulativeBelow) = calculateCumulativePrice(
+      _ethReserve,
+      _latestEthReserve,
+      nxmA,
+      nxmB,
+      _lastSwapTimestamp,
+      rachetSpeed,
+      block.timestamp
+    );
 
-    uint previousObservationIndex = observationIndexOf(block.timestamp);
-    observations[observationIndex].priceCumulativeAbove = uint80(abovePriceCumulative % (2 ** 80));
-    observations[observationIndex].priceCumulativeBelow = uint80(belowPriceCumulative % (2 ** 80));
+    uint observationIndex = observationIndexOf(block.timestamp);
+    observations[observationIndex].priceCumulativeAbove = uint64(priceCumulativeAbove % (2 ** 64));
+    observations[observationIndex].priceCumulativeBelow = uint64(priceCumulativeBelow % (2 ** 64));
     observations[observationIndex].timestamp = uint32(block.timestamp);
   }
 
-  function consult(
-    bool above,
-    uint _ethReserve,
-    uint96 _nxmA,
-    uint96 _nxmB,
-    uint amount
-  ) external view returns (uint amountOut) {
-    // TODO: use the latest one from the previous
-    uint previousObservationIndex = observationIndexOf(block.timestamp - PERIOD_SIZE);
-    Observation memory previousObservation = observations[previousObservationIndex];
-    uint epochStartTimestamp = (block.timestamp / PERIOD_SIZE - 1) * PERIOD_SIZE;
-
-    //   10    11    12    13    14    15    16    17
-    //   |-----|-----|--x--|-----|-----|--y--|-----|
-    //      0     1     2     0     1     2     0
-
-    if (epochStartTimestamp > previousObservationIndex) {
-      (uint _oldEthReserve, uint _oldNxmA, uint _oldNxmB) = getReserves(previousEpochStart);
-      (uint previousPriceCumulativeAbove, uint previousPriceCumulativeBelow) = calculateCumulativePrice(
-        _oldEthReserve,
-        _oldNxmA,
-        _oldNxmB,
-        previousEpochStart
-      );
-      uint priceCumulative = calculateCumulativePrice(_ethReserve, _nxmA, _nxmB, epochStartTimestamp);
-    }
-
-    uint priceCumulative = calculateCumulativePrice(_ethReserve, _nxmA, _nxmB, block.timestamp);
-    return (priceCumulative - lastObservation.priceCumulative) / timeElapsed;
-  }
+//  function consult(
+//    bool above,
+//    uint _ethReserve,
+//    uint96 _nxmA,
+//    uint96 _nxmB,
+//    uint amount
+//  ) external view returns (uint amountOut) {
+//    // TODO: use the latest one from the previous
+//    uint previousObservationIndex = observationIndexOf(block.timestamp - PERIOD_SIZE);
+//    Observation memory previousObservation = observations[previousObservationIndex];
+//    uint epochStartTimestamp = (block.timestamp / PERIOD_SIZE - 1) * PERIOD_SIZE;
+//
+//    //   10    11    12    13    14    15    16    17
+//    //   |-----|-----|--x--|-----|-----|--y--|-----|
+//    //      0     1     2     0     1     2     0
+//
+//    if (epochStartTimestamp > previousObservationIndex) {
+//      (uint _oldEthReserve, uint _oldNxmA, uint _oldNxmB) = getReserves();
+//      (uint previousPriceCumulativeAbove, uint previousPriceCumulativeBelow) = calculateCumulativePrice(
+//        _oldEthReserve,
+//        _oldNxmA,
+//        _oldNxmB,
+//        previousEpochStart
+//      );
+//      uint priceCumulative = calculateCumulativePrice(_ethReserve, _nxmA, _nxmB, epochStartTimestamp);
+//    }
+//
+//    uint priceCumulative = calculateCumulativePrice(_ethReserve, _nxmA, _nxmB, block.timestamp);
+//    return (priceCumulative - lastObservation.priceCumulative) / timeElapsed;
+//  }
 
   /* ========== DEPENDENCIES ========== */
 

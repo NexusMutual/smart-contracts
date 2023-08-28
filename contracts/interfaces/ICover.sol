@@ -142,6 +142,16 @@ interface ICover {
 
   function GLOBAL_MIN_PRICE_RATIO() external view returns (uint);
 
+  function getProductsToMigrate() external view returns (Product[] memory);
+
+  function getProductTypesToMigrate() external view returns (ProductType[] memory);
+
+  function productNames(uint id) external view returns (string memory);
+
+  function productTypeNames(uint id) external view returns (string memory);
+
+  function allowedPools(uint productId) external view returns (uint[] memory);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function addLegacyCover(

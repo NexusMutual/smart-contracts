@@ -27,7 +27,7 @@ contract StakingPoolFactory is IStakingPoolFactory {
     return _stakingPoolCount;
   }
 
-  function create(address _beacon) public returns (uint poolId, address stakingPoolAddress) {
+  function create(address _beacon) external returns (uint poolId, address stakingPoolAddress) {
 
     require(msg.sender == operator, "StakingPoolFactory: Not operator");
 

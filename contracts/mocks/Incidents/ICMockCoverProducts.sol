@@ -59,6 +59,10 @@ contract ICMockCoverProducts is ICoverProducts {
     return _products;
   }
 
+  function getProductTypes() external pure returns (ProductType[] memory) {
+    revert("Unsupported");
+  }
+
   function allowedPoolsCount(uint /* productId */) external pure returns (uint) {
     revert("Unsupported");
   }

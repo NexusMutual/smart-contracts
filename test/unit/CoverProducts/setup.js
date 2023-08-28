@@ -175,6 +175,7 @@ async function setup() {
     dai,
     usdc,
     nxm,
+    cover,
     tokenController,
     memberRoles,
     coverNFT,

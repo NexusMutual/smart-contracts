@@ -26,11 +26,35 @@ struct Observation {
   uint64 priceCumulativeBelow;
 }
 
+ struct CumulativePriceCalculationProps {
+  uint previousEthReserve;
+  uint currentEthReserve;
+  uint previousNxmA;
+  uint currentNxmA;
+  uint previousNxmB;
+  uint currentNxmB;
+  uint ratchetSpeedA;
+  uint ratchetSpeedB;
+  uint previousTimestamp;
+  uint currentTimestamp;
+ }
+
+struct CumulativePriceCalculationTimes {
+  uint secondsUntilBVAbove;
+  uint secondsUntilBVBelow;
+  uint timeElapsed;
+  uint bvTimeBelow;
+  uint bvTimeAbove;
+  uint ratchetTimeAbove;
+  uint ratchetTimeBelow;
+}
+
+
 interface IRamm {
 
   /* ========== VIEWS ========== */
 
-  function getReserves() external view returns (uint eth, uint nxmA, uint nxmB, uint budget);
+  function getReserves(uint timestamp) external view returns (uint eth, uint nxmA, uint nxmB, uint budget);
 
   function getSpotPrices() external view returns (uint spotPriceA, uint spotPriceB);
 

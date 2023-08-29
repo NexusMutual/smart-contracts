@@ -61,7 +61,8 @@ contract StakingProductsMockCover {
     (premium, allocationId) = _stakingPool.requestAllocation(
       params.amount,
       // TODO: figure out if these need to be populated
-      0, // previousPremium
+      0, // extraPeriod
+      0, // coverAmountInNXMOldRepriced
       AllocationRequest(
         params.productId,
         coverId,
@@ -93,6 +94,7 @@ contract StakingProductsMockCover {
   ) public returns (uint premium, uint allocationId)  {
     (premium, allocationId) = _stakingPool.requestAllocation(
       amount,
+      0, // extraPeriod
       previousPremium,
       allocationRequest
     );

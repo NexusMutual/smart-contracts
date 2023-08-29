@@ -611,6 +611,7 @@ contract StakingPool is IStakingPool, Multicall {
 
   function requestAllocation(
     uint amount,
+    uint extraPeriod,
     uint coverAmountInNXMOldRepriced,
     AllocationRequest calldata request
   ) external onlyCoverContract returns (uint premium, uint allocationId) {
@@ -676,8 +677,14 @@ contract StakingPool is IStakingPool, Multicall {
     );
 
     // TODO: add extraPremium computation for extension of period
-    uint extraPremium = premium * Math.max(
-      (amount - coverAmountInNXMOldRepriced), 0) / amount;
+
+    uint extraPremium;
+    if (extraPeriod == 0) {
+      extraPremium = premium * Math.max(
+        (amount - coverAmountInNXMOldRepriced), 0) / amount;
+    } else {
+      revert("StakingPool: Extend period not yet implemented");
+    }
 
     // add new rewards
     {

@@ -65,6 +65,7 @@ contract CoverMockStakingPool is IStakingPool {
 
   function requestAllocation(
     uint amount,
+    uint /* extraPeriod */,
     uint coverAmountInNXMOldRepriced,
     AllocationRequest calldata request
   ) external override returns (uint premium, uint allocationId) {

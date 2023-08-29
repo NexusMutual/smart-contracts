@@ -139,7 +139,7 @@ async function requestAllocationSetup() {
   return fixture;
 }
 
-describe('requestAllocation', function () {
+describe.only('requestAllocation', function () {
   it('should allocate the amount for tranches and generate new allocation Id', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool, cover } = fixture;

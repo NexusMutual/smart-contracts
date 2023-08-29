@@ -42,6 +42,7 @@ struct RequestAllocationVariables {
   PoolAllocation[] allocations;
   uint previousCoverAmountTotalInNXM;
   uint coverAmountInNXMOldRepriced;
+  uint totalCoverAmountInNXM;
 }
 
 struct BuyCoverParams {

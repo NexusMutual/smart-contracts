@@ -325,6 +325,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
       stakingProducts().stakingPool(allocation.poolId).requestAllocation(
         0, // amount
+        0, // extraPeriod
         0, // previous coverAmount in NXM repriced
         allocationRequest
       );
@@ -361,7 +362,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     (uint premiumInNXM, uint allocationId) = stakingProducts().stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
         coverAmountInNXM,
-        0,
+        0, // extraPeriod
+        0, // coverAmountInNXMOldRepriced
         allocationRequest
       );
 
@@ -401,8 +403,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     RequestAllocationVariables memory vars; // = RequestAllocationVariables(0, 0, 0, 0);
 
-    uint totalCoverAmountInNXM;
-
     vars.previousPoolAllocationsLength = params.segmentId > 0
      ? coverSegmentAllocations[allocationRequest.coverId][params.segmentId - 1].length
      : 0;
@@ -429,7 +429,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         // check if this request should be skipped, keeping the previous allocation
         if (poolAllocationRequests[i].skip) {
           coverSegmentAllocations[allocationRequest.coverId][params.segmentId].push(previousPoolAllocation);
-          totalCoverAmountInNXM += previousPoolAllocation.coverAmountInNXM;
+          vars.totalCoverAmountInNXM += previousPoolAllocation.coverAmountInNXM;
           continue;
         }
 
@@ -465,6 +465,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
       (uint premiumInNXM, uint allocationId) = stakingProducts().stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
         coverAmountInNXM,
+        0, // extraPeriod 
         vars.coverAmountInNXMOldRepriced,
         allocationRequest
       );
@@ -483,10 +484,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       }
 
       totalAmountDueInNXM += premiumInNXM;
-      totalCoverAmountInNXM += coverAmountInNXM;
+      vars.totalCoverAmountInNXM += coverAmountInNXM;
     }
 
-    totalCoverAmountInCoverAsset = totalCoverAmountInNXM * params.nxmPriceInCoverAsset / ONE_NXM;
+    totalCoverAmountInCoverAsset = vars.totalCoverAmountInNXM * params.nxmPriceInCoverAsset / ONE_NXM;
 
     return (totalCoverAmountInCoverAsset, totalAmountDueInNXM);
   }

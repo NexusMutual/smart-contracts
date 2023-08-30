@@ -8,6 +8,9 @@ import "../../interfaces/IStakingProducts.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
+import "../../interfaces/ICover.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/ICoverProducts.sol";
 
 contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   using SafeUintCast for uint;
@@ -51,10 +54,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     stakingPoolFactory = _stakingPoolFactory;
   }
 
-  function getStakingPool(uint poolId) internal view returns (IStakingPool stakingPoolAddress) {
-    stakingPoolAddress = IStakingPool(StakingPoolLibrary.getAddress(stakingPoolFactory, poolId));
-  }
-
   function getProductTargetWeight(uint poolId, uint productId) external view override returns (uint) {
     return uint(_products[poolId][productId].targetWeight);
   }
@@ -86,7 +85,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function recalculateEffectiveWeights(uint poolId, uint[] calldata productIds) external {
 
-    IStakingPool stakingPool = getStakingPool(poolId);
+    IStakingPool _stakingPool = stakingPool(poolId);
 
     (
       uint globalCapacityRatio,
@@ -104,7 +103,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
       uint16 previousEffectiveWeight = _product.lastEffectiveWeight;
       _product.lastEffectiveWeight = _getEffectiveWeight(
-        stakingPool,
+        _stakingPool,
         productId,
         _product.targetWeight,
         globalCapacityRatio,
@@ -118,8 +117,9 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   }
 
   function recalculateEffectiveWeightsForAllProducts(uint poolId) external {
-    uint productsCount = ICover(coverContract).productsCount();
-    IStakingPool stakingPool = getStakingPool(poolId);
+
+    uint productsCount = coverProducts().productsCount();
+    IStakingPool _stakingPool = stakingPool(poolId);
 
     // initialize array for all possible products
     uint[] memory productIdsRaw = new uint[](productsCount);
@@ -156,7 +156,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
       // Get current effectiveWeight
       _product.lastEffectiveWeight = _getEffectiveWeight(
-        stakingPool,
+        _stakingPool,
         productId,
         _product.targetWeight,
         globalCapacityRatio,
@@ -171,9 +171,9 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function setProducts(uint poolId, StakedProductParam[] memory params) external {
 
-    IStakingPool stakingPool = getStakingPool(poolId);
+    IStakingPool _stakingPool = stakingPool(poolId);
 
-    if (msg.sender != stakingPool.manager()) {
+    if (msg.sender != _stakingPool.manager()) {
       revert OnlyManager();
     }
 
@@ -191,7 +191,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       }
 
       // reverts if poolId is not allowed for any of these products
-      ICover(coverContract).requirePoolIsAllowed(productIds, poolId);
+      coverProducts().requirePoolIsAllowed(productIds, poolId);
 
       // reverts if any of the products do not exist
       (
@@ -281,7 +281,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
         _weights.totalEffectiveWeight -= _product.lastEffectiveWeight;
 
         _product.lastEffectiveWeight = _getEffectiveWeight(
-          stakingPool,
+          _stakingPool,
           _param.productId,
           _product.targetWeight,
           globalCapacityRatio,
@@ -319,10 +319,10 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint capacityReductionRatio
   ) public view returns (uint effectiveWeight) {
 
-    IStakingPool stakingPool = getStakingPool(poolId);
+    IStakingPool _stakingPool = stakingPool(poolId);
 
     return _getEffectiveWeight(
-      stakingPool,
+      _stakingPool,
       productId,
       targetWeight,
       globalCapacityRatio,
@@ -331,14 +331,14 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   }
 
   function _getEffectiveWeight(
-    IStakingPool stakingPool,
+    IStakingPool _stakingPool,
     uint productId,
     uint targetWeight,
     uint globalCapacityRatio,
     uint capacityReductionRatio
   ) internal view returns (uint16 effectiveWeight) {
 
-    uint activeStake = stakingPool.getActiveStake();
+    uint activeStake = _stakingPool.getActiveStake();
     uint multiplier = globalCapacityRatio * (CAPACITY_REDUCTION_DENOMINATOR - capacityReductionRatio);
     uint denominator = GLOBAL_CAPACITY_DENOMINATOR * CAPACITY_REDUCTION_DENOMINATOR;
     uint totalCapacity = activeStake * multiplier / denominator / NXM_PER_ALLOCATION_UNIT;
@@ -347,7 +347,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       return targetWeight.toUint16();
     }
 
-    uint[] memory activeAllocations = stakingPool.getActiveAllocations(productId);
+    uint[] memory activeAllocations = _stakingPool.getActiveAllocations(productId);
     uint totalAllocation = Math.sum(activeAllocations);
     uint actualWeight = Math.min(totalAllocation * WEIGHT_DENOMINATOR / totalCapacity, type(uint16).max);
 
@@ -355,6 +355,10 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   }
 
   function setInitialProducts(uint poolId, ProductInitializationParams[] memory params) public onlyInternal {
+    _setInitialProducts(poolId, params);
+  }
+
+  function _setInitialProducts(uint poolId, ProductInitializationParams[] memory params) internal {
 
     uint totalTargetWeight;
 
@@ -597,10 +601,83 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     return surgePremium / allocationUnitsPerNxm;
   }
 
+  /* ========== STAKING POOL CREATION ========== */
+
+  function stakingPool(uint poolId) public view returns (IStakingPool) {
+    return IStakingPool(
+      StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId)
+    );
+  }
+
+  function createStakingPool(
+    bool isPrivatePool,
+    uint initialPoolFee,
+    uint maxPoolFee,
+    ProductInitializationParams[] memory productInitParams,
+    string calldata ipfsDescriptionHash
+  ) external whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+
+    uint numProducts = productInitParams.length;
+
+    // override with initial price and check if pool is allowed
+    for (uint i = 0; i < numProducts; i++) {
+
+      if (productInitParams[i].targetPrice < ICover(coverContract).GLOBAL_MIN_PRICE_RATIO()) {
+        revert TargetPriceBelowGlobalMinPriceRatio();
+      }
+
+      uint productId = productInitParams[i].productId;
+
+      ICoverProducts _coverProducts = coverProducts();
+      // if there is a list of allowed pools for this product - this pool didn't exist yet so it's not in it
+      if (_coverProducts.allowedPoolsCount(productId) > 0) {
+        revert PoolNotAllowedForThisProduct(productId);
+      }
+
+      if (productId >= _coverProducts.productsCount()) {
+        revert ProductDoesntExistOrIsDeprecated();
+      }
+
+      Product memory product = _coverProducts.products(productId);
+
+      if (product.isDeprecated) {
+        revert ProductDoesntExistOrIsDeprecated();
+      }
+
+      productInitParams[i].initialPrice = product.initialPriceRatio;
+    }
+
+    (uint poolId, address stakingPoolAddress) = IStakingPoolFactory(stakingPoolFactory).create(coverContract);
+
+    IStakingPool(stakingPoolAddress).initialize(
+      isPrivatePool,
+      initialPoolFee,
+      maxPoolFee,
+      poolId,
+      ipfsDescriptionHash
+    );
+
+    tokenController().assignStakingPoolManager(poolId, msg.sender);
+
+    _setInitialProducts(poolId, productInitParams);
+
+    return (poolId, stakingPoolAddress);
+  }
+
   /* dependencies */
 
+  function tokenController() internal view returns (ITokenController) {
+    return ITokenController(internalContracts[uint(ID.TC)]);
+  }
+
+  function coverProducts() internal view returns (ICoverProducts) {
+    return ICoverProducts(getInternalContractAddress(ID.CP));
+  }
+
   function changeDependentContractAddress() external {
-    // none :)
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+    internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
+    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
   }
 
 }

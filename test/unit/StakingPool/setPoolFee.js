@@ -4,7 +4,7 @@ const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 const { daysToSeconds } = require('../utils').helpers;
-const { setEtherBalance, increaseTime } = require('../utils').evm;
+const { increaseTime } = require('../utils').evm;
 const { getTranches } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
@@ -43,18 +43,16 @@ const initializeParams = {
 
 async function setPoolFeeSetup() {
   const fixture = await loadFixture(setup);
-  const { stakingPool, stakingProducts, cover, tokenController } = fixture;
+  const { stakingPool, stakingProducts, tokenController } = fixture;
   const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
-  const coverSigner = await ethers.getImpersonatedSigner(cover.address);
   const manager = fixture.accounts.defaultSender;
 
-  await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
   await stakingPool
-    .connect(coverSigner)
+    .connect(fixture.stakingProductsSigner)
     .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
   await tokenController.setStakingPoolManager(poolId, manager.address);
 
-  await stakingProducts.connect(fixture.coverSigner).setInitialProducts(poolId, products);
+  await stakingProducts.connect(fixture.stakingProductsSigner).setInitialProducts(poolId, products);
 
   return fixture;
 }

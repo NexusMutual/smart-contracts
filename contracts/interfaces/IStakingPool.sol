@@ -182,6 +182,7 @@ interface IStakingPool {
 
   // Auth
   error OnlyCoverContract();
+  error OnlyStakingProductsContract();
   error OnlyManager();
   error PrivatePool();
   error SystemPaused();

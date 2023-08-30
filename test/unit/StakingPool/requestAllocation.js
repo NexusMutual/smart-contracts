@@ -125,10 +125,12 @@ async function requestAllocationSetup() {
   const initialPoolFee = 7; // 7%
 
   await stakingPool
-    .connect(fixture.coverSigner)
+    .connect(fixture.stakingProductsSigner)
     .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
 
-  await stakingProducts.connect(fixture.coverSigner).setInitialProducts(poolId, [defaultProduct, product2, product3]);
+  await stakingProducts
+    .connect(fixture.stakingProductsSigner)
+    .setInitialProducts(poolId, [defaultProduct, product2, product3]);
 
   // Deposit into pool
   const amount = stakedNxmAmount;

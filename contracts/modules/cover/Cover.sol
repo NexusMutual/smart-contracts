@@ -234,7 +234,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
           )
         );
       } else {
-        revert("Not yet implemented");
+          amountDueInNXM = requestPeriodAllocation(
+            allocationRequest,
+            poolAllocationRequests,
+            AllocationParams(
+              nxmPriceInCoverAsset,
+              previousSegmentAmount,
+              segmentId
+            )
+          );
       }
     }
 
@@ -490,6 +498,78 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     totalCoverAmountInCoverAsset = vars.totalCoverAmountInNXM * params.nxmPriceInCoverAsset / ONE_NXM;
 
     return (totalCoverAmountInCoverAsset, totalAmountDueInNXM);
+  }
+
+  function requestPeriodAllocation(
+    AllocationRequest memory allocationRequest,
+    PoolAllocationRequest[] memory poolAllocationRequests,
+    AllocationParams memory params
+  ) internal returns (uint totalAmountDueInNXM) {
+
+    uint oldSegmentAmountInNXMRepriced = covertAmountInCoverAssetToNXM(
+      params.previousSegmentAmount, params.nxmPriceInCoverAsset
+    );
+
+    RequestAllocationVariables memory vars; // = RequestAllocationVariables(0, 0, 0, 0);
+
+    // calculate the period added on top of the previous expiration
+    uint extraPeriod = allocationRequest.period - (allocationRequest.previousExpiration - block.timestamp) + 1;
+
+    vars.previousPoolAllocationsLength = coverSegmentAllocations[allocationRequest.coverId][params.segmentId - 1].length;
+
+    for (uint i = 0; i < poolAllocationRequests.length; i++) {
+
+      if (vars.previousPoolAllocationsLength > i) {
+        PoolAllocation memory previousPoolAllocation =
+        coverSegmentAllocations[allocationRequest.coverId][params.segmentId - 1][i];
+
+        // poolAllocationRequests must match the pools in the previous segment
+        if (previousPoolAllocation.poolId != poolAllocationRequests[i].poolId) {
+          revert UnexpectedPoolId();
+        }
+
+        // check if this request should be skipped, keeping the previous allocation
+        if (poolAllocationRequests[i].skip) {
+          coverSegmentAllocations[allocationRequest.coverId][params.segmentId].push(previousPoolAllocation);
+          vars.totalCoverAmountInNXM += previousPoolAllocation.coverAmountInNXM;
+          continue;
+        }
+
+        vars.previousPremiumInNXM = previousPoolAllocation.premiumInNXM;
+
+        // get stored allocation id
+        allocationRequest.allocationId = previousPoolAllocation.allocationId;
+
+        uint poolAllocationRatio =
+        previousPoolAllocation.coverAmountInNXM
+        * COVER_ALLOCATION_RATIO_DENOMINATOR
+        / vars.previousCoverAmountTotalInNXM;
+
+        vars.coverAmountInNXMOldRepriced =
+        poolAllocationRatio * oldSegmentAmountInNXMRepriced
+        / COVER_ALLOCATION_RATIO_DENOMINATOR;
+
+      } else {
+        // request new allocation id
+        allocationRequest.allocationId = 0;
+
+        // zero out previous premium or refund
+        vars.previousPremiumInNXM = 0;
+
+        vars.coverAmountInNXMOldRepriced = 0;
+      }
+
+      (uint premiumInNXM, /* uint allocationId */ ) = stakingProducts().stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
+        vars.coverAmountInNXMOldRepriced,
+        extraPeriod,
+        0, // coverAmountInNXMOldRepriced,
+        allocationRequest
+      );
+
+      totalAmountDueInNXM += premiumInNXM;
+    }
+
+    return totalAmountDueInNXM;
   }
 
   function covertAmountInCoverAssetToNXM(uint amountInCoverAsset, uint nxmPriceInCoverAsset) pure internal returns (uint) {

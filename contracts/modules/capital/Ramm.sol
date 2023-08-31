@@ -35,7 +35,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
   /* =========== IMMUTABLES ========== */
 
-  uint public immutable aggressiveLiquiditySpeed;
+  uint public immutable fastLiquiditySpeed;
   uint public immutable targetLiquidity;
 
   /* ========== CONSTRUCTOR ========== */
@@ -46,7 +46,7 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint _targetLiquidity,
   uint _liquidity,
   uint _budget,
-  uint _aggressiveLiquiditySpeed,
+  uint _fastLiquiditySpeed,
   uint liqSpeedOut,
   uint liqSpeedIn,
   uint ratchetSpeedA,
@@ -55,7 +55,7 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint spotPriceB
   ) {
     targetLiquidity = _targetLiquidity;
-    aggressiveLiquiditySpeed = _aggressiveLiquiditySpeed;
+    fastLiquiditySpeed = _fastLiquiditySpeed;
 
     ethReserve = _liquidity;
     budget = _budget;
@@ -146,14 +146,14 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     if (_liquidity < targetLiquidity) {
       // inject eth
-      uint timeLeftOnBudget = _budget * LIQ_SPEED_PERIOD / aggressiveLiquiditySpeed;
+      uint timeLeftOnBudget = _budget * LIQ_SPEED_PERIOD / fastLiquiditySpeed;
       uint maxInjectedAmount = targetLiquidity - _liquidity;
       uint injectedAmount;
 
       if (elapsed <= timeLeftOnBudget) {
 
         injectedAmount = Math.min(
-          elapsed * aggressiveLiquiditySpeed / LIQ_SPEED_PERIOD,
+          elapsed * fastLiquiditySpeed / LIQ_SPEED_PERIOD,
           maxInjectedAmount
         );
 
@@ -161,7 +161,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
       } else {
 
-        uint injectedAmountOnBudget = timeLeftOnBudget * aggressiveLiquiditySpeed / LIQ_SPEED_PERIOD;
+        uint injectedAmountOnBudget = timeLeftOnBudget * fastLiquiditySpeed / LIQ_SPEED_PERIOD;
         _budget = maxInjectedAmount < injectedAmountOnBudget ? _budget - maxInjectedAmount : 0;
 
         uint injectedAmountWoBudget = (elapsed - timeLeftOnBudget) * b.liquiditySpeed * 1 ether / LIQ_SPEED_PERIOD;

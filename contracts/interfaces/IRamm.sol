@@ -6,14 +6,6 @@ import "./IPool.sol";
 import "./INXMToken.sol";
 import "./ITokenController.sol";
 
-
-enum UintParams {
-  targetLiquidity,
-  twapDuration,
-  aggressiveLiqSpeed,
-  oracleBuffer
-}
-
 struct Pool {
   uint96 nxmReserve;
   uint16 liquiditySpeed;

@@ -4,6 +4,7 @@ pragma solidity >=0.5.0;
 
 interface IMasterAwareV2 {
 
+  // TODO: if you update this enum, update lib/constants.js as well
   enum ID {
     TC, // TokenController.sol
     P1, // Pool.sol

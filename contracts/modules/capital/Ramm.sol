@@ -130,10 +130,6 @@ contract Ramm is IRamm, MasterAwareV2 {
 
   }
 
-  function addBudget(uint amount) external override onlyGovernance {
-    budget += amount;
-  }
-
   /* ============== VIEWS ============= */
 
   function getReserves(uint timestamp) public view returns (uint currentLiquidity, uint nxmA, uint nxmB, uint currentBudget) {

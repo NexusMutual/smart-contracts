@@ -2,26 +2,35 @@
 
 pragma solidity ^0.8.18;
 
-import "../../interfaces/IRamm.sol";
 import "../../abstract/MasterAwareV2.sol";
-import "../../interfaces/IPool.sol";
-import "../../interfaces/INXMToken.sol";
-import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IMCR.sol";
+import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/IRamm.sol";
+import "../../interfaces/ITokenController.sol";
 import "../../libraries/Math.sol";
+import "../../libraries/SafeUintCast.sol";
 
 contract Ramm is IRamm, MasterAwareV2 {
+  using SafeUintCast for uint;
 
   /* ========== STATE VARIABLES ========== */
 
+  // slot 0
   Pool public a;
   Pool public b;
-  uint public lastSwapTimestamp;
-  uint public ethReserve;
-  uint public budget;
-  Observation[3] public observations;
 
-  /* ========== CONSTANTS ========== */
+  // slot 1 & 2
+  // 3 * 160 + 32 = 512 bits
+  Observation[3] public observations;
+  uint32 public lastSwapTimestamp;
+
+  // slot 3
+  uint80 public budget;
+  uint112 public ethReserve;
+  // 64 bits left
+
+  /* ========== FUNCTIONS ========== */
 
   uint public constant LIQ_SPEED_PERIOD = 1 days;
   uint public constant RATCHET_PERIOD = 1 days;
@@ -32,7 +41,6 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public constant GRANULARITY = 2;
   uint public constant PERIOD_SIZE = 86_400; // day
 
-
   /* =========== IMMUTABLES ========== */
 
   uint public immutable aggressiveLiquiditySpeed;
@@ -42,42 +50,20 @@ contract Ramm is IRamm, MasterAwareV2 {
 
   // TODO: all in-memory variables, immutables and constants should use uint256
 
-  constructor(
-  uint _targetLiquidity,
-  uint _liquidity,
-  uint _budget,
-  uint _aggressiveLiquiditySpeed,
-  uint liqSpeedOut,
-  uint liqSpeedIn,
-  uint ratchetSpeedA,
-  uint ratchetSpeedB,
-  uint spotPriceA,
-  uint spotPriceB
-  ) {
+  constructor(uint _targetLiquidity, uint _aggressiveLiquiditySpeed) {
     targetLiquidity = _targetLiquidity;
     aggressiveLiquiditySpeed = _aggressiveLiquiditySpeed;
-
-    ethReserve = _liquidity;
-    budget = _budget;
-    lastSwapTimestamp = block.timestamp;
-
-    a.nxmReserve = uint96(_liquidity * 1 ether / spotPriceA);
-    a.liquiditySpeed  = uint16(liqSpeedOut);
-    a.ratchetSpeed  = uint16(ratchetSpeedA);
-
-    b.nxmReserve = uint96(_liquidity * 1 ether / spotPriceB);
-    b.liquiditySpeed  = uint16(liqSpeedIn);
-    b.ratchetSpeed  = uint16(ratchetSpeedB);
   }
 
+  // TODO: add minOut and deadline parameters
   function swap(uint nxmIn) external payable {
 
     require(msg.value == 0 || nxmIn == 0, "ONE_INPUT_ONLY");
     require(msg.value > 0 || nxmIn > 0, "ONE_INPUT_REQUIRED");
 
     msg.value > 0
-    ? swapEthForNxm(msg.value)
-    : swapNxmForEth(nxmIn);
+      ? swapEthForNxm(msg.value)
+      : swapNxmForEth(nxmIn);
   }
 
   function swapEthForNxm(uint ethIn) internal returns (uint nxmOut) {
@@ -85,7 +71,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     update();
 
     uint k = _liquidity * nxmA;
-    ethReserve = _liquidity + ethIn;
+    ethReserve = (_liquidity + ethIn).toUint112();
 
     // edge case: bellow goes over bv due to eth-dai price changing
     a.nxmReserve = uint96(k / ethReserve);
@@ -106,8 +92,8 @@ contract Ramm is IRamm, MasterAwareV2 {
     update();
 
     uint k = _liquidity * nxmB;
-    b.nxmReserve = uint96(nxmB  + nxmIn);
-    a.nxmReserve = uint96(nxmB  + nxmIn);
+    b.nxmReserve = uint96(nxmB + nxmIn);
+    a.nxmReserve = uint96(nxmB + nxmIn);
 
     ethReserve = k / b.nxmReserve;
 
@@ -117,8 +103,8 @@ contract Ramm is IRamm, MasterAwareV2 {
     ethOut = _liquidity - ethReserve;
 
     tokenController().burnFrom(msg.sender, nxmIn);
-     // TODO: don't use hardcoded ETH in the payout
-     pool().sendPayout(0, payable(msg.sender), ethOut);
+    // TODO: don't use hardcoded ETH in the payout
+    pool().sendPayout(0, payable(msg.sender), ethOut);
 
     uint mcrETH = mcr().getMCR();
     uint _capacity = pool().getPoolValueInEth();
@@ -233,7 +219,7 @@ contract Ramm is IRamm, MasterAwareV2 {
   }
 
   function getSpotPrices() external view returns (uint spotPriceA, uint spotPriceB) {
-    (uint _liquidity, uint nxmA, uint nxmB, ) = getReserves(block.timestamp);
+    (uint _liquidity, uint nxmA, uint nxmB,) = getReserves(block.timestamp);
     return (1 ether * _liquidity / nxmA, 1 ether * _liquidity / nxmB);
   }
 
@@ -316,7 +302,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint observationIndex;
     uint missingPeriods = Math.min((block.timestamp - calculationProps.previousTimestamp) / PERIOD_SIZE, 2);
 
-    for (uint i = missingPeriods; i > 0 ; i--) {
+    for (uint i = missingPeriods; i > 0; i--) {
       calculationProps.currentTimestamp = (block.timestamp / PERIOD_SIZE - i) * PERIOD_SIZE;
       observationIndex = observationIndexOf(calculationProps.currentTimestamp);
       (
@@ -387,8 +373,8 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint spotPriceAbove = calculationProps.currentEthReserve / calculationProps.currentNxmA;
     uint spotPriceBelow = calculationProps.currentEthReserve / calculationProps.currentNxmB;
 
-    uint priceAbove  = Math.min(twapPriceAbove, spotPriceAbove);
-    uint priceBelow  = Math.max(twapPricBelow, spotPriceBelow);
+    uint priceAbove = Math.min(twapPriceAbove, spotPriceAbove);
+    uint priceBelow = Math.max(twapPricBelow, spotPriceBelow);
 
     uint bookValue = getBookValue();
     return priceAbove - priceBelow - bookValue;
@@ -412,5 +398,36 @@ contract Ramm is IRamm, MasterAwareV2 {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
+
+    if (lastSwapTimestamp == 0) {
+      initialize();
+    }
+  }
+
+  function initialize() internal {
+
+    require(lastSwapTimestamp == 0, "ALREADY_INITIALIZED");
+
+    // TODO: hardcode the initial values - this is a proxy and there's no other way to pass them
+    uint liqSpeedOut;
+    uint liqSpeedIn;
+    uint ratchetSpeedA;
+    uint ratchetSpeedB;
+    uint spotPriceA;
+    uint spotPriceB;
+    uint initialLiquidity;
+    uint initialBudget;
+
+    lastSwapTimestamp = uint32(block.timestamp);
+    ethReserve = initialLiquidity.toUint112();
+    budget = initialBudget.toUint80();
+
+    a.nxmReserve = (initialLiquidity * 1 ether / spotPriceA).toUint96();
+    a.liquiditySpeed = liqSpeedOut.toUint16();
+    a.ratchetSpeed = ratchetSpeedA.toUint16();
+
+    b.nxmReserve = (initialLiquidity * 1 ether / spotPriceB).toUint96();
+    b.liquiditySpeed = liqSpeedIn.toUint16();
+    b.ratchetSpeed = ratchetSpeedB.toUint16();
   }
 }

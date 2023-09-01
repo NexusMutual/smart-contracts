@@ -15,6 +15,7 @@ import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
+import "hardhat/console.sol";
 
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
@@ -611,10 +612,9 @@ contract StakingPool is IStakingPool, Multicall {
 
   function requestAllocation(
     uint amount,
-    uint extraPeriod,
     uint coverAmountInNXMOldRepriced,
     AllocationRequest calldata request
-  ) external onlyCoverContract returns (uint premium, uint allocationId) {
+  ) external onlyCoverContract returns (uint extraPremium, uint allocationId) {
 
     // passing true because we change the reward per second
     processExpirations(true);
@@ -652,39 +652,74 @@ contract StakingPool is IStakingPool, Multicall {
       return (0, 0);
     }
 
-    uint coverAllocationAmount;
-    uint initialCapacityUsed;
-    uint totalCapacity;
+    RequestAllocationVariables memory vars;
+
+    // if it's the first segment the remaining period is the requested period
+    // if it's an edit the remaining period is the difference between the previous expiration and now
+    vars.remainingPeriod =
+    request.previousExpiration == 0
+    ? request.period : request.previousExpiration - block.timestamp + 1;
+
+    // if it's the first segment the new period is the requested period
+    // if it's an edit the new period is the sum of the remaining period and the requested period
+    vars.newPeriod = request.previousExpiration == 0 ? request.period : request.period + vars.remainingPeriod;
+
     (
-      coverAllocationAmount,
-      initialCapacityUsed,
-      totalCapacity,
+      vars.coverAllocationAmount,
+      vars.initialCapacityUsed,
+      vars.totalCapacity,
       allocationId
-    ) = allocate(amount, request, trancheAllocations);
+    ) = allocate(amount, vars.newPeriod, request, trancheAllocations);
 
-    // the returned premium value has 18 decimals
-    premium = stakingProducts.getPremium(
-      poolId,
-      request.productId,
-      request.period,
-      coverAllocationAmount,
-      initialCapacityUsed,
-      totalCapacity,
-      request.globalMinPrice,
-      request.useFixedPrice,
-      NXM_PER_ALLOCATION_UNIT,
-      ALLOCATION_UNITS_PER_NXM
-    );
+    if (amount - coverAmountInNXMOldRepriced > 0) {
+      // the returned premium value has 18 decimals
+      uint premium = stakingProducts.getPremium(
+        poolId,
+        request.productId,
+        vars.remainingPeriod,
+        vars.coverAllocationAmount,
+        vars.initialCapacityUsed,
+        vars.totalCapacity,
+        request.globalMinPrice,
+        request.useFixedPrice,
+        NXM_PER_ALLOCATION_UNIT,
+        ALLOCATION_UNITS_PER_NXM
+      );
 
-    // TODO: add extraPremium computation for extension of period
-
-    uint extraPremium;
-    if (extraPeriod == 0) {
-      extraPremium = premium * Math.max(
+      extraPremium += premium * Math.max(
         (amount - coverAmountInNXMOldRepriced), 0) / amount;
-    } else {
-      revert("StakingPool: Extend period not yet implemented");
     }
+
+    console.log("extraPremium after increase amount", extraPremium);
+
+    // calculate the period added on top of the previous expiration
+
+    console.log("request.period", request.period);
+    console.log("request.previousExpiration", request.previousExpiration);
+    console.log("block.timestamp", block.timestamp);
+
+    // check if there is a previous segment and period is specified in order to extend it compute premium
+    if (request.previousExpiration > 0 && request.period > 0) {
+      console.log("extraPeriod", request.period);
+
+      // the returned premium value has 18 decimals
+      uint premium = stakingProducts.getPremium(
+        poolId,
+        request.productId,
+        vars.newPeriod,
+        vars.coverAllocationAmount,
+        vars.initialCapacityUsed,
+        vars.totalCapacity,
+        request.globalMinPrice,
+        request.useFixedPrice,
+        NXM_PER_ALLOCATION_UNIT,
+        ALLOCATION_UNITS_PER_NXM
+      );
+
+      extraPremium += request.period * premium / vars.newPeriod;
+    }
+
+    console.log("extraPremium after increase period", extraPremium);
 
     // add new rewards
     {
@@ -692,7 +727,10 @@ contract StakingPool is IStakingPool, Multicall {
         revert RewardRatioTooHigh();
       }
 
-      uint expirationBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
+      uint expirationBucket = Math.divCeil(block.timestamp + vars.remainingPeriod, BUCKET_DURATION);
+
+      console.log("block.timestamp", block.timestamp);
+
       uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
       uint _rewardPerSecond = (extraPremium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
 
@@ -898,6 +936,7 @@ contract StakingPool is IStakingPool, Multicall {
 
   function allocate(
     uint amount,
+    uint period,
     AllocationRequest calldata request,
     uint[] memory trancheAllocations
   ) internal returns (
@@ -919,7 +958,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint[] memory coverAllocations = new uint[](MAX_ACTIVE_TRANCHES);
 
     {
-      uint firstTrancheIdToUse = (block.timestamp + request.period + request.gracePeriod) / TRANCHE_DURATION;
+      uint firstTrancheIdToUse = (block.timestamp + period + request.gracePeriod) / TRANCHE_DURATION;
       uint startIndex = firstTrancheIdToUse - _firstActiveTrancheId;
 
       uint[] memory trancheCapacities = getTrancheCapacities(
@@ -997,7 +1036,7 @@ contract StakingPool is IStakingPool, Multicall {
     updateExpiringCoverAmounts(
       request.productId,
       _firstActiveTrancheId,
-      Math.divCeil(block.timestamp + request.period, BUCKET_DURATION), // targetBucketId
+      Math.divCeil(block.timestamp + period, BUCKET_DURATION), // targetBucketId
       coverAllocations,
       true // isAllocation
     );

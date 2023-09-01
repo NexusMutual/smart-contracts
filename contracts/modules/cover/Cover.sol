@@ -22,6 +22,7 @@ import "../../libraries/StakingPoolLibrary.sol";
 import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/ICoverProducts.sol";
 import "../../libraries/Math.sol";
+import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Multicall {
   using SafeERC20 for IERC20;
@@ -107,11 +108,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     PoolAllocationRequest[] memory poolAllocationRequests
   ) external payable onlyMember nonReentrant whenNotPaused returns (uint coverId) {
 
-    if (params.period < MIN_COVER_PERIOD) {
+    // check only for a new cover
+    if (params.coverId == 0 && params.period > 0 && params.period < MIN_COVER_PERIOD) {
       revert CoverPeriodTooShort();
     }
 
-    if (params.period > MAX_COVER_PERIOD) {
+    // check only for a new cover
+    if (params.coverId == 0 && params.period > MAX_COVER_PERIOD) {
       revert CoverPeriodTooLong();
     }
 
@@ -205,7 +208,22 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         revert ExpiredCoversCannotBeEdited();
       }
 
+      uint remainingPeriod = lastSegment.start + lastSegment.period - block.timestamp + 1;
+
+      console.log("remainingPeriod", remainingPeriod);
+      console.log("params.period", params.period);
+      if (params.period + remainingPeriod < MIN_COVER_PERIOD) {
+        revert CoverPeriodTooShort();
+      }
+
+      if (params.period + remainingPeriod > MAX_COVER_PERIOD) {
+        revert CoverPeriodTooLong();
+      }
+
       allocationRequest.previousStart = lastSegment.start;
+
+      console.log("lastSegment.start", lastSegment.start);
+      console.log("lastSegment.period", lastSegment.period);
       allocationRequest.previousExpiration = lastSegment.start + lastSegment.period;
       allocationRequest.previousRewardsRatio = lastSegment.globalRewardsRatio;
 
@@ -214,52 +232,48 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
       // remove cover amount from from expiration buckets
       uint bucketAtExpiry = Math.divCeil(lastSegment.start + lastSegment.period, BUCKET_SIZE);
+
+      console.log("lastSegment.start", lastSegment.start);
+      console.log("lastSegment.period", lastSegment.period);
+      console.log("bucketAtExpiry", bucketAtExpiry);
       activeCoverExpirationBuckets[params.coverAsset][bucketAtExpiry] -= lastSegment.amount;
       previousSegmentAmount += lastSegment.amount;
 
       allocationRequest.coverId = coverId;
 
-      if (params.amount > 0) {
-
-        // set the period to be the remaining period
-        allocationRequest.period = allocationRequest.previousExpiration - block.timestamp + 1;
-
-        (coverAmountInCoverAsset, amountDueInNXM) = requestAmountAllocation(
-          allocationRequest,
-          poolAllocationRequests,
-          AllocationParams(
-            nxmPriceInCoverAsset,
-            previousSegmentAmount,
-            segmentId
-          )
-        );
-      } else {
-          amountDueInNXM = requestPeriodAllocation(
-            allocationRequest,
-            poolAllocationRequests,
-            AllocationParams(
-              nxmPriceInCoverAsset,
-              previousSegmentAmount,
-              segmentId
-            )
-          );
-      }
+      (coverAmountInCoverAsset, amountDueInNXM) = requestAmountAllocation(
+        allocationRequest,
+        poolAllocationRequests,
+        AllocationParams(
+          nxmPriceInCoverAsset,
+          previousSegmentAmount,
+          segmentId
+        )
+      );
     }
 
     if (coverAmountInCoverAsset < params.amount) {
       revert InsufficientCoverAmountAllocated();
     }
 
-    _coverSegments[coverId].push(
-      CoverSegment(
-        coverAmountInCoverAsset.toUint96(), // cover amount in cover asset
-        block.timestamp.toUint32(), // start
-        params.period, // period
-        allocationRequest.gracePeriod.toUint32(),
-        GLOBAL_REWARDS_RATIO.toUint24(),
-        GLOBAL_CAPACITY_RATIO.toUint24()
-      )
-    );
+    // update segment period to be the remaining period
+    params.period =
+    uint32(allocationRequest.previousExpiration == 0
+      ? (allocationRequest.period)
+      : allocationRequest.previousExpiration - block.timestamp + 1 + allocationRequest.period);
+
+    {
+      _coverSegments[coverId].push(
+        CoverSegment(
+          coverAmountInCoverAsset.toUint96(), // cover amount in cover asset
+          block.timestamp.toUint32(), // start
+          params.period, // period
+          allocationRequest.gracePeriod.toUint32(),
+          GLOBAL_REWARDS_RATIO.toUint24(),
+          GLOBAL_CAPACITY_RATIO.toUint24()
+        )
+      );
+    }
 
     // Update totalActiveCover
     {
@@ -333,7 +347,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
       stakingProducts().stakingPool(allocation.poolId).requestAllocation(
         0, // amount
-        0, // extraPeriod
         0, // previous coverAmount in NXM repriced
         allocationRequest
       );
@@ -363,14 +376,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     for (uint i = 0; i < poolAllocationRequests.length; i++) {
 
       // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
-      uint coverAmountInNXM = covertAmountInCoverAssetToNXM(
+      uint coverAmountInNXM = convertAmountInCoverAssetToNXM(
         poolAllocationRequests[i].coverAmountInAsset,
         params.nxmPriceInCoverAsset
       );
 
     (uint premiumInNXM, uint allocationId) = stakingProducts().stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
         coverAmountInNXM,
-        0, // extraPeriod
         0, // coverAmountInNXMOldRepriced
         allocationRequest
       );
@@ -405,7 +417,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint totalAmountDueInNXM
   ) {
 
-    uint oldSegmentAmountInNXMRepriced = covertAmountInCoverAssetToNXM(
+    uint oldSegmentAmountInNXMRepriced = convertAmountInCoverAssetToNXM(
       params.previousSegmentAmount, params.nxmPriceInCoverAsset
     );
 
@@ -466,14 +478,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       }
 
       // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
-      uint coverAmountInNXM = covertAmountInCoverAssetToNXM(
+      uint coverAmountInNXM = convertAmountInCoverAssetToNXM(
         poolAllocationRequests[i].coverAmountInAsset,
         params.nxmPriceInCoverAsset
       );
 
       (uint premiumInNXM, uint allocationId) = stakingProducts().stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
         coverAmountInNXM,
-        0, // extraPeriod 
         vars.coverAmountInNXMOldRepriced,
         allocationRequest
       );
@@ -500,79 +511,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return (totalCoverAmountInCoverAsset, totalAmountDueInNXM);
   }
 
-  function requestPeriodAllocation(
-    AllocationRequest memory allocationRequest,
-    PoolAllocationRequest[] memory poolAllocationRequests,
-    AllocationParams memory params
-  ) internal returns (uint totalAmountDueInNXM) {
-
-    uint oldSegmentAmountInNXMRepriced = covertAmountInCoverAssetToNXM(
-      params.previousSegmentAmount, params.nxmPriceInCoverAsset
-    );
-
-    RequestAllocationVariables memory vars; // = RequestAllocationVariables(0, 0, 0, 0);
-
-    // calculate the period added on top of the previous expiration
-    uint extraPeriod = allocationRequest.period - (allocationRequest.previousExpiration - block.timestamp) + 1;
-
-    vars.previousPoolAllocationsLength = coverSegmentAllocations[allocationRequest.coverId][params.segmentId - 1].length;
-
-    for (uint i = 0; i < poolAllocationRequests.length; i++) {
-
-      if (vars.previousPoolAllocationsLength > i) {
-        PoolAllocation memory previousPoolAllocation =
-        coverSegmentAllocations[allocationRequest.coverId][params.segmentId - 1][i];
-
-        // poolAllocationRequests must match the pools in the previous segment
-        if (previousPoolAllocation.poolId != poolAllocationRequests[i].poolId) {
-          revert UnexpectedPoolId();
-        }
-
-        // check if this request should be skipped, keeping the previous allocation
-        if (poolAllocationRequests[i].skip) {
-          coverSegmentAllocations[allocationRequest.coverId][params.segmentId].push(previousPoolAllocation);
-          vars.totalCoverAmountInNXM += previousPoolAllocation.coverAmountInNXM;
-          continue;
-        }
-
-        vars.previousPremiumInNXM = previousPoolAllocation.premiumInNXM;
-
-        // get stored allocation id
-        allocationRequest.allocationId = previousPoolAllocation.allocationId;
-
-        uint poolAllocationRatio =
-        previousPoolAllocation.coverAmountInNXM
-        * COVER_ALLOCATION_RATIO_DENOMINATOR
-        / vars.previousCoverAmountTotalInNXM;
-
-        vars.coverAmountInNXMOldRepriced =
-        poolAllocationRatio * oldSegmentAmountInNXMRepriced
-        / COVER_ALLOCATION_RATIO_DENOMINATOR;
-
-      } else {
-        // request new allocation id
-        allocationRequest.allocationId = 0;
-
-        // zero out previous premium or refund
-        vars.previousPremiumInNXM = 0;
-
-        vars.coverAmountInNXMOldRepriced = 0;
-      }
-
-      (uint premiumInNXM, /* uint allocationId */ ) = stakingProducts().stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
-        vars.coverAmountInNXMOldRepriced,
-        extraPeriod,
-        0, // coverAmountInNXMOldRepriced,
-        allocationRequest
-      );
-
-      totalAmountDueInNXM += premiumInNXM;
-    }
-
-    return totalAmountDueInNXM;
-  }
-
-  function covertAmountInCoverAssetToNXM(uint amountInCoverAsset, uint nxmPriceInCoverAsset) pure internal returns (uint) {
+  // TODO: change potentiall to convertAmountToNXM
+  function convertAmountInCoverAssetToNXM(uint amountInCoverAsset, uint nxmPriceInCoverAsset) pure internal returns (uint) {
     return Math.roundUp(
       Math.divCeil(amountInCoverAsset * ONE_NXM, nxmPriceInCoverAsset),
       NXM_PER_ALLOCATION_UNIT
@@ -620,6 +560,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint commission = (premiumInPaymentAsset * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio)) - premiumInPaymentAsset;
     uint premiumWithCommission = premiumInPaymentAsset + commission;
 
+
+    console.log("premiumWithCommission", premiumWithCommission);
+    console.log("maxPremiumInAsset", maxPremiumInAsset);
     if (premiumWithCommission > maxPremiumInAsset) {
       revert PriceExceedsMaxPremiumInAsset();
     }

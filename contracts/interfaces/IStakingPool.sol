@@ -62,6 +62,14 @@ interface IStakingPool {
     uint128 rewardsShares;
   }
 
+  struct RequestAllocationVariables {
+    uint coverAllocationAmount;
+    uint initialCapacityUsed;
+    uint totalCapacity;
+    uint remainingPeriod;
+    uint newPeriod;
+  }
+
   function initialize(
     bool isPrivatePool,
     uint initialPoolFee,
@@ -74,7 +82,6 @@ interface IStakingPool {
 
   function requestAllocation(
     uint amount,
-    uint extraPeriod,
     uint coverAmountInNXMOldRepriced,
     AllocationRequest calldata request
   ) external returns (uint premium, uint allocationId);

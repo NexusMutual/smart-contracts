@@ -76,8 +76,8 @@ contract Ramm is IRamm, MasterAwareV2 {
     // edge case: bellow goes over bv due to eth-dai price changing
     a.nxmReserve = uint96(k / ethReserve);
     b.nxmReserve = uint96(nxmB * ethReserve / _liquidity);
-    budget = _budget;
-    lastSwapTimestamp = block.timestamp;
+    budget = _budget.toUint80();
+    lastSwapTimestamp = uint32(block.timestamp);
     nxmOut = nxmA - a.nxmReserve;
 
     // transfer assets
@@ -95,11 +95,11 @@ contract Ramm is IRamm, MasterAwareV2 {
     b.nxmReserve = uint96(nxmB + nxmIn);
     a.nxmReserve = uint96(nxmB + nxmIn);
 
-    ethReserve = k / b.nxmReserve;
+    ethReserve = (k / b.nxmReserve).toUint112();
 
     a.nxmReserve = uint96(nxmA * ethReserve / _liquidity);
-    budget = _budget;
-    lastSwapTimestamp = block.timestamp;
+    budget = _budget.toUint80();
+    lastSwapTimestamp = uint32(block.timestamp);
     ethOut = _liquidity - ethReserve;
 
     tokenController().burnFrom(msg.sender, nxmIn);

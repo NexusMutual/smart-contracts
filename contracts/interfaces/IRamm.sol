@@ -28,7 +28,7 @@ struct Observation {
   uint ratchetSpeedA;
   uint ratchetSpeedB;
   uint previousTimestamp;
-  uint currentTimestamp;
+  uint observationTimestamp;
  }
 
 struct CumulativePriceCalculationTimes {
@@ -46,15 +46,21 @@ interface IRamm {
 
   /* ========== VIEWS ========== */
 
-  function getReserves(uint timestamp) external view returns (uint eth, uint nxmA, uint nxmB, uint budget);
+  function getReserves(
+    uint capital,
+    uint supply,
+    uint timestamp
+  ) external view returns (uint ethReserve, uint nxmA, uint nxmB, uint remainingBudget);
 
   function getSpotPrices() external view returns (uint spotPriceA, uint spotPriceB);
 
   function getBookValue() external view returns (uint bookValue);
 
+  function getInternalPrice() external view returns (uint price);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function swap(uint nxmIn)  external payable;
+  function swap(uint nxmIn) external payable;
 
   /* ========== EVENTS ========== */
 }

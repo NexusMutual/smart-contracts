@@ -11,18 +11,15 @@ describe('swap', function () {
   it('should revert if passed values are 0', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;
-    const {
-      members: [member],
-    } = fixture.accounts;
+    const [member] = fixture.accounts.members;
 
     await expect(ramm.connect(member).swap(0)).to.be.revertedWith('ONE_INPUT_REQUIRED');
   });
+
   it('should revert if passed values are greater then 0', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;
-    const {
-      members: [member],
-    } = fixture.accounts;
+    const [member] = fixture.accounts.members;
 
     await expect(ramm.connect(member).swap(parseEther('1'), { value: parseEther('1') })).to.be.revertedWith(
       'ONE_INPUT_ONLY',
@@ -32,9 +29,7 @@ describe('swap', function () {
   it('should swap NXM for ETH', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, nxm, tokenController } = fixture.contracts;
-    const {
-      members: [member],
-    } = fixture.accounts;
+    const [member] = fixture.accounts.members;
 
     const liquidity = BigNumber.from('2050000000000000000000');
     const newNXM = BigNumber.from('200688905003625815808560');
@@ -62,9 +57,7 @@ describe('swap', function () {
   it('should swap ETH for NXM', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, nxm, tokenController } = fixture.contracts;
-    const {
-      members: [member],
-    } = fixture.accounts;
+    const [member] = fixture.accounts.members;
 
     const amount = parseEther('1');
     const liquidity = BigNumber.from('2050000000000000000000');

@@ -44,15 +44,17 @@ contract Ramm is IRamm, MasterAwareV2 {
   /* =========== IMMUTABLES ========== */
 
   uint public immutable fastLiquiditySpeed;
+  uint public immutable fastRatchetSpeed;
   uint public immutable targetLiquidity;
 
   /* ========== CONSTRUCTOR ========== */
 
   // TODO: all in-memory variables, immutables and constants should use uint256
 
-  constructor(uint _targetLiquidity, uint _fastLiquiditySpeed) {
+  constructor(uint _targetLiquidity, uint _fastLiquiditySpeed, uint _fastRatchetSpeed) {
     targetLiquidity = _targetLiquidity;
     fastLiquiditySpeed = _fastLiquiditySpeed;
+    fastRatchetSpeed = _fastRatchetSpeed;
   }
 
   // TODO: add minOut and deadline parameters
@@ -134,10 +136,10 @@ contract Ramm is IRamm, MasterAwareV2 {
     _ethReserve = ethReserve;
     _budget = budget;
     uint elapsed = timestamp - lastSwapTimestamp;
+    uint timeLeftOnBudget = _budget * LIQ_SPEED_PERIOD / fastLiquiditySpeed;
 
     if (_ethReserve < targetLiquidity) {
       // inject eth
-      uint timeLeftOnBudget = _budget * LIQ_SPEED_PERIOD / fastLiquiditySpeed;
       uint maxInjectedAmount = targetLiquidity - _ethReserve;
       uint injectedAmount;
 
@@ -205,13 +207,20 @@ contract Ramm is IRamm, MasterAwareV2 {
       // ... <=>
       // cap * n < e * sup + r * cap * n
       uint bufferedCapitalB = capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR;
+      uint r;
+
+      if (elapsed <= timeLeftOnBudget) {
+        r = elapsed * fastRatchetSpeed;
+      } else {
+        r = (elapsed - timeLeftOnBudget) * a.ratchetSpeed + timeLeftOnBudget * fastRatchetSpeed;
+      }
 
       if (
-        bufferedCapitalB * nxmB < _ethReserve * supply + nxmB * capital * elapsed * b.ratchetSpeed / RATCHET_PERIOD / RATCHET_DENOMINATOR
+        bufferedCapitalB * nxmB < _ethReserve * supply + nxmB * capital * r / RATCHET_PERIOD / RATCHET_DENOMINATOR
       ) {
         nxmB = _ethReserve * supply / bufferedCapitalB;
       } else {
-        uint nr_denom_addend = nxmB * elapsed * b.ratchetSpeed * capital / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR;
+        uint nr_denom_addend = nxmB * r * capital / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR;
         nxmB = _ethReserve * nxmB / (_ethReserve + nr_denom_addend);
       }
     }

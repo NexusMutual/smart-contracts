@@ -125,6 +125,10 @@ contract Ramm is IRamm, MasterAwareV2 {
     return ethOut;
   }
 
+  function removeBudget() external onlyGovernance {
+    budget = 0;
+  }
+
   /* ============== VIEWS ============= */
 
   function getReserves(

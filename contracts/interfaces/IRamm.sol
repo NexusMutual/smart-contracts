@@ -56,7 +56,5 @@ interface IRamm {
 
   function swap(uint nxmIn)  external payable;
 
-  function addBudget(uint amount) external;
-
   /* ========== EVENTS ========== */
 }

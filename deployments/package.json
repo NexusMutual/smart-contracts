@@ -24,12 +24,5 @@
   "bugs": {
     "url": "https://github.com/NexusMutual/smart-contracts/issues"
   },
-  "homepage": "https://github.com/NexusMutual/smart-contracts#readme",
-  "scripts": {
-    "build": "node pre-publish.js"
-  },
-  "devDependencies": {
-    "tsup": "^7.2.0",
-    "typescript": "^5.1.6"
-  }
+  "homepage": "https://github.com/NexusMutual/smart-contracts#readme"
 }

@@ -81,7 +81,7 @@ const generateExports = () => {
 };
 
 const main = async () => {
-  rimraf(path.join(__dirname, './dist'));
+  rimraf(path.join(__dirname, './deployments/dist'));
 
   console.log('Recompiling contracts');
   await run('compile');
@@ -95,7 +95,8 @@ const main = async () => {
 
   console.log('Building source');
   await build({
-    entry: ['src/index.ts'],
+    entry: ['deployments/src/index.ts'],
+    outDir: 'deployments/dist',
     format: ['cjs', 'esm'],
     splitting: false,
     sourcemap: true,

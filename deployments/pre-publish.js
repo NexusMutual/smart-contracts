@@ -80,8 +80,23 @@ const generateExports = () => {
   }
 };
 
+const generateAbisTs = () => {
+  const outDir = path.join(__dirname, 'generated');
+
+  const contractNames = contractList.map(contract => (typeof contract === 'string' ? contract : contract[1]));
+
+  const imports = contractNames.map(name => `import ${name} from './abis/${name}.json';`);
+  const exports = contractNames.map(name => `export { default as ${name} } from './abis/${name}.json';`);
+  const dict = `export const abis = {\n  ${contractNames.join(',\n  ')}\n};`;
+
+  const content = [...imports, ...exports, dict].join('\n') + '\n';
+
+  fs.writeFileSync(path.join(outDir, 'abis.ts'), content);
+};
+
 const main = async () => {
   rimraf(path.join(__dirname, './deployments/dist'));
+  rimraf(path.join(__dirname, './deployments/generated'));
 
   console.log('Recompiling contracts');
   await run('compile');
@@ -92,6 +107,7 @@ const main = async () => {
 
   console.log('Generating exports');
   generateExports();
+  generateAbisTs();
 
   console.log('Building source');
   await build({

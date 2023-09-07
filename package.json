@@ -82,6 +82,6 @@
     "deploy": "hardhat run scripts/deploy/deploy.js",
     "deploy-local": "hardhat run scripts/deploy/start.js",
     "typechain": "hardhat typechain",
-    "build:deployments": "node deployments/pre-publish.js"
+    "build:deployments": "node deployments/build.js"
   }
 }

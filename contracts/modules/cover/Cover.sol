@@ -157,7 +157,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.globalMinPrice = GLOBAL_MIN_PRICE_RATIO;
 
       // if it's the first segment the remaining period and new period are the requested period
-      allocationRequest.remainingPeriod =  uint32(allocationRequest.period);
+      allocationRequest.remainingPeriod = uint32(allocationRequest.period);
       allocationRequest.newPeriod =  uint32(allocationRequest.period);
     }
 
@@ -413,15 +413,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint totalAmountDueInNXM
   ) {
 
-    uint oldSegmentAmountInNXMRepriced = getNXMForAssetAmount(
-      params.previousSegmentAmount, params.nxmPriceInCoverAsset
-    );
-
     RequestAllocationVariables memory vars; // = RequestAllocationVariables(0, 0, 0, 0);
 
-    vars.previousPoolAllocationsLength = params.segmentId > 0
-     ? coverSegmentAllocations[allocationRequest.coverId][params.segmentId - 1].length
-     : 0;
+    vars.previousPoolAllocationsLength = coverSegmentAllocations[allocationRequest.coverId][params.segmentId - 1].length;
 
     vars.allocations = new PoolAllocation[](vars.previousPoolAllocationsLength);
 
@@ -431,11 +425,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       vars.previousCoverAmountTotalInNXM += vars.allocations[i].coverAmountInNXM;
     }
 
+    uint oldSegmentAmountInNXMRepriced = getNXMForAssetAmount(
+      params.previousSegmentAmount, params.nxmPriceInCoverAsset
+    );
+
     for (uint i = 0; i < poolAllocationRequests.length; i++) {
       // if there is a previous segment and this index is present on it
       if (vars.previousPoolAllocationsLength > i) {
-        PoolAllocation memory previousPoolAllocation =
-          coverSegmentAllocations[allocationRequest.coverId][params.segmentId - 1][i];
+        PoolAllocation memory previousPoolAllocation = vars.allocations[i];
 
         // poolAllocationRequests must match the pools in the previous segment
         if (previousPoolAllocation.poolId != poolAllocationRequests[i].poolId) {

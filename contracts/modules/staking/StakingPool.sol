@@ -661,6 +661,9 @@ contract StakingPool is IStakingPool, Multicall {
       allocationId
     ) = allocate(amount, request.newPeriod, request, trancheAllocations);
 
+    console.log("amount", amount);
+    console.log("previousAllocationAmountInNXMRepriced", previousAllocationAmountInNXMRepriced);
+    console.log("amount - previousAllocationAmountInNXMRepriced", amount - previousAllocationAmountInNXMRepriced);
     if (amount - previousAllocationAmountInNXMRepriced > 0) {
       // the returned premium value has 18 decimals
       uint premium = stakingProducts.getPremium(
@@ -675,6 +678,8 @@ contract StakingPool is IStakingPool, Multicall {
         NXM_PER_ALLOCATION_UNIT,
         ALLOCATION_UNITS_PER_NXM
       );
+      console.log("Increased amount premium", premium);
+      console.log("request.remainingPeriod", request.remainingPeriod);
 
       extraPremium += premium * Math.max(
         (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
@@ -705,6 +710,8 @@ contract StakingPool is IStakingPool, Multicall {
         NXM_PER_ALLOCATION_UNIT,
         ALLOCATION_UNITS_PER_NXM
       );
+
+      console.log("extraPremium for increase period", request.period * premium / request.newPeriod);
 
       extraPremium += request.period * premium / request.newPeriod;
     }

@@ -10,7 +10,7 @@ const {
 const { daysToSeconds } = require('../../../lib/helpers');
 const { BUCKET_DURATION } = require('../../unit/StakingPool/helpers');
 const { BigNumber } = require('ethers');
-const { increaseTime } = require('../utils').evm;
+const { increaseTime, mineNextBlock } = require('../utils').evm;
 
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
@@ -36,11 +36,6 @@ function calculatePremium(amount, rate, period, price, allocationUnit) {
     ? nxmAmount
     : nxmAmount.div(allocationUnit).add(1).mul(allocationUnit);
 
-  const premiumPerYear = coverNXMAmount.mul(price).div(PRICE_DENOMINATOR);
-
-  console.log({
-    premiumPerYear: premiumPerYear.toString(),
-  });
   const premiumInNxm = coverNXMAmount.mul(price).div(PRICE_DENOMINATOR).mul(period).div(daysToSeconds(365));
 
   const premiumInAsset = premiumInNxm.mul(rate).div(parseEther('1'));
@@ -855,10 +850,13 @@ describe.only('buyCover', function () {
       NXM_PER_ALLOCATION_UNIT,
     );
 
-    const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
-    const poolBeforeETH = await ethers.provider.getBalance(pool.address);
+
 
     {
+      const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
+
+      const poolBeforeETH = await ethers.provider.getBalance(pool.address);
+
       await cover
         .connect(coverBuyer)
         .buyCover(
@@ -890,6 +888,7 @@ describe.only('buyCover', function () {
 
       // advance time by 15 days
       await increaseTime(daysToSeconds(15));
+      await mineNextBlock();
 
       const { timestamp: timestampAtEditTime } = await ethers.provider.getBlock('latest');
 
@@ -901,7 +900,7 @@ describe.only('buyCover', function () {
 
       const product = await stakingProducts.getProduct(1, 1);
 
-      const { premiumInNxm, premiumInAsset: premiumForIncreasedAmount } = calculatePremium(
+      const { premiumInNxm: premiumInNxmForIncreasedAmount, premiumInAsset: premiumForIncreasedAmount } = calculatePremium(
         increasedAmount,
         ethRate,
         remainingPeriod,
@@ -915,7 +914,7 @@ describe.only('buyCover', function () {
 
       const extraAmount = increasedAmountInNXM.sub(oldSegmentAmountInNXMRepriced);
       const extraPremiumForIncreaseAmount = premiumForIncreasedAmount.mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0)).div(increasedAmountInNXM);
-      const extraPremiumInNXMForAmount = premiumInNxm
+      const extraPremiumInNXMForAmount = premiumInNxmForIncreasedAmount
         .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
         .div(increasedAmountInNXM);
 
@@ -927,30 +926,26 @@ describe.only('buyCover', function () {
         NXM_PER_ALLOCATION_UNIT,
       );
 
-      console.log({
-        premiumForIncreasedPeriod: premiumForIncreasedPeriod.toString(),
+      const newPeriod = remainingPeriod.add(extraPeriod);
 
-      })
+      const extraPremiumForPeriod = BigNumber.from(extraPeriod).mul(premiumForIncreasedPeriod).div(newPeriod);
 
-      const extraPremiumForPeriod = BigNumber.from(extraPeriod).mul(premiumForIncreasedPeriod).div(remainingPeriod.add(extraPeriod));
+      const extraPremiumInNXMForPeriod = BigNumber.from(extraPeriod).mul(premiumInNxmForIncreasedPeriod).div(newPeriod);
+      const editCoverFixture = { ...buyCoverFixture, amount: increasedAmount, coverId };
 
-      const extraPremiumInNXMForPeriod = BigNumber.from(extraPeriod).mul(premiumInNxmForIncreasedPeriod).div(remainingPeriod.add(extraPeriod));
-
-      const premium = extraPremiumInNXMForAmount.add(extraPremiumInNXMForPeriod);
-
-      const editCoverFixture = { ...buyCoverFixture, amount: amount, coverId };
-
-      const stakingPoolBeforeEdit = await tokenController.stakingPoolNXMBalances(1);
-
-      const extraPremium = extraPremiumForIncreaseAmount.add(extraPremiumForPeriod);
+      const extraPremium = extraPremiumForIncreaseAmount.add(extraPremiumForPeriod).add(1);
 
       const extraPremiumInNXM = extraPremiumInNXMForAmount.add(extraPremiumInNXMForPeriod);
+
+      const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
+
+      const poolBeforeETH = await ethers.provider.getBalance(pool.address);
 
       await cover
         .connect(coverBuyer)
         .buyCover(
           { ...editCoverFixture, productId: 1, owner: coverReceiver.address, maxPremiumInAsset: extraPremium, period: extraPeriod },
-          [{ poolId: 1, coverAmountInAsset: amount }],
+          [{ poolId: 1, coverAmountInAsset: increasedAmount }],
           { value: extraPremium },
         );
 
@@ -961,8 +956,8 @@ describe.only('buyCover', function () {
       const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);
       const poolAfterETH = await ethers.provider.getBalance(pool.address);
 
-      expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premium));
-      expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBeforeEdit.rewards.add(rewards));
+      expect(poolAfterETH).to.be.equal(poolBeforeETH.add(extraPremium));
+      expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBefore.rewards.add(rewards));
     }
   });
 

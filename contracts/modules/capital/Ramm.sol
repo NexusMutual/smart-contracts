@@ -17,18 +17,18 @@ contract Ramm is IRamm, MasterAwareV2 {
   /* ========== STATE VARIABLES ========== */
 
   // slot 0
-  Pool public a;
-  Pool public b;
+  uint128 public nxmReserveA;
+  uint128 public nxmReserveB;
 
-  // slot 1 & 2
-  // 3 * 160 + 32 = 512 bits
+  // slot 1
+  uint128 public ethReserve;
+  uint96 public budget;
+  uint32 public lastUpdateTimestamp;
+
+  // slot 2 & 3
+  // 160 * 3 = 480 bits
   Observation[3] public observations;
-  uint32 public lastSwapTimestamp;
-
-  // slot 3
-  uint80 public budget;
-  uint112 public ethReserve;
-  // 64 bits left
+  uint32 private _reserved; // slot leftover
 
   /* ========== FUNCTIONS ========== */
 
@@ -43,18 +43,32 @@ contract Ramm is IRamm, MasterAwareV2 {
 
   /* =========== IMMUTABLES ========== */
 
-  uint public immutable fastLiquiditySpeed;
-  uint public immutable fastRatchetSpeed;
-  uint public immutable targetLiquidity;
+  uint public immutable FAST_LIQUIDITY_SPEED;
+  uint public immutable FAST_RATCHET_SPEED;
+  uint public immutable TARGET_LIQUIDITY;
+  uint public immutable LIQ_SPEED_A;
+  uint public immutable LIQ_SPEED_B;
+  uint public immutable RATCHET_SPEED_A;
+  uint public immutable RATCHET_SPEED_B;
 
   /* ========== CONSTRUCTOR ========== */
 
-  // TODO: all in-memory variables, immutables and constants should use uint256
-
-  constructor(uint _targetLiquidity, uint _fastLiquiditySpeed, uint _fastRatchetSpeed) {
-    targetLiquidity = _targetLiquidity;
-    fastLiquiditySpeed = _fastLiquiditySpeed;
-    fastRatchetSpeed = _fastRatchetSpeed;
+  constructor(
+    uint _targetLiquidity,
+    uint _fastLiquiditySpeed,
+    uint _fastRatchetSpeed,
+    uint _liquiditySpeedA,
+    uint _liquiditySpeedB,
+    uint _ratchetSpeedA,
+    uint _ratchetSpeedB
+  ) {
+    TARGET_LIQUIDITY = _targetLiquidity;
+    FAST_LIQUIDITY_SPEED = _fastLiquiditySpeed;
+    FAST_RATCHET_SPEED = _fastRatchetSpeed;
+    LIQ_SPEED_A = _liquiditySpeedA;
+    LIQ_SPEED_B = _liquiditySpeedB;
+    RATCHET_SPEED_A = _ratchetSpeedA;
+    RATCHET_SPEED_B = _ratchetSpeedB;
   }
 
   // TODO: add minOut and deadline parameters
@@ -80,12 +94,12 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     // update storage
     // edge case: bellow goes over bv due to eth-dai price changing
-    a.nxmReserve = (k / ethReserveAfter).toUint96();
-    b.nxmReserve = (nxmB * ethReserveAfter / ethReserveBefore).toUint96();
+    nxmReserveA = (k / ethReserveAfter).toUint96();
+    nxmReserveB = (nxmB * ethReserveAfter / ethReserveBefore).toUint96();
     ethReserve = ethReserveAfter.toUint112();
     budget = _budget.toUint80();
-    lastSwapTimestamp = uint32(block.timestamp);
-    uint nxmOut = nxmA - a.nxmReserve;
+    lastUpdateTimestamp = uint32(block.timestamp);
+    uint nxmOut = nxmA - nxmReserveA;
 
     // transfer assets
     (bool ok,) = address(pool()).call{value: msg.value}("");
@@ -105,18 +119,18 @@ contract Ramm is IRamm, MasterAwareV2 {
     updateTwap(capital, supply);
 
     uint k = ethReserveBefore * nxmB;
-    uint ethReserveAfter = k / b.nxmReserve;
+    uint ethReserveAfter = k / nxmReserveB;
     uint ethOut = ethReserveBefore - ethReserveAfter;
 
     // TODO add buffer into calculation
     require(capital - ethOut >= mcrETH, "NO_SWAPS_IN_BUFFER_ZONE");
 
     // update storage
-    a.nxmReserve = (nxmA * ethReserveAfter / ethReserveBefore).toUint96();
-    b.nxmReserve = (nxmB + nxmIn).toUint96();
+    nxmReserveA = (nxmA * ethReserveAfter / ethReserveBefore).toUint96();
+    nxmReserveB = (nxmB + nxmIn).toUint96();
     ethReserve = ethReserveAfter.toUint112();
     budget = _budget.toUint80();
-    lastSwapTimestamp = uint32(block.timestamp);
+    lastUpdateTimestamp = uint32(block.timestamp);
 
     tokenController().burnFrom(msg.sender, nxmIn);
     // TODO: use a custom function instead of sendPayout
@@ -139,18 +153,18 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     _ethReserve = ethReserve;
     _budget = budget;
-    uint elapsed = timestamp - lastSwapTimestamp;
-    uint timeLeftOnBudget = _budget * LIQ_SPEED_PERIOD / fastLiquiditySpeed;
+    uint elapsed = timestamp - lastUpdateTimestamp;
+    uint timeLeftOnBudget = _budget * LIQ_SPEED_PERIOD / FAST_LIQUIDITY_SPEED;
 
-    if (_ethReserve < targetLiquidity) {
+    if (_ethReserve < TARGET_LIQUIDITY) {
       // inject eth
-      uint maxInjectedAmount = targetLiquidity - _ethReserve;
+      uint maxInjectedAmount = TARGET_LIQUIDITY - _ethReserve;
       uint injectedAmount;
 
       if (elapsed <= timeLeftOnBudget) {
 
         injectedAmount = Math.min(
-          elapsed * fastLiquiditySpeed / LIQ_SPEED_PERIOD,
+          elapsed * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD,
           maxInjectedAmount
         );
 
@@ -158,10 +172,10 @@ contract Ramm is IRamm, MasterAwareV2 {
 
       } else {
 
-        uint injectedAmountOnBudget = timeLeftOnBudget * fastLiquiditySpeed / LIQ_SPEED_PERIOD;
+        uint injectedAmountOnBudget = timeLeftOnBudget * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD;
         _budget = maxInjectedAmount < injectedAmountOnBudget ? _budget - maxInjectedAmount : 0;
 
-        uint injectedAmountWoBudget = (elapsed - timeLeftOnBudget) * b.liquiditySpeed * 1 ether / LIQ_SPEED_PERIOD;
+        uint injectedAmountWoBudget = (elapsed - timeLeftOnBudget) * LIQ_SPEED_B * 1 ether / LIQ_SPEED_PERIOD;
         injectedAmount = Math.min(maxInjectedAmount, injectedAmountOnBudget + injectedAmountWoBudget);
       }
 
@@ -170,8 +184,8 @@ contract Ramm is IRamm, MasterAwareV2 {
     } else {
       // extract eth
       uint extractedAmount = Math.min(
-        elapsed * a.liquiditySpeed * 1 ether / LIQ_SPEED_PERIOD,
-        _ethReserve - targetLiquidity // diff to target
+        elapsed * LIQ_SPEED_A * 1 ether / LIQ_SPEED_PERIOD,
+        _ethReserve - TARGET_LIQUIDITY // diff to target
       );
 
       _ethReserve -= extractedAmount;
@@ -181,8 +195,8 @@ contract Ramm is IRamm, MasterAwareV2 {
     // pf = eth_new / nxm_new
     // pf = eth_new /(nxm * _ethReserve / ethReserve)
     // nxm_new = nxm * _ethReserve / ethReserve
-    nxmA = a.nxmReserve * _ethReserve / ethReserve;
-    nxmB = b.nxmReserve * _ethReserve / ethReserve;
+    nxmA = nxmReserveA * _ethReserve / ethReserve;
+    nxmB = nxmReserveB * _ethReserve / ethReserve;
 
     // apply ratchet above
     {
@@ -191,7 +205,7 @@ contract Ramm is IRamm, MasterAwareV2 {
       //   set n(new) = n(BV)
       // else
       //   set n(new) = n(R)
-      uint r = elapsed * a.ratchetSpeed;
+      uint r = elapsed * RATCHET_SPEED_A;
       uint bufferedCapitalA = capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR;
 
       if (bufferedCapitalA * nxmA + bufferedCapitalA * nxmA * r / RATCHET_PERIOD / RATCHET_DENOMINATOR > _ethReserve * supply) {
@@ -214,9 +228,9 @@ contract Ramm is IRamm, MasterAwareV2 {
       uint r;
 
       if (elapsed <= timeLeftOnBudget) {
-        r = elapsed * fastRatchetSpeed;
+        r = elapsed * FAST_RATCHET_SPEED;
       } else {
-        r = (elapsed - timeLeftOnBudget) * a.ratchetSpeed + timeLeftOnBudget * fastRatchetSpeed;
+        r = (elapsed - timeLeftOnBudget) * RATCHET_SPEED_A + timeLeftOnBudget * FAST_RATCHET_SPEED;
       }
 
       if (
@@ -258,7 +272,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     // is the read observation stale?
     if (firstObservationStartTimestamp > firstObservation.timestamp) {
-      uint lastObservationIndex = observationIndexOf(lastSwapTimestamp);
+      uint lastObservationIndex = observationIndexOf(lastUpdateTimestamp);
       firstObservation = observations[lastObservationIndex];
     }
   }
@@ -304,11 +318,11 @@ contract Ramm is IRamm, MasterAwareV2 {
     */
     CumulativePriceCalculationProps memory calculationProps;
     calculationProps.previousEthReserve = ethReserve;
-    calculationProps.previousNxmA = a.nxmReserve;
-    calculationProps.previousNxmB = b.nxmReserve;
-    calculationProps.previousTimestamp = lastSwapTimestamp;
-    calculationProps.ratchetSpeedA = a.ratchetSpeed;
-    calculationProps.ratchetSpeedB = b.ratchetSpeed;
+    calculationProps.previousNxmA = nxmReserveA;
+    calculationProps.previousNxmB = nxmReserveB;
+    calculationProps.previousTimestamp = lastUpdateTimestamp;
+    calculationProps.ratchetSpeedA = RATCHET_SPEED_A;
+    calculationProps.ratchetSpeedB = RATCHET_SPEED_B;
     uint observationIndex;
     uint missingPeriods = Math.min((block.timestamp - calculationProps.previousTimestamp) / PERIOD_SIZE, 2);
 
@@ -365,12 +379,12 @@ contract Ramm is IRamm, MasterAwareV2 {
     CumulativePriceCalculationProps memory calculationProps;
 
     calculationProps.previousEthReserve = ethReserve;
-    calculationProps.previousNxmA = a.nxmReserve;
-    calculationProps.previousNxmB = b.nxmReserve;
-    calculationProps.previousTimestamp = lastSwapTimestamp;
+    calculationProps.previousNxmA = nxmReserveA;
+    calculationProps.previousNxmB = nxmReserveB;
+    calculationProps.previousTimestamp = lastUpdateTimestamp;
     calculationProps.observationTimestamp = block.timestamp;
-    calculationProps.ratchetSpeedA = a.ratchetSpeed;
-    calculationProps.ratchetSpeedB = b.ratchetSpeed;
+    calculationProps.ratchetSpeedA = RATCHET_SPEED_A;
+    calculationProps.ratchetSpeedB = RATCHET_SPEED_B;
 
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
@@ -424,35 +438,26 @@ contract Ramm is IRamm, MasterAwareV2 {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
 
-    if (lastSwapTimestamp == 0) {
+    if (lastUpdateTimestamp == 0) {
       initialize();
     }
   }
 
   function initialize() internal {
 
-    require(lastSwapTimestamp == 0, "ALREADY_INITIALIZED");
+    require(lastUpdateTimestamp == 0, "ALREADY_INITIALIZED");
 
     // TODO: hardcode the initial values - this is a proxy and there's no other way to pass them
-    uint liqSpeedOut;
-    uint liqSpeedIn;
-    uint ratchetSpeedA;
-    uint ratchetSpeedB;
     uint spotPriceA;
     uint spotPriceB;
     uint initialLiquidity;
     uint initialBudget;
 
-    lastSwapTimestamp = uint32(block.timestamp);
+    lastUpdateTimestamp = uint32(block.timestamp);
     ethReserve = initialLiquidity.toUint112();
     budget = initialBudget.toUint80();
 
-    a.nxmReserve = (initialLiquidity * 1 ether / spotPriceA).toUint96();
-    a.liquiditySpeed = liqSpeedOut.toUint16();
-    a.ratchetSpeed = ratchetSpeedA.toUint16();
-
-    b.nxmReserve = (initialLiquidity * 1 ether / spotPriceB).toUint96();
-    b.liquiditySpeed = liqSpeedIn.toUint16();
-    b.ratchetSpeed = ratchetSpeedB.toUint16();
+    nxmReserveA = (initialLiquidity * 1 ether / spotPriceA).toUint96();
+    nxmReserveB = (initialLiquidity * 1 ether / spotPriceB).toUint96();
   }
 }

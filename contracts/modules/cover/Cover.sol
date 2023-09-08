@@ -109,7 +109,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   ) external payable onlyMember nonReentrant whenNotPaused returns (uint coverId) {
 
     // check only for a new cover
-    if (params.coverId == 0 && params.period > 0 && params.period < MIN_COVER_PERIOD) {
+    if (params.coverId == 0 && params.period < MIN_COVER_PERIOD) {
       revert CoverPeriodTooShort();
     }
 
@@ -179,11 +179,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       (coverAmountInCoverAsset, amountDueInNXM) = requestNewAllocations(
         allocationRequest,
         poolAllocationRequests,
-        AllocationParams(
-          nxmPriceInCoverAsset,
-          previousSegmentAmount,
-          segmentId
-        )
+        nxmPriceInCoverAsset
       );
     } else {
 
@@ -367,7 +363,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   function requestNewAllocations(
     AllocationRequest memory allocationRequest,
     PoolAllocationRequest[] memory poolAllocationRequests,
-    AllocationParams memory params
+    uint nxmPriceInCoverAsset
   ) internal returns (
     uint totalCoverAmountInCoverAsset,
     uint totalAmountDueInNXM
@@ -380,7 +376,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
       uint coverAmountInNXM = getNXMForAssetAmount(
         poolAllocationRequests[i].coverAmountInAsset,
-        params.nxmPriceInCoverAsset
+        nxmPriceInCoverAsset
       );
 
     (uint premiumInNXM, uint allocationId) = stakingProducts().stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
@@ -390,7 +386,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       );
 
 
-      coverSegmentAllocations[allocationRequest.coverId][params.segmentId].push(
+      coverSegmentAllocations[allocationRequest.coverId][0].push(
         PoolAllocation(
           poolAllocationRequests[i].poolId,
           coverAmountInNXM.toUint96(),
@@ -403,7 +399,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       totalCoverAmountInNXM += coverAmountInNXM;
     }
 
-    totalCoverAmountInCoverAsset = totalCoverAmountInNXM * params.nxmPriceInCoverAsset / ONE_NXM;
+    totalCoverAmountInCoverAsset = totalCoverAmountInNXM * nxmPriceInCoverAsset / ONE_NXM;
 
     return (totalCoverAmountInCoverAsset, totalAmountDueInNXM);
   }

@@ -62,7 +62,9 @@
     "nodemon": "^2.0.20",
     "prettier": "^2.7.1",
     "solidity-coverage": "^0.7.22",
-    "typechain": "^8.1.0"
+    "tsup": "^7.2.0",
+    "typechain": "^8.1.0",
+    "typescript": "^5.2.2"
   },
   "scripts": {
     "compile": "hardhat compile",
@@ -79,6 +81,7 @@
     "test-fork": "TEST_ENV_FORK=http://localhost:8545 hardhat test test/fork/index.js",
     "deploy": "hardhat run scripts/deploy/deploy.js",
     "deploy-local": "hardhat run scripts/deploy/start.js",
-    "typechain": "hardhat typechain"
+    "typechain": "hardhat typechain",
+    "build:deployments": "node deployments/build.js"
   }
 }

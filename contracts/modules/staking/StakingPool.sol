@@ -654,29 +654,19 @@ contract StakingPool is IStakingPool, Multicall {
 
     RequestAllocationVariables memory vars;
 
-    // if it's the first segment the remaining period is the requested period
-    // if it's an edit the remaining period is the difference between the previous expiration and now
-    vars.remainingPeriod =
-    request.previousExpiration == 0
-    ? request.period : request.previousExpiration - block.timestamp + 1;
-
-    // if it's the first segment the new period is the requested period
-    // if it's an edit the new period is the sum of the remaining period and the requested period
-    vars.newPeriod = request.previousExpiration == 0 ? request.period : request.period + vars.remainingPeriod;
-
     (
       vars.coverAllocationAmount,
       vars.initialCapacityUsed,
       vars.totalCapacity,
       allocationId
-    ) = allocate(amount, vars.newPeriod, request, trancheAllocations);
+    ) = allocate(amount, request.newPeriod, request, trancheAllocations);
 
     if (amount - coverAmountInNXMOldRepriced > 0) {
       // the returned premium value has 18 decimals
       uint premium = stakingProducts.getPremium(
         poolId,
         request.productId,
-        vars.remainingPeriod,
+        request.remainingPeriod,
         vars.coverAllocationAmount,
         vars.initialCapacityUsed,
         vars.totalCapacity,
@@ -706,7 +696,7 @@ contract StakingPool is IStakingPool, Multicall {
       uint premium = stakingProducts.getPremium(
         poolId,
         request.productId,
-        vars.newPeriod,
+        request.newPeriod,
         vars.coverAllocationAmount,
         vars.initialCapacityUsed,
         vars.totalCapacity,
@@ -716,7 +706,7 @@ contract StakingPool is IStakingPool, Multicall {
         ALLOCATION_UNITS_PER_NXM
       );
 
-      extraPremium += request.period * premium / vars.newPeriod;
+      extraPremium += request.period * premium / request.newPeriod;
     }
 
     console.log("extraPremium after increase period", extraPremium);
@@ -727,7 +717,7 @@ contract StakingPool is IStakingPool, Multicall {
         revert RewardRatioTooHigh();
       }
 
-      uint expirationBucket = Math.divCeil(block.timestamp + vars.remainingPeriod, BUCKET_DURATION);
+      uint expirationBucket = Math.divCeil(block.timestamp + request.remainingPeriod, BUCKET_DURATION);
 
       console.log("block.timestamp", block.timestamp);
 

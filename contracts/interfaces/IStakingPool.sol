@@ -18,6 +18,8 @@ struct AllocationRequest {
   uint capacityReductionRatio;
   uint rewardRatio;
   uint globalMinPrice;
+  uint32 newPeriod;
+  uint32 remainingPeriod;
 }
 
 struct StakedProductParam {
@@ -66,8 +68,6 @@ interface IStakingPool {
     uint coverAllocationAmount;
     uint initialCapacityUsed;
     uint totalCapacity;
-    uint remainingPeriod;
-    uint newPeriod;
   }
 
   function initialize(

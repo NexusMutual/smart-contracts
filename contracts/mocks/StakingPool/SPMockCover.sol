@@ -86,7 +86,9 @@ contract SPMockCover {
         globalCapacityRatio,
         product.capacityReductionRatio,
         globalRewardsRatio,
-        GLOBAL_MIN_PRICE_RATIO
+        GLOBAL_MIN_PRICE_RATIO,
+        0, // TODO: fill in remainingPeriod
+        0 // TODO: fill in newPeriod
       )
     );
 

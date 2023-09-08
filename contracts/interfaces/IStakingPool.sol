@@ -82,7 +82,7 @@ interface IStakingPool {
 
   function requestAllocation(
     uint amount,
-    uint coverAmountInNXMOldRepriced,
+    uint previousAllocationAmountInNXMRepriced,
     AllocationRequest calldata request
   ) external returns (uint premium, uint allocationId);
 

@@ -901,7 +901,7 @@ describe.only('buyCover', function () {
 
       const product = await stakingProducts.getProduct(1, 1);
 
-      const { premiumInNxm, premiumInAsset: premium } = calculatePremium(
+      const { premiumInNxm, premiumInAsset: premiumForIncreasedAmount } = calculatePremium(
         increasedAmount,
         ethRate,
         remainingPeriod,
@@ -914,12 +914,12 @@ describe.only('buyCover', function () {
       const increasedAmountInNXM = assetAmountToNXMAmount(increasedAmount, ethRate, NXM_PER_ALLOCATION_UNIT);
 
       const extraAmount = increasedAmountInNXM.sub(oldSegmentAmountInNXMRepriced);
-      const extraPremiumForIncreaseAmount = premium.mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0)).div(increasedAmountInNXM);
+      const extraPremiumForIncreaseAmount = premiumForIncreasedAmount.mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0)).div(increasedAmountInNXM);
       const extraPremiumInNXMForAmount = premiumInNxm
         .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
         .div(increasedAmountInNXM);
 
-      const { premiumInNxmForIncreasedPeriod, premiumInAsset: premiumForIncreasedPeriod } = calculatePremium(
+      const { premiumInNxm: premiumInNxmForIncreasedPeriod, premiumInAsset: premiumForIncreasedPeriod } = calculatePremium(
         increasedAmount,
         ethRate,
         remainingPeriod.add(extraPeriod),
@@ -927,15 +927,24 @@ describe.only('buyCover', function () {
         NXM_PER_ALLOCATION_UNIT,
       );
 
-      const extraPremiumForPeriod = BigNumber.from(extraPeriod).mul(premium).div(remainingPeriod.add(extraPeriod));
+      console.log({
+        premiumForIncreasedPeriod: premiumForIncreasedPeriod.toString(),
 
-      const extraPremiumInNXM = BigNumber.from(extraPeriod).mul(premiumInNxmForIncreasedPeriod).div(remainingPeriod.add(extraPeriod));
+      })
+
+      const extraPremiumForPeriod = BigNumber.from(extraPeriod).mul(premiumForIncreasedPeriod).div(remainingPeriod.add(extraPeriod));
+
+      const extraPremiumInNXMForPeriod = BigNumber.from(extraPeriod).mul(premiumInNxmForIncreasedPeriod).div(remainingPeriod.add(extraPeriod));
+
+      const premium = extraPremiumInNXMForAmount.add(extraPremiumInNXMForPeriod);
 
       const editCoverFixture = { ...buyCoverFixture, amount: amount, coverId };
 
       const stakingPoolBeforeEdit = await tokenController.stakingPoolNXMBalances(1);
 
       const extraPremium = extraPremiumForIncreaseAmount.add(extraPremiumForPeriod);
+
+      const extraPremiumInNXM = extraPremiumInNXMForAmount.add(extraPremiumInNXMForPeriod);
 
       await cover
         .connect(coverBuyer)
@@ -1119,9 +1128,9 @@ describe.only('buyCover', function () {
 
         const poolAllocationRatio = coverSegmentAllocations[0].coverAmountInNXM.mul(10000).div(totalCoverAmountInNXM);
 
-        const coverAmountInNXMOldRepriced = oldSegmentAmountInNXMRepriced.mul(poolAllocationRatio).div(10000);
+        const previousAllocationAmountInNXMRepriced = oldSegmentAmountInNXMRepriced.mul(poolAllocationRatio).div(10000);
 
-        const extraAmount = increasedAmountInNXM.sub(coverAmountInNXMOldRepriced);
+        const extraAmount = increasedAmountInNXM.sub(previousAllocationAmountInNXMRepriced);
         extraPremiumForPool1 = premium
           .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
           .div(increasedAmountInNXM);
@@ -1141,9 +1150,9 @@ describe.only('buyCover', function () {
 
         const increasedAmountInNXM = assetAmountToNXMAmount(increasedAmountForPool2, ethRate, NXM_PER_ALLOCATION_UNIT);
         const poolAllocationRatio = coverSegmentAllocations[1].coverAmountInNXM.mul(10000).div(totalCoverAmountInNXM);
-        const coverAmountInNXMOldRepriced = oldSegmentAmountInNXMRepriced.mul(poolAllocationRatio).div(10000);
+        const previousAllocationAmountInNXMRepriced = oldSegmentAmountInNXMRepriced.mul(poolAllocationRatio).div(10000);
 
-        const extraAmount = increasedAmountInNXM.sub(coverAmountInNXMOldRepriced);
+        const extraAmount = increasedAmountInNXM.sub(previousAllocationAmountInNXMRepriced);
         extraPremiumForPool2 = premium
           .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
           .div(increasedAmountInNXM);

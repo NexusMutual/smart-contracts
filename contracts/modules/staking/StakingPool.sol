@@ -612,7 +612,7 @@ contract StakingPool is IStakingPool, Multicall {
 
   function requestAllocation(
     uint amount,
-    uint coverAmountInNXMOldRepriced,
+    uint previousAllocationAmountInNXMRepriced,
     AllocationRequest calldata request
   ) external onlyCoverContract returns (uint extraPremium, uint allocationId) {
 
@@ -661,7 +661,7 @@ contract StakingPool is IStakingPool, Multicall {
       allocationId
     ) = allocate(amount, request.newPeriod, request, trancheAllocations);
 
-    if (amount - coverAmountInNXMOldRepriced > 0) {
+    if (amount - previousAllocationAmountInNXMRepriced > 0) {
       // the returned premium value has 18 decimals
       uint premium = stakingProducts.getPremium(
         poolId,
@@ -677,7 +677,7 @@ contract StakingPool is IStakingPool, Multicall {
       );
 
       extraPremium += premium * Math.max(
-        (amount - coverAmountInNXMOldRepriced), 0) / amount;
+        (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
     }
 
     console.log("extraPremium after increase amount", extraPremium);

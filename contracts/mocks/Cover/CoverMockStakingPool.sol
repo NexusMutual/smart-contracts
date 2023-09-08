@@ -65,7 +65,7 @@ contract CoverMockStakingPool is IStakingPool {
 
   function requestAllocation(
     uint amount,
-    uint coverAmountInNXMOldRepriced,
+    uint previousAllocationAmountInNXMRepriced,
     AllocationRequest calldata request
   ) external override returns (uint premium, uint allocationId) {
 
@@ -79,7 +79,7 @@ contract CoverMockStakingPool is IStakingPool {
       return (0, 0);
     }
     uint extraPremium = premium * Math.max(
-      (amount - coverAmountInNXMOldRepriced), 0) / amount;
+      (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
 
     return (extraPremium, allocationId);
   }

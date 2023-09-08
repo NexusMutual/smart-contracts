@@ -242,7 +242,7 @@ contract Ramm is IRamm, MasterAwareV2 {
   function getBookValue() external view returns (uint bookValue) {
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
-    return capital / supply;
+    return 1 ether * capital / supply;
   }
 
   /* ========== ORACLE ========== */
@@ -328,7 +328,7 @@ contract Ramm is IRamm, MasterAwareV2 {
       (
         uint _priceCumulativeAbove,
         uint _priceCumulativeBelow
-      ) = calculateCumulativePrice(calculationProps, capital / supply);
+      ) = calculateCumulativePrice(calculationProps, 1 ether * capital / supply);
 
       // uint64 cast overflow is desired
       observations[observationIndex].priceCumulativeAbove = uint64(_priceCumulativeAbove);
@@ -348,7 +348,10 @@ contract Ramm is IRamm, MasterAwareV2 {
       calculationProps.currentNxmB,
     ) = getReserves(capital, supply, block.timestamp);
 
-    (uint priceCumulativeAbove, uint priceCumulativeBelow) = calculateCumulativePrice(calculationProps, capital / supply);
+    (
+      uint priceCumulativeAbove,
+      uint priceCumulativeBelow
+    ) = calculateCumulativePrice(calculationProps, 1 ether * capital / supply);
 
     observationIndex = observationIndexOf(block.timestamp);
     // uint64 cast overflow is desired
@@ -382,7 +385,10 @@ contract Ramm is IRamm, MasterAwareV2 {
     //   |-----|x----|--y--|-----|-----|--y--|-----|
     //      0     1     2     0     1     2     0
 
-    (uint currentPriceCumulativeAbove, uint currentPriceCumulativeBelow) = calculateCumulativePrice(calculationProps, capital / supply);
+    (
+      uint currentPriceCumulativeAbove,
+      uint currentPriceCumulativeBelow
+    ) = calculateCumulativePrice(calculationProps, 1 ether * capital / supply);
 
     uint timeElapsed = block.timestamp - firstObservation.timestamp;
 
@@ -395,7 +401,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint priceAbove = Math.min(twapPriceAbove, spotPriceAbove);
     uint priceBelow = Math.max(twapPricBelow, spotPriceBelow);
 
-    uint bookValue = capital / supply;
+    uint bookValue = 1 ether * capital / supply;
     return priceAbove - priceBelow - bookValue;
   }
 

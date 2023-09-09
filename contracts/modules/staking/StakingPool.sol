@@ -614,7 +614,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint amount,
     uint previousAllocationAmountInNXMRepriced,
     AllocationRequest calldata request
-  ) external onlyCoverContract returns (uint extraPremium, uint allocationId) {
+  ) external onlyCoverContract returns (uint totalPremium, uint allocationId) {
 
     // passing true because we change the reward per second
     processExpirations(true);
@@ -666,7 +666,7 @@ contract StakingPool is IStakingPool, Multicall {
     console.log("amount - previousAllocationAmountInNXMRepriced", amount - previousAllocationAmountInNXMRepriced);
     if (amount - previousAllocationAmountInNXMRepriced > 0) {
       // the returned premium value has 18 decimals
-      uint premium = stakingProducts.getPremium(
+      uint premiumForIncreasedAmount = stakingProducts.getPremium(
         poolId,
         request.productId,
         request.remainingPeriod,
@@ -678,14 +678,14 @@ contract StakingPool is IStakingPool, Multicall {
         NXM_PER_ALLOCATION_UNIT,
         ALLOCATION_UNITS_PER_NXM
       );
-      console.log("Increased amount premium", premium);
+      console.log("Increased amount premium", premiumForIncreasedAmount);
       console.log("request.remainingPeriod", request.remainingPeriod);
 
-      extraPremium += premium * Math.max(
+      totalPremium += premiumForIncreasedAmount * Math.max(
         (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
     }
 
-    console.log("extraPremium after increase amount", extraPremium);
+    console.log("extraPremium after increase amount", totalPremium);
 
     // calculate the period added on top of the previous expiration
 
@@ -698,7 +698,7 @@ contract StakingPool is IStakingPool, Multicall {
       console.log("extraPeriod", request.period);
 
       // the returned premium value has 18 decimals
-      uint premium = stakingProducts.getPremium(
+      uint premiumForIncreasedPeriod = stakingProducts.getPremium(
         poolId,
         request.productId,
         request.newPeriod,
@@ -711,12 +711,12 @@ contract StakingPool is IStakingPool, Multicall {
         ALLOCATION_UNITS_PER_NXM
       );
 
-      console.log("extraPremium for increase period", request.period * premium / request.newPeriod);
+      console.log("extraPremium for increase period", request.period * premiumForIncreasedPeriod / request.newPeriod);
 
-      extraPremium += request.period * premium / request.newPeriod;
+      totalPremium += request.period * premiumForIncreasedPeriod / request.newPeriod;
     }
 
-    console.log("extraPremium after increase period", extraPremium);
+    console.log("extraPremium after increase period", totalPremium);
 
     // add new rewards
     {
@@ -729,7 +729,7 @@ contract StakingPool is IStakingPool, Multicall {
       console.log("block.timestamp", block.timestamp);
 
       uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
-      uint _rewardPerSecond = (extraPremium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
+      uint _rewardPerSecond = (totalPremium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
 
       // store
       rewardPerSecondCut[expirationBucket] += _rewardPerSecond;
@@ -740,7 +740,7 @@ contract StakingPool is IStakingPool, Multicall {
       tokenController.mintStakingPoolNXMRewards(rewardsToMint, poolId);
     }
 
-    return (extraPremium, allocationId);
+    return (totalPremium, allocationId);
   }
 
   function getActiveAllocationsWithoutCover(

@@ -128,7 +128,7 @@ async function buyCoverSetup() {
   };
 }
 
-describe.only('buyCover', function () {
+describe('buyCover', function () {
   it.skip('allows to buy against multiple staking pool', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { cover, tc: tokenController, stakingProducts } = fixture.contracts;
@@ -431,13 +431,17 @@ describe.only('buyCover', function () {
 
       const stakingPoolBeforeEdit = await tokenController.stakingPoolNXMBalances(1);
 
-      await cover
-        .connect(coverBuyer)
-        .buyCover(
-          { ...editCoverFixture, productId: 1, owner: coverReceiver.address, maxPremiumInAsset: extraPremium, period: 0 },
-          [{ poolId: 1, coverAmountInAsset: increasedAmount }],
-          { value: extraPremium },
-        );
+      await cover.connect(coverBuyer).buyCover(
+        {
+          ...editCoverFixture,
+          productId: 1,
+          owner: coverReceiver.address,
+          maxPremiumInAsset: extraPremium,
+          period: 0,
+        },
+        [{ poolId: 1, coverAmountInAsset: increasedAmount }],
+        { value: extraPremium },
+      );
 
       const { timestamp } = await ethers.provider.getBlock('latest');
 
@@ -647,17 +651,21 @@ describe.only('buyCover', function () {
 
       const extraPremiumInNXM = BigNumber.from(extraPeriod).mul(premiumInNxm).div(remainingPeriod.add(extraPeriod));
 
-      const editCoverFixture = { ...buyCoverFixture, amount: amount, coverId };
+      const editCoverFixture = { ...buyCoverFixture, amount, coverId };
 
       const stakingPoolBeforeEdit = await tokenController.stakingPoolNXMBalances(1);
 
-      await cover
-        .connect(coverBuyer)
-        .buyCover(
-          { ...editCoverFixture, productId: 1, owner: coverReceiver.address, maxPremiumInAsset: extraPremium, period: extraPeriod },
-          [{ poolId: 1, coverAmountInAsset: amount }],
-          { value: extraPremium },
-        );
+      await cover.connect(coverBuyer).buyCover(
+        {
+          ...editCoverFixture,
+          productId: 1,
+          owner: coverReceiver.address,
+          maxPremiumInAsset: extraPremium,
+          period: extraPeriod,
+        },
+        [{ poolId: 1, coverAmountInAsset: amount }],
+        { value: extraPremium },
+      );
 
       const { timestamp } = await ethers.provider.getBlock('latest');
 
@@ -689,7 +697,8 @@ describe.only('buyCover', function () {
     const amountPerPool = amount.div(2);
 
     const poolAllocations = [
-      { poolId: 1, coverAmountInAsset: amountPerPool }, { poolId: 2, coverAmountInAsset: amountPerPool }
+      { poolId: 1, coverAmountInAsset: amountPerPool },
+      { poolId: 2, coverAmountInAsset: amountPerPool },
     ];
 
     const product1 = await stakingProducts.getProduct(1, 1);
@@ -784,28 +793,35 @@ describe.only('buyCover', function () {
         NXM_PER_ALLOCATION_UNIT,
       );
 
+      // TODO: figure out why there's an off by 1 precision error here
       const premium = premiumForPool1.add(premiumForPool2).add(1);
 
       const extraPremium = BigNumber.from(extraPeriod).mul(premium).div(remainingPeriod.add(extraPeriod));
 
       const extraPremiumInNxmForPool1 = BigNumber.from(extraPeriod)
-        .mul(premiumInNxmForPool1).div(remainingPeriod.add(extraPeriod));
+        .mul(premiumInNxmForPool1)
+        .div(remainingPeriod.add(extraPeriod));
 
       const extraPremiumInNxmForPool2 = BigNumber.from(extraPeriod)
-        .mul(premiumInNxmForPool2).div(remainingPeriod.add(extraPeriod));
+        .mul(premiumInNxmForPool2)
+        .div(remainingPeriod.add(extraPeriod));
 
-      const editCoverFixture = { ...buyCoverFixtureFor2Pools, amount: amount, coverId };
+      const editCoverFixture = { ...buyCoverFixtureFor2Pools, amount, coverId };
 
       const stakingPool1BeforeEdit = await tokenController.stakingPoolNXMBalances(1);
       const stakingPool2BeforeEdit = await tokenController.stakingPoolNXMBalances(2);
 
-      await cover
-        .connect(coverBuyer)
-        .buyCover(
-          { ...editCoverFixture, productId: 1, owner: coverReceiver.address, maxPremiumInAsset: extraPremium, period: extraPeriod },
-          poolAllocations,
-          { value: extraPremium },
-        );
+      await cover.connect(coverBuyer).buyCover(
+        {
+          ...editCoverFixture,
+          productId: 1,
+          owner: coverReceiver.address,
+          maxPremiumInAsset: extraPremium,
+          period: extraPeriod,
+        },
+        poolAllocations,
+        { value: extraPremium },
+      );
 
       const { timestamp } = await ethers.provider.getBlock('latest');
 
@@ -849,8 +865,6 @@ describe.only('buyCover', function () {
       product.bumpedPrice,
       NXM_PER_ALLOCATION_UNIT,
     );
-
-
 
     {
       const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
@@ -900,31 +914,29 @@ describe.only('buyCover', function () {
 
       const product = await stakingProducts.getProduct(1, 1);
 
-      const { premiumInNxm: premiumInNxmForIncreasedAmount, premiumInAsset: premiumForIncreasedAmount } = calculatePremium(
-        increasedAmount,
-        ethRate,
-        remainingPeriod,
-        product.bumpedPrice,
-        NXM_PER_ALLOCATION_UNIT,
-      );
+      const { premiumInNxm: premiumInNxmForIncreasedAmount, premiumInAsset: premiumForIncreasedAmount } =
+        calculatePremium(increasedAmount, ethRate, remainingPeriod, product.bumpedPrice, NXM_PER_ALLOCATION_UNIT);
 
       const oldSegmentAmountInNXMRepriced = assetAmountToNXMAmount(amount, ethRate, NXM_PER_ALLOCATION_UNIT);
 
       const increasedAmountInNXM = assetAmountToNXMAmount(increasedAmount, ethRate, NXM_PER_ALLOCATION_UNIT);
 
       const extraAmount = increasedAmountInNXM.sub(oldSegmentAmountInNXMRepriced);
-      const extraPremiumForIncreaseAmount = premiumForIncreasedAmount.mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0)).div(increasedAmountInNXM);
+      const extraPremiumForIncreaseAmount = premiumForIncreasedAmount
+        .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
+        .div(increasedAmountInNXM);
       const extraPremiumInNXMForAmount = premiumInNxmForIncreasedAmount
         .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
         .div(increasedAmountInNXM);
 
-      const { premiumInNxm: premiumInNxmForIncreasedPeriod, premiumInAsset: premiumForIncreasedPeriod } = calculatePremium(
-        increasedAmount,
-        ethRate,
-        remainingPeriod.add(extraPeriod),
-        product.bumpedPrice,
-        NXM_PER_ALLOCATION_UNIT,
-      );
+      const { premiumInNxm: premiumInNxmForIncreasedPeriod, premiumInAsset: premiumForIncreasedPeriod } =
+        calculatePremium(
+          increasedAmount,
+          ethRate,
+          remainingPeriod.add(extraPeriod),
+          product.bumpedPrice,
+          NXM_PER_ALLOCATION_UNIT,
+        );
 
       const newPeriod = remainingPeriod.add(extraPeriod);
 
@@ -933,6 +945,7 @@ describe.only('buyCover', function () {
       const extraPremiumInNXMForPeriod = BigNumber.from(extraPeriod).mul(premiumInNxmForIncreasedPeriod).div(newPeriod);
       const editCoverFixture = { ...buyCoverFixture, amount: increasedAmount, coverId };
 
+      // TODO: figure out why there's an off by 1 precision error here
       const extraPremium = extraPremiumForIncreaseAmount.add(extraPremiumForPeriod).add(1);
 
       const extraPremiumInNXM = extraPremiumInNXMForAmount.add(extraPremiumInNXMForPeriod);
@@ -941,13 +954,17 @@ describe.only('buyCover', function () {
 
       const poolBeforeETH = await ethers.provider.getBalance(pool.address);
 
-      await cover
-        .connect(coverBuyer)
-        .buyCover(
-          { ...editCoverFixture, productId: 1, owner: coverReceiver.address, maxPremiumInAsset: extraPremium, period: extraPeriod },
-          [{ poolId: 1, coverAmountInAsset: increasedAmount }],
-          { value: extraPremium },
-        );
+      await cover.connect(coverBuyer).buyCover(
+        {
+          ...editCoverFixture,
+          productId: 1,
+          owner: coverReceiver.address,
+          maxPremiumInAsset: extraPremium,
+          period: extraPeriod,
+        },
+        [{ poolId: 1, coverAmountInAsset: increasedAmount }],
+        { value: extraPremium },
+      );
 
       const { timestamp } = await ethers.provider.getBlock('latest');
 

@@ -155,10 +155,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.capacityReductionRatio = product.capacityReductionRatio;
       allocationRequest.rewardRatio = GLOBAL_REWARDS_RATIO;
       allocationRequest.globalMinPrice = GLOBAL_MIN_PRICE_RATIO;
-
-      // if it's the first segment the remaining period and new period are the requested period
-      allocationRequest.remainingPeriod = uint32(allocationRequest.period);
-      allocationRequest.newPeriod =  uint32(allocationRequest.period);
     }
 
     uint nxmPriceInCoverAsset = pool().getTokenPriceInAsset(params.coverAsset);
@@ -175,8 +171,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       _coverData[coverId] = CoverData(params.productId, params.coverAsset, 0 /* amountPaidOut */);
 
       allocationRequest.coverId = coverId;
+      // for a new cover, the first segment the remaining period and new period are the requested period
+      allocationRequest.remainingPeriod = uint32(allocationRequest.period);
+      allocationRequest.newPeriod = uint32(allocationRequest.period);
 
-      (coverAmountInCoverAsset, amountDueInNXM) = requestNewAllocations(
+      (coverAmountInCoverAsset, amountDueInNXM) = requestAllocationsForNewCover(
         allocationRequest,
         poolAllocationRequests,
         nxmPriceInCoverAsset
@@ -360,7 +359,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     }
   }
 
-  function requestNewAllocations(
+  function requestAllocationsForNewCover(
     AllocationRequest memory allocationRequest,
     PoolAllocationRequest[] memory poolAllocationRequests,
     uint nxmPriceInCoverAsset
@@ -385,7 +384,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         allocationRequest
       );
 
-
+      // TODO: consider what happens if user creates lots of segments with small amounts
       coverSegmentAllocations[allocationRequest.coverId][0].push(
         PoolAllocation(
           poolAllocationRequests[i].poolId,
@@ -417,12 +416,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     vars.previousPoolAllocationsLength = coverSegmentAllocations[allocationRequest.coverId][params.segmentId - 1].length;
 
-    vars.allocations = new PoolAllocation[](vars.previousPoolAllocationsLength);
+    vars.previousPoolAllocations = new PoolAllocation[](vars.previousPoolAllocationsLength);
 
     for (uint i = 0; i < vars.previousPoolAllocationsLength; i++) {
-      vars.allocations[i] = coverSegmentAllocations[allocationRequest.coverId][params.segmentId - 1][i];
+      vars.previousPoolAllocations[i] = coverSegmentAllocations[allocationRequest.coverId][params.segmentId - 1][i];
 
-      vars.previousCoverAmountTotalInNXM += vars.allocations[i].coverAmountInNXM;
+      vars.previousTotalCoverAmountInNXM += vars.previousPoolAllocations[i].coverAmountInNXM;
     }
 
     uint oldSegmentAmountInNXMRepriced = getNXMForAssetAmount(
@@ -432,7 +431,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     for (uint i = 0; i < poolAllocationRequests.length; i++) {
       // if there is a previous segment and this index is present on it
       if (vars.previousPoolAllocationsLength > i) {
-        PoolAllocation memory previousPoolAllocation = vars.allocations[i];
+        PoolAllocation memory previousPoolAllocation = vars.previousPoolAllocations[i];
 
         // poolAllocationRequests must match the pools in the previous segment
         if (previousPoolAllocation.poolId != poolAllocationRequests[i].poolId) {
@@ -454,7 +453,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         uint poolAllocationRatio =
           previousPoolAllocation.coverAmountInNXM
           * COVER_ALLOCATION_RATIO_DENOMINATOR
-          / vars.previousCoverAmountTotalInNXM;
+          / vars.previousTotalCoverAmountInNXM;
 
         vars.previousAllocationAmountInNXMRepriced =
           poolAllocationRatio * oldSegmentAmountInNXMRepriced

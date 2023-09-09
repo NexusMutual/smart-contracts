@@ -481,6 +481,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         allocationRequest
       );
 
+      console.log("pool allocation", i);
+      console.log("premiumInNXM", premiumInNXM);
+
       // omit deallocated pools from the segment
       if (coverAmountInNXM != 0) {
         coverSegmentAllocations[allocationRequest.coverId][params.segmentId].push(

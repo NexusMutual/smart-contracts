@@ -663,8 +663,8 @@ contract StakingPool is IStakingPool, Multicall {
 
     console.log("amount", amount);
     console.log("previousAllocationAmountInNXMRepriced", previousAllocationAmountInNXMRepriced);
-    console.log("amount - previousAllocationAmountInNXMRepriced", amount - previousAllocationAmountInNXMRepriced);
-    if (amount - previousAllocationAmountInNXMRepriced > 0) {
+
+    if (amount > previousAllocationAmountInNXMRepriced) {
       // the returned premium value has 18 decimals
       uint premiumForIncreasedAmount = stakingProducts.getPremium(
         poolId,
@@ -678,6 +678,8 @@ contract StakingPool is IStakingPool, Multicall {
         NXM_PER_ALLOCATION_UNIT,
         ALLOCATION_UNITS_PER_NXM
       );
+
+      console.log("amount - previousAllocationAmountInNXMRepriced", amount - previousAllocationAmountInNXMRepriced);
       console.log("Increased amount premium", premiumForIncreasedAmount);
       console.log("request.remainingPeriod", request.remainingPeriod);
 

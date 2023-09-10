@@ -15,7 +15,6 @@ import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
-import "hardhat/console.sol";
 
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
@@ -685,9 +684,6 @@ contract StakingPool is IStakingPool, Multicall {
       allocationId
     ) = allocate(amount, request.newPeriod, request, trancheAllocations);
 
-    console.log("amount", amount);
-    console.log("previousAllocationAmountInNXMRepriced", previousAllocationAmountInNXMRepriced);
-
     if (amount > previousAllocationAmountInNXMRepriced) {
       // the returned premium value has 18 decimals
       uint premiumForIncreasedAmount = stakingProducts.getPremium(
@@ -703,25 +699,14 @@ contract StakingPool is IStakingPool, Multicall {
         ALLOCATION_UNITS_PER_NXM
       );
 
-      console.log("amount - previousAllocationAmountInNXMRepriced", amount - previousAllocationAmountInNXMRepriced);
-      console.log("Increased amount premium", premiumForIncreasedAmount);
-      console.log("request.remainingPeriod", request.remainingPeriod);
-
       totalPremium += premiumForIncreasedAmount * Math.max(
         (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
     }
 
-    console.log("extraPremium after increase amount", totalPremium);
-
     // calculate the period added on top of the previous expiration
-
-    console.log("request.period", request.period);
-    console.log("request.previousExpiration", request.previousExpiration);
-    console.log("block.timestamp", block.timestamp);
 
     // check if there is a previous segment and period is specified in order to extend it compute premium
     if (request.previousExpiration > 0 && request.period > 0) {
-      console.log("extraPeriod", request.period);
 
       // the returned premium value has 18 decimals
       uint premiumForIncreasedPeriod = stakingProducts.getPremium(
@@ -737,12 +722,8 @@ contract StakingPool is IStakingPool, Multicall {
         ALLOCATION_UNITS_PER_NXM
       );
 
-      console.log("extraPremium for increase period", request.period * premiumForIncreasedPeriod / request.newPeriod);
-
       totalPremium += request.period * premiumForIncreasedPeriod / request.newPeriod;
     }
-
-    console.log("extraPremium after increase period", totalPremium);
 
     // add new rewards
     {
@@ -751,8 +732,6 @@ contract StakingPool is IStakingPool, Multicall {
       }
 
       uint expirationBucket = Math.divCeil(block.timestamp + request.remainingPeriod, BUCKET_DURATION);
-
-      console.log("block.timestamp", block.timestamp);
 
       uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
       uint _rewardPerSecond = (totalPremium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;

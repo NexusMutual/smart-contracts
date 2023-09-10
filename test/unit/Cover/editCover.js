@@ -84,51 +84,6 @@ describe('editCover', function () {
     });
   });
 
-  it.skip('should allow to reduce amount', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover } = fixture;
-
-    const [coverBuyer] = fixture.accounts.members;
-
-    const { productId, coverAsset, period, amount } = coverBuyFixture;
-
-    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
-
-    const reducedAmount = amount.div(2);
-
-    const expectedEditPremium = 0;
-
-    await cover.connect(coverBuyer).buyCover(
-      {
-        coverId: expectedCoverId,
-        owner: coverBuyer.address,
-        productId,
-        coverAsset,
-        amount: reducedAmount,
-        period,
-        maxPremiumInAsset: expectedEditPremium,
-        paymentAsset: coverAsset,
-        payWitNXM: false,
-        commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
-        ipfsData: '',
-      },
-      [{ poolId: 1, coverAmountInAsset: reducedAmount.toString() }],
-      {
-        value: 0,
-      },
-    );
-
-    await assertCoverFields(cover, expectedCoverId, {
-      productId,
-      coverAsset,
-      period,
-      amount: reducedAmount,
-      gracePeriod,
-      segmentId: 1,
-    });
-  });
-
   it('should edit purchased cover and add coverage from a new staking pool', async function () {
     const fixture = await loadFixture(setup);
     const { cover, stakingProducts } = fixture;
@@ -196,7 +151,7 @@ describe('editCover', function () {
     });
   });
 
-  it.skip('should edit purchased cover and increase period', async function () {
+  it('should edit purchased cover and increase period', async function () {
     const fixture = await loadFixture(setup);
     const { cover } = fixture;
 
@@ -259,50 +214,7 @@ describe('editCover', function () {
     });
   });
 
-  it.skip('should allow to reduce period', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover } = fixture;
-
-    const [coverBuyer] = fixture.accounts.members;
-
-    const { productId, coverAsset, period, amount } = coverBuyFixture;
-
-    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
-
-    const reducedPeriod = period - daysToSeconds(1);
-
-    await cover.connect(coverBuyer).buyCover(
-      {
-        coverId: expectedCoverId,
-        owner: coverBuyer.address,
-        productId,
-        coverAsset,
-        amount,
-        period: reducedPeriod,
-        maxPremiumInAsset: 0,
-        paymentAsset: coverAsset,
-        payWitNXM: false,
-        commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
-        ipfsData: '',
-      },
-      [{ poolId: 1, skip: false, coverAmountInAsset: amount.toString() }],
-      {
-        value: 0,
-      },
-    );
-
-    await assertCoverFields(cover, expectedCoverId, {
-      productId,
-      coverAsset,
-      period: reducedPeriod,
-      amount,
-      gracePeriod,
-      segmentId: 1,
-    });
-  });
-
-  it.skip('should edit purchased cover and increase period and amount', async function () {
+  it('should edit purchased cover and increase period and amount', async function () {
     const fixture = await loadFixture(setup);
     const { cover } = fixture;
 
@@ -368,194 +280,6 @@ describe('editCover', function () {
     });
   });
 
-  it.skip('should edit purchased cover and increase period and decrease amount', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover } = fixture;
-
-    const [coverBuyer] = fixture.accounts.members;
-
-    const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
-
-    await buyCoverOnOnePool.call(this, coverBuyFixture);
-
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
-
-    const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
-    const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
-    await setNextBlockTime(editTimestamp.toNumber());
-
-    const expectedRefund = segment.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
-
-    const decreasedAmount = amount.div(2);
-    const increasedPeriod = period * 2;
-
-    // premium for the new amount, without refunds
-    const expectedEditPremium = decreasedAmount
-      .mul(targetPriceRatio)
-      .mul(increasedPeriod)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
-
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
-
-    await cover.connect(coverBuyer).buyCover(
-      {
-        coverId: expectedCoverId,
-        owner: coverBuyer.address,
-        productId,
-        coverAsset,
-        amount: decreasedAmount,
-        period: increasedPeriod,
-        maxPremiumInAsset: extraPremium,
-        paymentAsset: coverAsset,
-        payWitNXM: false,
-        commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
-        ipfsData: '',
-      },
-      [{ poolId: 1, skip: false, coverAmountInAsset: decreasedAmount.toString() }],
-      {
-        value: extraPremium,
-      },
-    );
-
-    await assertCoverFields(cover, expectedCoverId, {
-      productId,
-      coverAsset,
-      period: increasedPeriod,
-      amount: decreasedAmount,
-      gracePeriod,
-      segmentId: '1',
-    });
-  });
-
-  it.skip('should allow to reduce period and increase amount', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover } = fixture;
-    const [coverBuyer] = fixture.accounts.members;
-
-    const {
-      productId,
-      coverAsset,
-      period: reducedPeriod,
-      amount,
-      targetPriceRatio,
-      priceDenominator,
-    } = coverBuyFixture;
-
-    const period = BigNumber.from(reducedPeriod).mul(2);
-
-    await buyCoverOnOnePool.call(this, coverBuyFixture);
-
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, { ...coverBuyFixture, period });
-
-    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
-    const passedPeriod = BigNumber.from(10);
-    const editTimestamp = BigNumber.from(startTimestamp).add(10);
-
-    const expectedRefund = segment.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
-
-    const increasedAmount = amount.mul(2);
-    const decreasedPeriod = period.div(2);
-
-    // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(decreasedPeriod)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
-
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
-
-    await setNextBlockTime(editTimestamp.toNumber());
-    await cover.connect(coverBuyer).buyCover(
-      {
-        coverId: expectedCoverId,
-        owner: coverBuyer.address,
-        productId,
-        coverAsset,
-        amount: increasedAmount,
-        period: reducedPeriod,
-        maxPremiumInAsset: extraPremium,
-        paymentAsset: coverAsset,
-        payWitNXM: false,
-        commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
-        ipfsData: '',
-      },
-      [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount.toString() }],
-      {
-        value: extraPremium,
-      },
-    );
-
-    await assertCoverFields(cover, expectedCoverId, {
-      productId,
-      coverAsset,
-      period: reducedPeriod,
-      amount: increasedAmount,
-      gracePeriod,
-      segmentId: 1,
-    });
-  });
-
-  it.skip('should allow to reduce period and reduce amount', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover } = fixture;
-
-    const [coverBuyer] = fixture.accounts.members;
-
-    const { productId, coverAsset, period, amount } = coverBuyFixture;
-
-    await buyCoverOnOnePool.call(this, coverBuyFixture);
-
-    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, {
-      ...coverBuyFixture,
-      period: period * 2,
-    });
-
-    const reducedAmount = amount.div(2);
-    const reducedPeriod = period;
-
-    await cover.connect(coverBuyer).buyCover(
-      {
-        coverId: expectedCoverId,
-        owner: coverBuyer.address,
-        productId,
-        coverAsset,
-        amount: reducedAmount,
-        period: reducedPeriod,
-        maxPremiumInAsset: 0,
-        paymentAsset: coverAsset,
-        payWitNXM: false,
-        commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
-        ipfsData: '',
-      },
-      [{ poolId: 1, skip: false, coverAmountInAsset: reducedAmount.toString() }],
-      {
-        value: 0,
-      },
-    );
-
-    await assertCoverFields(cover, expectedCoverId, {
-      productId,
-      coverAsset,
-      period: reducedPeriod,
-      amount: reducedAmount,
-      gracePeriod,
-      segmentId: 1,
-    });
-  });
 
   it('should fail to edit an expired cover', async function () {
     const fixture = await loadFixture(setup);
@@ -605,7 +329,7 @@ describe('editCover', function () {
     ).to.be.revertedWithCustomError(cover, 'ExpiredCoversCannotBeEdited');
   });
 
-  it.skip('should revert when period is too long', async function () {
+  it('should revert when period is too long', async function () {
     const fixture = await loadFixture(setup);
     const { cover } = fixture;
 
@@ -868,7 +592,7 @@ describe('editCover', function () {
     ).to.be.revertedWith('NOT_MINTED');
   });
 
-  it.skip('reverts if period is too short', async function () {
+  it('reverts if period is too short', async function () {
     const fixture = await loadFixture(setup);
     const { cover } = fixture;
 

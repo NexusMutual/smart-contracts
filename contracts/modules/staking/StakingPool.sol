@@ -684,9 +684,11 @@ contract StakingPool is IStakingPool, Multicall {
       allocationId
     ) = allocate(amount, request.newPeriod, request, trancheAllocations);
 
-    if (amount > previousAllocationAmountInNXMRepriced) {
-      // the returned premium value has 18 decimals
-      uint premiumForIncreasedAmount = stakingProducts.getPremium(
+
+    if (request.allocationId == 0) {
+
+      // new allocation
+      totalPremium = stakingProducts.getPremium(
         poolId,
         request.productId,
         request.remainingPeriod,
@@ -698,31 +700,15 @@ contract StakingPool is IStakingPool, Multicall {
         NXM_PER_ALLOCATION_UNIT,
         ALLOCATION_UNITS_PER_NXM
       );
-
-      totalPremium += premiumForIncreasedAmount * Math.max(
-        (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
-    }
-
-    // calculate the period added on top of the previous expiration
-
-    // check if there is a previous segment and period is specified in order to extend it compute premium
-    if (request.previousExpiration > 0 && request.period > 0) {
-
-      // the returned premium value has 18 decimals
-      uint premiumForIncreasedPeriod = stakingProducts.getPremium(
-        poolId,
-        request.productId,
-        request.newPeriod,
+    } else {
+      totalPremium = getEditPremium(
+        amount,
+        previousAllocationAmountInNXMRepriced,
         vars.coverAllocationAmount,
         vars.initialCapacityUsed,
         vars.totalCapacity,
-        request.globalMinPrice,
-        request.useFixedPrice,
-        NXM_PER_ALLOCATION_UNIT,
-        ALLOCATION_UNITS_PER_NXM
+        request
       );
-
-      totalPremium += request.period * premiumForIncreasedPeriod / request.newPeriod;
     }
 
     // add new rewards
@@ -746,6 +732,58 @@ contract StakingPool is IStakingPool, Multicall {
     }
 
     return (totalPremium, allocationId);
+  }
+
+
+  function getEditPremium(
+    uint amount,
+    uint previousAllocationAmountInNXMRepriced,
+    uint coverAllocationAmount,
+    uint initialCapacityUsed,
+    uint totalCapacity,
+    AllocationRequest calldata request
+  ) public returns (uint totalPremium) {
+
+    if (amount > previousAllocationAmountInNXMRepriced) {
+      // the returned premium value has 18 decimals
+      uint premiumForIncreasedAmount = stakingProducts.getPremium(
+        poolId,
+        request.productId,
+        request.remainingPeriod,
+        coverAllocationAmount,
+        initialCapacityUsed,
+        totalCapacity,
+        request.globalMinPrice,
+        request.useFixedPrice,
+        NXM_PER_ALLOCATION_UNIT,
+        ALLOCATION_UNITS_PER_NXM
+      );
+
+      totalPremium += premiumForIncreasedAmount * Math.max(
+        (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
+    }
+
+    // calculate the period added on top of the previous expiration
+
+    // check if there is a previous segment and period is specified in order to extend it compute premium
+    if (request.previousExpiration > 0 && request.period > 0) {
+
+      // the returned premium value has 18 decimals
+      uint premiumForIncreasedPeriod = stakingProducts.getPremium(
+        poolId,
+        request.productId,
+        request.newPeriod,
+        coverAllocationAmount,
+        initialCapacityUsed,
+        totalCapacity,
+        request.globalMinPrice,
+        request.useFixedPrice,
+        NXM_PER_ALLOCATION_UNIT,
+        ALLOCATION_UNITS_PER_NXM
+      );
+
+      totalPremium += request.period * premiumForIncreasedPeriod / request.newPeriod;
+    }
   }
 
   function getActiveAllocationsWithoutCover(

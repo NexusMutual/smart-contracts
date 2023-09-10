@@ -35,8 +35,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   // cover id => segment id => pool allocations array
   mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
-
-
   // Each cover has an array of segments. A new segment is created
   // every time a cover is edited to deliniate the different cover periods.
   mapping(uint => CoverSegment[]) private _coverSegments;
@@ -103,6 +101,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   /* === MUTATIVE FUNCTIONS ==== */
 
+  /**
+   * @dev Buys a cover or edits an existing cover.
+   * @param params The parameters for buying a cover.
+   * @param poolAllocationRequests The pool allocation requests for buying a cover.
+   * @return coverId The ID of the cover. If the cover is new, it returns the new cover ID.
+   *         If the cover already exists, it returns the existing cover ID.
+   * @notice If params.coverId is 0, it creates a new cover. If params.coverId is not 0, it edits an existing cover.
+   *         params.period for a new cover is the entire cover period.
+             params.period for an existing cover, it is the period added to the remaining period.
+   */
   function buyCover(
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory poolAllocationRequests
@@ -166,7 +174,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     if (params.coverId == 0) {
 
-      // new cover
+      // Handle creating a new cover
       coverId = coverNFT.mint(params.owner);
       _coverData[coverId] = CoverData(params.productId, params.coverAsset, 0 /* amountPaidOut */);
 
@@ -182,7 +190,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       );
     } else {
 
-      // existing cover
+      // Handle editing an existing cover
       coverId = params.coverId;
 
       if (!coverNFT.isApprovedOrOwner(msg.sender, coverId)) {

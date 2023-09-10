@@ -610,6 +610,30 @@ contract StakingPool is IStakingPool, Multicall {
     return (withdrawnStake, withdrawnRewards);
   }
 
+  /**
+   * @dev Requests allocation for a cover.
+   * This function is used to request allocation for a new cover or to edit an existing one.
+   * It calculates the premium for the cover and mints rewards based on the premium.
+   * The function also handles deallocation requests.
+   *
+   * In the case of a new cover request.period == request.remainingPeriod == request.newPeriod.
+   *
+   * In the case of an edit, remainingPeriod is the period left from the previous segment,
+   * request.period is what is added on top of the previous segment, and newPeriod is the
+   * total period of the new segment.
+   *
+   * [----request.remainingPeriod------][---request.period---]
+   * [-------------request.newPeriod-------------------------]
+   *
+   * @param amount The amount of cover to be allocated.
+   * @param previousAllocationAmountInNXMRepriced The amount of the previous allocation,
+            repriced in NXM at current NXM price
+   * @param request A struct containing details about the allocation request.
+   *
+   * @return totalPremium The total premium for the cover.
+   * @return allocationId The ID of the allocation.
+   *
+   */
   function requestAllocation(
     uint amount,
     uint previousAllocationAmountInNXMRepriced,

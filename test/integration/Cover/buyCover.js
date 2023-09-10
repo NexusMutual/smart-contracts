@@ -128,7 +128,7 @@ async function buyCoverSetup() {
   };
 }
 
-describe.only('buyCover', function () {
+describe('buyCover', function () {
   it.skip('allows to buy against multiple staking pool', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { cover, tc: tokenController, stakingProducts } = fixture.contracts;
@@ -978,7 +978,7 @@ describe.only('buyCover', function () {
     }
   });
 
-  it.only('should edit cover to increase amount and period across 2 pools', async function () {
+  it('should edit cover to increase amount and period across 2 pools', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { cover, tc: tokenController, stakingProducts, p1: pool } = fixture.contracts;
     const {
@@ -1088,19 +1088,21 @@ describe.only('buyCover', function () {
         NXM_PER_ALLOCATION_UNIT,
       );
 
-      const extraPremiumForPool1 = BigNumber.from(extraPeriod).mul(premiumForPool1).div(remainingPeriod.add(extraPeriod));
+      const extraPremiumForPool1 = BigNumber.from(extraPeriod)
+        .mul(premiumForPool1)
+        .div(remainingPeriod.add(extraPeriod));
 
       const extraPremiumInNxmForPool1 = BigNumber.from(extraPeriod)
         .mul(premiumInNxmForPool1)
         .div(remainingPeriod.add(extraPeriod));
-
 
       /* Pool 2 premium */
       const product2 = await stakingProducts.getProduct(2, 1);
 
       const {
         premiumInNxm: premiumInNxmForIncreasedAmountForPool2,
-        premiumInAsset: premiumForIncreasedAmountForPool2 } = calculatePremium(
+        premiumInAsset: premiumForIncreasedAmountForPool2,
+      } = calculatePremium(
         editedPoolAllocations[1].coverAmountInAsset,
         ethRate,
         remainingPeriod,
@@ -1110,7 +1112,7 @@ describe.only('buyCover', function () {
 
       const {
         premiumInNxm: premiumInNxmForIncreasedPeriodForPool2,
-        premiumInAsset: premiumForIncreasedPeriodForPool2
+        premiumInAsset: premiumForIncreasedPeriodForPool2,
       } = calculatePremium(
         editedPoolAllocations[1].coverAmountInAsset,
         ethRate,
@@ -1128,7 +1130,11 @@ describe.only('buyCover', function () {
         .div(remainingPeriod.add(extraPeriod));
 
       const oldSegmentAmountInNXMRepriced = assetAmountToNXMAmount(amount, ethRate, NXM_PER_ALLOCATION_UNIT);
-      const increasedAmountInNXM = assetAmountToNXMAmount(editedPoolAllocations[1].coverAmountInAsset, ethRate, NXM_PER_ALLOCATION_UNIT);
+      const increasedAmountInNXM = assetAmountToNXMAmount(
+        editedPoolAllocations[1].coverAmountInAsset,
+        ethRate,
+        NXM_PER_ALLOCATION_UNIT,
+      );
       const extraAmount = increasedAmountInNXM.sub(oldSegmentAmountInNXMRepriced);
 
       const extraPremiumForIncreasedAmountForPool2 = premiumForIncreasedAmountForPool2
@@ -1139,8 +1145,9 @@ describe.only('buyCover', function () {
         .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
         .div(increasedAmountInNXM);
 
-
-      const extraPremiumInNxmForPool2 = extraPremiumInNxmForIncreasedPeriodForPool2.add(extraPremiumInNXMForIncreasedAmountForPool2);
+      const extraPremiumInNxmForPool2 = extraPremiumInNxmForIncreasedPeriodForPool2.add(
+        extraPremiumInNXMForIncreasedAmountForPool2,
+      );
 
       const extraPremiumForPool2 = extraPremiumForIncreasedPeriodForPool2.add(extraPremiumForIncreasedAmountForPool2);
 
@@ -1151,12 +1158,11 @@ describe.only('buyCover', function () {
 
       const totalExtraPremium = extraPremiumForPool1.add(extraPremiumForPool2);
 
-
       const poolBeforeETH = await ethers.provider.getBalance(pool.address);
       console.log({
         extraPremiumForPool1: extraPremiumForPool1.toString(),
         extraPremiumForPool2: extraPremiumForPool2.toString(),
-      })
+      });
 
       console.log('Editing cover');
       await cover.connect(coverBuyer).buyCover(

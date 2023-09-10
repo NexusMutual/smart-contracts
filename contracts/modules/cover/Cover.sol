@@ -109,7 +109,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
    *         If the cover already exists, it returns the existing cover ID.
    * @notice If params.coverId is 0, it creates a new cover. If params.coverId is not 0, it edits an existing cover.
    *         params.period for a new cover is the entire cover period.
-             params.period for an existing cover, it is the period added to the remaining period.
+   *         params.period for an existing cover, it is the period added to the remaining period.
    */
   function buyCover(
     BuyCoverParams memory params,

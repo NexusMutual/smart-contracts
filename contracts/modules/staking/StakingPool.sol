@@ -615,21 +615,22 @@ contract StakingPool is IStakingPool, Multicall {
    * It calculates the premium for the cover and mints rewards based on the premium.
    * The function also handles deallocation requests.
    *
-   * In the case of a new cover request.period == request.remainingPeriod == request.newPeriod.
+   * In the case of a new cover request.period is the total period of the allocation.
    *
    * In the case of an edit, remainingPeriod is the period left from the previous segment,
-   * request.period is what is added on top of the previous segment, and newPeriod is the
+   * request.extraPeriod is what is added on top of the previous segment, and request.period is the
    * total period of the new segment.
    *
-   * [----request.remainingPeriod------][---request.period---]
-   * [-------------request.newPeriod-------------------------]
-   *
+   * old segment end before edit ->|       new segment end ->|
+   * [----remainingPeriod---------][---request.extraPeriod---]
+   * [-------------request.period----------------------------]
+   * | <- new segment start
    * @param amount The amount of cover to be allocated.
    * @param previousAllocationAmountInNXMRepriced The amount of the previous allocation,
             repriced in NXM at current NXM price
    * @param request A struct containing details about the allocation request.
    *
-   * @return totalPremium The total premium for the cover.
+   * @return totalPremium The total premium to be paid for the allocation.
    * @return allocationId The ID of the allocation.
    *
    */
@@ -686,9 +687,9 @@ contract StakingPool is IStakingPool, Multicall {
 
 
     if (request.allocationId == 0) {
+      // new allocation
 
       uint remainingPeriod = request.period - request.extraPeriod;
-      // new allocation
       totalPremium = stakingProducts.getPremium(
         poolId,
         request.productId,
@@ -702,6 +703,8 @@ contract StakingPool is IStakingPool, Multicall {
         ALLOCATION_UNITS_PER_NXM
       );
     } else {
+      // existing allocation
+
       totalPremium = getEditPremium(
         amount,
         previousAllocationAmountInNXMRepriced,
@@ -718,7 +721,8 @@ contract StakingPool is IStakingPool, Multicall {
         revert RewardRatioTooHigh();
       }
 
-      uint expirationBucket = Math.divCeil(block.timestamp + (request.period - request.extraPeriod), BUCKET_DURATION);
+      uint remainingPeriod = request.period - request.extraPeriod;
+      uint expirationBucket = Math.divCeil(block.timestamp + remainingPeriod, BUCKET_DURATION);
 
       uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
       uint _rewardPerSecond = (totalPremium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;

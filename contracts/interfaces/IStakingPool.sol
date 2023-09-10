@@ -18,8 +18,7 @@ struct AllocationRequest {
   uint capacityReductionRatio;
   uint rewardRatio;
   uint globalMinPrice;
-  uint32 newPeriod;
-  uint32 remainingPeriod;
+  uint32 extraPeriod;
 }
 
 struct StakedProductParam {

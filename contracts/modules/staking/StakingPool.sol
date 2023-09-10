@@ -682,16 +682,17 @@ contract StakingPool is IStakingPool, Multicall {
       vars.initialCapacityUsed,
       vars.totalCapacity,
       allocationId
-    ) = allocate(amount, request.newPeriod, request, trancheAllocations);
+    ) = allocate(amount, request.period, request, trancheAllocations);
 
 
     if (request.allocationId == 0) {
 
+      uint remainingPeriod = request.period - request.extraPeriod;
       // new allocation
       totalPremium = stakingProducts.getPremium(
         poolId,
         request.productId,
-        request.remainingPeriod,
+        remainingPeriod,
         vars.coverAllocationAmount,
         vars.initialCapacityUsed,
         vars.totalCapacity,
@@ -717,7 +718,7 @@ contract StakingPool is IStakingPool, Multicall {
         revert RewardRatioTooHigh();
       }
 
-      uint expirationBucket = Math.divCeil(block.timestamp + request.remainingPeriod, BUCKET_DURATION);
+      uint expirationBucket = Math.divCeil(block.timestamp + (request.period - request.extraPeriod), BUCKET_DURATION);
 
       uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
       uint _rewardPerSecond = (totalPremium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
@@ -734,7 +735,6 @@ contract StakingPool is IStakingPool, Multicall {
     return (totalPremium, allocationId);
   }
 
-
   function getEditPremium(
     uint amount,
     uint previousAllocationAmountInNXMRepriced,
@@ -745,11 +745,13 @@ contract StakingPool is IStakingPool, Multicall {
   ) public returns (uint totalPremium) {
 
     if (amount > previousAllocationAmountInNXMRepriced) {
+
+      uint remainingPeriod = request.period - request.extraPeriod;
       // the returned premium value has 18 decimals
       uint premiumForIncreasedAmount = stakingProducts.getPremium(
         poolId,
         request.productId,
-        request.remainingPeriod,
+        remainingPeriod,
         coverAllocationAmount,
         initialCapacityUsed,
         totalCapacity,
@@ -772,7 +774,7 @@ contract StakingPool is IStakingPool, Multicall {
       uint premiumForIncreasedPeriod = stakingProducts.getPremium(
         poolId,
         request.productId,
-        request.newPeriod,
+        request.period,
         coverAllocationAmount,
         initialCapacityUsed,
         totalCapacity,
@@ -782,7 +784,7 @@ contract StakingPool is IStakingPool, Multicall {
         ALLOCATION_UNITS_PER_NXM
       );
 
-      totalPremium += request.period * premiumForIncreasedPeriod / request.newPeriod;
+      totalPremium += request.extraPeriod * premiumForIncreasedPeriod / request.period;
     }
   }
 

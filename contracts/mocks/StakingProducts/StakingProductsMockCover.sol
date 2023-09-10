@@ -77,8 +77,7 @@ contract StakingProductsMockCover {
         product.capacityReductionRatio,
         GLOBAL_REWARDS_RATIO,
         GLOBAL_MIN_PRICE_RATIO,
-        0, // TODO: fill in remainingPeriod
-        0 // TODO: fill in newPeriod
+        0 // TODO: fill in extraPeriod
       )
     );
 

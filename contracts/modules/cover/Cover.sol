@@ -179,9 +179,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       _coverData[coverId] = CoverData(params.productId, params.coverAsset, 0 /* amountPaidOut */);
 
       allocationRequest.coverId = coverId;
-      // for a new cover, the first segment the remaining period and new period are the requested period
-      allocationRequest.remainingPeriod = uint32(allocationRequest.period);
-      allocationRequest.newPeriod = uint32(allocationRequest.period);
+      allocationRequest.period = params.period;
 
       (coverAmountInCoverAsset, amountDueInNXM) = requestAllocationsForNewCover(
         allocationRequest,
@@ -234,9 +232,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.previousExpiration = lastSegment.start + lastSegment.period;
       allocationRequest.previousRewardsRatio = lastSegment.globalRewardsRatio;
 
-      allocationRequest.remainingPeriod = uint32(remainingPeriod);
+      allocationRequest.period = remainingPeriod + params.period;
       // when editing a cover the new period is the remaining period + the requested period
-      allocationRequest.newPeriod = uint32(allocationRequest.period + allocationRequest.remainingPeriod);
+      allocationRequest.extraPeriod = params.period;
 
       // mark previous cover as ending now
       _coverSegments[coverId][segmentId - 1].period = (block.timestamp - lastSegment.start).toUint32();
@@ -272,7 +270,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         CoverSegment(
           coverAmountInCoverAsset.toUint96(), // cover amount in cover asset
           block.timestamp.toUint32(), // start
-          allocationRequest.newPeriod, // period
+          allocationRequest.period.toUint32(), // period
           allocationRequest.gracePeriod.toUint32(),
           GLOBAL_REWARDS_RATIO.toUint24(),
           GLOBAL_CAPACITY_RATIO.toUint24()
@@ -305,7 +303,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       activeCover[params.coverAsset] = _activeCover;
 
       // update amount to expire at the end of this cover segment
-      uint bucketAtExpiry = Math.divCeil(block.timestamp + allocationRequest.newPeriod, BUCKET_SIZE);
+      uint bucketAtExpiry = Math.divCeil(block.timestamp + allocationRequest.period, BUCKET_SIZE);
       activeCoverExpirationBuckets[params.coverAsset][bucketAtExpiry] += coverAmountInCoverAsset;
     }
 

@@ -191,7 +191,7 @@ async function buyCoverSetup() {
   };
 }
 
-describe('buyCover', function () {
+describe.only('buyCover', function () {
   it.skip('allows to buy against multiple staking pool', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { cover, tc: tokenController, stakingProducts } = fixture.contracts;
@@ -899,6 +899,114 @@ describe('buyCover', function () {
         const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(2);
         expect(stakingPoolAfter.rewards).to.be.equal(stakingPool2BeforeEdit.rewards.add(rewards));
       }
+    }
+  });
+
+  it('should edit cover to increase period by moving 1 allocation from 1 pool to another', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const { cover, tc: tokenController, stakingProducts, p1: pool } = fixture.contracts;
+    const {
+      members: [coverBuyer, coverReceiver],
+    } = fixture.accounts;
+    const {
+      config: { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO },
+      ethRate,
+    } = fixture;
+    const { period, amount } = buyCoverFixture;
+
+    const product = await stakingProducts.getProduct(1, 1);
+    const { premiumInNxm, premiumInAsset: premium } = calculatePremium(
+      amount,
+      ethRate,
+      period,
+      product.bumpedPrice,
+      NXM_PER_ALLOCATION_UNIT,
+    );
+
+    const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
+    const poolBeforeETH = await ethers.provider.getBalance(pool.address);
+
+    {
+      await cover
+        .connect(coverBuyer)
+        .buyCover(
+          { ...buyCoverFixture, productId: 1, owner: coverBuyer.address, maxPremiumInAsset: premium },
+          [{ poolId: 1, coverAmountInAsset: amount }],
+          { value: premium },
+        );
+
+      const { timestamp } = await ethers.provider.getBlock('latest');
+
+      const rewards = calculateRewards(premiumInNxm, timestamp, period, GLOBAL_REWARDS_RATIO);
+
+      const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);
+      const poolAfterETH = await ethers.provider.getBalance(pool.address);
+      expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBefore.rewards.add(rewards));
+      expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premium));
+    }
+
+    {
+      const coverId = 1;
+
+      const amount = buyCoverFixture.amount;
+      const segments = await cover.coverSegments(coverId);
+
+      const startOfPreviousSegment = segments[0].start;
+      // advance time by 15 days
+      await increaseTime(daysToSeconds(15));
+      await mineNextBlock();
+
+      const { timestamp: timestampAtEditTime } = await ethers.provider.getBlock('latest');
+
+      const extraPeriod = daysToSeconds(20);
+
+      const remainingPeriod = BigNumber.from(period).sub(
+        BigNumber.from(timestampAtEditTime).sub(startOfPreviousSegment),
+      );
+
+      const newPeriod = remainingPeriod.add(extraPeriod);
+
+      const product = await stakingProducts.getProduct(2, 1);
+      const { premiumInNxm, premiumInAsset: premium } = calculatePremium(
+        amount,
+        ethRate,
+        newPeriod,
+        product.bumpedPrice,
+        NXM_PER_ALLOCATION_UNIT,
+      );
+
+      console.log({
+        premiumInNxm: premiumInNxm.toString(),
+        premiumInAsset: premium.toString(),
+        period: remainingPeriod.add(extraPeriod).toString(),
+        newPeriod : newPeriod.toString(),
+      })
+
+      const editCoverFixture = { ...buyCoverFixture, amount, coverId, period: extraPeriod };
+
+      const poolBeforeETH = await ethers.provider.getBalance(pool.address);
+      const stakingPoolBeforeEdit = await tokenController.stakingPoolNXMBalances(2);
+
+      await cover.connect(coverBuyer).buyCover(
+        {
+          ...editCoverFixture,
+          productId: 1,
+          owner: coverReceiver.address,
+          maxPremiumInAsset: premium,
+        },
+        [{ poolId: 1,coverAmountInAsset: '0' }, { poolId: 2, coverAmountInAsset: amount }],
+        { value: premium },
+      );
+
+      const { timestamp } = await ethers.provider.getBlock('latest');
+
+      const rewards = calculateRewards(premiumInNxm, timestamp, remainingPeriod.toNumber(), GLOBAL_REWARDS_RATIO);
+
+      const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(2);
+      const poolAfterETH = await ethers.provider.getBalance(pool.address);
+
+      expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premium));
+      expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBeforeEdit.rewards.add(rewards));
     }
   });
 

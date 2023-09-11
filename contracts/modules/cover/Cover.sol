@@ -473,6 +473,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         vars.previousPremiumInNXM = 0;
 
         vars.previousAllocationAmountInNXMRepriced = 0;
+
       }
 
       // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT

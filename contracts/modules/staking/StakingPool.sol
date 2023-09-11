@@ -631,7 +631,7 @@ contract StakingPool is IStakingPool, Multicall {
             repriced in NXM at current NXM price
    * @param request A struct containing details about the allocation request.
    *
-   * @return totalPremium The total premium to be paid for the allocation.
+   * @return premium The total premium to be paid for the allocation.
    * @return allocationId The ID of the allocation.
    *
    */
@@ -639,7 +639,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint amount,
     uint previousAllocationAmountInNXMRepriced,
     AllocationRequest calldata request
-  ) external onlyCoverContract returns (uint totalPremium, uint allocationId) {
+  ) external onlyCoverContract returns (uint premium, uint allocationId) {
 
     // passing true because we change the reward per second
     processExpirations(true);
@@ -690,11 +690,11 @@ contract StakingPool is IStakingPool, Multicall {
     if (request.allocationId == 0) {
       // new allocation
 
-      uint remainingPeriod = request.period - request.extraPeriod;
-      totalPremium = stakingProducts.getPremium(
+      // uint remainingPeriod = request.period - request.extraPeriod;
+      premium = stakingProducts.getPremium(
         poolId,
         request.productId,
-        remainingPeriod,
+        request.period,
         vars.coverAllocationAmount,
         vars.initialCapacityUsed,
         vars.totalCapacity,
@@ -703,11 +703,13 @@ contract StakingPool is IStakingPool, Multicall {
         NXM_PER_ALLOCATION_UNIT,
         ALLOCATION_UNITS_PER_NXM
       );
+      console.log("New allocation premium", premium);
+      console.log("New allocation request.period", request.period);
     } else {
       // existing allocation
 
       console.log("edited poolId", poolId);
-      totalPremium = getEditPremium(
+      premium = getEditPremium(
         amount,
         previousAllocationAmountInNXMRepriced,
         vars.coverAllocationAmount,
@@ -715,7 +717,7 @@ contract StakingPool is IStakingPool, Multicall {
         vars.totalCapacity,
         request
       );
-      console.log("getEditPremium totalPremium", totalPremium);
+      console.log("getEditPremium totalPremium", premium);
     }
 
     // add new rewards
@@ -729,7 +731,7 @@ contract StakingPool is IStakingPool, Multicall {
       uint expirationBucket = Math.divCeil(block.timestamp + remainingPeriod, BUCKET_DURATION);
 
       uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
-      uint _rewardPerSecond = (totalPremium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
+      uint _rewardPerSecond = (premium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
 
       // store
       rewardPerSecondCut[expirationBucket] += _rewardPerSecond;
@@ -740,7 +742,7 @@ contract StakingPool is IStakingPool, Multicall {
       tokenController.mintStakingPoolNXMRewards(rewardsToMint, poolId);
     }
 
-    return (totalPremium, allocationId);
+    return (premium, allocationId);
   }
 
   function getEditPremium(

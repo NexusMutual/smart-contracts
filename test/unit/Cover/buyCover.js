@@ -48,7 +48,7 @@ async function buyCoverSetup() {
   return fixture;
 }
 
-describe('buyCover', function () {
+describe.only('buyCover', function () {
   const amount = parseEther('1000');
   const targetPriceRatio = '260';
   const activeCover = parseEther('8000');

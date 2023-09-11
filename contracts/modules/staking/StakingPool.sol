@@ -690,7 +690,6 @@ contract StakingPool is IStakingPool, Multicall {
     if (request.allocationId == 0) {
       // new allocation
 
-      // uint remainingPeriod = request.period - request.extraPeriod;
       premium = stakingProducts.getPremium(
         poolId,
         request.productId,
@@ -725,10 +724,8 @@ contract StakingPool is IStakingPool, Multicall {
       if (request.rewardRatio > REWARDS_DENOMINATOR) {
         revert RewardRatioTooHigh();
       }
-
-      // TODO: validate if this is expiration bucket computation is correct - doesn't look right
-      uint remainingPeriod = request.period - request.extraPeriod;
-      uint expirationBucket = Math.divCeil(block.timestamp + remainingPeriod, BUCKET_DURATION);
+      
+      uint expirationBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
 
       uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
       uint _rewardPerSecond = (premium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;

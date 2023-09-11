@@ -473,7 +473,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         vars.previousPremiumInNXM = 0;
 
         vars.previousAllocationAmountInNXMRepriced = 0;
-
       }
 
       // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
@@ -758,6 +757,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   function coverDataCount() external override view returns (uint) {
     return coverNFT.totalSupply();
+  }
+
+  function coverSegmentAllocationsCount(uint coverId, uint segmentId) external override view returns (uint) {
+    return coverSegmentAllocations[coverId][segmentId].length;
   }
 
   /* ========== COVER ASSETS HELPERS ========== */

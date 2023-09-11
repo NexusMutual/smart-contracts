@@ -661,9 +661,13 @@ contract StakingPool is IStakingPool, Multicall {
           request.previousExpiration
         );
 
+    console.log(" request.allocationId", request.allocationId);
     // we are only deallocating
     // rewards streaming is left as is
     if (amount == 0) {
+
+      console.log("coverTrancheAllocations[request.allocationId", coverTrancheAllocations[request.allocationId]);
+      console.log("Run deallocation ", request.allocationId);
       // store deallocated amount
       updateStoredAllocations(
         request.productId,
@@ -702,12 +706,9 @@ contract StakingPool is IStakingPool, Multicall {
         NXM_PER_ALLOCATION_UNIT,
         ALLOCATION_UNITS_PER_NXM
       );
-      console.log("New allocation premium", premium);
-      console.log("New allocation request.period", request.period);
     } else {
       // existing allocation
 
-      console.log("edited poolId", poolId);
       premium = getEditPremium(
         amount,
         previousAllocationAmountInNXMRepriced,
@@ -716,7 +717,6 @@ contract StakingPool is IStakingPool, Multicall {
         vars.totalCapacity,
         request
       );
-      console.log("getEditPremium totalPremium", premium);
     }
 
     // add new rewards
@@ -724,7 +724,7 @@ contract StakingPool is IStakingPool, Multicall {
       if (request.rewardRatio > REWARDS_DENOMINATOR) {
         revert RewardRatioTooHigh();
       }
-      
+
       uint expirationBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
 
       uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
@@ -768,13 +768,6 @@ contract StakingPool is IStakingPool, Multicall {
         ALLOCATION_UNITS_PER_NXM
       );
 
-
-      console.log("remainingPeriod", remainingPeriod);
-      console.log("premiumForIncreasedAmount", premiumForIncreasedAmount);
-
-      console.log("extraPremiumForIncreasedAmount", premiumForIncreasedAmount * Math.max(
-        (amount - previousAllocationAmountInNXMRepriced), 0) / amount);
-
       totalPremium += premiumForIncreasedAmount * Math.max(
         (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
     }
@@ -797,9 +790,6 @@ contract StakingPool is IStakingPool, Multicall {
         NXM_PER_ALLOCATION_UNIT,
         ALLOCATION_UNITS_PER_NXM
       );
-
-      console.log("premiumForIncreasedPeriod", premiumForIncreasedPeriod);
-      console.log("extraPremiumForIncreasedPeriod", request.extraPeriod * premiumForIncreasedPeriod / request.period);
 
       totalPremium += request.extraPeriod * premiumForIncreasedPeriod / request.period;
     }

@@ -917,7 +917,7 @@ describe.only('buyCover', function () {
 
   it('should edit cover to increase period by moving 1 allocation from 1 pool to another', async function () {
     const fixture = await loadFixture(buyCoverSetup);
-    const { cover, tc: tokenController, stakingProducts, p1: pool } = fixture.contracts;
+    const { cover, tc: tokenController, stakingProducts, p1: pool, stakingPool1 } = fixture.contracts;
     const {
       members: [coverBuyer, coverReceiver],
     } = fixture.accounts;
@@ -964,6 +964,11 @@ describe.only('buyCover', function () {
       const amount = buyCoverFixture.amount;
       const segments = await cover.coverSegments(coverId);
 
+      const editPoolAllocations = [
+        { poolId: 1, coverAmountInAsset: '0' },
+        { poolId: 2, coverAmountInAsset: amount },
+      ];
+
       const startOfPreviousSegment = segments[0].start;
       // advance time by 15 days
       await increaseTime(daysToSeconds(15));
@@ -979,7 +984,7 @@ describe.only('buyCover', function () {
 
       const newPeriod = remainingPeriod.add(extraPeriod);
 
-      const product = await stakingProducts.getProduct(2, 1);
+      const product = await stakingProducts.getProduct(editPoolAllocations[1].poolId, 1);
       const { premiumInNxm, premiumInAsset: premium } = calculatePremium(
         amount,
         ethRate,
@@ -998,7 +1003,7 @@ describe.only('buyCover', function () {
       const editCoverFixture = { ...buyCoverFixture, amount, coverId, period: extraPeriod };
 
       const poolBeforeETH = await ethers.provider.getBalance(pool.address);
-      const stakingPoolBeforeEdit = await tokenController.stakingPoolNXMBalances(2);
+      const stakingPoolBeforeEdit = await tokenController.stakingPoolNXMBalances(editPoolAllocations[1].poolId);
 
       await cover.connect(coverBuyer).buyCover(
         {
@@ -1007,10 +1012,7 @@ describe.only('buyCover', function () {
           owner: coverReceiver.address,
           maxPremiumInAsset: premium,
         },
-        [
-          { poolId: 1, coverAmountInAsset: '0' },
-          { poolId: 2, coverAmountInAsset: amount },
-        ],
+        editPoolAllocations,
         { value: premium },
       );
 
@@ -1018,11 +1020,25 @@ describe.only('buyCover', function () {
 
       const rewards = calculateRewards(premiumInNxm, timestamp, newPeriod.toNumber(), GLOBAL_REWARDS_RATIO);
 
-      const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(2);
+      const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(editPoolAllocations[1].poolId);
       const poolAfterETH = await ethers.provider.getBalance(pool.address);
 
       expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premium));
       expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBeforeEdit.rewards.add(rewards));
+
+      const segmentId = 1;
+
+      // first segment is gone since its amount is reduced to 0, only one allocation is left
+      const allocationsCount = await cover.coverSegmentAllocationsCount(coverId, segmentId);
+      expect(allocationsCount).to.be.equal(1);
+
+      const firstSegmentAllocation = await cover.coverSegmentAllocations(coverId, segmentId, 0);
+      expect(firstSegmentAllocation.poolId).to.be.equal(editPoolAllocations[1].poolId);
+      expect(firstSegmentAllocation.allocationId).to.be.equal(1);
+
+      // tranche allocations in the first pool are deleted
+      const coverTrancheAllocation0 = await stakingPool1.coverTrancheAllocations(1);
+      expect(coverTrancheAllocation0).to.be.equal(0);
     }
   });
 

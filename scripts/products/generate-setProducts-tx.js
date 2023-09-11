@@ -16,6 +16,7 @@ const OUTPUT_FILE = path.join(
 const YIELD_TOKEN_PRODUCT_TYPE_ID = '2';
 
 const COVER_PROXY_ADDRESS = '0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62';
+const AB_ADDRESS_HUGH = '0x87b2a7559d85f4653f13e6546a14189cd5455d45';
 
 /**
  *
@@ -37,7 +38,9 @@ const COVER_PROXY_ADDRESS = '0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62';
  * @returns {Promise<{setProductsTransaction: *}>}
  */
 const main = async (provider, productsDataFilePath) => {
-  console.log(`Using cover address: ${COVER_PROXY_ADDRESS}.`);
+  console.log(`Using cover address: ${COVER_PROXY_ADDRESS}`);
+
+  console.log(`Can use AB signer address: ${AB_ADDRESS_HUGH} to simulate`);
 
   const cover = await ethers.getContractAt('Cover', COVER_PROXY_ADDRESS);
 

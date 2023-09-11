@@ -488,7 +488,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       );
 
       console.log("pool allocation", i);
-      console.log("premiumInNXM", premiumInNXM);
+      console.log("premiumInNXM for Pool", premiumInNXM);
 
       // omit deallocated pools from the segment
       if (coverAmountInNXM != 0) {
@@ -506,6 +506,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       totalAmountDueInNXM += premiumInNXM;
       vars.totalCoverAmountInNXM += coverAmountInNXM;
     }
+
+    console.log("totalAmountDueInNXM", totalAmountDueInNXM);
 
     totalCoverAmountInCoverAsset = vars.totalCoverAmountInNXM * params.nxmPriceInCoverAsset / ONE_NXM;
 

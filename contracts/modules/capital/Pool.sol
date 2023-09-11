@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMCR.sol";
+import "../../interfaces/IRamm.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
@@ -349,7 +350,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   /* ========== TOKEN RELATED MUTATIVE FUNCTIONS ========== */
 
-  /// [deprecated] Use sellNXM function instead
+  /// [deprecated] Use `swap` function in Ramm contract
   ///
   /// @param amount   Amount of NXM to sell
   /// @return success  Returns true on successfull sale
@@ -357,34 +358,22 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   function sellNXMTokens(
     uint amount
   ) public override onlyMember whenNotPaused returns (bool success) {
-    sellNXM(amount, 0);
+    ramm().swap(amount);
     return true;
   }
 
+  // [deprecated] use swap function in Ramm
   /// Buys NXM tokens with ETH.
   ///
   /// @param minTokensOut  Minimum amount of tokens to be bought. Revert if boughtTokens falls below
   /// this number.
   ///
   function buyNXM(uint minTokensOut) public override payable onlyMember whenNotPaused {
-    uint ethIn = msg.value;
-    require(ethIn > 0, "Pool: ethIn > 0");
-
-    uint totalAssetValue = getPoolValueInEth() - ethIn;
-    IMCR _mcr = mcr();
-    uint mcrEth = _mcr.getMCR();
-    uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
-
-    require(mcrRatio <= MAX_MCR_RATIO, "Pool: Cannot purchase if MCR% > 400%");
-    uint tokensOut = calculateNXMForEth(ethIn, totalAssetValue, mcrEth);
-    require(tokensOut >= minTokensOut, "Pool: tokensOut is less than minTokensOut");
-    tokenController().mint(msg.sender, tokensOut);
-
-    // evaluate the new MCR for the current asset value including the ETH paid in
-    _mcr.updateMCRInternal(false);
-    emit NXMBought(msg.sender, ethIn, tokensOut);
+    ramm().swap{value: msg.value}();
+    return;
   }
 
+  // [deprecated] use `swap` function in Ramm
   /// Sell NXM tokens and receive ETH.
   ///
   /// @param tokenAmount  Amount of tokens to sell.
@@ -394,23 +383,9 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     uint tokenAmount,
     uint minEthOut
   ) public override onlyMember nonReentrant whenNotPaused {
-    require(nxmToken.balanceOf(msg.sender) >= tokenAmount, "Pool: Not enough balance");
-    require(nxmToken.isLockedForMV(msg.sender) <= block.timestamp, "Pool: NXM tokens are locked for voting");
-
-    IMCR _mcr = mcr();
-    uint currentTotalAssetValue = getPoolValueInEth();
-    uint mcrEth = _mcr.getMCR();
-    uint ethOut = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
-    require(currentTotalAssetValue - ethOut >= mcrEth, "Pool: MCR% cannot fall below 100%");
-    require(ethOut >= minEthOut, "Pool: ethOut < minEthOut");
-
-    tokenController().burnFrom(msg.sender, tokenAmount);
-    (bool ok, /* data */) = msg.sender.call{value: ethOut}("");
-    require(ok, "Pool: Sell transfer failed");
-
-    // evaluate the new MCR for the current asset value excluding the paid out ETH
-    _mcr.updateMCRInternal(false);
-    emit NXMSold(msg.sender, tokenAmount, ethOut);
+    uint ethOut = ramm().swap(tokenAmount);
+    // TODO: remove aftrer minEthOut is implemented in Ramm
+    require(ethOut >= minEthOut, "Pool: ETH out < minEthOut");
   }
 
   /* ========== TOKEN RELATED VIEW FUNCTIONS ========== */
@@ -423,11 +398,12 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   function getNXMForEth(
     uint ethAmount
   ) public override view returns (uint) {
-    uint totalAssetValue = getPoolValueInEth();
-    uint mcrEth = mcr().getMCR();
-    return calculateNXMForEth(ethAmount, totalAssetValue, mcrEth);
+    (, uint spotPriceB) = ramm().getSpotPrices();
+    return ethAmount * 1e18 / spotPriceB;
   }
 
+  // [deprecated] use sportPrices function in Ramm
+  // left for reference
   function calculateNXMForEth(
     uint ethAmount,
     uint currentTotalAssetValue,
@@ -513,41 +489,8 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   function getEthForNXM(uint nxmAmount) public override view returns (uint ethAmount) {
     uint currentTotalAssetValue = getPoolValueInEth();
     uint mcrEth = mcr().getMCR();
-    return calculateEthForNXM(nxmAmount, currentTotalAssetValue, mcrEth);
-  }
-
-  /**
-   * @dev Computes token sell value for a tokenAmount in ETH with a sell spread of 2.5%.
-   * for values in ETH of the sale <= 1% * MCReth the sell spread is very close to the exact value of 2.5%.
-   * for values higher than that sell spread may exceed 2.5%
-   * (The higher amount being sold at any given time the higher the spread)
-   */
-  function calculateEthForNXM(
-    uint nxmAmount,
-    uint currentTotalAssetValue,
-    uint mcrEth
-  ) public override pure returns (uint) {
-
-    // Step 1. Calculate spot price at current values and amount of ETH if tokens are sold at that price
-    uint spotPrice0 = calculateTokenSpotPrice(currentTotalAssetValue, mcrEth);
-    uint spotEthAmount = nxmAmount * spotPrice0 / 1e18;
-
-    //  Step 2. Calculate spot price using V = currentTotalAssetValue - spotEthAmount from step 1
-    uint totalValuePostSpotPriceSell = currentTotalAssetValue - spotEthAmount;
-    uint spotPrice1 = calculateTokenSpotPrice(totalValuePostSpotPriceSell, mcrEth);
-
-    // Step 3. Min [average[Price(0), Price(1)] x ( 1 - Sell Spread), Price(1) ]
-    // Sell Spread = 2.5%
-    uint averagePriceWithSpread = (spotPrice0 + spotPrice1) / 2 * 975 / 1000;
-    uint finalPrice = Math.min(averagePriceWithSpread, spotPrice1);
-    uint ethAmount = finalPrice * nxmAmount / 1e18;
-
-    require(
-      ethAmount <= mcrEth * MAX_BUY_SELL_MCR_ETH_FRACTION / (10 ** MCR_RATIO_DECIMALS),
-      "Pool: Sales worth more than 5% of MCReth are not allowed"
-    );
-
-    return ethAmount;
+    (uint sportPriceA, ) = ramm().getSpotPrices();
+    return nxmAmount * sportPriceA / 1e18;
   }
 
   function calculateMCRRatio(
@@ -557,6 +500,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     return totalAssetValue * (10 ** MCR_RATIO_DECIMALS) / mcrEth;
   }
 
+  // [deprecated] use `getSpotPrices` function in Ramm
   /// Calculates token price in ETH of 1 NXM token. TokenPrice = A + (MCReth / C) * MCR%^4
   ///
   function calculateTokenSpotPrice(
@@ -564,12 +508,11 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     uint mcrEth
   ) public override pure returns (uint tokenPrice) {
 
-    uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
-    uint precisionDecimals = 10 ** (TOKEN_EXPONENT * MCR_RATIO_DECIMALS);
-
-    return mcrEth * (mcrRatio ** TOKEN_EXPONENT) / CONSTANT_C / precisionDecimals + CONSTANT_A;
+    (, uint tokenPrice) = ramm().getSpotPrices();
+    return tokenPrice;
   }
 
+  /// Uses internal price for calculating the token price in ETH, it's being used in Cover and IndividualClaims
   /// Returns the NXM price in a given asset.
   ///
   /// @dev The pool contract is not a proxy and its address will change as we upgrade it.
@@ -582,21 +525,20 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     require(assetId < assets.length, "Pool: Unknown cover asset");
     address assetAddress = assets[assetId].assetAddress;
 
-    uint totalAssetValue = getPoolValueInEth();
-    uint mcrEth = mcr().getMCR();
-    uint tokenSpotPriceEth = calculateTokenSpotPrice(totalAssetValue, mcrEth);
+    // just fetch internal price, updates are happening in Token Controller contract
+    uint tokenInternalPrice = ramm().internalPrice();
 
-    return priceFeedOracle.getAssetForEth(assetAddress, tokenSpotPriceEth);
+    return priceFeedOracle.getAssetForEth(assetAddress, tokenInternalPrice);
   }
 
-  /// [deprecated] Returns the NXM price in ETH.
+  /// [deprecated] Returns the NXM price in ETH from ramm contract.
   ///
   /// @dev The pool contract is not a proxy and its address will change as we upgrade it.
   /// @dev You may want TokenController.getTokenPrice() for a stable address since it's a proxy.
   ///
   function getTokenPrice() public override view returns (uint tokenPrice) {
-    // ETH asset id = 0
-    return getTokenPriceInAsset(0);
+    (, tokenPrice) = ramm().getSpotPrices();
+    return tokenPrice;
   }
 
   function getMCRRatio() public override view returns (uint) {
@@ -672,6 +614,10 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     return IMCR(internalContracts[uint(ID.MC)]);
   }
 
+  function ramm() internal view returns (IRamm) {
+    return IRamm(internalContracts[uint(ID.RA)]);
+  }
+
   /**
    * @dev Update dependent contract address
    * @dev Implements MasterAware interface function
@@ -679,6 +625,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   function changeDependentContractAddress() public {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
+    internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
     // needed for onlyMember modifier
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
   }

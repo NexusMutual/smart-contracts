@@ -444,6 +444,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       // burn from a different merkle tree.
       burnAmount = burnAmount > _stake.amount ? _stake.amount : burnAmount;
       _stake.amount -= burnAmount;
+      // TODO: consider burning the tokens in the token controller contract
       nxm.burn(burnAmount);
       _stake.fraudCount++;
     }

@@ -15,6 +15,7 @@ import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "./external/LockHandler.sol";
+import "../../interfaces/IRamm.sol";
 
 contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   using SafeUintCast for uint;
@@ -83,12 +84,17 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     return IPool(internalContracts[uint(ID.P1)]);
   }
 
+  function ramm() internal view returns (IRamm) {
+    return IRamm(internalContracts[uint(ID.RA)]);
+  }
+
   function changeDependentContractAddress() public override {
     internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.GV)] = master.getLatestAddress("GV");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
+    internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
   }
 
   /**
@@ -125,6 +131,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
    * @return the boolean status of the burning process
    */
   function burnFrom(address _of, uint amount) public override onlyInternal returns (bool) {
+    ramm().updateTwap();
     return token.burnFrom(_of, amount);
   }
 
@@ -150,6 +157,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   * @param _amount number of tokens to mint
   */
   function mint(address _member, uint _amount) public override onlyInternal {
+    ramm().updateTwap();
     token.mint(_member, _amount);
   }
 
@@ -247,6 +255,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   ///
   /// @dev Intended for external protocols - this is a proxy and the contract address won't change
   function getTokenPrice() public override view returns (uint tokenPrice) {
+    // get spot price from ramm
     return pool().getTokenPrice();
   }
 
@@ -535,6 +544,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
+    ramm().updateTwap();
     token.mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
@@ -542,6 +552,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
+    ramm().updateTwap();
     token.burn(amount);
   }
 
@@ -568,6 +579,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   function burnStakedNXM(uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
+    ramm().updateTwap();
     token.burn(amount);
   }
 }

@@ -679,16 +679,6 @@ contract StakingPool is IStakingPool, Multicall {
       delete coverTrancheAllocations[request.allocationId];
       emit Deallocated(request.allocationId);
       return (0, 0);
-    } else if (request.allocationId != 0) {
-
-      // deallocate the previous allocation before editing
-      updateStoredAllocations(
-        request.productId,
-        block.timestamp / TRANCHE_DURATION, // firstActiveTrancheId
-        trancheAllocations
-      );
-      // update coverTrancheAllocations when deallocating so we can track deallocation
-      delete coverTrancheAllocations[request.allocationId];
     }
 
     RequestAllocationVariables memory vars;

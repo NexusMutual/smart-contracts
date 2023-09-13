@@ -770,6 +770,10 @@ contract StakingPool is IStakingPool, Multicall {
 
       totalPremium += premiumForIncreasedAmount * Math.max(
         (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
+
+      console.log("remainingPeriod", remainingPeriod);
+      console.log("extraPremiumForIncreasedAmount", premiumForIncreasedAmount * Math.max(
+        (amount - previousAllocationAmountInNXMRepriced), 0) / amount);
     }
 
     // calculate the period added on top of the previous expiration

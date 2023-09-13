@@ -8,7 +8,7 @@ contract CoverMockMCR is IMCR {
 
   uint public mockMCRValue;
 
-  function updateMCRInternal(uint /*poolValueInEth*/, bool /*forceUpdate*/) external pure override {
+  function updateMCRInternal(bool /*forceUpdate*/) external pure override {
     revert("Unsupported");
   }
 
@@ -18,14 +18,6 @@ contract CoverMockMCR is IMCR {
 
   function setMCR(uint _mcrValue) external {
     mockMCRValue = _mcrValue;
-  }
-
-  function maxMCRFloorIncrement() external override pure returns (uint24) {
-    revert("Unsupported");
-  }
-
-  function mcrFloor() external override pure returns (uint112) {
-    revert("Unsupported");
   }
 
   function mcr() external override pure returns (uint112) {
@@ -45,10 +37,6 @@ contract CoverMockMCR is IMCR {
   }
 
   function maxMCRIncrement() external pure returns (uint24) {
-    revert("Unsupported");
-  }
-
-  function mcrFloorIncrementThreshold() external pure returns (uint24) {
     revert("Unsupported");
   }
 

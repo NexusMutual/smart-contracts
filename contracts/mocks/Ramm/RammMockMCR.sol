@@ -27,17 +27,13 @@ contract RammMockMCR is IMCR {
     return mockMCRValue;
   }
 
-  function updateMCRInternal(uint newMCRValue, bool) public {
+  function updateMCR(uint newMCRValue) public {
     mockMCRValue = newMCRValue;
   }
 
   /* ====== NOT NEEDED FUNCTIONS ====== */
 
-  function maxMCRFloorIncrement() external override pure returns (uint24) {
-    revert("Unsupported");
-  }
-
-  function mcrFloor() external override pure returns (uint112) {
+  function updateMCRInternal(bool) public pure {
     revert("Unsupported");
   }
 
@@ -58,10 +54,6 @@ contract RammMockMCR is IMCR {
   }
 
   function maxMCRIncrement() external pure returns (uint24) {
-    revert("Unsupported");
-  }
-
-  function mcrFloorIncrementThreshold() external pure returns (uint24) {
     revert("Unsupported");
   }
 

@@ -91,7 +91,7 @@ describe('updateMCR', function () {
     expect(lastUpdateTimeAfter).to.be.equal(lastUpdateTimeBefore);
   });
 
-  it('buyNXM triggers updateMCR if minUpdateTime passes, increases mcrFloor, decreases desiredMCR', async function () {
+  it('buyNXM triggers updateMCR if minUpdateTime passes, decreases desiredMCR', async function () {
     const fixture = await loadFixture(updateMCRSetup);
     const { p1: pool, mcr } = fixture.contracts;
     const [member] = fixture.accounts.members;
@@ -103,28 +103,22 @@ describe('updateMCR', function () {
     await increaseTime(await mcr.minUpdateTime());
 
     const desireMCRBefore = await mcr.desiredMCR();
-    const mcrFloorBefore = await mcr.mcrFloor();
 
     await pool.connect(member).buyNXM('0', { value: buyValue });
 
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const lastUpdateTimeAfter = await mcr.lastUpdateTime();
-    const mcrFloorAfter = await mcr.mcrFloor();
     const desireMCRAfter = await mcr.desiredMCR();
 
     expect(lastUpdateTimeBefore).to.be.lt(lastUpdateTimeAfter);
     expect(lastUpdateTimeAfter).to.be.equal(currentTime);
-    expect(mcrFloorAfter).to.be.gt(
-      mcrFloorBefore,
-      `MCR floor post update ${mcrFloorAfter.toString()} is not greater than before ${mcrFloorBefore.toString()}`,
-    );
     expect(desireMCRAfter).to.be.lt(
       desireMCRBefore,
       `Desired MCR post update ${desireMCRAfter.toString()} is not less than before ${desireMCRBefore.toString()}`,
     );
   });
 
-  it('sellNXM triggers updateMCR if minUpdateTime passes, increases mcrFloor, decreases desiredMCR', async function () {
+  it('sellNXM triggers updateMCR if minUpdateTime passes, decreases desiredMCR', async function () {
     const fixture = await loadFixture(updateMCRSetup);
     const { p1: pool, mcr } = fixture.contracts;
     const [member] = fixture.accounts.members;
@@ -134,28 +128,22 @@ describe('updateMCR', function () {
     await increaseTime(await mcr.minUpdateTime());
 
     const desireMCRBefore = await mcr.desiredMCR();
-    const mcrFloorBefore = await mcr.mcrFloor();
 
     await pool.connect(member).sellNXM('0', '0');
 
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const lastUpdateTimeAfter = await mcr.lastUpdateTime();
-    const mcrFloorAfter = await mcr.mcrFloor();
     const desireMCRAfter = await mcr.desiredMCR();
 
     expect(lastUpdateTimeBefore).to.be.lt(lastUpdateTimeAfter);
     expect(lastUpdateTimeAfter).to.be.equal(currentTime);
-    expect(mcrFloorAfter).to.be.gt(
-      mcrFloorBefore,
-      `MCR floor post update ${mcrFloorAfter.toString()} is not greater than before ${mcrFloorBefore.toString()}`,
-    );
     expect(desireMCRAfter).to.be.lt(
       desireMCRBefore,
       `Desired MCR post update ${desireMCRAfter.toString()} is not less than before ${desireMCRBefore.toString()}`,
     );
   });
 
-  it('increases mcrFloor and decreases desiredMCR (0 sumAssured) if minUpdateTime has passed', async function () {
+  it('decreases desiredMCR (0 sumAssured) if minUpdateTime has passed', async function () {
     const fixture = await loadFixture(updateMCRSetup);
     const { mcr } = fixture.contracts;
 
@@ -164,20 +152,14 @@ describe('updateMCR', function () {
     await increaseTime(await mcr.minUpdateTime());
 
     const desireMCRBefore = await mcr.desiredMCR();
-    const mcrFloorBefore = await mcr.mcrFloor();
 
     await mcr.updateMCR();
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const lastUpdateTimeAfter = await mcr.lastUpdateTime();
-    const mcrFloorAfter = await mcr.mcrFloor();
     const desireMCRAfter = await mcr.desiredMCR();
 
     expect(lastUpdateTimeBefore).to.be.lt(lastUpdateTimeAfter);
     expect(lastUpdateTimeAfter).to.be.equal(currentTime);
-    expect(mcrFloorAfter).to.be.gt(
-      mcrFloorBefore,
-      `MCR floor post update ${mcrFloorAfter.toString()} is not greater than before ${mcrFloorBefore.toString()}`,
-    );
     expect(desireMCRAfter).to.be.lt(
       desireMCRBefore,
       `Desired MCR post update ${desireMCRAfter.toString()} is not less than before ${desireMCRBefore.toString()}`,
@@ -230,63 +212,6 @@ describe('updateMCR', function () {
     );
     // TODO: this assertion is off
     expect(desireMCRAfter).to.be.equal(expectedDesiredMCR);
-  });
-
-  // eslint-disable-next-line max-len
-  it('increases desiredMCR if totalSumAssured is high enough and subsequently decreases to mcrFloor it when totalSumAssured falls to 0', async function () {
-    const fixture = await loadFixture(updateMCRSetup);
-    const { mcr, cover } = fixture.contracts;
-    const [coverHolder] = fixture.accounts.members;
-
-    const gearingFactor = BigNumber.from(await mcr.gearingFactor());
-    const currentMCR = BigNumber.from(await mcr.getMCR());
-    const coverAmount = gearingFactor
-      .mul(currentMCR.add(parseEther('300')))
-      .div(parseEther('1'))
-      .div(ratioScale);
-
-    // buy cover
-    const newCoverBuyParams = {
-      ...newEthCoverTemplate,
-      amount: coverAmount,
-      cover,
-      coverBuyer: coverHolder,
-      targetPrice: 100,
-      expectedPremium: parseEther('1'),
-    };
-    await buyCover({
-      ...newCoverBuyParams,
-    });
-
-    await increaseTime(await mcr.minUpdateTime());
-    await mcr.updateMCR();
-    await increaseTime(newCoverBuyParams.period);
-
-    // buy another cover to expire previous ones
-    await buyCover({
-      ...newCoverBuyParams,
-    });
-    await mcr.updateMCR();
-
-    const mcrFloorAfter = await mcr.mcrFloor();
-    const mcrAfterCoverExpiry = await mcr.desiredMCR();
-    expect(mcrAfterCoverExpiry).to.be.equal(mcrFloorAfter);
-  });
-
-  it('increases mcrFloor by 1% after 2 days pass', async function () {
-    const fixture = await loadFixture(updateMCRSetup);
-    const { mcr } = fixture.contracts;
-
-    const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
-
-    const previousMCRFloor = await mcr.mcrFloor();
-    await increaseTime(daysToSeconds(2));
-    await mcr.updateMCR();
-
-    const currentMCRFloor = await mcr.mcrFloor();
-
-    const expectedMCRFloor = previousMCRFloor.mul(ratioScale.add(maxMCRFloorIncrement)).div(ratioScale);
-    expect(currentMCRFloor.toString()).to.be.equal(expectedMCRFloor.toString());
   });
 
   it.skip('claim payout triggers updateMCR and sets desiredMCR to mcrFloor (sumAssured = 0)', async function () {

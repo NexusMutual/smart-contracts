@@ -11,6 +11,7 @@ import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ICover.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../libraries/Math.sol";
+import "hardhat/console.sol";
 
 contract MCR is IMCR, MasterAwareV2 {
   // sizeof(qd) + 96 = 160 + 96 = 256 (occupies entire slot)
@@ -124,14 +125,14 @@ contract MCR is IMCR, MasterAwareV2 {
   *
   */
   function updateMCR() whenNotPaused public {
-    _updateMCR(pool().getPoolValueInEth(), false);
+    _updateMCR(false);
   }
 
-  function updateMCRInternal(uint poolValueInEth, bool forceUpdate) public onlyInternal {
-    _updateMCR(poolValueInEth, forceUpdate);
+  function updateMCRInternal(bool forceUpdate) public onlyInternal {
+    _updateMCR(forceUpdate);
   }
 
-  function _updateMCR(uint poolValueInEth, bool forceUpdate) internal {
+  function _updateMCR(bool forceUpdate) internal {
 
     uint _gearingFactor = gearingFactor;
     uint _minUpdateTime = minUpdateTime;

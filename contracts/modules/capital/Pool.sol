@@ -343,9 +343,8 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     }
 
     emit Payout(payoutAddress, asset.assetAddress, amount);
-    uint totalAssetValue = getPoolValueInEth();
 
-    mcr().updateMCRInternal(totalAssetValue, true);
+    mcr().updateMCRInternal(true);
   }
 
   /* ========== TOKEN RELATED MUTATIVE FUNCTIONS ========== */
@@ -382,7 +381,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     tokenController().mint(msg.sender, tokensOut);
 
     // evaluate the new MCR for the current asset value including the ETH paid in
-    _mcr.updateMCRInternal(totalAssetValue + ethIn, false);
+    _mcr.updateMCRInternal(false);
     emit NXMBought(msg.sender, ethIn, tokensOut);
   }
 
@@ -410,7 +409,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     require(ok, "Pool: Sell transfer failed");
 
     // evaluate the new MCR for the current asset value excluding the paid out ETH
-    _mcr.updateMCRInternal(currentTotalAssetValue - ethOut, false);
+    _mcr.updateMCRInternal(false);
     emit NXMSold(msg.sender, tokenAmount, ethOut);
   }
 

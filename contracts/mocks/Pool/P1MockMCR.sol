@@ -25,7 +25,7 @@ contract P1MockMCR {
         // no-op
     }
 
-    function updateMCRInternal(uint, bool) public {
+    function updateMCRInternal(bool) public {
         // no-op
     }
 }

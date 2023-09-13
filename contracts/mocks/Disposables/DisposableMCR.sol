@@ -51,7 +51,7 @@ contract DisposableMCR is IMCR {
     revert("MCRMockMCRAndFakeMaster: Unexpected getLatestAddress() call");
   }
 
-  function updateMCRInternal(uint, bool) external pure {
+  function updateMCRInternal(bool) external pure {
     revert("MCRMockMCRAndFakeMaster: Unexpected updateMCRInternal() call");
   }
 

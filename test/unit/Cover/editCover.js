@@ -13,7 +13,7 @@ const { AddressZero } = ethers.constants;
 
 const gracePeriod = daysToSeconds(120);
 
-describe('editCover', function () {
+describe.only('editCover', function () {
   const coverBuyFixture = {
     productId: 0,
     coverAsset: 0, // ETH
@@ -28,7 +28,7 @@ describe('editCover', function () {
     capacityFactor: '10000',
   };
 
-  it('should edit purchased cover and increase amount', async function () {
+  it.only('should edit purchased cover and increase amount', async function () {
     const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
@@ -54,6 +54,11 @@ describe('editCover', function () {
     const extraPremium = expectedEditPremium
       .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
       .div(increasedAmount);
+
+
+    console.log({
+      remainingPeriod: BigNumber.from(period).add(1).sub(passedPeriod).toString()
+    })
 
     await cover.connect(coverBuyer).buyCover(
       {

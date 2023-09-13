@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 
 import "../../interfaces/IStakingPool.sol";
 import "../../libraries/Math.sol";
+import "hardhat/console.sol";
 
 contract CoverMockStakingPool is IStakingPool {
 
@@ -80,6 +81,9 @@ contract CoverMockStakingPool is IStakingPool {
     }
     uint extraPremium = premium * Math.max(
       (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
+
+    console.log("CoverMockStakingPool: request.period", request.period);
+    console.log("CoverMockStakingPool: requestAllocation: amount=%s, previousAllocationAmountInNXMRepriced=%s, extraPremium=%s", amount, previousAllocationAmountInNXMRepriced, extraPremium);
 
     return (extraPremium, allocationId);
   }

@@ -79,8 +79,16 @@ contract CoverMockStakingPool is IStakingPool {
     if (amount == 0) {
       return (0, 0);
     }
-    uint extraPremium = premium * Math.max(
+    uint extraAmountPremium = premium * Math.max(
       (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
+
+    uint extraPeriodPremium = request.extraPeriod * premium / request.period;
+
+    console.log("premium", premium);
+    console.log("extraAmountPremium", extraAmountPremium);
+    console.log("extraPeriodPremium", extraPeriodPremium);
+
+    uint extraPremium = extraAmountPremium + extraPeriodPremium;
 
     console.log("CoverMockStakingPool: request.period", request.period);
     console.log("CoverMockStakingPool: requestAllocation: amount=%s, previousAllocationAmountInNXMRepriced=%s, extraPremium=%s", amount, previousAllocationAmountInNXMRepriced, extraPremium);

@@ -15,7 +15,6 @@ import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
-import "hardhat/console.sol";
 
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
@@ -661,13 +660,10 @@ contract StakingPool is IStakingPool, Multicall {
           request.previousExpiration
         );
 
-    console.log(" request.allocationId", request.allocationId);
     // we are only deallocating
     // rewards streaming is left as is
     if (amount == 0) {
 
-      console.log("coverTrancheAllocations[request.allocationId", coverTrancheAllocations[request.allocationId]);
-      console.log("Run deallocation ", request.allocationId);
       // store deallocated amount
       updateStoredAllocations(
         request.productId,
@@ -770,10 +766,6 @@ contract StakingPool is IStakingPool, Multicall {
 
       totalPremium += premiumForIncreasedAmount * Math.max(
         (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
-
-      console.log("remainingPeriod", remainingPeriod);
-      console.log("extraPremiumForIncreasedAmount", premiumForIncreasedAmount * Math.max(
-        (amount - previousAllocationAmountInNXMRepriced), 0) / amount);
     }
 
     // calculate the period added on top of the previous expiration

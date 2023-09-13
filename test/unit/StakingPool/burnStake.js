@@ -67,6 +67,7 @@ const allocationRequestParams = {
   capacityReductionRatio: 0,
   rewardRatio: 5000,
   globalMinPrice: 10000,
+  extraPeriod: 0,
 };
 
 const stakedNxmAmount = parseEther('100');

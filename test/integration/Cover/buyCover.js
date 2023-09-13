@@ -65,14 +65,9 @@ async function calculateEditPremium({
     NXM_PER_ALLOCATION_UNIT,
   );
 
-  console.log({
-    remainingPeriod: remainingPeriod.toString(),
-    increasedAmount: increasedAmount.toString()
-  })
-
-  const oldSegmentAmountInNXMRepriced =
-    assetAmountToNXMAmount(amount, ethRate, NXM_PER_ALLOCATION_UNIT).mul(poolAllocationRatio).div(10000);
-
+  const oldSegmentAmountInNXMRepriced = assetAmountToNXMAmount(amount, ethRate, NXM_PER_ALLOCATION_UNIT)
+    .mul(poolAllocationRatio)
+    .div(10000);
 
   const increasedAmountInNXM = assetAmountToNXMAmount(increasedAmount, ethRate, NXM_PER_ALLOCATION_UNIT);
 
@@ -199,7 +194,7 @@ async function buyCoverSetup() {
   };
 }
 
-describe.only('buyCover', function () {
+describe('buyCover', function () {
   it.skip('allows to buy against multiple staking pool', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { cover, tc: tokenController, stakingProducts } = fixture.contracts;
@@ -1504,7 +1499,7 @@ describe.only('buyCover', function () {
           ethRate,
           productBumpedPrice: product.bumpedPrice,
           NXM_PER_ALLOCATION_UNIT,
-          poolAllocationRatio
+          poolAllocationRatio,
         });
         extraPremiumForPool1 = extraPremium;
         extraPremiumInNXMForPool1 = extraPremiumInNXM;
@@ -1526,7 +1521,7 @@ describe.only('buyCover', function () {
           ethRate,
           productBumpedPrice: product.bumpedPrice,
           NXM_PER_ALLOCATION_UNIT,
-          poolAllocationRatio
+          poolAllocationRatio,
         });
         extraPremiumForPool2 = extraPremium;
         extraPremiumInNXMForPool2 = extraPremiumInNXM;
@@ -1548,8 +1543,8 @@ describe.only('buyCover', function () {
 
       console.log({
         extraPremiumInNXMForPool2: extraPremiumInNXMForPool2.toString(),
-        premiumInNXMForPool3: premiumInNXMForPool3.toString()
-      })
+        premiumInNXMForPool3: premiumInNXMForPool3.toString(),
+      });
 
       const totalAmount = increasedAmountForPool1.add(increasedAmountForPool2).add(amount);
 

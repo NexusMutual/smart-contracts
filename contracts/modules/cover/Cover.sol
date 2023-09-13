@@ -22,7 +22,6 @@ import "../../libraries/StakingPoolLibrary.sol";
 import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/ICoverProducts.sol";
 import "../../libraries/Math.sol";
-import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Multicall {
   using SafeERC20 for IERC20;
@@ -215,8 +214,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
       uint remainingPeriod = lastSegment.start + lastSegment.period - block.timestamp + 1;
 
-      console.log("remainingPeriod", remainingPeriod);
-      console.log("params.period", params.period);
       if (params.period + remainingPeriod < MIN_COVER_PERIOD) {
         revert CoverPeriodTooShort();
       }
@@ -227,8 +224,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
       allocationRequest.previousStart = lastSegment.start;
 
-      console.log("lastSegment.start", lastSegment.start);
-      console.log("lastSegment.period", lastSegment.period);
       allocationRequest.previousExpiration = lastSegment.start + lastSegment.period;
       allocationRequest.previousRewardsRatio = lastSegment.globalRewardsRatio;
 
@@ -242,9 +237,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       // remove cover amount from from expiration buckets
       uint bucketAtExpiry = Math.divCeil(lastSegment.start + lastSegment.period, BUCKET_SIZE);
 
-      console.log("lastSegment.start", lastSegment.start);
-      console.log("lastSegment.period", lastSegment.period);
-      console.log("bucketAtExpiry", bucketAtExpiry);
       activeCoverExpirationBuckets[params.coverAsset][bucketAtExpiry] -= lastSegment.amount;
       previousSegmentAmount += lastSegment.amount;
 
@@ -487,9 +479,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         allocationRequest
       );
 
-      console.log("pool allocation", i);
-      console.log("premiumInNXM for Pool", premiumInNXM);
-
       // omit deallocated pools from the segment
       if (coverAmountInNXM != 0) {
         coverSegmentAllocations[allocationRequest.coverId][params.segmentId].push(
@@ -506,8 +495,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       totalAmountDueInNXM += premiumInNXM;
       vars.totalCoverAmountInNXM += coverAmountInNXM;
     }
-
-    console.log("totalAmountDueInNXM", totalAmountDueInNXM);
 
     totalCoverAmountInCoverAsset = vars.totalCoverAmountInNXM * params.nxmPriceInCoverAsset / ONE_NXM;
 
@@ -562,9 +549,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint commission = (premiumInPaymentAsset * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio)) - premiumInPaymentAsset;
     uint premiumWithCommission = premiumInPaymentAsset + commission;
 
-
-    console.log("premiumWithCommission", premiumWithCommission);
-    console.log("maxPremiumInAsset", maxPremiumInAsset);
     if (premiumWithCommission > maxPremiumInAsset) {
       revert PriceExceedsMaxPremiumInAsset();
     }

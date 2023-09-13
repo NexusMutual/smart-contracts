@@ -526,7 +526,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     address assetAddress = assets[assetId].assetAddress;
 
     // just fetch internal price, updates are happening in Token Controller contract
-    uint tokenInternalPrice = ramm().internalPrice();
+    uint tokenInternalPrice = ramm().getInternalPriceAndUpdateTwap();
 
     return priceFeedOracle.getAssetForEth(assetAddress, tokenInternalPrice);
   }

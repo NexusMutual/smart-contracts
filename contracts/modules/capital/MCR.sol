@@ -17,14 +17,14 @@ contract MCR is IMCR, MasterAwareV2 {
   uint96 _unused;
 
   // the following values are expressed in basis points
-  uint24 public mcrFloorIncrementThreshold = 13000;
-  uint24 public maxMCRFloorIncrement = 100;
+  uint24 public _unused1; //mcrFloorIncrementThreshold
+  uint24 public _unused2; // maxMCRFloorIncrement
   uint24 public maxMCRIncrement = 500;
   uint24 public gearingFactor = 48000;
   // min update between MCR updates in seconds
   uint24 public minUpdateTime = 3600;
 
-  uint112 public mcrFloor;
+  uint112 public _unused3;  // mcrFloor
   uint112 public mcr;
   uint112 public desiredMCR;
   uint32 public lastUpdateTime;
@@ -34,7 +34,7 @@ contract MCR is IMCR, MasterAwareV2 {
   event MCRUpdated(
     uint mcr,
     uint desiredMCR,
-    uint mcrFloor,
+    uint mcrFloor,  // unused
     uint mcrETHWithGear,
     uint totalSumAssured
   );
@@ -82,14 +82,11 @@ contract MCR is IMCR, MasterAwareV2 {
     }
 
     // copy over values
-    mcrFloor = previousMCR.mcrFloor();
     mcr = previousMCR.mcr();
     desiredMCR = previousMCR.desiredMCR();
     lastUpdateTime = previousMCR.lastUpdateTime();
 
     // copy over parameters
-    mcrFloorIncrementThreshold = previousMCR.mcrFloorIncrementThreshold();
-    maxMCRFloorIncrement = previousMCR.maxMCRFloorIncrement();
     maxMCRIncrement = previousMCR.maxMCRIncrement();
     gearingFactor = previousMCR.gearingFactor();
     minUpdateTime = previousMCR.minUpdateTime();
@@ -122,7 +119,7 @@ contract MCR is IMCR, MasterAwareV2 {
   }
 
   /*
-  * @dev trigger an MCR update. Current virtual MCR value is synced to storage, mcrFloor is potentially updated
+  * @dev trigger an MCR update. Current virtual MCR value is synced to storage
   * and a new desiredMCR value to move towards is set.
   *
   */
@@ -136,12 +133,8 @@ contract MCR is IMCR, MasterAwareV2 {
 
   function _updateMCR(uint poolValueInEth, bool forceUpdate) internal {
 
-    // read with 1 SLOAD
-    uint _mcrFloorIncrementThreshold = mcrFloorIncrementThreshold;
-    uint _maxMCRFloorIncrement = maxMCRFloorIncrement;
     uint _gearingFactor = gearingFactor;
     uint _minUpdateTime = minUpdateTime;
-    uint _mcrFloor =  mcrFloor;
 
     // read with 1 SLOAD
     uint112 _mcr = mcr;
@@ -152,37 +145,22 @@ contract MCR is IMCR, MasterAwareV2 {
       return;
     }
 
-    if (block.timestamp > _lastUpdateTime && pool().calculateMCRRatio(poolValueInEth, _mcr) >= _mcrFloorIncrementThreshold) {
-        // MCR floor updates by up to maxMCRFloorIncrement percentage per day whenever the MCR ratio exceeds 1.3
-        // MCR floor is monotonically increasing.
-      uint basisPointsAdjustment = Math.min(
-        _maxMCRFloorIncrement * (block.timestamp - _lastUpdateTime) / 1 days,
-        _maxMCRFloorIncrement
-      );
-      uint newMCRFloor = _mcrFloor * (basisPointsAdjustment + BASIS_PRECISION) / BASIS_PRECISION;
-      require(newMCRFloor <= type(uint112).max, 'MCR: newMCRFloor overflow');
-
-      mcrFloor = uint112(newMCRFloor);
-    }
-
     // sync the current virtual MCR value to storage
     uint112 newMCR = uint112(getMCR());
     if (newMCR != _mcr) {
       mcr = newMCR;
     }
 
-    // the desiredMCR cannot fall below the mcrFloor but may have a higher or lower target value based
-    // on the changes in the totalSumAssured in the system.
     uint totalSumAssured = getAllSumAssurance();
     uint gearedMCR = totalSumAssured * BASIS_PRECISION / _gearingFactor;
-    uint112 newDesiredMCR = uint112(Math.max(gearedMCR, mcrFloor));
+    uint112 newDesiredMCR = uint112(gearedMCR);
     if (newDesiredMCR != _desiredMCR) {
       desiredMCR = newDesiredMCR;
     }
 
     lastUpdateTime = uint32(block.timestamp);
 
-    emit MCRUpdated(mcr, desiredMCR, mcrFloor, gearedMCR, totalSumAssured);
+    emit MCRUpdated(mcr, desiredMCR, 0, gearedMCR, totalSumAssured);
   }
 
   /**
@@ -231,17 +209,7 @@ contract MCR is IMCR, MasterAwareV2 {
    */
   function updateUintParameters(bytes8 code, uint val) public onlyGovernance {
 
-    if (code == "DMCT") {
-
-      require(val <= UINT24_MAX, "MCR: value too large");
-      mcrFloorIncrementThreshold = uint24(val);
-
-    } else if (code == "DMCI") {
-
-      require(val <= UINT24_MAX, "MCR: value too large");
-      maxMCRFloorIncrement = uint24(val);
-
-    } else if (code == "MMIC") {
+    if (code == "MMIC") {
 
       require(val <= UINT24_MAX, "MCR: value too large");
       maxMCRIncrement = uint24(val);

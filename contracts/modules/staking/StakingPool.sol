@@ -678,7 +678,8 @@ contract StakingPool is IStakingPool, Multicall {
     }
 
     RequestAllocationVariables memory vars;
-
+    // in the edit case, trancheAllocations are the allocations without the existing ones from
+    // request.allocationId and thus previous allocations are cleared and everything is reallocated
     (
       vars.coverAllocationAmount,
       vars.initialCapacityUsed,
@@ -686,26 +687,7 @@ contract StakingPool is IStakingPool, Multicall {
       allocationId
     ) = allocate(amount, request.period, request, trancheAllocations);
 
-
-    if (request.allocationId == 0) {
-      // new allocation
-
-      premium = stakingProducts.getPremium(
-        poolId,
-        request.productId,
-        request.period,
-        vars.coverAllocationAmount,
-        vars.initialCapacityUsed,
-        vars.totalCapacity,
-        request.globalMinPrice,
-        request.useFixedPrice,
-        NXM_PER_ALLOCATION_UNIT,
-        ALLOCATION_UNITS_PER_NXM
-      );
-    } else {
-      // existing allocation
-
-      premium = getEditPremium(
+    premium = getPremium(
         amount,
         previousAllocationAmountInNXMRepriced,
         vars.coverAllocationAmount,
@@ -713,7 +695,6 @@ contract StakingPool is IStakingPool, Multicall {
         vars.totalCapacity,
         request
       );
-    }
 
     // add new rewards
     {
@@ -738,17 +719,19 @@ contract StakingPool is IStakingPool, Multicall {
     return (premium, allocationId);
   }
 
-  function getEditPremium(
+  function getPremium(
     uint amount,
     uint previousAllocationAmountInNXMRepriced,
     uint coverAllocationAmount,
     uint initialCapacityUsed,
     uint totalCapacity,
     AllocationRequest calldata request
-  ) public returns (uint totalPremium) {
+  ) internal returns (uint totalPremium) {
 
     if (amount > previousAllocationAmountInNXMRepriced) {
 
+      // this handles both new allocations (allocationId == 0) and edits that increase the amount
+      // remainingPeriod = request.period for new allocations (request.extraPeriod === 0)
       uint remainingPeriod = request.period - request.extraPeriod;
       // the returned premium value has 18 decimals
       uint premiumForIncreasedAmount = stakingProducts.getPremium(
@@ -767,8 +750,6 @@ contract StakingPool is IStakingPool, Multicall {
       totalPremium += premiumForIncreasedAmount * Math.max(
         (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
     }
-
-    // calculate the period added on top of the previous expiration
 
     // check if there is a previous segment and period is specified in order to extend it compute premium
     if (request.previousExpiration > 0 && request.period > 0) {

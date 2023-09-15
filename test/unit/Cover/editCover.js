@@ -34,12 +34,6 @@ function calculateMockEditPremium({
 
   const extraPeriodPremium = expectedEditPremium.mul(extraPeriod).div(period);
 
-  console.log({
-    expectedEditPremium: expectedEditPremium.toString(),
-    extraAmountPremium: extraAmountPremium.toString(),
-    extraPeriodPremium: extraPeriodPremium.toString(),
-  });
-
   const extraPremium = extraAmountPremium.add(extraPeriodPremium);
 
   return extraPremium;
@@ -1266,10 +1260,6 @@ describe('editCover', function () {
 
     const totalAmount = increasedAmount.mul(2);
     const totalExpectedPremium = expectedPremium.mul(2);
-
-    console.log({
-      remainingPeriod: remainingPeriod.toString(),
-    });
 
     await cover.connect(coverBuyer).buyCover(
       {

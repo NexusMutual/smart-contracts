@@ -97,15 +97,6 @@ async function calculateEditPremium({
 
   const extraPremiumInNXM = extraPremiumInNXMForAmount.add(extraPremiumInNXMForPeriod);
 
-  console.log({
-    increasedAmount: increasedAmount.toString(),
-    remainingPeriod: remainingPeriod.toString(),
-    period: period.toString(),
-    premiumInNxmForIncreasedAmount: premiumInNxmForIncreasedAmount.toString(),
-    extraPremiumInNXMForAmount: extraPremiumInNXMForAmount.toString(),
-    extraPremiumInNXMForPeriod: extraPremiumInNXMForPeriod.toString(),
-  });
-
   return { extraPremium, extraPremiumInNXM, newPeriod };
 }
 
@@ -985,13 +976,6 @@ describe('buyCover', function () {
         NXM_PER_ALLOCATION_UNIT,
       );
 
-      console.log({
-        premiumInNxm: premiumInNxm.toString(),
-        premiumInAsset: premium.toString(),
-        period: remainingPeriod.add(extraPeriod).toString(),
-        newPeriod: newPeriod.toString(),
-      });
-
       const editCoverFixture = { ...buyCoverFixture, amount, coverId, period: extraPeriod };
 
       const poolBeforeETH = await ethers.provider.getBalance(pool.address);
@@ -1285,10 +1269,6 @@ describe('buyCover', function () {
       const totalExtraPremium = extraPremiumForPool1.add(extraPremiumForPool2).add(1);
 
       const poolBeforeETH = await ethers.provider.getBalance(pool.address);
-      console.log({
-        extraPremiumForPool1: extraPremiumForPool1.toString(),
-        extraPremiumForPool2: extraPremiumForPool2.toString(),
-      });
 
       await cover.connect(coverBuyer).buyCover(
         {
@@ -1540,11 +1520,6 @@ describe('buyCover', function () {
         premiumInNXMForPool3 = premiumInNxm;
         premiumForPool3 = premium;
       }
-
-      console.log({
-        extraPremiumInNXMForPool2: extraPremiumInNXMForPool2.toString(),
-        premiumInNXMForPool3: premiumInNXMForPool3.toString(),
-      });
 
       const totalAmount = increasedAmountForPool1.add(increasedAmountForPool2).add(amount);
 

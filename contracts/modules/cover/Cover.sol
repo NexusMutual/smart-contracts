@@ -443,8 +443,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
           continue;
         }
 
-        vars.previousPremiumInNXM = previousPoolAllocation.premiumInNXM;
-
         // get stored allocation id
         allocationRequest.allocationId = previousPoolAllocation.allocationId;
 
@@ -460,9 +458,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       } else {
         // request new allocation id
         allocationRequest.allocationId = 0;
-
-        // zero out previous premium or refund
-        vars.previousPremiumInNXM = 0;
 
         vars.previousAllocationAmountInNXMRepriced = 0;
       }
@@ -485,7 +480,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
           PoolAllocation(
             poolAllocationRequests[i].poolId,
             coverAmountInNXM.toUint96(),
-            // TODO: should be full amount or only the amount paid for editing?
             premiumInNXM.toUint96(),
             allocationId.toUint24()
           )

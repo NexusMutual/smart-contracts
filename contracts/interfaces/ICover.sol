@@ -36,7 +36,6 @@ struct PoolAllocationRequest {
 
 struct RequestAllocationVariables {
   uint previousPoolAllocationsLength;
-  uint previousPremiumInNXM;
   PoolAllocation[] previousPoolAllocations;
   uint previousTotalCoverAmountInNXM;
   uint previousAllocationAmountInNXMRepriced;

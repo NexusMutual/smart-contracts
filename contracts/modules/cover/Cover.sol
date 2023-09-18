@@ -431,13 +431,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
           revert UnexpectedPoolId();
         }
 
-        // check if this request should be skipped, keeping the previous allocation
-        if (allocationRequests[i].skip) {
-          coverSegmentAllocations[allocationRequest.coverId][params.segmentId].push(previousAllocation);
-          vars.totalCoverAmountInNXM += previousAllocation.coverAmountInNXM;
-          continue;
-        }
-
         // get stored allocation id
         allocationRequest.allocationId = previousAllocation.allocationId;
 

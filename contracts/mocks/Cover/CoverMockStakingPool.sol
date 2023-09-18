@@ -66,7 +66,7 @@ contract CoverMockStakingPool is IStakingPool {
 
   function requestAllocation(
     uint amount,
-    uint previousAllocationAmountInNXMRepriced,
+    uint previousAllocationAmountRepriced,
     AllocationRequest calldata request
   ) external override returns (uint premium, uint allocationId) {
 
@@ -80,19 +80,10 @@ contract CoverMockStakingPool is IStakingPool {
       return (0, 0);
     }
     uint extraAmountPremium = premium * Math.max(
-      (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
+      (amount - previousAllocationAmountRepriced), 0) / amount;
 
     uint extraPeriodPremium = request.extraPeriod * premium / request.period;
-
-    console.log("premium", premium);
-    console.log("extraAmountPremium", extraAmountPremium);
-    console.log("extraPeriodPremium", extraPeriodPremium);
-
     uint extraPremium = extraAmountPremium + extraPeriodPremium;
-
-    console.log("CoverMockStakingPool: request.period", request.period);
-    console.log("CoverMockStakingPool: requestAllocation: amount=%s, previousAllocationAmountInNXMRepriced=%s, extraPremium=%s", amount, previousAllocationAmountInNXMRepriced, extraPremium);
-
     return (extraPremium, allocationId);
   }
 

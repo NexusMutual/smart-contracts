@@ -21,20 +21,21 @@ function calculateMockEditPremium({
   priceDenominator,
   extraPeriod = BigNumber.from(0),
 }) {
-  const expectedEditPremium = increasedAmount
+  const premium = increasedAmount
     .mul(targetPriceRatio)
     .mul(period)
     .div(priceDenominator)
     .div(3600 * 24 * 365);
 
+  const remainingPeriod = BigNumber.from(period).sub(extraPeriod);
   const extraAmount = increasedAmount.sub(existingAmount);
-  const extraAmountPremium = expectedEditPremium
+
+  const extraPremium = premium
     .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
-    .div(increasedAmount);
-
-  const extraPeriodPremium = expectedEditPremium.mul(extraPeriod).div(period);
-
-  const extraPremium = extraAmountPremium.add(extraPeriodPremium);
+    .mul(remainingPeriod)
+    .div(increasedAmount)
+    .div(period)
+    .add(premium.mul(extraPeriod).div(period));
 
   return extraPremium;
 }

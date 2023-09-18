@@ -15,6 +15,7 @@ import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
+import "hardhat/console.sol";
 
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
@@ -728,48 +729,25 @@ contract StakingPool is IStakingPool, Multicall {
     AllocationRequest calldata request
   ) internal returns (uint totalPremium) {
 
-    if (amount > previousAllocationAmountInNXMRepriced) {
+    uint premium = stakingProducts.getPremium(
+      poolId,
+      request.productId,
+      request.period,
+      coverAllocationAmount,
+      initialCapacityUsed,
+      totalCapacity,
+      request.globalMinPrice,
+      request.useFixedPrice,
+      NXM_PER_ALLOCATION_UNIT,
+      ALLOCATION_UNITS_PER_NXM
+    );
 
-      // this handles both new allocations (allocationId == 0) and edits that increase the amount
-      // remainingPeriod = request.period for new allocations (request.extraPeriod === 0)
-      uint remainingPeriod = request.period - request.extraPeriod;
-      // the returned premium value has 18 decimals
-      uint premiumForIncreasedAmount = stakingProducts.getPremium(
-        poolId,
-        request.productId,
-        remainingPeriod,
-        coverAllocationAmount,
-        initialCapacityUsed,
-        totalCapacity,
-        request.globalMinPrice,
-        request.useFixedPrice,
-        NXM_PER_ALLOCATION_UNIT,
-        ALLOCATION_UNITS_PER_NXM
-      );
+    uint remainingPeriod = request.period - request.extraPeriod;
 
-      totalPremium += premiumForIncreasedAmount * Math.max(
-        (amount - previousAllocationAmountInNXMRepriced), 0) / amount;
-    }
+    uint extraAmount = amount > previousAllocationAmountInNXMRepriced ? amount - previousAllocationAmountInNXMRepriced : 0;
 
-    // check if there is a previous segment and period is specified in order to extend it compute premium
-    if (request.previousExpiration > 0 && request.period > 0) {
-
-      // the returned premium value has 18 decimals
-      uint premiumForIncreasedPeriod = stakingProducts.getPremium(
-        poolId,
-        request.productId,
-        request.period,
-        coverAllocationAmount,
-        initialCapacityUsed,
-        totalCapacity,
-        request.globalMinPrice,
-        request.useFixedPrice,
-        NXM_PER_ALLOCATION_UNIT,
-        ALLOCATION_UNITS_PER_NXM
-      );
-
-      totalPremium += request.extraPeriod * premiumForIncreasedPeriod / request.period;
-    }
+    totalPremium = premium * extraAmount * remainingPeriod / request.period / amount +
+      premium * request.extraPeriod / request.period;
   }
 
   function getActiveAllocationsWithoutCover(

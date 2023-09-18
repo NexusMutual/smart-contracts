@@ -79,10 +79,13 @@ async function calculateEditPremium({
     NXM_PER_ALLOCATION_UNIT,
   );
 
-  function calculateExtraPremium (fullPremium) {
+  function calculateExtraPremium(fullPremium) {
     return fullPremium
-      .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0)).mul(remainingPeriod)
-      .div(increasedAmountInNXM).div(newPeriod).add(fullPremium.mul(extraPeriod).div(newPeriod));
+      .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
+      .mul(remainingPeriod)
+      .div(increasedAmountInNXM)
+      .div(newPeriod)
+      .add(fullPremium.mul(extraPeriod).div(newPeriod));
   }
 
   const extraPremium = calculateExtraPremium(premiumInAsset);
@@ -1037,7 +1040,7 @@ describe('buyCover', function () {
       ethRate,
     } = fixture;
 
-    const buyCoverParams = { ...buyCoverFixture, amount: parseEther('100')};
+    const buyCoverParams = { ...buyCoverFixture, amount: parseEther('100') };
     const { period, amount } = buyCoverParams;
 
     const product = await stakingProducts.getProduct(1, 1);
@@ -1093,7 +1096,7 @@ describe('buyCover', function () {
 
       const product = await stakingProducts.getProduct(1, 1);
 
-      let { extraPremium, extraPremiumInNXM, newPeriod } = await calculateEditPremium({
+      const { extraPremium, extraPremiumInNXM, newPeriod } = await calculateEditPremium({
         amount,
         period,
         extraPeriod,

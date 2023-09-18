@@ -15,7 +15,6 @@ import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
-import "hardhat/console.sol";
 
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
@@ -627,7 +626,7 @@ contract StakingPool is IStakingPool, Multicall {
    * [-------------request.period----------------------------]
    * | <- new segment start
    * @param amount The amount of cover to be allocated.
-   * @param previousAllocationAmountInNXMRepriced The amount of the previous allocation,
+   * @param previousAllocationAmountRepriced The amount of the previous allocation,
             repriced in NXM at current NXM price
    * @param request A struct containing details about the allocation request.
    *
@@ -637,7 +636,7 @@ contract StakingPool is IStakingPool, Multicall {
    */
   function requestAllocation(
     uint amount,
-    uint previousAllocationAmountInNXMRepriced,
+    uint previousAllocationAmountRepriced,
     AllocationRequest calldata request
   ) external onlyCoverContract returns (uint premium, uint allocationId) {
 
@@ -690,7 +689,7 @@ contract StakingPool is IStakingPool, Multicall {
 
     premium = getPremium(
         amount,
-        previousAllocationAmountInNXMRepriced,
+      previousAllocationAmountRepriced,
         vars.coverAllocationAmount,
         vars.initialCapacityUsed,
         vars.totalCapacity,
@@ -722,14 +721,15 @@ contract StakingPool is IStakingPool, Multicall {
 
   function getPremium(
     uint amount,
-    uint previousAllocationAmountInNXMRepriced,
+    uint previousAllocationAmountRepriced,
     uint coverAllocationAmount,
     uint initialCapacityUsed,
     uint totalCapacity,
     AllocationRequest calldata request
-  ) internal returns (uint totalPremium) {
+  ) internal returns (uint premium) {
 
-    uint premium = stakingProducts.getPremium(
+    // totalPremium is the premium for the entire new period and the entire new amount
+    uint totalPremium = stakingProducts.getPremium(
       poolId,
       request.productId,
       request.period,
@@ -744,10 +744,19 @@ contract StakingPool is IStakingPool, Multicall {
 
     uint remainingPeriod = request.period - request.extraPeriod;
 
-    uint extraAmount = amount > previousAllocationAmountInNXMRepriced ? amount - previousAllocationAmountInNXMRepriced : 0;
+    uint extraAmount = amount > previousAllocationAmountRepriced ? amount - previousAllocationAmountRepriced : 0;
 
-    totalPremium = premium * extraAmount * remainingPeriod / request.period / amount +
-      premium * request.extraPeriod / request.period;
+    /*
+      New Allocation Case - premium == totalPremium
+      Edit Allocation Case - add the following:
+        1. the premium for the extra amount added to the remaining period
+           totalPremium * extraAmount * remainingPeriod / request.period / amount
+        2. the premium for the extra period added applied to the total amount
+           totalPremium * request.extraPeriod / request.period
+    */
+    premium =
+      totalPremium * extraAmount * remainingPeriod / request.period / amount +
+      totalPremium * request.extraPeriod / request.period;
   }
 
   function getActiveAllocationsWithoutCover(

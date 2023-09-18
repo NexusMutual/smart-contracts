@@ -1507,7 +1507,7 @@ describe('buyCover', function () {
           productBumpedPrice: product.bumpedPrice,
           NXM_PER_ALLOCATION_UNIT,
           coverAmountInNXM: coverSegmentAllocations[0].coverAmountInNXM,
-          totalCoverAmountInNXM
+          totalCoverAmountInNXM,
         });
         extraPremiumForPool1 = extraPremium;
         extraPremiumInNXMForPool1 = extraPremiumInNXM;
@@ -1528,7 +1528,7 @@ describe('buyCover', function () {
           productBumpedPrice: product.bumpedPrice,
           NXM_PER_ALLOCATION_UNIT,
           coverAmountInNXM: coverSegmentAllocations[1].coverAmountInNXM,
-          totalCoverAmountInNXM
+          totalCoverAmountInNXM,
         });
         extraPremiumForPool2 = extraPremium;
         extraPremiumInNXMForPool2 = extraPremiumInNXM;

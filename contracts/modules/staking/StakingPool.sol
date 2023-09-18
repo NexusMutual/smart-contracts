@@ -15,7 +15,6 @@ import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
-import "hardhat/console.sol";
 
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
@@ -734,7 +733,6 @@ contract StakingPool is IStakingPool, Multicall {
       // this handles both new allocations (allocationId == 0) and edits that increase the amount
       // remainingPeriod = request.period for new allocations (request.extraPeriod === 0)
       uint remainingPeriod = request.period - request.extraPeriod;
-      console.log("StakingPool.remainingPeriod", remainingPeriod);
       // the returned premium value has 18 decimals
       uint premiumForIncreasedAmount = stakingProducts.getPremium(
         poolId,

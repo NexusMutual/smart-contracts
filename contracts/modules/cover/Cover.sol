@@ -22,6 +22,7 @@ import "../../libraries/StakingPoolLibrary.sol";
 import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/ICoverProducts.sol";
 import "../../libraries/Math.sol";
+import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Multicall {
   using SafeERC20 for IERC20;
@@ -212,7 +213,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         revert ExpiredCoversCannotBeEdited();
       }
 
-      uint remainingPeriod = lastSegment.start + lastSegment.period - block.timestamp + 1;
+      uint remainingPeriod = lastSegment.start + lastSegment.period - block.timestamp;
+
+      console.log("lastSegment.start", lastSegment.start);
+      console.log("lastSegment.period", lastSegment.period);
+      console.log("remainingPeriod", remainingPeriod);
+      console.log("block.timestamp", block.timestamp);
 
       if (params.period + remainingPeriod < MIN_COVER_PERIOD) {
         revert CoverPeriodTooShort();
@@ -474,6 +480,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         allocationRequest
       );
 
+      console.log("Rdit pool ", poolAllocationRequests[i].poolId);
+      console.log("amountDueInNXM", premiumInNXM);
+
       // omit deallocated pools from the segment
       if (coverAmountInNXM != 0) {
         coverSegmentAllocations[allocationRequest.coverId][params.segmentId].push(
@@ -489,6 +498,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       totalAmountDueInNXM += premiumInNXM;
       vars.totalCoverAmountInNXM += coverAmountInNXM;
     }
+
+    console.log("totalAmountDueInNXM", totalAmountDueInNXM);
 
     totalCoverAmountInCoverAsset = vars.totalCoverAmountInNXM * params.nxmPriceInCoverAsset / ONE_NXM;
 
@@ -543,6 +554,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint commission = (premiumInPaymentAsset * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio)) - premiumInPaymentAsset;
     uint premiumWithCommission = premiumInPaymentAsset + commission;
 
+    console.log("premiumInPaymentAsset", premiumInPaymentAsset);
+    console.log("maxPremiumInAsset", maxPremiumInAsset);
     if (premiumWithCommission > maxPremiumInAsset) {
       revert PriceExceedsMaxPremiumInAsset();
     }

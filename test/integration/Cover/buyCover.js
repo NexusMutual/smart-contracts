@@ -53,7 +53,8 @@ async function calculateEditPremium({
   ethRate,
   productBumpedPrice,
   NXM_PER_ALLOCATION_UNIT,
-  poolAllocationRatio = 10000,
+  coverAmountInNXM = BigNumber.from(1),
+  totalCoverAmountInNXM = BigNumber.from(1),
 }) {
   // adding 1 to account for block.timestamp = timestampAtEditTime + 1 at transaction time
   const remainingPeriod = BigNumber.from(period).sub(
@@ -69,8 +70,8 @@ async function calculateEditPremium({
   );
 
   const oldSegmentAmountInNXMRepriced = assetAmountToNXMAmount(amount, ethRate, NXM_PER_ALLOCATION_UNIT)
-    .mul(poolAllocationRatio)
-    .div(10000);
+    .mul(coverAmountInNXM)
+    .div(totalCoverAmountInNXM);
 
   const increasedAmountInNXM = assetAmountToNXMAmount(increasedAmount, ethRate, NXM_PER_ALLOCATION_UNIT);
 
@@ -1495,8 +1496,6 @@ describe('buyCover', function () {
       const period = segments[1].period;
 
       {
-        const poolAllocationRatio = coverSegmentAllocations[0].coverAmountInNXM.mul(10000).div(totalCoverAmountInNXM);
-
         const { extraPremium, extraPremiumInNXM, newPeriod } = await calculateEditPremium({
           amount: previousSegmentAmount,
           period,
@@ -1507,7 +1506,8 @@ describe('buyCover', function () {
           ethRate,
           productBumpedPrice: product.bumpedPrice,
           NXM_PER_ALLOCATION_UNIT,
-          poolAllocationRatio,
+          coverAmountInNXM: coverSegmentAllocations[0].coverAmountInNXM,
+          totalCoverAmountInNXM
         });
         extraPremiumForPool1 = extraPremium;
         extraPremiumInNXMForPool1 = extraPremiumInNXM;
@@ -1517,8 +1517,6 @@ describe('buyCover', function () {
       }
 
       {
-        const poolAllocationRatio = coverSegmentAllocations[1].coverAmountInNXM.mul(10000).div(totalCoverAmountInNXM);
-
         const { extraPremium, extraPremiumInNXM } = await calculateEditPremium({
           amount: previousSegmentAmount,
           period,
@@ -1529,7 +1527,8 @@ describe('buyCover', function () {
           ethRate,
           productBumpedPrice: product.bumpedPrice,
           NXM_PER_ALLOCATION_UNIT,
-          poolAllocationRatio,
+          coverAmountInNXM: coverSegmentAllocations[1].coverAmountInNXM,
+          totalCoverAmountInNXM
         });
         extraPremiumForPool2 = extraPremium;
         extraPremiumInNXMForPool2 = extraPremiumInNXM;

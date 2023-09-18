@@ -442,14 +442,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         // get stored allocation id
         allocationRequest.allocationId = previousAllocation.allocationId;
 
-        uint allocationRatio =
-          previousAllocation.coverAmountInNXM
-          * COVER_ALLOCATION_RATIO_DENOMINATOR
-          / vars.previousTotalCoverAmountInNXM;
-
         vars.previousAllocationAmountRepriced =
-          allocationRatio * previousCoverAmountInNXMRepriced
-          / COVER_ALLOCATION_RATIO_DENOMINATOR;
+          previousAllocation.coverAmountInNXM * previousCoverAmountInNXMRepriced
+          / vars.previousTotalCoverAmountInNXM;
 
       } else {
         // request new allocation id

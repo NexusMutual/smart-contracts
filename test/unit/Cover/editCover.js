@@ -43,7 +43,7 @@ function calculateRemainingPeriod({ period, passedPeriod }) {
   return BigNumber.from(period).sub(passedPeriod);
 }
 
-describe.('editCover', function () {
+describe('editCover', function () {
   const coverBuyFixture = {
     productId: 0,
     coverAsset: 0, // ETH

@@ -83,14 +83,13 @@ async function calculateEditPremium({
     return fullPremium
       .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
       .mul(remainingPeriod)
-      .div(increasedAmountInNXM)
+      .div(increasedAmountInN XM)
       .div(newPeriod)
       .add(fullPremium.mul(extraPeriod).div(newPeriod));
   }
 
   const extraPremium = calculateExtraPremium(premiumInAsset);
   const extraPremiumInNXM = calculateExtraPremium(premiumInNxm);
-
   return { extraPremium, extraPremiumInNXM, newPeriod };
 }
 
@@ -179,7 +178,7 @@ async function buyCoverSetup() {
   };
 }
 
-describe('buyCover', function () {
+describe.only('buyCover', function () {
   it.skip('allows to buy against multiple staking pool', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { cover, tc: tokenController, stakingProducts } = fixture.contracts;
@@ -1029,7 +1028,7 @@ describe('buyCover', function () {
     }
   });
 
-  it('should edit cover to increase amount and period', async function () {
+  it.only('should edit cover to increase amount and period', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { cover, tc: tokenController, stakingProducts, p1: pool } = fixture.contracts;
     const {
@@ -1096,7 +1095,7 @@ describe('buyCover', function () {
 
       const product = await stakingProducts.getProduct(1, 1);
 
-      const { extraPremium, extraPremiumInNXM, newPeriod } = await calculateEditPremium({
+      let { extraPremium, extraPremiumInNXM, newPeriod } = await calculateEditPremium({
         amount,
         period,
         extraPeriod,

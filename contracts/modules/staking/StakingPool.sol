@@ -15,6 +15,7 @@ import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
+import "hardhat/console.sol";
 
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
@@ -696,6 +697,8 @@ contract StakingPool is IStakingPool, Multicall {
         request
       );
 
+    console.log("premium", premium);
+
     // add new rewards
     {
       if (request.rewardRatio > REWARDS_DENOMINATOR) {
@@ -746,6 +749,14 @@ contract StakingPool is IStakingPool, Multicall {
 
     uint extraAmount = amount > previousAllocationAmountRepriced ? amount - previousAllocationAmountRepriced : 0;
 
+
+    console.log("amount", extraAmount);
+    console.log("previousAllocationAmountRepriced", previousAllocationAmountRepriced);
+    console.log("extraAmount", extraAmount);
+    console.log("remainingPeriod", remainingPeriod);
+    console.log("request.period", request.period);
+
+    console.log("totalPremium * extraAmount * remainingPeriod / request.period / amount", totalPremium * extraAmount * remainingPeriod / request.period / amount );
     /*
       New Allocation Case - premium == totalPremium
       Edit Allocation Case - add the following:

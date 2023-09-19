@@ -351,6 +351,9 @@ describe('editCover', function () {
 
       const increasedPeriod = remainingPeriod.add(extraPeriod);
 
+      /*
+        The new pool has no allocation
+       */
       const expectedPremium = calculateMockEditPremium({
         existingAmount: BigNumber.from(0),
         increasedAmount,

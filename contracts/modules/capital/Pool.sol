@@ -60,6 +60,11 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     _;
   }
 
+  modifier onlyRamm {
+    require(msg.sender == internalContracts[uint(ID.RA)], "Pool: Not Ramm");
+    _;
+  }
+
   /* ========== CONSTRUCTOR ========== */
 
   constructor (
@@ -293,6 +298,15 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   }
 
   /* ========== TOKEN RELATED MUTATIVE FUNCTIONS ========== */
+
+  // @dev Sends ETH to a member in exchange for NXM tokens.
+  // @param member  Member address
+  // @param amount  Amount of ETH to send
+  //
+  function sendEth(address member, uint amount) external onlyRamm {
+    (bool transferSucceeded, /* data */) = member.call{value : amount}("");
+    require(transferSucceeded, "Pool: ETH transfer failed");
+  }
 
   /// [deprecated] Use `swap` function in Ramm contract
   ///

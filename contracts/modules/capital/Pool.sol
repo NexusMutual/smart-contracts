@@ -27,6 +27,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   // parameters
   IPriceFeedOracle public override priceFeedOracle;
+  IPool public override previousPool;
   address public swapOperator;
 
   uint96 public swapValue;
@@ -75,66 +76,9 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     swapOperator = _swapOperator;
     nxmToken = INXMToken(_nxmTokenAddress);
 
-    // [todo] After this contract is deployed it might be worth modifying upgradeCapitalPool to
-    // copy the assets on future upgrades instead of having them hardcoded in the constructor.
-    // issue: https://github.com/NexusMutual/smart-contracts/issues/473
-
-    // Warning: the order of assets should never change between updates
-    assets.push(
-      Asset(
-        ETH, // asset address
-        true, // is cover asset
-        false // is abandoned
-      )
-    );
-
-    assets.push(
-      Asset(
-        DAIAddress, // asset address
-        true, // is cover asset
-        false // is abandoned
-      )
-    );
-
-    assets.push(
-      Asset(
-        stETHAddress, // asset address
-        false, // is cover asset
-        false // is abandoned
-      )
-    );
-
-    assets.push(
-      Asset(
-        enzymeVaultAddress, // asset address
-        false, // is cover asset
-        false // is abandoned
-      )
-    );
-
-    // Set DAI swap details
-    swapDetails[DAIAddress] = SwapDetails(
-      10_000_000 ether, // minAmount (10 mil)
-      15_000_000 ether, // maxAmount (15 mil)
-      0,             // lastSwapTime
-      2_50           // maxSlippageRatio (2.5%)
-    );
-
-    // Set stETH swap details
-    swapDetails[stETHAddress] = SwapDetails(
-      24_360 ether, // minAmount (~24k)
-      32_500 ether, // maxAmount (~32k)
-      1633425218,  // lastSwapTime
-      0            // maxSlippageRatio (0%)
-    );
-
-    // Set enzyme vault swap details
-    swapDetails[enzymeVaultAddress] = SwapDetails(
-      15_000 ether, // minAmount
-      16_000 ether, // maxAmount
-      1660673114,  // lastSwapTime
-      2_50         // maxSlippageRatio (2.5%)
-    );
+    if (_master != address(0)) {
+      previousPool = IPool(master.getLatestAddress("P1"));
+    }
   }
 
   fallback() external payable {}
@@ -553,5 +497,36 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
     // needed for onlyMember modifier
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+
+    initialize();
+  }
+
+  function initialize() internal {
+
+    address currentPool = master.getLatestAddress("P1");
+
+    if (address(previousPool) == address(0) || currentPool != address(this)) {
+      // already initialized or not ready for initialization
+      return;
+    }
+
+    // copy over values
+    swapOperator = previousPool.swapOperator();
+    swapValue = previousPool.swapValue();
+    priceFeedOracle = previousPool.priceFeedOracle();
+
+    // copy over assets and swap details
+    uint assetCount = previousPool.assets().length;
+
+    for (uint i = 1; i < assetCount; i++) {
+      address assetAddress = previousPool.assets(i).assetAddress;
+      if (assetAddress != ETH) {
+        swapDetails[assetAddress] = previousPool.swapDetails(assetAddress);
+      }
+      Asset memory asset = previousPool.assets(i);
+      assets.push(asset);
+    }
+
+    previousPool = IPool(address(0));
   }
 }

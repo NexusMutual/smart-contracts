@@ -13,22 +13,19 @@ import "../../libraries/SafeUintCast.sol";
 
 contract Ramm is IRamm, MasterAwareV2 {
   using SafeUintCast for uint;
+  using Math for uint;
+  using RammLib for Observation;
+  using RammLib for State;
 
   /* ========== STATE VARIABLES ========== */
 
-  // slot 0
-  uint128 public nxmReserveA;
-  uint128 public nxmReserveB;
-
-  // slot 1
-  uint128 public ethReserve;
-  uint96 public budget;
-  uint32 public lastUpdateTimestamp;
+  Slot0 public slot0;
+  Slot1 public slot1;
 
   // slot 2 & 3
   // 160 * 3 = 480 bits
   Observation[3] public observations;
-  uint32 private _reserved; // slot leftover
+  uint32 private _reserved; // leftover bits in slot 3
 
   /* ========== FUNCTIONS ========== */
 
@@ -37,14 +34,12 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public constant RATCHET_DENOMINATOR = 10_000;
   uint public constant PRICE_BUFFER = 100;
   uint public constant PRICE_BUFFER_DENOMINATOR = 10_000;
-  uint public constant WINDOW_SIZE = 172_800; // 2 days
   uint public constant GRANULARITY = 2;
   uint public constant PERIOD_SIZE = 86_400; // day
 
   /* =========== IMMUTABLES ========== */
 
   uint public immutable FAST_LIQUIDITY_SPEED;
-  uint public immutable FAST_RATCHET_SPEED;
   uint public immutable TARGET_LIQUIDITY;
   uint public immutable LIQ_SPEED_A;
   uint public immutable LIQ_SPEED_B;
@@ -56,7 +51,6 @@ contract Ramm is IRamm, MasterAwareV2 {
   constructor(
     uint _targetLiquidity,
     uint _fastLiquiditySpeed,
-    uint _fastRatchetSpeed,
     uint _liquiditySpeedA,
     uint _liquiditySpeedB,
     uint _ratchetSpeedA,
@@ -64,11 +58,33 @@ contract Ramm is IRamm, MasterAwareV2 {
   ) {
     TARGET_LIQUIDITY = _targetLiquidity;
     FAST_LIQUIDITY_SPEED = _fastLiquiditySpeed;
-    FAST_RATCHET_SPEED = _fastRatchetSpeed;
     LIQ_SPEED_A = _liquiditySpeedA;
     LIQ_SPEED_B = _liquiditySpeedB;
     RATCHET_SPEED_A = _ratchetSpeedA;
     RATCHET_SPEED_B = _ratchetSpeedB;
+  }
+
+  function loadState() internal view returns (State memory) {
+    return State(slot0.nxmReserveA,
+      slot0.nxmReserveB,
+      slot1.ethReserve,
+      slot1.budget,
+      slot1.updatedAt
+    );
+  }
+
+  function storeState(State memory state) internal {
+    // slot 0
+    slot0.nxmReserveA = state.nxmA.toUint128();
+    slot0.nxmReserveB = state.nxmB.toUint128();
+    // slot 1
+    slot1.ethReserve = state.eth.toUint128();
+    slot1.budget = state.budget.toUint96();
+    slot1.updatedAt = state.timestamp.toUint32();
+  }
+
+  function cloneObservations(Observation[3] memory src) internal pure returns (Observation[3] memory) {
+    return [src[0].clone(), src[1].clone(), src[2].clone()];
   }
 
   // TODO: add minOut and deadline parameters
@@ -83,23 +99,37 @@ contract Ramm is IRamm, MasterAwareV2 {
   }
 
   function swapEthForNxm(uint ethIn) internal returns (uint /*nxmOut*/) {
+
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
 
-    (uint ethReserveBefore, uint nxmA, uint nxmB, uint _budget) = getReserves(capital, supply, block.timestamp);
-    updateTwap(capital, supply);
+    State memory initialState = loadState();
+    Observation[3] memory _observations = observations;
 
-    uint k = ethReserveBefore * nxmA;
-    uint ethReserveAfter = (ethReserveBefore + ethIn).toUint112();
+    // current state
+    State memory state = _getReserves(initialState, capital, supply, block.timestamp);
+    _observations = updateTwap(initialState, _observations, block.timestamp, capital, supply);
 
-    // update storage
+    uint nxmA = state.nxmA;
+    uint nxmB = state.nxmB;
+    uint eth = state.eth;
+    uint k = eth * nxmA;
+
+    eth = eth + ethIn;
+    nxmA = k / eth;
+    nxmB = nxmB * eth / state.eth;
+
+    uint nxmOut = nxmA - state.nxmA;
+
     // edge case: bellow goes over bv due to eth-dai price changing
-    nxmReserveA = (k / ethReserveAfter).toUint96();
-    nxmReserveB = (nxmB * ethReserveAfter / ethReserveBefore).toUint96();
-    ethReserve = ethReserveAfter.toUint112();
-    budget = _budget.toUint80();
-    lastUpdateTimestamp = uint32(block.timestamp);
-    uint nxmOut = nxmA - nxmReserveA;
+
+    state.nxmA = nxmA;
+    state.nxmB = nxmB;
+    state.eth = eth;
+    state.timestamp = block.timestamp;
+
+    storeState(state);
+    observations = _observations;
 
     // transfer assets
     (bool ok,) = address(pool()).call{value: msg.value}("");
@@ -115,22 +145,35 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint supply = tokenController().totalSupply();
     uint mcrETH = mcr().getMCR();
 
-    (uint ethReserveBefore, uint nxmA, uint nxmB, uint _budget) = getReserves(capital, supply, block.timestamp);
-    updateTwap(capital, supply);
+    State memory initialState = loadState();
+    Observation[3] memory _observations = observations;
 
-    uint k = ethReserveBefore * nxmB;
-    uint ethReserveAfter = k / nxmReserveB;
-    uint ethOut = ethReserveBefore - ethReserveAfter;
+    // current state
+    State memory state = _getReserves(initialState, capital, supply, block.timestamp);
+    _observations = updateTwap(initialState, _observations, block.timestamp, capital, supply);
+
+    uint nxmA = state.nxmA;
+    uint nxmB = state.nxmB;
+    uint eth = state.eth;
+    uint k = eth * nxmB;
+
+    nxmB = nxmB + nxmIn;
+    eth = k / nxmB;
+    nxmA = nxmA * eth / state.eth;
+
+    uint ethOut = state.eth - eth;
 
     // TODO add buffer into calculation
     require(capital - ethOut >= mcrETH, "NO_SWAPS_IN_BUFFER_ZONE");
 
     // update storage
-    nxmReserveA = (nxmA * ethReserveAfter / ethReserveBefore).toUint96();
-    nxmReserveB = (nxmB + nxmIn).toUint96();
-    ethReserve = ethReserveAfter.toUint112();
-    budget = _budget.toUint80();
-    lastUpdateTimestamp = uint32(block.timestamp);
+    state.nxmA = nxmA;
+    state.nxmB = nxmB;
+    state.eth = eth;
+    state.timestamp = block.timestamp;
+
+    storeState(state);
+    observations = _observations;
 
     tokenController().burnFrom(msg.sender, nxmIn);
     // TODO: use a custom function instead of sendPayout
@@ -140,63 +183,61 @@ contract Ramm is IRamm, MasterAwareV2 {
   }
 
   function removeBudget() external onlyGovernance {
-    budget = 0;
+    slot1.budget = 0;
   }
 
   /* ============== VIEWS ============= */
 
-  function getReserves(
+  function getReserves() external view returns (uint _ethReserve, uint nxmA, uint nxmB, uint _budget) {
+    uint capital = pool().getPoolValueInEth();
+    uint supply = tokenController().totalSupply();
+    State memory state = _getReserves(loadState(), capital, supply, block.timestamp);
+    return (state.eth, state.nxmA, state.nxmB, state.budget);
+  }
+
+  function _getReserves(
+    State memory state,
     uint capital,
     uint supply,
-    uint timestamp
-  ) public view returns (uint _ethReserve, uint nxmA, uint nxmB, uint _budget) {
+    uint currentTimestamp
+  ) public pure returns (State memory /* new state */) {
 
-    _ethReserve = ethReserve;
-    _budget = budget;
-    uint elapsed = timestamp - lastUpdateTimestamp;
-    uint timeLeftOnBudget = _budget * LIQ_SPEED_PERIOD / FAST_LIQUIDITY_SPEED;
+    uint eth = state.eth;
+    uint budget = state.budget;
 
-    if (_ethReserve < TARGET_LIQUIDITY) {
+    uint elapsed = currentTimestamp - state.timestamp;
+
+    if (eth < TARGET_LIQUIDITY) {
       // inject eth
-      uint maxInjectedAmount = TARGET_LIQUIDITY - _ethReserve;
-      uint injectedAmount;
+      uint timeLeftOnBudget = budget * LIQ_SPEED_PERIOD / FAST_LIQUIDITY_SPEED;
+      uint maxToInject = TARGET_LIQUIDITY - eth;
+      uint injected;
 
       if (elapsed <= timeLeftOnBudget) {
-
-        injectedAmount = Math.min(
-          elapsed * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD,
-          maxInjectedAmount
-        );
-
-        _budget -= injectedAmount;
-
+        injected = Math.min(elapsed * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD, maxToInject);
       } else {
-
-        uint injectedAmountOnBudget = timeLeftOnBudget * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD;
-        _budget = maxInjectedAmount < injectedAmountOnBudget ? _budget - maxInjectedAmount : 0;
-
-        uint injectedAmountWoBudget = (elapsed - timeLeftOnBudget) * LIQ_SPEED_B * 1 ether / LIQ_SPEED_PERIOD;
-        injectedAmount = Math.min(maxInjectedAmount, injectedAmountOnBudget + injectedAmountWoBudget);
+        uint injectedFast = timeLeftOnBudget * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD;
+        uint injectedSlow = (elapsed - timeLeftOnBudget) * LIQ_SPEED_B * 1 ether / LIQ_SPEED_PERIOD;
+        injected = Math.min(maxToInject, injectedFast + injectedSlow);
       }
 
-      _ethReserve += injectedAmount;
+      eth += injected;
+      budget = budget > injected ? budget - injected : 0;
 
     } else {
       // extract eth
-      uint extractedAmount = Math.min(
+      eth -= Math.min(
         elapsed * LIQ_SPEED_A * 1 ether / LIQ_SPEED_PERIOD,
-        _ethReserve - TARGET_LIQUIDITY // diff to target
+        eth - TARGET_LIQUIDITY // diff to target
       );
-
-      _ethReserve -= extractedAmount;
     }
 
-    // pi = eth / nxm
-    // pf = eth_new / nxm_new
-    // pf = eth_new /(nxm * _ethReserve / ethReserve)
-    // nxm_new = nxm * _ethReserve / ethReserve
-    nxmA = nxmReserveA * _ethReserve / ethReserve;
-    nxmB = nxmReserveB * _ethReserve / ethReserve;
+    // price_initial = eth / nxm
+    // price_final = eth_new / nxm_new
+    // price_final = eth_new /(nxm * eth / stateEthReserve)
+    // nxm_new = nxm * eth / stateEthReserve
+    uint nxmA = state.nxmA * eth / state.eth;
+    uint nxmB = state.nxmB * eth / state.eth;
 
     // apply ratchet above
     {
@@ -208,13 +249,13 @@ contract Ramm is IRamm, MasterAwareV2 {
       uint r = elapsed * RATCHET_SPEED_A;
       uint bufferedCapitalA = capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR;
 
-      if (bufferedCapitalA * nxmA + bufferedCapitalA * nxmA * r / RATCHET_PERIOD / RATCHET_DENOMINATOR > _ethReserve * supply) {
+      if (bufferedCapitalA * nxmA + bufferedCapitalA * nxmA * r / RATCHET_PERIOD / RATCHET_DENOMINATOR > eth * supply) {
         // use bv
-        nxmA = _ethReserve * supply / bufferedCapitalA;
+        nxmA = eth * supply / bufferedCapitalA;
       } else {
         // use ratchet
         uint nr_denom_addend = r * capital * nxmA / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR;
-        nxmA = _ethReserve * nxmA / (_ethReserve - nr_denom_addend);
+        nxmA = eth * nxmA / (eth - nr_denom_addend);
       }
     }
 
@@ -225,32 +266,33 @@ contract Ramm is IRamm, MasterAwareV2 {
       // ... <=>
       // cap * n < e * sup + r * cap * n
       uint bufferedCapitalB = capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR;
-      uint r;
-
-      if (elapsed <= timeLeftOnBudget) {
-        r = elapsed * FAST_RATCHET_SPEED;
-      } else {
-        r = (elapsed - timeLeftOnBudget) * RATCHET_SPEED_A + timeLeftOnBudget * FAST_RATCHET_SPEED;
-      }
 
       if (
-        bufferedCapitalB * nxmB < _ethReserve * supply + nxmB * capital * r / RATCHET_PERIOD / RATCHET_DENOMINATOR
+        bufferedCapitalB * nxmB < eth * supply + nxmB * capital * elapsed * RATCHET_SPEED_A / RATCHET_PERIOD / RATCHET_DENOMINATOR
       ) {
-        nxmB = _ethReserve * supply / bufferedCapitalB;
+        // use bv
+        nxmB = eth * supply / bufferedCapitalB;
       } else {
-        uint nr_denom_addend = nxmB * r * capital / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR;
-        nxmB = _ethReserve * nxmB / (_ethReserve + nr_denom_addend);
+        // use ratchet
+        uint nr_denom_addend = nxmB * elapsed * RATCHET_SPEED_A * capital / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR;
+        nxmB = eth * nxmB / (eth + nr_denom_addend);
       }
     }
 
-    return (_ethReserve, nxmA, nxmB, _budget);
+    return State(nxmA, nxmB, eth, budget, currentTimestamp);
   }
 
   function getSpotPrices() external view returns (uint spotPriceA, uint spotPriceB) {
+
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
-    (uint _ethReserve, uint nxmA, uint nxmB, /* budget */) = getReserves(capital, supply, block.timestamp);
-    return (1 ether * _ethReserve / nxmA, 1 ether * _ethReserve / nxmB);
+
+    State memory state = _getReserves(loadState(), capital, supply, block.timestamp);
+
+    return (
+      1 ether * state.eth / state.nxmA,
+      1 ether * state.eth / state.nxmB
+    );
   }
 
   function getBookValue() external view returns (uint bookValue) {
@@ -262,161 +304,171 @@ contract Ramm is IRamm, MasterAwareV2 {
   /* ========== ORACLE ========== */
 
   function observationIndexOf(uint timestamp) internal pure returns (uint index) {
-    return timestamp / PERIOD_SIZE % GRANULARITY;
+    return timestamp.divCeil(PERIOD_SIZE) % GRANULARITY;
   }
 
-  function getFirstObservationInWindow() internal view returns (Observation memory firstObservation) {
-    uint firstObservationStartTimestamp = (block.timestamp / PERIOD_SIZE - 2) * PERIOD_SIZE;
-    uint firstObservationIndex = observationIndexOf(firstObservationStartTimestamp);
-    firstObservation = observations[firstObservationIndex];
+  function getObservation(
+    State memory previousState,
+    State memory state,
+    Observation memory previousObservation,
+    uint capital,
+    uint supply
+  ) public pure returns (Observation memory) {
 
-    // is the read observation stale?
-    if (firstObservationStartTimestamp > firstObservation.timestamp) {
-      uint lastObservationIndex = observationIndexOf(lastUpdateTimestamp);
-      firstObservation = observations[lastObservationIndex];
-    }
-  }
+    // Formula to find out how much time it takes for ratchet price to hit BV + buffer
+    //
+    // for above:
+    // [(eth * supply - buffer * capital * nxm) * denom * period] / (capital * nxm * speed)
+    //
+    // for below:
+    // [(buffer * capital * nxm - eth * supply) * denom * period] / (capital * nxm * speed)
 
-  function calculateCumulativePrice(
-    CumulativePriceCalculationProps memory props,
-    uint bookValue
-  ) internal view returns (uint priceCumulativeAbove, uint priceCumulativeBelow) {
+    // average price
+    // pe - previous eth
+    // pn - previous nxm
+    // ce - current eth
+    // cn - current nxm
+    //
+    // P = (pe / pn + ce / cn) / 2
+    //   = (pe * cn + ce * pn) / (2 * pn * cn)
+    //
+    // cumulative price = P * time_on_ratchet
+    //  = (pe * cn + ce * pn) * time_on_ratchet / (2 * pn * cn)
 
-    uint lastObservationIndex = observationIndexOf(props.observationTimestamp);
-    Observation memory lastObservation = observations[lastObservationIndex];
-    CumulativePriceCalculationTimes memory times;
+    // cumulative price on bv +- buffer
+    // (time_total - time_on_ratchet) * bv * buffer
 
-    uint spotPriceAbove = props.previousEthReserve / props.previousNxmA;
-    uint spotPriceBelow = props.previousEthReserve / props.previousNxmB;
+    uint priceCumulativeAbove = previousObservation.priceCumulativeAbove;
+    uint priceCumulativeBelow = previousObservation.priceCumulativeBelow;
 
-    times.secondsUntilBVAbove = (spotPriceAbove / bookValue - 1) * RATCHET_PERIOD / props.ratchetSpeedA / RATCHET_PERIOD;
-    times.secondsUntilBVBelow = (1 - spotPriceBelow / bookValue) * RATCHET_PERIOD / props.ratchetSpeedB / RATCHET_PERIOD;
+    uint timeOnRatchetA;
+    uint timeOnRatchetB;
 
-    times.timeElapsed = props.observationTimestamp - props.previousTimestamp;
-    times.bvTimeBelow = times.timeElapsed > times.secondsUntilBVBelow ? times.timeElapsed - times.secondsUntilBVBelow : 0;
-    times.bvTimeAbove = times.timeElapsed > times.secondsUntilBVAbove ? times.timeElapsed - times.secondsUntilBVAbove : 0;
-    times.ratchetTimeBelow = times.timeElapsed - times.bvTimeBelow;
-    times.ratchetTimeAbove = times.timeElapsed - times.bvTimeAbove;
+    { // above
+      uint innerLeft = previousState.eth * supply;
+      uint innerRight = (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) * capital * previousState.nxmA / PRICE_BUFFER_DENOMINATOR;
 
-    priceCumulativeAbove = lastObservation.priceCumulativeAbove
-      + (spotPriceAbove + props.currentEthReserve / props.currentNxmA) * times.ratchetTimeAbove / 2
-      + props.currentEthReserve / props.currentNxmB * times.bvTimeAbove;
+      // on ratchet
+      if (innerLeft > innerRight) {
+        uint inner = innerLeft - innerRight;
+        timeOnRatchetA = inner * RATCHET_DENOMINATOR * RATCHET_PERIOD / capital / previousState.nxmA / RATCHET_SPEED_A;
 
-    priceCumulativeBelow = lastObservation.priceCumulativeBelow
-      + (spotPriceBelow + props.currentEthReserve / props.currentNxmB) * times.ratchetTimeBelow / 2
-      + props.currentEthReserve / props.currentNxmB * times.bvTimeBelow;
-  }
+        // cumulative price above
+        uint cpa = (previousState.eth * state.nxmA + state.eth * previousState.nxmA) * timeOnRatchetA / previousState.nxmA / state.nxmA / 2;
+        priceCumulativeAbove += cpa;
+      }
 
-  function updateTwap(uint capital, uint supply) internal {
-    /*
-    bookValue = capacity / supply
-    currentSpotPrice = currentEthReserve / currentNxmReserve
-    prevSpotPrice = prevEthReserve / prevNxmReserve
-    ratchetSpeed is x% perDat of bookValue
-    prevSpotPrice / bookvalue -> 1.50; / above
-    abs(1 - 1.5) * RATCHET_PERIOD / ratchetSpeed / RATCHET_DENOMINATOR -> number of seconds for spot till bv reach
-    */
-    CumulativePriceCalculationProps memory calculationProps;
-    calculationProps.previousEthReserve = ethReserve;
-    calculationProps.previousNxmA = nxmReserveA;
-    calculationProps.previousNxmB = nxmReserveB;
-    calculationProps.previousTimestamp = lastUpdateTimestamp;
-    calculationProps.ratchetSpeedA = RATCHET_SPEED_A;
-    calculationProps.ratchetSpeedB = RATCHET_SPEED_B;
-    uint observationIndex;
-    uint missingPeriods = Math.min((block.timestamp - calculationProps.previousTimestamp) / PERIOD_SIZE, 2);
-
-    for (uint i = missingPeriods; i > 0; i--) {
-      // 1st second of the period
-      uint observationTimestamp = (block.timestamp / PERIOD_SIZE - i) * PERIOD_SIZE;
-      calculationProps.observationTimestamp = observationTimestamp;
-      observationIndex = observationIndexOf(observationTimestamp);
-
-      // TODO: capital and supply could have changed
-      (
-        calculationProps.currentEthReserve,
-        calculationProps.currentNxmA,
-        calculationProps.currentNxmB,
-      ) = getReserves(capital, supply, observationTimestamp);
-
-      (
-        uint _priceCumulativeAbove,
-        uint _priceCumulativeBelow
-      ) = calculateCumulativePrice(calculationProps, 1 ether * capital / supply);
-
-      // uint64 cast overflow is desired
-      observations[observationIndex].priceCumulativeAbove = uint64(_priceCumulativeAbove);
-      observations[observationIndex].priceCumulativeBelow = uint64(_priceCumulativeBelow);
-      observations[observationIndex].timestamp = uint32(observationTimestamp);
-
-      calculationProps.previousTimestamp = observationTimestamp;
-      calculationProps.previousEthReserve = calculationProps.currentEthReserve;
-      calculationProps.previousNxmA = calculationProps.currentNxmA;
-      calculationProps.previousNxmB = calculationProps.currentNxmB;
+      // on bv
+      uint timeOnBV = state.timestamp - previousState.timestamp - timeOnRatchetA;
+      priceCumulativeAbove += timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / supply / PRICE_BUFFER_DENOMINATOR;
     }
 
-    calculationProps.observationTimestamp = block.timestamp;
-    (
-      calculationProps.currentEthReserve,
-      calculationProps.currentNxmA,
-      calculationProps.currentNxmB,
-    ) = getReserves(capital, supply, block.timestamp);
+    { // below
+      uint innerLeft = (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) * capital * previousState.nxmB / PRICE_BUFFER_DENOMINATOR;
+      uint innerRight = previousState.eth * supply;
 
-    (
-      uint priceCumulativeAbove,
-      uint priceCumulativeBelow
-    ) = calculateCumulativePrice(calculationProps, 1 ether * capital / supply);
+      // on ratchet
+      if (innerLeft > innerRight) {
+        uint inner = innerLeft - innerRight;
+        timeOnRatchetB = inner * RATCHET_DENOMINATOR * RATCHET_PERIOD / capital / previousState.nxmB / RATCHET_SPEED_B;
 
-    observationIndex = observationIndexOf(block.timestamp);
-    // uint64 cast overflow is desired
-    observations[observationIndex].priceCumulativeAbove = uint64(priceCumulativeAbove);
-    observations[observationIndex].priceCumulativeBelow = uint64(priceCumulativeBelow);
-    observations[observationIndex].timestamp = uint32(block.timestamp);
+        // cumulative price below
+        uint cpb = (previousState.eth * state.nxmB + state.eth * previousState.nxmB) * timeOnRatchetB / previousState.nxmB / state.nxmB / 2;
+        priceCumulativeBelow += cpb;
+      }
+
+      // on bv
+      uint timeOnBV = state.timestamp - previousState.timestamp - timeOnRatchetB;
+      priceCumulativeBelow += timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / supply / PRICE_BUFFER_DENOMINATOR;
+    }
+
+    return Observation(
+      previousState.timestamp.toUint32(),
+      // casting unsafely to allow overflow
+      uint64(priceCumulativeAbove),
+      uint64(priceCumulativeBelow)
+    );
   }
 
-  function getInternalPrice() external view returns (uint price) {
-    Observation memory firstObservation = getFirstObservationInWindow();
-    CumulativePriceCalculationProps memory calculationProps;
+  function updateTwap(
+    State memory initialState,
+    Observation[3] memory _observations,
+    uint currentStateTimestamp,
+    uint capital,
+    uint supply
+  ) public pure returns (Observation[3] memory) {
 
-    calculationProps.previousEthReserve = ethReserve;
-    calculationProps.previousNxmA = nxmReserveA;
-    calculationProps.previousNxmB = nxmReserveB;
-    calculationProps.previousTimestamp = lastUpdateTimestamp;
-    calculationProps.observationTimestamp = block.timestamp;
-    calculationProps.ratchetSpeedA = RATCHET_SPEED_A;
-    calculationProps.ratchetSpeedB = RATCHET_SPEED_B;
+    uint oldestObservationIndex = observationIndexOf(initialState.timestamp);
+    uint endIdx = currentStateTimestamp.divCeil(PERIOD_SIZE);
+
+    State memory previousState = initialState;
+    Observation memory previousObservation = _observations[oldestObservationIndex];
+    Observation[3] memory newObservations;
+
+    for (uint idx = endIdx - 2; idx <= endIdx; idx++) {
+      uint observationTimestamp = Math.min(currentStateTimestamp, idx * PERIOD_SIZE);
+      uint observationIndex = idx % GRANULARITY;
+
+      if (observationTimestamp <= previousState.timestamp) {
+        newObservations[observationIndex] = _observations[observationIndex].clone();
+        continue;
+      }
+
+      State memory state = _getReserves(previousState, capital, supply, observationTimestamp);
+
+      newObservations[observationIndex] = getObservation(
+        previousState,
+        state,
+        previousObservation,
+        capital,
+        supply
+      );
+
+      previousState = state;
+      previousObservation = newObservations[observationIndex];
+    }
+
+    return newObservations;
+  }
+
+  function getInternalPrice() external returns (uint price) {
 
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
 
-    (
-      calculationProps.currentEthReserve,
-      calculationProps.currentNxmA,
-      calculationProps.currentNxmB,
-    ) = getReserves(capital, supply, block.timestamp);
+    State memory initialState = loadState();
+    Observation[3] memory _observations = observations;
 
-    //   10    11    12    13    14    15    16    17
-    //   |-----|x----|--y--|-----|-----|--y--|-----|
-    //      0     1     2     0     1     2     0
+    // current state
+    State memory state = _getReserves(initialState, capital, supply, block.timestamp);
+    _observations = updateTwap(initialState, _observations, block.timestamp, capital, supply);
 
-    (
-      uint currentPriceCumulativeAbove,
-      uint currentPriceCumulativeBelow
-    ) = calculateCumulativePrice(calculationProps, 1 ether * capital / supply);
+    uint currentIdx = observationIndexOf(block.timestamp);
+    // index of first observation in window = current - 2
+    // adding 1 and applying modulo gives the same result avoiding underflow
+    uint previousIdx = (currentIdx + 1) % GRANULARITY;
 
-    uint timeElapsed = block.timestamp - firstObservation.timestamp;
+    Observation memory firstObservation = _observations[previousIdx];
+    Observation memory currentObservation = _observations[currentIdx];
 
-    uint twapPriceAbove = (currentPriceCumulativeAbove - firstObservation.priceCumulativeAbove) / timeElapsed;
-    uint twapPricBelow = (currentPriceCumulativeBelow - firstObservation.priceCumulativeBelow) / timeElapsed;
+    uint spotPriceA = 1 ether * state.eth / state.nxmA;
+    uint spotPriceb = 1 ether * state.eth / state.nxmB;
 
-    uint spotPriceAbove = calculationProps.currentEthReserve / calculationProps.currentNxmA;
-    uint spotPriceBelow = calculationProps.currentEthReserve / calculationProps.currentNxmB;
+    uint elapsed = block.timestamp - firstObservation.timestamp;
 
-    uint priceAbove = Math.min(twapPriceAbove, spotPriceAbove);
-    uint priceBelow = Math.max(twapPricBelow, spotPriceBelow);
+    uint averagePriceA;
+    uint averagePriceB;
 
-    uint bookValue = 1 ether * capital / supply;
-    return priceAbove - priceBelow - bookValue;
+    // underflow is desired
+    unchecked {
+      averagePriceA = (currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) / elapsed;
+      averagePriceB = (currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) / elapsed;
+    }
+
+    uint priceA = Math.min(averagePriceA, spotPriceA);
+    uint priceB = Math.max(averagePriceB, spotPriceb);
+
+    return priceA - priceB - 1 ether * capital / supply;
   }
 
   /* ========== DEPENDENCIES ========== */
@@ -438,14 +490,12 @@ contract Ramm is IRamm, MasterAwareV2 {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
 
-    if (lastUpdateTimestamp == 0) {
-      initialize();
-    }
+    initialize();
   }
 
   function initialize() internal {
 
-    require(lastUpdateTimestamp == 0, "ALREADY_INITIALIZED");
+    require(slot1.updatedAt == 0, "ALREADY_INITIALIZED");
 
     // TODO: hardcode the initial values - this is a proxy and there's no other way to pass them
     uint spotPriceA;
@@ -453,11 +503,11 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint initialLiquidity;
     uint initialBudget;
 
-    lastUpdateTimestamp = uint32(block.timestamp);
-    ethReserve = initialLiquidity.toUint112();
-    budget = initialBudget.toUint80();
+    slot1.updatedAt = block.timestamp.toUint32();
+    slot1.ethReserve = initialLiquidity.toUint128();
+    slot1.budget = initialBudget.toUint96();
 
-    nxmReserveA = (initialLiquidity * 1 ether / spotPriceA).toUint96();
-    nxmReserveB = (initialLiquidity * 1 ether / spotPriceB).toUint96();
+    slot0.nxmReserveA = (initialLiquidity * 1 ether / spotPriceA).toUint128();
+    slot0.nxmReserveB = (initialLiquidity * 1 ether / spotPriceB).toUint128();
   }
 }

@@ -55,6 +55,7 @@ const allocationRequestParams = {
   capacityReductionRatio: 0,
   rewardRatio: 5000,
   globalMinPrice: 10000,
+  extraPeriod: 0,
 };
 
 const buyCoverParamsTemplate = {
@@ -104,6 +105,33 @@ const product3 = {
 
 const poolId = 1;
 const trancheOffset = 5;
+
+function calculateEditPremium({
+  existingAmount,
+  increasedAmount,
+  targetPriceRatio,
+  period,
+  priceDenominator,
+  extraPeriod = BigNumber.from(0),
+}) {
+  const premium = increasedAmount
+    .mul(targetPriceRatio)
+    .mul(period)
+    .div(priceDenominator)
+    .div(3600 * 24 * 365);
+
+  const remainingPeriod = BigNumber.from(period).sub(extraPeriod);
+  const extraAmount = increasedAmount.sub(existingAmount);
+
+  const extraPremium = premium
+    .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
+    .mul(remainingPeriod)
+    .div(increasedAmount)
+    .div(period)
+    .add(premium.mul(extraPeriod).div(period));
+
+  return extraPremium;
+}
 
 async function requestAllocationSetup() {
   const fixture = await loadFixture(setup);
@@ -183,6 +211,7 @@ describe('requestAllocation', function () {
       capacityReductionRatio: coverProductTemplate.capacityReductionRatio,
       rewardRatio: GLOBAL_REWARDS_RATIO,
       globalMinPrice: GLOBAL_MIN_PRICE_RATIO,
+      extraPeriod: 0,
     };
 
     await cover.requestAllocation(buyCoverParamsTemplate.amount, 0, request, stakingPool.address);
@@ -267,6 +296,91 @@ describe('requestAllocation', function () {
       );
       expect(product.bumpedPrice).to.be.equal(initialPrice.add(priceBump));
     }
+  });
+
+  it('should correctly calculate the premium for extending an existing allocation', async function () {
+    const fixture = await loadFixture(requestAllocationSetup);
+    const { stakingProducts, stakingPool, cover } = fixture;
+    const {
+      GLOBAL_CAPACITY_RATIO,
+      NXM_PER_ALLOCATION_UNIT,
+      INITIAL_PRICE_DENOMINATOR,
+      GLOBAL_MIN_PRICE_RATIO,
+      GLOBAL_REWARDS_RATIO,
+    } = fixture.config;
+
+    const product = await stakingProducts.getProduct(poolId, productId);
+    const initialPrice = BigNumber.from(coverProductTemplate.initialPriceRatio);
+    expect(product.bumpedPrice).to.be.equal(initialPrice);
+
+    const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
+      buyCoverParamsTemplate.productId,
+      GLOBAL_CAPACITY_RATIO,
+      coverProductTemplate.capacityReductionRatio,
+    );
+
+    const priceBump = calculatePriceBump(
+      buyCoverParamsTemplate.amount,
+      fixture.config.PRICE_BUMP_RATIO,
+      totalCapacity,
+      NXM_PER_ALLOCATION_UNIT,
+    );
+
+    // buy cover and check premium + new price
+    const buyCoverParams = { ...buyCoverParamsTemplate, period: daysToSeconds(365) };
+    await cover.allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address);
+    const bumpedPriceAfterBuy = initialPrice.add(priceBump);
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+
+    const extraPeriod = daysToSeconds(10);
+
+    const request = {
+      // AllocationRequest struct
+      productId: buyCoverParamsTemplate.productId,
+      coverId: buyCoverParamsTemplate.coverId,
+      allocationId: 0,
+      period: buyCoverParamsTemplate.period,
+      gracePeriod: daysToSeconds(7),
+      useFixedPrice: coverProductTemplate.useFixedPrice,
+      previousStart: timestamp,
+      previousExpiration: timestamp + buyCoverParamsTemplate.period,
+      previousRewardsRatio: 1,
+      globalCapacityRatio: GLOBAL_CAPACITY_RATIO,
+      capacityReductionRatio: coverProductTemplate.capacityReductionRatio,
+      rewardRatio: GLOBAL_REWARDS_RATIO,
+      globalMinPrice: GLOBAL_MIN_PRICE_RATIO,
+      extraPeriod,
+    };
+
+    const increasedAmount = buyCoverParamsTemplate.amount.mul(2);
+    const previousAllocationAmountRepriced = buyCoverParamsTemplate.amount;
+
+    await cover
+      .connect(fixture.coverSigner)
+      .requestAllocation(increasedAmount, previousAllocationAmountRepriced, request, stakingPool.address);
+
+    const expectedEditPremium = calculateEditPremium({
+      existingAmount: previousAllocationAmountRepriced,
+      increasedAmount,
+      targetPriceRatio: bumpedPriceAfterBuy,
+      period: buyCoverParamsTemplate.period,
+      priceDenominator: INITIAL_PRICE_DENOMINATOR,
+      extraPeriod,
+    });
+
+    expect(await cover.lastPremium()).to.be.equal(expectedEditPremium);
+
+    const productAfterEdit = await stakingProducts.getProduct(poolId, productId);
+
+    const priceBumpAfterEdit = calculatePriceBump(
+      increasedAmount,
+      fixture.config.PRICE_BUMP_RATIO,
+      totalCapacity,
+      NXM_PER_ALLOCATION_UNIT,
+    );
+
+    expect(productAfterEdit.bumpedPrice).to.be.equal(bumpedPriceAfterBuy.add(priceBumpAfterEdit));
   });
 
   it('should correctly calculate the premium using the initial price', async function () {
@@ -952,7 +1066,7 @@ describe('requestAllocation', function () {
     }
   });
 
-  it('removes and burns previous NXM premium in case of update', async function () {
+  it('adds extra premium and rewards when doubling the amount allocation', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool, cover, tokenController, nxm } = fixture;
     const [user] = fixture.accounts.members;
@@ -1003,32 +1117,46 @@ describe('requestAllocation', function () {
 
     const previousExpiration = firstAllocationBlock.timestamp + allocationRequestParams.period;
 
+    const secondAllocationBlockBeforeEdit = await ethers.provider.getBlock('latest');
+    const period =
+      allocationRequestParams.period - (secondAllocationBlockBeforeEdit.timestamp - firstAllocationBlock.timestamp);
+
+    const coverAmountInNXMOldRepriced = amount;
+
+    const newAmount = amount.mul(2);
+
+    const tcBalanceBeforeEdit = await nxm.balanceOf(tokenController.address);
+
     await cover.requestAllocation(
-      amount,
-      premium,
+      newAmount,
+      coverAmountInNXMOldRepriced,
       {
         ...allocationRequestParams,
         previousStart: firstAllocationBlock.timestamp,
         previousExpiration,
-        period: 0, // set period to 0 so premium is 0
+        period,
       },
       stakingPool.address,
     );
 
     const secondAllocationBlock = await ethers.provider.getBlock('latest');
-    const expectedBurnedRewards = expectedRewardPerSecond.mul(
-      expirationBucket * BUCKET_DURATION - secondAllocationBlock.timestamp,
-    );
-
     {
+      // edit rewards
+      const premiumForEdit = await cover.lastPremium();
+
+      const rewardStreamPeriodForEdit = expirationBucket * BUCKET_DURATION - secondAllocationBlock.timestamp;
+      const rewardsForEdit = premiumForEdit.mul(rewardRatio).div(REWARDS_DENOMINATOR);
+      const expectedRewardPerSecondForEdit = rewardsForEdit.div(rewardStreamPeriodForEdit);
+      const expectedRewards = expectedRewardPerSecondForEdit.mul(rewardStreamPeriodForEdit);
+
       const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
-      expect(tcBalanceAfter).to.equal(tcBalanceBefore.add(expectedRewards).sub(expectedBurnedRewards));
+      expect(tcBalanceAfter).to.equal(tcBalanceBeforeEdit.add(expectedRewards));
 
       const rewardPerSecond = await stakingPool.getRewardPerSecond();
-      expect(rewardPerSecond).to.equal(0);
+      expect(rewardPerSecond).to.equal(expectedRewardPerSecond.add(expectedRewardPerSecondForEdit));
 
       const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
-      expect(rewardPerSecondCut).to.equal(0);
+      expect(rewardPerSecondCut).to.equal(expectedRewardPerSecond.add(expectedRewardPerSecondForEdit));
     }
   });
 

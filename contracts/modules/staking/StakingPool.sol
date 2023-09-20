@@ -609,9 +609,34 @@ contract StakingPool is IStakingPool, Multicall {
     return (withdrawnStake, withdrawnRewards);
   }
 
+  /**
+   * @dev Requests allocation for a cover.
+   * This function is used to request allocation for a new cover or to edit an existing one.
+   * It calculates the premium for the cover and mints rewards based on the premium.
+   * The function also handles deallocation requests.
+   *
+   * In the case of a new cover request.period is the total period of the allocation.
+   *
+   * In the case of an edit, remainingPeriod is the period left from the previous segment,
+   * request.extraPeriod is what is added on top of the previous segment, and request.period is the
+   * total period of the new segment.
+   *
+   * old segment end before edit ->|       new segment end ->|
+   * [----remainingPeriod---------][---request.extraPeriod---]
+   * [-------------request.period----------------------------]
+   * | <- new segment start
+   * @param amount The amount of cover to be allocated.
+   * @param previousAllocationAmountRepriced The amount of the previous allocation,
+            repriced in NXM at current NXM price
+   * @param request A struct containing details about the allocation request.
+   *
+   * @return premium The total premium to be paid for the allocation.
+   * @return allocationId The ID of the allocation.
+   *
+   */
   function requestAllocation(
     uint amount,
-    uint previousPremium,
+    uint previousAllocationAmountRepriced,
     AllocationRequest calldata request
   ) external onlyCoverContract returns (uint premium, uint allocationId) {
 
@@ -638,6 +663,7 @@ contract StakingPool is IStakingPool, Multicall {
     // we are only deallocating
     // rewards streaming is left as is
     if (amount == 0) {
+
       // store deallocated amount
       updateStoredAllocations(
         request.productId,
@@ -651,18 +677,59 @@ contract StakingPool is IStakingPool, Multicall {
       return (0, 0);
     }
 
-    uint coverAllocationAmount;
-    uint initialCapacityUsed;
-    uint totalCapacity;
+    RequestAllocationVariables memory vars;
+    // in the edit case, trancheAllocations are the allocations without the existing ones from
+    // request.allocationId and thus previous allocations are cleared and everything is reallocated
     (
-      coverAllocationAmount,
-      initialCapacityUsed,
-      totalCapacity,
+      vars.coverAllocationAmount,
+      vars.initialCapacityUsed,
+      vars.totalCapacity,
       allocationId
-    ) = allocate(amount, request, trancheAllocations);
+    ) = allocate(amount, request.period, request, trancheAllocations);
 
-    // the returned premium value has 18 decimals
-    premium = stakingProducts.getPremium(
+    premium = getPremium(
+        amount,
+      previousAllocationAmountRepriced,
+        vars.coverAllocationAmount,
+        vars.initialCapacityUsed,
+        vars.totalCapacity,
+        request
+      );
+
+    // add new rewards
+    {
+      if (request.rewardRatio > REWARDS_DENOMINATOR) {
+        revert RewardRatioTooHigh();
+      }
+
+      uint expirationBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
+
+      uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
+      uint _rewardPerSecond = (premium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
+
+      // store
+      rewardPerSecondCut[expirationBucket] += _rewardPerSecond;
+      rewardPerSecond += _rewardPerSecond.toUint96();
+
+      uint rewardsToMint = _rewardPerSecond * rewardStreamPeriod;
+
+      tokenController.mintStakingPoolNXMRewards(rewardsToMint, poolId);
+    }
+
+    return (premium, allocationId);
+  }
+
+  function getPremium(
+    uint amount,
+    uint previousAllocationAmountRepriced,
+    uint coverAllocationAmount,
+    uint initialCapacityUsed,
+    uint totalCapacity,
+    AllocationRequest calldata request
+  ) internal returns (uint premium) {
+
+    // totalPremium is the premium for the entire new period and the entire new amount
+    uint totalPremium = stakingProducts.getPremium(
       poolId,
       request.productId,
       request.period,
@@ -675,42 +742,21 @@ contract StakingPool is IStakingPool, Multicall {
       ALLOCATION_UNITS_PER_NXM
     );
 
-    // add new rewards
-    {
-      if (request.rewardRatio > REWARDS_DENOMINATOR) {
-        revert RewardRatioTooHigh();
-      }
+    uint remainingPeriod = request.period - request.extraPeriod;
 
-      uint expirationBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
-      uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
-      uint _rewardPerSecond = (premium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
+    uint extraAmount = amount > previousAllocationAmountRepriced ? amount - previousAllocationAmountRepriced : 0;
 
-      // store
-      rewardPerSecondCut[expirationBucket] += _rewardPerSecond;
-      rewardPerSecond += _rewardPerSecond.toUint96();
-
-      uint rewardsToMint = _rewardPerSecond * rewardStreamPeriod;
-      tokenController.mintStakingPoolNXMRewards(rewardsToMint, poolId);
-    }
-
-    // remove previous rewards
-    if (previousPremium > 0) {
-
-      uint prevRewards = previousPremium * request.previousRewardsRatio / REWARDS_DENOMINATOR;
-      uint prevExpirationBucket = Math.divCeil(request.previousExpiration, BUCKET_DURATION);
-      uint rewardStreamPeriod = prevExpirationBucket * BUCKET_DURATION - request.previousStart;
-      uint prevRewardsPerSecond = prevRewards / rewardStreamPeriod;
-
-      // store
-      rewardPerSecondCut[prevExpirationBucket] -= prevRewardsPerSecond;
-      rewardPerSecond -= prevRewardsPerSecond.toUint96();
-
-      // prevRewardsPerSecond * rewardStreamPeriodLeft
-      uint rewardsToBurn = prevRewardsPerSecond * (prevExpirationBucket * BUCKET_DURATION - block.timestamp);
-      tokenController.burnStakingPoolNXMRewards(rewardsToBurn, poolId);
-    }
-
-    return (premium, allocationId);
+    /*
+      New Allocation Case - premium == totalPremium
+      Edit Allocation Case - add the following:
+        1. the premium for the extra amount added to the remaining period
+           totalPremium * extraAmount * remainingPeriod / request.period / amount
+        2. the premium for the extra period added applied to the total amount
+           totalPremium * request.extraPeriod / request.period
+    */
+    premium =
+      totalPremium * extraAmount * remainingPeriod / request.period / amount +
+      totalPremium * request.extraPeriod / request.period;
   }
 
   function getActiveAllocationsWithoutCover(
@@ -903,6 +949,7 @@ contract StakingPool is IStakingPool, Multicall {
 
   function allocate(
     uint amount,
+    uint period,
     AllocationRequest calldata request,
     uint[] memory trancheAllocations
   ) internal returns (
@@ -924,7 +971,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint[] memory coverAllocations = new uint[](MAX_ACTIVE_TRANCHES);
 
     {
-      uint firstTrancheIdToUse = (block.timestamp + request.period + request.gracePeriod) / TRANCHE_DURATION;
+      uint firstTrancheIdToUse = (block.timestamp + period + request.gracePeriod) / TRANCHE_DURATION;
       uint startIndex = firstTrancheIdToUse - _firstActiveTrancheId;
 
       uint[] memory trancheCapacities = getTrancheCapacities(
@@ -1002,7 +1049,7 @@ contract StakingPool is IStakingPool, Multicall {
     updateExpiringCoverAmounts(
       request.productId,
       _firstActiveTrancheId,
-      Math.divCeil(block.timestamp + request.period, BUCKET_DURATION), // targetBucketId
+      Math.divCeil(block.timestamp + period, BUCKET_DURATION), // targetBucketId
       coverAllocations,
       true // isAllocation
     );

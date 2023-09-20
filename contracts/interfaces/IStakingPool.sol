@@ -18,6 +18,7 @@ struct AllocationRequest {
   uint capacityReductionRatio;
   uint rewardRatio;
   uint globalMinPrice;
+  uint32 extraPeriod;
 }
 
 struct StakedProductParam {
@@ -62,6 +63,12 @@ interface IStakingPool {
     uint128 rewardsShares;
   }
 
+  struct RequestAllocationVariables {
+    uint coverAllocationAmount;
+    uint initialCapacityUsed;
+    uint totalCapacity;
+  }
+
   function initialize(
     bool isPrivatePool,
     uint initialPoolFee,
@@ -74,7 +81,7 @@ interface IStakingPool {
 
   function requestAllocation(
     uint amount,
-    uint previousPremium,
+    uint previousAllocationAmountRepriced,
     AllocationRequest calldata request
   ) external returns (uint premium, uint allocationId);
 

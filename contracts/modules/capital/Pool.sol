@@ -409,86 +409,11 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     uint currentTotalAssetValue,
     uint mcrEth
   ) public pure returns (uint) {
-
-    require(
-      ethAmount <= mcrEth * MAX_BUY_SELL_MCR_ETH_FRACTION / (10 ** MCR_RATIO_DECIMALS),
-      "Pool: Purchases worth higher than 5% of MCReth are not allowed"
-    );
-
-    /*
-      The price formula is:
-      P(V) = A + MCReth / C *  MCR% ^ 4
-      where MCR% = V / MCReth
-      P(V) = A + 1 / (C * MCReth ^ 3) *  V ^ 4
-
-      To compute the number of tokens issued we can integrate with respect to V the following:
-        ΔT = ΔV / P(V)
-        which assumes that for an infinitesimally small change in locked value V price is constant and we
-        get an infinitesimally change in token supply ΔT.
-      This is not computable on-chain, below we use an approximation that works well assuming
-       * MCR% stays within [100%, 400%]
-       * ethAmount <= 5% * MCReth
-
-      Use a simplified formula excluding the constant A price offset to compute the amount of tokens to be minted.
-      AdjustedP(V) = 1 / (C * MCReth ^ 3) *  V ^ 4
-      AdjustedP(V) = 1 / (C * MCReth ^ 3) *  V ^ 4
-
-      For a very small variation in tokens ΔT, we have,  ΔT = ΔV / P(V), to get total T we integrate with respect to V.
-      adjustedTokenAmount = ∫ (dV / AdjustedP(V)) from V0 (currentTotalAssetValue) to V1 (nextTotalAssetValue)
-      adjustedTokenAmount = ∫ ((C * MCReth ^ 3) / V ^ 4 * dV) from V0 to V1
-      Evaluating the above using the antiderivative of the function we get:
-      adjustedTokenAmount = - MCReth ^ 3 * C / (3 * V1 ^3) + MCReth * C /(3 * V0 ^ 3)
-    */
-
-    if (currentTotalAssetValue == 0 || mcrEth / currentTotalAssetValue > 1e12) {
-      /*
-       If the currentTotalAssetValue = 0, adjustedTokenPrice approaches 0. Therefore we can assume the price is A.
-       If currentTotalAssetValue is far smaller than mcrEth, MCR% approaches 0, let the price be A (baseline price).
-       This avoids overflow in the calculateIntegralAtPoint computation.
-       This approximation is safe from arbitrage since at MCR% < 100% no sells are possible.
-      */
-      return ethAmount * 1e18 / CONSTANT_A;
-    }
-
-    // MCReth * C /(3 * V0 ^ 3)
-    uint point0 = calculateIntegralAtPoint(currentTotalAssetValue, mcrEth);
-    // MCReth * C / (3 * V1 ^3)
-    uint nextTotalAssetValue = currentTotalAssetValue + ethAmount;
-    uint point1 = calculateIntegralAtPoint(nextTotalAssetValue, mcrEth);
-    uint adjustedTokenAmount = point0 - point1;
-    /*
-      Compute a preliminary adjustedTokenPrice for the minted tokens based on the adjustedTokenAmount above,
-      and to that add the A constant (the price offset previously removed in the adjusted Price formula)
-      to obtain the finalPrice and ultimately the tokenValue based on the finalPrice.
-
-      adjustedPrice = ethAmount / adjustedTokenAmount
-      finalPrice = adjustedPrice + A
-      tokenValue = ethAmount  / finalPrice
-    */
-    // ethAmount is multiplied by 1e18 to cancel out the multiplication factor of 1e18 of the adjustedTokenAmount
-    uint adjustedTokenPrice = ethAmount * 1e18 / adjustedTokenAmount;
-    uint tokenPrice = adjustedTokenPrice + CONSTANT_A;
-
+    (, uint tokenPrice) = ramm().getSpotPrices();
     return ethAmount * 1e18 / tokenPrice;
   }
 
-  /**
-   * @dev integral(V) =  MCReth ^ 3 * C / (3 * V ^ 3) * 1e18
-   * computation result is multiplied by 1e18 to allow for a precision of 18 decimals.
-   * NOTE: omits the minus sign of the correct integral to use a uint result type for simplicity
-   * WARNING: this low-level function should be called from a contract which checks that
-   * mcrEth / assetValue < 1e17 (no overflow) and assetValue != 0
-   */
-  function calculateIntegralAtPoint(
-    uint assetValue,
-    uint mcrEth
-  ) internal pure returns (uint) {
-    return CONSTANT_C * 1e18 / 3 * mcrEth / assetValue * mcrEth / assetValue * mcrEth / assetValue;
-  }
-
   function getEthForNXM(uint nxmAmount) public override view returns (uint ethAmount) {
-    uint currentTotalAssetValue = getPoolValueInEth();
-    uint mcrEth = mcr().getMCR();
     (uint sportPriceA, ) = ramm().getSpotPrices();
     return nxmAmount * sportPriceA / 1e18;
   }
@@ -508,7 +433,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     uint mcrEth
   ) public override pure returns (uint tokenPrice) {
 
-    (, uint tokenPrice) = ramm().getSpotPrices();
+    (, tokenPrice) = ramm().getSpotPrices();
     return tokenPrice;
   }
 

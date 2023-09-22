@@ -27,7 +27,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   // parameters
   IPriceFeedOracle public override priceFeedOracle;
-  IPool public override previousPool;
+  IPool public previousPool;
   address public swapOperator;
 
   uint96 public swapValue;
@@ -327,7 +327,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   /// this number.
   ///
   function buyNXM(uint minTokensOut) public override payable onlyMember whenNotPaused {
-    ramm().swap{value: msg.value}();
+    ramm().swap{value: msg.value}(0);
     return;
   }
 
@@ -341,9 +341,9 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     uint tokenAmount,
     uint minEthOut
   ) public override onlyMember nonReentrant whenNotPaused {
-    uint ethOut = ramm().swap(tokenAmount);
-    // TODO: remove aftrer minEthOut is implemented in Ramm
-    require(ethOut >= minEthOut, "Pool: ETH out < minEthOut");
+    ramm().swap(tokenAmount);
+    // TODO: remove after minEthOut is implemented in Ramm left for reference
+//    require(ethOut >= minEthOut, "Pool: ETH out < minEthOut");
   }
 
   /* ========== TOKEN RELATED VIEW FUNCTIONS ========== */
@@ -525,20 +525,17 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     }
 
     // copy over values
-    swapOperator = previousPool.swapOperator();
-    swapValue = previousPool.swapValue();
-    priceFeedOracle = previousPool.priceFeedOracle();
+    swapValue = uint96(previousPool.swapValue());
 
     // copy over assets and swap details
-    uint assetCount = previousPool.assets().length;
+    Asset[] memory oldAssets = previousPool.getAssets();
 
-    for (uint i = 1; i < assetCount; i++) {
-      address assetAddress = previousPool.assets(i).assetAddress;
+    for (uint i = 1; i < oldAssets.length; i++) {
+      address assetAddress = oldAssets[i].assetAddress;
       if (assetAddress != ETH) {
-        swapDetails[assetAddress] = previousPool.swapDetails(assetAddress);
+        swapDetails[assetAddress] = previousPool.getAssetSwapDetails(assetAddress);
       }
-      Asset memory asset = previousPool.assets(i);
-      assets.push(asset);
+      assets.push(oldAssets[i]);
     }
 
     previousPool = IPool(address(0));

@@ -48,8 +48,6 @@ interface IPool {
 
   function getEthForNXM(uint nxmAmount) external view returns (uint ethAmount);
 
-  function calculateEthForNXM(uint nxmAmount, uint currentTotalAssetValue, uint mcrEth) external pure returns (uint);
-
   function calculateMCRRatio(uint totalAssetValue, uint mcrEth) external pure returns (uint);
 
   function calculateTokenSpotPrice(uint totalAssetValue, uint mcrEth) external pure returns (uint tokenPrice);
@@ -61,4 +59,8 @@ interface IPool {
   function getMCRRatio() external view returns (uint);
 
   function setSwapValue(uint value) external;
+
+  function swapValue() external returns (uint value);
+
+  function assets() external returns (uint value);
 }

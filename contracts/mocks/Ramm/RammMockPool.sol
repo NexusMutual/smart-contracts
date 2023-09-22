@@ -138,10 +138,6 @@ contract RammMockPool is IPool {
     revert("Unsupported");
   }
 
-  function calculateEthForNXM(uint, uint, uint) public override pure returns (uint) {
-    revert("Unsupported");
-  }
-
   function getTokenPriceInAsset(uint) public override pure returns (uint) {
     revert("Unsupported");
   }

@@ -25,7 +25,7 @@ contract Ramm is IRamm, MasterAwareV2 {
   // slot 2 & 3
   // 160 * 3 = 480 bits
   Observation[3] public observations;
-  uint32 private _reserved; // leftover bits in slot 3
+  uint32 public ratchetSpeed;
 
   /* ========== FUNCTIONS ========== */
 
@@ -43,8 +43,8 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public immutable TARGET_LIQUIDITY;
   uint public immutable LIQ_SPEED_A;
   uint public immutable LIQ_SPEED_B;
-  uint public immutable RATCHET_SPEED_A;
-  uint public immutable RATCHET_SPEED_B;
+  uint public immutable FAST_RATCHET_SPEED;
+  uint public immutable NORMAL_RATCHET_SPEED;
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -53,15 +53,15 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint _fastLiquiditySpeed,
     uint _liquiditySpeedA,
     uint _liquiditySpeedB,
-    uint _ratchetSpeedA,
-    uint _ratchetSpeedB
+    uint _fastRatchetSpeed,
+    uint _normalRatchetSpeed
   ) {
     TARGET_LIQUIDITY = _targetLiquidity;
     FAST_LIQUIDITY_SPEED = _fastLiquiditySpeed;
     LIQ_SPEED_A = _liquiditySpeedA;
     LIQ_SPEED_B = _liquiditySpeedB;
-    RATCHET_SPEED_A = _ratchetSpeedA;
-    RATCHET_SPEED_B = _ratchetSpeedB;
+    FAST_RATCHET_SPEED = _fastRatchetSpeed;
+    NORMAL_RATCHET_SPEED = _normalRatchetSpeed;
   }
 
   function loadState() internal view returns (State memory) {
@@ -69,6 +69,7 @@ contract Ramm is IRamm, MasterAwareV2 {
       slot0.nxmReserveB,
       slot1.ethReserve,
       slot1.budget,
+      ratchetSpeed,
       slot1.updatedAt
     );
   }
@@ -81,6 +82,8 @@ contract Ramm is IRamm, MasterAwareV2 {
     slot1.ethReserve = state.eth.toUint128();
     slot1.budget = state.budget.toUint96();
     slot1.updatedAt = state.timestamp.toUint32();
+    // ratchetSpeed
+    ratchetSpeed = state.ratchetSpeed.toUint32();
   }
 
   function cloneObservations(Observation[3] memory src) internal pure returns (Observation[3] memory) {
@@ -128,6 +131,10 @@ contract Ramm is IRamm, MasterAwareV2 {
     state.eth = eth;
     state.timestamp = block.timestamp;
 
+    if (state.budget == 0) {
+      state.ratchetSpeed = NORMAL_RATCHET_SPEED.toUint32();
+    }
+
     storeState(state);
 
     for (uint i = 0; i < _observations.length; i++) {
@@ -174,6 +181,10 @@ contract Ramm is IRamm, MasterAwareV2 {
     state.nxmB = nxmB;
     state.eth = eth;
     state.timestamp = block.timestamp;
+
+    if (state.budget == 0) {
+      state.ratchetSpeed = NORMAL_RATCHET_SPEED.toUint32();
+    }
 
     storeState(state);
 
@@ -252,7 +263,7 @@ contract Ramm is IRamm, MasterAwareV2 {
       //   set n(new) = n(BV)
       // else
       //   set n(new) = n(R)
-      uint r = elapsed * RATCHET_SPEED_A;
+      uint r = elapsed * state.ratchetSpeed;
       uint bufferedCapitalA = capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR;
 
       if (bufferedCapitalA * nxmA + bufferedCapitalA * nxmA * r / RATCHET_PERIOD / RATCHET_DENOMINATOR > eth * supply) {
@@ -274,18 +285,18 @@ contract Ramm is IRamm, MasterAwareV2 {
       uint bufferedCapitalB = capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR;
 
       if (
-        bufferedCapitalB * nxmB < eth * supply + nxmB * capital * elapsed * RATCHET_SPEED_A / RATCHET_PERIOD / RATCHET_DENOMINATOR
+        bufferedCapitalB * nxmB < eth * supply + nxmB * capital * elapsed * state.ratchetSpeed / RATCHET_PERIOD / RATCHET_DENOMINATOR
       ) {
         // use bv
         nxmB = eth * supply / bufferedCapitalB;
       } else {
         // use ratchet
-        uint nr_denom_addend = nxmB * elapsed * RATCHET_SPEED_A * capital / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR;
+        uint nr_denom_addend = nxmB * elapsed * state.ratchetSpeed * capital / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR;
         nxmB = eth * nxmB / (eth + nr_denom_addend);
       }
     }
 
-    return State(nxmA, nxmB, eth, budget, currentTimestamp);
+    return State(nxmA, nxmB, eth, budget, state.ratchetSpeed, currentTimestamp);
   }
 
   function getSpotPrices() external view returns (uint spotPriceA, uint spotPriceB) {
@@ -533,5 +544,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     slot0.nxmReserveA = (initialLiquidity * 1 ether / spotPriceA).toUint128();
     slot0.nxmReserveB = (initialLiquidity * 1 ether / spotPriceB).toUint128();
+
+    ratchetSpeed = FAST_RATCHET_SPEED.toUint32();
   }
 }

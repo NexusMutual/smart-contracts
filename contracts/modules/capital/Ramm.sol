@@ -39,30 +39,30 @@ contract Ramm is IRamm, MasterAwareV2 {
 
   /* =========== IMMUTABLES ========== */
 
-  uint public immutable FAST_LIQUIDITY_SPEED;
-  uint public immutable TARGET_LIQUIDITY;
-  uint public immutable LIQ_SPEED_A;
-  uint public immutable LIQ_SPEED_B;
-  uint public immutable FAST_RATCHET_SPEED;
-  uint public immutable NORMAL_RATCHET_SPEED;
+  uint public immutable FAST_LIQUIDITY_SPEED = 1_500 ether;
+  uint public immutable TARGET_LIQUIDITY = 5_000 ether;
+  uint public immutable LIQ_SPEED_A = 100 ether;
+  uint public immutable LIQ_SPEED_B = 100 ether;
+  uint public immutable FAST_RATCHET_SPEED = 5_000;
+  uint public immutable NORMAL_RATCHET_SPEED = 400;
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(
-    uint _targetLiquidity,
-    uint _fastLiquiditySpeed,
-    uint _liquiditySpeedA,
-    uint _liquiditySpeedB,
-    uint _fastRatchetSpeed,
-    uint _normalRatchetSpeed
-  ) {
-    TARGET_LIQUIDITY = _targetLiquidity;
-    FAST_LIQUIDITY_SPEED = _fastLiquiditySpeed;
-    LIQ_SPEED_A = _liquiditySpeedA;
-    LIQ_SPEED_B = _liquiditySpeedB;
-    FAST_RATCHET_SPEED = _fastRatchetSpeed;
-    NORMAL_RATCHET_SPEED = _normalRatchetSpeed;
-  }
+  //  constructor(
+  //    uint _targetLiquidity,
+  //    uint _fastLiquiditySpeed,
+  //    uint _liquiditySpeedA,
+  //    uint _liquiditySpeedB,
+  //    uint _fastRatchetSpeed,
+  //    uint _normalRatchetSpeed
+  //  ) {
+  //    TARGET_LIQUIDITY = _targetLiquidity;
+  //    FAST_LIQUIDITY_SPEED = _fastLiquiditySpeed;
+  //    LIQ_SPEED_A = _liquiditySpeedA;
+  //    LIQ_SPEED_B = _liquiditySpeedB;
+  //    FAST_RATCHET_SPEED = _fastRatchetSpeed;
+  //    NORMAL_RATCHET_SPEED = _normalRatchetSpeed;
+  //  }
 
   function loadState() internal view returns (State memory) {
     return State(slot0.nxmReserveA,
@@ -536,11 +536,12 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     require(slot1.updatedAt == 0, "ALREADY_INITIALIZED");
 
+    // added current values for initial liq of 1000ETH for testing purposes
     // TODO: hardcode the initial values - this is a proxy and there's no other way to pass them
-    uint spotPriceA;
-    uint spotPriceB;
-    uint initialLiquidity;
-    uint initialBudget;
+    uint spotPriceA = 347 ether / 10_000; // bv value 0.0347ETH
+    uint spotPriceB = 152 ether / 10_000; // 80% of wnxm price 0.0152ETH (0.8 * 0.019ETH)
+    uint initialLiquidity = 5_000 ether;
+    uint initialBudget = 43_835 ether;
 
     slot1.updatedAt = block.timestamp.toUint32();
     slot1.ethReserve = initialLiquidity.toUint128();

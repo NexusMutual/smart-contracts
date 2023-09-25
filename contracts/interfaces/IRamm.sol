@@ -32,6 +32,7 @@ struct State {
   uint nxmB;
   uint eth;
   uint budget;
+  uint ratchetSpeed;
   uint timestamp;
 }
 
@@ -42,7 +43,7 @@ library RammLib {
   }
 
   function clone(State memory state) internal pure returns (State memory) {
-    return State(state.nxmA, state.nxmB, state.eth, state.budget, state.timestamp);
+    return State(state.nxmA, state.nxmB, state.eth, state.budget, state.ratchetSpeed, state.timestamp);
   }
 
 }

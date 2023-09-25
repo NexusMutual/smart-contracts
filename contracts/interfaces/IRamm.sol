@@ -84,9 +84,11 @@ interface IRamm {
 
   function getBookValue() external view returns (uint bookValue);
 
-  function getInternalPrice() external returns (uint price);
+  function getInternalPriceWithoutUpdate() external view returns (uint price);
 
   /* === MUTATIVE FUNCTIONS ==== */
+
+  function getInternalPrice() external returns (uint price);
 
   function swap(uint nxmIn) external payable;
 

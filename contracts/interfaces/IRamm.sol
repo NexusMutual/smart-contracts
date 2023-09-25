@@ -88,6 +88,8 @@ interface IRamm {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
+  function updateTwap() external;
+
   function getInternalPrice() external returns (uint price);
 
   function swap(uint nxmIn) external payable;

@@ -129,7 +129,10 @@ contract Ramm is IRamm, MasterAwareV2 {
     state.timestamp = block.timestamp;
 
     storeState(state);
-    observations = _observations;
+
+    for (uint i = 0; i < _observations.length; i++) {
+      observations[i] = _observations[i];
+    }
 
     // transfer assets
     (bool ok,) = address(pool()).call{value: msg.value}("");
@@ -173,7 +176,10 @@ contract Ramm is IRamm, MasterAwareV2 {
     state.timestamp = block.timestamp;
 
     storeState(state);
-    observations = _observations;
+
+    for (uint i = 0; i < _observations.length; i++) {
+      observations[i] = _observations[i];
+    }
 
     tokenController().burnFrom(msg.sender, nxmIn);
     // TODO: use a custom function instead of sendPayout
@@ -341,44 +347,47 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint priceCumulativeAbove = previousObservation.priceCumulativeAbove;
     uint priceCumulativeBelow = previousObservation.priceCumulativeBelow;
 
-    uint timeOnRatchetA;
-    uint timeOnRatchetB;
-
     { // above
-      uint innerLeft = previousState.eth * supply;
-      uint innerRight = (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) * capital * previousState.nxmA / PRICE_BUFFER_DENOMINATOR;
+      uint timeOnRatchet;
+      uint inner;
+      {
+        uint innerLeft = previousState.eth * supply;
+        uint innerRight = (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) * capital * previousState.nxmA / PRICE_BUFFER_DENOMINATOR;
+        inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
+      }
 
       // on ratchet
-      if (innerLeft > innerRight) {
-        uint inner = innerLeft - innerRight;
-        timeOnRatchetA = inner * RATCHET_DENOMINATOR * RATCHET_PERIOD / capital / previousState.nxmA / RATCHET_SPEED_A;
+      if (inner != 0) {
+        timeOnRatchet = inner * RATCHET_DENOMINATOR * RATCHET_PERIOD / capital / previousState.nxmA / state.ratchetSpeed;
 
         // cumulative price above
-        uint cpa = (previousState.eth * state.nxmA + state.eth * previousState.nxmA) * timeOnRatchetA / previousState.nxmA / state.nxmA / 2;
-        priceCumulativeAbove += cpa;
+        priceCumulativeAbove += (previousState.eth * state.nxmA + state.eth * previousState.nxmA) * timeOnRatchet / previousState.nxmA / state.nxmA / 2;
       }
 
       // on bv
-      uint timeOnBV = state.timestamp - previousState.timestamp - timeOnRatchetA;
+      uint timeOnBV = state.timestamp - previousState.timestamp - timeOnRatchet;
       priceCumulativeAbove += timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / supply / PRICE_BUFFER_DENOMINATOR;
     }
 
     { // below
-      uint innerLeft = (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) * capital * previousState.nxmB / PRICE_BUFFER_DENOMINATOR;
-      uint innerRight = previousState.eth * supply;
+      uint timeOnRatchet;
+      uint inner;
+      {
+        uint innerLeft = (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) * capital * previousState.nxmB / PRICE_BUFFER_DENOMINATOR;
+        uint innerRight = previousState.eth * supply;
+        inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
+      }
 
       // on ratchet
-      if (innerLeft > innerRight) {
-        uint inner = innerLeft - innerRight;
-        timeOnRatchetB = inner * RATCHET_DENOMINATOR * RATCHET_PERIOD / capital / previousState.nxmB / RATCHET_SPEED_B;
+      if (inner != 0) {
+        timeOnRatchet = inner * RATCHET_DENOMINATOR * RATCHET_PERIOD / capital / previousState.nxmB / state.ratchetSpeed;
 
         // cumulative price below
-        uint cpb = (previousState.eth * state.nxmB + state.eth * previousState.nxmB) * timeOnRatchetB / previousState.nxmB / state.nxmB / 2;
-        priceCumulativeBelow += cpb;
+        priceCumulativeBelow += (previousState.eth * state.nxmB + state.eth * previousState.nxmB) * timeOnRatchet / previousState.nxmB / state.nxmB / 2;
       }
 
       // on bv
-      uint timeOnBV = state.timestamp - previousState.timestamp - timeOnRatchetB;
+      uint timeOnBV = state.timestamp - previousState.timestamp - timeOnRatchet;
       priceCumulativeBelow += timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / supply / PRICE_BUFFER_DENOMINATOR;
     }
 
@@ -451,22 +460,37 @@ contract Ramm is IRamm, MasterAwareV2 {
     Observation memory firstObservation = _observations[previousIdx];
     Observation memory currentObservation = _observations[currentIdx];
 
-    uint spotPriceA = 1 ether * state.eth / state.nxmA;
-    uint spotPriceb = 1 ether * state.eth / state.nxmB;
 
     uint elapsed = block.timestamp - firstObservation.timestamp;
 
-    uint averagePriceA;
-    uint averagePriceB;
+    uint priceA;
+    uint priceB;
 
-    // underflow is desired
-    unchecked {
-      averagePriceA = (currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) / elapsed;
-      averagePriceB = (currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) / elapsed;
+    {
+      // priceA
+      uint spotPriceA = 1 ether * state.eth / state.nxmA;
+      uint averagePriceA;
+
+      // underflow is desired
+      unchecked {
+        averagePriceA = (currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) / elapsed;
+      }
+
+      priceA = Math.min(averagePriceA, spotPriceA);
     }
 
-    uint priceA = Math.min(averagePriceA, spotPriceA);
-    uint priceB = Math.max(averagePriceB, spotPriceb);
+    {
+      //  priceB
+      uint spotPriceB = 1 ether * state.eth / state.nxmB;
+      uint averagePriceB;
+
+      // underflow is desired
+      unchecked {
+        averagePriceB = (currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) / elapsed;
+      }
+
+      priceB = Math.max(averagePriceB, spotPriceB);
+    }
 
     return priceA - priceB - 1 ether * capital / supply;
   }

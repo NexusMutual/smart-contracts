@@ -463,6 +463,10 @@ contract Ramm is IRamm, MasterAwareV2 {
     State memory state = _getReserves(initialState, capital, supply, block.timestamp);
     _observations = updateTwap(initialState, _observations, block.timestamp, capital, supply);
 
+    for (uint i = 0; i < _observations.length; i++) {
+      observations[i] = _observations[i];
+    }
+
     uint currentIdx = observationIndexOf(block.timestamp);
     // index of first observation in window = current - 2
     // adding 1 and applying modulo gives the same result avoiding underflow

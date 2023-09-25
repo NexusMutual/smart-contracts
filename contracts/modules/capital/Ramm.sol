@@ -91,17 +91,17 @@ contract Ramm is IRamm, MasterAwareV2 {
   }
 
   // TODO: add minOut and deadline parameters
-  function swap(uint nxmIn) external payable {
+  function swap(uint nxmIn, uint minTokensOut) external payable {
 
     require(msg.value == 0 || nxmIn == 0, "ONE_INPUT_ONLY");
     require(msg.value > 0 || nxmIn > 0, "ONE_INPUT_REQUIRED");
 
     msg.value > 0
-      ? swapEthForNxm(msg.value)
-      : swapNxmForEth(nxmIn);
+      ? swapEthForNxm(msg.value, minTokensOut)
+      : swapNxmForEth(nxmIn, minTokensOut);
   }
 
-  function swapEthForNxm(uint ethIn) internal returns (uint /*nxmOut*/) {
+  function swapEthForNxm(uint ethIn, uint minTokensOut) internal returns (uint /*nxmOut*/) {
 
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
@@ -123,6 +123,8 @@ contract Ramm is IRamm, MasterAwareV2 {
     nxmB = nxmB * eth / state.eth;
 
     uint nxmOut = nxmA - state.nxmA;
+
+    require(nxmOut >= minTokensOut, "Ramm: nxmOut is less than minTokensOut");
 
     // edge case: bellow goes over bv due to eth-dai price changing
 
@@ -149,11 +151,10 @@ contract Ramm is IRamm, MasterAwareV2 {
     return nxmOut;
   }
 
-  function swapNxmForEth(uint nxmIn) internal returns (uint /*ethOut*/) {
+  function swapNxmForEth(uint nxmIn, uint minTokensOut) internal returns (uint /*ethOut*/) {
 
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
-    uint mcrETH = mcr().getMCR();
 
     State memory initialState = loadState();
     Observation[3] memory _observations = observations;
@@ -172,9 +173,10 @@ contract Ramm is IRamm, MasterAwareV2 {
     nxmA = nxmA * eth / state.eth;
 
     uint ethOut = state.eth - eth;
+    require(ethOut >= minTokensOut, "Ramm: ethOut is less than minTokensOut");
 
     // TODO add buffer into calculation
-    require(capital - ethOut >= mcrETH, "NO_SWAPS_IN_BUFFER_ZONE");
+    require(capital - ethOut >= mcr().getMCR(), "NO_SWAPS_IN_BUFFER_ZONE");
 
     // update storage
     state.nxmA = nxmA;

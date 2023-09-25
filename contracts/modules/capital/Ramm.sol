@@ -111,7 +111,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     // current state
     State memory state = _getReserves(initialState, capital, supply, block.timestamp);
-    _observations = updateTwap(initialState, _observations, block.timestamp, capital, supply);
+    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply);
 
     uint nxmA = state.nxmA;
     uint nxmB = state.nxmB;
@@ -160,7 +160,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     // current state
     State memory state = _getReserves(initialState, capital, supply, block.timestamp);
-    _observations = updateTwap(initialState, _observations, block.timestamp, capital, supply);
+    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply);
 
     uint nxmA = state.nxmA;
     uint nxmB = state.nxmB;
@@ -410,7 +410,25 @@ contract Ramm is IRamm, MasterAwareV2 {
     );
   }
 
-  function updateTwap(
+  function updateTwap() external {
+    uint capital = pool().getPoolValueInEth();
+    uint supply = tokenController().totalSupply();
+
+    State memory initialState = loadState();
+    Observation[3] memory _observations = observations;
+
+    // current state
+    State memory state = _getReserves(initialState, capital, supply, block.timestamp);
+    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply);
+
+    for (uint i = 0; i < _observations.length; i++) {
+      observations[i] = _observations[i];
+    }
+
+    storeState(state);
+  }
+
+  function _updateTwap(
     State memory initialState,
     Observation[3] memory _observations,
     uint currentStateTimestamp,
@@ -461,7 +479,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     // current state
     State memory state = _getReserves(initialState, capital, supply, block.timestamp);
-    _observations = updateTwap(initialState, _observations, block.timestamp, capital, supply);
+    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply);
 
     for (uint i = 0; i < _observations.length; i++) {
       observations[i] = _observations[i];
@@ -520,7 +538,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     // current state
     State memory state = _getReserves(initialState, capital, supply, block.timestamp);
-    _observations = updateTwap(initialState, _observations, block.timestamp, capital, supply);
+    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply);
 
     uint currentIdx = observationIndexOf(block.timestamp);
     // index of first observation in window = current - 2
@@ -575,7 +593,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     // current state
     State memory state = _getReserves(initialState, capital, supply, block.timestamp);
-    _observations = updateTwap(initialState, _observations, block.timestamp, capital, supply);
+    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply);
 
     for (uint i = 0; i < _observations.length; i++) {
       observations[i] = _observations[i];

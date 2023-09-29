@@ -9,6 +9,21 @@ const {
 
 const { parseEther } = ethers.utils;
 
+async function getState(ramm) {
+  const { nxmReserveA, nxmReserveB } = await ramm.slot0();
+  const { ethReserve, budget, updatedAt } = await ramm.slot1();
+  const ratchetSpeed = await ramm.ratchetSpeed();
+
+  return {
+    nxmA: nxmReserveA,
+    nxmB: nxmReserveB,
+    eth: ethReserve,
+    budget,
+    ratchetSpeed,
+    timestamp: updatedAt,
+  };
+}
+
 async function setup() {
   const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
@@ -17,49 +32,24 @@ async function setup() {
   const tokenController = await ethers.deployContract('RammMockTokenController', [nxm.address]);
   const mcr = await ethers.deployContract('RammMockMCR', [master.address]);
   const pool = await ethers.deployContract('RammMockPool', [master.address, mcr.address, nxm.address]);
+  const ramm = await ethers.deployContract('Ramm');
+  const state = await getState(ramm);
 
   await mcr.setPool(pool.address);
-
-  const TARGET_LIQUIDITY = parseEther('2500');
-  const AGGRESSICE_LIQUIDITY_SPEED = parseEther('200');
-  const LIQUIDITY = parseEther('2000');
-  const BUDGET = parseEther('250');
-  const LIQUIDITY_SPEED_OUT = 100; // 100ETH
-  const LIQUIDITY_SPEED_IN = 100; // 100ETH
-  const RATCHET_SPEED_A = 400;
-  const RATCHET_SPEED_B = 400;
-  const SPOT_PRICE_A = parseEther('0.03');
-  const SPOT_PRICE_B = parseEther('0.01');
-
-  const ramm = await ethers.deployContract('Ramm', [
-    TARGET_LIQUIDITY,
-    LIQUIDITY,
-    BUDGET,
-    AGGRESSICE_LIQUIDITY_SPEED,
-    LIQUIDITY_SPEED_OUT,
-    LIQUIDITY_SPEED_IN,
-    RATCHET_SPEED_A,
-    RATCHET_SPEED_B,
-    SPOT_PRICE_A,
-    SPOT_PRICE_B,
-  ]);
-
   await setEtherBalance(pool.address, parseEther('145000'));
 
   await Promise.all([
+    master.setLatestAddress(hex('P1'), pool.address),
     master.setLatestAddress(hex('TC'), tokenController.address),
-    master.setTokenAddress(nxm.address),
-    master.setLatestAddress(hex('MR'), memberRoles.address),
     master.setLatestAddress(hex('MC'), mcr.address),
     master.setLatestAddress(hex('RA'), ramm.address),
-    master.setLatestAddress(hex('P1'), pool.address),
+    master.setTokenAddress(nxm.address),
     master.enrollInternal(ramm.address),
+    master.enrollGovernance(accounts.governanceContracts[0].address),
   ]);
 
   await ramm.changeMasterAddress(master.address);
   await ramm.changeDependentContractAddress();
-
-  await master.enrollGovernance(accounts.governanceContracts[0].address);
 
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);
@@ -72,6 +62,7 @@ async function setup() {
 
   return {
     accounts,
+    state,
     contracts: {
       master,
       nxm,
@@ -85,4 +76,5 @@ async function setup() {
 
 module.exports = {
   setup,
+  getState,
 };

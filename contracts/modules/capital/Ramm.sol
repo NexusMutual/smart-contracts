@@ -122,7 +122,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     nxmA = k / eth;
     nxmB = nxmB * eth / state.eth;
 
-    uint nxmOut = nxmA - state.nxmA;
+    uint nxmOut = state.nxmA - nxmA;
 
     require(nxmOut >= minTokensOut, "Ramm: nxmOut is less than minTokensOut");
 

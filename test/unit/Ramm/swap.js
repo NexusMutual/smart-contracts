@@ -1,87 +1,146 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { setup } = require('./setup');
-const { setNextBlockTime } = require('../../utils/evm');
+const { getState, setup } = require('./setup');
+const { getReserves } = require('../../utils/getReserves');
+const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
-const { BigNumber } = ethers;
 
 describe('swap', function () {
-  it('should revert if passed values are 0', async function () {
+  it('should revert if both NXM and ETH values are 0', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
-    await expect(ramm.connect(member).swap(0)).to.be.revertedWith('ONE_INPUT_REQUIRED');
+    await expect(ramm.connect(member).swap(0, 0, { value: 0 })).to.be.revertedWith('ONE_INPUT_REQUIRED');
   });
 
-  it('should revert if passed values are greater then 0', async function () {
+  it('should revert if both NXM and ETH values are greater then 0', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
-    await expect(ramm.connect(member).swap(parseEther('1'), { value: parseEther('1') })).to.be.revertedWith(
-      'ONE_INPUT_ONLY',
+    const nxmIn = parseEther('1');
+    const ethIn = parseEther('1');
+
+    await expect(ramm.connect(member).swap(nxmIn, 0, { value: ethIn })).to.be.revertedWith('ONE_INPUT_ONLY');
+  });
+
+  it('should revert if nxmOut < minTokensOut when swapping ETH for NXM', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    const ethIn = parseEther('1');
+    const minTokensOut = parseEther('29'); // 1ETH = 28.8NXM at 0.0347ETH
+
+    await expect(ramm.connect(member).swap(0, minTokensOut, { value: ethIn })).to.be.revertedWith(
+      'Ramm: nxmOut is less than minTokensOut',
+    );
+  });
+
+  it('should revert if ethOut < minTokensOut when swapping NXM for ETH', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    const nxmIn = parseEther('1');
+    const minTokensOut = parseEther('0.016'); // 0.0152 ETH initial spot price
+
+    await expect(ramm.connect(member).swap(nxmIn, minTokensOut)).to.be.revertedWith(
+      'Ramm: ethOut is less than minTokensOut',
     );
   });
 
   it('should swap NXM for ETH', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, nxm, tokenController } = fixture.contracts;
+    const { ramm, nxm, pool, tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
-    const liquidity = BigNumber.from('2050000000000000000000');
-    const newNXM = BigNumber.from('200688905003625815808560');
-    const amount = parseEther('1');
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + 6 * 60 * 60;
+    await setNextBlockTime(nextBlockTimestamp - 2);
+    await mineNextBlock();
 
-    const ethOut = liquidity.sub(liquidity.mul(newNXM).div(newNXM.add(amount)));
+    const nxmIn = parseEther('1');
+    const state = await getReserves(fixture.state, pool, tokenController, nextBlockTimestamp);
+    const currentLiquidity = state.eth;
 
-    const timestamp = await ramm.lastSwapTimestamp();
-    await nxm.connect(member).approve(tokenController.address, amount);
+    await nxm.connect(member).approve(tokenController.address, nxmIn);
 
+    // before state
+    const totalSupplyBefore = await tokenController.totalSupply();
     const nxmBalanceBefore = await nxm.balanceOf(member.address);
     const ethBalanceBefore = await ethers.provider.getBalance(member.address);
 
-    await setNextBlockTime(timestamp.add(6 * 60 * 60).toNumber());
-    const tx = await ramm.connect(member).swap(amount);
-    const { effectiveGasPrice, cumulativeGasUsed } = await tx.wait();
+    const tx = await ramm.connect(member).swap(nxmIn, parseEther('0.015')); // initial sportPriceB 0.0152
+    const { gasUsed, effectiveGasPrice } = await tx.wait();
 
+    // after state
+    const totalSupplyAfter = await tokenController.totalSupply();
     const nxmBalanceAfter = await nxm.balanceOf(member.address);
     const ethBalanceAfter = await ethers.provider.getBalance(member.address);
+    const stateAfter = await getState(ramm);
 
-    expect(nxmBalanceBefore).to.be.equal(nxmBalanceAfter.add(amount));
-    expect(ethBalanceBefore).to.be.equal(ethBalanceAfter.sub(ethOut).add(effectiveGasPrice.mul(cumulativeGasUsed)));
+    // expected state
+    const newNxmB = state.nxmB.add(nxmIn);
+    const newLiquidity = currentLiquidity.mul(state.nxmB).div(newNxmB);
+    const newNxmA = state.nxmA.mul(newLiquidity).div(currentLiquidity);
+    const ethOut = currentLiquidity.sub(newLiquidity);
+
+    expect(totalSupplyAfter).to.be.equal(totalSupplyBefore.sub(nxmIn));
+    expect(nxmBalanceAfter).to.be.equal(nxmBalanceBefore.sub(nxmIn));
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(ethOut).sub(gasUsed.mul(effectiveGasPrice)));
+
+    expect(stateAfter.nxmA).to.be.equal(newNxmA);
+    expect(stateAfter.nxmB).to.be.equal(newNxmB);
+    expect(stateAfter.eth).to.be.equal(newLiquidity);
+    expect(stateAfter.timestamp).to.be.equal(nextBlockTimestamp);
   });
 
   it('should swap ETH for NXM', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, nxm, tokenController } = fixture.contracts;
+    const { ramm, nxm, pool, tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
-    const amount = parseEther('1');
-    const liquidity = BigNumber.from('2050000000000000000000');
-    const newNXM = BigNumber.from('68826162646107933349888');
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + 6 * 60 * 60;
+    await setNextBlockTime(nextBlockTimestamp - 1);
+    await mineNextBlock();
 
-    const nxmOut = newNXM.sub(liquidity.mul(newNXM).div(liquidity.add(amount)));
+    const ethIn = parseEther('1');
+    const state = await getReserves(fixture.state, pool, tokenController, nextBlockTimestamp);
+    const currentLiquidity = state.eth;
 
-    const nxmBalanceBefore = await nxm.balanceOf(member.address);
+    // before state
     const totalSupplyBefore = await tokenController.totalSupply();
+    const nxmBalanceBefore = await nxm.balanceOf(member.address);
     const ethBalanceBefore = await ethers.provider.getBalance(member.address);
 
-    const timestamp = await ramm.lastSwapTimestamp();
-    await setNextBlockTime(timestamp.add(6 * 60 * 60).toNumber());
+    const tx = await ramm.connect(member).swap(0, parseEther('31'), { value: ethIn });
+    const { gasUsed, effectiveGasPrice } = await tx.wait();
+    await mineNextBlock();
 
-    const tx = await ramm.connect(member).swap(0, { value: amount });
-
-    const { effectiveGasPrice, cumulativeGasUsed } = await tx.wait();
-
-    const nxmBalanceAfter = await nxm.balanceOf(member.address);
+    // after state
     const totalSupplyAfter = await tokenController.totalSupply();
+    const nxmBalanceAfter = await nxm.balanceOf(member.address);
     const ethBalanceAfter = await ethers.provider.getBalance(member.address);
+    const stateAfter = await getState(ramm);
 
-    expect(ethBalanceBefore).to.be.equal(ethBalanceAfter.add(amount).add(effectiveGasPrice.mul(cumulativeGasUsed)));
-    expect(nxmBalanceAfter).to.be.equal(nxmBalanceBefore.add(nxmOut));
+    // expected states
+    const newLiquidity = currentLiquidity.add(ethIn);
+    const newNxmA = currentLiquidity.mul(state.nxmA).div(newLiquidity);
+    const newNxmB = state.nxmB.mul(newLiquidity).div(currentLiquidity);
+    const nxmOut = state.nxmA.sub(newNxmA);
+
     expect(totalSupplyAfter).to.be.equal(totalSupplyBefore.add(nxmOut));
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(ethIn).sub(gasUsed.mul(effectiveGasPrice)));
+    expect(nxmBalanceAfter).to.be.equal(nxmBalanceBefore.add(nxmOut));
+
+    expect(stateAfter.nxmA).to.be.equal(newNxmA);
+    expect(stateAfter.nxmB).to.be.equal(newNxmB);
+    expect(stateAfter.eth).to.be.equal(newLiquidity);
+    expect(stateAfter.timestamp).to.be.equal(nextBlockTimestamp);
   });
 });

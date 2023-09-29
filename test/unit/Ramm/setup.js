@@ -33,7 +33,6 @@ async function setup() {
   const mcr = await ethers.deployContract('RammMockMCR', [master.address]);
   const pool = await ethers.deployContract('RammMockPool', [master.address, mcr.address, nxm.address]);
   const ramm = await ethers.deployContract('Ramm');
-  const state = await getState(ramm);
 
   await mcr.setPool(pool.address);
   await setEtherBalance(pool.address, parseEther('145000'));
@@ -59,6 +58,7 @@ async function setup() {
   }
 
   await nxm.mint(accounts.defaultSender.address, parseEther('6700000'));
+  const state = await getState(ramm);
 
   return {
     accounts,

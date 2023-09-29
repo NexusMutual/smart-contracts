@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 
-const assingRoles = accounts => ({
+const assignRoles = accounts => ({
   defaultSender: accounts[0],
   nonMembers: accounts.slice(1, 5),
   members: accounts.slice(5, 10),
@@ -15,7 +15,7 @@ const assingRoles = accounts => ({
 
 const getAccounts = async () => {
   const accounts = await ethers.getSigners();
-  return assingRoles(accounts);
+  return assignRoles(accounts);
 };
 
 module.exports = {

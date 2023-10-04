@@ -378,7 +378,9 @@ contract Ramm is IRamm, MasterAwareV2 {
       }
 
       // on bv
-      uint timeOnBV = state.timestamp - previousState.timestamp - timeOnRatchet;
+      uint timeOnBV = state.timestamp - previousState.timestamp > timeOnRatchet
+        ? state.timestamp - previousState.timestamp - timeOnRatchet
+        : 0;
       priceCumulativeAbove += timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / supply / PRICE_BUFFER_DENOMINATOR;
     }
 
@@ -400,7 +402,9 @@ contract Ramm is IRamm, MasterAwareV2 {
       }
 
       // on bv
-      uint timeOnBV = state.timestamp - previousState.timestamp - timeOnRatchet;
+      uint timeOnBV = state.timestamp - previousState.timestamp > timeOnRatchet
+        ? state.timestamp - previousState.timestamp - timeOnRatchet
+        : 0;
       priceCumulativeBelow += timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / supply / PRICE_BUFFER_DENOMINATOR;
     }
 

@@ -447,7 +447,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     return newObservations;
   }
 
-  function getInternalPrice() external returns (uint price) {
+  function getInternalPriceAndUpdateTwap() external returns (uint internalPrice) {
 
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();

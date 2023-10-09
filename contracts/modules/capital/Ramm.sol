@@ -36,32 +36,12 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public constant GRANULARITY = 2;
   uint public constant PERIOD_SIZE = 86_400; // day
 
-  /* =========== IMMUTABLES ========== */
-
-  uint public immutable FAST_LIQUIDITY_SPEED = 1_500 ether;
-  uint public immutable TARGET_LIQUIDITY = 5_000 ether;
-  uint public immutable LIQ_SPEED_A = 100 ether;
-  uint public immutable LIQ_SPEED_B = 100 ether;
-  uint public immutable FAST_RATCHET_SPEED = 5_000;
-  uint public immutable NORMAL_RATCHET_SPEED = 400;
-
-  /* ========== CONSTRUCTOR ========== */
-
-  //  constructor(
-  //    uint _targetLiquidity,
-  //    uint _fastLiquiditySpeed,
-  //    uint _liquiditySpeedA,
-  //    uint _liquiditySpeedB,
-  //    uint _fastRatchetSpeed,
-  //    uint _normalRatchetSpeed
-  //  ) {
-  //    TARGET_LIQUIDITY = _targetLiquidity;
-  //    FAST_LIQUIDITY_SPEED = _fastLiquiditySpeed;
-  //    LIQ_SPEED_A = _liquiditySpeedA;
-  //    LIQ_SPEED_B = _liquiditySpeedB;
-  //    FAST_RATCHET_SPEED = _fastRatchetSpeed;
-  //    NORMAL_RATCHET_SPEED = _normalRatchetSpeed;
-  //  }
+  uint public constant FAST_LIQUIDITY_SPEED = 1_500 ether;
+  uint public constant TARGET_LIQUIDITY = 5_000 ether;
+  uint public constant LIQ_SPEED_A = 100 ether;
+  uint public constant LIQ_SPEED_B = 100 ether;
+  uint public constant FAST_RATCHET_SPEED = 5_000;
+  uint public constant NORMAL_RATCHET_SPEED = 400;
 
   function loadState() internal view returns (State memory) {
     return State(slot0.nxmReserveA,

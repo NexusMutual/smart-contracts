@@ -459,64 +459,12 @@ contract Ramm is IRamm, MasterAwareV2 {
     State memory state = _getReserves(initialState, capital, supply, block.timestamp);
     _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply);
 
+    // sstore observations and state
     for (uint i = 0; i < _observations.length; i++) {
       observations[i] = _observations[i];
     }
 
-    uint currentIdx = observationIndexOf(block.timestamp);
-    // index of first observation in window = current - 2
-    // adding 1 and applying modulo gives the same result avoiding underflow
-    uint previousIdx = (currentIdx + 1) % GRANULARITY;
-
-    Observation memory firstObservation = _observations[previousIdx];
-    Observation memory currentObservation = _observations[currentIdx];
-
-
-    uint elapsed = block.timestamp - firstObservation.timestamp;
-
-    uint priceA;
-    uint priceB;
-
-    {
-      // priceA
-      uint spotPriceA = 1 ether * state.eth / state.nxmA;
-      uint averagePriceA;
-
-      // underflow is desired
-      unchecked {
-        averagePriceA = (currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) / elapsed;
-      }
-
-      priceA = Math.min(averagePriceA, spotPriceA);
-    }
-
-    {
-      //  priceB
-      uint spotPriceB = 1 ether * state.eth / state.nxmB;
-      uint averagePriceB;
-
-      // underflow is desired
-      unchecked {
-        averagePriceB = (currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) / elapsed;
-      }
-
-      priceB = Math.max(averagePriceB, spotPriceB);
-    }
-
-    return priceA - priceB - 1 ether * capital / supply;
-  }
-
-  function getInternalPriceWithoutUpdate() external view returns (uint price) {
-
-    uint capital = pool().getPoolValueInEth();
-    uint supply = tokenController().totalSupply();
-
-    State memory initialState = loadState();
-    Observation[3] memory _observations = observations;
-
-    // current state
-    State memory state = _getReserves(initialState, capital, supply, block.timestamp);
-    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply);
+    storeState(state);
 
     uint currentIdx = observationIndexOf(block.timestamp);
     // index of first observation in window = current - 2
@@ -526,94 +474,21 @@ contract Ramm is IRamm, MasterAwareV2 {
     Observation memory firstObservation = _observations[previousIdx];
     Observation memory currentObservation = _observations[currentIdx];
 
-
     uint elapsed = block.timestamp - firstObservation.timestamp;
+
+    uint spotPriceA = 1 ether * state.eth / state.nxmA;
+    uint spotPriceB = 1 ether * state.eth / state.nxmB;
 
     uint priceA;
     uint priceB;
 
-    {
-      // priceA
-      uint spotPriceA = 1 ether * state.eth / state.nxmA;
-      uint averagePriceA;
+    // underflow is desired
+    unchecked {
+      uint averagePriceA = (currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) / elapsed;
+      uint averagePriceB = (currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) / elapsed;
 
-      // underflow is desired
-      unchecked {
-        averagePriceA = (currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) / elapsed;
-      }
-
+      // keeping min/max inside unchecked scope to avoid stack too deep error
       priceA = Math.min(averagePriceA, spotPriceA);
-    }
-
-    {
-      //  priceB
-      uint spotPriceB = 1 ether * state.eth / state.nxmB;
-      uint averagePriceB;
-
-      // underflow is desired
-      unchecked {
-        averagePriceB = (currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) / elapsed;
-      }
-
-      priceB = Math.max(averagePriceB, spotPriceB);
-    }
-
-    return priceA - priceB - 1 ether * capital / supply;
-  }
-
-  function getInternalPriceAndUpdate() external returns (uint price) {
-
-    uint capital = pool().getPoolValueInEth();
-    uint supply = tokenController().totalSupply();
-
-    State memory initialState = loadState();
-    Observation[3] memory _observations = observations;
-
-    // current state
-    State memory state = _getReserves(initialState, capital, supply, block.timestamp);
-    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply);
-
-    for (uint i = 0; i < _observations.length; i++) {
-      observations[i] = _observations[i];
-    }
-
-    uint currentIdx = observationIndexOf(block.timestamp);
-    // index of first observation in window = current - 2
-    // adding 1 and applying modulo gives the same result avoiding underflow
-    uint previousIdx = (currentIdx + 1) % GRANULARITY;
-
-    Observation memory firstObservation = _observations[previousIdx];
-    Observation memory currentObservation = _observations[currentIdx];
-
-
-    uint elapsed = block.timestamp - firstObservation.timestamp;
-
-    uint priceA;
-    uint priceB;
-
-    {
-      // priceA
-      uint spotPriceA = 1 ether * state.eth / state.nxmA;
-      uint averagePriceA;
-
-      // underflow is desired
-      unchecked {
-        averagePriceA = (currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) / elapsed;
-      }
-
-      priceA = Math.min(averagePriceA, spotPriceA);
-    }
-
-    {
-      //  priceB
-      uint spotPriceB = 1 ether * state.eth / state.nxmB;
-      uint averagePriceB;
-
-      // underflow is desired
-      unchecked {
-        averagePriceB = (currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) / elapsed;
-      }
-
       priceB = Math.max(averagePriceB, spotPriceB);
     }
 

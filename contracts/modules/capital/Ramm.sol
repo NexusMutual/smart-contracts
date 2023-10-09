@@ -14,7 +14,6 @@ import "../../libraries/SafeUintCast.sol";
 contract Ramm is IRamm, MasterAwareV2 {
   using SafeUintCast for uint;
   using Math for uint;
-  using RammLib for Observation;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -426,7 +425,11 @@ contract Ramm is IRamm, MasterAwareV2 {
       uint observationIndex = idx % GRANULARITY;
 
       if (observationTimestamp <= previousState.timestamp) {
-        newObservations[observationIndex] = _observations[observationIndex].clone();
+        newObservations[observationIndex] = Observation(
+          _observations[observationIndex].timestamp,
+          _observations[observationIndex].priceCumulativeAbove,
+          _observations[observationIndex].priceCumulativeBelow
+        );
         continue;
       }
 

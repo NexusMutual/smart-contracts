@@ -651,6 +651,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     // added current values for initial liq of 1000ETH for testing purposes
     // TODO: hardcode the initial values - this is a proxy and there's no other way to pass them
+    // TODO: use immutables instead
     uint spotPriceA = 347 ether / 10_000; // bv value 0.0347ETH
     uint spotPriceB = 152 ether / 10_000; // 80% of wnxm price 0.0152ETH (0.8 * 0.019ETH)
     uint initialLiquidity = 5_000 ether;

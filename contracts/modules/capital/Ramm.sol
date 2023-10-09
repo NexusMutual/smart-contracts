@@ -85,10 +85,6 @@ contract Ramm is IRamm, MasterAwareV2 {
     ratchetSpeed = state.ratchetSpeed.toUint32();
   }
 
-  function cloneObservations(Observation[3] memory src) internal pure returns (Observation[3] memory) {
-    return [src[0].clone(), src[1].clone(), src[2].clone()];
-  }
-
   // TODO: add minOut and deadline parameters
   function swap(uint nxmIn, uint minTokensOut) external payable {
 

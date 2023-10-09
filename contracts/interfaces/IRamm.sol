@@ -39,6 +39,7 @@ struct State {
 library RammLib {
 
   function clone(Observation memory src) internal pure returns (Observation memory) {
+    // TODO: inline this function as it's used in a single place
     return Observation(src.timestamp, src.priceCumulativeAbove, src.priceCumulativeBelow);
   }
 

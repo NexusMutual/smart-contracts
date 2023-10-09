@@ -42,10 +42,6 @@ library RammLib {
     return Observation(src.timestamp, src.priceCumulativeAbove, src.priceCumulativeBelow);
   }
 
-  function clone(State memory state) internal pure returns (State memory) {
-    return State(state.nxmA, state.nxmB, state.eth, state.budget, state.ratchetSpeed, state.timestamp);
-  }
-
 }
 
 interface IRamm {

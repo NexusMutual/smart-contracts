@@ -15,7 +15,6 @@ contract Ramm is IRamm, MasterAwareV2 {
   using SafeUintCast for uint;
   using Math for uint;
   using RammLib for Observation;
-  using RammLib for State;
 
   /* ========== STATE VARIABLES ========== */
 

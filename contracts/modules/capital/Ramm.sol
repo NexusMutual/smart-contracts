@@ -51,13 +51,10 @@ contract Ramm is IRamm, MasterAwareV2 {
 
   /* ========== CONSTRUCTOR ========== */
 
-    constructor(
-      uint spotPriceA,
-      uint spotPriceB
-    ) {
-      SPOT_PRICE_A = spotPriceA;
-      SPOT_PRICE_B = spotPriceB;
-    }
+  constructor(uint spotPriceA, uint spotPriceB) {
+    SPOT_PRICE_A = spotPriceA;
+    SPOT_PRICE_B = spotPriceB;
+  }
 
   function loadState() internal view returns (State memory) {
     return State(slot0.nxmReserveA,

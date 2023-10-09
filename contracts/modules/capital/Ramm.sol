@@ -54,6 +54,11 @@ contract Ramm is IRamm, MasterAwareV2 {
   }
 
   function storeState(State memory state) internal {
+
+    if (state.budget == 0) {
+      state.ratchetSpeed = NORMAL_RATCHET_SPEED.toUint32();
+    }
+
     // slot 0
     slot0.nxmReserveA = state.nxmA.toUint128();
     slot0.nxmReserveB = state.nxmB.toUint128();
@@ -108,10 +113,6 @@ contract Ramm is IRamm, MasterAwareV2 {
     state.eth = eth;
     state.timestamp = block.timestamp;
 
-    if (state.budget == 0) {
-      state.ratchetSpeed = NORMAL_RATCHET_SPEED.toUint32();
-    }
-
     storeState(state);
 
     for (uint i = 0; i < _observations.length; i++) {
@@ -158,10 +159,6 @@ contract Ramm is IRamm, MasterAwareV2 {
     state.nxmB = nxmB;
     state.eth = eth;
     state.timestamp = block.timestamp;
-
-    if (state.budget == 0) {
-      state.ratchetSpeed = NORMAL_RATCHET_SPEED.toUint32();
-    }
 
     storeState(state);
 

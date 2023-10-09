@@ -25,7 +25,7 @@ contract Ramm is IRamm, MasterAwareV2 {
   Observation[3] public observations;
   uint32 public ratchetSpeed;
 
-  /* ========== FUNCTIONS ========== */
+  /* ========== CONSTANTS ========== */
 
   uint public constant LIQ_SPEED_PERIOD = 1 days;
   uint public constant RATCHET_PERIOD = 1 days;
@@ -41,6 +41,23 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public constant LIQ_SPEED_B = 100 ether;
   uint public constant FAST_RATCHET_SPEED = 5_000;
   uint public constant NORMAL_RATCHET_SPEED = 400;
+  uint public constant INITIAL_LIQUIDITY = 5_000 ether;
+  uint public constant INITIAL_BUDGET = 43_835 ether;
+
+  /* ========== IMMUTABLES ========== */
+
+  uint public immutable SPOT_PRICE_A;
+  uint public immutable SPOT_PRICE_B;
+
+  /* ========== CONSTRUCTOR ========== */
+
+    constructor(
+      uint spotPriceA,
+      uint spotPriceB
+    ) {
+      SPOT_PRICE_A = spotPriceA;
+      SPOT_PRICE_B = spotPriceB;
+    }
 
   function loadState() internal view returns (State memory) {
     return State(slot0.nxmReserveA,
@@ -524,20 +541,12 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     require(slot1.updatedAt == 0, "ALREADY_INITIALIZED");
 
-    // added current values for initial liq of 1000ETH for testing purposes
-    // TODO: hardcode the initial values - this is a proxy and there's no other way to pass them
-    // TODO: use immutables instead
-    uint spotPriceA = 347 ether / 10_000; // bv value 0.0347ETH
-    uint spotPriceB = 152 ether / 10_000; // 80% of wnxm price 0.0152ETH (0.8 * 0.019ETH)
-    uint initialLiquidity = 5_000 ether;
-    uint initialBudget = 43_835 ether;
-
     slot1.updatedAt = block.timestamp.toUint32();
-    slot1.ethReserve = initialLiquidity.toUint128();
-    slot1.budget = initialBudget.toUint96();
+    slot1.ethReserve = INITIAL_LIQUIDITY.toUint128();
+    slot1.budget = INITIAL_BUDGET.toUint96();
 
-    slot0.nxmReserveA = (initialLiquidity * 1 ether / spotPriceA).toUint128();
-    slot0.nxmReserveB = (initialLiquidity * 1 ether / spotPriceB).toUint128();
+    slot0.nxmReserveA = (INITIAL_LIQUIDITY * 1 ether / SPOT_PRICE_A).toUint128();
+    slot0.nxmReserveB = (INITIAL_LIQUIDITY * 1 ether / SPOT_PRICE_B).toUint128();
 
     ratchetSpeed = FAST_RATCHET_SPEED.toUint32();
   }

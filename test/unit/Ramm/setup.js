@@ -25,6 +25,9 @@ async function getState(ramm) {
 }
 
 async function setup() {
+  const SPOT_PRICE_A = parseEther('0.0347');
+  const SPOT_PRICE_B = parseEther('0.0152');
+
   const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
   const memberRoles = await ethers.deployContract('RammMockMemberRoles');
@@ -32,7 +35,7 @@ async function setup() {
   const tokenController = await ethers.deployContract('RammMockTokenController', [nxm.address]);
   const mcr = await ethers.deployContract('RammMockMCR', [master.address]);
   const pool = await ethers.deployContract('RammMockPool', [master.address, mcr.address, nxm.address]);
-  const ramm = await ethers.deployContract('Ramm');
+  const ramm = await ethers.deployContract('Ramm', [SPOT_PRICE_A, SPOT_PRICE_B]);
 
   await mcr.setPool(pool.address);
   await setEtherBalance(pool.address, parseEther('145000'));

@@ -40,22 +40,22 @@ const _getReserves = (state, capital, supply, currentTimestamp) => {
 
     if (elapsed.lte(timeLeftOnBudget)) {
       const injectedFast = elapsed.mul(FAST_LIQUIDITY_SPEED).div(LIQ_SPEED_PERIOD);
-      injected = Math.min(injectedFast, maxToInject);
+      injected = injectedFast.lt(maxToInject) ? injectedFast : maxToInject;
     } else {
       const injectedFast = timeLeftOnBudget.mul(FAST_LIQUIDITY_SPEED).div(LIQ_SPEED_PERIOD);
       const elapsedTimeLeft = elapsed.sub(timeLeftOnBudget);
       const injectedSlow = elapsedTimeLeft.mul(LIQ_SPEED_B).mul(parseEther('1')).div(LIQ_SPEED_PERIOD);
-      injected = Math.min(maxToInject, injectedFast.add(injectedSlow));
+      const injectedFastPlusSlow = injectedFast.add(injectedSlow);
+      injected = maxToInject.lt(injectedFastPlusSlow) ? maxToInject : injectedFastPlusSlow;
     }
 
     eth = eth.add(injected);
     budget = budget.gt(injected) ? budget.sub(injected) : 0;
   } else {
     // extract eth
-    const ethToExtract = Math.min(
-      elapsed.mul(LIQ_SPEED_A).mul(parseEther('1')).div(LIQ_SPEED_PERIOD),
-      eth.sub(TARGET_LIQUIDITY), // diff to target
-    );
+    const elapsedLiquidity = elapsed.mul(LIQ_SPEED_A).mul(parseEther('1')).div(LIQ_SPEED_PERIOD);
+    const ethToTargetLiquidity = eth.sub(TARGET_LIQUIDITY);
+    const ethToExtract = elapsedLiquidity.lt(ethToTargetLiquidity) ? elapsedLiquidity : ethToTargetLiquidity;
     eth = eth.sub(ethToExtract);
   }
 

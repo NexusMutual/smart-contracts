@@ -71,7 +71,7 @@ async function calculateEditPremium({
 
   const extraAmount = increasedAmountInNXM.sub(oldSegmentAmountInNXMRepriced);
 
-  const { premiumInNxm, premiumInAsset } = calculatePremium(
+  const { premiumInNxm } = calculatePremium(
     increasedAmount,
     ethRate,
     newPeriod,
@@ -88,8 +88,8 @@ async function calculateEditPremium({
       .add(fullPremium.mul(extraPeriod).div(newPeriod));
   }
 
-  const extraPremium = calculateExtraPremium(premiumInAsset);
   const extraPremiumInNXM = calculateExtraPremium(premiumInNxm);
+  const extraPremium = extraPremiumInNXM.mul(ethRate).div(parseEther('1'));
   return { extraPremium, extraPremiumInNXM, newPeriod };
 }
 
@@ -1239,27 +1239,22 @@ describe('buyCover', function () {
 
       const product1 = await stakingProducts.getProduct(1, 1);
 
-      const { extraPremium: extraPremiumForPool1, extraPremiumInNXM: extraPremiumInNxmForPool1 } =
-        await calculateEditPremium({
-          amount: amountPerPool,
-          period,
-          extraPeriod,
-          timestampAtEditTime,
-          startOfPreviousSegment,
-          increasedAmount: editedPoolAllocations[0].coverAmountInAsset,
-          ethRate,
-          productBumpedPrice: product1.bumpedPrice,
-          NXM_PER_ALLOCATION_UNIT,
-        });
+      const { extraPremiumInNXM: extraPremiumInNxmForPool1 } = await calculateEditPremium({
+        amount: amountPerPool,
+        period,
+        extraPeriod,
+        timestampAtEditTime,
+        startOfPreviousSegment,
+        increasedAmount: editedPoolAllocations[0].coverAmountInAsset,
+        ethRate,
+        productBumpedPrice: product1.bumpedPrice,
+        NXM_PER_ALLOCATION_UNIT,
+      });
 
       /* Pool 2 premium */
       const product2 = await stakingProducts.getProduct(2, 1);
 
-      const {
-        extraPremium: extraPremiumForPool2,
-        extraPremiumInNXM: extraPremiumInNxmForPool2,
-        newPeriod,
-      } = await calculateEditPremium({
+      const { extraPremiumInNXM: extraPremiumInNxmForPool2, newPeriod } = await calculateEditPremium({
         amount: amountPerPool,
         period,
         extraPeriod,
@@ -1276,8 +1271,10 @@ describe('buyCover', function () {
       const stakingPool1BeforeEdit = await tokenController.stakingPoolNXMBalances(1);
       const stakingPool2BeforeEdit = await tokenController.stakingPoolNXMBalances(2);
 
-      // TODO: figure out why off by 1 here
-      const totalExtraPremium = extraPremiumForPool1.add(extraPremiumForPool2).add(2);
+      const totalExtraPremium = extraPremiumInNxmForPool1
+        .add(extraPremiumInNxmForPool2)
+        .mul(ethRate)
+        .div(parseEther('1'));
 
       const poolBeforeETH = await ethers.provider.getBalance(pool.address);
 
@@ -1373,7 +1370,6 @@ describe('buyCover', function () {
     {
       const increasedAmount = firstEditPool1IncreasedAmount;
 
-      let extraPremiumForPool1, premiumForPool2;
       let extraPremiumInNXMForPool1, premiumInNXMForPool2;
       let newPeriod;
       {
@@ -1383,11 +1379,7 @@ describe('buyCover', function () {
 
         const { timestamp: timestampAtEditTime } = await ethers.provider.getBlock('latest');
 
-        const {
-          extraPremium,
-          extraPremiumInNXM,
-          newPeriod: newPeriodAfterEdit,
-        } = await calculateEditPremium({
+        const { extraPremiumInNXM, newPeriod: newPeriodAfterEdit } = await calculateEditPremium({
           amount,
           period,
           extraPeriod: BigNumber.from('0'),
@@ -1398,14 +1390,13 @@ describe('buyCover', function () {
           productBumpedPrice: product.bumpedPrice,
           NXM_PER_ALLOCATION_UNIT,
         });
-        extraPremiumForPool1 = extraPremium;
         extraPremiumInNXMForPool1 = extraPremiumInNXM;
         newPeriod = newPeriodAfterEdit;
       }
 
       {
         const product = await stakingProducts.getProduct(2, 1);
-        const { premiumInNxm, premiumInAsset: premium } = calculatePremium(
+        const { premiumInNxm } = calculatePremium(
           amount,
           ethRate,
           newPeriod,
@@ -1414,10 +1405,9 @@ describe('buyCover', function () {
         );
 
         premiumInNXMForPool2 = premiumInNxm;
-        premiumForPool2 = premium;
       }
 
-      const totalPremium = extraPremiumForPool1.add(premiumForPool2).add(1);
+      const totalPremium = extraPremiumInNXMForPool1.add(premiumInNXMForPool2).mul(ethRate).div(parseEther('1'));
       const editCoverFixture = { ...buyCoverFixture, amount: increasedAmount, coverId };
 
       const stakingPool1Before = await tokenController.stakingPoolNXMBalances(1);
@@ -1475,7 +1465,6 @@ describe('buyCover', function () {
       const increasedAmountForPool1 = buyCoverFixture.amount.mul(3);
       const increasedAmountForPool2 = buyCoverFixture.amount.mul(2);
 
-      let extraPremiumForPool1, extraPremiumForPool2, premiumForPool3;
       let extraPremiumInNXMForPool1, extraPremiumInNXMForPool2, premiumInNXMForPool3;
       let remainingPeriod;
 
@@ -1486,7 +1475,7 @@ describe('buyCover', function () {
       const period = segments[1].period;
 
       {
-        const { extraPremium, extraPremiumInNXM, newPeriod } = await calculateEditPremium({
+        const { extraPremiumInNXM, newPeriod } = await calculateEditPremium({
           amount: previousSegmentAmount,
           period,
           extraPeriod: BigNumber.from('0'),
@@ -1499,7 +1488,6 @@ describe('buyCover', function () {
           coverAmountInNXM: coverSegmentAllocations[0].coverAmountInNXM,
           totalCoverAmountInNXM,
         });
-        extraPremiumForPool1 = extraPremium;
         extraPremiumInNXMForPool1 = extraPremiumInNXM;
 
         // since only amount is added and extraPeriod = 0, remainingPeriod = newPeriod
@@ -1507,7 +1495,7 @@ describe('buyCover', function () {
       }
 
       {
-        const { extraPremium, extraPremiumInNXM } = await calculateEditPremium({
+        const { extraPremiumInNXM } = await calculateEditPremium({
           amount: previousSegmentAmount,
           period,
           extraPeriod: BigNumber.from('0'),
@@ -1520,13 +1508,12 @@ describe('buyCover', function () {
           coverAmountInNXM: coverSegmentAllocations[1].coverAmountInNXM,
           totalCoverAmountInNXM,
         });
-        extraPremiumForPool2 = extraPremium;
         extraPremiumInNXMForPool2 = extraPremiumInNXM;
       }
 
       {
         const product = await stakingProducts.getProduct(3, 1);
-        const { premiumInNxm, premiumInAsset: premium } = calculatePremium(
+        const { premiumInNxm } = calculatePremium(
           amount,
           ethRate,
           remainingPeriod,
@@ -1535,13 +1522,15 @@ describe('buyCover', function () {
         );
 
         premiumInNXMForPool3 = premiumInNxm;
-        premiumForPool3 = premium;
       }
 
       const totalAmount = increasedAmountForPool1.add(increasedAmountForPool2).add(amount);
 
-      // TODO: figure out why there's an off by 1 precision error here
-      const totalPremium = extraPremiumForPool1.add(extraPremiumForPool2).add(premiumForPool3).add(1);
+      const totalPremium = extraPremiumInNXMForPool1
+        .add(extraPremiumInNXMForPool2)
+        .add(premiumInNXMForPool3)
+        .mul(ethRate)
+        .div(parseEther('1'));
       const editCoverFixture = { ...buyCoverFixture, amount: totalAmount, coverId };
 
       const stakingPool1Before = await tokenController.stakingPoolNXMBalances(1);

@@ -530,13 +530,15 @@ contract Ramm is IRamm, MasterAwareV2 {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
-
     initialize();
   }
 
   function initialize() internal {
 
-    require(slot1.updatedAt == 0, "ALREADY_INITIALIZED");
+    if (slot1.updatedAt != 0) {
+      // already initialized
+      return;
+    }
 
     slot1.updatedAt = block.timestamp.toUint32();
     slot1.ethReserve = INITIAL_LIQUIDITY.toUint128();

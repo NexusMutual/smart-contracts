@@ -2,8 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { getState, setup } = require('./setup');
-const { getReserves } = require('../../utils/getReserves');
-const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
+const { setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
 
@@ -58,24 +57,23 @@ describe('swap', function () {
     const { ramm, nxm, pool, tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
+    const nxmIn = parseEther('1');
+    await nxm.connect(member).approve(tokenController.address, nxmIn);
+
     const { timestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = timestamp + 6 * 60 * 60;
-    await setNextBlockTime(nextBlockTimestamp - 2);
-    await mineNextBlock();
 
-    const nxmIn = parseEther('1');
-    const currentState = await getState(ramm);
-    const state = await getReserves(currentState, pool, tokenController, nextBlockTimestamp);
-
-    const currentLiquidity = state.eth;
-
-    await nxm.connect(member).approve(tokenController.address, nxmIn);
+    const initialState = await getState(ramm);
+    const capital = await pool.getPoolValueInEth();
+    const supply = await tokenController.totalSupply();
+    const state = await ramm._getReserves(initialState, capital, supply, nextBlockTimestamp);
 
     // before state
     const totalSupplyBefore = await tokenController.totalSupply();
     const nxmBalanceBefore = await nxm.balanceOf(member.address);
     const ethBalanceBefore = await ethers.provider.getBalance(member.address);
 
+    await setNextBlockTime(nextBlockTimestamp);
     const tx = await ramm.connect(member).swap(nxmIn, parseEther('0.015')); // initial sportPriceB 0.0152
     const { gasUsed, effectiveGasPrice } = await tx.wait();
 
@@ -86,6 +84,7 @@ describe('swap', function () {
     const stateAfter = await getState(ramm);
 
     // expected state
+    const currentLiquidity = state.eth;
     const newNxmB = state.nxmB.add(nxmIn);
     const newLiquidity = currentLiquidity.mul(state.nxmB).div(newNxmB);
     const newNxmA = state.nxmA.mul(newLiquidity).div(currentLiquidity);
@@ -106,24 +105,24 @@ describe('swap', function () {
     const { ramm, nxm, pool, tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
+    const ethIn = parseEther('1');
+
     const { timestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = timestamp + 6 * 60 * 60;
-    await setNextBlockTime(nextBlockTimestamp - 1);
-    await mineNextBlock();
 
-    const ethIn = parseEther('1');
-    const currentState = await getState(ramm);
-    const state = await getReserves(currentState, pool, tokenController, nextBlockTimestamp);
-    const currentLiquidity = state.eth;
+    const initialState = await getState(ramm);
+    const capital = await pool.getPoolValueInEth();
+    const supply = await tokenController.totalSupply();
+    const state = await ramm._getReserves(initialState, capital, supply, nextBlockTimestamp);
 
     // before state
     const totalSupplyBefore = await tokenController.totalSupply();
     const nxmBalanceBefore = await nxm.balanceOf(member.address);
     const ethBalanceBefore = await ethers.provider.getBalance(member.address);
 
+    await setNextBlockTime(nextBlockTimestamp);
     const tx = await ramm.connect(member).swap(0, parseEther('31'), { value: ethIn });
     const { gasUsed, effectiveGasPrice } = await tx.wait();
-    await mineNextBlock();
 
     // after state
     const totalSupplyAfter = await tokenController.totalSupply();
@@ -132,6 +131,7 @@ describe('swap', function () {
     const stateAfter = await getState(ramm);
 
     // expected states
+    const currentLiquidity = state.eth;
     const newLiquidity = currentLiquidity.add(ethIn);
     const newNxmA = currentLiquidity.mul(state.nxmA).div(newLiquidity);
     const newNxmB = state.nxmB.mul(newLiquidity).div(currentLiquidity);

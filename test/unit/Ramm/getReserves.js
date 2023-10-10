@@ -1,292 +1,236 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { getState, setup } = require('./setup');
-const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
+const { setup, SPOT_PRICE_A, SPOT_PRICE_B } = require('./setup');
 
-const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 
-/* ========== ramm.getReserves JS implementation ========== */
-/* The logic and constants used in this file was copied from Ramm.sol */
+/**
+ * Constants and expected value calculations are copied off Ramm.sol
+ */
 
-/* ========== FUNCTIONS ========== */
+/* ========== CONSTANTS ========== */
 
-const LIQ_SPEED_PERIOD = 1 * 24 * 60 * 60;
-const RATCHET_PERIOD = 1 * 24 * 60 * 60;
-const RATCHET_DENOMINATOR = BigNumber.from(10000);
-const PRICE_BUFFER = BigNumber.from(100);
-const PRICE_BUFFER_DENOMINATOR = BigNumber.from(10000);
-// const GRANULARITY = 2;
-// const PERIOD_SIZE = 1 * 24 * 60 * 60;
-
-/* =========== IMMUTABLES ========== */
+const LIQ_SPEED_PERIOD = 1 * 24 * 60 * 60; // 1 day
+const RATCHET_PERIOD = 1 * 24 * 60 * 60; // 1 day
+const RATCHET_DENOMINATOR = 10000;
+const PRICE_BUFFER = 100;
+const PRICE_BUFFER_DENOMINATOR = 10000;
 
 const FAST_LIQUIDITY_SPEED = parseEther('1500');
 const TARGET_LIQUIDITY = parseEther('5000');
 const LIQ_SPEED_A = parseEther('100');
 const LIQ_SPEED_B = parseEther('100');
-// const FAST_RATCHET_SPEED = BigNumber.from(5000);
-// const NORMAL_RATCHET_SPEED = 400;
+const FAST_RATCHET_SPEED = 5000;
+const INITIAL_LIQUIDITY = parseEther('5000');
+const INITIAL_BUDGET = parseEther('43835');
 
-const getReserves = async (state, pool, tokenController, currentTimestamp) => {
-  const capital = await pool.getPoolValueInEth();
-  const supply = await tokenController.totalSupply();
-  return _getReserves(state, capital, supply, BigNumber.from(currentTimestamp));
+const getRammState = paramState => ({
+  nxmA: INITIAL_LIQUIDITY.mul(parseEther('1')).div(SPOT_PRICE_A),
+  nxmB: INITIAL_LIQUIDITY.mul(parseEther('1')).div(SPOT_PRICE_B),
+  eth: INITIAL_LIQUIDITY,
+  budget: INITIAL_BUDGET,
+  ratchetSpeed: FAST_RATCHET_SPEED,
+  timestamp: Math.floor(Date.now() / 1000),
+  ...paramState,
+});
+
+/**
+ * Calculates the expected ETH liquidity after extracting ETH
+ *
+ * @param {Object} state - The current state object
+ * @param {number} nextBlockTimestamp - The timestamp of the next block
+ * @return {number} The expected amount of ETH to extract from the state
+ */
+const getExpectedEthExtract = (state, nextBlockTimestamp) => {
+  const elapsedLiquidity = LIQ_SPEED_A.mul(nextBlockTimestamp - state.timestamp)
+    .mul(parseEther('1'))
+    .div(LIQ_SPEED_PERIOD);
+  const ethToTargetLiquidity = state.eth.sub(TARGET_LIQUIDITY);
+  const ethToExtract = elapsedLiquidity.lt(ethToTargetLiquidity) ? elapsedLiquidity : ethToTargetLiquidity;
+  return state.eth.sub(ethToExtract);
 };
 
-const _getReserves = (state, capital, supply, currentTimestamp) => {
-  let eth = state.eth;
-  let budget = state.budget;
+/**
+ * Calculates the expected NxmA book value.
+ *
+ * @param {BigNumber} eth - The current ETH liquidity
+ * @param {BigNumber} capital - The current pool capital value in ETH
+ * @param {BigNumber} supply - The current total NXM supply
+ * @return {BigNumber} The expected NxmA book value
+ */
+const getExpectedNxmABookValue = (eth, capital, supply) => {
+  const bufferedCapitalA = capital.mul(PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER).div(PRICE_BUFFER_DENOMINATOR);
+  return eth.mul(supply).div(bufferedCapitalA);
+};
 
-  const elapsed = currentTimestamp.sub(state.timestamp);
+/**
+ * Calculates the expected NxmB book value.
+ *
+ * @param {BigNumber} eth - The current ETH liquidity
+ * @param {BigNumber} capital - The current pool capital value in ETH
+ * @param {BigNumber} supply - The current total NXM supply
+ * @return {BigNumber} The expected NxmB book value
+ */
+const getExpectedNxmBBookValue = (eth, capital, supply) => {
+  const bufferedCapitalB = capital.mul(PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER).div(PRICE_BUFFER_DENOMINATOR);
+  return eth.mul(supply).div(bufferedCapitalB);
+};
 
-  if (eth.lt(TARGET_LIQUIDITY)) {
-    // inject eth
-    const timeLeftOnBudget = budget.mul(LIQ_SPEED_PERIOD).div(FAST_LIQUIDITY_SPEED);
-    const maxToInject = TARGET_LIQUIDITY.sub(eth);
-    let injected;
+describe('_getReserves', function () {
+  it('should return current state in the pools - extract ETH flow where eth > TARGET_LIQUIDITY', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, pool, tokenController } = fixture.contracts;
 
-    if (elapsed.lte(timeLeftOnBudget)) {
-      const injectedFast = elapsed.mul(FAST_LIQUIDITY_SPEED).div(LIQ_SPEED_PERIOD);
-      injected = injectedFast.lt(maxToInject) ? injectedFast : maxToInject;
-    } else {
-      const injectedFast = timeLeftOnBudget.mul(FAST_LIQUIDITY_SPEED).div(LIQ_SPEED_PERIOD);
-      const elapsedTimeLeft = elapsed.sub(timeLeftOnBudget);
-      const injectedSlow = elapsedTimeLeft.mul(LIQ_SPEED_B).mul(parseEther('1')).div(LIQ_SPEED_PERIOD);
-      const injectedFastPlusSlow = injectedFast.add(injectedSlow);
-      injected = maxToInject.lt(injectedFastPlusSlow) ? maxToInject : injectedFastPlusSlow;
-    }
+    const capital = await pool.getPoolValueInEth();
+    const supply = await tokenController.totalSupply();
 
-    eth = eth.add(injected);
-    budget = budget.gt(injected) ? budget.sub(injected) : 0;
-  } else {
-    // extract eth
-    const elapsedLiquidity = elapsed.mul(LIQ_SPEED_A).mul(parseEther('1')).div(LIQ_SPEED_PERIOD);
-    const ethToTargetLiquidity = eth.sub(TARGET_LIQUIDITY);
-    const ethToExtract = elapsedLiquidity.lt(ethToTargetLiquidity) ? elapsedLiquidity : ethToTargetLiquidity;
-    eth = eth.sub(ethToExtract);
-  }
+    // Set eth to 5100 so its > 5000 TARGET_LIQUIDITY (i.e. extract ETH)
+    const state = getRammState({ eth: parseEther('5100') });
+    // Advance next block timestamp by 32 hours to reach book value (i.e. no ratchet)
+    const nextBlockTimestamp = state.timestamp + 32 * 60 * 60;
 
-  let nxmA = state.nxmA.mul(eth).div(state.eth);
-  let nxmB = state.nxmB.mul(eth).div(state.eth);
+    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, nextBlockTimestamp);
 
-  // apply ratchet below
-  // if cap*n*(1+r) > e*sup
-  // if cap*n.add(cap*n*r > e*sup
-  //   set n(new) = n(BV)
-  // else
-  //   set n(new) = n(R)
-  const r = elapsed.mul(state.ratchetSpeed);
-  const priceBufferA = PRICE_BUFFER_DENOMINATOR.add(PRICE_BUFFER);
-  const bufferedCapitalA = capital.mul(priceBufferA).div(PRICE_BUFFER_DENOMINATOR);
+    const expectedEth = getExpectedEthExtract(state, nextBlockTimestamp);
+    const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply);
+    const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply);
+    const expectedBudget = state.budget;
 
-  const kA = bufferedCapitalA.mul(nxmA);
-  const kARatchetValue = bufferedCapitalA.mul(nxmA).mul(r).div(RATCHET_PERIOD).div(RATCHET_DENOMINATOR);
-  const kARatcheted = kA.add(kARatchetValue);
+    expect(eth).to.be.equal(expectedEth);
+    expect(nxmA).to.be.equal(expectedNxmA);
+    expect(nxmB).to.be.equal(expectedNxmB);
+    expect(budget).to.be.equal(expectedBudget);
+  });
 
-  if (kARatcheted.gt(eth.mul(supply))) {
-    // use bv
-    nxmA = eth.mul(supply).div(bufferedCapitalA);
-  } else {
-    // use ratchet
-    const nrDenomAddend = r.mul(capital).mul(nxmA).div(supply).div(RATCHET_PERIOD).div(RATCHET_DENOMINATOR);
-    nxmA = eth.mul(nxmA).div(eth.sub(nrDenomAddend));
-  }
+  it('should return current state in the pools - extract ETH flow where eth == TARGET_LIQUIDITY', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, pool, tokenController } = fixture.contracts;
 
-  // apply ratchet below
-  // check if we should be using the ratchet or the book value price using:
-  // Nbv > Nr <=>
-  // ... <=>
-  // cap * n < e * sup + r * cap * n
-  const priceBufferB = PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER;
-  const bufferedCapitalB = capital.mul(priceBufferB).div(PRICE_BUFFER_DENOMINATOR);
+    const capital = await pool.getPoolValueInEth();
+    const supply = await tokenController.totalSupply();
 
-  const kB = bufferedCapitalB.mul(nxmB);
-  const kBRatchetValue = nxmB
-    .mul(capital)
-    .mul(elapsed)
-    .mul(state.ratchetSpeed)
-    .div(RATCHET_PERIOD)
-    .div(RATCHET_DENOMINATOR);
-  const kBRatcheted = eth.mul(supply).add(kBRatchetValue);
-  if (kB.lt(kBRatcheted)) {
-    // use bv
-    nxmB = eth.mul(supply).div(bufferedCapitalB);
-  } else {
-    // use ratchet
-    const nrDenomAddend = nxmB
+    // Set eth == TARGET_LIQUIDITY (i.e. extract ETH)
+    const state = getRammState({ eth: TARGET_LIQUIDITY });
+    // Advance next block timestamp by 32 hours to reach book value (i.e. no ratchet)
+    const nextBlockTimestamp = state.timestamp + 32 * 60 * 60;
+
+    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, nextBlockTimestamp);
+
+    const expectedEth = getExpectedEthExtract(state, nextBlockTimestamp);
+    const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply);
+    const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply);
+    const expectedBudget = state.budget;
+
+    expect(eth).to.be.equal(expectedEth);
+    expect(nxmA).to.be.equal(expectedNxmA);
+    expect(nxmB).to.be.equal(expectedNxmB);
+    expect(budget).to.be.equal(expectedBudget);
+  });
+
+  it('should return current state in the pools - inject ETH flow where elapsed <= timeLeftOnBudget', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, pool, tokenController } = fixture.contracts;
+
+    const capital = await pool.getPoolValueInEth();
+    const supply = await tokenController.totalSupply();
+
+    // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
+    const state = getRammState({ eth: TARGET_LIQUIDITY.sub(parseEther('100')) });
+    // Advance next block time stamp by > 31 hrs (no ratchet) but < 701 hrs (timeLeftOnBudget)
+    const nextBlockTimestamp = state.timestamp + 32 * 60 * 60;
+
+    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, nextBlockTimestamp);
+
+    // Expected injected eth
+    const maxToInject = TARGET_LIQUIDITY.sub(state.eth);
+    const injectedFast = FAST_LIQUIDITY_SPEED.mul(nextBlockTimestamp - state.timestamp).div(LIQ_SPEED_PERIOD);
+    const injected = injectedFast.lt(maxToInject) ? injectedFast : maxToInject;
+
+    const expectedEth = state.eth.add(injected);
+    const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply);
+    const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply);
+    const expectedBudget = state.budget.gt(injected) ? state.budget.sub(injected) : 0;
+
+    expect(eth).to.be.equal(expectedEth);
+    expect(nxmA).to.be.equal(expectedNxmA);
+    expect(nxmB).to.be.equal(expectedNxmB);
+    expect(budget).to.be.equal(expectedBudget);
+  });
+
+  it('should return current state in the pools - inject ETH flow elapsed > timeLeftOnBudget', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, pool, tokenController } = fixture.contracts;
+
+    const capital = await pool.getPoolValueInEth();
+    const supply = await tokenController.totalSupply();
+
+    // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
+    const state = getRammState({ eth: TARGET_LIQUIDITY.sub(parseEther('100')) });
+    // Advance next block time stamp by > 31 hrs (no ratchet) and > 701 hrs timeLeftOnBudget
+    const nextBlockTimestamp = state.timestamp + 702 * 60 * 60;
+
+    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, nextBlockTimestamp);
+
+    // Expected injected eth
+    const maxToInject = TARGET_LIQUIDITY.sub(state.eth);
+    const timeLeftOnBudget = state.budget.mul(LIQ_SPEED_PERIOD).div(FAST_LIQUIDITY_SPEED);
+    const injectedFast = timeLeftOnBudget.mul(FAST_LIQUIDITY_SPEED).div(LIQ_SPEED_PERIOD);
+    const injectedSlow = LIQ_SPEED_B.mul(nextBlockTimestamp - state.timestamp - timeLeftOnBudget)
+      .mul(parseEther('1'))
+      .div(LIQ_SPEED_PERIOD);
+    const injectedFastPlusSlow = injectedFast.add(injectedSlow);
+    const injected = maxToInject.lt(injectedFastPlusSlow) ? maxToInject : injectedFastPlusSlow;
+
+    const expectedEth = state.eth.add(injected);
+    const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply);
+    const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply);
+    const expectedBudget = state.budget.gt(injected) ? state.budget.sub(injected) : 0;
+
+    expect(eth).to.be.equal(expectedEth);
+    expect(nxmA).to.be.equal(expectedNxmA);
+    expect(nxmB).to.be.equal(expectedNxmB);
+    expect(budget).to.be.equal(expectedBudget);
+  });
+
+  it('should return current state in the pools - ratchet value', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, pool, tokenController } = fixture.contracts;
+
+    const capital = await pool.getPoolValueInEth();
+    const supply = await tokenController.totalSupply();
+
+    // Set budget to 0 and eth == TARGET_LIQUIDITY (i.e. extract ETH)
+    const state = getRammState({ budget: 0 });
+    // Advance next block timestamp < 31 hours to NOT reach book value (i.e. use ratchet)
+    const nextBlockTimestamp = state.timestamp + 1 * 60 * 60;
+
+    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, nextBlockTimestamp);
+
+    const expectedEth = getExpectedEthExtract(state, nextBlockTimestamp);
+    // Expected nxmA ratchet
+    const elapsed = nextBlockTimestamp - state.timestamp;
+    const nrDenomAddendA = capital
+      .mul(elapsed * state.ratchetSpeed)
+      .mul(state.nxmA)
+      .div(supply)
+      .div(RATCHET_PERIOD)
+      .div(RATCHET_DENOMINATOR);
+    const expectedNxmA = eth.mul(state.nxmA).div(eth.sub(nrDenomAddendA));
+    // Expected nxmB ratchet
+    const nrDenomAddendB = state.nxmB
       .mul(elapsed)
       .mul(state.ratchetSpeed)
       .mul(capital)
       .div(supply)
       .div(RATCHET_PERIOD)
       .div(RATCHET_DENOMINATOR);
-    nxmB = eth.mul(nxmB).div(eth.add(nrDenomAddend));
-  }
+    const expectedNxmB = eth.mul(state.nxmB).div(eth.add(nrDenomAddendB));
+    const expectedBudget = state.budget;
 
-  return {
-    nxmA,
-    nxmB,
-    eth,
-    budget,
-    ratchetSpeed: state.ratchetSpeed,
-    timestamp: currentTimestamp,
-  };
-};
-
-/* ========== Set Slo1.ethReserve helper functions ========== */
-
-/**
- * Sets the value of the Ether reserve in the RAMM contract.
- *
- * @async
- * @param {string} rammAddress - The address of the RAMM contract
- * @param {number} valueInEther - The value of the Ether reserve in Ether
- * @return {Promise<void>}
- */
-const setEthReserveValue = async (rammAddress, valueInEther) => {
-  const SLOT_1_POSITION = '0x3';
-  // Convert valueInEther to 128 bits wei hex value
-  const hexValueInWei = parseEther(valueInEther.toString()).toHexString();
-  const newEtherReserve = '0x' + removeHexPrefix(hexValueInWei).padStart(32, '0'); // 32 hex chars in 128 bits
-  // Get current Slot1 value
-  const slot1Value = await ethers.provider.send('eth_getStorageAt', [rammAddress, SLOT_1_POSITION]);
-  // Update Slot1 to have new ethReserve value
-  const newSlot1Value = await replaceHexValueInBitPos(slot1Value, newEtherReserve, 128);
-  return ethers.provider.send('hardhat_setStorageAt', [rammAddress, SLOT_1_POSITION, newSlot1Value]);
-};
-
-/**
- * Replaces a bit value in a hexadecimal string with a new value at a specific bit position.
- *
- * @param {string} origHex - The original hexadecimal string (must be 256 bits / 64 hex characters)
- * @param {string} newHexValue - The new hexadecimal value to replace with
- * @param {number} bitPosition - The position of the bit in the original string to replace
- * @return {string} The modified hexadecimal string
- */
-const replaceHexValueInBitPos = (origHex, newHexValue, bitPosition) => {
-  // Convert hex to buffers
-  const bufferOrig = Buffer.from(removeHexPrefix(origHex), 'hex');
-  const bufferNewVal = Buffer.from(removeHexPrefix(newHexValue), 'hex');
-
-  // Calculate the correct byte start position and copy the new value into the original buffer
-  const byteStart = origHex.length / 2 - bitPosition / 8;
-  bufferNewVal.copy(bufferOrig, byteStart);
-
-  return '0x' + bufferOrig.toString('hex');
-};
-
-/**
- * Removes the '0x' prefix from a hexadecimal string if it exists.
- *
- * @param {string} hex - The hexadecimal string from which the prefix needs to be removed
- * @returns {string} - The modified hexadecimal string without the '0x' prefix
- */
-const removeHexPrefix = hex => (hex.startsWith('0x') ? hex.slice(2) : hex);
-
-describe('getReserves', function () {
-  it('should return current state in the pools - ratchet value', async function () {
-    const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
-
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    const nextBlockTimestamp = timestamp + 1 * 60 * 60;
-    await setNextBlockTime(nextBlockTimestamp);
-    await mineNextBlock();
-
-    const { _ethReserve, nxmA, nxmB, _budget } = await ramm.getReserves();
-    const currentState = await getState(ramm);
-    const expectedReserves = await getReserves(currentState, pool, tokenController, nextBlockTimestamp);
-
-    expect(_ethReserve).to.be.equal(expectedReserves.eth);
-    expect(nxmA).to.be.equal(expectedReserves.nxmA);
-    expect(nxmB).to.be.equal(expectedReserves.nxmB);
-    expect(_budget).to.be.equal(expectedReserves.budget);
-  });
-  it('should return current state in the pools - book value', async function () {
-    const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
-
-    // set next block time far enough to reach book value (e.g. 5 days)
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    const timeElapsed = 5 * 24 * 60 * 60;
-    const nextBlockTimestamp = timestamp + timeElapsed;
-    await setNextBlockTime(nextBlockTimestamp);
-    await mineNextBlock();
-
-    const { _ethReserve, nxmA, nxmB, _budget } = await ramm.getReserves();
-    const currentState = await getState(ramm);
-    const expectedReserves = await getReserves(currentState, pool, tokenController, nextBlockTimestamp);
-
-    expect(_ethReserve).to.be.equal(expectedReserves.eth);
-    expect(nxmA).to.be.equal(expectedReserves.nxmA);
-    expect(nxmB).to.be.equal(expectedReserves.nxmB);
-    expect(_budget).to.be.equal(expectedReserves.budget);
-  });
-  it('should return current state in the pools - extract ETH flow where eth > TARGET_LIQUIDITY', async function () {
-    const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
-
-    // Set ethReserve to 5100 (i.e. > than 5000 TARGET_LIQUIDITY) to force extract ETH flow
-    await setEthReserveValue(ramm.address, 5100);
-
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    const nextBlockTimestamp = timestamp + 1 * 60 * 60;
-    await setNextBlockTime(nextBlockTimestamp);
-    await mineNextBlock();
-
-    const { _ethReserve, nxmA, nxmB, _budget } = await ramm.getReserves();
-    const rammState = await getState(ramm);
-    const expectedReserves = await getReserves(rammState, pool, tokenController, nextBlockTimestamp);
-
-    expect(_ethReserve).to.be.equal(expectedReserves.eth);
-    expect(nxmA).to.be.equal(expectedReserves.nxmA);
-    expect(nxmB).to.be.equal(expectedReserves.nxmB);
-    expect(_budget).to.be.equal(expectedReserves.budget);
-  });
-  it('should return current state in the pools - inject ETH flow where elapsed <= timeLeftOnBudget', async function () {
-    const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
-
-    // Set ethReserve to 4900 (i.e. < than 5000 TARGET_LIQUIDITY) to force inject ETH flow
-    await setEthReserveValue(ramm.address, 4900);
-
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    // Set next block time to 1 hr (i.e. 1 hr elapsed < 701.36 hrs timeLeftOnBudget)
-    const nextBlockTimestamp = timestamp + 1 * 60 * 60;
-    await setNextBlockTime(nextBlockTimestamp);
-    await mineNextBlock();
-
-    const { _ethReserve, nxmA, nxmB, _budget } = await ramm.getReserves();
-    const rammState = await getState(ramm);
-    const expectedReserves = await getReserves(rammState, pool, tokenController, nextBlockTimestamp);
-
-    expect(_ethReserve).to.be.equal(expectedReserves.eth);
-    expect(nxmA).to.be.equal(expectedReserves.nxmA);
-    expect(nxmB).to.be.equal(expectedReserves.nxmB);
-    expect(_budget).to.be.equal(expectedReserves.budget);
-  });
-  it('should return current state in the pools - inject ETH flow elapsed > timeLeftOnBudget', async function () {
-    const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
-
-    // Set ethReserve to 4900 (i.e. < than 5000 TARGET_LIQUIDITY) to force inject ETH flow
-    await setEthReserveValue(ramm.address, 4900);
-
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    // Set next block time to + 702 hrs (i.e. 702 elapsed > 701.36 hrs timeLeftOnBudget)
-    const nextBlockTimestamp = timestamp + 702 * 24 * 60 * 60;
-    await setNextBlockTime(nextBlockTimestamp);
-    await mineNextBlock();
-
-    const { _ethReserve, nxmA, nxmB, _budget } = await ramm.getReserves();
-    const rammState = await getState(ramm);
-    const expectedReserves = await getReserves(rammState, pool, tokenController, nextBlockTimestamp);
-
-    expect(_ethReserve).to.be.equal(expectedReserves.eth);
-    expect(nxmA).to.be.equal(expectedReserves.nxmA);
-    expect(nxmB).to.be.equal(expectedReserves.nxmB);
-    expect(_budget).to.be.equal(expectedReserves.budget);
+    expect(eth).to.be.equal(expectedEth);
+    expect(nxmA).to.be.equal(expectedNxmA);
+    expect(nxmB).to.be.equal(expectedNxmB);
+    expect(budget).to.be.equal(expectedBudget);
   });
 });

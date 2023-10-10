@@ -2,26 +2,16 @@ const { ethers } = require('hardhat');
 
 const { Role } = require('../../../lib/constants');
 const { hex } = require('../../../lib/helpers');
-const {
-  evm: { setEtherBalance },
-  accounts: { getAccounts },
-} = require('../utils');
+const { setEtherBalance } = require('../utils').evm;
+const { getAccounts } = require('../utils').accounts;
 
 const { parseEther } = ethers.utils;
 
 async function getState(ramm) {
-  const { nxmReserveA, nxmReserveB } = await ramm.slot0();
-  const { ethReserve, budget, updatedAt } = await ramm.slot1();
+  const { nxmReserveA: nxmA, nxmReserveB: nxmB } = await ramm.slot0();
+  const { ethReserve: eth, budget, updatedAt: timestamp } = await ramm.slot1();
   const ratchetSpeed = await ramm.ratchetSpeed();
-
-  return {
-    nxmA: nxmReserveA,
-    nxmB: nxmReserveB,
-    eth: ethReserve,
-    budget,
-    ratchetSpeed,
-    timestamp: updatedAt,
-  };
+  return { nxmA, nxmB, eth, budget, ratchetSpeed, timestamp };
 }
 
 async function setup() {

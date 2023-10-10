@@ -1,8 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { setup } = require('./setup');
-const { getReserves } = require('../../utils/getReserves');
+const { getState, setup } = require('./setup');
 const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 
 const { provider } = ethers;
@@ -11,7 +10,6 @@ const { parseEther } = ethers.utils;
 describe('getSpotPrices', function () {
   it('should return current buy / sell spot prices', async function () {
     const fixture = await loadFixture(setup);
-    const { state } = fixture;
     const { ramm, pool, tokenController } = fixture.contracts;
 
     const { timestamp } = await provider.getBlock('latest');
@@ -21,7 +19,11 @@ describe('getSpotPrices', function () {
     await mineNextBlock();
 
     const { spotPriceA, spotPriceB } = await ramm.getSpotPrices();
-    const { eth, nxmA, nxmB } = await getReserves(state, pool, tokenController, nextBlockTimestamp);
+
+    const initialState = await getState(ramm);
+    const capital = await pool.getPoolValueInEth();
+    const supply = await tokenController.totalSupply();
+    const { eth, nxmA, nxmB } = await ramm._getReserves(initialState, capital, supply, nextBlockTimestamp);
 
     // buy price
     const expectedSpotPriceA = parseEther('1').mul(eth).div(nxmA);

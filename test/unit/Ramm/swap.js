@@ -64,7 +64,9 @@ describe('swap', function () {
     await mineNextBlock();
 
     const nxmIn = parseEther('1');
-    const state = await getReserves(fixture.state, pool, tokenController, nextBlockTimestamp);
+    const currentState = await getState(ramm);
+    const state = await getReserves(currentState, pool, tokenController, nextBlockTimestamp);
+
     const currentLiquidity = state.eth;
 
     await nxm.connect(member).approve(tokenController.address, nxmIn);
@@ -110,7 +112,8 @@ describe('swap', function () {
     await mineNextBlock();
 
     const ethIn = parseEther('1');
-    const state = await getReserves(fixture.state, pool, tokenController, nextBlockTimestamp);
+    const currentState = await getState(ramm);
+    const state = await getReserves(currentState, pool, tokenController, nextBlockTimestamp);
     const currentLiquidity = state.eth;
 
     // before state

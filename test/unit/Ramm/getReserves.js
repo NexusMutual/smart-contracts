@@ -65,7 +65,8 @@ describe('getReserves', function () {
     await mineNextBlock();
 
     const { _ethReserve, nxmA, nxmB, _budget } = await ramm.getReserves();
-    const expectedReserves = await getReserves(fixture.state, pool, tokenController, nextBlockTimestamp);
+    const currentState = await getState(ramm);
+    const expectedReserves = await getReserves(currentState, pool, tokenController, nextBlockTimestamp);
 
     expect(_ethReserve).to.be.equal(expectedReserves.eth);
     expect(nxmA).to.be.equal(expectedReserves.nxmA);
@@ -84,7 +85,8 @@ describe('getReserves', function () {
     await mineNextBlock();
 
     const { _ethReserve, nxmA, nxmB, _budget } = await ramm.getReserves();
-    const expectedReserves = await getReserves(fixture.state, pool, tokenController, nextBlockTimestamp);
+    const currentState = await getState(ramm);
+    const expectedReserves = await getReserves(currentState, pool, tokenController, nextBlockTimestamp);
 
     expect(_ethReserve).to.be.equal(expectedReserves.eth);
     expect(nxmA).to.be.equal(expectedReserves.nxmA);

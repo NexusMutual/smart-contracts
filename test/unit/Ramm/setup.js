@@ -51,11 +51,9 @@ async function setup() {
   }
 
   await nxm.mint(accounts.defaultSender.address, parseEther('6700000'));
-  const state = await getState(ramm);
 
   return {
     accounts,
-    state,
     contracts: {
       master,
       nxm,

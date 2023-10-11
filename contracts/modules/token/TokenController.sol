@@ -131,7 +131,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
    * @return the boolean status of the burning process
    */
   function burnFrom(address _of, uint amount) public override onlyInternal returns (bool) {
-    ramm().updateTwap();
     return token.burnFrom(_of, amount);
   }
 
@@ -157,7 +156,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   * @param _amount number of tokens to mint
   */
   function mint(address _member, uint _amount) public override onlyInternal {
-    ramm().updateTwap();
     token.mint(_member, _amount);
   }
 
@@ -544,7 +542,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
-    ramm().updateTwap();
     token.mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
@@ -552,7 +549,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
-    ramm().updateTwap();
     token.burn(amount);
   }
 
@@ -579,7 +575,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   function burnStakedNXM(uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
-    ramm().updateTwap();
     token.burn(amount);
   }
 }

@@ -56,8 +56,9 @@ contract Ramm is IRamm, MasterAwareV2 {
     SPOT_PRICE_B = spotPriceB;
   }
 
-  function loadState() internal view returns (State memory) {
-    return State(slot0.nxmReserveA,
+  function loadState() public view returns (State memory) {
+    return State(
+      slot0.nxmReserveA,
       slot0.nxmReserveB,
       slot1.ethReserve,
       slot1.budget,

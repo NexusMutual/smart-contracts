@@ -25,25 +25,23 @@ const FAST_RATCHET_SPEED = 5000;
 const INITIAL_LIQUIDITY = parseEther('5000');
 const INITIAL_BUDGET = parseEther('43835');
 
-const getRammState = paramState => ({
+const INITIAL_RAMM_STATE = {
   nxmA: INITIAL_LIQUIDITY.mul(parseEther('1')).div(SPOT_PRICE_A),
   nxmB: INITIAL_LIQUIDITY.mul(parseEther('1')).div(SPOT_PRICE_B),
   eth: INITIAL_LIQUIDITY,
   budget: INITIAL_BUDGET,
   ratchetSpeed: FAST_RATCHET_SPEED,
-  timestamp: Math.floor(Date.now() / 1000),
-  ...paramState,
-});
+};
 
 /**
  * Calculates the expected ETH liquidity after extracting ETH
  *
  * @param {Object} state - The current state object
- * @param {number} nextBlockTimestamp - The timestamp of the next block
+ * @param {number} timestamp - The timestamp of the next block
  * @return {number} The expected amount of ETH to extract from the state
  */
-const getExpectedEthExtract = (state, nextBlockTimestamp) => {
-  const elapsedLiquidity = LIQ_SPEED_A.mul(nextBlockTimestamp - state.timestamp)
+const getExpectedEthExtract = (state, timestamp) => {
+  const elapsedLiquidity = LIQ_SPEED_A.mul(timestamp - state.timestamp)
     .mul(parseEther('1'))
     .div(LIQ_SPEED_PERIOD);
   const ethToTargetLiquidity = state.eth.sub(TARGET_LIQUIDITY);

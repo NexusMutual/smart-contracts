@@ -80,11 +80,16 @@ describe('_getReserves', function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController } = fixture.contracts;
 
+    const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
 
     // Set eth to 5100 so its > 5000 TARGET_LIQUIDITY (i.e. extract ETH)
-    const state = getRammState({ eth: parseEther('5100') });
+    const state = {
+      ...INITIAL_RAMM_STATE,
+      timestamp: updatedAt,
+      eth: TARGET_LIQUIDITY.add(parseEther('100')),
+    };
     // Advance next block timestamp by 32 hours to reach book value (i.e. no ratchet)
     const nextBlockTimestamp = state.timestamp + 32 * 60 * 60;
 
@@ -105,11 +110,16 @@ describe('_getReserves', function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController } = fixture.contracts;
 
+    const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
 
     // Set eth == TARGET_LIQUIDITY (i.e. extract ETH)
-    const state = getRammState({ eth: TARGET_LIQUIDITY });
+    const state = {
+      ...INITIAL_RAMM_STATE,
+      timestamp: updatedAt,
+      eth: TARGET_LIQUIDITY,
+    };
     // Advance next block timestamp by 32 hours to reach book value (i.e. no ratchet)
     const nextBlockTimestamp = state.timestamp + 32 * 60 * 60;
 
@@ -130,11 +140,16 @@ describe('_getReserves', function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController } = fixture.contracts;
 
+    const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
-    const state = getRammState({ eth: TARGET_LIQUIDITY.sub(parseEther('100')) });
+    const state = {
+      ...INITIAL_RAMM_STATE,
+      timestamp: updatedAt,
+      eth: TARGET_LIQUIDITY.sub(parseEther('100')),
+    };
     // Advance next block time stamp by > 31 hrs (no ratchet) but < 701 hrs (timeLeftOnBudget)
     const nextBlockTimestamp = state.timestamp + 32 * 60 * 60;
 
@@ -160,11 +175,16 @@ describe('_getReserves', function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController } = fixture.contracts;
 
+    const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
-    const state = getRammState({ eth: TARGET_LIQUIDITY.sub(parseEther('100')) });
+    const state = {
+      ...INITIAL_RAMM_STATE,
+      timestamp: updatedAt,
+      eth: TARGET_LIQUIDITY.sub(parseEther('100')),
+    };
     // Advance next block time stamp by > 31 hrs (no ratchet) and > 701 hrs timeLeftOnBudget
     const nextBlockTimestamp = state.timestamp + 702 * 60 * 60;
 
@@ -195,11 +215,17 @@ describe('_getReserves', function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController } = fixture.contracts;
 
+    const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
 
     // Set budget to 0 and eth == TARGET_LIQUIDITY (i.e. extract ETH)
-    const state = getRammState({ budget: 0 });
+    const state = {
+      ...INITIAL_RAMM_STATE,
+      timestamp: updatedAt,
+      budget: 0,
+      eth: TARGET_LIQUIDITY,
+    };
     // Advance next block timestamp < 31 hours to NOT reach book value (i.e. use ratchet)
     const nextBlockTimestamp = state.timestamp + 1 * 60 * 60;
 

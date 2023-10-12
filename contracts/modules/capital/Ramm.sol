@@ -346,49 +346,56 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint priceCumulativeBelow = previousObservation.priceCumulativeBelow;
 
     { // above
-      uint timeOnRatchet;
-      uint inner;
+      uint maxTimeOnRatchet;
       {
         uint innerLeft = previousState.eth * supply;
         uint innerRight = (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) * capital * previousState.nxmA / PRICE_BUFFER_DENOMINATOR;
-        inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
+        uint inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
+        maxTimeOnRatchet = inner != 0
+          ? inner * RATCHET_DENOMINATOR * RATCHET_PERIOD / capital / previousState.nxmA / state.ratchetSpeed
+          : 0;
       }
 
       // on ratchet
-      if (inner != 0) {
-        timeOnRatchet = inner * RATCHET_DENOMINATOR * RATCHET_PERIOD / capital / previousState.nxmA / state.ratchetSpeed;
+      if (maxTimeOnRatchet != 0) {
+        uint timeOnRatchet = state.timestamp - previousState.timestamp > maxTimeOnRatchet
+          ? maxTimeOnRatchet
+          : state.timestamp - previousState.timestamp;
 
         // cumulative price above
         priceCumulativeAbove += (previousState.eth * state.nxmA + state.eth * previousState.nxmA) * timeOnRatchet / previousState.nxmA / state.nxmA / 2;
       }
 
       // on bv
-      uint timeOnBV = state.timestamp - previousState.timestamp > timeOnRatchet
-        ? state.timestamp - previousState.timestamp - timeOnRatchet
+      uint timeOnBV = state.timestamp - previousState.timestamp > maxTimeOnRatchet
+        ? state.timestamp - previousState.timestamp - maxTimeOnRatchet
         : 0;
       priceCumulativeAbove += timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / supply / PRICE_BUFFER_DENOMINATOR;
     }
 
     { // below
-      uint timeOnRatchet;
-      uint inner;
+      uint maxTimeOnRatchet;
       {
         uint innerLeft = (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) * capital * previousState.nxmB / PRICE_BUFFER_DENOMINATOR;
         uint innerRight = previousState.eth * supply;
-        inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
+        uint inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
+        maxTimeOnRatchet = inner != 0
+          ? inner * RATCHET_DENOMINATOR * RATCHET_PERIOD / capital / previousState.nxmA / state.ratchetSpeed
+          : 0;
       }
 
       // on ratchet
-      if (inner != 0) {
-        timeOnRatchet = inner * RATCHET_DENOMINATOR * RATCHET_PERIOD / capital / previousState.nxmB / state.ratchetSpeed;
-
+      if (maxTimeOnRatchet != 0) {
+        uint timeOnRatchet = state.timestamp - previousState.timestamp > maxTimeOnRatchet
+          ? maxTimeOnRatchet
+          : state.timestamp - previousState.timestamp;
         // cumulative price below
         priceCumulativeBelow += (previousState.eth * state.nxmB + state.eth * previousState.nxmB) * timeOnRatchet / previousState.nxmB / state.nxmB / 2;
       }
 
       // on bv
-      uint timeOnBV = state.timestamp - previousState.timestamp > timeOnRatchet
-        ? state.timestamp - previousState.timestamp - timeOnRatchet
+      uint timeOnBV = state.timestamp - previousState.timestamp > maxTimeOnRatchet
+        ? state.timestamp - previousState.timestamp - maxTimeOnRatchet
         : 0;
       priceCumulativeBelow += timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / supply / PRICE_BUFFER_DENOMINATOR;
     }

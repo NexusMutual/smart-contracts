@@ -172,7 +172,7 @@ describe('_getReserves', function () {
     expect(budget).to.be.equal(expectedBudget);
   });
 
-  it('should return current state in the pools - inject ETH flow elapsed > timeLeftOnBudget', async function () {
+  it('should return current state - inject ETH elapsed > timeLeftOnBudget (non zero budget)', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController } = fixture.contracts;
 
@@ -186,7 +186,7 @@ describe('_getReserves', function () {
       timestamp: updatedAt,
       eth: TARGET_LIQUIDITY.sub(parseEther('100')),
     };
-    // Advance next block time stamp by > 31 hrs (no ratchet) and > 701 hrs timeLeftOnBudget
+    // Advance next block time stamp > 31 hrs (no ratchet) and > 701 hrs timeLeftOnBudget (elapsed > timeLeftOnBudget)
     const nextBlockTimestamp = state.timestamp + 702 * 60 * 60;
 
     const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, nextBlockTimestamp);
@@ -198,18 +198,58 @@ describe('_getReserves', function () {
     const injectedSlow = LIQ_SPEED_B.mul(nextBlockTimestamp - state.timestamp - timeLeftOnBudget)
       .mul(parseEther('1'))
       .div(LIQ_SPEED_PERIOD);
-    const injectedFastPlusSlow = injectedFast.add(injectedSlow);
-    const injected = maxToInject.lt(injectedFastPlusSlow) ? maxToInject : injectedFastPlusSlow;
+    const injectedTotal = injectedFast.add(injectedSlow);
+    const injectedFinal = maxToInject.lt(injectedTotal) ? maxToInject : injectedTotal;
 
-    const expectedEth = state.eth.add(injected);
+    const expectedEth = state.eth.add(injectedFinal);
     const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply);
     const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply);
-    const expectedBudget = state.budget.gt(injected) ? state.budget.sub(injected) : 0;
+    const expectedBudget = state.budget.gt(injectedFinal) ? state.budget.sub(injectedFinal) : 0;
 
     expect(eth).to.be.equal(expectedEth);
     expect(nxmA).to.be.equal(expectedNxmA);
     expect(nxmB).to.be.equal(expectedNxmB);
     expect(budget).to.be.equal(expectedBudget);
+  });
+
+  it('should return current state - inject ETH elapsed > timeLeftOnBudget (zero budget)', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, pool, tokenController } = fixture.contracts;
+
+    const { updatedAt } = await ramm.slot1();
+    const capital = await pool.getPoolValueInEth();
+    const supply = await tokenController.totalSupply();
+
+    // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH) and budget to 0 (i.e. elapsed > timeLeftOnBudget)
+    const state = {
+      ...INITIAL_RAMM_STATE,
+      budget: 0,
+      timestamp: updatedAt,
+      eth: TARGET_LIQUIDITY.sub(parseEther('100')),
+    };
+    // Advance next block time stamp by > 31 hrs (no ratchet)
+    const nextBlockTimestamp = state.timestamp + 32 * 60 * 60;
+
+    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, nextBlockTimestamp);
+
+    // Expected injected eth
+    const timeLeftOnBudget = 0; // because budget is 0
+    const injectFast = 0; // because timeLeftOnBudget is 0
+    const maxToInject = TARGET_LIQUIDITY.sub(state.eth);
+    const injectedTotal = LIQ_SPEED_B.mul(nextBlockTimestamp - state.timestamp - timeLeftOnBudget)
+      .mul(parseEther('1'))
+      .div(LIQ_SPEED_PERIOD)
+      .add(injectFast);
+    const injectedFinal = maxToInject.lt(injectedTotal) ? maxToInject : injectedTotal;
+
+    const expectedEth = state.eth.add(injectedFinal);
+    const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply);
+    const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply);
+
+    expect(eth).to.be.equal(expectedEth);
+    expect(nxmA).to.be.equal(expectedNxmA);
+    expect(nxmB).to.be.equal(expectedNxmB);
+    expect(budget).to.be.equal(0);
   });
 
   it('should return current state in the pools - ratchet value', async function () {

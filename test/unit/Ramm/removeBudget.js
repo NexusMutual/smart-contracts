@@ -3,9 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
-const { impersonateAccount, setEtherBalance } = require('../../utils/evm');
-
-const { parseEther } = ethers.utils;
+const { setNextBlockBaseFee } = require('../../utils/evm');
 
 describe('removeBudget', function () {
   it('should set the budget to 0', async function () {
@@ -13,8 +11,7 @@ describe('removeBudget', function () {
     const { ramm } = fixture.contracts;
     const [governance] = fixture.accounts.governanceContracts;
 
-    await impersonateAccount(governance.address);
-    await setEtherBalance(governance.address, parseEther('1'));
+    await setNextBlockBaseFee(0);
     const governanceSigner = await ethers.provider.getSigner(governance.address);
 
     const before = await ramm.slot1();

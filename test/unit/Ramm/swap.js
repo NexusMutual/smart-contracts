@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getState, setup } = require('./setup');
-const { setNextBlockTime } = require('../../utils/evm');
+const { setNextBlockBaseFee, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
 
@@ -74,9 +74,10 @@ describe('swap', function () {
     const nxmBalanceBefore = await nxm.balanceOf(member.address);
     const ethBalanceBefore = await ethers.provider.getBalance(member.address);
 
+    await setNextBlockBaseFee(0);
     await setNextBlockTime(nextBlockTimestamp);
-    const tx = await ramm.connect(member).swap(nxmIn, parseEther('0.015')); // initial sportPriceB 0.0152
-    const { gasUsed, effectiveGasPrice } = await tx.wait();
+    const tx = await ramm.connect(member).swap(nxmIn, parseEther('0.015'), { maxPriorityFeePerGas: 0 }); // 0.0152 spotB
+    await tx.wait();
 
     // after state
     const totalSupplyAfter = await tokenController.totalSupply();
@@ -93,7 +94,7 @@ describe('swap', function () {
 
     expect(totalSupplyAfter).to.be.equal(totalSupplyBefore.sub(nxmIn));
     expect(nxmBalanceAfter).to.be.equal(nxmBalanceBefore.sub(nxmIn));
-    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(ethOut).sub(gasUsed.mul(effectiveGasPrice)));
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(ethOut));
 
     expect(stateAfter.nxmA).to.be.equal(newNxmA);
     expect(stateAfter.nxmB).to.be.equal(newNxmB);
@@ -121,9 +122,10 @@ describe('swap', function () {
     const nxmBalanceBefore = await nxm.balanceOf(member.address);
     const ethBalanceBefore = await ethers.provider.getBalance(member.address);
 
+    await setNextBlockBaseFee(0);
     await setNextBlockTime(nextBlockTimestamp);
-    const tx = await ramm.connect(member).swap(0, parseEther('31'), { value: ethIn });
-    const { gasUsed, effectiveGasPrice } = await tx.wait();
+    const tx = await ramm.connect(member).swap(0, parseEther('31'), { value: ethIn, maxPriorityFeePerGas: 0 });
+    await tx.wait();
 
     // after state
     const totalSupplyAfter = await tokenController.totalSupply();
@@ -139,7 +141,7 @@ describe('swap', function () {
     const nxmOut = state.nxmA.sub(newNxmA);
 
     expect(totalSupplyAfter).to.be.equal(totalSupplyBefore.add(nxmOut));
-    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(ethIn).sub(gasUsed.mul(effectiveGasPrice)));
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(ethIn));
     expect(nxmBalanceAfter).to.be.equal(nxmBalanceBefore.add(nxmOut));
 
     expect(stateAfter.nxmA).to.be.equal(newNxmA);

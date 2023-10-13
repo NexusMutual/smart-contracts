@@ -62,6 +62,23 @@ async function setup() {
       mcr,
       ramm,
     },
+    constants: {
+      LIQ_SPEED_PERIOD: await ramm.LIQ_SPEED_PERIOD(),
+      RATCHET_PERIOD: await ramm.RATCHET_PERIOD(),
+      RATCHET_DENOMINATOR: await ramm.RATCHET_DENOMINATOR(),
+      PRICE_BUFFER: await ramm.PRICE_BUFFER(),
+      PRICE_BUFFER_DENOMINATOR: await ramm.PRICE_BUFFER_DENOMINATOR(),
+      GRANULARITY: await ramm.GRANULARITY(),
+      PERIOD_SIZE: await ramm.PERIOD_SIZE(),
+      FAST_LIQUIDITY_SPEED: await ramm.FAST_LIQUIDITY_SPEED(),
+      TARGET_LIQUIDITY: await ramm.TARGET_LIQUIDITY(),
+      LIQ_SPEED_A: await ramm.LIQ_SPEED_A(),
+      LIQ_SPEED_B: await ramm.LIQ_SPEED_B(),
+      FAST_RATCHET_SPEED: await ramm.FAST_RATCHET_SPEED(),
+      NORMAL_RATCHET_SPEED: await ramm.NORMAL_RATCHET_SPEED(),
+      INITIAL_LIQUIDITY: await ramm.INITIAL_LIQUIDITY(),
+      INITIAL_BUDGET: await ramm.INITIAL_BUDGET(),
+    },
   };
 }
 

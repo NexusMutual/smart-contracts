@@ -4,6 +4,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { getState, setup } = require('./setup');
 const { timeTillBv, calculateTwapAboveForPeriod, calculateTwapBelowForPeriod } = require('./helpers');
 
+const { BigNumber } = ethers;
+
 describe('getObservation', function () {
   it('should do underflow/overflow sanity check for get observation', async function () {
     const fixture = await loadFixture(setup);
@@ -52,7 +54,7 @@ describe('getObservation', function () {
 
     const observation = await ramm.getObservation(previousState, state, previousObservation, capital, supply);
 
-    expect(observation.priceCumulativeBelow).to.equal(priceCumulativeBelow);
-    expect(observation.priceCumulativeAbove).to.equal(priceCumulativeAbove);
+    expect(observation.priceCumulativeBelow).to.equal(priceCumulativeBelow.mod(BigNumber.from(2).pow(64)));
+    expect(observation.priceCumulativeAbove).to.equal(priceCumulativeAbove.mod(BigNumber.from(2).pow(64)));
   });
 });

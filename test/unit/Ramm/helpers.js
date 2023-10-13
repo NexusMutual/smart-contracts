@@ -1,4 +1,10 @@
-import { BigNumber, parseEther } from 'ethers/utils';
+const { ethers } = require('hardhat');
+
+const {
+  BigNumber,
+  utils: { parseEther },
+} = ethers;
+
 function timeTillBv(
   previousState,
   supply,
@@ -66,7 +72,7 @@ function calculateTwapAboveForPeriod(
     .div(supply)
     .div(PRICE_BUFFER_DENOMINATOR);
 
-  return twapOnRatchet.add(twapOnBV).mod(BigNumber.from(2).pow(64));
+  return twapOnRatchet.add(twapOnBV);
 }
 
 function calculateTwapBelowForPeriod(
@@ -95,11 +101,46 @@ function calculateTwapBelowForPeriod(
     .div(supply)
     .div(PRICE_BUFFER_DENOMINATOR);
 
-  return twapOnRatchet.add(twapOnBV).mod(BigNumber.from(2).pow(64));
+  return twapOnRatchet.add(twapOnBV);
+}
+
+function calculateObservation(state, previousState, previousObservation, capital, supply, timeElapsed, parameters) {
+  const { maxTimeOnRatchetA, maxTimeOnRatchetB } = timeTillBv(previousState, supply, capital, parameters);
+
+  const priceCumulativeAbove = calculateTwapAboveForPeriod(
+    previousState,
+    state,
+    timeElapsed,
+    maxTimeOnRatchetA,
+    capital,
+    supply,
+    parameters,
+  );
+
+  const priceCumulativeBelow = calculateTwapBelowForPeriod(
+    previousState,
+    state,
+    timeElapsed,
+    maxTimeOnRatchetB,
+    capital,
+    supply,
+    parameters,
+  );
+
+  return {
+    timestamp: timeElapsed.add(previousObservation.timestamp),
+    priceCumulativeAbove: previousObservation.priceCumulativeAbove
+      .add(priceCumulativeAbove)
+      .mod(BigNumber.from(2).pow(64)),
+    priceCumulativeBelow: previousObservation.priceCumulativeBelow
+      .add(priceCumulativeBelow)
+      .mod(BigNumber.from(2).pow(64)),
+  };
 }
 
 module.exports = {
   timeTillBv,
   calculateTwapAboveForPeriod,
   calculateTwapBelowForPeriod,
+  calculateObservation,
 };

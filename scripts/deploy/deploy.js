@@ -10,10 +10,10 @@ const verifier = require('./verifier')();
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
-const { ABI_DIR, CONFIG_FILE, INITIAL_MEMBERS = '' } = process.env;
+const { ABI_DIR, ADDRESSES_FILE, INITIAL_MEMBERS = '' } = process.env;
 
-if (!ABI_DIR || !CONFIG_FILE) {
-  console.log('ABI_DIR and CONFIG_FILE env vars are required');
+if (!ABI_DIR || !ADDRESSES_FILE) {
+  console.log('ABI_DIR and ADDRESSES_FILE env vars are required');
   process.exit(1);
 }
 
@@ -187,7 +187,7 @@ async function main() {
   const mr = await deployProxy('DisposableMemberRoles', [tk.address]);
 
   console.log('Deploying disposable PooledStaking');
-  const ps = await deployProxy('DisposablePooledStaking');
+  const ps = await deployProxy('DisposablePooledStaking', [tk.address]);
 
   console.log('Deploying disposable PproposalCategory');
   const pc = await deployProxy('DisposableProposalCategory');
@@ -204,7 +204,7 @@ async function main() {
   await qd.changeMasterAddress(master.address);
 
   console.log('Deploying disposable LegacyGateway');
-  const gw = await deployProxy('DisposableGateway', [qd.address]);
+  const gw = await deployProxy('DisposableGateway', [qd.address, tk.address]);
 
   console.log('Deploying ProductsV1');
   const productsV1 = await deployImmutable('ProductsV1');
@@ -265,11 +265,16 @@ async function main() {
     stakingPool.address,
   ]);
 
+  console.log('Deploying Ramm');
+  const SPOT_PRICE_A = parseEther('0.0347').toString();
+  const SPOT_PRICE_B = parseEther('0.0152').toString();
+  const ramm = await deployProxy('Ramm', [SPOT_PRICE_A, SPOT_PRICE_B]);
+
   console.log('Deploying CoverViewer');
   await deployImmutable('CoverViewer', [master.address]);
 
   console.log('Deploying StakingViewer');
-  await deployImmutable('StakingViewer', [master.address, stakingNFT.address, spf.address, stakingProducts.address]);
+  await deployImmutable('StakingViewer', [master.address, stakingNFT.address, spf.address]);
 
   console.log('Deploying assessment contracts');
   const cg = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
@@ -370,7 +375,7 @@ async function main() {
   const replaceableContractCodes = ['MC', 'P1', 'CL'];
   const replaceableContractAddresses = [mcr, pool, coverMigrator].map(x => x.address);
 
-  const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'CG', 'CI', 'AS', 'SP'];
+  const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'CG', 'CI', 'AS', 'SP', 'RA'];
   const proxyContractAddresses = [
     { address: owner }, // as governance
     mr,
@@ -383,6 +388,7 @@ async function main() {
     ci,
     assessment,
     stakingProducts,
+    ramm,
   ].map(x => x.address);
 
   const addresses = [...replaceableContractAddresses, ...proxyContractAddresses];
@@ -501,11 +507,16 @@ async function main() {
   console.log('Upgrading to non-disposable contracts');
   await upgradeProxy(mr.address, 'MemberRoles', [tk.address]);
   await upgradeProxy(tc.address, 'TokenController', [qd.address, cr.address, spf.address, tk.address]);
-  await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address, stakingNFT.address]);
+  await upgradeProxy(ps.address, 'LegacyPooledStaking', [
+    cover.address,
+    productsV1.address,
+    stakingNFT.address,
+    tk.address,
+  ]);
   await upgradeProxy(pc.address, 'ProposalCategory');
   await upgradeProxy(master.address, 'NXMaster');
   await upgradeProxy(gv.address, 'Governance');
-  await upgradeProxy(gw.address, 'LegacyGateway', [qd.address]);
+  await upgradeProxy(gw.address, 'LegacyGateway', [qd.address, tk.address]);
   await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
 
   console.log('Transferring ownership of proxy contracts');
@@ -519,7 +530,9 @@ async function main() {
   await transferProxyOwnership(cg.address, master.address);
   await transferProxyOwnership(ci.address, master.address);
   await transferProxyOwnership(assessment.address, master.address);
+  await transferProxyOwnership(ramm.address, master.address);
   await assessment.changeDependentContractAddress();
+  await ramm.changeDependentContractAddress();
 
   await transferProxyOwnership(master.address, gv.address);
 
@@ -548,11 +561,10 @@ async function main() {
     console.log('Contract verifications skipped');
   }
 
-  const configFile = path.resolve(CONFIG_FILE);
+  const addressesFile = path.resolve(ADDRESSES_FILE);
   const abiDir = path.resolve(ABI_DIR);
 
-  const config = fs.existsSync(configFile) ? require(configFile) : {};
-  config.CONTRACTS_ADDRESSES = {};
+  const addressesMap = {};
 
   fs.existsSync(abiDir) && fs.rmSync(abiDir, { recursive: true });
   fs.mkdirSync(abiDir, { recursive: true });
@@ -586,13 +598,13 @@ async function main() {
       continue;
     }
 
-    if (!config.CONTRACTS_ADDRESSES[alias] || isProxy) {
-      config.CONTRACTS_ADDRESSES[alias] = address;
+    if (!addressesMap[alias] || isProxy) {
+      addressesMap[alias] = address;
     }
   }
 
-  console.log(`Updating config file ${configFile}`);
-  fs.writeFileSync(configFile, JSON.stringify(config, null, 2), 'utf8');
+  console.log(`Updating addresses.json ${addressesFile}`);
+  fs.writeFileSync(addressesFile, JSON.stringify(addressesMap, null, 2), 'utf8');
 
   console.log('Deploy finished!');
 }

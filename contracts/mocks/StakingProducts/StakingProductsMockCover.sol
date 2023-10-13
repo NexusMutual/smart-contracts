@@ -61,7 +61,7 @@ contract StakingProductsMockCover {
     (premium, allocationId) = _stakingPool.requestAllocation(
       params.amount,
       // TODO: figure out if these need to be populated
-      0, // previousPremium
+      0, // previousAllocationAmountInNXMRepriced
       AllocationRequest(
         params.productId,
         coverId,
@@ -76,7 +76,8 @@ contract StakingProductsMockCover {
         GLOBAL_CAPACITY_RATIO,
         product.capacityReductionRatio,
         GLOBAL_REWARDS_RATIO,
-        GLOBAL_MIN_PRICE_RATIO
+        GLOBAL_MIN_PRICE_RATIO,
+        0 // TODO: fill in extraPeriod
       )
     );
 

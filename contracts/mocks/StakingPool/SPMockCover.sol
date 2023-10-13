@@ -71,7 +71,7 @@ contract SPMockCover {
     (premium, allocationId) = _stakingPool.requestAllocation(
       params.amount,
       // TODO: figure out if these need to be populated
-      0, // previousPremium
+      0, // previousAllocationAmountInNXMRepriced
       AllocationRequest(
         params.productId,
         coverId,
@@ -86,7 +86,8 @@ contract SPMockCover {
         globalCapacityRatio,
         product.capacityReductionRatio,
         globalRewardsRatio,
-        GLOBAL_MIN_PRICE_RATIO
+        GLOBAL_MIN_PRICE_RATIO,
+        0 // TODO: fill in extraPeriod
       )
     );
 
@@ -97,13 +98,13 @@ contract SPMockCover {
 
   function requestAllocation (
     uint amount,
-    uint previousPremium,
+    uint previousAllocationAmountInNXMRepriced,
     AllocationRequest calldata allocationRequest,
     IStakingPool _stakingPool
   ) public returns (uint premium, uint allocationId)  {
     (premium, allocationId) = _stakingPool.requestAllocation(
       amount,
-      previousPremium,
+      previousAllocationAmountInNXMRepriced,
       allocationRequest
     );
 

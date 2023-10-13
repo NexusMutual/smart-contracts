@@ -23,6 +23,7 @@ const allocationRequestTemplate = {
   capacityReductionRatio: 0,
   rewardRatio: 5000,
   globalMinPrice: 10000,
+  extraPeriod: 0,
 };
 
 const product = {

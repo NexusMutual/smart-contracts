@@ -35,10 +35,11 @@ struct PoolAllocationRequest {
 }
 
 struct RequestAllocationVariables {
-  uint previousPoolAllocationsLength;
-  uint previousPremiumInNXM;
-  uint refund;
-  uint coverAmountInNXM;
+  uint previousAllocationsLength;
+  PoolAllocation[] previousAllocations;
+  uint previousTotalCoverAmountInNXM;
+  uint previousAllocationAmountRepriced;
+  uint totalCoverAmountInNXM;
 }
 
 struct BuyCoverParams {
@@ -110,6 +111,12 @@ struct ActiveCover {
   uint64 lastBucketUpdateId;
 }
 
+struct AllocationParams {
+  uint nxmPriceInCoverAsset;
+  uint previousSegmentAmount;
+  uint segmentId;
+}
+
 interface ICover {
 
   /* ========== VIEWS ========== */
@@ -151,6 +158,8 @@ interface ICover {
   function productTypeNames(uint id) external view returns (string memory);
 
   function allowedPools(uint productId) external view returns (uint[] memory);
+
+  function coverSegmentAllocationsCount(uint coverId, uint segmentId) external view returns (uint);
 
   /* === MUTATIVE FUNCTIONS ==== */
 

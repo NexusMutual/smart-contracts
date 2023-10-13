@@ -40,6 +40,8 @@ async function setup() {
 
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
   const INITIAL_SUPPLY = parseEther('15000000000');
+  const INITIAL_SPOT_PRICE_A = parseEther('0.0347');
+  const INITIAL_SPOT_PRICE_B = parseEther('0.0152');
 
   // deploy external contracts
   const weth = await ethers.deployContract('WETH9');
@@ -87,6 +89,7 @@ async function setup() {
   const master = await deployProxy('DisposableNXMaster');
   const mr = await deployProxy('DisposableMemberRoles', [tk.address]);
   const ps = await deployProxy('DisposablePooledStaking', [tk.address]);
+  const ramm = await deployProxy('Ramm', [INITIAL_SPOT_PRICE_A, INITIAL_SPOT_PRICE_B]);
   const pc = await deployProxy('DisposableProposalCategory');
   const gv = await deployProxy('DisposableGovernance');
   const gateway = await deployProxy('DisposableGateway', [qd.address, tk.address]);
@@ -195,7 +198,7 @@ async function setup() {
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CI', 'CG', 'AS', 'CO', 'CL', 'SP'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CI', 'CG', 'AS', 'CO', 'CL', 'SP', 'RA'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -209,8 +212,10 @@ async function setup() {
   };
 
   const addr = c => c.address;
-  const addresses = [qd, tc, p1, mc, owner, pc, mr, ps, gateway, ci, cg, cl, as, cover, lcr, stakingProducts].map(addr);
-  const codes = ['QD', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'CI', 'CG', 'CL', 'AS', 'CO', 'CR', 'SP'];
+  const addresses = [qd, tc, p1, mc, owner, pc, mr, ps, gateway, ci, cg, cl, as, cover, lcr, stakingProducts, ramm].map(
+    addr,
+  );
+  const codes = ['QD', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'CI', 'CG', 'CL', 'AS', 'CO', 'CR', 'SP', 'RA'];
 
   await master.initialize(
     owner.address,
@@ -423,7 +428,9 @@ async function setup() {
 
   await cover.setProducts(productList);
 
+  await ramm.changeMasterAddress(master.address);
   await gv.changeMasterAddress(master.address);
+
   await master.switchGovernanceAddress(gv.address);
 
   await gateway.initialize(master.address, dai.address);
@@ -444,6 +451,7 @@ async function setup() {
   // [todo] We should probably call changeDependentContractAddress on every contract
   await gateway.changeDependentContractAddress();
   await cover.changeDependentContractAddress();
+  await ramm.changeDependentContractAddress();
   await ci.changeDependentContractAddress();
   await cg.changeDependentContractAddress();
   await as.changeDependentContractAddress();
@@ -494,6 +502,7 @@ async function setup() {
     pc: await ethers.getContractAt('ProposalCategory', pc.address),
     mr: await ethers.getContractAt('MemberRoles', mr.address),
     ps: await ethers.getContractAt('LegacyPooledStaking', ps.address),
+    ra: await ethers.getContractAt('Ramm', ramm.address),
     gateway: await ethers.getContractAt('LegacyGateway', gateway.address),
     ci: await ethers.getContractAt('IndividualClaims', ci.address),
     cg: await ethers.getContractAt('YieldTokenIncidents', cg.address),

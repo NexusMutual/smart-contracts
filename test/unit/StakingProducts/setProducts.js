@@ -709,7 +709,7 @@ describe('setProducts unit tests', function () {
 
     // Burn stake 99% of stake
     const activeStake = await stakingPool.getActiveStake();
-    await stakingPool.connect(coverSigner).burnStake(activeStake.sub(parseEther('.01')), burnStakeParams);
+    await stakingPool.connect(coverSigner).burnStake(activeStake.sub(parseEther('.01')));
 
     // Increasing weight on any product will cause it to recalculate effective weight
     const increaseTargetWeightParams = products.map(p => ({ ...p, targetWeight: 51 }));
@@ -786,7 +786,8 @@ describe('setProducts unit tests', function () {
       await expect(stakingProducts.connect(manager).callStatic.setProducts(poolId, products)).to.not.be.reverted;
 
       // Burn more than 5 capacity units to increase effective weight passed the limit
-      await stakingPool.connect(coverSigner).burnStake(parseEther('.06'), burnStakeParams);
+      await stakingPool.connect(coverSigner).burnStake(parseEther('.06'));
+      await stakingPool.connect(coverSigner).deallocate(burnStakeParams);
 
       // Increasing weight on any product will cause it require effective weight be below limit
       await expect(stakingProducts.connect(manager).setProducts(poolId, products)).to.be.revertedWithCustomError(

@@ -729,6 +729,7 @@ contract StakingPool is IStakingPool, Multicall {
   ) internal returns (uint premium) {
 
     // totalPremium is the premium for the entire new period and the entire new amount
+    // in the case of a new cover this is the entirety of the premium paid
     uint totalPremium = stakingProducts.getPremium(
       poolId,
       request.productId,
@@ -1293,7 +1294,8 @@ contract StakingPool is IStakingPool, Multicall {
     emit DepositExtended(msg.sender, tokenId, initialTrancheId, newTrancheId, topUpAmount);
   }
 
-  function burnStake(uint amount, BurnStakeParams calldata params) external onlyCoverContract {
+  function burnStake(uint amount) external onlyCoverContract {
+
     // passing false because neither the amount of shares nor the reward per second are changed
     processExpirations(false);
 
@@ -1310,6 +1312,13 @@ contract StakingPool is IStakingPool, Multicall {
 
     // sstore
     activeStake = (_activeStake - amount).toUint96();
+
+    emit StakeBurned(amount);
+  }
+
+  function deallocate(DeallocateParams calldata params) external onlyCoverContract {
+    // passing false because neither the amount of shares nor the reward per second are changed
+    processExpirations(false);
 
     uint initialPackedCoverTrancheAllocation = coverTrancheAllocations[params.allocationId];
     uint[] memory activeAllocations = getActiveAllocations(params.productId);
@@ -1360,8 +1369,6 @@ contract StakingPool is IStakingPool, Multicall {
       currentFirstActiveTrancheId,
       activeAllocations
     );
-
-    emit StakeBurned(amount);
   }
 
   /* pool management */

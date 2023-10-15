@@ -6,11 +6,11 @@ const { rejectClaim, acceptClaim } = require('../utils/voteClaim');
 const { buyCover, transferCoverAsset, ETH_ASSET_ID, DAI_ASSET_ID, USDC_ASSET_ID } = require('../utils/cover');
 
 const { daysToSeconds } = require('../../../lib/helpers');
-const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee } = require('../../utils/evm');
-const { MAX_COVER_PERIOD } = require('../../unit/Cover/helpers');
+const { mineNextBlock, increaseTime, setNextBlockTime, setNextBlockBaseFee } = require('../../utils/evm');
 const { BUCKET_DURATION, moveTimeToNextTranche } = require('../../unit/StakingPool/helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
+const { calculateEditPremium } = require('../utils/cover');
 
 const { BigNumber } = ethers;
 const { parseEther, parseUnits } = ethers.utils;
@@ -29,13 +29,15 @@ const priceDenominator = '10000';
 
 async function submitClaimSetup() {
   const fixture = await loadFixture(setup);
-  const { tk } = fixture.contracts;
+  const { tk, p1: pool } = fixture.contracts;
   const members = fixture.accounts.members.slice(0, 5);
   const amount = parseEther('10000');
 
   for (const member of members) {
     await tk.connect(fixture.accounts.defaultSender).transfer(member.address, amount);
   }
+
+  fixture.ethRate = await pool.getTokenPriceInAsset(0);
 
   return fixture;
 }
@@ -1155,10 +1157,189 @@ describe('submitClaim', function () {
     }
   });
 
-  it.skip('correctly calculates premium in cover edit after a claim', async function () {
+  it('submits claim for edited cover for the last segment', async function () {
     const fixture = await loadFixture(submitClaimSetup);
     const { DEFAULT_PRODUCTS } = fixture;
-    const { p1, ci, cover, stakingPool1, as } = fixture.contracts;
+    const { ci, cover, stakingPool1, as } = fixture.contracts;
+    const [coverBuyer, staker1, staker2] = fixture.accounts.members;
+
+    const buyCoverFixture = {
+      coverId: 0,
+      productId: 0,
+      coverAsset: ETH_ASSET_ID, // ETH
+      period: 3600 * 24 * 30, // 30 days
+      gracePeriod: 3600 * 24 * 30,
+      amount: parseEther('1'),
+      paymentAsset: ETH_ASSET_ID,
+      commissionRatio: parseEther('0'),
+      commissionDestination: AddressZero,
+      ipfsData: '',
+    };
+    // Cover inputs
+    const productId = 0;
+    const coverAsset = ETH_ASSET_ID; // ETH
+    const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
+    const amount = parseEther('1');
+
+    // Stake to open up capacity
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+
+    const expectedPremium = amount.mul(DEFAULT_PRODUCTS[0].targetPrice).div(priceDenominator);
+
+    console.log('EDIT COVER');
+    // Buy Cover
+    await cover.connect(coverBuyer).buyCover(
+      {
+        ...buyCoverFixture,
+        owner: coverBuyer.address,
+        maxPremiumInAsset: expectedPremium,
+      },
+      [{ poolId: 1, coverAmountInAsset: amount }],
+      { value: coverAsset === ETH_ASSET_ID ? expectedPremium : 0 },
+    );
+    const coverId = 1;
+
+    // advance time by 15 days
+    await increaseTime(daysToSeconds(15));
+    await mineNextBlock();
+
+    const extraPeriod = daysToSeconds(20);
+
+    const increasedAmount = buyCoverFixture.amount.mul(2);
+
+    const editCoverFixture = { ...buyCoverFixture, amount: increasedAmount, coverId, period: extraPeriod };
+
+    const maxPremium = expectedPremium.mul(2);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        ...editCoverFixture,
+        owner: coverBuyer.address,
+        maxPremiumInAsset: maxPremium,
+      },
+      [{ poolId: 1, coverAmountInAsset: increasedAmount }],
+      { value: maxPremium },
+    );
+
+    // Submit partial claim - 1/2 of total amount
+    const claimAmount = amount.div(2);
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+
+    const claimSegment = 1;
+    await ci.connect(coverBuyer).submitClaim(coverId, claimSegment, claimAmount, '', {
+      value: deposit.mul('2'),
+    });
+
+    const assessmentId = 0;
+    const assessmentStakingAmount = parseEther('1000');
+    await acceptClaim({ staker: staker2, assessmentStakingAmount, as, assessmentId });
+
+    const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
+
+    // redeem payout
+    await ci.redeemClaimPayout(assessmentId);
+
+    const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(claimAmount).add(deposit));
+
+    const { payoutRedeemed } = await ci.claims(assessmentId);
+    expect(payoutRedeemed).to.be.equal(true);
+  });
+
+  it('submits claim for edited cover for the first segment', async function () {
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as } = fixture.contracts;
+    const [coverBuyer, staker1, staker2] = fixture.accounts.members;
+
+    const buyCoverFixture = {
+      coverId: 0,
+      productId: 0,
+      coverAsset: ETH_ASSET_ID, // ETH
+      period: 3600 * 24 * 30, // 30 days
+      gracePeriod: 3600 * 24 * 30,
+      amount: parseEther('1'),
+      paymentAsset: ETH_ASSET_ID,
+      commissionRatio: parseEther('0'),
+      commissionDestination: AddressZero,
+      ipfsData: '',
+    };
+    // Cover inputs
+    const productId = 0;
+    const coverAsset = ETH_ASSET_ID; // ETH
+    const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
+    const amount = parseEther('1');
+
+    // Stake to open up capacity
+    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+
+    const expectedPremium = amount.mul(DEFAULT_PRODUCTS[0].targetPrice).div(priceDenominator);
+
+    // Buy Cover
+    await cover.connect(coverBuyer).buyCover(
+      {
+        ...buyCoverFixture,
+        owner: coverBuyer.address,
+        maxPremiumInAsset: expectedPremium,
+      },
+      [{ poolId: 1, coverAmountInAsset: amount }],
+      { value: coverAsset === ETH_ASSET_ID ? expectedPremium : 0 },
+    );
+    const coverId = 1;
+
+    // advance time by 15 days
+    await increaseTime(daysToSeconds(15));
+    await mineNextBlock();
+
+    const extraPeriod = daysToSeconds(20);
+
+    const increasedAmount = buyCoverFixture.amount.mul(2);
+
+    const editCoverFixture = { ...buyCoverFixture, amount: increasedAmount, coverId, period: extraPeriod };
+
+    const maxPremium = expectedPremium.mul(2);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        ...editCoverFixture,
+        owner: coverBuyer.address,
+        maxPremiumInAsset: maxPremium,
+      },
+      [{ poolId: 1, coverAmountInAsset: increasedAmount }],
+      { value: maxPremium },
+    );
+
+    // Submit partial claim - 1/2 of total amount
+    const claimAmount = amount.div(2);
+    const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+
+    const claimSegment = 0;
+    await ci.connect(coverBuyer).submitClaim(coverId, claimSegment, claimAmount, '', {
+      value: deposit.mul('2'),
+    });
+
+    const assessmentId = 0;
+    const assessmentStakingAmount = parseEther('1000');
+    await acceptClaim({ staker: staker2, assessmentStakingAmount, as, assessmentId });
+
+    const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
+
+    // redeem payout
+    await ci.redeemClaimPayout(assessmentId);
+
+    const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(claimAmount).add(deposit));
+
+    const { payoutRedeemed } = await ci.claims(assessmentId);
+    expect(payoutRedeemed).to.be.equal(true);
+  });
+
+  it('correctly calculates premium in cover edit after a claim', async function () {
+    const fixture = await loadFixture(submitClaimSetup);
+    const { DEFAULT_PRODUCTS } = fixture;
+    const { ci, cover, stakingPool1, as, stakingProducts, p1: pool } = fixture.contracts;
     const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
 
     // Cover inputs
@@ -1167,6 +1348,8 @@ describe('submitClaim', function () {
     const period = daysToSeconds(60); // 60 days
     const gracePeriod = daysToSeconds(30);
     const amount = parseEther('1');
+
+    const NXM_PER_ALLOCATION_UNIT = await stakingPool1.NXM_PER_ALLOCATION_UNIT();
 
     // Stake to open up capacity
     await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
@@ -1185,7 +1368,7 @@ describe('submitClaim', function () {
     });
 
     const coverId = 1;
-    const segment = await cover.coverSegmentWithRemainingAmount(coverId, 0);
+    const firstSegment = await cover.coverSegmentWithRemainingAmount(coverId, 0);
     const previousCoverSegmentAllocation = await cover.coverSegmentAllocations(coverId, 0, 0);
 
     // Submit partial claim - 1/2 of total amount
@@ -1215,32 +1398,30 @@ describe('submitClaim', function () {
 
     const latestBlock = await ethers.provider.getBlock('latest');
 
-    const editTimestamp = BigNumber.from(latestBlock.timestamp).add(1);
-    const passedPeriod = editTimestamp.sub(segment.start);
-    const remainingPeriod = BigNumber.from(segment.period).sub(passedPeriod);
+    const timestampAtEditTime = BigNumber.from(latestBlock.timestamp);
+    const passedPeriod = timestampAtEditTime.sub(firstSegment.start);
+    const startOfPreviousSegment = firstSegment.start;
+    const product = await stakingProducts.getProduct(1, productId);
 
-    const coverSegmentAllocation = await cover.coverSegmentAllocations(coverId, 0, 0);
+    const extraPeriod = BigNumber.from('0');
 
-    const ethTokenPrice = await p1.getTokenPriceInAsset(0);
+    const newEthRate = await pool.getTokenPriceInAsset(0);
 
-    const expectedPremium = BigNumber.from(previousCoverSegmentAllocation.premiumInNXM)
-      .mul(remainingPeriod)
-      .mul(ethTokenPrice)
-      .div(segment.period)
-      .div(parseEther('1'));
-
-    const refund = BigNumber.from(coverSegmentAllocation.premiumInNXM)
-      .mul(remainingPeriod)
-      .mul(ethTokenPrice)
-      .div(segment.period)
-      .div(parseEther('1'));
-
-    const totalEditPremium = expectedPremium.sub(refund);
+    const { extraPremium } = await calculateEditPremium({
+      amount: firstSegment.amount.sub(claimAmount),
+      period,
+      extraPeriod,
+      timestampAtEditTime,
+      startOfPreviousSegment,
+      increasedAmount: amount,
+      ethRate: newEthRate,
+      productBumpedPrice: product.bumpedPrice,
+      NXM_PER_ALLOCATION_UNIT,
+    });
 
     const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
 
     await setNextBlockBaseFee('0');
-    await setNextBlockTime(editTimestamp.toNumber());
 
     // Edit Cover - resets amount for the remaining period
     await cover.connect(coverBuyer1).buyCover(
@@ -1250,28 +1431,28 @@ describe('submitClaim', function () {
         productId,
         coverAsset,
         amount,
-        period: remainingPeriod,
-        maxPremiumInAsset: totalEditPremium,
+        period: extraPeriod,
+        maxPremiumInAsset: extraPremium,
         paymentAsset: coverAsset,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
       },
       [{ poolId: 1, coverAmountInAsset: amount }],
-      { value: totalEditPremium, gasPrice: 0 },
+      { value: extraPremium, gasPrice: 0 },
     );
 
     const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
 
     // should pay for premium to reset amount
     expect(ethBalanceAfter).to.not.be.equal(ethBalanceBefore);
-    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(totalEditPremium));
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(extraPremium));
   });
 
-  it.skip('correctly updates pool allocation after claim and cover edit', async function () {
+  it('correctly updates pool allocation after claim and cover edit', async function () {
     const fixture = await loadFixture(submitClaimSetup);
-    const { DEFAULT_PRODUCTS } = fixture;
-    const { ci, cover, stakingPool1, as } = fixture.contracts;
+    const { DEFAULT_PRODUCTS, ethRate } = fixture;
+    const { ci, cover, stakingPool1, as, stakingProducts } = fixture.contracts;
     const [coverBuyer1, staker1, staker2] = fixture.accounts.members;
 
     const NXM_PER_ALLOCATION_UNIT = await stakingPool1.NXM_PER_ALLOCATION_UNIT();
@@ -1379,27 +1560,25 @@ describe('submitClaim', function () {
         coverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT).add(1),
       );
     }
+    const segments = await cover.coverSegments(coverId);
 
-    const segment = await cover.coverSegmentWithRemainingAmount(coverId, 0);
-    const latestBlock = await ethers.provider.getBlock('latest');
+    const startOfPreviousSegment = segments[0].start;
 
-    const editTimestamp = BigNumber.from(latestBlock.timestamp).add(1);
-    const passedPeriod = editTimestamp.sub(segment.start);
-    const remainingPeriod = BigNumber.from(segment.period).sub(passedPeriod);
+    const product = await stakingProducts.getProduct(1, productId);
 
-    const expectedPremium = amount
-      .mul(DEFAULT_PRODUCTS[0].targetPrice)
-      .div(priceDenominator)
-      .mul(period)
-      .div(MAX_COVER_PERIOD);
+    const { timestamp: timestampAtEditTime } = await ethers.provider.getBlock('latest');
 
-    const coverAmountLeft = amount.sub(claimAmount);
-    const refund = coverAmountLeft
-      .mul(DEFAULT_PRODUCTS[0].targetPrice)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
-    const totalEditPremium = expectedPremium.sub(refund);
+    const { extraPremium } = await calculateEditPremium({
+      amount: amount.sub(claimAmount),
+      period,
+      extraPeriod: BigNumber.from('0'),
+      timestampAtEditTime,
+      startOfPreviousSegment,
+      increasedAmount: amount,
+      ethRate,
+      productBumpedPrice: product.bumpedPrice,
+      NXM_PER_ALLOCATION_UNIT,
+    });
 
     // Edit Cover - resets amount for the remaining period
     await cover.connect(coverBuyer1).buyCover(
@@ -1409,15 +1588,15 @@ describe('submitClaim', function () {
         productId,
         coverAsset,
         amount,
-        period: remainingPeriod,
-        maxPremiumInAsset: totalEditPremium,
+        period: BigNumber.from(0),
+        maxPremiumInAsset: extraPremium,
         paymentAsset: coverAsset,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
       },
       [{ poolId: 1, coverAmountInAsset: amount }],
-      { value: totalEditPremium },
+      { value: extraPremium },
     );
 
     {

@@ -10,5 +10,7 @@ interface IStakingPoolFactory {
 
   function create(address beacon) external returns (uint poolId, address stakingPoolAddress);
 
+  function changeOperator(address newOperator) external;
+
   event StakingPoolCreated(uint indexed poolId, address indexed stakingPoolAddress);
 }

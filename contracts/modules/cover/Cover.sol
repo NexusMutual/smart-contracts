@@ -721,6 +721,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return coverNFT.ownerOf(coverId);
   }
 
+  // @notice This function needs to be deleted once the migration is completed
+  function changeStakingPoolFactoryOperator() external {
+    stakingPoolFactory.changeOperator(address(stakingProducts()));
+  }
+
   /* ========== VIEWS ========== */
 
   function coverData(uint coverId) external override view returns (CoverData memory) {

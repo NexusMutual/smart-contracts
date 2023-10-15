@@ -1369,7 +1369,6 @@ describe('submitClaim', function () {
 
     const coverId = 1;
     const firstSegment = await cover.coverSegmentWithRemainingAmount(coverId, 0);
-    const previousCoverSegmentAllocation = await cover.coverSegmentAllocations(coverId, 0, 0);
 
     // Submit partial claim - 1/2 of total amount
     const claimAmount = amount.div(2);
@@ -1399,7 +1398,6 @@ describe('submitClaim', function () {
     const latestBlock = await ethers.provider.getBlock('latest');
 
     const timestampAtEditTime = BigNumber.from(latestBlock.timestamp);
-    const passedPeriod = timestampAtEditTime.sub(firstSegment.start);
     const startOfPreviousSegment = firstSegment.start;
     const product = await stakingProducts.getProduct(1, productId);
 

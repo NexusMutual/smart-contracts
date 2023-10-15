@@ -245,17 +245,17 @@ describe('basic functionality tests', function () {
       },
     ];
 
-    const productTypesCountBefore = await this.cover.productTypesCount();
-    await this.cover.connect(this.abMembers[0]).setProductTypes(productTypes);
-    const productTypesCountAfter = await this.cover.productTypesCount();
+    const productTypesCountBefore = await this.coverProducts.productTypesCount();
+    await this.coverProducts.connect(this.abMembers[0]).setProductTypes(productTypes);
+    const productTypesCountAfter = await this.coverProducts.productTypesCount();
     expect(productTypesCountAfter).to.be.equal(productTypesCountBefore.add(productTypes.length));
   });
 
   it('Add ybDAI yield token cover', async function () {
     ybDAI = await deployContract('ERC20MintableDetailed', ['yield bearing DAI', 'ybDAI', 18]);
-    const productsBefore = await this.cover.getProducts();
+    const productsBefore = await this.coverProducts.getProducts();
 
-    await this.cover.connect(this.abMembers[0]).setProducts([
+    await this.coverProducts.connect(this.abMembers[0]).setProducts([
       {
         productName: 'ybDAI yield token',
         productId: MaxUint256,
@@ -273,7 +273,7 @@ describe('basic functionality tests', function () {
       },
     ]);
 
-    const productsAfter = await this.cover.getProducts();
+    const productsAfter = await this.coverProducts.getProducts();
     ybDaiProductId = productsAfter.length - 1;
 
     expect(productsAfter.length).to.be.equal(productsBefore.length + 1);
@@ -281,9 +281,9 @@ describe('basic functionality tests', function () {
 
   it('Add ybETH yield token cover', async function () {
     ybETH = await deployContract('ERC20MintableDetailed', ['yield bearing DAI', 'ybDAI', 18]);
-    const productsBefore = await this.cover.getProducts();
+    const productsBefore = await this.coverProducts.getProducts();
 
-    await this.cover.connect(this.abMembers[0]).setProducts([
+    await this.coverProducts.connect(this.abMembers[0]).setProducts([
       {
         productName: 'ybETH yield token',
         productId: MaxUint256,
@@ -301,16 +301,16 @@ describe('basic functionality tests', function () {
       },
     ]);
 
-    const productsAfter = await this.cover.getProducts();
+    const productsAfter = await this.coverProducts.getProducts();
     ybEthProductId = productsAfter.length - 1;
 
     expect(productsAfter.length).to.be.equal(productsBefore.length + 1);
   });
 
   it('Add protocol product', async function () {
-    const productsBefore = await this.cover.getProducts();
+    const productsBefore = await this.coverProducts.getProducts();
 
-    await this.cover.connect(this.abMembers[0]).setProducts([
+    await this.coverProducts.connect(this.abMembers[0]).setProducts([
       {
         productName: 'Protocol Product',
         productId: MaxUint256,
@@ -328,15 +328,15 @@ describe('basic functionality tests', function () {
       },
     ]);
 
-    const productsAfter = await this.cover.getProducts();
+    const productsAfter = await this.coverProducts.getProducts();
     protocolProductId = productsAfter.length - 1;
     expect(productsAfter.length).to.be.equal(productsBefore.length + 1);
   });
 
   it('Add custody product', async function () {
-    const productsBefore = await this.cover.getProducts();
+    const productsBefore = await this.coverProducts.getProducts();
 
-    await this.cover.connect(this.abMembers[0]).setProducts([
+    await this.coverProducts.connect(this.abMembers[0]).setProducts([
       {
         productName: 'Custody Product',
         productId: MaxUint256,
@@ -354,7 +354,7 @@ describe('basic functionality tests', function () {
       },
     ]);
 
-    const productsAfter = await this.cover.getProducts();
+    const productsAfter = await this.coverProducts.getProducts();
     custodyProductId = productsAfter.length - 1;
     expect(productsAfter.length).to.be.equal(productsBefore.length + 1);
   });
@@ -389,13 +389,13 @@ describe('basic functionality tests', function () {
     ];
 
     const stakingPoolCountBefore = await this.stakingPoolFactory.stakingPoolCount();
-    await this.cover.connect(manager).createStakingPool(false, 5, 5, products, 'description');
+    await this.stakingProducts.connect(manager).createStakingPool(false, 5, 5, products, 'description');
     const stakingPoolCountAfter = await this.stakingPoolFactory.stakingPoolCount();
 
     poolId = stakingPoolCountAfter.toNumber();
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
 
-    const address = await this.cover.stakingPool(poolId);
+    const address = await this.stakingProducts.stakingPool(poolId);
     this.stakingPool = await ethers.getContractAt('StakingPool', address);
   });
 

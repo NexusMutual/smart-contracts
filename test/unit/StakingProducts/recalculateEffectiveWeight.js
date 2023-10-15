@@ -414,7 +414,8 @@ describe('recalculateEffectiveWeight', function () {
     // ie. 50/100 = 1000 effective weight, burn 75% of stake -> 50/25 = 4000 effective weight
     const activeStake = await stakingPool.getActiveStake();
     const burnAmount = activeStake.sub(activeStake.div(4));
-    await stakingPool.connect(coverSigner).burnStake(burnAmount, burnStakeParams);
+    await stakingPool.connect(coverSigner).burnStake(burnAmount);
+    await stakingPool.connect(coverSigner).deallocate(burnStakeParams);
 
     // recalculate effective weight
     await stakingProducts.recalculateEffectiveWeights(

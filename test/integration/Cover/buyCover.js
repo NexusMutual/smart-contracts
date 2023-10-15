@@ -11,6 +11,7 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { BUCKET_DURATION } = require('../../unit/StakingPool/helpers');
 const { BigNumber } = require('ethers');
 const { increaseTime, mineNextBlock } = require('../utils').evm;
+const { calculatePremium, calculateEditPremium } = require('../utils/cover');
 
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
@@ -18,80 +19,6 @@ const { AddressZero, MaxUint256 } = ethers.constants;
 const PRICE_DENOMINATOR = 10000;
 const REWARD_DENOMINATOR = 10000;
 const PRICE_CHANGE_PER_DAY = 50;
-
-function assetAmountToNXMAmount(amount, rate, allocationUnit) {
-  const nxmAmount = amount.mul(parseEther('1')).div(rate);
-
-  const coverNXMAmount = nxmAmount.mod(allocationUnit).eq(0)
-    ? nxmAmount
-    : nxmAmount.div(allocationUnit).add(1).mul(allocationUnit);
-
-  return coverNXMAmount;
-}
-
-function calculatePremium(amount, rate, period, price, allocationUnit) {
-  const nxmAmount = amount.mul(parseEther('1')).div(rate);
-
-  const coverNXMAmount = nxmAmount.mod(allocationUnit).eq(0)
-    ? nxmAmount
-    : nxmAmount.div(allocationUnit).add(1).mul(allocationUnit);
-
-  const premiumInNxm = coverNXMAmount.mul(price).div(PRICE_DENOMINATOR).mul(period).div(daysToSeconds(365));
-
-  const premiumInAsset = premiumInNxm.mul(rate).div(parseEther('1'));
-
-  return { premiumInNxm, premiumInAsset };
-}
-
-async function calculateEditPremium({
-  amount,
-  period,
-  extraPeriod,
-  timestampAtEditTime,
-  startOfPreviousSegment,
-  increasedAmount,
-  ethRate,
-  productBumpedPrice,
-  NXM_PER_ALLOCATION_UNIT,
-  coverAmountInNXM = BigNumber.from(1),
-  totalCoverAmountInNXM = BigNumber.from(1),
-}) {
-  // adding 1 to account for block.timestamp = timestampAtEditTime + 1 at transaction time
-  const remainingPeriod = BigNumber.from(period).sub(
-    BigNumber.from(timestampAtEditTime).add(1).sub(startOfPreviousSegment),
-  );
-
-  const newPeriod = remainingPeriod.add(extraPeriod);
-
-  const oldSegmentAmountInNXMRepriced = assetAmountToNXMAmount(amount, ethRate, NXM_PER_ALLOCATION_UNIT)
-    .mul(coverAmountInNXM)
-    .div(totalCoverAmountInNXM);
-
-  const increasedAmountInNXM = assetAmountToNXMAmount(increasedAmount, ethRate, NXM_PER_ALLOCATION_UNIT);
-
-  const extraAmount = increasedAmountInNXM.sub(oldSegmentAmountInNXMRepriced);
-
-  const { premiumInNxm } = calculatePremium(
-    increasedAmount,
-    ethRate,
-    newPeriod,
-    productBumpedPrice,
-    NXM_PER_ALLOCATION_UNIT,
-  );
-
-  function calculateExtraPremium(fullPremium) {
-    return fullPremium
-      .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
-      .mul(remainingPeriod)
-      .div(increasedAmountInNXM)
-      .div(newPeriod)
-      .add(fullPremium.mul(extraPeriod).div(newPeriod));
-  }
-
-  const extraPremiumInNXM = calculateExtraPremium(premiumInNxm);
-  const extraPremium = extraPremiumInNXM.mul(ethRate).div(parseEther('1'));
-  return { extraPremium, extraPremiumInNXM, newPeriod };
-}
 
 function calculateRewards(premium, timestamp, period, rewardRation) {
   const expirationBucket = Math.ceil((timestamp + period) / BUCKET_DURATION);

@@ -127,7 +127,8 @@ async function burnStake(params) {
     await setEtherBalance(cover.address, parseEther('100000'));
   }
 
-  await stakingPool.connect(coverSigner).burnStake(amount, { ...burnStakeParams, start });
+  await stakingPool.connect(coverSigner).burnStake(amount);
+  await stakingPool.connect(coverSigner).deallocate({ ...burnStakeParams, start });
 }
 
 module.exports = {

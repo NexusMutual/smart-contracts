@@ -250,7 +250,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       // remove cover amount from from expiration buckets
       uint bucketAtExpiry = Math.divCeil(lastSegment.start + lastSegment.period, BUCKET_SIZE);
       activeCoverExpirationBuckets[params.coverAsset][bucketAtExpiry] -= lastSegment.amount;
-      previousSegmentAmount += lastSegment.amount;
+      previousSegmentAmount = lastSegment.amount;
 
       allocationRequest.coverId = coverId;
 
@@ -259,12 +259,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         poolAllocationRequests,
         AllocationParams(
           nxmPriceInCoverAsset,
-          previousSegmentAmount,
+          lastSegment.amount,
           segmentId
         )
       );
     }
-
     if (coverAmountInCoverAsset < params.amount) {
       revert InsufficientCoverAmountAllocated();
     }
@@ -308,6 +307,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
       // update amount to expire at the end of this cover segment
       uint bucketAtExpiry = Math.divCeil(block.timestamp + allocationRequest.period, BUCKET_SIZE);
+
       activeCoverExpirationBuckets[params.coverAsset][bucketAtExpiry] += coverAmountInCoverAsset;
     }
 
@@ -381,6 +381,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint totalCoverAmountInNXM;
 
     for (uint i = 0; i < allocationRequests.length; i++) {
+
 
       // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
       uint coverAmountInNXM = getNXMForAssetAmount(
@@ -654,22 +655,25 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     CoverData storage cover = _coverData[coverId];
     ActiveCover storage _activeCover = activeCover[cover.coverAsset];
     CoverSegment memory segment = coverSegmentWithRemainingAmount(coverId, segmentId);
-    PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
+    PoolAllocation[] memory burnedSegmentAllocations = coverSegmentAllocations[coverId][segmentId];
+
+    CoverSegment memory lastSegment = coverSegmentWithRemainingAmount(coverId,  _coverSegments[coverId].length - 1);
+    PoolAllocation[] storage lastSegmentAllocations = coverSegmentAllocations[coverId][_coverSegments[coverId].length - 1];
 
     // update expired buckets and calculate the amount of active cover that should be burned
     {
-      uint coverAsset = cover.coverAsset;
       uint lastUpdateBucketId = _activeCover.lastBucketUpdateId;
       uint currentBucketId = block.timestamp / BUCKET_SIZE;
 
-      uint burnedSegmentBucketId = Math.divCeil((segment.start + segment.period), BUCKET_SIZE);
-      uint activeCoverToExpire = getExpiredCoverAmount(coverAsset, lastUpdateBucketId, currentBucketId);
+      uint burnedSegmentBucketId = Math.divCeil((lastSegment.start + lastSegment.period), BUCKET_SIZE);
+      uint activeCoverToExpire = getExpiredCoverAmount(cover.coverAsset, lastUpdateBucketId, currentBucketId);
 
       // if the segment has not expired - it's still accounted for in total active cover
       if (burnedSegmentBucketId > currentBucketId) {
         uint amountToSubtract = Math.min(payoutAmountInAsset, segment.amount);
+
         activeCoverToExpire += amountToSubtract;
-        activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId] -= amountToSubtract.toUint192();
+        activeCoverExpirationBuckets[cover.coverAsset][burnedSegmentBucketId] -= amountToSubtract.toUint192();
       }
 
       _activeCover.totalActiveCoverInAsset -= activeCoverToExpire.toUint192();
@@ -679,26 +683,39 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     // increase amountPaidOut only *after* you read the segment
     cover.amountPaidOut += payoutAmountInAsset.toUint96();
 
-    IStakingProducts _stakingProducts = stakingProducts();
-    for (uint i = 0; i < allocations.length; i++) {
-      PoolAllocation memory allocation = allocations[i];
+    for (uint i = 0; i < lastSegmentAllocations.length; i++) {
+      PoolAllocation memory allocation = lastSegmentAllocations[i];
 
-      uint deallocationAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / segment.amount;
-      uint burnAmountInNxm = deallocationAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / segment.globalCapacityRatio;
+      // Deallocate to free up capacity from the currently active / latest segment
+      // proportionately with payoutAmountInAsset / lastSegment.amount
+      uint deallocationAmountInNXM =
+        lastSegmentAllocations[i].coverAmountInNXM * payoutAmountInAsset / lastSegment.amount;
 
-      allocations[i].coverAmountInNXM -= deallocationAmountInNXM.toUint96();
-      allocations[i].premiumInNXM -= (allocation.premiumInNXM * payoutAmountInAsset / segment.amount).toUint96();
+      lastSegmentAllocations[i].coverAmountInNXM -= deallocationAmountInNXM.toUint96();
+      lastSegmentAllocations[i].premiumInNXM -= (allocation.premiumInNXM * payoutAmountInAsset / segment.amount).toUint96();
 
-      BurnStakeParams memory params = BurnStakeParams(
+      DeallocateParams memory params = DeallocateParams(
         allocation.allocationId,
         cover.productId,
-        segment.start,
-        segment.period,
+        lastSegment.start,
+        lastSegment.period,
         deallocationAmountInNXM
       );
 
-      uint poolId = allocations[i].poolId;
-      _stakingProducts.stakingPool(poolId).burnStake(burnAmountInNxm, params);
+      uint poolId = lastSegmentAllocations[i].poolId;
+      stakingProducts().stakingPool(poolId).deallocate(params);
+    }
+
+    for (uint i = 0; i < burnedSegmentAllocations.length; i++) {
+      PoolAllocation memory allocation = burnedSegmentAllocations[i];
+
+      // Burn the stake proportionally from the staking pool allocated for the target segment
+      // proportionately with payoutAmountInAsset / segment.amount
+      uint burnAmountInNxm =
+        payoutAmountInAsset * allocation.coverAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / segment.amount / segment.globalCapacityRatio;
+
+      uint poolId = burnedSegmentAllocations[i].poolId;
+      stakingProducts().stakingPool(poolId).burnStake(burnAmountInNxm);
     }
 
     return coverNFT.ownerOf(coverId);

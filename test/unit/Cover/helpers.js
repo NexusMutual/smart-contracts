@@ -3,6 +3,7 @@ const { expect } = require('chai');
 
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
+const { BigNumber } = ethers;
 
 const DEFAULT_POOL_FEE = '5';
 const DEFAULT_PRODUCTS = [{ productId: 0, weight: 100 }];
@@ -133,10 +134,43 @@ async function buyCoverOnMultiplePools({
   };
 }
 
+function calculateRemainingPeriod({ period, passedPeriod }) {
+  return BigNumber.from(period).sub(passedPeriod);
+}
+
+function calculateMockEditPremium({
+  existingAmount,
+  increasedAmount,
+  targetPriceRatio,
+  period,
+  priceDenominator,
+  extraPeriod = BigNumber.from(0),
+}) {
+  const premium = increasedAmount
+    .mul(targetPriceRatio)
+    .mul(period)
+    .div(priceDenominator)
+    .div(3600 * 24 * 365);
+
+  const remainingPeriod = BigNumber.from(period).sub(extraPeriod);
+  const extraAmount = increasedAmount.sub(existingAmount);
+
+  const extraPremium = premium
+    .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
+    .mul(remainingPeriod)
+    .div(increasedAmount)
+    .div(period)
+    .add(premium.mul(extraPeriod).div(period));
+
+  return extraPremium;
+}
+
 module.exports = {
   assertCoverFields,
   buyCoverOnOnePool,
   buyCoverOnMultiplePools,
   createStakingPool,
   MAX_COVER_PERIOD,
+  calculateRemainingPeriod,
+  calculateMockEditPremium,
 };

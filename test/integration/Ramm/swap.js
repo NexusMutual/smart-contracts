@@ -120,7 +120,7 @@ describe('swap', function () {
     const after = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
     const ethReceived = after.ethBalance.sub(before.ethBalance);
     const payoutFilter = p1.filters.Payout(member.address);
-    const [ethPayoutEvent] = await p1.queryFilterfilter(payoutFilter, -1);
+    const [ethPayoutEvent] = await p1.queryFilter(payoutFilter, -1);
     const ethPayoutAmount = ethPayoutEvent?.args?.amount;
 
     expect(after.nxmSupply).to.be.equal(before.nxmSupply.sub(nxmIn)); // nxmIn is burned

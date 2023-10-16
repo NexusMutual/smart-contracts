@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { getState, setup } = require('./setup');
-const { increaseTime, mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+const { setNextBlockTime } = require('../../utils/evm');
 const { getObservationIndex } = require('./helpers');
 
 const { parseEther } = ethers.utils;
@@ -38,31 +38,31 @@ describe('getInternalPriceAndUpdateTwap', function () {
     const spotPriceA = parseEther('1').mul(currentState.eth).div(currentState.nxmA);
     const spotPriceB = parseEther('1').mul(currentState.eth).div(currentState.nxmB);
 
-    let averagePriceA = 0;
-    let averagePriceB = 0;
-    const averageDiffA = currentObservation.priceCumulativeAbove.sub(firstObservation.priceCumulativeAbove);
+    const averagePriceA = currentObservation.priceCumulativeAbove
+      .sub(firstObservation.priceCumulativeAbove)
+      .div(elapsed)
+      .mul(1e9);
 
-    if (averageDiffA.lt(0)) {
-      averagePriceA = BigNumber.from(2).pow(256).add(averageDiffA).div(elapsed);
-    } else {
-      averagePriceA = averageDiffA.div(elapsed);
-    }
-
-    const averageDiffB = currentObservation.priceCumulativeBelow.sub(firstObservation.priceCumulativeBelow);
-
-    if (averageDiffB.lt(0)) {
-      averagePriceB = BigNumber.from(2).pow(256).add(averageDiffB).div(elapsed);
-    } else {
-      averagePriceB = averageDiffB.div(elapsed);
-    }
+    const averagePriceB = currentObservation.priceCumulativeBelow
+      .sub(firstObservation.priceCumulativeBelow)
+      .div(elapsed)
+      .mul(1e9);
 
     const priceA = averagePriceA.gt(spotPriceA) ? spotPriceA : averagePriceA;
     const priceB = averagePriceB.gt(spotPriceB) ? averagePriceB : spotPriceB;
 
-    const internalPriceExpected = priceA.add(priceB).sub(parseEther('1').mul(capital).div(supply));
-
     await setNextBlockTime(currentTimestamp.toNumber());
     const tx = await ramm.getInternalPriceAndUpdateTwap();
     await tx.wait();
+
+    for (let i = 0; i < 3; i++) {
+      const updatedObservations = await ramm.observations(i);
+      expect(updatedObservations.timestamp).to.be.equal(observations[i].timestamp);
+      expect(updatedObservations.priceCumulativeAbove).to.be.equal(observations[i].priceCumulativeAbove);
+      expect(updatedObservations.priceCumulativeBelow).to.be.equal(observations[i].priceCumulativeBelow);
+    }
+    // TODO: find a way to check the internal price
+    const internalPriceExpected = priceA.add(priceB).sub(parseEther('1').mul(capital).div(supply));
+    expect(internalPriceExpected).to.be.equal('21481481185185185'); // 0.021481481185185185
   });
 });

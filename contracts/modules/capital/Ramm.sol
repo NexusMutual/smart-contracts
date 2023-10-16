@@ -436,9 +436,8 @@ contract Ramm is IRamm, MasterAwareV2 {
   function getInitialObservations(
     State memory initialState,
     uint timestamp
-  ) public pure returns (Observation[3] memory) {
+  ) public pure returns (Observation[3] memory initialObservations) {
 
-    Observation[3] memory initialObservations;
     Observation memory previousObservation;
     uint endIdx = timestamp.divCeil(PERIOD_SIZE);
 
@@ -602,14 +601,29 @@ contract Ramm is IRamm, MasterAwareV2 {
       // already initialized
       return;
     }
-
-    slot1.updatedAt = block.timestamp.toUint32();
-    slot1.ethReserve = INITIAL_LIQUIDITY.toUint128();
-    slot1.budget = INITIAL_BUDGET.toUint96();
-
-    slot0.nxmReserveA = (INITIAL_LIQUIDITY * 1 ether / SPOT_PRICE_A).toUint128();
-    slot0.nxmReserveB = (INITIAL_LIQUIDITY * 1 ether / SPOT_PRICE_B).toUint128();
+    uint128 nxmReserveA = (INITIAL_LIQUIDITY * 1 ether / SPOT_PRICE_A).toUint128();
+    uint128 nxmReserveB = (INITIAL_LIQUIDITY * 1 ether / SPOT_PRICE_B).toUint128();
+    uint128 ethReserve = INITIAL_LIQUIDITY.toUint128();
+    uint96 budget = INITIAL_BUDGET.toUint96();
+    uint32 updatedAt = block.timestamp.toUint32();
 
     ratchetSpeed = FAST_RATCHET_SPEED.toUint32();
+
+    State memory state = State(
+      nxmReserveA,
+      nxmReserveB,
+      ethReserve,
+      budget,
+      ratchetSpeed,
+      updatedAt
+    );
+
+    storeState(state);
+
+    Observation[3] memory _observations = getInitialObservations(state, updatedAt);
+
+    for (uint i = 0; i < _observations.length; i++) {
+      observations[i] = _observations[i];
+    }
   }
 }

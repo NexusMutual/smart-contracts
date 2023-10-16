@@ -5,6 +5,19 @@ const {
   utils: { parseEther },
 } = ethers;
 
+function divCeil(a, b) {
+  a = BigNumber.from(a);
+  let result = a.div(b);
+  if (!a.mod(b).isZero()) {
+    result = result.add(1);
+  }
+  return result;
+}
+
+function getObservationIndex(timestamp, { PERIOD_SIZE, GRANULARITY }) {
+  return divCeil(timestamp, PERIOD_SIZE).mod(GRANULARITY);
+}
+
 function timeTillBv(
   previousState,
   supply,
@@ -63,14 +76,16 @@ function calculateTwapAboveForPeriod(
     .mul(timeOnRatchet)
     .div(previousState.nxmA)
     .div(state.nxmA)
-    .div(2);
+    .div(2)
+    .div(1e9);
 
   const twapOnBV = parseEther('1')
     .mul(timeOnBV)
     .mul(capital)
     .mul(PRICE_BUFFER_DENOMINATOR.add(PRICE_BUFFER))
     .div(supply)
-    .div(PRICE_BUFFER_DENOMINATOR);
+    .div(PRICE_BUFFER_DENOMINATOR)
+    .div(1e9);
 
   return twapOnRatchet.add(twapOnBV);
 }
@@ -92,14 +107,16 @@ function calculateTwapBelowForPeriod(
     .mul(timeOnRatchet)
     .div(previousState.nxmB)
     .div(state.nxmB)
-    .div(2);
+    .div(2)
+    .div(1e9);
 
   const twapOnBV = parseEther('1')
     .mul(timeOnBV)
     .mul(capital)
     .mul(PRICE_BUFFER_DENOMINATOR.sub(PRICE_BUFFER))
     .div(supply)
-    .div(PRICE_BUFFER_DENOMINATOR);
+    .div(PRICE_BUFFER_DENOMINATOR)
+    .div(1e9);
 
   return twapOnRatchet.add(twapOnBV);
 }
@@ -143,4 +160,6 @@ module.exports = {
   calculateTwapAboveForPeriod,
   calculateTwapBelowForPeriod,
   calculateObservation,
+  getObservationIndex,
+  divCeil,
 };

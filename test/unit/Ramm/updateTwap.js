@@ -2,22 +2,13 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { getState, setup } = require('./setup');
-const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
-const { calculateObservation, timeTillBv, calculateTwapBelowForPeriod } = require('./helpers');
+const { setNextBlockTime } = require('../../utils/evm');
+const { calculateObservation, divCeil } = require('./helpers');
 
 const { BigNumber } = ethers;
 
-function divCeil(a, b) {
-  a = BigNumber.from(a);
-  let result = a.div(b);
-  if (!a.mod(b).isZero()) {
-    result = result.add(1);
-  }
-  return result;
-}
-
 describe('updateTwap', function () {
-  it.only('should update observations', async function () {
+  it('should update observations', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController } = fixture.contracts;
     const { PERIOD_SIZE, GRANULARITY } = fixture.constants;

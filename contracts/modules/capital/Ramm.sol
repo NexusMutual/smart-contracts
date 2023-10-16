@@ -34,6 +34,7 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public constant PRICE_BUFFER_DENOMINATOR = 10_000;
   uint public constant GRANULARITY = 2;
   uint public constant PERIOD_SIZE = 86_400; // day
+  uint public constant INITIAL_PERIODS = 9;
 
   uint public constant FAST_LIQUIDITY_SPEED = 1_500 ether;
   uint public constant TARGET_LIQUIDITY = 5_000 ether;
@@ -430,6 +431,36 @@ contract Ramm is IRamm, MasterAwareV2 {
       uint64(priceCumulativeAbove),
       uint64(priceCumulativeBelow)
     );
+  }
+
+  function getInitialObservations(
+    State memory initialState,
+    uint timestamp
+  ) public pure returns (Observation[3] memory) {
+
+    Observation[3] memory initialObservations;
+    Observation memory previousObservation;
+    uint endIdx = timestamp.divCeil(PERIOD_SIZE);
+
+    for (uint idx = endIdx - 2; idx <= endIdx; idx++) {
+      uint priceCumulativeAbove = previousObservation.priceCumulativeAbove;
+      uint priceCumulativeBelow = previousObservation.priceCumulativeBelow;
+
+      uint observationTimestamp = Math.min(timestamp, idx * PERIOD_SIZE);
+      uint observationIndex = idx % GRANULARITY;
+      uint timeElapsed = endIdx - 2 == idx ? INITIAL_PERIODS * PERIOD_SIZE : PERIOD_SIZE;
+
+      priceCumulativeAbove += 1 ether * initialState.eth * timeElapsed / initialState.nxmA;
+      priceCumulativeBelow += 1 ether * initialState.eth * timeElapsed / initialState.nxmB;
+
+      initialObservations[observationIndex] = Observation(
+        observationTimestamp.toUint32(),
+        uint64(priceCumulativeAbove),
+        uint64(priceCumulativeBelow)
+      );
+    }
+
+    return initialObservations;
   }
 
   function updateTwap() external {

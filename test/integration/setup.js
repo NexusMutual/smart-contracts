@@ -39,7 +39,7 @@ async function setup() {
   const { stakingPoolManagers } = accounts;
 
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
-  const INITIAL_SUPPLY = parseEther('15000000000');
+  const INITIAL_SUPPLY = parseEther('6750000'); // https://etherscan.io/token/0xd7c49cee7e9188cca6ad8ff264c1da2e69d4cf3b
   const INITIAL_SPOT_PRICE_A = parseEther('0.0347');
   const INITIAL_SPOT_PRICE_B = parseEther('0.0152');
 

@@ -16,6 +16,7 @@ describe('storeState', function () {
     const minTokensOut = parseEther('28');
     const { timestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = timestamp + 6 * 60 * 60;
+    const deadline = timestamp + 7 * 60 * 60;
 
     const initialState = await getState(ramm);
     const capital = await pool.getPoolValueInEth();
@@ -24,7 +25,7 @@ describe('storeState', function () {
 
     // buy NXM
     await setNextBlockTime(nextBlockTimestamp);
-    const tx = await ramm.connect(member).swap(0, minTokensOut, { value: ethIn });
+    const tx = await ramm.connect(member).swap(0, minTokensOut, deadline, { value: ethIn });
     await tx.wait();
     const after = await ramm.loadState();
 
@@ -48,10 +49,13 @@ describe('storeState', function () {
     await ramm.connect(governanceSigner).removeBudget();
     const before = await ramm.loadState();
 
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 60 * 60;
+
     // do a swap to trigger storeState
     const ethIn = parseEther('1');
     const minTokensOut = parseEther('28');
-    const tx = await ramm.connect(member).swap(0, minTokensOut, { value: ethIn });
+    const tx = await ramm.connect(member).swap(0, minTokensOut, deadline, { value: ethIn });
     await tx.wait();
 
     const EXPECTED_NORMAL_RATCHET_SPEED = 400;

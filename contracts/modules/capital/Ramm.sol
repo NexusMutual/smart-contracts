@@ -84,11 +84,11 @@ contract Ramm is IRamm, MasterAwareV2 {
     ratchetSpeed = state.ratchetSpeed.toUint32();
   }
 
-  // TODO: add minOut and deadline parameters
-  function swap(uint nxmIn, uint minTokensOut) external payable {
+  function swap(uint nxmIn, uint minTokensOut, uint deadline) external payable {
 
     require(msg.value == 0 || nxmIn == 0, "ONE_INPUT_ONLY");
     require(msg.value > 0 || nxmIn > 0, "ONE_INPUT_REQUIRED");
+    require(deadline >= block.timestamp, "EXPIRED");
 
     msg.value > 0
       ? swapEthForNxm(msg.value, minTokensOut)
@@ -165,7 +165,6 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint ethOut = state.eth - eth;
     require(ethOut >= minTokensOut, "Ramm: ethOut is less than minTokensOut");
 
-    // TODO add buffer into calculation
     require(capital - ethOut >= mcr().getMCR(), "NO_SWAPS_IN_BUFFER_ZONE");
 
     // update storage

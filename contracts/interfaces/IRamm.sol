@@ -78,7 +78,7 @@ interface IRamm {
 
   function getInternalPriceAndUpdateTwap() external returns (uint internalPrice);
 
-  function swap(uint nxmIn, uint minTokensOut) external payable;
+  function swap(uint nxmIn, uint minTokensOut, uint deadline) external payable;
 
   function removeBudget() external;
 

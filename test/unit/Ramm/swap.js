@@ -13,7 +13,7 @@ describe('swap', function () {
     const { ramm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
-    await expect(ramm.connect(member).swap(0, 0, { value: 0 })).to.be.revertedWith('ONE_INPUT_REQUIRED');
+    await expect(ramm.connect(member).swap(0, 0, 0, { value: 0 })).to.be.revertedWith('ONE_INPUT_REQUIRED');
   });
 
   it('should revert if both NXM and ETH values are greater then 0', async function () {
@@ -24,7 +24,21 @@ describe('swap', function () {
     const nxmIn = parseEther('1');
     const ethIn = parseEther('1');
 
-    await expect(ramm.connect(member).swap(nxmIn, 0, { value: ethIn })).to.be.revertedWith('ONE_INPUT_ONLY');
+    await expect(ramm.connect(member).swap(nxmIn, 0, 0, { value: ethIn })).to.be.revertedWith('ONE_INPUT_ONLY');
+  });
+
+  it('should revert if block timestamp surpasses deadline', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    const nxmIn = parseEther('1');
+    const minTokensOut = parseEther('0.015'); // 0.0152 ETH initial spot price
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 4 * 60; // add 5 minutes
+    setNextBlockTime(timestamp + 5 * 60);
+
+    await expect(ramm.connect(member).swap(nxmIn, minTokensOut, deadline)).to.be.revertedWith('EXPIRED');
   });
 
   it('should revert if nxmOut < minTokensOut when swapping ETH for NXM', async function () {
@@ -35,7 +49,11 @@ describe('swap', function () {
     const ethIn = parseEther('1');
     const minTokensOut = parseEther('29'); // 1ETH = 28.8NXM at 0.0347ETH
 
-    await expect(ramm.connect(member).swap(0, minTokensOut, { value: ethIn })).to.be.revertedWith(
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60; // add 5 minutes
+    setNextBlockTime(timestamp + 4 * 60);
+
+    await expect(ramm.connect(member).swap(0, minTokensOut, deadline, { value: ethIn })).to.be.revertedWith(
       'Ramm: nxmOut is less than minTokensOut',
     );
   });
@@ -48,7 +66,11 @@ describe('swap', function () {
     const nxmIn = parseEther('1');
     const minTokensOut = parseEther('0.016'); // 0.0152 ETH initial spot price
 
-    await expect(ramm.connect(member).swap(nxmIn, minTokensOut)).to.be.revertedWith(
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60;
+    setNextBlockTime(timestamp + 4 * 60);
+
+    await expect(ramm.connect(member).swap(nxmIn, minTokensOut, deadline)).to.be.revertedWith(
       'Ramm: ethOut is less than minTokensOut',
     );
   });
@@ -62,6 +84,7 @@ describe('swap', function () {
     await nxm.connect(member).approve(tokenController.address, nxmIn);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 7 * 60 * 60; // add 5 minutes
     const nextBlockTimestamp = timestamp + 6 * 60 * 60;
 
     const initialState = await getState(ramm);
@@ -76,7 +99,8 @@ describe('swap', function () {
 
     await setNextBlockBaseFee(0);
     await setNextBlockTime(nextBlockTimestamp);
-    const tx = await ramm.connect(member).swap(nxmIn, parseEther('0.015'), { maxPriorityFeePerGas: 0 }); // 0.0152 spotB
+    // 0.0152 spotB
+    const tx = await ramm.connect(member).swap(nxmIn, parseEther('0.015'), deadline, { maxPriorityFeePerGas: 0 });
     await tx.wait();
 
     // after state
@@ -110,6 +134,7 @@ describe('swap', function () {
     const ethIn = parseEther('1');
 
     const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 7 * 60 * 60;
     const nextBlockTimestamp = timestamp + 6 * 60 * 60;
 
     const initialState = await getState(ramm);
@@ -124,7 +149,9 @@ describe('swap', function () {
 
     await setNextBlockBaseFee(0);
     await setNextBlockTime(nextBlockTimestamp);
-    const tx = await ramm.connect(member).swap(0, parseEther('31'), { value: ethIn, maxPriorityFeePerGas: 0 });
+    const tx = await ramm
+      .connect(member)
+      .swap(0, parseEther('31'), deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
     await tx.wait();
 
     // after state

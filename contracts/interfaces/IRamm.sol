@@ -83,4 +83,21 @@ interface IRamm {
   function removeBudget() external;
 
   /* ========== EVENTS ========== */
+
+  // Input
+  error OneInputOnly();
+  error OneInputRequired();
+
+  // Expiry
+  error SwapExpired(uint deadline, uint blockTimestamp);
+
+  // Minimum tokens out
+  error NxmOutIsLessThanMinTokensOut(uint nxmOut, uint minTokensOut);
+  error EthOutIsLessThanMinTokensOut(uint ethOut, uint minTokensOut);
+
+  // Buffer Zone
+  error NoSwapsInBufferZone();
+
+  // Transfer
+  error EthTransferFailed();
 }

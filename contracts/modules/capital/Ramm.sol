@@ -85,10 +85,15 @@ contract Ramm is IRamm, MasterAwareV2 {
   }
 
   function swap(uint nxmIn, uint minTokensOut, uint deadline) external payable {
-
-    require(msg.value == 0 || nxmIn == 0, "ONE_INPUT_ONLY");
-    require(msg.value > 0 || nxmIn > 0, "ONE_INPUT_REQUIRED");
-    require(deadline >= block.timestamp, "EXPIRED");
+    if (msg.value > 0 && nxmIn > 0) {
+      revert OneInputOnly();
+    }
+    if (msg.value == 0 && nxmIn == 0) {
+      revert OneInputRequired();
+    }
+    if (block.timestamp > deadline) {
+      revert SwapExpired(deadline, block.timestamp);
+    }
 
     msg.value > 0
       ? swapEthForNxm(msg.value, minTokensOut)
@@ -119,7 +124,9 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     uint nxmOut = state.nxmA - nxmA;
 
-    require(nxmOut >= minTokensOut, "Ramm: nxmOut is less than minTokensOut");
+    if (nxmOut < minTokensOut) {
+      revert NxmOutIsLessThanMinTokensOut(nxmOut, minTokensOut);
+    }
 
     // edge case: bellow goes over bv due to eth-dai price changing
 
@@ -135,8 +142,10 @@ contract Ramm is IRamm, MasterAwareV2 {
     }
 
     // transfer assets
-    (bool ok,) = address(pool()).call{value: msg.value}("");
-    require(ok, "ETH_TRANSFER_FAILED");
+    (bool ok, ) = address(pool()).call{value: msg.value}("");
+    if (ok != true) {
+      revert EthTransferFailed();
+    }
     tokenController().mint(msg.sender, nxmOut);
 
     return nxmOut;
@@ -166,9 +175,14 @@ contract Ramm is IRamm, MasterAwareV2 {
       nxmA = nxmA * eth / state.eth;
 
       ethOut = state.eth - eth;
-      require(ethOut >= minTokensOut, "Ramm: ethOut is less than minTokensOut");
 
-      require(capital - ethOut >= mcrValue, "NO_SWAPS_IN_BUFFER_ZONE");
+      if (ethOut < minTokensOut) {
+        revert EthOutIsLessThanMinTokensOut(ethOut, minTokensOut);
+      }
+
+      if (capital - ethOut < mcr().getMCR()) {
+        revert NoSwapsInBufferZone();
+      }
 
       // update storage
       state.nxmA = nxmA;

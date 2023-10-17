@@ -2,7 +2,7 @@
 
 pragma solidity >=0.5.0;
 
-interface IStakingPoolFactory {
+interface IStakingPoolFactoryDetailed {
 
   function stakingPoolCount() external view returns (uint);
 
@@ -10,5 +10,5 @@ interface IStakingPoolFactory {
 
   function create(address beacon) external returns (uint poolId, address stakingPoolAddress);
 
-  event StakingPoolCreated(uint indexed poolId, address indexed stakingPoolAddress);
+  function changeOperator(address newOperator) external;
 }

@@ -6,6 +6,7 @@ import "./ICoverNFT.sol";
 import "./IStakingNFT.sol";
 import "./IStakingPool.sol";
 import "./IStakingPoolFactory.sol";
+import "./IStakingPoolFactoryDetailed.sol";
 
 /* ========== DATA STRUCTURES ========== */
 
@@ -187,7 +188,7 @@ interface ICover {
 
   function stakingNFT() external returns (IStakingNFT);
 
-  function stakingPoolFactory() external returns (IStakingPoolFactory);
+  function stakingPoolFactory() external returns (IStakingPoolFactoryDetailed);
 
   /* ========== EVENTS ========== */
 

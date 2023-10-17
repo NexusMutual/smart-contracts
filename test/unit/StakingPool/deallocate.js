@@ -45,7 +45,7 @@ const coverProductTemplate = {
   useFixedPrice: false,
 };
 
-const burnStakeParams = {
+const deallocateParams = {
   allocationId: 0,
   productId: 0,
   start: 0,
@@ -73,7 +73,7 @@ const allocationRequestParams = {
 const stakedNxmAmount = parseEther('100');
 const setup = require('./setup');
 
-async function burnStakeSetup() {
+async function deallocateSetup() {
   const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts, cover } = fixture;
   const [staker] = fixture.accounts.members;
@@ -105,16 +105,16 @@ async function burnStakeSetup() {
 
 describe('deallocate', function () {
   it('should revert if the caller is not the cover contract', async function () {
-    const fixture = await loadFixture(burnStakeSetup);
+    const fixture = await loadFixture(deallocateSetup);
     const { stakingPool } = fixture;
-    await expect(stakingPool.deallocate(burnStakeParams)).to.be.revertedWithCustomError(
+    await expect(stakingPool.deallocate(deallocateParams)).to.be.revertedWithCustomError(
       stakingPool,
       'OnlyCoverContract',
     );
   });
 
   it('correctly deallocates cover tranche allocations', async function () {
-    const fixture = await loadFixture(burnStakeSetup);
+    const fixture = await loadFixture(deallocateSetup);
     const { stakingPool } = fixture;
     const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
@@ -197,7 +197,7 @@ describe('deallocate', function () {
   });
 
   it('correctly deallocates stored tranche allocations', async function () {
-    const fixture = await loadFixture(burnStakeSetup);
+    const fixture = await loadFixture(deallocateSetup);
     const { stakingPool } = fixture;
     const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
@@ -286,7 +286,7 @@ describe('deallocate', function () {
   });
 
   it('correctly deallocates expiring cover amounts', async function () {
-    const fixture = await loadFixture(burnStakeSetup);
+    const fixture = await loadFixture(deallocateSetup);
     const { stakingPool } = fixture;
     const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
 
@@ -487,7 +487,7 @@ describe('deallocate', function () {
   });
 
   it('calls process expirations', async function () {
-    const fixture = await loadFixture(burnStakeSetup);
+    const fixture = await loadFixture(deallocateSetup);
     const { stakingPool } = fixture;
 
     const initialFirstActiveBucketId = await stakingPool.getFirstActiveBucketId();
@@ -495,7 +495,7 @@ describe('deallocate', function () {
 
     await moveTimeToNextTranche(2);
 
-    await stakingPool.connect(fixture.coverSigner).deallocate(burnStakeParams);
+    await stakingPool.connect(fixture.coverSigner).deallocate(deallocateParams);
 
     const firstActiveBucketId = await stakingPool.getFirstActiveBucketId();
     const firstActiveTrancheId = await stakingPool.getFirstActiveTrancheId();

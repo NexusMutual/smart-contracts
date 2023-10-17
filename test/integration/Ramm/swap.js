@@ -39,7 +39,8 @@ describe('swap', function () {
     const { ra } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
-    await expect(ra.connect(member).swap(0, 0, { value: 0 })).to.be.revertedWith('ONE_INPUT_REQUIRED');
+    const swap = ra.connect(member).swap(0, 0, 0, { value: 0 });
+    await expect(swap).to.be.revertedWithCustomError(ra, 'OneInputRequired');
   });
 
   it('should revert if both NXM and ETH values are greater then 0', async function () {
@@ -50,7 +51,8 @@ describe('swap', function () {
     const nxmIn = parseEther('1');
     const ethIn = parseEther('1');
 
-    await expect(ra.connect(member).swap(nxmIn, 0, { value: ethIn })).to.be.revertedWith('ONE_INPUT_ONLY');
+    const swap = ra.connect(member).swap(nxmIn, 0, 0, { value: ethIn });
+    await expect(swap).to.be.revertedWithCustomError(ra, 'OneInputOnly');
   });
 
   it('should revert if nxmOut < minTokensOut when swapping ETH for NXM', async function () {
@@ -59,11 +61,13 @@ describe('swap', function () {
     const [member] = fixture.accounts.members;
 
     const ethIn = parseEther('1');
-    const minTokensOut = parseEther('29'); // 1ETH = 28.8NXM at 0.0347ETH
+    const minAmountOut = parseEther('29'); // 1ETH = 28.8NXM at 0.0347ETH
 
-    await expect(ra.connect(member).swap(0, minTokensOut, { value: ethIn })).to.be.revertedWith(
-      'Ramm: nxmOut is less than minTokensOut',
-    );
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60; // add 5 minutes
+
+    const swap = ra.connect(member).swap(0, minAmountOut, deadline, { value: ethIn });
+    await expect(swap).to.be.revertedWithCustomError(ra, 'NxmOutLessThanMinAmountOut');
   });
 
   it('should revert if ethOut < minTokensOut when swapping NXM for ETH', async function () {
@@ -72,11 +76,27 @@ describe('swap', function () {
     const [member] = fixture.accounts.members;
 
     const nxmIn = parseEther('1');
-    const minTokensOut = parseEther('0.016'); // 0.0152 ETH initial spot price
+    const minAmountOut = parseEther('0.016'); // 0.0152 ETH initial spot price
 
-    await expect(ra.connect(member).swap(nxmIn, minTokensOut)).to.be.revertedWith(
-      'Ramm: ethOut is less than minTokensOut',
-    );
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60; // add 5 minutes
+
+    const swap = ra.connect(member).swap(nxmIn, minAmountOut, deadline);
+    await expect(swap).to.be.revertedWithCustomError(ra, 'EthOutLessThanMinAmountOut');
+  });
+
+  it('should revert if block timestamp surpasses deadline', async function () {
+    const fixture = await loadFixture(setup);
+    const { ra } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    const nxmIn = parseEther('1');
+    const minAmountOut = parseEther('0.015'); // 0.0152 ETH initial spot price
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp - 1;
+
+    const swap = ra.connect(member).swap(nxmIn, minAmountOut, deadline);
+    await expect(swap).to.be.revertedWithCustomError(ra, 'SwapExpired');
   });
 
   it('should swap ETH for NXM', async function () {
@@ -88,9 +108,11 @@ describe('swap', function () {
     const minNxmOut = parseEther('28.8');
     const before = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
 
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60; // add 5 minutes
+
     await setNextBlockBaseFee(0);
-    const tx = await ra.connect(member).swap(0, minNxmOut, { value: ethIn, maxPriorityFeePerGas: 0 });
-    await tx.wait();
+    await ra.connect(member).swap(0, minNxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
 
     const after = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
     const nxmReceived = after.nxmBalance.sub(before.nxmBalance);
@@ -113,9 +135,11 @@ describe('swap', function () {
     const minEthOut = parseEther('0.0152');
     const before = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
 
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60; // add 5 minutes
+
     await setNextBlockBaseFee(0);
-    const tx = await ra.connect(member).swap(nxmIn, minEthOut, { maxPriorityFeePerGas: 0 });
-    await tx.wait();
+    await ra.connect(member).swap(nxmIn, minEthOut, deadline, { maxPriorityFeePerGas: 0 });
 
     const after = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
     const ethReceived = after.ethBalance.sub(before.ethBalance);

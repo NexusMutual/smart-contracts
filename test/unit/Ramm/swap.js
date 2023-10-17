@@ -79,7 +79,7 @@ describe('swap', function () {
     const [member] = fixture.accounts.members;
 
     // Set MCR high enough so it reaches the buffer zone
-    await mcr.updateMCRInternal(parseEther('145000'), true);
+    await mcr.updateMCR(parseEther('145000'));
 
     const nxmIn = parseEther('10000');
     const minAmountOut = parseEther('147');

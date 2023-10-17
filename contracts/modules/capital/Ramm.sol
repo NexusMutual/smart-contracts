@@ -162,7 +162,7 @@ contract Ramm is IRamm, MasterAwareV2 {
       }
     }
 
-  uint nxmA = state.nxmA;
+    uint nxmA = state.nxmA;
     uint nxmB = state.nxmB;
     uint eth = state.eth;
     uint k = eth * nxmB;
@@ -174,7 +174,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint ethOut = state.eth - eth;
     require(ethOut >= minTokensOut, "Ramm: ethOut is less than minTokensOut");
 
-    require(capital - ethOut >= mcr().getMCR(), "NO_SWAPS_IN_BUFFER_ZONE");
+    require(capital - ethOut >= mcrValue, "NO_SWAPS_IN_BUFFER_ZONE");
 
     // update storage
     state.nxmA = nxmA;
@@ -270,7 +270,6 @@ contract Ramm is IRamm, MasterAwareV2 {
         nxmA = eth * supply / bufferedCapitalA;
       } else {
         // use ratchet
-        //   = eth * nxmA / (eth - nr_denom_addend)
         nxmA = eth * nxmA / (eth - (r * capital * nxmA / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR));
       }
     }
@@ -290,7 +289,6 @@ contract Ramm is IRamm, MasterAwareV2 {
         nxmB = eth * supply / bufferedCapitalB;
       } else {
         // use ratchet
-        //   = eth * nxmB / (eth + nr_denom_addend)
         nxmB = eth * nxmB / (eth + (nxmB * elapsed * state.ratchetSpeed * capital / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR));
       }
     }

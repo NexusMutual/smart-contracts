@@ -69,9 +69,27 @@ describe('swap', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
 
-    await expect(ramm.connect(member).swap(nxmIn, minTokensOut, deadline)).to.be.revertedWith(
-      'Ramm: ethOut is less than minTokensOut',
-    );
+    const swap = ramm.connect(member).swap(nxmIn, minTokensOut, deadline);
+    await expect(swap).to.be.revertedWithCustomError(ramm, 'EthOutIsLessThanMinTokensOut');
+  });
+
+  it('should revert if swapping NXM for ETH is in the buffer zone', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, mcr } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    // Set MCR high enough so it reaches the buffer zone
+    await mcr.updateMCRInternal(parseEther('145000'), true);
+
+    const nxmIn = parseEther('10000');
+    const minTokensOut = parseEther('147');
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60;
+    setNextBlockTime(timestamp + 4 * 60);
+
+    const swap = ramm.connect(member).swap(nxmIn, minTokensOut, deadline);
+    await expect(swap).to.be.revertedWithCustomError(ramm, 'NoSwapsInBufferZone');
   });
 
   it('should swap NXM for ETH', async function () {

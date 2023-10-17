@@ -16,7 +16,7 @@ library StakingPoolLibrary {
         poolId, // salt
         // init code hash of the MinimalBeaconProxy
         // updated using patch-staking-pool-library.js script
-        hex'1eb804b66941a2e8465fa0951be9c8b855b7794ee05b0789ab22a02ee1298ebe' // init code hash
+        hex'a179a0142e16e99d0ddc0c8b371af706365954d4a192468bf0375ed4995b5946' // init code hash
       )
     );
 

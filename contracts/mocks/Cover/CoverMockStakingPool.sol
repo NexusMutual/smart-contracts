@@ -37,7 +37,7 @@ contract CoverMockStakingPool is IStakingPool {
 
   string public ipfsHash;
   uint public burnStakeCalledWithAmount;
-  DeallocateParams public burnStakeCalledWithParams;
+  DeallocateParams public deallocateCalledWithParams;
 
   struct StakedProduct {
     uint16 lastEffectiveWeight;
@@ -162,7 +162,7 @@ contract CoverMockStakingPool is IStakingPool {
   function burnStake(uint amount, DeallocateParams calldata params) external {
     // no-op
     burnStakeCalledWithAmount = amount;
-    burnStakeCalledWithParams = params;
+    deallocateCalledWithParams = params;
   }
 
   function depositTo(
@@ -315,12 +315,10 @@ contract CoverMockStakingPool is IStakingPool {
   }
 
   function deallocate(DeallocateParams calldata params) external {
-    // TODO: apply appropriate rename to storage param
-    burnStakeCalledWithParams = params;
+    deallocateCalledWithParams = params;
   }
 
   function burnStake(uint amount) external {
-    // TODO: apply appropriate rename to storage param
     burnStakeCalledWithAmount = amount;
   }
 }

@@ -35,8 +35,7 @@ describe('swap', function () {
     const nxmIn = parseEther('1');
     const minTokensOut = parseEther('0.015'); // 0.0152 ETH initial spot price
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const deadline = timestamp + 4 * 60; // add 5 minutes
-    setNextBlockTime(timestamp + 5 * 60);
+    const deadline = timestamp - 1;
 
     await expect(ramm.connect(member).swap(nxmIn, minTokensOut, deadline)).to.be.revertedWith('EXPIRED');
   });
@@ -51,7 +50,6 @@ describe('swap', function () {
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60; // add 5 minutes
-    setNextBlockTime(timestamp + 4 * 60);
 
     await expect(ramm.connect(member).swap(0, minTokensOut, deadline, { value: ethIn })).to.be.revertedWith(
       'Ramm: nxmOut is less than minTokensOut',
@@ -68,7 +66,6 @@ describe('swap', function () {
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
-    setNextBlockTime(timestamp + 4 * 60);
 
     await expect(ramm.connect(member).swap(nxmIn, minTokensOut, deadline)).to.be.revertedWith(
       'Ramm: ethOut is less than minTokensOut',
@@ -84,7 +81,7 @@ describe('swap', function () {
     await nxm.connect(member).approve(tokenController.address, nxmIn);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const deadline = timestamp + 7 * 60 * 60; // add 5 minutes
+    const deadline = timestamp + 7 * 60 * 60;
     const nextBlockTimestamp = timestamp + 6 * 60 * 60;
 
     const initialState = await getState(ramm);
@@ -102,8 +99,7 @@ describe('swap', function () {
     await setNextBlockBaseFee(0);
     await setNextBlockTime(nextBlockTimestamp);
     // 0.0152 spotB
-    const tx = await ramm.connect(member).swap(nxmIn, parseEther('0.015'), deadline, { maxPriorityFeePerGas: 0 });
-    await tx.wait();
+    await ramm.connect(member).swap(nxmIn, parseEther('0.015'), deadline, { maxPriorityFeePerGas: 0 });
 
     // after state
     const totalSupplyAfter = await tokenController.totalSupply();

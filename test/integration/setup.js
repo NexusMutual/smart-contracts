@@ -95,12 +95,8 @@ async function setup() {
   const lcr = await ethers.deployContract('LegacyClaimsReward', [master.address, dai.address]);
 
   const mcrEth = parseEther('50000');
-  const mcrFloor = mcrEth.sub(parseEther('10000'));
-
   const latestBlock = await ethers.provider.getBlock('latest');
   const lastUpdateTime = latestBlock.timestamp;
-  const mcrFloorIncrementThreshold = 13000;
-  const maxMCRFloorIncrement = 100;
   const maxMCRIncrement = 500;
   const gearingFactor = 48000;
   const minUpdateTime = 3600;
@@ -108,11 +104,8 @@ async function setup() {
 
   const disposableMCR = await ethers.deployContract('DisposableMCR', [
     mcrEth,
-    mcrFloor,
     desiredMCR,
     lastUpdateTime,
-    mcrFloorIncrementThreshold,
-    maxMCRFloorIncrement,
     maxMCRIncrement,
     gearingFactor,
     minUpdateTime,

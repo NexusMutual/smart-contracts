@@ -63,7 +63,7 @@ describe('updateMCR', function () {
     const desiredMCR = await mcr.desiredMCR();
     const lastUpdateTime = await mcr.lastUpdateTime();
 
-    const totalSumAssured = await mcr.getAllSumAssurance();
+    const totalSumAssured = await mcr.getTotalActiveCoverAmount();
     const gearingFactor = await mcr.gearingFactor();
     const expectedDesiredMCR = totalSumAssured.mul(10000).div(gearingFactor);
 
@@ -161,7 +161,7 @@ describe('updateMCR', function () {
     await mcr.updateMCR();
 
     const desiredMCR = await mcr.desiredMCR();
-    const totalSumAssured = await mcr.getAllSumAssurance();
+    const totalSumAssured = await mcr.getTotalActiveCoverAmount();
     const gearingFactor = await mcr.gearingFactor();
     const expectedDesiredMCR = totalSumAssured.mul(10000).div(gearingFactor);
     expect(desiredMCR).to.be.equal(expectedDesiredMCR);

@@ -59,7 +59,7 @@ async function updateMCRSetup() {
     period: daysToSeconds(60),
     gracePeriod: daysToSeconds(90),
   });
-  expect(await mcr.getAllSumAssurance()).to.be.equal(0);
+  expect(await mcr.getTotalActiveCoverAmount()).to.be.equal(0);
 
   return fixture;
 }
@@ -172,7 +172,7 @@ describe('updateMCR', function () {
 
     const [coverHolder] = fixture.accounts.members;
 
-    await mcr.getAllSumAssurance();
+    await mcr.getTotalActiveCoverAmount();
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
 

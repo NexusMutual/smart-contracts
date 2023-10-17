@@ -29,7 +29,7 @@ const daiCoverTemplate = {
   coverAsset: DAI_ASSET_ID, // DAI
 };
 
-async function getAllSumAssuranceSetup() {
+async function getTotalActiveCoverAmountSetup() {
   const fixture = await loadFixture(setup);
   const { tk, dai, stakingPool1: stakingPool, tc, mcr, cover } = fixture.contracts;
   const [member1] = fixture.accounts.members;
@@ -54,21 +54,21 @@ async function getAllSumAssuranceSetup() {
     gracePeriod: daysToSeconds(30),
   });
 
-  expect(await mcr.getAllSumAssurance()).to.be.equal(0);
+  expect(await mcr.getTotalActiveCoverAmount()).to.be.equal(0);
 
   return fixture;
 }
 
 describe('getAllSumAssurance', function () {
   it('returns 0 when no covers exist', async function () {
-    const fixture = await loadFixture(getAllSumAssuranceSetup);
+    const fixture = await loadFixture(getTotalActiveCoverAmountSetup);
     const { mcr } = fixture.contracts;
-    const totalAssurace = await mcr.getAllSumAssurance();
+    const totalAssurace = await mcr.getTotalActiveCoverAmount();
     expect(totalAssurace).to.be.equal(0);
   });
 
   it('returns total value of ETH purchased cover', async function () {
-    const fixture = await loadFixture(getAllSumAssuranceSetup);
+    const fixture = await loadFixture(getTotalActiveCoverAmountSetup);
     const { mcr, cover, p1 } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
@@ -82,14 +82,14 @@ describe('getAllSumAssurance', function () {
       targetPrice,
       priceDenominator,
     });
-    const totalAssurance = await mcr.getAllSumAssurance();
+    const totalAssurance = await mcr.getTotalActiveCoverAmount();
     expect(totalAssurance).to.be.equal(
       await assetToEthWithPrecisionLoss(p1, coverBuyTemplate.amount, 0, fixture.config),
     );
   });
 
   it('returns total value of DAI purchased cover', async function () {
-    const fixture = await loadFixture(getAllSumAssuranceSetup);
+    const fixture = await loadFixture(getTotalActiveCoverAmountSetup);
     const { mcr, cover, p1 } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
@@ -111,12 +111,12 @@ describe('getAllSumAssurance', function () {
       fixture.config,
     );
 
-    const totalAssurance = await mcr.getAllSumAssurance();
+    const totalAssurance = await mcr.getTotalActiveCoverAmount();
     expect(totalAssurance).to.be.equal(expectedTotal);
   });
 
   it('returns total value of multiple ETH and DAI covers', async function () {
-    const fixture = await loadFixture(getAllSumAssuranceSetup);
+    const fixture = await loadFixture(getTotalActiveCoverAmountSetup);
     const { mcr, cover, p1 } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
@@ -160,7 +160,7 @@ describe('getAllSumAssurance', function () {
       fixture.config,
     );
 
-    const totalAssurance = await mcr.getAllSumAssurance();
+    const totalAssurance = await mcr.getTotalActiveCoverAmount();
     expect(totalAssurance).to.be.equal(expectedEthAssurance.add(expectedDaiAssurance));
   });
 });

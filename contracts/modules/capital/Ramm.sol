@@ -143,7 +143,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     }
 
     // transfer assets
-    (bool ok, ) = address(pool()).call{value: msg.value}("");
+    (bool ok,) = address(pool()).call{value: msg.value}("");
     if (ok != true) {
       revert EthTransferFailed();
     }
@@ -181,7 +181,7 @@ contract Ramm is IRamm, MasterAwareV2 {
         revert EthOutLessThanMinAmountOut(ethOut, minTokensOut);
       }
 
-      if (capital - ethOut < mcr().getMCR()) {
+      if (capital - ethOut < mcrValue) {
         revert NoSwapsInBufferZone();
       }
 

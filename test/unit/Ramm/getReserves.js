@@ -79,11 +79,12 @@ const getExpectedNxmBBookValue = (eth, capital, supply) => {
 describe('_getReserves', function () {
   it('should return current state in the pools - extract ETH flow where eth > TARGET_LIQUIDITY', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
+    const { ramm, pool, tokenController, mcr } = fixture.contracts;
 
     const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
+    const mcrValue = await mcr.getMCR();
 
     // Set eth to 5100 so its > 5000 TARGET_LIQUIDITY (i.e. extract ETH)
     const state = {
@@ -94,7 +95,7 @@ describe('_getReserves', function () {
     // Advance next block timestamp by 32 hours to reach book value (i.e. no ratchet)
     const nextBlockTimestamp = state.timestamp + 32 * 60 * 60;
 
-    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, nextBlockTimestamp);
+    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, mcrValue, nextBlockTimestamp);
 
     const expectedEth = getExpectedEthExtract(state, nextBlockTimestamp);
     const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply);
@@ -109,11 +110,12 @@ describe('_getReserves', function () {
 
   it('should return current state in the pools - extract ETH flow where eth == TARGET_LIQUIDITY', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
+    const { ramm, pool, tokenController, mcr } = fixture.contracts;
 
     const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
+    const mcrValue = await mcr.getMCR();
 
     // Set eth == TARGET_LIQUIDITY (i.e. extract ETH)
     const state = {
@@ -124,7 +126,7 @@ describe('_getReserves', function () {
     // Advance next block timestamp by 32 hours to reach book value (i.e. no ratchet)
     const nextBlockTimestamp = state.timestamp + 32 * 60 * 60;
 
-    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, nextBlockTimestamp);
+    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, mcrValue, nextBlockTimestamp);
 
     const expectedEth = getExpectedEthExtract(state, nextBlockTimestamp);
     const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply);
@@ -139,11 +141,12 @@ describe('_getReserves', function () {
 
   it('should return current state in the pools - inject ETH flow where elapsed <= timeLeftOnBudget', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
+    const { ramm, pool, tokenController, mcr } = fixture.contracts;
 
     const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
+    const mcrValue = await mcr.getMCR();
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
     const state = {
@@ -154,7 +157,7 @@ describe('_getReserves', function () {
     // Advance next block time stamp by > 31 hrs (no ratchet) but < 701 hrs (timeLeftOnBudget)
     const nextBlockTimestamp = state.timestamp + 32 * 60 * 60;
 
-    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, nextBlockTimestamp);
+    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, mcrValue, nextBlockTimestamp);
 
     // Expected injected eth
     const maxToInject = TARGET_LIQUIDITY.sub(state.eth);
@@ -174,11 +177,12 @@ describe('_getReserves', function () {
 
   it('should return current state - inject ETH elapsed > timeLeftOnBudget (non zero budget)', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
+    const { ramm, pool, tokenController, mcr } = fixture.contracts;
 
     const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
+    const mcrValue = await mcr.getMCR();
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
     const state = {
@@ -189,7 +193,7 @@ describe('_getReserves', function () {
     // Advance next block time stamp > 31 hrs (no ratchet) and > 701 hrs timeLeftOnBudget (elapsed > timeLeftOnBudget)
     const nextBlockTimestamp = state.timestamp + 702 * 60 * 60;
 
-    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, nextBlockTimestamp);
+    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, mcrValue, nextBlockTimestamp);
 
     // Expected injected eth
     const maxToInject = TARGET_LIQUIDITY.sub(state.eth);
@@ -214,11 +218,12 @@ describe('_getReserves', function () {
 
   it('should return current state - inject ETH elapsed > timeLeftOnBudget (zero budget)', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
+    const { ramm, pool, tokenController, mcr } = fixture.contracts;
 
     const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
+    const mcrValue = await mcr.getMCR();
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH) and budget to 0 (i.e. elapsed > timeLeftOnBudget)
     const state = {
@@ -230,7 +235,7 @@ describe('_getReserves', function () {
     // Advance next block time stamp by > 31 hrs (no ratchet)
     const nextBlockTimestamp = state.timestamp + 32 * 60 * 60;
 
-    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, nextBlockTimestamp);
+    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, mcrValue, nextBlockTimestamp);
 
     // Expected injected eth
     const timeLeftOnBudget = 0; // because budget is 0
@@ -254,11 +259,12 @@ describe('_getReserves', function () {
 
   it('should return current state in the pools - ratchet value', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
+    const { ramm, pool, tokenController, mcr } = fixture.contracts;
 
     const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
+    const mcrValue = await mcr.getMCR();
 
     // Set budget to 0 and eth == TARGET_LIQUIDITY (i.e. extract ETH)
     const state = {
@@ -270,7 +276,7 @@ describe('_getReserves', function () {
     // Advance next block timestamp < 31 hours to NOT reach book value (i.e. use ratchet)
     const nextBlockTimestamp = state.timestamp + 1 * 60 * 60;
 
-    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, nextBlockTimestamp);
+    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, mcrValue, nextBlockTimestamp);
 
     const expectedEth = getExpectedEthExtract(state, nextBlockTimestamp);
     // Expected nxmA ratchet

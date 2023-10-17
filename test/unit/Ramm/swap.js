@@ -77,7 +77,7 @@ describe('swap', function () {
 
   it('should swap NXM for ETH', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, nxm, pool, tokenController } = fixture.contracts;
+    const { ramm, nxm, pool, tokenController, mcr } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const nxmIn = parseEther('1');
@@ -90,7 +90,9 @@ describe('swap', function () {
     const initialState = await getState(ramm);
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
-    const state = await ramm._getReserves(initialState, capital, supply, nextBlockTimestamp);
+    const mcrValue = await mcr.getMCR();
+
+    const state = await ramm._getReserves(initialState, capital, supply, mcrValue, nextBlockTimestamp);
 
     // before state
     const totalSupplyBefore = await tokenController.totalSupply();
@@ -128,7 +130,7 @@ describe('swap', function () {
 
   it('should swap ETH for NXM', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, nxm, pool, tokenController } = fixture.contracts;
+    const { ramm, nxm, pool, tokenController, mcr } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const ethIn = parseEther('1');
@@ -140,7 +142,9 @@ describe('swap', function () {
     const initialState = await getState(ramm);
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
-    const state = await ramm._getReserves(initialState, capital, supply, nextBlockTimestamp);
+    const mcrValue = await mcr.getMCR();
+
+    const state = await ramm._getReserves(initialState, capital, supply, mcrValue, nextBlockTimestamp);
 
     // before state
     const totalSupplyBefore = await tokenController.totalSupply();

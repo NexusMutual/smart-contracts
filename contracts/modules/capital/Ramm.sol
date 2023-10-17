@@ -99,13 +99,14 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
+    uint mcrValue = mcr().getMCR();
 
     State memory initialState = loadState();
     Observation[3] memory _observations = observations;
 
     // current state
-    State memory state = _getReserves(initialState, capital, supply, block.timestamp);
-    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply);
+    State memory state = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
+    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
 
     uint nxmA = state.nxmA;
     uint nxmB = state.nxmB;
@@ -145,15 +146,23 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
+    uint mcrValue = mcr().getMCR();
 
     State memory initialState = loadState();
-    Observation[3] memory _observations = observations;
 
     // current state
-    State memory state = _getReserves(initialState, capital, supply, block.timestamp);
-    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply);
+    State memory state = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
 
-    uint nxmA = state.nxmA;
+    // update TWAP
+    {
+      Observation[3] memory _observations = observations;
+      _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
+      for (uint i = 0; i < _observations.length; i++) {
+        observations[i] = _observations[i];
+      }
+    }
+
+  uint nxmA = state.nxmA;
     uint nxmB = state.nxmB;
     uint eth = state.eth;
     uint k = eth * nxmB;
@@ -175,10 +184,6 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     storeState(state);
 
-    for (uint i = 0; i < _observations.length; i++) {
-      observations[i] = _observations[i];
-    }
-
     tokenController().burnFrom(msg.sender, nxmIn);
     // TODO: use a custom function instead of sendPayout
     pool().sendPayout(0, payable(msg.sender), ethOut);
@@ -195,7 +200,8 @@ contract Ramm is IRamm, MasterAwareV2 {
   function getReserves() external view returns (uint _ethReserve, uint nxmA, uint nxmB, uint _budget) {
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
-    State memory state = _getReserves(loadState(), capital, supply, block.timestamp);
+    uint mcrValue = mcr().getMCR();
+    State memory state = _getReserves(loadState(), capital, supply, mcrValue, block.timestamp);
     return (state.eth, state.nxmA, state.nxmB, state.budget);
   }
 
@@ -203,6 +209,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     State memory state,
     uint capital,
     uint supply,
+    uint mcrValue,
     uint currentTimestamp
   ) public pure returns (State memory /* new state */) {
 
@@ -214,7 +221,12 @@ contract Ramm is IRamm, MasterAwareV2 {
     if (eth < TARGET_LIQUIDITY) {
       // inject eth
       uint timeLeftOnBudget = budget * LIQ_SPEED_PERIOD / FAST_LIQUIDITY_SPEED;
-      uint maxToInject = TARGET_LIQUIDITY - eth;
+      uint maxToInject;
+      if (capital <= mcrValue + TARGET_LIQUIDITY) {
+        maxToInject = 0;
+      } else {
+        maxToInject = Math.min(TARGET_LIQUIDITY - eth, capital - mcrValue - TARGET_LIQUIDITY);
+      }
       uint injected;
 
       if (elapsed <= timeLeftOnBudget) {
@@ -258,8 +270,8 @@ contract Ramm is IRamm, MasterAwareV2 {
         nxmA = eth * supply / bufferedCapitalA;
       } else {
         // use ratchet
-        uint nr_denom_addend = r * capital * nxmA / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR;
-        nxmA = eth * nxmA / (eth - nr_denom_addend);
+        //   = eth * nxmA / (eth - nr_denom_addend)
+        nxmA = eth * nxmA / (eth - (r * capital * nxmA / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR));
       }
     }
 
@@ -278,8 +290,8 @@ contract Ramm is IRamm, MasterAwareV2 {
         nxmB = eth * supply / bufferedCapitalB;
       } else {
         // use ratchet
-        uint nr_denom_addend = nxmB * elapsed * state.ratchetSpeed * capital / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR;
-        nxmB = eth * nxmB / (eth + nr_denom_addend);
+        //   = eth * nxmB / (eth + nr_denom_addend)
+        nxmB = eth * nxmB / (eth + (nxmB * elapsed * state.ratchetSpeed * capital / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR));
       }
     }
 
@@ -290,8 +302,9 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
+    uint mcrValue = mcr().getMCR();
 
-    State memory state = _getReserves(loadState(), capital, supply, block.timestamp);
+    State memory state = _getReserves(loadState(), capital, supply, mcrValue, block.timestamp);
 
     return (
       1 ether * state.eth / state.nxmA,
@@ -410,13 +423,14 @@ contract Ramm is IRamm, MasterAwareV2 {
   function updateTwap() external {
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
+    uint mcrValue = mcr().getMCR();
 
     State memory initialState = loadState();
     Observation[3] memory _observations = observations;
 
     // current state
-    State memory state = _getReserves(initialState, capital, supply, block.timestamp);
-    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply);
+    State memory state = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
+    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
 
     for (uint i = 0; i < _observations.length; i++) {
       observations[i] = _observations[i];
@@ -430,14 +444,13 @@ contract Ramm is IRamm, MasterAwareV2 {
     Observation[3] memory _observations,
     uint currentStateTimestamp,
     uint capital,
-    uint supply
+    uint supply,
+    uint mcrValue
   ) public pure returns (Observation[3] memory) {
-
-    uint oldestObservationIndex = observationIndexOf(initialState.timestamp);
     uint endIdx = currentStateTimestamp.divCeil(PERIOD_SIZE);
 
     State memory previousState = initialState;
-    Observation memory previousObservation = _observations[oldestObservationIndex];
+    Observation memory previousObservation = _observations[observationIndexOf(initialState.timestamp)];
     Observation[3] memory newObservations;
 
     for (uint idx = endIdx - 2; idx <= endIdx; idx++) {
@@ -453,7 +466,7 @@ contract Ramm is IRamm, MasterAwareV2 {
         continue;
       }
 
-      State memory state = _getReserves(previousState, capital, supply, observationTimestamp);
+      State memory state = _getReserves(previousState, capital, supply, mcrValue, observationTimestamp);
 
       newObservations[observationIndex] = getObservation(
         previousState,
@@ -474,13 +487,14 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
+    uint mcrValue = mcr().getMCR();
 
     State memory initialState = loadState();
     Observation[3] memory _observations = observations;
 
     // current state
-    State memory state = _getReserves(initialState, capital, supply, block.timestamp);
-    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply);
+    State memory state = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
+    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
 
     // sstore observations and state
     for (uint i = 0; i < _observations.length; i++) {

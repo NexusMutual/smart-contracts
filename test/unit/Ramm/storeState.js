@@ -9,7 +9,7 @@ const { parseEther } = ethers.utils;
 describe('storeState', function () {
   it('should store state correctly', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
+    const { ramm, pool, tokenController, mcr } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const ethIn = parseEther('1');
@@ -21,7 +21,9 @@ describe('storeState', function () {
     const initialState = await getState(ramm);
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
-    const before = await ramm._getReserves(initialState, capital, supply, nextBlockTimestamp);
+    const mcrValue = await mcr.getMCR();
+
+    const before = await ramm._getReserves(initialState, capital, supply, mcrValue, nextBlockTimestamp);
 
     // buy NXM
     await setNextBlockTime(nextBlockTimestamp);

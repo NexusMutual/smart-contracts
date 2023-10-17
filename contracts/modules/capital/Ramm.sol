@@ -142,47 +142,46 @@ contract Ramm is IRamm, MasterAwareV2 {
     return nxmOut;
   }
 
-  function swapNxmForEth(uint nxmIn, uint minTokensOut) internal returns (uint /*ethOut*/) {
+  function swapNxmForEth(uint nxmIn, uint minTokensOut) internal returns (uint ethOut) {
 
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
     uint mcrValue = mcr().getMCR();
 
     State memory initialState = loadState();
+    Observation[3] memory _observations = observations;
 
     // current state
     State memory state = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
+    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
 
-    // update TWAP
     {
-      Observation[3] memory _observations = observations;
-      _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
-      for (uint i = 0; i < _observations.length; i++) {
-        observations[i] = _observations[i];
-      }
+      uint nxmA = state.nxmA;
+      uint nxmB = state.nxmB;
+      uint eth = state.eth;
+      uint k = eth * nxmB;
+
+      nxmB = nxmB + nxmIn;
+      eth = k / nxmB;
+      nxmA = nxmA * eth / state.eth;
+
+      ethOut = state.eth - eth;
+      require(ethOut >= minTokensOut, "Ramm: ethOut is less than minTokensOut");
+
+      require(capital - ethOut >= mcrValue, "NO_SWAPS_IN_BUFFER_ZONE");
+
+      // update storage
+      state.nxmA = nxmA;
+      state.nxmB = nxmB;
+      state.eth = eth;
+      state.timestamp = block.timestamp;
     }
 
-    uint nxmA = state.nxmA;
-    uint nxmB = state.nxmB;
-    uint eth = state.eth;
-    uint k = eth * nxmB;
-
-    nxmB = nxmB + nxmIn;
-    eth = k / nxmB;
-    nxmA = nxmA * eth / state.eth;
-
-    uint ethOut = state.eth - eth;
-    require(ethOut >= minTokensOut, "Ramm: ethOut is less than minTokensOut");
-
-    require(capital - ethOut >= mcrValue, "NO_SWAPS_IN_BUFFER_ZONE");
-
-    // update storage
-    state.nxmA = nxmA;
-    state.nxmB = nxmB;
-    state.eth = eth;
-    state.timestamp = block.timestamp;
-
     storeState(state);
+
+    for (uint i = 0; i < _observations.length; i++) {
+      observations[i] = _observations[i];
+    }
 
     tokenController().burnFrom(msg.sender, nxmIn);
     // TODO: use a custom function instead of sendPayout
@@ -215,19 +214,19 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     uint eth = state.eth;
     uint budget = state.budget;
-
     uint elapsed = currentTimestamp - state.timestamp;
 
     if (eth < TARGET_LIQUIDITY) {
       // inject eth
       uint timeLeftOnBudget = budget * LIQ_SPEED_PERIOD / FAST_LIQUIDITY_SPEED;
       uint maxToInject;
+      uint injected;
+
       if (capital <= mcrValue + TARGET_LIQUIDITY) {
         maxToInject = 0;
       } else {
         maxToInject = Math.min(TARGET_LIQUIDITY - eth, capital - mcrValue - TARGET_LIQUIDITY);
       }
-      uint injected;
 
       if (elapsed <= timeLeftOnBudget) {
         injected = Math.min(elapsed * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD, maxToInject);

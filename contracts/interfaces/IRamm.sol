@@ -91,9 +91,9 @@ interface IRamm {
   // Expiry
   error SwapExpired(uint deadline, uint blockTimestamp);
 
-  // Minimum tokens out
-  error NxmOutLessThanMinTokensOut(uint nxmOut, uint minTokensOut);
-  error EthOutLessThanMinTokensOut(uint ethOut, uint minTokensOut);
+  // Minimum amount out
+  error NxmOutLessThanMinAmountOut(uint nxmOut, uint minTokensOut);
+  error EthOutLessThanMinAmountOut(uint ethOut, uint minTokensOut);
 
   // Buffer Zone
   error NoSwapsInBufferZone();

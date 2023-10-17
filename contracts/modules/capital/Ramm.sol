@@ -126,7 +126,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint nxmOut = state.nxmA - nxmA;
 
     if (nxmOut < minTokensOut) {
-      revert NxmOutLessThanMinTokensOut(nxmOut, minTokensOut);
+      revert NxmOutLessThanMinAmountOut(nxmOut, minTokensOut);
     }
 
     // edge case: bellow goes over bv due to eth-dai price changing
@@ -178,7 +178,7 @@ contract Ramm is IRamm, MasterAwareV2 {
       ethOut = state.eth - eth;
 
       if (ethOut < minTokensOut) {
-        revert EthOutIsLessThanMinTokensOut(ethOut, minTokensOut);
+        revert EthOutLessThanMinAmountOut(ethOut, minTokensOut);
       }
 
       if (capital - ethOut < mcr().getMCR()) {

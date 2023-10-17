@@ -35,42 +35,42 @@ describe('swap', function () {
     const [member] = fixture.accounts.members;
 
     const nxmIn = parseEther('1');
-    const minTokensOut = parseEther('0.015'); // 0.0152 ETH initial spot price
+    const minAmountOut = parseEther('0.015'); // 0.0152 ETH initial spot price
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp - 1;
 
-    const swap = ramm.connect(member).swap(nxmIn, minTokensOut, deadline);
+    const swap = ramm.connect(member).swap(nxmIn, minAmountOut, deadline);
     await expect(swap).to.be.revertedWithCustomError(ramm, 'SwapExpired');
   });
 
-  it('should revert if nxmOut < minTokensOut when swapping ETH for NXM', async function () {
+  it('should revert if nxmOut < minAmountOut when swapping ETH for NXM', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const ethIn = parseEther('1');
-    const minTokensOut = parseEther('29'); // 1ETH = 28.8NXM at 0.0347ETH
+    const minAmountOut = parseEther('29'); // 1ETH = 28.8NXM at 0.0347ETH
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
-    const swap = ramm.connect(member).swap(0, minTokensOut, deadline, { value: ethIn });
-    await expect(swap).to.be.revertedWithCustomError(ramm, 'NxmOutLessThanMinTokensOut');
+    const swap = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn });
+    await expect(swap).to.be.revertedWithCustomError(ramm, 'NxmOutLessThanMinAmountOut');
   });
 
-  it('should revert if ethOut < minTokensOut when swapping NXM for ETH', async function () {
+  it('should revert if ethOut < minAmountOut when swapping NXM for ETH', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const nxmIn = parseEther('1');
-    const minTokensOut = parseEther('0.016'); // 0.0152 ETH initial spot price
+    const minAmountOut = parseEther('0.016'); // 0.0152 ETH initial spot price
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
 
-    const swap = ramm.connect(member).swap(nxmIn, minTokensOut, deadline);
-    await expect(swap).to.be.revertedWithCustomError(ramm, 'EthOutLessThanMinTokensOut');
+    const swap = ramm.connect(member).swap(nxmIn, minAmountOut, deadline);
+    await expect(swap).to.be.revertedWithCustomError(ramm, 'EthOutLessThanMinAmountOut');
   });
 
   it('should revert if swapping NXM for ETH is in the buffer zone', async function () {
@@ -82,13 +82,13 @@ describe('swap', function () {
     await mcr.updateMCRInternal(parseEther('145000'), true);
 
     const nxmIn = parseEther('10000');
-    const minTokensOut = parseEther('147');
+    const minAmountOut = parseEther('147');
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
     setNextBlockTime(timestamp + 4 * 60);
 
-    const swap = ramm.connect(member).swap(nxmIn, minTokensOut, deadline);
+    const swap = ramm.connect(member).swap(nxmIn, minAmountOut, deadline);
     await expect(swap).to.be.revertedWithCustomError(ramm, 'NoSwapsInBufferZone');
   });
 
@@ -170,9 +170,7 @@ describe('swap', function () {
 
     await setNextBlockBaseFee(0);
     await setNextBlockTime(nextBlockTimestamp);
-
-    const tx = await ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
-    await tx.wait();
+    await ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
 
     // after state
     const totalSupplyAfter = await tokenController.totalSupply();

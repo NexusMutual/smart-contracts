@@ -7,39 +7,30 @@ import "../../interfaces/IMCR.sol";
 
 contract DisposableMCR is IMCR {
 
-  uint112 public mcr;
-  uint112 public mcrFloor;
-  uint112 public desiredMCR;
+  uint80 public mcr;
+  uint80 public desiredMCR;
   uint32 public lastUpdateTime;
-  uint24 public mcrFloorIncrementThreshold;
-  uint24 public maxMCRFloorIncrement;
-  uint24 public maxMCRIncrement;
+  uint16 public maxMCRIncrement;
   uint24 public gearingFactor;
-  uint24 public minUpdateTime;
+  uint16 public minUpdateTime;
 
   constructor(
-    uint112 _mcr,
-    uint112 _mcrFloor,
-    uint112 _desiredMCR,
+    uint80 _mcr,
+    uint80 _desiredMCR,
     uint32 _lastUpdateTime,
-    uint24 _mcrFloorIncrementThreshold,
-    uint24 _maxMCRFloorIncrement,
-    uint24 _maxMCRIncrement,
+    uint16 _maxMCRIncrement,
     uint24 _gearingFactor,
-    uint24 _minUpdateTime
+    uint16 _minUpdateTime
   ) {
 
     require(_lastUpdateTime < block.timestamp, "_lastUpdateTime is in the future");
 
     // values
     mcr = _mcr;
-    mcrFloor = _mcrFloor;
     desiredMCR = _desiredMCR;
     lastUpdateTime = _lastUpdateTime;
 
     // parameters
-    mcrFloorIncrementThreshold = _mcrFloorIncrementThreshold;
-    maxMCRFloorIncrement = _maxMCRFloorIncrement;
     maxMCRIncrement = _maxMCRIncrement;
     gearingFactor = _gearingFactor;
     minUpdateTime = _minUpdateTime;

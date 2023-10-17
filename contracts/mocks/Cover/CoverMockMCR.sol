@@ -20,11 +20,11 @@ contract CoverMockMCR is IMCR {
     mockMCRValue = _mcrValue;
   }
 
-  function mcr() external override pure returns (uint112) {
+  function mcr() external override pure returns (uint80) {
     revert("Unsupported");
   }
 
-  function desiredMCR() external override pure returns (uint112) {
+  function desiredMCR() external override pure returns (uint80) {
     revert("Unsupported");
   }
 
@@ -36,11 +36,11 @@ contract CoverMockMCR is IMCR {
     revert("Unsupported");
   }
 
-  function maxMCRIncrement() external pure returns (uint24) {
+  function maxMCRIncrement() external pure returns (uint16) {
     revert("Unsupported");
   }
 
-  function minUpdateTime() external pure returns (uint24) {
+  function minUpdateTime() external pure returns (uint16) {
     revert("Unsupported");
   }
 }

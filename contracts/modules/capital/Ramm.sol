@@ -85,6 +85,7 @@ contract Ramm is IRamm, MasterAwareV2 {
   }
 
   function swap(uint nxmIn, uint minTokensOut, uint deadline) external payable {
+
     if (msg.value > 0 && nxmIn > 0) {
       revert OneInputOnly();
     }
@@ -125,7 +126,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint nxmOut = state.nxmA - nxmA;
 
     if (nxmOut < minTokensOut) {
-      revert NxmOutIsLessThanMinTokensOut(nxmOut, minTokensOut);
+      revert NxmOutLessThanMinTokensOut(nxmOut, minTokensOut);
     }
 
     // edge case: bellow goes over bv due to eth-dai price changing

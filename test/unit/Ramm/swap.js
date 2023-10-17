@@ -55,7 +55,7 @@ describe('swap', function () {
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
     const swap = ramm.connect(member).swap(0, minTokensOut, deadline, { value: ethIn });
-    await expect(swap).to.be.revertedWithCustomError(ramm, 'NxmOutIsLessThanMinTokensOut');
+    await expect(swap).to.be.revertedWithCustomError(ramm, 'NxmOutLessThanMinTokensOut');
   });
 
   it('should revert if ethOut < minTokensOut when swapping NXM for ETH', async function () {
@@ -70,7 +70,7 @@ describe('swap', function () {
     const deadline = timestamp + 5 * 60;
 
     const swap = ramm.connect(member).swap(nxmIn, minTokensOut, deadline);
-    await expect(swap).to.be.revertedWithCustomError(ramm, 'EthOutIsLessThanMinTokensOut');
+    await expect(swap).to.be.revertedWithCustomError(ramm, 'EthOutLessThanMinTokensOut');
   });
 
   it('should revert if swapping NXM for ETH is in the buffer zone', async function () {

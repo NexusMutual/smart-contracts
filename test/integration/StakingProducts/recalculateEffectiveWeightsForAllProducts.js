@@ -64,7 +64,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
 
     const poolId = 1;
     const productId = 1;
-    const stakeAmount = parseEther('9000000');
+    const stakeAmount = parseEther('900000');
 
     // setup product with an initial target weight of 10 in order to buy cover
     const initialTargetWeight = 10;
@@ -80,7 +80,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     const coverAsset = ETH_ASSET_ID; // ETH
     const period = 3600 * 24 * 30; // 30 days
     const priceDenominator = 10000;
-    const amount = parseEther('300000');
+    const amount = parseEther('30000');
 
     // Compute expectedActiveWeight given how much the cover is worth in NXM and existing capacity
     const nxmPriceInCoverAsset = await pool.getTokenPriceInAsset(coverAsset);
@@ -133,7 +133,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     const firstProductId = 1;
     const secondProductId = 2;
 
-    const stakeAmount = parseEther('9000000');
+    const stakeAmount = parseEther('900000');
 
     // setup products with an initial target weight of 10 in order to buy cover
     const initialTargetWeight = 10;
@@ -156,7 +156,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     let firstProductExpectedActiveWeight;
     {
       const productId = firstProductId;
-      const amount = parseEther('300000');
+      const amount = parseEther('30000');
 
       // Compute expectedActiveWeight given how much the cover is worth in NXM and existing capacity
       const nxmPriceInCoverAsset = await pool.getTokenPriceInAsset(coverAsset);
@@ -196,7 +196,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
 
     let secondProductExpectedActiveWeight;
     {
-      const amount = parseEther('200000');
+      const amount = parseEther('20000');
       const productId = secondProductId;
 
       // Compute expectedActiveWeight given how much the cover is worth in NXM and existing capacity

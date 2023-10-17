@@ -79,7 +79,7 @@ async function buyCoverSetup() {
   const { productList } = fixture;
   const { targetPrice } = stakedProductParamTemplate;
 
-  const stakeAmount = parseEther('9000000');
+  const stakeAmount = parseEther('900000');
   const ethRate = await pool.getTokenPriceInAsset(0);
   const daiRate = await pool.getTokenPriceInAsset(1);
 

@@ -45,7 +45,7 @@ async function expireCoverSetup() {
   const { tk: nxm, stakingProducts, stakingPool1, stakingPool2, stakingPool3, tc: tokenController } = fixture.contracts;
   const staker = fixture.accounts.defaultSender;
   const [manager1, manager2, manager3] = fixture.accounts.stakingPoolManagers;
-  const stakeAmount = parseEther('9000000');
+  const stakeAmount = parseEther('900000');
 
   await stakingProducts.connect(manager1).setProducts(1, [stakedProductParamTemplate]);
   await stakingProducts.connect(manager2).setProducts(2, [stakedProductParamTemplate]);

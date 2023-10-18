@@ -84,7 +84,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     ratchetSpeed = state.ratchetSpeed.toUint32();
   }
 
-  function swap(uint nxmIn, uint minTokensOut, uint deadline) external payable {
+  function swap(uint nxmIn, uint minAmountOut, uint deadline) external payable {
 
     if (msg.value > 0 && nxmIn > 0) {
       revert OneInputOnly();
@@ -97,11 +97,11 @@ contract Ramm is IRamm, MasterAwareV2 {
     }
 
     msg.value > 0
-      ? swapEthForNxm(msg.value, minTokensOut)
-      : swapNxmForEth(nxmIn, minTokensOut);
+      ? swapEthForNxm(msg.value, minAmountOut)
+      : swapNxmForEth(nxmIn, minAmountOut);
   }
 
-  function swapEthForNxm(uint ethIn, uint minTokensOut) internal returns (uint /*nxmOut*/) {
+  function swapEthForNxm(uint ethIn, uint minAmountOut) internal returns (uint /*nxmOut*/) {
 
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
@@ -125,7 +125,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     uint nxmOut = state.nxmA - nxmA;
 
-    if (nxmOut < minTokensOut) {
+    if (nxmOut < minAmountOut) {
       revert InsufficientAmountOut(nxmOut, minAmountOut);
     }
 
@@ -152,7 +152,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     return nxmOut;
   }
 
-  function swapNxmForEth(uint nxmIn, uint minTokensOut) internal returns (uint ethOut) {
+  function swapNxmForEth(uint nxmIn, uint minAmountOut) internal returns (uint ethOut) {
 
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
@@ -177,7 +177,7 @@ contract Ramm is IRamm, MasterAwareV2 {
 
       ethOut = state.eth - eth;
 
-      if (ethOut < minTokensOut) {
+      if (ethOut < minAmountOut) {
         revert InsufficientAmountOut(ethOut, minAmountOut);
       }
 

@@ -13,7 +13,7 @@ describe('storeState', function () {
     const [member] = fixture.accounts.members;
 
     const ethIn = parseEther('1');
-    const minTokensOut = parseEther('28');
+    const minAmountOut = parseEther('28');
     const { timestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = timestamp + 6 * 60 * 60;
     const deadline = timestamp + 7 * 60 * 60;
@@ -27,7 +27,7 @@ describe('storeState', function () {
 
     // buy NXM
     await setNextBlockTime(nextBlockTimestamp);
-    const tx = await ramm.connect(member).swap(0, minTokensOut, deadline, { value: ethIn });
+    const tx = await ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn });
     await tx.wait();
     const after = await ramm.loadState();
 
@@ -56,8 +56,8 @@ describe('storeState', function () {
 
     // do a swap to trigger storeState
     const ethIn = parseEther('1');
-    const minTokensOut = parseEther('28');
-    const tx = await ramm.connect(member).swap(0, minTokensOut, deadline, { value: ethIn });
+    const minAmountOut = parseEther('28');
+    const tx = await ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn });
     await tx.wait();
 
     const EXPECTED_NORMAL_RATCHET_SPEED = 400;

@@ -199,8 +199,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     }
 
     tokenController().burnFrom(msg.sender, nxmIn);
-    // TODO: use a custom function instead of sendPayout
-    pool().sendPayout(0, payable(msg.sender), ethOut);
+    pool().sendEth(msg.sender, ethOut);
 
     return ethOut;
   }

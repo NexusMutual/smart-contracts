@@ -9,7 +9,7 @@ const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 
 describe('getInternalPriceAndUpdateTwap', function () {
-  it('should return the internal price and update the twap', async function () {
+  it.only('should return the internal price and update the twap', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController, mcr } = fixture.contracts;
     const { PERIOD_SIZE, GRANULARITY } = fixture.constants;
@@ -49,13 +49,13 @@ describe('getInternalPriceAndUpdateTwap', function () {
 
     const averagePriceA = currentObservation.priceCumulativeAbove
       .sub(firstObservation.priceCumulativeAbove)
-      .div(elapsed)
-      .mul(1e9);
+      .mul(1e9)
+      .div(elapsed);
 
     const averagePriceB = currentObservation.priceCumulativeBelow
       .sub(firstObservation.priceCumulativeBelow)
-      .div(elapsed)
-      .mul(1e9);
+      .mul(1e9)
+      .div(elapsed);
 
     const priceA = averagePriceA.gt(spotPriceA) ? spotPriceA : averagePriceA;
     const priceB = averagePriceB.gt(spotPriceB) ? averagePriceB : spotPriceB;

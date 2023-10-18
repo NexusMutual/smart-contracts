@@ -584,6 +584,74 @@ describe('basic functionality tests', function () {
     expect(daiBalanceAfter).to.be.equal(expectedBalanceAfter);
   });
 
+  it('Buy custody cover and edit it', async function () {
+    await evm.impersonate(DAI_NXM_HOLDER);
+    const coverBuyer = await getSigner(DAI_NXM_HOLDER);
+    const coverBuyerAddress = await coverBuyer.getAddress();
+
+    const coverAsset = 0; // ETH
+    const amount = parseEther('1');
+    const commissionRatio = '500'; // 5%
+
+    const coverCountBefore = await this.cover.coverDataCount();
+
+    const period = 3600 * 24 * 30; // 30 days
+
+    await this.cover.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyerAddress,
+        productId: custodyProductId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: parseEther('1').mul(260).div(10000),
+        paymentAsset: coverAsset,
+        payWithNXM: false,
+        commissionRatio,
+        commissionDestination: coverBuyerAddress,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+      { value: amount },
+    );
+
+    // Edit cover to increase amount and period
+    const passedPeriod = 3 * 24 * 3600; // 3 days
+    await evm.increaseTime(passedPeriod);
+
+    const coverCountAfter = await this.cover.coverDataCount();
+    custodyCoverId = coverCountAfter;
+
+    expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
+    const increasedAmount = amount.mul(2);
+    const extraPeriod = 10 * 24 * 3600; // 10 days
+
+    await this.cover.connect(coverBuyer).buyCover(
+      {
+        coverId: custodyCoverId,
+        owner: coverBuyerAddress,
+        productId: custodyProductId,
+        coverAsset,
+        amount: increasedAmount,
+        period: extraPeriod,
+        maxPremiumInAsset: parseEther('1').mul(260).div(10000),
+        paymentAsset: coverAsset,
+        payWithNXM: false,
+        commissionRatio,
+        commissionDestination: coverBuyerAddress,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: increasedAmount }],
+      { value: amount },
+    );
+
+    const postEditSegment = 1;
+    const newSegmentCover = await this.cover.coverSegmentWithRemainingAmount(custodyCoverId, postEditSegment);
+
+    expect(newSegmentCover.amount).to.be.equal(increasedAmount);
+  });
+
   it('Buy custody cover', async function () {
     await evm.impersonate(DAI_NXM_HOLDER);
     const coverBuyer = await getSigner(DAI_NXM_HOLDER);

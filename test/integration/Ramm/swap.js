@@ -26,7 +26,7 @@ async function swapSetup() {
   await setEtherBalance(member1.address, parseEther('10000'));
   await setEtherBalance(p1.address, parseEther('145000'));
 
-  await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
+  await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('10000'));
   await tk.connect(member1).approve(tc.address, parseEther('10000'));
 
   return fixture;

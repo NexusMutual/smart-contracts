@@ -115,7 +115,7 @@ describe('swap', function () {
 
     const after = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
     const nxmReceived = after.nxmBalance.sub(before.nxmBalance);
-    const transferFilter = tk.filters.Transfer('0x0000000000000000000000000000000000000000', member.address);
+    const transferFilter = tk.filters.Transfer(ethers.constants.AddressZero, member.address);
     const nxmTransferEvents = await tk.queryFilter(transferFilter, -1);
     const nxmTransferAmount = nxmTransferEvents[0]?.args?.value;
 

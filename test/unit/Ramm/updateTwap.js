@@ -10,12 +10,13 @@ const { BigNumber } = ethers;
 describe('updateTwap', function () {
   it('should update observations', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
+    const { ramm, pool, tokenController, mcr } = fixture.contracts;
     const { PERIOD_SIZE, GRANULARITY } = fixture.constants;
 
     let previousState = await getState(ramm);
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
+    const mcrValue = await mcr.getMCR();
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const currentTimestamp = PERIOD_SIZE.mul(3).add(timestamp);
@@ -30,7 +31,7 @@ describe('updateTwap', function () {
       const observationIndex = BigNumber.from(i).mod(GRANULARITY);
       const timestamp = Math.min(currentTimestamp.toNumber(), PERIOD_SIZE.mul(i).toNumber());
 
-      const state = await ramm._getReserves(previousState, capital, supply, timestamp);
+      const state = await ramm._getReserves(previousState, capital, supply, mcrValue, timestamp);
 
       const observationData = calculateObservation(
         state,

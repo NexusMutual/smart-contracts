@@ -9,12 +9,13 @@ const { BigNumber } = ethers;
 describe('getObservation', function () {
   it('should do underflow/overflow sanity check for get observation', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
+    const { ramm, pool, tokenController, mcr } = fixture.contracts;
     const { PERIOD_SIZE, GRANULARITY } = fixture.constants;
 
     const previousState = await getState(ramm);
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
+    const mcrValue = await mcr.getMCR();
 
     const { maxTimeOnRatchetA, maxTimeOnRatchetB } = timeTillBv(previousState, supply, capital, fixture.constants);
 
@@ -26,6 +27,7 @@ describe('getObservation', function () {
       previousState,
       capital,
       supply,
+      mcrValue,
       previousState.timestamp + timeElapsed.toNumber(),
     );
 

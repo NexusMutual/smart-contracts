@@ -11,11 +11,13 @@ const { BigNumber } = ethers;
 describe('getInternalPriceAndUpdateTwap', function () {
   it('should return the internal price and update the twap', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController } = fixture.contracts;
+    const { ramm, pool, tokenController, mcr } = fixture.contracts;
     const { PERIOD_SIZE, GRANULARITY } = fixture.constants;
 
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
+    const mcrValue = await mcr.getMCR();
+
     const previousState = await getState(ramm);
     const previousObservations = [];
     for (let i = 0; i < 3; i++) {
@@ -23,9 +25,16 @@ describe('getInternalPriceAndUpdateTwap', function () {
     }
     const { timestamp } = await ethers.provider.getBlock('latest');
     const currentTimestamp = PERIOD_SIZE.mul(10).add(timestamp);
-    const currentState = await ramm._getReserves(previousState, capital, supply, currentTimestamp);
+    const currentState = await ramm._getReserves(previousState, capital, supply, mcrValue, currentTimestamp);
 
-    const observations = await ramm._updateTwap(previousState, previousObservations, currentTimestamp, capital, supply);
+    const observations = await ramm._updateTwap(
+      previousState,
+      previousObservations,
+      currentTimestamp,
+      capital,
+      supply,
+      mcrValue,
+    );
 
     const currentIdx = getObservationIndex(BigNumber.from(currentTimestamp), fixture.constants);
     const previousIdx = currentIdx.add(1).mod(GRANULARITY);

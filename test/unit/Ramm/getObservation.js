@@ -56,7 +56,11 @@ describe('getObservation', function () {
 
     const observation = await ramm.getObservation(previousState, state, previousObservation, capital, supply);
 
-    expect(observation.priceCumulativeBelow).to.equal(priceCumulativeBelow.mod(BigNumber.from(2).pow(64)));
-    expect(observation.priceCumulativeAbove).to.equal(priceCumulativeAbove.mod(BigNumber.from(2).pow(64)));
+    expect(observation.priceCumulativeBelow).to.equal(
+      previousObservation.priceCumulativeBelow.add(priceCumulativeBelow.mod(BigNumber.from(2).pow(64))),
+    );
+    expect(observation.priceCumulativeAbove).to.equal(
+      previousObservation.priceCumulativeAbove.add(priceCumulativeAbove.mod(BigNumber.from(2).pow(64))),
+    );
   });
 });

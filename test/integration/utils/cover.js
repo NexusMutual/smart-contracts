@@ -55,6 +55,9 @@ async function transferCoverAsset({ tokenOwner, coverBuyer, asset, cover }) {
   await asset.connect(coverBuyer).approve(cover.address, amount);
 }
 
+/**
+ @notice Calculates premium assuming no surge pricing
+ */
 function calculatePremium(amount, rate, period, price, allocationUnit) {
   const nxmAmount = amount.mul(parseEther('1')).div(rate);
 
@@ -78,6 +81,10 @@ function assetAmountToNXMAmount(amount, rate, allocationUnit) {
 
   return coverNXMAmount;
 }
+
+/**
+  @notice Calculates edit premium assuming no surge pricing
+ */
 async function calculateEditPremium({
   amount,
   period,
@@ -88,8 +95,8 @@ async function calculateEditPremium({
   ethRate,
   productBumpedPrice,
   NXM_PER_ALLOCATION_UNIT,
-  coverAmountInNXM = BigNumber.from(1),
-  totalCoverAmountInNXM = BigNumber.from(1),
+  coverAmountInNXM = BigNumber.from(1), // existing cover amount in NXM for the allocation being edited
+  totalCoverAmountInNXM = BigNumber.from(1), // total cover amount in NXM across all allocations for the segment
 }) {
   // adding 1 to account for block.timestamp = timestampAtEditTime + 1 at transaction time
   const remainingPeriod = BigNumber.from(period).sub(

@@ -123,7 +123,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
    *         If the cover already exists, it returns the existing cover ID.
    * @notice If params.coverId is 0, it creates a new cover. If params.coverId is not 0, it edits an existing cover.
    *         params.period for a new cover is the entire cover period.
-   *         params.period for an existing cover, it is the period added to the remaining period.
+   *         params.period for an existing cover, is the period added to the remaining period.
    */
   function buyCover(
     BuyCoverParams memory params,
@@ -647,6 +647,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return amountExpired;
   }
 
+  /**
+   * @dev Burn stake for a target segment of a cover.
+   *      A claim may be submitted and accepted on any of the segments of a cover.
+   *      NXM stake is burned only on the pools that have allocations in segment that the claim is performed on.
+   *      Deallocations are performed only for the last segment of the cover.
+   *      The target segment may coincide with the last segment of the cover but the 2 operations are performed separately.
+   * @param coverId The target cover.
+   * @param segmentId The segmented targetted by the claim.
+   * @param payoutAmountInAsset The amount of cover asset being paid out.
+   * @return Owner of the cover NFT.
+   */
   function burnStake(
     uint coverId,
     uint segmentId,

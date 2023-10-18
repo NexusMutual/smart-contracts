@@ -138,6 +138,9 @@ function calculateRemainingPeriod({ period, passedPeriod }) {
   return BigNumber.from(period).sub(passedPeriod);
 }
 
+/**
+ * Computes the edit premium as evaluated by CoverMockStakingPool
+ */
 function calculateMockEditPremium({
   existingAmount,
   increasedAmount,

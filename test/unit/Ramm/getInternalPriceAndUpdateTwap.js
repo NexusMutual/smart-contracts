@@ -70,8 +70,9 @@ describe('getInternalPriceAndUpdateTwap', function () {
       expect(updatedObservations.priceCumulativeAbove).to.be.equal(observations[i].priceCumulativeAbove);
       expect(updatedObservations.priceCumulativeBelow).to.be.equal(observations[i].priceCumulativeBelow);
     }
-    // TODO: find a way to check the internal price
-    const internalPriceExpected = priceA.add(priceB).sub(parseEther('1').mul(capital).div(supply));
-    expect(internalPriceExpected).to.be.equal('21481481185185185'); // 0.021481481185185185
+
+    const expectedInternalPrice = priceA.add(priceB).sub(parseEther('1').mul(capital).div(supply));
+    const actualInternalPrice = await ramm.callStatic.getInternalPriceAndUpdateTwap();
+    expect(expectedInternalPrice).to.be.equal(actualInternalPrice); // 0.021481481185185185
   });
 });

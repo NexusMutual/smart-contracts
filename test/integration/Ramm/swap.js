@@ -24,11 +24,10 @@ async function swapSetup() {
   const operator = await tk.operator();
   await setEtherBalance(operator, parseEther('10000'));
   await setEtherBalance(member1.address, parseEther('10000'));
+  await setEtherBalance(p1.address, parseEther('145000'));
 
   await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
   await tk.connect(member1).approve(tc.address, parseEther('10000'));
-
-  await setEtherBalance(p1.address, parseEther('145000'));
 
   return fixture;
 }
@@ -55,7 +54,7 @@ describe('swap', function () {
     await expect(swap).to.be.revertedWithCustomError(ra, 'OneInputOnly');
   });
 
-  it('should revert if nxmOut < minTokensOut when swapping ETH for NXM', async function () {
+  it('should revert if nxmOut < minAmountOut when swapping ETH for NXM', async function () {
     const fixture = await loadFixture(setup);
     const { ra } = fixture.contracts;
     const [member] = fixture.accounts.members;
@@ -67,10 +66,10 @@ describe('swap', function () {
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
     const swap = ra.connect(member).swap(0, minAmountOut, deadline, { value: ethIn });
-    await expect(swap).to.be.revertedWithCustomError(ra, 'NxmOutLessThanMinAmountOut');
+    await expect(swap).to.be.revertedWithCustomError(ra, 'InsufficientAmountOut');
   });
 
-  it('should revert if ethOut < minTokensOut when swapping NXM for ETH', async function () {
+  it('should revert if ethOut < minAmountOut when swapping NXM for ETH', async function () {
     const fixture = await loadFixture(setup);
     const { ra } = fixture.contracts;
     const [member] = fixture.accounts.members;
@@ -82,7 +81,7 @@ describe('swap', function () {
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
     const swap = ra.connect(member).swap(nxmIn, minAmountOut, deadline);
-    await expect(swap).to.be.revertedWithCustomError(ra, 'EthOutLessThanMinAmountOut');
+    await expect(swap).to.be.revertedWithCustomError(ra, 'InsufficientAmountOut');
   });
 
   it('should revert if block timestamp surpasses deadline', async function () {

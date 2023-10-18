@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
-const { setNextBlockBaseFee, setEtherBalance } = require('../../utils/evm');
+const { setNextBlockBaseFee, setNextBlockTime, setEtherBalance } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
 
@@ -56,32 +56,102 @@ describe('swap', function () {
 
   it('should revert if nxmOut < minAmountOut when swapping ETH for NXM', async function () {
     const fixture = await loadFixture(setup);
-    const { ra } = fixture.contracts;
+    const { ra, p1, tc, tk, mcr } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const ethIn = parseEther('1');
-    const minAmountOut = parseEther('29'); // 1ETH = 28.8NXM at 0.0347ETH
 
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const deadline = timestamp + 5 * 60; // add 5 minutes
+    // +54 hours to reach above BV, this ensures price is stable between the 2 swaps below
+    const nextBlockTimestamp = timestamp + 54 * 60 * 60;
+    const deadline = nextBlockTimestamp + 5 * 60; // add 5 minutes
 
-    const swap = ra.connect(member).swap(0, minAmountOut, deadline, { value: ethIn });
-    await expect(swap).to.be.revertedWithCustomError(ra, 'InsufficientAmountOut');
+    // Get expected book value
+    const initState = await ra.loadState();
+    const capital = await p1.getPoolValueInEth();
+    const supply = await tc.totalSupply();
+    const mcrValue = await mcr.getMCR();
+    const state = await ra._getReserves(initState, capital, supply, mcrValue, nextBlockTimestamp);
+    const k = state.eth.mul(state.nxmA);
+    const eth = state.eth.add(ethIn);
+    const nxmA = k.div(eth);
+    const expectedNxmOut = state.nxmA.sub(nxmA);
+
+    // Insufficient Amount Out Error
+    const minNxmOutFail = expectedNxmOut.add(1);
+    await setNextBlockBaseFee(0);
+    await setNextBlockTime(nextBlockTimestamp + 2 * 60);
+    const swapFail = ra.connect(member).swap(0, minNxmOutFail, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+    await expect(swapFail).to.be.revertedWithCustomError(ra, 'InsufficientAmountOut');
+
+    // Minimum Amount Out Success
+    const minNxmOutSuccess = expectedNxmOut;
+    const before = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
+
+    await setNextBlockBaseFee(0);
+    await setNextBlockTime(nextBlockTimestamp + 3 * 60);
+    await ra.connect(member).swap(0, minNxmOutSuccess, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+
+    const after = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
+    const nxmReceived = after.nxmBalance.sub(before.nxmBalance);
+    const transferFilter = tk.filters.Transfer(ethers.constants.AddressZero, member.address);
+    const nxmTransferEvents = await tk.queryFilter(transferFilter, -1);
+    const nxmTransferAmount = nxmTransferEvents[0]?.args?.value;
+
+    expect(after.ethCapital).to.be.equal(before.ethCapital.add(ethIn)); // ETH goes into capital pool
+    expect(after.nxmSupply).to.be.equal(before.nxmSupply.add(nxmReceived)); // NXM out is minted
+    expect(after.ethBalance).to.be.equal(before.ethBalance.sub(ethIn)); // member sends ETH
+    expect(after.nxmBalance).to.be.equal(before.nxmBalance.add(nxmTransferAmount)); // member receives NXM
   });
 
   it('should revert if ethOut < minAmountOut when swapping NXM for ETH', async function () {
     const fixture = await loadFixture(setup);
-    const { ra } = fixture.contracts;
+    const { ra, p1, tc, tk, mcr } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const nxmIn = parseEther('1');
-    const minAmountOut = parseEther('0.016'); // 0.0152 ETH initial spot price
 
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const deadline = timestamp + 5 * 60; // add 5 minutes
+    // +3 hours to reach below BV, this ensures price is stable between the 2 swaps below
+    const nextBlockTimestamp = timestamp + 3 * 60 * 60;
+    const deadline = nextBlockTimestamp + 5 * 60; // add 5 minutes
 
-    const swap = ra.connect(member).swap(nxmIn, minAmountOut, deadline);
-    await expect(swap).to.be.revertedWithCustomError(ra, 'InsufficientAmountOut');
+    // Get expected book value
+    const initState = await ra.loadState();
+    const capital = await p1.getPoolValueInEth();
+    const supply = await tc.totalSupply();
+    const mcrValue = await mcr.getMCR();
+    const state = await ra._getReserves(initState, capital, supply, mcrValue, nextBlockTimestamp);
+    const k = state.eth.mul(state.nxmB);
+    const nxmB = state.nxmB.add(nxmIn);
+    const eth = k.div(nxmB);
+    const expectedEthOut = state.eth.sub(eth);
+
+    // Insufficient Amount Out Error
+    const minEthOutFail = expectedEthOut.add(1);
+    await setNextBlockBaseFee(0);
+    await setNextBlockTime(nextBlockTimestamp + 2 * 60);
+    const swapFail = ra.connect(member).swap(nxmIn, minEthOutFail, deadline, { maxPriorityFeePerGas: 0 });
+    await expect(swapFail).to.be.revertedWithCustomError(ra, 'InsufficientAmountOut');
+
+    // Minimum Amount Out Success
+    const minEthOutSuccess = expectedEthOut;
+    const before = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
+
+    await setNextBlockBaseFee(0);
+    await setNextBlockTime(nextBlockTimestamp + 3 * 60);
+    await ra.connect(member).swap(nxmIn, minEthOutSuccess, deadline, { maxPriorityFeePerGas: 0 });
+
+    const after = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
+    const ethReceived = after.ethBalance.sub(before.ethBalance);
+    const payoutFilter = p1.filters.Payout(member.address);
+    const [ethPayoutEvent] = await p1.queryFilter(payoutFilter, -1);
+    const ethPayoutAmount = ethPayoutEvent?.args?.amount;
+
+    expect(after.nxmSupply).to.be.equal(before.nxmSupply.sub(nxmIn)); // nxmIn is burned
+    expect(after.ethCapital).to.be.equal(before.ethCapital.sub(ethReceived)); // ETH goes out of capital pool
+    expect(after.nxmBalance).to.be.equal(before.nxmBalance.sub(nxmIn)); // member sends NXM
+    expect(after.ethBalance).to.be.equal(before.ethBalance.add(ethPayoutAmount)); // member receives ETH
   });
 
   it('should revert if block timestamp surpasses deadline', async function () {

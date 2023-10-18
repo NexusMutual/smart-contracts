@@ -91,12 +91,12 @@ interface IRamm {
   // Expiry
   error SwapExpired(uint deadline, uint blockTimestamp);
 
-  // Minimum amount out
+  // Insufficient amount out
   error InsufficientAmountOut(uint amountOut, uint minAmountOut);
 
   // Buffer Zone
   error NoSwapsInBufferZone();
 
-  // Transfer
+  // ETH Transfer
   error EthTransferFailed();
 }

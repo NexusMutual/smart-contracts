@@ -562,8 +562,8 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     // underflow is desired
     unchecked {
-      uint averagePriceA = ((currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) / elapsed)  * 1e9 ;
-      uint averagePriceB = ((currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) / elapsed)  * 1e9 ;
+      uint averagePriceA = uint(currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) * 1e9 / elapsed;
+      uint averagePriceB = uint(currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) * 1e9 / elapsed;
 
       // keeping min/max inside unchecked scope to avoid stack too deep error
       priceA = Math.min(averagePriceA, spotPriceA);

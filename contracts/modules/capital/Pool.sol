@@ -308,44 +308,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     require(transferSucceeded, "Pool: ETH transfer failed");
   }
 
-  /// [deprecated] Use `swap` function in Ramm contract
-  ///
-  /// @param amount   Amount of NXM to sell
-  /// @return success  Returns true on successfull sale
-  ///
-  function sellNXMTokens(
-    uint amount
-  ) public override onlyMember whenNotPaused returns (bool success) {
-    ramm().swap(amount);
-    return true;
-  }
-
-  // [deprecated] use swap function in Ramm
-  /// Buys NXM tokens with ETH.
-  ///
-  /// @param minTokensOut  Minimum amount of tokens to be bought. Revert if boughtTokens falls below
-  /// this number.
-  ///
-  function buyNXM(uint minTokensOut) public override payable onlyMember whenNotPaused {
-    ramm().swap{value: msg.value}(0);
-    return;
-  }
-
-  // [deprecated] use `swap` function in Ramm
-  /// Sell NXM tokens and receive ETH.
-  ///
-  /// @param tokenAmount  Amount of tokens to sell.
-  /// @param minEthOut    Minimum amount of ETH to be received. Revert if ethOut falls below this number.
-  ///
-  function sellNXM(
-    uint tokenAmount,
-    uint minEthOut
-  ) public override onlyMember nonReentrant whenNotPaused {
-    ramm().swap(tokenAmount);
-    // TODO: remove after minEthOut is implemented in Ramm left for reference
-//    require(ethOut >= minEthOut, "Pool: ETH out < minEthOut");
-  }
-
   /* ========== TOKEN RELATED VIEW FUNCTIONS ========== */
 
   /// Get value in tokens for an ethAmount purchase.

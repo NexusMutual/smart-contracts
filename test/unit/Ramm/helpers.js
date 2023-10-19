@@ -251,5 +251,5 @@ module.exports = {
   calculateInternalPrice,
   getObservationIndex,
   divCeil,
-  getExpectedObservations
+  getExpectedObservations,
 };

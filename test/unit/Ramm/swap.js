@@ -7,11 +7,75 @@ const { setNextBlockBaseFee, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
 
+/**
+ * Retrieves NXM totalSupply as well as NXM and ETH balances for a given member address
+ *
+ * @param {Contract} tokenController - The token controller contract
+ * @param {Contract} nxm - The NXM token contract
+ * @param {string} memberAddress - The address of the member
+ * @return {Object} An object containing the totalSupply, nxmBalance, and ethBalance
+ */
 const getSupplyAndBalances = async (tokenController, nxm, memberAddress) => {
   return {
     totalSupply: await tokenController.totalSupply(),
     nxmBalance: await nxm.balanceOf(memberAddress),
     ethBalance: await ethers.provider.getBalance(memberAddress),
+  };
+};
+
+/**
+ * Retrieves the state at a specific block timestamp
+ *
+ * @param {Contract} ramm - The RAMM contract
+ * @param {Contract} pool - The pool contract
+ * @param {Contract} tokenController - The tokenController contract
+ * @param {number} blockTimestamp - The block timestamp to retrieve the state at
+ * @return {State} Object containing the state (nxmA, nxmB, eth, budget, ratchetSpeed, timestamp)
+ *                 at the specified block timestamp
+ */
+const getStateAtBlockTimestamp = async (ramm, pool, mcr, tokenController, blockTimestamp) => {
+  const initialState = await getState(ramm);
+  const capital = await pool.getPoolValueInEth();
+  const supply = await tokenController.totalSupply();
+  const mcrValue = await mcr.getMCR();
+  return ramm._getReserves(initialState, capital, supply, mcrValue, blockTimestamp);
+};
+
+/**
+ * Calculates the expected state after swapping NXM for ETH
+ *
+ * @param {State} state - The current state object
+ * @param {BigNumber} nxmIn - The amount of NXM to swap
+ * @return {object} - The new state object with the expected values
+ */
+const getExpectedStateAfterSwapNxmForEth = (state, nxmIn) => {
+  const currentEthLiquidity = state.eth;
+  const newNxmB = state.nxmB.add(nxmIn);
+  const newEthLiquidity = currentEthLiquidity.mul(state.nxmB).div(newNxmB);
+  return {
+    newNxmB,
+    newEthLiquidity,
+    newNxmA: state.nxmA.mul(newEthLiquidity).div(currentEthLiquidity),
+    ethOut: currentEthLiquidity.sub(newEthLiquidity),
+  };
+};
+
+/**
+ * Calculates the expected state after swapping ETH for NXM
+ *
+ * @param {State} state - The current state object
+ * @param {BigNumber} ethIn - The amount of ETH to swap
+ * @return {object} - The new state object with the expected values
+ */
+const getExpectedStateAfterSwapEthForNxm = (state, ethIn) => {
+  const currentEthLiquidity = state.eth;
+  const newEthLiquidity = currentEthLiquidity.add(ethIn);
+  const newNxmA = currentEthLiquidity.mul(state.nxmA).div(newEthLiquidity);
+  return {
+    newEthLiquidity,
+    newNxmA,
+    newNxmB: state.nxmB.mul(newEthLiquidity).div(currentEthLiquidity),
+    nxmOut: state.nxmA.sub(newNxmA),
   };
 };
 

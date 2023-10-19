@@ -64,6 +64,15 @@ contract RammMockPool is IPool {
     require(transferSucceeded, "Pool: ETH transfer failed");
   }
 
+  function sendEth(
+    address payoutAddress,
+    uint amount
+  ) external override {
+
+    (bool transferSucceeded, /* data */) = payoutAddress.call{value : amount}("");
+    require(transferSucceeded, "Pool: ETH transfer failed");
+  }
+
   /* ====== NOT NEEDED FUNCTIONS ====== */
 
   function calculateMCRRatio(uint, uint) public override pure returns (uint) {
@@ -111,18 +120,6 @@ contract RammMockPool is IPool {
   }
 
   function setSwapValue(uint) external pure {
-    revert("Unsupported");
-  }
-
-  function sellNXMTokens(uint) public pure override returns (bool) {
-    revert("Unsupported");
-  }
-
-  function buyNXM(uint) public override payable {
-    revert("Unsupported");
-  }
-
-  function sellNXM(uint, uint) public pure override {
     revert("Unsupported");
   }
 

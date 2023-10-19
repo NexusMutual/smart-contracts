@@ -543,8 +543,17 @@ contract Ramm is IRamm, MasterAwareV2 {
     }
 
     storeState(state);
+    return _getInternalPrice(state, _observations, capital, supply, block.timestamp);
+  }
 
-    uint currentIdx = observationIndexOf(block.timestamp);
+  function _getInternalPrice(
+    State memory state,
+    Observation[3] memory _observations,
+    uint capital,
+    uint supply,
+    uint timestamp
+  ) public pure returns (uint internalPrice) {
+    uint currentIdx = observationIndexOf(timestamp);
     // index of first observation in window = current - 2
     // adding 1 and applying modulo gives the same result avoiding underflow
     uint previousIdx = (currentIdx + 1) % GRANULARITY;
@@ -552,7 +561,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     Observation memory firstObservation = _observations[previousIdx];
     Observation memory currentObservation = _observations[currentIdx];
 
-    uint elapsed = block.timestamp - firstObservation.timestamp;
+    uint elapsed = timestamp - firstObservation.timestamp;
 
     uint spotPriceA = 1 ether * state.eth / state.nxmA;
     uint spotPriceB = 1 ether * state.eth / state.nxmB;
@@ -565,12 +574,27 @@ contract Ramm is IRamm, MasterAwareV2 {
       uint averagePriceA = uint(currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) * 1e9 / elapsed;
       uint averagePriceB = uint(currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) * 1e9 / elapsed;
 
-      // keeping min/max inside unchecked scope to avoid stack too deep error
+    // keeping min/max inside unchecked scope to avoid stack too deep error
       priceA = Math.min(averagePriceA, spotPriceA);
       priceB = Math.max(averagePriceB, spotPriceB);
     }
 
     return priceA + priceB - 1 ether * capital / supply;
+  }
+
+  function getInternalPrice() external view returns (uint internalPrice) {
+    uint capital = pool().getPoolValueInEth();
+    uint supply = tokenController().totalSupply();
+    uint mcrValue = mcr().getMCR();
+
+    State memory initialState = loadState();
+    Observation[3] memory _observations = observations;
+
+    // current state
+    State memory state = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
+    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
+
+    return _getInternalPrice(state, _observations, capital, supply, block.timestamp);
   }
 
   /* ========== DEPENDENCIES ========== */

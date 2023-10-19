@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 
 import "../interfaces/IRamm.sol";
 
-contract MockRamm is IRamm {
+contract RammMock is IRamm {
   function updateTwap() external override {
     // do nothing
   }
@@ -17,13 +17,13 @@ contract MockRamm is IRamm {
     return 1e18;
   }
 
+  function getSpotPrices() external override pure returns (uint, uint) {
+    return (1e18, 1e18);
+  }
+
   /* ====== NOT NEEDED FUNCTIONS ====== */
 
   function getReserves() public pure returns (uint, uint, uint, uint){
-    revert("Unsupported");
-  }
-
-  function getSpotPrices() external override pure returns (uint, uint) {
     revert("Unsupported");
   }
 

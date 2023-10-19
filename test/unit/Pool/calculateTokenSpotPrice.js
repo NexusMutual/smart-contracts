@@ -27,12 +27,9 @@ describe('calculateTokenSpotPrice', function () {
     const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
-    const mcrEth = parseEther('162424');
-    const totalAssetValue = parseEther('0');
-
-    const expectedPrice = getTokenSpotPrice(totalAssetValue, mcrEth);
-    const price = await pool.calculateTokenSpotPrice(totalAssetValue, mcrEth);
-    expect(price.toString()).to.be.equal(expectedPrice.toString());
+    // in the mock ramm, 1 NXM = 1 ETH
+    const price = await pool.calculateTokenSpotPrice(0, 0); // old signature
+    expect(price).to.equal(parseEther('1'));
   });
 
   it('should revert when mcrEth = 0', async function () {

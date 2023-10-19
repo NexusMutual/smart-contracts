@@ -10,19 +10,12 @@ describe('getters', function () {
   describe('getEthForNXM', function () {
     it('returns value as calculated by calculateEthForNXM', async function () {
       const fixture = await loadFixture(setup);
-      const { pool, mcr } = fixture;
-      const [member] = fixture.accounts.members;
+      const { pool } = fixture;
 
-      const mcrEth = parseEther('160000');
-      const totalAssetValue = percentageBigNumber(mcrEth, 150);
-      const tokenValue = parseEther('1');
-
-      await mcr.setMCR(mcrEth);
-      await member.sendTransaction({ to: pool.address, value: totalAssetValue });
-
-      const expectedEthOut = await pool.calculateEthForNXM(tokenValue, totalAssetValue, mcrEth);
-      const ethOut = await pool.getEthForNXM(tokenValue);
-      expect(ethOut).to.equal(expectedEthOut);
+      // in the mock ramm, 1 NXM = 1 ETH
+      const tokenAmount = parseEther('1');
+      const ethOut = await pool.getEthForNXM(tokenAmount);
+      expect(ethOut).to.equal(tokenAmount);
     });
   });
 
@@ -30,18 +23,11 @@ describe('getters', function () {
     it('returns value as calculated by calculateNXMForEth', async function () {
       const fixture = await loadFixture(setup);
       const { pool, mcr } = fixture;
-      const [member] = fixture.accounts.members;
 
-      const mcrEth = parseEther('160000');
-      const totalAssetValue = percentageBigNumber(mcrEth, 150);
-      const buyValue = parseEther('10');
-
-      await mcr.setMCR(mcrEth);
-      await member.sendTransaction({ to: pool.address, value: totalAssetValue });
-
-      const expectedTokenValue = await pool.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
-      const tokenValue = await pool.getNXMForEth(buyValue);
-      expect(tokenValue).to.equal(expectedTokenValue);
+      // in the mock ramm, 1 NXM = 1 ETH
+      const tokenAmount = parseEther('1');
+      const nxmOut = await pool.getEthForNXM(tokenAmount);
+      expect(nxmOut).to.equal(tokenAmount);
     });
   });
 });

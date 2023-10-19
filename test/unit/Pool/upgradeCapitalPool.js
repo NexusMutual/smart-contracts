@@ -42,14 +42,15 @@ describe('upgradeCapitalPool', function () {
       await token.mint(pool.address, tokenAmount);
     }
 
+    const swapValue = await pool.swapValue();
+
     const newPool = await Pool.deploy(
       defaultSender.address,
       AddressZero,
       AddressZero, // we do not test swaps here
-      dai.address,
-      stETH.address,
-      enzymeVault.address,
       token.address,
+      pool.address,
+      swapValue,
     );
 
     await master.upgradeCapitalPool(pool.address, newPool.address);
@@ -112,14 +113,15 @@ describe('upgradeCapitalPool', function () {
       await token.mint(pool.address, tokenAmount);
     }
 
+    const swapValue = await pool.swapValue();
+
     const newPool = await Pool.deploy(
       defaultSender.address,
       AddressZero,
       AddressZero, // we do not test swaps here
-      dai.address,
-      stETH.address,
-      enzymeVault.address,
       token.address,
+      pool.address,
+      swapValue,
     );
 
     await stETH.blacklistSender(pool.address);

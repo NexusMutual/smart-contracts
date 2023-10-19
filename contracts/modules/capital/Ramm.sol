@@ -32,7 +32,7 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public constant RATCHET_DENOMINATOR = 10_000;
   uint public constant PRICE_BUFFER = 100;
   uint public constant PRICE_BUFFER_DENOMINATOR = 10_000;
-  uint public constant GRANULARITY = 2;
+  uint public constant GRANULARITY = 3;
   uint public constant PERIOD_SIZE = 86_400; // day
 
   uint public constant FAST_LIQUIDITY_SPEED = 1_500 ether;
@@ -387,14 +387,14 @@ contract Ramm is IRamm, MasterAwareV2 {
       if (timeOnRatchet != 0) {
 
         // cumulative price above
-        priceCumulativeAbove += (previousState.eth * state.nxmA + state.eth * previousState.nxmA) * timeOnRatchet / previousState.nxmA / state.nxmA / 2;
+        priceCumulativeAbove += 1 ether * (previousState.eth * state.nxmA + state.eth * previousState.nxmA) * timeOnRatchet / previousState.nxmA / state.nxmA / 2e9; // stack too deep, combined 2 and 1e9
       }
 
       // on bv
       uint timeOnBV = timeElapsed - timeOnRatchet;
 
       if (timeOnBV != 0) {
-        priceCumulativeAbove += timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / supply / PRICE_BUFFER_DENOMINATOR;
+        priceCumulativeAbove += 1 ether * timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / supply / PRICE_BUFFER_DENOMINATOR / 1e9;
       }
     }
 
@@ -405,7 +405,7 @@ contract Ramm is IRamm, MasterAwareV2 {
         uint innerRight = previousState.eth * supply;
         uint inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
         uint maxTimeOnRatchet = inner != 0
-          ? inner * RATCHET_DENOMINATOR * RATCHET_PERIOD / capital / previousState.nxmA / state.ratchetSpeed
+          ? inner * RATCHET_DENOMINATOR * RATCHET_PERIOD / capital / previousState.nxmB / state.ratchetSpeed
           : 0;
         timeOnRatchet = Math.min(timeElapsed, maxTimeOnRatchet);
       }
@@ -413,19 +413,19 @@ contract Ramm is IRamm, MasterAwareV2 {
       // on ratchet
       if (timeOnRatchet != 0) {
         // cumulative price below
-        priceCumulativeBelow += (previousState.eth * state.nxmB + state.eth * previousState.nxmB) * timeOnRatchet / previousState.nxmB / state.nxmB / 2;
+        priceCumulativeBelow += 1 ether * (previousState.eth * state.nxmB + state.eth * previousState.nxmB) * timeOnRatchet / previousState.nxmB / state.nxmB / 2e9; // stack too deep, combined 2 and 1e9
       }
 
       // on bv
       uint timeOnBV = timeElapsed - timeOnRatchet;
 
       if (timeOnBV != 0) {
-        priceCumulativeBelow += timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / supply / PRICE_BUFFER_DENOMINATOR;
+        priceCumulativeBelow += 1 ether * timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / supply / PRICE_BUFFER_DENOMINATOR / 1e9;
       }
     }
 
     return Observation(
-      previousState.timestamp.toUint32(),
+      state.timestamp.toUint32(),
       // casting unsafely to allow overflow
       uint64(priceCumulativeAbove),
       uint64(priceCumulativeBelow)
@@ -562,15 +562,15 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     // underflow is desired
     unchecked {
-      uint averagePriceA = (currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) / elapsed;
-      uint averagePriceB = (currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) / elapsed;
+      uint averagePriceA = uint(currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) * 1e9 / elapsed;
+      uint averagePriceB = uint(currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) * 1e9 / elapsed;
 
       // keeping min/max inside unchecked scope to avoid stack too deep error
       priceA = Math.min(averagePriceA, spotPriceA);
       priceB = Math.max(averagePriceB, spotPriceB);
     }
 
-    return priceA - priceB - 1 ether * capital / supply;
+    return priceA + priceB - 1 ether * capital / supply;
   }
 
   /* ========== DEPENDENCIES ========== */

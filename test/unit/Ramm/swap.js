@@ -8,7 +8,7 @@ const { setNextBlockBaseFee, setNextBlockTime } = require('../../utils/evm');
 const { parseEther } = ethers.utils;
 
 describe('swap', function () {
-  it('should revert if both NXM and ETH values are 0', async function () {
+  it('should revert with OneInputRequired if both NXM and ETH values are 0', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;
     const [member] = fixture.accounts.members;
@@ -17,7 +17,7 @@ describe('swap', function () {
     await expect(swap).to.be.revertedWithCustomError(ramm, 'OneInputRequired');
   });
 
-  it('should revert if both NXM and ETH values are greater then 0', async function () {
+  it('should revert with OneInputOnly if both NXM and ETH values are greater then 0', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;
     const [member] = fixture.accounts.members;
@@ -29,13 +29,14 @@ describe('swap', function () {
     await expect(swap).to.be.revertedWithCustomError(ramm, 'OneInputOnly');
   });
 
-  it('should revert if block timestamp surpasses deadline', async function () {
+  it('should revert with SwapExpired if block timestamp surpasses deadline', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const nxmIn = parseEther('1');
     const minAmountOut = parseEther('0.015'); // 0.0152 ETH initial spot price
+
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp - 1;
 
@@ -43,7 +44,7 @@ describe('swap', function () {
     await expect(swap).to.be.revertedWithCustomError(ramm, 'SwapExpired');
   });
 
-  it('should revert if nxmOut < minAmountOut when swapping ETH for NXM', async function () {
+  it('should revert with InsufficientAmountOut if nxmOut < minAmountOut when swapping ETH for NXM', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;
     const [member] = fixture.accounts.members;
@@ -58,7 +59,7 @@ describe('swap', function () {
     await expect(swap).to.be.revertedWithCustomError(ramm, 'InsufficientAmountOut');
   });
 
-  it('should revert if ethOut < minAmountOut when swapping NXM for ETH', async function () {
+  it('should revert with InsufficientAmountOut if ethOut < minAmountOut when swapping NXM for ETH', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;
     const [member] = fixture.accounts.members;
@@ -73,23 +74,39 @@ describe('swap', function () {
     await expect(swap).to.be.revertedWithCustomError(ramm, 'InsufficientAmountOut');
   });
 
-  it('should revert if swapping NXM for ETH is in the buffer zone', async function () {
+  it('should revert with NoSwapsInBufferZone if swapping NXM for ETH is in the buffer zone', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, mcr } = fixture.contracts;
+    const { ramm, mcr, pool } = fixture.contracts;
     const [member] = fixture.accounts.members;
-
-    // Set MCR high enough so it reaches the buffer zone
-    await mcr.updateMCR(parseEther('145000'));
 
     const nxmIn = parseEther('10000');
     const minAmountOut = parseEther('147');
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
-    await setNextBlockTime(timestamp + 4 * 60);
+
+    // Set MCR so it reaches the buffer zone (> capital - ethOut)
+    const capital = await pool.getPoolValueInEth();
+    await mcr.updateMCR(capital.sub(minAmountOut));
 
     const swap = ramm.connect(member).swap(nxmIn, minAmountOut, deadline);
     await expect(swap).to.be.revertedWithCustomError(ramm, 'NoSwapsInBufferZone');
+  });
+
+  it('should revert with EthTransferFailed if failed to send ETH', async function () {
+    const setupPoolRejectEth = () => setup('RammMockPoolEtherRejecter');
+    const fixture = await loadFixture(setupPoolRejectEth);
+    const { ramm } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    const ethIn = parseEther('1');
+    const minAmountOut = parseEther('28.8');
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60;
+
+    const swap = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+    await expect(swap).to.be.revertedWithCustomError(ramm, 'EthTransferFailed');
   });
 
   it('should swap NXM for ETH', async function () {

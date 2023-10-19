@@ -183,6 +183,66 @@ function calculateInternalPrice(currentState, observations, capital, supply, cur
   return priceA.add(priceB).sub(parseEther('1').mul(capital).div(supply));
 }
 
+/**
+ * Retrieves the expected observations for the given timestamp
+ *
+ * @param {Contract} ramm - The RAMM contract
+ * @param {Contract} pool - The pool contract
+ * @param {Contract} tokenController - The token controller contract
+ * @param {Contract} mcr - The MCR contract
+ * @param {Object} fixtureConstants - The fixture constants object
+ * @param {number} currentTimestamp - The current timestamp
+ * @return {Array} An array of observations object containing timestamp, priceCumulativeBelow, and priceCumulativeAbove
+ */
+const getExpectedObservations = async (
+  previousState,
+  ramm,
+  pool,
+  tokenController,
+  mcr,
+  fixtureConstants,
+  currentTimestamp,
+) => {
+  const { PERIOD_SIZE, GRANULARITY } = fixtureConstants;
+  const capital = await pool.getPoolValueInEth();
+  const supply = await tokenController.totalSupply();
+  const mcrValue = await mcr.getMCR();
+
+  const observationsAfterExpected = [];
+  const endIdx = divCeil(currentTimestamp, PERIOD_SIZE).toNumber();
+
+  for (let i = endIdx - 2; endIdx >= i; i++) {
+    const previousObservationIndex = BigNumber.from(i - 1).mod(GRANULARITY);
+    const previousObservation =
+      observationsAfterExpected[previousObservationIndex] || (await ramm.observations(previousObservationIndex));
+
+    const observationIndex = BigNumber.from(i).mod(GRANULARITY);
+    const timestamp = Math.min(currentTimestamp.toNumber(), PERIOD_SIZE.mul(i).toNumber());
+
+    const state = await ramm._getReserves(previousState, capital, supply, mcrValue, timestamp);
+
+    const observationData = calculateObservation(
+      state,
+      previousState,
+      previousObservation,
+      capital,
+      supply,
+      BigNumber.from(timestamp - previousState.timestamp),
+      fixtureConstants,
+    );
+
+    observationsAfterExpected[observationIndex] = {
+      timestamp,
+      priceCumulativeBelow: observationData.priceCumulativeBelow,
+      priceCumulativeAbove: observationData.priceCumulativeAbove,
+    };
+
+    previousState = state;
+  }
+
+  return observationsAfterExpected;
+};
+
 module.exports = {
   timeTillBv,
   calculateTwapAboveForPeriod,
@@ -191,4 +251,5 @@ module.exports = {
   calculateInternalPrice,
   getObservationIndex,
   divCeil,
+  getExpectedObservations
 };

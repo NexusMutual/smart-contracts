@@ -4,7 +4,10 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getState, setup } = require('./setup');
 const { setNextBlockTime } = require('../../utils/evm');
-const { calculateInternalPrice } = require('./helpers');
+const { calculateInternalPrice, getObservationIndex, getExpectedObservations } = require('./helpers');
+
+const { parseEther } = ethers.utils;
+const { BigNumber } = ethers;
 
 describe('getInternalPriceAndUpdateTwap', function () {
   it('should return the internal price and update the twap', async function () {
@@ -56,5 +59,34 @@ describe('getInternalPriceAndUpdateTwap', function () {
 
     const actualInternalPrice = await ramm.callStatic.getInternalPriceAndUpdateTwap();
     expect(expectedInternalPrice).to.be.equal(actualInternalPrice); // 0.021481481185185185
+  });
+
+  it('should emit ObservationUpdated event for each observation update', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, pool, tokenController, mcr } = fixture.contracts;
+    const { PERIOD_SIZE } = fixture.constants;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const currentTimestamp = PERIOD_SIZE.mul(3).add(timestamp);
+
+    const state = await getState(ramm);
+    const [obsv1, obsv2, obsv3] = await getExpectedObservations(
+      state,
+      ramm,
+      pool,
+      tokenController,
+      mcr,
+      fixture.constants,
+      currentTimestamp,
+    );
+
+    await setNextBlockTime(currentTimestamp.toNumber());
+    await expect(ramm.getInternalPriceAndUpdateTwap())
+      .to.emit(ramm, 'ObservationUpdated')
+      .withArgs(obsv1.timestamp, obsv1.priceCumulativeAbove, obsv1.priceCumulativeBelow)
+      .to.emit(ramm, 'ObservationUpdated')
+      .withArgs(obsv2.timestamp, obsv2.priceCumulativeAbove, obsv2.priceCumulativeBelow)
+      .to.emit(ramm, 'ObservationUpdated')
+      .withArgs(obsv3.timestamp, obsv3.priceCumulativeAbove, obsv3.priceCumulativeBelow);
   });
 });

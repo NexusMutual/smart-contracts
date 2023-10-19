@@ -330,17 +330,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     return ethAmount * 1e18 / spotPriceB;
   }
 
-  // [deprecated] use sportPrices function in Ramm
-  // left for reference
-  function calculateNXMForEth(
-    uint ethAmount,
-    uint /*currentTotalAssetValue*/,
-    uint /*mcrEth*/
-  ) public view returns (uint) {
-    (, uint tokenPrice) = ramm().getSpotPrices();
-    return ethAmount * 1e18 / tokenPrice;
-  }
-
   function getEthForNXM(uint nxmAmount) public override view returns (uint ethAmount) {
     (uint sportPriceA, ) = ramm().getSpotPrices();
     return nxmAmount * sportPriceA / 1e18;

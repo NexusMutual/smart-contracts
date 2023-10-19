@@ -9,7 +9,7 @@ const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 
 describe('getInternalPriceAndUpdateTwap', function () {
-  it.only('should return the internal price and update the twap', async function () {
+  it('should return the internal price and update the twap', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController, mcr } = fixture.contracts;
     const { PERIOD_SIZE, GRANULARITY } = fixture.constants;

@@ -543,6 +543,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     }
 
     storeState(state);
+
     return _getInternalPrice(state, _observations, capital, supply, block.timestamp);
   }
 
@@ -553,6 +554,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint supply,
     uint timestamp
   ) public pure returns (uint internalPrice) {
+
     uint currentIdx = observationIndexOf(timestamp);
     // index of first observation in window = current - 2
     // adding 1 and applying modulo gives the same result avoiding underflow
@@ -574,7 +576,7 @@ contract Ramm is IRamm, MasterAwareV2 {
       uint averagePriceA = uint(currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) * 1e9 / elapsed;
       uint averagePriceB = uint(currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) * 1e9 / elapsed;
 
-    // keeping min/max inside unchecked scope to avoid stack too deep error
+      // keeping min/max inside unchecked scope to avoid stack too deep error
       priceA = Math.min(averagePriceA, spotPriceA);
       priceB = Math.max(averagePriceB, spotPriceB);
     }
@@ -583,6 +585,7 @@ contract Ramm is IRamm, MasterAwareV2 {
   }
 
   function getInternalPrice() external view returns (uint internalPrice) {
+
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
     uint mcrValue = mcr().getMCR();

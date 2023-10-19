@@ -300,11 +300,13 @@ describe('swap', function () {
     const minAmountOut = parseEther('0.015'); // 0.0152 spotB
 
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const deadline = timestamp + 5 * 60;
+    const nextBlockTimestamp = timestamp + 5 * 60;
+    const deadline = nextBlockTimestamp + 5 * 60;
 
-    const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, timestamp + 1);
+    const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, nextBlockTimestamp);
     const { ethOut } = getExpectedStateAfterSwapNxmForEth(state, nxmIn);
 
+    await setNextBlockTime(nextBlockTimestamp);
     const swap = ramm.connect(member).swap(nxmIn, minAmountOut, deadline, { maxPriorityFeePerGas: 0 });
     await expect(swap).to.emit(ramm, 'NxmSwappedForEth').withArgs(member.address, nxmIn, ethOut);
   });
@@ -318,11 +320,13 @@ describe('swap', function () {
     const minAmountOut = parseEther('28.8');
 
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const deadline = timestamp + 5 * 60;
+    const nextBlockTimestamp = timestamp + 5 * 60;
+    const deadline = nextBlockTimestamp + 5 * 60;
 
-    const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, timestamp + 1);
+    const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, nextBlockTimestamp);
     const { nxmOut } = getExpectedStateAfterSwapEthForNxm(state, ethIn);
 
+    await setNextBlockTime(nextBlockTimestamp);
     const swap = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
     await expect(swap).to.emit(ramm, 'EthSwappedForNxm').withArgs(member.address, ethIn, nxmOut);
   });

@@ -74,13 +74,13 @@ interface IRamm {
 
   function getInternalPrice() external view returns (uint internalPrice);
 
-  /* === MUTATIVE FUNCTIONS ==== */
+  /* ==== MUTATIVE FUNCTIONS ==== */
 
   function updateTwap() external;
 
   function getInternalPriceAndUpdateTwap() external returns (uint internalPrice);
 
-  function swap(uint nxmIn, uint minAmountOut, uint deadline) external payable;
+  function swap(uint nxmIn, uint minAmountOut, uint deadline) external payable returns (uint amountOut);
 
   function removeBudget() external;
 

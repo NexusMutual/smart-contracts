@@ -84,7 +84,7 @@ contract Ramm is IRamm, MasterAwareV2 {
     ratchetSpeed = state.ratchetSpeed.toUint32();
   }
 
-  function swap(uint nxmIn, uint minAmountOut, uint deadline) external payable {
+  function swap(uint nxmIn, uint minAmountOut, uint deadline) external payable returns (uint amountOut) {
 
     if (msg.value > 0 && nxmIn > 0) {
       revert OneInputOnly();
@@ -96,14 +96,14 @@ contract Ramm is IRamm, MasterAwareV2 {
       revert SwapExpired(deadline, block.timestamp);
     }
 
-    msg.value > 0
+    return msg.value > 0
       ? swapEthForNxm(msg.value, minAmountOut)
       : swapNxmForEth(nxmIn, minAmountOut);
 
     mcr().updateMCRInternal(false);
   }
 
-  function swapEthForNxm(uint ethIn, uint minAmountOut) internal returns (uint /*nxmOut*/) {
+  function swapEthForNxm(uint ethIn, uint minAmountOut) internal returns (uint nxmOut) {
 
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
@@ -116,27 +116,29 @@ contract Ramm is IRamm, MasterAwareV2 {
     State memory state = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
     _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
 
-    uint nxmA = state.nxmA;
-    uint nxmB = state.nxmB;
-    uint eth = state.eth;
-    uint k = eth * nxmA;
+    {
+      uint nxmA = state.nxmA;
+      uint nxmB = state.nxmB;
+      uint eth = state.eth;
+      uint k = eth * nxmA;
 
-    eth = eth + ethIn;
-    nxmA = k / eth;
-    nxmB = nxmB * eth / state.eth;
+      eth = eth + ethIn;
+      nxmA = k / eth;
+      nxmB = nxmB * eth / state.eth;
 
-    uint nxmOut = state.nxmA - nxmA;
+      nxmOut = state.nxmA - nxmA;
 
-    if (nxmOut < minAmountOut) {
-      revert InsufficientAmountOut(nxmOut, minAmountOut);
+      if (nxmOut < minAmountOut) {
+        revert InsufficientAmountOut(nxmOut, minAmountOut);
+      }
+
+      // edge case: below goes over bv due to eth-dai price changing
+
+      state.nxmA = nxmA;
+      state.nxmB = nxmB;
+      state.eth = eth;
+      state.timestamp = block.timestamp;
     }
-
-    // edge case: bellow goes over bv due to eth-dai price changing
-
-    state.nxmA = nxmA;
-    state.nxmB = nxmB;
-    state.eth = eth;
-    state.timestamp = block.timestamp;
 
     storeState(state);
 

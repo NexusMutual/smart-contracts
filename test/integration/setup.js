@@ -129,9 +129,15 @@ async function setup() {
   // placeholder is swapped with the actual one after master is initialized
   const swapOperatorPlaceholder = { address: AddressZero };
 
+  const legacyPool = await ethers.deployContract(
+    'LegacyPool',
+    [master, priceFeedOracle, swapOperatorPlaceholder, dai, stETH, enzymeVault, tk].map(c => c.address),
+  );
+
+  const swapValue = await legacyPool.swapValue();
   const p1 = await ethers.deployContract(
     'Pool',
-    [master, priceFeedOracle, swapOperatorPlaceholder, dai, stETH, enzymeVault, tk].map(c => c.address),
+    [master, priceFeedOracle, swapOperatorPlaceholder, tk, legacyPool].map(c => c.address).concat([swapValue]),
   );
 
   const cowVaultRelayer = await ethers.deployContract('SOMockVaultRelayer');

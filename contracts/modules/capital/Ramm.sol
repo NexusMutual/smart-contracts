@@ -151,6 +151,8 @@ contract Ramm is IRamm, MasterAwareV2 {
     }
     tokenController().mint(msg.sender, nxmOut);
 
+    emit EthSwappedForNxm(msg.sender, ethIn, nxmOut);
+
     return nxmOut;
   }
 
@@ -204,11 +206,14 @@ contract Ramm is IRamm, MasterAwareV2 {
     // TODO: use a custom function instead of sendPayout
     pool().sendPayout(0, payable(msg.sender), ethOut);
 
+    emit NxmSwappedForEth(msg.sender, nxmIn, ethOut);
+
     return ethOut;
   }
 
   function removeBudget() external onlyGovernance {
     slot1.budget = 0;
+    emit BudgetRemoved();
   }
 
   /* ============== VIEWS ============= */
@@ -477,6 +482,11 @@ contract Ramm is IRamm, MasterAwareV2 {
 
     for (uint i = 0; i < _observations.length; i++) {
       observations[i] = _observations[i];
+      emit ObservationUpdated(
+        observations[i].timestamp,
+        observations[i].priceCumulativeAbove,
+        observations[i].priceCumulativeBelow
+      );
     }
 
     storeState(state);
@@ -542,6 +552,11 @@ contract Ramm is IRamm, MasterAwareV2 {
     // sstore observations and state
     for (uint i = 0; i < _observations.length; i++) {
       observations[i] = _observations[i];
+      emit ObservationUpdated(
+        observations[i].timestamp,
+        observations[i].priceCumulativeAbove,
+        observations[i].priceCumulativeBelow
+      );
     }
 
     storeState(state);

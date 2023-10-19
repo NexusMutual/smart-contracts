@@ -18,7 +18,7 @@ async function setup() {
   const individualClaims = await ASMockIndividualClaims.deploy(nxm.address);
   await individualClaims.deployed();
 
-  const ASMockRamm = await ethers.getContractFactory('MockRamm');
+  const ASMockRamm = await ethers.getContractFactory('RammMock');
   const ramm = await ASMockRamm.deploy();
   await ramm.deployed();
 

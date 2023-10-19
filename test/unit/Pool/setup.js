@@ -22,6 +22,7 @@ async function setup() {
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
   const P1MockSwapOperator = await ethers.getContractFactory('P1MockSwapOperator');
   const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
+  const RammMock = await ethers.getContractFactory('RammMock');
 
   const master = await MasterMock.deploy();
   const dai = await ERC20Mock.deploy();
@@ -29,6 +30,7 @@ async function setup() {
   const enzymeVault = await ERC20Mock.deploy();
   const otherAsset = await ERC20Mock.deploy();
   const memberRoles = await MemberRolesMock.deploy();
+  const ramm = await RammMock.deploy();
 
   const ethToDaiRate = parseEther('394.59');
   const daiToEthRate = BigNumber.from(10).pow(36).div(ethToDaiRate);
@@ -87,6 +89,7 @@ async function setup() {
   await master.setLatestAddress(toBytes2('MC'), mcr.address);
   await master.setLatestAddress(toBytes2('TC'), tokenController.address);
   await master.setLatestAddress(toBytes2('MR'), memberRoles.address);
+  await master.setLatestAddress(toBytes2('RA'), ramm.address);
 
   const contractsToUpdate = [mcr, pool, tokenController];
 

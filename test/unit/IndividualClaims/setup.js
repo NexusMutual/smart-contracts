@@ -13,7 +13,7 @@ async function setup() {
   const memberRoles = await MemberRoles.deploy();
   await memberRoles.deployed();
 
-  const Ramm = await ethers.getContractFactory('MockRamm');
+  const Ramm = await ethers.getContractFactory('RammMock');
   const ramm = await Ramm.deploy();
   await ramm.deployed();
 

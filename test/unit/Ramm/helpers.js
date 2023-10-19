@@ -155,11 +155,40 @@ function calculateObservation(state, previousState, previousObservation, capital
   };
 }
 
+function calculateInternalPrice(currentState, observations, capital, supply, currentTimestamp, constants) {
+  const { GRANULARITY } = constants;
+  const currentIdx = getObservationIndex(BigNumber.from(currentTimestamp), constants);
+  const previousIdx = currentIdx.add(1).mod(GRANULARITY);
+
+  const firstObservation = observations[previousIdx.toNumber()];
+  const currentObservation = observations[currentIdx.toNumber()];
+
+  const elapsed = currentTimestamp.sub(firstObservation.timestamp);
+
+  const spotPriceA = parseEther('1').mul(currentState.eth).div(currentState.nxmA);
+  const spotPriceB = parseEther('1').mul(currentState.eth).div(currentState.nxmB);
+
+  const averagePriceA = currentObservation.priceCumulativeAbove
+    .sub(firstObservation.priceCumulativeAbove)
+    .mul(1e9)
+    .div(elapsed);
+
+  const averagePriceB = currentObservation.priceCumulativeBelow
+    .sub(firstObservation.priceCumulativeBelow)
+    .mul(1e9)
+    .div(elapsed);
+
+  const priceA = averagePriceA.gt(spotPriceA) ? spotPriceA : averagePriceA;
+  const priceB = averagePriceB.gt(spotPriceB) ? averagePriceB : spotPriceB;
+  return priceA.add(priceB).sub(parseEther('1').mul(capital).div(supply));
+}
+
 module.exports = {
   timeTillBv,
   calculateTwapAboveForPeriod,
   calculateTwapBelowForPeriod,
   calculateObservation,
+  calculateInternalPrice,
   getObservationIndex,
   divCeil,
 };

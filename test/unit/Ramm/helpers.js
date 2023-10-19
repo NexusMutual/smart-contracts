@@ -222,5 +222,5 @@ module.exports = {
   calculateObservation,
   getObservationIndex,
   divCeil,
-  getExpectedObservations
+  getExpectedObservations,
 };

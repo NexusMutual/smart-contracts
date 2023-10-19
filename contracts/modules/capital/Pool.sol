@@ -27,7 +27,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   // parameters
   IPriceFeedOracle public override priceFeedOracle;
-  IPool public previousPool;
   address public swapOperator;
 
   uint96 public swapValue;
@@ -71,18 +70,27 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     address _master,
     address _priceOracle,
     address _swapOperator,
-    address DAIAddress,
-    address stETHAddress,
-    address enzymeVaultAddress, // Enzyme
-    address _nxmTokenAddress
+    address _nxmTokenAddress,
+    address _previousPool,
+    uint _swapValue
   ) {
     master = INXMMaster(_master);
     priceFeedOracle = IPriceFeedOracle(_priceOracle);
-    swapOperator = _swapOperator;
     nxmToken = INXMToken(_nxmTokenAddress);
+    swapOperator = _swapOperator;
+    swapValue = _swapValue.toUint96();
 
-    if (_master != address(0)) {
-      previousPool = IPool(master.getLatestAddress("P1"));
+    IPool previousPool = IPool(_previousPool);
+
+    // copy over assets and swap details
+    Asset[] memory oldAssets = previousPool.getAssets();
+
+    for (uint i = 0; i < oldAssets.length; i++) {
+      address assetAddress = oldAssets[i].assetAddress;
+      if (assetAddress != ETH) {
+        swapDetails[assetAddress] = previousPool.getAssetSwapDetails(assetAddress);
+      }
+      assets.push(oldAssets[i]);
     }
   }
 
@@ -303,7 +311,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   // @param member  Member address
   // @param amount  Amount of ETH to send
   //
-  function sendEth(address member, uint amount) external onlyRamm {
+  function sendEth(address member, uint amount) external override onlyRamm nonReentrant {
     (bool transferSucceeded, /* data */) = member.call{value : amount}("");
     require(transferSucceeded, "Pool: ETH transfer failed");
   }
@@ -326,9 +334,9 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   // left for reference
   function calculateNXMForEth(
     uint ethAmount,
-    uint currentTotalAssetValue,
-    uint mcrEth
-  ) public pure returns (uint) {
+    uint /*currentTotalAssetValue*/,
+    uint /*mcrEth*/
+  ) public view returns (uint) {
     (, uint tokenPrice) = ramm().getSpotPrices();
     return ethAmount * 1e18 / tokenPrice;
   }
@@ -349,9 +357,9 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   /// Calculates token price in ETH of 1 NXM token. TokenPrice = A + (MCReth / C) * MCR%^4
   ///
   function calculateTokenSpotPrice(
-    uint totalAssetValue,
-    uint mcrEth
-  ) public override pure returns (uint tokenPrice) {
+    uint /*totalAssetValue*/,
+    uint /*mcrEth*/
+  ) public override view returns (uint tokenPrice) {
 
     (, tokenPrice) = ramm().getSpotPrices();
     return tokenPrice;
@@ -365,13 +373,12 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   ///
   /// @param assetId  Index of the cover asset.
   ///
-  function getTokenPriceInAsset(uint assetId) public override view returns (uint tokenPrice) {
+  function getTokenPriceInAsset(uint assetId) public view override returns (uint tokenPrice) {
 
     require(assetId < assets.length, "Pool: Unknown cover asset");
     address assetAddress = assets[assetId].assetAddress;
 
-    // just fetch internal price, updates are happening in Token Controller contract
-    uint tokenInternalPrice = ramm().getInternalPriceAndUpdateTwap();
+    uint tokenInternalPrice = ramm().getInternalPrice();
 
     return priceFeedOracle.getAssetForEth(assetAddress, tokenInternalPrice);
   }
@@ -473,33 +480,5 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
     // needed for onlyMember modifier
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
-
-    initialize();
-  }
-
-  function initialize() internal {
-
-    address currentPool = master.getLatestAddress("P1");
-
-    if (address(previousPool) == address(0) || currentPool != address(this)) {
-      // already initialized or not ready for initialization
-      return;
-    }
-
-    // copy over values
-    swapValue = uint96(previousPool.swapValue());
-
-    // copy over assets and swap details
-    Asset[] memory oldAssets = previousPool.getAssets();
-
-    for (uint i = 1; i < oldAssets.length; i++) {
-      address assetAddress = oldAssets[i].assetAddress;
-      if (assetAddress != ETH) {
-        swapDetails[assetAddress] = previousPool.getAssetSwapDetails(assetAddress);
-      }
-      assets.push(oldAssets[i]);
-    }
-
-    previousPool = IPool(address(0));
   }
 }

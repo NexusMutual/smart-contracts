@@ -24,12 +24,6 @@ interface IPool {
 
   function getAssets() external view returns (Asset[] memory);
 
-  function buyNXM(uint minTokensOut) external payable;
-
-  function sellNXM(uint tokenAmount, uint minEthOut) external;
-
-  function sellNXMTokens(uint tokenAmount) external returns (bool);
-
   function transferAssetToSwapOperator(address asset, uint amount) external;
 
   function setSwapDetailsLastSwapTime(address asset, uint32 lastSwapTime) external;
@@ -39,6 +33,8 @@ interface IPool {
   function getNXMForEth(uint ethAmount) external view returns (uint);
 
   function sendPayout(uint assetIndex, address payable payoutAddress, uint amount) external;
+
+  function sendEth(address payoutAddress, uint amount) external;
 
   function upgradeCapitalPool(address payable newPoolAddress) external;
 
@@ -50,7 +46,7 @@ interface IPool {
 
   function calculateMCRRatio(uint totalAssetValue, uint mcrEth) external pure returns (uint);
 
-  function calculateTokenSpotPrice(uint totalAssetValue, uint mcrEth) external pure returns (uint tokenPrice);
+  function calculateTokenSpotPrice(uint totalAssetValue, uint mcrEth) external view returns (uint tokenPrice);
 
   function getTokenPriceInAsset(uint assetId) external view returns (uint tokenPrice);
 
@@ -59,8 +55,4 @@ interface IPool {
   function getMCRRatio() external view returns (uint);
 
   function setSwapValue(uint value) external;
-
-  function swapValue() external returns (uint value);
-
-  function assets() external returns (uint value);
 }

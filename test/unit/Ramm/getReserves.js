@@ -245,7 +245,7 @@ describe('_getReserves', function () {
 
   it('should return current state - 0 inject ETH when mcrValue + TARGET_LIQUIDITY reaches capital', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, pool, tokenController, mcr } = fixture.contracts;
+    const { ramm, pool, tokenController } = fixture.contracts;
 
     const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();

@@ -163,7 +163,7 @@ function calculateInternalPrice(currentState, observations, capital, supply, cur
   const firstObservation = observations[previousIdx.toNumber()];
   const currentObservation = observations[currentIdx.toNumber()];
 
-  const elapsed = currentTimestamp.sub(firstObservation.timestamp);
+  const elapsed = BigNumber.from(currentTimestamp).sub(firstObservation.timestamp);
 
   const spotPriceA = parseEther('1').mul(currentState.eth).div(currentState.nxmA);
   const spotPriceB = parseEther('1').mul(currentState.eth).div(currentState.nxmB);

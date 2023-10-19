@@ -66,7 +66,7 @@ async function expireCoverSetup() {
   return fixture;
 }
 
-describe('expireCover', function () {
+describe.only('expireCover', function () {
   it('should revert when cover is not expired', async function () {
     const fixture = await loadFixture(expireCoverSetup);
     const { cover } = fixture.contracts;

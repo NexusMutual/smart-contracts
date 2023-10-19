@@ -10,6 +10,8 @@ const {
 const { daysToSeconds } = require('../../../lib/helpers');
 const { BUCKET_DURATION } = require('../../unit/StakingPool/helpers');
 const { BigNumber } = require('ethers');
+const { mineNextBlock } = require('../../utils/evm');
+const { getInternalPrice } = require('../../utils/internalPrice');
 
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
@@ -216,13 +218,12 @@ describe('buyCover', function () {
 
   it('should purchase new cover with calculated price after the drop', async function () {
     const fixture = await loadFixture(buyCoverSetup);
-    const { cover, tc: tokenController, stakingProducts, p1: pool } = fixture.contracts;
+    const { cover, tc: tokenController, stakingProducts, p1: pool, mcr, ra: ramm } = fixture.contracts;
     const {
       members: [coverBuyer, coverReceiver],
     } = fixture.accounts;
     const {
       config: { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO },
-      ethRate,
       productList,
     } = fixture;
     const { period, amount } = buyCoverFixture;
@@ -237,6 +238,9 @@ describe('buyCover', function () {
     const { bumpedPriceUpdateTime, bumpedPrice } = product;
     const price = bumpedPrice.sub(BigNumber.from(daysElapsed).mul(PRICE_CHANGE_PER_DAY));
 
+    const nextTimestamp = bumpedPriceUpdateTime.add(daysToSeconds(daysElapsed)).toNumber();
+    const ethRate = await getInternalPrice(ramm, pool, tokenController, mcr, nextTimestamp);
+
     const { premiumInNxm, premiumInAsset: premium } = calculatePremium(
       amount,
       ethRate,
@@ -245,7 +249,7 @@ describe('buyCover', function () {
       NXM_PER_ALLOCATION_UNIT,
     );
 
-    await setNextBlockTime(bumpedPriceUpdateTime.add(daysToSeconds(daysElapsed)).toNumber());
+    await setNextBlockTime(nextTimestamp);
 
     const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
     const poolBeforeETH = await ethers.provider.getBalance(pool.address);

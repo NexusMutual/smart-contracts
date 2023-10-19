@@ -11,6 +11,7 @@ const governance = require('./governance');
 const membership = require('./membership');
 const results = require('./results');
 const errors = require('./errors');
+const internalPrice = require('./internalPrice');
 
 module.exports = {
   addresses,
@@ -26,4 +27,5 @@ module.exports = {
   membership,
   results,
   errors,
+  internalPrice,
 };

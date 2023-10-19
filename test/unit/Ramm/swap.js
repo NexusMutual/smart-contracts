@@ -7,6 +7,14 @@ const { setNextBlockBaseFee, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
 
+const getSupplyAndBalances = async (tokenController, nxm, memberAddress) => {
+  return {
+    totalSupply: await tokenController.totalSupply(),
+    nxmBalance: await nxm.balanceOf(memberAddress),
+    ethBalance: await ethers.provider.getBalance(memberAddress),
+  };
+};
+
 describe('swap', function () {
   it('should revert with OneInputRequired if both NXM and ETH values are 0', async function () {
     const fixture = await loadFixture(setup);
@@ -127,21 +135,14 @@ describe('swap', function () {
     const supply = await tokenController.totalSupply();
     const mcrValue = await mcr.getMCR();
 
+    const before = await getSupplyAndBalances(tokenController, nxm, member.address);
     const state = await ramm._getReserves(initialState, capital, supply, mcrValue, nextBlockTimestamp);
-
-    // before state
-    const totalSupplyBefore = await tokenController.totalSupply();
-    const nxmBalanceBefore = await nxm.balanceOf(member.address);
-    const ethBalanceBefore = await ethers.provider.getBalance(member.address);
 
     await setNextBlockBaseFee(0);
     await setNextBlockTime(nextBlockTimestamp);
     await ramm.connect(member).swap(nxmIn, minAmountOut, deadline, { maxPriorityFeePerGas: 0 });
 
-    // after state
-    const totalSupplyAfter = await tokenController.totalSupply();
-    const nxmBalanceAfter = await nxm.balanceOf(member.address);
-    const ethBalanceAfter = await ethers.provider.getBalance(member.address);
+    const after = await getSupplyAndBalances(tokenController, nxm, member.address);
     const stateAfter = await getState(ramm);
 
     // expected state
@@ -151,9 +152,9 @@ describe('swap', function () {
     const newNxmA = state.nxmA.mul(newLiquidity).div(currentLiquidity);
     const ethOut = currentLiquidity.sub(newLiquidity);
 
-    expect(totalSupplyAfter).to.be.equal(totalSupplyBefore.sub(nxmIn));
-    expect(nxmBalanceAfter).to.be.equal(nxmBalanceBefore.sub(nxmIn));
-    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(ethOut));
+    expect(after.totalSupply).to.be.equal(before.totalSupply.sub(nxmIn));
+    expect(after.nxmBalance).to.be.equal(before.nxmBalance.sub(nxmIn));
+    expect(after.ethBalance).to.be.equal(before.ethBalance.add(ethOut));
 
     expect(stateAfter.nxmA).to.be.equal(newNxmA);
     expect(stateAfter.nxmB).to.be.equal(newNxmB);
@@ -179,20 +180,14 @@ describe('swap', function () {
     const mcrValue = await mcr.getMCR();
 
     const state = await ramm._getReserves(initialState, capital, supply, mcrValue, nextBlockTimestamp);
-
-    // before state
-    const totalSupplyBefore = await tokenController.totalSupply();
-    const nxmBalanceBefore = await nxm.balanceOf(member.address);
-    const ethBalanceBefore = await ethers.provider.getBalance(member.address);
+    const before = await getSupplyAndBalances(tokenController, nxm, member.address);
 
     await setNextBlockBaseFee(0);
     await setNextBlockTime(nextBlockTimestamp);
     await ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
 
     // after state
-    const totalSupplyAfter = await tokenController.totalSupply();
-    const nxmBalanceAfter = await nxm.balanceOf(member.address);
-    const ethBalanceAfter = await ethers.provider.getBalance(member.address);
+    const after = await getSupplyAndBalances(tokenController, nxm, member.address);
     const stateAfter = await getState(ramm);
 
     // expected states
@@ -202,9 +197,9 @@ describe('swap', function () {
     const newNxmB = state.nxmB.mul(newLiquidity).div(currentLiquidity);
     const nxmOut = state.nxmA.sub(newNxmA);
 
-    expect(totalSupplyAfter).to.be.equal(totalSupplyBefore.add(nxmOut));
-    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(ethIn));
-    expect(nxmBalanceAfter).to.be.equal(nxmBalanceBefore.add(nxmOut));
+    expect(after.totalSupply).to.be.equal(before.totalSupply.add(nxmOut));
+    expect(after.ethBalance).to.be.equal(before.ethBalance.sub(ethIn));
+    expect(after.nxmBalance).to.be.equal(before.nxmBalance.add(nxmOut));
 
     expect(stateAfter.nxmA).to.be.equal(newNxmA);
     expect(stateAfter.nxmB).to.be.equal(newNxmB);

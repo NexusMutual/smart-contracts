@@ -46,9 +46,9 @@ contract RammMockPool is IPool {
     );
   }
 
-  fallback() external payable {}
+  fallback() external payable virtual {}
 
-  receive() external payable {}
+  receive() external payable virtual {}
 
   function getPoolValueInEth() public override view returns (uint) {
     return address(this).balance;

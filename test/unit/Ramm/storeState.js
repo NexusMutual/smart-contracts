@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const { getState, setup } = require('./setup');
 const { setNextBlockTime } = require('../../utils/evm');
 
@@ -40,6 +41,7 @@ describe('storeState', function () {
     expect(after.eth).to.be.equal(newEth);
     expect(after.timestamp).to.be.equal(nextBlockTimestamp);
   });
+
   it('should update ratchetSpeed to NORMAL_RATCHET_SPEED if budget is 0', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;

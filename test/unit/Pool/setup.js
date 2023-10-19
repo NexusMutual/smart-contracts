@@ -13,6 +13,7 @@ async function setup() {
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
   const TokenMock = await ethers.getContractFactory('NXMTokenMock');
+  const LegacyPool = await ethers.getContractFactory('LegacyPool');
   const Pool = await ethers.getContractFactory('Pool');
   const MCR = await ethers.getContractFactory('P1MockMCR');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
@@ -59,7 +60,7 @@ async function setup() {
   await token.setOperator(tokenController.address);
   await token.mint(accounts.defaultSender.address, parseEther('10000'));
 
-  const pool = await Pool.deploy(
+  const legacyPool = await LegacyPool.deploy(
     AddressZero, // master: it is changed a few lines below
     priceFeedOracle.address,
     swapOperator.address,
@@ -67,6 +68,17 @@ async function setup() {
     stETH.address,
     enzymeVault.address,
     token.address,
+  );
+
+  const swapValue = await legacyPool.swapValue();
+
+  const pool = await Pool.deploy(
+    AddressZero, // master: it is changed a few lines below
+    priceFeedOracle.address,
+    swapOperator.address,
+    token.address,
+    legacyPool.address,
+    swapValue,
   );
 
   // set contract addresses

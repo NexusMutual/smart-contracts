@@ -13,6 +13,10 @@ async function setup() {
   const memberRoles = await MemberRoles.deploy();
   await memberRoles.deployed();
 
+  const Ramm = await ethers.getContractFactory('MockRamm');
+  const ramm = await Ramm.deploy();
+  await ramm.deployed();
+
   const CLMockTokenController = await ethers.getContractFactory('CLMockTokenController');
   const tokenController = await CLMockTokenController.deploy(nxm.address);
   await tokenController.deployed();

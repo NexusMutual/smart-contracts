@@ -117,16 +117,12 @@ contract Ramm is IRamm, MasterAwareV2 {
     _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
 
     {
-      uint nxmA = state.nxmA;
-      uint nxmB = state.nxmB;
-      uint eth = state.eth;
-      uint k = eth * nxmA;
+      uint k = state.eth * state.nxmA;
+      uint newEth = state.eth + ethIn;
+      uint newNxmA = k / newEth;
+      uint newNxmB = state.nxmB * newEth / state.eth;
 
-      eth = eth + ethIn;
-      nxmA = k / eth;
-      nxmB = nxmB * eth / state.eth;
-
-      nxmOut = state.nxmA - nxmA;
+      nxmOut = state.nxmA - newNxmA;
 
       if (nxmOut < minAmountOut) {
         revert InsufficientAmountOut(nxmOut, minAmountOut);
@@ -134,9 +130,9 @@ contract Ramm is IRamm, MasterAwareV2 {
 
       // edge case: below goes over bv due to eth-dai price changing
 
-      state.nxmA = nxmA;
-      state.nxmB = nxmB;
-      state.eth = eth;
+      state.nxmA = newNxmA;
+      state.nxmB = newNxmB;
+      state.eth = newEth;
       state.timestamp = block.timestamp;
     }
 
@@ -172,16 +168,12 @@ contract Ramm is IRamm, MasterAwareV2 {
     _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
 
     {
-      uint nxmA = state.nxmA;
-      uint nxmB = state.nxmB;
-      uint eth = state.eth;
-      uint k = eth * nxmB;
+      uint k = state.eth * state.nxmB;
+      uint newNxmB = state.nxmB + nxmIn;
+      uint newEth = k / newNxmB;
+      uint newNxmA = state.nxmA * newEth / state.eth;
 
-      nxmB = nxmB + nxmIn;
-      eth = k / nxmB;
-      nxmA = nxmA * eth / state.eth;
-
-      ethOut = state.eth - eth;
+      ethOut = state.eth - newEth;
 
       if (ethOut < minAmountOut) {
         revert InsufficientAmountOut(ethOut, minAmountOut);
@@ -192,9 +184,9 @@ contract Ramm is IRamm, MasterAwareV2 {
       }
 
       // update storage
-      state.nxmA = nxmA;
-      state.nxmB = nxmB;
-      state.eth = eth;
+      state.nxmA = newNxmA;
+      state.nxmB = newNxmB;
+      state.eth = newEth;
       state.timestamp = block.timestamp;
     }
 

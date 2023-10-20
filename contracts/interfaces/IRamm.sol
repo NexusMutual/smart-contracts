@@ -84,12 +84,15 @@ interface IRamm {
 
   function removeBudget() external;
 
+  function setEmergencySwapPause(bool _swapPaused) external;
+
   /* ========== EVENTS ========== */
 
   event EthSwappedForNxm(address indexed member, uint ethIn, uint nxmOut);
   event NxmSwappedForEth(address indexed member, uint nxmIn, uint ethOut);
   event ObservationUpdated(uint32 timestamp, uint64 priceCumulativeAbove, uint64 priceCumulativeBelow);
   event BudgetRemoved();
+  event SwapPauseConfigured(bool paused);
 
   // Input
   error OneInputOnly();

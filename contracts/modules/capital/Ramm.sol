@@ -25,6 +25,9 @@ contract Ramm is IRamm, MasterAwareV2 {
   Observation[3] public observations;
   uint32 public ratchetSpeed;
 
+  /// @dev emergency swap pause
+  bool public swapPaused;
+
   /* ========== CONSTANTS ========== */
 
   uint public constant LIQ_SPEED_PERIOD = 1 days;
@@ -207,6 +210,15 @@ contract Ramm is IRamm, MasterAwareV2 {
   function removeBudget() external onlyGovernance {
     slot1.budget = 0;
     emit BudgetRemoved();
+  }
+
+  /**
+   * @dev Sets swap emergency pause
+   * @param _swapPaused to toggle swap emergency pause ON/OFF
+   */
+  function setEmergencySwapPause(bool _swapPaused) external onlyEmergencyAdmin {
+    swapPaused = _swapPaused;
+    emit SwapPauseConfigured(_swapPaused);
   }
 
   /* ============== VIEWS ============= */

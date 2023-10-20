@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.18;
 
+import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
+
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/INXMToken.sol";
@@ -11,7 +13,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
-contract Ramm is IRamm, MasterAwareV2 {
+contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   using SafeUintCast for uint;
   using Math for uint;
 
@@ -52,6 +54,17 @@ contract Ramm is IRamm, MasterAwareV2 {
   uint public immutable SPOT_PRICE_A;
   uint public immutable SPOT_PRICE_B;
 
+  /* ========== MODIFIERS ========== */
+
+  /**
+   * @dev Checks if both system and swap is not on emergency pause
+   */
+  modifier whenSwapNotPaused {
+    require(!master.isPause(), "System is paused");
+    require(!isSwapPause(), "Swap is paused");
+    _;
+  }
+
   /* ========== CONSTRUCTOR ========== */
 
   constructor(uint spotPriceA, uint spotPriceB) {
@@ -87,7 +100,18 @@ contract Ramm is IRamm, MasterAwareV2 {
     ratchetSpeed = state.ratchetSpeed.toUint32();
   }
 
-  function swap(uint nxmIn, uint minAmountOut, uint deadline) external payable returns (uint amountOut) {
+  /**
+   * @notice Swaps nxmIn tokens for ETH or ETH sent for NXM tokens
+   * @param nxmIn The amount of NXM tokens to swap (set to 0 when swapping ETH for NXM)
+   * @param minAmountOut The minimum amount to receive in the swap (reverts with InsufficientAmountOut if not met)
+   * @param deadline The deadline for the swap to be executed (reverts with SwapExpired if deadline is surpassed)
+   * @return amountOut The amount received in the swap
+   */
+  function swap(
+    uint nxmIn,
+    uint minAmountOut,
+    uint deadline
+  ) external payable whenSwapNotPaused nonReentrant returns (uint amountOut) {
 
     if (msg.value > 0 && nxmIn > 0) {
       revert OneInputOnly();
@@ -104,6 +128,9 @@ contract Ramm is IRamm, MasterAwareV2 {
       : swapNxmForEth(nxmIn, minAmountOut);
   }
 
+  /**
+   * @dev should only be called by swap
+   */
   function swapEthForNxm(uint ethIn, uint minAmountOut) internal returns (uint nxmOut) {
 
     uint capital = pool().getPoolValueInEth();
@@ -155,6 +182,9 @@ contract Ramm is IRamm, MasterAwareV2 {
     return nxmOut;
   }
 
+  /**
+   * @dev should only be called by swap
+   */
   function swapNxmForEth(uint nxmIn, uint minAmountOut) internal returns (uint ethOut) {
 
     uint capital = pool().getPoolValueInEth();
@@ -339,6 +369,10 @@ contract Ramm is IRamm, MasterAwareV2 {
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
     return 1 ether * capital / supply;
+  }
+
+  function isSwapPause() public view returns (bool) {
+    return swapPaused;
   }
 
   /* ========== ORACLE ========== */

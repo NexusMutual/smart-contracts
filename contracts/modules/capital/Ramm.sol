@@ -237,13 +237,18 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     return ethOut;
   }
 
+  /**
+   * @notice Sets the budget to 0
+   * @dev Can only be called by governance
+   */
   function removeBudget() external onlyGovernance {
     slot1.budget = 0;
     emit BudgetRemoved();
   }
 
   /**
-   * @dev Sets swap emergency pause
+   * @notice Sets swap emergency pause
+   * @dev Can only be called by the emergency admin
    * @param _swapPaused to toggle swap emergency pause ON/OFF
    */
   function setEmergencySwapPause(bool _swapPaused) external onlyEmergencyAdmin {
@@ -253,6 +258,13 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
   /* ============== VIEWS ============= */
 
+  /**
+   * @notice Retrieves the current reserves of the RAMM contract
+   * @return _ethReserve The current ETH reserve
+   * @return nxmA The current NXM buy price
+   * @return nxmB The current NXM sell price
+   * @return _budget The current ETH budget from which the swapNxmForEth pool derives liquidity
+   */
   function getReserves() external view returns (uint _ethReserve, uint nxmA, uint nxmB, uint _budget) {
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
@@ -352,6 +364,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     return State(nxmA, nxmB, eth, budget, state.ratchetSpeed, currentTimestamp);
   }
 
+  /**
+   * @notice Retrieves the current NXM spot prices
+   * @return spotPriceA The current NXM buy price
+   * @return spotPriceB The current NXM sell price
+   */
   function getSpotPrices() external view returns (uint spotPriceA, uint spotPriceB) {
 
     uint capital = pool().getPoolValueInEth();
@@ -366,6 +383,10 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     );
   }
 
+  /**
+   * @notice Retrieves the current NXM book value
+   * @return bookValue the current NXM book value
+   */
   function getBookValue() external view returns (uint bookValue) {
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
@@ -507,6 +528,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     return initialObservations;
   }
 
+  /**
+   * @notice Updates the Time-Weighted Average Price (TWAP) based on the latest price observations
+   */
   function updateTwap() external {
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();

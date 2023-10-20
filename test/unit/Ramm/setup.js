@@ -38,6 +38,7 @@ async function setup(mockPool = 'RammMockPool') {
     master.setTokenAddress(nxm.address),
     master.enrollInternal(ramm.address),
     master.enrollGovernance(accounts.governanceContracts[0].address),
+    master.setEmergencyAdmin(accounts.emergencyAdmin.address),
   ]);
 
   await ramm.changeMasterAddress(master.address);

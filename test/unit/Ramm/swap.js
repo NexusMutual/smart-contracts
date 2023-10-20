@@ -3,9 +3,12 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getState, setup } = require('./setup');
-const { setNextBlockBaseFee, setNextBlockTime } = require('../../utils/evm');
+const { impersonateAccount, setEtherBalance, setNextBlockBaseFee, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
+
+const SYSTEM_IS_PAUSED_ERROR = 'System is paused';
+const SWAP_IS_PAUSED_ERROR = 'Swap is paused';
 
 /**
  * Retrieves NXM totalSupply as well as NXM and ETH balances for a given member address
@@ -329,5 +332,78 @@ describe('swap', function () {
     await setNextBlockTime(nextBlockTimestamp);
     const swap = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
     await expect(swap).to.emit(ramm, 'EthSwappedForNxm').withArgs(member.address, ethIn, nxmOut);
+  });
+
+  it('should revert when both SWAP and SYSTEM is paused', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, master } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+    const { emergencyAdmin } = fixture.accounts;
+
+    const paused = true;
+    await master.connect(emergencyAdmin).setEmergencyPause(paused);
+    await ramm.connect(emergencyAdmin).setEmergencySwapPause(paused);
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60; // add 5 minutes
+
+    const swap = ramm.connect(member).swap(parseEther('1'), parseEther('0.015'), deadline);
+    await expect(swap).to.be.revertedWith(SYSTEM_IS_PAUSED_ERROR);
+  });
+
+  it('should revert when SWAP is NOT paused and SYSTEM is paused ', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, master } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+    const { emergencyAdmin } = fixture.accounts;
+
+    const paused = true;
+    await master.connect(emergencyAdmin).setEmergencyPause(paused);
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60; // add 5 minutes
+
+    const swap = ramm.connect(member).swap(parseEther('1'), parseEther('0.015'), deadline);
+    await expect(swap).to.be.revertedWith(SYSTEM_IS_PAUSED_ERROR);
+  });
+
+  it('should revert when SWAP is paused and SYSTEM is NOT paused', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+    const { emergencyAdmin } = fixture.accounts;
+
+    const paused = true;
+    await ramm.connect(emergencyAdmin).setEmergencySwapPause(paused);
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60; // add 5 minutes
+
+    const swap = ramm.connect(member).swap(parseEther('1'), parseEther('0.015'), deadline);
+    await expect(swap).to.be.revertedWith(SWAP_IS_PAUSED_ERROR);
+  });
+
+  it('should revert on reentrancy', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, nxm, tokenController } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60; // add 5 minutes
+
+    // Set up re-entrancy attack
+    const ReentrantExploiter = await ethers.getContractFactory('ReentrancyExploiter');
+    const reentrantExploiter = await ReentrantExploiter.deploy();
+    const txData = await ramm.connect(member).populateTransaction.swap(parseEther('1'), parseEther('0.015'), deadline);
+    const reentrantSigner = await ethers.getSigner(reentrantExploiter.address);
+
+    await impersonateAccount(reentrantExploiter.address);
+    await setEtherBalance(reentrantExploiter.address, parseEther('1000'));
+    await nxm.mint(reentrantExploiter.address, parseEther('10000'));
+    await nxm.connect(reentrantSigner).approve(tokenController.address, parseEther('10000'));
+    await reentrantExploiter.setFallbackParams([ramm.address], [0], [txData.data]);
+
+    const swap = ramm.connect(reentrantSigner).swap(parseEther('1'), parseEther('0.015'), deadline);
+    await expect(swap).to.be.revertedWith('Pool: ETH transfer failed');
   });
 });

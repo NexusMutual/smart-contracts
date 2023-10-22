@@ -262,7 +262,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
    * @return _ethReserve The current ETH reserve
    * @return nxmA The current NXM buy price
    * @return nxmB The current NXM sell price
-   * @return _budget The current ETH budget from which the swapNxmForEth pool derives liquidity
+   * @return _budget The current ETH budget used for injection
    */
   function getReserves() external view returns (uint _ethReserve, uint nxmA, uint nxmB, uint _budget) {
     uint capital = pool().getPoolValueInEth();
@@ -528,7 +528,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   }
 
   /**
-   * @notice Updates the Time-Weighted Average Price (TWAP) based on the latest price observations
+   * @notice Updates the Time-Weighted Average Price (TWAP) by registering new price observations
    */
   function updateTwap() external {
     uint capital = pool().getPoolValueInEth();

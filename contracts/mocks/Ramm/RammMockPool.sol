@@ -57,11 +57,17 @@ contract RammMockPool is IPool {
   function sendPayout(
     uint,
     address payable payoutAddress,
-    uint amount
+    uint amount,
+    uint ethDepositAmount
   ) external override {
 
-    (bool transferSucceeded, /* data */) = payoutAddress.call{value : amount}("");
+    (bool transferSucceeded, /* data */) = payoutAddress.call{value: amount}("");
     require(transferSucceeded, "Pool: ETH transfer failed");
+
+    if (ethDepositAmount > 0) {
+      (bool ok, /* data */) = payoutAddress.call{value: ethDepositAmount}("");
+      require(ok, "Pool: ETH transfer failed");
+    }
   }
 
   function sendEth(
@@ -123,19 +129,7 @@ contract RammMockPool is IPool {
     revert("Unsupported");
   }
 
-  function getNXMForEth(uint) public override pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function calculateNXMForEth(uint, uint, uint) public pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function getEthForNXM(uint) public override pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function getTokenPriceInAsset(uint) public override pure returns (uint) {
+  function getInternalTokenPriceInAsset(uint) public override pure returns (uint) {
     revert("Unsupported");
   }
 

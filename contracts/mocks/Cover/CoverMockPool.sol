@@ -4,9 +4,10 @@ pragma solidity ^0.8.18;
 
 import "../../interfaces/IPool.sol";
 
+// TODO: needs to implement ICover
 contract CoverMockPool {
 
-  mapping (uint => uint) prices;
+  mapping (uint => uint) internal prices;
   Asset[] public assets;
 
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -16,7 +17,7 @@ contract CoverMockPool {
     assets.push(Asset(ETH, true, false));
   }
 
-  function getTokenPriceInAsset(uint assetId) public view returns (uint) {
+  function getInternalTokenPriceInAsset(uint assetId) public view returns (uint) {
     return prices[assetId];
   }
 

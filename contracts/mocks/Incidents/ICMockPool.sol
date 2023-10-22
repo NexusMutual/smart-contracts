@@ -24,7 +24,8 @@ contract ICMockPool {
   function sendPayout(
     uint assetIndex,
     address payable payoutAddress,
-    uint amount
+    uint amount,
+    uint ethDepositAmount
   ) external {
 
     Asset memory asset = assets[assetIndex];
@@ -35,6 +36,12 @@ contract ICMockPool {
       require(transferSucceeded, "Pool: ETH transfer failed");
     } else {
       IERC20(asset.assetAddress).safeTransfer(payoutAddress, amount);
+    }
+
+    if (ethDepositAmount > 0) {
+      // solhint-disable-next-line avoid-low-level-calls
+      (bool transferSucceeded, /* data */) = payoutAddress.call{value: ethDepositAmount}("");
+      require(transferSucceeded, "Pool: ETH transfer failed");
     }
   }
 

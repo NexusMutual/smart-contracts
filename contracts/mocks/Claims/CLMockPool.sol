@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "../../interfaces/IPool.sol";
 
+// TODO: needs to implement IPool
 contract CLMockPool {
   using SafeERC20 for IERC20;
 
@@ -27,7 +28,7 @@ contract CLMockPool {
     return assets[assetId];
   }
 
-  function getTokenPriceInAsset(uint assetId) public pure returns (uint tokenPrice) {
+  function getInternalTokenPriceInAsset(uint assetId) public pure returns (uint tokenPrice) {
     return assetId == 0
       ? 0.0382 ether // 1 NXM ~ 0.0382 ETH
       : 3.82 ether; // 1 NXM ~ 3.82 DAI
@@ -36,7 +37,8 @@ contract CLMockPool {
   function sendPayout (
     uint assetIndex,
     address payable payoutAddress,
-    uint amount
+    uint amount,
+    uint ethDepositAmount
   ) external {
 
     Asset memory asset = assets[assetIndex];
@@ -48,6 +50,9 @@ contract CLMockPool {
     } else {
       IERC20(asset.assetAddress).safeTransfer(payoutAddress, amount);
     }
+
+    (bool ok, /* data */) = payoutAddress.call{value: ethDepositAmount}("");
+    require(ok, "Pool: ETH transfer failed");
   }
 
   fallback() external payable virtual {}

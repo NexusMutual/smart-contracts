@@ -5,6 +5,7 @@ pragma solidity ^0.8.18;
 import "../interfaces/IRamm.sol";
 
 contract RammMock is IRamm {
+
   function updateTwap() external override {
     // do nothing
   }

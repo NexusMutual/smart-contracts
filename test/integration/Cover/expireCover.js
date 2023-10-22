@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 
 const { AddressZero, MaxUint256 } = ethers.constants;
-const { increaseTime, mineNextBlock } = require('../utils').evm;
+const { increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 const { calculateFirstTrancheId } = require('../utils/staking');
 const { BigNumber } = require('ethers');
@@ -90,7 +90,7 @@ describe('expireCover', function () {
 
   it('should expire a cover', async function () {
     const fixture = await loadFixture(expireCoverSetup);
-    const { cover, stakingPool1, ramm } = fixture.contracts;
+    const { cover, stakingPool1 } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, period, productId } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();

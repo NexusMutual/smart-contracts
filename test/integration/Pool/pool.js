@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { assert, expect } = require('chai');
+const { assert } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setEtherBalance } = require('../../utils/evm');
@@ -50,31 +50,31 @@ async function tokenPriceSetup() {
 
 describe('Pool functions', function () {
   // TODO: fix this test
-  it.skip('getInternalTokenPriceInAsset returns spot price for all assets', async function () {
-    const fixture = await loadFixture(tokenPriceSetup);
-    const { p1: pool, mcr } = fixture.contracts;
-    const { ethToDaiRate } = fixture.rates;
-
-    const ethTokenPrice = await pool.getInternalTokenPriceInAsset(0);
-    const daiTokenPrice = await pool.getInternalTokenPriceInAsset(1);
-
-    const totalAssetValue = await pool.getPoolValueInEth();
-    const mcrEth = await mcr.getMCR();
-    const expectedEthTokenPrice = BigNumber.from(getTokenSpotPrice(totalAssetValue, mcrEth).toString());
-
-    const ethPriceDiff = ethTokenPrice.sub(expectedEthTokenPrice).abs();
-    assert(
-      ethPriceDiff.lte(BigNumber.from(1)),
-      `token price ${ethTokenPrice.toString()} not close enough to ${expectedEthTokenPrice.toString()}`,
-    );
-
-    const expectedDaiPrice = BigNumber.from(ethToDaiRate / 100).mul(expectedEthTokenPrice);
-    const daiPriceDiff = daiTokenPrice.sub(expectedDaiPrice);
-    assert(
-      daiPriceDiff.lte(BigNumber.from(10000)), // negligible amount of wei
-      `DAI token price ${daiTokenPrice.toString()} not close enough to ${expectedDaiPrice.toString()}`,
-    );
-  });
+  // it.skip('getInternalTokenPriceInAsset returns spot price for all assets', async function () {
+  //   const fixture = await loadFixture(tokenPriceSetup);
+  //   const { p1: pool, mcr } = fixture.contracts;
+  //   const { ethToDaiRate } = fixture.rates;
+  //
+  //   const ethTokenPrice = await pool.getInternalTokenPriceInAsset(0);
+  //   const daiTokenPrice = await pool.getInternalTokenPriceInAsset(1);
+  //
+  //   const totalAssetValue = await pool.getPoolValueInEth();
+  //   const mcrEth = await mcr.getMCR();
+  //   const expectedEthTokenPrice = BigNumber.from(getTokenSpotPrice(totalAssetValue, mcrEth).toString());
+  //
+  //   const ethPriceDiff = ethTokenPrice.sub(expectedEthTokenPrice).abs();
+  //   assert(
+  //     ethPriceDiff.lte(BigNumber.from(1)),
+  //     `token price ${ethTokenPrice.toString()} not close enough to ${expectedEthTokenPrice.toString()}`,
+  //   );
+  //
+  //   const expectedDaiPrice = BigNumber.from(ethToDaiRate / 100).mul(expectedEthTokenPrice);
+  //   const daiPriceDiff = daiTokenPrice.sub(expectedDaiPrice);
+  //   assert(
+  //     daiPriceDiff.lte(BigNumber.from(10000)), // negligible amount of wei
+  //     `DAI token price ${daiTokenPrice.toString()} not close enough to ${expectedDaiPrice.toString()}`,
+  //   );
+  // });
 
   it('getPoolValueInEth calculates pool value correctly', async function () {
     const fixture = await loadFixture(tokenPriceSetup);

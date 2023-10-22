@@ -208,8 +208,10 @@ describe('CoverNFTDescriptor', function () {
     const uri = await coverNFT.tokenURI(3);
     expect(uri.slice(0, JSON_HEADER.length)).to.be.equal(JSON_HEADER);
 
-    let expectedAmountRaw = await assetWithPrecisionLoss(pool, fixture.usdcAmount, USDC_ASSET_ID, fixture.config);
-    expectedAmountRaw = ethers.utils.formatUnits(expectedAmountRaw, 6);
+    // let expectedAmountRaw = await assetWithPrecisionLoss(pool, fixture.usdcAmount, USDC_ASSET_ID, fixture.config);
+    // placeholder line to calm the linter
+    await assetWithPrecisionLoss(pool, fixture.usdcAmount, USDC_ASSET_ID, fixture.config);
+    // expectedAmountRaw = ethers.utils.formatUnits(expectedAmountRaw, 6);
     // const expectedAmount = Number(expectedAmountRaw).toFixed(2);
 
     // name/description

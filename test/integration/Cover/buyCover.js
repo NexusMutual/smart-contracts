@@ -1,16 +1,13 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { BigNumber } = require('ethers');
 
 const setup = require('../setup');
 const { calculateFirstTrancheId } = require('../utils/staking');
-const {
-  evm: { setNextBlockTime },
-} = require('../utils');
+const { setNextBlockTime } = require('../utils').evm;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { BUCKET_DURATION } = require('../../unit/StakingPool/helpers');
-const { BigNumber } = require('ethers');
-const { mineNextBlock } = require('../../utils/evm');
 const { getInternalPrice } = require('../../utils/internalPrice');
 
 const { parseEther } = ethers.utils;
@@ -82,8 +79,8 @@ async function buyCoverSetup() {
   const { targetPrice } = stakedProductParamTemplate;
 
   const stakeAmount = parseEther('900000');
-  const ethRate = await pool.getTokenPriceInAsset(0);
-  const daiRate = await pool.getTokenPriceInAsset(1);
+  const ethRate = await pool.getInternalTokenPriceInAsset(0);
+  const daiRate = await pool.getInternalTokenPriceInAsset(1);
 
   const productIdWithBumpedPrice = productList.findIndex(
     ({ product: { initialPriceRatio, useFixedPrice } }) => targetPrice !== initialPriceRatio && !useFixedPrice,

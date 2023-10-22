@@ -1,11 +1,12 @@
 const { ethers } = require('hardhat');
-const { getAccounts } = require('../../utils/accounts');
+
+const { getAccounts } = require('../utils').accounts;
+const { Role } = require('../utils').constants;
+const { toBytes2 } = require('../utils').helpers;
+
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 const { AddressZero, WeiPerEther } = ethers.constants;
-
-const { Role } = require('../utils').constants;
-const { toBytes2 } = require('../utils').helpers;
 
 async function setup() {
   const accounts = await getAccounts();
@@ -130,6 +131,7 @@ async function setup() {
     memberRoles,
     swapOperator,
     priceFeedOracle,
+    ramm,
 
     // tokens
     dai,

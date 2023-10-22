@@ -111,7 +111,6 @@ async function requestAllocationSetup() {
   const [staker] = fixture.accounts.members;
   const productId = 0;
   const trancheId = (await getCurrentTrancheId()) + trancheOffset;
-  console.log('trancheId in fixture:', trancheId);
 
   // Set global product and product type
   await cover.setProduct(coverProductTemplate, productId);

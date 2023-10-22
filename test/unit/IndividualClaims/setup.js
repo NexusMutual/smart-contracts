@@ -21,7 +21,7 @@ async function setup() {
   const tokenController = await CLMockTokenController.deploy(nxm.address);
   await tokenController.deployed();
 
-  nxm.setOperator(tokenController.address);
+  await nxm.setOperator(tokenController.address);
 
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();
@@ -109,7 +109,7 @@ async function setup() {
   }
 
   accounts.defaultSender.sendTransaction({ to: pool.address, value: parseEther('200') });
-  dai.mint(pool.address, parseEther('200'));
+  await dai.mint(pool.address, parseEther('200'));
 
   const config = await individualClaims.config();
 

@@ -4,7 +4,6 @@ const proposalCategories = require('../../lib/proposal-categories');
 const addresses = require('./addresses');
 const accounts = require('./accounts');
 const evm = require('./evm');
-const tokenPrice = require('./token-price');
 const buyCover = require('./buyCover');
 const getQuote = require('./getQuote');
 const governance = require('./governance');
@@ -20,7 +19,6 @@ module.exports = {
   evm,
   helpers,
   proposalCategories,
-  tokenPrice,
   buyCover,
   getQuote,
   governance,

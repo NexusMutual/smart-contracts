@@ -67,13 +67,15 @@ async function updateMCRSetup() {
 describe('updateMCR', function () {
   it('buyNXM does not trigger updateMCR if minUpdateTime has not passed', async function () {
     const fixture = await loadFixture(updateMCRSetup);
-    const { p1: pool, mcr } = fixture.contracts;
+    const { mcr, ra } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const buyValue = parseEther('1000');
-
     const lastUpdateTimeBefore = await mcr.lastUpdateTime();
-    await pool.connect(member).buyNXM('0', { value: buyValue });
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 3600;
+    await ra.connect(member).swap('0', '0', deadline, { value: buyValue });
     const lastUpdateTimeAfter = await mcr.lastUpdateTime();
 
     expect(lastUpdateTimeAfter).to.be.equal(lastUpdateTimeBefore);
@@ -81,11 +83,16 @@ describe('updateMCR', function () {
 
   it('sellNXM does not trigger updateMCR if minUpdateTime has not passed', async function () {
     const fixture = await loadFixture(updateMCRSetup);
-    const { p1: pool, mcr } = fixture.contracts;
+    const { mcr, ra, tk } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 3600;
+    const sellAmount = parseEther('1');
+    await tk.connect(member).approve(ra.address, sellAmount);
+
     const lastUpdateTimeBefore = await mcr.lastUpdateTime();
-    await pool.connect(member).sellNXM('0', '0');
+    await ra.connect(member).swap(sellAmount, '0', deadline);
     const lastUpdateTimeAfter = await mcr.lastUpdateTime();
 
     expect(lastUpdateTimeAfter).to.be.equal(lastUpdateTimeBefore);
@@ -93,7 +100,7 @@ describe('updateMCR', function () {
 
   it('buyNXM triggers updateMCR if minUpdateTime passes, decreases desiredMCR', async function () {
     const fixture = await loadFixture(updateMCRSetup);
-    const { p1: pool, mcr } = fixture.contracts;
+    const { ra, mcr } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const buyValue = parseEther('1000');
@@ -104,7 +111,9 @@ describe('updateMCR', function () {
 
     const desireMCRBefore = await mcr.desiredMCR();
 
-    await pool.connect(member).buyNXM('0', { value: buyValue });
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 3600;
+    await ra.connect(member).swap('0', '0', deadline, { value: buyValue });
 
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const lastUpdateTimeAfter = await mcr.lastUpdateTime();
@@ -120,7 +129,7 @@ describe('updateMCR', function () {
 
   it('sellNXM triggers updateMCR if minUpdateTime passes, decreases desiredMCR', async function () {
     const fixture = await loadFixture(updateMCRSetup);
-    const { p1: pool, mcr } = fixture.contracts;
+    const { ra, tk, mcr } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const lastUpdateTimeBefore = await mcr.lastUpdateTime();
@@ -129,7 +138,11 @@ describe('updateMCR', function () {
 
     const desireMCRBefore = await mcr.desiredMCR();
 
-    await pool.connect(member).sellNXM('0', '0');
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 3600;
+    const sellAmount = parseEther('1');
+    await tk.connect(member).approve(ra.address, sellAmount);
+    await ra.connect(member).swap(sellAmount, '0', deadline);
 
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const lastUpdateTimeAfter = await mcr.lastUpdateTime();

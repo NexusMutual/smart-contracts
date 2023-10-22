@@ -17,7 +17,7 @@ async function setup() {
   const tokenController = await ICMockTokenController.deploy(nxm.address);
   await tokenController.deployed();
 
-  nxm.setOperator(tokenController.address);
+  await nxm.setOperator(tokenController.address);
 
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();
@@ -107,7 +107,7 @@ async function setup() {
   }
 
   accounts.defaultSender.sendTransaction({ to: pool.address, value: parseEther('10000') });
-  dai.mint(pool.address, parseEther('10000'));
+  await dai.mint(pool.address, parseEther('10000'));
 
   const config = await yieldTokenIncidents.config();
 

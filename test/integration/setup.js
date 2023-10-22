@@ -538,7 +538,7 @@ async function setup() {
   await enrollMember(fixture.contracts, members, owner);
   await enrollMember(fixture.contracts, stakingPoolManagers, owner);
   await enrollMember(fixture.contracts, advisoryBoardMembers, owner);
-  await enrollABMember(fixture.contracts, advisoryBoardMembers, owner);
+  await enrollABMember(fixture.contracts, advisoryBoardMembers);
 
   const product = {
     productId: 0,

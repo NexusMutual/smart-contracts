@@ -1,30 +1,17 @@
 const { ethers } = require('hardhat');
-const { parseEther, defaultAbiCoder } = ethers.utils;
-const { MaxUint256 } = ethers.constants;
-const { BigNumber } = ethers;
 const { assert, expect } = require('chai');
-const Decimal = require('decimal.js');
-const { setNextBlockTime, mineNextBlock, setEtherBalance } = require('../../utils/evm');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const { setEtherBalance } = require('../../utils/evm');
 const { ETH_ASSET_ID } = require('../utils/cover');
 const { daysToSeconds } = require('../../../lib/helpers');
-const { ProposalCategory } = require('../utils').constants;
-const { calculateEthForNXMRelativeError, calculateNXMForEthRelativeError, getTokenSpotPrice } =
-  require('../utils').tokenPrice;
-
-const { buyCover } = require('../utils/cover');
 const { stake } = require('../utils/staking');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const setup = require('../setup');
-const { hex } = require('../utils').helpers;
 
-const increaseTime = async interval => {
-  const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-  const timestamp = currentTime + interval;
-  await setNextBlockTime(timestamp);
-  await mineNextBlock();
-};
-
-const ratioScale = BigNumber.from(10000);
+const { parseEther } = ethers.utils;
+const { MaxUint256 } = ethers.constants;
+const { BigNumber } = ethers;
 
 const ethCoverTemplate = {
   productId: 0, // DEFAULT_PRODUCT
@@ -61,15 +48,15 @@ async function tokenPriceSetup() {
   return fixture;
 }
 
-describe('Token price functions', function () {
+describe('Pool functions', function () {
   // TODO: fix this test
-  it.skip('getTokenPriceInAsset returns spot price for all assets', async function () {
+  it.skip('getInternalTokenPriceInAsset returns spot price for all assets', async function () {
     const fixture = await loadFixture(tokenPriceSetup);
     const { p1: pool, mcr } = fixture.contracts;
     const { ethToDaiRate } = fixture.rates;
 
-    const ethTokenPrice = await pool.getTokenPriceInAsset(0);
-    const daiTokenPrice = await pool.getTokenPriceInAsset(1);
+    const ethTokenPrice = await pool.getInternalTokenPriceInAsset(0);
+    const daiTokenPrice = await pool.getInternalTokenPriceInAsset(1);
 
     const totalAssetValue = await pool.getPoolValueInEth();
     const mcrEth = await mcr.getMCR();

@@ -15,7 +15,7 @@ async function assetToEthWithPrecisionLoss(pool, coverAmountInAsset, assetToEthR
   }
 
   // Get NXM/ETH price
-  const nxmEthPrice = await pool.getTokenPriceInAsset(ETH_ASSET_ID);
+  const nxmEthPrice = await pool.getInternalTokenPriceInAsset(ETH_ASSET_ID);
 
   // convert to NXM and back to ETH with same precision loss as contracts
   const coverAmountInNXM = roundUpToNearestAllocationUnit(
@@ -28,7 +28,7 @@ async function assetToEthWithPrecisionLoss(pool, coverAmountInAsset, assetToEthR
 
 // Replicates the amount stored when buying cover with asset other than NXM
 async function assetWithPrecisionLoss(pool, amountInAsset, assetID, config) {
-  const nxmPriceInCoverAsset = await pool.getTokenPriceInAsset(assetID);
+  const nxmPriceInCoverAsset = await pool.getInternalTokenPriceInAsset(assetID);
   const amountInNXM = roundUpToNearestAllocationUnit(
     divCeil(amountInAsset.mul(config.ONE_NXM), nxmPriceInCoverAsset),
     config.NXM_PER_ALLOCATION_UNIT,

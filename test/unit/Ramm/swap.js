@@ -86,7 +86,7 @@ describe('swap', function () {
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
-    setNextBlockTime(timestamp + 4 * 60);
+    await setNextBlockTime(timestamp + 4 * 60);
 
     const swap = ramm.connect(member).swap(nxmIn, minAmountOut, deadline);
     await expect(swap).to.be.revertedWithCustomError(ramm, 'NoSwapsInBufferZone');

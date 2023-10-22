@@ -1,10 +1,12 @@
-const { ethers } = require('hardhat');
+const { ethers, artifacts } = require('hardhat');
 const { expect } = require('chai');
-const { AddressZero } = ethers.constants;
 const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const setup = require('./setup');
+
+const { AddressZero } = ethers.constants;
 
 describe('StakingPoolFactory', function () {
   it('should verify that constructor variables were set correctly', async function () {

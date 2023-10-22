@@ -76,11 +76,13 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint segmentPeriod,
     uint coverAsset
   ) public view returns (uint, uint) {
+
     IPool poolContract = pool();
-    uint nxmPriceInETH = poolContract.getTokenPriceInAsset(0);
+
+    uint nxmPriceInETH = poolContract.getInternalTokenPriceInAsset(0);
     uint nxmPriceInCoverAsset = coverAsset == 0
       ? nxmPriceInETH
-      : poolContract.getTokenPriceInAsset(coverAsset);
+      : poolContract.getInternalTokenPriceInAsset(coverAsset);
 
     // Calculate the expected payout in NXM using the NXM price at cover purchase time
     uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceInCoverAsset;
@@ -335,6 +337,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   ///
   /// @param claimId  Claim identifier
   function redeemClaimPayout(uint104 claimId) external override whenNotPaused {
+
     Claim memory claim = claims[claimId];
     (
       IAssessment.Poll memory poll,
@@ -364,20 +367,8 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       claim.amount
     ));
 
-    IPool poolContract = pool();
-    if (claim.coverAsset == 0 /* ETH */) {
-      // Send payout and deposit in ETH
-      poolContract.sendPayout(
-        claim.coverAsset,
-        coverOwner,
-        claim.amount + assessmentDepositInETH
-      );
-    } else {
-      // Send deposit in ETH
-      poolContract.sendPayout(0 /* ETH */, coverOwner, assessmentDepositInETH);
-      // Send payout in cover asset
-      poolContract.sendPayout(claim.coverAsset, coverOwner, claim.amount);
-    }
+    // Send payout in cover asset
+    pool().sendPayout(claim.coverAsset, coverOwner, claim.amount, assessmentDepositInETH);
 
     emit ClaimPayoutRedeemed(coverOwner, claim.amount, claimId, claim.coverId);
   }

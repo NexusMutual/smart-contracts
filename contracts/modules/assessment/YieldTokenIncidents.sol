@@ -290,7 +290,8 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]).sendPayout(
       coverData.coverAsset,
       payoutAddress,
-      payoutAmount
+      payoutAmount,
+      0 // deposit
     );
 
     emit IncidentPayoutRedeemed(msg.sender, payoutAmount, incidentId, coverId);

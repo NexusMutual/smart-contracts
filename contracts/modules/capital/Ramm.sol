@@ -99,6 +99,8 @@ contract Ramm is IRamm, MasterAwareV2 {
     msg.value > 0
       ? swapEthForNxm(msg.value, minAmountOut)
       : swapNxmForEth(nxmIn, minAmountOut);
+
+    mcr().updateMCRInternal(false);
   }
 
   function swapEthForNxm(uint ethIn, uint minAmountOut) internal returns (uint /*nxmOut*/) {

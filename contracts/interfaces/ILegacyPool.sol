@@ -4,6 +4,8 @@ pragma solidity >=0.5.0;
 
 import "./IPriceFeedOracle.sol";
 
+interface ILegacyPool {
+
   struct SwapDetails {
     uint104 minAmount;
     uint104 maxAmount;
@@ -17,8 +19,6 @@ import "./IPriceFeedOracle.sol";
     bool isCoverAsset;
     bool isAbandoned;
   }
-
-interface ILegacyPool {
 
   function getAsset(uint assetId) external view returns (Asset memory);
 

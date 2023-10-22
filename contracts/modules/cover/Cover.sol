@@ -210,7 +210,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       */
     }
 
-    uint nxmPriceInCoverAsset = pool().getTokenPriceInAsset(params.coverAsset);
+    uint nxmPriceInCoverAsset = pool().getInternalTokenPriceInAsset(params.coverAsset);
     allocationRequest.coverId = coverId;
 
     (uint coverAmountInCoverAsset, uint amountDueInNXM) = requestAllocation(

@@ -9,6 +9,7 @@ import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/IRamm.sol";
 import "../../interfaces/INXMToken.sol";
+import "../../interfaces/ILegacyPool.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/ITokenController.sol";
@@ -43,14 +44,13 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   uint internal constant CONSTANT_A = 1028 * 1e13;
   uint internal constant TOKEN_EXPONENT = 4;
 
-  uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
+  uint internal constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
   INXMToken public immutable nxmToken;
 
   /* events */
   event Payout(address indexed to, address indexed assetAddress, uint amount);
-  event NXMSold (address indexed member, uint nxmIn, uint ethOut);
-  event NXMBought (address indexed member, uint ethIn, uint nxmOut);
+  event DepositReturned(address indexed to, uint amount);
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
 
   /* logic */
@@ -80,17 +80,31 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     swapOperator = _swapOperator;
     swapValue = _swapValue.toUint96();
 
-    IPool previousPool = IPool(_previousPool);
+    ILegacyPool previousPool = ILegacyPool(_previousPool);
 
     // copy over assets and swap details
-    Asset[] memory oldAssets = previousPool.getAssets();
+    ILegacyPool.Asset[] memory previousAssets = previousPool.getAssets();
 
-    for (uint i = 0; i < oldAssets.length; i++) {
-      address assetAddress = oldAssets[i].assetAddress;
+    for (uint i = 0; i < previousAssets.length; i++) {
+
+      address assetAddress = previousAssets[i].assetAddress;
+      assets.push(
+        Asset(
+          previousAssets[i].assetAddress,
+          previousAssets[i].isCoverAsset,
+          previousAssets[i].isAbandoned
+        )
+      );
+
       if (assetAddress != ETH) {
-        swapDetails[assetAddress] = previousPool.getAssetSwapDetails(assetAddress);
+        ILegacyPool.SwapDetails memory previousSwapDetails = previousPool.getAssetSwapDetails(assetAddress);
+        swapDetails[assetAddress] = SwapDetails(
+          previousSwapDetails.minAmount,
+          previousSwapDetails.maxAmount,
+          previousSwapDetails.lastSwapTime,
+          previousSwapDetails.maxSlippageRatio
+      );
       }
-      assets.push(oldAssets[i]);
     }
   }
 
@@ -283,21 +297,30 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   /// @param assetId        Index of the cover asset
   /// @param payoutAddress  Send funds to this address
   /// @param amount         Amount to send
+  /// @param ethDepositAmount  Deposit amount to send
   ///
   function sendPayout(
     uint assetId,
     address payable payoutAddress,
-    uint amount
+    uint amount,
+    uint ethDepositAmount
   ) external override onlyInternal nonReentrant {
 
     Asset memory asset = assets[assetId];
 
     if (asset.assetAddress == ETH) {
       // solhint-disable-next-line avoid-low-level-calls
-      (bool transferSucceeded, /* data */) = payoutAddress.call{value : amount}("");
+      (bool transferSucceeded, /* data */) = payoutAddress.call{value: amount}("");
       require(transferSucceeded, "Pool: ETH transfer failed");
     } else {
       IERC20(asset.assetAddress).safeTransfer(payoutAddress, amount);
+    }
+
+    if (ethDepositAmount > 0) {
+      // solhint-disable-next-line avoid-low-level-calls
+      (bool transferSucceeded, /* data */) = payoutAddress.call{value: ethDepositAmount}("");
+      require(transferSucceeded, "Pool: ETH transfer failed");
+      emit DepositReturned(payoutAddress, ethDepositAmount);
     }
 
     emit Payout(payoutAddress, asset.assetAddress, amount);
@@ -312,27 +335,8 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   // @param amount  Amount of ETH to send
   //
   function sendEth(address member, uint amount) external override onlyRamm nonReentrant {
-    (bool transferSucceeded, /* data */) = member.call{value : amount}("");
+    (bool transferSucceeded, /* data */) = member.call{value: amount}("");
     require(transferSucceeded, "Pool: ETH transfer failed");
-  }
-
-  /* ========== TOKEN RELATED VIEW FUNCTIONS ========== */
-
-  /// Get value in tokens for an ethAmount purchase.
-  ///
-  /// @param ethAmount    Amount of ETH used for buying.
-  /// @return tokenValue  Tokens obtained by buying worth of ethAmount
-  ///
-  function getNXMForEth(
-    uint ethAmount
-  ) public override view returns (uint) {
-    (, uint spotPriceB) = ramm().getSpotPrices();
-    return ethAmount * 1e18 / spotPriceB;
-  }
-
-  function getEthForNXM(uint nxmAmount) public override view returns (uint ethAmount) {
-    (uint sportPriceA, ) = ramm().getSpotPrices();
-    return nxmAmount * sportPriceA / 1e18;
   }
 
   function calculateMCRRatio(
@@ -342,27 +346,18 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     return totalAssetValue * (10 ** MCR_RATIO_DECIMALS) / mcrEth;
   }
 
-  // [deprecated] use `getSpotPrices` function in Ramm
-  /// Calculates token price in ETH of 1 NXM token. TokenPrice = A + (MCReth / C) * MCR%^4
-  ///
-  function calculateTokenSpotPrice(
-    uint /*totalAssetValue*/,
-    uint /*mcrEth*/
-  ) public override view returns (uint tokenPrice) {
+  /* ========== TOKEN RELATED VIEW FUNCTIONS ========== */
 
-    (, tokenPrice) = ramm().getSpotPrices();
-    return tokenPrice;
-  }
-
-  /// Uses internal price for calculating the token price in ETH, it's being used in Cover and IndividualClaims
-  /// Returns the NXM price in a given asset.
+  /// Uses internal price for calculating the token price in ETH
+  /// It's being used in Cover and IndividualClaims
+  /// Returns the internal NXM price in a given asset.
   ///
   /// @dev The pool contract is not a proxy and its address will change as we upgrade it.
   /// @dev You may want TokenController.getTokenPrice() for a stable address since it's a proxy.
   ///
   /// @param assetId  Index of the cover asset.
   ///
-  function getTokenPriceInAsset(uint assetId) public view override returns (uint tokenPrice) {
+  function getInternalTokenPriceInAsset(uint assetId) public view override returns (uint tokenPrice) {
 
     require(assetId < assets.length, "Pool: Unknown cover asset");
     address assetAddress = assets[assetId].assetAddress;
@@ -372,7 +367,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     return priceFeedOracle.getAssetForEth(assetAddress, tokenInternalPrice);
   }
 
-  /// [deprecated] Returns the NXM price in ETH from ramm contract.
+  /// [deprecated] Returns spot NXM price in ETH from ramm contract.
   ///
   /// @dev The pool contract is not a proxy and its address will change as we upgrade it.
   /// @dev You may want TokenController.getTokenPrice() for a stable address since it's a proxy.

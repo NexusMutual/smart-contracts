@@ -60,8 +60,21 @@ contract RammMockPool is IPool {
     uint amount
   ) external override {
 
-    (bool transferSucceeded, /* data */) = payoutAddress.call{value : amount}("");
-    require(transferSucceeded, "Pool: ETH transfer failed");
+    (bool transferSucceeded, bytes memory returndata) = payoutAddress.call{value : amount}("");
+
+    if (transferSucceeded) {
+      return;
+    }
+
+    // pass revert reason
+    if (returndata.length > 0) {
+      assembly {
+        let returndata_size := mload(returndata)
+        revert(add(32, returndata), returndata_size)
+      }
+    }
+
+    revert("Pool: ETH transfer failed");
   }
 
   /* ====== NOT NEEDED FUNCTIONS ====== */

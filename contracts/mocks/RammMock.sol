@@ -32,11 +32,15 @@ contract RammMock is IRamm {
     revert("Unsupported");
   }
 
-  function swap(uint, uint, uint) external payable {
+  function swap(uint, uint, uint) external payable returns (uint) {
     revert("Unsupported");
   }
 
   function removeBudget() external pure {
+    revert("Unsupported");
+  }
+
+  function setEmergencySwapPause(bool) external pure {
     revert("Unsupported");
   }
 }

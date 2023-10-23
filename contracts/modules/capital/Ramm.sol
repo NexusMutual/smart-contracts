@@ -118,7 +118,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint nxmIn,
     uint minAmountOut,
     uint deadline
-  ) external payable whenSwapNotPaused nonReentrant returns (uint amountOut) {
+  ) external payable whenSwapNotPaused nonReentrant returns (uint) {
 
     if (msg.value > 0 && nxmIn > 0) {
       revert OneInputOnly();
@@ -132,11 +132,13 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       revert SwapExpired(deadline, block.timestamp);
     }
 
-    return msg.value > 0
+    uint amountOut = msg.value > 0
       ? swapEthForNxm(msg.value, minAmountOut)
       : swapNxmForEth(nxmIn, minAmountOut);
 
     mcr().updateMCRInternal(false);
+
+    return amountOut;
   }
 
   /**

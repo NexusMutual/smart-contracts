@@ -1,9 +1,9 @@
-const { ethers } = require('hardhat');
+const { ethers, artifacts } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getState, setup } = require('./setup');
-const { setNextBlockBaseFee, setNextBlockTime } = require('../../utils/evm');
+const { setNextBlockBaseFee, setNextBlockTime, setCode } = require('../utils').evm;
 
 const { parseEther } = ethers.utils;
 
@@ -166,10 +166,12 @@ describe('swap', function () {
   });
 
   it('should revert with EthTransferFailed if failed to send ETH', async function () {
-    const setupPoolRejectEth = () => setup('RammMockPoolEtherRejecter');
-    const fixture = await loadFixture(setupPoolRejectEth);
-    const { ramm } = fixture.contracts;
+    const fixture = await loadFixture(setup);
+    const { ramm, pool } = fixture.contracts;
     const [member] = fixture.accounts.members;
+
+    const { deployedBytecode: ethRejecterBytecode } = await artifacts.readArtifact('RammMockPoolEtherRejecter');
+    await setCode(pool.address, ethRejecterBytecode);
 
     const ethIn = parseEther('1');
     const minAmountOut = parseEther('28.8');

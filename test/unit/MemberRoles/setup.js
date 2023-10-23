@@ -1,4 +1,4 @@
-const { ethers } = require('hardhat');
+const { ethers, artifacts } = require('hardhat');
 const { getAccounts } = require('../utils').accounts;
 
 const { hex } = require('../utils').helpers;

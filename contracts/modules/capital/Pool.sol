@@ -330,10 +330,10 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   /* ========== TOKEN RELATED MUTATIVE FUNCTIONS ========== */
 
-  // @dev Sends ETH to a member in exchange for NXM tokens.
-  // @param member  Member address
-  // @param amount  Amount of ETH to send
-  //
+  /// @dev Sends ETH to a member in exchange for NXM tokens.
+  /// @param member  Member address
+  /// @param amount  Amount of ETH to send
+  ///
   function sendEth(address member, uint amount) external override onlyRamm nonReentrant {
     (bool transferSucceeded, /* data */) = member.call{value: amount}("");
     require(transferSucceeded, "Pool: ETH transfer failed");

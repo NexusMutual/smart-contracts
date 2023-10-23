@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getState, setup } = require('./setup');
-const { impersonateAccount, setEtherBalance, setNextBlockBaseFee, setNextBlockTime } = require('../../utils/evm');
+const { setNextBlockBaseFee, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
 
@@ -386,24 +386,23 @@ describe('swap', function () {
   it('should revert on reentrancy', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, nxm, tokenController } = fixture.contracts;
-    const [member] = fixture.accounts.members;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
     // Set up re-entrancy attack
-    const ReentrantExploiter = await ethers.getContractFactory('ReentrancyExploiter');
-    const reentrantExploiter = await ReentrantExploiter.deploy();
-    const txData = await ramm.connect(member).populateTransaction.swap(parseEther('1'), parseEther('0.015'), deadline);
-    const reentrantSigner = await ethers.getSigner(reentrantExploiter.address);
+    const ReentrancyExploiter = await ethers.getContractFactory('ReentrancyExploiter');
+    const reentrancyExploiter = await ReentrancyExploiter.deploy();
+    const { data: swapData } = await ramm.populateTransaction.swap(parseEther('1'), parseEther('0.015'), deadline);
 
-    await impersonateAccount(reentrantExploiter.address);
-    await setEtherBalance(reentrantExploiter.address, parseEther('1000'));
-    await nxm.mint(reentrantExploiter.address, parseEther('10000'));
-    await nxm.connect(reentrantSigner).approve(tokenController.address, parseEther('10000'));
-    await reentrantExploiter.setFallbackParams([ramm.address], [0], [txData.data]);
+    // approve without reentering
+    await nxm.mint(reentrancyExploiter.address, parseEther('10000'));
+    const { data: approveData } = await nxm.populateTransaction.approve(tokenController.address, parseEther('10000'));
+    await reentrancyExploiter.execute([nxm.address], [0], [approveData]);
 
-    const swap = ramm.connect(reentrantSigner).swap(parseEther('1'), parseEther('0.015'), deadline);
-    await expect(swap).to.be.revertedWith('Pool: ETH transfer failed');
+    // prepare reentrancy and execute
+    await reentrancyExploiter.setFallbackParams([ramm.address], [0], [swapData]);
+    const reentrancyAttackPromise = reentrancyExploiter.execute([ramm.address], [0], [swapData]);
+    await expect(reentrancyAttackPromise).to.be.revertedWith('ReentrancyGuard: reentrant call');
   });
 });

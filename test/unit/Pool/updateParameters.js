@@ -121,4 +121,17 @@ describe('updateAddressParameters', function () {
 
     expect(storedAddress).to.equal(newPriceFeedOracle.address);
   });
+
+  it('should revert if parameter is unknown', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
+    const {
+      governanceContracts: [governanceContract],
+      generalPurpose: [generalPurpose],
+    } = fixture.accounts;
+
+    const unknownParam = toBytes8('UNKNOWN');
+    const promise = pool.connect(governanceContract).updateAddressParameters(unknownParam, generalPurpose.address);
+    await expect(promise).to.be.revertedWith('Pool: Unknown parameter');
+  });
 });

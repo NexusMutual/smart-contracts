@@ -186,13 +186,14 @@ function calculateInternalPrice(currentState, observations, capital, supply, cur
 /**
  * Retrieves the expected observations for the given timestamp
  *
+ * @param {Object} previousState - The previous state of the Ramm contract
  * @param {Contract} ramm - The RAMM contract
  * @param {Contract} pool - The pool contract
  * @param {Contract} tokenController - The token controller contract
  * @param {Contract} mcr - The MCR contract
  * @param {Object} fixtureConstants - The fixture constants object
  * @param {number} currentTimestamp - The current timestamp
- * @return {Array} An array of observations object containing timestamp, priceCumulativeBelow, and priceCumulativeAbove
+ * @return {Promise<Array>} Array of observations containing timestamp, priceCumulativeBelow, and priceCumulativeAbove
  */
 const getExpectedObservations = async (
   previousState,

@@ -4,10 +4,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getState, setup } = require('./setup');
 const { setNextBlockTime } = require('../../utils/evm');
-const { calculateInternalPrice, getObservationIndex, getExpectedObservations } = require('./helpers');
-
-const { parseEther } = ethers.utils;
-const { BigNumber } = ethers;
+const { calculateInternalPrice, getExpectedObservations } = require('./helpers');
 
 describe('getInternalPriceAndUpdateTwap', function () {
   it('should return the internal price and update the twap', async function () {

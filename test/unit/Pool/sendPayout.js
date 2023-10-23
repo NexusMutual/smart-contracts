@@ -87,13 +87,22 @@ describe('sendPayout', function () {
       nonMembers: [destination],
     } = fixture.accounts;
 
+    const assets = await pool.getAssets();
     const ethAmount = parseEther('10000');
     const amountToTransfer = ethAmount.div(2);
     const depositAmount = ethAmount.div(4);
     await setEtherBalance(pool.address, ethAmount);
 
     const destinationBalancePrePayout = await ethers.provider.getBalance(destination.address);
-    await pool.connect(internal).sendPayout(PoolAsset.ETH, destination.address, amountToTransfer, depositAmount);
+    const sendPayoutPromise = pool
+      .connect(internal)
+      .sendPayout(PoolAsset.ETH, destination.address, amountToTransfer, depositAmount);
+
+    await expect(sendPayoutPromise)
+      .to.emit(pool, 'DepositReturned')
+      .withArgs(destination.address, depositAmount)
+      .to.emit(pool, 'Payout')
+      .withArgs(destination.address, assets[PoolAsset.ETH].assetAddress, amountToTransfer);
 
     const destinationBalance = await ethers.provider.getBalance(destination.address);
     const expectedTransferAmount = amountToTransfer.add(depositAmount);
@@ -101,5 +110,37 @@ describe('sendPayout', function () {
 
     const poolBalance = await ethers.provider.getBalance(pool.address);
     expect(poolBalance).to.be.equal(ethAmount.sub(expectedTransferAmount));
+  });
+
+  it('should revert if ETH payout transfer failed', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
+    const [internal] = fixture.accounts.internalContracts;
+
+    const P1MockEtherRejecter = await ethers.getContractFactory('P1MockEtherRejecter');
+    const { address } = await P1MockEtherRejecter.deploy();
+
+    const amountToTransfer = parseEther('10000');
+    const depositAmount = parseEther('1');
+
+    const sendPayout = pool.connect(internal).sendPayout(PoolAsset.ETH, address, amountToTransfer, depositAmount);
+    await expect(sendPayout).to.be.revertedWith('Pool: ETH transfer failed');
+  });
+
+  it('should revert if ETH deposit transfer failed', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool, dai } = fixture;
+    const [internal] = fixture.accounts.internalContracts;
+
+    const P1MockEtherRejecter = await ethers.getContractFactory('P1MockEtherRejecter');
+    const { address } = await P1MockEtherRejecter.deploy();
+
+    const amountToTransfer = parseEther('10000');
+    const depositAmount = parseEther('1');
+
+    await dai.mint(pool.address, amountToTransfer);
+
+    const sendPayout = pool.connect(internal).sendPayout(PoolAsset.DAI, address, amountToTransfer, depositAmount);
+    await expect(sendPayout).to.be.revertedWith('Pool: ETH transfer failed');
   });
 });

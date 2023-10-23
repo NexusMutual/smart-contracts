@@ -11,12 +11,14 @@ import "../../libraries/Math.sol";
 contract RammMockMCR is IMCR {
 
   uint public mockMCRValue;
+  uint public lastMCRUpdateTime;
 
   INXMMaster public master;
   IPool public pool;
 
   constructor (address _masterAddress) {
     master = INXMMaster(_masterAddress);
+    lastMCRUpdateTime = block.timestamp;
   }
 
   function setPool(address _poolAddress) public {
@@ -31,11 +33,11 @@ contract RammMockMCR is IMCR {
     mockMCRValue = newMCRValue;
   }
 
-  /* ====== NOT NEEDED FUNCTIONS ====== */
-
-  function updateMCRInternal(bool) public pure {
-    revert("Unsupported");
+  function updateMCRInternal(bool) public {
+    lastMCRUpdateTime = block.timestamp;
   }
+
+  /* ====== NOT NEEDED FUNCTIONS ====== */
 
   function mcr() external override pure returns (uint80) {
     revert("Unsupported");

@@ -19,7 +19,7 @@ contract RammMock is IRamm {
   }
 
   function getSpotPrices() external override pure returns (uint, uint) {
-    return (1e18, 1e18);
+    return (2e18, 1e18);
   }
 
   /* ====== NOT NEEDED FUNCTIONS ====== */

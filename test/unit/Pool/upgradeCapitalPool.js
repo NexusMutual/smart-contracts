@@ -153,4 +153,15 @@ describe('upgradeCapitalPool', function () {
     expect(oldPoolBalance).to.be.equal(0);
     expect(newPoolBalance).to.be.equal(ethAmount);
   });
+
+  it('should revert if ETH transfer failed', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool, master } = fixture;
+
+    const P1MockEtherRejecter = await ethers.getContractFactory('P1MockEtherRejecter');
+    const p1MockEtherRejecter = await P1MockEtherRejecter.deploy();
+
+    const upgradeCapitalPoolPromise = master.upgradeCapitalPool(pool.address, p1MockEtherRejecter.address);
+    await expect(upgradeCapitalPoolPromise).to.be.revertedWith('Pool: Transfer failed');
+  });
 });

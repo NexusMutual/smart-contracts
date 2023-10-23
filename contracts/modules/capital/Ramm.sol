@@ -404,10 +404,6 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     return 1 ether * capital / supply;
   }
 
-  function isSwapPause() public view returns (bool) {
-    return swapPaused;
-  }
-
   /* ========== ORACLE ========== */
 
   function observationIndexOf(uint timestamp) internal pure returns (uint index) {

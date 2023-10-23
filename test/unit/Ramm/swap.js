@@ -7,9 +7,6 @@ const { setNextBlockBaseFee, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
 
-const SYSTEM_IS_PAUSED_ERROR = 'System is paused';
-const SWAP_IS_PAUSED_ERROR = 'Swap is paused';
-
 /**
  * Retrieves NXM totalSupply as well as NXM and ETH balances for a given member address
  *
@@ -348,7 +345,7 @@ describe('swap', function () {
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
     const swap = ramm.connect(member).swap(parseEther('1'), parseEther('0.015'), deadline);
-    await expect(swap).to.be.revertedWith(SYSTEM_IS_PAUSED_ERROR);
+    await expect(swap).to.be.revertedWithCustomError(ramm, 'SystemPaused');
   });
 
   it('should revert when SWAP is NOT paused and SYSTEM is paused ', async function () {
@@ -364,7 +361,7 @@ describe('swap', function () {
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
     const swap = ramm.connect(member).swap(parseEther('1'), parseEther('0.015'), deadline);
-    await expect(swap).to.be.revertedWith(SYSTEM_IS_PAUSED_ERROR);
+    await expect(swap).to.be.revertedWithCustomError(ramm, 'SystemPaused');
   });
 
   it('should revert when SWAP is paused and SYSTEM is NOT paused', async function () {
@@ -380,7 +377,7 @@ describe('swap', function () {
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
     const swap = ramm.connect(member).swap(parseEther('1'), parseEther('0.015'), deadline);
-    await expect(swap).to.be.revertedWith(SWAP_IS_PAUSED_ERROR);
+    await expect(swap).to.be.revertedWithCustomError(ramm, 'SwapPaused');
   });
 
   it('should revert on reentrancy', async function () {

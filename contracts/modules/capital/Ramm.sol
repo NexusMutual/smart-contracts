@@ -60,8 +60,15 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
    * @dev Checks if both system and swap is not on emergency pause
    */
   modifier whenSwapNotPaused {
-    require(!master.isPause(), "System is paused");
-    require(!isSwapPause(), "Swap is paused");
+
+    if (master.isPause()) {
+      revert SystemPaused();
+    }
+
+    if (swapPaused) {
+      revert SwapPaused();
+    }
+
     _;
   }
 
@@ -116,9 +123,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     if (msg.value > 0 && nxmIn > 0) {
       revert OneInputOnly();
     }
+
     if (msg.value == 0 && nxmIn == 0) {
       revert OneInputRequired();
     }
+
     if (block.timestamp > deadline) {
       revert SwapExpired(deadline, block.timestamp);
     }

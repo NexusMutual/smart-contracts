@@ -24,7 +24,7 @@ async function setup() {
   const nxm = await ethers.deployContract('NXMTokenMock');
   const tokenController = await ethers.deployContract('RammMockTokenController', [nxm.address]);
   const mcr = await ethers.deployContract('RammMockMCR', [master.address]);
-  const pool = await ethers.deployContract('RammMockPool', [master.address, mcr.address, nxm.address]);
+  const pool = await ethers.deployContract('PoolMock');
   const ramm = await ethers.deployContract('Ramm', [SPOT_PRICE_A, SPOT_PRICE_B]);
 
   await mcr.setPool(pool.address);

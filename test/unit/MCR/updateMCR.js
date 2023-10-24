@@ -4,7 +4,7 @@ const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
-const { increaseTime, mineNextBlock } = require('../utils').evm;
+const { increaseTime, mineNextBlock, setEtherBalance } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
 const { parseEther } = ethers.utils;
@@ -26,7 +26,7 @@ describe('updateMCR', function () {
     const { master, pool } = fixture;
 
     const poolValueInEth = parseEther('200000');
-    await pool.setPoolValueInEth(poolValueInEth);
+    await setEtherBalance(pool.address, poolValueInEth);
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
     const previousLastUpdateTime = await mcr.lastUpdateTime();
@@ -45,7 +45,7 @@ describe('updateMCR', function () {
     const fixture = await loadFixture(setup);
     const { master, cover, pool } = fixture;
 
-    await pool.setPoolValueInEth(parseEther('160000'));
+    await setEtherBalance(pool.address, parseEther('160000'));
     await cover.setTotalActiveCoverInAsset(0, parseEther('800000'));
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
@@ -77,7 +77,7 @@ describe('updateMCR', function () {
     const { master, cover, pool } = fixture;
 
     const poolValueInEth = DEFAULT_MCR_PARAMS.mcrValue.mul(131).div(100);
-    await pool.setPoolValueInEth(poolValueInEth);
+    await setEtherBalance(pool.address, poolValueInEth);
 
     const totalSumAssured = parseEther('800000');
     await cover.setTotalActiveCoverInAsset(0, totalSumAssured);
@@ -110,7 +110,7 @@ describe('updateMCR', function () {
     const { master, cover, pool } = fixture;
 
     const poolValueInEth = parseEther('160000');
-    await pool.setPoolValueInEth(poolValueInEth);
+    await setEtherBalance(pool.address, poolValueInEth);
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
     const gearingFactor = await mcr.gearingFactor();
@@ -149,7 +149,7 @@ describe('updateMCR', function () {
   it('increases desiredMCR when mcrWithGear exceeds current MCR if MCR% < 100%', async function () {
     const fixture = await loadFixture(setup);
     const { master, cover, pool } = fixture;
-    await pool.setPoolValueInEth(parseEther('120000'));
+    await setEtherBalance(pool.address, parseEther('120000'));
     await cover.setTotalActiveCoverInAsset(0, parseEther('800000'));
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });

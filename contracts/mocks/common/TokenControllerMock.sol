@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.18;
 
-import "../abstract/MasterAwareV2.sol";
-import "../interfaces/INXMToken.sol";
+import "../../abstract/MasterAwareV2.sol";
+import "../../interfaces/INXMToken.sol";
 
 interface ICover {
   function stakingPool(uint poolId) external view returns (address);

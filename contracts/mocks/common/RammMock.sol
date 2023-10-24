@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import "../interfaces/IRamm.sol";
+import "../../interfaces/IRamm.sol";
 
 contract RammMock is IRamm {
 

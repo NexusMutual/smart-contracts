@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.18;
 
-import "../interfaces/INXMMaster.sol";
-import "../interfaces/IMasterAwareV2.sol";
-import "../modules/capital/Pool.sol";
+import "../../interfaces/INXMMaster.sol";
+import "../../interfaces/IMasterAwareV2.sol";
+import "../../modules/capital/Pool.sol";
 
 contract MasterMock {
 

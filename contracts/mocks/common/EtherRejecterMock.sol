@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-contract EtherRejecter {
+contract EtherRejecterMock {
   receive() external payable {
     revert("I secretly hate ether");
   }

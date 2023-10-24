@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import "../interfaces/IMemberRoles.sol";
+import "../../interfaces/IMemberRoles.sol";
 
 contract MemberRolesMock {
 

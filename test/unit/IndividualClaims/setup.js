@@ -1,6 +1,9 @@
 const { ethers } = require('hardhat');
+
+const { ASSET } = require('./helpers');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
+
 const { parseEther } = ethers.utils;
 
 async function setup() {
@@ -35,6 +38,8 @@ async function setup() {
   const pool = await PoolMock.deploy();
   await pool.deployed();
   await pool.addAsset({ assetAddress: dai.address, isCoverAsset: true, isAbandonedAsset: false });
+  await pool.setTokenPrice(ASSET.ETH, parseEther('0.0382')); // 1 NXM ~ 0.0382 ETH
+  await pool.setTokenPrice(ASSET.DAI, parseEther('3.82')); // 1 NXM ~ 3.82 DAI)
 
   const Assessment = await ethers.getContractFactory('CLMockAssessment');
   const assessment = await Assessment.deploy();

@@ -678,6 +678,7 @@ describe('submitClaim', function () {
     const PoolEtherRejecterMock = await ethers.getContractFactory('PoolEtherRejecterMock');
 
     const fallbackWillFailContractPool = await PoolEtherRejecterMock.deploy();
+    await fallbackWillFailContractPool.setTokenPrice(ASSET.ETH, parseEther('0.0382'));
     await master.setLatestAddress(hex('P1'), fallbackWillFailContractPool.address);
     await individualClaims.changeDependentContractAddress();
 

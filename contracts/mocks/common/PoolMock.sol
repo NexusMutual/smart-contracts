@@ -27,6 +27,8 @@ contract PoolMock is IPool {
   uint public constant MCR_RATIO_DECIMALS = 4;
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
+  mapping (uint => uint) internal prices;
+
   /* ========== CONSTRUCTOR ========== */
 
   constructor() {
@@ -90,11 +92,8 @@ contract PoolMock is IPool {
     revert("Pool: ETH transfer failed");
   }
 
-  function getInternalTokenPriceInAsset(uint assetId) public virtual view returns (uint tokenPrice) {
-    return
-      assetId == 0
-        ? 0.0382 ether // 1 NXM ~ 0.0382 ETH
-        : 3.82 ether; // 1 NXM ~ 3.82 DAI
+  function getInternalTokenPriceInAsset(uint assetId) public virtual view returns (uint) {
+    return prices[assetId];
   }
 
   function calculateMCRRatio(uint totalAssetValue, uint mcrEth) public virtual pure returns (uint) {
@@ -103,6 +102,26 @@ contract PoolMock is IPool {
 
   function addAsset(Asset memory asset) external virtual {
     assets.push(asset);
+  }
+
+  /* ====== SETTERS ====== */
+
+  function setTokenPrice(uint assetId, uint price) public {
+     prices[assetId] = price;
+  }
+
+  function setAssets(Asset[] memory _assets) public {
+    for (uint i = 0; i < _assets.length; i++) {
+      assets.push(_assets[i]);
+    }
+  }
+
+  function setIsCoverAsset(uint assetId, bool isCoverAsset) public {
+    assets[assetId].isCoverAsset = isCoverAsset;
+  }
+
+  function setIsAbandoned(uint assetId, bool isAbandoned) public {
+    assets[assetId].isAbandoned = isAbandoned;
   }
 
   /* ====== NOT YET IMPLEMENTED ====== */

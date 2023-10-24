@@ -32,19 +32,21 @@ describe('sendEth', function () {
     const fixture = await loadFixture(setup);
     const { pool, master } = fixture;
 
-    await setEtherBalance(pool.address, parseEther('1000'));
+    const poolBalance = parseEther('1000');
+    const sendEthAmount = poolBalance.div(2);
+    await setEtherBalance(pool.address, poolBalance);
 
-    // Set up re-entrancy attack
+    // set up reentrancyExploiter
     const ReentrancyExploiter = await ethers.getContractFactory('ReentrancyExploiter');
     const reentrancyExploiter = await ReentrancyExploiter.deploy();
-    const { data: sendEthData } = await pool.populateTransaction.sendEth(reentrancyExploiter.address, parseEther('1'));
-    await reentrancyExploiter.setFallbackParams([pool.address], [0], [sendEthData]);
+    const { data: sendEthData } = await pool.populateTransaction.sendEth(reentrancyExploiter.address, sendEthAmount);
 
-    // To pass the onlyRamm modifier, set ReentrancyExploiter as the RAMM contract
+    // bypass onlyRamm modifier
     await master.setLatestAddress(toBytes2('RA'), reentrancyExploiter.address);
     await pool.changeDependentContractAddress();
 
-    const reentrancyAttackPromise = reentrancyExploiter.execute([pool.address], [0], [sendEthData]);
+    // this test guards against reentrancy as it will fail on a successful reentrancy attack (there will be no revert)
+    const reentrancyAttackPromise = reentrancyExploiter.execute(pool.address, 0, sendEthData);
     await expect(reentrancyAttackPromise).to.be.revertedWith('Pool: ETH transfer failed');
   });
 

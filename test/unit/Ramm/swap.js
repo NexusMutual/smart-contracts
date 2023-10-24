@@ -389,19 +389,18 @@ describe('swap', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
-    // Set up re-entrancy attack
+    // set up reentrancyExploiter
     const ReentrancyExploiter = await ethers.getContractFactory('ReentrancyExploiter');
     const reentrancyExploiter = await ReentrancyExploiter.deploy();
     const { data: swapData } = await ramm.populateTransaction.swap(parseEther('1'), parseEther('0.015'), deadline);
+    await reentrancyExploiter.setReentrancyParams(ramm.address, 0, swapData);
 
     // approve without reentering
     await nxm.mint(reentrancyExploiter.address, parseEther('10000'));
     const { data: approveData } = await nxm.populateTransaction.approve(tokenController.address, parseEther('10000'));
-    await reentrancyExploiter.execute([nxm.address], [0], [approveData]);
+    await reentrancyExploiter.execute(nxm.address, 0, approveData);
 
-    // prepare reentrancy and execute
-    await reentrancyExploiter.setFallbackParams([ramm.address], [0], [swapData]);
-    const reentrancyAttackPromise = reentrancyExploiter.execute([ramm.address], [0], [swapData]);
+    const reentrancyAttackPromise = reentrancyExploiter.execute(ramm.address, 0, swapData);
     await expect(reentrancyAttackPromise).to.be.revertedWith('ReentrancyGuard: reentrant call');
   });
 });

@@ -1231,7 +1231,7 @@ describe('buyCover', function () {
     );
 
     await setEtherBalance(reentrantExploiter.address, expectedPremium.mul(2));
-    await reentrantExploiter.setFallbackParams([cover.address], [expectedPremium], [txData.data]);
+    await reentrantExploiter.setReentrancyParams(cover.address, expectedPremium, txData.data);
 
     // The test uses the payment to the commission destination to trigger reentrancy for the buyCover call.
     // The nonReentrant protection will make the new call revert, making the payment to the commission address to fail.

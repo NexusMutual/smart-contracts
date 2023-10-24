@@ -1,9 +1,10 @@
 const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { setup } = require('./setup');
 
+const { setup } = require('./setup');
 const { signMembershipApproval } = require('../utils').membership;
+const { setCode } = require('../utils').evm;
 
 const { arrayify, parseUnits, splitSignature } = ethers.utils;
 const JOINING_FEE = parseUnits('0.002');
@@ -251,14 +252,16 @@ describe('join', function () {
       kycAuthSigner,
     });
 
-    await pool.setRevertOnTransfers(true);
+    const { deployedBytecode: ethRejecterBytecode } = await artifacts.readArtifact('PoolEtherRejecterMock');
+    await setCode(pool.address, ethRejecterBytecode);
     await expect(
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
     ).to.be.revertedWith('MemberRoles: The joining fee transfer to the pool failed');
 
-    await pool.setRevertOnTransfers(false);
+    const { deployedBytecode: poolMockBytecode } = await artifacts.readArtifact('PoolMock');
+    await setCode(pool.address, poolMockBytecode);
     await expect(
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,

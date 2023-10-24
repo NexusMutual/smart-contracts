@@ -24,7 +24,7 @@ async function setup() {
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();
 
-  const Pool = await ethers.getContractFactory('MRMockPool');
+  const Pool = await ethers.getContractFactory('PoolMock');
   const pool = await Pool.deploy();
 
   const CoverNFT = await ethers.getContractFactory('MRMockCoverNFT');

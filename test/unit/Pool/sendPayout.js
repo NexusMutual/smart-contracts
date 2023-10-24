@@ -144,8 +144,8 @@ describe('sendPayout', function () {
     const { pool } = fixture;
     const [internal] = fixture.accounts.internalContracts;
 
-    const P1MockEtherRejecter = await ethers.getContractFactory('P1MockEtherRejecter');
-    const { address } = await P1MockEtherRejecter.deploy();
+    const EtherRejecterMock = await ethers.getContractFactory('EtherRejecterMock');
+    const { address } = await EtherRejecterMock.deploy();
 
     const amountToTransfer = parseEther('10000');
     const depositAmount = parseEther('1');
@@ -159,8 +159,8 @@ describe('sendPayout', function () {
     const { pool, dai } = fixture;
     const [internal] = fixture.accounts.internalContracts;
 
-    const P1MockEtherRejecter = await ethers.getContractFactory('P1MockEtherRejecter');
-    const { address } = await P1MockEtherRejecter.deploy();
+    const PoolEtherRejecterMock = await ethers.getContractFactory('PoolEtherRejecterMock');
+    const { address } = await PoolEtherRejecterMock.deploy();
 
     const amountToTransfer = parseEther('10000');
     const depositAmount = parseEther('1');

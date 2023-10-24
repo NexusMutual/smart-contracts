@@ -170,7 +170,7 @@ describe('swap', function () {
     const { ramm, pool } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
-    const { deployedBytecode: ethRejecterBytecode } = await artifacts.readArtifact('RammMockPoolEtherRejecter');
+    const { deployedBytecode: ethRejecterBytecode } = await artifacts.readArtifact('PoolEtherRejecterMock');
     await setCode(pool.address, ethRejecterBytecode);
 
     const ethIn = parseEther('1');

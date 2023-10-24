@@ -158,10 +158,11 @@ describe('upgradeCapitalPool', function () {
     const fixture = await loadFixture(setup);
     const { pool, master } = fixture;
 
-    const P1MockEtherRejecter = await ethers.getContractFactory('P1MockEtherRejecter');
-    const p1MockEtherRejecter = await P1MockEtherRejecter.deploy();
+    // TODO: must be a pool rejecter mock
+    const PoolEtherRejecterMock = await ethers.getContractFactory('PoolEtherRejecterMock');
+    const poolEtherRejecterMock = await PoolEtherRejecterMock.deploy();
 
-    const upgradeCapitalPoolPromise = master.upgradeCapitalPool(pool.address, p1MockEtherRejecter.address);
+    const upgradeCapitalPoolPromise = master.upgradeCapitalPool(pool.address, poolEtherRejecterMock.address);
     await expect(upgradeCapitalPoolPromise).to.be.revertedWith('Pool: Transfer failed');
   });
 });

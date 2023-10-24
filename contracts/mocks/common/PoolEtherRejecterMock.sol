@@ -13,4 +13,5 @@ contract PoolEtherRejecterMock is PoolMock {
   fallback() external payable override {
     revert("I secretly hate ether");
   }
+
 }

@@ -158,7 +158,6 @@ describe('upgradeCapitalPool', function () {
     const fixture = await loadFixture(setup);
     const { pool, master } = fixture;
 
-    // TODO: must be a pool rejecter mock
     const PoolEtherRejecterMock = await ethers.getContractFactory('PoolEtherRejecterMock');
     const poolEtherRejecterMock = await PoolEtherRejecterMock.deploy();
 

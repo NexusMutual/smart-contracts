@@ -112,6 +112,33 @@ describe('sendPayout', function () {
     expect(poolBalance).to.be.equal(ethAmount.sub(expectedTransferAmount));
   });
 
+  it('should revert on reentrancy', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool, master } = fixture;
+
+    const ethAmount = parseEther('10000');
+    const amountToTransfer = ethAmount.div(4);
+    const depositAmount = ethAmount.div(4);
+    await setEtherBalance(pool.address, ethAmount);
+
+    // set up reentrancyExploiter
+    const ReentrancyExploiter = await ethers.getContractFactory('ReentrancyExploiter');
+    const reentrancyExploiter = await ReentrancyExploiter.deploy();
+    const { data: sendPayoutData } = await pool.populateTransaction.sendPayout(
+      PoolAsset.ETH,
+      reentrancyExploiter.address,
+      amountToTransfer,
+      depositAmount,
+    );
+
+    // bypass onlyInternal modifier
+    await master.enrollInternal(reentrancyExploiter.address);
+
+    // this test guards against reentrancy as it will fail on a successful reentrancy attack (there will be no revert)
+    const reentrancyAttackPromise = reentrancyExploiter.execute(pool.address, 0, sendPayoutData);
+    await expect(reentrancyAttackPromise).to.be.revertedWith('Pool: ETH transfer failed');
+  });
+
   it('should revert if ETH payout transfer failed', async function () {
     const fixture = await loadFixture(setup);
     const { pool } = fixture;

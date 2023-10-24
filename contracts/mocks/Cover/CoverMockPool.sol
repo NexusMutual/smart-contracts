@@ -2,22 +2,13 @@
 
 pragma solidity ^0.8.18;
 
-import "../../interfaces/IPool.sol";
+import "../common/PoolMock.sol";
 
-// TODO: needs to implement ICover
-contract CoverMockPool {
+contract CoverMockPool is PoolMock {
 
   mapping (uint => uint) internal prices;
-  Asset[] public assets;
 
-  address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
-  constructor() {
-    // First asset is ETH
-    assets.push(Asset(ETH, true, false));
-  }
-
-  function getInternalTokenPriceInAsset(uint assetId) public view returns (uint) {
+  function getInternalTokenPriceInAsset(uint assetId) public override view returns (uint) {
     return prices[assetId];
   }
 
@@ -38,18 +29,5 @@ contract CoverMockPool {
   function setIsAbandoned(uint assetId, bool isAbandoned) public {
     assets[assetId].isAbandoned = isAbandoned;
   }
-
-  function getAsset(uint assetId) external view returns (Asset memory) {
-    require(assetId < assets.length, "Pool: Invalid asset id");
-    return assets[assetId];
-  }
-
-  function getAssets() external view returns (Asset[] memory) {
-    return assets;
-  }
-
-  fallback() external payable {}
-
-  receive() external payable {}
 
 }

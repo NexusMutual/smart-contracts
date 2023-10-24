@@ -15,8 +15,8 @@ import "../../libraries/SafeUintCast.sol";
 
 /**
  * @notice Pool mock base contract
- * @dev Use this base contract as is or override functions as needed
- * @dev For function that is yet to be implemented, implement it here as needed
+ * @dev Use this base contract as is or override as needed
+ * @dev For functions that are yet to be implemented (including setters), implement it here as needed
  */
 contract PoolMock is IPool {
   using SafeERC20 for IERC20;
@@ -79,7 +79,7 @@ contract PoolMock is IPool {
       return;
     }
 
-    // pass revert reason (implemented for Reentrancy Guard validation - 'ReentrancyGuard: reentrant call)
+    // pass revert reason (implemented for Reentrancy Guard validation)
     if (returndata.length > 0) {
       assembly {
         let returndata_size := mload(returndata)

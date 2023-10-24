@@ -350,11 +350,8 @@ async function main() {
   console.log('Deploying disposable MCR');
   const disposableMCR = await deployImmutable('DisposableMCR', [
     parseEther('50000'), // mcrEth
-    parseEther('40000'), // mcrFloor
     parseEther('50000'), // desiredMCR
     (await ethers.provider.getBlock('latest')).timestamp - 60, // lastUpdateTime
-    13000, // mcrFloorIncrementThreshold
-    100, // maxMCRFloorIncrement
     500, // maxMCRIncrement
     48000, // gearingFactor
     3600, // minUpdateTime
@@ -365,7 +362,12 @@ async function main() {
   await disposableMCR.initializeNextMcr(mcr.address, master.address);
 
   console.log('Deploying Pool');
-  const poolParameters = [master, priceFeedOracle, swapOperator, dai, stETH, enzymeVault, tk].map(x => x.address);
+  const legacyPoolParameters = [master, priceFeedOracle, swapOperator, dai, stETH, enzymeVault, tk].map(x => x.address);
+  const legacyPool = await deployImmutable('LegacyPool', legacyPoolParameters);
+  const swapValue = await legacyPool.swapValue();
+  const poolParameters = [master, priceFeedOracle, swapOperator, tk, legacyPool]
+    .map(c => c.address)
+    .concat([swapValue]);
   const pool = await deployImmutable('Pool', poolParameters);
 
   console.log('Minting DAI to Pool');

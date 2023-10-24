@@ -31,8 +31,8 @@ async function setup() {
   const dai = await DAI.deploy();
   await dai.deployed();
 
-  const CLMockPool = await ethers.getContractFactory('CLMockPool');
-  const pool = await CLMockPool.deploy();
+  const PoolMock = await ethers.getContractFactory('PoolMock');
+  const pool = await PoolMock.deploy();
   await pool.deployed();
   await pool.addAsset({ assetAddress: dai.address, isCoverAsset: true, isAbandonedAsset: false });
 

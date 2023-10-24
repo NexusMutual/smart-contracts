@@ -57,7 +57,7 @@ async function setup() {
   const dai = await ethers.deployContract('ERC20Mock');
   const usdc = await ethers.deployContract('ERC20CustomDecimalsMock', [6]); // 6 decimals
 
-  const pool = await ethers.deployContract('CoverMockPool');
+  const pool = await ethers.deployContract('PoolMock');
   await pool.setAssets([
     { assetAddress: dai.address, isCoverAsset: true, isAbandoned: false },
     { assetAddress: usdc.address, isCoverAsset: true, isAbandoned: false },

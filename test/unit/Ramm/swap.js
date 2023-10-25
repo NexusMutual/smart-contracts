@@ -5,6 +5,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { getState, setup } = require('./setup');
 const { setNextBlockBaseFee, setNextBlockTime, setCode } = require('../utils').evm;
 
+const { WeiPerEther } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 /**
@@ -403,4 +404,126 @@ describe('swap', function () {
     const reentrancyAttackPromise = reentrancyExploiter.execute(ramm.address, 0, swapData);
     await expect(reentrancyAttackPromise).to.be.revertedWith('ReentrancyGuard: reentrant call');
   });
+
+  it('should increase eth circuit breaker accumulator ethReleased', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, pool, mcr, tokenController } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    const nxmIn = parseEther('1');
+    const minAmountOut = parseEther('0.015'); // 0.0152 spotB
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + 10;
+    const deadline = nextBlockTimestamp + 5 * 60;
+
+    const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, nextBlockTimestamp);
+    const { ethOut } = getExpectedStateAfterSwapNxmForEth(state, nxmIn);
+
+    const ethReleasedBefore = await ramm.ethReleased();
+
+    await setNextBlockTime(nextBlockTimestamp);
+    await ramm.connect(member).swap(nxmIn, minAmountOut, deadline, { maxPriorityFeePerGas: 0 });
+
+    const ethReleasedAfter = await ramm.ethReleased();
+    const expectedEthReleasedAfter = ethReleasedBefore.add(ethOut);
+
+    expect(ethReleasedAfter).to.be.equal(expectedEthReleasedAfter);
+  });
+
+  it('should increase nxm circuit breaker accumulator nxmReleased', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, pool, mcr, tokenController } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    const ethIn = parseEther('1');
+    const minAmountOut = parseEther('0');
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + 10;
+    const deadline = nextBlockTimestamp + 5 * 60;
+
+    const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, nextBlockTimestamp);
+    const { nxmOut } = getExpectedStateAfterSwapEthForNxm(state, ethIn);
+
+    const nxmReleasedBefore = await ramm.nxmReleased();
+
+    await setNextBlockTime(nextBlockTimestamp);
+    await ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+
+    const nxmReleasedAfter = await ramm.nxmReleased();
+    const expectedNxmReleasedAfter = nxmReleasedBefore.add(nxmOut);
+
+    expect(nxmReleasedAfter).to.be.equal(expectedNxmReleasedAfter);
+  });
+
+  it('should emit EthSwappedForNxm when successfully swapped ETH for NXM', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, pool, mcr, tokenController } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    const ethIn = parseEther('1');
+    const minAmountOut = parseEther('28.8');
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + 5 * 60;
+    const deadline = nextBlockTimestamp + 5 * 60;
+
+    const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, nextBlockTimestamp);
+    const { nxmOut } = getExpectedStateAfterSwapEthForNxm(state, ethIn);
+
+    await setNextBlockTime(nextBlockTimestamp);
+    const swap = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+    await expect(swap).to.emit(ramm, 'EthSwappedForNxm').withArgs(member.address, ethIn, nxmOut);
+  });
+
+  it('should revert when the eth circuit breaker is hit', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, pool, mcr, tokenController } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+    const { emergencyAdmin } = fixture.accounts;
+
+    const nxmIn = parseEther('1000');
+    const minAmountOut = parseEther('0');
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + 10;
+    const deadline = nextBlockTimestamp + 5 * 60;
+
+    const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, nextBlockTimestamp);
+    const { ethOut } = getExpectedStateAfterSwapNxmForEth(state, nxmIn);
+
+    await ramm.connect(emergencyAdmin).setCircuitBreakerLimits(ethOut.div(WeiPerEther).sub(1), 0);
+
+    await setNextBlockTime(nextBlockTimestamp);
+    await expect(ramm.connect(member).swap(nxmIn, minAmountOut, deadline)).to.revertedWithCustomError(
+      ramm,
+      'EthCircuitBreakerHit',
+    );
+  });
+
+  it('should revert when nxm circuit breaker is hit', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, pool, mcr, tokenController } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+    const { emergencyAdmin } = fixture.accounts;
+
+    const ethIn = parseEther('1');
+    const minAmountOut = parseEther('0');
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + 10;
+    const deadline = nextBlockTimestamp + 5 * 60;
+
+    const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, nextBlockTimestamp);
+    const { nxmOut } = getExpectedStateAfterSwapEthForNxm(state, ethIn);
+
+    await ramm.connect(emergencyAdmin).setCircuitBreakerLimits(nxmOut.div(WeiPerEther).sub(1), 0);
+
+    await setNextBlockTime(nextBlockTimestamp);
+    const swap = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+    await expect(swap).to.emit(ramm, 'EthSwappedForNxm').withArgs(member.address, ethIn, nxmOut);
+  });
+
+  // todo: test onlyEmergencyAdmin for setCircuitBreakerLimits
 });

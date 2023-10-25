@@ -113,4 +113,8 @@ interface IRamm {
 
   // ETH Transfer
   error EthTransferFailed();
+
+  // Circuit breakers
+  error EthCircuitBreakerHit();
+  error NxmCircuitBreakerHit();
 }

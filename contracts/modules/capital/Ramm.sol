@@ -25,10 +25,17 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   // slot 2 & 3
   // 160 * 3 = 480 bits
   Observation[3] public observations;
-  uint32 public ratchetSpeed;
+  uint24 public ratchetSpeed;
 
-  /// @dev emergency swap pause
+  // emergency pause
   bool public swapPaused;
+
+  // slot 4
+  // circuit breakers
+  uint96 public ethReleased;
+  uint32 public ethLimit;
+  uint96 public nxmReleased;
+  uint32 public nxmLimit;
 
   /* ========== CONSTANTS ========== */
 
@@ -48,6 +55,10 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   uint public constant NORMAL_RATCHET_SPEED = 400;
   uint public constant INITIAL_LIQUIDITY = 5_000 ether;
   uint public constant INITIAL_BUDGET = 43_835 ether;
+
+  // circuit breakers
+  uint public constant INITIAL_ETH_LIMIT = 22_000;
+  uint public constant INITIAL_NXM_LIMIT = 250_000;
 
   /* ========== IMMUTABLES ========== */
 
@@ -104,7 +115,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     slot1.budget = state.budget.toUint96();
     slot1.updatedAt = state.timestamp.toUint32();
     // ratchetSpeed
-    ratchetSpeed = state.ratchetSpeed.toUint32();
+    ratchetSpeed = state.ratchetSpeed.toUint24();
   }
 
   /**
@@ -135,6 +146,18 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint amountOut = msg.value > 0
       ? swapEthForNxm(msg.value, minAmountOut)
       : swapNxmForEth(nxmIn, minAmountOut);
+
+    if (msg.value > 0) {
+      nxmReleased = (nxmReleased + amountOut).toUint96();
+      if (nxmLimit > 0 && nxmReleased > uint(nxmLimit) * 1 ether) {
+        revert NxmCircuitBreakerHit();
+      }
+    } else {
+      ethReleased = (ethReleased + amountOut).toUint96();
+      if (ethLimit > 0 && ethReleased > uint(ethLimit) * 1 ether) {
+        revert EthCircuitBreakerHit();
+      }
+    }
 
     mcr().updateMCRInternal(false);
 
@@ -265,6 +288,14 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   function setEmergencySwapPause(bool _swapPaused) external onlyEmergencyAdmin {
     swapPaused = _swapPaused;
     emit SwapPauseConfigured(_swapPaused);
+  }
+
+  function setCircuitBreakerLimits(
+    uint _ethLimit,
+    uint _nxmLimit
+  ) external onlyEmergencyAdmin {
+    ethLimit = _ethLimit.toUint32();
+    nxmLimit = _nxmLimit.toUint32();
   }
 
   /* ============== VIEWS ============= */
@@ -721,7 +752,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint96 budget = INITIAL_BUDGET.toUint96();
     uint32 updatedAt = block.timestamp.toUint32();
 
-    ratchetSpeed = FAST_RATCHET_SPEED.toUint32();
+    ratchetSpeed = FAST_RATCHET_SPEED.toUint24();
+    ethLimit = INITIAL_ETH_LIMIT.toUint32();
+    nxmLimit = INITIAL_NXM_LIMIT.toUint32();
 
     State memory state = State(
       nxmReserveA,

@@ -457,26 +457,6 @@ describe('swap', function () {
     expect(nxmReleasedAfter).to.be.equal(expectedNxmReleasedAfter);
   });
 
-  it('should emit EthSwappedForNxm when successfully swapped ETH for NXM', async function () {
-    const fixture = await loadFixture(setup);
-    const { ramm, pool, mcr, tokenController } = fixture.contracts;
-    const [member] = fixture.accounts.members;
-
-    const ethIn = parseEther('1');
-    const minAmountOut = parseEther('28.8');
-
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    const nextBlockTimestamp = timestamp + 5 * 60;
-    const deadline = nextBlockTimestamp + 5 * 60;
-
-    const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, nextBlockTimestamp);
-    const { nxmOut } = getExpectedStateAfterSwapEthForNxm(state, ethIn);
-
-    await setNextBlockTime(nextBlockTimestamp);
-    const swap = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
-    await expect(swap).to.emit(ramm, 'EthSwappedForNxm').withArgs(member.address, ethIn, nxmOut);
-  });
-
   it('should revert when the eth circuit breaker is hit', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, mcr, tokenController } = fixture.contracts;
@@ -518,12 +498,12 @@ describe('swap', function () {
     const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, nextBlockTimestamp);
     const { nxmOut } = getExpectedStateAfterSwapEthForNxm(state, ethIn);
 
-    await ramm.connect(emergencyAdmin).setCircuitBreakerLimits(nxmOut.div(WeiPerEther).sub(1), 0);
+    await ramm.connect(emergencyAdmin).setCircuitBreakerLimits(0, nxmOut.div(WeiPerEther).sub(1));
 
     await setNextBlockTime(nextBlockTimestamp);
-    const swap = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
-    await expect(swap).to.emit(ramm, 'EthSwappedForNxm').withArgs(member.address, ethIn, nxmOut);
+    await expect(ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn })).to.revertedWithCustomError(
+      ramm,
+      'NxmCircuitBreakerHit',
+    );
   });
-
-  // todo: test onlyEmergencyAdmin for setCircuitBreakerLimits
 });

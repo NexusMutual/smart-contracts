@@ -387,7 +387,7 @@ async function main() {
   const pool = await deployImmutable('Pool', poolParameters);
 
   console.log('Funding the Pool');
-  await setBalance(pool.address, parseEther('5000'));
+  await setBalance(pool.address, parseEther('50000'));
   await dai.mint(pool.address, parseEther('6500000'));
 
   console.log('Initializing contracts');

@@ -7,7 +7,13 @@ const proposalCategories = require('../../lib/proposal-categories');
 const products = require('../v2-migration/output/migratableProducts.json');
 const verifier = require('./verifier')();
 
-const setBalance = async (address, wei) => {
+const { BigNumber } = ethers;
+const { AddressZero, MaxUint256 } = ethers.constants;
+const { hexValue, parseEther } = ethers.utils;
+
+const { ABI_DIR, ADDRESSES_FILE, INITIAL_MEMBERS = '' } = process.env;
+
+const setBalance = async (address, amount) => {
   const tests = [
     { name: 'hardhat', regex: /HardhatNetwork/ },
     { name: 'tenderly', regex: /Tenderly/ },
@@ -17,14 +23,10 @@ const setBalance = async (address, wei) => {
   const clientVersion = await ethers.provider.send('web3_clientVersion', []);
   const { name: node = 'unknown' } = tests.find(test => test.regex.test(clientVersion));
   const method = `${node}_setBalance`;
+  const value = hexValue(BigNumber.from(amount));
 
-  return ethers.provider.send(method, [address, hex(wei)]);
+  return ethers.provider.send(method, [address, value]);
 };
-
-const { AddressZero, MaxUint256 } = ethers.constants;
-const { parseEther } = ethers.utils;
-
-const { ABI_DIR, ADDRESSES_FILE, INITIAL_MEMBERS = '' } = process.env;
 
 if (!ABI_DIR || !ADDRESSES_FILE) {
   console.log('ABI_DIR and ADDRESSES_FILE env vars are required');
@@ -385,7 +387,7 @@ async function main() {
   const pool = await deployImmutable('Pool', poolParameters);
 
   console.log('Funding the Pool');
-  await setBalance(pool.address, parseEther('5000').toString());
+  await setBalance(pool.address, parseEther('5000'));
   await dai.mint(pool.address, parseEther('6500000'));
 
   console.log('Initializing contracts');

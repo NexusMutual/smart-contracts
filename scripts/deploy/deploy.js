@@ -7,6 +7,20 @@ const proposalCategories = require('../../lib/proposal-categories');
 const products = require('../v2-migration/output/migratableProducts.json');
 const verifier = require('./verifier')();
 
+const setBalance = async (address, wei) => {
+  const tests = [
+    { name: 'hardhat', regex: /HardhatNetwork/ },
+    { name: 'tenderly', regex: /Tenderly/ },
+  ];
+
+  // find node type
+  const clientVersion = await ethers.provider.send('web3_clientVersion', []);
+  const { name: node = 'unknown' } = tests.find(test => test.regex.test(clientVersion));
+  const method = `${node}_setBalance`;
+
+  return ethers.provider.send(method, [address, hex(wei)]);
+};
+
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
@@ -370,7 +384,8 @@ async function main() {
     .concat([swapValue]);
   const pool = await deployImmutable('Pool', poolParameters);
 
-  console.log('Minting DAI to Pool');
+  console.log('Funding the Pool');
+  await setBalance(pool.address, parseEther('5000').toString());
   await dai.mint(pool.address, parseEther('6500000'));
 
   console.log('Initializing contracts');

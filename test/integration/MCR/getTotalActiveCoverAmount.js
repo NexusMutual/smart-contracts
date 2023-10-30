@@ -1,14 +1,18 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { buyCover, ETH_ASSET_ID, DAI_ASSET_ID } = require('../utils/cover');
-const { daysToSeconds } = require('../../../lib/helpers');
-const { stake } = require('../utils/staking');
-const { setEtherBalance } = require('../../utils/evm');
-const { assetToEthWithPrecisionLoss } = require('../utils/assetPricing');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const { buyCover, ETH_ASSET_ID, DAI_ASSET_ID } = require('../utils/cover');
+const { stake } = require('../utils/staking');
+const { assetToEthWithPrecisionLoss } = require('../utils/assetPricing');
+const { evm, internalPrice } = require('../../utils');
+const { daysToSeconds } = require('../../../lib/helpers');
 const setup = require('../setup');
+
 const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
+const { setEtherBalance, setNextBlockTime } = evm;
+const { getInternalPrice } = internalPrice;
 
 const ethCoverTemplate = {
   productId: 0, // DEFAULT_PRODUCT
@@ -59,6 +63,18 @@ async function getTotalActiveCoverAmountSetup() {
   return fixture;
 }
 
+/**
+ * Calculates the appropriate next block timestamp according to the TWAP period size
+ * @param {Contract} ra - RAMM contract
+ * @returns {number} - next block timestamp
+ */
+async function getNextBlockTimestampByPeriodSize(ra) {
+  const PERIOD_SIZE = await ra.PERIOD_SIZE();
+  const previousBlock = await ethers.provider.getBlock('latest');
+  const PERIOD_COUNT = 3; // 3 observations
+  return PERIOD_SIZE.mul(PERIOD_COUNT).add(previousBlock.timestamp).toNumber();
+}
+
 describe('getTotalActiveCoverAmount', function () {
   it('returns 0 when no covers exist', async function () {
     const fixture = await loadFixture(getTotalActiveCoverAmountSetup);
@@ -67,103 +83,101 @@ describe('getTotalActiveCoverAmount', function () {
     expect(totalAssurace).to.be.equal(0);
   });
 
-  // TODO: calculate exact amount
-  it.skip('returns total value of ETH purchased cover', async function () {
+  it('returns total value of ETH purchased cover', async function () {
     const fixture = await loadFixture(getTotalActiveCoverAmountSetup);
-    const { mcr, cover, p1 } = fixture.contracts;
+    const { mcr, cover, p1, ra, tc } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
     const priceDenominator = fixture.config.TARGET_PRICE_DENOMINATOR;
     const coverBuyTemplate = { ...ethCoverTemplate };
 
-    await buyCover({
-      ...coverBuyTemplate,
-      cover,
-      coverBuyer,
-      targetPrice,
-      priceDenominator,
-    });
+    const { config } = fixture;
+    const { amount } = coverBuyTemplate;
+    const nextBlockTimestamp = await getNextBlockTimestampByPeriodSize(ra);
+    // NOTE: should be called before buyCover as buyCover execution will slightly adjust the price
+    const nxmPriceInEth = await getInternalPrice(ra, p1, tc, mcr, nextBlockTimestamp);
+
+    await setNextBlockTime(nextBlockTimestamp);
+    await buyCover({ ...coverBuyTemplate, cover, coverBuyer, targetPrice, priceDenominator });
+
     const totalAssurance = await mcr.getTotalActiveCoverAmount();
-    expect(totalAssurance).to.be.equal(
-      await assetToEthWithPrecisionLoss(p1, coverBuyTemplate.amount, 0, fixture.config),
-    );
+    const expectedTotalAssurance = await assetToEthWithPrecisionLoss(amount, 0, config, nxmPriceInEth);
+    expect(totalAssurance).to.be.equal(expectedTotalAssurance);
   });
 
-  // TODO: calculate exact amount
-  it.skip('returns total value of DAI purchased cover', async function () {
+  it('returns total value of DAI purchased cover', async function () {
     const fixture = await loadFixture(getTotalActiveCoverAmountSetup);
-    const { mcr, cover, p1 } = fixture.contracts;
+    const { mcr, cover, p1, tc, ra } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
     const priceDenominator = fixture.config.TARGET_PRICE_DENOMINATOR;
     const coverBuyTemplate = { ...daiCoverTemplate };
 
-    await buyCover({
-      ...coverBuyTemplate,
-      cover,
-      coverBuyer,
-      targetPrice,
-      priceDenominator,
-    });
+    const { config, rates } = fixture;
+    const { daiToEthRate } = rates;
+    const { amount } = coverBuyTemplate;
+    const nextBlockTimestamp = await getNextBlockTimestampByPeriodSize(ra);
+    // NOTE: should be called before buyCover as buyCover execution will slightly adjust the price
+    const nxmPriceInEth = await getInternalPrice(ra, p1, tc, mcr, nextBlockTimestamp);
 
-    const expectedTotal = await assetToEthWithPrecisionLoss(
-      p1,
-      coverBuyTemplate.amount,
-      fixture.rates.daiToEthRate,
-      fixture.config,
-    );
+    await setNextBlockTime(nextBlockTimestamp);
+    await buyCover({ ...coverBuyTemplate, cover, coverBuyer, targetPrice, priceDenominator });
 
     const totalAssurance = await mcr.getTotalActiveCoverAmount();
-    expect(totalAssurance).to.be.equal(expectedTotal);
+    const expectedTotalAssurance = await assetToEthWithPrecisionLoss(amount, daiToEthRate, config, nxmPriceInEth);
+    expect(totalAssurance).to.be.equal(expectedTotalAssurance);
   });
 
-  // TODO: calculate exact amount
-  it.skip('returns total value of multiple ETH and DAI covers', async function () {
+  it('returns total value of multiple ETH and DAI covers', async function () {
     const fixture = await loadFixture(getTotalActiveCoverAmountSetup);
-    const { mcr, cover, p1 } = fixture.contracts;
+    const { mcr, cover, p1, ra, tc } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.members;
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
     const priceDenominator = fixture.config.TARGET_PRICE_DENOMINATOR;
 
-    const ethCoversToBuy = 2;
-    for (let i = 0; i < ethCoversToBuy; i++) {
-      await buyCover({
-        ...ethCoverTemplate,
-        cover,
-        coverBuyer,
-        targetPrice,
-        priceDenominator,
-      });
-    }
+    const { config, rates } = fixture;
+    const { daiToEthRate } = rates;
+    const ethAmount = ethCoverTemplate.amount;
+    const daiAmount = daiCoverTemplate.amount;
 
-    const daiCoversToBuy = 2;
-    for (let i = 0; i < daiCoversToBuy; i++) {
-      await buyCover({
-        ...daiCoverTemplate,
-        cover,
-        coverBuyer,
-        targetPrice,
-        priceDenominator,
-      });
-    }
+    // ETH cover 1
+    const nextBlockTimestamp1 = await getNextBlockTimestampByPeriodSize(ra);
+    const nxmPriceInEth1 = await getInternalPrice(ra, p1, tc, mcr, nextBlockTimestamp1);
+    await setNextBlockTime(nextBlockTimestamp1);
+    await buyCover({ ...ethCoverTemplate, cover, coverBuyer, targetPrice, priceDenominator });
+    const expectedEthCoverAmount1 = await assetToEthWithPrecisionLoss(ethAmount, 0, config, nxmPriceInEth1);
 
-    // calculate eth covers
-    const expectedEthCoverAmount = await assetToEthWithPrecisionLoss(
-      p1,
-      ethCoverTemplate.amount.mul(2),
-      0,
-      fixture.config,
-    );
+    // ETH cover 2
+    const nextBlockTimestamp2 = await getNextBlockTimestampByPeriodSize(ra);
+    const nxmPriceInEth2 = await getInternalPrice(ra, p1, tc, mcr, nextBlockTimestamp2);
+    await setNextBlockTime(nextBlockTimestamp2);
+    await buyCover({ ...ethCoverTemplate, cover, coverBuyer, targetPrice, priceDenominator });
+    const expectedEthCoverAmount2 = await assetToEthWithPrecisionLoss(ethAmount, 0, config, nxmPriceInEth2);
 
-    // calculate dai covers
-    const expectedDaiCoverAmount = await assetToEthWithPrecisionLoss(
-      p1,
-      daiCoverTemplate.amount.mul(2),
-      fixture.rates.daiToEthRate,
-      fixture.config,
-    );
+    // DAI cover 1
+    const nextBlockTimestamp3 = await getNextBlockTimestampByPeriodSize(ra);
+    const nxmPriceInEth3 = await getInternalPrice(ra, p1, tc, mcr, nextBlockTimestamp3);
+    await setNextBlockTime(nextBlockTimestamp3);
+    await buyCover({ ...daiCoverTemplate, cover, coverBuyer, targetPrice, priceDenominator });
+    const expectedDaiCoverAmount1 = await assetToEthWithPrecisionLoss(daiAmount, daiToEthRate, config, nxmPriceInEth3);
 
-    const totalActiveCoverAmount = await mcr.getTotalActiveCoverAmount();
-    expect(totalActiveCoverAmount).to.be.equal(expectedEthCoverAmount.add(expectedDaiCoverAmount));
+    // DAI cover 2
+    const nextBlockTimestamp4 = await getNextBlockTimestampByPeriodSize(ra);
+    const nxmPriceInEth4 = await getInternalPrice(ra, p1, tc, mcr, nextBlockTimestamp4);
+    await setNextBlockTime(nextBlockTimestamp4);
+    await buyCover({ ...daiCoverTemplate, cover, coverBuyer, targetPrice, priceDenominator });
+    const expectedDaiCoverAmount2 = await assetToEthWithPrecisionLoss(daiAmount, daiToEthRate, config, nxmPriceInEth4);
+
+    const expectedTotalActiveCoverAmount = expectedEthCoverAmount1
+      .add(expectedEthCoverAmount2)
+      .add(expectedDaiCoverAmount1)
+      .add(expectedDaiCoverAmount2);
+    const actualTotalActiveCoverAmount = await mcr.getTotalActiveCoverAmount();
+
+    const totalActiveCoverAmountDiff = expectedTotalActiveCoverAmount - actualTotalActiveCoverAmount;
+    expect(
+      totalActiveCoverAmountDiff,
+      `Total active cover amount ${actualTotalActiveCoverAmount} not close enough to ${expectedTotalActiveCoverAmount}`,
+    ).to.be.lessThanOrEqual(1); // <= 1 wei
   });
 });

@@ -1,21 +1,18 @@
 const { BigNumber } = require('ethers');
 const { roundUpToNearestAllocationUnit, divCeil } = require('../../unit/StakingPool/helpers');
-const { ETH_ASSET_ID } = require('./cover');
 
 // Set assetToEthRate to 0 for ETH
-async function assetToEthWithPrecisionLoss(pool, coverAmountInAsset, assetToEthRate, config) {
+async function assetToEthWithPrecisionLoss(coverAmountInAsset, assetToEthRate, config, nxmEthPrice) {
   let expectedAmountETH = coverAmountInAsset;
 
   // convert to ETH if there is an exchange rate
+
   if (!BigNumber.from(assetToEthRate).isZero()) {
     expectedAmountETH = roundUpToNearestAllocationUnit(
       BigNumber.from(assetToEthRate).mul(coverAmountInAsset).div(config.ONE_NXM),
       config.NXM_PER_ALLOCATION_UNIT,
     );
   }
-
-  // Get NXM/ETH price
-  const nxmEthPrice = await pool.getInternalTokenPriceInAsset(ETH_ASSET_ID);
 
   // convert to NXM and back to ETH with same precision loss as contracts
   const coverAmountInNXM = roundUpToNearestAllocationUnit(
@@ -36,4 +33,7 @@ async function assetWithPrecisionLoss(pool, amountInAsset, assetID, config) {
   return amountInNXM.mul(nxmPriceInCoverAsset).div(config.ONE_NXM);
 }
 
-module.exports = { assetToEthWithPrecisionLoss, assetWithPrecisionLoss };
+module.exports = {
+  assetToEthWithPrecisionLoss,
+  assetWithPrecisionLoss,
+};

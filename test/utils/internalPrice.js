@@ -1,9 +1,7 @@
 const { ethers } = require('hardhat');
 
-const {
-  BigNumber,
-  utils: { parseEther },
-} = ethers;
+const { BigNumber } = ethers;
+const { parseEther } = ethers.utils;
 
 function divCeil(a, b) {
   a = BigNumber.from(a);
@@ -16,6 +14,38 @@ function divCeil(a, b) {
 
 function getObservationIndex(timestamp, { PERIOD_SIZE, GRANULARITY }) {
   return divCeil(timestamp, PERIOD_SIZE).mod(GRANULARITY);
+}
+
+/**
+ * Calculates the internal NXM token price in ETH for given states
+ */
+function calculateInternalPrice(currentState, observations, capital, supply, currentTimestamp, constants) {
+  const { GRANULARITY } = constants;
+  const currentIdx = getObservationIndex(BigNumber.from(currentTimestamp), constants);
+  const previousIdx = currentIdx.add(1).mod(GRANULARITY);
+
+  const firstObservation = observations[previousIdx.toNumber()];
+  const currentObservation = observations[currentIdx.toNumber()];
+
+  const elapsed = BigNumber.from(currentTimestamp).sub(firstObservation.timestamp);
+
+  const spotPriceA = parseEther('1').mul(currentState.eth).div(currentState.nxmA);
+  const spotPriceB = parseEther('1').mul(currentState.eth).div(currentState.nxmB);
+
+  const averagePriceA = currentObservation.priceCumulativeAbove
+    .sub(firstObservation.priceCumulativeAbove)
+    .mul(1e9)
+    .div(elapsed);
+
+  const averagePriceB = currentObservation.priceCumulativeBelow
+    .sub(firstObservation.priceCumulativeBelow)
+    .mul(1e9)
+    .div(elapsed);
+
+  const priceA = averagePriceA.gt(spotPriceA) ? spotPriceA : averagePriceA;
+  const priceB = averagePriceB.gt(spotPriceB) ? averagePriceB : spotPriceB;
+
+  return priceA.add(priceB).sub(parseEther('1').mul(capital).div(supply));
 }
 
 function timeTillBv(
@@ -210,6 +240,14 @@ async function getInternalPrice(ramm, pool, tokenController, mcr, timestamp) {
   return calculateInternalPrice(currentState, observations, capital, supply, timestamp, { GRANULARITY, PERIOD_SIZE });
 }
 
+async function getRammObservation(ramm, index) {
+  const [timestamp, priceCumulativeAbove, priceCumulativeBelow] = await ramm.observations(index);
+  return {
+    timestamp,
+    priceCumulativeAbove,
+    priceCumulativeBelow,
+};
+
 /**
  * Retrieves the expected observations for the given timestamp
  *
@@ -228,44 +266,46 @@ const getExpectedObservations = async (
   pool,
   tokenController,
   mcr,
-  fixtureConstants,
+  constants,
   currentTimestamp,
 ) => {
-  const { PERIOD_SIZE, GRANULARITY } = fixtureConstants;
+  const {
+    PERIOD_SIZE,
+    GRANULARITY,
+    PRICE_BUFFER,
+    PRICE_BUFFER_DENOMINATOR,
+    RATCHET_DENOMINATOR,
+    RATCHET_PERIOD,
+  } = constants;
   const capital = await pool.getPoolValueInEth();
   const supply = await tokenController.totalSupply();
   const mcrValue = await mcr.getMCR();
+
+  const previousObservationIndex = getObservationIndex(previousState.timestamp, { PERIOD_SIZE, GRANULARITY });
+  let previousObservation = await getRammObservation(ramm, previousObservationIndex);
 
   const observationsAfterExpected = [];
   const endIdx = divCeil(currentTimestamp, PERIOD_SIZE).toNumber();
 
   for (let i = endIdx - 2; endIdx >= i; i++) {
-    const previousObservationIndex = BigNumber.from(i - 1).mod(GRANULARITY);
-    const previousObservation =
-      observationsAfterExpected[previousObservationIndex] || (await ramm.observations(previousObservationIndex));
-
     const observationIndex = BigNumber.from(i).mod(GRANULARITY);
-    const timestamp = Math.min(currentTimestamp.toNumber(), PERIOD_SIZE.mul(i).toNumber());
-
-    const state = await ramm._getReserves(previousState, capital, supply, mcrValue, timestamp);
-
-    const observationData = calculateObservation(
-      state,
-      previousState,
-      previousObservation,
-      capital,
-      supply,
-      BigNumber.from(timestamp - previousState.timestamp),
-      fixtureConstants,
-    );
+    const observationTimestamp = Math.min(currentTimestamp.toNumber(), PERIOD_SIZE.mul(i).toNumber());
+    if (observationTimestamp <= previousState.timestamp.toNumber()) {
+      observationsAfterExpected[observationIndex] = await getRammObservation(ramm, observationIndex);
+      continue;
+    }
+    const state = await ramm._getReserves(previousState, capital, supply, mcrValue, observationTimestamp);
+    const elapsed = BigNumber.from(observationTimestamp - previousState.timestamp);
+    const observationData = calculateObservation(state, previousState, previousObservation, capital, supply, elapsed, constants);
 
     observationsAfterExpected[observationIndex] = {
-      timestamp,
+      timestamp: observationTimestamp,
       priceCumulativeBelow: observationData.priceCumulativeBelow,
       priceCumulativeAbove: observationData.priceCumulativeAbove,
     };
 
     previousState = state;
+    previousObservation = observationsAfterExpected[observationIndex];
   }
 
   return observationsAfterExpected;

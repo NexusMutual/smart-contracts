@@ -4,7 +4,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getState, setup } = require('./setup');
 const { setNextBlockTime } = require('../../utils/evm');
-const { getExpectedObservations } = require('./helpers');
+const { getExpectedObservations } = require('../../utils/internalPrice');
 
 describe('updateTwap', function () {
   it('should update observations', async function () {
@@ -22,7 +22,6 @@ describe('updateTwap', function () {
       pool,
       tokenController,
       mcr,
-      fixture.constants,
       currentTimestamp,
     );
 
@@ -53,7 +52,6 @@ describe('updateTwap', function () {
       pool,
       tokenController,
       mcr,
-      fixture.constants,
       currentTimestamp,
     );
 

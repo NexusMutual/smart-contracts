@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getState, setup } = require('./setup');
-const { timeTillBv, calculateTwapAboveForPeriod, calculateTwapBelowForPeriod } = require('./helpers');
+const { timeTillBv, calculateTwapAboveForPeriod, calculateTwapBelowForPeriod } = require('../../utils/internalPrice');
 
 const { BigNumber } = ethers;
 

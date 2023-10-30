@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { getState, setup } = require('./setup');
 const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
-const { calculateInternalPrice } = require('./helpers');
+const { calculateInternalPrice } = require('../../utils/internalPrice');
 
 describe('getInternalPrice', function () {
   it('should return the internal price', async function () {

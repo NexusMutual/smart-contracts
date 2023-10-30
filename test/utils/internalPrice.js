@@ -246,7 +246,8 @@ async function getRammObservation(ramm, index) {
     timestamp,
     priceCumulativeAbove,
     priceCumulativeBelow,
-};
+  };
+}
 
 /**
  * Retrieves the expected observations for the given timestamp
@@ -309,9 +310,29 @@ const getExpectedObservations = async (
   }
 
   return observationsAfterExpected;
-};
+}
+
+/**
+ * Calculates the expected internal NXM price in ETH
+ */
+async function getInternalPrice(ramm, pool, tc, mcr, timestamp) {
+  const capital = await pool.getPoolValueInEth();
+  const supply = await tc.totalSupply();
+  const mcrValue = await mcr.getMCR();
+  const GRANULARITY = await ramm.GRANULARITY();
+  const PERIOD_SIZE = await ramm.PERIOD_SIZE();
+
+  const previousState = await ramm.loadState();
+  const observations = await getExpectedObservations(previousState, ramm, pool, tc, mcr, BigNumber.from(timestamp));
+  const currentState = await ramm._getReserves(previousState, capital, supply, mcrValue, timestamp);
+
+  return calculateInternalPrice(currentState, observations, capital, supply, timestamp, { GRANULARITY, PERIOD_SIZE });
+}
 
 module.exports = {
+  divCeil,
+  getObservationIndex,
+  calculateInternalPrice,
   timeTillBv,
   calculateTwapAboveForPeriod,
   calculateTwapBelowForPeriod,
@@ -321,4 +342,6 @@ module.exports = {
   divCeil,
   getInternalPrice,
   getExpectedObservations,
+  // getInternalPrice,
 };
+

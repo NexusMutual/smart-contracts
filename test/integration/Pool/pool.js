@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { assert, expect } = require('chai');
+const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setEtherBalance } = require('../../utils/evm');
@@ -73,7 +73,7 @@ describe('Pool functions', function () {
     const { USDC_DECIMALS } = fixture.config;
 
     const totalAssetValue = await pool.getPoolValueInEth();
-  
+
     const poolBalance = BigNumber.from(await ethers.provider.getBalance(pool.address));
 
     const daiBalance = await dai.balanceOf(pool.address);
@@ -83,7 +83,6 @@ describe('Pool functions', function () {
     const expectedUsdcValueInEth = usdcToEthRate.mul(usdcBalance).div(parseUnits('1', USDC_DECIMALS));
 
     const expectedTotalAssetValue = poolBalance.add(expectedDaiValueInEth).add(expectedUsdcValueInEth);
-    assert(totalAssetValue.toString(), expectedTotalAssetValue.toString());
     expect(totalAssetValue.toString()).to.be.equal(expectedTotalAssetValue.toString());
   });
 

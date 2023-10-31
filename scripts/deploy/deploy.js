@@ -6,27 +6,11 @@ const { hex } = require('../../lib/helpers');
 const proposalCategories = require('../../lib/proposal-categories');
 const products = require('../v2-migration/output/migratableProducts.json');
 const verifier = require('./verifier')();
+const { setEtherBalance } = require('../../test/utils').evm;
 
-const { BigNumber } = ethers;
 const { AddressZero, MaxUint256 } = ethers.constants;
-const { hexValue, parseEther } = ethers.utils;
-
+const { parseEther } = ethers.utils;
 const { ABI_DIR, ADDRESSES_FILE, INITIAL_MEMBERS = '' } = process.env;
-
-const setBalance = async (address, amount) => {
-  const tests = [
-    { name: 'hardhat', regex: /HardhatNetwork/ },
-    { name: 'tenderly', regex: /Tenderly/ },
-  ];
-
-  // find node type
-  const clientVersion = await ethers.provider.send('web3_clientVersion', []);
-  const { name: node = 'unknown' } = tests.find(test => test.regex.test(clientVersion));
-  const method = `${node}_setBalance`;
-  const value = hexValue(BigNumber.from(amount));
-
-  return ethers.provider.send(method, [address, value]);
-};
 
 if (!ABI_DIR || !ADDRESSES_FILE) {
   console.log('ABI_DIR and ADDRESSES_FILE env vars are required');
@@ -122,14 +106,16 @@ async function main() {
   // Remove verbose logs
   // await network.provider.send('hardhat_setLoggingEnabled', [false]);
 
+  // make sure the contracts are compiled and we're not deploying an outdated artifact
+  await run('compile');
+
   const [ownerSigner] = await ethers.getSigners();
   const { address: owner } = ownerSigner;
 
   console.log(`Using network: ${network.name}`);
   console.log(`Using deployer address: ${owner}`);
 
-  // make sure the contracts are compiled and we're not deploying an outdated artifact
-  await run('compile');
+  await setEtherBalance(owner, parseEther('100'));
 
   const OwnedUpgradeabilityProxy = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
 
@@ -384,7 +370,7 @@ async function main() {
   const pool = await deployImmutable('Pool', poolParameters);
 
   console.log('Funding the Pool');
-  await setBalance(pool.address, parseEther('50000'));
+  await setEtherBalance(pool.address, parseEther('50000'));
   await dai.mint(pool.address, parseEther('6500000'));
 
   console.log('Initializing contracts');

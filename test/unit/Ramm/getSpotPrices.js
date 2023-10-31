@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { getState, setup } = require('./setup');
+const { setup } = require('./setup');
 const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 
 const { provider } = ethers;
@@ -21,7 +21,7 @@ describe('getSpotPrices', function () {
 
     const { spotPriceA, spotPriceB } = await ramm.getSpotPrices();
 
-    const initialState = await getState(ramm);
+    const initialState = await ramm.loadState();
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
     const mcrValue = await mcr.getMCR();

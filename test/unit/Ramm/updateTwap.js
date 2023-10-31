@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { getState, setup } = require('./setup');
+const { setup } = require('./setup');
 const { setNextBlockTime } = require('../../utils/evm');
 const { getExpectedObservations } = require('../../utils/internalPrice');
 
@@ -15,7 +15,7 @@ describe('updateTwap', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     const currentTimestamp = PERIOD_SIZE.mul(3).add(timestamp);
 
-    const state = await getState(ramm);
+    const state = await ramm.loadState();
     const observationsAfterExpected = await getExpectedObservations(
       state,
       ramm,
@@ -45,7 +45,7 @@ describe('updateTwap', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     const currentTimestamp = PERIOD_SIZE.mul(3).add(timestamp);
 
-    const state = await getState(ramm);
+    const state = await ramm.loadState();
     const [obsv1, obsv2, obsv3] = await getExpectedObservations(
       state,
       ramm,

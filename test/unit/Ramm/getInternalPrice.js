@@ -1,7 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { getState, setup } = require('./setup');
+
+const { setup } = require('./setup');
 const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 const { calculateInternalPrice } = require('../../utils/internalPrice');
 
@@ -15,7 +16,7 @@ describe('getInternalPrice', function () {
     const supply = await tokenController.totalSupply();
     const mcrValue = await mcr.getMCR();
 
-    const previousState = await getState(ramm);
+    const previousState = await ramm.loadState();
     const previousObservations = [];
     for (let i = 0; i < 3; i++) {
       previousObservations[i] = await ramm.observations(i);

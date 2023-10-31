@@ -64,7 +64,7 @@ describe('getObservation', function () {
     const { ramm, pool, tokenController, mcr } = fixture.contracts;
     const { PERIOD_SIZE, GRANULARITY } = fixture.constants;
 
-    const previousState = await getState(ramm);
+    const previousState = await ramm.loadState();
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
     const context = {
@@ -81,7 +81,7 @@ describe('getObservation', function () {
 
     const [state] = await ramm._getReserves(previousState, context, previousState.timestamp + timeElapsed.toNumber());
 
-    const previousObservationIndex = Math.ceil(previousState.timestamp / PERIOD_SIZE) % GRANULARITY;
+    const previousObservationIndex = Math.ceil(previousState.timestamp.toNumber() / PERIOD_SIZE) % GRANULARITY;
     const previousObservation = await ramm.observations(previousObservationIndex);
 
     const priceCumulativeAbove = calculateTwapAboveForPeriod(

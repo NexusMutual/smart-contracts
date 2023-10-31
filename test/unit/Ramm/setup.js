@@ -11,13 +11,6 @@ const { parseEther } = ethers.utils;
 const SPOT_PRICE_A = parseEther('0.0347');
 const SPOT_PRICE_B = parseEther('0.0152');
 
-async function getState(ramm) {
-  const { nxmReserveA: nxmA, nxmReserveB: nxmB } = await ramm.slot0();
-  const { ethReserve: eth, budget, updatedAt: timestamp } = await ramm.slot1();
-  const ratchetSpeedB = await ramm.ratchetSpeedB();
-  return { nxmA, nxmB, eth, budget, ratchetSpeedB, timestamp };
-}
-
 async function setup() {
   const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
@@ -95,7 +88,6 @@ async function setup() {
 
 module.exports = {
   setup,
-  getState,
   SPOT_PRICE_A,
   SPOT_PRICE_B,
 };

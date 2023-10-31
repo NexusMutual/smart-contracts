@@ -2,7 +2,7 @@ const { ethers, artifacts } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { getState, setup } = require('./setup');
+const { setup } = require('./setup');
 const { calculateEthToExtract, calculateEthToInject, setEthReserveValue } = require('./helpers');
 const { setNextBlockBaseFee, setNextBlockTime, setCode } = require('../utils').evm;
 
@@ -36,7 +36,7 @@ const getSupplyAndBalances = async (tokenController, nxm, memberAddress) => {
  *                 at the specified block timestamp
  */
 const getStateAtBlockTimestamp = async (ramm, pool, mcr, tokenController, blockTimestamp) => {
-  const initialState = await getState(ramm);
+  const initialState = await ramm.loadState();
   const context = {
     capital: await pool.getPoolValueInEth(),
     supply: await tokenController.totalSupply(),
@@ -218,7 +218,7 @@ describe('swap', function () {
     await ramm.connect(member).swap(nxmIn, minAmountOut, deadline, { maxPriorityFeePerGas: 0 });
 
     const after = await getSupplyAndBalances(tokenController, nxm, member.address);
-    const stateAfter = await getState(ramm);
+    const stateAfter = await ramm.loadState();
 
     const { newNxmA, newNxmB, newEthLiquidity, ethOut } = getExpectedStateAfterSwapNxmForEth(state, nxmIn);
     expect(after.totalSupply).to.be.equal(before.totalSupply.sub(nxmIn));
@@ -252,7 +252,7 @@ describe('swap', function () {
 
     // after state
     const after = await getSupplyAndBalances(tokenController, nxm, member.address);
-    const stateAfter = await getState(ramm);
+    const stateAfter = await ramm.loadState();
 
     expect(after.totalSupply).to.be.equal(before.totalSupply.add(nxmOut));
     expect(after.ethBalance).to.be.equal(before.ethBalance.sub(ethIn));

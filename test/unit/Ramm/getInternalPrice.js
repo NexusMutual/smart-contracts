@@ -24,7 +24,7 @@ describe('getInternalPrice', function () {
       mcr: await mcr.getMCR(),
     };
 
-    const previousState = await getState(ramm);
+    const previousState = await ramm.loadState();
     const previousObservations = [];
 
     for (let i = 0; i < 3; i++) {

@@ -19,7 +19,7 @@ describe('storeState', function () {
     const nextBlockTimestamp = timestamp + 6 * 60 * 60;
     const deadline = timestamp + 7 * 60 * 60;
 
-    const initialState = await getState(ramm);
+    const initialState = await ramm.loadState();
     const context = {
       capital: await pool.getPoolValueInEth(),
       supply: await tokenController.totalSupply(),

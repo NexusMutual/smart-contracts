@@ -7,6 +7,7 @@ import "../../interfaces/INXMToken.sol";
 
 contract NXMTokenMock is INXMToken, ERC20 {
 
+  mapping(address => bool) public whiteListed;
   mapping(address => uint) public isLockedForMV;
   address public operator;
 
@@ -53,12 +54,14 @@ contract NXMTokenMock is INXMToken, ERC20 {
     return true;
   }
 
-  function addToWhiteList(address /*_member*/) external returns (bool) {
-    // noop
+  function addToWhiteList(address member) external returns (bool) {
+    whiteListed[member] = true;
+    return true;
   }
 
-  function removeFromWhiteList(address /*_member*/) external returns (bool) {
-    // noop
+  function removeFromWhiteList(address member) external returns (bool) {
+    whiteListed[member] = false;
+    return true;
   }
 
   function changeOperator(address _newOperator) external returns (bool) {

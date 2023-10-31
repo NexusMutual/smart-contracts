@@ -151,11 +151,21 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   /**
-  * @dev Mints new token for an address
-  * @param _member address to reward the minted tokens
+  * @dev Mints new tokens for an address and checks if the address is a member
+  * @param _member address to send the minted tokens to
   * @param _amount number of tokens to mint
   */
   function mint(address _member, uint _amount) public override onlyInternal {
+    _mint(_member, _amount);
+  }
+
+  /**
+  * @dev Internal function to mint new tokens for an address and checks if the address is a member
+  * @param _member address to send the minted tokens to
+  * @param _amount number of tokens to mint
+  */
+  function _mint(address _member, uint _amount) internal {
+    require(token.whiteListed(_member), "TokenController: Address is not a member");
     token.mint(_member, _amount);
   }
 
@@ -542,7 +552,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
-    token.mint(address(this), amount);
+    _mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 

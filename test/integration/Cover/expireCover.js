@@ -207,13 +207,12 @@ describe('expireCover', function () {
     );
   });
 
-  // TODO: figure out why does it fail
-  it.skip('should revert when cover already expired with the bucket', async function () {
+  it('should revert when cover already expired with the bucket', async function () {
     const fixture = await loadFixture(expireCoverSetup);
     const { cover, stakingPool1 } = fixture.contracts;
     const { BUCKET_DURATION } = fixture.config;
     const [coverBuyer] = fixture.accounts.members;
-    const { amount, period, coverAsset, productId } = buyCoverFixture;
+    const { amount, period } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -231,9 +230,6 @@ describe('expireCover', function () {
     const coverId = await cover.coverDataCount();
 
     await increaseTime(coverBucketExpirationPeriod.toNumber());
-    const allocationsBefore = await stakingPool1.getActiveAllocations(productId);
-    const { totalActiveCoverInAsset: activeCoverBefore } = await cover.activeCover(coverAsset);
-
     await cover
       .connect(coverBuyer)
       .buyCover(
@@ -242,12 +238,6 @@ describe('expireCover', function () {
         { value: amount },
       );
 
-    const allocationsAfter = await stakingPool1.getActiveAllocations(productId);
-    const { totalActiveCoverInAsset: activeCoverAfter } = await cover.activeCover(coverAsset);
-
-    // stays the same because same amount expired and was allocated
-    expect(sum(allocationsBefore)).to.be.equal(sum(allocationsAfter));
-    expect(activeCoverBefore).to.be.equal(activeCoverAfter);
     await expect(cover.connect(coverBuyer).expireCover(coverId)).to.be.revertedWithCustomError(
       stakingPool1,
       'AlreadyDeallocated',

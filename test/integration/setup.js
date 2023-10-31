@@ -81,7 +81,6 @@ async function setup() {
   await ybUSDC.mint(owner.address, parseEther('10000000'));
 
   const tk = await ethers.deployContract('NXMToken', [owner.address, INITIAL_SUPPLY]);
-  await tk.mint(owner.address, parseEther('10000000'));
 
   const qd = await ethers.deployContract('TestnetQuotationData', [QE, owner.address]);
   const productsV1 = await ethers.deployContract('ProductsV1');

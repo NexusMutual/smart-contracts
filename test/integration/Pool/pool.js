@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { expect } = require('chai');
+const { assert, expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setEtherBalance } = require('../../utils/evm');
@@ -10,7 +10,7 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { PoolAsset } = require('../../../lib/constants');
 const setup = require('../setup');
 
-const { parseEther } = ethers.utils;
+const { parseEther, parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 const { BigNumber } = ethers;
 
@@ -68,21 +68,29 @@ describe('Pool functions', function () {
 
   it('getPoolValueInEth calculates pool value correctly', async function () {
     const fixture = await loadFixture(tokenPriceSetup);
-    const { p1: pool, dai } = fixture.contracts;
-    const { daiToEthRate } = fixture.rates;
+    const { p1: pool, dai, usdc } = fixture.contracts;
+    const { daiToEthRate, usdcToEthRate } = fixture.rates;
+    const { USDC_DECIMALS } = fixture.config;
 
-    const poolBalance = BigNumber.from(await ethers.provider.getBalance(pool.address));
-    const daiBalance = await dai.balanceOf(pool.address);
-    const expectedDAiValueInEth = daiToEthRate.mul(daiBalance).div(parseEther('1'));
-    const expectedTotalAssetValue = poolBalance.add(expectedDAiValueInEth);
     const totalAssetValue = await pool.getPoolValueInEth();
+  
+    const poolBalance = BigNumber.from(await ethers.provider.getBalance(pool.address));
+
+    const daiBalance = await dai.balanceOf(pool.address);
+    const expectedDaiValueInEth = daiToEthRate.mul(daiBalance).div(parseEther('1'));
+
+    const usdcBalance = await usdc.balanceOf(pool.address);
+    const expectedUsdcValueInEth = usdcToEthRate.mul(usdcBalance).div(parseUnits('1', USDC_DECIMALS));
+
+    const expectedTotalAssetValue = poolBalance.add(expectedDaiValueInEth).add(expectedUsdcValueInEth);
     assert(totalAssetValue.toString(), expectedTotalAssetValue.toString());
+    expect(totalAssetValue.toString()).to.be.equal(expectedTotalAssetValue.toString());
   });
 
   it('getMCRRatio calculates MCR ratio correctly', async function () {
     const fixture = await loadFixture(tokenPriceSetup);
     const { p1: pool } = fixture.contracts;
     const mcrRatio = await pool.getMCRRatio();
-    assert.equal(mcrRatio.toString(), '22000'); // ETH + DAI + USDC
+    expect(mcrRatio.toString()).to.be.equal('22000'); // ETH + DAI + USDC
   });
 });

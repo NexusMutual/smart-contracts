@@ -574,6 +574,7 @@ async function setup() {
     TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
     ONE_NXM: await stakingPool.ONE_NXM(),
     NXM_PER_ALLOCATION_UNIT: await stakingPool.NXM_PER_ALLOCATION_UNIT(),
+    USDC_DECIMALS: usdcDecimals,
   };
 
   fixture.contracts.stakingProducts = stakingProducts;

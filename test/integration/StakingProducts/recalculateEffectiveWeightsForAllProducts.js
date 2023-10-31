@@ -54,8 +54,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     expect(product.lastEffectiveWeight).to.be.equal(targetWeight);
   });
 
-  // TODO: calculate exact capacity
-  it.skip('recalculates effective weights correctly when activeWeight > targetWeight', async function () {
+  it('recalculates effective weights correctly when activeWeight > targetWeight', async function () {
     const fixture = await loadFixture(recalculateEffectiveWeightsForAllProductsSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { stakingProducts, stakingPool1, cover, p1: pool } = fixture.contracts;
@@ -65,7 +64,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
 
     const poolId = 1;
     const productId = 1;
-    const stakeAmount = parseEther('900000');
+    const stakeAmount = parseEther('5000000');
 
     // setup product with an initial target weight of 10 in order to buy cover
     const initialTargetWeight = 10;
@@ -122,8 +121,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     expect(product.lastEffectiveWeight).to.be.equal(expectedActiveWeight);
   });
 
-  // TODO: calculate exact capacity
-  it.skip('recalculates effective weights for 2 products when activeWeight > targetWeight', async function () {
+  it('recalculates effective weights for 2 products when activeWeight > targetWeight', async function () {
     const fixture = await loadFixture(recalculateEffectiveWeightsForAllProductsSetup);
     const { DEFAULT_PRODUCTS } = fixture;
     const { stakingProducts, stakingPool1, cover, p1: pool } = fixture.contracts;
@@ -135,7 +133,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     const firstProductId = 1;
     const secondProductId = 2;
 
-    const stakeAmount = parseEther('900000');
+    const stakeAmount = parseEther('5000000');
 
     // setup products with an initial target weight of 10 in order to buy cover
     const initialTargetWeight = 10;

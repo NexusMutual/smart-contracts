@@ -380,10 +380,7 @@ async function main() {
   console.log('Deploying Pool');
   const legacyPoolParameters = [master, priceFeedOracle, swapOperator, dai, stETH, enzymeVault, tk].map(x => x.address);
   const legacyPool = await deployImmutable('LegacyPool', legacyPoolParameters);
-  const swapValue = await legacyPool.swapValue();
-  const poolParameters = [master, priceFeedOracle, swapOperator, tk, legacyPool]
-    .map(c => c.address)
-    .concat([swapValue]);
+  const poolParameters = [master, priceFeedOracle, swapOperator, tk, legacyPool].map(c => c.address);
   const pool = await deployImmutable('Pool', poolParameters);
 
   console.log('Funding the Pool');

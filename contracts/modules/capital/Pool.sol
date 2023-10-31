@@ -29,7 +29,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   // parameters
   IPriceFeedOracle public override priceFeedOracle;
   address public swapOperator;
-
   uint96 public swapValue;
 
   /* constants */
@@ -37,13 +36,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
-  uint public constant MAX_MCR_RATIO = 40000; // 400%
-  uint public constant MAX_BUY_SELL_MCR_ETH_FRACTION = 500; // 5%. 4 decimal points
-
-  uint internal constant CONSTANT_C = 5800000;
-  uint internal constant CONSTANT_A = 1028 * 1e13;
-  uint internal constant TOKEN_EXPONENT = 4;
-
   uint internal constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
   INXMToken public immutable nxmToken;
@@ -51,7 +43,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   /* events */
   event Payout(address indexed to, address indexed assetAddress, uint amount);
   event DepositReturned(address indexed to, uint amount);
-  event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
 
   /* logic */
   modifier onlySwapOperator {
@@ -71,14 +62,12 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     address _priceOracle,
     address _swapOperator,
     address _nxmTokenAddress,
-    address _previousPool,
-    uint _swapValue
+    address _previousPool
   ) {
     master = INXMMaster(_master);
     priceFeedOracle = IPriceFeedOracle(_priceOracle);
     nxmToken = INXMToken(_nxmTokenAddress);
     swapOperator = _swapOperator;
-    swapValue = _swapValue.toUint96();
 
     ILegacyPool previousPool = ILegacyPool(_previousPool);
 
@@ -288,7 +277,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   }
 
   function setSwapValue(uint newValue) external onlySwapOperator whenNotPaused {
-    swapValue = SafeUintCast.toUint96(newValue);
+    swapValue = newValue.toUint96();
   }
 
   /* ========== CLAIMS RELATED MUTATIVE FUNCTIONS ========== */
@@ -442,10 +431,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   /* ========== DEPENDENCIES ========== */
 
-  function tokenController() internal view returns (ITokenController) {
-    return ITokenController(internalContracts[uint(ID.TC)]);
-  }
-
   function mcr() internal view returns (IMCR) {
     return IMCR(internalContracts[uint(ID.MC)]);
   }
@@ -459,7 +444,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
    * @dev Implements MasterAware interface function
    */
   function changeDependentContractAddress() public {
-    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
     internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
     // needed for onlyMember modifier

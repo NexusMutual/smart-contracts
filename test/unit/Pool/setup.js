@@ -73,15 +73,12 @@ async function setup() {
     token.address,
   );
 
-  const swapValue = await legacyPool.swapValue();
-
   const pool = await Pool.deploy(
     AddressZero, // master: it is changed a few lines below
     priceFeedOracle.address,
     swapOperator.address,
     token.address,
     legacyPool.address,
-    swapValue,
   );
 
   // set contract addresses

@@ -101,15 +101,12 @@ async function setup() {
     nxmToken.address,
   );
 
-  const swapValue = await legacyPool.swapValue();
-
   const pool = await Pool.deploy(
     master.address,
     priceFeedOracle.address, // price feed oracle, add to setup if needed
     AddressZero, // swap operator
     nxmToken.address,
     legacyPool.address,
-    swapValue,
   );
 
   // Setup master, token, token controller, pool and mcr connections

@@ -134,10 +134,9 @@ async function setup() {
     [master, priceFeedOracle, swapOperatorPlaceholder, dai, stETH, enzymeVault, tk].map(c => c.address),
   );
 
-  const swapValue = await legacyPool.swapValue();
   const p1 = await ethers.deployContract(
     'Pool',
-    [master, priceFeedOracle, swapOperatorPlaceholder, tk, legacyPool].map(c => c.address).concat([swapValue]),
+    [master, priceFeedOracle, swapOperatorPlaceholder, tk, legacyPool].map(c => c.address),
   );
 
   const cowVaultRelayer = await ethers.deployContract('SOMockVaultRelayer');

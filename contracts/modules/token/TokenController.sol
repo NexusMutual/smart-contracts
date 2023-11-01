@@ -161,6 +161,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   /**
   * @dev Internal function to mint new tokens for an address and checks if the address is a member
+  * @dev Other internal functions in this contract should use _mint and never token.mint directly
   * @param _member address to send the minted tokens to
   * @param _amount number of tokens to mint
   */

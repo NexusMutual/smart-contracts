@@ -9,7 +9,7 @@ const verifier = require('./verifier')();
 const { setEtherBalance } = require('../../test/utils').evm;
 
 const { AddressZero, MaxUint256 } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { parseEther, parseUnits } = ethers.utils;
 const { ABI_DIR, ADDRESSES_FILE, INITIAL_MEMBERS = '' } = process.env;
 
 if (!ABI_DIR || !ADDRESSES_FILE) {
@@ -308,6 +308,7 @@ async function main() {
       abiFilename: 'EACAggregatorProxy',
     });
     await chainlinkDaiMock.setLatestAnswer(parseEther('0.000357884806717390'));
+    await chainlinkDaiMock.setDecimals(18);
     CHAINLINK_DAI_ETH[network.name] = chainlinkDaiMock.address;
   }
 
@@ -318,6 +319,7 @@ async function main() {
       abiFilename: 'EACAggregatorProxy',
     });
     await chainlinkStEthMock.setLatestAnswer(parseEther('1.003')); // almost 1:1
+    await chainlinkStEthMock.setDecimals(18);
     CHAINLINK_STETH_ETH[network.name] = chainlinkStEthMock.address;
   }
 
@@ -328,6 +330,7 @@ async function main() {
       abiFilename: 'EACAggregatorProxy',
     });
     await chainlinkEnzymeVaultMock.setLatestAnswer(parseEther('1.003')); // almost 1:1
+    await chainlinkEnzymeVaultMock.setDecimals(18);
     CHAINLINK_ENZYME_VAULT[network.name] = chainlinkEnzymeVaultMock.address;
   }
 
@@ -338,7 +341,8 @@ async function main() {
       alias: 'Chainlink-ETH-USD',
       abiFilename: 'EACAggregatorProxy',
     });
-    await chainlinkEthUsdMock.setLatestAnswer(parseEther('1234.56'));
+    await chainlinkEthUsdMock.setLatestAnswer(parseUnits('1234.56', 8));
+    await chainlinkEthUsdMock.setDecimals(8);
     CHAINLINK_ETH_USD[network.name] = chainlinkEthUsdMock.address;
   }
 

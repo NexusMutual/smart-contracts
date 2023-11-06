@@ -31,6 +31,7 @@ const V2Addresses = {
   ProposalCategory: '0x888eA6Ab349c854936b98586CE6a17E98BF254b2',
   StakingNFT: '0xcafea508a477D94c502c253A58239fb8F948e97f',
   StakingNFTDescriptor: '0xcafea534e156a41b3e77f29Bf93C653004f1455C',
+  StakingPool: '0xcafeacf62FB96fa1243618c4727Edf7E04D1D4Ca',
   StakingPoolFactory: '0xcafeafb97BF8831D95C0FC659b8eB3946B101CB3',
   StakingProducts: '0xcafea573fBd815B5f59e8049E71E554bde3477E4',
   StakingViewer: '0xcafea2B7904eE0089206ab7084bCaFB8D476BD04',

@@ -19,7 +19,7 @@ const DEFAULT_MCR_PARAMS = {
   minUpdateTime: '3600',
 };
 
-describe.only('teleportMCR', function () {
+describe('teleportMCR', function () {
   it('teleportMCR updates values accordingly', async function () {
     const fixture = await loadFixture(setup);
     const { master } = fixture;
@@ -63,5 +63,37 @@ describe.only('teleportMCR', function () {
     await setNextBlockTime(firstOfDecember);
 
     await expect(mcr.teleportMCR()).to.be.revertedWith('MCR: Deadline has passed');
+  });
+
+  it('teleportMCR cannot be called before the upgrade actually happened', async function () {
+    const fixture = await loadFixture(setup);
+    const { master } = fixture;
+
+    const { mcrValue, desiredMCR, maxMCRIncrement, gearingFactor, minUpdateTime } = DEFAULT_MCR_PARAMS;
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+
+    const DisposableMCR = await ethers.getContractFactory('DisposableMCR');
+    const MCR = await ethers.getContractFactory('MCR');
+
+    // deploy disposable mcr and initialize values
+    const disposableMCR = await DisposableMCR.deploy(
+      mcrValue,
+      desiredMCR,
+      currentTime,
+      maxMCRIncrement,
+      gearingFactor,
+      minUpdateTime,
+    );
+
+    // deploy mcr with fake master
+    const mcr = await MCR.deploy(disposableMCR.address);
+
+    await expect(mcr.teleportMCR()).to.be.revertedWith('MCR: not yet initialized');
+
+    // trigger initialize and switch master address
+    await disposableMCR.initializeNextMcr(mcr.address, master.address);
+
+    // should not revert
+    await mcr.teleportMCR();
   });
 });

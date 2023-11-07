@@ -96,6 +96,7 @@ contract MCR is IMCR, MasterAwareV2 {
    */
   function teleportMCR() external {
 
+    require(address(previousMCR) == address(0), "MCR: not yet initialized");
     require(mcr > 10_000 ether, "MCR: already updated");
     require(block.timestamp < 1701388800, "MCR: Deadline has passed"); // 1701388800 = December 1st, 2023
 

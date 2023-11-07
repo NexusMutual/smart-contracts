@@ -115,11 +115,12 @@ describe('basic functionality tests', function () {
       P1: ['TC', 'MC', 'MR'],
       CO: ['P1', 'TC', 'MR', 'SP'],
       CL: ['CO', 'TC', 'CI'],
-      MR: ['TC', 'P1', 'CO'], // add the following after MR upgrade: ['PS', 'AS'],
+      MR: ['TC', 'P1', 'CO', 'PS', 'AS'],
       GW: ['MR', 'CL', 'TK'],
       PS: ['TC', 'MR', 'TK'],
       SP: [], // none
       TC: ['PS', 'AS', 'CO', 'GV', 'P1'],
+      RA: ['P1', 'MC', 'TC'],
     };
 
     const latestAddresses = {};

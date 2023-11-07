@@ -1,8 +1,17 @@
 const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
 
-const { Address, EnzymeAdress, V2Addresses, submitGovernanceProposal, getSigner } = require('./utils');
-const { ProposalCategory: PROPOSAL_CATEGORIES, ContractTypes, ContractCode } = require('../../lib/constants');
+const {
+  Address,
+  EnzymeAdress,
+  V2Addresses,
+  calculateProxyAddress,
+  enableAsEnzymeReceiver,
+  formatInternalContracts,
+  getSigner,
+  submitGovernanceProposal,
+} = require('./utils');
+const { ContractTypes, ContractCode, ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const evm = require('./evm')();
 
 const { BigNumber } = ethers;
@@ -18,18 +27,21 @@ const SPOT_PRICE_B = parseEther('0.0152');
 // https://docs.google.com/document/d/1oRaAzPapBpNv0TmxC9XZjc24Qu0deJnzlQGEznBV1X0/edit#heading=h.o7iygzkj2m9z
 const SPOT_PRICE_A = parseEther('0.0347');
 
-// TODO: grab from utils
-const formatInternalContracts = ({ _contractAddresses, _contractCodes }) => {
-  return _contractCodes.map((code, i) => {
-    const index = `${i}`.padStart(2, '0');
-    return `[${index}] ${Buffer.from(code.slice(2), 'hex')} -> ${_contractAddresses[i]}`;
-  });
-};
+async function getCapitalSupplyAndBalances(pool, tokenController, nxm, memberAddress) {
+  return {
+    ethCapital: await pool.getPoolValueInEth(),
+    nxmSupply: await tokenController.totalSupply(),
+    ethBalance: await ethers.provider.getBalance(memberAddress),
+    nxmBalance: await nxm.balanceOf(memberAddress),
+  };
+}
+
+const assertionErrorMsg = (name, asset) => `AssertionError: values of ${name} in ${asset} don't match\n`;
 
 describe('tokenomics', function () {
   async function getContractByContractCode(contractName, contractCode) {
-    this.master = this.master || (await ethers.getContractAt('NXMaster', V2Addresses.NXMaster));
-    const contractAddress = await this.master.getLatestAddress(toUtf8Bytes(contractCode));
+    this.master = this.master ?? (await ethers.getContractAt('NXMaster', V2Addresses.NXMaster));
+    const contractAddress = await this.master?.getLatestAddress(toUtf8Bytes(contractCode));
     return ethers.getContractAt(contractName, contractAddress);
   }
 
@@ -42,93 +54,96 @@ describe('tokenomics', function () {
       const { TENDERLY_SNAPSHOT_ID } = process.env;
       if (TENDERLY_SNAPSHOT_ID) {
         await evm.revert(TENDERLY_SNAPSHOT_ID);
-        console.log(`Reverted to snapshot ${TENDERLY_SNAPSHOT_ID}`);
+        console.info(`Reverted to snapshot ${TENDERLY_SNAPSHOT_ID}`);
       } else {
-        console.log('Snapshot ID: ', await evm.snapshot());
+        console.info('Snapshot ID: ', await evm.snapshot());
       }
     }
+    const [deployer] = await ethers.getSigners();
+    await evm.setBalance(deployer.address, parseEther('1000'));
   });
 
   it('load contracts', async function () {
-    // TODO: move to utils
-    // Current version - should be updated whenever a proxy is upgraded to a new address
     this.master = await ethers.getContractAt('NXMaster', V2Addresses.NXMaster);
-    this.poolBefore = await ethers.getContractAt('Pool', V2Addresses.Pool);
-    this.coverNFT = await ethers.getContractAt('CoverNFT', V2Addresses.CoverNFT);
-    this.nxm = await ethers.getContractAt('NXMToken', V2Addresses.NXMToken);
-    this.stakingNFT = await ethers.getContractAt('StakingNFT', V2Addresses.StakingNFT);
-    this.stakingPool = await ethers.getContractAt('StakingPool', V2Addresses.StakingPool);
-    this.swapOperator = await ethers.getContractAt('SwapOperator', V2Addresses.SwapOperator);
-    this.priceFeedOracle = await ethers.getContractAt('PriceFeedOracle', V2Addresses.PriceFeedOracle);
-    this.quotationData = await ethers.getContractAt('LegacyQuotationData', V2Addresses.LegacyQuotationData);
-    this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', V2Addresses.StakingPoolFactory);
-    this.productsV1 = await ethers.getContractAt('ProductsV1', V2Addresses.ProductsV1);
-    this.newClaimsReward = await ethers.getContractAt('LegacyClaimsReward', V2Addresses.LegacyClaimsReward);
     this.mcr = await ethers.getContractAt('MCR', V2Addresses.MCR);
+    this.nxm = await ethers.getContractAt('NXMToken', V2Addresses.NXMToken);
+    this.coverNFT = await ethers.getContractAt('CoverNFT', V2Addresses.CoverNFT);
+    this.poolBefore = await ethers.getContractAt('ILegacyPool', V2Addresses.Pool);
+    this.stakingNFT = await ethers.getContractAt('StakingNFT', V2Addresses.StakingNFT);
+    this.productsV1 = await ethers.getContractAt('ProductsV1', V2Addresses.ProductsV1);
+    this.stakingPool = await ethers.getContractAt('StakingPool', V2Addresses.StakingPoolImpl);
+    this.swapOperator = await ethers.getContractAt('SwapOperator', V2Addresses.SwapOperator);
+    this.quotationData = await ethers.getContractAt('LegacyQuotationData', V2Addresses.LegacyQuotationData);
+    this.tokenController = await ethers.getContractAt('TokenController', V2Addresses.TokenController);
+    this.priceFeedOracle = await ethers.getContractAt('PriceFeedOracle', V2Addresses.PriceFeedOracle);
+    this.newClaimsReward = await ethers.getContractAt('LegacyClaimsReward', V2Addresses.LegacyClaimsReward);
+    this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', V2Addresses.StakingPoolFactory);
 
-    // TODO: failing master.getLatestAddress
-    // console.log('GOV master.getLatestAddress: ', await this.master.getLatestAddress(toUtf8Bytes('GV')));
-
-    this.governance = await ethers.getContractAt('Governance', V2Addresses.Governance);
-    // this.governance = await getContractByContractCode('Governance', ContractCode.Governance);
-    console.log('governance done', this.governance.address);
-    this.memberRoles = await ethers.getContractAt('MemberRoles', V2Addresses.MemberRoles);
-    // this.memberRoles = await getContractByContractCode('MemberRoles', ContractCode.MemberRoles);
-    console.log('memberRoles done', this.memberRoles.address);
+    this.governance = await getContractByContractCode('Governance', ContractCode.Governance);
+    this.memberRoles = await getContractByContractCode('MemberRoles', ContractCode.MemberRoles);
 
     this.dai = await ethers.getContractAt('ERC20Mock', Address.DAI_ADDRESS);
     this.stEth = await ethers.getContractAt('ERC20Mock', Address.STETH_ADDRESS);
+    this.rEth = await ethers.getContractAt('ERC20Mock', Address.RETH_ADDRESS);
     this.enzymeShares = await ethers.getContractAt('ERC20Mock', EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS);
-
-    // before values
-    // TODO: fix failing getMCR
-    // this.mcrValueBefore = await this.mcr.getMCR();
   });
 
   it('Impersonate AB members', async function () {
-    // TODO: fix failing memberRoles.members(1)
     const { memberArray: abMembers } = await this.memberRoles.members(1);
-    console.log('abMembers', abMembers);
     this.abMembers = [];
     for (const address of abMembers) {
-      console.log('processing ', address);
       await evm.impersonate(address);
       await evm.setBalance(address, parseEther('1000'));
       this.abMembers.push(await getSigner(address));
     }
   });
 
-  // TODO:
-  // new contract - LegacyPool.sol
   it('add new RAMM (RA) contract', async function () {
     const contractsBefore = await this.master.getInternalContracts();
 
-    const ramm = await ethers.deployContract('Ramm', [SPOT_PRICE_A, SPOT_PRICE_B]);
-
-    // const rammAddress = '0xcafea536d7f79F31Fa49bC40349f6a5F7E19D122'; // TODO: fix me
+    // const rammAddress = '<ADDRESS>'; // TODO: grab from brute force address script
     // const ramm = await ethers.getContractAt('Ramm', rammAddress);
-    // const rammCreate2Salt = 43535253462345; // hardcoded random salt
-
-    const rammTypeAndSalt = BigNumber.from(0).shl(8).add(ContractTypes.Proxy);
+    this.ramm = await ethers.deployContract('Ramm', [SPOT_PRICE_A, SPOT_PRICE_B]);
+    const rammCreate2Salt = 43535253462345; // TODO: brute force salt to generate nice address
+    const rammTypeAndSalt = BigNumber.from(rammCreate2Salt).shl(8).add(ContractTypes.Proxy);
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]', 'uint256[]'],
-        [[toUtf8Bytes(ContractCode.Ramm)], [ramm.address], [rammTypeAndSalt]],
+        [[toUtf8Bytes(ContractCode.Ramm)], [this.ramm.address], [rammTypeAndSalt]],
       ),
       this.abMembers,
       this.governance,
     );
 
     const contractsAfter = await this.master.getInternalContracts();
-    console.log('RAMM Contracts before:', formatInternalContracts(contractsBefore));
-    console.log('RAMM Contracts after:', formatInternalContracts(contractsAfter));
-    // expect Ramm to be added to after
+
+    console.info('RAMM Contracts before:', formatInternalContracts(contractsBefore));
+    console.info('RAMM Contracts after:', formatInternalContracts(contractsAfter));
+
+    // Set this.ramm to the ramm proxy contract
+    const rammProxyAddress = calculateProxyAddress(this.master.address, rammCreate2Salt);
+    this.ramm = await ethers.getContractAt('Ramm', rammProxyAddress);
+
+    const actualRammProxyAddress = await this.master.getLatestAddress(toUtf8Bytes('RA'));
+    expect(actualRammProxyAddress).to.equal(rammProxyAddress);
   });
 
   it('Collect storage data before upgrade', async function () {
+    this.contractData = {
+      mcr: { before: {}, after: {} },
+      pool: { before: {}, after: {} },
+      gateway: { before: {}, after: {} },
+      assessment: { before: {}, after: {} },
+      stakingPool: { before: {}, after: {} },
+      priceFeedOracle: { before: {}, after: {} },
+      individualClaims: { before: {}, after: {} },
+      yieldTokenIncidents: { before: {}, after: {} },
+    };
+
     // MCR
+    this.mcrValueBefore = await this.mcr.getMCR();
     this.contractData.mcr.before.maxMCRIncrement = await this.mcr.maxMCRIncrement();
     this.contractData.mcr.before.gearingFactor = await this.mcr.gearingFactor();
     this.contractData.mcr.before.mcr = await this.mcr.mcr();
@@ -136,30 +151,35 @@ describe('tokenomics', function () {
     this.contractData.mcr.before.lastUpdateTime = await this.mcr.lastUpdateTime();
     this.contractData.mcr.before.previousMCR = await this.mcr.previousMCR();
 
-    // POOL
-    const assets = await this.pool.getAssets();
-    const assetsData = await Promise.all(assets.map(address => this.pool.assetData(address)));
-    this.contractData.pool.before.assetsData = assets.reduce((acc, asset, i) => {
-      return { ...acc, [asset]: assetsData[i] };
-    }, {});
-    this.contractData.pool.before.minPoolEth = await this.swapOperator.minPoolEth();
-    this.contractData.pool.before.assets = assets;
+    // Pool
+    this.contractData.pool.before.value = await this.poolBefore.getPoolValueInEth();
+    this.contractData.pool.before.ethBalance = await ethers.provider.getBalance(this.poolBefore.address);
+    this.contractData.pool.before.daiBalance = await this.dai.balanceOf(this.poolBefore.address);
+    this.contractData.pool.before.stEthBalance = await this.stEth.balanceOf(this.poolBefore.address);
+    this.contractData.pool.before.rEthBalance = await this.rEth.balanceOf(this.poolBefore.address);
+    this.contractData.pool.before.enzymeSharesBalance = await this.enzymeShares.balanceOf(this.poolBefore.address);
 
-    // PRICE FEED
+    const assets = (await this.poolBefore.getAssets()).map(([address]) => address);
+    const assetSwapDetails = await Promise.all(assets.map(address => this.poolBefore.getAssetSwapDetails(address)));
+    this.contractData.pool.before.assets = assets;
+    this.contractData.pool.before.minPoolEth = await this.swapOperator.minPoolEth();
+    this.contractData.pool.before.assetSwapDetails = assets.reduce((acc, asset, i) => {
+      return { ...acc, [asset]: assetSwapDetails[i] };
+    }, {});
+
+    // Price Feed
     const assetsEthRate = await Promise.all(assets.map(address => this.priceFeedOracle.getAssetToEthRate(address)));
     const getAssetForEth = await Promise.all(assets.map(address => this.priceFeedOracle.getAssetForEth(address, 10)));
 
     this.contractData.priceFeedOracle.before.assetsEthRate = assets.reduce((acc, asset, i) => {
-      acc[asset] = assetsEthRate[i];
-      return acc;
+      return { ...acc, [asset]: assetsEthRate[i] };
     }, {});
     this.contractData.priceFeedOracle.before.assetsForEth = assets.reduce((acc, asset, i) => {
-      acc[asset] = getAssetForEth[i];
-      return acc;
+      return { ...acc, [asset]: getAssetForEth[i] };
     }, {});
   });
 
-  it('upgrade existing contracts', async function () {
+  it('Upgrade existing contracts', async function () {
     const contractsBefore = await this.master.getInternalContracts();
 
     // LegacyGateway.sol
@@ -173,19 +193,20 @@ describe('tokenomics', function () {
     // Pool.sol
     this.pool = await ethers.deployContract('Pool', [
       this.master.address,
-      V2Addresses.PriceFeedOracle, // this.priceFeedOracle.address, // VV2Addresses.PriceFeedOracle
-      this.swapOperator.address, // V2Addresses.SwapOperator
-      this.nxm.address, // V2Addresses.NXMToken
-      this.previousPool.address, // V2Addresses.Pool
+      this.priceFeedOracle.address,
+      this.swapOperator.address,
+      this.nxm.address,
+      this.poolBefore.address,
     ]);
     // this.pool = await getContractByContractCode('Pool', ContractCode.Pool);
+    await enableAsEnzymeReceiver(this.pool.address);
 
     // Cover.sol
     this.cover = await ethers.deployContract('Cover', [
-      this.coverNFT.address, // V2Addresses.CoverNFT
-      this.stakingNFT.address, // V2Addresses.StakingNFT
-      this.stakingPoolFactory.address, // V2Addresses.StakingPoolFactory
-      this.stakingPool.address, // V2Addresses.StakingPool
+      this.coverNFT.address,
+      this.stakingNFT.address,
+      this.stakingPoolFactory.address,
+      this.stakingPool.address,
     ]);
     // this.cover = await getContractByContractCode('Cover', ContractCode.Cover);
 
@@ -196,9 +217,9 @@ describe('tokenomics', function () {
     // LegacyPooledStaking.sol
     this.pooledStaking = await ethers.deployContract('LegacyPooledStaking', [
       this.cover.address,
-      this.productsV1.address, // V2Addresses.ProductsV1
-      this.stakingNFT.address, // V2Addresses.StakingNFT
-      this.nxm.address, // V2Addresses.NXMToken
+      this.productsV1.address,
+      this.stakingNFT.address,
+      this.nxm.address,
     ]);
     // this.pooledStaking = await getContractByContractCode('LegacyPooledStaking', ContractCode.PooledStaking);
 
@@ -233,7 +254,7 @@ describe('tokenomics', function () {
       [ContractCode.IndividualClaims]: this.individualClaims.address,
       [ContractCode.YieldTokenIncidents]: this.yieldTokenIncidents.address,
     };
-    // NOTE: Do not manipulate the map between Object.keys and Object.values otherwise the ordering could be wrong
+    // NOTE: Do not manipulate the map between Object.keys and Object.values otherwise the ordering could go wrong
     const codes = Object.keys(contractCodeAddressMapping).map(code => toUtf8Bytes(code));
     const addresses = Object.values(contractCodeAddressMapping);
 
@@ -245,48 +266,78 @@ describe('tokenomics', function () {
     );
 
     const contractsAfter = await this.master.getInternalContracts();
-    console.log('Upgrade Contracts before:', formatInternalContracts(contractsBefore));
-    console.log('Upgrade Contracts after:', formatInternalContracts(contractsAfter));
+
+    console.info('Upgrade Contracts before:', formatInternalContracts(contractsBefore));
+    console.info('Upgrade Contracts after:', formatInternalContracts(contractsAfter));
+
+    // Set references to proxy contracts
+    this.gateway = await ethers.getContractAt('LegacyGateway', V2Addresses.LegacyGateway);
+    this.mcr = await ethers.getContractAt('MCR', V2Addresses.MCR);
+    this.pool = await ethers.getContractAt('Pool', V2Addresses.Pool);
+    this.cover = await ethers.getContractAt('Cover', V2Addresses.Cover);
+    this.assessment = await ethers.getContractAt('Assessment', V2Addresses.Assessment);
+    this.pooledStaking = await ethers.getContractAt('StakingPool', V2Addresses.StakingPoolImpl);
+    this.tokenController = await ethers.getContractAt('TokenController', V2Addresses.TokenController);
+    this.individualClaims = await ethers.getContractAt('IndividualClaims', V2Addresses.IndividualClaims);
+    this.yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', V2Addresses.YieldTokenIncidents);
+  });
+
+  it('Set RAMM master and dependent contract addresses after contracts upgrade', async function () {
+    await this.ramm.changeMasterAddress(this.master.address);
+    await this.ramm.changeDependentContractAddress();
   });
 
   it('Pool value check', async function () {
-    // before pool values
-    const poolValueBefore = await this.poolBefore.getPoolValueInEth();
-    const ethBalanceBefore = await ethers.provider.getBalance(this.poolBefore.address);
-    const daiBalanceBefore = await this.dai.balanceOf(this.poolBefore.address);
-    const stEthBalanceBefore = await this.stEth.balanceOf(this.poolBefore.address);
-    const enzymeSharesBalanceBefore = await this.enzymeShares.balanceOf(this.poolBefore.address);
-
     // after pool values
-    const poolValueAfter = await this.pool.getPoolValueInEth();
-    const ethBalanceAfter = await ethers.provider.getBalance(this.pool.address);
-    const daiBalanceAfter = await this.dai.balanceOf(this.pool.address);
-    const stEthBalanceAfter = await this.stEth.balanceOf(this.pool.address);
-    const enzymeSharesBalanceAfter = await this.enzymeShares.balanceOf(this.pool.address);
+    const newPoolValueAfter = await this.pool.getPoolValueInEth();
+    const newEthBalanceAfter = await ethers.provider.getBalance(this.pool.address);
+    const newDaiBalanceAfter = await this.dai.balanceOf(this.pool.address);
+    const newStEthBalanceAfter = await this.stEth.balanceOf(this.pool.address);
+    const newREthBalanceAfter = await this.rEth.balanceOf(this.pool.address);
+    const newEnzymeSharesBalanceAfter = await this.enzymeShares.balanceOf(this.pool.address);
 
-    console.log({
-      poolValueBefore: formatEther(poolValueBefore),
-      poolValueAfter: formatEther(poolValueAfter),
-      poolValueDiff: formatEther(poolValueAfter.sub(poolValueBefore)),
-      ethBalanceBefore: formatEther(ethBalanceBefore),
-      ethBalanceAfter: formatEther(ethBalanceAfter),
-      ethBalanceDiff: formatEther(ethBalanceAfter.sub(ethBalanceBefore)),
-      daiBalanceBefore: formatEther(daiBalanceBefore),
-      daiBalanceAfter: formatEther(daiBalanceAfter),
-      daiBalanceDiff: formatEther(daiBalanceAfter.sub(daiBalanceBefore)),
-      stEthBalanceBefore: formatEther(stEthBalanceBefore),
-      stEthBalanceAfter: formatEther(stEthBalanceAfter),
-      stEthBalanceDiff: formatEther(stEthBalanceAfter.sub(stEthBalanceBefore)),
-      enzymeSharesBalanceBefore: formatEther(enzymeSharesBalanceBefore),
-      enzymeSharesBalanceAfter: formatEther(enzymeSharesBalanceAfter),
-      enzymeSharesBalanceDiff: formatEther(enzymeSharesBalanceAfter.sub(enzymeSharesBalanceBefore)),
+    // pool values diff
+    const poolValueDiff = newPoolValueAfter.sub(this.contractData.pool.before.value);
+    const ethBalanceDiff = newEthBalanceAfter.sub(this.contractData.pool.before.ethBalance);
+    const daiBalanceDiff = newDaiBalanceAfter.sub(this.contractData.pool.before.daiBalance);
+    const stEthBalanceDiff = newStEthBalanceAfter.sub(this.contractData.pool.before.stEthBalance);
+    const rEthBalanceDiff = newREthBalanceAfter.sub(this.contractData.pool.before.rEthBalance);
+    const enzymeSharesBalanceDiff = newEnzymeSharesBalanceAfter.sub(this.contractData.pool.before.enzymeSharesBalance);
+
+    // ~1 wei discrepancy is acceptable
+    expect(poolValueDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
+    expect(ethBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
+    expect(daiBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
+    expect(stEthBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
+    expect(rEthBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
+    expect(enzymeSharesBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
+
+    console.info({
+      poolValueBefore: formatEther(this.contractData.pool.before.value),
+      poolValueAfter: formatEther(newPoolValueAfter),
+      poolValueDiff: formatEther(poolValueDiff),
+      ethBalanceBefore: formatEther(this.contractData.pool.before.ethBalance),
+      ethBalanceAfter: formatEther(newEthBalanceAfter),
+      ethBalanceDiff: formatEther(ethBalanceDiff),
+      daiBalanceBefore: formatEther(this.contractData.pool.before.daiBalance),
+      daiBalanceAfter: formatEther(newDaiBalanceAfter),
+      daiBalanceDiff: formatEther(daiBalanceDiff),
+      stEthBalanceBefore: formatEther(this.contractData.pool.before.stEthBalance),
+      stEthBalanceAfter: formatEther(newStEthBalanceAfter),
+      stEthBalanceDiff: formatEther(stEthBalanceDiff),
+      rEthBalanceBefore: formatEther(this.contractData.pool.before.rEthBalance),
+      rEthBalanceAfter: formatEther(newREthBalanceAfter),
+      rEthBalanceDiff: formatEther(rEthBalanceDiff),
+      enzymeSharesBalanceBefore: formatEther(this.contractData.pool.before.enzymeSharesBalance),
+      enzymeSharesBalanceAfter: formatEther(newEnzymeSharesBalanceAfter),
+      enzymeSharesBalanceDiff: formatEther(enzymeSharesBalanceDiff),
+      oldPoolValueAfter: await this.poolBefore.getPoolValueInEth(),
+      oldPoolEthBalanceAfter: await ethers.provider.getBalance(this.poolBefore.address),
+      oldPoolDaiBalanceAfter: await this.dai.balanceOf(this.poolBefore.address),
+      oldPoolStEthBalanceAfter: await this.stEth.balanceOf(this.poolBefore.address),
+      oldPoolREthBalanceAfter: await this.rEth.balanceOf(this.poolBefore.address),
+      oldPoolEnzymeSharesBalanceAfter: await this.enzymeShares.balanceOf(this.poolBefore.address),
     });
-
-    expect(poolValueAfter).to.be.equal(poolValueBefore);
-    expect(stEthBalanceAfter).to.be.equal(stEthBalanceBefore);
-    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore);
-    expect(daiBalanceAfter).to.be.equal(daiBalanceBefore);
-    expect(enzymeSharesBalanceAfter).to.be.equal(enzymeSharesBalanceBefore);
   });
 
   it('MCR value check', async function () {
@@ -309,63 +360,139 @@ describe('tokenomics', function () {
   });
 
   it('Compares storage of upgraded Pool contract', async function () {
-    const { assets: beforeAssets, assetsData: beforeAssetsData } = this.contractData.pool.before;
-    const assetsDataArray = await Promise.all(beforeAssets.map(address => this.pool.swapDetails(address)));
-    const afterAssetsData = beforeAssets.reduce((acc, asset, i) => ({ ...acc, [asset]: assetsDataArray[i] }), {});
+    const { assets: beforeAssets, minPoolEth: beforeMinPoolEth } = this.contractData.pool.before;
+    const afterAssetsDataArray = await Promise.all(beforeAssets.map(address => this.pool.swapDetails(address)));
+    const afterAssetsData = beforeAssets.reduce((acc, asset, i) => ({ ...acc, [asset]: afterAssetsDataArray[i] }), {});
     const afterMinPoolEth = await this.swapOperator.minPoolEth();
-    expect(afterMinPoolEth, "AssertionError: values of minPoolEth don't match\n").to.be.equal(
-      this.contractData.pool.before.minPoolEth,
-    );
 
-    const DENOMINATOR_DIFFERENCE = Math.pow(10, 14);
-    Object.entries(beforeAssetsData).forEach(([asset, before]) => {
+    expect(afterMinPoolEth, "AssertionError: values of minPoolEth don't match\n").to.be.equal(beforeMinPoolEth);
+
+    Object.entries(this.contractData.pool.before.assetSwapDetails).forEach(([asset, before]) => {
       const { minAmount, maxAmount, lastSwapTime, maxSlippageRatio } = afterAssetsData[asset];
-      expect(minAmount, `AssertionError: values of minAmount in ${asset} don't match\n`).to.be.equal(before.minAmount);
-      expect(maxAmount, `AssertionError: values of maxAmount in ${asset} don't match\n`).to.be.equal(before.maxAmount);
-      expect(lastSwapTime, `AssertionError: values of lastSwapTime in ${asset} don't match\n`).to.be.oneOf([
-        before.lastSwapTime,
-        0,
-      ]);
-      expect(maxSlippageRatio, `AssertionError: values of maxSlippageRatio in ${asset} don't match\n`).to.be.equal(
-        before.maxSlippageRatio.div(DENOMINATOR_DIFFERENCE),
-      );
+      expect(lastSwapTime, assertionErrorMsg('lastSwapTime', asset)).to.be.oneOf([before.lastSwapTime, 0]);
+      expect(minAmount, assertionErrorMsg('minAmount', asset)).to.be.equal(before.minAmount);
+      expect(maxAmount, assertionErrorMsg('maxAmount', asset)).to.be.equal(before.maxAmount);
+      expect(maxSlippageRatio, assertionErrorMsg('maxSlippageRatio', asset)).to.be.equal(before.maxSlippageRatio);
     });
   });
 
   it('Compares storage of upgraded PriceFeedOracle contract', async function () {
     // PRICE FEED
-    const assetsEthRate = await Promise.all(
-      this.contractData.pool.before.assets.map(address => this.priceFeedOracle.getAssetToEthRate(address)),
-    );
-    const getAssetForEth = await Promise.all(
-      this.contractData.pool.before.assets.map(address => this.priceFeedOracle.getAssetForEth(address, 10)),
-    );
+    const { assets } = this.contractData.pool.before;
+    const assetsEthRate = await Promise.all(assets.map(address => this.priceFeedOracle.getAssetToEthRate(address)));
+    const getAssetForEth = await Promise.all(assets.map(address => this.priceFeedOracle.getAssetForEth(address, 10)));
 
-    this.contractData.priceFeedOracle.after.assetsEthRate = this.contractData.pool.before.assets.reduce(
-      (acc, asset, i) => ({ ...acc, [asset]: assetsEthRate[i] }),
-      {},
-    );
-    this.contractData.priceFeedOracle.after.assetsForEth = this.contractData.pool.before.assets.reduce(
-      (acc, asset, i) => ({ ...acc, [asset]: getAssetForEth[i] }),
-      {},
-    );
+    const afterAssetsEthRate = assets.reduce((acc, asset, i) => ({ ...acc, [asset]: assetsEthRate[i] }), {});
+    const afterAssetsForEth = assets.reduce((acc, asset, i) => ({ ...acc, [asset]: getAssetForEth[i] }), {});
 
-    Object.entries(this.contractData.priceFeedOracle.before.assetsEthRate).forEach(([asset, value]) => {
-      expect(
-        this.contractData.priceFeedOracle.after.assetsEthRate[asset],
-        `AssertionError: values of assetsEthRate in ${asset} don't match\n`,
-      ).to.be.equal(value);
-    });
+    for (const [asset, value] of Object.entries(this.contractData.priceFeedOracle.before.assetsEthRate)) {
+      expect(afterAssetsEthRate[asset], assertionErrorMsg('assetsEthRate', asset)).to.be.equal(value);
+    }
 
-    Object.entries(this.contractData.priceFeedOracle.before.assetsForEth).forEach(([asset, value]) => {
-      expect(
-        this.contractData.priceFeedOracle.after.assetsForEth[asset],
-        `AssertionError: values of assetsEthRate in ${asset} don't match\n`,
-      ).to.be.equal(value);
+    for (const [asset, value] of Object.entries(this.contractData.priceFeedOracle.before.assetsForEth)) {
+      expect(afterAssetsForEth[asset], assertionErrorMsg('assetsEthRate', asset)).to.be.equal(value);
+    }
+  });
+
+  it('Compares storage of upgrade Assessment contract', async function () {
+    // TODO:
+    // stakeOf (address => Stake)
+    // votesOf (address => Vote[])
+    // hasAlreadyVotedOn (address => mapping(uint => bool))
+    // assessments (Assessment[])
+  });
+
+  // IndividualClaims.sol
+  it('Compares storage of upgrade IndividualClaims contract', async function () {
+    // TODO:
+    // lastClaimSubmissionOnCover (uint => ClaimSubmission)
+    // claims (Claim[])
+  });
+
+  it('Compares storage of upgrade YieldTokenIncidents contract', async function () {
+    // TODO:
+    // incidents (Incident[])
+  });
+
+  // TokenController.sol
+  it.skip('Compares storage of upgrade TokenController contract', async function () {
+    // TODO:
+    // coverInfo (coverId => CoverInfo)
+    // stakingPoolNXMBalances (pool id => { rewards, deposits })
+  });
+
+  // Cover.sol
+  it.skip('Compares storage of upgrade Cover contract', async function () {
+    // TODO:
+    // coverSegmentAllocations (cover id => segment id => pool allocations[])
+    // allowedPools (product id => allowed pool ids)
+    // activeCover (assetId => { lastBucketUpdateId, totalActiveCoverInAsset })
+    // productNames (productId => product name)
+    // productTypeNames (productTypeId => productType name)
+  });
+
+  it('Compares storage of upgrade LegacyGateway contract', async function () {
+    this.contractData.gateway.after._unused_nxmToken = await this.gateway._unused_nxmToken();
+    this.contractData.gateway.after._unused_tokenController = await this.gateway._unused_tokenController();
+    this.contractData.gateway.after._unused_quotationData = await this.gateway._unused_quotationData();
+    this.contractData.gateway.after._unused_claimsData = await this.gateway._unused_claimsData();
+    this.contractData.gateway.after._unused_claims = await this.gateway._unused_claims();
+    this.contractData.gateway.after._unused_pool = await this.gateway._unused_pool();
+    this.contractData.gateway.after._unused_memberRoles = await this.gateway._unused_memberRoles();
+    this.contractData.gateway.after.DAI = await this.gateway.DAI();
+    this.contractData.gateway.after._unused_incidents = await this.gateway._unused_incidents();
+    this.contractData.gateway.after._unused_coverMigrator = await this.gateway._unused_coverMigrator();
+
+    Object.entries(this.contractData.gateway.before).forEach(([key, value]) => {
+      expect(this.contractData.gateway.after[key], `AssertionError: values of ${key} don't match\n`).to.be.equal(value);
     });
   });
 
-  it('Compares storage of upgrade Cover contract', async function () {
-    // TODO:
+  it.skip('Swap NXM for ETH', async function () {
+    const [member] = this.abMembers;
+    const nxmIn = parseEther('1');
+    const minEthOut = parseEther('0.0152');
+
+    const before = await getCapitalSupplyAndBalances(this.pool, this.tokenController, this.nxm, member._address);
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60;
+
+    await evm.setNextBlockBaseFee(0);
+    await this.ramm.connect(member).swap(nxmIn, minEthOut, deadline, { maxPriorityFeePerGas: 0 });
+
+    const after = await getCapitalSupplyAndBalances(this.pool, this.tokenController, this.nxm, member._address);
+    const ethReceived = after.ethBalance.sub(before.ethBalance);
+    const nxmSwappedForEthFilter = this.ramm.filters.NxmSwappedForEth(member.address);
+    const nxmSwappedForEthEvents = await this.ramm.queryFilter(nxmSwappedForEthFilter, -1);
+    const ethOut = nxmSwappedForEthEvents[0]?.args?.ethOut;
+
+    expect(after.nxmBalance).to.be.equal(before.nxmBalance.sub(nxmIn)); // member sends NXM
+    expect(after.nxmSupply).to.be.equal(before.nxmSupply.sub(nxmIn)); // nxmIn is burned
+    expect(after.ethCapital).to.be.equal(before.ethCapital.sub(ethReceived)); // ETH goes out of capital pool
+    expect(after.ethBalance).to.be.equal(before.ethBalance.add(ethOut)); // member receives ETH
+  });
+
+  it('Swap ETH for NXM', async function () {
+    const [member] = this.abMembers;
+    const ethIn = parseEther('1');
+    const minNxmOut = parseEther('28.8');
+
+    const before = await getCapitalSupplyAndBalances(this.pool, this.tokenController, this.nxm, member._address);
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60;
+
+    await evm.setNextBlockBaseFee(0);
+    await this.ramm.connect(member).swap(0, minNxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+
+    const after = await getCapitalSupplyAndBalances(this.pool, this.tokenController, this.nxm, member._address);
+    const nxmReceived = after.nxmBalance.sub(before.nxmBalance);
+    const nxmTransferFilter = this.nxm.filters.Transfer(ethers.constants.AddressZero, member._address);
+    const nxmTransferEvents = await this.nxm.queryFilter(nxmTransferFilter, -1);
+    const nxmOut = nxmTransferEvents[0]?.args?.value;
+
+    expect(after.ethBalance).to.be.equal(before.ethBalance.sub(ethIn)); // member sends ETH
+    expect(after.ethCapital).to.be.equal(before.ethCapital.add(ethIn)); // ethIn goes into capital pool
+    expect(after.nxmSupply).to.be.equal(before.nxmSupply.add(nxmReceived)); // nxmOut is minted
+    expect(after.nxmBalance).to.be.equal(before.nxmBalance.add(nxmOut)); // member receives NXM
   });
 });

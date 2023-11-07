@@ -1,19 +1,16 @@
-const { artifacts, ethers, network, run } = require('hardhat');
+const { ethers, network, run } = require('hardhat');
 const { expect } = require('chai');
 const fetch = require('node-fetch');
 
 const evm = require('./evm')();
 const proposalCategories = require('../utils').proposalCategories;
 const { ProposalCategory: PROPOSAL_CATEGORIES, ContractTypes } = require('../../lib/constants');
+const { Address, calculateProxyAddress, formatInternalContracts, submitGovernanceProposal } = require('./utils');
 
-const {
-  Address: { ETH },
-} = require('./utils');
-
+const { ETH } = Address;
 const { BigNumber } = ethers;
 const { AddressZero, Zero, Two } = ethers.constants;
 const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
-const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
 
 const SCRIPTS_USE_CACHE = !process.env.NO_CACHE;
 
@@ -112,47 +109,6 @@ const getContractFactory = async providerOrSigner => {
     return new ethers.Contract(address, abi, providerOrSigner);
   };
 };
-
-const calculateProxyAddress = (masterAddress, salt) => {
-  const { bytecode } = artifacts.readArtifactSync('OwnedUpgradeabilityProxy');
-  const initCode = bytecode + defaultAbiCoder.encode(['address'], [MaxAddress]).slice(2);
-  const initCodeHash = ethers.utils.keccak256(initCode);
-  const saltHex = Buffer.from(salt.toString(16).padStart(64, '0'), 'hex');
-  return ethers.utils.getCreate2Address(masterAddress, saltHex, initCodeHash);
-};
-
-const formatInternalContracts = ({ _contractAddresses, _contractCodes }) => {
-  return _contractCodes.map((code, i) => {
-    const index = `${i}`.padStart(2, '0');
-    return `[${index}] ${Buffer.from(code.slice(2), 'hex')} -> ${_contractAddresses[i]}`;
-  });
-};
-
-async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
-  const id = await gv.getProposalLength();
-
-  console.log(`Proposal ${id}`);
-
-  await gv.connect(signers[0]).createProposal('', '', '', 0);
-  await gv.connect(signers[0]).categorizeProposal(id, categoryId, 0);
-  await gv.connect(signers[0]).submitProposalWithSolution(id, '', actionData);
-
-  for (let i = 0; i < signers.length; i++) {
-    await gv.connect(signers[i]).submitVote(id, 1);
-  }
-
-  const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
-  const receipt = await tx.wait();
-
-  assert.equal(
-    receipt.events.some(x => x.event === 'ActionSuccess' && x.address === gv.address),
-    true,
-    'ActionSuccess was expected',
-  );
-
-  const proposal = await gv.proposal(id);
-  assert.equal(proposal[2].toNumber(), 3, 'Proposal Status != ACCEPTED');
-}
 
 describe('V2 upgrade', function () {
   before(async function () {
@@ -409,7 +365,7 @@ describe('V2 upgrade', function () {
     this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', V2Addresses.StakingPoolFactory);
     this.stakingNFTDescriptor = await ethers.getContractAt('StakingNFTDescriptor', V2Addresses.StakingNFTDescriptor);
     this.stakingNFT = await ethers.getContractAt('StakingNFT', V2Addresses.StakingNFT);
-    this.stakingPool = await ethers.getContractAt('StakingPool', V2Addresses.StakingPool);
+    this.stakingPool = await ethers.getContractAt('StakingPool', V2Addresses.StakingPoolImpl);
   });
 
   it('Collect storage data before upgrade', async function () {

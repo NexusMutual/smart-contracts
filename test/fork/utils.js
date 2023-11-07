@@ -1,10 +1,13 @@
 const evm = require('./evm')();
-const { ethers, network } = require('hardhat');
+const { artifacts, ethers, network } = require('hardhat');
 const assert = require('assert');
+
 const { setEtherBalance } = require('../utils/evm');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-const { parseEther, defaultAbiCoder } = ethers.utils;
+const { parseEther, defaultAbiCoder, keccak256 } = ethers.utils;
 const { BigNumber } = ethers;
+
+const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
 
 const V2Addresses = {
   Assessment: '0xcafeaa5f9c401b7295890f309168Bbb8173690A3',
@@ -278,11 +281,29 @@ async function upgradeMultipleContracts(params) {
 
   await submitGovernanceProposal(
     PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
-    ethers.utils.defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, implAddresses]),
+    defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, implAddresses]),
     abMembers,
     governance,
   );
   return abMembers;
+}
+
+/**
+ * Formats the result of master.getInternalContracts() to a readable logging format
+ */
+function formatInternalContracts({ _contractAddresses, _contractCodes }) {
+  return _contractCodes.map((code, i) => {
+    const index = `${i}`.padStart(2, '0');
+    return `[${index}] ${Buffer.from(code.slice(2), 'hex')} -> ${_contractAddresses[i]}`;
+  });
+}
+
+function calculateProxyAddress(masterAddress, salt) {
+  const { bytecode } = artifacts.readArtifactSync('OwnedUpgradeabilityProxy');
+  const initCode = bytecode + defaultAbiCoder.encode(['address'], [MaxAddress]).slice(2);
+  const initCodeHash = keccak256(initCode);
+  const saltHex = Buffer.from(salt.toString(16).padStart(64, '0'), 'hex');
+  return ethers.utils.getCreate2Address(masterAddress, saltHex, initCodeHash);
 }
 
 module.exports = {
@@ -304,4 +325,6 @@ module.exports = {
   getConfig,
   getActiveProductsInPool,
   upgradeMultipleContracts,
+  formatInternalContracts,
+  calculateProxyAddress,
 };

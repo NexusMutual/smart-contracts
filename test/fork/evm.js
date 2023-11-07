@@ -27,6 +27,7 @@ const methods = {
     setCode: async (address, code) => send('hardhat_setCode', [address, code]),
     setNonce: async (address, nonce) => send('hardhat_setNonce', [address, hex(nonce)]),
     setStorageAt: async (address, slot, value) => send('hardhat_setStorageAt', [address, slot, hex(value)]),
+    setNextBlockBaseFee: async fee => send('hardhat_setNextBlockBaseFeePerGas', [hex(fee)]),
   }),
 
   tenderly: send => ({

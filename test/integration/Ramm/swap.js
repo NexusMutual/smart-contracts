@@ -140,20 +140,18 @@ describe('swap', function () {
 
     // Minimum Amount Out Success
     const before = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
-    const memberEthBefore = await ethers.provider.getBalance(member.address);
 
     await setNextBlockBaseFee(0);
     await setNextBlockTime(nextBlockTimestamp + 3 * 60);
     await ra.connect(member).swap(nxmIn, expectedEthOut, deadline, { maxPriorityFeePerGas: 0 });
 
     const after = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
-    const memberEthAfter = await ethers.provider.getBalance(member.address);
     const ethReceived = after.ethBalance.sub(before.ethBalance);
 
     expect(after.nxmSupply).to.be.equal(before.nxmSupply.sub(nxmIn)); // nxmIn is burned
     expect(after.ethCapital).to.be.equal(before.ethCapital.sub(ethReceived)); // ETH goes out of capital pool
     expect(after.nxmBalance).to.be.equal(before.nxmBalance.sub(nxmIn)); // member sends NXM
-    expect(memberEthAfter).to.be.equal(memberEthBefore.add(ethReceived)); // member receives ETH
+    expect(after.ethBalance).to.be.equal(before.ethBalance.add(ethReceived)); // member receives ETH
   });
 
   it('should revert if block timestamp surpasses deadline', async function () {
@@ -187,14 +185,14 @@ describe('swap', function () {
 
     const after = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
     const nxmReceived = after.nxmBalance.sub(before.nxmBalance);
-    const transferFilter = tk.filters.Transfer(ethers.constants.AddressZero, member.address);
-    const nxmTransferEvents = await tk.queryFilter(transferFilter, -1);
-    const nxmTransferAmount = nxmTransferEvents[0]?.args?.value;
+    const nxmTransferFilter = tk.filters.Transfer(ethers.constants.AddressZero, member.address);
+    const nxmTransferEvents = await tk.queryFilter(nxmTransferFilter, -1);
+    const nxmOut = nxmTransferEvents[0]?.args?.value;
 
     expect(after.ethCapital).to.be.equal(before.ethCapital.add(ethIn)); // ETH goes into capital pool
     expect(after.nxmSupply).to.be.equal(before.nxmSupply.add(nxmReceived)); // NXM out is minted
     expect(after.ethBalance).to.be.equal(before.ethBalance.sub(ethIn)); // member sends ETH
-    expect(after.nxmBalance).to.be.equal(before.nxmBalance.add(nxmTransferAmount)); // member receives NXM
+    expect(after.nxmBalance).to.be.equal(before.nxmBalance.add(nxmOut)); // member receives NXM
   });
 
   it('should swap NXM for ETH', async function () {
@@ -205,21 +203,22 @@ describe('swap', function () {
     const nxmIn = parseEther('1');
     const minEthOut = parseEther('0.0152');
     const before = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
-    const memberEthBefore = await ethers.provider.getBalance(member.address);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
     await setNextBlockBaseFee(0);
     await ra.connect(member).swap(nxmIn, minEthOut, deadline, { maxPriorityFeePerGas: 0 });
-    const memberEthAfter = await ethers.provider.getBalance(member.address);
 
     const after = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
     const ethReceived = after.ethBalance.sub(before.ethBalance);
+    const nxmSwappedForEthFilter = ra.filters.NxmSwappedForEth(member.address);
+    const nxmSwappedForEthEvents = await ra.queryFilter(nxmSwappedForEthFilter, -1);
+    const ethOut = nxmSwappedForEthEvents[0]?.args?.ethOut;
 
+    expect(after.nxmBalance).to.be.equal(before.nxmBalance.sub(nxmIn)); // member sends NXM
     expect(after.nxmSupply).to.be.equal(before.nxmSupply.sub(nxmIn)); // nxmIn is burned
     expect(after.ethCapital).to.be.equal(before.ethCapital.sub(ethReceived)); // ETH goes out of capital pool
-    expect(after.nxmBalance).to.be.equal(before.nxmBalance.sub(nxmIn)); // member sends NXM
-    expect(memberEthAfter).to.be.equal(memberEthBefore.add(ethReceived)); // member receives ETH
+    expect(after.ethBalance).to.be.equal(before.ethBalance.add(ethOut)); // member receives ETH
   });
 });

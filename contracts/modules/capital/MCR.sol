@@ -91,6 +91,20 @@ contract MCR is IMCR, MasterAwareV2 {
   }
 
   /**
+   * @dev We need to move the mcr way below the current value otherwise swaps won't work
+   * @dev Remove this code after the tokenomics upgrade.
+   */
+  function teleportMCR() external {
+
+    require(mcr > 10_000 ether, "MCR: already updated");
+    require(block.timestamp < 1701388800, "MCR: Deadline has passed"); // 1701388800 = December 1st, 2023
+
+    mcr = 10_000 ether;
+    desiredMCR = 10_000 ether;
+    lastUpdateTime = block.timestamp.toUint32();
+  }
+
+  /**
    * @dev Gets total sum assured (in ETH).
    * @return amount of sum assured
    */

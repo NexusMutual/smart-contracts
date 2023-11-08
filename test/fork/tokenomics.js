@@ -411,7 +411,10 @@ describe('tokenomics', function () {
     });
   });
 
-  it.skip('Swap NXM for ETH', async function () {
+  it('Swap NXM for ETH', async function () {
+    // set the MCR lower so the swap will work
+    await this.mcr.teleportMCR();
+
     const [member] = this.abMembers;
     const nxmIn = parseEther('1');
     const minEthOut = parseEther('0.0152');

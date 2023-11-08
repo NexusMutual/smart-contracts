@@ -571,11 +571,17 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
    * @notice Updates the Time-Weighted Average Price (TWAP) by registering new price observations
    */
   function updateTwap() external {
+    State memory initialState = loadState();
+
+    if (initialState.timestamp == block.timestamp) {
+      // already updated
+      return;
+    }
+
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
     uint mcrValue = mcr().getMCR();
 
-    State memory initialState = loadState();
     Observation[3] memory _observations = observations;
 
     // current state

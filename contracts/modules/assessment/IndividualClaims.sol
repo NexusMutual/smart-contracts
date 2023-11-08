@@ -11,6 +11,7 @@ import "../../interfaces/IIndividualClaims.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/IRamm.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
@@ -57,6 +58,10 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
   function pool() internal view returns (IPool) {
     return IPool(getInternalContractAddress(ID.P1));
+  }
+
+  function ramm() internal view returns (IRamm) {
+    return IRamm(getInternalContractAddress(ID.RA));
   }
 
   function getClaimsCount() external override view returns (uint) {
@@ -361,6 +366,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     require(!claim.payoutRedeemed, "Payout has already been redeemed");
     claims[claimId].payoutRedeemed = true;
 
+    ramm().updateTwap();
     address payable coverOwner = payable(cover().burnStake(
       claim.coverId,
       claim.segmentId,
@@ -412,6 +418,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
+    internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
 
     Configuration memory currentConfig = config;
     bool notInitialized = bytes32(

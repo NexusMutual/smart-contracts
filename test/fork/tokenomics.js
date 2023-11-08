@@ -79,13 +79,13 @@ describe('tokenomics', function () {
     this.newClaimsReward = await ethers.getContractAt('LegacyClaimsReward', V2Addresses.LegacyClaimsReward);
     this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', V2Addresses.StakingPoolFactory);
 
-    this.governance = await getContractByContractCode('Governance', ContractCode.Governance);
-    this.memberRoles = await getContractByContractCode('MemberRoles', ContractCode.MemberRoles);
-
     this.dai = await ethers.getContractAt('ERC20Mock', Address.DAI_ADDRESS);
     this.stEth = await ethers.getContractAt('ERC20Mock', Address.STETH_ADDRESS);
     this.rEth = await ethers.getContractAt('ERC20Mock', Address.RETH_ADDRESS);
     this.enzymeShares = await ethers.getContractAt('ERC20Mock', EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS);
+
+    this.governance = await getContractByContractCode('Governance', ContractCode.Governance);
+    this.memberRoles = await getContractByContractCode('MemberRoles', ContractCode.MemberRoles);
   });
 
   it('Impersonate AB members', async function () {
@@ -241,7 +241,8 @@ describe('tokenomics', function () {
       this.nxm.address,
       this.coverNFT.address,
     ]);
-    // this.yieldTokenIncidents = await getContractByContractCode('YieldTokenIncidents', ContractCode.YieldTokenIncidents);
+    // this.yieldTokenIncidents =
+    // await getContractByContractCode('YieldTokenIncidents', ContractCode.YieldTokenIncidents);
 
     const contractCodeAddressMapping = {
       [ContractCode.MCR]: this.mcr.address,
@@ -271,19 +272,18 @@ describe('tokenomics', function () {
     console.info('Upgrade Contracts after:', formatInternalContracts(contractsAfter));
 
     // Set references to proxy contracts
-    this.gateway = await ethers.getContractAt('LegacyGateway', V2Addresses.LegacyGateway);
-    this.mcr = await ethers.getContractAt('MCR', V2Addresses.MCR);
-    this.pool = await ethers.getContractAt('Pool', V2Addresses.Pool);
-    this.cover = await ethers.getContractAt('Cover', V2Addresses.Cover);
-    this.assessment = await ethers.getContractAt('Assessment', V2Addresses.Assessment);
-    this.pooledStaking = await ethers.getContractAt('StakingPool', V2Addresses.StakingPoolImpl);
-    this.tokenController = await ethers.getContractAt('TokenController', V2Addresses.TokenController);
-    this.individualClaims = await ethers.getContractAt('IndividualClaims', V2Addresses.IndividualClaims);
-    this.yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', V2Addresses.YieldTokenIncidents);
+    this.gateway = await getContractByContractCode('LegacyGateway', ContractCode.Gateway);
+    this.mcr = await getContractByContractCode('MCR', ContractCode.MCR);
+    this.pool = await getContractByContractCode('Pool', ContractCode.Pool);
+    this.cover = await getContractByContractCode('Cover', ContractCode.Cover);
+    this.assessment = await getContractByContractCode('Assessment', ContractCode.Assessment);
+    this.pooledStaking = await getContractByContractCode('LegacyPooledStaking', ContractCode.PooledStaking);
+    this.tokenController = await getContractByContractCode('TokenController', ContractCode.TokenController);
+    this.individualClaims = await getContractByContractCode('IndividualClaims', ContractCode.IndividualClaims);
+    this.yieldTokenIncidents = await getContractByContractCode('YieldTokenIncidents', ContractCode.YieldTokenIncidents);
   });
 
   it('Set RAMM master and dependent contract addresses after contracts upgrade', async function () {
-    await this.ramm.changeMasterAddress(this.master.address);
     await this.ramm.changeDependentContractAddress();
   });
 
@@ -303,14 +303,6 @@ describe('tokenomics', function () {
     const stEthBalanceDiff = newStEthBalanceAfter.sub(this.contractData.pool.before.stEthBalance);
     const rEthBalanceDiff = newREthBalanceAfter.sub(this.contractData.pool.before.rEthBalance);
     const enzymeSharesBalanceDiff = newEnzymeSharesBalanceAfter.sub(this.contractData.pool.before.enzymeSharesBalance);
-
-    // ~1 wei discrepancy is acceptable
-    expect(poolValueDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
-    expect(ethBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
-    expect(daiBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
-    expect(stEthBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
-    expect(rEthBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
-    expect(enzymeSharesBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
 
     console.info({
       poolValueBefore: formatEther(this.contractData.pool.before.value),
@@ -338,6 +330,14 @@ describe('tokenomics', function () {
       oldPoolREthBalanceAfter: await this.rEth.balanceOf(this.poolBefore.address),
       oldPoolEnzymeSharesBalanceAfter: await this.enzymeShares.balanceOf(this.poolBefore.address),
     });
+
+    // ~1 wei discrepancy is acceptable
+    expect(poolValueDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
+    expect(ethBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
+    expect(daiBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
+    expect(stEthBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
+    expect(rEthBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
+    expect(enzymeSharesBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
   });
 
   it('MCR value check', async function () {
@@ -392,43 +392,6 @@ describe('tokenomics', function () {
     for (const [asset, value] of Object.entries(this.contractData.priceFeedOracle.before.assetsForEth)) {
       expect(afterAssetsForEth[asset], assertionErrorMsg('assetsEthRate', asset)).to.be.equal(value);
     }
-  });
-
-  it('Compares storage of upgrade Assessment contract', async function () {
-    // TODO:
-    // stakeOf (address => Stake)
-    // votesOf (address => Vote[])
-    // hasAlreadyVotedOn (address => mapping(uint => bool))
-    // assessments (Assessment[])
-  });
-
-  // IndividualClaims.sol
-  it('Compares storage of upgrade IndividualClaims contract', async function () {
-    // TODO:
-    // lastClaimSubmissionOnCover (uint => ClaimSubmission)
-    // claims (Claim[])
-  });
-
-  it('Compares storage of upgrade YieldTokenIncidents contract', async function () {
-    // TODO:
-    // incidents (Incident[])
-  });
-
-  // TokenController.sol
-  it.skip('Compares storage of upgrade TokenController contract', async function () {
-    // TODO:
-    // coverInfo (coverId => CoverInfo)
-    // stakingPoolNXMBalances (pool id => { rewards, deposits })
-  });
-
-  // Cover.sol
-  it.skip('Compares storage of upgrade Cover contract', async function () {
-    // TODO:
-    // coverSegmentAllocations (cover id => segment id => pool allocations[])
-    // allowedPools (product id => allowed pool ids)
-    // activeCover (assetId => { lastBucketUpdateId, totalActiveCoverInAsset })
-    // productNames (productId => product name)
-    // productTypeNames (productTypeId => productType name)
   });
 
   it('Compares storage of upgrade LegacyGateway contract', async function () {

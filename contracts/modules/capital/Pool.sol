@@ -356,6 +356,25 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     return priceFeedOracle.getAssetForEth(assetAddress, tokenInternalPrice);
   }
 
+  /// Uses internal price for calculating the token price in ETH and updates TWAP
+  /// It's being used in Cover
+  /// Returns the internal NXM price in a given asset.
+  ///
+  /// @dev The pool contract is not a proxy and its address will change as we upgrade it.
+  /// @dev You may want TokenController.getTokenPrice() for a stable address since it's a proxy.
+  ///
+  /// @param assetId  Index of the cover asset.
+  ///
+  function getInternalTokenPriceInAssetAndUpdateTwap(uint assetId) public override returns (uint tokenPrice) {
+
+    require(assetId < assets.length, "Pool: Unknown cover asset");
+    address assetAddress = assets[assetId].assetAddress;
+
+    uint tokenInternalPrice = ramm().getInternalPriceAndUpdateTwap();
+
+    return priceFeedOracle.getAssetForEth(assetAddress, tokenInternalPrice);
+  }
+
   /// [deprecated] Returns spot NXM price in ETH from ramm contract.
   ///
   /// @dev The pool contract is not a proxy and its address will change as we upgrade it.

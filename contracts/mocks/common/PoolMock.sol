@@ -96,6 +96,10 @@ contract PoolMock is IPool {
     return prices[assetId];
   }
 
+  function getInternalTokenPriceInAssetAndUpdateTwap(uint assetId) public virtual view returns (uint) {
+    return prices[assetId];
+  }
+
   function calculateMCRRatio(uint totalAssetValue, uint mcrEth) public virtual pure returns (uint) {
       return totalAssetValue * (10 ** MCR_RATIO_DECIMALS) / mcrEth;
   }

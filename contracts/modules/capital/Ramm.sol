@@ -799,20 +799,21 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint spotPriceA = 1 ether * state.eth / state.nxmA;
     uint spotPriceB = 1 ether * state.eth / state.nxmB;
 
-    uint priceA;
-    uint priceB;
-
     // underflow is desired
     unchecked {
       uint averagePriceA = uint(currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) * ACCUMULATOR_PRECISION / elapsed;
       uint averagePriceB = uint(currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) * ACCUMULATOR_PRECISION / elapsed;
 
       // keeping min/max inside unchecked scope to avoid stack too deep error
-      priceA = Math.min(averagePriceA, spotPriceA);
-      priceB = Math.max(averagePriceB, spotPriceB);
+      uint priceA = Math.min(averagePriceA, spotPriceA);
+      uint priceB = Math.max(averagePriceB, spotPriceB);
+      internalPrice =  priceA + priceB - 1 ether * capital / supply;
     }
 
-    return priceA + priceB - 1 ether * capital / supply;
+    uint maxPrice = 3 * 1 ether * capital / supply; // 300% BV
+    uint minPrice = 35 * 1 ether * capital / supply / 100; // 35% BV
+
+    return Math.max(Math.min(internalPrice, maxPrice), minPrice);
   }
 
   function getInternalPrice() external view returns (uint internalPrice) {

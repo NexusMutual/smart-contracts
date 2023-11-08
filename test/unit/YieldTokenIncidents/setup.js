@@ -69,12 +69,17 @@ async function setup() {
   const cover = await Cover.deploy(coverNFT.address);
   await cover.deployed();
 
+  const Ramm = await ethers.getContractFactory('RammMock');
+  const ramm = await Ramm.deploy();
+  await ramm.deployed();
+
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setLatestAddress(hex('MR'), memberRoles.address),
     master.setLatestAddress(hex('P1'), pool.address),
     master.setLatestAddress(hex('CO'), cover.address),
     master.setLatestAddress(hex('AS'), assessment.address),
+    master.setLatestAddress(hex('RA'), ramm.address),
     master.setTokenAddress(nxm.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
@@ -125,6 +130,7 @@ async function setup() {
       cover,
       coverNFT,
       master,
+      ramm,
     },
   };
 }

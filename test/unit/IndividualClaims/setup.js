@@ -68,6 +68,7 @@ async function setup() {
     master.setLatestAddress(hex('AS'), assessment.address),
     master.setLatestAddress(hex('CO'), cover.address),
     master.setLatestAddress(hex('CI'), individualClaims.address),
+    master.setLatestAddress(hex('RA'), ramm.address),
     master.setTokenAddress(nxm.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));

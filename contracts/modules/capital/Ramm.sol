@@ -45,7 +45,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   uint public constant PRICE_BUFFER = 100;
   uint public constant PRICE_BUFFER_DENOMINATOR = 10_000;
   uint public constant GRANULARITY = 3;
-  uint public constant PERIOD_SIZE = 86_400; // day
+  uint public constant PERIOD_SIZE = 3 days;
   uint public constant ACCUMULATOR_PRECISION = 1e9;
 
   uint public constant FAST_LIQUIDITY_SPEED = 1_500 ether;
@@ -396,7 +396,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint supply,
     bool isAbove
   ) internal pure returns (uint) {
-    
+
     uint stateNxm = isAbove ? state.nxmA : state.nxmB;
     uint nxm = stateNxm * eth / state.eth;
     uint r = elapsed * state.ratchetSpeed;
@@ -626,7 +626,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint priceCumulativeAbove;
     uint priceCumulativeBelow;
     uint endIdx = timestamp.divCeil(PERIOD_SIZE);
-    uint previousTimestamp = (endIdx - 11) * PERIOD_SIZE; // 9 days | 1 day | until the update
+    uint previousTimestamp = (endIdx - 11) * PERIOD_SIZE; // 27 days | 3 days | until the deployments
 
     for (uint idx = endIdx - 2; idx <= endIdx; idx++) {
       uint observationTimestamp = Math.min(timestamp, idx * PERIOD_SIZE);

@@ -442,21 +442,55 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     return timestamp.divCeil(PERIOD_SIZE) % GRANULARITY;
   }
 
-  function getObservation(
+  function calculateTimeOnRatchetAndBV(
+    State memory previousState,
+    uint timeElapsed,
+    uint stateRatchetSpeed,
+    uint supply,
+    uint capital,
+    bool isAbove
+  ) internal pure returns (uint timeOnRatchet, uint timeOnBV) {
+
+    // innerAbove = (eth * supply) - (buffer * capital * nxm)
+    // innerBelow = (buffer * capital * nxm) - (eth * supply)
+
+    uint prevNxm = isAbove ? previousState.nxmA : previousState.nxmB;
+    uint bufferMultiplier = isAbove ? (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) : (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER);
+
+    // TODO: is this the correct variable names?
+    uint ethLiquidity = previousState.eth * supply;
+    uint nxmLiquidity = (bufferMultiplier * capital * prevNxm) / PRICE_BUFFER_DENOMINATOR;
+
+    uint innerLeft = isAbove ? ethLiquidity : nxmLiquidity;
+    uint innerRight = isAbove ? nxmLiquidity : ethLiquidity;
+
+    uint inner = isAbove ? (innerLeft < innerRight ? 0 : innerLeft - innerRight) : (innerLeft > innerRight ? innerLeft - innerRight : 0);
+    uint maxTimeOnRatchet = (inner != 0) ? (inner * RATCHET_DENOMINATOR * RATCHET_PERIOD) / (capital * prevNxm * stateRatchetSpeed) : 0;
+
+    timeOnRatchet = Math.min(timeElapsed, maxTimeOnRatchet);
+    timeOnBV = timeElapsed - timeOnRatchet;
+
+    return (timeOnRatchet, timeOnBV);
+  }
+
+  function calculatePriceCumulative(
     State memory previousState,
     State memory state,
-    Observation memory previousObservation,
+    uint timeElapsed,
     uint capital,
-    uint supply
-  ) public pure returns (Observation memory) {
+    uint supply,
+    bool isAbove
+  ) internal pure returns (uint) {
 
     // Formula to find out how much time it takes for ratchet price to hit BV + buffer
     //
     // for above:
-    // [(eth * supply - buffer * capital * nxm) * denom * period] / (capital * nxm * speed)
+    // innerAbove = (eth * supply) - (buffer * capital * nxm)
+    // [innerAbove * denom * period] / (capital * nxm * speed)
     //
     // for below:
-    // [(buffer * capital * nxm - eth * supply) * denom * period] / (capital * nxm * speed)
+    // innerBelow = (buffer * capital * nxm) - (eth * supply)
+    // [innerBelow * denom * period] / (capital * nxm * speed)
 
     // average price
     // pe - previous eth
@@ -473,68 +507,63 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     // cumulative price on bv +- buffer
     // (time_total - time_on_ratchet) * bv * buffer
 
-    uint priceCumulativeAbove = previousObservation.priceCumulativeAbove;
-    uint priceCumulativeBelow = previousObservation.priceCumulativeBelow;
+    uint cumulativePrice = 0;
+    (uint timeOnRatchet, uint timeOnBV) = calculateTimeOnRatchetAndBV(
+      previousState,
+      timeElapsed,
+      state.ratchetSpeed,
+      supply,
+      capital,
+      isAbove
+    );
+
+    if (timeOnRatchet != 0) {
+      uint prevNxm = isAbove ? previousState.nxmA : previousState.nxmB;
+      uint currentNxm = isAbove ? state.nxmA : state.nxmB;
+      cumulativePrice += (1 ether * (previousState.eth * currentNxm + state.eth * prevNxm) * timeOnRatchet) / (prevNxm * currentNxm * 2 * ACCUMULATOR_PRECISION); // stack too deep, combined 2 and ACCUMULATOR_PRECISION
+    }
+
+    if (timeOnBV != 0) {
+      uint bufferMultiplier = isAbove ? (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) : (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER);
+      cumulativePrice += (1 ether * timeOnBV * capital * bufferMultiplier) / (supply * PRICE_BUFFER_DENOMINATOR * ACCUMULATOR_PRECISION);
+    }
+
+    return cumulativePrice;
+  }
+
+  function getObservation(
+    State memory previousState,
+    State memory state,
+    Observation memory previousObservation,
+    uint capital,
+    uint supply
+  ) public pure returns (Observation memory) {
+
     uint timeElapsed = state.timestamp - previousState.timestamp;
 
-    { // above
-      uint timeOnRatchet;
-      {
-        uint innerLeft = previousState.eth * supply;
-        uint innerRight = (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) * capital * previousState.nxmA / PRICE_BUFFER_DENOMINATOR;
-        uint inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
-        uint maxTimeOnRatchet = inner != 0
-          ? inner * RATCHET_DENOMINATOR * RATCHET_PERIOD / capital / previousState.nxmA / state.ratchetSpeed
-          : 0;
-        timeOnRatchet = Math.min(timeElapsed, maxTimeOnRatchet);
-      }
+    uint priceCumulativeAbove = calculatePriceCumulative(
+        previousState,
+        state,
+        timeElapsed,
+        capital,
+        supply,
+        true
+    );
 
-      // on ratchet
-      if (timeOnRatchet != 0) {
-
-        // cumulative price above
-        priceCumulativeAbove += 1 ether * (previousState.eth * state.nxmA + state.eth * previousState.nxmA) * timeOnRatchet / previousState.nxmA / state.nxmA / 2e9; // stack too deep, combined 2 and ACCUMULATOR_PRECISION
-      }
-
-      // on bv
-      uint timeOnBV = timeElapsed - timeOnRatchet;
-
-      if (timeOnBV != 0) {
-        priceCumulativeAbove += 1 ether * timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / supply / PRICE_BUFFER_DENOMINATOR / ACCUMULATOR_PRECISION;
-      }
-    }
-
-    { // below
-      uint timeOnRatchet;
-      {
-        uint innerLeft = (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) * capital * previousState.nxmB / PRICE_BUFFER_DENOMINATOR;
-        uint innerRight = previousState.eth * supply;
-        uint inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
-        uint maxTimeOnRatchet = inner != 0
-          ? inner * RATCHET_DENOMINATOR * RATCHET_PERIOD / capital / previousState.nxmB / state.ratchetSpeed
-          : 0;
-        timeOnRatchet = Math.min(timeElapsed, maxTimeOnRatchet);
-      }
-
-      // on ratchet
-      if (timeOnRatchet != 0) {
-        // cumulative price below
-        priceCumulativeBelow += 1 ether * (previousState.eth * state.nxmB + state.eth * previousState.nxmB) * timeOnRatchet / previousState.nxmB / state.nxmB / 2e9; // stack too deep, combined 2 and ACCUMULATOR_PRECISION
-      }
-
-      // on bv
-      uint timeOnBV = timeElapsed - timeOnRatchet;
-
-      if (timeOnBV != 0) {
-        priceCumulativeBelow += 1 ether * timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / supply / PRICE_BUFFER_DENOMINATOR / ACCUMULATOR_PRECISION;
-      }
-    }
+    uint priceCumulativeBelow = calculatePriceCumulative(
+        previousState,
+        state,
+        timeElapsed,
+        capital,
+        supply,
+        false
+    );
 
     return Observation(
       state.timestamp.toUint32(),
       // casting unsafely to allow overflow
-      uint64(priceCumulativeAbove),
-      uint64(priceCumulativeBelow)
+      uint64(priceCumulativeAbove + previousObservation.priceCumulativeAbove),
+      uint64(priceCumulativeBelow + previousObservation.priceCumulativeBelow)
     );
   }
 

@@ -93,6 +93,8 @@ interface IRamm {
   event ObservationUpdated(uint32 timestamp, uint64 priceCumulativeAbove, uint64 priceCumulativeBelow);
   event BudgetRemoved();
   event SwapPauseConfigured(bool paused);
+  event EthInjected(uint value);
+  event EthExtracted(uint value);
 
   // Pause
   error SystemPaused();

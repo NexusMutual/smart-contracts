@@ -316,6 +316,90 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     return (state.eth, state.nxmA, state.nxmB, state.budget);
   }
 
+  function calculateInjected(
+    uint eth,
+    uint budget,
+    uint capital,
+    uint mcrValue,
+    uint elapsed
+  ) internal pure returns (uint) {
+
+    uint timeLeftOnBudget = budget * LIQ_SPEED_PERIOD / FAST_LIQUIDITY_SPEED;
+    uint maxToInject = (capital > mcrValue + TARGET_LIQUIDITY) ? Math.min(TARGET_LIQUIDITY - eth, capital - mcrValue - TARGET_LIQUIDITY) : 0;
+
+    if (elapsed <= timeLeftOnBudget) {
+      return Math.min(elapsed * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD, maxToInject);
+    } else {
+      uint injectedFast = timeLeftOnBudget * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD;
+      uint injectedSlow = (elapsed - timeLeftOnBudget) * LIQ_SPEED_B * 1 ether / LIQ_SPEED_PERIOD;
+      return Math.min(maxToInject, injectedFast + injectedSlow);
+    }
+  }
+
+  function adjustEth(
+    uint eth,
+    uint budget,
+    uint capital,
+    uint mcrValue,
+    uint elapsed
+  ) internal pure returns (uint /* new eth */, uint /* new budget */) {
+
+    if (eth < TARGET_LIQUIDITY) {
+      uint injected = calculateInjected(eth, budget, capital, mcrValue, elapsed);
+      eth += injected;
+      budget = budget > injected ? budget - injected : 0;
+    } else {
+      eth -= Math.min((elapsed * LIQ_SPEED_A * 1 ether) / LIQ_SPEED_PERIOD, eth - TARGET_LIQUIDITY);
+    }
+
+    return (eth, budget);
+  }
+
+  function calculateNxm(
+    uint stateNxm,
+    uint eth,
+    uint stateEth,
+    uint stateRatchetSpeed,
+    uint elapsed,
+    uint capital,
+    uint supply,
+    bool isAbove
+  ) internal pure returns (uint) {
+    
+    uint nxm = stateNxm * eth / stateEth;
+    uint r = elapsed * stateRatchetSpeed;
+
+    uint buffer = isAbove ? (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) : (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER);
+    uint bufferedCapital = (capital * buffer) / PRICE_BUFFER_DENOMINATOR;
+
+    if (isAbove) {
+
+      // ratchet above
+      // cap*n*(1+r) > e*sup
+      // cap*n + cap*n*r > e*sup
+      //   ? set n(new) = n(BV)
+      //   : set n(new) = n(R)
+
+      return (((bufferedCapital * nxm) + (bufferedCapital * nxm * r / RATCHET_PERIOD / RATCHET_DENOMINATOR)) > eth * supply)
+        ? eth * supply / bufferedCapital // bv
+        : eth * nxm / (eth - (capital * nxm * r / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR)); // ratchet
+
+    } else {
+
+      // ratchet below
+      // check if we should be using the ratchet or the book value price using:
+      // Nbv > Nr <=>
+      // ... <=>
+      // cap*n < e*sup + cap*n*r
+      //   ? set n(new) = n(BV)
+      //   : set n(new) = n(R)
+
+      return (bufferedCapital * nxm < ((eth * supply) + (capital * nxm * r / RATCHET_PERIOD / RATCHET_DENOMINATOR)))
+        ? eth * supply / bufferedCapital // bv
+        : eth * nxm / (eth + (capital * nxm * r / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR)); // ratchet
+    }
+  }
+
   function _getReserves(
     State memory state,
     uint capital,
@@ -328,81 +412,10 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint budget = state.budget;
     uint elapsed = currentTimestamp - state.timestamp;
 
-    if (eth < TARGET_LIQUIDITY) {
-      // inject eth
-      uint timeLeftOnBudget = budget * LIQ_SPEED_PERIOD / FAST_LIQUIDITY_SPEED;
-      uint maxToInject;
-      uint injected;
+    (eth, budget) = adjustEth(eth, budget, capital, mcrValue, elapsed);
 
-      if (capital <= mcrValue + TARGET_LIQUIDITY) {
-        maxToInject = 0;
-      } else {
-        maxToInject = Math.min(TARGET_LIQUIDITY - eth, capital - mcrValue - TARGET_LIQUIDITY);
-      }
-
-      if (elapsed <= timeLeftOnBudget) {
-        injected = Math.min(elapsed * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD, maxToInject);
-      } else {
-        uint injectedFast = timeLeftOnBudget * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD;
-        uint injectedSlow = (elapsed - timeLeftOnBudget) * LIQ_SPEED_B * 1 ether / LIQ_SPEED_PERIOD;
-        injected = Math.min(maxToInject, injectedFast + injectedSlow);
-      }
-
-      eth += injected;
-      budget = budget > injected ? budget - injected : 0;
-
-    } else {
-      // extract eth
-      eth -= Math.min(
-        elapsed * LIQ_SPEED_A * 1 ether / LIQ_SPEED_PERIOD,
-        eth - TARGET_LIQUIDITY // diff to target
-      );
-    }
-
-    // price_initial = eth / nxm
-    // price_final = eth_new / nxm_new
-    // price_final = eth_new /(nxm * eth / stateEthReserve)
-    // nxm_new = nxm * eth / stateEthReserve
-    uint nxmA = state.nxmA * eth / state.eth;
-    uint nxmB = state.nxmB * eth / state.eth;
-
-    // apply ratchet above
-    {
-      // if cap*n*(1+r) > e*sup
-      // if cap*n + cap*n*r > e*sup
-      //   set n(new) = n(BV)
-      // else
-      //   set n(new) = n(R)
-      uint r = elapsed * state.ratchetSpeed;
-      uint bufferedCapitalA = capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR;
-
-      if (bufferedCapitalA * nxmA + bufferedCapitalA * nxmA * r / RATCHET_PERIOD / RATCHET_DENOMINATOR > eth * supply) {
-        // use bv
-        nxmA = eth * supply / bufferedCapitalA;
-      } else {
-        // use ratchet
-        nxmA = eth * nxmA / (eth - (r * capital * nxmA / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR));
-      }
-    }
-
-    // apply ratchet below
-    {
-      // check if we should be using the ratchet or the book value price using:
-      // Nbv > Nr <=>
-      // ... <=>
-      // cap * n < e * sup + r * cap * n
-      uint bufferedCapitalB = capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR;
-
-      if (
-        bufferedCapitalB * nxmB < eth * supply + nxmB * capital * elapsed * state.ratchetSpeed / RATCHET_PERIOD / RATCHET_DENOMINATOR
-      ) {
-        // use bv
-        nxmB = eth * supply / bufferedCapitalB;
-      } else {
-        // use ratchet
-        nxmB = eth * nxmB / (eth + (nxmB * elapsed * state.ratchetSpeed * capital / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR));
-      }
-    }
+    uint nxmA = calculateNxm(state.nxmA, eth, state.eth, state.ratchetSpeed, elapsed, capital, supply, true);
+    uint nxmB = calculateNxm(state.nxmB, eth, state.eth, state.ratchetSpeed, elapsed, capital, supply, false);
 
     return State(nxmA, nxmB, eth, budget, state.ratchetSpeed, currentTimestamp);
   }
@@ -457,7 +470,6 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint prevNxm = isAbove ? previousState.nxmA : previousState.nxmB;
     uint bufferMultiplier = isAbove ? (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) : (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER);
 
-    // TODO: is this the correct variable names?
     uint ethLiquidity = previousState.eth * supply;
     uint nxmLiquidity = (bufferMultiplier * capital * prevNxm) / PRICE_BUFFER_DENOMINATOR;
 

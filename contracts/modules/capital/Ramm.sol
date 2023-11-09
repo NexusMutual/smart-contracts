@@ -464,8 +464,15 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     bool isAbove
   ) internal pure returns (uint timeOnRatchet, uint timeOnBV) {
 
-    // innerAbove = (eth * supply) - (buffer * capital * nxm)
-    // innerBelow = (buffer * capital * nxm) - (eth * supply)
+    // Formula to find out how much time it takes for ratchet price to hit BV + buffer
+    //
+    // above:
+    // inner = (eth * supply) - (buffer * capital * nxm)
+    //
+    // below:
+    // inner = (buffer * capital * nxm) - (eth * supply)
+    //
+    // [inner * denom * period] / (capital * nxm * speed)
 
     uint prevNxm = isAbove ? previousState.nxmA : previousState.nxmB;
     uint bufferMultiplier = isAbove ? (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) : (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER);
@@ -493,16 +500,6 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint supply,
     bool isAbove
   ) internal pure returns (uint) {
-
-    // Formula to find out how much time it takes for ratchet price to hit BV + buffer
-    //
-    // for above:
-    // innerAbove = (eth * supply) - (buffer * capital * nxm)
-    // [innerAbove * denom * period] / (capital * nxm * speed)
-    //
-    // for below:
-    // innerBelow = (buffer * capital * nxm) - (eth * supply)
-    // [innerBelow * denom * period] / (capital * nxm * speed)
 
     // average price
     // pe - previous eth

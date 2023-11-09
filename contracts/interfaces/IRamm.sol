@@ -36,6 +36,14 @@ struct State {
   uint timestamp;
 }
 
+struct SwapParams {
+  uint capital;
+  uint supply;
+  uint mcrValue;
+  IPool pool;
+  ITokenController tokenController;
+}
+
 interface IRamm {
 
   struct CumulativePriceCalculationProps {

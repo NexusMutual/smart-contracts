@@ -144,9 +144,16 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       revert SwapExpired(deadline, block.timestamp);
     }
 
+//    mcrValue, capital, supply, tokenController and pool
+
+    uint capital = pool().getPoolValueInEth();
+    uint supply = tokenController().totalSupply();
+    uint mcrValue = mcr().getMCR();
+    SwapParams memory params = SwapParams(capital, supply, mcrValue, pool(), tokenController());
+
     uint amountOut = msg.value > 0
-      ? swapEthForNxm(msg.value, minAmountOut)
-      : swapNxmForEth(nxmIn, minAmountOut);
+      ? swapEthForNxm(msg.value, minAmountOut, params)
+      : swapNxmForEth(nxmIn, minAmountOut, params);
 
     if (msg.value > 0) {
       nxmReleased = (nxmReleased + amountOut).toUint96();
@@ -168,11 +175,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   /**
    * @dev should only be called by swap
    */
-  function swapEthForNxm(uint ethIn, uint minAmountOut) internal returns (uint nxmOut) {
-
-    uint capital = pool().getPoolValueInEth();
-    uint supply = tokenController().totalSupply();
-    uint mcrValue = mcr().getMCR();
+  function swapEthForNxm(uint ethIn, uint minAmountOut, SwapParams memory params) internal returns (uint nxmOut) {
 
     State memory initialState = loadState();
     Observation[3] memory _observations = observations;
@@ -182,8 +185,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       State memory state,
       uint injected,
       uint extracted
-    ) = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
-    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
+    ) = _getReserves(initialState, params.capital, params.supply, params.mcrValue, block.timestamp);
+    _observations = _updateTwap(initialState, _observations, block.timestamp, params.capital, params.supply, params.mcrValue);
 
     {
       uint k = state.eth * state.nxmA;
@@ -219,11 +222,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     }
 
     // transfer assets
-    (bool ok,) = address(pool()).call{value: msg.value}("");
+    (bool ok,) = address(params.pool).call{value: msg.value}("");
     if (ok != true) {
       revert EthTransferFailed();
     }
-    tokenController().mint(msg.sender, nxmOut);
+    params.tokenController.mint(msg.sender, nxmOut);
 
     emit EthSwappedForNxm(msg.sender, ethIn, nxmOut);
 
@@ -233,12 +236,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   /**
    * @dev should only be called by swap
    */
-  function swapNxmForEth(uint nxmIn, uint minAmountOut) internal returns (uint ethOut) {
-
-    uint capital = pool().getPoolValueInEth();
-    uint supply = tokenController().totalSupply();
-    uint mcrValue = mcr().getMCR();
-
+  function swapNxmForEth(uint nxmIn, uint minAmountOut, SwapParams memory params) internal returns (uint ethOut) {
     State memory initialState = loadState();
     Observation[3] memory _observations = observations;
 
@@ -247,8 +245,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       State memory state,
       uint injected,
       uint extracted
-    ) = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
-    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
+    ) = _getReserves(initialState, params.capital, params.supply, params.mcrValue, block.timestamp);
+    _observations = _updateTwap(initialState, _observations, block.timestamp, params.capital, params.supply, params.mcrValue);
 
     {
       uint k = state.eth * state.nxmB;
@@ -262,7 +260,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
         revert InsufficientAmountOut(ethOut, minAmountOut);
       }
 
-      if (capital - ethOut < mcrValue) {
+      if (params.capital - ethOut < params.mcrValue) {
         revert NoSwapsInBufferZone();
       }
 
@@ -286,8 +284,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       observations[i] = _observations[i];
     }
 
-    tokenController().burnFrom(msg.sender, nxmIn);
-    pool().sendEth(msg.sender, ethOut);
+    params.tokenController.burnFrom(msg.sender, nxmIn);
+    params.pool.sendEth(msg.sender, ethOut);
 
     emit NxmSwappedForEth(msg.sender, nxmIn, ethOut);
 
@@ -396,7 +394,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint supply,
     bool isAbove
   ) internal pure returns (uint) {
-    
+
     uint stateNxm = isAbove ? state.nxmA : state.nxmB;
     uint nxm = stateNxm * eth / state.eth;
     uint r = elapsed * state.ratchetSpeed;

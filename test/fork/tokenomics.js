@@ -20,12 +20,12 @@ const { formatEther, parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 /* ========== CONSTRUCTOR PARAMS ========== */
 
 // Ramm
-// TODO: SPOT_PRICE_B 20% below open market price at launch
-// https://docs.google.com/document/d/1oRaAzPapBpNv0TmxC9XZjc24Qu0deJnzlQGEznBV1X0/edit#heading=h.ejqiszyf49b3
-const SPOT_PRICE_B = parseEther('0.0152');
 // TODO: SPOT_PRICE_A follow calculation
 // https://docs.google.com/document/d/1oRaAzPapBpNv0TmxC9XZjc24Qu0deJnzlQGEznBV1X0/edit#heading=h.o7iygzkj2m9z
 const SPOT_PRICE_A = parseEther('0.0347');
+// TODO: SPOT_PRICE_B 20% below open market price at launch
+// https://docs.google.com/document/d/1oRaAzPapBpNv0TmxC9XZjc24Qu0deJnzlQGEznBV1X0/edit#heading=h.ejqiszyf49b3
+const SPOT_PRICE_B = parseEther('0.0152');
 
 async function getCapitalSupplyAndBalances(pool, tokenController, nxm, memberAddress) {
   return {
@@ -36,7 +36,9 @@ async function getCapitalSupplyAndBalances(pool, tokenController, nxm, memberAdd
   };
 }
 
-const assertionErrorMsg = (name, asset) => `AssertionError: values of ${name} in ${asset} don't match\n`;
+function assertionErrorMsg(key, parentKey) {
+  return `AssertionError: values of ${key}${parentKey ? ` in ${parentKey}` : ''} don't match\n`;
+}
 
 describe('tokenomics', function () {
   async function getContractByContractCode(contractName, contractCode) {
@@ -64,24 +66,28 @@ describe('tokenomics', function () {
   });
 
   it('load contracts', async function () {
-    this.master = await ethers.getContractAt('NXMaster', V2Addresses.NXMaster);
     this.mcr = await ethers.getContractAt('MCR', V2Addresses.MCR);
+    this.cover = await ethers.getContractAt('Cover', V2Addresses.Cover);
     this.nxm = await ethers.getContractAt('NXMToken', V2Addresses.NXMToken);
+    this.master = await ethers.getContractAt('NXMaster', V2Addresses.NXMaster);
     this.coverNFT = await ethers.getContractAt('CoverNFT', V2Addresses.CoverNFT);
     this.poolBefore = await ethers.getContractAt('ILegacyPool', V2Addresses.Pool);
-    this.stakingNFT = await ethers.getContractAt('StakingNFT', V2Addresses.StakingNFT);
+    this.assessment = await ethers.getContractAt('Assessment', V2Addresses.Assessment);
     this.productsV1 = await ethers.getContractAt('ProductsV1', V2Addresses.ProductsV1);
-    this.stakingPool = await ethers.getContractAt('StakingPool', V2Addresses.StakingPoolImpl);
+    this.stakingNFT = await ethers.getContractAt('StakingNFT', V2Addresses.StakingNFT);
     this.swapOperator = await ethers.getContractAt('SwapOperator', V2Addresses.SwapOperator);
-    this.quotationData = await ethers.getContractAt('LegacyQuotationData', V2Addresses.LegacyQuotationData);
-    this.tokenController = await ethers.getContractAt('TokenController', V2Addresses.TokenController);
+    this.stakingPool = await ethers.getContractAt('StakingPool', V2Addresses.StakingPoolImpl);
     this.priceFeedOracle = await ethers.getContractAt('PriceFeedOracle', V2Addresses.PriceFeedOracle);
+    this.tokenController = await ethers.getContractAt('TokenController', V2Addresses.TokenController);
+    this.individualClaims = await ethers.getContractAt('IndividualClaims', V2Addresses.IndividualClaims);
+    this.quotationData = await ethers.getContractAt('LegacyQuotationData', V2Addresses.LegacyQuotationData);
     this.newClaimsReward = await ethers.getContractAt('LegacyClaimsReward', V2Addresses.LegacyClaimsReward);
     this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', V2Addresses.StakingPoolFactory);
+    this.yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', V2Addresses.YieldTokenIncidents);
 
     this.dai = await ethers.getContractAt('ERC20Mock', Address.DAI_ADDRESS);
-    this.stEth = await ethers.getContractAt('ERC20Mock', Address.STETH_ADDRESS);
     this.rEth = await ethers.getContractAt('ERC20Mock', Address.RETH_ADDRESS);
+    this.stEth = await ethers.getContractAt('ERC20Mock', Address.STETH_ADDRESS);
     this.enzymeShares = await ethers.getContractAt('ERC20Mock', EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS);
 
     this.governance = await getContractByContractCode('Governance', ContractCode.Governance);
@@ -101,10 +107,13 @@ describe('tokenomics', function () {
   it('add new RAMM (RA) contract', async function () {
     const contractsBefore = await this.master.getInternalContracts();
 
-    // const rammAddress = '<ADDRESS>'; // TODO: grab from brute force address script
-    // const ramm = await ethers.getContractAt('Ramm', rammAddress);
+    // TODO: brute force salt for RAMM proxy address on change freeze
+    // eslint-disable-next-line
+    // node scripts/create2/find-salt.js -f '0x01BFd82675DBCc7762C84019cA518e701C0cD07e' -c '0xffffffffffffffffffffffffffffffffffffffff' -t cafea OwnedUpgradeabilityProxy
+    const rammCreate2Salt = 13944964;
     this.ramm = await ethers.deployContract('Ramm', [SPOT_PRICE_A, SPOT_PRICE_B]);
-    const rammCreate2Salt = 43535253462345; // TODO: brute force salt to generate nice address
+    // const rammAddress = '<ADDRESS>'; // TODO: grab from brute force address script
+    // this.ramm = await ethers.getContractAt('Ramm', rammAddress);
     const rammTypeAndSalt = BigNumber.from(rammCreate2Salt).shl(8).add(ContractTypes.Proxy);
 
     await submitGovernanceProposal(
@@ -134,10 +143,12 @@ describe('tokenomics', function () {
     this.contractData = {
       mcr: { before: {}, after: {} },
       pool: { before: {}, after: {} },
+      cover: { before: {}, after: {} },
       gateway: { before: {}, after: {} },
       assessment: { before: {}, after: {} },
       stakingPool: { before: {}, after: {} },
       priceFeedOracle: { before: {}, after: {} },
+      tokenController: { before: {}, after: {} },
       individualClaims: { before: {}, after: {} },
       yieldTokenIncidents: { before: {}, after: {} },
     };
@@ -177,6 +188,26 @@ describe('tokenomics', function () {
     this.contractData.priceFeedOracle.before.assetsForEth = assets.reduce((acc, asset, i) => {
       return { ...acc, [asset]: getAssetForEth[i] };
     }, {});
+
+    // Assessment
+    this.hugh = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
+    this.contractData.assessment.before.assessment1 = await this.assessment.assessments(1);
+    this.contractData.assessment.before.stakeOf = await this.assessment.stakeOf(this.hugh);
+    this.contractData.assessment.before.votesOf = await this.assessment.votesOf(this.hugh, 1);
+    this.contractData.assessment.before.hasAlreadyVotedOn = await this.assessment.hasAlreadyVotedOn(this.hugh, 1);
+
+    // IndividualClaims
+    this.contractData.individualClaims.before.claim1 = await this.individualClaims.claims(1);
+    this.contractData.individualClaims.before.claimSubm1 = await this.individualClaims.lastClaimSubmissionOnCover(1);
+
+    // TokenController
+    this.contractData.tokenController.before.coverInfo1 = await this.tokenController.coverInfo(1);
+    this.contractData.tokenController.before.stakingPoolNXMBal1 = await this.tokenController.stakingPoolNXMBalances(1);
+
+    // Cover
+    this.contractData.cover.before.activeCover1 = await this.cover.activeCover(1);
+    this.contractData.cover.before.productNames1 = await this.cover.productNames(1);
+    this.contractData.cover.before.productTypeNames1 = await this.cover.productTypeNames(1);
   });
 
   it('Upgrade existing contracts', async function () {
@@ -355,7 +386,7 @@ describe('tokenomics', function () {
     this.contractData.mcr.after.previousMCR = await this.mcr.previousMCR();
 
     Object.entries(this.contractData.mcr.before).forEach(([key, value]) => {
-      expect(this.contractData.mcr.after[key], `AssertionError: values of ${key} don't match\n`).to.be.equal(value);
+      expect(this.contractData.mcr.after[key], assertionErrorMsg(key)).to.be.equal(value);
     });
   });
 
@@ -365,7 +396,7 @@ describe('tokenomics', function () {
     const afterAssetsData = beforeAssets.reduce((acc, asset, i) => ({ ...acc, [asset]: afterAssetsDataArray[i] }), {});
     const afterMinPoolEth = await this.swapOperator.minPoolEth();
 
-    expect(afterMinPoolEth, "AssertionError: values of minPoolEth don't match\n").to.be.equal(beforeMinPoolEth);
+    expect(afterMinPoolEth, assertionErrorMsg('minPoolEth')).to.be.equal(beforeMinPoolEth);
 
     Object.entries(this.contractData.pool.before.assetSwapDetails).forEach(([asset, before]) => {
       const { minAmount, maxAmount, lastSwapTime, maxSlippageRatio } = afterAssetsData[asset];
@@ -407,8 +438,55 @@ describe('tokenomics', function () {
     this.contractData.gateway.after._unused_coverMigrator = await this.gateway._unused_coverMigrator();
 
     Object.entries(this.contractData.gateway.before).forEach(([key, value]) => {
-      expect(this.contractData.gateway.after[key], `AssertionError: values of ${key} don't match\n`).to.be.equal(value);
+      expect(this.contractData.gateway.after[key], assertionErrorMsg(key)).to.be.equal(value);
     });
+  });
+
+  it('Compares storage of upgrade Assessment contract', async function () {
+    this.contractData.assessment.after.assessment1 = await this.assessment.assessments(1);
+    this.contractData.assessment.after.stakeOf = await this.assessment.stakeOf(this.hugh);
+    this.contractData.assessment.after.votesOf = await this.assessment.votesOf(this.hugh, 1);
+    this.contractData.assessment.after.hasAlreadyVotedOn = await this.assessment.hasAlreadyVotedOn(this.hugh, 1);
+
+    Object.entries(this.contractData.assessment.before).forEach(([key, value]) => {
+      expect(this.contractData.assessment.after[key], assertionErrorMsg(key)).to.be.deep.equal(value);
+    });
+  });
+
+  it('Compares storage of upgrade IndividualClaims contract', async function () {
+    this.contractData.individualClaims.after.claim1 = await this.individualClaims.claims(1);
+    this.contractData.individualClaims.after.claimSubm1 = await this.individualClaims.lastClaimSubmissionOnCover(1);
+
+    Object.entries(this.contractData.individualClaims.before).forEach(([key, value]) => {
+      expect(this.contractData.individualClaims.after[key], assertionErrorMsg(key)).to.be.deep.equal(value);
+    });
+  });
+
+  it('Compares storage of upgrade YieldTokenIncidents contract', async function () {
+    await expect(this.yieldTokenIncidents.incidents(0)).to.be.reverted; // empty storage
+  });
+
+  it('Compares storage of upgrade TokenController contract', async function () {
+    this.contractData.tokenController.after.coverInfo1 = await this.tokenController.coverInfo(1);
+    this.contractData.tokenController.after.stakingPoolNXMBal1 = await this.tokenController.stakingPoolNXMBalances(1);
+
+    Object.entries(this.contractData.tokenController.before).forEach(([key, value]) => {
+      expect(this.contractData.tokenController.after[key], assertionErrorMsg(key)).to.be.deep.equal(value);
+    });
+  });
+
+  it('Compares storage of upgrade Cover contract', async function () {
+    this.contractData.cover.after.activeCover1 = await this.cover.activeCover(1);
+    this.contractData.cover.after.productNames1 = await this.cover.productNames(1);
+    this.contractData.cover.after.productTypeNames1 = await this.cover.productTypeNames(1);
+
+    Object.entries(this.contractData.cover.after).forEach(([key, value]) => {
+      expect(this.contractData.cover.after[key], assertionErrorMsg(key)).to.be.deep.equal(value);
+    });
+
+    // Empty storage
+    await expect(this.cover.coverSegmentAllocations(1, 1, 1)).to.be.reverted;
+    await expect(this.cover.allowedPools(1, 1)).to.be.reverted;
   });
 
   it('Swap NXM for ETH', async function () {

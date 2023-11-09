@@ -116,8 +116,8 @@ describe('basic functionality tests', function () {
       CO: ['P1', 'TC', 'MR', 'SP'],
       CL: ['CO', 'TC', 'CI'],
       MR: ['TC', 'P1', 'CO', 'PS', 'AS'],
-      GW: ['MR', 'CL', 'TK'],
-      PS: ['TC', 'MR', 'TK'],
+      GW: ['MR', 'CL'],
+      PS: ['TC', 'MR'],
       SP: [], // none
       TC: ['PS', 'AS', 'CO', 'GV', 'P1'],
       RA: ['P1', 'MC', 'TC'],
@@ -127,9 +127,6 @@ describe('basic functionality tests', function () {
     const master = this.master;
     const nxmAddress = this.nxm.address;
     async function getLatestAddress(contractCode) {
-      if (contractCode === 'TK') {
-        return nxmAddress;
-      }
       if (!latestAddresses[contractCode]) {
         latestAddresses[contractCode] = await master.getLatestAddress(toUtf8Bytes(contractCode));
       }

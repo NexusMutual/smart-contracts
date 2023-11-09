@@ -173,15 +173,18 @@ describe('buyCover', function () {
 
   it('should purchase new cover with bumped price price after initialization', async function () {
     const fixture = await loadFixture(buyCoverSetup);
-    const { cover, tc: tokenController, stakingProducts, p1: pool } = fixture.contracts;
+    const { cover, tc: tokenController, stakingProducts, p1: pool, ra: ramm, mcr } = fixture.contracts;
     const {
       members: [coverBuyer, coverReceiver],
     } = fixture.accounts;
     const {
       config: { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO },
-      ethRate,
     } = fixture;
     const { period, amount } = buyCoverFixture;
+
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = currentTimestamp + 1;
+    const ethRate = await getInternalPrice(ramm, pool, tokenController, mcr, nextBlockTimestamp);
 
     const product = await stakingProducts.getProduct(1, 1);
     const { premiumInNxm, premiumInAsset: premium } = calculatePremium(
@@ -195,6 +198,8 @@ describe('buyCover', function () {
     const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
     const poolBeforeETH = await ethers.provider.getBalance(pool.address);
 
+    await setNextBlockTime(nextBlockTimestamp);
+
     await cover
       .connect(coverBuyer)
       .buyCover(
@@ -203,9 +208,7 @@ describe('buyCover', function () {
         { value: premium },
       );
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
-
-    const rewards = calculateRewards(premiumInNxm, timestamp, period, GLOBAL_REWARDS_RATIO);
+    const rewards = calculateRewards(premiumInNxm, nextBlockTimestamp, period, GLOBAL_REWARDS_RATIO);
 
     const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);
     const poolAfterETH = await ethers.provider.getBalance(pool.address);
@@ -271,16 +274,20 @@ describe('buyCover', function () {
 
   it('should purchase new cover with fixed price', async function () {
     const fixture = await loadFixture(buyCoverSetup);
-    const { cover, tc: tokenController, stakingProducts, p1: pool } = fixture.contracts;
+    const { cover, tc: tokenController, stakingProducts, p1: pool, ra: ramm, mcr } = fixture.contracts;
     const {
       members: [coverBuyer, coverReceiver],
     } = fixture.accounts;
     const {
       config: { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO },
-      ethRate,
       productList,
     } = fixture;
     const { period, amount } = buyCoverFixture;
+
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = currentTimestamp + 1;
+    const ethRate = await getInternalPrice(ramm, pool, tokenController, mcr, nextBlockTimestamp);
+
     const { targetPrice } = stakedProductParamTemplate;
 
     const productId = productList.findIndex(
@@ -298,6 +305,8 @@ describe('buyCover', function () {
 
     const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
     const poolBeforeETH = await ethers.provider.getBalance(pool.address);
+
+    await setNextBlockTime(nextBlockTimestamp);
 
     await cover
       .connect(coverBuyer)

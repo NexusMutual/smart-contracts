@@ -130,7 +130,8 @@ describe('swap', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
-    const swap = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn });
+    const amountOut = await ramm.connect(member).callStatic.swap(0, minAmountOut, deadline, { value: ethIn });
+    const swap = ramm.connect(member).swap(0, amountOut.add(1), deadline, { value: ethIn });
     await expect(swap).to.be.revertedWithCustomError(ramm, 'InsufficientAmountOut');
   });
 

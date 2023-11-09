@@ -131,6 +131,10 @@ contract PoolMock is IPool {
     assets[assetId].isAbandoned = isAbandoned;
   }
 
+  function getTokenPrice() public virtual view returns (uint) {
+    return prices[0];
+  }
+
   /* ====== NOT YET IMPLEMENTED ====== */
 
   function getAssetValueInEth(address) internal virtual pure returns (uint) {
@@ -163,10 +167,6 @@ contract PoolMock is IPool {
 
   function setSwapValue(uint) external virtual pure {
     revert("setSwapValue not yet implemented");
-  }
-
-  function getTokenPrice() public virtual pure returns (uint) {
-    revert("getTokenPrice not yet implemented");
   }
 
   function getMCRRatio() public virtual pure returns (uint) {

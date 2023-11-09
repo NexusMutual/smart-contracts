@@ -59,11 +59,10 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
   // circuit breakers
   uint public constant INITIAL_ETH_LIMIT = 22_000;
-  uint public constant INITIAL_NXM_LIMIT = 250_000;
+  uint public constant INITIAL_NXM_LIMIT = 500_000;
 
   /* ========== IMMUTABLES ========== */
 
-  uint public immutable SPOT_PRICE_A;
   uint public immutable SPOT_PRICE_B;
 
   /* ========== MODIFIERS ========== */
@@ -86,8 +85,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(uint spotPriceA, uint spotPriceB) {
-    SPOT_PRICE_A = spotPriceA;
+  constructor(uint spotPriceB) {
     SPOT_PRICE_B = spotPriceB;
   }
 
@@ -619,7 +617,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   }
 
   function getInitialObservations(
-    State memory initialState,
+    uint initialPriceA,
+    uint initialPriceB,
     uint timestamp
   ) public pure returns (Observation[3] memory initialObservations) {
 
@@ -633,8 +632,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       uint observationIndex = idx % GRANULARITY;
       uint timeElapsed = observationTimestamp - previousTimestamp;
 
-      priceCumulativeAbove += 1 ether * initialState.eth * timeElapsed / initialState.nxmA / ACCUMULATOR_PRECISION;
-      priceCumulativeBelow += 1 ether * initialState.eth * timeElapsed / initialState.nxmB / ACCUMULATOR_PRECISION;
+      priceCumulativeAbove += initialPriceA * timeElapsed / ACCUMULATOR_PRECISION;
+      priceCumulativeBelow += initialPriceB * timeElapsed / ACCUMULATOR_PRECISION;
 
       initialObservations[observationIndex] = Observation(
         observationTimestamp.toUint32(),
@@ -864,7 +863,14 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       return;
     }
 
-    uint128 nxmReserveA = (INITIAL_LIQUIDITY * 1 ether / SPOT_PRICE_A).toUint128();
+    uint capital = pool().getPoolValueInEth();
+    uint supply = tokenController().totalSupply();
+
+    uint bondingCurvePrice = pool().getTokenPrice();
+    uint initialPriceA = bondingCurvePrice + 1 ether * capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR / supply;
+    uint initialPriceB = 1 ether * capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR / supply;
+
+    uint128 nxmReserveA = (INITIAL_LIQUIDITY * 1 ether / initialPriceA).toUint128();
     uint128 nxmReserveB = (INITIAL_LIQUIDITY * 1 ether / SPOT_PRICE_B).toUint128();
     uint128 ethReserve = INITIAL_LIQUIDITY.toUint128();
     uint96 budget = INITIAL_BUDGET.toUint96();
@@ -885,7 +891,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
     storeState(state);
 
-    Observation[3] memory _observations = getInitialObservations(state, updatedAt);
+    Observation[3] memory _observations = getInitialObservations(initialPriceA, initialPriceB, updatedAt);
 
     for (uint i = 0; i < _observations.length; i++) {
       observations[i] = _observations[i];

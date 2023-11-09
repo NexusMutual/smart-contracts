@@ -25,7 +25,7 @@ async function setup() {
   const tokenController = await ethers.deployContract('RammMockTokenController', [nxm.address]);
   const mcr = await ethers.deployContract('RammMockMCR', [master.address]);
   const pool = await ethers.deployContract('PoolMock');
-  const ramm = await ethers.deployContract('Ramm', [SPOT_PRICE_A, SPOT_PRICE_B]);
+  const ramm = await ethers.deployContract('Ramm', [SPOT_PRICE_B]);
 
   await mcr.setPool(pool.address);
   await setEtherBalance(pool.address, parseEther('145000'));
@@ -41,9 +41,6 @@ async function setup() {
     master.setEmergencyAdmin(accounts.emergencyAdmin.address),
   ]);
 
-  await ramm.changeMasterAddress(master.address);
-  await ramm.changeDependentContractAddress();
-
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);
     await memberRoles.enrollMember(member.address, Role.Member);
@@ -52,6 +49,9 @@ async function setup() {
   }
 
   await nxm.mint(accounts.defaultSender.address, parseEther('6700000'));
+
+  await ramm.changeMasterAddress(master.address);
+  await ramm.changeDependentContractAddress();
 
   return {
     accounts,

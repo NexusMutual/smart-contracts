@@ -3,7 +3,7 @@ const { ethers } = require('hardhat');
 const { ContractTypes } = require('../utils').constants;
 const { toBytes2, toBytes8 } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
-const { enrollMember, enrollABMember } = require('./utils/enroll');
+const { enrollMember, enrollABMember, getGovernanceSigner } = require('./utils/enroll');
 const { getAccounts } = require('../utils/accounts');
 
 const { BigNumber } = ethers;
@@ -40,7 +40,6 @@ async function setup() {
 
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
   const INITIAL_SUPPLY = parseEther('6750000'); // https://etherscan.io/token/0xd7c49cee7e9188cca6ad8ff264c1da2e69d4cf3b
-  const INITIAL_SPOT_PRICE_A = parseEther('0.0347');
   const INITIAL_SPOT_PRICE_B = parseEther('0.0152');
 
   // deploy external contracts
@@ -89,7 +88,7 @@ async function setup() {
   const master = await deployProxy('DisposableNXMaster');
   const mr = await deployProxy('DisposableMemberRoles', [tk.address]);
   const ps = await deployProxy('DisposablePooledStaking', [tk.address]);
-  const ramm = await deployProxy('Ramm', [INITIAL_SPOT_PRICE_A, INITIAL_SPOT_PRICE_B]);
+  const ramm = await deployProxy('Ramm', [INITIAL_SPOT_PRICE_B]);
   const pc = await deployProxy('DisposableProposalCategory');
   const gv = await deployProxy('DisposableGovernance');
   const gateway = await deployProxy('DisposableGateway', [qd.address, tk.address]);
@@ -132,11 +131,6 @@ async function setup() {
   const legacyPool = await ethers.deployContract(
     'LegacyPool',
     [master, priceFeedOracle, swapOperatorPlaceholder, dai, stETH, enzymeVault, tk].map(c => c.address),
-  );
-
-  const p1 = await ethers.deployContract(
-    'Pool',
-    [master, priceFeedOracle, swapOperatorPlaceholder, tk, legacyPool].map(c => c.address),
   );
 
   const cowVaultRelayer = await ethers.deployContract('SOMockVaultRelayer');
@@ -217,9 +211,25 @@ async function setup() {
   };
 
   const addr = c => c.address;
-  const addresses = [qd, tc, p1, mc, owner, pc, mr, ps, gateway, ci, cg, cl, as, cover, lcr, stakingProducts, ramm].map(
-    addr,
-  );
+  const addresses = [
+    qd,
+    tc,
+    legacyPool,
+    mc,
+    owner,
+    pc,
+    mr,
+    ps,
+    gateway,
+    ci,
+    cg,
+    cl,
+    as,
+    cover,
+    lcr,
+    stakingProducts,
+    ramm,
+  ].map(addr);
   const codes = ['QD', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'CI', 'CG', 'CL', 'AS', 'CO', 'CR', 'SP', 'RA'];
 
   await master.initialize(
@@ -231,8 +241,19 @@ async function setup() {
     addresses, // addresses
   );
 
-  await p1.updateAddressParameters(toBytes8('SWP_OP'), swapOperator.address);
-  await p1.addAsset(usdc.address, true, parseUnits('1000000', usdcDecimals), parseUnits('2000000', usdcDecimals), 250);
+  await legacyPool.changeDependentContractAddress();
+
+  await ramm.changeMasterAddress(master.address);
+  await ramm.changeDependentContractAddress();
+
+  await legacyPool.updateAddressParameters(toBytes8('SWP_OP'), swapOperator.address);
+  await legacyPool.addAsset(
+    usdc.address,
+    true,
+    parseUnits('1000000', usdcDecimals),
+    parseUnits('2000000', usdcDecimals),
+    250,
+  );
 
   await tc.initialize(master.address, ps.address, as.address);
   await tc.addToWhitelist(lcr.address);
@@ -433,7 +454,6 @@ async function setup() {
 
   await cover.setProducts(productList);
 
-  await ramm.changeMasterAddress(master.address);
   await gv.changeMasterAddress(master.address);
 
   await master.switchGovernanceAddress(gv.address);
@@ -453,6 +473,15 @@ async function setup() {
   await upgradeProxy(gv.address, 'Governance');
   await upgradeProxy(gateway.address, 'LegacyGateway', [qd.address, tk.address]);
 
+  // replace legacy pool after Ramm is initialized
+  const governanceSigner = await getGovernanceSigner(gv);
+  const p1 = await ethers.deployContract(
+    'Pool',
+    [master, priceFeedOracle, swapOperatorPlaceholder, tk, legacyPool].map(c => c.address),
+  );
+
+  await master.connect(governanceSigner).upgradeMultipleContracts([toBytes2('P1')], [p1.address]);
+
   // [todo] We should probably call changeDependentContractAddress on every contract
   await gateway.changeDependentContractAddress();
   await cover.changeDependentContractAddress();
@@ -460,6 +489,9 @@ async function setup() {
   await ci.changeDependentContractAddress();
   await cg.changeDependentContractAddress();
   await as.changeDependentContractAddress();
+  await mc.changeDependentContractAddress();
+  await mr.changeDependentContractAddress();
+  await tc.changeDependentContractAddress();
 
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);

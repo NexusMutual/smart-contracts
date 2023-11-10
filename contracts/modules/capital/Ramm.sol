@@ -178,7 +178,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     Observation[3] memory _observations = observations;
 
     // current state
-    State memory state = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
+    (
+      State memory state,
+      uint injected,
+      uint extracted
+    ) = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
     _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
 
     {
@@ -232,7 +236,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     Observation[3] memory _observations = observations;
 
     // current state
-    State memory state = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
+    (
+      State memory state,
+      uint injected,
+      uint extracted
+    ) = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
     _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
 
     {
@@ -309,10 +317,17 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
    * @return _budget The current ETH budget used for injection
    */
   function getReserves() external view returns (uint _ethReserve, uint nxmA, uint nxmB, uint _budget) {
+
     uint capital = pool().getPoolValueInEth();
     uint supply = tokenController().totalSupply();
     uint mcrValue = mcr().getMCR();
-    State memory state = _getReserves(loadState(), capital, supply, mcrValue, block.timestamp);
+
+    (
+      State memory state,
+      /* injected */,
+      /* extracted */
+    ) = _getReserves(loadState(), capital, supply, mcrValue, block.timestamp);
+
     return (state.eth, state.nxmA, state.nxmB, state.budget);
   }
 
@@ -437,7 +452,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint supply = tokenController().totalSupply();
     uint mcrValue = mcr().getMCR();
 
-    State memory state = _getReserves(loadState(), capital, supply, mcrValue, block.timestamp);
+    (
+      State memory state,
+      /* injected */,
+      /* extracted */
+    ) = _getReserves(loadState(), capital, supply, mcrValue, block.timestamp);
 
     return (
       1 ether * state.eth / state.nxmA,
@@ -633,7 +652,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     Observation[3] memory _observations = observations;
 
     // current state
-    State memory state = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
+    (
+      State memory state,
+      uint injected,
+      uint extracted
+    ) = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
     _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
 
     for (uint i = 0; i < _observations.length; i++) {
@@ -675,7 +698,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
         continue;
       }
 
-      State memory state = _getReserves(previousState, capital, supply, mcrValue, observationTimestamp);
+      (
+        State memory state,
+        /* injected */,
+        /* extracted */
+      ) = _getReserves(previousState, capital, supply, mcrValue, observationTimestamp);
 
       newObservations[observationIndex] = getObservation(
         previousState,
@@ -702,7 +729,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     Observation[3] memory _observations = observations;
 
     // current state
-    State memory state = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
+    (
+      State memory state,
+      uint injected,
+      uint extracted
+    ) = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
     _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
 
     // sstore observations and state
@@ -766,8 +797,12 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     State memory initialState = loadState();
     Observation[3] memory _observations = observations;
 
-    // current state
-    State memory state = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
+    (
+      State memory state,
+      /* injected */,
+      /* extracted */
+    ) = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
+
     _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
 
     return _getInternalPrice(state, _observations, capital, supply, block.timestamp);

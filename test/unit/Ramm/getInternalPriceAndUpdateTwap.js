@@ -4,7 +4,13 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getState, setup } = require('./setup');
 const { setNextBlockTime } = require('../../utils/evm');
-const { calculateInternalPrice, getExpectedObservations } = require('./helpers');
+const {
+  calculateEthToExtract,
+  calculateEthToInject,
+  calculateInternalPrice,
+  getExpectedObservations,
+  setEthReserveValue,
+} = require('./helpers');
 
 describe('getInternalPriceAndUpdateTwap', function () {
   it('should return the internal price and update the twap', async function () {
@@ -85,5 +91,41 @@ describe('getInternalPriceAndUpdateTwap', function () {
       .withArgs(obsv2.timestamp, obsv2.priceCumulativeAbove, obsv2.priceCumulativeBelow)
       .to.emit(ramm, 'ObservationUpdated')
       .withArgs(obsv3.timestamp, obsv3.priceCumulativeAbove, obsv3.priceCumulativeBelow);
+  });
+
+  it('should emit EthInjected with the correct ETH injected value', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm } = fixture.contracts;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + 5 * 60;
+
+    // Set ETH reserve < TARGET_LIQUIDITY (5000) to force injection
+    await setEthReserveValue(ramm.address, 4999);
+
+    const state = await ramm.loadState();
+    await setNextBlockTime(nextBlockTimestamp);
+
+    const expectedInjected = await calculateEthToInject(ramm, state, nextBlockTimestamp);
+    console.log('expectedInjected: ', expectedInjected);
+    await expect(ramm.getInternalPriceAndUpdateTwap()).to.emit(ramm, 'EthInjected').withArgs(expectedInjected);
+  });
+
+  it('should emit EthExtracted with the correct ETH extracted value', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm } = fixture.contracts;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + 5 * 60;
+
+    // Set ETH reserve > TARGET_LIQUIDITY (5000) to force extraction
+    await setEthReserveValue(ramm.address, 5001);
+
+    const state = await ramm.loadState();
+    await setNextBlockTime(nextBlockTimestamp);
+
+    const expectedExtracted = await calculateEthToExtract(ramm, state, nextBlockTimestamp);
+    console.log('expectedExtracted: ', expectedExtracted);
+    await expect(ramm.getInternalPriceAndUpdateTwap()).to.emit(ramm, 'EthExtracted').withArgs(expectedExtracted);
   });
 });

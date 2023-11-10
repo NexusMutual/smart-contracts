@@ -318,7 +318,7 @@ async function setEthReserveValue(rammAddress, valueInEther) {
   // Update Slot1 to have new ethReserve value
   const newSlot1Value = await replaceHexValueInBitPos(slot1Value, newEtherReserve, 128);
   return ethers.provider.send('hardhat_setStorageAt', [rammAddress, SLOT_1_POSITION, newSlot1Value]);
-};
+}
 
 /**
  * Replaces a bit value in a hexadecimal string with a new value at a specific bit position.
@@ -337,7 +337,7 @@ function replaceHexValueInBitPos(origHex, newHexValue, bitPosition) {
   bufferNewVal.copy(bufferOrig, byteStart);
 
   return '0x' + bufferOrig.toString('hex');
-};
+}
 
 module.exports = {
   timeTillBv,

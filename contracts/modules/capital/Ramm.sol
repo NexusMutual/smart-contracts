@@ -207,6 +207,13 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
     storeState(state);
 
+    if (injected > 0) {
+      emit EthInjected(injected);
+    }
+    if (extracted > 0) {
+      emit EthExtracted(extracted);
+    }
+
     for (uint i = 0; i < _observations.length; i++) {
       observations[i] = _observations[i];
     }
@@ -267,6 +274,13 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     }
 
     storeState(state);
+
+    if (injected > 0) {
+      emit EthInjected(injected);
+    }
+    if (extracted > 0) {
+      emit EthExtracted(extracted);
+    }
 
     for (uint i = 0; i < _observations.length; i++) {
       observations[i] = _observations[i];
@@ -669,6 +683,13 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     }
 
     storeState(state);
+
+    if (injected > 0) {
+      emit EthInjected(injected);
+    }
+    if (extracted > 0) {
+      emit EthExtracted(extracted);
+    }
   }
 
   function _updateTwap(
@@ -747,6 +768,13 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     }
 
     storeState(state);
+
+    if (injected > 0) {
+      emit EthInjected(injected);
+    }
+    if (extracted > 0) {
+      emit EthExtracted(extracted);
+    }
 
     return _getInternalPrice(state, _observations, capital, supply, block.timestamp);
   }

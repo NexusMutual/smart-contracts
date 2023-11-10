@@ -71,7 +71,7 @@ describe('swap', function () {
     const capital = await p1.getPoolValueInEth();
     const supply = await tc.totalSupply();
     const mcrValue = await mcr.getMCR();
-    const state = await ra._getReserves(initState, capital, supply, mcrValue, nextBlockTimestamp);
+    const [state] = await ra._getReserves(initState, capital, supply, mcrValue, nextBlockTimestamp);
     const k = state.eth.mul(state.nxmA);
     const eth = state.eth.add(ethIn);
     const nxmA = k.div(eth);
@@ -121,7 +121,7 @@ describe('swap', function () {
     const capital = await p1.getPoolValueInEth();
     const supply = await tc.totalSupply();
     const mcrValue = await mcr.getMCR();
-    const state = await ra._getReserves(initState, capital, supply, mcrValue, nextBlockTimestamp);
+    const [state] = await ra._getReserves(initState, capital, supply, mcrValue, nextBlockTimestamp);
     const k = state.eth.mul(state.nxmB);
     const nxmB = state.nxmB.add(nxmIn);
     const eth = k.div(nxmB);

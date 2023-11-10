@@ -365,7 +365,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint supply,
     bool isAbove
   ) internal pure returns (uint) {
-    
+
     uint nxm = stateNxm * eth / stateEth;
     uint r = elapsed * stateRatchetSpeed;
 
@@ -483,7 +483,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint innerLeft = isAbove ? ethLiquidity : nxmLiquidity;
     uint innerRight = isAbove ? nxmLiquidity : ethLiquidity;
 
-    uint inner = isAbove ? (innerLeft < innerRight ? 0 : innerLeft - innerRight) : (innerLeft > innerRight ? innerLeft - innerRight : 0);
+    uint inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
     uint maxTimeOnRatchet = (inner != 0) ? (inner * RATCHET_DENOMINATOR * RATCHET_PERIOD) / (capital * prevNxm * stateRatchetSpeed) : 0;
 
     timeOnRatchet = Math.min(timeElapsed, maxTimeOnRatchet);

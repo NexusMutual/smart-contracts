@@ -144,16 +144,15 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       revert SwapExpired(deadline, block.timestamp);
     }
 
-//    mcrValue, capital, supply, tokenController and pool
-
-    uint capital = pool().getPoolValueInEth();
-    uint supply = tokenController().totalSupply();
-    uint mcrValue = mcr().getMCR();
-    SwapParams memory params = SwapParams(capital, supply, mcrValue, pool(), tokenController());
+    Context memory context = Context(
+      pool().getPoolValueInEth(), // capital
+      tokenController().totalSupply(), // supply
+      mcr().getMCR() // mcr
+    );
 
     uint amountOut = msg.value > 0
-      ? swapEthForNxm(msg.value, minAmountOut, params)
-      : swapNxmForEth(nxmIn, minAmountOut, params);
+      ? swapEthForNxm(msg.value, minAmountOut, context)
+      : swapNxmForEth(nxmIn, minAmountOut, context);
 
     if (msg.value > 0) {
       nxmReleased = (nxmReleased + amountOut).toUint96();
@@ -175,7 +174,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   /**
    * @dev should only be called by swap
    */
-  function swapEthForNxm(uint ethIn, uint minAmountOut, SwapParams memory params) internal returns (uint nxmOut) {
+  function swapEthForNxm(
+    uint ethIn,
+    uint minAmountOut,
+    Context memory context
+  ) internal returns (uint nxmOut) {
 
     State memory initialState = loadState();
     Observation[3] memory _observations = observations;
@@ -185,8 +188,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       State memory state,
       uint injected,
       uint extracted
-    ) = _getReserves(initialState, params.capital, params.supply, params.mcrValue, block.timestamp);
-    _observations = _updateTwap(initialState, _observations, block.timestamp, params.capital, params.supply, params.mcrValue);
+    ) = _getReserves(initialState, context, block.timestamp);
+    _observations = _updateTwap(initialState, _observations, context, block.timestamp);
 
     {
       uint k = state.eth * state.nxmA;
@@ -222,11 +225,12 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     }
 
     // transfer assets
-    (bool ok,) = address(params.pool).call{value: msg.value}("");
+    (bool ok,) = address(pool()).call{value: msg.value}("");
     if (ok != true) {
       revert EthTransferFailed();
     }
-    params.tokenController.mint(msg.sender, nxmOut);
+
+    tokenController().mint(msg.sender, nxmOut);
 
     emit EthSwappedForNxm(msg.sender, ethIn, nxmOut);
 
@@ -236,7 +240,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   /**
    * @dev should only be called by swap
    */
-  function swapNxmForEth(uint nxmIn, uint minAmountOut, SwapParams memory params) internal returns (uint ethOut) {
+  function swapNxmForEth(uint nxmIn, uint minAmountOut, Context memory context) internal returns (uint ethOut) {
     State memory initialState = loadState();
     Observation[3] memory _observations = observations;
 
@@ -245,8 +249,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       State memory state,
       uint injected,
       uint extracted
-    ) = _getReserves(initialState, params.capital, params.supply, params.mcrValue, block.timestamp);
-    _observations = _updateTwap(initialState, _observations, block.timestamp, params.capital, params.supply, params.mcrValue);
+    ) = _getReserves(initialState, context, block.timestamp);
+    _observations = _updateTwap(initialState, _observations, context, block.timestamp);
 
     {
       uint k = state.eth * state.nxmB;
@@ -260,7 +264,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
         revert InsufficientAmountOut(ethOut, minAmountOut);
       }
 
-      if (params.capital - ethOut < params.mcrValue) {
+      if (context.capital - ethOut < context.mcr) {
         revert NoSwapsInBufferZone();
       }
 
@@ -284,8 +288,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       observations[i] = _observations[i];
     }
 
-    params.tokenController.burnFrom(msg.sender, nxmIn);
-    params.pool.sendEth(msg.sender, ethOut);
+    tokenController().burnFrom(msg.sender, nxmIn);
+    pool().sendEth(msg.sender, ethOut);
 
     emit NxmSwappedForEth(msg.sender, nxmIn, ethOut);
 
@@ -329,16 +333,16 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
    * @return _budget The current ETH budget used for injection
    */
   function getReserves() external view returns (uint _ethReserve, uint nxmA, uint nxmB, uint _budget) {
-
-    uint capital = pool().getPoolValueInEth();
-    uint supply = tokenController().totalSupply();
-    uint mcrValue = mcr().getMCR();
-
+    Context memory context = Context(
+      pool().getPoolValueInEth(), // capital
+      tokenController().totalSupply(), // supply
+      mcr().getMCR() // mcr
+    );
     (
       State memory state,
-      /* injected */,
-      /* extracted */
-    ) = _getReserves(loadState(), capital, supply, mcrValue, block.timestamp);
+    /* injected */,
+    /* extracted */
+    ) = _getReserves(loadState(), context, block.timestamp);
 
     return (state.eth, state.nxmA, state.nxmB, state.budget);
   }
@@ -430,9 +434,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
   function _getReserves(
     State memory state,
-    uint capital,
-    uint supply,
-    uint mcrValue,
+    Context memory context,
     uint currentTimestamp
   ) public pure returns (State memory /* new state */, uint injected, uint extracted) {
 
@@ -440,10 +442,10 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint budget = state.budget;
     uint elapsed = currentTimestamp - state.timestamp;
 
-    (eth, budget, injected, extracted) = adjustEth(eth, budget, capital, mcrValue, elapsed);
+    (eth, budget, injected, extracted) = adjustEth(eth, budget, context);
 
-    uint nxmA = calculateNxm(state, eth, elapsed, capital, supply, true);
-    uint nxmB = calculateNxm(state, eth, elapsed, capital, supply, false);
+    uint nxmA = calculateNxm(state, eth, elapsed, context, true);
+    uint nxmB = calculateNxm(state, eth, elapsed, context, false);
 
     return (
       State(nxmA, nxmB, eth, budget, state.ratchetSpeed, currentTimestamp),
@@ -459,15 +461,17 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
    */
   function getSpotPrices() external view returns (uint spotPriceA, uint spotPriceB) {
 
-    uint capital = pool().getPoolValueInEth();
-    uint supply = tokenController().totalSupply();
-    uint mcrValue = mcr().getMCR();
+    Context memory context = Context(
+      pool().getPoolValueInEth(), // capital
+      tokenController().totalSupply(), // supply
+      mcr().getMCR() // mcr
+    );
 
     (
       State memory state,
       /* injected */,
       /* extracted */
-    ) = _getReserves(loadState(), capital, supply, mcrValue, block.timestamp);
+    ) = _getReserves(loadState(), context, block.timestamp);
 
     return (
       1 ether * state.eth / state.nxmA,
@@ -656,9 +660,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       return;
     }
 
-    uint capital = pool().getPoolValueInEth();
-    uint supply = tokenController().totalSupply();
-    uint mcrValue = mcr().getMCR();
+    Context memory context = Context(
+      pool().getPoolValueInEth(), // capital
+      tokenController().totalSupply(), // supply
+      mcr().getMCR() // mcr
+    );
 
     Observation[3] memory _observations = observations;
 
@@ -667,8 +673,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       State memory state,
       uint injected,
       uint extracted
-    ) = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
-    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
+    ) = _getReserves(initialState, context, block.timestamp);
+    _observations = _updateTwap(initialState, _observations, context, block.timestamp);
 
     for (uint i = 0; i < _observations.length; i++) {
       observations[i] = _observations[i];
@@ -692,10 +698,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   function _updateTwap(
     State memory initialState,
     Observation[3] memory _observations,
-    uint currentStateTimestamp,
-    uint capital,
-    uint supply,
-    uint mcrValue
+    Context memory context,
+    uint currentStateTimestamp
   ) public pure returns (Observation[3] memory) {
     uint endIdx = currentStateTimestamp.divCeil(PERIOD_SIZE);
 
@@ -718,16 +722,16 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
       (
         State memory state,
-        /* injected */,
-        /* extracted */
-      ) = _getReserves(previousState, capital, supply, mcrValue, observationTimestamp);
+      /* injected */,
+      /* extracted */
+      ) = _getReserves(previousState, context, observationTimestamp);
 
       newObservations[observationIndex] = getObservation(
         previousState,
         state,
         previousObservation,
-        capital,
-        supply
+        context.capital,
+        context.supply
       );
 
       previousState = state;
@@ -739,9 +743,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
   function getInternalPriceAndUpdateTwap() external returns (uint internalPrice) {
 
-    uint capital = pool().getPoolValueInEth();
-    uint supply = tokenController().totalSupply();
-    uint mcrValue = mcr().getMCR();
+    Context memory context = Context(
+      pool().getPoolValueInEth(), // capital
+      tokenController().totalSupply(), // supply
+      mcr().getMCR() // mcr
+    );
 
     State memory initialState = loadState();
     Observation[3] memory _observations = observations;
@@ -751,8 +757,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       State memory state,
       uint injected,
       uint extracted
-    ) = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
-    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
+    ) = _getReserves(initialState, context, block.timestamp);
+    _observations = _updateTwap(initialState, _observations, context, block.timestamp);
 
     // sstore observations and state
     for (uint i = 0; i < _observations.length; i++) {
@@ -773,7 +779,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       emit EthExtracted(extracted);
     }
 
-    return _getInternalPrice(state, _observations, capital, supply, block.timestamp);
+    return _getInternalPrice(state, _observations, context.capital, context.supply, block.timestamp);
   }
 
   function _getInternalPrice(
@@ -815,9 +821,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
   function getInternalPrice() external view returns (uint internalPrice) {
 
-    uint capital = pool().getPoolValueInEth();
-    uint supply = tokenController().totalSupply();
-    uint mcrValue = mcr().getMCR();
+    Context memory context = Context(
+      pool().getPoolValueInEth(), // capital
+      tokenController().totalSupply(), // supply
+      mcr().getMCR() // mcr
+    );
 
     State memory initialState = loadState();
     Observation[3] memory _observations = observations;
@@ -826,11 +834,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       State memory state,
       /* injected */,
       /* extracted */
-    ) = _getReserves(initialState, capital, supply, mcrValue, block.timestamp);
+    ) = _getReserves(initialState, context, block.timestamp);
 
-    _observations = _updateTwap(initialState, _observations, block.timestamp, capital, supply, mcrValue);
+    _observations = _updateTwap(initialState, _observations, context, block.timestamp);
 
-    return _getInternalPrice(state, _observations, capital, supply, block.timestamp);
+    return _getInternalPrice(state, _observations, context.capital, context.supply, block.timestamp);
   }
 
   /* ========== DEPENDENCIES ========== */

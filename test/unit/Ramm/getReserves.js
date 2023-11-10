@@ -3,7 +3,9 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup, SPOT_PRICE_A, SPOT_PRICE_B } = require('./setup');
+const { calculateEthToExtract, calculateEthToInject } = require('./helpers');
 
+const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 
 /**
@@ -12,16 +14,12 @@ const { parseEther } = ethers.utils;
 
 /* ========== CONSTANTS ========== */
 
-const LIQ_SPEED_PERIOD = 1 * 24 * 60 * 60; // 1 day
 const RATCHET_PERIOD = 1 * 24 * 60 * 60; // 1 day
 const RATCHET_DENOMINATOR = 10000;
 const PRICE_BUFFER = 100;
 const PRICE_BUFFER_DENOMINATOR = 10000;
 
-const FAST_LIQUIDITY_SPEED = parseEther('1500');
 const TARGET_LIQUIDITY = parseEther('5000');
-const LIQ_SPEED_A = parseEther('100');
-const LIQ_SPEED_B = parseEther('100');
 const FAST_RATCHET_SPEED = 5000;
 const INITIAL_LIQUIDITY = parseEther('5000');
 const INITIAL_BUDGET = parseEther('43835');
@@ -32,22 +30,6 @@ const INITIAL_RAMM_STATE = {
   eth: INITIAL_LIQUIDITY,
   budget: INITIAL_BUDGET,
   ratchetSpeed: FAST_RATCHET_SPEED,
-};
-
-/**
- * Calculates the expected ETH liquidity after extracting ETH
- *
- * @param {Object} state - The current state object
- * @param {number} timestamp - The timestamp of the next block
- * @return {number} The expected amount of ETH to extract from the state
- */
-const getExpectedEthExtract = (state, timestamp) => {
-  const elapsedLiquidity = LIQ_SPEED_A.mul(timestamp - state.timestamp)
-    .mul(parseEther('1'))
-    .div(LIQ_SPEED_PERIOD);
-  const ethToTargetLiquidity = state.eth.sub(TARGET_LIQUIDITY);
-  const ethToExtract = elapsedLiquidity.lt(ethToTargetLiquidity) ? elapsedLiquidity : ethToTargetLiquidity;
-  return state.eth.sub(ethToExtract);
 };
 
 /**
@@ -132,7 +114,8 @@ describe('getReserves', function () {
 
     const { _ethReserve, nxmA, nxmB, _budget } = await ramm.getReserves();
 
-    const expectedEth = getExpectedEthExtract(state, timestamp);
+    const expectedEthToExtract = await calculateEthToExtract(ramm, state, timestamp);
+    const expectedEth = state.eth.sub(expectedEthToExtract);
     const expectedNxmA = getExpectedNxmARatchet(state, _ethReserve, capital, supply, timestamp);
     const expectedNxmB = getExpectedNxmBRatchet(state, _ethReserve, capital, supply, timestamp);
     const expectedBudget = state.budget;
@@ -163,12 +146,22 @@ describe('_getReserves', function () {
     // Advance next block timestamp by 32 hours to reach book value (i.e. no ratchet)
     const nextBlockTimestamp = state.timestamp + 32 * 60 * 60;
 
-    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, mcrValue, nextBlockTimestamp);
+    const [{ eth, nxmA, nxmB, budget }, injected, extracted] = await ramm._getReserves(
+      state,
+      capital,
+      supply,
+      mcrValue,
+      nextBlockTimestamp,
+    );
 
-    const expectedEth = getExpectedEthExtract(state, nextBlockTimestamp);
+    const expectedEthToExtract = await calculateEthToExtract(ramm, state, nextBlockTimestamp);
+    const expectedEth = state.eth.sub(expectedEthToExtract);
     const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply);
     const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply);
     const expectedBudget = state.budget;
+
+    expect(injected).to.be.equal(0);
+    expect(extracted).to.be.equal(expectedEthToExtract);
 
     expect(eth).to.be.equal(expectedEth);
     expect(nxmA).to.be.equal(expectedNxmA);
@@ -194,12 +187,22 @@ describe('_getReserves', function () {
     // Advance next block timestamp by 32 hours to reach book value (i.e. no ratchet)
     const nextBlockTimestamp = state.timestamp + 32 * 60 * 60;
 
-    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, mcrValue, nextBlockTimestamp);
+    const [{ eth, nxmA, nxmB, budget }, injected, extracted] = await ramm._getReserves(
+      state,
+      capital,
+      supply,
+      mcrValue,
+      nextBlockTimestamp,
+    );
 
-    const expectedEth = getExpectedEthExtract(state, nextBlockTimestamp);
+    const expectedEthToExtract = await calculateEthToExtract(ramm, state, nextBlockTimestamp);
+    const expectedEth = state.eth.sub(expectedEthToExtract);
     const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply);
     const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply);
     const expectedBudget = state.budget;
+
+    expect(injected).to.be.equal(0);
+    expect(extracted).to.be.equal(expectedEthToExtract);
 
     expect(eth).to.be.equal(expectedEth);
     expect(nxmA).to.be.equal(expectedNxmA);
@@ -225,12 +228,18 @@ describe('_getReserves', function () {
     // Advance next block time stamp by > 27 hrs (no ratchet) but < 701 hrs (timeLeftOnBudget)
     const nextBlockTimestamp = state.timestamp + 28 * 60 * 60;
 
-    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, mcrValue, nextBlockTimestamp);
+    const [{ eth, nxmA, nxmB, budget }, injected, extracted] = await ramm._getReserves(
+      state,
+      capital,
+      supply,
+      mcrValue,
+      nextBlockTimestamp,
+    );
 
-    // Expected injected eth
-    const maxToInject = TARGET_LIQUIDITY.sub(state.eth);
-    const injectedFast = FAST_LIQUIDITY_SPEED.mul(nextBlockTimestamp - state.timestamp).div(LIQ_SPEED_PERIOD);
-    const injected = injectedFast.lt(maxToInject) ? injectedFast : maxToInject;
+    const expectedInjected = await calculateEthToInject(ramm, state, nextBlockTimestamp);
+
+    expect(injected).to.be.equal(expectedInjected);
+    expect(extracted).to.be.equal(0);
 
     const expectedEth = state.eth.add(injected);
     const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply);
@@ -262,14 +271,24 @@ describe('_getReserves', function () {
     // Advance next block time stamp by > 27 hrs (no ratchet)
     const nextBlockTimestamp = state.timestamp + 28 * 60 * 60;
 
-    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, mcrValue, nextBlockTimestamp);
+    const [{ eth, nxmA, nxmB, budget }, injected, extracted] = await ramm._getReserves(
+      state,
+      capital,
+      supply,
+      mcrValue,
+      nextBlockTimestamp,
+    );
 
     // Zero injection
-    const injected = 0;
-    const expectedEth = state.eth.add(injected);
+    const expectedInjected = 0;
+
+    expect(injected).to.be.equal(expectedInjected);
+    expect(extracted).to.be.equal(0);
+
+    const expectedEth = state.eth.add(expectedInjected);
     const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply);
     const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply);
-    const expectedBudget = state.budget.gt(injected) ? state.budget.sub(injected) : 0;
+    const expectedBudget = state.budget.gt(expectedInjected) ? state.budget.sub(expectedInjected) : 0;
 
     expect(eth).to.be.equal(expectedEth);
     expect(nxmA).to.be.equal(expectedNxmA);
@@ -295,22 +314,23 @@ describe('_getReserves', function () {
     // Advance next block time stamp > 27 hrs (no ratchet) and > 701 hrs timeLeftOnBudget (elapsed > timeLeftOnBudget)
     const nextBlockTimestamp = state.timestamp + 702 * 60 * 60;
 
-    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, mcrValue, nextBlockTimestamp);
+    const [{ eth, nxmA, nxmB, budget }, injected, extracted] = await ramm._getReserves(
+      state,
+      capital,
+      supply,
+      mcrValue,
+      nextBlockTimestamp,
+    );
 
-    // Expected injected eth
-    const maxToInject = TARGET_LIQUIDITY.sub(state.eth);
-    const timeLeftOnBudget = state.budget.mul(LIQ_SPEED_PERIOD).div(FAST_LIQUIDITY_SPEED);
-    const injectedFast = timeLeftOnBudget.mul(FAST_LIQUIDITY_SPEED).div(LIQ_SPEED_PERIOD);
-    const injectedSlow = LIQ_SPEED_B.mul(nextBlockTimestamp - state.timestamp - timeLeftOnBudget)
-      .mul(parseEther('1'))
-      .div(LIQ_SPEED_PERIOD);
-    const injectedTotal = injectedFast.add(injectedSlow);
-    const injectedFinal = maxToInject.lt(injectedTotal) ? maxToInject : injectedTotal;
+    const expectedInjected = await calculateEthToInject(ramm, state, nextBlockTimestamp);
 
-    const expectedEth = state.eth.add(injectedFinal);
+    expect(injected).to.be.equal(expectedInjected);
+    expect(extracted).to.be.equal(0);
+
+    const expectedEth = state.eth.add(expectedInjected);
     const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply);
     const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply);
-    const expectedBudget = state.budget.gt(injectedFinal) ? state.budget.sub(injectedFinal) : 0;
+    const expectedBudget = state.budget.gt(expectedInjected) ? state.budget.sub(expectedInjected) : 0;
 
     expect(eth).to.be.equal(expectedEth);
     expect(nxmA).to.be.equal(expectedNxmA);
@@ -330,26 +350,27 @@ describe('_getReserves', function () {
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH) and budget to 0 (i.e. elapsed > timeLeftOnBudget)
     const state = {
       ...INITIAL_RAMM_STATE,
-      budget: 0,
+      budget: BigNumber.from('0'),
       timestamp: updatedAt,
       eth: TARGET_LIQUIDITY.sub(parseEther('100')),
     };
     // Advance next block time stamp by > 27 hrs (no ratchet)
     const nextBlockTimestamp = state.timestamp + 28 * 60 * 60;
 
-    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, mcrValue, nextBlockTimestamp);
+    const [{ eth, nxmA, nxmB, budget }, injected, extracted] = await ramm._getReserves(
+      state,
+      capital,
+      supply,
+      mcrValue,
+      nextBlockTimestamp,
+    );
 
-    // Expected injected eth
-    const timeLeftOnBudget = 0; // because budget is 0
-    const injectFast = 0; // because timeLeftOnBudget is 0
-    const maxToInject = TARGET_LIQUIDITY.sub(state.eth);
-    const injectedTotal = LIQ_SPEED_B.mul(nextBlockTimestamp - state.timestamp - timeLeftOnBudget)
-      .mul(parseEther('1'))
-      .div(LIQ_SPEED_PERIOD)
-      .add(injectFast);
-    const injectedFinal = maxToInject.lt(injectedTotal) ? maxToInject : injectedTotal;
+    const expectedInjected = await calculateEthToInject(ramm, state, nextBlockTimestamp);
 
-    const expectedEth = state.eth.add(injectedFinal);
+    expect(injected).to.be.equal(expectedInjected);
+    expect(extracted).to.be.equal(0);
+
+    const expectedEth = state.eth.add(expectedInjected);
     const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply);
     const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply);
 
@@ -378,9 +399,20 @@ describe('_getReserves', function () {
     // Advance next block timestamp < 31 hours to NOT reach book value (i.e. use ratchet)
     const nextBlockTimestamp = state.timestamp + 1 * 60 * 60;
 
-    const { eth, nxmA, nxmB, budget } = await ramm._getReserves(state, capital, supply, mcrValue, nextBlockTimestamp);
+    const [{ eth, nxmA, nxmB, budget }, injected, extracted] = await ramm._getReserves(
+      state,
+      capital,
+      supply,
+      mcrValue,
+      nextBlockTimestamp,
+    );
 
-    const expectedEth = getExpectedEthExtract(state, nextBlockTimestamp);
+    const expectedEthToExtract = await calculateEthToExtract(ramm, state, nextBlockTimestamp);
+
+    expect(injected).to.be.equal(0);
+    expect(extracted).to.be.equal(expectedEthToExtract);
+
+    const expectedEth = state.eth.sub(expectedEthToExtract);
     const expectedNxmA = getExpectedNxmARatchet(state, eth, capital, supply, nextBlockTimestamp);
     const expectedNxmB = getExpectedNxmBRatchet(state, eth, capital, supply, nextBlockTimestamp);
     const expectedBudget = state.budget;

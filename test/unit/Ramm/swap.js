@@ -3,6 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getState, setup } = require('./setup');
+const { calculateEthToExtract, calculateEthToInject, setEthReserveValue } = require('./helpers');
 const { setNextBlockBaseFee, setNextBlockTime, setCode } = require('../utils').evm;
 
 const { WeiPerEther } = ethers.constants;
@@ -506,5 +507,107 @@ describe('swap', function () {
       ramm,
       'NxmCircuitBreakerHit',
     );
+  });
+
+  it('should emit EthInjected with the correct ETH injected value - swapNxmForEth', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, nxm, tokenController } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    const nxmIn = parseEther('1');
+    const minAmountOut = parseEther('0.0152');
+    await nxm.connect(member).approve(tokenController.address, nxmIn);
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + 5 * 60;
+    const deadline = nextBlockTimestamp + 5 * 60;
+
+    await setNextBlockBaseFee(0);
+    await setNextBlockTime(nextBlockTimestamp);
+
+    // Set ETH reserve < TARGET_LIQUIDITY (5000) to force injection
+    await setEthReserveValue(ramm.address, 4999);
+
+    const state = await ramm.loadState();
+    const expectedInjected = await calculateEthToInject(ramm, state, nextBlockTimestamp);
+
+    const swapNxmForEth = ramm.connect(member).swap(nxmIn, minAmountOut, deadline, { maxPriorityFeePerGas: 0 });
+    await expect(swapNxmForEth).to.emit(ramm, 'EthInjected').withArgs(expectedInjected);
+  });
+
+  it('should emit EthExtracted with the correct ETH extracted value - swapNxmForEth', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, nxm, tokenController } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    const nxmIn = parseEther('1');
+    const minAmountOut = parseEther('0.0152');
+    await nxm.connect(member).approve(tokenController.address, nxmIn);
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + 5 * 60;
+    const deadline = nextBlockTimestamp + 5 * 60;
+
+    await setNextBlockBaseFee(0);
+    await setNextBlockTime(nextBlockTimestamp);
+
+    // Set ETH reserve > TARGET_LIQUIDITY (5000) to force extraction
+    await setEthReserveValue(ramm.address, 5001);
+
+    const state = await ramm.loadState();
+    const expectedExtracted = await calculateEthToExtract(ramm, state, nextBlockTimestamp);
+
+    const swapNxmForEth = ramm.connect(member).swap(nxmIn, minAmountOut, deadline, { maxPriorityFeePerGas: 0 });
+    await expect(swapNxmForEth).to.emit(ramm, 'EthExtracted').withArgs(expectedExtracted);
+  });
+
+  it('should emit EthInjected with the correct ETH injected value - swapEthForNxm', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    const ethIn = parseEther('1');
+    const minAmountOut = parseEther('28.8');
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + 5 * 60;
+    const deadline = nextBlockTimestamp + 5 * 60;
+
+    await setNextBlockBaseFee(0);
+    await setNextBlockTime(nextBlockTimestamp);
+
+    // Set ETH reserve < TARGET_LIQUIDITY (5000) to force injection
+    await setEthReserveValue(ramm.address, 4999);
+
+    const state = await ramm.loadState();
+    const expectedInjected = await calculateEthToInject(ramm, state, nextBlockTimestamp);
+
+    const swapEthForNxm = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn });
+    await expect(swapEthForNxm).to.emit(ramm, 'EthInjected').withArgs(expectedInjected);
+  });
+
+  it('should emit EthExtracted with the correct ETH extracted value - swapEthForNxm', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    const ethIn = parseEther('1');
+    const minAmountOut = parseEther('28.8');
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + 5 * 60;
+    const deadline = nextBlockTimestamp + 5 * 60;
+
+    await setNextBlockBaseFee(0);
+    await setNextBlockTime(nextBlockTimestamp);
+
+    // Set ETH reserve > TARGET_LIQUIDITY (5000) to force extraction
+    await setEthReserveValue(ramm.address, 5001);
+
+    const state = await ramm.loadState();
+    const expectedExtracted = await calculateEthToExtract(ramm, state, nextBlockTimestamp);
+
+    const swapEthForNxm = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn });
+    await expect(swapEthForNxm).to.emit(ramm, 'EthExtracted').withArgs(expectedExtracted);
   });
 });

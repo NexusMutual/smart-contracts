@@ -296,6 +296,49 @@ async function calculateEthToInject(ramm, state, timestamp) {
   }
 }
 
+function removeHexPrefix(hex) {
+  return hex.startsWith('0x') ? hex.slice(2) : hex;
+}
+
+/**
+ * Sets the value of the Ether reserve in the RAMM contract.
+ *
+ * @async
+ * @param {string} rammAddress - The address of the RAMM contract
+ * @param {number} valueInEther - The value of the Ether reserve in Ether
+ * @return {Promise<void>}
+ */
+async function setEthReserveValue(rammAddress, valueInEther) {
+  const SLOT_1_POSITION = '0x4';
+  // Convert valueInEther to 128 bits wei hex value
+  const hexValueInWei = parseEther(valueInEther.toString()).toHexString();
+  const newEtherReserve = '0x' + removeHexPrefix(hexValueInWei).padStart(32, '0'); // 32 hex chars in 128 bits
+  // Get current Slot1 value
+  const slot1Value = await ethers.provider.send('eth_getStorageAt', [rammAddress, SLOT_1_POSITION]);
+  // Update Slot1 to have new ethReserve value
+  const newSlot1Value = await replaceHexValueInBitPos(slot1Value, newEtherReserve, 128);
+  return ethers.provider.send('hardhat_setStorageAt', [rammAddress, SLOT_1_POSITION, newSlot1Value]);
+};
+
+/**
+ * Replaces a bit value in a hexadecimal string with a new value at a specific bit position.
+ *
+ * @param {string} origHex - The original hexadecimal string (must be 256 bits / 64 hex characters)
+ * @param {string} newHexValue - The new hexadecimal value to replace with
+ * @param {number} bitPosition - The position of the bit in the original string to replace
+ * @return {string} The modified hexadecimal string
+ */
+function replaceHexValueInBitPos(origHex, newHexValue, bitPosition) {
+  // Convert hex to buffers
+  const bufferOrig = Buffer.from(removeHexPrefix(origHex), 'hex');
+  const bufferNewVal = Buffer.from(removeHexPrefix(newHexValue), 'hex');
+  // 2 hex chars in a byte, 8 bits in a byte
+  const byteStart = removeHexPrefix(origHex).length / 2 - bitPosition / 8;
+  bufferNewVal.copy(bufferOrig, byteStart);
+
+  return '0x' + bufferOrig.toString('hex');
+};
+
 module.exports = {
   timeTillBv,
   calculateTwapAboveForPeriod,
@@ -307,4 +350,7 @@ module.exports = {
   getExpectedObservations,
   calculateEthToExtract,
   calculateEthToInject,
+  removeHexPrefix,
+  setEthReserveValue,
+  replaceHexValueInBitPos,
 };

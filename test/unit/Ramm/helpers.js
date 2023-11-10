@@ -195,7 +195,7 @@ function calculateInternalPrice(currentState, observations, capital, supply, cur
  * @param {number} currentTimestamp - The current timestamp
  * @return {Promise<Array>} Array of observations containing timestamp, priceCumulativeBelow, and priceCumulativeAbove
  */
-const getExpectedObservations = async (
+async function getExpectedObservations(
   previousState,
   ramm,
   pool,
@@ -203,7 +203,7 @@ const getExpectedObservations = async (
   mcr,
   fixtureConstants,
   currentTimestamp,
-) => {
+) {
   const { PERIOD_SIZE, GRANULARITY } = fixtureConstants;
   const capital = await pool.getPoolValueInEth();
   const supply = await tokenController.totalSupply();
@@ -242,7 +242,59 @@ const getExpectedObservations = async (
   }
 
   return observationsAfterExpected;
-};
+}
+
+/**
+ * Calculates the expected ETH to be extracted
+ *
+ * @param {Contract} ramm - The RAMM contract
+ * @param {Object} state - The current state object
+ * @param {number} timestamp - The timestamp of the next block
+ * @return {number} The expected amount of ETH to be extracted
+ */
+async function calculateEthToExtract(ramm, state, timestamp) {
+  const LIQ_SPEED_A = await ramm.LIQ_SPEED_A();
+  const LIQ_SPEED_PERIOD = await ramm.LIQ_SPEED_PERIOD();
+  const TARGET_LIQUIDITY = await ramm.TARGET_LIQUIDITY();
+
+  const elapsedLiquidity = LIQ_SPEED_A.mul(timestamp - state.timestamp)
+    .mul(parseEther('1'))
+    .div(LIQ_SPEED_PERIOD);
+  const ethToTargetLiquidity = state.eth.sub(TARGET_LIQUIDITY);
+
+  return elapsedLiquidity.lt(ethToTargetLiquidity) ? elapsedLiquidity : ethToTargetLiquidity;
+}
+
+/**
+ * Calculates the expected ETH to be injected
+ *
+ * @param {Contract} ramm - The RAMM contract
+ * @param {Object} state - The current state object
+ * @param {number} timestamp - The timestamp of the next block
+ * @return {BigNumber} The amount of Ethereum to inject.
+ */
+async function calculateEthToInject(ramm, state, timestamp) {
+  const LIQ_SPEED_B = await ramm.LIQ_SPEED_B();
+  const LIQ_SPEED_PERIOD = await ramm.LIQ_SPEED_PERIOD();
+  const FAST_LIQUIDITY_SPEED = await ramm.FAST_LIQUIDITY_SPEED();
+  const TARGET_LIQUIDITY = await ramm.TARGET_LIQUIDITY();
+
+  const elapsed = timestamp - state.timestamp;
+  const timeLeftOnBudget = state.budget.mul(LIQ_SPEED_PERIOD).div(FAST_LIQUIDITY_SPEED);
+  const maxToInject = TARGET_LIQUIDITY.sub(state.eth);
+
+  if (elapsed <= timeLeftOnBudget) {
+    const injectedFast = FAST_LIQUIDITY_SPEED.mul(timestamp - state.timestamp).div(LIQ_SPEED_PERIOD);
+    return injectedFast.lt(maxToInject) ? injectedFast : maxToInject;
+  } else {
+    const injectedFast = timeLeftOnBudget.mul(FAST_LIQUIDITY_SPEED).div(LIQ_SPEED_PERIOD);
+    const injectedSlow = LIQ_SPEED_B.mul(elapsed - timeLeftOnBudget)
+      .mul(parseEther('1'))
+      .div(LIQ_SPEED_PERIOD);
+    const injectedTotal = injectedFast.add(injectedSlow);
+    return maxToInject.lt(injectedTotal) ? maxToInject : injectedTotal;
+  }
+}
 
 module.exports = {
   timeTillBv,
@@ -253,4 +305,6 @@ module.exports = {
   getObservationIndex,
   divCeil,
   getExpectedObservations,
+  calculateEthToExtract,
+  calculateEthToInject,
 };

@@ -23,7 +23,7 @@ describe('getInternalPriceAndUpdateTwap', function () {
     }
     const { timestamp } = await ethers.provider.getBlock('latest');
     const currentTimestamp = PERIOD_SIZE.mul(10).add(timestamp);
-    const currentState = await ramm._getReserves(previousState, capital, supply, mcrValue, currentTimestamp);
+    const [currentState] = await ramm._getReserves(previousState, capital, supply, mcrValue, currentTimestamp);
 
     const observations = await ramm._updateTwap(
       previousState,

@@ -24,7 +24,7 @@ describe('getObservation', function () {
       ? maxTimeOnRatchetA.add(PERIOD_SIZE)
       : maxTimeOnRatchetB.add(PERIOD_SIZE);
 
-    const state = await ramm._getReserves(
+    const [state] = await ramm._getReserves(
       previousState,
       capital,
       supply,

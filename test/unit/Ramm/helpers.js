@@ -220,7 +220,7 @@ async function getExpectedObservations(
     const observationIndex = BigNumber.from(i).mod(GRANULARITY);
     const timestamp = Math.min(currentTimestamp.toNumber(), PERIOD_SIZE.mul(i).toNumber());
 
-    const state = await ramm._getReserves(previousState, capital, supply, mcrValue, timestamp);
+    const [state] = await ramm._getReserves(previousState, capital, supply, mcrValue, timestamp);
 
     const observationData = calculateObservation(
       state,

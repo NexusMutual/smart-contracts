@@ -39,7 +39,8 @@ const getStateAtBlockTimestamp = async (ramm, pool, mcr, tokenController, blockT
   const capital = await pool.getPoolValueInEth();
   const supply = await tokenController.totalSupply();
   const mcrValue = await mcr.getMCR();
-  return ramm._getReserves(initialState, capital, supply, mcrValue, blockTimestamp);
+  const [state] = await ramm._getReserves(initialState, capital, supply, mcrValue, blockTimestamp);
+  return state;
 };
 
 /**

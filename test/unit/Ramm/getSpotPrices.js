@@ -26,7 +26,7 @@ describe('getSpotPrices', function () {
     const supply = await tokenController.totalSupply();
     const mcrValue = await mcr.getMCR();
 
-    const { eth, nxmA, nxmB } = await ramm._getReserves(initialState, capital, supply, mcrValue, nextBlockTimestamp);
+    const [{ eth, nxmA, nxmB }] = await ramm._getReserves(initialState, capital, supply, mcrValue, nextBlockTimestamp);
 
     // buy price
     const expectedSpotPriceA = parseEther('1').mul(eth).div(nxmA);

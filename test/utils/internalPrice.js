@@ -14,7 +14,7 @@ async function getInternalPrice(ramm, pool, tokenController, mcr, timestamp) {
     previousObservations[i] = await ramm.observations(i);
   }
 
-  const currentState = await ramm._getReserves(previousState, capital, supply, mcrValue, timestamp);
+  const [currentState] = await ramm._getReserves(previousState, capital, supply, mcrValue, timestamp);
 
   const observations = await ramm._updateTwap(
     previousState,

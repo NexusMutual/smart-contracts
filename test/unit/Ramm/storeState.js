@@ -24,7 +24,7 @@ describe('storeState', function () {
     const supply = await tokenController.totalSupply();
     const mcrValue = await mcr.getMCR();
 
-    const before = await ramm._getReserves(initialState, capital, supply, mcrValue, nextBlockTimestamp);
+    const [before] = await ramm._getReserves(initialState, capital, supply, mcrValue, nextBlockTimestamp);
 
     // buy NXM
     await setNextBlockTime(nextBlockTimestamp);

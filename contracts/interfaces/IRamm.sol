@@ -36,12 +36,10 @@ struct State {
   uint timestamp;
 }
 
-struct SwapParams {
+struct Context {
   uint capital;
   uint supply;
-  uint mcrValue;
-  IPool pool;
-  ITokenController tokenController;
+  uint mcr;
 }
 
 interface IRamm {

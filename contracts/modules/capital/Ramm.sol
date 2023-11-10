@@ -389,18 +389,17 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   }
 
   function calculateNxm(
-    uint stateNxm,
+    State memory state,
     uint eth,
-    uint stateEth,
-    uint stateRatchetSpeed,
     uint elapsed,
     uint capital,
     uint supply,
     bool isAbove
   ) internal pure returns (uint) {
-
-    uint nxm = stateNxm * eth / stateEth;
-    uint r = elapsed * stateRatchetSpeed;
+    
+    uint stateNxm = isAbove ? state.nxmA : state.nxmB;
+    uint nxm = stateNxm * eth / state.eth;
+    uint r = elapsed * state.ratchetSpeed;
 
     uint buffer = isAbove ? PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER : PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER;
     uint bufferedCapital = capital * buffer / PRICE_BUFFER_DENOMINATOR;

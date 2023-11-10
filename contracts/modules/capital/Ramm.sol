@@ -345,17 +345,18 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint capital,
     uint mcrValue,
     uint elapsed
-  ) internal pure returns (uint /* new eth */, uint /* new budget */) {
+  ) internal pure returns (uint /* new eth */, uint /* new budget */, uint injected, uint extracted) {
 
     if (eth < TARGET_LIQUIDITY) {
-      uint injected = calculateInjected(eth, budget, capital, mcrValue, elapsed);
+      injected = calculateInjected(eth, budget, capital, mcrValue, elapsed);
       eth += injected;
       budget = budget > injected ? budget - injected : 0;
     } else {
-      eth -= Math.min((elapsed * LIQ_SPEED_A * 1 ether) / LIQ_SPEED_PERIOD, eth - TARGET_LIQUIDITY);
+      extracted = Math.min((elapsed * LIQ_SPEED_A * 1 ether) / LIQ_SPEED_PERIOD, eth - TARGET_LIQUIDITY);
+      eth -= extracted;
     }
 
-    return (eth, budget);
+    return (eth, budget, injected, extracted);
   }
 
   function calculateNxm(
@@ -407,18 +408,22 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint supply,
     uint mcrValue,
     uint currentTimestamp
-  ) public pure returns (State memory /* new state */) {
+  ) public pure returns (State memory /* new state */, uint injected, uint extracted) {
 
     uint eth = state.eth;
     uint budget = state.budget;
     uint elapsed = currentTimestamp - state.timestamp;
 
-    (eth, budget) = adjustEth(eth, budget, capital, mcrValue, elapsed);
+    (eth, budget, injected, extracted) = adjustEth(eth, budget, capital, mcrValue, elapsed);
 
-    uint nxmA = calculateNxm(state.nxmA, eth, state.eth, state.ratchetSpeed, elapsed, capital, supply, true);
-    uint nxmB = calculateNxm(state.nxmB, eth, state.eth, state.ratchetSpeed, elapsed, capital, supply, false);
+    uint nxmA = calculateNxm(state, eth, elapsed, capital, supply, true);
+    uint nxmB = calculateNxm(state, eth, elapsed, capital, supply, false);
 
-    return State(nxmA, nxmB, eth, budget, state.ratchetSpeed, currentTimestamp);
+    return (
+      State(nxmA, nxmB, eth, budget, state.ratchetSpeed, currentTimestamp),
+      injected,
+      extracted
+    );
   }
 
   /**

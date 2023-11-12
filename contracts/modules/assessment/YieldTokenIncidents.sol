@@ -62,11 +62,11 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
   }
 
   function cover() internal view returns (ICover) {
-    return ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
+    return ICover(internalContracts[uint(ID.CO)]);
   }
 
   function ramm() internal view returns (IRamm) {
-    return IRamm(internalContracts[uint(ID.P1)]);
+    return IRamm(internalContracts[uint(ID.RA)]);
   }
 
   /// @dev Returns the number of incidents.

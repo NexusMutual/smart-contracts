@@ -6,8 +6,10 @@ import "../../interfaces/IRamm.sol";
 
 contract RammMock is IRamm {
 
+  event TwapUpdateTriggered();
+
   function updateTwap() external override {
-    // do nothing
+    emit TwapUpdateTriggered();
   }
 
   function getInternalPriceAndUpdateTwap() external override pure returns (uint) {

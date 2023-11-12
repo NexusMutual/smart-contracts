@@ -807,6 +807,34 @@ describe('redeemPayout', function () {
     ).to.be.revertedWith('Caller is not a member');
   });
 
+  it('triggers twap update when fetching the token price', async function () {
+    const fixture = await loadFixture(setup);
+    const { yieldTokenIncidents, cover, assessment, ybEth, ramm } = fixture.contracts;
+    const [coverOwner1, member] = fixture.accounts.members;
+    const [governance] = fixture.accounts.governanceContracts;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const segment = await getCoverSegment();
+    await cover.createMockCover(coverOwner1.address, productIdYbEth, ASSET.ETH, [segment]);
+
+    await yieldTokenIncidents
+      .connect(governance)
+      .submitIncident(productIdYbEth, parseEther('1'), timestamp + 2, parseEther('100'), '');
+
+    await assessment.connect(member).castVote(0, true, parseEther('100'));
+
+    {
+      const { payoutCooldownInDays } = await assessment.config();
+      const { end } = await assessment.getPoll(0);
+      await setTime(end + daysToSeconds(payoutCooldownInDays));
+    }
+
+    await ybEth.connect(coverOwner1).approve(yieldTokenIncidents.address, parseEther('10000'));
+    await expect(
+      yieldTokenIncidents.connect(coverOwner1).redeemPayout(0, 1, 0, parseEther('100'), coverOwner1.address, []),
+    ).to.emit(ramm, 'TwapUpdateTriggered');
+  });
+
   it('should transfer product underlying asset amount to the contract', async function () {
     const fixture = await loadFixture(setup);
     const { yieldTokenIncidents, assessment, cover, ybEth } = fixture.contracts;

@@ -96,7 +96,10 @@ contract PoolMock is IPool {
     return prices[assetId];
   }
 
-  function getInternalTokenPriceInAssetAndUpdateTwap(uint assetId) public virtual view returns (uint) {
+  event TwapUpdateTriggered();
+
+  function getInternalTokenPriceInAssetAndUpdateTwap(uint assetId) public virtual returns (uint) {
+    emit TwapUpdateTriggered();
     return prices[assetId];
   }
 

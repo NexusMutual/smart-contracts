@@ -236,6 +236,28 @@ describe('redeemClaimPayout', function () {
     expect(payoutRedeemed).to.be.equal(true);
   });
 
+  it('triggers twap update when fetching the token price', async function () {
+    const fixture = await loadFixture(setup);
+    const { individualClaims, cover, assessment, pool } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
+    const segment = await getCoverSegment();
+
+    await cover.createMockCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+    await assessment.castVote(0, true, parseEther('1'));
+    const { poll } = await assessment.assessments(0);
+    const { payoutCooldownInDays } = await assessment.config();
+    await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
+
+    const redeemTx = await individualClaims.redeemClaimPayout(0);
+    expect(redeemTx).to.emit(pool, 'TwapUpdateTriggered');
+  });
+
   it('sends the payout amount in ETH and the assessment deposit to the cover owner', async function () {
     const fixture = await loadFixture(setup);
     // also check after NFT transfer

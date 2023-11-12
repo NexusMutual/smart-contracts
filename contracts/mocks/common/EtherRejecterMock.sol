@@ -8,8 +8,4 @@ contract EtherRejecterMock {
     revert("I secretly hate ether");
   }
 
-  fallback() external payable {
-    revert("I secretly hate ether");
-  }
-
 }

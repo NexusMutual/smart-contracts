@@ -185,7 +185,5 @@ contract PoolMock is IPool {
     revert("calculateTokenSpotPrice not yet implemented");
   }
 
-  fallback() external payable virtual {}
-
   receive() external payable virtual {}
 }

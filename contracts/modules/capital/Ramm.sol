@@ -325,15 +325,18 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   ) internal pure returns (uint) {
 
     uint timeLeftOnBudget = budget * LIQ_SPEED_PERIOD / FAST_LIQUIDITY_SPEED;
-    uint maxToInject = (capital > mcrValue + TARGET_LIQUIDITY) ? Math.min(TARGET_LIQUIDITY - eth, capital - mcrValue - TARGET_LIQUIDITY) : 0;
+    uint maxToInject = (capital > mcrValue + TARGET_LIQUIDITY)
+      ? Math.min(TARGET_LIQUIDITY - eth, capital - mcrValue - TARGET_LIQUIDITY)
+      : 0;
 
     if (elapsed <= timeLeftOnBudget) {
       return Math.min(elapsed * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD, maxToInject);
-    } else {
-      uint injectedFast = timeLeftOnBudget * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD;
-      uint injectedSlow = (elapsed - timeLeftOnBudget) * LIQ_SPEED_B * 1 ether / LIQ_SPEED_PERIOD;
-      return Math.min(maxToInject, injectedFast + injectedSlow);
     }
+
+    uint injectedFast = timeLeftOnBudget * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD;
+    uint injectedSlow = (elapsed - timeLeftOnBudget) * LIQ_SPEED_B * 1 ether / LIQ_SPEED_PERIOD;
+
+    return Math.min(maxToInject, injectedFast + injectedSlow);
   }
 
   function adjustEth(
@@ -369,8 +372,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint nxm = stateNxm * eth / stateEth;
     uint r = elapsed * stateRatchetSpeed;
 
-    uint buffer = isAbove ? (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) : (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER);
-    uint bufferedCapital = (capital * buffer) / PRICE_BUFFER_DENOMINATOR;
+    uint buffer = isAbove ? PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER : PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER;
+    uint bufferedCapital = capital * buffer / PRICE_BUFFER_DENOMINATOR;
 
     if (isAbove) {
 
@@ -380,24 +383,22 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       //   ? set n(new) = n(BV)
       //   : set n(new) = n(R)
 
-      return (((bufferedCapital * nxm) + (bufferedCapital * nxm * r / RATCHET_PERIOD / RATCHET_DENOMINATOR)) > eth * supply)
+      return bufferedCapital * nxm + bufferedCapital * nxm * r / RATCHET_PERIOD / RATCHET_DENOMINATOR > eth * supply
         ? eth * supply / bufferedCapital // bv
-        : eth * nxm / (eth - (capital * nxm * r / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR)); // ratchet
-
-    } else {
-
-      // ratchet below
-      // check if we should be using the ratchet or the book value price using:
-      // Nbv > Nr <=>
-      // ... <=>
-      // cap*n < e*sup + cap*n*r
-      //   ? set n(new) = n(BV)
-      //   : set n(new) = n(R)
-
-      return (bufferedCapital * nxm < ((eth * supply) + (capital * nxm * r / RATCHET_PERIOD / RATCHET_DENOMINATOR)))
-        ? eth * supply / bufferedCapital // bv
-        : eth * nxm / (eth + (capital * nxm * r / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR)); // ratchet
+        : eth * nxm / (eth - capital * nxm * r / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR); // ratchet
     }
+
+    // ratchet below
+    // check if we should be using the ratchet or the book value price using:
+    // Nbv > Nr <=>
+    // ... <=>
+    // cap*n < e*sup + cap*n*r
+    //   ? set n(new) = n(BV)
+    //   : set n(new) = n(R)
+
+    return bufferedCapital * nxm < eth * supply + capital * nxm * r / RATCHET_PERIOD / RATCHET_DENOMINATOR
+      ? eth * supply / bufferedCapital // bv
+      : eth * nxm / (eth + capital * nxm * r / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR); // ratchet
   }
 
   function _getReserves(
@@ -475,7 +476,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     // [inner * denom * period] / (capital * nxm * speed)
 
     uint prevNxm = isAbove ? previousState.nxmA : previousState.nxmB;
-    uint bufferMultiplier = isAbove ? (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) : (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER);
+    uint bufferMultiplier = isAbove
+      ? (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER)
+      : (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER);
 
     uint ethLiquidity = previousState.eth * supply;
     uint nxmLiquidity = (bufferMultiplier * capital * prevNxm) / PRICE_BUFFER_DENOMINATOR;
@@ -484,7 +487,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint innerRight = isAbove ? nxmLiquidity : ethLiquidity;
 
     uint inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
-    uint maxTimeOnRatchet = (inner != 0) ? (inner * RATCHET_DENOMINATOR * RATCHET_PERIOD) / (capital * prevNxm * stateRatchetSpeed) : 0;
+    uint maxTimeOnRatchet = inner != 0
+      ? (inner * RATCHET_DENOMINATOR * RATCHET_PERIOD) / (capital * prevNxm * stateRatchetSpeed)
+      : 0;
 
     timeOnRatchet = Math.min(timeElapsed, maxTimeOnRatchet);
     timeOnBV = timeElapsed - timeOnRatchet;
@@ -529,12 +534,12 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     if (timeOnRatchet != 0) {
       uint prevNxm = isAbove ? previousState.nxmA : previousState.nxmB;
       uint currentNxm = isAbove ? state.nxmA : state.nxmB;
-      cumulativePrice += (1 ether * (previousState.eth * currentNxm + state.eth * prevNxm) * timeOnRatchet) / (prevNxm * currentNxm * 2 * ACCUMULATOR_PRECISION); // stack too deep, combined 2 and ACCUMULATOR_PRECISION
+      cumulativePrice += 1 ether * (previousState.eth * currentNxm + state.eth * prevNxm) * timeOnRatchet / (prevNxm * currentNxm * 2 * ACCUMULATOR_PRECISION);
     }
 
     if (timeOnBV != 0) {
       uint bufferMultiplier = isAbove ? (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) : (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER);
-      cumulativePrice += (1 ether * timeOnBV * capital * bufferMultiplier) / (supply * PRICE_BUFFER_DENOMINATOR * ACCUMULATOR_PRECISION);
+      cumulativePrice += 1 ether * timeOnBV * capital * bufferMultiplier / (supply * PRICE_BUFFER_DENOMINATOR * ACCUMULATOR_PRECISION);
     }
 
     return cumulativePrice;
@@ -551,21 +556,21 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint timeElapsed = state.timestamp - previousState.timestamp;
 
     uint priceCumulativeAbove = calculatePriceCumulative(
-        previousState,
-        state,
-        timeElapsed,
-        capital,
-        supply,
-        true
+      previousState,
+      state,
+      timeElapsed,
+      capital,
+      supply,
+      true
     );
 
     uint priceCumulativeBelow = calculatePriceCumulative(
-        previousState,
-        state,
-        timeElapsed,
-        capital,
-        supply,
-        false
+      previousState,
+      state,
+      timeElapsed,
+      capital,
+      supply,
+      false
     );
 
     return Observation(

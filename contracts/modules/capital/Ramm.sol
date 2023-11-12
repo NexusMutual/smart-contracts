@@ -480,11 +480,11 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       ? (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER)
       : (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER);
 
-    uint ethLiquidity = previousState.eth * supply;
-    uint nxmLiquidity = (bufferMultiplier * capital * prevNxm) / PRICE_BUFFER_DENOMINATOR;
+    uint ethTerm = previousState.eth * supply;
+    uint nxmTerm = bufferMultiplier * capital * prevNxm / PRICE_BUFFER_DENOMINATOR;
 
-    uint innerLeft = isAbove ? ethLiquidity : nxmLiquidity;
-    uint innerRight = isAbove ? nxmLiquidity : ethLiquidity;
+    uint innerLeft = isAbove ? ethTerm : nxmTerm;
+    uint innerRight = isAbove ? nxmTerm : ethTerm;
 
     uint inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
     uint maxTimeOnRatchet = inner != 0

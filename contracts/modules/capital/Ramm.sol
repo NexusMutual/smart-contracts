@@ -867,7 +867,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint supply = tokenController().totalSupply();
 
     uint bondingCurvePrice = pool().getTokenPrice();
-    uint initialPriceA = bondingCurvePrice + 1 ether * capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR / supply;
+    uint initialPriceA = bondingCurvePrice + 1 ether * capital * PRICE_BUFFER / PRICE_BUFFER_DENOMINATOR / supply;
     uint initialPriceB = 1 ether * capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR / supply;
 
     uint128 nxmReserveA = (INITIAL_LIQUIDITY * 1 ether / initialPriceA).toUint128();

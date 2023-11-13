@@ -530,7 +530,7 @@ describe('swap', function () {
     await setEthReserveValue(ramm.address, 4999);
 
     const state = await ramm.loadState();
-    const expectedInjected = await calculateEthToInject(ramm, state, nextBlockTimestamp);
+    const expectedInjected = calculateEthToInject(state, nextBlockTimestamp, fixture.constants);
 
     const swapNxmForEth = ramm.connect(member).swap(nxmIn, minAmountOut, deadline, { maxPriorityFeePerGas: 0 });
     await expect(swapNxmForEth).to.emit(ramm, 'EthInjected').withArgs(expectedInjected);
@@ -556,7 +556,7 @@ describe('swap', function () {
     await setEthReserveValue(ramm.address, 5001);
 
     const state = await ramm.loadState();
-    const expectedExtracted = await calculateEthToExtract(ramm, state, nextBlockTimestamp);
+    const expectedExtracted = calculateEthToExtract(state, nextBlockTimestamp, fixture.constants);
 
     const swapNxmForEth = ramm.connect(member).swap(nxmIn, minAmountOut, deadline, { maxPriorityFeePerGas: 0 });
     await expect(swapNxmForEth).to.emit(ramm, 'EthExtracted').withArgs(expectedExtracted);
@@ -581,7 +581,7 @@ describe('swap', function () {
     await setEthReserveValue(ramm.address, 4999);
 
     const state = await ramm.loadState();
-    const expectedInjected = await calculateEthToInject(ramm, state, nextBlockTimestamp);
+    const expectedInjected = calculateEthToInject(state, nextBlockTimestamp, fixture.constants);
 
     const swapEthForNxm = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn });
     await expect(swapEthForNxm).to.emit(ramm, 'EthInjected').withArgs(expectedInjected);
@@ -606,7 +606,7 @@ describe('swap', function () {
     await setEthReserveValue(ramm.address, 5001);
 
     const state = await ramm.loadState();
-    const expectedExtracted = await calculateEthToExtract(ramm, state, nextBlockTimestamp);
+    const expectedExtracted = calculateEthToExtract(state, nextBlockTimestamp, fixture.constants);
 
     const swapEthForNxm = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn });
     await expect(swapEthForNxm).to.emit(ramm, 'EthExtracted').withArgs(expectedExtracted);

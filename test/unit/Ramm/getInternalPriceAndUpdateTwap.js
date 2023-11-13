@@ -106,7 +106,7 @@ describe('getInternalPriceAndUpdateTwap', function () {
     const state = await ramm.loadState();
     await setNextBlockTime(nextBlockTimestamp);
 
-    const expectedInjected = await calculateEthToInject(ramm, state, nextBlockTimestamp);
+    const expectedInjected = calculateEthToInject(state, nextBlockTimestamp, fixture.constants);
     console.log('expectedInjected: ', expectedInjected);
     await expect(ramm.getInternalPriceAndUpdateTwap()).to.emit(ramm, 'EthInjected').withArgs(expectedInjected);
   });
@@ -124,7 +124,7 @@ describe('getInternalPriceAndUpdateTwap', function () {
     const state = await ramm.loadState();
     await setNextBlockTime(nextBlockTimestamp);
 
-    const expectedExtracted = await calculateEthToExtract(ramm, state, nextBlockTimestamp);
+    const expectedExtracted = calculateEthToExtract(state, nextBlockTimestamp, fixture.constants);
     console.log('expectedExtracted: ', expectedExtracted);
     await expect(ramm.getInternalPriceAndUpdateTwap()).to.emit(ramm, 'EthExtracted').withArgs(expectedExtracted);
   });

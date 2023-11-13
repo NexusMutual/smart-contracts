@@ -16,19 +16,9 @@ const { parseEther } = ethers.utils;
  */
 const removeHexPrefix = hex => (hex.startsWith('0x') ? hex.slice(2) : hex);
 
-function getInitialRammState({ INITIAL_LIQUIDITY, INITIAL_BUDGET, FAST_RATCHET_SPEED }) {
-  return {
-    nxmA: INITIAL_LIQUIDITY.mul(parseEther('1')).div(SPOT_PRICE_A),
-    nxmB: INITIAL_LIQUIDITY.mul(parseEther('1')).div(SPOT_PRICE_B),
-    eth: INITIAL_LIQUIDITY,
-    budget: INITIAL_BUDGET,
-    ratchetSpeed: FAST_RATCHET_SPEED,
-  };
-}
 const INITIAL_LIQUIDITY = parseEther('5000');
 const FAST_RATCHET_SPEED = 5000;
 const INITIAL_BUDGET = parseEther('43835');
-
 
 const INITIAL_RAMM_STATE = {
   nxmA: INITIAL_LIQUIDITY.mul(parseEther('1')).div(SPOT_PRICE_A),
@@ -76,23 +66,6 @@ const setEthReserveValue = async (rammAddress, valueInEther) => {
   // Update Slot1 to have new ethReserve value
   const newSlot1Value = await replaceHexValueInBitPos(slot1Value, newEtherReserve, 128);
   return ethers.provider.send('hardhat_setStorageAt', [rammAddress, SLOT_1_POSITION, newSlot1Value]);
-};
-
-/**
- * Calculates the expected ETH liquidity after extracting ETH
- *
- * @param {Object} state - The current state object
- * @param {number} timestamp - The timestamp of the next block
- * @param {Object} constants - The constants object
- * @return {number} The expected amount of ETH to extract from the state
- */
-const getExpectedEthExtract = (state, timestamp, { LIQ_SPEED_A, TARGET_LIQUIDITY, LIQ_SPEED_PERIOD }) => {
-  const elapsedLiquidity = LIQ_SPEED_A.mul(timestamp - state.timestamp)
-    .mul(parseEther('1'))
-    .div(LIQ_SPEED_PERIOD);
-  const ethToTargetLiquidity = state.eth.sub(TARGET_LIQUIDITY);
-  const ethToExtract = elapsedLiquidity.lt(ethToTargetLiquidity) ? elapsedLiquidity : ethToTargetLiquidity;
-  return state.eth.sub(ethToExtract);
 };
 
 /**
@@ -198,7 +171,7 @@ describe('getReserves', function () {
 
     const { _ethReserve, nxmA, nxmB, _budget } = await ramm.getReserves();
 
-    const expectedEthToExtract = await calculateEthToExtract(ramm, state, timestamp);
+    const expectedEthToExtract = calculateEthToExtract(state, timestamp, fixture.constants);
     const expectedEth = state.eth.sub(expectedEthToExtract);
     const expectedNxmA = getExpectedNxmARatchet(state, _ethReserve, capital, supply, timestamp, fixture.constants);
     const expectedNxmB = getExpectedNxmBRatchet(state, _ethReserve, capital, supply, timestamp, fixture.constants);
@@ -224,7 +197,7 @@ describe('_getReserves', function () {
 
     // Set eth to 5100 so its > 5000 TARGET_LIQUIDITY (i.e. extract ETH)
     const state = {
-      ...getInitialRammState(fixture.constants),
+      ...INITIAL_RAMM_STATE,
       timestamp: updatedAt,
       eth: TARGET_LIQUIDITY.add(parseEther('100')),
     };
@@ -239,7 +212,7 @@ describe('_getReserves', function () {
       nextBlockTimestamp,
     );
 
-    const expectedEthToExtract = await calculateEthToExtract(ramm, state, nextBlockTimestamp);
+    const expectedEthToExtract = calculateEthToExtract(state, nextBlockTimestamp, fixture.constants);
     const expectedEth = state.eth.sub(expectedEthToExtract);
     const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply, fixture.constants);
     const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply, fixture.constants);
@@ -266,7 +239,7 @@ describe('_getReserves', function () {
 
     // Set eth == TARGET_LIQUIDITY (i.e. extract ETH)
     const state = {
-      ...getInitialRammState(fixture.constants),
+      ...INITIAL_RAMM_STATE,
       timestamp: updatedAt,
       eth: TARGET_LIQUIDITY,
     };
@@ -281,7 +254,7 @@ describe('_getReserves', function () {
       nextBlockTimestamp,
     );
 
-    const expectedEthToExtract = await calculateEthToExtract(ramm, state, nextBlockTimestamp, fixture.constants);
+    const expectedEthToExtract = calculateEthToExtract(state, nextBlockTimestamp, fixture.constants);
     const expectedEth = state.eth.sub(expectedEthToExtract);
     const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply, fixture.constants);
     const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply, fixture.constants);
@@ -299,7 +272,7 @@ describe('_getReserves', function () {
   it('should return current state in the pools - inject ETH flow where elapsed <= timeLeftOnBudget', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController, mcr } = fixture.contracts;
-    const { TARGET_LIQUIDITY, FAST_LIQUIDITY_SPEED, LIQ_SPEED_PERIOD } = fixture.constants;
+    const { TARGET_LIQUIDITY } = fixture.constants;
 
     const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();
@@ -308,7 +281,7 @@ describe('_getReserves', function () {
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
     const state = {
-      ...getInitialRammState(fixture.constants),
+      ...INITIAL_RAMM_STATE,
       timestamp: updatedAt,
       eth: TARGET_LIQUIDITY.sub(parseEther('100')),
     };
@@ -323,7 +296,7 @@ describe('_getReserves', function () {
       nextBlockTimestamp,
     );
 
-    const expectedInjected = await calculateEthToInject(ramm, state, nextBlockTimestamp);
+    const expectedInjected = calculateEthToInject(state, nextBlockTimestamp, fixture.constants);
 
     expect(injected).to.be.equal(expectedInjected);
     expect(extracted).to.be.equal(0);
@@ -352,7 +325,7 @@ describe('_getReserves', function () {
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
     const state = {
-      ...getInitialRammState(fixture.constants),
+      ...INITIAL_RAMM_STATE,
       timestamp: updatedAt,
       eth: TARGET_LIQUIDITY.sub(parseEther('100')),
     };
@@ -387,7 +360,7 @@ describe('_getReserves', function () {
   it('should return current state - inject ETH elapsed > timeLeftOnBudget (non zero budget)', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController, mcr } = fixture.contracts;
-    const { TARGET_LIQUIDITY, LIQ_SPEED_PERIOD, FAST_LIQUIDITY_SPEED, LIQ_SPEED_B } = fixture.constants;
+    const { TARGET_LIQUIDITY } = fixture.constants;
 
     const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();
@@ -396,7 +369,7 @@ describe('_getReserves', function () {
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
     const state = {
-      ...getInitialRammState(fixture.constants),
+      ...INITIAL_RAMM_STATE,
       timestamp: updatedAt,
       eth: TARGET_LIQUIDITY.sub(parseEther('100')),
     };
@@ -411,7 +384,7 @@ describe('_getReserves', function () {
       nextBlockTimestamp,
     );
 
-    const expectedInjected = await calculateEthToInject(ramm, state, nextBlockTimestamp);
+    const expectedInjected = calculateEthToInject(state, nextBlockTimestamp, fixture.constants);
 
     expect(injected).to.be.equal(expectedInjected);
     expect(extracted).to.be.equal(0);
@@ -430,7 +403,7 @@ describe('_getReserves', function () {
   it('should return current state - inject ETH elapsed > timeLeftOnBudget (zero budget)', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController, mcr } = fixture.contracts;
-    const { TARGET_LIQUIDITY, LIQ_SPEED_B, LIQ_SPEED_PERIOD } = fixture.constants;
+    const { TARGET_LIQUIDITY } = fixture.constants;
 
     const { updatedAt } = await ramm.slot1();
     const capital = await pool.getPoolValueInEth();
@@ -439,7 +412,7 @@ describe('_getReserves', function () {
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH) and budget to 0 (i.e. elapsed > timeLeftOnBudget)
     const state = {
-      ...getInitialRammState(fixture.constants),
+      ...INITIAL_RAMM_STATE,
       budget: BigNumber.from('0'),
       timestamp: updatedAt,
       eth: TARGET_LIQUIDITY.sub(parseEther('100')),
@@ -455,7 +428,7 @@ describe('_getReserves', function () {
       nextBlockTimestamp,
     );
 
-    const expectedInjected = await calculateEthToInject(ramm, state, nextBlockTimestamp);
+    const expectedInjected = calculateEthToInject(state, nextBlockTimestamp, fixture.constants);
 
     expect(injected).to.be.equal(expectedInjected);
     expect(extracted).to.be.equal(0);
@@ -482,7 +455,7 @@ describe('_getReserves', function () {
 
     // Set budget to 0 and eth == TARGET_LIQUIDITY (i.e. extract ETH)
     const state = {
-      ...getInitialRammState(fixture.constants),
+      ...INITIAL_RAMM_STATE,
       timestamp: updatedAt,
       budget: 0,
       eth: TARGET_LIQUIDITY,
@@ -498,7 +471,7 @@ describe('_getReserves', function () {
       nextBlockTimestamp,
     );
 
-    const expectedEthToExtract = await calculateEthToExtract(ramm, state, nextBlockTimestamp);
+    const expectedEthToExtract = calculateEthToExtract(state, nextBlockTimestamp, fixture.constants);
 
     expect(injected).to.be.equal(0);
     expect(extracted).to.be.equal(expectedEthToExtract);

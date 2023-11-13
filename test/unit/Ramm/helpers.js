@@ -247,16 +247,12 @@ async function getExpectedObservations(
 /**
  * Calculates the expected ETH to be extracted
  *
- * @param {Contract} ramm - The RAMM contract
  * @param {Object} state - The current state object
  * @param {number} timestamp - The timestamp of the next block
+ * @param {Object} constants - The RAMM constants
  * @return {number} The expected amount of ETH to be extracted
  */
-async function calculateEthToExtract(ramm, state, timestamp) {
-  const LIQ_SPEED_A = await ramm.LIQ_SPEED_A();
-  const LIQ_SPEED_PERIOD = await ramm.LIQ_SPEED_PERIOD();
-  const TARGET_LIQUIDITY = await ramm.TARGET_LIQUIDITY();
-
+function calculateEthToExtract(state, timestamp, { LIQ_SPEED_A, LIQ_SPEED_PERIOD, TARGET_LIQUIDITY }) {
   const elapsedLiquidity = LIQ_SPEED_A.mul(timestamp - state.timestamp)
     .mul(parseEther('1'))
     .div(LIQ_SPEED_PERIOD);
@@ -268,17 +264,16 @@ async function calculateEthToExtract(ramm, state, timestamp) {
 /**
  * Calculates the expected ETH to be injected
  *
- * @param {Contract} ramm - The RAMM contract
  * @param {Object} state - The current state object
  * @param {number} timestamp - The timestamp of the next block
+ * @param {Object} constants - The RAMM constants
  * @return {BigNumber} The amount of Ethereum to inject.
  */
-async function calculateEthToInject(ramm, state, timestamp) {
-  const LIQ_SPEED_B = await ramm.LIQ_SPEED_B();
-  const LIQ_SPEED_PERIOD = await ramm.LIQ_SPEED_PERIOD();
-  const FAST_LIQUIDITY_SPEED = await ramm.FAST_LIQUIDITY_SPEED();
-  const TARGET_LIQUIDITY = await ramm.TARGET_LIQUIDITY();
-
+function calculateEthToInject(
+  state,
+  timestamp,
+  { LIQ_SPEED_B, LIQ_SPEED_PERIOD, FAST_LIQUIDITY_SPEED, TARGET_LIQUIDITY },
+) {
   const elapsed = timestamp - state.timestamp;
   const timeLeftOnBudget = state.budget.mul(LIQ_SPEED_PERIOD).div(FAST_LIQUIDITY_SPEED);
   const maxToInject = TARGET_LIQUIDITY.sub(state.eth);

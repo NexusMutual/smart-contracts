@@ -85,7 +85,7 @@ describe('updateTwap', function () {
     const state = await ramm.loadState();
     await setNextBlockTime(nextBlockTimestamp);
 
-    const expectedInjected = await calculateEthToInject(ramm, state, nextBlockTimestamp);
+    const expectedInjected = calculateEthToInject(state, nextBlockTimestamp, fixture.constants);
     await expect(ramm.updateTwap()).to.emit(ramm, 'EthInjected').withArgs(expectedInjected);
   });
 
@@ -102,7 +102,7 @@ describe('updateTwap', function () {
     const state = await ramm.loadState();
     await setNextBlockTime(nextBlockTimestamp);
 
-    const expectedExtracted = await calculateEthToExtract(ramm, state, nextBlockTimestamp);
+    const expectedExtracted = calculateEthToExtract(state, nextBlockTimestamp, fixture.constants);
     await expect(ramm.updateTwap()).to.emit(ramm, 'EthExtracted').withArgs(expectedExtracted);
   });
 });

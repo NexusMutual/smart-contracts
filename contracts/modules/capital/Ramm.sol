@@ -883,6 +883,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     ethLimit = INITIAL_ETH_LIMIT.toUint32();
     nxmLimit = INITIAL_NXM_LIMIT.toUint32();
 
+    // start paused
+    swapPaused = true;
+
     State memory state = State(
       nxmReserveA,
       nxmReserveB,

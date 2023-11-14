@@ -55,6 +55,8 @@ async function setup() {
   await ramm.changeMasterAddress(master.address);
   await ramm.changeDependentContractAddress();
 
+  await ramm.connect(accounts.emergencyAdmin).setEmergencySwapPause(false);
+
   const internalConstants = {
     FAST_RATCHET_SPEED: BigNumber.from(5000),
     INITIAL_LIQUIDITY: parseEther('5000'),

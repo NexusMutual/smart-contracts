@@ -1,9 +1,13 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { getState, setup } = require('./setup');
-const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
+
+const { getState, setup, SPOT_PRICE_A, SPOT_PRICE_B } = require('./setup');
 const { calculateInternalPrice, getObservationIndex, divCeil } = require('./helpers');
+const { getAccounts } = require('../utils').accounts;
+const { setEtherBalance, setNextBlockTime, mineNextBlock } = require('../utils').evm;
+const { hex } = require('../../../lib/helpers');
+
 const { parseEther } = ethers.utils;
 
 describe('getInternalPrice', function () {
@@ -50,8 +54,43 @@ describe('getInternalPrice', function () {
   });
 
   it('should return the bonding curve as internal price right after deployment', async function () {
-    const fixture = await loadFixture(setup);
-    const { ramm, pool } = fixture.contracts;
+    const accounts = await getAccounts();
+    const master = await ethers.deployContract('MasterMock');
+    const nxm = await ethers.deployContract('NXMTokenMock');
+    const tokenController = await ethers.deployContract('RammMockTokenController', [nxm.address]);
+    const mcr = await ethers.deployContract('RammMockMCR', [master.address]);
+    const pool = await ethers.deployContract('PoolMock');
+    const ramm = await ethers.deployContract('Ramm', [SPOT_PRICE_B]);
+
+    await setEtherBalance(pool.address, parseEther('145000'));
+
+    // turn on automine so we batch all following txes in one block
+    await ethers.provider.send('evm_setAutomine', [false]);
+
+    await mcr.setPool(pool.address);
+    await pool.setTokenPrice(0, SPOT_PRICE_A);
+    await nxm.mint(accounts.defaultSender.address, parseEther('6700000'));
+
+    await Promise.all([
+      master.setLatestAddress(hex('P1'), pool.address),
+      master.setLatestAddress(hex('TC'), tokenController.address),
+      master.setLatestAddress(hex('MC'), mcr.address),
+      master.setLatestAddress(hex('RA'), ramm.address),
+      master.setTokenAddress(nxm.address),
+      master.enrollInternal(ramm.address),
+      master.enrollGovernance(accounts.governanceContracts[0].address),
+      master.setEmergencyAdmin(accounts.emergencyAdmin.address),
+    ]);
+
+    await ramm.changeMasterAddress(master.address);
+    await ramm.changeDependentContractAddress();
+
+    await mineNextBlock();
+    await ethers.provider.send('evm_setAutomine', [true]);
+
+    // make sure it starts paused
+    const isPaused = await ramm.swapPaused();
+    expect(isPaused).to.be.equal(true);
 
     const bondingCurve = await pool.getTokenPrice();
     const internalPrice = await ramm.getInternalPrice();

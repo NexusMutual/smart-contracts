@@ -70,7 +70,7 @@ describe('emergency pause', function () {
     const tcCode = hex('TC');
 
     const MCR = await ethers.getContractFactory('MCR');
-    const newMCR = await MCR.deploy(master.address);
+    const newMCR = await MCR.deploy(master.address, 0);
     const TokenController = await ethers.getContractFactory('TokenController');
     const newTokenControllerImplementation = await TokenController.deploy(
       qd.address,

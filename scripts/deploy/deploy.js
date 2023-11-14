@@ -363,7 +363,7 @@ async function main() {
     3600, // minUpdateTime
   ]);
   // deploy MCR with DisposableMCR as a fake master
-  const mcr = await deployImmutable('MCR', [disposableMCR.address]);
+  const mcr = await deployImmutable('MCR', [disposableMCR.address, 0]);
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mcr.address, master.address);
 

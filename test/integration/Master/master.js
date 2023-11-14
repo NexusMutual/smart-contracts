@@ -136,7 +136,7 @@ describe('master', function () {
 
     const code = hex('MC');
     const MCR = await ethers.getContractFactory('MCR');
-    const newMCR = await MCR.deploy(master.address);
+    const newMCR = await MCR.deploy(master.address, 0);
 
     const contractCodes = [code];
     const newAddresses = [newMCR.address];
@@ -190,7 +190,7 @@ describe('master', function () {
     const tcCode = hex('TC');
 
     const MCR = await ethers.getContractFactory('MCR');
-    const newMCR = await MCR.deploy(master.address);
+    const newMCR = await MCR.deploy(master.address, 0);
     const TokenController = await ethers.getContractFactory('TokenController');
     const newTokenControllerImplementation = await TokenController.deploy(
       qd.address,
@@ -262,7 +262,7 @@ describe('master', function () {
       await CoverMigrator.deploy(qd.address, productsV1.address),
       await LegacyClaimsReward.deploy(master.address, dai.address),
       pool,
-      await MCR.deploy(master.address),
+      await MCR.deploy(master.address, 0),
       await Governance.deploy(),
       await ProposalCategoryContract.deploy(),
       await MemberRoles.deploy(tk.address),

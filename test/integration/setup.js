@@ -114,7 +114,9 @@ async function setup() {
   ]);
 
   // deploy MCR with DisposableMCR as a fake master
-  const mc = await ethers.deployContract('MCR', [disposableMCR.address]);
+  const block = await ethers.provider.getBlock('latest');
+  const mcrUpdateDeadline = block.timestamp + 30 * 24 * 3600;
+  const mc = await ethers.deployContract('MCR', [disposableMCR.address, mcrUpdateDeadline]);
 
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mc.address, master.address);

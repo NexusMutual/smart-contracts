@@ -21,8 +21,11 @@ async function initMCR(params) {
     minUpdateTime,
   );
 
+  const block = await ethers.provider.getBlock('latest');
+  const mcrUpdateDeadline = block.timestamp + 30 * 24 * 3600;
+
   // deploy mcr with fake master
-  const mcr = await MCR.deploy(disposableMCR.address);
+  const mcr = await MCR.deploy(disposableMCR.address, mcrUpdateDeadline);
 
   // trigger initialize and switch master address
   await disposableMCR.initializeNextMcr(mcr.address, master.address);

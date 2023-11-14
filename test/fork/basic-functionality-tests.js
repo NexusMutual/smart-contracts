@@ -837,7 +837,7 @@ describe('basic functionality tests', function () {
     ]);
 
     // MCR - MCR.sol
-    const mcr = await deployContract('MCR', [this.master.address]);
+    const mcr = await deployContract('MCR', [this.master.address, 0]);
 
     // MR - MemberRoles.sol
     const memberRoles = await deployContract('MemberRoles', [this.nxm.address]);

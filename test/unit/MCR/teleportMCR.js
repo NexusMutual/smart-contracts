@@ -54,13 +54,13 @@ describe('teleportMCR', function () {
     await expect(mcr.teleportMCR()).to.be.revertedWith('MCR: already updated');
   });
 
-  it('teleportMCR updates should not work after the 1st December', async function () {
+  it('teleportMCR updates should not work after the deadline', async function () {
     const fixture = await loadFixture(setup);
     const { master } = fixture;
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
 
-    const firstOfDecember = 1701388800;
-    await setNextBlockTime(firstOfDecember);
+    const mcrUpdateDeadline = await mcr.MCR_UPDATE_DEADLINE();
+    await setNextBlockTime(mcrUpdateDeadline.toNumber());
 
     await expect(mcr.teleportMCR()).to.be.revertedWith('MCR: Deadline has passed');
   });
@@ -85,8 +85,11 @@ describe('teleportMCR', function () {
       minUpdateTime,
     );
 
+    const block = await ethers.provider.getBlock('latest');
+    const mcrUpdateDeadline = block.timestamp + 30 * 24 * 3600;
+
     // deploy mcr with fake master
-    const mcr = await MCR.deploy(disposableMCR.address);
+    const mcr = await MCR.deploy(disposableMCR.address, mcrUpdateDeadline);
 
     await expect(mcr.teleportMCR()).to.be.revertedWith('MCR: not yet initialized');
 

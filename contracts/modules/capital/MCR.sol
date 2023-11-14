@@ -39,8 +39,11 @@ contract MCR is IMCR, MasterAwareV2 {
   uint public constant MAX_MCR_ADJUSTMENT = 100;
   uint public constant BASIS_PRECISION = 10000;
 
-  constructor (address masterAddress) {
+  uint public immutable MCR_UPDATE_DEADLINE;
+
+  constructor (address masterAddress, uint mcrUpdateDeadline) {
     changeMasterAddress(masterAddress);
+    MCR_UPDATE_DEADLINE = mcrUpdateDeadline;
 
     if (masterAddress != address(0)) {
       previousMCR = IMCR(master.getLatestAddress("MC"));
@@ -91,14 +94,15 @@ contract MCR is IMCR, MasterAwareV2 {
   }
 
   /**
-   * @dev We need to move the mcr way below the current value otherwise swaps won't work
+   * @dev We need to move the mcr way below the current value otherwise swaps
+   *      won't work for a while until mcr moves down by itself
    * @dev Remove this code after the tokenomics upgrade.
    */
   function teleportMCR() external {
 
     require(address(previousMCR) == address(0), "MCR: not yet initialized");
     require(mcr > 10_000 ether, "MCR: already updated");
-    require(block.timestamp < 1701388800, "MCR: Deadline has passed"); // 1701388800 = December 1st, 2023
+    require(block.timestamp < MCR_UPDATE_DEADLINE, "MCR: Deadline has passed");
 
     mcr = 10_000 ether;
     desiredMCR = 10_000 ether;

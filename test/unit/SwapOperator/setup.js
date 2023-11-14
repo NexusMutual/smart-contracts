@@ -43,7 +43,7 @@ async function setup() {
 
   // Deploy Master, MCR, TC, NXMToken
   const master = await MasterMock.deploy();
-  const mcr = await MCR.deploy(master.address);
+  const mcr = await MCR.deploy(master.address, 0);
 
   const nxmToken = await TokenMock.deploy();
   const tokenController = await TokenController.deploy(nxmToken.address);

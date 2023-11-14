@@ -350,14 +350,13 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   function calculateInjected(
     uint eth,
     uint budget,
-    uint capital,
-    uint mcrValue,
+    Context memory context,
     uint elapsed
   ) internal pure returns (uint) {
 
     uint timeLeftOnBudget = budget * LIQ_SPEED_PERIOD / FAST_LIQUIDITY_SPEED;
-    uint maxToInject = (capital > mcrValue + TARGET_LIQUIDITY)
-      ? Math.min(TARGET_LIQUIDITY - eth, capital - mcrValue - TARGET_LIQUIDITY)
+    uint maxToInject = (context.capital > context.mcr + TARGET_LIQUIDITY)
+      ? Math.min(TARGET_LIQUIDITY - eth, context.capital - context.mcr - TARGET_LIQUIDITY)
       : 0;
 
     if (elapsed <= timeLeftOnBudget) {
@@ -373,13 +372,12 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   function adjustEth(
     uint eth,
     uint budget,
-    uint capital,
-    uint mcrValue,
+    Context memory context,
     uint elapsed
   ) internal pure returns (uint /* new eth */, uint /* new budget */, uint injected, uint extracted) {
 
     if (eth < TARGET_LIQUIDITY) {
-      injected = calculateInjected(eth, budget, capital, mcrValue, elapsed);
+      injected = calculateInjected(eth, budget, context, elapsed);
       eth += injected;
       budget = budget > injected ? budget - injected : 0;
     } else {
@@ -394,8 +392,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     State memory state,
     uint eth,
     uint elapsed,
-    uint capital,
-    uint supply,
+    Context memory context,
     bool isAbove
   ) internal pure returns (uint) {
 
@@ -404,7 +401,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint r = elapsed * state.ratchetSpeed;
 
     uint buffer = isAbove ? PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER : PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER;
-    uint bufferedCapital = capital * buffer / PRICE_BUFFER_DENOMINATOR;
+    uint bufferedCapital = context.capital * buffer / PRICE_BUFFER_DENOMINATOR;
 
     if (isAbove) {
 
@@ -414,9 +411,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       //   ? set n(new) = n(BV)
       //   : set n(new) = n(R)
 
-      return bufferedCapital * nxm + bufferedCapital * nxm * r / RATCHET_PERIOD / RATCHET_DENOMINATOR > eth * supply
-        ? eth * supply / bufferedCapital // bv
-        : eth * nxm / (eth - capital * nxm * r / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR); // ratchet
+      return bufferedCapital * nxm + bufferedCapital * nxm * r / RATCHET_PERIOD / RATCHET_DENOMINATOR > eth * context.supply
+        ? eth * context.supply / bufferedCapital // bv
+        : eth * nxm / (eth - context.capital * nxm * r / context.supply / RATCHET_PERIOD / RATCHET_DENOMINATOR); // ratchet
     }
 
     // ratchet below
@@ -427,9 +424,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     //   ? set n(new) = n(BV)
     //   : set n(new) = n(R)
 
-    return bufferedCapital * nxm < eth * supply + capital * nxm * r / RATCHET_PERIOD / RATCHET_DENOMINATOR
-      ? eth * supply / bufferedCapital // bv
-      : eth * nxm / (eth + capital * nxm * r / supply / RATCHET_PERIOD / RATCHET_DENOMINATOR); // ratchet
+    return bufferedCapital * nxm < eth * context.supply + context.capital * nxm * r / RATCHET_PERIOD / RATCHET_DENOMINATOR
+      ? eth * context.supply / bufferedCapital // bv
+      : eth * nxm / (eth + context.capital * nxm * r / context.supply / RATCHET_PERIOD / RATCHET_DENOMINATOR); // ratchet
   }
 
   function _getReserves(
@@ -442,7 +439,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint budget = state.budget;
     uint elapsed = currentTimestamp - state.timestamp;
 
-    (eth, budget, injected, extracted) = adjustEth(eth, budget, context);
+    (eth, budget, injected, extracted) = adjustEth(eth, budget, context, elapsed);
 
     uint nxmA = calculateNxm(state, eth, elapsed, context, true);
     uint nxmB = calculateNxm(state, eth, elapsed, context, false);

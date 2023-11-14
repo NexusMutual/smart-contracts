@@ -2,6 +2,7 @@ const { ethers } = require('hardhat');
 
 const { Role } = require('../../../lib/constants');
 const { hex } = require('../../../lib/helpers');
+const { BigNumber } = require('ethers');
 const { setEtherBalance } = require('../utils').evm;
 const { getAccounts } = require('../utils').accounts;
 
@@ -54,6 +55,14 @@ async function setup() {
   await ramm.changeMasterAddress(master.address);
   await ramm.changeDependentContractAddress();
 
+  const internalConstants = {
+    FAST_RATCHET_SPEED: BigNumber.from(5000),
+    INITIAL_LIQUIDITY: parseEther('5000'),
+    INITIAL_BUDGET: parseEther('43835'),
+    INITIAL_ETH_LIMIT: BigNumber.from(22000),
+    INITIAL_NXM_LIMIT: BigNumber.from(250000),
+  };
+
   return {
     accounts,
     contracts: {
@@ -76,10 +85,8 @@ async function setup() {
       TARGET_LIQUIDITY: await ramm.TARGET_LIQUIDITY(),
       LIQ_SPEED_A: await ramm.LIQ_SPEED_A(),
       LIQ_SPEED_B: await ramm.LIQ_SPEED_B(),
-      FAST_RATCHET_SPEED: await ramm.FAST_RATCHET_SPEED(),
       NORMAL_RATCHET_SPEED: await ramm.NORMAL_RATCHET_SPEED(),
-      INITIAL_LIQUIDITY: await ramm.INITIAL_LIQUIDITY(),
-      INITIAL_BUDGET: await ramm.INITIAL_BUDGET(),
+      ...internalConstants,
     },
   };
 }

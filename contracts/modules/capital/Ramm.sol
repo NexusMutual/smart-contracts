@@ -52,18 +52,19 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   uint public constant TARGET_LIQUIDITY = 5_000 ether;
   uint public constant LIQ_SPEED_A = 100 ether;
   uint public constant LIQ_SPEED_B = 100 ether;
-  uint public constant FAST_RATCHET_SPEED = 5_000;
   uint public constant NORMAL_RATCHET_SPEED = 400;
-  uint public constant INITIAL_LIQUIDITY = 5_000 ether;
-  uint public constant INITIAL_BUDGET = 43_835 ether;
+
+  uint internal constant FAST_RATCHET_SPEED = 5_000;
+  uint internal constant INITIAL_LIQUIDITY = 5_000 ether;
+  uint internal constant INITIAL_BUDGET = 43_835 ether;
 
   // circuit breakers
-  uint public constant INITIAL_ETH_LIMIT = 22_000;
-  uint public constant INITIAL_NXM_LIMIT = 500_000;
+  uint internal constant INITIAL_ETH_LIMIT = 22_000;
+  uint internal constant INITIAL_NXM_LIMIT = 500_000;
 
   /* ========== IMMUTABLES ========== */
 
-  uint public immutable SPOT_PRICE_B;
+  uint internal immutable SPOT_PRICE_B;
 
   /* ========== MODIFIERS ========== */
 

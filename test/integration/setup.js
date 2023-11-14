@@ -247,6 +247,7 @@ async function setup() {
 
   await ramm.changeMasterAddress(master.address);
   await ramm.changeDependentContractAddress();
+  await ramm.connect(emergencyAdmin).setEmergencySwapPause(false);
 
   await legacyPool.updateAddressParameters(toBytes8('SWP_OP'), swapOperator.address);
   await legacyPool.addAsset(

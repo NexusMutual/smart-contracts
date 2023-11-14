@@ -29,6 +29,7 @@ async function setup() {
 
   await mcr.setPool(pool.address);
   await setEtherBalance(pool.address, parseEther('145000'));
+  await pool.setTokenPrice(0, SPOT_PRICE_A);
 
   await Promise.all([
     master.setLatestAddress(hex('P1'), pool.address),

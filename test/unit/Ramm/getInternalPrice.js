@@ -50,6 +50,16 @@ describe('getInternalPrice', function () {
     expect(expectedInternalPrice).to.be.equal(internalPrice);
   });
 
+  it('should return the bonding curve as internal price right after deployment', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, pool } = fixture.contracts;
+
+    const bondingCurve = await pool.getTokenPrice();
+    const internalPrice = await ramm.getInternalPrice();
+
+    expect(internalPrice.sub(bondingCurve).abs()).to.be.lte(1e9); // 1e9 is the accumulator precision
+  });
+
   it('should return the max internal price (300% BV)', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController } = fixture.contracts;

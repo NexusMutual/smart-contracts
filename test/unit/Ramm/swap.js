@@ -121,32 +121,36 @@ describe('swap', function () {
 
   it('should revert with InsufficientAmountOut if nxmOut < minAmountOut when swapping ETH for NXM', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm } = fixture.contracts;
+    const { ramm, pool, mcr, tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const ethIn = parseEther('1');
-    const minAmountOut = parseEther('29'); // 1ETH = 28.8NXM at 0.0347ETH
-
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
-    const amountOut = await ramm.connect(member).callStatic.swap(0, minAmountOut, deadline, { value: ethIn });
-    const swap = ramm.connect(member).swap(0, amountOut.add(1), deadline, { value: ethIn });
+    const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, timestamp + 1);
+    const { nxmOut } = getExpectedStateAfterSwapEthForNxm(state, ethIn);
+
+    await setNextBlockTime(timestamp + 1);
+
+    const swap = ramm.connect(member).swap(0, nxmOut.add(1), deadline, { value: ethIn });
     await expect(swap).to.be.revertedWithCustomError(ramm, 'InsufficientAmountOut');
   });
 
   it('should revert with InsufficientAmountOut if ethOut < minAmountOut when swapping NXM for ETH', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm } = fixture.contracts;
+    const { ramm, pool, mcr, tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const nxmIn = parseEther('1');
-    const minAmountOut = parseEther('0.016'); // 0.0152 ETH initial spot price
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
+    const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, timestamp + 1);
+    const { ethOut } = getExpectedStateAfterSwapNxmForEth(state, nxmIn);
 
-    const swap = ramm.connect(member).swap(nxmIn, minAmountOut, deadline);
+    await setNextBlockTime(timestamp + 1);
+    const swap = ramm.connect(member).swap(nxmIn, ethOut.add(1), deadline);
     await expect(swap).to.be.revertedWithCustomError(ramm, 'InsufficientAmountOut');
   });
 
@@ -156,34 +160,38 @@ describe('swap', function () {
     const [member] = fixture.accounts.members;
 
     const nxmIn = parseEther('10000');
-    const minAmountOut = parseEther('147');
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
+    const amountOut = await ramm.connect(member).callStatic.swap(nxmIn, 0, deadline);
 
     // Set MCR so it reaches the buffer zone (> capital - ethOut)
     const capital = await pool.getPoolValueInEth();
-    await mcr.updateMCR(capital.sub(minAmountOut));
+    await mcr.updateMCR(capital.sub(amountOut));
 
-    const swap = ramm.connect(member).swap(nxmIn, minAmountOut, deadline);
+    const swap = ramm.connect(member).swap(nxmIn, amountOut, deadline);
     await expect(swap).to.be.revertedWithCustomError(ramm, 'NoSwapsInBufferZone');
   });
 
   it('should revert with EthTransferFailed if failed to send ETH', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm, pool } = fixture.contracts;
+    const { ramm, pool, mcr, tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const { deployedBytecode: ethRejecterBytecode } = await artifacts.readArtifact('PoolEtherRejecterMock');
     await setCode(pool.address, ethRejecterBytecode);
 
-    const ethIn = parseEther('1');
-    const minAmountOut = parseEther('28.8');
-
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
+    const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, timestamp + 1);
 
-    const swap = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+    await setNextBlockBaseFee(0);
+    await setNextBlockTime(timestamp + 1);
+
+    const ethIn = parseEther('1');
+    const { nxmOut } = getExpectedStateAfterSwapEthForNxm(state, ethIn);
+
+    const swap = ramm.connect(member).swap(0, nxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
     await expect(swap).to.be.revertedWithCustomError(ramm, 'EthTransferFailed');
   });
 
@@ -227,7 +235,6 @@ describe('swap', function () {
     const [member] = fixture.accounts.members;
 
     const ethIn = parseEther('1');
-    const minAmountOut = parseEther('28.8');
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = timestamp + 5 * 60;
@@ -235,16 +242,16 @@ describe('swap', function () {
 
     const before = await getSupplyAndBalances(tokenController, nxm, member.address);
     const state = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, nextBlockTimestamp);
+    const { newEthLiquidity, newNxmA, newNxmB, nxmOut } = getExpectedStateAfterSwapEthForNxm(state, ethIn);
 
     await setNextBlockBaseFee(0);
     await setNextBlockTime(nextBlockTimestamp);
-    await ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+    await ramm.connect(member).swap(0, nxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
 
     // after state
     const after = await getSupplyAndBalances(tokenController, nxm, member.address);
     const stateAfter = await getState(ramm);
 
-    const { newEthLiquidity, newNxmA, newNxmB, nxmOut } = getExpectedStateAfterSwapEthForNxm(state, ethIn);
     expect(after.totalSupply).to.be.equal(before.totalSupply.add(nxmOut));
     expect(after.ethBalance).to.be.equal(before.ethBalance.sub(ethIn));
     expect(after.nxmBalance).to.be.equal(before.nxmBalance.add(nxmOut));
@@ -282,7 +289,6 @@ describe('swap', function () {
     const [member] = fixture.accounts.members;
 
     const ethIn = parseEther('1');
-    const minAmountOut = parseEther('28.8');
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
@@ -292,7 +298,7 @@ describe('swap', function () {
 
     await setNextBlockBaseFee(0);
     const txParams = { value: ethIn, maxPriorityFeePerGas: 0 };
-    const nxmOut = await ramm.connect(member).callStatic.swap(0, minAmountOut, deadline, txParams);
+    const nxmOut = await ramm.connect(member).callStatic.swap(0, expectedNxmOut, deadline, txParams);
 
     expect(nxmOut).to.be.equal(expectedNxmOut);
   });
@@ -323,7 +329,6 @@ describe('swap', function () {
     const [member] = fixture.accounts.members;
 
     const ethIn = parseEther('1');
-    const minAmountOut = parseEther('28.8');
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = timestamp + 5 * 60;
@@ -333,7 +338,7 @@ describe('swap', function () {
     const { nxmOut } = getExpectedStateAfterSwapEthForNxm(state, ethIn);
 
     await setNextBlockTime(nextBlockTimestamp);
-    const swap = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+    const swap = ramm.connect(member).swap(0, nxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
     await expect(swap).to.emit(ramm, 'EthSwappedForNxm').withArgs(member.address, ethIn, nxmOut);
   });
 
@@ -564,15 +569,19 @@ describe('swap', function () {
 
   it('should emit EthInjected with the correct ETH injected value - swapEthForNxm', async function () {
     const fixture = await loadFixture(setup);
-    const { ramm } = fixture.contracts;
+    const { ramm, pool, mcr, tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
     const ethIn = parseEther('1');
-    const minAmountOut = parseEther('28.8');
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = timestamp + 5 * 60;
     const deadline = nextBlockTimestamp + 5 * 60;
+
+    // Set ETH reserve < TARGET_LIQUIDITY (5000) to force injection
+    await setEthReserveValue(ramm.address, 4999);
+    const stateForCalc = await getStateAtBlockTimestamp(ramm, pool, mcr, tokenController, nextBlockTimestamp);
+    const { nxmOut } = getExpectedStateAfterSwapEthForNxm(stateForCalc, ethIn);
 
     await setNextBlockBaseFee(0);
     await setNextBlockTime(nextBlockTimestamp);
@@ -583,7 +592,7 @@ describe('swap', function () {
     const state = await ramm.loadState();
     const expectedInjected = calculateEthToInject(state, nextBlockTimestamp, fixture.constants);
 
-    const swapEthForNxm = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn });
+    const swapEthForNxm = ramm.connect(member).swap(0, nxmOut, deadline, { value: ethIn });
     await expect(swapEthForNxm).to.emit(ramm, 'EthInjected').withArgs(expectedInjected);
   });
 
@@ -593,11 +602,12 @@ describe('swap', function () {
     const [member] = fixture.accounts.members;
 
     const ethIn = parseEther('1');
-    const minAmountOut = parseEther('28.8');
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = timestamp + 5 * 60;
     const deadline = nextBlockTimestamp + 5 * 60;
+
+    const amountOut = await ramm.connect(member).callStatic.swap(0, 0, deadline, { value: ethIn });
 
     await setNextBlockBaseFee(0);
     await setNextBlockTime(nextBlockTimestamp);
@@ -608,7 +618,7 @@ describe('swap', function () {
     const state = await ramm.loadState();
     const expectedExtracted = calculateEthToExtract(state, nextBlockTimestamp, fixture.constants);
 
-    const swapEthForNxm = ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn });
+    const swapEthForNxm = ramm.connect(member).swap(0, amountOut, deadline, { value: ethIn });
     await expect(swapEthForNxm).to.emit(ramm, 'EthExtracted').withArgs(expectedExtracted);
   });
 });

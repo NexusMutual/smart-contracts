@@ -783,36 +783,35 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint capital,
     uint supply,
     uint timestamp
-  ) public pure returns (uint internalPrice) {
+  ) public pure returns (uint) {
 
     uint currentIdx = observationIndexOf(timestamp);
     // index of first observation in window = current - 2
     // adding 1 and applying modulo gives the same result avoiding underflow
-    uint previousIdx = (currentIdx + 1) % GRANULARITY;
-
-    Observation memory firstObservation = _observations[previousIdx];
+    Observation memory firstObservation = _observations[(currentIdx + 1) % GRANULARITY];
     Observation memory currentObservation = _observations[currentIdx];
-
-    uint elapsed = timestamp - firstObservation.timestamp;
 
     uint spotPriceA = 1 ether * state.eth / state.nxmA;
     uint spotPriceB = 1 ether * state.eth / state.nxmB;
+    uint internalPrice;
 
     // underflow is desired
     unchecked {
+      uint elapsed = timestamp - firstObservation.timestamp;
       uint averagePriceA = uint(currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) * ACCUMULATOR_PRECISION / elapsed;
       uint averagePriceB = uint(currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) * ACCUMULATOR_PRECISION / elapsed;
 
       // keeping min/max inside unchecked scope to avoid stack too deep error
       uint priceA = Math.min(averagePriceA, spotPriceA);
       uint priceB = Math.max(averagePriceB, spotPriceB);
-      internalPrice =  priceA + priceB - 1 ether * capital / supply;
+      internalPrice = priceA + priceB - 1 ether * capital / supply;
     }
 
     uint maxPrice = 3 * 1 ether * capital / supply; // 300% BV
     uint minPrice = 35 * 1 ether * capital / supply / 100; // 35% BV
+    internalPrice = Math.max(Math.min(internalPrice, maxPrice), minPrice);
 
-    return Math.max(Math.min(internalPrice, maxPrice), minPrice);
+    return internalPrice;
   }
 
   function getInternalPrice() external view returns (uint internalPrice) {

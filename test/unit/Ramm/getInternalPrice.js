@@ -13,25 +13,24 @@ describe('getInternalPrice', function () {
 
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
-    const mcrValue = await mcr.getMCR();
+    const context = {
+      capital,
+      supply,
+      mcr: await mcr.getMCR(),
+    };
 
     const previousState = await getState(ramm);
     const previousObservations = [];
+
     for (let i = 0; i < 3; i++) {
       previousObservations[i] = await ramm.observations(i);
     }
+
     const { timestamp } = await ethers.provider.getBlock('latest');
     const currentTimestamp = PERIOD_SIZE.mul(10).add(timestamp);
-    const [currentState] = await ramm._getReserves(previousState, capital, supply, mcrValue, currentTimestamp);
+    const [currentState] = await ramm._getReserves(previousState, context, currentTimestamp);
 
-    const observations = await ramm._updateTwap(
-      previousState,
-      previousObservations,
-      currentTimestamp,
-      capital,
-      supply,
-      mcrValue,
-    );
+    const observations = await ramm._updateTwap(previousState, previousObservations, context, currentTimestamp);
 
     const expectedInternalPrice = calculateInternalPrice(
       currentState,

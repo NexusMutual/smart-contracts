@@ -37,10 +37,12 @@ const getSupplyAndBalances = async (tokenController, nxm, memberAddress) => {
  */
 const getStateAtBlockTimestamp = async (ramm, pool, mcr, tokenController, blockTimestamp) => {
   const initialState = await getState(ramm);
-  const capital = await pool.getPoolValueInEth();
-  const supply = await tokenController.totalSupply();
-  const mcrValue = await mcr.getMCR();
-  const [state] = await ramm._getReserves(initialState, capital, supply, mcrValue, blockTimestamp);
+  const context = {
+    capital: await pool.getPoolValueInEth(),
+    supply: await tokenController.totalSupply(),
+    mcr: await mcr.getMCR(),
+  };
+  const [state] = await ramm._getReserves(initialState, context, blockTimestamp);
   return state;
 };
 

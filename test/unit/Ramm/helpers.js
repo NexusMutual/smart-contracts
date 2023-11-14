@@ -205,9 +205,11 @@ async function getExpectedObservations(
   currentTimestamp,
 ) {
   const { PERIOD_SIZE, GRANULARITY } = fixtureConstants;
-  const capital = await pool.getPoolValueInEth();
-  const supply = await tokenController.totalSupply();
-  const mcrValue = await mcr.getMCR();
+  const context = {
+    capital: await pool.getPoolValueInEth(),
+    supply: await tokenController.totalSupply(),
+    mcr: await mcr.getMCR(),
+  };
 
   const observationsAfterExpected = [];
   const endIdx = divCeil(currentTimestamp, PERIOD_SIZE).toNumber();
@@ -220,14 +222,14 @@ async function getExpectedObservations(
     const observationIndex = BigNumber.from(i).mod(GRANULARITY);
     const timestamp = Math.min(currentTimestamp.toNumber(), PERIOD_SIZE.mul(i).toNumber());
 
-    const [state] = await ramm._getReserves(previousState, capital, supply, mcrValue, timestamp);
+    const [state] = await ramm._getReserves(previousState, context, timestamp);
 
     const observationData = calculateObservation(
       state,
       previousState,
       previousObservation,
-      capital,
-      supply,
+      context.capital,
+      context.supply,
       BigNumber.from(timestamp - previousState.timestamp),
       fixtureConstants,
     );

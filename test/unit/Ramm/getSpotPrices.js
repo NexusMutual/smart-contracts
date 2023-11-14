@@ -22,11 +22,13 @@ describe('getSpotPrices', function () {
     const { spotPriceA, spotPriceB } = await ramm.getSpotPrices();
 
     const initialState = await getState(ramm);
-    const capital = await pool.getPoolValueInEth();
-    const supply = await tokenController.totalSupply();
-    const mcrValue = await mcr.getMCR();
+    const context = {
+      capital: await pool.getPoolValueInEth(),
+      supply: await tokenController.totalSupply(),
+      mcr: await mcr.getMCR(),
+    };
 
-    const [{ eth, nxmA, nxmB }] = await ramm._getReserves(initialState, capital, supply, mcrValue, nextBlockTimestamp);
+    const [{ eth, nxmA, nxmB }] = await ramm._getReserves(initialState, context, nextBlockTimestamp);
 
     // buy price
     const expectedSpotPriceA = parseEther('1').mul(eth).div(nxmA);

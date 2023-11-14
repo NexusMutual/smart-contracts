@@ -137,6 +137,12 @@ describe('_getReserves', function () {
     const supply = await tokenController.totalSupply();
     const mcrValue = await mcr.getMCR();
 
+    const context = {
+      capital,
+      supply,
+      mcr: mcrValue,
+    };
+
     // Set eth to 5100 so its > 5000 TARGET_LIQUIDITY (i.e. extract ETH)
     const state = {
       ...INITIAL_RAMM_STATE,
@@ -148,9 +154,7 @@ describe('_getReserves', function () {
 
     const [{ eth, nxmA, nxmB, budget }, injected, extracted] = await ramm._getReserves(
       state,
-      capital,
-      supply,
-      mcrValue,
+      context,
       nextBlockTimestamp,
     );
 
@@ -177,6 +181,11 @@ describe('_getReserves', function () {
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
     const mcrValue = await mcr.getMCR();
+    const context = {
+      capital,
+      supply,
+      mcr: mcrValue,
+    };
 
     // Set eth == TARGET_LIQUIDITY (i.e. extract ETH)
     const state = {
@@ -189,9 +198,7 @@ describe('_getReserves', function () {
 
     const [{ eth, nxmA, nxmB, budget }, injected, extracted] = await ramm._getReserves(
       state,
-      capital,
-      supply,
-      mcrValue,
+      context,
       nextBlockTimestamp,
     );
 
@@ -218,6 +225,11 @@ describe('_getReserves', function () {
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
     const mcrValue = await mcr.getMCR();
+    const context = {
+      capital,
+      supply,
+      mcr: mcrValue,
+    };
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
     const state = {
@@ -230,9 +242,7 @@ describe('_getReserves', function () {
 
     const [{ eth, nxmA, nxmB, budget }, injected, extracted] = await ramm._getReserves(
       state,
-      capital,
-      supply,
-      mcrValue,
+      context,
       nextBlockTimestamp,
     );
 
@@ -261,6 +271,11 @@ describe('_getReserves', function () {
     const supply = await tokenController.totalSupply();
     // Set MCR so that MRC + TARGET_LIQUIDITY reaches capital and forces 0 injection
     const mcrValue = capital.sub(TARGET_LIQUIDITY);
+    const context = {
+      capital,
+      supply,
+      mcr: mcrValue,
+    };
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
     const state = {
@@ -273,9 +288,7 @@ describe('_getReserves', function () {
 
     const [{ eth, nxmA, nxmB, budget }, injected, extracted] = await ramm._getReserves(
       state,
-      capital,
-      supply,
-      mcrValue,
+      context,
       nextBlockTimestamp,
     );
 
@@ -304,6 +317,11 @@ describe('_getReserves', function () {
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
     const mcrValue = await mcr.getMCR();
+    const context = {
+      capital,
+      supply,
+      mcr: mcrValue,
+    };
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH)
     const state = {
@@ -316,9 +334,7 @@ describe('_getReserves', function () {
 
     const [{ eth, nxmA, nxmB, budget }, injected, extracted] = await ramm._getReserves(
       state,
-      capital,
-      supply,
-      mcrValue,
+      context,
       nextBlockTimestamp,
     );
 
@@ -346,6 +362,11 @@ describe('_getReserves', function () {
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
     const mcrValue = await mcr.getMCR();
+    const context = {
+      capital,
+      supply,
+      mcr: mcrValue,
+    };
 
     // Set eth be less than TARGET_LIQUIDITY (i.e. inject ETH) and budget to 0 (i.e. elapsed > timeLeftOnBudget)
     const state = {
@@ -359,9 +380,7 @@ describe('_getReserves', function () {
 
     const [{ eth, nxmA, nxmB, budget }, injected, extracted] = await ramm._getReserves(
       state,
-      capital,
-      supply,
-      mcrValue,
+      context,
       nextBlockTimestamp,
     );
 
@@ -388,6 +407,11 @@ describe('_getReserves', function () {
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
     const mcrValue = await mcr.getMCR();
+    const context = {
+      capital,
+      supply,
+      mcr: mcrValue,
+    };
 
     // Set budget to 0 and eth == TARGET_LIQUIDITY (i.e. extract ETH)
     const state = {
@@ -401,9 +425,7 @@ describe('_getReserves', function () {
 
     const [{ eth, nxmA, nxmB, budget }, injected, extracted] = await ramm._getReserves(
       state,
-      capital,
-      supply,
-      mcrValue,
+      context,
       nextBlockTimestamp,
     );
 

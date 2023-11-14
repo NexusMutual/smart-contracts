@@ -20,11 +20,13 @@ describe('storeState', function () {
     const deadline = timestamp + 7 * 60 * 60;
 
     const initialState = await getState(ramm);
-    const capital = await pool.getPoolValueInEth();
-    const supply = await tokenController.totalSupply();
-    const mcrValue = await mcr.getMCR();
+    const context = {
+      capital: await pool.getPoolValueInEth(),
+      supply: await tokenController.totalSupply(),
+      mcr: await mcr.getMCR(),
+    };
 
-    const [before] = await ramm._getReserves(initialState, capital, supply, mcrValue, nextBlockTimestamp);
+    const [before] = await ramm._getReserves(initialState, context, nextBlockTimestamp);
 
     // buy NXM
     await setNextBlockTime(nextBlockTimestamp);

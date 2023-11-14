@@ -68,10 +68,12 @@ describe('swap', function () {
 
     // Get expected book value
     const initState = await ra.loadState();
-    const capital = await p1.getPoolValueInEth();
-    const supply = await tc.totalSupply();
-    const mcrValue = await mcr.getMCR();
-    const [state] = await ra._getReserves(initState, capital, supply, mcrValue, nextBlockTimestamp);
+    const context = {
+      capital: await p1.getPoolValueInEth(),
+      supply: await tc.totalSupply(),
+      mcr: await mcr.getMCR(),
+    };
+    const [state] = await ra._getReserves(initState, context, nextBlockTimestamp);
     const k = state.eth.mul(state.nxmA);
     const eth = state.eth.add(ethIn);
     const nxmA = k.div(eth);
@@ -118,10 +120,12 @@ describe('swap', function () {
 
     // Get expected book value
     const initState = await ra.loadState();
-    const capital = await p1.getPoolValueInEth();
-    const supply = await tc.totalSupply();
-    const mcrValue = await mcr.getMCR();
-    const [state] = await ra._getReserves(initState, capital, supply, mcrValue, nextBlockTimestamp);
+    const context = {
+      capital: await p1.getPoolValueInEth(),
+      supply: await tc.totalSupply(),
+      mcr: await mcr.getMCR(),
+    };
+    const [state] = await ra._getReserves(initState, context, nextBlockTimestamp);
     const k = state.eth.mul(state.nxmB);
     const nxmB = state.nxmB.add(nxmIn);
     const eth = k.div(nxmB);

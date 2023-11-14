@@ -4,6 +4,12 @@ async function getInternalPrice(ramm, pool, tokenController, mcr, timestamp) {
   const capital = await pool.getPoolValueInEth();
   const supply = await tokenController.totalSupply();
   const mcrValue = await mcr.getMCR();
+  const context = {
+    capital,
+    supply,
+    mcr: mcrValue,
+  };
+
   const GRANULARITY = await ramm.GRANULARITY();
   const PERIOD_SIZE = await ramm.PERIOD_SIZE();
 
@@ -14,16 +20,9 @@ async function getInternalPrice(ramm, pool, tokenController, mcr, timestamp) {
     previousObservations[i] = await ramm.observations(i);
   }
 
-  const [currentState] = await ramm._getReserves(previousState, capital, supply, mcrValue, timestamp);
+  const [currentState] = await ramm._getReserves(previousState, context, timestamp);
 
-  const observations = await ramm._updateTwap(
-    previousState,
-    previousObservations,
-    timestamp,
-    capital,
-    supply,
-    mcrValue,
-  );
+  const observations = await ramm._updateTwap(previousState, previousObservations, context, timestamp);
 
   return calculateInternalPrice(currentState, observations, capital, supply, timestamp, { GRANULARITY, PERIOD_SIZE });
 }

@@ -21,6 +21,11 @@ describe('getInternalPriceAndUpdateTwap', function () {
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
     const mcrValue = await mcr.getMCR();
+    const context = {
+      capital,
+      supply,
+      mcr: mcrValue,
+    };
 
     const previousState = await getState(ramm);
     const previousObservations = [];
@@ -29,16 +34,9 @@ describe('getInternalPriceAndUpdateTwap', function () {
     }
     const { timestamp } = await ethers.provider.getBlock('latest');
     const currentTimestamp = PERIOD_SIZE.mul(10).add(timestamp);
-    const [currentState] = await ramm._getReserves(previousState, capital, supply, mcrValue, currentTimestamp);
+    const [currentState] = await ramm._getReserves(previousState, context, currentTimestamp);
 
-    const observations = await ramm._updateTwap(
-      previousState,
-      previousObservations,
-      currentTimestamp,
-      capital,
-      supply,
-      mcrValue,
-    );
+    const observations = await ramm._updateTwap(previousState, previousObservations, context, currentTimestamp);
 
     await setNextBlockTime(currentTimestamp.toNumber());
     const tx = await ramm.getInternalPriceAndUpdateTwap();

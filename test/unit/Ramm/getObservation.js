@@ -67,7 +67,11 @@ describe('getObservation', function () {
     const previousState = await getState(ramm);
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
-    const mcrValue = await mcr.getMCR();
+    const context = {
+      capital,
+      supply,
+      mcr: await mcr.getMCR(),
+    };
 
     const { maxTimeOnRatchetA, maxTimeOnRatchetB } = timeTillBv(previousState, supply, capital, fixture.constants);
 
@@ -75,13 +79,7 @@ describe('getObservation', function () {
       ? maxTimeOnRatchetA.add(PERIOD_SIZE)
       : maxTimeOnRatchetB.add(PERIOD_SIZE);
 
-    const [state] = await ramm._getReserves(
-      previousState,
-      capital,
-      supply,
-      mcrValue,
-      previousState.timestamp + timeElapsed.toNumber(),
-    );
+    const [state] = await ramm._getReserves(previousState, context, previousState.timestamp + timeElapsed.toNumber());
 
     const previousObservationIndex = Math.ceil(previousState.timestamp / PERIOD_SIZE) % GRANULARITY;
     const previousObservation = await ramm.observations(previousObservationIndex);

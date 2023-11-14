@@ -338,8 +338,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     );
     (
       State memory state,
-    /* injected */,
-    /* extracted */
+      /* injected */,
+      /* extracted */
     ) = _getReserves(loadState(), context, block.timestamp);
 
     return (state.eth, state.nxmA, state.nxmB, state.budget);

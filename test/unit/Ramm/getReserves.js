@@ -68,92 +68,81 @@ const setEthReserveValue = async (rammAddress, valueInEther) => {
   return ethers.provider.send('hardhat_setStorageAt', [rammAddress, SLOT_1_POSITION, newSlot1Value]);
 };
 
-/**
- * Calculates the expected NxmA ratcheted value
- *
- * @param {Object} state - The current RAMM state
- * @param {BigNumber} eth - The current ETH reserve
- * @param {BigNumber} capital - The current pool capital value in ETH
- * @param {BigNumber} supply - The current total NXM supply
- * @param {number} blockTimestamp - The current block timestamp
- * @param {Object} constants - The constants object
- * @return {BigNumber} The expected NxmA ratcheted value
- */
-const getExpectedNxmARatchet = (
+const getExpectedNxmA = (
   state,
-  eth,
+  expectedEth,
   capital,
   supply,
-  blockTimestamp,
-  { RATCHET_PERIOD, RATCHET_DENOMINATOR },
+  timestamp,
+  { NORMAL_RATCHET_SPEED, PRICE_BUFFER_DENOMINATOR, PRICE_BUFFER, RATCHET_PERIOD, RATCHET_DENOMINATOR },
 ) => {
-  const elapsed = blockTimestamp - state.timestamp;
-  const nrDenomAddendA = state.nxmA
-    .mul(elapsed)
-    .mul(state.ratchetSpeed)
-    .mul(capital)
-    .div(supply)
-    .div(RATCHET_PERIOD)
-    .div(RATCHET_DENOMINATOR);
-  return eth.mul(state.nxmA).div(eth.sub(nrDenomAddendA));
+  const { nxmA } = state;
+  const nxm = nxmA.mul(expectedEth).div(state.eth);
+  const elapsed = timestamp - state.timestamp;
+
+  const bufferedCapital = capital.mul(PRICE_BUFFER_DENOMINATOR.add(PRICE_BUFFER)).div(PRICE_BUFFER_DENOMINATOR);
+
+  if (
+    bufferedCapital
+      .mul(nxm)
+      .add(bufferedCapital.mul(nxm).mul(elapsed).mul(NORMAL_RATCHET_SPEED).div(RATCHET_PERIOD).div(RATCHET_DENOMINATOR))
+      .gt(expectedEth.mul(supply))
+  ) {
+    return expectedEth.mul(supply).div(bufferedCapital);
+  }
+  return expectedEth
+    .mul(nxm)
+    .div(
+      expectedEth.sub(
+        capital
+          .mul(nxm)
+          .mul(elapsed)
+          .mul(NORMAL_RATCHET_SPEED)
+          .div(supply)
+          .div(RATCHET_PERIOD)
+          .div(RATCHET_DENOMINATOR),
+      ),
+    );
 };
 
-/**
- * Calculates the expected NxmB ratcheted value
- *
- * @param {Object} state - The current RAMM state
- * @param {BigNumber} eth - The current ETH reserve
- * @param {BigNumber} capital - The current pool capital value in ETH
- * @param {BigNumber} supply - The current total NXM supply
- * @param {number} blockTimestamp - The current block timestamp
- * @param {Object} constants - The constants object
- * @return {BigNumber} The expected NxmB ratcheted value
- */
-const getExpectedNxmBRatchet = (
+const getExpectedNxmB = (
   state,
-  eth,
+  expectedEth,
   capital,
   supply,
-  blockTimestamp,
-  { RATCHET_PERIOD, RATCHET_DENOMINATOR },
+  timestamp,
+  { PRICE_BUFFER_DENOMINATOR, PRICE_BUFFER, RATCHET_PERIOD, RATCHET_DENOMINATOR },
 ) => {
-  const elapsed = blockTimestamp - state.timestamp;
-  const nrDenomAddendB = state.nxmB
-    .mul(elapsed)
-    .mul(state.ratchetSpeed)
-    .mul(capital)
-    .div(supply)
-    .div(RATCHET_PERIOD)
-    .div(RATCHET_DENOMINATOR);
-  return eth.mul(state.nxmB).div(eth.add(nrDenomAddendB));
+  const { nxmB } = state;
+  const nxm = nxmB.mul(expectedEth).div(state.eth);
+  const elapsed = timestamp - state.timestamp;
+
+  const bufferedCapital = capital.mul(PRICE_BUFFER_DENOMINATOR.sub(PRICE_BUFFER)).div(PRICE_BUFFER_DENOMINATOR);
+
+  if (
+    bufferedCapital
+      .mul(nxm)
+      .lt(
+        expectedEth
+          .mul(supply)
+          .add(capital.mul(nxm).mul(elapsed).mul(state.ratchetSpeed).div(RATCHET_PERIOD).div(RATCHET_DENOMINATOR)),
+      )
+  ) {
+    return expectedEth.mul(supply).div(bufferedCapital);
+  }
+  return expectedEth
+    .mul(nxm)
+    .div(
+      expectedEth.add(
+        capital.mul(nxm).mul(elapsed).mul(state.ratchetSpeed).div(supply).div(RATCHET_PERIOD).div(RATCHET_DENOMINATOR),
+      ),
+    );
 };
 
-/**
- * Calculates the expected NxmA book value.
- *
- * @param {BigNumber} eth - The current ETH liquidity
- * @param {BigNumber} capital - The current pool capital value in ETH
- * @param {BigNumber} supply - The current total NXM supply
- * @param {Object} constants - The constants object
- * @return {BigNumber} The expected NxmA book value
- */
-const getExpectedNxmABookValue = (eth, capital, supply, { PRICE_BUFFER_DENOMINATOR, PRICE_BUFFER }) => {
-  const bufferedCapitalA = capital.mul(PRICE_BUFFER_DENOMINATOR.add(PRICE_BUFFER)).div(PRICE_BUFFER_DENOMINATOR);
-  return eth.mul(supply).div(bufferedCapitalA);
-};
-
-/**
- * Calculates the expected NxmB book value.
- *
- * @param {BigNumber} eth - The current ETH liquidity
- * @param {BigNumber} capital - The current pool capital value in ETH
- * @param {BigNumber} supply - The current total NXM supply
- * @param {Object} constants - The constants object
- * @return {BigNumber} The expected NxmB book value
- */
-const getExpectedNxmBBookValue = (eth, capital, supply, { PRICE_BUFFER_DENOMINATOR, PRICE_BUFFER }) => {
-  const bufferedCapitalB = capital.mul(PRICE_BUFFER_DENOMINATOR.sub(PRICE_BUFFER)).div(PRICE_BUFFER_DENOMINATOR);
-  return eth.mul(supply).div(bufferedCapitalB);
+const getExpectedNxm = (state, expectedEth, capital, supply, timestamp, constants) => {
+  const expectedNxmA = getExpectedNxmA(state, expectedEth, capital, supply, timestamp, constants);
+  const expectedNxmB = getExpectedNxmB(state, expectedEth, capital, supply, timestamp, constants);
+  return { expectedNxmA, expectedNxmB };
 };
 
 describe('getReserves', function () {
@@ -173,8 +162,14 @@ describe('getReserves', function () {
 
     const expectedEthToExtract = calculateEthToExtract(state, timestamp, fixture.constants);
     const expectedEth = state.eth.sub(expectedEthToExtract);
-    const expectedNxmA = getExpectedNxmARatchet(state, _ethReserve, capital, supply, timestamp, fixture.constants);
-    const expectedNxmB = getExpectedNxmBRatchet(state, _ethReserve, capital, supply, timestamp, fixture.constants);
+    const { expectedNxmA, expectedNxmB } = getExpectedNxm(
+      state,
+      expectedEth,
+      capital,
+      supply,
+      timestamp,
+      fixture.constants,
+    );
     const expectedBudget = state.budget;
 
     expect(_ethReserve).to.be.equal(expectedEth);
@@ -218,8 +213,14 @@ describe('_getReserves', function () {
 
     const expectedEthToExtract = calculateEthToExtract(state, nextBlockTimestamp, fixture.constants);
     const expectedEth = state.eth.sub(expectedEthToExtract);
-    const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply, fixture.constants);
-    const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply, fixture.constants);
+    const { expectedNxmA, expectedNxmB } = getExpectedNxm(
+      state,
+      expectedEth,
+      capital,
+      supply,
+      nextBlockTimestamp,
+      fixture.constants,
+    );
     const expectedBudget = state.budget;
 
     expect(injected).to.be.equal(0);
@@ -263,8 +264,14 @@ describe('_getReserves', function () {
 
     const expectedEthToExtract = calculateEthToExtract(state, nextBlockTimestamp, fixture.constants);
     const expectedEth = state.eth.sub(expectedEthToExtract);
-    const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply, fixture.constants);
-    const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply, fixture.constants);
+    const { expectedNxmA, expectedNxmB } = getExpectedNxm(
+      state,
+      expectedEth,
+      capital,
+      supply,
+      nextBlockTimestamp,
+      fixture.constants,
+    );
     const expectedBudget = state.budget;
 
     expect(injected).to.be.equal(0);
@@ -312,8 +319,14 @@ describe('_getReserves', function () {
     expect(extracted).to.be.equal(0);
 
     const expectedEth = state.eth.add(injected);
-    const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply, fixture.constants);
-    const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply, fixture.constants);
+    const { expectedNxmA, expectedNxmB } = getExpectedNxm(
+      state,
+      expectedEth,
+      capital,
+      supply,
+      nextBlockTimestamp,
+      fixture.constants,
+    );
     const expectedBudget = state.budget.gt(injected) ? state.budget.sub(injected) : 0;
 
     expect(eth).to.be.equal(expectedEth);
@@ -360,8 +373,14 @@ describe('_getReserves', function () {
     expect(extracted).to.be.equal(0);
 
     const expectedEth = state.eth.add(expectedInjected);
-    const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply, fixture.constants);
-    const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply, fixture.constants);
+    const { expectedNxmA, expectedNxmB } = getExpectedNxm(
+      state,
+      expectedEth,
+      capital,
+      supply,
+      nextBlockTimestamp,
+      fixture.constants,
+    );
     const expectedBudget = state.budget.gt(expectedInjected) ? state.budget.sub(expectedInjected) : 0;
 
     expect(eth).to.be.equal(expectedEth);
@@ -406,8 +425,14 @@ describe('_getReserves', function () {
     expect(extracted).to.be.equal(0);
 
     const expectedEth = state.eth.add(expectedInjected);
-    const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply, fixture.constants);
-    const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply, fixture.constants);
+    const { expectedNxmA, expectedNxmB } = getExpectedNxm(
+      state,
+      expectedEth,
+      capital,
+      supply,
+      nextBlockTimestamp,
+      fixture.constants,
+    );
     const expectedBudget = state.budget.gt(expectedInjected) ? state.budget.sub(expectedInjected) : 0;
 
     expect(eth).to.be.equal(expectedEth);
@@ -453,8 +478,14 @@ describe('_getReserves', function () {
     expect(extracted).to.be.equal(0);
 
     const expectedEth = state.eth.add(expectedInjected);
-    const expectedNxmA = getExpectedNxmABookValue(expectedEth, capital, supply, fixture.constants);
-    const expectedNxmB = getExpectedNxmBBookValue(expectedEth, capital, supply, fixture.constants);
+    const { expectedNxmA, expectedNxmB } = getExpectedNxm(
+      state,
+      expectedEth,
+      capital,
+      supply,
+      nextBlockTimestamp,
+      fixture.constants,
+    );
 
     expect(eth).to.be.equal(expectedEth);
     expect(nxmA).to.be.equal(expectedNxmA);
@@ -499,8 +530,14 @@ describe('_getReserves', function () {
     expect(extracted).to.be.equal(expectedEthToExtract);
 
     const expectedEth = state.eth.sub(expectedEthToExtract);
-    const expectedNxmA = getExpectedNxmARatchet(state, eth, capital, supply, nextBlockTimestamp, fixture.constants);
-    const expectedNxmB = getExpectedNxmBRatchet(state, eth, capital, supply, nextBlockTimestamp, fixture.constants);
+    const { expectedNxmA, expectedNxmB } = getExpectedNxm(
+      state,
+      expectedEth,
+      capital,
+      supply,
+      nextBlockTimestamp,
+      fixture.constants,
+    );
     const expectedBudget = state.budget;
 
     expect(eth).to.be.equal(expectedEth);

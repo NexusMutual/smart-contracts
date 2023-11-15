@@ -609,8 +609,6 @@ describe('swap', function () {
     const nextBlockTimestamp = timestamp + 5 * 60;
     const deadline = nextBlockTimestamp + 5 * 60;
 
-    const amountOut = await ramm.connect(member).callStatic.swap(0, 0, deadline, { value: ethIn });
-
     await setNextBlockBaseFee(0);
     await setNextBlockTime(nextBlockTimestamp);
 
@@ -620,7 +618,7 @@ describe('swap', function () {
     const state = await ramm.loadState();
     const expectedExtracted = calculateEthToExtract(state, nextBlockTimestamp, fixture.constants);
 
-    const swapEthForNxm = ramm.connect(member).swap(0, amountOut, deadline, { value: ethIn });
+    const swapEthForNxm = ramm.connect(member).swap(0, 0, deadline, { value: ethIn });
     await expect(swapEthForNxm).to.emit(ramm, 'EthExtracted').withArgs(expectedExtracted);
   });
 });

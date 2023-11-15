@@ -22,7 +22,7 @@ function timeTillBv(
   previousState,
   supply,
   capital,
-  { PRICE_BUFFER_DENOMINATOR, PRICE_BUFFER, RATCHET_DENOMINATOR, RATCHET_PERIOD },
+  { PRICE_BUFFER_DENOMINATOR, PRICE_BUFFER, RATCHET_DENOMINATOR, RATCHET_PERIOD, NORMAL_RATCHET_SPEED },
 ) {
   // below
   const innerRightB = previousState.eth.mul(supply);
@@ -54,7 +54,7 @@ function timeTillBv(
         .mul(RATCHET_PERIOD)
         .div(capital)
         .div(previousState.nxmA)
-        .div(previousState.ratchetSpeed);
+        .div(NORMAL_RATCHET_SPEED);
 
   return { maxTimeOnRatchetA, maxTimeOnRatchetB };
 }

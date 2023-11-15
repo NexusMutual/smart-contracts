@@ -510,20 +510,23 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     // [inner * denom * period] / (capital * nxm * speed)
 
     uint prevNxm = isAbove ? previousState.nxmA : previousState.nxmB;
-    uint ratchetSpeed = isAbove ? NORMAL_RATCHET_SPEED : stateRatchetSpeed;
+    uint currentRatchetSpeed = isAbove ? NORMAL_RATCHET_SPEED : stateRatchetSpeed;
     uint bufferMultiplier = isAbove
       ? (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER)
       : (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER);
 
-    uint ethTerm = previousState.eth * supply;
-    uint nxmTerm = bufferMultiplier * capital * prevNxm / PRICE_BUFFER_DENOMINATOR;
+    uint inner;
+    {
+      uint ethTerm = previousState.eth * supply;
+      uint nxmTerm = bufferMultiplier * capital * prevNxm / PRICE_BUFFER_DENOMINATOR;
 
-    uint innerLeft = isAbove ? ethTerm : nxmTerm;
-    uint innerRight = isAbove ? nxmTerm : ethTerm;
+      uint innerLeft = isAbove ? ethTerm : nxmTerm;
+      uint innerRight = isAbove ? nxmTerm : ethTerm;
+      inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
+    }
 
-    uint inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
     uint maxTimeOnRatchet = inner != 0
-      ? (inner * RATCHET_DENOMINATOR * RATCHET_PERIOD) / (capital * prevNxm * ratchetSpeed)
+      ? (inner * RATCHET_DENOMINATOR * RATCHET_PERIOD) / (capital * prevNxm * currentRatchetSpeed)
       : 0;
 
     timeOnRatchet = Math.min(timeElapsed, maxTimeOnRatchet);

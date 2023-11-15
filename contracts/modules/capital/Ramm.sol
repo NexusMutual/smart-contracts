@@ -397,7 +397,6 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
     uint stateNxm = isAbove ? state.nxmA : state.nxmB;
     uint nxm = stateNxm * eth / state.eth;
-    uint r = elapsed * state.ratchetSpeed;
 
     uint buffer = isAbove ? PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER : PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER;
     uint bufferedCapital = context.capital * buffer / PRICE_BUFFER_DENOMINATOR;
@@ -410,9 +409,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       //   ? set n(new) = n(BV)
       //   : set n(new) = n(R)
 
-      return bufferedCapital * nxm + bufferedCapital * nxm * r / RATCHET_PERIOD / RATCHET_DENOMINATOR > eth * context.supply
+      return bufferedCapital * nxm + bufferedCapital * nxm * elapsed * NORMAL_RATCHET_SPEED / RATCHET_PERIOD / RATCHET_DENOMINATOR > eth * context.supply
         ? eth * context.supply / bufferedCapital // bv
-        : eth * nxm / (eth - context.capital * nxm * r / context.supply / RATCHET_PERIOD / RATCHET_DENOMINATOR); // ratchet
+        : eth * nxm / (eth - context.capital * nxm * elapsed * NORMAL_RATCHET_SPEED / context.supply / RATCHET_PERIOD / RATCHET_DENOMINATOR); // ratchet
     }
 
     // ratchet below
@@ -423,9 +422,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     //   ? set n(new) = n(BV)
     //   : set n(new) = n(R)
 
-    return bufferedCapital * nxm < eth * context.supply + context.capital * nxm * r / RATCHET_PERIOD / RATCHET_DENOMINATOR
+    return bufferedCapital * nxm < eth * context.supply + context.capital * nxm * elapsed * state.ratchetSpeed / RATCHET_PERIOD / RATCHET_DENOMINATOR
       ? eth * context.supply / bufferedCapital // bv
-      : eth * nxm / (eth + context.capital * nxm * r / context.supply / RATCHET_PERIOD / RATCHET_DENOMINATOR); // ratchet
+      : eth * nxm / (eth + context.capital * nxm * elapsed * state.ratchetSpeed/ context.supply / RATCHET_PERIOD / RATCHET_DENOMINATOR); // ratchet
   }
 
   function _getReserves(
@@ -511,6 +510,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     // [inner * denom * period] / (capital * nxm * speed)
 
     uint prevNxm = isAbove ? previousState.nxmA : previousState.nxmB;
+    uint ratchetSpeed = isAbove ? NORMAL_RATCHET_SPEED : stateRatchetSpeed;
     uint bufferMultiplier = isAbove
       ? (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER)
       : (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER);
@@ -523,7 +523,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
     uint inner = innerLeft > innerRight ? innerLeft - innerRight : 0;
     uint maxTimeOnRatchet = inner != 0
-      ? (inner * RATCHET_DENOMINATOR * RATCHET_PERIOD) / (capital * prevNxm * stateRatchetSpeed)
+      ? (inner * RATCHET_DENOMINATOR * RATCHET_PERIOD) / (capital * prevNxm * ratchetSpeed)
       : 0;
 
     timeOnRatchet = Math.min(timeElapsed, maxTimeOnRatchet);

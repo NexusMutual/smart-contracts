@@ -13,13 +13,13 @@ describe('loadState', function () {
     // Expected state
     const { nxmReserveA, nxmReserveB } = await ramm.slot0();
     const { ethReserve, budget, updatedAt } = await ramm.slot1();
-    const ratchetSpeed = await ramm.ratchetSpeed();
+    const ratchetSpeedB = await ramm.ratchetSpeedB();
 
     expect(state.nxmA).to.be.equal(nxmReserveA);
     expect(state.nxmB).to.be.equal(nxmReserveB);
     expect(state.eth).to.equal(ethReserve);
     expect(state.budget).to.equal(budget);
-    expect(state.ratchetSpeed).to.equal(ratchetSpeed);
+    expect(state.ratchetSpeedB).to.equal(ratchetSpeedB);
     expect(state.timestamp).to.equal(updatedAt);
   });
 });

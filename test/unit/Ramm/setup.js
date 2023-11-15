@@ -14,8 +14,8 @@ const SPOT_PRICE_B = parseEther('0.0152');
 async function getState(ramm) {
   const { nxmReserveA: nxmA, nxmReserveB: nxmB } = await ramm.slot0();
   const { ethReserve: eth, budget, updatedAt: timestamp } = await ramm.slot1();
-  const ratchetSpeed = await ramm.ratchetSpeed();
-  return { nxmA, nxmB, eth, budget, ratchetSpeed, timestamp };
+  const ratchetSpeedB = await ramm.ratchetSpeedB();
+  return { nxmA, nxmB, eth, budget, ratchetSpeedB, timestamp };
 }
 
 async function setup() {

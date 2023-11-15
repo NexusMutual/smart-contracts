@@ -118,7 +118,7 @@ describe('getInternalPrice', function () {
       nxmB: supply,
       eth: capital,
       budget: 0,
-      ratchetSpeed: parseEther('1500'),
+      ratchetSpeedB: parseEther('1500'),
       timestamp,
     };
 
@@ -169,7 +169,7 @@ describe('getInternalPrice', function () {
       nxmB: supply,
       eth: capital,
       budget: 0,
-      ratchetSpeed: parseEther('1500'),
+      ratchetSpeedB: parseEther('1500'),
       timestamp,
     };
 

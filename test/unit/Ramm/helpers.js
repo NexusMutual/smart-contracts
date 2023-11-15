@@ -38,7 +38,7 @@ function timeTillBv(
         .mul(RATCHET_PERIOD)
         .div(capital)
         .div(previousState.nxmB)
-        .div(previousState.ratchetSpeed);
+        .div(previousState.ratchetSpeedB);
 
   // above
   const innerLeftA = previousState.eth.mul(supply);

@@ -25,7 +25,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   // slot 2 & 3
   // 160 * 3 = 480 bits
   Observation[3] public observations;
-  uint24 public ratchetSpeed;
+  uint24 public ratchetSpeedB;
 
   // emergency pause
   bool public swapPaused;
@@ -96,7 +96,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       slot0.nxmReserveB,
       slot1.ethReserve,
       slot1.budget,
-      ratchetSpeed,
+      ratchetSpeedB,
       slot1.updatedAt
     );
   }
@@ -104,7 +104,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   function storeState(State memory state) internal {
 
     if (state.budget == 0) {
-      state.ratchetSpeed = NORMAL_RATCHET_SPEED.toUint32();
+      state.ratchetSpeedB = NORMAL_RATCHET_SPEED.toUint32();
     }
 
     // slot 0
@@ -114,8 +114,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     slot1.ethReserve = state.eth.toUint128();
     slot1.budget = state.budget.toUint96();
     slot1.updatedAt = state.timestamp.toUint32();
-    // ratchetSpeed
-    ratchetSpeed = state.ratchetSpeed.toUint24();
+    // ratchet speed for the below pool
+    ratchetSpeedB = state.ratchetSpeedB.toUint24();
   }
 
   /**
@@ -422,9 +422,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     //   ? set n(new) = n(BV)
     //   : set n(new) = n(R)
 
-    return bufferedCapital * nxm < eth * context.supply + context.capital * nxm * elapsed * state.ratchetSpeed / RATCHET_PERIOD / RATCHET_DENOMINATOR
+    return bufferedCapital * nxm < eth * context.supply + context.capital * nxm * elapsed * state.ratchetSpeedB / RATCHET_PERIOD / RATCHET_DENOMINATOR
       ? eth * context.supply / bufferedCapital // bv
-      : eth * nxm / (eth + context.capital * nxm * elapsed * state.ratchetSpeed/ context.supply / RATCHET_PERIOD / RATCHET_DENOMINATOR); // ratchet
+      : eth * nxm / (eth + context.capital * nxm * elapsed * state.ratchetSpeedB/ context.supply / RATCHET_PERIOD / RATCHET_DENOMINATOR); // ratchet
   }
 
   function _getReserves(
@@ -443,7 +443,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint nxmB = calculateNxm(state, eth, elapsed, context, false);
 
     return (
-      State(nxmA, nxmB, eth, budget, state.ratchetSpeed, currentTimestamp),
+      State(nxmA, nxmB, eth, budget, state.ratchetSpeedB, currentTimestamp),
       injected,
       extracted
     );
@@ -493,7 +493,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   function calculateTimeOnRatchetAndBV(
     State memory previousState,
     uint timeElapsed,
-    uint stateRatchetSpeed,
+    uint stateRatchetSpeedB,
     uint supply,
     uint capital,
     bool isAbove
@@ -510,7 +510,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     // [inner * denom * period] / (capital * nxm * speed)
 
     uint prevNxm = isAbove ? previousState.nxmA : previousState.nxmB;
-    uint currentRatchetSpeed = isAbove ? NORMAL_RATCHET_SPEED : stateRatchetSpeed;
+    uint currentRatchetSpeed = isAbove ? NORMAL_RATCHET_SPEED : stateRatchetSpeedB;
     uint bufferMultiplier = isAbove
       ? (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER)
       : (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER);
@@ -563,7 +563,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     (uint timeOnRatchet, uint timeOnBV) = calculateTimeOnRatchetAndBV(
       previousState,
       timeElapsed,
-      state.ratchetSpeed,
+      state.ratchetSpeedB,
       supply,
       capital,
       isAbove
@@ -882,7 +882,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint96 budget = INITIAL_BUDGET.toUint96();
     uint32 updatedAt = block.timestamp.toUint32();
 
-    ratchetSpeed = FAST_RATCHET_SPEED.toUint24();
+    ratchetSpeedB = FAST_RATCHET_SPEED.toUint24();
     ethLimit = INITIAL_ETH_LIMIT.toUint32();
     nxmLimit = INITIAL_NXM_LIMIT.toUint32();
 
@@ -894,7 +894,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       nxmReserveB,
       ethReserve,
       budget,
-      ratchetSpeed,
+      ratchetSpeedB,
       updatedAt
     );
 

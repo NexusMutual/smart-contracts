@@ -25,7 +25,7 @@ const INITIAL_RAMM_STATE = {
   nxmB: INITIAL_LIQUIDITY.mul(parseEther('1')).div(SPOT_PRICE_B),
   eth: INITIAL_LIQUIDITY,
   budget: INITIAL_BUDGET,
-  ratchetSpeed: FAST_RATCHET_SPEED,
+  ratchetSpeedB: FAST_RATCHET_SPEED,
 };
 
 /**
@@ -125,7 +125,7 @@ const getExpectedNxmB = (
       .lt(
         expectedEth
           .mul(supply)
-          .add(capital.mul(nxm).mul(elapsed).mul(state.ratchetSpeed).div(RATCHET_PERIOD).div(RATCHET_DENOMINATOR)),
+          .add(capital.mul(nxm).mul(elapsed).mul(state.ratchetSpeedB).div(RATCHET_PERIOD).div(RATCHET_DENOMINATOR)),
       )
   ) {
     return expectedEth.mul(supply).div(bufferedCapital);
@@ -134,7 +134,7 @@ const getExpectedNxmB = (
     .mul(nxm)
     .div(
       expectedEth.add(
-        capital.mul(nxm).mul(elapsed).mul(state.ratchetSpeed).div(supply).div(RATCHET_PERIOD).div(RATCHET_DENOMINATOR),
+        capital.mul(nxm).mul(elapsed).mul(state.ratchetSpeedB).div(supply).div(RATCHET_PERIOD).div(RATCHET_DENOMINATOR),
       ),
     );
 };

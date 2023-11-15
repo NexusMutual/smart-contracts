@@ -67,8 +67,8 @@ describe('storeState', function () {
     const EXPECTED_NORMAL_RATCHET_SPEED = 400;
     const after = await ramm.loadState();
 
-    // check storeState correctly updated ratchetSpeed
-    expect(before.ratchetSpeed).to.be.not.equal(EXPECTED_NORMAL_RATCHET_SPEED);
-    expect(after.ratchetSpeed).to.be.equal(EXPECTED_NORMAL_RATCHET_SPEED);
+    // check storeState correctly updated ratchetSpeedB
+    expect(before.ratchetSpeedB).to.be.not.equal(EXPECTED_NORMAL_RATCHET_SPEED);
+    expect(after.ratchetSpeedB).to.be.equal(EXPECTED_NORMAL_RATCHET_SPEED);
   });
 });

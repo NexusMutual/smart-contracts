@@ -38,15 +38,16 @@ describe('Storage layout', function () {
       'Governance',
       'MemberRoles',
       'ProposalCategory',
-      'MemberRoles',
       'LegacyPooledStaking',
       'TokenController',
       'LegacyGateway',
       'IndividualClaims',
       'YieldTokenIncidents',
-      'CoverMigrator',
       'Assessment',
       'Cover',
+      'CoverMigrator',
+      'StakingProducts',
+      'Ramm',
     ];
 
     // Exceptions / overrides

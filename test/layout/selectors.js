@@ -15,6 +15,7 @@ const proxyContracts = [
   'Cover',
   'CoverMigrator',
   'StakingProducts',
+  'Ramm',
 ];
 
 describe('Selector collisions', function () {

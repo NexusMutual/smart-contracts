@@ -61,38 +61,24 @@ describe('Storage layout', function () {
     //   },
     // }
     const exceptions = {
-      PooledStaking: {
-        initialized: { deleted: true },
-        token: {
-          label: 'internalContracts',
-          size: [20, 32],
-          type: ['t_address', 't_mapping(t_uint256,t_address)'],
-        },
-      },
-      MemberRoles: {
-        nxMasterAddress: {
-          label: 'internalContracts',
-          size: [20, 32],
-          type: ['t_address', 't_mapping(t_uint256,t_address_payable)'],
-        },
-        ms: { label: 'master' },
-        qd: { label: 'kycAuthAddress' },
-      },
-      Gateway: {
-        quotation: {
-          label: 'internalContracts',
-          size: [20, 32],
-          type: ['t_address', 't_mapping(t_uint256,t_address)'],
-        },
-      },
-      TokenController: {
-        nxMasterAddress: {
-          label: 'internalContracts',
-          size: [20, 32],
-          type: ['t_address', 't_mapping(t_uint256,t_address)'],
-        },
-        ms: { label: 'master' },
-      },
+      // comment left as an example, actual override list is currently empty
+      // PooledStaking: {
+      //   initialized: { deleted: true },
+      //   token: {
+      //     label: 'internalContracts',
+      //     size: [20, 32],
+      //     type: ['t_address', 't_mapping(t_uint256,t_address)'],
+      //   },
+      // },
+      // MemberRoles: {
+      //   nxMasterAddress: {
+      //     label: 'internalContracts',
+      //     size: [20, 32],
+      //     type: ['t_address', 't_mapping(t_uint256,t_address_payable)'],
+      //   },
+      //   ms: { label: 'master' },
+      //   qd: { label: 'kycAuthAddress' },
+      // },
     };
 
     contractsToCompare.forEach(contract => {

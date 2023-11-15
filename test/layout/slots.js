@@ -97,7 +97,7 @@ describe('Storage layout', function () {
 
     contractsToCompare.forEach(contract => {
       const [prevContractName, currentContractName] = [contract, contract].flat();
-      const contractBefore = previousLayout[prevContractName];
+      const contractBefore = previousLayout[prevContractName] || [];
       const contractAfter = currentLayout[currentContractName];
 
       contractBefore.forEach(varPrev => {

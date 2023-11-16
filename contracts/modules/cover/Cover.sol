@@ -784,6 +784,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return coverSegmentAllocations[coverId][segmentId].length;
   }
 
+  function segmentAllocations(uint coverId, uint segmentId) external view returns (PoolAllocation[] memory) {
+    return coverSegmentAllocations[coverId][segmentId];
+  }
+
   /* ========== COVER ASSETS HELPERS ========== */
 
   function totalActiveCoverInAsset(uint assetId) public view returns (uint) {

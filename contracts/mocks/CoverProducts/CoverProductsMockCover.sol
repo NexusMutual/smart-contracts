@@ -137,4 +137,8 @@ contract CoverProductsMockCover is ICover {
   function coverSegmentAllocationsCount(uint, uint) external pure returns (uint) {
     revert("Unsupported");
   }
+
+  function segmentAllocations(uint /* coverId */, uint /* segmentId */) external pure returns (PoolAllocation[] memory) {
+    revert("Unsupported");
+  }
 }

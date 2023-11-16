@@ -162,6 +162,8 @@ interface ICover {
 
   function coverSegmentAllocationsCount(uint coverId, uint segmentId) external view returns (uint);
 
+  function segmentAllocations(uint /* coverId */, uint /* segmentId */) external view returns (PoolAllocation[] memory);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function addLegacyCover(

@@ -33,6 +33,8 @@ contract DisposableRamm is Ramm {
     internalContracts[uint(ID.MC)] = payable(address(this));
 
     super.initialize();
+
+    swapPaused = false;
   }
 
   // fake pool functions

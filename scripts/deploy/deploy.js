@@ -625,12 +625,6 @@ async function main() {
   console.log('Deploy finished!');
 }
 
-describe('Deploy', () => {
-  it('should deploy', async () => {
-    await main();
-  });
-});
-
 if (require.main === module) {
   main()
     .then(() => process.exit(0))

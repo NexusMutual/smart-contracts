@@ -167,6 +167,8 @@ interface ICover {
     uint[] memory _capacityReductionRatios
   );
 
+  function segmentAllocations(uint coverId, uint segmentId) external view returns (PoolAllocation[] memory);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function addLegacyCover(

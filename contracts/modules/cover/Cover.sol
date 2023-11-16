@@ -69,7 +69,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   // this constant is used for calculating the normalized yearly percentage cost of cover
   uint private constant ONE_YEAR = 365 days;
 
-  uint public constant MAX_COMMISSION_RATIO = 3000; // 30%
+  uint public constant MAX_COMMISSION_RATIO = 3000; // 30%Fall
 
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
@@ -710,6 +710,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   function productTypesCount() external override view returns (uint) {
     return _productTypes.length;
+  }
+
+  function segmentAllocations(uint coverId, uint segmentId) external view returns (PoolAllocation[] memory) {
+    return coverSegmentAllocations[coverId][segmentId];
   }
 
   /* ========== PRODUCT CONFIGURATION ========== */

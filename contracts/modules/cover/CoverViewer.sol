@@ -34,7 +34,7 @@ contract CoverViewer {
     return ICover(master.contractAddresses('CO'));
   }
 
-  function getCovers(uint[] calldata coverIds) external view returns (Cover[] memory) {
+  function getCovers(uint[] calldata coverIds) public view returns (Cover[] memory) {
     Cover[] memory covers = new Cover[](coverIds.length);
     ICover _cover = cover();
 
@@ -66,6 +66,20 @@ contract CoverViewer {
       covers[i].segments = segments;
     }
     return covers;
+  }
+
+  function getCoversWithLastSegmentAllocations(uint[] calldata coverIds) external view returns (
+    Cover[] memory covers,
+    PoolAllocation[][] memory lastSegmentPoolAllocations
+  ) {
+
+    ICover _cover = cover();
+    covers = getCovers(coverIds);
+    lastSegmentPoolAllocations = new PoolAllocation[][](covers.length);
+    for (uint i = 0; i < covers.length; i++) {
+      PoolAllocation[] memory lastSegmentAllocationsForCover = _cover.segmentAllocations(coverIds[i], covers[i].segments.length);
+      lastSegmentPoolAllocations[i] = lastSegmentAllocationsForCover;
+    }
   }
 
   function getCoverSegments(uint coverId) external view returns (Segment[] memory) {

@@ -8,7 +8,7 @@ const products = require('../v2-migration/output/migratableProducts.json');
 const verifier = require('./verifier')();
 const { setEtherBalance } = require('../../test/utils').evm;
 
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero, MaxUint256, WeiPerEther } = ethers.constants;
 const { parseEther, parseUnits } = ethers.utils;
 const { ABI_DIR, ADDRESSES_FILE, INITIAL_MEMBERS = '' } = process.env;
 
@@ -22,11 +22,14 @@ if (network.name === 'tenderly' && typeof tenderly === 'undefined') {
   process.exit(1);
 }
 
-const POOL_BALANCE_ETH = parseEther('50000');
-const POOL_BALANCE_DAI = parseEther('6500000');
-const BONDING_CURVE_PRICE = parseEther('0.0347');
-const SPOT_PRICE_B = parseEther('0.0152');
-const TOKEN_SUPPLY = parseEther('1500000');
+const CAPITAL_POOL_VALUE = parseEther('146000');
+const DAI_ETH_RATE = parseEther('0.00050');
+const POOL_BALANCE_DAI = parseEther('5040000');
+const POOL_BALANCE_ETH = CAPITAL_POOL_VALUE.sub(DAI_ETH_RATE.mul(POOL_BALANCE_DAI).div(WeiPerEther));
+
+const BONDING_CURVE_PRICE = parseEther('0.0286');
+const SPOT_PRICE_B = parseEther('0.01');
+const TOKEN_SUPPLY = parseEther('6760000');
 
 const PROXY_CONTRACT = 'contracts/modules/governance/external/OwnedUpgradeabilityProxy.sol:OwnedUpgradeabilityProxy';
 
@@ -186,7 +189,7 @@ async function main() {
   );
 
   console.log('Deploying NXMToken');
-  const tk = await deployImmutable('NXMToken', [owner, parseEther('1500000')]);
+  const tk = await deployImmutable('NXMToken', [owner, TOKEN_SUPPLY]);
 
   console.log('Deploying disposable NXMaster');
   const master = await deployProxy('DisposableNXMaster');
@@ -316,7 +319,7 @@ async function main() {
       alias: 'Chainlink-DAI-ETH',
       abiFilename: 'EACAggregatorProxy',
     });
-    await chainlinkDaiMock.setLatestAnswer(parseEther('0.000357884806717390'));
+    await chainlinkDaiMock.setLatestAnswer(DAI_ETH_RATE);
     await chainlinkDaiMock.setDecimals(18);
     CHAINLINK_DAI_ETH[network.name] = chainlinkDaiMock.address;
   }
@@ -364,8 +367,8 @@ async function main() {
 
   console.log('Deploying disposable MCR');
   const disposableMCR = await deployImmutable('DisposableMCR', [
-    parseEther('50000'), // mcrEth
-    parseEther('50000'), // desiredMCR
+    parseEther('10000'), // mcrEth
+    parseEther('10000'), // desiredMCR
     (await ethers.provider.getBlock('latest')).timestamp - 60, // lastUpdateTime
     500, // maxMCRIncrement
     48000, // gearingFactor
@@ -382,7 +385,7 @@ async function main() {
   const poolParameters = [master, priceFeedOracle, swapOperator, tk, legacyPool].map(c => c.address);
   const pool = await deployImmutable('Pool', poolParameters);
 
-  console.log('Funding the Pool');
+  console.log('Funding the Pool and minting tokens');
   await setEtherBalance(pool.address, POOL_BALANCE_ETH);
   await dai.mint(pool.address, POOL_BALANCE_DAI);
 
@@ -434,7 +437,7 @@ async function main() {
       .filter(a => ethers.utils.isAddress(a)),
   ];
 
-  const initialTokens = initialMembers.map(() => parseEther('10000'));
+  const initialTokens = initialMembers.map(() => '0');
 
   await mr.initialize(
     owner,

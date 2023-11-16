@@ -22,6 +22,12 @@ if (network.name === 'tenderly' && typeof tenderly === 'undefined') {
   process.exit(1);
 }
 
+const POOL_BALANCE_ETH = parseEther('50000');
+const POOL_BALANCE_DAI = parseEther('6500000');
+const BONDING_CURVE_PRICE = parseEther('0.0347');
+const SPOT_PRICE_B = parseEther('0.0152');
+const TOKEN_SUPPLY = parseEther('1500000');
+
 const PROXY_CONTRACT = 'contracts/modules/governance/external/OwnedUpgradeabilityProxy.sol:OwnedUpgradeabilityProxy';
 
 const claimMethod = { claim: 0, incident: 1 };
@@ -268,9 +274,12 @@ async function main() {
   ]);
 
   console.log('Deploying Ramm');
-  const SPOT_PRICE_A = parseEther('0.0347').toString();
-  const SPOT_PRICE_B = parseEther('0.0152').toString();
-  const ramm = await deployProxy('Ramm', [SPOT_PRICE_A, SPOT_PRICE_B]);
+  const ramm = await deployProxy('DisposableRamm', [SPOT_PRICE_B]);
+  await ramm.initialize(
+    POOL_BALANCE_ETH, // FIXME: need to pass pool value, not just eth balance
+    TOKEN_SUPPLY, // here we don't check it actually matches, make sure it's correct
+    BONDING_CURVE_PRICE,
+  );
 
   console.log('Deploying CoverViewer');
   await deployImmutable('CoverViewer', [master.address]);
@@ -374,8 +383,8 @@ async function main() {
   const pool = await deployImmutable('Pool', poolParameters);
 
   console.log('Funding the Pool');
-  await setEtherBalance(pool.address, parseEther('50000'));
-  await dai.mint(pool.address, parseEther('6500000'));
+  await setEtherBalance(pool.address, POOL_BALANCE_ETH);
+  await dai.mint(pool.address, POOL_BALANCE_DAI);
 
   console.log('Initializing contracts');
   const replaceableContractCodes = ['MC', 'P1', 'CL'];
@@ -524,8 +533,10 @@ async function main() {
   await upgradeProxy(gv.address, 'Governance');
   await upgradeProxy(gw.address, 'LegacyGateway', [qd.address, tk.address]);
   await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
+  await upgradeProxy(ramm.address, 'Ramm', [SPOT_PRICE_B]);
 
   console.log('Transferring ownership of proxy contracts');
+  // transfer ownership to master contract
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
   await transferProxyOwnership(ps.address, master.address);
@@ -537,9 +548,8 @@ async function main() {
   await transferProxyOwnership(ci.address, master.address);
   await transferProxyOwnership(assessment.address, master.address);
   await transferProxyOwnership(ramm.address, master.address);
-  await assessment.changeDependentContractAddress();
-  await ramm.changeDependentContractAddress();
 
+  // transfer ownership to governance contract
   await transferProxyOwnership(master.address, gv.address);
 
   const verifyOnEtherscan = !['hardhat', 'localhost', 'tenderly'].includes(network.name);
@@ -614,6 +624,12 @@ async function main() {
 
   console.log('Deploy finished!');
 }
+
+describe('Deploy', () => {
+  it('should deploy', async () => {
+    await main();
+  });
+});
 
 if (require.main === module) {
   main()

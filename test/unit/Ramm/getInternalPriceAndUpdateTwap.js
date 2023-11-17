@@ -10,7 +10,7 @@ const {
   calculateInternalPrice,
   getExpectedObservations,
   setEthReserveValue,
-} = require('./helpers');
+} = require('../utils').rammCalculations;
 
 describe('getInternalPriceAndUpdateTwap', function () {
   it('should return the internal price and update the twap', async function () {

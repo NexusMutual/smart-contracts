@@ -3,8 +3,8 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
-const { calculateEthToExtract, calculateEthToInject, setEthReserveValue } = require('./helpers');
 const { setNextBlockBaseFee, setNextBlockTime, setCode } = require('../utils').evm;
+const { calculateEthToExtract, calculateEthToInject, setEthReserveValue } = require('../utils').rammCalculations;
 
 const { WeiPerEther } = ethers.constants;
 const { parseEther } = ethers.utils;

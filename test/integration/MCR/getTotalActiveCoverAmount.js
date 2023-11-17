@@ -5,14 +5,14 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { buyCover, ETH_ASSET_ID, DAI_ASSET_ID } = require('../utils/cover');
 const { stake } = require('../utils/staking');
 const { assetToEthWithPrecisionLoss } = require('../utils/assetPricing');
-const { evm, internalPrice } = require('../../utils');
+const { evm, rammCalculations } = require('../../utils');
 const { daysToSeconds } = require('../../../lib/helpers');
 const setup = require('../setup');
 
 const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { setEtherBalance, setNextBlockTime } = evm;
-const { getInternalPrice } = internalPrice;
+const { getInternalPrice } = rammCalculations;
 
 const ethCoverTemplate = {
   productId: 0, // DEFAULT_PRODUCT

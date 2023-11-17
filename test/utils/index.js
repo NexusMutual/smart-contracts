@@ -10,7 +10,7 @@ const governance = require('./governance');
 const membership = require('./membership');
 const results = require('./results');
 const errors = require('./errors');
-const internalPrice = require('./internalPrice');
+const rammCalculations = require('./rammCalculations');
 const bigNumberMath = require('./bigNumberMath');
 
 module.exports = {
@@ -26,6 +26,6 @@ module.exports = {
   membership,
   results,
   errors,
-  internalPrice,
+  rammCalculations,
   bigNumberMath,
 };

@@ -4,12 +4,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
 const { setNextBlockTime } = require('../../utils/evm');
-const {
-  calculateEthToExtract,
-  calculateEthToInject,
-  getExpectedObservations,
-  setEthReserveValue,
-} = require('./helpers');
+const { calculateEthToExtract, calculateEthToInject, getExpectedObservations, setEthReserveValue } =
+  require('../utils').rammCalculations;
 
 describe('updateTwap', function () {
   it('should update observations', async function () {
@@ -97,7 +93,7 @@ describe('updateTwap', function () {
     const nextBlockTimestamp = timestamp + 5 * 60;
 
     // Set ETH reserve > TARGET_LIQUIDITY (5000) to force extraction
-    await setEthReserveValue(ramm.address, 5001);
+    await setEthReserveValue(ramm.address, 6000);
 
     const state = await ramm.loadState();
     await setNextBlockTime(nextBlockTimestamp);

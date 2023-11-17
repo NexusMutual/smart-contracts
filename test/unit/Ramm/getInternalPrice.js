@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup, SPOT_PRICE_A, SPOT_PRICE_B } = require('./setup');
-const { calculateInternalPrice, getObservationIndex } = require('./helpers');
+const { calculateInternalPrice, getObservationIndex } = require('../utils').rammCalculations;
 const { getAccounts } = require('../utils').accounts;
 const { setEtherBalance, setNextBlockTime, mineNextBlock } = require('../utils').evm;
 const { divCeil } = require('../utils').bigNumberMath;

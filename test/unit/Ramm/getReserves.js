@@ -3,18 +3,10 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup, SPOT_PRICE_A, SPOT_PRICE_B } = require('./setup');
-const { calculateEthToExtract, calculateEthToInject } = require('./helpers');
+const { calculateEthToExtract, calculateEthToInject, setEthReserveValue } = require('../utils').rammCalculations;
 
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
-
-/**
- * Removes the '0x' prefix from a hexadecimal string if it exists.
- *
- * @param {string} hex - The hexadecimal string from which the prefix needs to be removed
- * @returns {string} - The modified hexadecimal string without the '0x' prefix
- */
-const removeHexPrefix = hex => (hex.startsWith('0x') ? hex.slice(2) : hex);
 
 const INITIAL_LIQUIDITY = parseEther('5000');
 const FAST_RATCHET_SPEED = 5000;
@@ -26,46 +18,6 @@ const INITIAL_RAMM_STATE = {
   eth: INITIAL_LIQUIDITY,
   budget: INITIAL_BUDGET,
   ratchetSpeedB: FAST_RATCHET_SPEED,
-};
-
-/**
- * Replaces a bit value in a hexadecimal string with a new value at a specific bit position.
- *
- * @param {string} origHex - The original hexadecimal string (must be 256 bits / 64 hex characters)
- * @param {string} newHexValue - The new hexadecimal value to replace with
- * @param {number} bitPosition - The position of the bit in the original string to replace
- * @return {string} The modified hexadecimal string
- */
-const replaceHexValueInBitPos = (origHex, newHexValue, bitPosition) => {
-  // Convert hex to buffers
-  const bufferOrig = Buffer.from(removeHexPrefix(origHex), 'hex');
-  const bufferNewVal = Buffer.from(removeHexPrefix(newHexValue), 'hex');
-
-  // Calculate the correct byte start position and copy the new value into the original buffer
-  const byteStart = origHex.length / 2 - bitPosition / 8;
-  bufferNewVal.copy(bufferOrig, byteStart);
-
-  return '0x' + bufferOrig.toString('hex');
-};
-
-/**
- * Sets the value of the Ether reserve in the RAMM contract.
- *
- * @async
- * @param {string} rammAddress - The address of the RAMM contract
- * @param {number} valueInEther - The value of the Ether reserve in Ether
- * @return {Promise<void>}
- */
-const setEthReserveValue = async (rammAddress, valueInEther) => {
-  const SLOT_1_POSITION = '0x3';
-  // Convert valueInEther to 128 bits wei hex value
-  const hexValueInWei = parseEther(valueInEther.toString()).toHexString();
-  const newEtherReserve = '0x' + removeHexPrefix(hexValueInWei).padStart(32, '0'); // 32 hex chars in 128 bits
-  // Get current Slot1 value
-  const slot1Value = await ethers.provider.send('eth_getStorageAt', [rammAddress, SLOT_1_POSITION]);
-  // Update Slot1 to have new ethReserve value
-  const newSlot1Value = await replaceHexValueInBitPos(slot1Value, newEtherReserve, 128);
-  return ethers.provider.send('hardhat_setStorageAt', [rammAddress, SLOT_1_POSITION, newSlot1Value]);
 };
 
 const getExpectedNxmA = (
@@ -149,9 +101,6 @@ describe('getReserves', function () {
   it('should return the current state in the pools correctly - Ratcheted value', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController } = fixture.contracts;
-
-    // Set ethReserve so it doesn't get to the book value (i.e. use ratchet)
-    await setEthReserveValue(ramm.address, 500);
 
     const state = await ramm.loadState();
     const capital = await pool.getPoolValueInEth();

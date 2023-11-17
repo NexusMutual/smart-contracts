@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setEtherBalance } = require('../../utils/evm');
-const { getInternalPrice } = require('../../utils/internalPrice');
+const { getInternalPrice } = require('../../utils/rammCalculations');
 const { ETH_ASSET_ID } = require('../utils/cover');
 const { stake } = require('../utils/staking');
 const { daysToSeconds } = require('../../../lib/helpers');

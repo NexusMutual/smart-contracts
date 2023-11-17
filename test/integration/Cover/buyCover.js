@@ -8,7 +8,7 @@ const { calculateFirstTrancheId } = require('../utils/staking');
 const { setNextBlockTime } = require('../utils').evm;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { BUCKET_DURATION } = require('../../unit/StakingPool/helpers');
-const { getInternalPrice } = require('../../utils/internalPrice');
+const { getInternalPrice } = require('../../utils/rammCalculations');
 
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;

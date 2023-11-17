@@ -362,7 +362,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     }
 
     uint injectedFast = timeLeftOnBudget * FAST_LIQUIDITY_SPEED / LIQ_SPEED_PERIOD;
-    uint injectedSlow = (elapsed - timeLeftOnBudget) * LIQ_SPEED_B * 1 ether / LIQ_SPEED_PERIOD;
+    uint injectedSlow = (elapsed - timeLeftOnBudget) * LIQ_SPEED_B / LIQ_SPEED_PERIOD;
 
     return Math.min(maxToInject, injectedFast + injectedSlow);
   }
@@ -379,7 +379,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       eth += injected;
       budget = budget > injected ? budget - injected : 0;
     } else {
-      extracted = Math.min((elapsed * LIQ_SPEED_A * 1 ether) / LIQ_SPEED_PERIOD, eth - TARGET_LIQUIDITY);
+      extracted = Math.min((elapsed * LIQ_SPEED_A) / LIQ_SPEED_PERIOD, eth - TARGET_LIQUIDITY);
       eth -= extracted;
     }
 

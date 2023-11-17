@@ -237,9 +237,7 @@ async function getExpectedObservations(
  * @return {number} The expected amount of ETH to be extracted
  */
 function calculateEthToExtract(state, timestamp, { LIQ_SPEED_A, LIQ_SPEED_PERIOD, TARGET_LIQUIDITY }) {
-  const elapsedLiquidity = LIQ_SPEED_A.mul(timestamp - state.timestamp)
-    .mul(parseEther('1'))
-    .div(LIQ_SPEED_PERIOD);
+  const elapsedLiquidity = LIQ_SPEED_A.mul(timestamp - state.timestamp).div(LIQ_SPEED_PERIOD);
   const ethToTargetLiquidity = state.eth.sub(TARGET_LIQUIDITY);
 
   return elapsedLiquidity.lt(ethToTargetLiquidity) ? elapsedLiquidity : ethToTargetLiquidity;
@@ -267,9 +265,7 @@ function calculateEthToInject(
     return injectedFast.lt(maxToInject) ? injectedFast : maxToInject;
   } else {
     const injectedFast = timeLeftOnBudget.mul(FAST_LIQUIDITY_SPEED).div(LIQ_SPEED_PERIOD);
-    const injectedSlow = LIQ_SPEED_B.mul(elapsed - timeLeftOnBudget)
-      .mul(parseEther('1'))
-      .div(LIQ_SPEED_PERIOD);
+    const injectedSlow = LIQ_SPEED_B.mul(elapsed - timeLeftOnBudget).div(LIQ_SPEED_PERIOD);
     const injectedTotal = injectedFast.add(injectedSlow);
     return maxToInject.lt(injectedTotal) ? maxToInject : injectedTotal;
   }

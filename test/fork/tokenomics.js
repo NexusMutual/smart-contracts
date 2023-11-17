@@ -20,9 +20,6 @@ const { formatEther, parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 /* ========== CONSTRUCTOR PARAMS ========== */
 
 // Ramm
-// TODO: SPOT_PRICE_A follow calculation
-// https://docs.google.com/document/d/1oRaAzPapBpNv0TmxC9XZjc24Qu0deJnzlQGEznBV1X0/edit#heading=h.o7iygzkj2m9z
-const SPOT_PRICE_A = parseEther('0.0347');
 // TODO: SPOT_PRICE_B 20% below open market price at launch
 // https://docs.google.com/document/d/1oRaAzPapBpNv0TmxC9XZjc24Qu0deJnzlQGEznBV1X0/edit#heading=h.ejqiszyf49b3
 const SPOT_PRICE_B = parseEther('0.0152');
@@ -108,12 +105,11 @@ describe('tokenomics', function () {
     const contractsBefore = await this.master.getInternalContracts();
 
     // TODO: brute force salt for RAMM proxy address on change freeze
-    // eslint-disable-next-line
-    // node scripts/create2/find-salt.js -f '0x01BFd82675DBCc7762C84019cA518e701C0cD07e' -c '0xffffffffffffffffffffffffffffffffffffffff' -t cafea OwnedUpgradeabilityProxy
+    // node scripts/create2/find-salt.js -f '0x01BFd82675DBCc7762C84019cA518e701C0cD07e' \
+    //                                   -c '0xffffffffffffffffffffffffffffffffffffffff' \
+    //                                   -t cafea OwnedUpgradeabilityProxy
     const rammCreate2Salt = 13944964;
-    this.ramm = await ethers.deployContract('Ramm', [SPOT_PRICE_A, SPOT_PRICE_B]);
-    // const rammAddress = '<ADDRESS>'; // TODO: grab from brute force address script
-    // this.ramm = await ethers.getContractAt('Ramm', rammAddress);
+    this.ramm = await ethers.deployContract('Ramm', [SPOT_PRICE_B]);
     const rammTypeAndSalt = BigNumber.from(rammCreate2Salt).shl(8).add(ContractTypes.Proxy);
 
     await submitGovernanceProposal(
@@ -154,7 +150,6 @@ describe('tokenomics', function () {
     };
 
     // MCR
-    this.mcrValueBefore = await this.mcr.getMCR();
     this.contractData.mcr.before.maxMCRIncrement = await this.mcr.maxMCRIncrement();
     this.contractData.mcr.before.gearingFactor = await this.mcr.gearingFactor();
     this.contractData.mcr.before.mcr = await this.mcr.mcr();
@@ -215,11 +210,10 @@ describe('tokenomics', function () {
 
     // LegacyGateway.sol
     this.gateway = await ethers.deployContract('LegacyGateway', [this.quotationData.address, this.nxm.address]);
-    // this.gateway = await ethers.getContractAt('LegacyGateway', '0x089Ab1536D032F54DFbC194Ba47529a4351af1B5');
 
     // MCR.sol
-    this.mcr = await ethers.deployContract('MCR', [this.master.address]);
-    // this.mcr = await getContractByContractCode('MCR', ContractCode.MCR);
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    this.mcr = await ethers.deployContract('MCR', [this.master.address, timestamp + 3600]);
 
     // Pool.sol
     this.pool = await ethers.deployContract('Pool', [
@@ -239,11 +233,9 @@ describe('tokenomics', function () {
       this.stakingPoolFactory.address,
       this.stakingPool.address,
     ]);
-    // this.cover = await getContractByContractCode('Cover', ContractCode.Cover);
 
     // Assessment.sol
     this.assessment = await ethers.deployContract('Assessment', [this.nxm.address]);
-    // this.assessment = await getContractByContractCode('Assessment', ContractCode.Assessment);
 
     // LegacyPooledStaking.sol
     this.pooledStaking = await ethers.deployContract('LegacyPooledStaking', [
@@ -252,7 +244,6 @@ describe('tokenomics', function () {
       this.stakingNFT.address,
       this.nxm.address,
     ]);
-    // this.pooledStaking = await getContractByContractCode('LegacyPooledStaking', ContractCode.PooledStaking);
 
     // TokenController.sol
     this.tokenController = await ethers.deployContract('TokenController', [
@@ -261,19 +252,15 @@ describe('tokenomics', function () {
       this.stakingPoolFactory.address,
       this.nxm.address,
     ]);
-    // this.tokenController = await getContractByContractCode('TokenController', ContractCode.TokenController);
 
     // IndividualClaims.sol
     this.individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
-    // this.individualClaims = await getContractByContractCode('IndividualClaims', ContractCode.IndividualClaims);
 
     // YieldTokenIncidents.sol
     this.yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
       this.nxm.address,
       this.coverNFT.address,
     ]);
-    // this.yieldTokenIncidents =
-    // await getContractByContractCode('YieldTokenIncidents', ContractCode.YieldTokenIncidents);
 
     const contractCodeAddressMapping = {
       [ContractCode.MCR]: this.mcr.address,
@@ -312,10 +299,6 @@ describe('tokenomics', function () {
     this.tokenController = await getContractByContractCode('TokenController', ContractCode.TokenController);
     this.individualClaims = await getContractByContractCode('IndividualClaims', ContractCode.IndividualClaims);
     this.yieldTokenIncidents = await getContractByContractCode('YieldTokenIncidents', ContractCode.YieldTokenIncidents);
-  });
-
-  it('Set RAMM master and dependent contract addresses after contracts upgrade', async function () {
-    await this.ramm.changeDependentContractAddress();
   });
 
   it('Pool value check', async function () {
@@ -371,11 +354,6 @@ describe('tokenomics', function () {
     expect(enzymeSharesBalanceDiff.abs()).to.be.lessThanOrEqual(parseEther('1'));
   });
 
-  it('MCR value check', async function () {
-    const mcrValueAfter = await this.mcr.getMCR();
-    expect(mcrValueAfter).to.be.equal(this.mcrValueBefore);
-  });
-
   it('Compares storage of upgraded MCR contract', async function () {
     this.contractData.mcr.after.maxMCRIncrement = await this.mcr.maxMCRIncrement();
     this.contractData.mcr.after.gearingFactor = await this.mcr.gearingFactor();
@@ -388,6 +366,18 @@ describe('tokenomics', function () {
     Object.entries(this.contractData.mcr.before).forEach(([key, value]) => {
       expect(this.contractData.mcr.after[key], assertionErrorMsg(key)).to.be.equal(value);
     });
+  });
+
+  it('MCR value check', async function () {
+    // set the MCR lower so the swap will work
+    await this.mcr.teleportMCR();
+
+    const expectedValue = parseEther('10000'); // hardcoded value in MCR.sol
+    const mcrValueAfterTeleport = await this.mcr.getMCR();
+    const desiredMcrValueAfterTeleport = await this.mcr.desiredMCR();
+
+    expect(mcrValueAfterTeleport).to.be.equal(expectedValue);
+    expect(desiredMcrValueAfterTeleport).to.be.equal(expectedValue);
   });
 
   it('Compares storage of upgraded Pool contract', async function () {
@@ -489,10 +479,16 @@ describe('tokenomics', function () {
     await expect(this.cover.allowedPools(1, 1)).to.be.reverted;
   });
 
-  it('Swap NXM for ETH', async function () {
-    // set the MCR lower so the swap will work
-    await this.mcr.teleportMCR();
+  it('Unpause Ramm', async function () {
+    const emergencyPauseMultisig = await this.master.emergencyAdmin();
+    await evm.impersonate(emergencyPauseMultisig);
+    const epSigner = await getSigner(emergencyPauseMultisig);
 
+    await evm.setNextBlockBaseFee(0);
+    await this.ramm.connect(epSigner).setEmergencySwapPause(false, { gasPrice: 0 });
+  });
+
+  it('Swap NXM for ETH', async function () {
     const [member] = this.abMembers;
     const nxmIn = parseEther('1');
     const minEthOut = parseEther('0.0152');

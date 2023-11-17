@@ -212,15 +212,6 @@ async function getInternalPrice(ramm, pool, tokenController, mcr, timestamp) {
   return calculateInternalPrice(currentState, observations, capital, supply, timestamp, { GRANULARITY, PERIOD_SIZE });
 }
 
-async function getRammObservation(ramm, index) {
-  const [timestamp, priceCumulativeAbove, priceCumulativeBelow] = await ramm.observations(index);
-  return {
-    timestamp,
-    priceCumulativeAbove,
-    priceCumulativeBelow,
-  };
-}
-
 /**
  * Retrieves the expected observations for the given timestamp
  *
@@ -378,7 +369,6 @@ async function setEthReserveValue(rammAddress, valueInEther) {
   const newSlot1Value = await replaceHexValueInBitPos(slot1Value, newEtherReserve, 128);
 
   await ethers.provider.send('hardhat_setStorageAt', [rammAddress, SLOT_1_POSITION, newSlot1Value]);
-  const slot1ValueAfter = await ethers.provider.send('eth_getStorageAt', [rammAddress, SLOT_1_POSITION]);
 }
 
 module.exports = {

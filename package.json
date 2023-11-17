@@ -55,7 +55,7 @@
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-promise": "^6.0.1",
     "eslint-plugin-standard": "^5.0.0",
-    "hardhat": "^2.13.0",
+    "hardhat": "^2.19.1",
     "hardhat-contract-sizer": "^2.8.0",
     "hardhat-tracer": "^2.1.2",
     "ipfs-http-client": "^47.0.1",

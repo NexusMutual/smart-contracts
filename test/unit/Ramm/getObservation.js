@@ -41,8 +41,8 @@ describe('getObservation', function () {
       const observationIndex = idx.mod(3).toNumber();
       const timeElapsed = observationTimestamp.sub(previousTimestamp);
 
-      priceCumulativeAbove = priceCumulativeAbove.add(initialPriceA.mul(timeElapsed).div(1e9));
-      priceCumulativeBelow = priceCumulativeBelow.add(initialPriceB.mul(timeElapsed).div(1e9));
+      priceCumulativeAbove = priceCumulativeAbove.add(initialPriceA.mul(timeElapsed));
+      priceCumulativeBelow = priceCumulativeBelow.add(initialPriceB.mul(timeElapsed));
 
       expectedObservations[observationIndex] = {
         timestamp: observationTimestamp,
@@ -60,6 +60,7 @@ describe('getObservation', function () {
       expect(observations[i].priceCumulativeBelow).to.be.equal(expectedObservations[i].priceCumulativeBelow);
     }
   });
+
   it('should do underflow/overflow sanity check for get observation', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController, mcr } = fixture.contracts;
@@ -112,10 +113,10 @@ describe('getObservation', function () {
     const observation = await ramm.getObservation(previousState, state, previousObservation, capital, supply);
 
     expect(observation.priceCumulativeBelow).to.equal(
-      previousObservation.priceCumulativeBelow.add(priceCumulativeBelow.mod(BigNumber.from(2).pow(64))),
+      previousObservation.priceCumulativeBelow.add(priceCumulativeBelow.mod(BigNumber.from(2).pow(112))),
     );
     expect(observation.priceCumulativeAbove).to.equal(
-      previousObservation.priceCumulativeAbove.add(priceCumulativeAbove.mod(BigNumber.from(2).pow(64))),
+      previousObservation.priceCumulativeAbove.add(priceCumulativeAbove.mod(BigNumber.from(2).pow(112))),
     );
   });
 });

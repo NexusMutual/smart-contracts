@@ -68,16 +68,14 @@ function calculateTwapAboveForPeriod(
     .mul(timeOnRatchet)
     .div(previousState.nxmA)
     .div(state.nxmA)
-    .div(2)
-    .div(1e9);
+    .div(2);
 
   const twapOnBV = parseEther('1')
     .mul(timeOnBV)
     .mul(capital)
     .mul(PRICE_BUFFER_DENOMINATOR.add(PRICE_BUFFER))
     .div(supply)
-    .div(PRICE_BUFFER_DENOMINATOR)
-    .div(1e9);
+    .div(PRICE_BUFFER_DENOMINATOR);
 
   return twapOnRatchet.add(twapOnBV);
 }
@@ -99,16 +97,14 @@ function calculateTwapBelowForPeriod(
     .mul(timeOnRatchet)
     .div(previousState.nxmB)
     .div(state.nxmB)
-    .div(2)
-    .div(1e9);
+    .div(2);
 
   const twapOnBV = parseEther('1')
     .mul(timeOnBV)
     .mul(capital)
     .mul(PRICE_BUFFER_DENOMINATOR.sub(PRICE_BUFFER))
     .div(supply)
-    .div(PRICE_BUFFER_DENOMINATOR)
-    .div(1e9);
+    .div(PRICE_BUFFER_DENOMINATOR);
 
   return twapOnRatchet.add(twapOnBV);
 }
@@ -140,10 +136,10 @@ function calculateObservation(state, previousState, previousObservation, capital
     timestamp: timeElapsed.add(previousObservation.timestamp),
     priceCumulativeAbove: previousObservation.priceCumulativeAbove
       .add(priceCumulativeAbove)
-      .mod(BigNumber.from(2).pow(64)),
+      .mod(BigNumber.from(2).pow(112)),
     priceCumulativeBelow: previousObservation.priceCumulativeBelow
       .add(priceCumulativeBelow)
-      .mod(BigNumber.from(2).pow(64)),
+      .mod(BigNumber.from(2).pow(112)),
   };
 }
 
@@ -160,15 +156,9 @@ function calculateInternalPrice(currentState, observations, capital, supply, cur
   const spotPriceA = parseEther('1').mul(currentState.eth).div(currentState.nxmA);
   const spotPriceB = parseEther('1').mul(currentState.eth).div(currentState.nxmB);
 
-  const averagePriceA = currentObservation.priceCumulativeAbove
-    .sub(firstObservation.priceCumulativeAbove)
-    .mul(1e9)
-    .div(elapsed);
+  const averagePriceA = currentObservation.priceCumulativeAbove.sub(firstObservation.priceCumulativeAbove).div(elapsed);
 
-  const averagePriceB = currentObservation.priceCumulativeBelow
-    .sub(firstObservation.priceCumulativeBelow)
-    .mul(1e9)
-    .div(elapsed);
+  const averagePriceB = currentObservation.priceCumulativeBelow.sub(firstObservation.priceCumulativeBelow).div(elapsed);
 
   const priceA = averagePriceA.gt(spotPriceA) ? spotPriceA : averagePriceA;
   const priceB = averagePriceB.gt(spotPriceB) ? averagePriceB : spotPriceB;

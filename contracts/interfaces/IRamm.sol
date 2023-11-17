@@ -21,8 +21,8 @@ struct Slot1 {
 
 struct Observation {
   uint32 timestamp;
-  uint64 priceCumulativeAbove;
-  uint64 priceCumulativeBelow;
+  uint112 priceCumulativeAbove;
+  uint112 priceCumulativeBelow;
 }
 
 // memory structs
@@ -96,7 +96,7 @@ interface IRamm {
 
   event EthSwappedForNxm(address indexed member, uint ethIn, uint nxmOut);
   event NxmSwappedForEth(address indexed member, uint nxmIn, uint ethOut);
-  event ObservationUpdated(uint32 timestamp, uint64 priceCumulativeAbove, uint64 priceCumulativeBelow);
+  event ObservationUpdated(uint32 timestamp, uint112 priceCumulativeAbove, uint112 priceCumulativeBelow);
   event BudgetRemoved();
   event SwapPauseConfigured(bool paused);
   event EthInjected(uint value);

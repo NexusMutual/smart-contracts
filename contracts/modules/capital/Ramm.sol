@@ -46,7 +46,6 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   uint public constant PRICE_BUFFER_DENOMINATOR = 10_000;
   uint public constant GRANULARITY = 3;
   uint public constant PERIOD_SIZE = 3 days;
-  uint public constant ACCUMULATOR_PRECISION = 1e9;
 
   uint public constant FAST_LIQUIDITY_SPEED = 1_500 ether;
   uint public constant TARGET_LIQUIDITY = 5_000 ether;
@@ -572,12 +571,12 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     if (timeOnRatchet != 0) {
       uint prevNxm = isAbove ? previousState.nxmA : previousState.nxmB;
       uint currentNxm = isAbove ? state.nxmA : state.nxmB;
-      cumulativePrice += 1 ether * (previousState.eth * currentNxm + state.eth * prevNxm) * timeOnRatchet / (prevNxm * currentNxm * 2 * ACCUMULATOR_PRECISION);
+      cumulativePrice += 1 ether * (previousState.eth * currentNxm + state.eth * prevNxm) * timeOnRatchet / (prevNxm * currentNxm * 2);
     }
 
     if (timeOnBV != 0) {
       uint bufferMultiplier = isAbove ? (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) : (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER);
-      cumulativePrice += 1 ether * timeOnBV * capital * bufferMultiplier / (supply * PRICE_BUFFER_DENOMINATOR * ACCUMULATOR_PRECISION);
+      cumulativePrice += 1 ether * timeOnBV * capital * bufferMultiplier / (supply * PRICE_BUFFER_DENOMINATOR);
     }
 
     return cumulativePrice;
@@ -614,8 +613,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     return Observation(
       state.timestamp.toUint32(),
       // casting unsafely to allow overflow
-      uint64(priceCumulativeAbove + previousObservation.priceCumulativeAbove),
-      uint64(priceCumulativeBelow + previousObservation.priceCumulativeBelow)
+      uint112(priceCumulativeAbove + previousObservation.priceCumulativeAbove),
+      uint112(priceCumulativeBelow + previousObservation.priceCumulativeBelow)
     );
   }
 
@@ -635,13 +634,13 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       uint observationIndex = idx % GRANULARITY;
       uint timeElapsed = observationTimestamp - previousTimestamp;
 
-      priceCumulativeAbove += initialPriceA * timeElapsed / ACCUMULATOR_PRECISION;
-      priceCumulativeBelow += initialPriceB * timeElapsed / ACCUMULATOR_PRECISION;
+      priceCumulativeAbove += initialPriceA * timeElapsed;
+      priceCumulativeBelow += initialPriceB * timeElapsed;
 
       initialObservations[observationIndex] = Observation(
         observationTimestamp.toUint32(),
-        uint64(priceCumulativeAbove),
-        uint64(priceCumulativeBelow)
+        uint112(priceCumulativeAbove),
+        uint112(priceCumulativeBelow)
       );
       previousTimestamp = observationTimestamp;
     }
@@ -803,8 +802,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     // underflow is desired
     unchecked {
       uint elapsed = timestamp - firstObservation.timestamp;
-      uint averagePriceA = uint(currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) * ACCUMULATOR_PRECISION / elapsed;
-      uint averagePriceB = uint(currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) * ACCUMULATOR_PRECISION / elapsed;
+      uint averagePriceA = uint(currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) / elapsed;
+      uint averagePriceB = uint(currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) / elapsed;
 
       // keeping min/max inside unchecked scope to avoid stack too deep error
       uint priceA = Math.min(averagePriceA, spotPriceA);

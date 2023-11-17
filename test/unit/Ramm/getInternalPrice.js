@@ -96,7 +96,7 @@ describe('getInternalPrice', function () {
     const bondingCurve = await pool.getTokenPrice();
     const internalPrice = await ramm.getInternalPrice();
 
-    expect(internalPrice.sub(bondingCurve).abs()).to.be.lte(1e9); // 1e9 is the accumulator precision
+    expect(internalPrice).to.be.equal(bondingCurve);
   });
 
   it('should return the max internal price (300% BV)', async function () {
@@ -130,14 +130,14 @@ describe('getInternalPrice', function () {
     });
     observations[previousIdx] = {
       timestamp: previousTimestamp,
-      priceCumulativeAbove: parseEther('1').mul(state.eth).mul(PERIOD_SIZE).div(state.nxmA).div(1e9),
+      priceCumulativeAbove: parseEther('1').mul(state.eth).mul(PERIOD_SIZE).div(state.nxmA),
       priceCumulativeBelow: 0,
     };
     observations[currentIdx] = {
       timestamp,
-      priceCumulativeAbove: observations[previousIdx].priceCumulativeAbove
-        .add(parseEther('1').mul(state.eth).mul(timestamp.sub(previousTimestamp)).div(state.nxmA))
-        .div(1e9),
+      priceCumulativeAbove: observations[previousIdx].priceCumulativeAbove.add(
+        parseEther('1').mul(state.eth).mul(timestamp.sub(previousTimestamp)).div(state.nxmA),
+      ),
       priceCumulativeBelow: 0,
     };
 

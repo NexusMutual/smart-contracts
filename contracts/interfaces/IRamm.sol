@@ -15,7 +15,7 @@ struct Slot0 {
 
 struct Slot1 {
   uint128 ethReserve;
-  uint96 budget;
+  uint88 budget;
   uint32 updatedAt;
 }
 

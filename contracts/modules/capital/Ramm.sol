@@ -22,13 +22,13 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   Slot0 public slot0;
   Slot1 public slot1;
 
-  // slot 2 & 3
+  // emergency pause
+  // technically still inside slot 1
+  bool public swapPaused;
+
+  // one slot per array item
   // 160 * 3 = 480 bits
   Observation[3] public observations;
-  uint24 public ratchetSpeedB;
-
-  // emergency pause
-  bool public swapPaused;
 
   // slot 4
   // circuit breakers
@@ -95,26 +95,21 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       slot0.nxmReserveB,
       slot1.ethReserve,
       slot1.budget,
-      ratchetSpeedB,
+      slot1.budget == 0 ? NORMAL_RATCHET_SPEED : FAST_RATCHET_SPEED,
       slot1.updatedAt
     );
   }
 
   function storeState(State memory state) internal {
 
-    if (state.budget == 0) {
-      state.ratchetSpeedB = NORMAL_RATCHET_SPEED.toUint32();
-    }
-
     // slot 0
     slot0.nxmReserveA = state.nxmA.toUint128();
     slot0.nxmReserveB = state.nxmB.toUint128();
+
     // slot 1
     slot1.ethReserve = state.eth.toUint128();
-    slot1.budget = state.budget.toUint96();
+    slot1.budget = state.budget.toUint88();
     slot1.updatedAt = state.timestamp.toUint32();
-    // ratchet speed for the below pool
-    ratchetSpeedB = state.ratchetSpeedB.toUint24();
   }
 
   /**
@@ -214,6 +209,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     if (injected > 0) {
       emit EthInjected(injected);
     }
+
     if (extracted > 0) {
       emit EthExtracted(extracted);
     }
@@ -238,7 +234,12 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   /**
    * @dev should only be called by swap
    */
-  function swapNxmForEth(uint nxmIn, uint minAmountOut, Context memory context) internal returns (uint ethOut) {
+  function swapNxmForEth(
+    uint nxmIn,
+    uint minAmountOut,
+    Context memory context
+  ) internal returns (uint ethOut) {
+
     State memory initialState = loadState();
     Observation[3] memory _observations = observations;
 
@@ -278,6 +279,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     if (injected > 0) {
       emit EthInjected(injected);
     }
+
     if (extracted > 0) {
       emit EthExtracted(extracted);
     }
@@ -878,10 +880,10 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint128 nxmReserveA = (INITIAL_LIQUIDITY * 1 ether / initialPriceA).toUint128();
     uint128 nxmReserveB = (INITIAL_LIQUIDITY * 1 ether / SPOT_PRICE_B).toUint128();
     uint128 ethReserve = INITIAL_LIQUIDITY.toUint128();
-    uint96 budget = INITIAL_BUDGET.toUint96();
+    uint88 budget = INITIAL_BUDGET.toUint88();
+    uint ratchetSpeedB = FAST_RATCHET_SPEED;
     uint32 updatedAt = block.timestamp.toUint32();
 
-    ratchetSpeedB = FAST_RATCHET_SPEED.toUint24();
     ethLimit = INITIAL_ETH_LIMIT.toUint32();
     nxmLimit = INITIAL_NXM_LIMIT.toUint32();
 

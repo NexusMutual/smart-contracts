@@ -48,7 +48,7 @@ async function getTotalActiveCoverAmountSetup() {
     await dai.connect(daiHolder).approve(cover.address, MaxUint256);
   }
 
-  await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
+  await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('100000'));
   await tk.connect(member1).approve(tc.address, MaxUint256);
   await stake({
     stakingPool,
@@ -134,6 +134,7 @@ describe('getTotalActiveCoverAmount', function () {
     const [coverBuyer] = fixture.accounts.members;
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
     const priceDenominator = fixture.config.TARGET_PRICE_DENOMINATOR;
+    const PERIOD_SIZE = await ra.PERIOD_SIZE();
 
     const { config, rates } = fixture;
     const { daiToEthRate } = rates;
@@ -148,21 +149,21 @@ describe('getTotalActiveCoverAmount', function () {
     const expectedEthCoverAmount1 = await assetToEthWithPrecisionLoss(ethAmount, 0, config, nxmPriceInEth1);
 
     // ETH cover 2
-    const nextBlockTimestamp2 = await getNextBlockTimestampByPeriodSize(ra);
+    const nextBlockTimestamp2 = nextBlockTimestamp1 + PERIOD_SIZE.toNumber();
     const nxmPriceInEth2 = await getInternalPrice(ra, p1, tc, mcr, nextBlockTimestamp2);
     await setNextBlockTime(nextBlockTimestamp2);
     await buyCover({ ...ethCoverTemplate, cover, coverBuyer, targetPrice, priceDenominator });
     const expectedEthCoverAmount2 = await assetToEthWithPrecisionLoss(ethAmount, 0, config, nxmPriceInEth2);
 
     // DAI cover 1
-    const nextBlockTimestamp3 = await getNextBlockTimestampByPeriodSize(ra);
+    const nextBlockTimestamp3 = nextBlockTimestamp2 + PERIOD_SIZE.toNumber();
     const nxmPriceInEth3 = await getInternalPrice(ra, p1, tc, mcr, nextBlockTimestamp3);
     await setNextBlockTime(nextBlockTimestamp3);
     await buyCover({ ...daiCoverTemplate, cover, coverBuyer, targetPrice, priceDenominator });
     const expectedDaiCoverAmount1 = await assetToEthWithPrecisionLoss(daiAmount, daiToEthRate, config, nxmPriceInEth3);
 
     // DAI cover 2
-    const nextBlockTimestamp4 = await getNextBlockTimestampByPeriodSize(ra);
+    const nextBlockTimestamp4 = nextBlockTimestamp3 + PERIOD_SIZE.toNumber();
     const nxmPriceInEth4 = await getInternalPrice(ra, p1, tc, mcr, nextBlockTimestamp4);
     await setNextBlockTime(nextBlockTimestamp4);
     await buyCover({ ...daiCoverTemplate, cover, coverBuyer, targetPrice, priceDenominator });

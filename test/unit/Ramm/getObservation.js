@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { getState, setup } = require('./setup');
+const { setup } = require('./setup');
 const { timeTillBv, calculateTwapAboveForPeriod, calculateTwapBelowForPeriod, divCeil } = require('./helpers');
 const { parseEther } = require('ethers/lib/utils');
 
@@ -79,7 +79,11 @@ describe('getObservation', function () {
       ? maxTimeOnRatchetA.add(PERIOD_SIZE)
       : maxTimeOnRatchetB.add(PERIOD_SIZE);
 
-    const [state] = await ramm._getReserves(previousState, context, previousState.timestamp + timeElapsed.toNumber());
+    const [state] = await ramm._getReserves(
+      previousState,
+      context,
+      timeElapsed.add(previousState.timestamp).toNumber(),
+    );
 
     const previousObservationIndex = Math.ceil(previousState.timestamp.toNumber() / PERIOD_SIZE) % GRANULARITY;
     const previousObservation = await ramm.observations(previousObservationIndex);

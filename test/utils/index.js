@@ -11,6 +11,7 @@ const membership = require('./membership');
 const results = require('./results');
 const errors = require('./errors');
 const internalPrice = require('./internalPrice');
+const bigNumberMath = require('./bigNumberMath');
 
 module.exports = {
   addresses,
@@ -26,4 +27,5 @@ module.exports = {
   results,
   errors,
   internalPrice,
+  bigNumberMath,
 };

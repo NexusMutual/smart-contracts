@@ -3,14 +3,7 @@ const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 
-function divCeil(a, b) {
-  a = BigNumber.from(a);
-  let result = a.div(b);
-  if (!a.mod(b).isZero()) {
-    result = result.add(1);
-  }
-  return result;
-}
+const { divCeil, min, max } = require('./bigNumberMath');
 
 function getObservationIndex(timestamp, { PERIOD_SIZE, GRANULARITY }) {
   return divCeil(timestamp, PERIOD_SIZE).mod(GRANULARITY);
@@ -45,7 +38,11 @@ function calculateInternalPrice(currentState, observations, capital, supply, cur
   const priceA = averagePriceA.gt(spotPriceA) ? spotPriceA : averagePriceA;
   const priceB = averagePriceB.gt(spotPriceB) ? averagePriceB : spotPriceB;
 
-  return priceA.add(priceB).sub(parseEther('1').mul(capital).div(supply));
+  const internalPrice = priceA.add(priceB).sub(parseEther('1').mul(capital).div(supply));
+  const maxPrice = parseEther('1').mul(3).mul(capital).div(supply); // 300% BV
+  const minPrice = parseEther('1').mul(35).mul(capital).div(supply).div(100); // 35% BV
+
+  return max(min(internalPrice, maxPrice), minPrice);
 }
 
 function timeTillBv(
@@ -185,34 +182,9 @@ function calculateObservation(state, previousState, previousObservation, capital
   };
 }
 
-function calculateInternalPrice(currentState, observations, capital, supply, currentTimestamp, constants) {
-  const { GRANULARITY } = constants;
-  const currentIdx = getObservationIndex(BigNumber.from(currentTimestamp), constants);
-  const previousIdx = currentIdx.add(1).mod(GRANULARITY);
-
-  const firstObservation = observations[previousIdx.toNumber()];
-  const currentObservation = observations[currentIdx.toNumber()];
-
-  const elapsed = BigNumber.from(currentTimestamp).sub(firstObservation.timestamp);
-
-  const spotPriceA = parseEther('1').mul(currentState.eth).div(currentState.nxmA);
-  const spotPriceB = parseEther('1').mul(currentState.eth).div(currentState.nxmB);
-
-  const averagePriceA = currentObservation.priceCumulativeAbove
-    .sub(firstObservation.priceCumulativeAbove)
-    .mul(1e9)
-    .div(elapsed);
-
-  const averagePriceB = currentObservation.priceCumulativeBelow
-    .sub(firstObservation.priceCumulativeBelow)
-    .mul(1e9)
-    .div(elapsed);
-
-  const priceA = averagePriceA.gt(spotPriceA) ? spotPriceA : averagePriceA;
-  const priceB = averagePriceB.gt(spotPriceB) ? averagePriceB : spotPriceB;
-  return priceA.add(priceB).sub(parseEther('1').mul(capital).div(supply));
-}
-
+/**
+ * Calculates the expected internal NXM price in ETH
+ */
 async function getInternalPrice(ramm, pool, tokenController, mcr, timestamp) {
   const capital = await pool.getPoolValueInEth();
   const supply = await tokenController.totalSupply();
@@ -257,7 +229,7 @@ async function getRammObservation(ramm, index) {
  * @param {Contract} pool - The pool contract
  * @param {Contract} tokenController - The token controller contract
  * @param {Contract} mcr - The MCR contract
- * @param {Object} fixtureConstants - The fixture constants object
+ * @param {Object} constants - The fixture constants object
  * @param {number} currentTimestamp - The current timestamp
  * @return {Promise<Array>} Array of observations containing timestamp, priceCumulativeBelow, and priceCumulativeAbove
  */
@@ -270,14 +242,7 @@ const getExpectedObservations = async (
   constants,
   currentTimestamp,
 ) => {
-  const {
-    PERIOD_SIZE,
-    GRANULARITY,
-    PRICE_BUFFER,
-    PRICE_BUFFER_DENOMINATOR,
-    RATCHET_DENOMINATOR,
-    RATCHET_PERIOD,
-  } = constants;
+  const { PERIOD_SIZE, GRANULARITY } = constants;
   const capital = await pool.getPoolValueInEth();
   const supply = await tokenController.totalSupply();
   const mcrValue = await mcr.getMCR();
@@ -297,7 +262,15 @@ const getExpectedObservations = async (
     }
     const state = await ramm._getReserves(previousState, capital, supply, mcrValue, observationTimestamp);
     const elapsed = BigNumber.from(observationTimestamp - previousState.timestamp);
-    const observationData = calculateObservation(state, previousState, previousObservation, capital, supply, elapsed, constants);
+    const observationData = calculateObservation(
+      state,
+      previousState,
+      previousObservation,
+      capital,
+      supply,
+      elapsed,
+      constants,
+    );
 
     observationsAfterExpected[observationIndex] = {
       timestamp: observationTimestamp,
@@ -310,38 +283,10 @@ const getExpectedObservations = async (
   }
 
   return observationsAfterExpected;
-}
-
-/**
- * Calculates the expected internal NXM price in ETH
- */
-async function getInternalPrice(ramm, pool, tc, mcr, timestamp) {
-  const capital = await pool.getPoolValueInEth();
-  const supply = await tc.totalSupply();
-  const mcrValue = await mcr.getMCR();
-  const GRANULARITY = await ramm.GRANULARITY();
-  const PERIOD_SIZE = await ramm.PERIOD_SIZE();
-
-  const previousState = await ramm.loadState();
-  const observations = await getExpectedObservations(previousState, ramm, pool, tc, mcr, BigNumber.from(timestamp));
-  const currentState = await ramm._getReserves(previousState, capital, supply, mcrValue, timestamp);
-
-  return calculateInternalPrice(currentState, observations, capital, supply, timestamp, { GRANULARITY, PERIOD_SIZE });
-}
+};
 
 module.exports = {
   divCeil,
-  getObservationIndex,
-  calculateInternalPrice,
-  timeTillBv,
-  calculateTwapAboveForPeriod,
-  calculateTwapBelowForPeriod,
-  calculateObservation,
-  calculateInternalPrice,
-  getObservationIndex,
-  divCeil,
   getInternalPrice,
   getExpectedObservations,
-  // getInternalPrice,
 };
-

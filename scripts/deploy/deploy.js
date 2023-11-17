@@ -191,6 +191,9 @@ async function main() {
   console.log('Deploying NXMToken');
   const tk = await deployImmutable('NXMToken', [owner, TOKEN_SUPPLY]);
 
+  console.log('Deploying wNXM');
+  await deployImmutable('wNXM', [tk.address]);
+
   console.log('Deploying disposable NXMaster');
   const master = await deployProxy('DisposableNXMaster');
 

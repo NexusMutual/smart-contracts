@@ -22,10 +22,6 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   Slot0 public slot0;
   Slot1 public slot1;
 
-  // emergency pause
-  // technically still inside slot 1
-  bool public swapPaused;
-
   // one slot per array item
   // 160 * 3 = 480 bits
   Observation[3] public observations;
@@ -64,24 +60,6 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   /* ========== IMMUTABLES ========== */
 
   uint internal immutable SPOT_PRICE_B;
-
-  /* ========== MODIFIERS ========== */
-
-  /**
-   * @dev Checks if both system and swap is not on emergency pause
-   */
-  modifier whenSwapNotPaused {
-
-    if (master.isPause()) {
-      revert SystemPaused();
-    }
-
-    if (swapPaused) {
-      revert SwapPaused();
-    }
-
-    _;
-  }
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -123,7 +101,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint nxmIn,
     uint minAmountOut,
     uint deadline
-  ) external payable whenSwapNotPaused nonReentrant returns (uint) {
+  ) external payable nonReentrant returns (uint) {
 
     if (msg.value > 0 && nxmIn > 0) {
       revert OneInputOnly();
@@ -143,9 +121,19 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       mcr().getMCR() // mcr
     );
 
+    State memory initialState = loadState();
+
+    if (master.isPause()) {
+      revert SystemPaused();
+    }
+
+    if (slot1.swapPaused) {
+      revert SwapPaused();
+    }
+
     uint amountOut = msg.value > 0
-      ? swapEthForNxm(msg.value, minAmountOut, context)
-      : swapNxmForEth(nxmIn, minAmountOut, context);
+      ? swapEthForNxm(msg.value, minAmountOut, context, initialState)
+      : swapNxmForEth(nxmIn, minAmountOut, context, initialState);
 
     if (msg.value > 0) {
       nxmReleased = (nxmReleased + amountOut).toUint96();
@@ -170,10 +158,10 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   function swapEthForNxm(
     uint ethIn,
     uint minAmountOut,
-    Context memory context
+    Context memory context,
+    State memory initialState
   ) internal returns (uint nxmOut) {
 
-    State memory initialState = loadState();
     Observation[3] memory _observations = observations;
 
     // current state
@@ -237,10 +225,10 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   function swapNxmForEth(
     uint nxmIn,
     uint minAmountOut,
-    Context memory context
+    Context memory context,
+    State memory initialState
   ) internal returns (uint ethOut) {
 
-    State memory initialState = loadState();
     Observation[3] memory _observations = observations;
 
     // current state
@@ -311,7 +299,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
    * @param _swapPaused to toggle swap emergency pause ON/OFF
    */
   function setEmergencySwapPause(bool _swapPaused) external onlyEmergencyAdmin {
-    swapPaused = _swapPaused;
+    slot1.swapPaused = _swapPaused;
     emit SwapPauseConfigured(_swapPaused);
   }
 
@@ -888,7 +876,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     nxmLimit = INITIAL_NXM_LIMIT.toUint32();
 
     // start paused
-    swapPaused = true;
+    slot1.swapPaused = true;
 
     State memory state = State(
       nxmReserveA,

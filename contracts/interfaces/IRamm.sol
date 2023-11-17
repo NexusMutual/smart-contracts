@@ -17,6 +17,7 @@ struct Slot1 {
   uint128 ethReserve;
   uint88 budget;
   uint32 updatedAt;
+  bool swapPaused; // emergency pause
 }
 
 struct Observation {

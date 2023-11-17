@@ -284,15 +284,15 @@ function removeHexPrefix(hex) {
  * @return {Promise<void>}
  */
 async function setEthReserveValue(rammAddress, valueInEther) {
-  const SLOT_1_POSITION = '0x4';
+  const SLOT_POSITION = '0x4';
   // Convert valueInEther to 128 bits wei hex value
   const hexValueInWei = parseEther(valueInEther.toString()).toHexString();
   const newEtherReserve = '0x' + removeHexPrefix(hexValueInWei).padStart(32, '0'); // 32 hex chars in 128 bits
   // Get current Slot1 value
-  const slot1Value = await ethers.provider.send('eth_getStorageAt', [rammAddress, SLOT_1_POSITION]);
+  const slot1Value = await ethers.provider.send('eth_getStorageAt', [rammAddress, SLOT_POSITION]);
   // Update Slot1 to have new ethReserve value
-  const newSlot1Value = await replaceHexValueInBitPos(slot1Value, newEtherReserve, 128);
-  return ethers.provider.send('hardhat_setStorageAt', [rammAddress, SLOT_1_POSITION, newSlot1Value]);
+  const newSlot1Value = replaceHexValueInBitPos(slot1Value, newEtherReserve, 128);
+  return ethers.provider.send('hardhat_setStorageAt', [rammAddress, SLOT_POSITION, newSlot1Value]);
 }
 
 /**

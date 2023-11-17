@@ -47,22 +47,13 @@ describe('storeState', function () {
   it('should update ratchetSpeed to NORMAL_RATCHET_SPEED if budget is 0', async function () {
     const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;
-    const [member] = fixture.accounts.members;
     const [governance] = fixture.accounts.governanceContracts;
+
+    const before = await ramm.loadState();
 
     // set budget to 0
     const governanceSigner = await ethers.provider.getSigner(governance.address);
     await ramm.connect(governanceSigner).removeBudget();
-    const before = await ramm.loadState();
-
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    const deadline = timestamp + 60 * 60;
-
-    // do a swap to trigger storeState
-    const ethIn = parseEther('1');
-    const minAmountOut = parseEther('28');
-    const tx = await ramm.connect(member).swap(0, minAmountOut, deadline, { value: ethIn });
-    await tx.wait();
 
     const EXPECTED_NORMAL_RATCHET_SPEED = 400;
     const after = await ramm.loadState();

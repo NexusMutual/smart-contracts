@@ -90,6 +90,14 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     slot1.updatedAt = state.timestamp.toUint32();
   }
 
+  function ratchetSpeedB() external view returns (uint) {
+    return slot1.budget == 0 ? NORMAL_RATCHET_SPEED : FAST_RATCHET_SPEED;
+  }
+
+  function swapPaused() external view returns (bool) {
+    return slot1.swapPaused;
+  }
+
   /**
    * @notice Swaps nxmIn tokens for ETH or ETH sent for NXM tokens
    * @param nxmIn The amount of NXM tokens to swap (set to 0 when swapping ETH for NXM)
@@ -869,7 +877,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint128 nxmReserveB = (INITIAL_LIQUIDITY * 1 ether / SPOT_PRICE_B).toUint128();
     uint128 ethReserve = INITIAL_LIQUIDITY.toUint128();
     uint88 budget = INITIAL_BUDGET.toUint88();
-    uint ratchetSpeedB = FAST_RATCHET_SPEED;
+    uint _ratchetSpeedB = FAST_RATCHET_SPEED;
     uint32 updatedAt = block.timestamp.toUint32();
 
     ethLimit = INITIAL_ETH_LIMIT.toUint32();
@@ -883,7 +891,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       nxmReserveB,
       ethReserve,
       budget,
-      ratchetSpeedB,
+      _ratchetSpeedB,
       updatedAt
     );
 

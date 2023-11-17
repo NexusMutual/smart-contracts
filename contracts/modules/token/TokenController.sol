@@ -166,7 +166,10 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   * @param _amount number of tokens to mint
   */
   function _mint(address _member, uint _amount) internal {
-    require(token.whiteListed(_member), "TokenController: Address is not a member");
+    require(
+      _member == address(this) || token.whiteListed(_member),
+      "TokenController: Address is not a member"
+    );
     token.mint(_member, _amount);
   }
 

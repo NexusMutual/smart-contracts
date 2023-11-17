@@ -6,8 +6,9 @@ const { calculateFirstTrancheId } = require('../utils/staking');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { buyCover, ETH_ASSET_ID } = require('../utils/cover');
 const { setNextBlockTime } = require('../utils').evm;
+const { divCeil } = require('../utils').bigNumberMath;
 const { getInternalPrice } = require('../../utils/internalPrice');
-const { divCeil, roundUpToNearestAllocationUnit } = require('../../unit/StakingPool/helpers');
+const { roundUpToNearestAllocationUnit } = require('../../unit/StakingPool/helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 

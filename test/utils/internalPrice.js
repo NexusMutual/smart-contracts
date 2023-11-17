@@ -286,7 +286,6 @@ const getExpectedObservations = async (
 };
 
 module.exports = {
-  divCeil,
   getInternalPrice,
   getExpectedObservations,
 };

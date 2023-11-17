@@ -3,9 +3,10 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
-const { timeTillBv, calculateTwapAboveForPeriod, calculateTwapBelowForPeriod, divCeil } = require('./helpers');
-const { parseEther } = require('ethers/lib/utils');
+const { timeTillBv, calculateTwapAboveForPeriod, calculateTwapBelowForPeriod } = require('./helpers');
+const { divCeil } = require('../utils').bigNumberMath;
 
+const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 
 describe('getObservation', function () {

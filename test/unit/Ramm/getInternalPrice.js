@@ -2,10 +2,11 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { getState, setup, SPOT_PRICE_A, SPOT_PRICE_B } = require('./setup');
-const { calculateInternalPrice, getObservationIndex, divCeil } = require('./helpers');
+const { setup, SPOT_PRICE_A, SPOT_PRICE_B } = require('./setup');
+const { calculateInternalPrice, getObservationIndex } = require('./helpers');
 const { getAccounts } = require('../utils').accounts;
 const { setEtherBalance, setNextBlockTime, mineNextBlock } = require('../utils').evm;
+const { divCeil } = require('../utils').bigNumberMath;
 const { hex } = require('../../../lib/helpers');
 
 const { parseEther } = ethers.utils;

@@ -1,18 +1,10 @@
 const { ethers } = require('hardhat');
+const { divCeil } = require('../utils').bigNumberMath;
 
 const {
   BigNumber,
   utils: { parseEther },
 } = ethers;
-
-function divCeil(a, b) {
-  a = BigNumber.from(a);
-  let result = a.div(b);
-  if (!a.mod(b).isZero()) {
-    result = result.add(1);
-  }
-  return result;
-}
 
 function getObservationIndex(timestamp, { PERIOD_SIZE, GRANULARITY }) {
   return divCeil(timestamp, PERIOD_SIZE).mod(GRANULARITY);
@@ -340,14 +332,10 @@ module.exports = {
   timeTillBv,
   calculateTwapAboveForPeriod,
   calculateTwapBelowForPeriod,
-  calculateObservation,
   calculateInternalPrice,
   getObservationIndex,
-  divCeil,
   getExpectedObservations,
   calculateEthToExtract,
   calculateEthToInject,
-  removeHexPrefix,
   setEthReserveValue,
-  replaceHexValueInBitPos,
 };

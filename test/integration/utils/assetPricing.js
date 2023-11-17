@@ -1,12 +1,12 @@
 const { BigNumber } = require('ethers');
-const { roundUpToNearestAllocationUnit, divCeil } = require('../../unit/StakingPool/helpers');
+const { divCeil } = require('../utils').bigNumberMath;
+const { roundUpToNearestAllocationUnit } = require('../../unit/StakingPool/helpers');
 
 // Set assetToEthRate to 0 for ETH
 async function assetToEthWithPrecisionLoss(coverAmountInAsset, assetToEthRate, config, nxmEthPrice) {
   let expectedAmountETH = coverAmountInAsset;
 
   // convert to ETH if there is an exchange rate
-
   if (!BigNumber.from(assetToEthRate).isZero()) {
     expectedAmountETH = roundUpToNearestAllocationUnit(
       BigNumber.from(assetToEthRate).mul(coverAmountInAsset).div(config.ONE_NXM),

@@ -125,7 +125,7 @@ describe('basic functionality tests', function () {
 
     const latestAddresses = {};
     const master = this.master;
-    const nxmAddress = this.nxm.address;
+
     async function getLatestAddress(contractCode) {
       if (!latestAddresses[contractCode]) {
         latestAddresses[contractCode] = await master.getLatestAddress(toUtf8Bytes(contractCode));

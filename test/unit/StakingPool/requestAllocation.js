@@ -17,7 +17,7 @@ const {
 } = require('./helpers');
 const setup = require('./setup');
 
-const { divCeil } = require('../utils').bigNumberMath;
+const { divCeil } = require('../utils').bnMath;
 const { increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 

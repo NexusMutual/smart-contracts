@@ -3,7 +3,7 @@ const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 
-const { divCeil, min, max } = require('./bigNumberMath');
+const { divCeil, min, max } = require('./bnMath');
 
 function getObservationIndex(timestamp, { PERIOD_SIZE, GRANULARITY }) {
   return divCeil(timestamp, PERIOD_SIZE).mod(GRANULARITY);

@@ -11,7 +11,7 @@ const membership = require('./membership');
 const results = require('./results');
 const errors = require('./errors');
 const rammCalculations = require('./rammCalculations');
-const bigNumberMath = require('./bigNumberMath');
+const bnMath = require('./bnMath');
 
 module.exports = {
   addresses,
@@ -27,5 +27,5 @@ module.exports = {
   results,
   errors,
   rammCalculations,
-  bigNumberMath,
+  bnMath,
 };

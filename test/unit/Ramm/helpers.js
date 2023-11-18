@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { divCeil } = require('../utils').bigNumberMath;
+const { divCeil } = require('../utils').bnMath;
 
 const {
   BigNumber,

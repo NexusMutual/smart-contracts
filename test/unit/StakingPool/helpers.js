@@ -3,7 +3,7 @@ const { expect } = require('chai');
 
 const { setNextBlockTime, mineNextBlock } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
-const { divCeil } = require('../utils').bigNumberMath;
+const { divCeil } = require('../utils').bnMath;
 
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;

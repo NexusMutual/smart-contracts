@@ -1,5 +1,5 @@
 const { BigNumber } = require('ethers');
-const { divCeil } = require('../utils').bigNumberMath;
+const { divCeil } = require('../utils').bnMath;
 const { roundUpToNearestAllocationUnit } = require('../../unit/StakingPool/helpers');
 
 // Set assetToEthRate to 0 for ETH

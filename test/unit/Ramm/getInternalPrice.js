@@ -6,7 +6,7 @@ const { setup, SPOT_PRICE_A, SPOT_PRICE_B } = require('./setup');
 const { calculateInternalPrice, getObservationIndex } = require('../utils').rammCalculations;
 const { getAccounts } = require('../utils').accounts;
 const { setEtherBalance, setNextBlockTime, mineNextBlock } = require('../utils').evm;
-const { divCeil } = require('../utils').bigNumberMath;
+const { divCeil } = require('../utils').bnMath;
 const { hex } = require('../../../lib/helpers');
 
 const { parseEther } = ethers.utils;

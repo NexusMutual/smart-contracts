@@ -4,7 +4,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
 const { timeTillBv, calculateTwapAboveForPeriod, calculateTwapBelowForPeriod } = require('../utils').rammCalculations;
-const { divCeil } = require('../utils').bigNumberMath;
+const { divCeil } = require('../utils').bnMath;
 
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;

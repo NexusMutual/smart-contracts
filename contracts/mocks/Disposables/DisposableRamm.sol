@@ -34,7 +34,7 @@ contract DisposableRamm is Ramm {
 
     super.initialize();
 
-    swapPaused = false;
+    slot1.swapPaused = false;
   }
 
   // fake pool functions

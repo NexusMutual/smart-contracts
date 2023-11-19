@@ -80,6 +80,7 @@ describe('tokenomics', function () {
     this.individualClaims = await ethers.getContractAt('IndividualClaims', V2Addresses.IndividualClaims);
     this.quotationData = await ethers.getContractAt('LegacyQuotationData', V2Addresses.LegacyQuotationData);
     this.newClaimsReward = await ethers.getContractAt('LegacyClaimsReward', V2Addresses.LegacyClaimsReward);
+    this.proposalCategory = await ethers.getContractAt('ProposalCategory', V2Addresses.ProposalCategory);
     this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', V2Addresses.StakingPoolFactory);
     this.yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', V2Addresses.YieldTokenIncidents);
 
@@ -568,4 +569,6 @@ describe('tokenomics', function () {
     expect(after.nxmSupply).to.be.equal(before.nxmSupply.add(nxmReceived)); // nxmOut is minted
     expect(after.nxmBalance).to.be.equal(before.nxmBalance.add(nxmOut)); // member receives NXM
   });
+
+  require('./basic-functionality-tests');
 });

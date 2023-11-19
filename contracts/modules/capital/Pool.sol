@@ -64,7 +64,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     address _previousPool
   ) {
     master = INXMMaster(_master);
-    priceFeedOracle = IPriceFeedOracle(_priceOracle);
     nxmToken = INXMToken(_nxmTokenAddress);
     swapOperator = _swapOperator;
 
@@ -76,6 +75,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     for (uint i = 0; i < previousAssets.length; i++) {
 
       address assetAddress = previousAssets[i].assetAddress;
+
       assets.push(
         Asset(
           previousAssets[i].assetAddress,
@@ -91,9 +91,11 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
           previousSwapDetails.maxAmount,
           previousSwapDetails.lastSwapTime,
           previousSwapDetails.maxSlippageRatio
-      );
+        );
       }
     }
+
+    setPriceFeedOracle(IPriceFeedOracle(_priceOracle));
   }
 
   receive() external payable {}
@@ -414,6 +416,18 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     }
   }
 
+  function setPriceFeedOracle(IPriceFeedOracle _priceFeedOracle) internal {
+    uint assetCount = assets.length;
+
+    // start from 1 (0 is ETH and doesn't need an oracle)
+    for (uint i = 1; i < assetCount; i++) {
+      (Aggregator aggregator,) = _priceFeedOracle.assets(assets[i].assetAddress);
+      require(address(aggregator) != address(0), "Pool: Oracle lacks asset");
+    }
+
+    priceFeedOracle = _priceFeedOracle;
+  }
+
   function updateUintParameters(bytes8 /* code */, uint /* value */) external view onlyGovernance {
     revert("Pool: Unknown parameter");
   }
@@ -429,16 +443,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     }
 
     if (code == "PRC_FEED") {
-
-      uint assetCount = assets.length;
-
-      // start from 1 (0 is ETH and doesn't need an oracle)
-      for (uint i = 1; i < assetCount; i++) {
-        (Aggregator aggregator,) = IPriceFeedOracle(value).assets(assets[i].assetAddress);
-        require(address(aggregator) != address(0), "Pool: Oracle lacks asset");
-      }
-
-      priceFeedOracle = IPriceFeedOracle(value);
+      setPriceFeedOracle(IPriceFeedOracle(value));
       return;
     }
 

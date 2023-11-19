@@ -57,11 +57,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token = INXMToken(tokenAddress);
   }
 
-  // TODO: one-time use function, remove after v2 launch
-  function unlistClaimsReward() external {
-    token.removeFromWhiteList(claimsReward);
-  }
-
   /* ========== DEPENDENCIES ========== */
 
   function pooledStaking() internal view returns (IPooledStaking) {

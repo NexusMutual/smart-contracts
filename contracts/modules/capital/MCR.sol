@@ -6,10 +6,8 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IMCR.sol";
-import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
-import "../../interfaces/IQuotationData.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 

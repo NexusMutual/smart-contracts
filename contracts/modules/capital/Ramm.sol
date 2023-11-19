@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMCR.sol";
-import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IRamm.sol";
 import "../../interfaces/ITokenController.sol";

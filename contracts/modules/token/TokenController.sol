@@ -3,7 +3,6 @@
 pragma solidity ^0.8.18;
 
 import "../../interfaces/IAssessment.sol";
-import "../../interfaces/ICover.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";

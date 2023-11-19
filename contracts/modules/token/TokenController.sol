@@ -15,7 +15,6 @@ import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "./external/LockHandler.sol";
-import "../../interfaces/IRamm.sol";
 
 contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   using SafeUintCast for uint;
@@ -67,10 +66,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     return IAssessment(internalContracts[uint(ID.AS)]);
   }
 
-  function cover() internal view returns (ICover) {
-    return ICover(internalContracts[uint(ID.CO)]);
-  }
-
   function governance() internal view returns (IGovernance) {
     return IGovernance(internalContracts[uint(ID.GV)]);
   }
@@ -79,17 +74,11 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     return IPool(internalContracts[uint(ID.P1)]);
   }
 
-  function ramm() internal view returns (IRamm) {
-    return IRamm(internalContracts[uint(ID.RA)]);
-  }
-
   function changeDependentContractAddress() public override {
     internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
-    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.GV)] = master.getLatestAddress("GV");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
-    internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
   }
 
   /**

@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
-const { setNextBlockTime } = require('../../utils/evm');
+const { setNextBlockTime, mineNextBlock, setAutomine } = require('../../utils/evm');
 const { calculateEthToExtract, calculateEthToInject, getExpectedObservations, setEthReserveValue } =
   require('../utils').rammCalculations;
 
@@ -100,5 +100,26 @@ describe('updateTwap', function () {
 
     const expectedExtracted = calculateEthToExtract(state, nextBlockTimestamp, fixture.constants);
     await expect(ramm.updateTwap()).to.emit(ramm, 'EthExtracted').withArgs(expectedExtracted);
+  });
+
+  it('should exit early when called a second time in the same block', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm } = fixture.contracts;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    await setNextBlockTime(timestamp + 5 * 60);
+
+    await setAutomine(false);
+    const firstUpdate = await ramm.updateTwap();
+    const secondUpdate = await ramm.updateTwap();
+    await mineNextBlock();
+    await setAutomine(true);
+
+    const traceConfig = { disableMemory: true, disableStack: true, disableStorage: true };
+    const firstTrace = await ethers.provider.send('debug_traceTransaction', [firstUpdate.hash, traceConfig]);
+    const secondTrace = await ethers.provider.send('debug_traceTransaction', [secondUpdate.hash, traceConfig]);
+
+    expect(firstTrace.structLogs.filter(i => i.op === 'SSTORE').length).to.be.gt(0);
+    expect(secondTrace.structLogs.filter(i => i.op === 'SSTORE').length).to.be.eq(0);
   });
 });

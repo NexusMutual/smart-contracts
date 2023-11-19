@@ -195,6 +195,14 @@ describe('tokenomics', function () {
     this.contractData.individualClaims.before.claim1 = await this.individualClaims.claims(1);
     this.contractData.individualClaims.before.claimSubm1 = await this.individualClaims.lastClaimSubmissionOnCover(1);
 
+    // YieldTokenIncidents
+    const ytcConfig = await this.yieldTokenIncidents.config();
+    this.contractData.yieldTokenIncidents.before.payoutRedemptionPeriodInDays = ytcConfig.payoutRedemptionPeriodInDays;
+    this.contractData.yieldTokenIncidents.before.expectedPayoutRatio = ytcConfig.expectedPayoutRatio;
+    this.contractData.yieldTokenIncidents.before.payoutDeductibleRatio = ytcConfig.payoutDeductibleRatio;
+    this.contractData.yieldTokenIncidents.before.maxRewardInNXMWad = ytcConfig.maxRewardInNXMWad;
+    this.contractData.yieldTokenIncidents.before.rewardRatio = ytcConfig.rewardRatio;
+
     // TokenController
     this.contractData.tokenController.before.coverInfo1 = await this.tokenController.coverInfo(1);
     this.contractData.tokenController.before.stakingPoolNXMBal1 = await this.tokenController.stakingPoolNXMBalances(1);
@@ -453,6 +461,17 @@ describe('tokenomics', function () {
   });
 
   it('Compares storage of upgrade YieldTokenIncidents contract', async function () {
+    const ytcConfig = await this.yieldTokenIncidents.config();
+    this.contractData.yieldTokenIncidents.after.payoutRedemptionPeriodInDays = ytcConfig.payoutRedemptionPeriodInDays;
+    this.contractData.yieldTokenIncidents.after.expectedPayoutRatio = ytcConfig.expectedPayoutRatio;
+    this.contractData.yieldTokenIncidents.after.payoutDeductibleRatio = ytcConfig.payoutDeductibleRatio;
+    this.contractData.yieldTokenIncidents.after.maxRewardInNXMWad = ytcConfig.maxRewardInNXMWad;
+    this.contractData.yieldTokenIncidents.after.rewardRatio = ytcConfig.rewardRatio;
+
+    Object.entries(this.contractData.yieldTokenIncidents.before).forEach(([key, value]) => {
+      expect(this.contractData.yieldTokenIncidents.after[key], assertionErrorMsg(key)).to.be.deep.equal(value);
+    });
+
     await expect(this.yieldTokenIncidents.incidents(0)).to.be.reverted; // empty storage
   });
 

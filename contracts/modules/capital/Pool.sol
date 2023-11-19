@@ -97,10 +97,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     }
   }
 
-  // TODO: consider removing the fallback function and only use receive() to avoid phantom functions
-  // https://media.dedaub.com/phantom-functions-and-the-billion-dollar-no-op-c56f062ae49f
-  fallback() external payable {}
-
   receive() external payable {}
 
   /* ========== ASSET RELATED VIEW FUNCTIONS ========== */

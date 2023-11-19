@@ -23,11 +23,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   Slot1 public slot1;
 
   // one slot per array item
-  // 160 * 3 = 480 bits
   Observation[3] public observations;
 
-  // slot 4
-  // circuit breakers
+  // circuit breakers slot
   uint96 public ethReleased;
   uint32 public ethLimit;
   uint96 public nxmReleased;
@@ -48,8 +46,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   uint public constant LIQ_SPEED_A = 100 ether;
   uint public constant LIQ_SPEED_B = 100 ether;
   uint public constant NORMAL_RATCHET_SPEED = 400;
+  uint public constant FAST_RATCHET_SPEED = 5_000;
 
-  uint internal constant FAST_RATCHET_SPEED = 5_000;
   uint internal constant INITIAL_LIQUIDITY = 5_000 ether;
   uint internal constant INITIAL_BUDGET = 43_835 ether;
 

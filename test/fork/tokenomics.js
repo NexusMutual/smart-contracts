@@ -11,6 +11,7 @@ const {
   getSigner,
   submitGovernanceProposal,
 } = require('./utils');
+const { INVALID_ARRAY_ACCESS } = require('../utils').errors;
 const { ContractTypes, ContractCode, ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const evm = require('./evm')();
 
@@ -498,7 +499,18 @@ describe('tokenomics', function () {
     await expect(this.cover.allowedPools(1, 1)).to.be.reverted;
   });
 
-  it('Unpause Ramm', async function () {
+  it('Test emergency pause and unpause Ramm', async function () {
+    const { timestamp } = await ethers.provider.getBlock('latest');
+
+    await expect(
+      this.ramm.swap(
+        parseEther('1'), // nxm in
+        0, // min out
+        timestamp + 5 * 60, // deadline
+        { maxPriorityFeePerGas: 0 },
+      ),
+    ).to.be.revertedWithCustomError(this.ramm, 'SwapPaused');
+
     const emergencyPauseMultisig = await this.master.emergencyAdmin();
     await evm.impersonate(emergencyPauseMultisig);
     const epSigner = await getSigner(emergencyPauseMultisig);
@@ -517,12 +529,13 @@ describe('tokenomics', function () {
     const deadline = timestamp + 5 * 60;
 
     await evm.setNextBlockBaseFee(0);
-    await this.ramm.connect(member).swap(nxmIn, minEthOut, deadline, { maxPriorityFeePerGas: 0 });
+    const tx = await this.ramm.connect(member).swap(nxmIn, minEthOut, deadline, { maxPriorityFeePerGas: 0 });
+    const receipt = await tx.wait();
 
     const after = await getCapitalSupplyAndBalances(this.pool, this.tokenController, this.nxm, member._address);
     const ethReceived = after.ethBalance.sub(before.ethBalance);
     const nxmSwappedForEthFilter = this.ramm.filters.NxmSwappedForEth(member.address);
-    const nxmSwappedForEthEvents = await this.ramm.queryFilter(nxmSwappedForEthFilter, -1);
+    const nxmSwappedForEthEvents = await this.ramm.queryFilter(nxmSwappedForEthFilter, receipt.blockNumber);
     const ethOut = nxmSwappedForEthEvents[0]?.args?.ethOut;
 
     expect(after.nxmBalance).to.be.equal(before.nxmBalance.sub(nxmIn)); // member sends NXM
@@ -541,12 +554,13 @@ describe('tokenomics', function () {
     const deadline = timestamp + 5 * 60;
 
     await evm.setNextBlockBaseFee(0);
-    await this.ramm.connect(member).swap(0, minNxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+    const tx = await this.ramm.connect(member).swap(0, minNxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+    const receipt = await tx.wait();
 
     const after = await getCapitalSupplyAndBalances(this.pool, this.tokenController, this.nxm, member._address);
     const nxmReceived = after.nxmBalance.sub(before.nxmBalance);
     const nxmTransferFilter = this.nxm.filters.Transfer(ethers.constants.AddressZero, member._address);
-    const nxmTransferEvents = await this.nxm.queryFilter(nxmTransferFilter, -1);
+    const nxmTransferEvents = await this.nxm.queryFilter(nxmTransferFilter, receipt.blockNumber);
     const nxmOut = nxmTransferEvents[0]?.args?.value;
 
     expect(after.ethBalance).to.be.equal(before.ethBalance.sub(ethIn)); // member sends ETH

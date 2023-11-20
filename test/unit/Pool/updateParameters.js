@@ -61,7 +61,7 @@ describe('updateAddressParameters', function () {
 
     await expect(
       pool.connect(governanceContract).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address),
-    ).to.be.revertedWith('Pool: Oracle lacks asset');
+    ).to.be.revertedWith('Pool: PriceFeedOracle lacks aggregator for asset');
   });
 
   it('should revert when called with a PRC_FEED oracle parameter that lacks a cover asset', async function () {
@@ -76,7 +76,7 @@ describe('updateAddressParameters', function () {
 
     await expect(
       pool.connect(governanceContract).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address),
-    ).to.be.revertedWith('Pool: Oracle lacks asset');
+    ).to.be.revertedWith('Pool: PriceFeedOracle lacks aggregator for asset');
   });
 
   it('should correctly update the address parameters', async function () {

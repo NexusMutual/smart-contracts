@@ -95,7 +95,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       }
     }
 
-    setPriceFeedOracle(IPriceFeedOracle(_priceOracle));
+    _setPriceFeedOracle(IPriceFeedOracle(_priceOracle));
   }
 
   receive() external payable {}
@@ -171,7 +171,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     require(_maxSlippageRatio <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
 
     (Aggregator aggregator,) = priceFeedOracle.assets(assetAddress);
-    require(address(aggregator) != address(0), "Pool: Asset lacks oracle");
+    require(address(aggregator) != address(0), "Pool: PriceFeedOracle lacks aggregator for asset");
 
     // Check whether the new asset already exists as a cover asset
     uint assetCount = assets.length;
@@ -416,13 +416,13 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     }
   }
 
-  function setPriceFeedOracle(IPriceFeedOracle _priceFeedOracle) internal {
+  function _setPriceFeedOracle(IPriceFeedOracle _priceFeedOracle) internal {
     uint assetCount = assets.length;
 
     // start from 1 (0 is ETH and doesn't need an oracle)
     for (uint i = 1; i < assetCount; i++) {
       (Aggregator aggregator,) = _priceFeedOracle.assets(assets[i].assetAddress);
-      require(address(aggregator) != address(0), "Pool: Oracle lacks asset");
+      require(address(aggregator) != address(0), "Pool: PriceFeedOracle lacks aggregator for asset");
     }
 
     priceFeedOracle = _priceFeedOracle;
@@ -443,7 +443,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     }
 
     if (code == "PRC_FEED") {
-      setPriceFeedOracle(IPriceFeedOracle(value));
+      _setPriceFeedOracle(IPriceFeedOracle(value));
       return;
     }
 

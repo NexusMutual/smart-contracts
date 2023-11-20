@@ -44,7 +44,7 @@ describe('upgradeCapitalPool', function () {
 
     const newPool = await Pool.deploy(
       defaultSender.address,
-      AddressZero,
+      priceFeedOracle.address,
       AddressZero, // we do not test swaps here
       token.address,
       pool.address,
@@ -112,7 +112,7 @@ describe('upgradeCapitalPool', function () {
 
     const newPool = await Pool.deploy(
       defaultSender.address,
-      AddressZero,
+      priceFeedOracle.address,
       AddressZero, // we do not test swaps here
       token.address,
       pool.address,

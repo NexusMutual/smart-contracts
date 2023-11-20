@@ -48,16 +48,17 @@ async function updateMCRSetup() {
     stakingPool,
     staker: member1,
     productId: newEthCoverTemplate.productId,
-    period: daysToSeconds(60),
+    period: daysToSeconds(187),
     gracePeriod: daysToSeconds(90),
-    amount: parseEther('1000000'),
+    amount: parseEther('10000000000'),
   });
   await stake({
     stakingPool,
     staker: member1,
     productId: 2,
-    period: daysToSeconds(60),
+    period: daysToSeconds(187),
     gracePeriod: daysToSeconds(90),
+    amount: parseEther('10000000000'),
   });
   expect(await mcr.getTotalActiveCoverAmount()).to.be.equal(0);
 
@@ -179,19 +180,13 @@ describe('updateMCR', function () {
     );
   });
 
-  it.skip('increases desiredMCR if totalSumAssured is high enough', async function () {
+  it('increases desiredMCR', async function () {
     const fixture = await loadFixture(updateMCRSetup);
     const { mcr, cover } = fixture.contracts;
 
     const [coverHolder] = fixture.accounts.members;
 
-    await mcr.getTotalActiveCoverAmount();
-    const gearingFactor = await mcr.gearingFactor();
-    const currentMCR = await mcr.getMCR();
-
-    const coverAmount = BigNumber.from(gearingFactor)
-      .mul(currentMCR.add(parseEther('300')))
-      .div(ratioScale);
+    const coverAmount = parseEther('1');
 
     // buy cover
     const newCoverBuyParams = {
@@ -207,30 +202,27 @@ describe('updateMCR', function () {
     });
 
     const lastUpdateTimeBefore = await mcr.lastUpdateTime();
-    const mcrFloorBefore = await mcr.mcrFloor();
     await increaseTime(await mcr.minUpdateTime());
     await mcr.updateMCR();
 
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const lastUpdateTimeAfter = await mcr.lastUpdateTime();
-    const mcrFloorAfter = await mcr.mcrFloor();
+
     const desireMCRAfter = await mcr.desiredMCR();
-    const expectedDesiredMCR = coverAmount.mul(ratioScale).div(gearingFactor);
+    const gearingFactor = await mcr.gearingFactor();
+    const getTotalActiveCoverAmount = await mcr.getTotalActiveCoverAmount();
+
+    const expectedDesiredMCR = getTotalActiveCoverAmount.mul(ratioScale).div(gearingFactor);
 
     expect(lastUpdateTimeBefore).to.be.lt(lastUpdateTimeAfter);
     expect(lastUpdateTimeAfter).to.be.equal(currentTime);
-    expect(mcrFloorAfter).to.be.gt(
-      mcrFloorBefore,
-      `MCR floor post update ${mcrFloorAfter.toString()} is not greater than before ${mcrFloorBefore.toString()}`,
-    );
-    // TODO: this assertion is off
     expect(desireMCRAfter).to.be.equal(expectedDesiredMCR);
   });
 
-  it.skip('claim payout triggers updateMCR and sets desiredMCR to mcrFloor (sumAssured = 0)', async function () {
+  it('claim payout triggers updateMCR and sets desiredMCR to mcrFloor (sumAssured = 0)', async function () {
     const fixture = await loadFixture(updateMCRSetup);
     // [todo] test with new contracts that call sendPayout
-    const { mcr, ic: claims, as, cover } = fixture.contracts;
+    const { mcr, ci: claims, as, cover } = fixture.contracts;
     const [coverHolder, member1] = fixture.accounts.members;
 
     const gearingFactor = BigNumber.from(await mcr.gearingFactor());
@@ -254,33 +246,35 @@ describe('updateMCR', function () {
       ...newCoverBuyParams,
     });
 
+    const coverId = await cover.coverDataCount();
+    const [segment] = await cover.coverSegments(coverId);
+
     // Update MCR
     await increaseTime(await mcr.minUpdateTime());
     await mcr.updateMCR();
-
     // Claim for full amount and accept it
-    await claims
-      .connect(coverHolder)
-      .submitClaim(expectedCoverId, 0, newCoverBuyParams.amount, '', { value: parseEther('100') });
+    await claims.connect(coverHolder).submitClaim(expectedCoverId, 0, segment.amount, '', { value: parseEther('100') });
     const assessmentId = 0;
+    const claimId = 0;
     const assessmentStakingAmount = parseEther('1000');
+
     await acceptClaim({ staker: member1, assessmentStakingAmount, as, assessmentId });
 
-    // Update MCR
-    await mcr.updateMCR();
+    // Burn tokens and update MCR
+    await claims.connect(coverHolder).redeemClaimPayout(claimId);
 
     const { timestamp: expectedUpdateTime } = await ethers.provider.getBlock('latest');
     const lastUpdateTime = await mcr.lastUpdateTime();
-    const mcrFloor = await mcr.mcrFloor();
     const desiredMCR = await mcr.desiredMCR();
+
+    expect(desiredMCR).to.be.equal(0);
     expect(lastUpdateTime).to.be.equal(expectedUpdateTime);
-    expect(desiredMCR).to.be.equal(mcrFloor);
   });
 
-  it.skip('incidents.redeemPayout triggers updateMCR', async function () {
+  it('incidents.redeemPayout triggers updateMCR', async function () {
     const fixture = await loadFixture(updateMCRSetup);
     // [todo] test with new contracts that call sendPayout
-    const { ybETH, dai, as, cover, yc, gv, mcr } = fixture.contracts;
+    const { ybETH, dai, as, cover, cg, gv, mcr } = fixture.contracts;
     const [coverHolder] = fixture.accounts.members;
 
     // buy cover
@@ -305,7 +299,7 @@ describe('updateMCR', function () {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       const gvSigner = await ethers.getImpersonatedSigner(gv.address);
       await setEtherBalance(gvSigner.address, ethers.utils.parseEther('1'));
-      await yc
+      await cg
         .connect(gvSigner)
         .submitIncident(
           newCoverBuyParams.productId,
@@ -332,14 +326,14 @@ describe('updateMCR', function () {
     // 500 ETH  /  2 ETH/ybETH  =  1000 ybETH
     const tokenAmount = parseEther('1').mul(sumAssured).div(priceBefore);
     await ybETH.mint(coverHolder.address, parseEther('1000000000'));
-    await ybETH.connect(coverHolder).approve(yc.address, MaxUint256);
+    await ybETH.connect(coverHolder).approve(cg.address, MaxUint256);
     const coverId = 1;
     const incidentId = 0;
 
     // Redeem payout
     // gas price set to 0 so we can know the payout exactly
     await setNextBlockBaseFee(0);
-    await yc
+    await cg
       .connect(coverHolder)
       .redeemPayout(incidentId, coverId, 0 /* segmentId */, tokenAmount, coverHolder.address, [], { gasPrice: 0 });
     const block = await ethers.provider.getBlock('latest');

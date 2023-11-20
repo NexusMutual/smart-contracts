@@ -163,7 +163,7 @@ describe('burnStake', function () {
     }
   });
 
-  it.skip('should perform a burn with globalCapacityRatio when the cover was bought', async function () {
+  it('should perform a burn with globalCapacityRatio when the cover was bought', async function () {
     const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [internal] = fixture.accounts.internalContracts;

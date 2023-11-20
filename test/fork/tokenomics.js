@@ -210,6 +210,7 @@ describe('tokenomics', function () {
     this.contractData.cover.before.activeCover1 = await this.cover.activeCover(1);
     this.contractData.cover.before.productNames1 = await this.cover.productNames(1);
     this.contractData.cover.before.productTypeNames1 = await this.cover.productTypeNames(1);
+    this.contractData.cover.before.allowedPool100 = await this.cover.allowedPools(100, 0);
   });
 
   it('Upgrade existing contracts', async function () {
@@ -487,6 +488,7 @@ describe('tokenomics', function () {
     this.contractData.cover.after.activeCover1 = await this.cover.activeCover(1);
     this.contractData.cover.after.productNames1 = await this.cover.productNames(1);
     this.contractData.cover.after.productTypeNames1 = await this.cover.productTypeNames(1);
+    this.contractData.cover.after.allowedPool100 = await this.cover.allowedPools(100, 0);
 
     Object.entries(this.contractData.cover.after).forEach(([key, value]) => {
       expect(this.contractData.cover.after[key], assertionErrorMsg(key)).to.be.deep.equal(value);
@@ -494,7 +496,6 @@ describe('tokenomics', function () {
 
     // Empty storage
     await expect(this.cover.coverSegmentAllocations(1, 1, 1)).to.be.reverted;
-    await expect(this.cover.allowedPools(1, 1)).to.be.reverted;
   });
 
   it('Test emergency pause and unpause Ramm', async function () {

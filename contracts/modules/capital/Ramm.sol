@@ -52,7 +52,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
   // circuit breakers
   uint internal constant INITIAL_ETH_LIMIT = 22_000;
-  uint internal constant INITIAL_NXM_LIMIT = 500_000;
+  uint internal constant INITIAL_NXM_LIMIT = 250_000;
 
   /* ========== IMMUTABLES ========== */
 

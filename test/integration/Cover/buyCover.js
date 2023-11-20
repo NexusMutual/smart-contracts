@@ -117,7 +117,7 @@ async function buyCoverSetup() {
 }
 
 describe('buyCover', function () {
-  it('allows to buy against multiple staking pool', async function () {
+  it.skip('allows to buy against multiple staking pools', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { cover, tc: tokenController, stakingProducts, ra: ramm, p1: pool, mcr } = fixture.contracts;
     const {

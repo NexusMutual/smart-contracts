@@ -107,9 +107,15 @@ describe('tokenomics', function () {
     // node scripts/create2/find-salt.js -f '0x01BFd82675DBCc7762C84019cA518e701C0cD07e' \
     //                                   -c '0xffffffffffffffffffffffffffffffffffffffff' \
     //                                   -t cafea OwnedUpgradeabilityProxy
-    const rammCreate2Salt = 13944964;
+    //
+    // 125759550 -> 0xcafea54f03E1Cc036653444e581A10a43B2487CD
+    const rammCreate2Salt = 125759550;
     this.ramm = await ethers.deployContract('Ramm', [SPOT_PRICE_B]);
     const rammTypeAndSalt = BigNumber.from(rammCreate2Salt).shl(8).add(ContractTypes.Proxy);
+    console.log({
+      rammCreate2Salt,
+      rammTypeAndSalt: rammTypeAndSalt.toString(),
+    });
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])

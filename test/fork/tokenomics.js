@@ -19,7 +19,7 @@ const { formatEther, parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 /* ========== CONSTRUCTOR PARAMS ========== */
 
 // Ramm
-const SPOT_PRICE_B = parseEther('0.00984628');
+const SPOT_PRICE_B = parseEther('0.009852395');
 
 async function getCapitalSupplyAndBalances(pool, tokenController, nxm, memberAddress) {
   return {

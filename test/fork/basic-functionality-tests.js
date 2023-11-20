@@ -12,7 +12,6 @@ const {
   submitGovernanceProposal,
   submitMemberVoteGovernanceProposal,
   toBytes,
-  enableAsEnzymeReceiver,
 } = require('./utils');
 
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
@@ -898,9 +897,6 @@ describe('basic functionality tests', function () {
       this.nxm.address,
       this.pool.address,
     ]);
-
-    // Enable Pool as Enzyme receiver
-    await enableAsEnzymeReceiver(pool.address);
 
     // CL - CoverMigrator.sol
     const coverMigrator = await deployContract('CoverMigrator', [this.quotationData.address, this.productsV1.address]);

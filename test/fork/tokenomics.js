@@ -6,7 +6,6 @@ const {
   EnzymeAdress,
   V2Addresses,
   calculateProxyAddress,
-  enableAsEnzymeReceiver,
   formatInternalContracts,
   getSigner,
   submitGovernanceProposal,
@@ -237,8 +236,6 @@ describe('tokenomics', function () {
       this.nxm.address,
       this.poolBefore.address,
     ]);
-    // this.pool = await getContractByContractCode('Pool', ContractCode.Pool);
-    await enableAsEnzymeReceiver(this.pool.address);
 
     // Cover.sol
     this.cover = await ethers.deployContract('Cover', [

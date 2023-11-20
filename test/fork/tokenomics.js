@@ -11,7 +11,6 @@ const {
   getSigner,
   submitGovernanceProposal,
 } = require('./utils');
-const { INVALID_ARRAY_ACCESS } = require('../utils').errors;
 const { ContractTypes, ContractCode, ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const evm = require('./evm')();
 

@@ -20,9 +20,7 @@ const { formatEther, parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 /* ========== CONSTRUCTOR PARAMS ========== */
 
 // Ramm
-// TODO: SPOT_PRICE_B 20% below open market price at launch
-// https://docs.google.com/document/d/1oRaAzPapBpNv0TmxC9XZjc24Qu0deJnzlQGEznBV1X0/edit#heading=h.ejqiszyf49b3
-const SPOT_PRICE_B = parseEther('0.0152');
+const SPOT_PRICE_B = parseEther('0.00984628');
 
 async function getCapitalSupplyAndBalances(pool, tokenController, nxm, memberAddress) {
   return {
@@ -522,7 +520,7 @@ describe('tokenomics', function () {
   it('Swap NXM for ETH', async function () {
     const [member] = this.abMembers;
     const nxmIn = parseEther('1');
-    const minEthOut = parseEther('0.0152');
+    const minEthOut = parseEther('0.009');
 
     const before = await getCapitalSupplyAndBalances(this.pool, this.tokenController, this.nxm, member._address);
     const { timestamp } = await ethers.provider.getBlock('latest');

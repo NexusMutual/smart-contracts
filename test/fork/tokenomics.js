@@ -380,12 +380,70 @@ describe('tokenomics', function () {
     // set the MCR lower so the swap will work
     await this.mcr.teleportMCR();
 
-    const expectedValue = parseEther('10000'); // hardcoded value in MCR.sol
-    const mcrValueAfterTeleport = await this.mcr.getMCR();
-    const desiredMcrValueAfterTeleport = await this.mcr.desiredMCR();
+    {
+      const expectedMcr = parseEther('10000'); // hardcoded value in MCR.sol
+      const actualMcr = await this.mcr.getMCR();
+      const actualDesiredMcr = await this.mcr.desiredMCR();
 
-    expect(mcrValueAfterTeleport).to.be.equal(expectedValue);
-    expect(desiredMcrValueAfterTeleport).to.be.equal(expectedValue);
+      expect(actualMcr).to.be.equal(expectedMcr);
+      expect(actualDesiredMcr).to.be.equal(expectedMcr);
+    }
+
+    {
+      // unless there's a payout, mcr will not move for an hour since the teleportation
+      const lastUpdateTime = await this.mcr.lastUpdateTime();
+      const { timestamp } = await ethers.provider.getBlock('latest');
+
+      const nextUpdate = lastUpdateTime + 3600;
+      const timeToNextUpdate = nextUpdate - timestamp;
+
+      // increase time till next possible update and trigger desiredMCR update
+      await evm.increaseTime(timeToNextUpdate);
+      await this.mcr.updateMCR();
+
+      // mcr should not have moved
+      const expectedMcr = parseEther('10000'); // hardcoded value in MCR.sol
+
+      // desired mcr should have been recalculated based on the total active cover amount
+      const expectedDesiredMcr = parseEther('6670'); // aproximate
+      const expectedMaxDesiredMcrDiff = parseEther('100');
+
+      const actualMCR = await this.mcr.getMCR();
+      const actualDesiredMcr = await this.mcr.desiredMCR();
+      const actualDesiredMcrDiff = actualDesiredMcr.sub(expectedDesiredMcr).abs();
+
+      expect(actualMCR).to.be.equal(expectedMcr);
+      expect(actualDesiredMcrDiff).to.be.lte(expectedMaxDesiredMcrDiff);
+    }
+
+    {
+      // 24 hours later mcr should have dropped towards desired mcr
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await evm.increaseTime(timestamp + 24 * 3600);
+      await evm.mine();
+      await this.mcr.updateMCR();
+
+      // mcr changes by max 5% per day and max 1% per update
+      const expectedMcr = parseEther('10000').mul(99).div(100);
+      const expectedMaxMcrDiff = parseEther('100');
+      const actualMCR = await this.mcr.getMCR();
+      const actualMcrDiff = actualMCR.sub(expectedMcr).abs();
+
+      console.log({
+        expectedMcr: formatEther(expectedMcr),
+        actualMCR: formatEther(actualMCR),
+        expectedMaxMcrDiff: formatEther(expectedMaxMcrDiff),
+        actualMcrDiff: formatEther(actualMcrDiff),
+      });
+
+      expect(actualMcrDiff).to.be.lte(expectedMaxMcrDiff);
+
+      const expectedDesiredMcr = parseEther('6670'); // aproximate
+      const expectedMaxDesiredMcrDiff = parseEther('100');
+      const actualDesiredMcr = await this.mcr.desiredMCR();
+      const actualDesiredMcrDiff = actualDesiredMcr.sub(expectedDesiredMcr).abs();
+      expect(actualDesiredMcrDiff).to.be.lte(expectedMaxDesiredMcrDiff);
+    }
   });
 
   it('Compares storage of upgraded Pool contract', async function () {

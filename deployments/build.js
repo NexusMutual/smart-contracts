@@ -38,6 +38,7 @@ const contractList = [
   'StakingViewer',
   'SwapOperator',
   'TokenController',
+  'wNXM',
   'YieldTokenIncidents',
 ];
 

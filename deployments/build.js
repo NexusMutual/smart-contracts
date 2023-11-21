@@ -29,6 +29,7 @@ const contractList = [
   'PriceFeedOracle',
   'ProductsV1',
   'ProposalCategory',
+  'Ramm',
   'StakingNFTDescriptor',
   'StakingNFT',
   'StakingPoolFactory',
@@ -95,8 +96,8 @@ const generateAbisTs = () => {
 };
 
 const main = async () => {
-  rimraf(path.join(__dirname, './deployments/dist'));
-  rimraf(path.join(__dirname, './deployments/generated'));
+  rimraf(path.join(__dirname, './dist'));
+  rimraf(path.join(__dirname, './generated'));
 
   console.log('Recompiling contracts');
   await run('compile');
@@ -121,8 +122,27 @@ const main = async () => {
     publicDir: 'generated', // copy generated files to dist
   });
 
-  // copy addresses.json to dist
-  fs.copyFileSync(path.join(__dirname, 'src/addresses.json'), path.join(__dirname, 'dist/addresses.json'));
+  // Create dist/data folder
+  const distDataDir = path.join(__dirname, 'dist/data');
+  fs.mkdirSync(distDataDir, { recursive: true });
+
+  // Copy addresses.json to dist/data
+  fs.copyFileSync(path.join(__dirname, 'src/addresses.json'), path.join(distDataDir, 'addresses.json'));
+
+  // Copy generated abis to dist/data
+  const abisSrcDir = path.join(__dirname, './generated/abis/');
+  const abisOutDir = path.join(distDataDir, 'abis/');
+  fs.mkdirSync(abisOutDir, { recursive: true });
+
+  const abiDirents = await fs.promises.readdir(abisSrcDir, { withFileTypes: true });
+
+  for (const dirent of abiDirents) {
+    if (dirent.isFile()) {
+      const source = path.join(abisSrcDir, dirent.name);
+      const dest = path.join(abisOutDir, dirent.name);
+      fs.copyFileSync(source, dest);
+    }
+  }
 
   console.log('Done');
 };

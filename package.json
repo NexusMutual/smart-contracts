@@ -82,6 +82,8 @@
     "deploy": "hardhat run scripts/deploy/deploy.js",
     "deploy-local": "hardhat run scripts/deploy/start.js",
     "typechain": "hardhat typechain",
-    "build:deployments": "node deployments/build.js"
+    "deployments:build": "node deployments/build.js",
+    "deployments:publish:next": "cd deployments && npm publish --access public --tag next",
+    "deployments:publish:latest": "cd deployments && npm publish --access public"
   }
 }

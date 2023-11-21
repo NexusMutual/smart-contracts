@@ -4,54 +4,70 @@ This package contains the abis and addresses of the deployed Nexus Mutual contra
 
 ## Usage
 
-### CommonJS
+### Variables
 
-```javascript
-  // import everything in one go
-  const deployments = require('@nexusmutual/deployments');
-  console.log(`NXM Token address: ${deployments.addresses.NXMToken}`);
+`addresses`:
+Contains addresses of all contracts.
 
-  // import addresses only
-  const addresses = require('@nexusmutual/deployments/addresses');
+Example:
 
-  // import abis only
-  const abis = require('@nexusmutual/deployments/abis');
+```typescript
+import { addresses } from '@nexusmutual/deployments';
 
-  // import a specific abi
-  const coverAbi = require('@nexusmutual/deployments/abis/Cover');
-
-  // Create a contract instance
-  const ethers = require('ethers');
-
-  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL);
-  const coverContract = new ethers.Contract(addresses.Cover, coverAbi, provider);
-
-  const stakingPoolAddress = await coverContract.stakingPool(2);
-  console.log(`Staking pool #2 is at: ${stakingPoolAddress}`);
+console.log(addresses.Assessment); // Outputs: 0x0E801D84Fa9...
 ```
 
-### ESM
+`abis`:
+A map which contains abi definitions for all contracts.
 
-```javascript
-  // import everything in one go
-  import deployments from '@nexusmutual/deployments';
-  console.log(`NXM Token address (import all): ${deployments.addresses.NXMToken}`);
+Example:
 
-  // import addresses only
-  import addresses from '@nexusmutual/deployments/addresses';
-  console.log(`NXM Token address (import addresses): ${addresses.NXMToken}`);
+```typescript
+import { abis } from '@nexusmutual/deployments';
 
-  // import abis only
-  import abis from '@nexusmutual/deployments/abis';
-  console.log(`Contract list: ${Object.keys(abis).join(', ')}`);
-
-  // import a specific abi and create a contract instance
-  import ethers from 'ethers';
-  import coverAbi from '@nexusmutual/deployments/abis/Cover';
-
-  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL);
-  const coverContract = new ethers.Contract(addresses.Cover, coverAbi, provider);
-
-  const stakingPoolAddress = await coverContract.stakingPool(2);
-  console.log(`Staking pool #2 is at: ${stakingPoolAddress}`);
+console.log(abis.Assessment); // Outputs: [{ inputs: [{ internalType: "ad...
 ```
+
+You can also import them in a treeshakable manner:
+
+```typescript
+import { Assessment as AssessmentAbi } from '@nexusmutual/deployments';
+
+console.log(AssessmentAbi); // Outputs: [{ inputs: [{ internalType: "ad...
+```
+
+### Exported ABIs
+
+The addresses and ABIs are also exported as `addresses.json` and `abis/*.json` for convenience. These files are located in the `dist/data` folder. You can reference them directly in `node_modules` as follows:
+
+```
+node_modules/@nexusmutual/deployments/dist/data/addresses.json
+```
+
+or
+
+```
+node_modules/@nexusmutual/deployments/dist/data/abis/Assessment.json
+```
+
+## Building the Package
+
+Run build script:
+
+```shell
+npm run build:deployments
+```
+
+This script will generate abis and typings for contracts defined by `contractList` in the `build.js` file using Hardhat. The script will also auto update the `package.json` version.
+
+## Deploying locally
+
+The script requires two environment variables to run:
+
+```
+# These can be found in .env.sample
+ADDRESSES_FILE=./deployments/src/addresses.json
+ABI_DIR=./deployments/generated/abis
+```
+
+These variables specify the output location of the generated addresses and ABIs. On these default locations they will be picked up by the build, which can be useful for local development in combination with `npm link`. See the [local development docs](https://www.notion.so/nxmcommunity/Local-development-95f84f09cbfb4b90bcdcba52e1d2fa90?pvs=4) for more details.

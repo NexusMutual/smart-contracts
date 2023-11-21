@@ -28,7 +28,7 @@
     "ethereumjs-util": "^7.0.1",
     "ethers": "^5.7.1",
     "hardhat-ignore-warnings": "^0.2.8",
-    "merkletreejs": "^0.2.32",
+    "merkletreejs": "^0.3.11",
     "node-fetch": "^2.6.7",
     "solmate": "^6.6.1",
     "workerpool": "^6.2.0"

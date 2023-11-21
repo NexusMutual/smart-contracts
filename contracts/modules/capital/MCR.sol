@@ -3,30 +3,25 @@
 pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "../../abstract/MasterAwareV2.sol";
+import "../../interfaces/ICover.sol";
 import "../../interfaces/IMCR.sol";
-import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
-import "../../interfaces/IQuotationData.sol";
-import "../../interfaces/ICover.sol";
-import "../../abstract/MasterAwareV2.sol";
 import "../../libraries/Math.sol";
+import "../../libraries/SafeUintCast.sol";
 
 contract MCR is IMCR, MasterAwareV2 {
-  // sizeof(qd) + 96 = 160 + 96 = 256 (occupies entire slot)
-  uint96 _unused;
+  using SafeUintCast for uint;
 
   // the following values are expressed in basis points
-  uint24 public mcrFloorIncrementThreshold = 13000;
-  uint24 public maxMCRFloorIncrement = 100;
-  uint24 public maxMCRIncrement = 500;
+  uint16 public maxMCRIncrement = 500;
   uint24 public gearingFactor = 48000;
   // min update between MCR updates in seconds
-  uint24 public minUpdateTime = 3600;
+  uint16 public minUpdateTime = 3600;
 
-  uint112 public mcrFloor;
-  uint112 public mcr;
-  uint112 public desiredMCR;
+  uint80 public mcr;
+  uint80 public desiredMCR;
   uint32 public lastUpdateTime;
 
   IMCR public previousMCR;
@@ -34,17 +29,19 @@ contract MCR is IMCR, MasterAwareV2 {
   event MCRUpdated(
     uint mcr,
     uint desiredMCR,
-    uint mcrFloor,
+    uint mcrFloor,  // unused
     uint mcrETHWithGear,
     uint totalSumAssured
   );
 
-  uint constant UINT24_MAX = type(uint24).max;
-  uint constant MAX_MCR_ADJUSTMENT = 100;
-  uint constant BASIS_PRECISION = 10000;
+  uint public constant MAX_MCR_ADJUSTMENT = 100;
+  uint public constant BASIS_PRECISION = 10000;
 
-  constructor (address masterAddress) {
+  uint public immutable MCR_UPDATE_DEADLINE;
+
+  constructor (address masterAddress, uint mcrUpdateDeadline) {
     changeMasterAddress(masterAddress);
+    MCR_UPDATE_DEADLINE = mcrUpdateDeadline;
 
     if (masterAddress != address(0)) {
       previousMCR = IMCR(master.getLatestAddress("MC"));
@@ -82,14 +79,11 @@ contract MCR is IMCR, MasterAwareV2 {
     }
 
     // copy over values
-    mcrFloor = previousMCR.mcrFloor();
     mcr = previousMCR.mcr();
     desiredMCR = previousMCR.desiredMCR();
     lastUpdateTime = previousMCR.lastUpdateTime();
 
     // copy over parameters
-    mcrFloorIncrementThreshold = previousMCR.mcrFloorIncrementThreshold();
-    maxMCRFloorIncrement = previousMCR.maxMCRFloorIncrement();
     maxMCRIncrement = previousMCR.maxMCRIncrement();
     gearingFactor = previousMCR.gearingFactor();
     minUpdateTime = previousMCR.minUpdateTime();
@@ -98,10 +92,26 @@ contract MCR is IMCR, MasterAwareV2 {
   }
 
   /**
+   * @dev We need to move the mcr way below the current value otherwise swaps
+   *      won't work for a while until mcr moves down by itself
+   * @dev Remove this code after the tokenomics upgrade.
+   */
+  function teleportMCR() external {
+
+    require(address(previousMCR) == address(0), "MCR: not yet initialized");
+    require(mcr > 10_000 ether, "MCR: already updated");
+    require(block.timestamp < MCR_UPDATE_DEADLINE, "MCR: Deadline has passed");
+
+    mcr = 10_000 ether;
+    desiredMCR = 10_000 ether;
+    lastUpdateTime = block.timestamp.toUint32();
+  }
+
+  /**
    * @dev Gets total sum assured (in ETH).
    * @return amount of sum assured
    */
-  function getAllSumAssurance() public view returns (uint) {
+  function getTotalActiveCoverAmount() public view returns (uint) {
 
     IPool _pool = pool();
     IPriceFeedOracle priceFeed = _pool.priceFeedOracle();
@@ -122,26 +132,22 @@ contract MCR is IMCR, MasterAwareV2 {
   }
 
   /*
-  * @dev trigger an MCR update. Current virtual MCR value is synced to storage, mcrFloor is potentially updated
+  * @dev trigger an MCR update. Current virtual MCR value is synced to storage
   * and a new desiredMCR value to move towards is set.
   *
   */
   function updateMCR() whenNotPaused public {
-    _updateMCR(pool().getPoolValueInEth(), false);
+    _updateMCR(false);
   }
 
-  function updateMCRInternal(uint poolValueInEth, bool forceUpdate) public onlyInternal {
-    _updateMCR(poolValueInEth, forceUpdate);
+  function updateMCRInternal(bool forceUpdate) public onlyInternal {
+    _updateMCR(forceUpdate);
   }
 
-  function _updateMCR(uint poolValueInEth, bool forceUpdate) internal {
+  function _updateMCR(bool forceUpdate) internal {
 
-    // read with 1 SLOAD
-    uint _mcrFloorIncrementThreshold = mcrFloorIncrementThreshold;
-    uint _maxMCRFloorIncrement = maxMCRFloorIncrement;
     uint _gearingFactor = gearingFactor;
     uint _minUpdateTime = minUpdateTime;
-    uint _mcrFloor =  mcrFloor;
 
     // read with 1 SLOAD
     uint112 _mcr = mcr;
@@ -152,37 +158,23 @@ contract MCR is IMCR, MasterAwareV2 {
       return;
     }
 
-    if (block.timestamp > _lastUpdateTime && pool().calculateMCRRatio(poolValueInEth, _mcr) >= _mcrFloorIncrementThreshold) {
-        // MCR floor updates by up to maxMCRFloorIncrement percentage per day whenever the MCR ratio exceeds 1.3
-        // MCR floor is monotonically increasing.
-      uint basisPointsAdjustment = Math.min(
-        _maxMCRFloorIncrement * (block.timestamp - _lastUpdateTime) / 1 days,
-        _maxMCRFloorIncrement
-      );
-      uint newMCRFloor = _mcrFloor * (basisPointsAdjustment + BASIS_PRECISION) / BASIS_PRECISION;
-      require(newMCRFloor <= type(uint112).max, 'MCR: newMCRFloor overflow');
-
-      mcrFloor = uint112(newMCRFloor);
-    }
-
     // sync the current virtual MCR value to storage
-    uint112 newMCR = uint112(getMCR());
+    uint80 newMCR = getMCR().toUint80();
     if (newMCR != _mcr) {
       mcr = newMCR;
     }
 
-    // the desiredMCR cannot fall below the mcrFloor but may have a higher or lower target value based
-    // on the changes in the totalSumAssured in the system.
-    uint totalSumAssured = getAllSumAssurance();
+    uint totalSumAssured = getTotalActiveCoverAmount();
     uint gearedMCR = totalSumAssured * BASIS_PRECISION / _gearingFactor;
-    uint112 newDesiredMCR = uint112(Math.max(gearedMCR, mcrFloor));
+
+    uint80 newDesiredMCR = gearedMCR.toUint80();
     if (newDesiredMCR != _desiredMCR) {
       desiredMCR = newDesiredMCR;
     }
 
     lastUpdateTime = uint32(block.timestamp);
 
-    emit MCRUpdated(mcr, desiredMCR, mcrFloor, gearedMCR, totalSumAssured);
+    emit MCRUpdated(mcr, desiredMCR, 0, gearedMCR, totalSumAssured);
   }
 
   /**
@@ -202,12 +194,11 @@ contract MCR is IMCR, MasterAwareV2 {
     uint _mcr = mcr;
     uint _desiredMCR = desiredMCR;
     uint _lastUpdateTime = lastUpdateTime;
+    uint _maxMCRIncrement = maxMCRIncrement;
 
     if (block.timestamp == _lastUpdateTime) {
       return _mcr;
     }
-
-    uint _maxMCRIncrement = maxMCRIncrement;
 
     uint basisPointsAdjustment = _maxMCRIncrement * (block.timestamp - _lastUpdateTime) / 1 days;
     basisPointsAdjustment = Math.min(basisPointsAdjustment, MAX_MCR_ADJUSTMENT);
@@ -221,40 +212,27 @@ contract MCR is IMCR, MasterAwareV2 {
   }
 
   function getGearedMCR() external view returns (uint) {
-    return getAllSumAssurance() * BASIS_PRECISION / gearingFactor;
+    return getTotalActiveCoverAmount() * BASIS_PRECISION / gearingFactor;
   }
 
   /**
    * @dev Updates Uint Parameters
    * @param code parameter code
-   * @param val new value
+   * @param value new value
    */
-  function updateUintParameters(bytes8 code, uint val) public onlyGovernance {
+  function updateUintParameters(bytes8 code, uint value) public onlyGovernance {
 
-    if (code == "DMCT") {
+    if (code == "MMIC") {
 
-      require(val <= UINT24_MAX, "MCR: value too large");
-      mcrFloorIncrementThreshold = uint24(val);
-
-    } else if (code == "DMCI") {
-
-      require(val <= UINT24_MAX, "MCR: value too large");
-      maxMCRFloorIncrement = uint24(val);
-
-    } else if (code == "MMIC") {
-
-      require(val <= UINT24_MAX, "MCR: value too large");
-      maxMCRIncrement = uint24(val);
+      maxMCRIncrement = value.toUint16();
 
     } else if (code == "GEAR") {
 
-      require(val <= UINT24_MAX, "MCR: value too large");
-      gearingFactor = uint24(val);
+      gearingFactor = value.toUint24();
 
     } else if (code == "MUTI") {
 
-      require(val <= UINT24_MAX, "MCR: value too large");
-      minUpdateTime = uint24(val);
+      minUpdateTime = value.toUint16();
 
     } else {
       revert("Invalid param code");

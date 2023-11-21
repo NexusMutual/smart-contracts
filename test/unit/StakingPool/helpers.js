@@ -3,6 +3,7 @@ const { expect } = require('chai');
 
 const { setNextBlockTime, mineNextBlock } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
+const { divCeil } = require('../utils').bnMath;
 
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
@@ -114,15 +115,6 @@ function calculatePriceBump(coverAmount, priceBumpRatio, totalCapacity, NXM_PER_
 function roundUpToNearestAllocationUnit(amount, nxmPerAllocationUnit) {
   amount = BigNumber.from(amount);
   return divCeil(amount, nxmPerAllocationUnit).mul(nxmPerAllocationUnit);
-}
-
-function divCeil(a, b) {
-  a = BigNumber.from(a);
-  let result = a.div(b);
-  if (!a.mod(b).isZero()) {
-    result = result.add(1);
-  }
-  return result;
 }
 
 function calculateFirstTrancheId(timestamp, period, gracePeriod) {

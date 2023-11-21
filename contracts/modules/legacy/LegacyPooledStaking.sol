@@ -117,6 +117,8 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
   uint public REWARD_ROUND_DURATION;
   uint public REWARD_ROUNDS_START;
 
+  INXMToken internal immutable token;
+
   /* Modifiers */
 
   modifier noPendingActions {
@@ -139,10 +141,11 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
     _;
   }
 
-  constructor(address coverAddress, address productsV1Address, address stakingNFTAddress) {
+  constructor(address coverAddress, address productsV1Address, address stakingNFTAddress, address _tokenAddress) {
     productsV1 = IProductsV1(productsV1Address);
     cover = ICover(coverAddress);
     stakingNFT = IStakingNFT(stakingNFTAddress);
+    token = INXMToken(_tokenAddress);
   }
 
   function min(uint x, uint y) pure internal returns (uint) {
@@ -301,7 +304,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
 
     uint amount = stakers[user].deposit;
     stakers[user].deposit = 0;
-    token().transfer(user, amount);
+    token.transfer(user, amount);
     emit Withdrawn(user, amount);
   }
 
@@ -318,7 +321,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
     uint amount = stakers[stakerAddress].reward;
     stakers[stakerAddress].reward = 0;
 
-    token().transfer(stakerAddress, amount);
+    token.transfer(stakerAddress, amount);
 
     emit RewardWithdrawn(stakerAddress, amount);
   }
@@ -537,7 +540,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
     processedToStakerIndex = 0;
     isContractStakeCalculated = false;
 
-    token().burn(_actualBurnAmount);
+    token.burn(_actualBurnAmount);
     emit Burned(_contractAddress, _actualBurnAmount, _stakedOnContract);
 
     return (true, iterationsLeft);
@@ -770,10 +773,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
     }
   }
 
-  function token() internal view returns (INXMToken) {
-    return INXMToken(internalContracts[uint(ID.TK)]);
-  }
-
   function tokenController() internal view returns (ITokenController) {
     return ITokenController(internalContracts[uint(ID.TC)]);
   }
@@ -785,7 +784,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
   function changeDependentContractAddress() public {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
-    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
   }
 
   function getProducts(
@@ -854,7 +852,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
       migrationData.ipfsDescriptionHash
     );
 
-    token().approve(address(tokenController()), migrationData.deposit);
+    token.approve(address(tokenController()), migrationData.deposit);
 
     uint totalStakeRatio = 0;
     uint tokenId = 0; // 0 means a new NFT will be created that will then be reused for each tranche
@@ -900,7 +898,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
     uint deposit = stakers[stakerAddress].deposit;
     require(deposit > 0, "Address has no stake to migrate");
 
-    INXMToken nxm = token();
+    INXMToken nxm = token;
     uint nxmBalanceBefore = nxm.balanceOf(address(this));
     uint expectedMigratedAmount = 0;
 
@@ -993,7 +991,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
     IStakingPool stakingPool = cover.stakingPool(stakingPoolId);
     uint deposit = stakers[msg.sender].deposit;
     stakers[msg.sender].deposit = 0;
-    token().approve(address(tokenController()), deposit);
+    token.approve(address(tokenController()), deposit);
     stakingPool.depositTo(deposit, trancheId, 0, msg.sender);
   }
 }

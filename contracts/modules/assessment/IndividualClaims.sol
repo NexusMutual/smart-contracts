@@ -11,6 +11,7 @@ import "../../interfaces/IIndividualClaims.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/IRamm.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
@@ -59,6 +60,10 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     return IPool(getInternalContractAddress(ID.P1));
   }
 
+  function ramm() internal view returns (IRamm) {
+    return IRamm(getInternalContractAddress(ID.RA));
+  }
+
   function getClaimsCount() external override view returns (uint) {
     return claims.length;
   }
@@ -76,11 +81,13 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint segmentPeriod,
     uint coverAsset
   ) public view returns (uint, uint) {
+
     IPool poolContract = pool();
-    uint nxmPriceInETH = poolContract.getTokenPriceInAsset(0);
+
+    uint nxmPriceInETH = poolContract.getInternalTokenPriceInAsset(0);
     uint nxmPriceInCoverAsset = coverAsset == 0
       ? nxmPriceInETH
-      : poolContract.getTokenPriceInAsset(coverAsset);
+      : poolContract.getInternalTokenPriceInAsset(coverAsset);
 
     // Calculate the expected payout in NXM using the NXM price at cover purchase time
     uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceInCoverAsset;
@@ -335,6 +342,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   ///
   /// @param claimId  Claim identifier
   function redeemClaimPayout(uint104 claimId) external override whenNotPaused {
+
     Claim memory claim = claims[claimId];
     (
       IAssessment.Poll memory poll,
@@ -358,26 +366,15 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     require(!claim.payoutRedeemed, "Payout has already been redeemed");
     claims[claimId].payoutRedeemed = true;
 
+    ramm().updateTwap();
     address payable coverOwner = payable(cover().burnStake(
       claim.coverId,
       claim.segmentId,
       claim.amount
     ));
 
-    IPool poolContract = pool();
-    if (claim.coverAsset == 0 /* ETH */) {
-      // Send payout and deposit in ETH
-      poolContract.sendPayout(
-        claim.coverAsset,
-        coverOwner,
-        claim.amount + assessmentDepositInETH
-      );
-    } else {
-      // Send deposit in ETH
-      poolContract.sendPayout(0 /* ETH */, coverOwner, assessmentDepositInETH);
-      // Send payout in cover asset
-      poolContract.sendPayout(claim.coverAsset, coverOwner, claim.amount);
-    }
+    // Send payout in cover asset
+    pool().sendPayout(claim.coverAsset, coverOwner, claim.amount, assessmentDepositInETH);
 
     emit ClaimPayoutRedeemed(coverOwner, claim.amount, claimId, claim.coverId);
   }
@@ -421,6 +418,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
+    internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
 
     Configuration memory currentConfig = config;
     bool notInitialized = bytes32(

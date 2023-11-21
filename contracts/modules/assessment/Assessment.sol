@@ -9,6 +9,7 @@ import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IRamm.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
@@ -444,6 +445,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
       // burn from a different merkle tree.
       burnAmount = burnAmount > _stake.amount ? _stake.amount : burnAmount;
       _stake.amount -= burnAmount;
+      // TODO: consider burning the tokens in the token controller contract
+      ramm().updateTwap();
       nxm.burn(burnAmount);
       _stake.fraudCount++;
     }
@@ -489,6 +492,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+    internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
 
     Configuration memory currentConfig = config;
     bool notInitialized = bytes32(
@@ -511,4 +515,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
   }
 
+  function ramm() internal view returns (IRamm) {
+    return IRamm(internalContracts[uint(ID.RA)]);
+  }
 }

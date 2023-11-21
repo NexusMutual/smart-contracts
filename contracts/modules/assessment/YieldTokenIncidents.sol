@@ -15,6 +15,7 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IYieldTokenIncidents.sol";
+import "../../interfaces/IRamm.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
@@ -61,7 +62,11 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
   }
 
   function cover() internal view returns (ICover) {
-    return ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
+    return ICover(internalContracts[uint(ID.CO)]);
+  }
+
+  function ramm() internal view returns (IRamm) {
+    return IRamm(internalContracts[uint(ID.RA)]);
   }
 
   /// @dev Returns the number of incidents.
@@ -262,6 +267,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
     }
 
+    ramm().updateTwap();
     coverContract.burnStake(coverId, segmentId, payoutAmount);
 
     if (optionalParams.length > 0) { // Skip the permit call when it is not provided
@@ -290,7 +296,8 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]).sendPayout(
       coverData.coverAsset,
       payoutAddress,
-      payoutAmount
+      payoutAmount,
+      0 // deposit
     );
 
     emit IncidentPayoutRedeemed(msg.sender, payoutAmount, incidentId, coverId);
@@ -357,6 +364,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
+    internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
 
     Configuration memory currentConfig = config;
     bool notInitialized = bytes32(

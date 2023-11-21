@@ -22,25 +22,32 @@ const cleanupType = type => {
 
 describe('Storage layout', function () {
   it('compare storage layout of proxy upgradable contracts', async function () {
-    // generate v2 storage layout on the fly
+    // generate current storage layout on the fly
     // only commit the layout json when we release a new version!
     const tempPath = fs.mkdtempSync(path.join(os.tmpdir(), 'storage-'));
-    const v2StorageFile = path.join(tempPath, 'v2.json');
+    const currentStorageFile = path.join(tempPath, 'currentLayout.json');
 
-    await extractStorageLayout(v2StorageFile);
+    await extractStorageLayout(currentStorageFile);
 
-    const previousLayout = require(path.join(__dirname, './storage/v1.json'));
-    const currentLayout = require(v2StorageFile);
+    const previousLayout = require(path.join(__dirname, './storage/previousLayout.json'));
+    const currentLayout = require(currentStorageFile);
 
     // proxy contracts
     const contractsToCompare = [
       'NXMaster',
       'Governance',
-      'ProposalCategory',
       'MemberRoles',
-      ['PooledStaking', 'LegacyPooledStaking'],
-      ['Gateway', 'LegacyGateway'],
+      'ProposalCategory',
+      'LegacyPooledStaking',
       'TokenController',
+      'LegacyGateway',
+      'IndividualClaims',
+      'YieldTokenIncidents',
+      'Assessment',
+      'Cover',
+      'CoverMigrator',
+      'StakingProducts',
+      'Ramm',
     ];
 
     // Exceptions / overrides
@@ -54,64 +61,50 @@ describe('Storage layout', function () {
     //   },
     // }
     const exceptions = {
-      PooledStaking: {
-        initialized: { deleted: true },
-        token: {
-          label: 'internalContracts',
-          size: [20, 32],
-          type: ['t_address', 't_mapping(t_uint256,t_address)'],
-        },
-      },
-      MemberRoles: {
-        nxMasterAddress: {
-          label: 'internalContracts',
-          size: [20, 32],
-          type: ['t_address', 't_mapping(t_uint256,t_address_payable)'],
-        },
-        ms: { label: 'master' },
-        qd: { label: 'kycAuthAddress' },
-      },
-      Gateway: {
-        quotation: {
-          label: 'internalContracts',
-          size: [20, 32],
-          type: ['t_address', 't_mapping(t_uint256,t_address)'],
-        },
-      },
-      TokenController: {
-        nxMasterAddress: {
-          label: 'internalContracts',
-          size: [20, 32],
-          type: ['t_address', 't_mapping(t_uint256,t_address)'],
-        },
-        ms: { label: 'master' },
-      },
+      // comment left as an example, actual override list is currently empty
+      // PooledStaking: {
+      //   initialized: { deleted: true },
+      //   token: {
+      //     label: 'internalContracts',
+      //     size: [20, 32],
+      //     type: ['t_address', 't_mapping(t_uint256,t_address)'],
+      //   },
+      // },
+      // MemberRoles: {
+      //   nxMasterAddress: {
+      //     label: 'internalContracts',
+      //     size: [20, 32],
+      //     type: ['t_address', 't_mapping(t_uint256,t_address_payable)'],
+      //   },
+      //   ms: { label: 'master' },
+      //   qd: { label: 'kycAuthAddress' },
+      // },
     };
 
     contractsToCompare.forEach(contract => {
-      const [v1ContractName, v2ContractName] = [contract, contract].flat();
-      const contractBefore = previousLayout[v1ContractName];
-      const contractAfter = currentLayout[v2ContractName];
+      const [prevContractName, currentContractName] = [contract, contract].flat();
+      const contractBefore = previousLayout[prevContractName] || [];
+      const contractAfter = currentLayout[currentContractName];
 
-      contractBefore.forEach(varV1 => {
+      contractBefore.forEach(varPrev => {
         // check if we have an exception for this variable
-        const { [varV1.label]: exception = {} } = exceptions[v1ContractName] || {};
+        const { [varPrev.label]: exception = {} } = exceptions[prevContractName] || {};
 
         if (exception.deleted) {
           return;
         }
 
         // find the variable in the new layout
-        const varV2 = contractAfter.find(({ slot, offset }) => slot === varV1.slot && offset === varV1.offset);
+        const varCurrent = contractAfter.find(({ slot, offset }) => slot === varPrev.slot && offset === varPrev.offset);
         expect(
-          varV2,
-          `${varV1.label} not found in ${v2ContractName} at slot ${varV1.slot} and offset ${varV1.slot}`,
+          varCurrent,
+          `${varPrev.label} not found in ${currentContractName} at slot ${varPrev.slot} and offset ${varPrev.slot}`,
         ).not.to.be.equal(undefined);
 
         // compose identifying error message
-        const v1Id = `${v1ContractName}.${varV1.label}`;
-        const v2Id = `${v2ContractName}.${varV2.label}`;
-        const identifier = `${v1Id} vs ${v2Id} at slot ${varV1.slot} and offset ${varV1.offset}`;
+        const prevId = `${prevContractName}.${varPrev.label}`;
+        const currentId = `${currentContractName}.${varCurrent.label}`;
+        const identifier = `${prevId} vs ${currentId} at slot ${varPrev.slot} and offset ${varPrev.offset}`;
 
         // apply overrides
         if (exception) {
@@ -123,29 +116,29 @@ describe('Storage layout', function () {
 
           if (exception.size) {
             const [oldSize, newSize] = exception.size;
-            expect(varV1.size, `Exception size mismatch ${identifier}`).to.be.equal(oldSize);
+            expect(varPrev.size, `Exception size mismatch ${identifier}`).to.be.equal(oldSize);
             overrides.size = newSize;
           }
 
           if (exception.type) {
             const [oldType, newType] = exception.type;
-            expect(cleanupType(varV1.type), `Exception type mismatch ${identifier}`).to.be.equal(oldType);
+            expect(cleanupType(varPrev.type), `Exception type mismatch ${identifier}`).to.be.equal(oldType);
             overrides.type = newType;
           }
 
-          Object.assign(varV1, overrides);
+          Object.assign(varPrev, overrides);
         }
 
         // check name
-        if (!/_unused/.test(varV2.label)) {
-          expect(varV2.label, `Label mismatch in ${identifier}`).to.be.equal(varV1.label);
+        if (!/_unused/.test(varCurrent.label)) {
+          expect(varCurrent.label, `Label mismatch in ${identifier}`).to.be.equal(varPrev.label);
         }
 
         // check type
-        expect(cleanupType(varV2.type), `Type mismatch in ${identifier}`).to.be.equal(cleanupType(varV1.type));
+        expect(cleanupType(varCurrent.type), `Type mismatch in ${identifier}`).to.be.equal(cleanupType(varPrev.type));
 
         // check size
-        expect(varV1.size, `Size mismatch in ${identifier}`).to.be.equal(varV2.size);
+        expect(varPrev.size, `Size mismatch in ${identifier}`).to.be.equal(varCurrent.size);
       });
     });
   });

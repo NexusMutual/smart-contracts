@@ -1,11 +1,12 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const {
   getCurrentTrancheId,
   calculateBasePrice,
   calculateSurgePremium,
   calculatePriceBump,
-  divCeil,
   roundUpToNearestAllocationUnit,
   calculateBasePremium,
   getCurrentBucket,
@@ -14,9 +15,9 @@ const {
   moveTimeToNextBucket,
   moveTimeToNextTranche,
 } = require('./helpers');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
+const { divCeil } = require('../utils').bnMath;
 const { increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
@@ -111,7 +112,6 @@ async function requestAllocationSetup() {
   const [staker] = fixture.accounts.members;
   const productId = 0;
   const trancheId = (await getCurrentTrancheId()) + trancheOffset;
-  console.log('trancheId in fixture:', trancheId);
 
   // Set global product and product type
   await cover.setProduct(coverProductTemplate, productId);

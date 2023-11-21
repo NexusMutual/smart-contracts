@@ -22,7 +22,7 @@ ASSET_V1_TO_ASSET_V2[DAI_ADDRESS.toLowerCase()] = 1;
 
 const V2Addresses = {
   SwapOperator: '0xcafea536d7f79F31Fa49bC40349f6a5F7E19D842',
-  PriceFeedOracle: '0xcafeaf0a0672360941b7f0b6d015797292e842c6',
+  PriceFeedOracle: '0xcafeaf0a0672360941B7F0b6D015797292e842C6',
   Pool: '0xcafea112Db32436c2390F5EC988f3aDB96870627',
   NXMaster: '0xcafea0047591B979c714A63283B8f902554deB66',
   ProductsV1: '0xcafeab02966FdC69Ce5aFDD532DD51466892E32B',
@@ -118,7 +118,6 @@ describe('prevent switch or withdraw membership when tokens are locked', functio
       await this.master.getLatestAddress(toUtf8Bytes('CL')),
     );
     this.coverViewer = await ethers.getContractAt('CoverViewer', V2Addresses.CoverViewer);
-    this.assessment = await ethers.getContractAt('Assessment', await this.master.getLatestAddress(toUtf8Bytes('AS')));
     this.assessment = await ethers.getContractAt('Assessment', await this.master.getLatestAddress(toUtf8Bytes('AS')));
     this.dai = await ethers.getContractAt('ERC20Mock', DAI_ADDRESS);
     this.cover = await ethers.getContractAt('Cover', await this.master.getLatestAddress(toUtf8Bytes('CO')));

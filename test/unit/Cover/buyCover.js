@@ -1231,11 +1231,11 @@ describe('buyCover', function () {
     );
 
     await setEtherBalance(reentrantExploiter.address, expectedPremium.mul(2));
-    await reentrantExploiter.setFallbackParams([cover.address], [expectedPremium], [txData.data]);
+    await reentrantExploiter.setReentrancyParams(cover.address, expectedPremium, txData.data);
 
     // The test uses the payment to the commission destination to trigger reentrancy for the buyCover call.
     // The nonReentrant protection will make the new call revert, making the payment to the commission address to fail.
-    // The expected revert message is 'Cover: Sending ETH to commission destination failed.'
+    // The expected custom error is 'SendingEthToCommissionDestinationFailed'
     // because the commission payment fails thanks to the nonReentrant guard.
     // Even if we can't verify that the transaction reverts with the "ReentrancyGuard: reentrant call" message
     // if the nonReentrant guard is removed from the buyCover() method this test will fail because the following

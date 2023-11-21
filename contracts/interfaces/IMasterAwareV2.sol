@@ -4,6 +4,7 @@ pragma solidity >=0.5.0;
 
 interface IMasterAwareV2 {
 
+  // TODO: if you update this enum, update lib/constants.js as well
   enum ID {
     TC, // TokenController.sol
     P1, // Pool.sol
@@ -18,11 +19,7 @@ interface IMasterAwareV2 {
     AS, // Assessment.sol
     CI, // IndividualClaims.sol - Claims for Individuals
     CG, // YieldTokenIncidents.sol - Claims for Groups
-    // TODO: 1) if you update this enum, update lib/constants.js as well
-    // TODO: 2) TK is not an internal contract!
-    //          If you want to add a new contract below TK, remove TK and make it immutable in all
-    //          contracts that are using it (currently LegacyGateway and LegacyPooledStaking).
-    TK  // NXMToken.sol
+    RA  // Ramm.sol
   }
 
   function changeMasterAddress(address masterAddress) external;

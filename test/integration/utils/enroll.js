@@ -37,6 +37,12 @@ async function enrollABMember({ mr, gv }, members) {
   }
 }
 
+async function getGovernanceSigner(gv) {
+  await impersonateAccount(gv.address);
+  await setEtherBalance(gv.address, parseEther('1000'));
+  return ethers.getSigner(gv.address);
+}
+
 // TODO: remove eslint disable once the function is implemented
 // eslint-disable-next-line no-unused-vars
 async function enrollClaimAssessor({ tc: _unusedTc }, assessors, options = {}) {
@@ -54,4 +60,5 @@ module.exports = {
   enrollMember,
   enrollABMember,
   enrollClaimAssessor,
+  getGovernanceSigner,
 };

@@ -70,7 +70,7 @@ describe('emergency pause', function () {
     const tcCode = hex('TC');
 
     const MCR = await ethers.getContractFactory('MCR');
-    const newMCR = await MCR.deploy(master.address);
+    const newMCR = await MCR.deploy(master.address, 0);
     const TokenController = await ethers.getContractFactory('TokenController');
     const newTokenControllerImplementation = await TokenController.deploy(
       qd.address,
@@ -112,17 +112,6 @@ describe('emergency pause', function () {
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', master.address);
     const implementation = await proxy.implementation();
     assert.equal(implementation, newMaster.address);
-  });
-
-  it('stops token buys and sells', async function () {
-    const fixture = await loadFixture(emergencyPauseSetup);
-    const { master, p1: pool } = fixture.contracts;
-    const emergencyAdmin = fixture.accounts.emergencyAdmin;
-
-    await master.connect(emergencyAdmin).setEmergencyPause(true);
-
-    await expect(pool.buyNXM('0', { value: parseEther('1') })).to.be.revertedWith('System is paused');
-    await expect(pool.sellNXM(parseEther('1'), '0')).to.be.revertedWith('System is paused');
   });
 
   it('stops cover purchases', async function () {

@@ -136,7 +136,7 @@ describe('master', function () {
 
     const code = hex('MC');
     const MCR = await ethers.getContractFactory('MCR');
-    const newMCR = await MCR.deploy(master.address);
+    const newMCR = await MCR.deploy(master.address, 0);
 
     const contractCodes = [code];
     const newAddresses = [newMCR.address];
@@ -190,7 +190,7 @@ describe('master', function () {
     const tcCode = hex('TC');
 
     const MCR = await ethers.getContractFactory('MCR');
-    const newMCR = await MCR.deploy(master.address);
+    const newMCR = await MCR.deploy(master.address, 0);
     const TokenController = await ethers.getContractFactory('TokenController');
     const newTokenControllerImplementation = await TokenController.deploy(
       qd.address,
@@ -254,15 +254,7 @@ describe('master', function () {
     const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
     const LegacyPooledStaking = await ethers.getContractFactory('LegacyPooledStaking');
 
-    const pool = await Pool.deploy(
-      master.address,
-      priceFeedOracle.address,
-      AddressZero,
-      dai.address,
-      AddressZero,
-      AddressZero,
-      tk.address,
-    );
+    const pool = await Pool.deploy(master.address, priceFeedOracle.address, AddressZero, tk.address, p1.address);
 
     const contractCodes = ['TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'CI'];
     const newAddresses = [
@@ -270,12 +262,12 @@ describe('master', function () {
       await CoverMigrator.deploy(qd.address, productsV1.address),
       await LegacyClaimsReward.deploy(master.address, dai.address),
       pool,
-      await MCR.deploy(master.address),
+      await MCR.deploy(master.address, 0),
       await Governance.deploy(),
       await ProposalCategoryContract.deploy(),
       await MemberRoles.deploy(tk.address),
-      await LegacyPooledStaking.deploy(cover.address, productsV1.address, AddressZero),
-      await LegacyGateway.deploy(AddressZero),
+      await LegacyPooledStaking.deploy(cover.address, productsV1.address, AddressZero, tk.address),
+      await LegacyGateway.deploy(AddressZero, tk.address),
       await IndividualClaims.deploy(tk.address, coverNFT.address),
     ].map(c => {
       return c.address;

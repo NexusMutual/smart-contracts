@@ -30,4 +30,16 @@ describe('mint', function () {
 
     expect(balanceMember1).to.equal(initialBalanceMember1.add(amount));
   });
+
+  it('reverts when minting to non-members', async function () {
+    const fixture = await loadFixture(setup);
+    const { tokenController } = fixture.contracts;
+    const [internalContract] = fixture.accounts.internalContracts;
+    const [nonMember] = fixture.accounts.nonMembers;
+
+    const amount = parseEther('10');
+    await expect(tokenController.connect(internalContract).mint(nonMember.address, amount)).to.be.revertedWith(
+      'TokenController: Address is not a member',
+    );
+  });
 });

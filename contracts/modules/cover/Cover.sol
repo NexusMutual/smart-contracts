@@ -16,10 +16,10 @@ import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IStakingProducts.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
-import "../../interfaces/IStakingProducts.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Multicall {
   using SafeERC20 for IERC20;
@@ -210,7 +210,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       */
     }
 
-    uint nxmPriceInCoverAsset = pool().getTokenPriceInAsset(params.coverAsset);
+    uint nxmPriceInCoverAsset = pool().getInternalTokenPriceInAssetAndUpdateTwap(params.coverAsset);
     allocationRequest.coverId = coverId;
 
     (uint coverAmountInCoverAsset, uint amountDueInNXM) = requestAllocation(

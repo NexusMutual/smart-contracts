@@ -44,12 +44,10 @@ describe('upgradeCapitalPool', function () {
 
     const newPool = await Pool.deploy(
       defaultSender.address,
-      AddressZero,
+      priceFeedOracle.address,
       AddressZero, // we do not test swaps here
-      dai.address,
-      stETH.address,
-      enzymeVault.address,
       token.address,
+      pool.address,
     );
 
     await master.upgradeCapitalPool(pool.address, newPool.address);
@@ -114,12 +112,10 @@ describe('upgradeCapitalPool', function () {
 
     const newPool = await Pool.deploy(
       defaultSender.address,
-      AddressZero,
+      priceFeedOracle.address,
       AddressZero, // we do not test swaps here
-      dai.address,
-      stETH.address,
-      enzymeVault.address,
       token.address,
+      pool.address,
     );
 
     await stETH.blacklistSender(pool.address);
@@ -150,5 +146,16 @@ describe('upgradeCapitalPool', function () {
     const newPoolBalance = await ethers.provider.getBalance(newPool.address);
     expect(oldPoolBalance).to.be.equal(0);
     expect(newPoolBalance).to.be.equal(ethAmount);
+  });
+
+  it('should revert if ETH transfer failed', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool, master } = fixture;
+
+    const PoolEtherRejecterMock = await ethers.getContractFactory('PoolEtherRejecterMock');
+    const poolEtherRejecterMock = await PoolEtherRejecterMock.deploy();
+
+    const upgradeCapitalPoolPromise = master.upgradeCapitalPool(pool.address, poolEtherRejecterMock.address);
+    await expect(upgradeCapitalPoolPromise).to.be.revertedWith('Pool: Transfer failed');
   });
 });

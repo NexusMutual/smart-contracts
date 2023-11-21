@@ -4,13 +4,14 @@ const proposalCategories = require('../../lib/proposal-categories');
 const addresses = require('./addresses');
 const accounts = require('./accounts');
 const evm = require('./evm');
-const tokenPrice = require('./token-price');
 const buyCover = require('./buyCover');
 const getQuote = require('./getQuote');
 const governance = require('./governance');
 const membership = require('./membership');
 const results = require('./results');
 const errors = require('./errors');
+const rammCalculations = require('./rammCalculations');
+const bnMath = require('./bnMath');
 
 module.exports = {
   addresses,
@@ -19,11 +20,12 @@ module.exports = {
   evm,
   helpers,
   proposalCategories,
-  tokenPrice,
   buyCover,
   getQuote,
   governance,
   membership,
   results,
   errors,
+  rammCalculations,
+  bnMath,
 };

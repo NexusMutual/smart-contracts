@@ -22,6 +22,8 @@ async function setup() {
     nxm.address,
   ]);
 
+  await nxm.addToWhiteList(tokenController.address);
+
   const master = await ethers.deployContract('MasterMock');
   await master.enrollGovernance(accounts.governanceContracts[0].address);
   await master.enrollInternal(internal.address);

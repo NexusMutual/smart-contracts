@@ -6,14 +6,14 @@ const { hex } = require('../../lib/helpers');
 const proposalCategories = require('../../lib/proposal-categories');
 const products = require('../v2-migration/output/migratableProducts.json');
 const verifier = require('./verifier')();
+const { setEtherBalance } = require('../../test/utils').evm;
 
-const { AddressZero, MaxUint256 } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { AddressZero, MaxUint256, WeiPerEther } = ethers.constants;
+const { parseEther, parseUnits } = ethers.utils;
+const { ABI_DIR, ADDRESSES_FILE, INITIAL_MEMBERS = '' } = process.env;
 
-const { ABI_DIR, CONFIG_FILE, INITIAL_MEMBERS = '' } = process.env;
-
-if (!ABI_DIR || !CONFIG_FILE) {
-  console.log('ABI_DIR and CONFIG_FILE env vars are required');
+if (!ABI_DIR || !ADDRESSES_FILE) {
+  console.log('ABI_DIR and ADDRESSES_FILE env vars are required');
   process.exit(1);
 }
 
@@ -21,6 +21,15 @@ if (network.name === 'tenderly' && typeof tenderly === 'undefined') {
   console.error('Please enable tenderly plugin using ENABLE_TENDERLY=1 env var');
   process.exit(1);
 }
+
+const CAPITAL_POOL_VALUE = parseEther('146000');
+const DAI_ETH_RATE = parseEther('0.00050');
+const POOL_BALANCE_DAI = parseEther('5040000');
+const POOL_BALANCE_ETH = CAPITAL_POOL_VALUE.sub(DAI_ETH_RATE.mul(POOL_BALANCE_DAI).div(WeiPerEther));
+
+const BONDING_CURVE_PRICE = parseEther('0.0286');
+const SPOT_PRICE_B = parseEther('0.01');
+const TOKEN_SUPPLY = parseEther('6760000');
 
 const PROXY_CONTRACT = 'contracts/modules/governance/external/OwnedUpgradeabilityProxy.sol:OwnedUpgradeabilityProxy';
 
@@ -106,14 +115,16 @@ async function main() {
   // Remove verbose logs
   // await network.provider.send('hardhat_setLoggingEnabled', [false]);
 
+  // make sure the contracts are compiled and we're not deploying an outdated artifact
+  await run('compile');
+
   const [ownerSigner] = await ethers.getSigners();
   const { address: owner } = ownerSigner;
 
   console.log(`Using network: ${network.name}`);
   console.log(`Using deployer address: ${owner}`);
 
-  // make sure the contracts are compiled and we're not deploying an outdated artifact
-  await run('compile');
+  await setEtherBalance(owner, parseEther('100'));
 
   const OwnedUpgradeabilityProxy = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
 
@@ -178,7 +189,10 @@ async function main() {
   );
 
   console.log('Deploying NXMToken');
-  const tk = await deployImmutable('NXMToken', [owner, parseEther('1500000')]);
+  const tk = await deployImmutable('NXMToken', [owner, TOKEN_SUPPLY]);
+
+  console.log('Deploying wNXM');
+  await deployImmutable('wNXM', [tk.address]);
 
   console.log('Deploying disposable NXMaster');
   const master = await deployProxy('DisposableNXMaster');
@@ -187,7 +201,7 @@ async function main() {
   const mr = await deployProxy('DisposableMemberRoles', [tk.address]);
 
   console.log('Deploying disposable PooledStaking');
-  const ps = await deployProxy('DisposablePooledStaking');
+  const ps = await deployProxy('DisposablePooledStaking', [tk.address]);
 
   console.log('Deploying disposable PproposalCategory');
   const pc = await deployProxy('DisposableProposalCategory');
@@ -204,7 +218,7 @@ async function main() {
   await qd.changeMasterAddress(master.address);
 
   console.log('Deploying disposable LegacyGateway');
-  const gw = await deployProxy('DisposableGateway', [qd.address]);
+  const gw = await deployProxy('DisposableGateway', [qd.address, tk.address]);
 
   console.log('Deploying ProductsV1');
   const productsV1 = await deployImmutable('ProductsV1');
@@ -265,11 +279,19 @@ async function main() {
     stakingPool.address,
   ]);
 
+  console.log('Deploying Ramm');
+  const ramm = await deployProxy('DisposableRamm', [SPOT_PRICE_B]);
+  await ramm.initialize(
+    POOL_BALANCE_ETH, // FIXME: need to pass pool value, not just eth balance
+    TOKEN_SUPPLY, // here we don't check it actually matches, make sure it's correct
+    BONDING_CURVE_PRICE,
+  );
+
   console.log('Deploying CoverViewer');
   await deployImmutable('CoverViewer', [master.address]);
 
   console.log('Deploying StakingViewer');
-  await deployImmutable('StakingViewer', [master.address, stakingNFT.address, spf.address, stakingProducts.address]);
+  await deployImmutable('StakingViewer', [master.address, stakingNFT.address, spf.address]);
 
   console.log('Deploying assessment contracts');
   const cg = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
@@ -300,7 +322,8 @@ async function main() {
       alias: 'Chainlink-DAI-ETH',
       abiFilename: 'EACAggregatorProxy',
     });
-    await chainlinkDaiMock.setLatestAnswer(parseEther('0.000357884806717390'));
+    await chainlinkDaiMock.setLatestAnswer(DAI_ETH_RATE);
+    await chainlinkDaiMock.setDecimals(18);
     CHAINLINK_DAI_ETH[network.name] = chainlinkDaiMock.address;
   }
 
@@ -311,6 +334,7 @@ async function main() {
       abiFilename: 'EACAggregatorProxy',
     });
     await chainlinkStEthMock.setLatestAnswer(parseEther('1.003')); // almost 1:1
+    await chainlinkStEthMock.setDecimals(18);
     CHAINLINK_STETH_ETH[network.name] = chainlinkStEthMock.address;
   }
 
@@ -321,6 +345,7 @@ async function main() {
       abiFilename: 'EACAggregatorProxy',
     });
     await chainlinkEnzymeVaultMock.setLatestAnswer(parseEther('1.003')); // almost 1:1
+    await chainlinkEnzymeVaultMock.setDecimals(18);
     CHAINLINK_ENZYME_VAULT[network.name] = chainlinkEnzymeVaultMock.address;
   }
 
@@ -331,7 +356,8 @@ async function main() {
       alias: 'Chainlink-ETH-USD',
       abiFilename: 'EACAggregatorProxy',
     });
-    await chainlinkEthUsdMock.setLatestAnswer(parseEther('1234.56'));
+    await chainlinkEthUsdMock.setLatestAnswer(parseUnits('1234.56', 8));
+    await chainlinkEthUsdMock.setDecimals(8);
     CHAINLINK_ETH_USD[network.name] = chainlinkEthUsdMock.address;
   }
 
@@ -344,33 +370,33 @@ async function main() {
 
   console.log('Deploying disposable MCR');
   const disposableMCR = await deployImmutable('DisposableMCR', [
-    parseEther('50000'), // mcrEth
-    parseEther('40000'), // mcrFloor
-    parseEther('50000'), // desiredMCR
+    parseEther('10000'), // mcrEth
+    parseEther('10000'), // desiredMCR
     (await ethers.provider.getBlock('latest')).timestamp - 60, // lastUpdateTime
-    13000, // mcrFloorIncrementThreshold
-    100, // maxMCRFloorIncrement
     500, // maxMCRIncrement
     48000, // gearingFactor
     3600, // minUpdateTime
   ]);
   // deploy MCR with DisposableMCR as a fake master
-  const mcr = await deployImmutable('MCR', [disposableMCR.address]);
+  const mcr = await deployImmutable('MCR', [disposableMCR.address, 0]);
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mcr.address, master.address);
 
   console.log('Deploying Pool');
-  const poolParameters = [master, priceFeedOracle, swapOperator, dai, stETH, enzymeVault, tk].map(x => x.address);
+  const legacyPoolParameters = [master, priceFeedOracle, swapOperator, dai, stETH, enzymeVault, tk].map(x => x.address);
+  const legacyPool = await deployImmutable('LegacyPool', legacyPoolParameters);
+  const poolParameters = [master, priceFeedOracle, swapOperator, tk, legacyPool].map(c => c.address);
   const pool = await deployImmutable('Pool', poolParameters);
 
-  console.log('Minting DAI to Pool');
-  await dai.mint(pool.address, parseEther('6500000'));
+  console.log('Funding the Pool and minting tokens');
+  await setEtherBalance(pool.address, POOL_BALANCE_ETH);
+  await dai.mint(pool.address, POOL_BALANCE_DAI);
 
   console.log('Initializing contracts');
   const replaceableContractCodes = ['MC', 'P1', 'CL'];
   const replaceableContractAddresses = [mcr, pool, coverMigrator].map(x => x.address);
 
-  const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'CG', 'CI', 'AS', 'SP'];
+  const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'CG', 'CI', 'AS', 'SP', 'RA'];
   const proxyContractAddresses = [
     { address: owner }, // as governance
     mr,
@@ -383,6 +409,7 @@ async function main() {
     ci,
     assessment,
     stakingProducts,
+    ramm,
   ].map(x => x.address);
 
   const addresses = [...replaceableContractAddresses, ...proxyContractAddresses];
@@ -413,7 +440,7 @@ async function main() {
       .filter(a => ethers.utils.isAddress(a)),
   ];
 
-  const initialTokens = initialMembers.map(() => parseEther('10000'));
+  const initialTokens = initialMembers.map(() => '0');
 
   await mr.initialize(
     owner,
@@ -501,14 +528,21 @@ async function main() {
   console.log('Upgrading to non-disposable contracts');
   await upgradeProxy(mr.address, 'MemberRoles', [tk.address]);
   await upgradeProxy(tc.address, 'TokenController', [qd.address, cr.address, spf.address, tk.address]);
-  await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address, stakingNFT.address]);
+  await upgradeProxy(ps.address, 'LegacyPooledStaking', [
+    cover.address,
+    productsV1.address,
+    stakingNFT.address,
+    tk.address,
+  ]);
   await upgradeProxy(pc.address, 'ProposalCategory');
   await upgradeProxy(master.address, 'NXMaster');
   await upgradeProxy(gv.address, 'Governance');
-  await upgradeProxy(gw.address, 'LegacyGateway', [qd.address]);
+  await upgradeProxy(gw.address, 'LegacyGateway', [qd.address, tk.address]);
   await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
+  await upgradeProxy(ramm.address, 'Ramm', [SPOT_PRICE_B]);
 
   console.log('Transferring ownership of proxy contracts');
+  // transfer ownership to master contract
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
   await transferProxyOwnership(ps.address, master.address);
@@ -519,8 +553,9 @@ async function main() {
   await transferProxyOwnership(cg.address, master.address);
   await transferProxyOwnership(ci.address, master.address);
   await transferProxyOwnership(assessment.address, master.address);
-  await assessment.changeDependentContractAddress();
+  await transferProxyOwnership(ramm.address, master.address);
 
+  // transfer ownership to governance contract
   await transferProxyOwnership(master.address, gv.address);
 
   const verifyOnEtherscan = !['hardhat', 'localhost', 'tenderly'].includes(network.name);
@@ -548,11 +583,10 @@ async function main() {
     console.log('Contract verifications skipped');
   }
 
-  const configFile = path.resolve(CONFIG_FILE);
+  const addressesFile = path.resolve(ADDRESSES_FILE);
   const abiDir = path.resolve(ABI_DIR);
 
-  const config = fs.existsSync(configFile) ? require(configFile) : {};
-  config.CONTRACTS_ADDRESSES = {};
+  const addressesMap = {};
 
   fs.existsSync(abiDir) && fs.rmSync(abiDir, { recursive: true });
   fs.mkdirSync(abiDir, { recursive: true });
@@ -586,13 +620,13 @@ async function main() {
       continue;
     }
 
-    if (!config.CONTRACTS_ADDRESSES[alias] || isProxy) {
-      config.CONTRACTS_ADDRESSES[alias] = address;
+    if (!addressesMap[alias] || isProxy) {
+      addressesMap[alias] = address;
     }
   }
 
-  console.log(`Updating config file ${configFile}`);
-  fs.writeFileSync(configFile, JSON.stringify(config, null, 2), 'utf8');
+  console.log(`Updating addresses.json ${addressesFile}`);
+  fs.writeFileSync(addressesFile, JSON.stringify(addressesMap, null, 2), 'utf8');
 
   console.log('Deploy finished!');
 }

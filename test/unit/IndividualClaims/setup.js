@@ -1,6 +1,9 @@
 const { ethers } = require('hardhat');
+
+const { ASSET } = require('./helpers');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
+
 const { parseEther } = ethers.utils;
 
 async function setup() {
@@ -13,11 +16,15 @@ async function setup() {
   const memberRoles = await MemberRoles.deploy();
   await memberRoles.deployed();
 
+  const Ramm = await ethers.getContractFactory('RammMock');
+  const ramm = await Ramm.deploy();
+  await ramm.deployed();
+
   const CLMockTokenController = await ethers.getContractFactory('CLMockTokenController');
   const tokenController = await CLMockTokenController.deploy(nxm.address);
   await tokenController.deployed();
 
-  nxm.setOperator(tokenController.address);
+  await nxm.setOperator(tokenController.address);
 
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();
@@ -27,10 +34,12 @@ async function setup() {
   const dai = await DAI.deploy();
   await dai.deployed();
 
-  const CLMockPool = await ethers.getContractFactory('CLMockPool');
-  const pool = await CLMockPool.deploy();
+  const PoolMock = await ethers.getContractFactory('PoolMock');
+  const pool = await PoolMock.deploy();
   await pool.deployed();
   await pool.addAsset({ assetAddress: dai.address, isCoverAsset: true, isAbandonedAsset: false });
+  await pool.setTokenPrice(ASSET.ETH, parseEther('0.0382')); // 1 NXM ~ 0.0382 ETH
+  await pool.setTokenPrice(ASSET.DAI, parseEther('3.82')); // 1 NXM ~ 3.82 DAI)
 
   const Assessment = await ethers.getContractFactory('CLMockAssessment');
   const assessment = await Assessment.deploy();
@@ -59,6 +68,7 @@ async function setup() {
     master.setLatestAddress(hex('AS'), assessment.address),
     master.setLatestAddress(hex('CO'), cover.address),
     master.setLatestAddress(hex('CI'), individualClaims.address),
+    master.setLatestAddress(hex('RA'), ramm.address),
     master.setTokenAddress(nxm.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
@@ -105,7 +115,7 @@ async function setup() {
   }
 
   accounts.defaultSender.sendTransaction({ to: pool.address, value: parseEther('200') });
-  dai.mint(pool.address, parseEther('200'));
+  await dai.mint(pool.address, parseEther('200'));
 
   const config = await individualClaims.config();
 

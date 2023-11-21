@@ -5,7 +5,10 @@ const { BigNumber } = require('ethers');
 const { calculateFirstTrancheId } = require('../utils/staking');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { buyCover, ETH_ASSET_ID } = require('../utils/cover');
-const { divCeil, roundUpToNearestAllocationUnit } = require('../../unit/StakingPool/helpers');
+const { setNextBlockTime } = require('../utils').evm;
+const { divCeil } = require('../utils').bnMath;
+const { getInternalPrice } = require('../../utils/rammCalculations');
+const { roundUpToNearestAllocationUnit } = require('../../unit/StakingPool/helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
@@ -57,14 +60,15 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
   it('recalculates effective weights correctly when activeWeight > targetWeight', async function () {
     const fixture = await loadFixture(recalculateEffectiveWeightsForAllProductsSetup);
     const { DEFAULT_PRODUCTS } = fixture;
-    const { stakingProducts, stakingPool1, cover, p1: pool } = fixture.contracts;
+    const { stakingProducts, stakingPool1, cover, p1: pool, ra, tc, mcr } = fixture.contracts;
     const staker = fixture.accounts.defaultSender;
     const [, coverBuyer] = fixture.accounts.members;
     const [manager] = fixture.accounts.stakingPoolManagers;
 
     const poolId = 1;
     const productId = 1;
-    const stakeAmount = parseEther('9000000');
+
+    const stakeAmount = parseEther('6000000');
 
     // setup product with an initial target weight of 10 in order to buy cover
     const initialTargetWeight = 10;
@@ -80,10 +84,13 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     const coverAsset = ETH_ASSET_ID; // ETH
     const period = 3600 * 24 * 30; // 30 days
     const priceDenominator = 10000;
-    const amount = parseEther('300000');
+    const amount = parseEther('3000');
 
+    const { timestamp } = latestBlock;
     // Compute expectedActiveWeight given how much the cover is worth in NXM and existing capacity
-    const nxmPriceInCoverAsset = await pool.getTokenPriceInAsset(coverAsset);
+    const nxmPriceInCoverAsset = await getInternalPrice(ra, pool, tc, mcr, timestamp + 2);
+    // NOTE: should be called before buyCover as buyCover execution will slightly adjust the price
+
     const coverAmountInNXM = roundUpToNearestAllocationUnit(
       divCeil(amount.mul(ONE_NXM), nxmPriceInCoverAsset),
       NXM_PER_ALLOCATION_UNIT,
@@ -97,6 +104,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
       .div(CAPACITY_REDUCTION_DENOMINATOR);
     const expectedActiveWeight = coverAmountInNXM.mul(WEIGHT_DENOMINATOR).div(expectedCapacity);
 
+    await setNextBlockTime(timestamp + 2);
     // Buy Cover
     await buyCover({
       amount,
@@ -133,7 +141,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     const firstProductId = 1;
     const secondProductId = 2;
 
-    const stakeAmount = parseEther('9000000');
+    const stakeAmount = parseEther('5000000');
 
     // setup products with an initial target weight of 10 in order to buy cover
     const initialTargetWeight = 10;
@@ -156,10 +164,10 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     let firstProductExpectedActiveWeight;
     {
       const productId = firstProductId;
-      const amount = parseEther('300000');
+      const amount = parseEther('3000');
 
       // Compute expectedActiveWeight given how much the cover is worth in NXM and existing capacity
-      const nxmPriceInCoverAsset = await pool.getTokenPriceInAsset(coverAsset);
+      const nxmPriceInCoverAsset = await pool.getInternalTokenPriceInAsset(coverAsset);
       const coverAmountInNXM = roundUpToNearestAllocationUnit(
         divCeil(amount.mul(ONE_NXM), nxmPriceInCoverAsset),
         NXM_PER_ALLOCATION_UNIT,
@@ -196,11 +204,11 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
 
     let secondProductExpectedActiveWeight;
     {
-      const amount = parseEther('200000');
+      const amount = parseEther('9000');
       const productId = secondProductId;
 
       // Compute expectedActiveWeight given how much the cover is worth in NXM and existing capacity
-      const nxmPriceInCoverAsset = await pool.getTokenPriceInAsset(coverAsset);
+      const nxmPriceInCoverAsset = await pool.getInternalTokenPriceInAsset(coverAsset);
       const coverAmountInNXM = roundUpToNearestAllocationUnit(
         divCeil(amount.mul(ONE_NXM), nxmPriceInCoverAsset),
         NXM_PER_ALLOCATION_UNIT,

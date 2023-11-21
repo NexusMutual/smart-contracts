@@ -16,9 +16,9 @@
     "assert": true,
     "contract": true
   },
-  "ignorePatterns": ["node_modules/", "artifacts", "coverage", "!.solcover.js"],
+  "ignorePatterns": ["node_modules/", "artifacts", "coverage", "!.solcover.js", "deployments/dist"],
   "parserOptions": {
-    "ecmaVersion": 2018
+    "ecmaVersion": 2020
   },
   "rules": {
     "comma-dangle": ["warn", "always-multiline"],

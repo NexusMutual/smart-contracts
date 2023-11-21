@@ -60,7 +60,7 @@ async function getMCRSetup() {
     amount: parseEther('1000000'),
   });
 
-  expect(await mcr.getAllSumAssurance()).to.be.equal(0);
+  expect(await mcr.getTotalActiveCoverAmount()).to.be.equal(0);
 
   return fixture;
 }

@@ -9,7 +9,7 @@ describe('updateUintParameters', function () {
   it('should revert when called by non governance addresses', async function () {
     const fixture = await loadFixture(setup);
     const { mcr } = fixture;
-    const param = MCRUintParamType.mcrFloorIncrementThreshold;
+    const param = MCRUintParamType.maxMCRIncrement;
     const [nonMember] = fixture.accounts.nonMembers;
     const [member] = fixture.accounts.members;
     const [advisoryBoardMember] = fixture.accounts.advisoryBoardMembers;

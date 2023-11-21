@@ -5,19 +5,7 @@ const { hex } = require('../utils').helpers;
 const MAX_PERCENTAGE_ADJUSTMENT = BigNumber.from('100');
 
 async function initMCR(params) {
-  const {
-    mcrValue,
-    mcrFloor,
-    desiredMCR,
-    lastUpdateTime,
-    mcrFloorIncrementThreshold,
-    maxMCRFloorIncrement,
-    maxMCRIncrement,
-    gearingFactor,
-    minUpdateTime,
-    master,
-  } = params;
-
+  const { mcrValue, desiredMCR, lastUpdateTime, maxMCRIncrement, gearingFactor, minUpdateTime, master } = params;
   const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
 
   const DisposableMCR = await ethers.getContractFactory('DisposableMCR');
@@ -26,18 +14,18 @@ async function initMCR(params) {
   // deploy disposable mcr and initialize values
   const disposableMCR = await DisposableMCR.deploy(
     mcrValue,
-    mcrFloor,
     desiredMCR,
     lastUpdateTime || currentTime,
-    mcrFloorIncrementThreshold,
-    maxMCRFloorIncrement,
     maxMCRIncrement,
     gearingFactor,
     minUpdateTime,
   );
 
+  const block = await ethers.provider.getBlock('latest');
+  const mcrUpdateDeadline = block.timestamp + 30 * 24 * 3600;
+
   // deploy mcr with fake master
-  const mcr = await MCR.deploy(disposableMCR.address);
+  const mcr = await MCR.deploy(disposableMCR.address, mcrUpdateDeadline);
 
   // trigger initialize and switch master address
   await disposableMCR.initializeNextMcr(mcr.address, master.address);

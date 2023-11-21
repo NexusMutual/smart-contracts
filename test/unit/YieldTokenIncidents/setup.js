@@ -17,7 +17,7 @@ async function setup() {
   const tokenController = await ICMockTokenController.deploy(nxm.address);
   await tokenController.deployed();
 
-  nxm.setOperator(tokenController.address);
+  await nxm.setOperator(tokenController.address);
 
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();
@@ -69,12 +69,17 @@ async function setup() {
   const cover = await Cover.deploy(coverNFT.address);
   await cover.deployed();
 
+  const Ramm = await ethers.getContractFactory('RammMock');
+  const ramm = await Ramm.deploy();
+  await ramm.deployed();
+
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setLatestAddress(hex('MR'), memberRoles.address),
     master.setLatestAddress(hex('P1'), pool.address),
     master.setLatestAddress(hex('CO'), cover.address),
     master.setLatestAddress(hex('AS'), assessment.address),
+    master.setLatestAddress(hex('RA'), ramm.address),
     master.setTokenAddress(nxm.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
@@ -107,7 +112,7 @@ async function setup() {
   }
 
   accounts.defaultSender.sendTransaction({ to: pool.address, value: parseEther('10000') });
-  dai.mint(pool.address, parseEther('10000'));
+  await dai.mint(pool.address, parseEther('10000'));
 
   const config = await yieldTokenIncidents.config();
 
@@ -125,6 +130,7 @@ async function setup() {
       cover,
       coverNFT,
       master,
+      ramm,
     },
   };
 }

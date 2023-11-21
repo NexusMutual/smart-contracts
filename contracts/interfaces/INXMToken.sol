@@ -14,6 +14,8 @@ interface INXMToken {
 
   function isLockedForMV(address member) external view returns (uint);
 
+  function whiteListed(address member) external view returns (bool);
+
   function addToWhiteList(address _member) external returns (bool);
 
   function removeFromWhiteList(address _member) external returns (bool);

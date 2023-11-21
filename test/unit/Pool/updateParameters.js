@@ -61,7 +61,7 @@ describe('updateAddressParameters', function () {
 
     await expect(
       pool.connect(governanceContract).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address),
-    ).to.be.revertedWith('Pool: Oracle lacks asset');
+    ).to.be.revertedWith('Pool: PriceFeedOracle lacks aggregator for asset');
   });
 
   it('should revert when called with a PRC_FEED oracle parameter that lacks a cover asset', async function () {
@@ -76,7 +76,7 @@ describe('updateAddressParameters', function () {
 
     await expect(
       pool.connect(governanceContract).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address),
-    ).to.be.revertedWith('Pool: Oracle lacks asset');
+    ).to.be.revertedWith('Pool: PriceFeedOracle lacks aggregator for asset');
   });
 
   it('should correctly update the address parameters', async function () {
@@ -120,5 +120,18 @@ describe('updateAddressParameters', function () {
     const storedAddress = await pool.priceFeedOracle();
 
     expect(storedAddress).to.equal(newPriceFeedOracle.address);
+  });
+
+  it('should revert if parameter is unknown', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool } = fixture;
+    const {
+      governanceContracts: [governanceContract],
+      generalPurpose: [generalPurpose],
+    } = fixture.accounts;
+
+    const unknownParam = toBytes8('UNKNOWN');
+    const promise = pool.connect(governanceContract).updateAddressParameters(unknownParam, generalPurpose.address);
+    await expect(promise).to.be.revertedWith('Pool: Unknown parameter');
   });
 });

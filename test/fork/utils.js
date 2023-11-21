@@ -1,10 +1,13 @@
 const evm = require('./evm')();
-const { ethers, network } = require('hardhat');
+const { artifacts, ethers, network } = require('hardhat');
 const assert = require('assert');
+
 const { setEtherBalance } = require('../utils/evm');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-const { parseEther, defaultAbiCoder } = ethers.utils;
+const { parseEther, defaultAbiCoder, keccak256 } = ethers.utils;
 const { BigNumber } = ethers;
+
+const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
 
 const V2Addresses = {
   Assessment: '0xcafeaa5f9c401b7295890f309168Bbb8173690A3',
@@ -26,11 +29,12 @@ const V2Addresses = {
   NXMaster: '0x01BFd82675DBCc7762C84019cA518e701C0cD07e',
   NXMToken: '0xd7c49CEE7E9188cCa6AD8FF264C1DA2e69D4Cf3B',
   Pool: '0xcafea112Db32436c2390F5EC988f3aDB96870627',
-  PriceFeedOracle: '0xcafeaf0a0672360941B7F0b6D015797292e842C6',
+  PriceFeedOracle: '0xcafeaf6f31b54931795DA9055910DA7C83D23495',
   ProductsV1: '0xcafeab02966FdC69Ce5aFDD532DD51466892E32B',
   ProposalCategory: '0x888eA6Ab349c854936b98586CE6a17E98BF254b2',
   StakingNFT: '0xcafea508a477D94c502c253A58239fb8F948e97f',
   StakingNFTDescriptor: '0xcafea534e156a41b3e77f29Bf93C653004f1455C',
+  StakingPoolImpl: '0xcafeacf62FB96fa1243618c4727Edf7E04D1D4Ca',
   StakingPoolFactory: '0xcafeafb97BF8831D95C0FC659b8eB3946B101CB3',
   StakingProducts: '0xcafea573fBd815B5f59e8049E71E554bde3477E4',
   StakingViewer: '0xcafea2B7904eE0089206ab7084bCaFB8D476BD04',
@@ -44,6 +48,7 @@ const Address = {
   DAI_ADDRESS: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
   WETH_ADDRESS: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
   STETH_ADDRESS: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
+  RETH_ADDRESS: '0xae78736cd615f374d3085123a210448e74fc6393',
   SWAP_CONTROLLER: '0x551D5500F613a4beC77BA8B834b5eEd52ad5764f',
   COWSWAP_SETTLEMENT: '0x9008D19f58AAbD9eD0D60971565AA8510560ab41',
 };
@@ -61,7 +66,7 @@ const UserAddress = {
 const EnzymeAdress = {
   ENZYMEV4_VAULT_PROXY_ADDRESS: '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD',
   ENZYME_FUND_VALUE_CALCULATOR_ROUTER: '0x7c728cd0CfA92401E01A4849a01b57EE53F5b2b9',
-  ENZYME_COMPTROLLER_PROXY_ADDRESS: '0xa5bf4350da6193b356ac15a3dbd777a687bc216e',
+  ENZYME_COMPTROLLER_PROXY_ADDRESS: '0x01F328d6fbe73d3cf25D00a43037EfCF8BfA6F83',
   ENZYME_ADDRESS_LIST_REGISTRY: '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff',
 };
 
@@ -69,6 +74,7 @@ const PriceFeedOracle = {
   DAI_PRICE_FEED_ORACLE_AGGREGATOR: '0x773616E4d11A78F511299002da57A0a94577F1f4',
   STETH_PRICE_FEED_ORACLE_AGGREGATOR: '0x86392dC19c0b719886221c78AB11eb8Cf5c52812',
   ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR: '0xCc72039A141c6e34a779eF93AEF5eB4C82A893c7',
+  RETH_PRICE_FEED_ORACLE_AGGREGATOR: '0x536218f9E9Eb48863970252233c8F271f554C2d0',
 };
 
 const ratioScale = BigNumber.from('10000');
@@ -276,11 +282,29 @@ async function upgradeMultipleContracts(params) {
 
   await submitGovernanceProposal(
     PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
-    ethers.utils.defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, implAddresses]),
+    defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, implAddresses]),
     abMembers,
     governance,
   );
   return abMembers;
+}
+
+/**
+ * Formats the result of master.getInternalContracts() to a readable logging format
+ */
+function formatInternalContracts({ _contractAddresses, _contractCodes }) {
+  return _contractCodes.map((code, i) => {
+    const index = `${i}`.padStart(2, '0');
+    return `[${index}] ${Buffer.from(code.slice(2), 'hex')} -> ${_contractAddresses[i]}`;
+  });
+}
+
+function calculateProxyAddress(masterAddress, salt) {
+  const { bytecode } = artifacts.readArtifactSync('OwnedUpgradeabilityProxy');
+  const initCode = bytecode + defaultAbiCoder.encode(['address'], [MaxAddress]).slice(2);
+  const initCodeHash = keccak256(initCode);
+  const saltHex = Buffer.from(salt.toString(16).padStart(64, '0'), 'hex');
+  return ethers.utils.getCreate2Address(masterAddress, saltHex, initCodeHash);
 }
 
 module.exports = {
@@ -302,4 +326,6 @@ module.exports = {
   getConfig,
   getActiveProductsInPool,
   upgradeMultipleContracts,
+  formatInternalContracts,
+  calculateProxyAddress,
 };

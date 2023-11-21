@@ -3,7 +3,7 @@ const { ethers } = require('hardhat');
 const { ContractTypes } = require('../utils').constants;
 const { toBytes2, toBytes8 } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
-const { enrollMember, enrollABMember } = require('./utils/enroll');
+const { enrollMember, enrollABMember, getGovernanceSigner } = require('./utils/enroll');
 const { getAccounts } = require('../utils/accounts');
 
 const { BigNumber } = ethers;
@@ -39,7 +39,8 @@ async function setup() {
   const { stakingPoolManagers } = accounts;
 
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
-  const INITIAL_SUPPLY = parseEther('15000000000');
+  const INITIAL_SUPPLY = parseEther('6750000'); // https://etherscan.io/token/0xd7c49cee7e9188cca6ad8ff264c1da2e69d4cf3b
+  const INITIAL_SPOT_PRICE_B = parseEther('0.0152');
 
   // deploy external contracts
   const weth = await ethers.deployContract('WETH9');
@@ -86,21 +87,18 @@ async function setup() {
   // proxy contracts
   const master = await deployProxy('DisposableNXMaster');
   const mr = await deployProxy('DisposableMemberRoles', [tk.address]);
-  const ps = await deployProxy('DisposablePooledStaking');
+  const ps = await deployProxy('DisposablePooledStaking', [tk.address]);
+  const ramm = await deployProxy('Ramm', [INITIAL_SPOT_PRICE_B]);
   const pc = await deployProxy('DisposableProposalCategory');
   const gv = await deployProxy('DisposableGovernance');
-  const gateway = await deployProxy('DisposableGateway', [qd.address]);
+  const gateway = await deployProxy('DisposableGateway', [qd.address, tk.address]);
 
   // non-proxy contracts
   const lcr = await ethers.deployContract('LegacyClaimsReward', [master.address, dai.address]);
 
   const mcrEth = parseEther('50000');
-  const mcrFloor = mcrEth.sub(parseEther('10000'));
-
   const latestBlock = await ethers.provider.getBlock('latest');
   const lastUpdateTime = latestBlock.timestamp;
-  const mcrFloorIncrementThreshold = 13000;
-  const maxMCRFloorIncrement = 100;
   const maxMCRIncrement = 500;
   const gearingFactor = 48000;
   const minUpdateTime = 3600;
@@ -108,18 +106,17 @@ async function setup() {
 
   const disposableMCR = await ethers.deployContract('DisposableMCR', [
     mcrEth,
-    mcrFloor,
     desiredMCR,
     lastUpdateTime,
-    mcrFloorIncrementThreshold,
-    maxMCRFloorIncrement,
     maxMCRIncrement,
     gearingFactor,
     minUpdateTime,
   ]);
 
   // deploy MCR with DisposableMCR as a fake master
-  const mc = await ethers.deployContract('MCR', [disposableMCR.address]);
+  const block = await ethers.provider.getBlock('latest');
+  const mcrUpdateDeadline = block.timestamp + 30 * 24 * 3600;
+  const mc = await ethers.deployContract('MCR', [disposableMCR.address, mcrUpdateDeadline]);
 
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mc.address, master.address);
@@ -133,8 +130,8 @@ async function setup() {
   // placeholder is swapped with the actual one after master is initialized
   const swapOperatorPlaceholder = { address: AddressZero };
 
-  const p1 = await ethers.deployContract(
-    'Pool',
+  const legacyPool = await ethers.deployContract(
+    'LegacyPool',
     [master, priceFeedOracle, swapOperatorPlaceholder, dai, stETH, enzymeVault, tk].map(c => c.address),
   );
 
@@ -202,7 +199,7 @@ async function setup() {
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CI', 'CG', 'AS', 'CO', 'CL', 'SP'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CI', 'CG', 'AS', 'CO', 'CL', 'SP', 'RA'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -216,8 +213,26 @@ async function setup() {
   };
 
   const addr = c => c.address;
-  const addresses = [qd, tc, p1, mc, owner, pc, mr, ps, gateway, ci, cg, cl, as, cover, lcr, stakingProducts].map(addr);
-  const codes = ['QD', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'CI', 'CG', 'CL', 'AS', 'CO', 'CR', 'SP'];
+  const addresses = [
+    qd,
+    tc,
+    legacyPool,
+    mc,
+    owner,
+    pc,
+    mr,
+    ps,
+    gateway,
+    ci,
+    cg,
+    cl,
+    as,
+    cover,
+    lcr,
+    stakingProducts,
+    ramm,
+  ].map(addr);
+  const codes = ['QD', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'CI', 'CG', 'CL', 'AS', 'CO', 'CR', 'SP', 'RA'];
 
   await master.initialize(
     owner.address,
@@ -228,8 +243,20 @@ async function setup() {
     addresses, // addresses
   );
 
-  await p1.updateAddressParameters(toBytes8('SWP_OP'), swapOperator.address);
-  await p1.addAsset(usdc.address, true, parseUnits('1000000', usdcDecimals), parseUnits('2000000', usdcDecimals), 250);
+  await legacyPool.changeDependentContractAddress();
+
+  await ramm.changeMasterAddress(master.address);
+  await ramm.changeDependentContractAddress();
+  await ramm.connect(emergencyAdmin).setEmergencySwapPause(false);
+
+  await legacyPool.updateAddressParameters(toBytes8('SWP_OP'), swapOperator.address);
+  await legacyPool.addAsset(
+    usdc.address,
+    true,
+    parseUnits('1000000', usdcDecimals),
+    parseUnits('2000000', usdcDecimals),
+    250,
+  );
 
   await tc.initialize(master.address, ps.address, as.address);
   await tc.addToWhitelist(lcr.address);
@@ -431,24 +458,43 @@ async function setup() {
   await cover.setProducts(productList);
 
   await gv.changeMasterAddress(master.address);
+
   await master.switchGovernanceAddress(gv.address);
 
   await gateway.initialize(master.address, dai.address);
 
   await upgradeProxy(mr.address, 'MemberRoles', [tk.address]);
   await upgradeProxy(tc.address, 'TokenController', [qd.address, lcr.address, spf.address, tk.address]);
-  await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address, stakingNFT.address]);
+  await upgradeProxy(ps.address, 'LegacyPooledStaking', [
+    cover.address,
+    productsV1.address,
+    stakingNFT.address,
+    tk.address,
+  ]);
   await upgradeProxy(pc.address, 'ProposalCategory');
   await upgradeProxy(master.address, 'NXMaster');
   await upgradeProxy(gv.address, 'Governance');
-  await upgradeProxy(gateway.address, 'LegacyGateway', [qd.address]);
+  await upgradeProxy(gateway.address, 'LegacyGateway', [qd.address, tk.address]);
+
+  // replace legacy pool after Ramm is initialized
+  const governanceSigner = await getGovernanceSigner(gv);
+  const p1 = await ethers.deployContract(
+    'Pool',
+    [master, priceFeedOracle, swapOperatorPlaceholder, tk, legacyPool].map(c => c.address),
+  );
+
+  await master.connect(governanceSigner).upgradeMultipleContracts([toBytes2('P1')], [p1.address]);
 
   // [todo] We should probably call changeDependentContractAddress on every contract
   await gateway.changeDependentContractAddress();
   await cover.changeDependentContractAddress();
+  await ramm.changeDependentContractAddress();
   await ci.changeDependentContractAddress();
   await cg.changeDependentContractAddress();
   await as.changeDependentContractAddress();
+  await mc.changeDependentContractAddress();
+  await mr.changeDependentContractAddress();
+  await tc.changeDependentContractAddress();
 
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
@@ -496,6 +542,7 @@ async function setup() {
     pc: await ethers.getContractAt('ProposalCategory', pc.address),
     mr: await ethers.getContractAt('MemberRoles', mr.address),
     ps: await ethers.getContractAt('LegacyPooledStaking', ps.address),
+    ra: await ethers.getContractAt('Ramm', ramm.address),
     gateway: await ethers.getContractAt('LegacyGateway', gateway.address),
     ci: await ethers.getContractAt('IndividualClaims', ci.address),
     cg: await ethers.getContractAt('YieldTokenIncidents', cg.address),
@@ -525,7 +572,7 @@ async function setup() {
   await enrollMember(fixture.contracts, members, owner);
   await enrollMember(fixture.contracts, stakingPoolManagers, owner);
   await enrollMember(fixture.contracts, advisoryBoardMembers, owner);
-  await enrollABMember(fixture.contracts, advisoryBoardMembers, owner);
+  await enrollABMember(fixture.contracts, advisoryBoardMembers);
 
   const product = {
     productId: 0,
@@ -562,6 +609,7 @@ async function setup() {
     TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
     ONE_NXM: await stakingPool.ONE_NXM(),
     NXM_PER_ALLOCATION_UNIT: await stakingPool.NXM_PER_ALLOCATION_UNIT(),
+    USDC_DECIMALS: usdcDecimals,
   };
 
   fixture.contracts.stakingProducts = stakingProducts;

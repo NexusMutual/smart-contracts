@@ -146,7 +146,7 @@ describe('getAssessmentDepositAndReward', function () {
   it('the NXM equivalent of the deposit should always cover the totalReward', async function () {
     const fixture = await loadFixture(setup);
     const { individualClaims, pool } = fixture.contracts;
-    const nxmPriceInETH = await pool.getTokenPriceInAsset(ASSET.ETH);
+    const nxmPriceInETH = await pool.getInternalTokenPriceInAsset(ASSET.ETH);
     {
       const [deposit, totalReward1] = await individualClaims.getAssessmentDepositAndReward(
         1,

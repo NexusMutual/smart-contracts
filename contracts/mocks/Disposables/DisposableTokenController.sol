@@ -21,7 +21,6 @@ contract DisposableTokenController is TokenController {
   ) external {
 
     token.changeOperator(address(this));
-    token.addToWhiteList(address(this));
 
     changeMasterAddress(_masterAddress);
     internalContracts[uint(ID.PS)] = _pooledStakingAddress;

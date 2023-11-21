@@ -3,7 +3,6 @@
 pragma solidity ^0.8.18;
 
 import "../../interfaces/IAssessment.sol";
-import "../../interfaces/ICover.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
@@ -56,11 +55,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token = INXMToken(tokenAddress);
   }
 
-  // TODO: one-time use function, remove after v2 launch
-  function unlistClaimsReward() external {
-    token.removeFromWhiteList(claimsReward);
-  }
-
   /* ========== DEPENDENCIES ========== */
 
   function pooledStaking() internal view returns (IPooledStaking) {
@@ -69,10 +63,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   function assessment() internal view returns (IAssessment) {
     return IAssessment(internalContracts[uint(ID.AS)]);
-  }
-
-  function cover() internal view returns (ICover) {
-    return ICover(internalContracts[uint(ID.CO)]);
   }
 
   function governance() internal view returns (IGovernance) {
@@ -86,7 +76,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   function changeDependentContractAddress() public override {
     internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
-    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.GV)] = master.getLatestAddress("GV");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
   }
@@ -145,11 +134,25 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   /**
-  * @dev Mints new token for an address
-  * @param _member address to reward the minted tokens
+  * @dev Mints new tokens for an address and checks if the address is a member
+  * @param _member address to send the minted tokens to
   * @param _amount number of tokens to mint
   */
   function mint(address _member, uint _amount) public override onlyInternal {
+    _mint(_member, _amount);
+  }
+
+  /**
+  * @dev Internal function to mint new tokens for an address and checks if the address is a member
+  * @dev Other internal functions in this contract should use _mint and never token.mint directly
+  * @param _member address to send the minted tokens to
+  * @param _amount number of tokens to mint
+  */
+  function _mint(address _member, uint _amount) internal {
+    require(
+      _member == address(this) || token.whiteListed(_member),
+      "TokenController: Address is not a member"
+    );
     token.mint(_member, _amount);
   }
 
@@ -247,6 +250,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   ///
   /// @dev Intended for external protocols - this is a proxy and the contract address won't change
   function getTokenPrice() public override view returns (uint tokenPrice) {
+    // get spot price from ramm
     return pool().getTokenPrice();
   }
 
@@ -535,7 +539,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
-    token.mint(address(this), amount);
+    _mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 

@@ -14,6 +14,7 @@ async function setup() {
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
   const TokenMock = await ethers.getContractFactory('NXMTokenMock');
+  const LegacyPool = await ethers.getContractFactory('LegacyPool');
   const Pool = await ethers.getContractFactory('Pool');
   const MCR = await ethers.getContractFactory('MCR');
   const SwapOperator = await ethers.getContractFactory('SwapOperator');
@@ -42,10 +43,11 @@ async function setup() {
 
   // Deploy Master, MCR, TC, NXMToken
   const master = await MasterMock.deploy();
-  const mcr = await MCR.deploy(master.address);
+  const mcr = await MCR.deploy(master.address, 0);
 
-  const tokenController = await TokenController.deploy();
   const nxmToken = await TokenMock.deploy();
+  const tokenController = await TokenController.deploy(nxmToken.address);
+
   await nxmToken.setOperator(tokenController.address);
 
   // Deploy price aggregators
@@ -89,7 +91,7 @@ async function setup() {
   );
 
   // Deploy Pool
-  const pool = await Pool.deploy(
+  const legacyPool = await LegacyPool.deploy(
     master.address,
     priceFeedOracle.address, // price feed oracle, add to setup if needed
     AddressZero, // swap operator
@@ -97,6 +99,14 @@ async function setup() {
     stEth.address,
     enzymeV4Vault.address,
     nxmToken.address,
+  );
+
+  const pool = await Pool.deploy(
+    master.address,
+    priceFeedOracle.address, // price feed oracle, add to setup if needed
+    AddressZero, // swap operator
+    nxmToken.address,
+    legacyPool.address,
   );
 
   // Setup master, token, token controller, pool and mcr connections

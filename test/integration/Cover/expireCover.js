@@ -11,8 +11,6 @@ const setup = require('../setup');
 
 const { parseEther } = ethers.utils;
 
-const allocationAmount = BigNumber.from(472);
-
 const stakedProductParamTemplate = {
   productId: 1,
   recalculateEffectiveWeight: true,
@@ -45,7 +43,7 @@ async function expireCoverSetup() {
   const { tk: nxm, stakingProducts, stakingPool1, stakingPool2, stakingPool3, tc: tokenController } = fixture.contracts;
   const staker = fixture.accounts.defaultSender;
   const [manager1, manager2, manager3] = fixture.accounts.stakingPoolManagers;
-  const stakeAmount = parseEther('9000000');
+  const stakeAmount = parseEther('900000');
 
   await stakingProducts.connect(manager1).setProducts(1, [stakedProductParamTemplate]);
   await stakingProducts.connect(manager2).setProducts(2, [stakedProductParamTemplate]);
@@ -97,6 +95,8 @@ describe('expireCover', function () {
     const { amount, period, productId } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
+    const initialAllocations = await stakingPool1.getActiveAllocations(productId);
+
     await cover
       .connect(coverBuyer)
       .buyCover(
@@ -108,13 +108,13 @@ describe('expireCover', function () {
     const coverId = await cover.coverDataCount();
 
     await increaseTime(period + 1);
-
-    const allocationsBefore = await stakingPool1.getActiveAllocations(productId);
+    const allocationsWithCover = await stakingPool1.getActiveAllocations(productId);
 
     await cover.connect(coverBuyer).expireCover(coverId);
     const allocationsAfter = await stakingPool1.getActiveAllocations(productId);
 
-    expect(sum(allocationsBefore)).to.be.equal(sum(allocationsAfter).add(allocationAmount));
+    expect(sum(allocationsWithCover)).not.to.be.equal(sum(allocationsAfter));
+    expect(sum(initialAllocations)).to.be.equal(sum(allocationsAfter));
   });
 
   it('should emit an event on expire a cover', async function () {
@@ -148,6 +148,9 @@ describe('expireCover', function () {
     const { amount, period, productId } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
+    const allocationsPool1Before = await stakingPool1.getActiveAllocations(productId);
+    const allocationsPool2Before = await stakingPool2.getActiveAllocations(productId);
+
     await cover.connect(coverBuyer).buyCover(
       { ...buyCoverFixture, owner: coverBuyerAddress },
       [
@@ -159,20 +162,23 @@ describe('expireCover', function () {
 
     const coverId = await cover.coverDataCount();
 
+    const allocationsPool1During = await stakingPool1.getActiveAllocations(productId);
+    const allocationsPool2During = await stakingPool2.getActiveAllocations(productId);
+
     await increaseTime(period + 1);
-
-    const allocationsPool1Before = await stakingPool1.getActiveAllocations(productId);
-    const allocationsPool2Before = await stakingPool2.getActiveAllocations(productId);
-
     await cover.connect(coverBuyer).expireCover(coverId);
 
     const allocationsPool1After = await stakingPool1.getActiveAllocations(productId);
     const allocationsPool2After = await stakingPool2.getActiveAllocations(productId);
 
+    expect(sum(allocationsPool1Before)).to.be.equal(0);
+    expect(sum(allocationsPool2Before)).to.be.equal(0);
+
+    expect(sum(allocationsPool1During)).to.be.gt(sum(allocationsPool1Before));
+    expect(sum(allocationsPool2During)).to.be.gt(sum(allocationsPool2Before));
+
     expect(sum(allocationsPool1After)).to.be.equal(0);
     expect(sum(allocationsPool2After)).to.be.equal(0);
-    expect(sum(allocationsPool1Before)).to.be.equal(sum(allocationsPool1After).add(allocationAmount.div(2)));
-    expect(sum(allocationsPool2Before)).to.be.equal(sum(allocationsPool2After).add(allocationAmount.div(2)));
   });
 
   it('should revert when trying to expire already expired cover', async function () {
@@ -206,7 +212,7 @@ describe('expireCover', function () {
     const { cover, stakingPool1 } = fixture.contracts;
     const { BUCKET_DURATION } = fixture.config;
     const [coverBuyer] = fixture.accounts.members;
-    const { amount, period, coverAsset, productId } = buyCoverFixture;
+    const { amount, period } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -224,9 +230,6 @@ describe('expireCover', function () {
     const coverId = await cover.coverDataCount();
 
     await increaseTime(coverBucketExpirationPeriod.toNumber());
-    const allocationsBefore = await stakingPool1.getActiveAllocations(productId);
-    const { totalActiveCoverInAsset: activeCoverBefore } = await cover.activeCover(coverAsset);
-
     await cover
       .connect(coverBuyer)
       .buyCover(
@@ -235,12 +238,6 @@ describe('expireCover', function () {
         { value: amount },
       );
 
-    const allocationsAfter = await stakingPool1.getActiveAllocations(productId);
-    const { totalActiveCoverInAsset: activeCoverAfter } = await cover.activeCover(coverAsset);
-
-    // stays the same because same amount expired and was allocated
-    expect(sum(allocationsBefore)).to.be.equal(sum(allocationsAfter));
-    expect(activeCoverBefore).to.be.equal(activeCoverAfter);
     await expect(cover.connect(coverBuyer).expireCover(coverId)).to.be.revertedWithCustomError(
       stakingPool1,
       'AlreadyDeallocated',

@@ -71,7 +71,7 @@ describe('addAsset', function () {
     const arbitraryAddress = '0x47ec31abc6b86e49933dC7B2969EBEbE3De662cA';
 
     await expect(pool.connect(governance).addAsset(arbitraryAddress, true, '0', '1', '0')).to.be.revertedWith(
-      'Pool: Asset lacks oracle',
+      'Pool: PriceFeedOracle lacks aggregator for asset',
     );
   });
 

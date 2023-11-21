@@ -114,7 +114,7 @@ describe('swapEnzymeVaultShareForETH', function () {
       '100', // 1% max slippage
     );
     const amountInPool = parseEther('2000');
-    enzymeV4Vault.mint(pool.address, amountInPool);
+    await enzymeV4Vault.mint(pool.address, amountInPool);
 
     const etherBefore = await ethers.provider.getBalance(pool.address);
     const tokensBefore = await enzymeV4Vault.balanceOf(pool.address);
@@ -148,8 +148,8 @@ describe('swapEnzymeVaultShareForETH', function () {
       '100', // 1% max slippage
     );
 
-    const amountInPool = parseEther('2000');
-    enzymeV4Vault.mint(pool.address, amountInPool);
+    const amountInPool = parseEther('500');
+    await enzymeV4Vault.mint(pool.address, amountInPool);
 
     // amounts in/out of the trade
     const sharesIn = parseEther('400');

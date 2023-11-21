@@ -675,9 +675,10 @@ describe('submitClaim', function () {
 
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, coverAsset);
 
-    const CLMockPoolEtherRejecter = await ethers.getContractFactory('CLMockPoolEtherRejecter');
+    const PoolEtherRejecterMock = await ethers.getContractFactory('PoolEtherRejecterMock');
 
-    const fallbackWillFailContractPool = await CLMockPoolEtherRejecter.deploy();
+    const fallbackWillFailContractPool = await PoolEtherRejecterMock.deploy();
+    await fallbackWillFailContractPool.setTokenPrice(ASSET.ETH, parseEther('0.0382'));
     await master.setLatestAddress(hex('P1'), fallbackWillFailContractPool.address);
     await individualClaims.changeDependentContractAddress();
 

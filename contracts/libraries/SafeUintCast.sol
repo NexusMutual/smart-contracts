@@ -316,6 +316,21 @@ library SafeUintCast {
   }
 
   /**
+   * @dev Returns the downcasted uint88 from uint256, reverting on
+   * overflow (when the input is greater than largest uint88).
+   *
+   * Counterpart to Solidity's `uint104` operator.
+   *
+   * Requirements:
+   *
+   * - input must fit into 88 bits
+   */
+  function toUint88(uint256 value) internal pure returns (uint88) {
+    require(value < 2**88, "SafeCast: value doesn\'t fit in 88 bits");
+    return uint88(value);
+  }
+
+  /**
    * @dev Returns the downcasted uint80 from uint256, reverting on
    * overflow (when the input is greater than largest uint80).
    *

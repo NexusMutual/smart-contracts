@@ -18,6 +18,10 @@ async function setup() {
   const individualClaims = await ASMockIndividualClaims.deploy(nxm.address);
   await individualClaims.deployed();
 
+  const ASMockRamm = await ethers.getContractFactory('RammMock');
+  const ramm = await ASMockRamm.deploy();
+  await ramm.deployed();
+
   const ASMockYieldTokenIncidents = await ethers.getContractFactory('ASMockYieldTokenIncidents');
   const yieldTokenIncidents = await ASMockYieldTokenIncidents.deploy();
   await yieldTokenIncidents.deployed();
@@ -47,6 +51,7 @@ async function setup() {
     master.setLatestAddress(hex('CG'), yieldTokenIncidents.address),
     master.setLatestAddress(hex('AS'), assessment.address),
     master.setLatestAddress(hex('MR'), memberRoles.address),
+    master.setLatestAddress(hex('RA'), ramm.address),
     master.enrollInternal(individualClaims.address),
     master.enrollInternal(yieldTokenIncidents.address),
   ]);
@@ -82,6 +87,7 @@ async function setup() {
       yieldTokenIncidents,
       tokenController,
       memberRoles,
+      ramm,
     },
   };
 }

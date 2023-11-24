@@ -141,6 +141,26 @@ describe('extendDeposit', function () {
     ).to.be.revertedWithCustomError(stakingPool, 'NotTokenOwnerOrApproved');
   });
 
+  it('should revert if trying to extend the deposit, while nxm is locked for governance vote', async function () {
+    const fixture = await loadFixture(extendDepositSetup);
+    const { stakingPool, nxm } = fixture;
+    const [user] = fixture.accounts.members;
+
+    const { firstActiveTrancheId, maxTranche } = await getTranches();
+
+    await generateRewards(stakingPool, fixture.coverSigner);
+    const topUpAmount = parseEther('50');
+
+    // Simulate member vote lock
+    await nxm.setLock(user.address, topUpAmount);
+
+    const extendDeposit = stakingPool
+      .connect(user)
+      .extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount);
+
+    await expect(extendDeposit).to.be.revertedWithCustomError(stakingPool, 'NxmIsLockedForGovernanceVote');
+  });
+
   it('withdraws and make a new deposit if initial tranche is expired', async function () {
     const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;

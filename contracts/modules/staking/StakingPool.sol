@@ -1127,6 +1127,10 @@ contract StakingPool is IStakingPool, Multicall {
       revert NotTokenOwnerOrApproved();
     }
 
+    if (block.timestamp <= nxm.isLockedForMV(msg.sender)) {
+      revert NxmIsLockedForGovernanceVote();
+    }
+
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
     {

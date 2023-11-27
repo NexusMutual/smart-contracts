@@ -403,6 +403,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     // Make sure we don't burn beyond lastFraudulentVoteIndex
     uint processUntil = _stake.rewardsWithdrawableFromIndex + voteBatchSize;
+
     if (processUntil >= lastFraudulentVoteIndex) {
       processUntil = lastFraudulentVoteIndex + 1;
     }
@@ -417,7 +418,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
           continue;
         }
       }
-
 
       if (vote.accepted) {
         poll.accepted -= vote.stakedAmount;
@@ -445,15 +445,18 @@ contract Assessment is IAssessment, MasterAwareV2 {
       // burn from a different merkle tree.
       burnAmount = burnAmount > _stake.amount ? _stake.amount : burnAmount;
       _stake.amount -= burnAmount;
+      _stake.fraudCount++;
+
       // TODO: consider burning the tokens in the token controller contract
       ramm().updateTwap();
       nxm.burn(burnAmount);
-      _stake.fraudCount++;
     }
 
-    _stake.rewardsWithdrawableFromIndex = uint104(processUntil);
-    stakeOf[assessor] = _stake;
+    if (uint104(processUntil) > _stake.rewardsWithdrawableFromIndex) {
+      _stake.rewardsWithdrawableFromIndex = uint104(processUntil);
+    }
 
+    stakeOf[assessor] = _stake;
   }
 
   /// Updates configurable parameters through governance

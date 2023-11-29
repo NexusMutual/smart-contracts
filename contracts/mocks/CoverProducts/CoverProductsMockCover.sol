@@ -130,11 +130,15 @@ contract CoverProductsMockCover is ICover {
     revert("Unsupported");
   }
 
-  function stakingPoolFactory() external pure returns (IStakingPoolFactory) {
+  function stakingPoolFactory() external pure returns (IStakingPoolFactoryDetailed) {
     revert("Unsupported");
   }
 
   function coverSegmentAllocationsCount(uint, uint) external pure returns (uint) {
+    revert("Unsupported");
+  }
+
+  function segmentAllocations(uint /* coverId */, uint /* segmentId */) external pure returns (PoolAllocation[] memory) {
     revert("Unsupported");
   }
 }

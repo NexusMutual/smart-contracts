@@ -231,7 +231,7 @@ async function getConfig() {
   let { cover, stakingPool, stakingProducts } = this;
 
   if (stakingPool === undefined) {
-    stakingPool = await ethers.getContractAt('StakingPool', await cover.stakingPool(1));
+    stakingPool = await ethers.getContractAt('StakingPool', await stakingProducts.stakingPool(1));
   }
 
   const config = {

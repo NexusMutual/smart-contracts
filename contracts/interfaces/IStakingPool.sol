@@ -30,7 +30,7 @@ struct StakedProductParam {
   uint96 targetPrice;
 }
 
-  struct BurnStakeParams {
+  struct DeallocateParams {
     uint allocationId;
     uint productId;
     uint start;
@@ -85,7 +85,9 @@ interface IStakingPool {
     AllocationRequest calldata request
   ) external returns (uint premium, uint allocationId);
 
-  function burnStake(uint amount, BurnStakeParams calldata params) external;
+  function burnStake(uint amount) external;
+
+  function deallocate(DeallocateParams calldata params) external;
 
   function depositTo(
     uint amount,

@@ -6,6 +6,7 @@ import "./ICoverNFT.sol";
 import "./IStakingNFT.sol";
 import "./IStakingPool.sol";
 import "./IStakingPoolFactory.sol";
+import "./IStakingPoolFactoryDetailed.sol";
 
 /* ========== DATA STRUCTURES ========== */
 
@@ -161,6 +162,8 @@ interface ICover {
 
   function coverSegmentAllocationsCount(uint coverId, uint segmentId) external view returns (uint);
 
+  function segmentAllocations(uint /* coverId */, uint /* segmentId */) external view returns (PoolAllocation[] memory);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function addLegacyCover(
@@ -187,7 +190,7 @@ interface ICover {
 
   function stakingNFT() external returns (IStakingNFT);
 
-  function stakingPoolFactory() external returns (IStakingPoolFactory);
+  function stakingPoolFactory() external returns (IStakingPoolFactoryDetailed);
 
   /* ========== EVENTS ========== */
 

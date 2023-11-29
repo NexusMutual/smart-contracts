@@ -3,7 +3,14 @@ const { ethers } = require('hardhat');
 
 const { setNextBlockTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
-const { assertCoverFields, buyCoverOnOnePool, MAX_COVER_PERIOD, createStakingPool } = require('./helpers');
+const {
+  assertCoverFields,
+  buyCoverOnOnePool,
+  MAX_COVER_PERIOD,
+  createStakingPool,
+  calculateRemainingPeriod,
+  calculateMockEditPremium,
+} = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
@@ -12,37 +19,6 @@ const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
 
 const gracePeriod = daysToSeconds(120);
-
-function calculateMockEditPremium({
-  existingAmount,
-  increasedAmount,
-  targetPriceRatio,
-  period,
-  priceDenominator,
-  extraPeriod = BigNumber.from(0),
-}) {
-  const premium = increasedAmount
-    .mul(targetPriceRatio)
-    .mul(period)
-    .div(priceDenominator)
-    .div(3600 * 24 * 365);
-
-  const remainingPeriod = BigNumber.from(period).sub(extraPeriod);
-  const extraAmount = increasedAmount.sub(existingAmount);
-
-  const extraPremium = premium
-    .mul(extraAmount.gt(0) ? extraAmount : BigNumber.from(0))
-    .mul(remainingPeriod)
-    .div(increasedAmount)
-    .div(period)
-    .add(premium.mul(extraPeriod).div(period));
-
-  return extraPremium;
-}
-
-function calculateRemainingPeriod({ period, passedPeriod }) {
-  return BigNumber.from(period).sub(passedPeriod);
-}
 
 describe('editCover', function () {
   const coverBuyFixture = {

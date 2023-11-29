@@ -106,7 +106,7 @@ describe('processFraud', function () {
 
   it('should not reset index when process fraud is called again after good vote', async function () {
     const fixture = await loadFixture(processFraudSetup);
-    const { as: assessment, ci: individualClaims, gv: governanceContact, tk: nxm } = fixture.contracts;
+    const { as: assessment, ci: individualClaims, gv: governanceContact } = fixture.contracts;
     const governance = await ethers.getImpersonatedSigner(governanceContact.address);
     const [fraudulentMember] = fixture.accounts.members;
     await setEtherBalance(governance.address, parseEther('1000'));

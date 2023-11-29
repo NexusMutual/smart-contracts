@@ -70,15 +70,15 @@ contract CoverViewer {
 
   function getCoversWithLastSegmentAllocations(uint[] calldata coverIds) external view returns (
     Cover[] memory covers,
-    PoolAllocation[][] memory lastSegmentPoolAllocations
+    PoolAllocation[][] memory lastSegmentAllocations
   ) {
 
     ICover _cover = cover();
     covers = getCovers(coverIds);
-    lastSegmentPoolAllocations = new PoolAllocation[][](covers.length);
+    lastSegmentAllocations = new PoolAllocation[][](covers.length);
     for (uint i = 0; i < covers.length; i++) {
       PoolAllocation[] memory lastSegmentAllocationsForCover = _cover.segmentAllocations(coverIds[i], covers[i].segments.length);
-      lastSegmentPoolAllocations[i] = lastSegmentAllocationsForCover;
+      lastSegmentAllocations[i] = lastSegmentAllocationsForCover;
     }
   }
 

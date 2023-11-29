@@ -141,7 +141,7 @@ describe('extendDeposit', function () {
     ).to.be.revertedWithCustomError(stakingPool, 'NotTokenOwnerOrApproved');
   });
 
-  it('should revert if trying to extend the deposit, while nxm is locked for governance vote', async function () {
+  it('should revert if trying to extend the deposit amount, while nxm is locked', async function () {
     const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool, nxm } = fixture;
     const [user] = fixture.accounts.members;
@@ -159,6 +159,35 @@ describe('extendDeposit', function () {
       .extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount);
 
     await expect(extendDeposit).to.be.revertedWithCustomError(stakingPool, 'NxmIsLockedForGovernanceVote');
+  });
+
+  it('should not revert if trying to extend the deposit duration, while nxm is locked', async function () {
+    const fixture = await loadFixture(extendDepositSetup);
+    const { stakingPool, nxm } = fixture;
+    const [user] = fixture.accounts.members;
+
+    const { firstActiveTrancheId, maxTranche } = await getTranches();
+
+    await generateRewards(stakingPool, fixture.coverSigner);
+
+    const accNxmPerRewardsShareBefore = await stakingPool.getAccNxmPerRewardsShare();
+    const lastAccNxmUpdateBefore = await stakingPool.getLastAccNxmUpdate();
+
+    // Simulate member vote lock
+    const topUpAmount = parseEther('50');
+    await nxm.setLock(user.address, topUpAmount);
+
+    await stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, 0);
+
+    const accNxmPerRewardsShareAfter = await stakingPool.getAccNxmPerRewardsShare();
+    const lastAccNxmUpdateAfter = await stakingPool.getLastAccNxmUpdate();
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const depositData = await stakingPool.deposits(depositNftId, maxTranche);
+
+    expect(accNxmPerRewardsShareAfter).to.gt(accNxmPerRewardsShareBefore);
+    expect(accNxmPerRewardsShareAfter).to.equal(depositData.lastAccNxmPerRewardShare);
+    expect(lastAccNxmUpdateAfter).to.gt(lastAccNxmUpdateBefore);
+    expect(lastAccNxmUpdateAfter).to.equal(timestamp);
   });
 
   it('withdraws and make a new deposit if initial tranche is expired', async function () {

@@ -1,8 +1,11 @@
-const { Role } = require('../utils').constants;
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const { setup } = require('./setup');
+const { Role } = require('../utils').constants;
+const { setNextBlockTime } = require('../utils').evm;
+
 const { formatBytes32String } = ethers.utils;
 
 describe('withdrawMembership', function () {
@@ -158,7 +161,7 @@ describe('withdrawMembership', function () {
     expect(membersAfter).to.be.equal(membersBefore - 1);
   });
 
-  it("removes the role of member from the mebmber's address", async function () {
+  it("removes the role of member from the member's address", async function () {
     const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;
     const {
@@ -170,5 +173,20 @@ describe('withdrawMembership', function () {
     const hasMemberRoleAfter = await memberRoles.checkRole(member1.address, Role.Member);
     expect(hadMemberRoleBefore).to.be.equal(true);
     expect(hasMemberRoleAfter).to.be.equal(false);
+  });
+
+  it("emits MembershipWithdrawn event with the withdrawn member's address and timestamp", async function () {
+    const fixture = await loadFixture(setup);
+    const { memberRoles } = fixture.contracts;
+    const {
+      members: [member1],
+    } = fixture.accounts;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    await setNextBlockTime(timestamp + 1);
+
+    await expect(memberRoles.connect(member1).withdrawMembership())
+      .to.emit(memberRoles, 'MembershipWithdrawn')
+      .withArgs(member1.address, timestamp + 1);
   });
 });

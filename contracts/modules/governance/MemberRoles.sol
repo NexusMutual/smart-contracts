@@ -253,6 +253,8 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     _tokenController.burnFrom(msg.sender, token.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
     _tokenController.removeFromWhitelist(msg.sender); // need clarification on whitelist
+
+    emit MembershipWithdrawn(msg.sender, block.timestamp);
   }
 
   /// Switches membership from the sender's address to a new address.

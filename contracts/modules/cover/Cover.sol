@@ -39,7 +39,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   // To be removed once migration is completed
   // product id => allowed pool ids
-  mapping(uint => uint[]) private _allowedPools;
+  mapping(uint => uint[]) private allowedPools;
 
   // Each cover has an array of segments. A new segment is created
   // every time a cover is edited to deliniate the different cover periods.
@@ -652,7 +652,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   }
 
   function allowedPools(uint productId) external view returns (uint[] memory) {
-    return _allowedPools[productId];
+    return allowedPools[productId];
   }
 
   /* ========== COVER ASSETS HELPERS ========== */

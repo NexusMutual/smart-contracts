@@ -2,7 +2,7 @@
 
 pragma solidity >=0.5.0;
 
-import "./ICover.sol";
+import "./ILegacyCover.sol";
 
 /* ========== DATA STRUCTURES ========== */
 

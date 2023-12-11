@@ -37,9 +37,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   // cover id => segment id => pool allocations array
   mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
-  // To be removed once migration is completed
-  // product id => allowed pool ids
-  mapping(uint => uint[]) private allowedPools;
+  mapping(uint => uint[]) private _unused_allowedPools;
 
   // Each cover has an array of segments. A new segment is created
   // every time a cover is edited to deliniate the different cover periods.
@@ -50,11 +48,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   // assetId => bucketId => amount
   mapping(uint => mapping(uint => uint)) internal activeCoverExpirationBuckets;
 
-  // To be removed once migration is completed
   // productId => product name
-  mapping(uint => string) public productNames;
+  mapping(uint => string) public _unused_productNames;
   // productTypeId => productType name
-  mapping(uint => string) public productTypeNames;
+  mapping(uint => string) public _unused_productTypeNames;
 
   /* ========== CONSTANTS ========== */
 
@@ -641,18 +638,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   function coverDataCount() external override view returns (uint) {
     return coverNFT.totalSupply();
-  }
-
-  function getProductsToMigrate() external view returns (Product[] memory) {
-    return _products;
-  }
-
-  function getProductTypesToMigrate() external view returns (ProductType[] memory) {
-    return _productTypes;
-  }
-
-  function allowedPools(uint productId) external view returns (uint[] memory) {
-    return allowedPools[productId];
   }
 
   /* ========== COVER ASSETS HELPERS ========== */

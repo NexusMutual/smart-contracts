@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
-import "../../interfaces/ICover.sol";
+import "../../interfaces/ILegacyCover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingNFT.sol";
@@ -240,9 +240,9 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     require(_products.length == 0, "CoverProducts: _products already migrated");
     require(_productTypes.length == 0,  "CoverProducts: _productTypes already migrated");
 
-    ICover _cover = cover();
-    Product[] memory _productsToMigrate = _cover.getProductsToMigrate();
-    ProductType[] memory _productTypesToMigrate = _cover.getProductTypesToMigrate();
+    ILegacyCover _cover = cover();
+    Product[] memory _productsToMigrate = _cover.getProducts();
+    ProductType[] memory _productTypesToMigrate = _cover.getProductTypes();
 
     for (uint i = 0; i < _productsToMigrate.length; i++) {
       _products.push(_productsToMigrate[i]);
@@ -262,8 +262,8 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     return IPool(internalContracts[uint(ID.P1)]);
   }
 
-  function cover() internal view returns (ICover) {
-    return ICover(internalContracts[uint(ID.CO)]);
+  function cover() internal view returns (ILegacyCover) {
+    return ILegacyCover(internalContracts[uint(ID.CO)]);
   }
 
   function changeDependentContractAddress() public {

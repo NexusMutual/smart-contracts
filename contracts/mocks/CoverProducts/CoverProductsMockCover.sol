@@ -3,12 +3,12 @@
 pragma solidity ^0.8.18;
 
 import "../../interfaces/IStakingPool.sol";
-import "../../interfaces/ICover.sol";
+import "../../interfaces/ILegacyCover.sol";
 import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
 import "../../interfaces/ICoverProducts.sol";
 
-contract CoverProductsMockCover is ICover {
+contract CoverProductsMockCover is ILegacyCover {
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   Product[] internal _products;
@@ -82,11 +82,11 @@ contract CoverProductsMockCover is ICover {
     revert("Unsupported");
   }
 
-  function getProductsToMigrate() external view returns (Product[] memory) {
+  function getProducts() external view returns (Product[] memory) {
     return _products;
   }
 
-  function getProductTypesToMigrate() external view returns (ProductType[] memory) {
+  function getProductTypes() external view returns (ProductType[] memory) {
     return _productTypes;
   }
 

@@ -2,26 +2,9 @@
 
 pragma solidity >=0.5.0;
 
-import "./ICover.sol";
+import "./ILegacyCover.sol";
 
-/* ========== DATA STRUCTURES ========== */
-
-struct ProductParam {
-  string productName;
-  uint productId;
-  string ipfsMetadata;
-  Product product;
-  uint[] allowedPools;
-}
-
-struct ProductTypeParam {
-  string productTypeName;
-  uint productTypeId;
-  string ipfsMetadata;
-  ProductType productType;
-}
-
-interface ICoverProducts {
+interface IDisposableCoverProducts {
 
   /* ========== VIEWS ========== */
 

@@ -3,12 +3,12 @@
 pragma solidity ^0.8.18;
 
 import "../../interfaces/IStakingPool.sol";
-import "../../interfaces/ILegacyCover.sol";
+import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
 import "../../interfaces/ICoverProducts.sol";
 
-contract CoverProductsMockCover is ILegacyCover {
+contract CoverProductsMockCover is ICover {
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   Product[] internal _products;
@@ -20,7 +20,7 @@ contract CoverProductsMockCover is ILegacyCover {
 
   function setProductsAndProductTypes(
     Product[] memory products,
-    ProductType[] memory productTypes,
+    ProductType[] memory productTypeArray,
     string[] memory _productNames,
     string[] memory _productTypeNames,
     uint[][] memory allowedPoolsList
@@ -33,7 +33,7 @@ contract CoverProductsMockCover is ILegacyCover {
     }
 
     for (uint i = 0; i < products.length; i++) {
-      _productTypes.push(productTypes[i]);
+      _productTypes.push(productTypeArray[i]);
       productTypeNames[i] = _productTypeNames[i];
     }
   }
@@ -86,8 +86,12 @@ contract CoverProductsMockCover is ILegacyCover {
     return _products;
   }
 
-  function getProductTypes() external view returns (ProductType[] memory) {
-    return _productTypes;
+  function productTypesCount() external view returns (uint) {
+    return _productTypes.length;
+  }
+
+  function productTypes(uint id) external view returns (ProductType memory) {
+    return _productTypes[id];
   }
 
   function allowedPools(uint productId) external view returns (uint[] memory) {

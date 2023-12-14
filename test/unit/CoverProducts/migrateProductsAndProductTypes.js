@@ -44,7 +44,7 @@ describe('migrateProductsAndProductTypes', function () {
 
     await cover.setProductsAndProductTypes(products, productTypes, productNames, productTypeNames, allowedPools);
 
-    const newCoverProducts = await ethers.deployContract('CoverProducts');
+    const newCoverProducts = await ethers.deployContract('DisposableCoverProducts');
 
     await newCoverProducts.changeMasterAddress(master.address);
     await newCoverProducts.changeDependentContractAddress();

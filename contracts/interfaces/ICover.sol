@@ -190,7 +190,6 @@ interface ICover {
   error ProductDoesntExistOrIsDeprecated();
   error InvalidProductType();
   error UnexpectedProductId();
-  error PoolNotAllowedForThisProduct(uint productId);
 
   // Cover and payment assets
   error CoverAssetNotSupported();

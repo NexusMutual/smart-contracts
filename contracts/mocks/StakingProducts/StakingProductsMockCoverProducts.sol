@@ -72,7 +72,7 @@ contract StakingProductsMockCoverProducts is ICoverProducts {
     for (uint i = 0; i < productIds.length; i++) {
       uint productId = productIds[i];
       if (!allowedPools[productId][poolId]) {
-        revert ICover.PoolNotAllowedForThisProduct(productId);
+        revert PoolNotAllowedForThisProduct(productId);
       }
     }
   }

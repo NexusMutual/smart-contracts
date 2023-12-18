@@ -161,7 +161,7 @@ contract CoverMockStakingProducts is IStakingProducts {
       ICoverProducts _coverProducts = coverProducts();
       // if there is a list of allowed pools for this product - this pool didn't exist yet so it's not in it
       if (_coverProducts.allowedPoolsCount(productId) > 0) {
-        revert PoolNotAllowedForThisProduct(productId);
+        revert ICoverProducts.PoolNotAllowedForThisProduct(productId);
       }
 
       if (productId >= _coverProducts.productsCount()) {

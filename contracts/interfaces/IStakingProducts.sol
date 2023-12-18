@@ -129,7 +129,6 @@ interface IStakingProducts {
   // Staking Pool creation
   error ProductDoesntExistOrIsDeprecated();
   error InvalidProductType();
-  error PoolNotAllowedForThisProduct(uint productId);
   error TargetPriceBelowGlobalMinPriceRatio();
 
 }

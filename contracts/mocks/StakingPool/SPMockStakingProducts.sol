@@ -133,7 +133,7 @@ contract SPMockStakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       for (uint i = 0; i < numProducts; i++) {
         productIds[i] = params[i].productId;
         if (!ICoverProducts(coverProductsContract).isPoolAllowed(params[i].productId, poolId)) {
-          revert ICover.PoolNotAllowedForThisProduct(params[i].productId);
+          revert ICoverProducts.PoolNotAllowedForThisProduct(params[i].productId);
         }
       }
       (

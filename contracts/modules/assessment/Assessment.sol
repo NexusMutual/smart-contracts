@@ -379,7 +379,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param fraudCount               The number of times the assessor has taken part in fraudulent
   ///                                 voting.
   /// @param voteBatchSize            The number of iterations that prevents an unbounded loop and
-  ///                                 allows chunked processing. Can also be 0 if chunking is not
+  ///                                 allows chunked processing. Can also be very large number if chunking is not
   ///                                 necessary.
   function processFraud(
     uint256 rootIndex,

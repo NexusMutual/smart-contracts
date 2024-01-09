@@ -1127,7 +1127,7 @@ contract StakingPool is IStakingPool, Multicall {
       revert NotTokenOwnerOrApproved();
     }
 
-    if (block.timestamp <= nxm.isLockedForMV(msg.sender) && topUpAmount > 0) {
+    if (topUpAmount > 0 && block.timestamp <= nxm.isLockedForMV(msg.sender)) {
       revert NxmIsLockedForGovernanceVote();
     }
 

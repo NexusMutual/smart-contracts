@@ -149,14 +149,13 @@ describe('extendDeposit', function () {
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
     await generateRewards(stakingPool, fixture.coverSigner);
-    const topUpAmount = parseEther('50');
 
     // Simulate member vote lock
-    await nxm.setLock(user.address, topUpAmount);
+    await nxm.setLock(user.address, 3 * 24 * 60 * 60); // 3 days in seconds
 
     const extendDeposit = stakingPool
       .connect(user)
-      .extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount);
+      .extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, parseEther('50'));
 
     await expect(extendDeposit).to.be.revertedWithCustomError(stakingPool, 'NxmIsLockedForGovernanceVote');
   });
@@ -174,8 +173,7 @@ describe('extendDeposit', function () {
     const lastAccNxmUpdateBefore = await stakingPool.getLastAccNxmUpdate();
 
     // Simulate member vote lock
-    const topUpAmount = parseEther('50');
-    await nxm.setLock(user.address, topUpAmount);
+    await nxm.setLock(user.address, 3 * 24 * 60 * 60); // 3 days in seconds);
 
     await stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, 0);
 

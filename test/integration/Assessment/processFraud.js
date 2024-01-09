@@ -113,7 +113,7 @@ describe('processFraud', function () {
     await assessment.connect(fraudulentMember).stake(fixture.amount.mul(100));
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
-    // Fradelante vote
+    // Fraudulent vote
     await individualClaims.submitClaim(1, 0, fixture.amount, '', { value: fixture.amount });
     await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
     const merkleTree = await submitFraud({

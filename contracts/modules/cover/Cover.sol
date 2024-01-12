@@ -235,39 +235,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       )
     );
 
-    // Update totalActiveCover
-    {
-      ActiveCover memory _activeCover = activeCover[params.coverAsset];
-
-      uint currentBucketId = block.timestamp / BUCKET_SIZE;
-      uint totalActiveCover = _activeCover.totalActiveCoverInAsset;
-
-      if (totalActiveCover != 0) {
-        totalActiveCover -= getExpiredCoverAmount(
-          params.coverAsset,
-          _activeCover.lastBucketUpdateId,
-          currentBucketId
-        );
-      }
-
-      totalActiveCover -= previousSegmentAmount;
-      totalActiveCover += coverAmountInCoverAsset;
-
-      _activeCover.lastBucketUpdateId = currentBucketId.toUint64();
-      _activeCover.totalActiveCoverInAsset = totalActiveCover.toUint192();
-
-      // update total active cover in storage
-      activeCover[params.coverAsset] = _activeCover;
-
-      // update amount to expire at the end of this cover segment
-      uint bucketAtExpiry = Math.divCeil(block.timestamp + params.period, BUCKET_SIZE);
-      activeCoverExpirationBuckets[params.coverAsset][bucketAtExpiry] += coverAmountInCoverAsset;
-    }
-
     // can pay with cover asset or nxm only
     if (params.paymentAsset != params.coverAsset && params.paymentAsset != NXM_ASSET_ID) {
       revert InvalidPaymentAsset();
     }
+    _updateTotalActiveCoverAmount(params.coverAsset, coverAmountInCoverAsset, params.period, previousSegmentAmount);
 
     retrievePayment(
       amountDueInNXM,
@@ -485,6 +457,43 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     if (commission > 0) {
       token.safeTransferFrom(msg.sender, commissionDestination, commission);
     }
+  }
+
+  function updateTotalActiveCoverAmount(uint coverAsset) public {
+    _updateTotalActiveCoverAmount(coverAsset, 0, 0, 0);
+  }
+
+  function _updateTotalActiveCoverAmount(
+    uint coverAsset,
+    uint newCoverAmountInAsset,
+    uint coverPeriod,
+    uint previousCoverSegmentAmount
+  ) internal {
+    ActiveCover memory _activeCover = activeCover[coverAsset];
+
+    uint currentBucketId = block.timestamp / BUCKET_SIZE;
+    uint totalActiveCover = _activeCover.totalActiveCoverInAsset;
+
+    if (totalActiveCover != 0) {
+      totalActiveCover -= getExpiredCoverAmount(
+        coverAsset,
+        _activeCover.lastBucketUpdateId,
+        currentBucketId
+      );
+    }
+
+    totalActiveCover -= previousCoverSegmentAmount;
+    totalActiveCover += newCoverAmountInAsset;
+
+    _activeCover.lastBucketUpdateId = currentBucketId.toUint64();
+    _activeCover.totalActiveCoverInAsset = totalActiveCover.toUint192();
+
+    // update total active cover in storage
+    activeCover[coverAsset] = _activeCover;
+
+    // update amount to expire at the end of this cover segment
+    uint bucketAtExpiry = Math.divCeil(block.timestamp + coverPeriod, BUCKET_SIZE);
+    activeCoverExpirationBuckets[coverAsset][bucketAtExpiry] += newCoverAmountInAsset;
   }
 
   function addLegacyCover(

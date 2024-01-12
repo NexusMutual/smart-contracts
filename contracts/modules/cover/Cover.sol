@@ -239,7 +239,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     if (params.paymentAsset != params.coverAsset && params.paymentAsset != NXM_ASSET_ID) {
       revert InvalidPaymentAsset();
     }
-    _processExpiredCover(params.coverAsset, coverAmountInCoverAsset, params.period, previousSegmentAmount);
+    _updateTotalActiveCoverAmount(params.coverAsset, coverAmountInCoverAsset, params.period, previousSegmentAmount);
 
     retrievePayment(
       amountDueInNXM,
@@ -459,11 +459,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     }
   }
 
-  function processExpiredCover(uint coverAsset) public {
-    _processExpiredCover(coverAsset, 0, 0, 0);
+  function updateTotalActiveCoverAmount(uint coverAsset) public {
+    _updateTotalActiveCoverAmount(coverAsset, 0, 0, 0);
   }
 
-  function _processExpiredCover(uint coverAsset, uint coverAmountInCoverAsset, uint period, uint previousSegmentAmount) internal {
+  function _updateTotalActiveCoverAmount(
+    uint coverAsset,
+    uint coverAmountInCoverAsset,
+    uint period,
+    uint previousSegmentAmount
+  ) internal {
     ActiveCover memory _activeCover = activeCover[coverAsset];
 
     uint currentBucketId = block.timestamp / BUCKET_SIZE;

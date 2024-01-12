@@ -43,27 +43,22 @@ const main = async productsTypesDataFilePath => {
   });
 
   const productTypeEntries = await Promise.all(
-    productTypeData.map(async (data, i) => {
-      const url = data['Cover Wording URL'];
-
-      const productTypeName = data.Name;
-      console.log(`Fetching ${productTypeName} cover wording from ${url}`);
-      const agreementBuffer = await fetch(url).then(x => x.buffer());
-
-      console.log(`Uploading ${productTypeName} cover wording to IPFS`);
-      const agreement = await ipfs.add(agreementBuffer);
-      const productTypeHash = agreement.path;
-
-      console.log(`Pinning ${productTypeHash}`);
-      await ipfs.pin.add(productTypeHash);
+    productTypeData.map(async (productType, i) => {
+      const filePath = productType['Cover Wording URL'];
+      
+      console.log(`Uploading ${productType.Name} cover wording from ${filePath} to IPFS`);
+      const coverWording = await ipfs.add(fs.readFileSync(filePath));      
+      
+      console.log(`Pinning ${coverWording.path}`);
+      await ipfs.pin.add(coverWording.path);
 
       return {
-        productTypeName: data.Name,
-        productTypeId: MaxUint256, // create new product type
-        ipfsMetadata: productTypeHash,
+        productTypeName: productType.Name,
+        productTypeId: productType['Id'] || MaxUint256, // create new product type
+        ipfsMetadata: coverWording.path,
         productType: {
-          claimMethod: data['Claim Method'],
-          gracePeriod: data['Grace Period (days)'] * 24 * 3600, // This MUST be in seconds
+          claimMethod: productType['Claim Method'],
+          gracePeriod: productType['Grace Period (days)'] * 24 * 3600, // This MUST be in seconds
         },
         expectedProductTypeId: i,
       };
@@ -71,13 +66,8 @@ const main = async productsTypesDataFilePath => {
   );
 
   const setProductTypesTransaction = await cover.populateTransaction.setProductTypes(productTypeEntries);
-
-  console.log(`Tx data ${setProductTypesTransaction.data}`);
-
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify({ setProductTypesTransaction }, null, 2), 'utf8');
-
-  console.log(`Wrote transaction data to ${OUTPUT_FILE}`);
-
+  console.log(setProductTypesTransaction);
+  
   return { setProductTypesTransaction };
 };
 

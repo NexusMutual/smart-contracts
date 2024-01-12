@@ -482,8 +482,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       );
     }
 
-    totalActiveCover -= previousSegmentAmount;
-    totalActiveCover += coverAmountInCoverAsset;
+    totalActiveCover -= previousCoverSegmentAmount;
+    totalActiveCover += newCoverAmountInAsset;
 
     _activeCover.lastBucketUpdateId = currentBucketId.toUint64();
     _activeCover.totalActiveCoverInAsset = totalActiveCover.toUint192();
@@ -492,8 +492,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     activeCover[coverAsset] = _activeCover;
 
     // update amount to expire at the end of this cover segment
-    uint bucketAtExpiry = Math.divCeil(block.timestamp + period, BUCKET_SIZE);
-    activeCoverExpirationBuckets[coverAsset][bucketAtExpiry] += coverAmountInCoverAsset;
+    uint bucketAtExpiry = Math.divCeil(block.timestamp + coverPeriod, BUCKET_SIZE);
+    activeCoverExpirationBuckets[coverAsset][bucketAtExpiry] += newCoverAmountInAsset;
   }
 
   function addLegacyCover(

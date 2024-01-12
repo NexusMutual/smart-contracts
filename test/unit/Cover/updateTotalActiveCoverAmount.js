@@ -27,7 +27,7 @@ const buyCoverFixture = {
 
 const poolAllocationRequest = [{ poolId: 1, coverAmountInAsset: buyCoverFixture.amount }];
 
-async function processExpiredCoverSetup() {
+async function updateTotalActiveCoverAmountSetup() {
   const fixture = await loadFixture(setup);
   const { cover } = fixture;
   const [stakingPoolManager] = fixture.accounts.members;
@@ -70,14 +70,14 @@ async function processExpiredCoverSetup() {
   return fixture;
 }
 
-describe('processExpiredCover', function () {
+describe('updateTotalActiveCoverAmount', function () {
   it('should recalculate totalCoverAmount', async function () {
-    const fixture = await loadFixture(processExpiredCoverSetup);
+    const fixture = await loadFixture(updateTotalActiveCoverAmountSetup);
     const { cover } = fixture;
     const { coverAsset } = buyCoverFixture;
 
     await increaseTime(daysToSeconds(7)); // fastforward to next bucket
-    await cover.processExpiredCover(coverAsset);
+    await cover.updateTotalActiveCoverAmount(coverAsset);
     const totalCoverAmount = await cover.totalActiveCoverInAsset(coverAsset);
 
     expect(totalCoverAmount).to.be.equal(0);

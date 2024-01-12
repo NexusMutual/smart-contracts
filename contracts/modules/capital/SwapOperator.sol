@@ -10,6 +10,7 @@ import "../../interfaces/ICowSettlement.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
+import "../../interfaces/ISafeTracker.sol";
 import "../../interfaces/IWeth.sol";
 import "../../interfaces/IERC20Detailed.sol";
 
@@ -48,13 +49,23 @@ contract SwapOperator {
   uint public constant MIN_TIME_BETWEEN_ORDERS = 900; // 15 minutes
   uint public constant maxFee = 0.3 ether;
 
+  // Safe variables
+  address public safe;
+  uint public safeRequestedAmount;
+
   // Events
   event OrderPlaced(GPv2Order.Data order);
   event OrderClosed(GPv2Order.Data order, uint filledAmount);
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
+  event TransferredToSafe(uint amount);
 
   modifier onlyController() {
     require(msg.sender == swapController, "SwapOp: only controller can execute");
+    _;
+  }
+
+  modifier onlySafe() {
+    require(msg.sender == safe, "SwapOp: only Safe can execute");
     _;
   }
 
@@ -70,6 +81,7 @@ contract SwapOperator {
     address _master,
     address _weth,
     address _enzymeV4VaultProxyAddress,
+    address _safe,
     IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter,
     uint _minPoolEth
   ) {
@@ -82,6 +94,7 @@ contract SwapOperator {
     enzymeV4VaultProxyAddress = _enzymeV4VaultProxyAddress;
     enzymeFundValueCalculatorRouter = _enzymeFundValueCalculatorRouter;
     minPoolEth = _minPoolEth;
+    safe = _safe;
   }
 
   receive() external payable {}
@@ -332,6 +345,14 @@ contract SwapOperator {
   }
 
   /**
+   * @dev Get the SafeTracker's instance through master contract
+   * @return The safe tracker instance
+   */
+  function safeTracker() internal view returns (ISafeTracker) {
+    return ISafeTracker(master.getLatestAddress("ST"));
+  }
+
+  /**
    * @dev Validates that a given asset is not swapped too fast
    * @param swapDetails Swap details for the given asset
    */
@@ -502,6 +523,25 @@ contract SwapOperator {
 
     IERC20 token = IERC20(asset);
     token.safeTransfer(to, amount);
+  }
+
+
+  /**
+   * @dev Request amount of ETH to be transferred to the safe
+   */
+  function requestETH(uint amount) external onlySafe {
+    safeRequestedAmount = amount;
+  }
+
+  /**
+   * @dev Transfer request amount of ETH to the safe
+   */
+  function transferRequestedETH() external onlyController {
+    uint amount = safeRequestedAmount;
+    safeRequestedAmount = 0;
+    _pool().transferAssetToSwapOperator(ETH, amount);
+    transferAssetTo(ETH, safe, amount);
+    emit TransferredToSafe(amount);
   }
 
   function recoverAsset(address assetAddress, address receiver) public onlyController {

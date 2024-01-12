@@ -20,6 +20,8 @@ struct Asset {
 
 interface IPool {
 
+  function swapOperator() external view returns (address);
+
   function getAsset(uint assetId) external view returns (Asset memory);
 
   function getAssets() external view returns (Asset[] memory);

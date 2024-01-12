@@ -465,9 +465,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   function _updateTotalActiveCoverAmount(
     uint coverAsset,
-    uint coverAmountInCoverAsset,
-    uint period,
-    uint previousSegmentAmount
+    uint newCoverAmountInAsset,
+    uint coverPeriod,
+    uint previousCoverSegmentAmount
   ) internal {
     ActiveCover memory _activeCover = activeCover[coverAsset];
 

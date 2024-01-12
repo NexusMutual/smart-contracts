@@ -33,6 +33,10 @@ interface ISwapOperator {
 
   function recoverAsset(address assetAddress, address receiver) external;
 
+  function requestETH(uint amount) external;
+
+    function transferRequestedETH() external returns (bool);
+
   /* ========== EVENTS AND ERRORS ========== */
 
   event OrderPlaced(GPv2Order.Data order);
@@ -60,7 +64,7 @@ interface ISwapOperator {
 
   // Access Controls
   error OnlyController();
-  
+
   // Transfer
   error TransferFailed(address to, uint value, address token);
 

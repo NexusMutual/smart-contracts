@@ -10,7 +10,7 @@ import "../../interfaces/ISafeTracker.sol";
 
 contract SafeTracker is ISafeTracker, MasterAwareV2 {
 
-  uint public investedUSDC;
+  uint public coverReInvestmentUSDC;
 
   string public symbol = "NXMIS";
   string public name = "NXMIS";
@@ -50,17 +50,17 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
   }
 
   /**
-  * @dev Updates invested USDC
+  * @dev Updates invested USDC in CoverRe
   */
-  function updateInvestedUSDC(uint _investedUSDC) external {
+  function updateCoverReInvestmentUSDC(uint _investedUSDC) external {
     require(msg.sender == safe, "SafeTracker: not safe");
-    investedUSDC = _investedUSDC;
+    coverReInvestmentUSDC = _investedUSDC;
   }
 
   /**
   * @dev emits Transfer event only if it's called by Pool or SwapOperator
   */
-  function transfer(address, uint256 amount) external returns (bool){
+  function transfer(address, uint256 amount) external returns (bool) {
     if (amount == 0 || msg.sender == internalContracts[uint(ID.P1)] || msg.sender == pool().swapOperator()) {
       emit Transfer(address(0), address(0), 0); // add arguments
       return true;
@@ -99,14 +99,14 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
     IPriceFeedOracle priceFeedOracle = pool().priceFeedOracle();
 
     // usdc actually in the safe
-    uint usdcAmount = usdc.balanceOf(safe) + investedUSDC;
-    uint usdcInEth = priceFeedOracle.getEthForAsset(address(usdc), usdcAmount);
+    uint usdcAmount = usdc.balanceOf(safe) + coverReInvestmentUSDC;
+    uint usdcValueInEth = priceFeedOracle.getEthForAsset(address(usdc), usdcAmount);
 
     // usdc debt (borrowed usdc)
-    uint usdcDebtAmount = debtUsdc.balanceOf(safe);
-    uint usdcDebtInEth = priceFeedOracle.getEthForAsset(address(usdc), usdcDebtAmount);
+    uint debtUsdcAmount = debtUsdc.balanceOf(safe);
+    uint debtUsdcValueInEth = priceFeedOracle.getEthForAsset(address(usdc), debtUsdcAmount);
 
-    return ethAmount + usdcInEth - usdcDebtInEth;
+    return ethAmount + usdcValueInEth - debtUsdcValueInEth;
   }
 
   /* ========== DEPENDENCIES ========== */

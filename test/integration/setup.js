@@ -145,6 +145,7 @@ async function setup() {
     weth.address,
     AddressZero,
     AddressZero,
+    AddressZero,
     '0',
   ]);
 

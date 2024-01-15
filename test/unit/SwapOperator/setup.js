@@ -128,6 +128,7 @@ async function setup() {
     master.address,
     weth.address,
     enzymeV4Vault.address,
+    AddressZero,
     enzymeFundValueCalculatorRouter.address,
     parseEther('1'),
   );

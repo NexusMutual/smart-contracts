@@ -51,18 +51,34 @@ async function setup() {
   const stETH = await ethers.deployContract('ERC20MockNameable', ['MockStETH', 'stETH']);
   await stETH.mint(owner.address, parseEther('10000000'));
 
-  const enzymeVault = await ethers.deployContract('ERC20Mock');
+  const rETH = await ethers.deployContract('ERC20MockNameable', ['MockReth', 'rETH']);
+  await rETH.mint(owner.address, parseEther('10000000'));
+
+  const aWETH = await ethers.deployContract('ERC20MockNameable', ['MockAweth', 'aWETH']);
+  await aWETH.mint(owner.address, parseEther('10000000'));
+
+  const enzymeVault = await ethers.deployContract('ERC20MockNameable', ['MockNxmty', 'NXMTY']);
   await enzymeVault.mint(owner.address, parseEther('10000000'));
 
   const usdcDecimals = 6;
   const usdc = await ethers.deployContract('ERC20CustomDecimalsMock', [usdcDecimals]);
   await usdc.mint(owner.address, parseUnits('10000000', usdcDecimals));
 
+  const debtUsdcDecimals = 6;
+  const debtUsdc = await ethers.deployContract('ERC20CustomDecimalsMock', [debtUsdcDecimals]);
+  await debtUsdc.mint(owner.address, parseUnits('10000000', debtUsdcDecimals));
+
   const chainlinkDAI = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkDAI.setLatestAnswer(parseEther('1'));
 
   const chainlinkSteth = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkSteth.setLatestAnswer(parseEther('1'));
+
+  const chainlinkReth = await ethers.deployContract('ChainlinkAggregatorMock');
+  await chainlinkReth.setLatestAnswer(parseEther('1'));
+
+  const chainlinkAweth = await ethers.deployContract('ChainlinkAggregatorMock');
+  await chainlinkAweth.setLatestAnswer(parseEther('1'));
 
   const chainlinkUSDC = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkUSDC.setLatestAnswer(parseEther('1'));
@@ -92,6 +108,7 @@ async function setup() {
   const pc = await deployProxy('DisposableProposalCategory');
   const gv = await deployProxy('DisposableGovernance');
   const gateway = await deployProxy('DisposableGateway', [qd.address, tk.address]);
+  const st = await deployProxy('SafeTracker', [owner.address, usdc.address, aWETH.address, debtUsdc.address]);
 
   // non-proxy contracts
   const lcr = await ethers.deployContract('LegacyClaimsReward', [master.address, dai.address]);
@@ -121,10 +138,19 @@ async function setup() {
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mc.address, master.address);
 
+  const priceFeedOracleAssets = [
+    { contract: dai, aggregator: chainlinkDAI, decimals: 18 },
+    { contract: stETH, aggregator: chainlinkSteth, decimals: 18 },
+    { contract: rETH, aggregator: chainlinkReth, decimals: 18 },
+    { contract: aWETH, aggregator: chainlinkAweth, decimals: 18 },
+    { contract: enzymeVault, aggregator: chainlinkEnzymeVault, decimals: 18 },
+    { contract: usdc, aggregator: chainlinkUSDC, decimals: usdcDecimals },
+    { contract: debtUsdc, aggregator: chainlinkUSDC, decimals: debtUsdcDecimals },
+  ];
   const priceFeedOracle = await ethers.deployContract('PriceFeedOracle', [
-    [dai, stETH, usdc, enzymeVault].map(c => c.address),
-    [chainlinkDAI, chainlinkSteth, chainlinkUSDC, chainlinkEnzymeVault].map(c => c.address),
-    [18, 18, 6, 18],
+    priceFeedOracleAssets.map(a => a.contract.address),
+    priceFeedOracleAssets.map(a => a.aggregator.address),
+    priceFeedOracleAssets.map(a => a.decimals),
   ]);
 
   // placeholder is swapped with the actual one after master is initialized
@@ -142,9 +168,9 @@ async function setup() {
     owner.address, // _swapController,
     master.address,
     weth.address,
-    AddressZero,
-    AddressZero,
-    AddressZero,
+    AddressZero, // _enzymeV4VaultProxyAddress
+    AddressZero, // _safe
+    AddressZero, // _enzymeFundValueCalculatorRouter
     '0',
   ]);
 
@@ -200,7 +226,7 @@ async function setup() {
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CI', 'CG', 'AS', 'CO', 'CL', 'SP', 'RA'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CI', 'CG', 'AS', 'CO', 'CL', 'SP', 'RA', 'ST'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -213,35 +239,34 @@ async function setup() {
     return 0;
   };
 
-  const addr = c => c.address;
-  const addresses = [
-    qd,
-    tc,
-    legacyPool,
-    mc,
-    owner,
-    pc,
-    mr,
-    ps,
-    gateway,
-    ci,
-    cg,
-    cl,
-    as,
-    cover,
-    lcr,
-    stakingProducts,
-    ramm,
-  ].map(addr);
-  const codes = ['QD', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'CI', 'CG', 'CL', 'AS', 'CO', 'CR', 'SP', 'RA'];
+  const addressCodes = [
+    { address: qd.address, code: 'QD' },
+    { address: tc.address, code: 'TC' },
+    { address: legacyPool.address, code: 'P1' },
+    { address: mc.address, code: 'MC' },
+    { address: owner.address, code: 'GV' },
+    { address: pc.address, code: 'PC' },
+    { address: mr.address, code: 'MR' },
+    { address: ps.address, code: 'PS' },
+    { address: gateway.address, code: 'GW' },
+    { address: ci.address, code: 'CI' },
+    { address: cg.address, code: 'CG' },
+    { address: cl.address, code: 'CL' },
+    { address: as.address, code: 'AS' },
+    { address: cover.address, code: 'CO' },
+    { address: lcr.address, code: 'CR' },
+    { address: stakingProducts.address, code: 'SP' },
+    { address: ramm.address, code: 'RA' },
+    { address: st.address, code: 'ST' },
+  ];
 
   await master.initialize(
     owner.address,
     tk.address,
     emergencyAdmin.address,
-    codes.map(toBytes2), // codes
-    codes.map(contractType), // types
-    addresses, // addresses
+    addressCodes.map(ac => toBytes2(ac.code)), // codes
+    addressCodes.map(ac => contractType(ac.code)), // types
+    addressCodes.map(ac => ac.address), // addresses
   );
 
   await legacyPool.changeDependentContractAddress();
@@ -251,6 +276,8 @@ async function setup() {
   await ramm.connect(emergencyAdmin).setEmergencySwapPause(false);
 
   await legacyPool.updateAddressParameters(toBytes8('SWP_OP'), swapOperator.address);
+
+  // Manually add pool assets that are not automatically added via LegacyPool constructor
   await legacyPool.addAsset(
     usdc.address,
     true,
@@ -258,6 +285,8 @@ async function setup() {
     parseUnits('2000000', usdcDecimals),
     250,
   );
+  await legacyPool.addAsset(rETH.address, false, parseEther('10000'), parseEther('20000'), 250);
+  await legacyPool.addAsset(aWETH.address, false, parseEther('10000'), parseEther('20000'), 250);
 
   await tc.initialize(master.address, ps.address, as.address);
   await tc.addToWhitelist(lcr.address);
@@ -510,28 +539,49 @@ async function setup() {
   await transferProxyOwnership(cover.address, gv.address);
   await transferProxyOwnership(master.address, gv.address);
 
+  // Ensure ALL assets has fund in the pool (except debtUsdc)
   const POOL_ETHER = parseEther('90000');
-  const POOL_DAI = parseEther('2000000');
-  const POOL_USDC = parseUnits('2000000', usdcDecimals);
-
-  // fund pool
+  const poolAssets = [
+    { asset: dai, poolValue: parseEther('2000000') },
+    { asset: usdc, poolValue: parseUnits('2000000', usdcDecimals) },
+    { asset: stETH, poolValue: parseEther('33202') },
+    { asset: rETH, poolValue: parseEther('13358') },
+    { asset: aWETH, poolValue: parseEther('8000') },
+    { asset: enzymeVault, poolValue: parseEther('15348') },
+  ];
   await owner.sendTransaction({ to: p1.address, value: POOL_ETHER.toString() });
-  await dai.transfer(p1.address, POOL_DAI);
-  await usdc.transfer(p1.address, POOL_USDC);
+  await Promise.all(poolAssets.map(pa => pa.asset.transfer(p1.address, pa.poolValue)));
+
+  // Rates
+  const assetToEthRate = (rate, powValue = '36') => BigNumber.from('10').pow(BigNumber.from(powValue)).div(rate);
 
   const ethToDaiRate = 20000;
-
-  const daiToEthRate = BigNumber.from('10')
-    .pow(BigNumber.from('36'))
-    .div(parseEther((ethToDaiRate / 100).toString()));
-  await chainlinkDAI.setLatestAnswer(daiToEthRate);
-
+  const ethToNxmtyRate = 1000;
   const ethToUsdcRate = parseUnits('200', usdcDecimals);
 
-  const usdcToEthRate = BigNumber.from('10').pow(BigNumber.from('24')).div(ethToUsdcRate);
-  await chainlinkUSDC.setLatestAnswer(usdcToEthRate);
+  const daiToEthRate = assetToEthRate(parseEther((ethToDaiRate / 100).toString()));
+  const nxmtyToEthRate = assetToEthRate(parseEther((ethToNxmtyRate / 100).toString()));
+  const usdcToEthRate = assetToEthRate(ethToUsdcRate, '24');
 
-  const external = { chainlinkDAI, dai, usdc, weth, productsV1, ybDAI, ybETH, ybUSDC };
+  await chainlinkDAI.setLatestAnswer(daiToEthRate);
+  await chainlinkUSDC.setLatestAnswer(usdcToEthRate);
+  await chainlinkEnzymeVault.setLatestAnswer(nxmtyToEthRate);
+
+  const external = {
+    chainlinkDAI,
+    dai,
+    usdc,
+    debtUsdc,
+    weth,
+    stETH,
+    rETH,
+    aWETH,
+    enzymeVault,
+    productsV1,
+    ybDAI,
+    ybETH,
+    ybUSDC,
+  };
   const nonUpgradable = { qd, productsV1, spf, coverNFT, stakingNFT };
   const instances = { tk, cl, p1, mcr: mc, lcr };
 
@@ -544,6 +594,7 @@ async function setup() {
     mr: await ethers.getContractAt('MemberRoles', mr.address),
     ps: await ethers.getContractAt('LegacyPooledStaking', ps.address),
     ra: await ethers.getContractAt('Ramm', ramm.address),
+    st: await ethers.getContractAt('SafeTracker', st.address),
     gateway: await ethers.getContractAt('LegacyGateway', gateway.address),
     ci: await ethers.getContractAt('IndividualClaims', ci.address),
     cg: await ethers.getContractAt('YieldTokenIncidents', cg.address),
@@ -566,6 +617,7 @@ async function setup() {
     daiToEthRate,
     ethToDaiRate,
     usdcToEthRate,
+    nxmtyToEthRate,
   };
 
   fixture.contractType = contractType;

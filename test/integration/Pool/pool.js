@@ -102,8 +102,14 @@ describe('Pool functions', function () {
 
   it('getMCRRatio calculates MCR ratio correctly', async function () {
     const fixture = await loadFixture(tokenPriceSetup);
-    const { p1: pool } = fixture.contracts;
+    const { p1: pool, mcr } = fixture.contracts;
+
+    const MCR_RATIO_DECIMALS = 4;
+    const totalAssetValue = await pool.getPoolValueInEth();
+    const mcrEth = await mcr.getMCR();
+    const expectedMcrRatio = totalAssetValue.mul(BigNumber.from(10).pow(MCR_RATIO_DECIMALS)).div(mcrEth);
+
     const mcrRatio = await pool.getMCRRatio();
-    expect(mcrRatio.toString()).to.be.equal('22000'); // ETH + DAI + USDC
+    expect(mcrRatio).to.be.equal(expectedMcrRatio);
   });
 });

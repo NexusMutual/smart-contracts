@@ -134,7 +134,7 @@ describe('swap', function () {
     // Insufficient Amount Out Error
     const minEthOutFail = expectedEthOut.add(1);
     await setNextBlockBaseFee(0);
-    await setNextBlockTime(nextBlockTimestamp + 2 * 60);
+    await setNextBlockTime(nextBlockTimestamp);
     const swapFail = ra.connect(member).swap(nxmIn, minEthOutFail, deadline, { maxPriorityFeePerGas: 0 });
     await expect(swapFail).to.be.revertedWithCustomError(ra, 'InsufficientAmountOut');
 

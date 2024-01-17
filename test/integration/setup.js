@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 
 const { ContractTypes } = require('../utils').constants;
-const { toBytes2, toBytes8 } = require('../utils').helpers;
+const { toBytes2 } = require('../utils').helpers;
 const { setEtherBalance } = require('../utils').evm;
 const { proposalCategories } = require('../utils');
 const { enrollMember, enrollABMember, getGovernanceSigner } = require('./utils/enroll');
@@ -163,15 +163,6 @@ async function setup() {
     priceFeedOracleAssets.map(a => a.decimals),
   ]);
 
-  // placeholder is swapped with the actual one after master is initialized
-  // NOTE: p1.swapOperator() is still AddressZero after setup
-  const swapOperatorPlaceholder = { address: AddressZero };
-
-  const legacyPool = await ethers.deployContract(
-    'LegacyPool',
-    [master, priceFeedOracle, swapOperatorPlaceholder, dai, stETH, enzymeVault, tk].map(c => c.address),
-  );
-
   const cowVaultRelayer = await ethers.deployContract('SOMockVaultRelayer');
   const cowSettlement = await ethers.deployContract('SOMockSettlement', [cowVaultRelayer.address]);
   const swapOperator = await ethers.deployContract('SwapOperator', [
@@ -184,6 +175,11 @@ async function setup() {
     AddressZero, // _enzymeFundValueCalculatorRouter
     '0',
   ]);
+
+  const legacyPool = await ethers.deployContract(
+    'LegacyPool',
+    [master, priceFeedOracle, swapOperator, dai, stETH, enzymeVault, tk].map(c => c.address),
+  );
 
   const stakingNFTDescriptor = await ethers.deployContract('StakingNFTDescriptor');
   const coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [master.address]);
@@ -285,8 +281,6 @@ async function setup() {
   await ramm.changeMasterAddress(master.address);
   await ramm.changeDependentContractAddress();
   await ramm.connect(emergencyAdmin).setEmergencySwapPause(false);
-
-  await legacyPool.updateAddressParameters(toBytes8('SWP_OP'), swapOperator.address);
 
   // Manually add pool assets that are not automatically added via LegacyPool constructor
   await legacyPool.addAsset(
@@ -521,7 +515,7 @@ async function setup() {
   const governanceSigner = await getGovernanceSigner(gv);
   const p1 = await ethers.deployContract(
     'Pool',
-    [master, priceFeedOracle, swapOperatorPlaceholder, tk, legacyPool].map(c => c.address),
+    [master, priceFeedOracle, swapOperator, tk, legacyPool].map(c => c.address),
   );
 
   await master.connect(governanceSigner).upgradeMultipleContracts([toBytes2('P1')], [p1.address]);
@@ -563,7 +557,7 @@ async function setup() {
   await Promise.all(poolAssets.map(pa => pa.asset.transfer(p1.address, pa.poolValue)));
 
   // Rates
-  const assetToEthRate = (rate, powValue = '36') => BigNumber.from('10').pow(BigNumber.from(powValue)).div(rate);
+  const assetToEthRate = (rate, powValue = 36) => BigNumber.from(10).pow(BigNumber.from(powValue)).div(rate);
 
   const ethToDaiRate = 20000;
   const ethToNxmtyRate = 1000;
@@ -571,7 +565,7 @@ async function setup() {
 
   const daiToEthRate = assetToEthRate(parseEther((ethToDaiRate / 100).toString()));
   const nxmtyToEthRate = assetToEthRate(parseEther((ethToNxmtyRate / 100).toString()));
-  const usdcToEthRate = assetToEthRate(ethToUsdcRate, '24');
+  const usdcToEthRate = assetToEthRate(ethToUsdcRate, 24);
 
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
   await chainlinkUSDC.setLatestAnswer(usdcToEthRate);
@@ -624,8 +618,10 @@ async function setup() {
   };
 
   fixture.rates = {
-    daiToEthRate,
     ethToDaiRate,
+    ethToNxmtyRate,
+    ethToUsdcRate,
+    daiToEthRate,
     usdcToEthRate,
     nxmtyToEthRate,
   };

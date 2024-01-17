@@ -44,6 +44,9 @@ async function setup() {
   const INITIAL_SPOT_PRICE_B = parseEther('0.0152');
 
   // deploy external contracts
+  const gnosisSafe = await ethers.deployContract('ERC20Mock');
+  await setEtherBalance(gnosisSafe.address, parseEther('1000'));
+
   const weth = await ethers.deployContract('WETH9');
 
   const dai = await ethers.deployContract('ERC20MockNameable', ['MockDai', 'DAI']);
@@ -55,9 +58,6 @@ async function setup() {
   const rETH = await ethers.deployContract('ERC20MockNameable', ['MockReth', 'rETH']);
   await rETH.mint(owner.address, parseEther('10000000'));
 
-  const aWETH = await ethers.deployContract('ERC20MockNameable', ['MockAweth', 'aWETH']);
-  await aWETH.mint(owner.address, parseEther('10000000'));
-
   const enzymeVault = await ethers.deployContract('ERC20MockNameable', ['MockNxmty', 'NXMTY']);
   await enzymeVault.mint(owner.address, parseEther('10000000'));
 
@@ -67,7 +67,12 @@ async function setup() {
 
   const debtUsdcDecimals = 6;
   const debtUsdc = await ethers.deployContract('ERC20CustomDecimalsMock', [debtUsdcDecimals]);
-  await debtUsdc.mint(owner.address, parseUnits('10000000', debtUsdcDecimals));
+  const aWETH = await ethers.deployContract('ERC20MockNameable', ['MockAweth', 'aWETH']);
+
+  // fund gnosisSafe
+  await aWETH.mint(gnosisSafe.address, parseEther('10000'));
+  await usdc.mint(gnosisSafe.address, parseUnits('1000000', usdcDecimals));
+  await debtUsdc.mint(gnosisSafe.address, parseUnits('1000000', usdcDecimals));
 
   const chainlinkDAI = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkDAI.setLatestAnswer(parseEther('1'));
@@ -86,6 +91,9 @@ async function setup() {
 
   const chainlinkEnzymeVault = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkEnzymeVault.setLatestAnswer(parseEther('1'));
+
+  const chainlinkSt = await ethers.deployContract('ChainlinkAggregatorMock');
+  await chainlinkSt.setLatestAnswer(parseEther('1'));
 
   const ybDAI = await ethers.deployContract('ERC20Mock');
   await ybDAI.mint(owner.address, parseEther('10000000'));
@@ -109,7 +117,7 @@ async function setup() {
   const pc = await deployProxy('DisposableProposalCategory');
   const gv = await deployProxy('DisposableGovernance');
   const gateway = await deployProxy('DisposableGateway', [qd.address, tk.address]);
-  const st = await deployProxy('SafeTracker', [owner.address, usdc.address, aWETH.address, debtUsdc.address]);
+  const st = await deployProxy('SafeTracker', [gnosisSafe.address, usdc.address, aWETH.address, debtUsdc.address]);
 
   // non-proxy contracts
   const lcr = await ethers.deployContract('LegacyClaimsReward', [master.address, dai.address]);
@@ -144,6 +152,7 @@ async function setup() {
     { contract: stETH, aggregator: chainlinkSteth, decimals: 18 },
     { contract: rETH, aggregator: chainlinkReth, decimals: 18 },
     { contract: aWETH, aggregator: chainlinkAweth, decimals: 18 },
+    { contract: st, aggregator: chainlinkSt, decimals: 18 },
     { contract: enzymeVault, aggregator: chainlinkEnzymeVault, decimals: 18 },
     { contract: usdc, aggregator: chainlinkUSDC, decimals: usdcDecimals },
     { contract: debtUsdc, aggregator: chainlinkUSDC, decimals: debtUsdcDecimals },
@@ -155,6 +164,7 @@ async function setup() {
   ]);
 
   // placeholder is swapped with the actual one after master is initialized
+  // NOTE: p1.swapOperator() is still AddressZero after setup
   const swapOperatorPlaceholder = { address: AddressZero };
 
   const legacyPool = await ethers.deployContract(
@@ -287,7 +297,7 @@ async function setup() {
     250,
   );
   await legacyPool.addAsset(rETH.address, false, parseEther('10000'), parseEther('20000'), 250);
-  await legacyPool.addAsset(aWETH.address, false, parseEther('10000'), parseEther('20000'), 250);
+  await legacyPool.addAsset(st.address, false, parseEther('10000'), parseEther('20000'), 250);
 
   await tc.initialize(master.address, ps.address, as.address);
   await tc.addToWhitelist(lcr.address);
@@ -549,14 +559,13 @@ async function setup() {
   await transferProxyOwnership(cover.address, gv.address);
   await transferProxyOwnership(master.address, gv.address);
 
-  // Ensure ALL assets has fund in the pool (except debtUsdc)
+  // Ensure ALL pool supported assets has fund (except st)
   const POOL_ETHER = parseEther('90000');
   const poolAssets = [
     { asset: dai, poolValue: parseEther('2000000') },
     { asset: usdc, poolValue: parseUnits('2000000', usdcDecimals) },
     { asset: stETH, poolValue: parseEther('33202') },
     { asset: rETH, poolValue: parseEther('13358') },
-    { asset: aWETH, poolValue: parseEther('8000') },
     { asset: enzymeVault, poolValue: parseEther('15348') },
   ];
   await owner.sendTransaction({ to: p1.address, value: POOL_ETHER.toString() });

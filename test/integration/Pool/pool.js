@@ -70,21 +70,21 @@ describe('Pool functions', function () {
 
   it('getPoolValueInEth calculates pool value correctly', async function () {
     const fixture = await loadFixture(tokenPriceSetup);
-    const { p1: pool, dai, usdc, stETH, rETH, aWETH, enzymeVault } = fixture.contracts;
+    const { p1: pool, dai, usdc, stETH, rETH, st, enzymeVault } = fixture.contracts;
     const { daiToEthRate, usdcToEthRate, nxmtyToEthRate } = fixture.rates;
     const { USDC_DECIMALS } = fixture.config;
 
     const totalAssetValue = await pool.getPoolValueInEth();
     const poolBalance = BigNumber.from(await ethers.provider.getBalance(pool.address));
 
-    // NOTE: any new pool assets must be added here (except debtUsdc)
-    const allAssets = [dai, usdc, enzymeVault, stETH, rETH, aWETH];
+    // NOTE: any new pool assets must be added here
+    const allAssets = [dai, stETH, enzymeVault, usdc, rETH, st];
     const poolAssets = (await pool.getAssets()).map(asset => asset[0]);
     expect(poolAssets).to.be.lengthOf([ETH_ASSET, ...allAssets].length);
     [ETH_ASSET, ...allAssets].forEach(asset => expect(poolAssets).to.include(asset.address));
 
     const balancePromises = allAssets.map(asset => asset.balanceOf(pool.address));
-    const [daiBal, usdcBal, nxmtyBal, stEthBal, rEthBal, aWethBal] = await Promise.all(balancePromises);
+    const [daiBal, stEthBal, nxmtyBal, usdcBal, rEthBal, stBal] = await Promise.all(balancePromises);
 
     const expectedDaiValueInEth = daiToEthRate.mul(daiBal).div(parseEther('1'));
     const expectedUsdcValueInEth = usdcToEthRate.mul(usdcBal).div(parseUnits('1', USDC_DECIMALS));
@@ -96,7 +96,7 @@ describe('Pool functions', function () {
       .add(expectedNxmtyValueInEth)
       .add(stEthBal)
       .add(rEthBal)
-      .add(aWethBal);
+      .add(stBal);
     expect(totalAssetValue.toString()).to.be.equal(expectedTotalAssetValue.toString());
   });
 

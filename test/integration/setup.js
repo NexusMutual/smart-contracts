@@ -117,7 +117,13 @@ async function setup() {
   const pc = await deployProxy('DisposableProposalCategory');
   const gv = await deployProxy('DisposableGovernance');
   const gateway = await deployProxy('DisposableGateway', [qd.address, tk.address]);
-  const st = await deployProxy('SafeTracker', [gnosisSafe.address, usdc.address, aWETH.address, debtUsdc.address]);
+  const st = await deployProxy('SafeTracker', [
+    gnosisSafe.address,
+    usdc.address,
+    dai.address,
+    aWETH.address,
+    debtUsdc.address,
+  ]);
 
   // non-proxy contracts
   const lcr = await ethers.deployContract('LegacyClaimsReward', [master.address, dai.address]);

@@ -27,8 +27,9 @@ describe('updateCoverReInvestmentUSDC', function () {
     } = fixture.accounts;
     const investedAmount = parseEther('1000');
 
-    await expect(safeTracker.connect(member).updateCoverReInvestmentUSDC(investedAmount)).to.be.revertedWith(
-      'SafeTracker: not safe',
+    await expect(safeTracker.connect(member).updateCoverReInvestmentUSDC(investedAmount)).to.be.revertedWithCustomError(
+      safeTracker,
+      'OnlySafe',
     );
   });
 });

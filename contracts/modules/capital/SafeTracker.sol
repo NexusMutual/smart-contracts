@@ -53,7 +53,9 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
   * @dev Updates invested USDC in CoverRe
   */
   function updateCoverReInvestmentUSDC(uint _investedUSDC) external {
-    require(msg.sender == safe, "SafeTracker: not safe");
+    if (msg.sender != safe) {
+      revert OnlySafe();
+    }
     coverReInvestmentUSDC = _investedUSDC;
   }
 

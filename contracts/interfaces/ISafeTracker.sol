@@ -6,6 +6,8 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 
 interface ISafeTracker is IERC20 {
 
+  error OnlySafe();
+
   function symbol() external view returns (string memory);
 
   function decimals() external view returns (uint8);

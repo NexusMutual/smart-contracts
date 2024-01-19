@@ -29,6 +29,7 @@ describe('upgradeCapitalPool', function () {
       [dai.address, stETH.address, enzymeVault.address, coverToken.address],
       [chainlinkDAI.address, chainlinkSteth.address, chainlinkEnzymeVault.address, chainlinkNewAsset.address],
       [18, 18, 18, 18],
+      AddressZero,
     );
     await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
@@ -98,6 +99,7 @@ describe('upgradeCapitalPool', function () {
         chainlinkNewAsset.address,
       ],
       [18, 18, 18, 18, 18],
+      AddressZero,
     );
     await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 

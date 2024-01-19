@@ -161,6 +161,7 @@ async function setup() {
     priceFeedOracleAssets.map(a => a.contract.address),
     priceFeedOracleAssets.map(a => a.aggregator.address),
     priceFeedOracleAssets.map(a => a.decimals),
+    st.address,
   ]);
 
   const cowVaultRelayer = await ethers.deployContract('SOMockVaultRelayer');

@@ -2,6 +2,7 @@ const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
 const { parseEther, parseUnits } = ethers.utils;
+const { AddressZero } = ethers.constants;
 
 async function setup() {
   const accounts = await getAccounts();
@@ -47,7 +48,7 @@ async function setup() {
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
-  const priceFeedOracle = await PriceFeedOracle.deploy([dai.address], [chainlinkDAI.address], [18]);
+  const priceFeedOracle = await PriceFeedOracle.deploy([dai.address], [chainlinkDAI.address], [18], AddressZero);
   const ICMockPool = await ethers.getContractFactory('ICMockPool');
   const pool = await ICMockPool.deploy(priceFeedOracle.address);
   await pool.deployed();

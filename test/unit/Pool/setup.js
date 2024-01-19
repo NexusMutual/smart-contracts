@@ -52,6 +52,7 @@ async function setup() {
     [dai, stETH, enzymeVault, otherAsset].map(c => c.address),
     [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkOtherAsset].map(c => c.address),
     [18, 18, 18, 18],
+    AddressZero,
   );
 
   const swapOperator = await P1MockSwapOperator.deploy();

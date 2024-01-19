@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { parseEther, parseUnits } = ethers.utils;
+const { AddressZero } = ethers.constants;
 
 const { initMCR } = require('./common');
 const { getAccounts } = require('../../utils/accounts');
@@ -31,6 +32,7 @@ async function setup() {
     [dai.address, stETH.address],
     [chainlinkDAI.address, chainlinkSteth.address],
     [18, 18],
+    AddressZero,
   );
 
   const pool = await Pool.deploy(priceFeedOracle.address);

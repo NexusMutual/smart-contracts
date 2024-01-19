@@ -8,6 +8,7 @@ const { toBytes8 } = require('../utils').helpers;
 
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
+const { AddressZero } = ethers.constants;
 
 describe('getPoolValueInEth', function () {
   it('gets total value of ETH and DAI assets in the pool', async function () {
@@ -50,6 +51,7 @@ describe('getPoolValueInEth', function () {
       [dai, stETH, enzymeVault, revertingERC20].map(c => c.address),
       [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkForRevertingERC20].map(c => c.address),
       [18, 18, 18, 18],
+      AddressZero,
     );
 
     await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);

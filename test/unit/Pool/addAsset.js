@@ -93,6 +93,7 @@ describe('addAsset', function () {
       [dai, stETH, enzymeVault, coverToken, investmentToken].map(c => c.address),
       [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, clCoverToken, clInvestmentToken].map(c => c.address),
       [18, 18, 18, 18, 18],
+      AddressZero,
     ]);
 
     const assetsBefore = await pool.getAssets();

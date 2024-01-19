@@ -91,11 +91,24 @@ async function setup() {
     AddressZero,
   );
 
+  // Deploy SwapOperator
+  const swapOperator = await SwapOperator.deploy(
+    cowSettlement.address,
+    await owner.getAddress(),
+    master.address,
+    weth.address,
+    enzymeV4Vault.address,
+    await owner.getAddress(), // _safe
+    dai.address,
+    enzymeFundValueCalculatorRouter.address,
+    parseEther('1'),
+  );
+
   // Deploy Pool
   const legacyPool = await LegacyPool.deploy(
     master.address,
     priceFeedOracle.address, // price feed oracle, add to setup if needed
-    AddressZero, // swap operator
+    swapOperator.address, // swap operator
     dai.address,
     stEth.address,
     enzymeV4Vault.address,
@@ -105,7 +118,7 @@ async function setup() {
   const pool = await Pool.deploy(
     master.address,
     priceFeedOracle.address, // price feed oracle, add to setup if needed
-    AddressZero, // swap operator
+    swapOperator.address, // swap operator
     nxmToken.address,
     legacyPool.address,
   );
@@ -121,18 +134,6 @@ async function setup() {
   await mcr.changeDependentContractAddress();
 
   await pool.connect(governance).addAsset(usdc.address, true, 0, parseEther('1000'), 0);
-
-  // Deploy SwapOperator
-  const swapOperator = await SwapOperator.deploy(
-    cowSettlement.address,
-    await owner.getAddress(),
-    master.address,
-    weth.address,
-    enzymeV4Vault.address,
-    AddressZero,
-    enzymeFundValueCalculatorRouter.address,
-    parseEther('1'),
-  );
 
   // Setup pool's swap operator
   await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), swapOperator.address);
@@ -159,6 +160,9 @@ async function setup() {
       enzymeV4Comptroller,
       enzymeFundValueCalculatorRouter,
       nxmToken,
+    },
+    constants: {
+      ETH_ADDRESS: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
     },
   };
 }

@@ -25,6 +25,12 @@ import "../../external/enzyme/IEnzymePolicyManager.sol";
 contract SwapOperator is ISwapOperator {
   using SafeERC20 for IERC20;
 
+  // Structs
+  struct Request {
+    address asset;
+    uint amount;
+  }
+
   // Storage
   bytes public currentOrderUID;
 
@@ -50,9 +56,11 @@ contract SwapOperator is ISwapOperator {
 
   // Safe variables
   address public safe;
-  uint public safeRequestedAmount;
+  Request public transferRequest;
+  mapping(address => bool) public allowedAssets;
 
-  event TransferredToSafe(uint amount);
+
+  event TransferredToSafe(address asset, uint amount);;
 
   modifier onlyController() {
     if (msg.sender != swapController) {
@@ -77,6 +85,7 @@ contract SwapOperator is ISwapOperator {
     address _weth,
     address _enzymeV4VaultProxyAddress,
     address _safe,
+    address _dai,
     IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter,
     uint _minPoolEth
   ) {
@@ -90,6 +99,8 @@ contract SwapOperator is ISwapOperator {
     enzymeFundValueCalculatorRouter = _enzymeFundValueCalculatorRouter;
     minPoolEth = _minPoolEth;
     safe = _safe;
+    allowedAssets[_dai] = true;
+    allowedAssets[ETH] = true;
   }
 
   receive() external payable {}
@@ -651,19 +662,22 @@ contract SwapOperator is ISwapOperator {
   }
 
 
-
-   // @dev Request amount of ETH to be transferred to the safe
-  function requestETH(uint amount) external onlySafe {
-    safeRequestedAmount = amount;
+   // @dev Create a request for the transfer to the safe
+  function requestAsset(address asset, uint amount) external onlySafe {
+      require(allowedAssets[asset] == true, "SwapOp: asset not allowed");
+      transferRequest = Request(asset, amount);
   }
 
-   // @dev Transfer request amount of ETH to the safe
-  function transferRequestedETH() external onlyController {
-    uint amount = safeRequestedAmount;
-    safeRequestedAmount = 0;
-    _pool().transferAssetToSwapOperator(ETH, amount);
-    transferAssetTo(ETH, safe, amount);
-    emit TransferredToSafe(amount);
+  // @dev Transfer request amount of the asset to the safe
+  function transferRequestedAsset() external onlyController {
+    require(transferRequest.amount > 0, "SwapOp: request amount must be greater than 0");
+
+    (address asset, uint amount) = (transferRequest.asset, transferRequest.amount);
+    delete transferRequest;
+
+    _pool().transferAssetToSwapOperator(asset, amount);
+    transferAssetTo(asset, safe, amount);
+    emit TransferredToSafe(asset, amount);
   }
 
   /// @dev Recovers assets in the SwapOperator to the pool or a specified receiver, ensuring no ongoing CoW swap orders

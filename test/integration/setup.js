@@ -179,6 +179,7 @@ async function setup() {
     weth.address,
     AddressZero, // _enzymeV4VaultProxyAddress
     AddressZero, // _safe
+    dai.address, // _dai
     AddressZero, // _enzymeFundValueCalculatorRouter
     '0',
   ]);

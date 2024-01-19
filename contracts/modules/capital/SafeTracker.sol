@@ -17,15 +17,17 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
   uint8 public decimals = 18;
 
   address public immutable safe;
-  IERC20 public immutable aweth;
   IERC20 public immutable usdc;
+  IERC20 public immutable dai;
+  IERC20 public immutable aweth;
   IERC20 public immutable debtUsdc;
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(address _safe, address _usdc, address _aweth, address _debtUsdc) {
+  constructor(address _safe, address _usdc, address _dai, address _aweth, address _debtUsdc) {
     safe = _safe;
     usdc = IERC20(_usdc);
+    dai = IERC20(_dai);
     aweth = IERC20(_aweth);
     debtUsdc = IERC20(_debtUsdc);
   }
@@ -100,6 +102,10 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
 
     IPriceFeedOracle priceFeedOracle = pool().priceFeedOracle();
 
+    // dai in the safe
+    uint daiAmount = dai.balanceOf(safe);
+    uint daiValueInEth = priceFeedOracle.getEthForAsset(address(dai), daiAmount);
+
     // usdc actually in the safe
     uint usdcAmount = usdc.balanceOf(safe) + coverReInvestmentUSDC;
     uint usdcValueInEth = priceFeedOracle.getEthForAsset(address(usdc), usdcAmount);
@@ -108,7 +114,7 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
     uint debtUsdcAmount = debtUsdc.balanceOf(safe);
     uint debtUsdcValueInEth = priceFeedOracle.getEthForAsset(address(usdc), debtUsdcAmount);
 
-    return ethAmount + usdcValueInEth - debtUsdcValueInEth;
+    return ethAmount + usdcValueInEth - debtUsdcValueInEth + daiValueInEth;
   }
 
   /* ========== DEPENDENCIES ========== */

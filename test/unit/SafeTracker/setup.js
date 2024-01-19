@@ -22,10 +22,12 @@ async function setup() {
   const tokenAmount = parseEther('100000');
 
   const usdc = await ERC20Mock.deploy();
+  const dai = await ERC20Mock.deploy();
   const aweth = await ERC20Mock.deploy();
   const debtUsdc = await ERC20Mock.deploy();
 
   await usdc.mint(accounts.defaultSender.address, tokenAmount);
+  await dai.mint(accounts.defaultSender.address, tokenAmount);
   await aweth.mint(accounts.defaultSender.address, tokenAmount);
   await debtUsdc.mint(accounts.defaultSender.address, tokenAmount);
 
@@ -33,6 +35,7 @@ async function setup() {
   const safeTracker = await ethers.deployContract('SafeTracker', [
     accounts.defaultSender.address,
     usdc.address,
+    dai.address,
     aweth.address,
     debtUsdc.address,
   ]);
@@ -69,6 +72,7 @@ async function setup() {
     },
     tokens: {
       usdc,
+      dai,
       aweth,
       debtUsdc,
     },

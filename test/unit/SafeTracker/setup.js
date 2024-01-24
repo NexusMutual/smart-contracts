@@ -4,7 +4,7 @@ const { hex } = require('../../../lib/helpers');
 const { setEtherBalance } = require('../utils').evm;
 const { getAccounts } = require('../utils').accounts;
 
-const { parseEther } = ethers.utils;
+const { parseEther, parseUnits } = ethers.utils;
 
 const ETH_RATE = 1;
 
@@ -20,6 +20,7 @@ async function setup() {
   const tokenController = await ethers.deployContract('TokenControllerMock', [nxm.address]);
 
   const tokenAmount = parseEther('100000');
+  const investmentLimit = parseUnits('15000000', 6);
 
   const usdc = await ERC20Mock.deploy();
   const dai = await ERC20Mock.deploy();
@@ -34,6 +35,7 @@ async function setup() {
   // use defaultSender for safe in unit tests
   const safeTracker = await ethers.deployContract('SafeTracker', [
     master.address,
+    investmentLimit,
     accounts.defaultSender.address,
     usdc.address,
     dai.address,

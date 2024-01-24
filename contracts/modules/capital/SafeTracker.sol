@@ -83,11 +83,11 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
     revert();
   }
 
-  function allowance(address, address) external pure returns (uint256){
+  function allowance(address, address) external pure returns (uint256) {
     return 0;
   }
 
-  function approve(address, uint256) external pure override returns (bool){
+  function approve(address, uint256) external pure override returns (bool) {
     revert();
   }
 

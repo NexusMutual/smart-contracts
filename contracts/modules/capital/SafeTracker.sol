@@ -114,7 +114,7 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
     uint debtUsdcAmount = debtUsdc.balanceOf(safe);
     uint debtUsdcValueInEth = priceFeedOracle.getEthForAsset(address(usdc), debtUsdcAmount);
 
-    return ethAmount + usdcValueInEth - debtUsdcValueInEth + daiValueInEth;
+    return ethAmount + usdcValueInEth + daiValueInEth - debtUsdcValueInEth;
   }
 
   /* ========== DEPENDENCIES ========== */

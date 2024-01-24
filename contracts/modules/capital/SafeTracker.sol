@@ -46,7 +46,7 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
   * @return An uint256 representing the amount of the safe.
   */
   function balanceOf(address account) external view returns (uint256) {
-    if (account != address(pool())) {
+    if (account != internalContracts[uint(ID.P1)]) {
       return 0;
     }
     return _calculateBalance();

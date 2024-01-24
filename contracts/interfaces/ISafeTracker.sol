@@ -9,6 +9,7 @@ interface ISafeTracker is IERC20 {
   event CoverReInvestmentUSDCUpdated(uint investedUSDC);
 
   error OnlySafe();
+  error InvestmentSurpassesLimit();
 
   function symbol() external view returns (string memory);
 

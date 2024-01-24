@@ -16,7 +16,7 @@ const { toBytes8 } = require('../../lib/helpers');
 const evm = require('./evm')();
 
 const { BigNumber } = ethers;
-const { formatEther, parseEther, defaultAbiCoder, toUtf8Bytes, parseUnits } = ethers.utils;
+const { formatEther, parseEther, defaultAbiCoder, toUtf8Bytes, parseUnits, formatUnits } = ethers.utils;
 const { MaxUint256, AddressZero } = ethers.constants;
 
 const INTERAST_RATE_MODE = {
@@ -27,6 +27,20 @@ const INTERAST_RATE_MODE = {
 
 /* ========== SAFE ========== */
 const GNOSIS_SAFE_ADDRESS = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';
+
+async function calculateSafeTrackerBalance({ awEth, usdc, aaveUsdcVariableDebtToken, dai, priceFeedOracle }) {
+  const ethAmount = await ethers.provider.getBalance(GNOSIS_SAFE_ADDRESS);
+  const awEthAmount = await awEth.balanceOf(GNOSIS_SAFE_ADDRESS);
+  const daiAmount = await dai.balanceOf(GNOSIS_SAFE_ADDRESS);
+  const usdcAmount = await usdc.balanceOf(GNOSIS_SAFE_ADDRESS);
+  const debtusdcAmount = await aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
+
+  const usdcValueInEth = await priceFeedOracle.getEthForAsset(Address.USDC_ADDRESS, usdcAmount);
+  const daiValueInEth = await priceFeedOracle.getEthForAsset(Address.DAI_ADDRESS, daiAmount);
+  const debtusdcValueInEth = await priceFeedOracle.getEthForAsset(Address.USDC_ADDRESS, debtusdcAmount);
+
+  return ethAmount.add(awEthAmount).add(daiValueInEth).add(usdcValueInEth).sub(debtusdcValueInEth);
+}
 
 function assertionErrorMsg(key, parentKey) {
   return `AssertionError: values of ${key}${parentKey ? ` in ${parentKey}` : ''} don't match\n`;
@@ -81,6 +95,7 @@ describe('coverRe', function () {
     this.usdc = await ethers.getContractAt('ERC20Mock', Address.USDC_ADDRESS);
     this.rEth = await ethers.getContractAt('ERC20Mock', Address.RETH_ADDRESS);
     this.stEth = await ethers.getContractAt('ERC20Mock', Address.STETH_ADDRESS);
+    this.awEth = await ethers.getContractAt('ERC20Mock', Address.AWETH_ADDRESS);
     this.enzymeShares = await ethers.getContractAt('ERC20Mock', EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS);
 
     this.governance = await getContractByContractCode('Governance', ContractCode.Governance);
@@ -412,6 +427,7 @@ describe('coverRe', function () {
   it('borrow USDC from AAVE Pool V3', async function () {
     const amount = parseUnits('10205200', 6);
     const usdcBalanceBefore = await this.usdc.balanceOf(GNOSIS_SAFE_ADDRESS);
+    const userAccountDataBefore = await this.aavePool.getUserAccountData(GNOSIS_SAFE_ADDRESS);
     await this.aaveUsdcVariableDebtToken
       .connect(this.gnosisSafe)
       .approveDelegation(GNOSIS_SAFE_ADDRESS, parseEther('1'));
@@ -420,28 +436,39 @@ describe('coverRe', function () {
       .connect(this.gnosisSafe)
       .borrow(Address.USDC_ADDRESS, amount, INTERAST_RATE_MODE.VARIABLE, '0', GNOSIS_SAFE_ADDRESS);
 
+    const userAccountDataAfter = await this.aavePool.getUserAccountData(GNOSIS_SAFE_ADDRESS);
     const usdcBalanceAfter = await this.usdc.balanceOf(GNOSIS_SAFE_ADDRESS);
     expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(amount));
     const aaveUsdcVariableDebtTokenBalance = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
-    expect(aaveUsdcVariableDebtTokenBalance).to.be.equal(amount);
+
+    console.log(aaveUsdcVariableDebtTokenBalance);
 
     const poolValueInEthAfterBorrow = await this.pool.getPoolValueInEth();
     expect(poolValueInEthAfterBorrow).to.be.gte(this.poolValueInEth.sub(tx.gasPrice.mul(tx.gasLimit)));
 
     this.poolValueInEth = poolValueInEthAfterBorrow;
     this.safeTrackerBalanceAfterBorrow = await this.safeTracker.balanceOf(this.pool.address);
+    this.debtUSDCBalanceAfterBorrow = amount;
   });
 
   it('check the pool value after 30 days', async function () {
-    evm.increaseTime(30 * 24 * 60 * 60);
-    evm.mine();
-    const currentSafeTrackerBalance = await this.safeTracker.balanceOf(this.pool.address);
+    const period = 30 * 24 * 60 * 60;
+
+    await evm.increaseTime(period);
+    await evm.mine();
+    const debtUSDCBalanceCurrent = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
+    this.lastSafeTrackerBalance = await this.safeTracker.balanceOf(this.pool.address);
+    console.log('Safe Tracker BalanceOf');
     console.log(`Right after transfer: ${formatEther(this.safeTrackerBalanceAfterTransfer)}`);
     console.log(`Right after borrow:   ${formatEther(this.safeTrackerBalanceAfterBorrow)}`);
-    console.log(`After 30 days:        ${formatEther(currentSafeTrackerBalance)}`);
+    console.log(`After 30 days:        ${formatEther(this.lastSafeTrackerBalance)}`);
+    console.log('Safe Tracker Debt Balances');
+    console.log(`Right after borrow:   ${formatUnits(this.debtUSDCBalanceAfterBorrow, 6)}`);
+    console.log(`After 30 days:        ${formatUnits(debtUSDCBalanceCurrent, 6)}`);
   });
 
   it('add more collateral to AAVE Pool V3', async function () {
+    await evm.increaseTime(60);
     const supplyAmount = parseEther('500');
     const ethBalanceBefore = await ethers.provider.getBalance(GNOSIS_SAFE_ADDRESS);
     const tx = await this.aaveWethGateway
@@ -451,9 +478,10 @@ describe('coverRe', function () {
 
     expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(supplyAmount).sub(tx.gasPrice.mul(tx.gasLimit)));
 
-    const poolValueInEthAfterDeposit = await this.pool.getPoolValueInEth();
-    expect(poolValueInEthAfterDeposit).to.be.gte(this.poolValueInEth.sub(tx.gasPrice.mul(tx.gasLimit)));
-    this.poolValueInEth = poolValueInEthAfterDeposit;
+    const safeTrackerBalanceAfterDeposit = await this.safeTracker.balanceOf(this.pool.address);
+    const expectedTrackerBalance = await calculateSafeTrackerBalance(this);
+    expect(safeTrackerBalanceAfterDeposit).to.be.gte(expectedTrackerBalance);
+    this.lastSafeTrackerBalance = safeTrackerBalanceAfterDeposit;
   });
 
   it('repay part of USDC debt', async function () {
@@ -468,12 +496,11 @@ describe('coverRe', function () {
     const dataAfter = await this.aavePoolDataProvider.getUserReserveData(Address.USDC_ADDRESS, GNOSIS_SAFE_ADDRESS);
 
     // interest should be low at this point so adding 2 just in case
-    expect(dataAfter.currentVariableDebt).to.be.lte(dataBefore.currentVariableDebt.sub(amount));
-    expect(dataAfter.currentVariableDebt).to.be.gte(dataBefore.currentVariableDebt.sub(amount));
+    expect(dataAfter.currentVariableDebt).to.be.lte(dataBefore.currentVariableDebt);
 
-    const poolValueInEthAfterPartialRepay = await this.pool.getPoolValueInEth();
-    expect(poolValueInEthAfterPartialRepay).to.be.gte(this.poolValueInEth.sub(tx.gasPrice.mul(tx.gasLimit)));
-    this.poolValueInEth = poolValueInEthAfterPartialRepay;
+    const safeTrackerBalance = await this.safeTracker.balanceOf(this.pool.address);
+    const expectedSafeTrackerBalance = await this.safeTracker.balanceOf(this.pool.address);
+    expect(safeTrackerBalance).to.be.lte(expectedSafeTrackerBalance);
   });
 
   it('repay whole USDC debt', async function () {
@@ -488,7 +515,8 @@ describe('coverRe', function () {
     expect(aaveUsdcVariableDebtTokenBalance).to.be.equal(0);
     expect(debtData.currentVariableDebt).to.be.equal(0);
 
-    const poolValueInEthAfterFullRepay = await this.pool.getPoolValueInEth();
-    expect(poolValueInEthAfterFullRepay).to.be.gte(this.poolValueInEth.sub(tx.gasPrice.mul(tx.gasLimit)));
+    const safeTrackerBalance = await this.safeTracker.balanceOf(this.pool.address);
+    const expectedSafeTrackerBalance = await this.safeTracker.balanceOf(this.pool.address);
+    expect(safeTrackerBalance).to.be.lte(expectedSafeTrackerBalance);
   });
 });

@@ -17,6 +17,8 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
   uint8 public decimals = 18;
 
   address public immutable safe;
+  uint public immutable investmentLimit;
+
   IERC20 public immutable usdc;
   IERC20 public immutable dai;
   IERC20 public immutable aweth;
@@ -24,8 +26,9 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(address _master, address _safe, address _usdc, address _dai, address _aweth, address _debtUsdc) {
+  constructor(address _master, uint _investmentLimit, address _safe, address _usdc, address _dai, address _aweth, address _debtUsdc) {
     master = INXMMaster(_master);
+    investmentLimit = _investmentLimit;
     safe = _safe;
     usdc = IERC20(_usdc);
     dai = IERC20(_dai);
@@ -58,6 +61,9 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
   function updateCoverReInvestmentUSDC(uint investedUSDC) external {
     if (msg.sender != safe) {
       revert OnlySafe();
+    }
+    if (investedUSDC > investmentLimit) {
+      revert InvestmentSurpassesLimit();
     }
     coverReInvestmentUSDC = investedUSDC;
 

@@ -43,6 +43,8 @@ async function setup() {
   const INITIAL_SUPPLY = parseEther('6750000'); // https://etherscan.io/token/0xd7c49cee7e9188cca6ad8ff264c1da2e69d4cf3b
   const INITIAL_SPOT_PRICE_B = parseEther('0.0152');
 
+  const INVESTMENT_LIMIT = parseUnits('25000000', 6);
+
   // deploy external contracts
   const gnosisSafe = await ethers.deployContract('ERC20Mock');
   await setEtherBalance(gnosisSafe.address, parseEther('1000'));
@@ -119,6 +121,7 @@ async function setup() {
   const gateway = await deployProxy('DisposableGateway', [qd.address, tk.address]);
   const st = await deployProxy('SafeTracker', [
     master.address,
+    INVESTMENT_LIMIT,
     gnosisSafe.address,
     usdc.address,
     dai.address,

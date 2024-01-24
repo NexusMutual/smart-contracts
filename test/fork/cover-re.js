@@ -427,7 +427,6 @@ describe('coverRe', function () {
   it('borrow USDC from AAVE Pool V3', async function () {
     const amount = parseUnits('10205200', 6);
     const usdcBalanceBefore = await this.usdc.balanceOf(GNOSIS_SAFE_ADDRESS);
-    const userAccountDataBefore = await this.aavePool.getUserAccountData(GNOSIS_SAFE_ADDRESS);
     await this.aaveUsdcVariableDebtToken
       .connect(this.gnosisSafe)
       .approveDelegation(GNOSIS_SAFE_ADDRESS, parseEther('1'));
@@ -436,7 +435,6 @@ describe('coverRe', function () {
       .connect(this.gnosisSafe)
       .borrow(Address.USDC_ADDRESS, amount, INTERAST_RATE_MODE.VARIABLE, '0', GNOSIS_SAFE_ADDRESS);
 
-    const userAccountDataAfter = await this.aavePool.getUserAccountData(GNOSIS_SAFE_ADDRESS);
     const usdcBalanceAfter = await this.usdc.balanceOf(GNOSIS_SAFE_ADDRESS);
     expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(amount));
     const aaveUsdcVariableDebtTokenBalance = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
@@ -489,7 +487,7 @@ describe('coverRe', function () {
     const dataBefore = await this.aavePoolDataProvider.getUserReserveData(Address.USDC_ADDRESS, GNOSIS_SAFE_ADDRESS);
 
     await this.usdc.connect(this.gnosisSafe).approve(Aave.POOL_V3_ADDRESS, parseEther('1'));
-    const tx = await this.aavePool
+    await this.aavePool
       .connect(this.gnosisSafe)
       .repay(Address.USDC_ADDRESS, amount, INTERAST_RATE_MODE.VARIABLE, GNOSIS_SAFE_ADDRESS);
 
@@ -505,7 +503,7 @@ describe('coverRe', function () {
 
   it('repay whole USDC debt', async function () {
     await this.usdc.connect(this.gnosisSafe).approve(Aave.POOL_V3_ADDRESS, parseEther('1'));
-    const tx = await this.aavePool
+    await this.aavePool
       .connect(this.gnosisSafe)
       .repay(Address.USDC_ADDRESS, MaxUint256, INTERAST_RATE_MODE.VARIABLE, GNOSIS_SAFE_ADDRESS);
 

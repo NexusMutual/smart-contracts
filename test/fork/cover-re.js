@@ -388,7 +388,7 @@ describe('coverRe', function () {
   it('Transfer ETH from Pool to GnosisSafe', async function () {
     const { amount: transferAmount } = await this.swapOperator.transferRequest();
     const safeTrackerBalanceBefore = await this.safeTracker.balanceOf(this.pool.address);
-    await this.swapOperator.connect(this.swapController).transferRequestedAsset();
+    await this.swapOperator.connect(this.swapController).transferRequestedAsset(Address.ETH, transferAmount);
     const { amount, asset } = await this.swapOperator.transferRequest();
     expect(amount).to.be.equal(0);
     expect(asset).to.be.equal(AddressZero);

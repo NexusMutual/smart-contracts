@@ -163,6 +163,7 @@ async function setup() {
     },
     constants: {
       ETH_ADDRESS: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+      DAI_ADDRESS: dai.address,
     },
   };
 }

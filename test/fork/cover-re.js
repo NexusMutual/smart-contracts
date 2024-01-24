@@ -117,6 +117,7 @@ describe('coverRe', function () {
 
     const safeTrackerCreate2Salt = 13944964;
     this.safeTracker = await ethers.deployContract('SafeTracker', [
+      this.master.address,
       GNOSIS_SAFE_ADDRESS,
       Address.USDC_ADDRESS,
       Address.DAI_ADDRESS,

@@ -24,7 +24,8 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(address _safe, address _usdc, address _dai, address _aweth, address _debtUsdc) {
+  constructor(address _master, address _safe, address _usdc, address _dai, address _aweth, address _debtUsdc) {
+    master = INXMMaster(_master);
     safe = _safe;
     usdc = IERC20(_usdc);
     dai = IERC20(_dai);

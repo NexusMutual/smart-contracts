@@ -67,23 +67,15 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
   /**
   * @dev emits Transfer event only if it's called by Pool or SwapOperator
   */
-  function transfer(address, uint256 amount) external returns (bool) {
-    if (amount == 0 || msg.sender == internalContracts[uint(ID.P1)] || msg.sender == pool().swapOperator()) {
-      emit Transfer(address(0), address(0), 0); // add arguments
-      return true;
-    }
-    revert();
+  function transfer(address to, uint256 amount) external returns (bool) {
+    return _transfer(msg.sender, to, amount);
   }
 
   /**
   * @dev emits Transfer event only if it's called by Pool or SwapOperator
   */
-  function transferFrom(address, address, uint256 amount) external returns(bool) {
-    if (amount == 0 || msg.sender == internalContracts[uint(ID.P1)] || msg.sender == pool().swapOperator()) {
-      emit Transfer(address(0), address(0), 0); // add arguments
-      return true;
-    }
-    revert();
+  function transferFrom(address from, address to, uint256 amount) external returns(bool) {
+    return _transfer(from, to, amount);
   }
 
   function allowance(address, address) external pure returns (uint256) {
@@ -118,6 +110,15 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
     uint debtUsdcValueInEth = priceFeedOracle.getEthForAsset(address(usdc), debtUsdcAmount);
 
     return ethAmount + usdcValueInEth + daiValueInEth - debtUsdcValueInEth;
+  }
+
+
+  function _transfer(address, address, uint256 amount) internal returns (bool) {
+    if (amount == 0 || msg.sender == internalContracts[uint(ID.P1)] || msg.sender == pool().swapOperator()) {
+      emit Transfer(address(0), address(0), 0); // add arguments
+      return true;
+    }
+    revert();
   }
 
   /* ========== DEPENDENCIES ========== */

@@ -669,11 +669,14 @@ contract SwapOperator is ISwapOperator {
   }
 
   // @dev Transfer request amount of the asset to the safe
-  function transferRequestedAsset() external onlyController {
+  function transferRequestedAsset(address requestedAsset, uint requestedAmount) external onlyController {
     require(transferRequest.amount > 0, "SwapOp: request amount must be greater than 0");
 
     (address asset, uint amount) = (transferRequest.asset, transferRequest.amount);
     delete transferRequest;
+
+    require(requestedAsset == asset, "SwapOp: request assets need to match");
+    require(requestedAmount == amount, "SwapOp: request amounts need to match");
 
     _pool().transferAssetToSwapOperator(asset, amount);
     transferAssetTo(asset, safe, amount);

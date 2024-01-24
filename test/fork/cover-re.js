@@ -114,10 +114,12 @@ describe('coverRe', function () {
 
   it('add new SafeTracker (ST) contract', async function () {
     const contractsBefore = await this.master.getInternalContracts();
+    const investmentLimit = parseUnits('25000000', 6);
 
     const safeTrackerCreate2Salt = 13944964;
     this.safeTracker = await ethers.deployContract('SafeTracker', [
       this.master.address,
+      investmentLimit,
       GNOSIS_SAFE_ADDRESS,
       Address.USDC_ADDRESS,
       Address.DAI_ADDRESS,

@@ -11,7 +11,7 @@ const { AddressZero } = ethers.constants;
 describe('upgradeCapitalPool', function () {
   it('moves pool funds to new pool', async function () {
     const fixture = await loadFixture(setup);
-    const { pool, master, dai, stETH, enzymeVault, token } = fixture;
+    const { pool, master, dai, stETH, enzymeVault, token, st } = fixture;
     const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
     const { defaultSender } = fixture.accounts;
@@ -29,7 +29,7 @@ describe('upgradeCapitalPool', function () {
       [dai.address, stETH.address, enzymeVault.address, coverToken.address],
       [chainlinkDAI.address, chainlinkSteth.address, chainlinkEnzymeVault.address, chainlinkNewAsset.address],
       [18, 18, 18, 18],
-      AddressZero,
+      st.address,
     );
     await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
@@ -99,7 +99,7 @@ describe('upgradeCapitalPool', function () {
         chainlinkNewAsset.address,
       ],
       [18, 18, 18, 18, 18],
-      AddressZero,
+      defaultSender.address,
     );
     await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 

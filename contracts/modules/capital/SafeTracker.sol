@@ -119,9 +119,9 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
   }
 
 
-  function _transfer(address, address, uint256 amount) internal returns (bool) {
+  function _transfer(address from, address to, uint256 amount) internal returns (bool) {
     if (amount == 0 || msg.sender == internalContracts[uint(ID.P1)] || msg.sender == pool().swapOperator()) {
-      emit Transfer(address(0), address(0), 0); // add arguments
+      emit Transfer(from, to, amount);
       return true;
     }
     revert();

@@ -26,7 +26,21 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(address _master, uint _investmentLimit, address _safe, address _usdc, address _dai, address _aweth, address _debtUsdc) {
+  constructor(
+    address _master,
+    uint _investmentLimit,
+    address _safe,
+    address _usdc,
+    address _dai,
+    address _aweth,
+    address _debtUsdc
+  ) {
+    require(_master != address(0), "SafeTracker: master cannot be zero address");
+    require(
+      _usdc != address(0) && _dai != address(0) && _aweth != address(0) && _debtUsdc != address(0),
+      "SafeTracker: tokens address cannot be zero address"
+    );
+
     master = INXMMaster(_master);
     investmentLimit = _investmentLimit;
     safe = _safe;

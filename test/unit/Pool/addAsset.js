@@ -77,7 +77,7 @@ describe('addAsset', function () {
 
   it('should add assets setting min, max, slippage ratio, and their bool flags', async function () {
     const fixture = await loadFixture(setup);
-    const { pool, dai, stETH, enzymeVault } = fixture;
+    const { pool, dai, stETH, enzymeVault, st } = fixture;
     const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
 
@@ -93,7 +93,7 @@ describe('addAsset', function () {
       [dai, stETH, enzymeVault, coverToken, investmentToken].map(c => c.address),
       [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, clCoverToken, clInvestmentToken].map(c => c.address),
       [18, 18, 18, 18, 18],
-      AddressZero,
+      st.address,
     ]);
 
     const assetsBefore = await pool.getAssets();

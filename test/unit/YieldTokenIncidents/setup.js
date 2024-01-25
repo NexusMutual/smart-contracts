@@ -2,7 +2,6 @@ const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
 const { parseEther, parseUnits } = ethers.utils;
-const { AddressZero } = ethers.constants;
 
 async function setup() {
   const accounts = await getAccounts();
@@ -28,6 +27,9 @@ async function setup() {
   const dai = await DAI.deploy();
   await dai.deployed();
 
+  const st = await DAI.deploy();
+  await st.deployed();
+
   const ybDAI = await ethers.getContractFactory('ERC20BlacklistableMock');
   const ybDai = await ybDAI.deploy();
   await ybDai.deployed();
@@ -48,7 +50,7 @@ async function setup() {
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
-  const priceFeedOracle = await PriceFeedOracle.deploy([dai.address], [chainlinkDAI.address], [18], AddressZero);
+  const priceFeedOracle = await PriceFeedOracle.deploy([dai.address], [chainlinkDAI.address], [18], st.address);
   const ICMockPool = await ethers.getContractFactory('ICMockPool');
   const pool = await ICMockPool.deploy(priceFeedOracle.address);
   await pool.deployed();
@@ -123,6 +125,7 @@ async function setup() {
     contracts: {
       nxm,
       dai,
+      st,
       ybDai,
       ybEth,
       ybPermitDai,

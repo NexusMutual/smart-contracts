@@ -3,7 +3,6 @@ const { getAccounts } = require('../../utils/accounts');
 const { hex } = require('../utils').helpers;
 
 const {
-  constants: { AddressZero },
   utils: { parseEther },
 } = ethers;
 
@@ -36,6 +35,7 @@ async function setup() {
   const dai = await ERC20Mock.deploy();
   const usdc = await ERC20CustomDecimalsMock.deploy(6);
   const stEth = await ERC20Mock.deploy();
+  const st = await ERC20Mock.deploy();
 
   // Deploy CoW Protocol mocks
   const cowVaultRelayer = await SOMockVaultRelayer.deploy();
@@ -88,7 +88,7 @@ async function setup() {
     [dai.address, stEth.address, usdc.address, enzymeV4Vault.address],
     [daiAggregator.address, stethAggregator.address, usdcAggregator.address, enzymeV4VaultAggregator.address],
     [18, 18, 6, 18],
-    AddressZero,
+    st.address,
   );
 
   // Deploy SwapOperator
@@ -148,6 +148,7 @@ async function setup() {
       weth,
       stEth,
       usdc,
+      st,
       master,
       pool,
       mcr,

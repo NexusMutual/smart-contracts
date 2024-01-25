@@ -1,7 +1,5 @@
 const { ethers } = require('hardhat');
 
-const { AddressZero } = ethers.constants;
-
 async function setup() {
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
@@ -10,6 +8,7 @@ async function setup() {
   // Deploy ERC20 test tokens
   const dai = await ERC20Mock.deploy();
   const wbtc = await ERC20Mock.deploy();
+  const st = await ERC20Mock.deploy();
 
   // Deploy price aggregators
   const daiAggregator = await ChainlinkAggregatorMock.deploy();
@@ -20,11 +19,12 @@ async function setup() {
     [dai.address, wbtc.address],
     [daiAggregator.address, wbtcAggregator.address],
     [18, 8],
-    AddressZero,
+    st.address,
   );
 
   return {
     dai,
+    st,
     wbtc,
     daiAggregator,
     wbtcAggregator,

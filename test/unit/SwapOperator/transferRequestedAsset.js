@@ -87,4 +87,19 @@ describe('transferRequestedAsset', function () {
       'SwapOp: request amounts need to match',
     );
   });
+
+  it('revert if the requested amount surpasses the limit', async function () {
+    const fixture = await loadFixture(transferRequestedAssetSetup);
+    const { swapOperator, st, pool } = fixture.contracts;
+    const { requestedAsset, requestedAmount } = fixture;
+    const [controller] = await ethers.getSigners();
+    const amount = parseEther('7000');
+
+    // add dai to increase the balance of the safeTracker
+    await st.mint(pool.address, amount);
+
+    await expect(
+      swapOperator.connect(controller).transferRequestedAsset(requestedAsset, requestedAmount),
+    ).to.be.revertedWith('SwapOp: tokenBalanceAfter > min');
+  });
 });

@@ -115,6 +115,8 @@ async function setup() {
     nxmToken.address,
   );
 
+  // Manually add pool assets that are not automatically added via LegacyPool constructor
+
   const pool = await Pool.deploy(
     master.address,
     priceFeedOracle.address, // price feed oracle, add to setup if needed
@@ -129,11 +131,13 @@ async function setup() {
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('P1'), pool.address);
+  await master.setLatestAddress(hex('ST'), st.address);
 
   await pool.changeDependentContractAddress();
   await mcr.changeDependentContractAddress();
 
   await pool.connect(governance).addAsset(usdc.address, true, 0, parseEther('1000'), 0);
+  await pool.connect(governance).addAsset(st.address, true, parseEther('7000'), parseEther('2000000'), 100);
 
   // Setup pool's swap operator
   await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), swapOperator.address);

@@ -359,7 +359,7 @@ contract SwapOperator {
    * @dev Get the SafeTracker's instance through master contract
    * @return The safe tracker instance
    */
-  function safeTracker() internal view returns (ISafeTracker) {
+  function _safeTracker() internal view returns (ISafeTracker) {
     return ISafeTracker(master.getLatestAddress("ST"));
   }
 
@@ -536,17 +536,22 @@ contract SwapOperator {
     token.safeTransfer(to, amount);
   }
 
-
   /**
    * @dev Create a request for the transfer to the safe
+   * @param asset The address of the asset
+   * @param amount The amount of the asset
    */
   function requestAsset(address asset, uint amount) external onlySafe {
     require(allowedAssets[asset] == true, "SwapOp: asset not allowed");
+    checkTransferAvailability(asset, amount);
+
     transferRequest = Request(asset, amount);
   }
 
   /**
    * @dev Transfer request amount of the asset to the safe
+   * @param requestedAsset The address of the asset
+   * @param requestedAmount The amount of the asset
    */
   function transferRequestedAsset(address requestedAsset, uint requestedAmount) external onlyController {
     require(transferRequest.amount > 0, "SwapOp: request amount must be greater than 0");
@@ -556,10 +561,34 @@ contract SwapOperator {
 
     require(requestedAsset == asset, "SwapOp: request assets need to match");
     require(requestedAmount == amount, "SwapOp: request amounts need to match");
+    checkTransferAvailability(asset, amount);
 
     _pool().transferAssetToSwapOperator(asset, amount);
     transferAssetTo(asset, safe, amount);
     emit TransferredToSafe(asset, amount);
+  }
+
+  /**
+   * @dev Validate that a requested asset is not sent if amount surpasses the limit
+   * @param asset The address of the asset
+   * @param amount The amount of the asset
+   */
+  function checkTransferAvailability(address asset, uint amount) internal view {
+    IPool pool = _pool();
+    ISafeTracker safeTracker = _safeTracker();
+
+    SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(safeTracker));
+    uint safeBalance = safeTracker.balanceOf(address(pool));
+    uint transferAmount;
+
+    if (asset == ETH) {
+      transferAmount = amount;
+    } else {
+      IPriceFeedOracle priceFeedOracle = pool.priceFeedOracle();
+      transferAmount = priceFeedOracle.getEthForAsset(asset, amount);
+    }
+
+    require(safeBalance + transferAmount < swapDetails.minAmount, "SwapOp: tokenBalanceAfter > min");
   }
 
   function recoverAsset(address assetAddress, address receiver) public onlyController {

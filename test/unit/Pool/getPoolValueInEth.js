@@ -8,7 +8,6 @@ const { toBytes8 } = require('../utils').helpers;
 
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
-const { AddressZero } = ethers.constants;
 
 describe('getPoolValueInEth', function () {
   it('gets total value of ETH and DAI assets in the pool', async function () {
@@ -35,7 +34,7 @@ describe('getPoolValueInEth', function () {
 
   it('should not fail when pool asset balanceOf reverts', async function () {
     const fixture = await loadFixture(setup);
-    const { pool, dai, stETH, enzymeVault } = fixture;
+    const { pool, dai, stETH, enzymeVault, st } = fixture;
     const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
 
@@ -51,7 +50,7 @@ describe('getPoolValueInEth', function () {
       [dai, stETH, enzymeVault, revertingERC20].map(c => c.address),
       [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkForRevertingERC20].map(c => c.address),
       [18, 18, 18, 18],
-      AddressZero,
+      st.address,
     );
 
     await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);

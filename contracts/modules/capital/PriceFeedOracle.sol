@@ -22,6 +22,8 @@ contract PriceFeedOracle is IPriceFeedOracle {
       _assetAddresses.length == _assetAggregators.length && _assetAggregators.length == _assetDecimals.length,
       "PriceFeedOracle: different args length"
     );
+    require(_safeTracker != address(0), "PriceFeedOracle: safeTracker cannot be zero address");
+
     safeTracker = _safeTracker;
     assets[_safeTracker] = OracleAsset(Aggregator(_safeTracker), 18);
 

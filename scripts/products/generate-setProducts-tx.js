@@ -57,22 +57,22 @@ const main = async (provider, productsDataFilePath) => {
         (coverAssetsAsText === 'ETH' && 0b01) || // Yield token cover that uses ETH
         0; // The default is 0 - this means all assets are allowed (no whitelist)
 
-      const filePath = data['IPFS Metadata'];
-
-      console.log(`Uploading ${data['Product Name']} annex from ${filePath} to IPFS`);
-      const annex = await ipfs.add(fs.readFileSync(filePath));
-      console.log(`Pinning ${annex.path}`);
-      await ipfs.pin.add(annex.path);
-
-      console.log(`Appending ${annex.path} to ${data['Product Name']} metadata on IPFS`);
-      const metadata = await ipfs.add(Buffer.from(JSON.stringify({ annex: annex.path })));
-      console.log(`Pinning ${metadata.path}`);
-      await ipfs.pin.add(metadata.path);
+      // const filePath = data['IPFS Metadata'];
+      //
+      // console.log(`Uploading ${data['Product Name']} annex from ${filePath} to IPFS`);
+      // const annex = await ipfs.add(fs.readFileSync(filePath));
+      // console.log(`Pinning ${annex.path}`);
+      // await ipfs.pin.add(annex.path);
+      //
+      // console.log(`Appending ${annex.path} to ${data['Product Name']} metadata on IPFS`);
+      // const metadata = await ipfs.add(Buffer.from(JSON.stringify({ annex: annex.path })));
+      // console.log(`Pinning ${metadata.path}`);
+      // await ipfs.pin.add(metadata.path);
 
       const productParams = {
         productName: data['Product Name'],
         productId: data['Product Id'] || MaxUint256, // create new product - use Max Uint.
-        ipfsMetadata: metadata.path, // IPFS metadata is optional.
+        ipfsMetadata: '', // metadata.path, // IPFS metadata is optional.
         product: {
           productType: data['Product Type'],
           yieldTokenAddress:
@@ -85,8 +85,9 @@ const main = async (provider, productsDataFilePath) => {
           // works for integers: parseInt('0%') === 0
           capacityReductionRatio: parseInt(data['Capacity Reduction Ratio']),
           useFixedPrice: data['Use fixed price'].trim() === 'TRUE',
+          isDeprecated: data['Is deprecated'].trim() === 'TRUE',
         },
-        allowedPools: [11],
+        allowedPools: [],
       };
 
       return productParams;

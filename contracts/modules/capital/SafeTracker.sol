@@ -106,6 +106,10 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
     revert();
   }
 
+  function latestAnswer() external pure returns (uint256) {
+    return 1e18;
+  }
+
   /**
   * @dev Fetches all necessary information about the tokens that are used in the safe and calculates the balance
   * @return balance ETH value of the safe.

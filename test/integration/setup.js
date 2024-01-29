@@ -120,7 +120,6 @@ async function setup() {
   const gv = await deployProxy('DisposableGovernance');
   const gateway = await deployProxy('DisposableGateway', [qd.address, tk.address]);
   const st = await deployProxy('SafeTracker', [
-    master.address,
     INVESTMENT_LIMIT,
     gnosisSafe.address,
     usdc.address,

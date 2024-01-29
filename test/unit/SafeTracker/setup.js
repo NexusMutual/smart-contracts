@@ -34,7 +34,6 @@ async function setup() {
 
   // use defaultSender for safe in unit tests
   const safeTracker = await ethers.deployContract('SafeTracker', [
-    master.address,
     investmentLimit,
     accounts.defaultSender.address,
     usdc.address,
@@ -57,6 +56,7 @@ async function setup() {
     master.setEmergencyAdmin(accounts.emergencyAdmin.address),
   ]);
 
+  await safeTracker.changeMasterAddress(master.address);
   await safeTracker.changeDependentContractAddress();
 
   await nxm.mint(accounts.defaultSender.address, parseEther('6700000'));

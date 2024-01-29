@@ -15,7 +15,9 @@ describe('transfer', function () {
       members: [member],
     } = fixture.accounts;
 
-    await expect(safeTracker.connect(defaultSender).transfer(member.address, 100)).to.be.reverted;
+    await expect(safeTracker.connect(defaultSender).transfer(member.address, 100)).to.be.revertedWith(
+      'Amount exceeds balance',
+    );
   });
 
   it('should emit Transfer event if amount is 0', async function () {

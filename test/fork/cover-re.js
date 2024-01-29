@@ -19,6 +19,11 @@ const { BigNumber } = ethers;
 const { formatEther, parseEther, defaultAbiCoder, toUtf8Bytes, parseUnits, formatUnits } = ethers.utils;
 const { MaxUint256, AddressZero } = ethers.constants;
 
+const AavePoolAbi = require('./abi/aave/AavePool.json');
+const AaveProtocolDataProviderAbi = require('./abi/aave/AaveProtocolDataProvider.json');
+const WETHGatewayAbi = require('./abi/aave/WETHGateway.json');
+const VariableDebtTokenAbi = require('./abi/aave/VariableDebtToken.json');
+
 const INTERAST_RATE_MODE = {
   NONE: 0,
   STABLE: 1,
@@ -118,7 +123,6 @@ describe('coverRe', function () {
 
     const safeTrackerCreate2Salt = 13944964;
     this.safeTracker = await ethers.deployContract('SafeTracker', [
-      this.master.address,
       investmentLimit,
       GNOSIS_SAFE_ADDRESS,
       Address.USDC_ADDRESS,
@@ -403,13 +407,10 @@ describe('coverRe', function () {
   });
 
   it('AAVE contracts', async function () {
-    this.aavePool = await ethers.getContractAt('IAavePool', Aave.POOL_V3_ADDRESS);
-    this.aavePoolDataProvider = await ethers.getContractAt('IPoolDataProvider', Aave.POOL_DATA_PROVIDER);
-    this.aaveWethGateway = await ethers.getContractAt('IWrappedTokenGatewayV3', Aave.WETH_GATEWAY_ADDRESS);
-    this.aaveUsdcVariableDebtToken = await ethers.getContractAt(
-      'ICreditDelegationToken',
-      Aave.VARIABLE_DEBT_USDC_ADDRESS,
-    );
+    this.aavePool = await ethers.getContractAt(AavePoolAbi, Aave.POOL_V3_ADDRESS);
+    this.aavePoolDataProvider = await ethers.getContractAt(AaveProtocolDataProviderAbi, Aave.POOL_DATA_PROVIDER);
+    this.aaveWethGateway = await ethers.getContractAt(WETHGatewayAbi, Aave.WETH_GATEWAY_ADDRESS);
+    this.aaveUsdcVariableDebtToken = await ethers.getContractAt(VariableDebtTokenAbi, Aave.VARIABLE_DEBT_USDC_ADDRESS);
   });
 
   it('supply ETH to AAVE Pool V3', async function () {

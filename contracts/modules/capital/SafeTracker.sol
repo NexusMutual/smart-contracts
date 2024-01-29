@@ -12,9 +12,9 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
 
   uint public coverReInvestmentUSDC;
 
-  string public symbol = "NXMIS";
-  string public name = "NXMIS";
-  uint8 public decimals = 18;
+  string public constant symbol = "NXMIS";
+  string public constant name = "NXMIS";
+  uint8 public constant decimals = 18;
 
   address public immutable safe;
   uint public immutable investmentLimit;

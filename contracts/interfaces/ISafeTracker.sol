@@ -6,6 +6,8 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 
 interface ISafeTracker is IERC20 {
 
+  event CoverReInvestmentUSDCUpdated(uint investedUSDC);
+
   error OnlySafe();
 
   function symbol() external view returns (string memory);

@@ -121,7 +121,7 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
     uint daiAmount = dai.balanceOf(safe);
     uint daiValueInEth = priceFeedOracle.getEthForAsset(address(dai), daiAmount);
 
-    // usdc actually in the safe
+    // usdc actually in the safe and usdc invested in CoverRe
     uint usdcAmount = usdc.balanceOf(safe) + coverReInvestmentUSDC;
     uint usdcValueInEth = priceFeedOracle.getEthForAsset(address(usdc), usdcAmount);
 

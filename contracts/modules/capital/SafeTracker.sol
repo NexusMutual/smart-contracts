@@ -60,6 +60,8 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
       revert OnlySafe();
     }
     coverReInvestmentUSDC = _investedUSDC;
+
+    emit CoverReInvestmentUSDCUpdated(_investedUSDC);
   }
 
   /**

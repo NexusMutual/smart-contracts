@@ -19,6 +19,17 @@ describe('updateCoverReInvestmentUSDC', function () {
     expect(coverReInvestmentUSDCAfter).to.be.equal(coverReInvestmentUSDCBefore.add(investedAmount));
   });
 
+  it('should emit event CoverReInvestmentUSDCUpdated', async function () {
+    const fixture = await loadFixture(setup);
+    const { safeTracker } = fixture.contracts;
+    const { defaultSender } = fixture.accounts;
+    const investedAmount = parseEther('1000');
+
+    await expect(safeTracker.connect(defaultSender).updateCoverReInvestmentUSDC(investedAmount))
+      .to.emit(safeTracker, 'CoverReInvestmentUSDCUpdated')
+      .withArgs(investedAmount);
+  });
+
   it('should revert if caller is not the safe', async function () {
     const fixture = await loadFixture(setup);
     const { safeTracker } = fixture.contracts;

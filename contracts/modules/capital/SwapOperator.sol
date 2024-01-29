@@ -5,10 +5,10 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import "../../external/cow/GPv2Order.sol";
 import "../../interfaces/ICowSettlement.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/ISwapOperator.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/ISafeTracker.sol";
 import "../../interfaces/IWeth.sol";
@@ -23,7 +23,7 @@ import "../../external/enzyme/IEnzymePolicyManager.sol";
   @title A contract for swapping Pool's assets using CoW protocol
   @dev This contract's address is set on the Pool's swapOperator variable via governance
  */
-contract SwapOperator {
+contract SwapOperator is ISwapOperator{
   using SafeERC20 for IERC20;
 
   // Structs
@@ -59,13 +59,6 @@ contract SwapOperator {
   address public safe;
   Request public transferRequest;
   mapping(address => bool) public allowedAssets;
-
-
-  // Events
-  event OrderPlaced(GPv2Order.Data order);
-  event OrderClosed(GPv2Order.Data order, uint filledAmount);
-  event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
-  event TransferredToSafe(address asset, uint amount);
 
   modifier onlyController() {
     require(msg.sender == swapController, "SwapOp: only controller can execute");

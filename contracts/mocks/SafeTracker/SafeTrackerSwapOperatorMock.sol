@@ -9,11 +9,11 @@ contract SafeTrackerSwapOperatorMock is ISwapOperator {
   function orderInProgress() external virtual pure returns (bool) {
     revert("orderInProgress not yet implemented");
   }
-  function requestETH(uint) external virtual pure {
+  function requestAsset(address, uint) external virtual pure {
     revert("requestETH not yet implemented");
   }
 
-  function transferRequestedETH() external virtual pure returns (bool) {
+  function transferRequestedAsset(address, uint) external virtual pure {
     revert("requestETH not yet implemented");
   }
 }

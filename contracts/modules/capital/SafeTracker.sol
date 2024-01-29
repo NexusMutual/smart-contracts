@@ -138,7 +138,7 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
       emit Transfer(from, to, amount);
       return true;
     }
-    revert();
+    revert("Amount exceeds balance");
   }
 
   /* ========== DEPENDENCIES ========== */

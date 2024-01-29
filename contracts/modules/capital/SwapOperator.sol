@@ -58,7 +58,7 @@ contract SwapOperator is ISwapOperator{
   // Safe variables
   address public safe;
   Request public transferRequest;
-  mapping(address => bool) public allowedAssets;
+  mapping(address => bool) public allowedSafeTransferAssets;
 
   modifier onlyController() {
     require(msg.sender == swapController, "SwapOp: only controller can execute");
@@ -97,8 +97,8 @@ contract SwapOperator is ISwapOperator{
     enzymeFundValueCalculatorRouter = _enzymeFundValueCalculatorRouter;
     minPoolEth = _minPoolEth;
     safe = _safe;
-    allowedAssets[_dai] = true;
-    allowedAssets[ETH] = true;
+    allowedSafeTransferAssets[_dai] = true;
+    allowedSafeTransferAssets[ETH] = true;
   }
 
   receive() external payable {}
@@ -534,7 +534,7 @@ contract SwapOperator is ISwapOperator{
    * @dev Create a request for the transfer to the safe
    */
   function requestAsset(address asset, uint amount) external onlySafe {
-    require(allowedAssets[asset] == true, "SwapOp: asset not allowed");
+    require(allowedSafeTransferAssets[asset] == true, "SwapOp: asset not allowed");
     transferRequest = Request(asset, amount);
   }
 

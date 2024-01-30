@@ -100,11 +100,8 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
   }
 
   function approve(address spender, uint256 value) external override returns (bool) {
-    if (value == 0) {
-      emit Approval(msg.sender, spender, value);
-      return true;
-    }
-    revert("Amount exceeds balance");
+    emit Approval(msg.sender, spender, value);
+    return true;
   }
 
   function latestAnswer() external pure returns (uint256) {

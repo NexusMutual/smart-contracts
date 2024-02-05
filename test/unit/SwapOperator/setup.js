@@ -121,6 +121,8 @@ async function setup() {
 
   await pool.connect(governance).addAsset(usdc.address, true, 0, parseEther('1000'), 0);
 
+  await stEth.mint(pool.address, parseEther('50'));
+
   // Deploy SwapOperator
   const swapOperator = await SwapOperator.deploy(
     cowSettlement.address,

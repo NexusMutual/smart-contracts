@@ -87,11 +87,15 @@ const generateAbisTs = () => {
 
   const contractNames = contractList.map(contract => (typeof contract === 'string' ? contract : contract[1]));
 
-  const imports = contractNames.map(name => `import ${name} from './abis/${name}.json';`);
-  const exports = contractNames.map(name => `export { default as ${name} } from './abis/${name}.json';`);
-  const dict = `export const abis = {\n  ${contractNames.join(',\n  ')}\n};`;
+  const exports = contractNames.map(name => {
+    const abi = fs.readFileSync(path.join(outDir, 'abis', `${name}.json`));
+    // Add `as const` to assert the abi as a readonly object for Wagmi type safety
+    // Read more here: https://wagmi.sh/core/typescript#const-assert-abis-typed-data
+    return `export const ${name} = ${abi} as const;`;
+  });
+  const dict = `export const abis = {\n  ${contractNames.join(',\n  ')},\n} as const;`;
 
-  const content = [...imports, ...exports, dict].join('\n') + '\n';
+  const content = [...exports, dict].join('\n') + '\n';
 
   fs.writeFileSync(path.join(outDir, 'abis.ts'), content);
 };

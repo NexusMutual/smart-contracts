@@ -529,6 +529,20 @@ contract SwapOperator {
     token.safeTransfer(to, amount);
   }
 
+  function transferAssetToController (address asset, uint amount) public onlyController {
+    IPool pool = _pool();
+    pool.transferAssetToSwapOperator(asset, amount);
+
+    if (asset == ETH) {
+      (bool ok, /* data */) = swapController.call{ value: amount }("");
+      require(ok, "SwapOp: Eth transfer failed");
+      return;
+    }
+
+    IERC20 token = IERC20(asset);
+    token.safeTransfer(swapController, amount);
+  }
+
   function recoverAsset(address assetAddress, address receiver) public onlyController {
 
     // Validate there's no current cow swap order going on

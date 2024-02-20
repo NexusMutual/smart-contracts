@@ -84,6 +84,7 @@
     "typechain": "hardhat typechain",
     "deployments:build": "node deployments/build.js",
     "deployments:publish:next": "cd deployments && npm publish --access public --tag next",
-    "deployments:publish:latest": "cd deployments && npm publish --access public"
+    "deployments:publish:latest": "cd deployments && npm publish --access public",
+    "deployments:publish:rc": "cd deployments && npm publish --access public --tag rc"
   }
 }

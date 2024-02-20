@@ -40,6 +40,7 @@ const contractList = [
   'TokenController',
   'wNXM',
   'YieldTokenIncidents',
+  'TestnetMemberRoles',
 ];
 
 const updateVersion = () => {

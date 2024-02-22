@@ -37,9 +37,41 @@ const fetchOwners = async nftContract => {
 };
 
 const indexer = async address => {
+  let lastBlock = await ethers.provider.getBlockNumber();
   const contract = await ethers.getContractAt('ERC721Mock', address);
   const nfts = await fetchOwners(contract);
-  // TODO: poll transfer events
+
+  const scanForTransfers = async () => {
+    const newestBlock = await ethers.provider.getBlockNumber();
+
+    if (newestBlock === lastBlock) {
+      return;
+    }
+
+    const events = await contract.queryFilter('Transfer', lastBlock + 1, 'latest');
+    lastBlock = newestBlock;
+
+    events.forEach(event => {
+      const { from, to, id } = event.args;
+      console.log(`Transfer event: ${from} -> ${to} (id: ${id})`);
+
+      if (from === ethers.constants.AddressZero) {
+        nfts[to] = nfts[to] ? [...nfts[to], id] : [id];
+      } else {
+        nfts[from] = nfts[from].filter(nftId => nftId !== id);
+        nfts[to] = nfts[to] ? [...nfts[to], id] : [id];
+      }
+    });
+  };
+
+  const onTimeout = () => {
+    scanForTransfers()
+      .catch(console.error)
+      .then(() => setTimeout(onTimeout, 5000));
+  };
+
+  onTimeout();
+
   return owner => nfts[owner] || [];
 };
 

@@ -9,8 +9,8 @@ const {
 const daiMinAmount = parseEther('3000');
 const daiMaxAmount = parseEther('20000');
 
-const stethMinAmount = parseEther('10');
-const stethMaxAmount = parseEther('20');
+const stEthMinAmount = parseEther('10');
+const stEthMaxAmount = parseEther('20');
 
 const makeContractOrder = order => {
   return {
@@ -67,7 +67,7 @@ module.exports = {
   makeContractOrder,
   daiMaxAmount,
   daiMinAmount,
-  stethMaxAmount,
-  stethMinAmount,
+  stEthMaxAmount,
+  stEthMinAmount,
   lodashValues,
 };

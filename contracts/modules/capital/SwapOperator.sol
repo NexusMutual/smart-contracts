@@ -239,11 +239,11 @@ contract SwapOperator is ISwapOperator {
   function getSwapOperationType(GPv2Order.Data memory order) internal view returns (SwapOperationType) {
     if (address(order.sellToken) == address(weth)) {
       return SwapOperationType.WethToAsset;
-    } else if (address(order.buyToken) == address(weth)) {
-      return SwapOperationType.AssetToWeth;
-    } else {
-      return SwapOperationType.AssetToAsset;
     }
+    if (address(order.buyToken) == address(weth)) {
+      return SwapOperationType.AssetToWeth;
+    }
+    return SwapOperationType.AssetToAsset;
   }
 
   /**

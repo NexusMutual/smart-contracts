@@ -6,8 +6,11 @@ import "../external/cow/GPv2Order.sol";
 import "../interfaces/IPool.sol";
 
 interface ISwapOperator {
-
-  enum SwapOperationType { WethToAsset, AssetToWeth, AssetToAsset }
+  enum SwapOperationType {
+    WethToAsset,
+    AssetToWeth,
+    AssetToAsset
+  }
 
   struct SwapOperation {
     GPv2Order.Data order;
@@ -21,7 +24,7 @@ interface ISwapOperator {
   function getDigest(GPv2Order.Data calldata order) external view returns (bytes32);
 
   function getUID(GPv2Order.Data calldata order) external view returns (bytes memory);
-  
+
   function orderInProgress() external view returns (bool);
 
   /* ==== MUTATIVE FUNCTIONS ==== */
@@ -36,7 +39,7 @@ interface ISwapOperator {
   event OrderClosed(GPv2Order.Data order, uint filledAmount);
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
 
-  // Order 
+  // Order
   error OrderInProgress();
   error OrderUidMismatch(bytes providedOrderUID, bytes expectedOrderUID);
   error UnsupportedTokenBalance(string kind);
@@ -46,10 +49,10 @@ interface ISwapOperator {
   // Valid To
   error BelowMinValidTo(uint minValidTo);
   error AboveMaxValidTo(uint maxValidTo);
-  
+
   // Cool down
   error InsufficientTimeBetweenSwaps(uint minValidSwapTime);
-  
+
   // Balance
   error EthReserveBelowMin(uint ethPostSwap, uint minEthReserve);
   error InvalidBalance(uint tokenBalance, uint limit, string limitType);

@@ -158,17 +158,20 @@ describe('closeOrder', function () {
     const {
       contracts: { swapOperator },
       contractOrder,
+      order,
+      orderUID,
+      domain,
     } = await loadFixture(closeOrderSetup);
     // the contract's currentOrderUID is the one for the placed order in beforeEach step
     // we call with multiple invalid orders, with each individual field modified. it should fail
-    for (const [key, value] of Object.entries(contractOrder)) {
-      const wrongOrder = {
-        ...contractOrder,
-        [key]: makeWrongValue(value),
-      };
-      await expect(swapOperator.closeOrder(wrongOrder)).to.revertedWith(
-        'SwapOp: Provided UID doesnt match calculated UID',
-      );
+    for (const [key, value] of Object.entries(order)) {
+      const wrongOrder = { ...order, [key]: makeWrongValue(value) };
+      const wrongOrderUID = computeOrderUid(domain, wrongOrder, wrongOrder.receiver);
+      const wrongContractOrder = makeContractOrder(wrongOrder);
+
+      await expect(swapOperator.closeOrder(wrongContractOrder))
+        .to.revertedWithCustomError(swapOperator, 'OrderUidMismatch')
+        .withArgs(orderUID, wrongOrderUID);
     }
 
     // call with an order that matches currentOrderUID, should succeed

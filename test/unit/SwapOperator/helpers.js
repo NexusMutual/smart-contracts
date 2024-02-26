@@ -55,6 +55,10 @@ const makeWrongValue = value => {
     return value + 1;
   } else if (typeof value === 'boolean') {
     return !value;
+  } else if (value === 'erc20') {
+    return 'internal';
+  } else if (typeof value === 'string') {
+    return value + '!';
   } else {
     throw new Error(`Unsupported value while fuzzing order: ${value}`);
   }

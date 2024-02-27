@@ -27,6 +27,8 @@ interface ICowSettlement {
   }
 
   function setPreSignature(bytes calldata orderUid, bool signed) external;
+  
+  function invalidateOrder(bytes calldata orderUid) external; 
 
   function filledAmount(bytes calldata orderUid) external view returns (uint256);
 

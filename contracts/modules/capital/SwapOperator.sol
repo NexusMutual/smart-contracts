@@ -388,7 +388,7 @@ contract SwapOperator is ISwapOperator {
     uint filledAmount = cowSettlement.filledAmount(currentOrderUID);
 
     // Cancel signature and unapprove tokens
-    cowSettlement.setPreSignature(currentOrderUID, false);
+    cowSettlement.invalidateOrder(currentOrderUID);
     order.sellToken.safeApprove(cowVaultRelayer, 0);
 
     // Clear the current order

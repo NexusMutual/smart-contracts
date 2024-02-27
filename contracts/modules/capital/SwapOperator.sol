@@ -19,10 +19,8 @@ import "../../external/enzyme/IEnzymeV4Vault.sol";
 import "../../external/enzyme/IEnzymeV4Comptroller.sol";
 import "../../external/enzyme/IEnzymePolicyManager.sol";
 
-/**
-  @title A contract for swapping Pool's assets using CoW protocol
-  @dev This contract's address is set on the Pool's swapOperator variable via governance
- */
+/// @title A contract for swapping Pool's assets using CoW protocol
+/// @dev This contract's address is set on the Pool's swapOperator variable via governance
 contract SwapOperator is ISwapOperator {
   using SafeERC20 for IERC20;
 
@@ -54,12 +52,10 @@ contract SwapOperator is ISwapOperator {
     _;
   }
 
-  /**
-   * @param _cowSettlement Address of CoW protocol's settlement contract
-   * @param _swapController Account allowed to place and close orders
-   * @param _master Address of Nexus' master contract
-   * @param _weth Address of wrapped eth token
-   */
+  /// @param _cowSettlement Address of CoW protocol's settlement contract
+  /// @param _swapController Account allowed to place and close orders
+  /// @param _master Address of Nexus' master contract
+  /// @param _weth Address of wrapped eth token
   constructor(
     address _cowSettlement,
     address _swapController,
@@ -82,21 +78,17 @@ contract SwapOperator is ISwapOperator {
 
   receive() external payable {}
 
-  /**
-   * @dev Compute the digest of an order using CoW protocol's logic
-   * @param order The order
-   * @return The digest
-   */
+  /// @dev Compute the digest of an order using CoW protocol's logic
+  /// @param order The order
+  /// @return The digest
   function getDigest(GPv2Order.Data calldata order) public view returns (bytes32) {
     bytes32 hash = GPv2Order.hash(order, domainSeparator);
     return hash;
   }
 
-  /**
-   * @dev Compute the UID of an order using CoW protocol's logic
-   * @param order The order
-   * @return The UID (56 bytes)
-   */
+  /// @dev Compute the UID of an order using CoW protocol's logic
+  /// @param order The order
+  /// @return The UID (56 bytes)
   function getUID(GPv2Order.Data calldata order) public view returns (bytes memory) {
     bytes memory uid = new bytes(56);
     bytes32 digest = getDigest(order);
@@ -104,9 +96,7 @@ contract SwapOperator is ISwapOperator {
     return uid;
   }
   
-  /**
-   * @dev Validates that the quoted amount does not exceed minimum acceptable amount after accounting for max slippage
-   */
+  /// @dev Validates that the quoted amount does not exceed minimum acceptable amount after accounting for max slippage
   function validateSlippageAndOracleAmount(address quotedAsset, uint quotedAmount, uint oracleAmount) internal view {
     SwapDetails memory swapDetails = _pool().getAssetSwapDetails(quotedAsset);
 
@@ -118,10 +108,8 @@ contract SwapOperator is ISwapOperator {
     }
   }
 
-  /**
-   * @dev Using oracle prices, returns the equivalent amount in `toAsset` for a given `fromAssetAmount` in `fromAsset`
-   * Supports conversions for ETH to Asset, Asset to ETH, and Asset to Asset
-   */
+  /// @dev Using oracle prices, returns the equivalent amount in `toAsset` for a given `fromAssetAmount` in `fromAsset`
+  /// Supports conversions for ETH to Asset, Asset to ETH, and Asset to Asset
   function getOracleAmount(address toAsset, address fromAsset, uint fromAssetAmount) internal view returns (uint) {
     IPriceFeedOracle priceFeedOracle = _pool().priceFeedOracle();
 
@@ -138,11 +126,9 @@ contract SwapOperator is ISwapOperator {
     return priceFeedOracle.getAssetForEth(toAsset, fromAssetInEth);
   }
 
-  /**
-   * @dev Validates the quoteAmount with the oracle price and max slippage tolerances
-   * If KIND_SELL validates quoted buyAmount
-   * If KIND_BUY validates quoted sellAmount
-   */
+  /// @dev Validates the quoteAmount with the oracle price and max slippage tolerances
+  /// If KIND_SELL validates quoted buyAmount
+  /// If KIND_BUY validates quoted sellAmount
   function validateQuotedAmount(GPv2Order.Data memory order) internal view {
     if (order.kind == GPv2Order.KIND_SELL) {
       // KIND_SELL - buyToken is quoted / sellToken is inputted
@@ -165,19 +151,15 @@ contract SwapOperator is ISwapOperator {
     }
   }
   
-  /**
-   * @dev Validates if a token is enabled for swapping.
-   * WETH is excluded in validation since it does not have set swapDetails (i.e. SwapDetails(0,0,0,0))
-   */
+  /// @dev Validates if a token is enabled for swapping.
+  /// WETH is excluded in validation since it does not have set swapDetails (i.e. SwapDetails(0,0,0,0))
   function validateTokenIsEnabled(address token, SwapDetails memory swapDetails) internal view {
     if (token != address(weth) && swapDetails.minAmount == 0 && swapDetails.maxAmount == 0) {
       revert OrderTokenIsDisabled(token);
     }
   }
 
-  /**
-   * @dev Validates minimum pool ETH reserve is not breached after selling ETH
-   */
+  /// @dev Validates minimum pool ETH reserve is not breached after selling ETH
   function validateEthBalance(IPool pool, uint totalOutAmount) internal view {
     uint ethPostSwap = address(pool).balance - totalOutAmount;
     if (ethPostSwap < minPoolEth) {
@@ -185,12 +167,10 @@ contract SwapOperator is ISwapOperator {
     }
   }
 
-  /**
-   * @dev Validates two conditions:
-   * 1. The current sellToken balance is greater than sellSwapDetails.maxAmount
-   * 2. The post-swap sellToken balance is greater than or equal to sellSwapDetails.minAmount
-   * Skips validation for WETH since it does not have set swapDetails
-   */
+  /// @dev Validates two conditions:
+  /// 1. The current sellToken balance is greater than sellSwapDetails.maxAmount
+  /// 2. The post-swap sellToken balance is greater than or equal to sellSwapDetails.minAmount
+  /// Skips validation for WETH since it does not have set swapDetails
   function validateSellTokenBalance(IPool pool, SwapOperation memory swapOp, uint totalOutAmount) internal view {
     uint sellTokenBalance = swapOp.order.sellToken.balanceOf(address(pool));
 
@@ -209,12 +189,10 @@ contract SwapOperator is ISwapOperator {
     }      
   }
 
-  /**
-   * @dev Validates two conditions:
-   * 1. The current buyToken balance is less than buySwapDetails.minAmount.
-   * 2. The post-swap buyToken balance is less than or equal to buySwapDetails.maxAmount.
-   * Skip validation for WETH since it does not have set swapDetails
-   */
+  /// @dev Validates two conditions:
+  /// 1. The current buyToken balance is less than buySwapDetails.minAmount.
+  /// 2. The post-swap buyToken balance is less than or equal to buySwapDetails.maxAmount.
+  /// Skip validation for WETH since it does not have set swapDetails
   function validateBuyTokenBalance(IPool pool, SwapOperation memory swapOp) internal view {
     uint buyTokenBalance = swapOp.order.buyToken.balanceOf(address(pool));
     
@@ -233,9 +211,7 @@ contract SwapOperator is ISwapOperator {
     }
   }
 
-  /**
-   * @dev Helper function to determine the SwapOperationType of the order
-   */
+  /// @dev Helper function to determine the SwapOperationType of the order
   function getSwapOperationType(GPv2Order.Data memory order) internal view returns (SwapOperationType) {
     if (address(order.sellToken) == address(weth)) {
       return SwapOperationType.WethToAsset;
@@ -246,9 +222,7 @@ contract SwapOperator is ISwapOperator {
     return SwapOperationType.AssetToAsset;
   }
 
-  /**
-   * @dev NOTE: for assets that does not have any set swapDetails such as WETH it will have SwapDetails(0,0,0,0)
-   */
+  /// @dev NOTE: for assets that does not have any set swapDetails such as WETH it will have SwapDetails(0,0,0,0)
   function prepareSwapDetails(IPool pool, GPv2Order.Data calldata order) internal view returns (SwapOperation memory) {
     SwapDetails memory sellSwapDetails = pool.getAssetSwapDetails(address(order.sellToken));
     SwapDetails memory buySwapDetails = pool.getAssetSwapDetails(address(order.buyToken));
@@ -261,9 +235,7 @@ contract SwapOperator is ISwapOperator {
     });
   }
 
-  /**
-   * @dev Performs pre-swap validation checks for a given swap operation
-   */
+  /// @dev Performs pre-swap validation checks for a given swap operation
   function performPreSwapValidations(IPool pool, SwapOperation memory swapOp, uint totalOutAmount) internal view {
     address sellTokenAddress = address(swapOp.order.sellToken);
     address buyTokenAddress = address(swapOp.order.buyToken);
@@ -290,10 +262,8 @@ contract SwapOperator is ISwapOperator {
     validateQuotedAmount(swapOp.order);
   }
 
-  /**
-   * @dev Executes asset transfers from Pool to SwapOperator for CoW Swap order executions
-   * Additionally if selling ETH, wraps received Pool ETH to WETH
-   */
+  /// @dev Executes asset transfers from Pool to SwapOperator for CoW Swap order executions
+  /// Additionally if selling ETH, wraps received Pool ETH to WETH
   function executeAssetTransfer(IPool pool, SwapOperation memory swapOp, uint totalOutAmount) internal returns (uint swapValueEth) {
     IPriceFeedOracle priceFeedOracle = pool.priceFeedOracle();
     address sellTokenAddress = address(swapOp.order.sellToken);
@@ -327,11 +297,11 @@ contract SwapOperator is ISwapOperator {
     return swapValueEth;
   }
 
-  /**
-   * @dev Approve a given order to be executed, by presigning it on CoW protocol's settlement contract
-   * The order is validated before the sellToken is transferred from the Pool to the SwapOperator for the CoW swap operation
-   * Only one order can be open at the same time
-   */
+  /// @dev Approve a given order to be executed, by presigning it on CoW protocol's settlement contract
+  /// Validates the order before the sellToken is transferred from the Pool to the SwapOperator for the CoW swap operation
+  /// Emits OrderPlaced event on success. Only one order can be open at the same time
+  /// @param order - The order to be placed
+  /// @param orderUID - the UID of the of the order to be placed
   function placeOrder(GPv2Order.Data calldata order, bytes calldata orderUID) public onlyController {
     if (orderInProgress()) {
       revert OrderInProgress();
@@ -369,10 +339,9 @@ contract SwapOperator is ISwapOperator {
     emit OrderPlaced(order);
   }
 
-  /**
-   * @dev Close a previously placed order, returning assets to the pool (either fulfilled or not)
-   * @param order The order to close
-   */
+  /// @dev Close a previously placed order, returning assets to the pool (either fulfilled or not)
+  /// Emits OrderClosed event on success
+  /// @param order The order to close
   function closeOrder(GPv2Order.Data calldata order) external {
     // Validate there is an order in place
     require(orderInProgress(), "SwapOp: No order in place");
@@ -405,10 +374,8 @@ contract SwapOperator is ISwapOperator {
     emit OrderClosed(order, filledAmount);
   }
 
-  /**
-   * @dev Return a given asset to the pool, either ETH or ERC20
-   * @param asset The asset
-   */
+  /// @dev Return a given asset to the pool, either ETH or ERC20
+  /// @param asset The asset
   function returnAssetToPool(IERC20 asset) internal {
     uint balance = asset.balanceOf(address(this));
 
@@ -429,10 +396,8 @@ contract SwapOperator is ISwapOperator {
     }
   }
 
-  /**
-   * @dev General validations on individual order fields
-   * @param order The order
-   */
+  /// @dev General validations on individual order fields
+  /// @param order The order
   function validateBasicCowParams(GPv2Order.Data calldata order) internal view {
     uint minValidTo = block.timestamp + MIN_VALID_TO_PERIOD;
     uint maxValidTo = block.timestamp + MAX_VALID_TO_PERIOD;
@@ -454,11 +419,9 @@ contract SwapOperator is ISwapOperator {
     }
   }
 
-  /**
-   * @dev Validate that a given UID is the correct one for a given order
-   * @param order The order
-   * @param providedOrderUID The UID
-   */
+  /// @dev Validate that a given UID is the correct one for a given order
+  /// @param order The order
+  /// @param providedOrderUID The UID
   function validateUID(GPv2Order.Data calldata order, bytes memory providedOrderUID) internal view {
     bytes memory calculatedOrderUID = getUID(order);
     if (keccak256(calculatedOrderUID) != keccak256(providedOrderUID)) {
@@ -466,19 +429,14 @@ contract SwapOperator is ISwapOperator {
     }
   }
 
-  /**
-   * @dev Get the Pool's instance through master contract
-   * @return The pool instance
-   */
+  /// @dev Get the Pool's instance through master contract
+  /// @return The pool instance
   function _pool() internal view returns (IPool) {
     return IPool(master.getLatestAddress("P1"));
   }
 
-  /**
-   * @dev Validates that a given asset is not swapped too fast
-   * @param swapDetails Swap details for the given asset
-   */
-  // TOOD: unit test for ETH SwapDetails(0,0,0,0) - should not error
+  /// @dev Validates that a given asset is not swapped too fast
+  /// @param swapDetails Swap details for the given asset
   function validateSwapFrequency(SwapDetails memory swapDetails) internal view {
     uint minValidSwapTime = swapDetails.lastSwapTime + MIN_TIME_BETWEEN_ORDERS; 
     if (block.timestamp < minValidSwapTime) {
@@ -486,14 +444,9 @@ contract SwapOperator is ISwapOperator {
     }
   }
 
-  /**
-   * @dev Validate that the fee for the order is not higher than the maximum allowed fee, in ether
-   * @param sellAsset The sell asset
-   * @param feeAmount The fee (will always be denominated in the sell asset units)
-   */
-  // TODO: unit test with WETH / ETH / asset address
-  // what if there is no WETH in oracle
-  // what if there is no asset in oracle? - error
+  /// @dev Validate that the fee for the order is not higher than the maximum allowed fee, in ether
+  /// @param sellAsset The sell asset
+  /// @param feeAmount The fee (will always be denominated in the sell asset units)
   function validateMaxFee(
     address sellAsset,
     uint feeAmount
@@ -506,7 +459,9 @@ contract SwapOperator is ISwapOperator {
     }
   }
 
-
+  /// @dev Exchanges ETH for Enzyme Vault shares with slippage control. Emits `Swapped` on success
+  /// @param amountIn Amount of ETH to be swapped for Enzyme Vault shares
+  /// @param amountOutMin Minimum Enzyme Vault shares out expected
   function swapETHForEnzymeVaultShare(uint amountIn, uint amountOutMin) external onlyController {
 
     // Validate there's no current cow swap order going on
@@ -565,6 +520,9 @@ contract SwapOperator is ISwapOperator {
     emit Swapped(ETH, enzymeV4VaultProxyAddress, amountIn, amountOut);
   }
 
+  /// @dev Exchanges Enzyme Vault shares for ETH with slippage control. Emits `Swapped` on success
+  /// @param amountIn Amount of Enzyme Vault shares to be swapped for ETH
+  /// @param amountOutMin Minimum ETH out expected
   function swapEnzymeVaultShareForETH(
     uint amountIn,
     uint amountOutMin
@@ -634,8 +592,7 @@ contract SwapOperator is ISwapOperator {
 
   function transferAssetTo (address asset, address to, uint amount) internal {
 
-    if (asset == ETH) {
-      (bool ok, /* data */) = to.call{ value: amount }("");
+    if (asset == ETH) {) = to.call{ value: amount }("");
       require(ok, "SwapOp: Eth transfer failed");
       return;
     }
@@ -644,6 +601,9 @@ contract SwapOperator is ISwapOperator {
     token.safeTransfer(to, amount);
   }
 
+  /// @dev Recovers assets in the SwapOperator to the pool or a specified receiver, ensuring no ongoing CoW swap orders
+  /// @param assetAddress Address of the asset to recover
+  /// @param receiver Address to receive the recovered assets, if asset is not supported by the pool
   function recoverAsset(address assetAddress, address receiver) public onlyController {
 
     // Validate there's no current cow swap order going on
@@ -678,6 +638,8 @@ contract SwapOperator is ISwapOperator {
     asset.transfer(address(pool), balance);
   }
 
+  /// @dev Checks if there is an ongoing order.
+  /// @return bool True if an order is currently in progress, otherwise false.
   function orderInProgress() public view returns (bool) {
     return currentOrderUID.length > 0;
   }

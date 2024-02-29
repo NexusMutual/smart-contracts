@@ -31,6 +31,12 @@ interface ISwapOperator {
 
   function placeOrder(GPv2Order.Data calldata order, bytes calldata orderUID) external;
 
+  function closeOrder(GPv2Order.Data calldata order) external;
+
+  function swapEnzymeVaultShareForETH(uint amountIn, uint amountOutMin) external;
+
+  function swapETHForEnzymeVaultShare(uint amountIn, uint amountOutMin) external;
+
   function recoverAsset(address assetAddress, address receiver) external;
 
   /* ========== EVENTS AND ERRORS ========== */
@@ -57,7 +63,7 @@ interface ISwapOperator {
   error EthReserveBelowMin(uint ethPostSwap, uint minEthReserve);
   error InvalidBalance(uint tokenBalance, uint limit, string limitType);
   error InvalidPostSwapBalance(uint postSwapBalance, uint limit, string limitType);
-  error MaxSlippageExceeded(uint minAmount);
+  error AmountTooLow(uint quotedAmount, uint minAmount);
 
   // Fee
   error AboveMaxFee(uint maxFee);

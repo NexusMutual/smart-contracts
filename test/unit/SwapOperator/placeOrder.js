@@ -658,195 +658,163 @@ describe('placeOrder', function () {
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
 
-  it('when selling eth validates quotedAmount against oracle price & 0% slippage (order kind SELL)', async function () {
+  it('when selling eth validates buyAmount against oracle price if both assets has 0% slippage', async function () {
     const { contracts, order, domain } = await loadFixture(placeSellWethOrderSetup);
-    const { swapOperator, priceFeedOracle, dai } = contracts;
+    const { swapOperator, priceFeedOracle, pool, dai, weth } = contracts;
 
-    // order kind SELL, buyAmount is quoted
-    const daiBuyAmount = await priceFeedOracle.getAssetForEth(dai.address, order.sellAmount);
+    const wethSellSwapDetails = await pool.getAssetSwapDetails(weth.address);
+    const daiBuySwapDetails = await pool.getAssetSwapDetails(dai.address);
+    expect(wethSellSwapDetails.maxSlippageRatio === daiBuySwapDetails.maxSlippageRatio).to.equal(true);
 
-    // Since quoted buyAmount is short by 1 DAI wei, txn should revert
-    const badOrder = createContractOrder(domain, order, { kind: 'sell', buyAmount: daiBuyAmount.sub(1) });
+    // Since buyAmount is short by 1 DAI wei, txn should revert
+    const buyOracleAmount = await priceFeedOracle.getAssetForEth(dai.address, order.sellAmount);
+    const badOrder = createContractOrder(domain, order, { buyAmount: buyOracleAmount.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
-    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'MaxSlippageExceeded').withArgs(daiBuyAmount);
+    await expect(placeOrder)
+      .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
+      .withArgs(buyOracleAmount.sub(1), buyOracleAmount);
 
     // Oracle price buyAmount should not revert
-    const goodOrder = createContractOrder(domain, order, { kind: 'sell', buyAmount: daiBuyAmount });
+    const goodOrder = createContractOrder(domain, order, { buyAmount: buyOracleAmount });
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
 
-  it('when selling eth validates quotedAmount against oracle price & 0% slippage (order kind BUY)', async function () {
-    const { contracts, order, domain } = await loadFixture(placeSellWethOrderSetup);
-    const { swapOperator, priceFeedOracle, dai } = contracts;
-
-    // order kind BUY, sellAmount is quoted
-    const ethSellAmount = await priceFeedOracle.getEthForAsset(dai.address, order.buyAmount);
-
-    // Since quoted sellAmount is short by 1 DAI wei, txn should revert
-    const badOrder = createContractOrder(domain, order, { kind: 'buy', sellAmount: ethSellAmount.sub(1) });
-    const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
-    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'MaxSlippageExceeded').withArgs(ethSellAmount);
-
-    // Oracle price sellAmount should not revert
-    const goodOrder = createContractOrder(domain, order, { kind: 'buy', sellAmount: ethSellAmount });
-    await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
-  });
-
-  it('when selling eth validates quotedAmount against oracle price & 1% slippage (orderKind SELL)', async function () {
+  it('when selling eth validates buyAmount against oracle price if buyToken has a higher slippage', async function () {
     const { contracts, governance, order, domain } = await loadFixture(placeSellWethOrderSetup);
-    const { swapOperator, pool, dai } = contracts;
+    const { swapOperator, pool, dai, weth } = contracts;
 
-    // order kind SELL, buyAmount is quoted
     const buyAmountOnePercentSlippage = order.buyAmount.mul(99).div(100);
     await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
 
+    const wethSellSwapDetails = await pool.getAssetSwapDetails(weth.address);
+    const daiBuySwapDetails = await pool.getAssetSwapDetails(dai.address);
+    expect(daiBuySwapDetails.maxSlippageRatio > wethSellSwapDetails.maxSlippageRatio).to.equal(true);
+
     // Since buyAmount is > 1% slippage (i.e. 99% -1 wei), txn should revert
-    const badOrderOverrides = { kind: 'sell', buyAmount: buyAmountOnePercentSlippage.sub(1) };
+    const badOrderOverrides = { buyAmount: buyAmountOnePercentSlippage.sub(1) };
     const badOrder = createContractOrder(domain, order, badOrderOverrides);
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
-      .to.be.revertedWithCustomError(swapOperator, 'MaxSlippageExceeded')
-      .withArgs(buyAmountOnePercentSlippage); // 1% max slippage from oracle buy amount
+      .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
+      .withArgs(buyAmountOnePercentSlippage.sub(1), buyAmountOnePercentSlippage); // 1% slippage from oracle buyAmount
 
     // Exactly 1% slippage buyAmount should not revert
-    const goodOrder = createContractOrder(domain, order, { kind: 'sell', buyAmount: buyAmountOnePercentSlippage });
+    const goodOrder = createContractOrder(domain, order, { buyAmount: buyAmountOnePercentSlippage });
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
 
-  // ETH has no set swapDetails slippage, so no test for selling eth order kind BUY
+  // ETH has no set swapDetails slippage, so no test for sell eth which has higher slippage
 
-  it('when buying eth validates quotedAmount against oracle price & 0% slippage (order kind SELL)', async function () {
+  it('when buying eth validates buyAmount against oracle price if both assets has 0% slippage', async function () {
     const { contracts, order, domain } = await loadFixture(placeBuyWethOrderSetup);
-    const { dai, swapOperator, priceFeedOracle } = contracts;
+    const { swapOperator, priceFeedOracle, pool, dai, weth } = contracts;
 
-    // order kind SELL, buyAmount is quoted
-    const ethBuyAmount = await priceFeedOracle.getEthForAsset(dai.address, order.sellAmount);
+    const daiSellSwapDetails = await pool.getAssetSwapDetails(dai.address);
+    const wethBuySwapDetails = await pool.getAssetSwapDetails(weth.address);
+    expect(wethBuySwapDetails.maxSlippageRatio === daiSellSwapDetails.maxSlippageRatio).to.equal(true);
 
-    // Since quoted buyAmount is short by 1 wei, txn should revert
-    const badOrder = createContractOrder(domain, order, { kind: 'sell', buyAmount: ethBuyAmount.sub(1) });
+    // Since buyAmount is short by 1 wei, txn should revert
+    const buyOracleAmount = await priceFeedOracle.getEthForAsset(dai.address, order.sellAmount);
+    const badOrder = createContractOrder(domain, order, { buyAmount: buyOracleAmount.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
-    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'MaxSlippageExceeded').withArgs(ethBuyAmount);
+    await expect(placeOrder)
+      .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
+      .withArgs(buyOracleAmount.sub(1), buyOracleAmount);
 
     // Oracle price buyAmount should not revert
-    const goodOrder = createContractOrder(domain, order, { kind: 'sell' });
+    const goodOrder = createContractOrder(domain, order);
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
 
-  it('when buying eth validates quotedAmount against oracle price & 0% slippage (order kind BUY)', async function () {
-    const { contracts, order, domain } = await loadFixture(placeBuyWethOrderSetup);
-    const { dai, swapOperator, priceFeedOracle } = contracts;
-
-    // order kind BUY, sellAmount is quoted
-    const daiSellAmount = await priceFeedOracle.getAssetForEth(dai.address, order.buyAmount);
-
-    // Since quoted sellAmount is short by 1 wei, txn should revert
-    const badOrder = createContractOrder(domain, order, { kind: 'buy', sellAmount: daiSellAmount.sub(1) });
-    const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
-    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'MaxSlippageExceeded').withArgs(daiSellAmount);
-
-    // Oracle price sellAmount should not revert
-    const goodOrder = createContractOrder(domain, order, { kind: 'buy' });
-    await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
-  });
-
-  it('when buying eth validates quotedAmount against oracle price & 1% slippage (order kind BUY)', async function () {
+  it('when buying eth validates sellAmount against oracle price if sellToken has a higher slippage', async function () {
     const { contracts, governance, order, domain } = await loadFixture(placeBuyWethOrderSetup);
-    const { swapOperator, pool, dai } = contracts;
+    const { swapOperator, pool, dai, weth } = contracts;
 
-    // order kind BUY, sellAmount is quoted
     const daiSellAmountOnePercentSlippage = order.sellAmount.mul(99).div(100);
     await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
 
-    // Since quoted sellAmount is > 1% slippage (i.e. 99% -1 wei), txn should revert
-    const orderOverrides = { kind: 'buy', sellAmount: daiSellAmountOnePercentSlippage.sub(1) };
-    const badOrder = createContractOrder(domain, order, orderOverrides);
+    const daiSellSwapDetails = await pool.getAssetSwapDetails(dai.address);
+    const wethBuySwapDetails = await pool.getAssetSwapDetails(weth.address);
+    expect(daiSellSwapDetails.maxSlippageRatio > wethBuySwapDetails.maxSlippageRatio).to.equal(true);
+
+    // Since sellAmount is > 1% slippage (i.e. 99% -1 wei), txn should revert
+    const badOrder = createContractOrder(domain, order, { sellAmount: daiSellAmountOnePercentSlippage.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
-      .to.be.revertedWithCustomError(swapOperator, 'MaxSlippageExceeded')
-      .withArgs(daiSellAmountOnePercentSlippage);
+      .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
+      .withArgs(daiSellAmountOnePercentSlippage.sub(1), daiSellAmountOnePercentSlippage);
 
     // Exactly 1% slippage sellAmount should not revert
-    const goodOrder = createContractOrder(domain, order, { kind: 'buy', sellAmount: daiSellAmountOnePercentSlippage });
+    const goodOrder = createContractOrder(domain, order, { sellAmount: daiSellAmountOnePercentSlippage });
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
 
-  // ETH has no set swapDetails slippage, so no test for buying eth order kind SELL
+  // ETH has no set swapDetails slippage, so no test for buy eth which has higher slippage
 
-  it('non-ETH swap, validates quotedAmount against oracle price & 0% slippage (order kind SELL)', async function () {
+  it('non-ETH swap, validates buyAmount against oracle price if both assets has 0% slippage', async function () {
     const { contracts, order, domain } = await loadFixture(placeNonEthOrderSetup);
-    const { swapOperator, priceFeedOracle, dai } = contracts;
+    const { swapOperator, priceFeedOracle, pool, dai, stEth } = contracts;
 
-    // order kind SELL, buyAmount is quoted (use eth rate as proxy since 1 stETH : 1 ETH)
-    const daiBuyAmount = await priceFeedOracle.getAssetForEth(dai.address, order.sellAmount);
+    const stEthSellSwapDetails = await pool.getAssetSwapDetails(stEth.address);
+    const daiSwapDetails = await pool.getAssetSwapDetails(dai.address);
+    expect(stEthSellSwapDetails.maxSlippageRatio === daiSwapDetails.maxSlippageRatio).to.equal(true);
 
-    // Since quoted buyAmount is short by 1 DAI wei, txn should revert
-    const badOrder = createContractOrder(domain, order, { kind: 'sell', buyAmount: daiBuyAmount.sub(1) });
-    const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
-    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'MaxSlippageExceeded').withArgs(daiBuyAmount);
-
-    // Oracle price buyAmount should not revert
-    const goodOrder = createContractOrder(domain, order, { kind: 'sell', buyAmount: daiBuyAmount });
-    await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
-  });
-
-  it('non-ETH swaps, validates quotedAmount against oracle price & 0% slippage (order kind BUY)', async function () {
-    const { contracts, order, domain } = await loadFixture(placeNonEthOrderSetup);
-    const { swapOperator, priceFeedOracle, dai } = contracts;
-
-    // order kind BUY, sellAmount is quoted (use eth rate as proxy since 1 stETH : 1 ETH)
-    const stEthSellAmount = await priceFeedOracle.getEthForAsset(dai.address, order.buyAmount);
-
-    // Since sellAmount is short by 1 wei, txn should revert
-    const badOrder = createContractOrder(domain, order, { kind: 'buy', sellAmount: stEthSellAmount.sub(1) });
+    // Since buyAmount is short by 1 DAI wei, txn should revert
+    const buyOracleAmount = await priceFeedOracle.getAssetForEth(dai.address, order.sellAmount);
+    const badOrder = createContractOrder(domain, order, { buyAmount: buyOracleAmount.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
-      .to.be.revertedWithCustomError(swapOperator, 'MaxSlippageExceeded')
-      .withArgs(stEthSellAmount);
+      .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
+      .withArgs(buyOracleAmount.sub(1), buyOracleAmount);
 
-    // Oracle price sellAmount should not revert
-    const goodOrder = createContractOrder(domain, order, { kind: 'buy', sellAmount: stEthSellAmount });
+    // Oracle price buyAmount should not revert
+    const goodOrder = createContractOrder(domain, order, { buyAmount: buyOracleAmount });
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
 
-  it('non-ETH swap, validates quotedAmount against oracle price & 1% slippage (order kind SELL)', async function () {
+  it('non-ETH swap, validates buyAmount with oracle price & slippage if buyToken has > slippage', async function () {
     const { contracts, governance, order, domain } = await loadFixture(placeNonEthOrderSetup);
-    const { swapOperator, pool, dai } = contracts;
+    const { swapOperator, pool, dai, stEth } = contracts;
 
-    // order kind SELL, buyAmount is quoted
     const daiBuyAmountOnePercentSlippage = order.buyAmount.mul(99).div(100);
     await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
+
+    const stEthSellSwapDetails = await pool.getAssetSwapDetails(stEth.address);
+    const daiBuySwapDetails = await pool.getAssetSwapDetails(dai.address);
+    expect(daiBuySwapDetails.maxSlippageRatio > stEthSellSwapDetails.maxSlippageRatio).to.equal(true);
 
     // Since buyAmount is > 1% slippage (i.e. 99% -1 wei), txn should revert
     const badOrder = createContractOrder(domain, order, { buyAmount: daiBuyAmountOnePercentSlippage.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
-      .to.be.revertedWithCustomError(swapOperator, 'MaxSlippageExceeded')
-      .withArgs(daiBuyAmountOnePercentSlippage); // 1% max slippage from oracle buy amount
+      .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
+      .withArgs(daiBuyAmountOnePercentSlippage.sub(1), daiBuyAmountOnePercentSlippage);
 
     // Exactly 1% slippage buyAmount should not revert
     const goodOrder = createContractOrder(domain, order, { buyAmount: daiBuyAmountOnePercentSlippage });
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
 
-  it('non-ETH swap, validates quotedAmount against oracle price & 1% slippage (order kind BUY)', async function () {
+  it('non-ETH swap, validates sellAmount with oracle price & slippage if sellToken has > slippage', async function () {
     const { contracts, governance, order, domain } = await loadFixture(placeNonEthOrderSetup);
-    const { swapOperator, pool, stEth } = contracts;
+    const { swapOperator, pool, dai, stEth } = contracts;
 
-    // order kind BUY, sellAmount is quoted
     const stEthSellAmountOnePercentSlippage = order.sellAmount.mul(99).div(100);
     await pool.connect(governance).setSwapDetails(stEth.address, stEthMinAmount, stEthMaxAmount, 100);
 
+    const stEthSellSwapDetails = await pool.getAssetSwapDetails(stEth.address);
+    const daiBuySwapDetails = await pool.getAssetSwapDetails(dai.address);
+    expect(stEthSellSwapDetails.maxSlippageRatio > daiBuySwapDetails.maxSlippageRatio).to.equal(true);
+
     // Since sellAmount is > 1% slippage (i.e. 99% -1 wei), txn should revert
-    const badOrderOverride = { kind: 'buy', sellAmount: stEthSellAmountOnePercentSlippage.sub(1) };
-    const badOrder = createContractOrder(domain, order, badOrderOverride);
+    const badOrder = createContractOrder(domain, order, { sellAmount: stEthSellAmountOnePercentSlippage.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
-      .to.be.revertedWithCustomError(swapOperator, 'MaxSlippageExceeded')
-      .withArgs(stEthSellAmountOnePercentSlippage); // 1% max slippage from oracle buy amount
+      .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
+      .withArgs(stEthSellAmountOnePercentSlippage.sub(1), stEthSellAmountOnePercentSlippage);
 
     // Exactly 1% slippage sellAmount should not revert
-    const goodOrderOverride = { kind: 'buy', sellAmount: stEthSellAmountOnePercentSlippage };
-    const goodOrder = createContractOrder(domain, order, goodOrderOverride);
+    const goodOrder = createContractOrder(domain, order, { sellAmount: stEthSellAmountOnePercentSlippage });
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
 

@@ -96,18 +96,6 @@ contract SwapOperator is ISwapOperator {
     return uid;
   }
   
-  /// @dev Validates that the quoted amount does not exceed minimum acceptable amount after accounting for max slippage
-  function validateSlippageAndOracleAmount(address quotedAsset, uint quotedAmount, uint oracleAmount) internal view {
-    SwapDetails memory swapDetails = _pool().getAssetSwapDetails(quotedAsset);
-
-    // Calculate slippage and minimum amount we should accept
-    uint maxSlippageAmount = (oracleAmount * swapDetails.maxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
-    uint minBuyAmountOnMaxSlippage = oracleAmount - maxSlippageAmount;
-    if (quotedAmount < minBuyAmountOnMaxSlippage) {
-      revert MaxSlippageExceeded(minBuyAmountOnMaxSlippage);
-    }
-  }
-
   /// @dev Using oracle prices, returns the equivalent amount in `toAsset` for a given `fromAssetAmount` in `fromAsset`
   /// Supports conversions for ETH to Asset, Asset to ETH, and Asset to Asset
   function getOracleAmount(address toAsset, address fromAsset, uint fromAssetAmount) internal view returns (uint) {
@@ -126,28 +114,40 @@ contract SwapOperator is ISwapOperator {
     return priceFeedOracle.getAssetForEth(toAsset, fromAssetInEth);
   }
 
-  /// @dev Validates the quoteAmount with the oracle price and max slippage tolerances
-  /// If KIND_SELL validates quoted buyAmount
-  /// If KIND_BUY validates quoted sellAmount
-  function validateQuotedAmount(GPv2Order.Data memory order) internal view {
-    if (order.kind == GPv2Order.KIND_SELL) {
-      // KIND_SELL - buyToken is quoted / sellToken is inputted
-      uint quotedAmount = order.buyAmount;
-      address quotedAsset = address(order.buyToken);
-      uint inputAssetAmount = order.sellAmount;
-      address inputAsset = address(order.sellToken);
-    
-      uint oracleAmount = getOracleAmount(quotedAsset, inputAsset, inputAssetAmount);
-      validateSlippageAndOracleAmount(quotedAsset, quotedAmount, oracleAmount);
-    } else { // GPv2Order.KIND_BUY
-      // KIND_BUY - sellToken is quoted / buyToken is inputted
-      uint quotedAmount = order.sellAmount;
-      address quotedAsset = address(order.sellToken);
-      uint inputAssetAmount = order.buyAmount;
-      address inputAsset = address(order.buyToken);
+  /// @dev Validates the amount against the oracle price adjusted with max slippage tolerances
+  function verifySlippage(uint amount, uint oracleAmount, uint16 maxSlippageRatio) internal pure {
+    // Calculate slippage and minimum amount we should accept
+    uint maxSlippageAmount = (oracleAmount * maxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
+    uint minBuyAmountOnMaxSlippage = oracleAmount - maxSlippageAmount;
+    if (amount < minBuyAmountOnMaxSlippage) {
+      revert AmountTooLow(amount, minBuyAmountOnMaxSlippage);
+    }
+  }
 
-      uint oracleAmount = getOracleAmount(quotedAsset, inputAsset, inputAssetAmount);
-      validateSlippageAndOracleAmount(quotedAsset, quotedAmount, oracleAmount);
+  /// @dev Validates order amounts against oracle prices and slippage limits.
+  /// Uses the higher maxSlippageRatio from sell/buySwapDetails, then checks if the swap amount meets the minimum after slippage.
+  function validateOrderAmount(SwapOperation memory swapOp) internal view {
+    // Determine the higher maxSlippageRatio
+    if (swapOp.sellSwapDetails.maxSlippageRatio > swapOp.buySwapDetails.maxSlippageRatio) {
+      // verify sellAmount because sellToken maxSlippageRatio is higher
+      address fromAsset = address(swapOp.order.buyToken);
+      address toAsset = address(swapOp.order.sellToken);
+      uint fromAmount = swapOp.order.buyAmount;
+      uint amountToCheck = swapOp.order.sellAmount;
+      uint16 higherMaxSlippageRatio = swapOp.sellSwapDetails.maxSlippageRatio;
+      
+      uint oracleAmount = getOracleAmount(toAsset, fromAsset, fromAmount);
+      verifySlippage(amountToCheck, oracleAmount, higherMaxSlippageRatio);
+    } else {
+      // verify buyAmount because buyToken maxSlippageRatio is higher
+      address fromAsset = address(swapOp.order.sellToken);
+      address toAsset = address(swapOp.order.buyToken);
+      uint fromAmount = swapOp.order.sellAmount;
+      uint amountToCheck = swapOp.order.buyAmount;
+      uint16 higherMaxSlippageRatio = swapOp.buySwapDetails.maxSlippageRatio;
+
+      uint oracleAmount = getOracleAmount(toAsset, fromAsset, fromAmount);
+      verifySlippage(amountToCheck, oracleAmount, higherMaxSlippageRatio);
     }
   }
   
@@ -259,7 +259,7 @@ contract SwapOperator is ISwapOperator {
 
     // validate max fee and max slippage
     validateMaxFee(sellTokenAddress, swapOp.order.feeAmount);
-    validateQuotedAmount(swapOp.order);
+    validateOrderAmount(swapOp);
   }
 
   /// @dev Executes asset transfers from Pool to SwapOperator for CoW Swap order executions
@@ -445,15 +445,15 @@ contract SwapOperator is ISwapOperator {
   }
 
   /// @dev Validate that the fee for the order is not higher than the maximum allowed fee, in ether
-  /// @param sellAsset The sell asset
+  /// @param sellToken The sell asset
   /// @param feeAmount The fee (will always be denominated in the sell asset units)
   function validateMaxFee(
-    address sellAsset,
+    address sellToken,
     uint feeAmount
   ) internal view {
-    uint feeInEther = sellAsset == address(weth)
+    uint feeInEther = sellToken == address(weth)
       ? feeAmount
-      : _pool().priceFeedOracle().getEthForAsset(sellAsset, feeAmount);
+      : _pool().priceFeedOracle().getEthForAsset(sellToken, feeAmount);
     if (feeInEther > maxFee) {
       revert AboveMaxFee(maxFee);
     }
@@ -592,7 +592,8 @@ contract SwapOperator is ISwapOperator {
 
   function transferAssetTo (address asset, address to, uint amount) internal {
 
-    if (asset == ETH) {) = to.call{ value: amount }("");
+    if (asset == ETH) {
+      (bool ok, /* data */) = to.call{ value: amount }("");
       require(ok, "SwapOp: Eth transfer failed");
       return;
     }

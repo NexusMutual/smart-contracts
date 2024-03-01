@@ -6,6 +6,7 @@ import "../external/cow/GPv2Order.sol";
 import "../interfaces/IPool.sol";
 
 interface ISwapOperator {
+
   enum SwapOperationType {
     WethToAsset,
     AssetToWeth,
@@ -46,25 +47,25 @@ interface ISwapOperator {
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
 
   // Order
-  error OrderInProgress();
+  error OrderInProgress(bytes currentOrderUID);
   error OrderUidMismatch(bytes providedOrderUID, bytes expectedOrderUID);
   error UnsupportedTokenBalance(string kind);
-  error InvalidReceiver();
+  error InvalidReceiver(address validReceiver);
   error OrderTokenIsDisabled(address token);
+  error AmountTooLow(uint amount, uint minAmount);
 
   // Valid To
   error BelowMinValidTo(uint minValidTo);
   error AboveMaxValidTo(uint maxValidTo);
 
-  // Cool down
-  error InsufficientTimeBetweenSwaps(uint minValidSwapTime);
-
   // Balance
   error EthReserveBelowMin(uint ethPostSwap, uint minEthReserve);
   error InvalidBalance(uint tokenBalance, uint limit, string limitType);
   error InvalidPostSwapBalance(uint postSwapBalance, uint limit, string limitType);
-  error AmountTooLow(uint quotedAmount, uint minAmount);
+
+  // Cool down
+  error InsufficientTimeBetweenSwaps(uint minValidSwapTime);
 
   // Fee
-  error AboveMaxFee(uint maxFee);
+  error AboveMaxFee(uint feeInEth, uint maxFee);
 }

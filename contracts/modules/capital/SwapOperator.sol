@@ -304,7 +304,7 @@ contract SwapOperator is ISwapOperator {
   /// @param orderUID - the UID of the of the order to be placed
   function placeOrder(GPv2Order.Data calldata order, bytes calldata orderUID) public onlyController {
     if (orderInProgress()) {
-      revert OrderInProgress();
+      revert OrderInProgress(currentOrderUID);
     }
 
     // Order UID and basic CoW params validations
@@ -409,7 +409,7 @@ contract SwapOperator is ISwapOperator {
       revert AboveMaxValidTo(maxValidTo);
     }
     if (order.receiver != address(this)) {
-      revert InvalidReceiver();      
+      revert InvalidReceiver(address(this));      
     }
     if (order.sellTokenBalance != GPv2Order.BALANCE_ERC20) {
       revert UnsupportedTokenBalance('sell');
@@ -455,7 +455,7 @@ contract SwapOperator is ISwapOperator {
       ? feeAmount
       : _pool().priceFeedOracle().getEthForAsset(sellToken, feeAmount);
     if (feeInEther > maxFee) {
-      revert AboveMaxFee(maxFee);
+      revert AboveMaxFee(feeInEther, maxFee);
     }
   }
 
@@ -639,8 +639,8 @@ contract SwapOperator is ISwapOperator {
     asset.transfer(address(pool), balance);
   }
 
-  /// @dev Checks if there is an ongoing order.
-  /// @return bool True if an order is currently in progress, otherwise false.
+  /// @dev Checks if there is an ongoing order
+  /// @return bool True if an order is currently in progress, otherwise false
   function orderInProgress() public view returns (bool) {
     return currentOrderUID.length > 0;
   }

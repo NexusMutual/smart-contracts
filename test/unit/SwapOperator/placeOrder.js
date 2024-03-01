@@ -179,7 +179,7 @@ describe('placeOrder', function () {
 
     // calling with valid data should fail second time, because first order is still there
     const placeOrder = swapOperator.placeOrder(contractOrder, orderUID);
-    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'OrderInProgress');
+    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'OrderInProgress').withArgs(orderUID);
   });
 
   it('validates only erc20 is supported for sellTokenBalance', async function () {
@@ -206,7 +206,9 @@ describe('placeOrder', function () {
 
     const { contractOrder, orderUID } = createContractOrder(domain, order, { receiver: governance.address });
     const placeOrder = swapOperator.placeOrder(contractOrder, orderUID);
-    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'InvalidReceiver');
+    await expect(placeOrder)
+      .to.be.revertedWithCustomError(swapOperator, 'InvalidReceiver')
+      .withArgs(swapOperator.address);
   });
 
   it('validates that order.validTo is at least 10 minutes in the future', async function () {
@@ -634,7 +636,9 @@ describe('placeOrder', function () {
     // Place order with fee 1 wei higher than maximum, should fail
     const badOrder = createContractOrder(domain, order, { feeAmount: maxFee.add(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
-    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'AboveMaxFee').withArgs(maxFee);
+    await expect(placeOrder)
+      .to.be.revertedWithCustomError(swapOperator, 'AboveMaxFee')
+      .withArgs(badOrder.contractOrder.feeAmount, maxFee);
 
     // Place order with exactly maxFee, should succeed
     const goodOrder = createContractOrder(domain, order, { feeAmount: maxFee });
@@ -650,8 +654,9 @@ describe('placeOrder', function () {
 
     // Place order with fee 1 wei higher than maximum, should fail
     const badOrder = createContractOrder(domain, order, { feeAmount: maxFee.add(1).mul(ethToDaiRate) });
+    const feeInEth = await priceFeedOracle.getEthForAsset(order.sellToken, badOrder.contractOrder.feeAmount);
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
-    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'AboveMaxFee').withArgs(maxFee);
+    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'AboveMaxFee').withArgs(feeInEth, maxFee);
 
     // Place order with exactly maxFee, should succeed
     const goodOrder = createContractOrder(domain, order, { feeAmount: maxFee.mul(ethToDaiRate) });

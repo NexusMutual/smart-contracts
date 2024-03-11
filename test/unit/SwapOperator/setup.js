@@ -173,7 +173,7 @@ async function setup() {
   // await master.setLatestAddress(hex('P1'), pool.address);
 
   // Deploy SwapOperator
-  // console.log('deploying swapOperator...');
+  console.log('deploying swapOperator...');
   const GNOSIS_WRAPPED_XDAI = '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d';
   const swapOperator = await SwapOperator.deploy(
     COW_SETTLEMENT_ADDRESS,
@@ -190,7 +190,7 @@ async function setup() {
   // const swapOperator = await ethers.getContractAt('SwapOperator', '0x759556e9B66bdE59289a44C8E6BB3a798231153D');
 
   // GNOSIS
-  // const swapOperator = await ethers.getContractAt('SwapOperator', '0x70430e1970543d1f5317519325A485A580D87c69');
+  // const swapOperator = await ethers.getContractAt('SwapOperator', '0x2CEb3A2E6a9118d108Df01dd37d7299413026872');
 
   // Setup pool's swap operator
   console.log('setting pool SWP_OP/PRC_FEED');

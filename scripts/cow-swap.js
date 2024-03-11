@@ -30,17 +30,26 @@ const main = async () => {
   const stEth = await ethers.getContractAt('ERC20Mock', '0x05EEBE12ec6D89E2ff984025dDDf718fb8cF1285');
   const master = await ethers.getContractAt('MasterMock', '0x3f27B9baA86077c428258fA4939F71B19a25858a');
   const pool = await ethers.getContractAt('PoolMockCowSwap', '0xfABAcE08E021F7cBb2EDc95F358ee3ef87D33Ad1');
-  const swapOperator = await ethers.getContractAt('SwapOperator', '0x56AC1761460d30A809F472D4B14C4d8389D03B9D'); // old 0x70430e1970543d1f5317519325A485A580D87c69
+  const swapOperator = await ethers.getContractAt('SwapOperator', '0xfEDDc8bC740E63a7CB2239E7Ee227c3b60668a6e');
+  // old swapOp 1 0x70430e1970543d1f5317519325A485A580D87c69
+  // old swapOp 2 0x56AC1761460d30A809F472D4B14C4d8389D03B9D
+  // old swapOp 3 0x5e3E6c9611b4f0B4C4F11b9e8CF16Ac4169b2E07
+  // old swapOp 4 0xDcD3D2984976E8066c3B511624701158ae7ed198 - same as PR
+  // old swapOp 5 0x2CEb3A2E6a9118d108Df01dd37d7299413026872 (closeOrder - has invalidateOrder() call)
+  // old version  0x15384Cb305E3027FF4aDF6f383F27121EF3ADfE8 - old version before PR refactor + (closeOrder - has invalidateOrder() call)
+  // current 0xfEDDc8bC740E63a7CB2239E7Ee227c3b60668a6e
+  // fully filled closeOrder invalidateOrder - works as expected
   const priceFeedOracle = await ethers.getContractAt('PriceFeedOracle', '0xcB7542DcC55129a099601a081E1c276799716478');
 
   // transfer asset back
   // console.log(await swapOperator.currentOrderUID());
   // const usdcAmount = parseUnits('5.9', USDC_DECIMALS);
-  await swapOperator.transferAssetToController(GNOSIS_USDC_ADDRESS, parseUnits('10.003524', USDC_DECIMALS));
-  await swapOperator.transferAssetToController(GNOSIS_USDT_ADDRESS, parseUnits('20', USDC_DECIMALS));
-  // await swapOperator.transferAssetToController(NATIVE_TOKEN, parseEther('2.500496651554666507'));
+  await swapOperator.transferAssetToController(GNOSIS_USDC_ADDRESS, parseUnits('10.996408', USDC_DECIMALS));
+  // await swapOperator.transferAssetToController(GNOSIS_USDT_ADDRESS, parseUnits('39.987731', USDC_DECIMALS));
+  // await swapOperator.transferAssetToController(NATIVE_TOKEN, parseEther('30'));
   // await swapOperator.returnAssetToPool(GNOSIS_USDT_ADDRESS);
-  // return
+  // console.log('pool.swapOperator: ', await pool.swapOperator());
+  // console.log('swapOperator.currentOrderUID(): ', await swapOperator.currentOrderUID());
 
   // console.log(await pool.getAssets());
   // console.log('WxDAI', await pool.getAsset('0xe91d153e0b41518a2ce8dd3d7944fa863463a97d'));
@@ -65,16 +74,16 @@ const main = async () => {
   // console.log(await swapOperator.currentOrderUID());
   // console.log(
   //   await swapOperator.closeOrder({
-  //     sellToken: '0x4ECaBa5870353805a9F068101A40E0f32ed605C6',
-  //     buyToken: '0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83',
-  //     receiver: '0x56AC1761460d30A809F472D4B14C4d8389D03B9D',
-  //     sellAmount: '10000291',
-  //     buyAmount: '10003702',
-  //     validTo: 1707989220,
+  //     sellToken: '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d',
+  //     buyToken: '0xddafbb505ad214d7b80b1f830fccc89b60fb7a83',
+  //     receiver: '0x2ceb3a2e6a9118d108df01dd37d7299413026872',
+  //     sellAmount: '19000000000000000000',
+  //     buyAmount: '19001024',
+  //     validTo: 1709041513,
   //     appData: '0x0000000000000000000000000000000000000000000000000000000000000000',
   //     feeAmount: '0',
-  //     kind: '0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775',
   //     partiallyFillable: true,
+  //     kind: '0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775',
   //     sellTokenBalance: '0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9',
   //     buyTokenBalance: '0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9',
   //   }),

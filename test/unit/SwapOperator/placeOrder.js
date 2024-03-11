@@ -86,32 +86,9 @@ async function placeSellWethOrderSetup(overrides = {}) {
 }
 
 /**
- * stETH -> DAI swap
- */
-async function placeNonEthOrderSetup() {
-  const fixture = await loadFixture(setup);
-  const { dai, stEth, swapOperator, priceFeedOracle } = fixture.contracts;
-
-  const sellAmount = parseEther('2');
-
-  // Build order struct, domain separator and calculate UID
-  const order = {
-    sellToken: stEth.address,
-    buyToken: dai.address,
-    receiver: swapOperator.address,
-    sellAmount,
-    buyAmount: await priceFeedOracle.getAssetForEth(dai.address, sellAmount),
-    validTo: (await lastBlockTimestamp()) + 650,
-    ...orderParams,
-  };
-
-  return placeOrderSetup(order, fixture);
-}
-
-/**
  * DAI -> WETH swap
  */
-async function placeBuyWethOrderSetup(overrides = {}) {
+async function placeSellDaiOrderSetup(overrides = {}) {
   const fixture = await loadFixture(setup);
   const { dai, weth, pool, swapOperator } = fixture.contracts;
 
@@ -128,6 +105,54 @@ async function placeBuyWethOrderSetup(overrides = {}) {
     validTo: (await lastBlockTimestamp()) + 650,
     ...orderParams,
     ...overrides,
+  };
+
+  return placeOrderSetup(order, fixture);
+}
+
+/**
+ * stETH -> DAI swap
+ */
+async function placeNonEthOrderSellStethSetup() {
+  const fixture = await loadFixture(setup);
+  const { dai, stEth, swapOperator, priceFeedOracle, pool } = fixture.contracts;
+
+  const sellAmount = parseEther('2');
+  await stEth.mint(pool.address, parseEther('50'));
+
+  // Build order struct, domain separator and calculate UID
+  const order = {
+    sellToken: stEth.address,
+    buyToken: dai.address,
+    receiver: swapOperator.address,
+    sellAmount,
+    buyAmount: await priceFeedOracle.getAssetForEth(dai.address, sellAmount),
+    validTo: (await lastBlockTimestamp()) + 650,
+    ...orderParams,
+  };
+
+  return placeOrderSetup(order, fixture);
+}
+
+/**
+ * DAI -> stETH swap
+ */
+async function placeNonEthOrderSellDaiSetup() {
+  const fixture = await loadFixture(setup);
+  const { dai, stEth, swapOperator, priceFeedOracle, pool } = fixture.contracts;
+
+  const sellAmount = parseEther('5000');
+  await dai.mint(pool.address, parseEther('30000'));
+
+  // Build order struct, domain separator and calculate UID
+  const order = {
+    sellToken: dai.address,
+    buyToken: stEth.address,
+    receiver: swapOperator.address,
+    sellAmount,
+    buyAmount: await priceFeedOracle.getEthForAsset(dai.address, sellAmount),
+    validTo: (await lastBlockTimestamp()) + 650,
+    ...orderParams,
   };
 
   return placeOrderSetup(order, fixture);
@@ -265,7 +290,7 @@ describe('placeOrder', function () {
   });
 
   it('performs token enabled validation when sellToken is not WETH', async function () {
-    const { contracts, contractOrder, orderUID, governance } = await loadFixture(placeNonEthOrderSetup);
+    const { contracts, contractOrder, orderUID, governance } = await loadFixture(placeNonEthOrderSellStethSetup);
     const { swapOperator, stEth, dai, pool } = contracts;
 
     // Since stEth was already registered on setup, set its details to 0
@@ -280,7 +305,7 @@ describe('placeOrder', function () {
   });
 
   it('only allows to sell when sellToken balance is above asset maxAmount - ASSET -> WETH', async function () {
-    const { contracts, contractOrder, orderUID } = await loadFixture(placeBuyWethOrderSetup);
+    const { contracts, contractOrder, orderUID } = await loadFixture(placeSellDaiOrderSetup);
     const { swapOperator, dai, pool } = contracts;
 
     // Try to run when balance is at maxAmount,
@@ -296,7 +321,7 @@ describe('placeOrder', function () {
   });
 
   it('only allows to sell when sellToken balance is above asset maxAmount - ASSET -> ASSET', async function () {
-    const { contracts, contractOrder, orderUID } = await loadFixture(placeNonEthOrderSetup);
+    const { contracts, contractOrder, orderUID } = await loadFixture(placeNonEthOrderSellStethSetup);
     const { swapOperator, stEth, pool } = contracts;
 
     // Try to run when balance is at maxAmount,
@@ -312,7 +337,7 @@ describe('placeOrder', function () {
   });
 
   it('only allows to buy when buyToken balance is below minAmount - ASSET -> ASSET', async function () {
-    const { contracts, contractOrder, orderUID } = await loadFixture(placeNonEthOrderSetup);
+    const { contracts, contractOrder, orderUID } = await loadFixture(placeNonEthOrderSellStethSetup);
     const { swapOperator, dai, pool } = contracts;
 
     // set buyToken balance to be minAmount, txn should fail
@@ -332,7 +357,7 @@ describe('placeOrder', function () {
     const sellAmount = parseEther('24999');
     const feeAmount = parseEther('1');
     const buyAmount = parseEther('4.9998');
-    const sellDaiForEthSetup = () => placeBuyWethOrderSetup({ sellAmount, feeAmount, buyAmount });
+    const sellDaiForEthSetup = () => placeSellDaiOrderSetup({ sellAmount, feeAmount, buyAmount });
 
     const { contracts, contractOrder, orderUID } = await loadFixture(sellDaiForEthSetup);
     const { swapOperator, dai, pool } = contracts;
@@ -358,7 +383,7 @@ describe('placeOrder', function () {
     const sellAmount = parseEther('24999');
     const feeAmount = parseEther('1');
     const buyAmount = parseEther('4.9998');
-    const sellDaiForEthSetup = () => placeBuyWethOrderSetup({ sellAmount, feeAmount, buyAmount });
+    const sellDaiForEthSetup = () => placeSellDaiOrderSetup({ sellAmount, feeAmount, buyAmount });
 
     const { contracts, contractOrder, orderUID } = await loadFixture(sellDaiForEthSetup);
     const { swapOperator, dai, pool } = contracts;
@@ -392,7 +417,7 @@ describe('placeOrder', function () {
   });
 
   it('does not perform WETH token enabled validation when buying WETH', async function () {
-    const { contracts, contractOrder, orderUID } = await loadFixture(placeBuyWethOrderSetup);
+    const { contracts, contractOrder, orderUID } = await loadFixture(placeSellDaiOrderSetup);
     const { swapOperator, weth, pool } = contracts;
 
     // Ensure eth (weth) is disabled by checking min and max amount
@@ -405,7 +430,7 @@ describe('placeOrder', function () {
   });
 
   it('performs token enabled validation when not buying WETH', async function () {
-    const { contracts, contractOrder, orderUID, governance } = await loadFixture(placeNonEthOrderSetup);
+    const { contracts, contractOrder, orderUID, governance } = await loadFixture(placeNonEthOrderSellStethSetup);
     const { swapOperator, stEth, dai, pool } = contracts;
 
     // Since DAI was already registered on setup, set its details to 0
@@ -512,7 +537,7 @@ describe('placeOrder', function () {
       orderUID,
       governance,
       MIN_TIME_BETWEEN_ORDERS,
-    } = await loadFixture(placeBuyWethOrderSetup);
+    } = await loadFixture(placeSellDaiOrderSetup);
 
     // Place and close an order
     await swapOperator.placeOrder(contractOrder, orderUID);
@@ -553,7 +578,7 @@ describe('placeOrder', function () {
       orderUID,
       domain,
       MIN_TIME_BETWEEN_ORDERS,
-    } = await loadFixture(placeNonEthOrderSetup);
+    } = await loadFixture(placeNonEthOrderSellStethSetup);
 
     // Place and close an order
     await swapOperator.placeOrder(contractOrder, orderUID);
@@ -595,7 +620,7 @@ describe('placeOrder', function () {
       orderUID,
       domain,
       MIN_TIME_BETWEEN_ORDERS,
-    } = await loadFixture(placeNonEthOrderSetup);
+    } = await loadFixture(placeNonEthOrderSellStethSetup);
 
     // Place and close an order
     await swapOperator.placeOrder(contractOrder, orderUID);
@@ -628,7 +653,7 @@ describe('placeOrder', function () {
     await swapOperator.placeOrder(secondOrder.contractOrder, secondOrder.orderUID);
   });
 
-  it('when selling ether, checks that feeAmount is not higher than maxFee', async function () {
+  it('when selling ETH, checks that feeAmount is not higher than maxFee', async function () {
     const { contracts, order, domain } = await loadFixture(placeSellWethOrderSetup);
     const { swapOperator } = contracts;
     const maxFee = await swapOperator.maxFee();
@@ -646,7 +671,7 @@ describe('placeOrder', function () {
   });
 
   it('when selling other asset, uses oracle to check fee in ether is not higher than maxFee', async function () {
-    const { contracts, order, domain } = await loadFixture(placeBuyWethOrderSetup);
+    const { contracts, order, domain } = await loadFixture(placeSellDaiOrderSetup);
     const { swapOperator, priceFeedOracle, dai } = contracts;
     const maxFee = await swapOperator.maxFee();
     const daiToEthRate = await priceFeedOracle.getAssetToEthRate(dai.address);
@@ -684,11 +709,11 @@ describe('placeOrder', function () {
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
 
-  it('when selling eth validates buyAmount against oracle price if buyToken has a higher slippage', async function () {
+  it('when selling ETH validates buyAmount against oracle + the higher slippage ratio', async function () {
     const { contracts, governance, order, domain } = await loadFixture(placeSellWethOrderSetup);
     const { swapOperator, pool, dai, weth } = contracts;
 
-    const buyAmountOnePercentSlippage = order.buyAmount.mul(99).div(100);
+    // set 1% slippage ratio for DAI
     await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
 
     const wethSellSwapDetails = await pool.getAssetSwapDetails(weth.address);
@@ -696,6 +721,7 @@ describe('placeOrder', function () {
     expect(daiBuySwapDetails.maxSlippageRatio > wethSellSwapDetails.maxSlippageRatio).to.equal(true);
 
     // Since buyAmount is > 1% slippage (i.e. 99% -1 wei), txn should revert
+    const buyAmountOnePercentSlippage = order.buyAmount.mul(99).div(100);
     const badOrderOverrides = { buyAmount: buyAmountOnePercentSlippage.sub(1) };
     const badOrder = createContractOrder(domain, order, badOrderOverrides);
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
@@ -708,10 +734,8 @@ describe('placeOrder', function () {
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
 
-  // ETH has no set swapDetails slippage, so no test for sell eth which has higher slippage
-
-  it('when buying eth validates buyAmount against oracle price if both assets has 0% slippage', async function () {
-    const { contracts, order, domain } = await loadFixture(placeBuyWethOrderSetup);
+  it('when buying ETH validates buyAmount against oracle price if both assets has 0% slippage', async function () {
+    const { contracts, order, domain } = await loadFixture(placeSellDaiOrderSetup);
     const { swapOperator, priceFeedOracle, pool, dai, weth } = contracts;
 
     const daiSellSwapDetails = await pool.getAssetSwapDetails(dai.address);
@@ -731,33 +755,32 @@ describe('placeOrder', function () {
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
 
-  it('when buying eth validates sellAmount against oracle price if sellToken has a higher slippage', async function () {
-    const { contracts, governance, order, domain } = await loadFixture(placeBuyWethOrderSetup);
+  it('when buying ETH validates buyAmount against oracle + the higher slippage ratio', async function () {
+    const { contracts, governance, order, domain } = await loadFixture(placeSellDaiOrderSetup);
     const { swapOperator, pool, dai, weth } = contracts;
 
-    const daiSellAmountOnePercentSlippage = order.sellAmount.mul(99).div(100);
-    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
+    // set 2% slippage ratio for DAI
+    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 200);
 
     const daiSellSwapDetails = await pool.getAssetSwapDetails(dai.address);
     const wethBuySwapDetails = await pool.getAssetSwapDetails(weth.address);
     expect(daiSellSwapDetails.maxSlippageRatio > wethBuySwapDetails.maxSlippageRatio).to.equal(true);
 
-    // Since sellAmount is > 1% slippage (i.e. 99% -1 wei), txn should revert
-    const badOrder = createContractOrder(domain, order, { sellAmount: daiSellAmountOnePercentSlippage.sub(1) });
+    // Since buyAmount is > 2% slippage (i.e. 98% -1 wei), txn should revert
+    const ethBuyAmountTwoPercentSlippage = order.buyAmount.mul(98).div(100);
+    const badOrder = createContractOrder(domain, order, { buyAmount: ethBuyAmountTwoPercentSlippage.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
       .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
-      .withArgs(daiSellAmountOnePercentSlippage.sub(1), daiSellAmountOnePercentSlippage);
+      .withArgs(ethBuyAmountTwoPercentSlippage.sub(1), ethBuyAmountTwoPercentSlippage);
 
-    // Exactly 1% slippage sellAmount should not revert
-    const goodOrder = createContractOrder(domain, order, { sellAmount: daiSellAmountOnePercentSlippage });
+    // Exactly 2% slippage sellAmount should not revert
+    const goodOrder = createContractOrder(domain, order, { buyAmount: ethBuyAmountTwoPercentSlippage });
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
 
-  // ETH has no set swapDetails slippage, so no test for buy eth which has higher slippage
-
   it('non-ETH swap, validates buyAmount against oracle price if both assets has 0% slippage', async function () {
-    const { contracts, order, domain } = await loadFixture(placeNonEthOrderSetup);
+    const { contracts, order, domain } = await loadFixture(placeNonEthOrderSellStethSetup);
     const { swapOperator, priceFeedOracle, pool, dai, stEth } = contracts;
 
     const stEthSellSwapDetails = await pool.getAssetSwapDetails(stEth.address);
@@ -777,11 +800,11 @@ describe('placeOrder', function () {
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
 
-  it('non-ETH swap, validates buyAmount with oracle price & slippage if buyToken has > slippage', async function () {
-    const { contracts, governance, order, domain } = await loadFixture(placeNonEthOrderSetup);
+  it('non-ETH swap, validates buyAmount with oracle price + higher slippage ratio (stEth -> dai)', async function () {
+    const { contracts, governance, order, domain } = await loadFixture(placeNonEthOrderSellStethSetup);
     const { swapOperator, pool, dai, stEth } = contracts;
 
-    const daiBuyAmountOnePercentSlippage = order.buyAmount.mul(99).div(100);
+    // set 1% slippage ratio for DAI
     await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
 
     const stEthSellSwapDetails = await pool.getAssetSwapDetails(stEth.address);
@@ -789,6 +812,7 @@ describe('placeOrder', function () {
     expect(daiBuySwapDetails.maxSlippageRatio > stEthSellSwapDetails.maxSlippageRatio).to.equal(true);
 
     // Since buyAmount is > 1% slippage (i.e. 99% -1 wei), txn should revert
+    const daiBuyAmountOnePercentSlippage = order.buyAmount.mul(99).div(100);
     const badOrder = createContractOrder(domain, order, { buyAmount: daiBuyAmountOnePercentSlippage.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
@@ -800,28 +824,31 @@ describe('placeOrder', function () {
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
 
-  it('non-ETH swap, validates sellAmount with oracle price & slippage if sellToken has > slippage', async function () {
-    const { contracts, governance, order, domain } = await loadFixture(placeNonEthOrderSetup);
+  it('non-ETH swap, validates buyAmount with oracle price + higher slippage ratio (dai -> stEth)', async function () {
+    const { contracts, governance, order, domain } = await loadFixture(placeNonEthOrderSellDaiSetup);
     const { swapOperator, pool, dai, stEth } = contracts;
 
-    const stEthSellAmountOnePercentSlippage = order.sellAmount.mul(99).div(100);
-    await pool.connect(governance).setSwapDetails(stEth.address, stEthMinAmount, stEthMaxAmount, 100);
+    // set 3% slippage ratio for stETH
+    await pool.connect(governance).setSwapDetails(stEth.address, stEthMinAmount, stEthMaxAmount, 300);
 
     const stEthSellSwapDetails = await pool.getAssetSwapDetails(stEth.address);
     const daiBuySwapDetails = await pool.getAssetSwapDetails(dai.address);
     expect(stEthSellSwapDetails.maxSlippageRatio > daiBuySwapDetails.maxSlippageRatio).to.equal(true);
 
-    // Since sellAmount is > 1% slippage (i.e. 99% -1 wei), txn should revert
-    const badOrder = createContractOrder(domain, order, { sellAmount: stEthSellAmountOnePercentSlippage.sub(1) });
+    // Since sellAmount is > 3% slippage (i.e. 97% -1 wei), txn should revert
+    const stEthBuyAmountThreePercentSlippage = order.buyAmount.mul(97).div(100);
+    const badOrder = createContractOrder(domain, order, { buyAmount: stEthBuyAmountThreePercentSlippage.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
       .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
-      .withArgs(stEthSellAmountOnePercentSlippage.sub(1), stEthSellAmountOnePercentSlippage);
+      .withArgs(stEthBuyAmountThreePercentSlippage.sub(1), stEthBuyAmountThreePercentSlippage);
 
-    // Exactly 1% slippage sellAmount should not revert
-    const goodOrder = createContractOrder(domain, order, { sellAmount: stEthSellAmountOnePercentSlippage });
+    // Exactly 3% slippage sellAmount should not revert
+    const goodOrder = createContractOrder(domain, order, { buyAmount: stEthBuyAmountThreePercentSlippage });
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
   });
+
+  // TODO: same
 
   it('pulling funds from pool: transfers ETH from pool and wrap it into WETH when sellToken is ETH', async function () {
     const { contracts, order, contractOrder, orderUID } = await loadFixture(placeSellWethOrderSetup);
@@ -840,19 +867,19 @@ describe('placeOrder', function () {
   });
 
   it('pulling funds from pool: transfer erc20 asset from pool to eth if sellToken is not WETH', async function () {
-    const { contracts, order, orderUID, contractOrder } = await loadFixture(placeNonEthOrderSetup);
-    const { swapOperator, stEth, pool } = contracts;
+    const { contracts, order, orderUID, contractOrder } = await loadFixture(placeNonEthOrderSellDaiSetup);
+    const { swapOperator, dai, pool } = contracts;
 
-    const stEthPoolBefore = await stEth.balanceOf(pool.address);
-    const stEthSwapOpBefore = await stEth.balanceOf(swapOperator.address);
+    const daiPoolBefore = await dai.balanceOf(pool.address);
+    const daiSwapOpBefore = await dai.balanceOf(swapOperator.address);
 
     await swapOperator.placeOrder(contractOrder, orderUID);
 
-    const stEthPoolAfter = await stEth.balanceOf(pool.address);
-    const stEthSwapOpAfter = await stEth.balanceOf(swapOperator.address);
+    const daiPoolAfter = await dai.balanceOf(pool.address);
+    const daiSwapOpAfter = await dai.balanceOf(swapOperator.address);
 
-    expect(stEthPoolBefore.sub(stEthPoolAfter)).to.eq(order.sellAmount.add(order.feeAmount));
-    expect(stEthSwapOpAfter.sub(stEthSwapOpBefore)).to.eq(order.sellAmount.add(order.feeAmount));
+    expect(daiPoolBefore.sub(daiPoolAfter)).to.eq(order.sellAmount.add(order.feeAmount));
+    expect(daiSwapOpAfter.sub(daiSwapOpBefore)).to.eq(order.sellAmount.add(order.feeAmount));
   });
 
   it('sets lastSwapDate on buyToken when selling ETH', async function () {
@@ -869,7 +896,7 @@ describe('placeOrder', function () {
   });
 
   it('sets lastSwapDate on sellToken when buying ETH', async function () {
-    const { contracts, contractOrder, orderUID } = await loadFixture(placeBuyWethOrderSetup);
+    const { contracts, contractOrder, orderUID } = await loadFixture(placeSellDaiOrderSetup);
     const { swapOperator, dai, pool } = contracts;
 
     const before = await pool.getAssetSwapDetails(dai.address);
@@ -882,7 +909,7 @@ describe('placeOrder', function () {
   });
 
   it('sets lastSwapDate on both sellToken / buyToken when swapping asset to asset', async function () {
-    const { contracts, contractOrder, orderUID } = await loadFixture(placeNonEthOrderSetup);
+    const { contracts, contractOrder, orderUID } = await loadFixture(placeNonEthOrderSellStethSetup);
     const { swapOperator, stEth, dai, pool } = contracts;
 
     const stEthBefore = await pool.getAssetSwapDetails(stEth.address);
@@ -914,7 +941,7 @@ describe('placeOrder', function () {
   });
 
   it('should set totalOutAmount in ETH as pool.swapValue when selling non-ETH assets', async function () {
-    const orderSetupsToTest = [placeBuyWethOrderSetup, placeNonEthOrderSetup];
+    const orderSetupsToTest = [placeSellDaiOrderSetup, placeNonEthOrderSellStethSetup, placeNonEthOrderSellDaiSetup];
     for (const orderSetup of orderSetupsToTest) {
       const { contracts, order, contractOrder, orderUID } = await loadFixture(orderSetup);
       const { swapOperator, pool, priceFeedOracle } = contracts;
@@ -931,7 +958,7 @@ describe('placeOrder', function () {
   });
 
   it('should set totalOutAmount in ETH as pool.swapValue on non-ETH asset swaps', async function () {
-    const { contracts, order, orderUID, contractOrder } = await loadFixture(placeNonEthOrderSetup);
+    const { contracts, order, orderUID, contractOrder } = await loadFixture(placeNonEthOrderSellStethSetup);
     const { swapOperator, pool, priceFeedOracle, stEth } = contracts;
     const { sellAmount, feeAmount } = order;
 
@@ -947,8 +974,9 @@ describe('placeOrder', function () {
   it('approves CoW vault relayer to spend exactly sellAmount + fee', async function () {
     const orderSetupsToTest = [
       { sellTokenName: 'weth', orderSetup: placeSellWethOrderSetup },
-      { sellTokenName: 'dai', orderSetup: placeBuyWethOrderSetup },
-      { sellTokenName: 'stEth', orderSetup: placeNonEthOrderSetup },
+      { sellTokenName: 'dai', orderSetup: placeSellDaiOrderSetup },
+      { sellTokenName: 'stEth', orderSetup: placeNonEthOrderSellStethSetup },
+      { sellTokenName: 'dai', orderSetup: placeNonEthOrderSellDaiSetup },
     ];
     for (const { sellTokenName, orderSetup } of orderSetupsToTest) {
       const { contracts, order, contractOrder, orderUID } = await loadFixture(orderSetup);

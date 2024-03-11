@@ -126,25 +126,29 @@ contract SwapOperator is ISwapOperator {
 
   /// @dev Validates order amounts against oracle prices and slippage limits.
   /// Uses the higher maxSlippageRatio from sell/buySwapDetails, then checks if the swap amount meets the minimum after slippage.
-  function validateOrderAmount(SwapOperation memory swapOp) internal view {
+  function validateOrderAmount(
+    GPv2Order.Data calldata order,
+    SwapDetails memory sellSwapDetails,
+    SwapDetails memory buySwapDetails
+  ) internal view {
     // Determine the higher maxSlippageRatio
-    if (swapOp.sellSwapDetails.maxSlippageRatio > swapOp.buySwapDetails.maxSlippageRatio) {
+    if (sellSwapDetails.maxSlippageRatio > buySwapDetails.maxSlippageRatio) {
       // verify sellAmount because sellToken maxSlippageRatio is higher
-      address fromAsset = address(swapOp.order.buyToken);
-      address toAsset = address(swapOp.order.sellToken);
-      uint fromAmount = swapOp.order.buyAmount;
-      uint amountToCheck = swapOp.order.sellAmount;
-      uint16 higherMaxSlippageRatio = swapOp.sellSwapDetails.maxSlippageRatio;
+      address fromAsset = address(order.buyToken);
+      address toAsset = address(order.sellToken);
+      uint fromAmount = order.buyAmount;
+      uint amountToCheck = order.sellAmount;
+      uint16 higherMaxSlippageRatio = sellSwapDetails.maxSlippageRatio;
       
       uint oracleAmount = getOracleAmount(toAsset, fromAsset, fromAmount);
       verifySlippage(amountToCheck, oracleAmount, higherMaxSlippageRatio);
     } else {
       // verify buyAmount because buyToken maxSlippageRatio is higher
-      address fromAsset = address(swapOp.order.sellToken);
-      address toAsset = address(swapOp.order.buyToken);
-      uint fromAmount = swapOp.order.sellAmount;
-      uint amountToCheck = swapOp.order.buyAmount;
-      uint16 higherMaxSlippageRatio = swapOp.buySwapDetails.maxSlippageRatio;
+      address fromAsset = address(order.sellToken);
+      address toAsset = address(order.buyToken);
+      uint fromAmount = order.sellAmount;
+      uint amountToCheck = order.buyAmount;
+      uint16 higherMaxSlippageRatio = buySwapDetails.maxSlippageRatio;
 
       uint oracleAmount = getOracleAmount(toAsset, fromAsset, fromAmount);
       verifySlippage(amountToCheck, oracleAmount, higherMaxSlippageRatio);
@@ -171,21 +175,26 @@ contract SwapOperator is ISwapOperator {
   /// 1. The current sellToken balance is greater than sellSwapDetails.maxAmount
   /// 2. The post-swap sellToken balance is greater than or equal to sellSwapDetails.minAmount
   /// Skips validation for WETH since it does not have set swapDetails
-  function validateSellTokenBalance(IPool pool, SwapOperation memory swapOp, uint totalOutAmount) internal view {
-    uint sellTokenBalance = swapOp.order.sellToken.balanceOf(address(pool));
+  function validateSellTokenBalance(
+    IPool pool,
+    GPv2Order.Data calldata order,
+    SwapDetails memory sellSwapDetails,
+    uint totalOutAmount
+  ) internal view {
+    uint sellTokenBalance = order.sellToken.balanceOf(address(pool));
 
     // skip validation for WETH since it does not have set swapDetails
-    if (address(swapOp.order.sellToken) == address(weth)) {
+    if (address(order.sellToken) == address(weth)) {
       return;
     }
 
-    if (sellTokenBalance <= swapOp.sellSwapDetails.maxAmount) {
-      revert InvalidBalance(sellTokenBalance, swapOp.sellSwapDetails.maxAmount, 'max');
+    if (sellTokenBalance <= sellSwapDetails.maxAmount) {
+      revert InvalidBalance(sellTokenBalance, sellSwapDetails.maxAmount, 'max');
     }
     // NOTE: the totalOutAmount (i.e. sellAmount + fee) is used to get postSellTokenSwapBalance
     uint postSellTokenSwapBalance = sellTokenBalance - totalOutAmount; 
-    if (postSellTokenSwapBalance < swapOp.sellSwapDetails.minAmount) {
-      revert InvalidPostSwapBalance(postSellTokenSwapBalance, swapOp.sellSwapDetails.minAmount, 'min');
+    if (postSellTokenSwapBalance < sellSwapDetails.minAmount) {
+      revert InvalidPostSwapBalance(postSellTokenSwapBalance, sellSwapDetails.minAmount, 'min');
     }      
   }
 
@@ -193,105 +202,109 @@ contract SwapOperator is ISwapOperator {
   /// 1. The current buyToken balance is less than buySwapDetails.minAmount.
   /// 2. The post-swap buyToken balance is less than or equal to buySwapDetails.maxAmount.
   /// Skip validation for WETH since it does not have set swapDetails
-  function validateBuyTokenBalance(IPool pool, SwapOperation memory swapOp) internal view {
-    uint buyTokenBalance = swapOp.order.buyToken.balanceOf(address(pool));
+  function validateBuyTokenBalance(
+    IPool pool,
+    GPv2Order.Data calldata order,
+    SwapDetails memory buySwapDetails
+  ) internal view {
+    uint buyTokenBalance = order.buyToken.balanceOf(address(pool));
     
     // skip validation for WETH since it does not have set swapDetails
-    if (address(swapOp.order.buyToken) == address(weth)) {
+    if (address(order.buyToken) == address(weth)) {
       return;
     }
 
-    if (buyTokenBalance >= swapOp.buySwapDetails.minAmount) {
-      revert InvalidBalance(buyTokenBalance, swapOp.buySwapDetails.minAmount, 'min');
+    if (buyTokenBalance >= buySwapDetails.minAmount) {
+      revert InvalidBalance(buyTokenBalance, buySwapDetails.minAmount, 'min');
     }
     // NOTE: use order.buyAmount to get postBuyTokenSwapBalance
-    uint postBuyTokenSwapBalance = buyTokenBalance + swapOp.order.buyAmount; 
-    if (postBuyTokenSwapBalance > swapOp.buySwapDetails.maxAmount) {
-      revert InvalidPostSwapBalance(postBuyTokenSwapBalance, swapOp.buySwapDetails.maxAmount, 'max');
+    uint postBuyTokenSwapBalance = buyTokenBalance + order.buyAmount; 
+    if (postBuyTokenSwapBalance > buySwapDetails.maxAmount) {
+      revert InvalidPostSwapBalance(postBuyTokenSwapBalance, buySwapDetails.maxAmount, 'max');
     }
   }
 
   /// @dev Helper function to determine the SwapOperationType of the order
+  /// NOTE: ETH orders has WETH address because ETH will be eventually converted to WETH to do the swap
   function getSwapOperationType(GPv2Order.Data memory order) internal view returns (SwapOperationType) {
     if (address(order.sellToken) == address(weth)) {
-      return SwapOperationType.WethToAsset;
+      return SwapOperationType.EthToAsset;
     }
     if (address(order.buyToken) == address(weth)) {
-      return SwapOperationType.AssetToWeth;
+      return SwapOperationType.AssetToEth;
     }
     return SwapOperationType.AssetToAsset;
   }
 
-  /// @dev NOTE: for assets that does not have any set swapDetails such as WETH it will have SwapDetails(0,0,0,0)
-  function prepareSwapDetails(IPool pool, GPv2Order.Data calldata order) internal view returns (SwapOperation memory) {
+  /// @dev Performs pre-swap validation checks for a given swap operation
+  function performPreSwapValidations(
+    IPool pool,
+    GPv2Order.Data calldata order,
+    uint totalOutAmount,
+    SwapOperationType swapOperationType
+  ) internal view {
+    // NOTE: for assets that does not have any set swapDetails such as WETH it will have SwapDetails(0,0,0,0)
     SwapDetails memory sellSwapDetails = pool.getAssetSwapDetails(address(order.sellToken));
     SwapDetails memory buySwapDetails = pool.getAssetSwapDetails(address(order.buyToken));
 
-    return SwapOperation({
-        order: order,
-        sellSwapDetails: sellSwapDetails,
-        buySwapDetails: buySwapDetails,
-        swapType: getSwapOperationType(order)
-    });
-  }
-
-  /// @dev Performs pre-swap validation checks for a given swap operation
-  function performPreSwapValidations(IPool pool, SwapOperation memory swapOp, uint totalOutAmount) internal view {
-    address sellTokenAddress = address(swapOp.order.sellToken);
-    address buyTokenAddress = address(swapOp.order.buyToken);
-
     // validate both sell and buy tokens are enabled
-    validateTokenIsEnabled(sellTokenAddress, swapOp.sellSwapDetails);
-    validateTokenIsEnabled(buyTokenAddress, swapOp.buySwapDetails);
+    validateTokenIsEnabled(address(order.sellToken), sellSwapDetails);
+    validateTokenIsEnabled(address(order.buyToken), buySwapDetails);
 
-    // validate ETH balance is within ETH reserves after the swap
-    if (swapOp.swapType == SwapOperationType.WethToAsset) {
+    // sell ETH - validate ETH balance is within ETH reserves after the swap
+    if (swapOperationType == SwapOperationType.EthToAsset) {
       validateEthBalance(pool, totalOutAmount);
     }
     
     // validate sell/buy token balances against swapDetails min/max
-    validateSellTokenBalance(pool, swapOp, totalOutAmount);
-    validateBuyTokenBalance(pool, swapOp);
+    validateSellTokenBalance(pool, order, sellSwapDetails, totalOutAmount);
+    validateBuyTokenBalance(pool, order, buySwapDetails);
 
     // validate swap frequency to enforce cool down periods
-    validateSwapFrequency(swapOp.sellSwapDetails);
-    validateSwapFrequency(swapOp.buySwapDetails);
+    validateSwapFrequency(sellSwapDetails);
+    validateSwapFrequency(buySwapDetails);
 
     // validate max fee and max slippage
-    validateMaxFee(sellTokenAddress, swapOp.order.feeAmount);
-    validateOrderAmount(swapOp);
+    validateMaxFee(address(order.sellToken), order.feeAmount);
+    validateOrderAmount(order, sellSwapDetails, buySwapDetails);
   }
 
   /// @dev Executes asset transfers from Pool to SwapOperator for CoW Swap order executions
   /// Additionally if selling ETH, wraps received Pool ETH to WETH
-  function executeAssetTransfer(IPool pool, SwapOperation memory swapOp, uint totalOutAmount) internal returns (uint swapValueEth) {
+  function executeAssetTransfer(
+    IPool pool,
+    GPv2Order.Data calldata order,
+    uint totalOutAmount,
+    SwapOperationType swapOperationType
+  ) internal returns (uint swapValueEth) {
     IPriceFeedOracle priceFeedOracle = pool.priceFeedOracle();
-    address sellTokenAddress = address(swapOp.order.sellToken);
-    address buyTokenAddress = address(swapOp.order.buyToken);
+    address sellTokenAddress = address(order.sellToken);
+    address buyTokenAddress = address(order.buyToken);
 
-    if (swapOp.swapType == SwapOperationType.WethToAsset) {
-        // set lastSwapTime of buyToken only (sellToken WETH has no set swapDetails)
-        pool.setSwapDetailsLastSwapTime(buyTokenAddress, uint32(block.timestamp));
-        // transfer ETH from pool and wrap it (use ETH address here because swapOp.sellToken is WETH address)
-        pool.transferAssetToSwapOperator(ETH, totalOutAmount);
-        weth.deposit{value: totalOutAmount}();
-        // no need to convert since totalOutAmount is already in ETH (i.e. WETH)
-        swapValueEth = totalOutAmount;
-    } else if (swapOp.swapType == SwapOperationType.AssetToWeth) {
-        // set lastSwapTime of sellToken only (buyToken WETH has no set swapDetails)
-        pool.setSwapDetailsLastSwapTime(sellTokenAddress, uint32(block.timestamp));
-        // transfer ERC20 asset from Pool
-        pool.transferAssetToSwapOperator(sellTokenAddress, totalOutAmount);
-        // convert totalOutAmount (sellAmount + fee) to ETH
-        swapValueEth = priceFeedOracle.getEthForAsset(sellTokenAddress, totalOutAmount);
-    } else { // SwapOperationType.AssetToAsset
-        // set lastSwapTime of sell / buy tokens
-        pool.setSwapDetailsLastSwapTime(sellTokenAddress, uint32(block.timestamp));
-        pool.setSwapDetailsLastSwapTime(buyTokenAddress, uint32(block.timestamp));
-        // transfer ERC20 asset from Pool
-        pool.transferAssetToSwapOperator(sellTokenAddress, totalOutAmount);
-        // convert totalOutAmount (sellAmount + fee) to ETH
-        swapValueEth = priceFeedOracle.getEthForAsset(sellTokenAddress, totalOutAmount);
+    if (swapOperationType == SwapOperationType.EthToAsset) {
+      // set lastSwapTime of buyToken only (sellToken WETH has no set swapDetails)
+      pool.setSwapDetailsLastSwapTime(buyTokenAddress, uint32(block.timestamp));
+      // transfer ETH from pool and wrap it (use ETH address here because swapOp.sellToken is WETH address)
+      pool.transferAssetToSwapOperator(ETH, totalOutAmount);
+      weth.deposit{value: totalOutAmount}();
+      // no need to convert since totalOutAmount is already in ETH (i.e. WETH)
+      swapValueEth = totalOutAmount;
+    } else if (swapOperationType == SwapOperationType.AssetToEth) {
+      // set lastSwapTime of sellToken only (buyToken WETH has no set swapDetails)
+      pool.setSwapDetailsLastSwapTime(sellTokenAddress, uint32(block.timestamp));
+      // transfer ERC20 asset from Pool
+      pool.transferAssetToSwapOperator(sellTokenAddress, totalOutAmount);
+      // convert totalOutAmount (sellAmount + fee) to ETH
+      swapValueEth = priceFeedOracle.getEthForAsset(sellTokenAddress, totalOutAmount);
+    } else {
+      // SwapOperationType.AssetToAsset
+      // set lastSwapTime of sell / buy tokens
+      pool.setSwapDetailsLastSwapTime(sellTokenAddress, uint32(block.timestamp));
+      pool.setSwapDetailsLastSwapTime(buyTokenAddress, uint32(block.timestamp));
+      // transfer ERC20 asset from Pool
+      pool.transferAssetToSwapOperator(sellTokenAddress, totalOutAmount);
+      // convert totalOutAmount (sellAmount + fee) to ETH
+      swapValueEth = priceFeedOracle.getEthForAsset(sellTokenAddress, totalOutAmount);
     }
 
     return swapValueEth;
@@ -314,15 +327,13 @@ contract SwapOperator is ISwapOperator {
 
     IPool pool = _pool();
     uint totalOutAmount = order.sellAmount + order.feeAmount;
-
-    // Prepare swap details
-    SwapOperation memory swapOp = prepareSwapDetails(pool, order);
+    SwapOperationType swapOperationType = getSwapOperationType(order);
 
     // Perform validations
-    performPreSwapValidations(pool, swapOp, totalOutAmount);
+    performPreSwapValidations(pool, order, totalOutAmount, swapOperationType);
 
     // Execute swap based on operation type
-    uint swapValueEth = executeAssetTransfer(pool, swapOp, totalOutAmount);
+    uint swapValueEth = executeAssetTransfer(pool, order, totalOutAmount, swapOperationType);
 
     // Set the swapValue on the pool
     pool.setSwapValue(swapValueEth);

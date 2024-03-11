@@ -167,8 +167,8 @@ describe('setProducts unit tests', function () {
     expect(bumpedPriceBefore).to.be.equal(_initialPrices[0]);
     expect(bumpedPriceUpdateTimeBefore).to.be.equal(initialTimestamp);
 
-    await increaseTime(daysToSeconds(2)); // 1% drop
-    const priceDrop = BigNumber.from(100); // 1%
+    await increaseTime(daysToSeconds(2)); // 4% drop
+    const priceDrop = BigNumber.from(400); // 1%
 
     // increase targetPrice
     const productEditParams = [{ ...products[0], targetPrice: 2000 }];

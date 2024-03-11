@@ -96,32 +96,22 @@ contract SwapOperator is ISwapOperator {
     return uid;
   }
   
-  /// @dev Using oracle prices, returns the equivalent amount in `toAsset` for a given `fromAssetAmount` in `fromAsset`
+  /// @dev Using oracle prices, returns the equivalent amount in `toAsset` for a given `fromAmount` in `fromAsset`
   /// Supports conversions for ETH to Asset, Asset to ETH, and Asset to Asset
-  function getOracleAmount(address toAsset, address fromAsset, uint fromAssetAmount) internal view returns (uint) {
+  function getOracleAmount(address fromAsset, address toAsset, uint fromAmount) internal view returns (uint) {
     IPriceFeedOracle priceFeedOracle = _pool().priceFeedOracle();
 
     if (fromAsset == address(weth)) {
       // ETH -> toAsset
-      return priceFeedOracle.getAssetForEth(toAsset, fromAssetAmount);
+      return priceFeedOracle.getAssetForEth(toAsset, fromAmount);
     }
     if (toAsset == address(weth)) {
       // fromAsset -> ETH
-      return priceFeedOracle.getEthForAsset(fromAsset, fromAssetAmount);
+      return priceFeedOracle.getEthForAsset(fromAsset, fromAmount);
     }
     // fromAsset -> toAsset via ETH
-    uint fromAssetInEth = priceFeedOracle.getEthForAsset(fromAsset, fromAssetAmount);
-    return priceFeedOracle.getAssetForEth(toAsset, fromAssetInEth);
-  }
-
-  /// @dev Validates the amount against the oracle price adjusted with max slippage tolerances
-  function verifySlippage(uint amount, uint oracleAmount, uint16 maxSlippageRatio) internal pure {
-    // Calculate slippage and minimum amount we should accept
-    uint maxSlippageAmount = (oracleAmount * maxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
-    uint minBuyAmountOnMaxSlippage = oracleAmount - maxSlippageAmount;
-    if (amount < minBuyAmountOnMaxSlippage) {
-      revert AmountTooLow(amount, minBuyAmountOnMaxSlippage);
-    }
+    uint fromAmountInEth = priceFeedOracle.getEthForAsset(fromAsset, fromAmount);
+    return priceFeedOracle.getAssetForEth(toAsset, fromAmountInEth);
   }
 
   /// @dev Validates order amounts against oracle prices and slippage limits.

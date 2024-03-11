@@ -8,16 +8,9 @@ import "../interfaces/IPool.sol";
 interface ISwapOperator {
 
   enum SwapOperationType {
-    WethToAsset,
-    AssetToWeth,
+    EthToAsset,
+    AssetToEth,
     AssetToAsset
-  }
-
-  struct SwapOperation {
-    GPv2Order.Data order;
-    SwapDetails sellSwapDetails;
-    SwapDetails buySwapDetails;
-    SwapOperationType swapType;
   }
 
   /* ========== VIEWS ========== */

@@ -115,33 +115,24 @@ contract SwapOperator is ISwapOperator {
   }
 
   /// @dev Validates order amounts against oracle prices and slippage limits.
-  /// Uses the higher maxSlippageRatio from sell/buySwapDetails, then checks if the swap amount meets the minimum after slippage.
+  /// Uses the higher maxSlippageRatio of either sell or buy swap details, then checks if the swap amount meets the minimum after slippage.
   function validateOrderAmount(
     GPv2Order.Data calldata order,
     SwapDetails memory sellSwapDetails,
     SwapDetails memory buySwapDetails
   ) internal view {
-    // Determine the higher maxSlippageRatio
-    if (sellSwapDetails.maxSlippageRatio > buySwapDetails.maxSlippageRatio) {
-      // verify sellAmount because sellToken maxSlippageRatio is higher
-      address fromAsset = address(order.buyToken);
-      address toAsset = address(order.sellToken);
-      uint fromAmount = order.buyAmount;
-      uint amountToCheck = order.sellAmount;
-      uint16 higherMaxSlippageRatio = sellSwapDetails.maxSlippageRatio;
-      
-      uint oracleAmount = getOracleAmount(toAsset, fromAsset, fromAmount);
-      verifySlippage(amountToCheck, oracleAmount, higherMaxSlippageRatio);
-    } else {
-      // verify buyAmount because buyToken maxSlippageRatio is higher
-      address fromAsset = address(order.sellToken);
-      address toAsset = address(order.buyToken);
-      uint fromAmount = order.sellAmount;
-      uint amountToCheck = order.buyAmount;
-      uint16 higherMaxSlippageRatio = buySwapDetails.maxSlippageRatio;
+    uint oracleBuyAmount = getOracleAmount(address(order.sellToken), address(order.buyToken), order.sellAmount);
+    
+    // Use the higher slippage ratio of either sell/buySwapDetails
+    uint16 higherMaxSlippageRatio = sellSwapDetails.maxSlippageRatio > buySwapDetails.maxSlippageRatio
+      ? sellSwapDetails.maxSlippageRatio
+      : buySwapDetails.maxSlippageRatio;
 
-      uint oracleAmount = getOracleAmount(toAsset, fromAsset, fromAmount);
-      verifySlippage(amountToCheck, oracleAmount, higherMaxSlippageRatio);
+    uint maxSlippageAmount = (oracleBuyAmount * higherMaxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
+    uint minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
+
+    if (order.buyAmount < minBuyAmountOnMaxSlippage) {
+      revert AmountTooLow(order.buyAmount, minBuyAmountOnMaxSlippage);
     }
   }
   

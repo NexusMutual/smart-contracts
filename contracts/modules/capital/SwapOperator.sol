@@ -300,6 +300,7 @@ contract SwapOperator is ISwapOperator {
   /// @dev Approve a given order to be executed, by presigning it on CoW protocol's settlement contract
   /// Validates the order before the sellToken is transferred from the Pool to the SwapOperator for the CoW swap operation
   /// Emits OrderPlaced event on success. Only one order can be open at the same time
+  /// NOTE: ETH orders are expected to have a WETH address because ETH will be eventually converted to WETH to do the swap
   /// @param order - The order to be placed
   /// @param orderUID - the UID of the of the order to be placed
   function placeOrder(GPv2Order.Data calldata order, bytes calldata orderUID) public onlyController {
@@ -356,7 +357,7 @@ contract SwapOperator is ISwapOperator {
     // Check how much of the order was filled, and if it was fully filled
     uint filledAmount = cowSettlement.filledAmount(currentOrderUID);
 
-    // Cancel signature and unapprove tokens
+    // Cancel order and unapprove tokens
     cowSettlement.invalidateOrder(currentOrderUID);
     order.sellToken.safeApprove(cowVaultRelayer, 0);
 

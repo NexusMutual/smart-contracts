@@ -144,14 +144,6 @@ contract SwapOperator is ISwapOperator {
     }
   }
 
-  /// @dev Validates minimum pool ETH reserve is not breached after selling ETH
-  function validateEthBalance(IPool pool, uint totalOutAmount) internal view {
-    uint ethPostSwap = address(pool).balance - totalOutAmount;
-    if (ethPostSwap < minPoolEth) {
-      revert EthReserveBelowMin(ethPostSwap, minPoolEth);
-    }
-  }
-
   /// @dev Validates two conditions:
   /// 1. The current sellToken balance is greater than sellSwapDetails.maxAmount
   /// 2. The post-swap sellToken balance is greater than or equal to sellSwapDetails.minAmount
@@ -221,8 +213,8 @@ contract SwapOperator is ISwapOperator {
   function performPreSwapValidations(
     IPool pool,
     GPv2Order.Data calldata order,
-    uint totalOutAmount,
-    SwapOperationType swapOperationType
+    SwapOperationType swapOperationType,
+    uint totalOutAmount
   ) internal view {
     // NOTE: for assets that does not have any set swapDetails such as WETH it will have SwapDetails(0,0,0,0)
     SwapDetails memory sellSwapDetails = pool.getAssetSwapDetails(address(order.sellToken));
@@ -234,7 +226,10 @@ contract SwapOperator is ISwapOperator {
 
     // sell ETH - validate ETH balance is within ETH reserves after the swap
     if (swapOperationType == SwapOperationType.EthToAsset) {
-      validateEthBalance(pool, totalOutAmount);
+      uint ethPostSwap = address(pool).balance - totalOutAmount;
+      if (ethPostSwap < minPoolEth) {
+        revert EthReserveBelowMin(ethPostSwap, minPoolEth);
+      }
     }
     
     // validate sell/buy token balances against swapDetails min/max
@@ -255,8 +250,8 @@ contract SwapOperator is ISwapOperator {
   function executeAssetTransfer(
     IPool pool,
     GPv2Order.Data calldata order,
-    uint totalOutAmount,
-    SwapOperationType swapOperationType
+    SwapOperationType swapOperationType,
+    uint totalOutAmount
   ) internal returns (uint swapValueEth) {
     IPriceFeedOracle priceFeedOracle = pool.priceFeedOracle();
     address sellTokenAddress = address(order.sellToken);
@@ -311,10 +306,10 @@ contract SwapOperator is ISwapOperator {
     SwapOperationType swapOperationType = getSwapOperationType(order);
 
     // Perform validations
-    performPreSwapValidations(pool, order, totalOutAmount, swapOperationType);
+    performPreSwapValidations(pool, order, swapOperationType, totalOutAmount);
 
     // Execute swap based on operation type
-    uint swapValueEth = executeAssetTransfer(pool, order, totalOutAmount, swapOperationType);
+    uint swapValueEth = executeAssetTransfer(pool, order, swapOperationType, totalOutAmount);
 
     // Set the swapValue on the pool
     pool.setSwapValue(swapValueEth);

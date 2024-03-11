@@ -1,5 +1,6 @@
 const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
+const { addresses } = require('@nexusmutual/deployments');
 
 const {
   Address,
@@ -44,30 +45,29 @@ describe('price drop per day change', function () {
   });
 
   it('load contracts', async function () {
-    this.stakingProducts = await ethers.getContractAt('StakingProducts', V2Addresses.StakingProducts);
-    this.cover = await ethers.getContractAt('Cover', V2Addresses.Cover);
-    this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', V2Addresses.StakingPoolFactory);
-    this.stakingViewer = await ethers.getContractAt('StakingViewer', V2Addresses.StakingViewer);
-    this.mcr = await ethers.getContractAt('MCR', V2Addresses.MCR);
-    this.nxm = await ethers.getContractAt('NXMToken', V2Addresses.NXMToken);
-    this.master = await ethers.getContractAt('NXMaster', V2Addresses.NXMaster);
-    this.coverNFT = await ethers.getContractAt('CoverNFT', V2Addresses.CoverNFT);
-    this.pool = await ethers.getContractAt('ILegacyPool', V2Addresses.Pool);
-    this.ramm = await ethers.getContractAt('Ramm', V2Addresses.Ramm);
-    this.assessment = await ethers.getContractAt('Assessment', V2Addresses.Assessment);
-    this.productsV1 = await ethers.getContractAt('ProductsV1', V2Addresses.ProductsV1);
-    this.stakingNFT = await ethers.getContractAt('StakingNFT', V2Addresses.StakingNFT);
-    this.swapOperator = await ethers.getContractAt('SwapOperator', V2Addresses.SwapOperator);
-    this.stakingPool = await ethers.getContractAt('StakingPool', V2Addresses.StakingPoolImpl);
-    this.priceFeedOracle = await ethers.getContractAt('PriceFeedOracle', V2Addresses.PriceFeedOracle);
-    this.tokenController = await ethers.getContractAt('TokenController', V2Addresses.TokenController);
-    this.individualClaims = await ethers.getContractAt('IndividualClaims', V2Addresses.IndividualClaims);
-    this.quotationData = await ethers.getContractAt('LegacyQuotationData', V2Addresses.LegacyQuotationData);
-    this.newClaimsReward = await ethers.getContractAt('LegacyClaimsReward', V2Addresses.LegacyClaimsReward);
-    this.proposalCategory = await ethers.getContractAt('ProposalCategory', V2Addresses.ProposalCategory);
-    this.yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', V2Addresses.YieldTokenIncidents);
-    this.pooledStaking = await ethers.getContractAt('LegacyPooledStaking', V2Addresses.LegacyPooledStaking);
-    this.gateway = await ethers.getContractAt('LegacyGateway', V2Addresses.LegacyGateway);
+    this.stakingProducts = await ethers.getContractAt('StakingProducts', addresses.StakingProducts);
+    this.cover = await ethers.getContractAt('Cover', addresses.Cover);
+    this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', addresses.StakingPoolFactory);
+    this.stakingViewer = await ethers.getContractAt('StakingViewer', addresses.StakingViewer);
+    this.mcr = await ethers.getContractAt('MCR', addresses.MCR);
+    this.nxm = await ethers.getContractAt('NXMToken', addresses.NXMToken);
+    this.master = await ethers.getContractAt('NXMaster', addresses.NXMaster);
+    this.coverNFT = await ethers.getContractAt('CoverNFT', addresses.CoverNFT);
+    this.pool = await ethers.getContractAt('ILegacyPool', addresses.Pool);
+    this.ramm = await ethers.getContractAt('Ramm', addresses.Ramm);
+    this.assessment = await ethers.getContractAt('Assessment', addresses.Assessment);
+    this.productsV1 = await ethers.getContractAt('ProductsV1', addresses.ProductsV1);
+    this.stakingNFT = await ethers.getContractAt('StakingNFT', addresses.StakingNFT);
+    this.swapOperator = await ethers.getContractAt('SwapOperator', addresses.SwapOperator);
+    this.priceFeedOracle = await ethers.getContractAt('PriceFeedOracle', addresses.PriceFeedOracle);
+    this.tokenController = await ethers.getContractAt('TokenController', addresses.TokenController);
+    this.individualClaims = await ethers.getContractAt('IndividualClaims', addresses.IndividualClaims);
+    this.quotationData = await ethers.getContractAt('LegacyQuotationData', addresses.LegacyQuotationData);
+    this.newClaimsReward = await ethers.getContractAt('LegacyClaimsReward', addresses.LegacyClaimsReward);
+    this.proposalCategory = await ethers.getContractAt('ProposalCategory', addresses.ProposalCategory);
+    this.yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', addresses.YieldTokenIncidents);
+    this.pooledStaking = await ethers.getContractAt('LegacyPooledStaking', addresses.LegacyPooledStaking);
+    this.gateway = await ethers.getContractAt('LegacyGateway', addresses.LegacyGateway);
 
     this.dai = await ethers.getContractAt('ERC20Mock', Address.DAI_ADDRESS);
     this.rEth = await ethers.getContractAt('ERC20Mock', Address.RETH_ADDRESS);

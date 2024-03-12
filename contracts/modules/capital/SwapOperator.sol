@@ -114,8 +114,8 @@ contract SwapOperator is ISwapOperator {
     return priceFeedOracle.getAssetForEth(toAsset, fromAmountInEth);
   }
 
-  /// @dev Validates order amounts against oracle prices and slippage limits.
-  /// Uses the higher maxSlippageRatio of either sell or buy swap details, then checks if the swap amount meets the minimum after slippage.
+  /// @dev Validates order.buyAmount against oracle prices and slippage limits
+  /// Uses the higher maxSlippageRatio of either sell or buy swap details, then checks if the swap amount meets the minimum after slippage
   function validateOrderAmount(
     GPv2Order.Data calldata order,
     SwapDetails memory sellSwapDetails,
@@ -136,7 +136,7 @@ contract SwapOperator is ISwapOperator {
     }
   }
   
-  /// @dev Validates if a token is enabled for swapping.
+  /// @dev Validates if a token is enabled for swapping
   /// WETH is excluded in validation since it does not have set swapDetails (i.e. SwapDetails(0,0,0,0))
   function validateTokenIsEnabled(address token, SwapDetails memory swapDetails) internal view {
     if (token != address(weth) && swapDetails.minAmount == 0 && swapDetails.maxAmount == 0) {
@@ -172,8 +172,8 @@ contract SwapOperator is ISwapOperator {
   }
 
   /// @dev Validates two conditions:
-  /// 1. The current buyToken balance is less than buySwapDetails.minAmount.
-  /// 2. The post-swap buyToken balance is less than or equal to buySwapDetails.maxAmount.
+  /// 1. The current buyToken balance is less than buySwapDetails.minAmount
+  /// 2. The post-swap buyToken balance is less than or equal to buySwapDetails.maxAmount
   /// Skip validation for WETH since it does not have set swapDetails
   function validateBuyTokenBalance(
     IPool pool,
@@ -209,7 +209,7 @@ contract SwapOperator is ISwapOperator {
     return SwapOperationType.AssetToAsset;
   }
 
-  /// @dev Performs pre-swap validation checks for a given swap operation
+  /// @dev Performs pre-swap validation checks for the given order
   function performPreSwapValidations(
     IPool pool,
     GPv2Order.Data calldata order,
@@ -224,7 +224,7 @@ contract SwapOperator is ISwapOperator {
     validateTokenIsEnabled(address(order.sellToken), sellSwapDetails);
     validateTokenIsEnabled(address(order.buyToken), buySwapDetails);
 
-    // sell ETH - validate ETH balance is within ETH reserves after the swap
+    // validate ETH balance is within ETH reserves after the swap
     if (swapOperationType == SwapOperationType.EthToAsset) {
       uint ethPostSwap = address(pool).balance - totalOutAmount;
       if (ethPostSwap < minPoolEth) {

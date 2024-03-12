@@ -46,6 +46,7 @@ interface ISwapOperator {
   error InvalidReceiver(address validReceiver);
   error OrderTokenIsDisabled(address token);
   error AmountTooLow(uint amount, uint minAmount);
+  error InvalidTokenAddress(string token);
 
   // Valid To
   error BelowMinValidTo(uint minValidTo);

@@ -16,6 +16,7 @@ const setup = require('./setup');
 const { setEtherBalance, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther, hexZeroPad, hexlify, randomBytes } = ethers.utils;
+const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 function createContractOrder(domain, order, overrides = {}) {
   order = { ...order, ...overrides };
@@ -254,6 +255,24 @@ describe('placeOrder', function () {
     const correctValidTo = blockTwoTimestamp + MIN_VALID_TO_PERIOD_SECONDS;
     const goodOrder = createContractOrder(domain, order, { validTo: correctValidTo });
     await swapOperator.placeOrder(goodOrder.contractOrder, goodOrder.orderUID);
+  });
+
+  it('validates that sellToken is not ETH address on ETH swaps', async function () {
+    const { contracts, order, domain } = await loadFixture(placeSellWethOrderSetup);
+    const { swapOperator } = contracts;
+
+    const badOrder = createContractOrder(domain, order, { sellToken: ETH_ADDRESS });
+    const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
+    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'InvalidTokenAddress').withArgs('sellToken');
+  });
+
+  it('validates that buyToken is not ETH address on ETH swaps', async function () {
+    const { contracts, order, domain } = await loadFixture(placeSellDaiOrderSetup);
+    const { swapOperator } = contracts;
+
+    const badOrder = createContractOrder(domain, order, { buyToken: ETH_ADDRESS });
+    const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
+    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'InvalidTokenAddress').withArgs('buyToken');
   });
 
   it('validates that order.validTo is at most 60 minutes in the future', async function () {

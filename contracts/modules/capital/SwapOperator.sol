@@ -399,6 +399,14 @@ contract SwapOperator is ISwapOperator {
     if (order.receiver != address(this)) {
       revert InvalidReceiver(address(this));      
     }
+    if (address(order.sellToken) == ETH) {
+      // must to be WETH address for ETH swaps
+      revert InvalidTokenAddress('sellToken');
+    }
+    if (address(order.buyToken) == ETH) {
+      // must to be WETH address for ETH swaps
+      revert InvalidTokenAddress('buyToken');
+    }
     if (order.sellTokenBalance != GPv2Order.BALANCE_ERC20) {
       revert UnsupportedTokenBalance('sell');
     }

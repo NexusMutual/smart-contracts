@@ -152,12 +152,18 @@ contract SwapOperator is ISwapOperator {
     IPool pool,
     GPv2Order.Data calldata order,
     SwapDetails memory sellSwapDetails,
+    SwapOperationType swapOperationType,
     uint totalOutAmount
   ) internal view {
     uint sellTokenBalance = order.sellToken.balanceOf(address(pool));
 
-    // skip validation for WETH since it does not have set swapDetails
-    if (address(order.sellToken) == address(weth)) {
+    // validate ETH balance is within ETH reserves after the swap
+    if (swapOperationType == SwapOperationType.EthToAsset) {
+      uint ethPostSwap = address(pool).balance - totalOutAmount;
+      if (ethPostSwap < minPoolEth) {
+        revert EthReserveBelowMin(ethPostSwap, minPoolEth);
+      }
+      // skip sellSwapDetails validation for ETH/WETH since it does not have set swapDetails
       return;
     }
 
@@ -224,16 +230,8 @@ contract SwapOperator is ISwapOperator {
     validateTokenIsEnabled(address(order.sellToken), sellSwapDetails);
     validateTokenIsEnabled(address(order.buyToken), buySwapDetails);
 
-    // validate ETH balance is within ETH reserves after the swap
-    if (swapOperationType == SwapOperationType.EthToAsset) {
-      uint ethPostSwap = address(pool).balance - totalOutAmount;
-      if (ethPostSwap < minPoolEth) {
-        revert EthReserveBelowMin(ethPostSwap, minPoolEth);
-      }
-    }
-    
     // validate sell/buy token balances against swapDetails min/max
-    validateSellTokenBalance(pool, order, sellSwapDetails, totalOutAmount);
+    validateSellTokenBalance(pool, order, sellSwapDetails, swapOperationType, totalOutAmount);
     validateBuyTokenBalance(pool, order, buySwapDetails);
 
     // validate swap frequency to enforce cool down periods

@@ -887,7 +887,7 @@ describe('basic functionality tests', function () {
     const assetDecimals = [18, 18, 18, 18];
     const priceFeedOracle = await deployContract('PriceFeedOracle', [assetAddresses, assetAggregators, assetDecimals]);
 
-    const swapOperatorAddress = await this.pool.swapOperator();
+    const swapOperatorAddress = await this.swapOperator.address;
 
     // P1 - Pool.sol
     const pool = await deployContract('Pool', [

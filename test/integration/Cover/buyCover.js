@@ -15,7 +15,7 @@ const { AddressZero, MaxUint256 } = ethers.constants;
 
 const PRICE_DENOMINATOR = 10000;
 const REWARD_DENOMINATOR = 10000;
-const PRICE_CHANGE_PER_DAY = 50;
+const PRICE_CHANGE_PER_DAY = 200;
 
 function calculatePremium(amount, rate, period, price, allocationUnit) {
   const nxmAmount = amount.mul(parseEther('1')).div(rate);

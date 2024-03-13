@@ -167,8 +167,8 @@ describe('setProducts unit tests', function () {
     expect(bumpedPriceBefore).to.be.equal(_initialPrices[0]);
     expect(bumpedPriceUpdateTimeBefore).to.be.equal(initialTimestamp);
 
-    await increaseTime(daysToSeconds(2)); // 4% drop
-    const priceDrop = BigNumber.from(400); // 1%
+    await increaseTime(daysToSeconds(2)); // 2 days * 2% per day
+    const priceDrop = BigNumber.from(400); //  = 4% drop
 
     // increase targetPrice
     const productEditParams = [{ ...products[0], targetPrice: 2000 }];
@@ -205,7 +205,7 @@ describe('setProducts unit tests', function () {
     expect(bumpedPriceBefore).to.be.equal(_initialPrices[0]); // 500
     expect(bumpedPriceUpdateTimeBefore).to.be.equal(initialTimestamp);
 
-    await increaseTime(daysToSeconds(8)); // 4% drop
+    await increaseTime(daysToSeconds(8));
 
     // decrease target price, but keep it above what the base price would have been if there was no floor
     const newTargetPrice = BigNumber.from(200);

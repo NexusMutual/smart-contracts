@@ -11,6 +11,7 @@ const ETH_RATE = 1;
 async function setup() {
   const accounts = await getAccounts();
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+  const WETH9 = await ethers.getContractFactory('WETH9');
 
   const master = await ethers.deployContract('MasterMock');
   const nxm = await ethers.deployContract('NXMTokenMock');
@@ -27,6 +28,10 @@ async function setup() {
   const aweth = await ERC20Mock.deploy();
   const debtUsdc = await ERC20Mock.deploy();
 
+  const weth = await WETH9.deploy();
+  const wethAmount = parseEther('100');
+  await weth.deposit({ value: wethAmount });
+
   await usdc.mint(accounts.defaultSender.address, tokenAmount);
   await dai.mint(accounts.defaultSender.address, tokenAmount);
   await aweth.mint(accounts.defaultSender.address, tokenAmount);
@@ -38,6 +43,7 @@ async function setup() {
     accounts.defaultSender.address,
     usdc.address,
     dai.address,
+    weth.address,
     aweth.address,
     debtUsdc.address,
   ]);
@@ -61,24 +67,10 @@ async function setup() {
 
   await nxm.mint(accounts.defaultSender.address, parseEther('6700000'));
 
-  return {
-    accounts,
-    contracts: {
-      master,
-      nxm,
-      tokenController,
-      pool,
-      safeTracker,
-      swapOperator,
-      priceFeedOracle,
-    },
-    tokens: {
-      usdc,
-      dai,
-      aweth,
-      debtUsdc,
-    },
-  };
+  const contracts = { master, nxm, tokenController, pool, safeTracker, swapOperator, priceFeedOracle };
+  const tokens = { usdc, dai, weth, aweth, debtUsdc };
+
+  return { accounts, contracts, tokens };
 }
 
 module.exports = {

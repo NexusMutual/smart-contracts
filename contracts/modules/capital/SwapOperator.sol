@@ -45,7 +45,7 @@ contract SwapOperator is ISwapOperator {
   uint public constant MIN_VALID_TO_PERIOD = 600; // 10 minutes
   uint public constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
   uint public constant MIN_TIME_BETWEEN_ORDERS = 900; // 15 minutes
-  uint public constant maxFee = 0.3 ether;
+  uint public constant MAX_FEE = 0.3 ether;
 
   modifier onlyController() {
     require(msg.sender == swapController, "SwapOp: only controller can execute");
@@ -449,8 +449,8 @@ contract SwapOperator is ISwapOperator {
     uint feeInEther = sellToken == address(weth)
       ? feeAmount
       : pool.priceFeedOracle().getEthForAsset(sellToken, feeAmount);
-    if (feeInEther > maxFee) {
-      revert AboveMaxFee(feeInEther, maxFee);
+    if (feeInEther > MAX_FEE) {
+      revert AboveMaxFee(feeInEther, MAX_FEE);
     }
   }
 

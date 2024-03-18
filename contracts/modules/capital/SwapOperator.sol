@@ -239,7 +239,7 @@ contract SwapOperator is ISwapOperator {
     validateSwapFrequency(buySwapDetails);
 
     // validate max fee and max slippage
-    validateMaxFee(address(order.sellToken), order.feeAmount);
+    validateMaxFee(pool, address(order.sellToken), order.feeAmount);
     validateOrderAmount(order, sellSwapDetails, buySwapDetails);
   }
 
@@ -349,12 +349,14 @@ contract SwapOperator is ISwapOperator {
     // Clear the current order
     delete currentOrderUID;
 
+    IPool pool = _pool();
+
     // Withdraw both buyToken and sellToken
-    returnAssetToPool(order.buyToken);
-    returnAssetToPool(order.sellToken);
+    returnAssetToPool(pool, order.buyToken);
+    returnAssetToPool(pool, order.sellToken);
 
     // Set swapValue on pool to 0
-    _pool().setSwapValue(0);
+    pool.setSwapValue(0);
 
     // Emit event
     emit OrderClosed(order, filledAmount);
@@ -362,7 +364,7 @@ contract SwapOperator is ISwapOperator {
 
   /// @dev Return a given asset to the pool, either ETH or ERC20
   /// @param asset The asset
-  function returnAssetToPool(IERC20 asset) internal {
+  function returnAssetToPool(IPool pool, IERC20 asset) internal {
     uint balance = asset.balanceOf(address(this));
 
     if (balance == 0) {
@@ -374,11 +376,11 @@ contract SwapOperator is ISwapOperator {
       weth.withdraw(balance);
 
       // Transfer ETH to pool
-      (bool sent, ) = payable(address(_pool())).call{value: balance}("");
+      (bool sent, ) = payable(address(pool)).call{value: balance}("");
       require(sent, "SwapOp: Failed to send Ether to pool");
     } else {
       // Transfer ERC20 to pool
-      asset.safeTransfer(address(_pool()), balance);
+      asset.safeTransfer(address(pool), balance);
     }
   }
 
@@ -442,12 +444,13 @@ contract SwapOperator is ISwapOperator {
   /// @param sellToken The sell asset
   /// @param feeAmount The fee (will always be denominated in the sell asset units)
   function validateMaxFee(
+    IPool pool,
     address sellToken,
     uint feeAmount
   ) internal view {
     uint feeInEther = sellToken == address(weth)
       ? feeAmount
-      : _pool().priceFeedOracle().getEthForAsset(sellToken, feeAmount);
+      : pool.priceFeedOracle().getEthForAsset(sellToken, feeAmount);
     if (feeInEther > maxFee) {
       revert AboveMaxFee(feeInEther, maxFee);
     }

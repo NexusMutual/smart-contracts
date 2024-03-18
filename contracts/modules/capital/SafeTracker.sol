@@ -21,6 +21,7 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
 
   IERC20 public immutable usdc;
   IERC20 public immutable dai;
+  IERC20 public immutable weth;
   IERC20 public immutable aweth;
   IERC20 public immutable debtUsdc;
 
@@ -31,11 +32,12 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
     address _safe,
     address _usdc,
     address _dai,
+    address _weth,
     address _aweth,
     address _debtUsdc
   ) {
     require(
-      _usdc != address(0) && _dai != address(0) && _aweth != address(0) && _debtUsdc != address(0),
+      _usdc != address(0) && _dai != address(0) && _aweth != address(0) && _aweth != address(0) && _debtUsdc != address(0),
       "SafeTracker: tokens address cannot be zero address"
     );
 
@@ -43,6 +45,7 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
     safe = _safe;
     usdc = IERC20(_usdc);
     dai = IERC20(_dai);
+    weth = IERC20(_weth);
     aweth = IERC20(_aweth);
     debtUsdc = IERC20(_debtUsdc);
   }
@@ -91,7 +94,7 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
   /**
   * @dev emits Transfer event only if it's called by Pool or SwapOperator
   */
-  function transferFrom(address from, address to, uint256 amount) external returns(bool) {
+  function transferFrom(address from, address to, uint256 amount) external returns (bool) {
     return _transfer(from, to, amount);
   }
 
@@ -114,8 +117,8 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
   */
   function _calculateBalance() internal view returns (uint256 balance) {
 
-    // eth in the safe and aweth balance, aweth is 1:1 to eth
-    uint ethAmount = address(safe).balance + aweth.balanceOf(safe);
+    // eth in the safe, weth and aweth balance, weth and aweth are 1:1 to eth
+    uint ethAmount = address(safe).balance + weth.balanceOf(safe) + aweth.balanceOf(safe);
 
     IPriceFeedOracle priceFeedOracle = pool().priceFeedOracle();
 
@@ -133,7 +136,6 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
 
     return ethAmount + usdcValueInEth + daiValueInEth - debtUsdcValueInEth;
   }
-
 
   function _transfer(address from, address to, uint256 amount) internal returns (bool) {
     if (amount == 0 || msg.sender == address(pool())) {

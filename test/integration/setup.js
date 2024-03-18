@@ -124,6 +124,7 @@ async function setup() {
     gnosisSafe.address,
     usdc.address,
     dai.address,
+    weth.address,
     aWETH.address,
     debtUsdc.address,
   ]);

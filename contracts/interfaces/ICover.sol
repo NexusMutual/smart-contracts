@@ -127,6 +127,8 @@ interface ICover {
     uint segmentId
   ) external view returns (CoverSegment memory);
 
+  function recalculateActiveCoverInAsset(uint coverAsset) external;
+
   function totalActiveCoverInAsset(uint coverAsset) external view returns (uint);
 
   function globalCapacityRatio() external view returns (uint);

@@ -126,6 +126,10 @@ contract CoverProductsMockCover is ICover {
     revert("Unsupported");
   }
 
+  function recalculateActiveCoverInAsset(uint) external pure {
+    revert("Unsupported");
+  }
+
   function coverNFT() external pure returns (ICoverNFT) {
     revert("Unsupported");
   }

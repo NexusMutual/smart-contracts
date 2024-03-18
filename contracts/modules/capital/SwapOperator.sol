@@ -280,8 +280,6 @@ contract SwapOperator is ISwapOperator {
       // convert totalOutAmount (sellAmount + fee) to ETH
       swapValueEth = priceFeedOracle.getEthForAsset(sellTokenAddress, totalOutAmount);
     }
-
-    return swapValueEth;
   }
 
   /// @dev Approve a given order to be executed, by presigning it on CoW protocol's settlement contract
@@ -339,7 +337,7 @@ contract SwapOperator is ISwapOperator {
 
     validateUID(order, currentOrderUID);
 
-    // Check how much of the order was filled, and if it was fully filled
+    // Check how much of the order was filled
     uint filledAmount = cowSettlement.filledAmount(currentOrderUID);
 
     // Cancel order and unapprove tokens

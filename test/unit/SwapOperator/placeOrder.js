@@ -165,9 +165,8 @@ describe('placeOrder', function () {
     const { swapOperator } = contracts;
 
     // call with non-controller, should fail
-    await expect(swapOperator.connect(governance).placeOrder(contractOrder, orderUID)).to.revertedWith(
-      'SwapOp: only controller can execute',
-    );
+    const placeOrder = swapOperator.connect(governance).placeOrder(contractOrder, orderUID);
+    await expect(placeOrder).to.revertedWithCustomError(swapOperator, 'OnlyController');
 
     // call with controller, should succeed
     await swapOperator.connect(controller).placeOrder(contractOrder, orderUID);
@@ -318,9 +317,7 @@ describe('placeOrder', function () {
 
     // Order selling stEth should fail
     const placeOrder = swapOperator.placeOrder(contractOrder, orderUID);
-    await expect(placeOrder)
-      .to.be.revertedWithCustomError(swapOperator, 'OrderTokenIsDisabled')
-      .withArgs(stEth.address);
+    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'TokenDisabled').withArgs(stEth.address);
   });
 
   it('only allows to sell when sellToken balance is above asset maxAmount - ASSET -> WETH', async function () {
@@ -332,7 +329,7 @@ describe('placeOrder', function () {
     const placeOrder = swapOperator.placeOrder(contractOrder, orderUID);
     await expect(placeOrder)
       .to.be.revertedWithCustomError(swapOperator, 'InvalidBalance')
-      .withArgs(daiMaxAmount, daiMaxAmount, 'max');
+      .withArgs(daiMaxAmount, daiMaxAmount, 'min');
 
     // When balance > maxAmount, should succeed
     await dai.setBalance(pool.address, daiMaxAmount.add(1));
@@ -348,7 +345,7 @@ describe('placeOrder', function () {
     const placeOrder = swapOperator.placeOrder(contractOrder, orderUID);
     await expect(placeOrder)
       .to.be.revertedWithCustomError(swapOperator, 'InvalidBalance')
-      .withArgs(stEthMaxAmount, stEthMaxAmount, 'max');
+      .withArgs(stEthMaxAmount, stEthMaxAmount, 'min');
 
     // When balance > maxAmount, should succeed
     await stEth.setBalance(pool.address, stEthMaxAmount.add(1));
@@ -365,7 +362,7 @@ describe('placeOrder', function () {
     const placeOrder = swapOperator.placeOrder(contractOrder, orderUID);
     await expect(placeOrder)
       .to.be.revertedWithCustomError(swapOperator, 'InvalidBalance')
-      .withArgs(daiMinAmount, daiMinAmount, 'min');
+      .withArgs(daiMinAmount, daiMinAmount, 'max');
 
     // set buyToken balance to be < minAmount, txn should succeed
     await dai.setBalance(pool.address, daiMinAmount.sub(1));
@@ -427,8 +424,8 @@ describe('placeOrder', function () {
     const minPoolEth = parseEther('1');
 
     await expect(placeOrder)
-      .to.revertedWithCustomError(swapOperator, 'EthReserveBelowMin')
-      .withArgs(ethPostSwap, minPoolEth);
+      .to.revertedWithCustomError(swapOperator, 'InvalidPostSwapBalance')
+      .withArgs(ethPostSwap, minPoolEth, 'min');
 
     // Set pool balance to 2 eth, should succeed
     await setEtherBalance(pool.address, parseEther('2'));
@@ -459,7 +456,7 @@ describe('placeOrder', function () {
 
     // Order buying DAI should fail
     const placeOrder = swapOperator.placeOrder(contractOrder, orderUID);
-    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'OrderTokenIsDisabled').withArgs(dai.address);
+    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'TokenDisabled').withArgs(dai.address);
   });
 
   it('only allows to buy when buyToken balance is below minAmount (WETH -> ASSET)', async function () {
@@ -472,7 +469,7 @@ describe('placeOrder', function () {
     const placeOrder = swapOperator.placeOrder(contractOrder, orderUID);
     await expect(placeOrder)
       .to.be.revertedWithCustomError(swapOperator, 'InvalidBalance')
-      .withArgs(daiMinAmount, daiMinAmount, 'min');
+      .withArgs(daiMinAmount, daiMinAmount, 'max');
 
     // set buyToken balance to be < minAmount, txn should succeed
     await dai.setBalance(pool.address, daiMinAmount.sub(1));
@@ -675,7 +672,7 @@ describe('placeOrder', function () {
   it('when selling ETH, checks that feeAmount is not higher than maxFee', async function () {
     const { contracts, order, domain } = await loadFixture(placeSellWethOrderSetup);
     const { swapOperator } = contracts;
-    const maxFee = await swapOperator.maxFee();
+    const maxFee = await swapOperator.MAX_FEE();
 
     // Place order with fee 1 wei higher than maximum, should fail
     const badOrder = createContractOrder(domain, order, { feeAmount: maxFee.add(1) });
@@ -692,7 +689,7 @@ describe('placeOrder', function () {
   it('when selling other asset, uses oracle to check fee in ether is not higher than maxFee', async function () {
     const { contracts, order, domain } = await loadFixture(placeSellDaiOrderSetup);
     const { swapOperator, priceFeedOracle, dai } = contracts;
-    const maxFee = await swapOperator.maxFee();
+    const maxFee = await swapOperator.MAX_FEE();
     const daiToEthRate = await priceFeedOracle.getAssetToEthRate(dai.address);
     const ethToDaiRate = parseEther('1').div(daiToEthRate); // 1 ETH -> N DAI
 
@@ -720,7 +717,7 @@ describe('placeOrder', function () {
     const badOrder = createContractOrder(domain, order, { buyAmount: buyOracleAmount.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
-      .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
+      .to.be.revertedWithCustomError(swapOperator, 'AmountOutTooLow')
       .withArgs(buyOracleAmount.sub(1), buyOracleAmount);
 
     // Oracle price buyAmount should not revert
@@ -745,7 +742,7 @@ describe('placeOrder', function () {
     const badOrder = createContractOrder(domain, order, badOrderOverrides);
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
-      .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
+      .to.be.revertedWithCustomError(swapOperator, 'AmountOutTooLow')
       .withArgs(buyAmountOnePercentSlippage.sub(1), buyAmountOnePercentSlippage); // 1% slippage from oracle buyAmount
 
     // Exactly 1% slippage buyAmount should not revert
@@ -766,7 +763,7 @@ describe('placeOrder', function () {
     const badOrder = createContractOrder(domain, order, { buyAmount: buyOracleAmount.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
-      .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
+      .to.be.revertedWithCustomError(swapOperator, 'AmountOutTooLow')
       .withArgs(buyOracleAmount.sub(1), buyOracleAmount);
 
     // Oracle price buyAmount should not revert
@@ -790,7 +787,7 @@ describe('placeOrder', function () {
     const badOrder = createContractOrder(domain, order, { buyAmount: ethBuyAmountTwoPercentSlippage.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
-      .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
+      .to.be.revertedWithCustomError(swapOperator, 'AmountOutTooLow')
       .withArgs(ethBuyAmountTwoPercentSlippage.sub(1), ethBuyAmountTwoPercentSlippage);
 
     // Exactly 2% slippage sellAmount should not revert
@@ -811,7 +808,7 @@ describe('placeOrder', function () {
     const badOrder = createContractOrder(domain, order, { buyAmount: buyOracleAmount.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
-      .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
+      .to.be.revertedWithCustomError(swapOperator, 'AmountOutTooLow')
       .withArgs(buyOracleAmount.sub(1), buyOracleAmount);
 
     // Oracle price buyAmount should not revert
@@ -835,7 +832,7 @@ describe('placeOrder', function () {
     const badOrder = createContractOrder(domain, order, { buyAmount: daiBuyAmountOnePercentSlippage.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
-      .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
+      .to.be.revertedWithCustomError(swapOperator, 'AmountOutTooLow')
       .withArgs(daiBuyAmountOnePercentSlippage.sub(1), daiBuyAmountOnePercentSlippage);
 
     // Exactly 1% slippage buyAmount should not revert
@@ -859,7 +856,7 @@ describe('placeOrder', function () {
     const badOrder = createContractOrder(domain, order, { buyAmount: stEthBuyAmountThreePercentSlippage.sub(1) });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder)
-      .to.be.revertedWithCustomError(swapOperator, 'AmountTooLow')
+      .to.be.revertedWithCustomError(swapOperator, 'AmountOutTooLow')
       .withArgs(stEthBuyAmountThreePercentSlippage.sub(1), stEthBuyAmountThreePercentSlippage);
 
     // Exactly 3% slippage sellAmount should not revert

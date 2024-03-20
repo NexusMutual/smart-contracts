@@ -124,10 +124,8 @@ describe('closeOrder', function () {
 
     // Executing as non-controller should fail
     await setNextBlockTime(deadline);
-    await expect(swapOperator.connect(governance).closeOrder(contractOrder)).to.be.revertedWith(
-      'SwapOp: only controller can execute',
-    );
-
+    const placeOrder = swapOperator.connect(governance).closeOrder(contractOrder);
+    await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'OnlyController');
     // Executing as controller should succeed
     await revertToSnapshot(snapshot);
     await setNextBlockTime(deadline);
@@ -187,7 +185,7 @@ describe('closeOrder', function () {
     // cancel the current order, leaving no order in place
     await expect(swapOperator.closeOrder(contractOrder)).to.not.be.reverted;
 
-    await expect(swapOperator.closeOrder(contractOrder)).to.be.revertedWith('SwapOp: No order in place');
+    await expect(swapOperator.closeOrder(contractOrder)).to.be.revertedWithCustomError(swapOperator, 'NoOrderInPlace');
   });
 
   it('invalidates order and sets allowance back to 0 when order was not filled at all', async function () {

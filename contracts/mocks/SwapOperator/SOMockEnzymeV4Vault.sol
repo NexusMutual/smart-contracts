@@ -2,9 +2,10 @@
 
 pragma solidity ^0.5.17;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
 import "../../external/enzyme/IEnzymeV4Vault.sol";
+import "../../modules/token/external/ERC20.sol";
+import "../common/ERC20Detailed.sol";
 
 contract SOMockEnzymeV4Vault is IEnzymeV4Vault, ERC20Detailed, ERC20 {
 

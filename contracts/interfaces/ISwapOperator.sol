@@ -45,7 +45,7 @@ interface ISwapOperator {
   error OrderUidMismatch(bytes providedOrderUID, bytes expectedOrderUID);
   error UnsupportedTokenBalance(string kind);
   error InvalidReceiver(address validReceiver);
-  error TokenIsDisabled(address token);
+  error TokenDisabled(address token);
   error AmountOutTooLow(uint amountOut, uint minAmount);
   error InvalidTokenAddress(string token);
   error InvalidDenominationAsset(address invalidAsset, address validAsset);

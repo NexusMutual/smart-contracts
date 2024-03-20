@@ -146,7 +146,7 @@ contract SwapOperator is ISwapOperator {
   /// @dev Reverts if both swapDetails min/maxAmount are set to 0
   function validateTokenIsEnabled(address token, SwapDetails memory swapDetails) internal pure {
     if (swapDetails.minAmount == 0 && swapDetails.maxAmount == 0) {
-      revert TokenIsDisabled(token);
+      revert TokenDisabled(token);
     }
   }
 

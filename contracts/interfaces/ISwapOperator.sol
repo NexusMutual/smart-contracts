@@ -39,23 +39,30 @@ interface ISwapOperator {
   event OrderClosed(GPv2Order.Data order, uint filledAmount);
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
 
-  // Order
+  // Swap Order
   error OrderInProgress(bytes currentOrderUID);
+  error NoOrderInPlace();
   error OrderUidMismatch(bytes providedOrderUID, bytes expectedOrderUID);
   error UnsupportedTokenBalance(string kind);
   error InvalidReceiver(address validReceiver);
-  error OrderTokenIsDisabled(address token);
-  error AmountTooLow(uint amount, uint minAmount);
+  error TokenIsDisabled(address token);
+  error AmountOutTooLow(uint amountOut, uint minAmount);
   error InvalidTokenAddress(string token);
+  error InvalidDenominationAsset(address invalidAsset, address validAsset);
 
   // Valid To
   error BelowMinValidTo(uint minValidTo);
   error AboveMaxValidTo(uint maxValidTo);
 
   // Balance
-  error EthReserveBelowMin(uint ethPostSwap, uint minEthReserve);
   error InvalidBalance(uint tokenBalance, uint limit, string limitType);
   error InvalidPostSwapBalance(uint postSwapBalance, uint limit, string limitType);
+
+  // Access Controls
+  error OnlyController();
+  
+  // Transfer
+  error TransferFailed(address to, uint value, address token);
 
   // Cool down
   error InsufficientTimeBetweenSwaps(uint minValidSwapTime);

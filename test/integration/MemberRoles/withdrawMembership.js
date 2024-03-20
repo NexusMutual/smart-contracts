@@ -1,8 +1,11 @@
-const { enrollMember } = require('../utils/enroll');
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const setup = require('../setup');
+
+const { enrollMember } = require('../utils/enroll');
 const { Role } = require('../utils').constants;
+const { setNextBlockTime } = require('../utils').evm;
+const setup = require('../setup');
 
 describe('withdrawMembership', function () {
   it('withdraws membership for current member', async function () {
@@ -25,6 +28,19 @@ describe('withdrawMembership', function () {
     expect(whitelisted).to.be.equal(false);
     const balance = await token.balanceOf(member1.address);
     expect(balance).to.be.equal(0);
+  });
+
+  it("emits MembershipWithdrawn event with the withdrawn member's address and timestamp", async function () {
+    const fixture = await loadFixture(setup);
+    const { mr: memberRoles } = fixture.contracts;
+    const [member1] = fixture.accounts.members;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    await setNextBlockTime(timestamp + 1);
+
+    await expect(memberRoles.connect(member1).withdrawMembership())
+      .to.emit(memberRoles, 'MembershipWithdrawn')
+      .withArgs(member1.address, timestamp + 1);
   });
 
   it('reverts when withdrawing membership for non-member', async function () {

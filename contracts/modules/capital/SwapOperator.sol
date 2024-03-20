@@ -175,14 +175,14 @@ contract SwapOperator is ISwapOperator {
     if (swapOperationType == SwapOperationType.EthToAsset) {
       uint ethPostSwap = address(pool).balance - totalOutAmount;
       if (ethPostSwap < minPoolEth) {
-        revert EthReserveBelowMin(ethPostSwap, minPoolEth);
+        revert InvalidPostSwapBalance(ethPostSwap, minPoolEth, 'min');
       }
       // skip sellSwapDetails validation for ETH/WETH since it does not have set swapDetails
       return;
     }
 
     if (sellTokenBalance <= sellSwapDetails.maxAmount) {
-      revert InvalidBalance(sellTokenBalance, sellSwapDetails.maxAmount, 'max');
+      revert InvalidBalance(sellTokenBalance, sellSwapDetails.maxAmount, 'min');
     }
     // NOTE: the totalOutAmount (i.e. sellAmount + fee) is used to get postSellTokenSwapBalance
     uint postSellTokenSwapBalance = sellTokenBalance - totalOutAmount; 
@@ -208,7 +208,7 @@ contract SwapOperator is ISwapOperator {
     }
 
     if (buyTokenBalance >= buySwapDetails.minAmount) {
-      revert InvalidBalance(buyTokenBalance, buySwapDetails.minAmount, 'min');
+      revert InvalidBalance(buyTokenBalance, buySwapDetails.minAmount, 'max');
     }
     // NOTE: use order.buyAmount to get postBuyTokenSwapBalance
     uint postBuyTokenSwapBalance = buyTokenBalance + order.buyAmount; 
@@ -522,7 +522,7 @@ contract SwapOperator is ISwapOperator {
 
     validateAmountOut(amountOut, amountOutMin);
     if (balanceBefore >= swapDetails.minAmount) {
-      revert InvalidBalance(balanceBefore, swapDetails.minAmount, 'min');
+      revert InvalidBalance(balanceBefore, swapDetails.minAmount, 'max');
     }
     if (balanceBefore + amountOutMin > swapDetails.maxAmount) {
       revert InvalidPostSwapBalance(balanceBefore + amountOutMin, swapDetails.maxAmount, 'max');
@@ -581,7 +581,7 @@ contract SwapOperator is ISwapOperator {
       // slippage check
       validateAmountOut(amountOutMin, minOutOnMaxSlippage);
       if (balanceBefore <= swapDetails.maxAmount) {
-        revert InvalidBalance(balanceBefore, swapDetails.maxAmount, 'max');      
+        revert InvalidBalance(balanceBefore, swapDetails.maxAmount, 'min');      
       }
       if (balanceBefore - amountIn < swapDetails.minAmount) {
         revert InvalidPostSwapBalance(balanceBefore - amountIn, swapDetails.minAmount, 'min');

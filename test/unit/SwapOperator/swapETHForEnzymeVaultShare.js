@@ -63,7 +63,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     // should fail with max + 1
     await expect(swapOperator.swapETHForEnzymeVaultShare(currentEther, currentEther))
       .to.be.revertedWithCustomError(swapOperator, 'InvalidPostSwapBalance')
-      .withArgs(0, minPoolEth, 'min');
+      .withArgs(0, minPoolEth);
 
     // should work with max
     await swapOperator.swapETHForEnzymeVaultShare(maxPoolTradableEther, maxPoolTradableEther);
@@ -126,7 +126,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     const etherIn = max.add(10001);
     await expect(swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn))
       .to.be.revertedWithCustomError(swapOperator, 'InvalidPostSwapBalance')
-      .withArgs(etherIn, max, 'max');
+      .withArgs(etherIn, max);
   });
 
   it('should swap asset for eth and emit a Swapped event with correct values', async function () {
@@ -294,6 +294,6 @@ describe('swapETHForEnzymeVaultShare', function () {
     const etherIn = minAssetAmount.div(2);
     await expect(swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn))
       .to.be.revertedWithCustomError(swapOperator, 'InvalidBalance')
-      .withArgs(BigNumber.from('116666666666666666666'), minAssetAmount, 'max');
+      .withArgs(BigNumber.from('116666666666666666666'), minAssetAmount);
   });
 });

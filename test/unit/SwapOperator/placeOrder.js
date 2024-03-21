@@ -329,7 +329,7 @@ describe('placeOrder', function () {
     const placeOrder = swapOperator.placeOrder(contractOrder, orderUID);
     await expect(placeOrder)
       .to.be.revertedWithCustomError(swapOperator, 'InvalidBalance')
-      .withArgs(daiMaxAmount, daiMaxAmount, 'min');
+      .withArgs(daiMaxAmount, daiMaxAmount);
 
     // When balance > maxAmount, should succeed
     await dai.setBalance(pool.address, daiMaxAmount.add(1));
@@ -345,7 +345,7 @@ describe('placeOrder', function () {
     const placeOrder = swapOperator.placeOrder(contractOrder, orderUID);
     await expect(placeOrder)
       .to.be.revertedWithCustomError(swapOperator, 'InvalidBalance')
-      .withArgs(stEthMaxAmount, stEthMaxAmount, 'min');
+      .withArgs(stEthMaxAmount, stEthMaxAmount);
 
     // When balance > maxAmount, should succeed
     await stEth.setBalance(pool.address, stEthMaxAmount.add(1));
@@ -362,7 +362,7 @@ describe('placeOrder', function () {
     const placeOrder = swapOperator.placeOrder(contractOrder, orderUID);
     await expect(placeOrder)
       .to.be.revertedWithCustomError(swapOperator, 'InvalidBalance')
-      .withArgs(daiMinAmount, daiMinAmount, 'max');
+      .withArgs(daiMinAmount, daiMinAmount);
 
     // set buyToken balance to be < minAmount, txn should succeed
     await dai.setBalance(pool.address, daiMinAmount.sub(1));
@@ -386,7 +386,7 @@ describe('placeOrder', function () {
     const placeOrder = swapOperator.placeOrder(contractOrder, orderUID);
     await expect(placeOrder)
       .to.be.revertedWithCustomError(swapOperator, 'InvalidPostSwapBalance')
-      .withArgs(invalidBalance.sub(totalOutAmount), daiMinAmount, 'min');
+      .withArgs(invalidBalance.sub(totalOutAmount), daiMinAmount);
 
     // Set balance so it can exactly cover totalOutAmount
     await dai.setBalance(pool.address, daiMinAmount.add(totalOutAmount));
@@ -425,7 +425,7 @@ describe('placeOrder', function () {
 
     await expect(placeOrder)
       .to.revertedWithCustomError(swapOperator, 'InvalidPostSwapBalance')
-      .withArgs(ethPostSwap, minPoolEth, 'min');
+      .withArgs(ethPostSwap, minPoolEth);
 
     // Set pool balance to 2 eth, should succeed
     await setEtherBalance(pool.address, parseEther('2'));
@@ -469,7 +469,7 @@ describe('placeOrder', function () {
     const placeOrder = swapOperator.placeOrder(contractOrder, orderUID);
     await expect(placeOrder)
       .to.be.revertedWithCustomError(swapOperator, 'InvalidBalance')
-      .withArgs(daiMinAmount, daiMinAmount, 'max');
+      .withArgs(daiMinAmount, daiMinAmount);
 
     // set buyToken balance to be < minAmount, txn should succeed
     await dai.setBalance(pool.address, daiMinAmount.sub(1));
@@ -488,7 +488,7 @@ describe('placeOrder', function () {
     const placeOrder = swapOperator.placeOrder(exceedsMaxOrder.contractOrder, exceedsMaxOrder.orderUID);
     await expect(placeOrder)
       .to.be.revertedWithCustomError(swapOperator, 'InvalidPostSwapBalance')
-      .withArgs(order.buyAmount, daiMaxAmount, 'max');
+      .withArgs(order.buyAmount, daiMaxAmount);
 
     // place an order that will bring balance exactly to maxAmount, should succeed
     const withinMaxOrder = createContractOrder(domain, order, { buyAmount: daiMaxAmount });

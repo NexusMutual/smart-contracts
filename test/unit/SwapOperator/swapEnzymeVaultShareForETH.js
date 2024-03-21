@@ -95,7 +95,7 @@ describe('swapEnzymeVaultShareForETH', function () {
     const amountIn = parseEther('1950');
     await expect(swapOperator.swapEnzymeVaultShareForETH(amountIn, amountIn))
       .to.be.revertedWithCustomError(swapOperator, 'InvalidPostSwapBalance')
-      .withArgs(parseEther('50'), parseEther('100'), 'min');
+      .withArgs(parseEther('50'), parseEther('100'));
   });
 
   it('should swap asset for eth and emit a Swapped event with correct values', async function () {
@@ -153,6 +153,6 @@ describe('swapEnzymeVaultShareForETH', function () {
 
     await expect(swapOperator.swapEnzymeVaultShareForETH(sharesIn, sharesIn))
       .to.be.revertedWithCustomError(swapOperator, 'InvalidBalance')
-      .withArgs(parseEther('500'), parseEther('1000'), 'min');
+      .withArgs(parseEther('500'), parseEther('1000'));
   });
 });

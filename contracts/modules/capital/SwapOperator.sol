@@ -175,19 +175,19 @@ contract SwapOperator is ISwapOperator {
     if (swapOperationType == SwapOperationType.EthToAsset) {
       uint ethPostSwap = address(pool).balance - totalOutAmount;
       if (ethPostSwap < minPoolEth) {
-        revert InvalidPostSwapBalance(ethPostSwap, minPoolEth, 'min');
+        revert InvalidPostSwapBalance(ethPostSwap, minPoolEth);
       }
       // skip sellSwapDetails validation for ETH/WETH since it does not have set swapDetails
       return;
     }
 
     if (sellTokenBalance <= sellSwapDetails.maxAmount) {
-      revert InvalidBalance(sellTokenBalance, sellSwapDetails.maxAmount, 'min');
+      revert InvalidBalance(sellTokenBalance, sellSwapDetails.maxAmount);
     }
     // NOTE: the totalOutAmount (i.e. sellAmount + fee) is used to get postSellTokenSwapBalance
     uint postSellTokenSwapBalance = sellTokenBalance - totalOutAmount; 
     if (postSellTokenSwapBalance < sellSwapDetails.minAmount) {
-      revert InvalidPostSwapBalance(postSellTokenSwapBalance, sellSwapDetails.minAmount, 'min');
+      revert InvalidPostSwapBalance(postSellTokenSwapBalance, sellSwapDetails.minAmount);
     }      
   }
 
@@ -208,12 +208,12 @@ contract SwapOperator is ISwapOperator {
     }
 
     if (buyTokenBalance >= buySwapDetails.minAmount) {
-      revert InvalidBalance(buyTokenBalance, buySwapDetails.minAmount, 'max');
+      revert InvalidBalance(buyTokenBalance, buySwapDetails.minAmount);
     }
     // NOTE: use order.buyAmount to get postBuyTokenSwapBalance
     uint postBuyTokenSwapBalance = buyTokenBalance + order.buyAmount; 
     if (postBuyTokenSwapBalance > buySwapDetails.maxAmount) {
-      revert InvalidPostSwapBalance(postBuyTokenSwapBalance, buySwapDetails.maxAmount, 'max');
+      revert InvalidPostSwapBalance(postBuyTokenSwapBalance, buySwapDetails.maxAmount);
     }
   }
 
@@ -522,15 +522,15 @@ contract SwapOperator is ISwapOperator {
 
     validateAmountOut(amountOut, amountOutMin);
     if (balanceBefore >= swapDetails.minAmount) {
-      revert InvalidBalance(balanceBefore, swapDetails.minAmount, 'max');
+      revert InvalidBalance(balanceBefore, swapDetails.minAmount);
     }
     if (balanceBefore + amountOutMin > swapDetails.maxAmount) {
-      revert InvalidPostSwapBalance(balanceBefore + amountOutMin, swapDetails.maxAmount, 'max');
+      revert InvalidPostSwapBalance(balanceBefore + amountOutMin, swapDetails.maxAmount);
     }
 
     uint ethBalanceAfter = address(pool).balance;
     if (ethBalanceAfter < minPoolEth) {
-      revert InvalidPostSwapBalance(ethBalanceAfter, minPoolEth, 'min');
+      revert InvalidPostSwapBalance(ethBalanceAfter, minPoolEth);
     }
 
     transferAssetTo(enzymeV4VaultProxyAddress, address(pool), amountOut);
@@ -581,10 +581,10 @@ contract SwapOperator is ISwapOperator {
       // slippage check
       validateAmountOut(amountOutMin, minOutOnMaxSlippage);
       if (balanceBefore <= swapDetails.maxAmount) {
-        revert InvalidBalance(balanceBefore, swapDetails.maxAmount, 'min');      
+        revert InvalidBalance(balanceBefore, swapDetails.maxAmount);  
       }
       if (balanceBefore - amountIn < swapDetails.minAmount) {
-        revert InvalidPostSwapBalance(balanceBefore - amountIn, swapDetails.minAmount, 'min');
+        revert InvalidPostSwapBalance(balanceBefore - amountIn, swapDetails.minAmount);
       }
     }
 
@@ -642,7 +642,7 @@ contract SwapOperator is ISwapOperator {
     if (assetAddress == ETH) {
       uint ethBalance = address(this).balance;
       if (ethBalance == 0) {
-        revert InvalidBalance(ethBalance, 0, 'min');
+        revert InvalidBalance(ethBalance, 0);
       }
 
       // We assume ETH is always supported so we directly transfer it back to the Pool
@@ -658,7 +658,7 @@ contract SwapOperator is ISwapOperator {
 
     uint balance = asset.balanceOf(address(this));
     if (balance == 0) {
-      revert InvalidBalance(balance, 0, 'min');
+      revert InvalidBalance(balance, 0);
     }
 
     SwapDetails memory swapDetails = pool.getAssetSwapDetails(assetAddress);

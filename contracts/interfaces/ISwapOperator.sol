@@ -55,8 +55,8 @@ interface ISwapOperator {
   error AboveMaxValidTo(uint maxValidTo);
 
   // Balance
-  error InvalidBalance(uint tokenBalance, uint limit, string limitType);
-  error InvalidPostSwapBalance(uint postSwapBalance, uint limit, string limitType);
+  error InvalidBalance(uint tokenBalance, uint limit);
+  error InvalidPostSwapBalance(uint postSwapBalance, uint limit);
 
   // Access Controls
   error OnlyController();

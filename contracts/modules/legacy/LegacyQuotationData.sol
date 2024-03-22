@@ -2,7 +2,7 @@
 
 pragma solidity ^0.5.0;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../libraries/external/SafeMath.sol";
 import "../../abstract/LegacyMasterAware.sol";
 
 contract LegacyQuotationData is LegacyMasterAware {

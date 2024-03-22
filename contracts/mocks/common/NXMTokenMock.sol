@@ -2,7 +2,7 @@
 
 pragma solidity ^0.5.17;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "../../modules/token/external/ERC20.sol";
 import "../../interfaces/INXMToken.sol";
 
 contract NXMTokenMock is INXMToken, ERC20 {

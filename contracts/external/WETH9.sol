@@ -2,7 +2,7 @@
 
 pragma solidity ^0.5.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../interfaces/IERC20.sol";
 
 contract WETH9 is IERC20 {
   string public name = "Wrapped Ether";

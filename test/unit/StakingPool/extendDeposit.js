@@ -141,6 +141,53 @@ describe('extendDeposit', function () {
     ).to.be.revertedWithCustomError(stakingPool, 'NotTokenOwnerOrApproved');
   });
 
+  it('should revert if trying to extend the deposit amount, while nxm is locked', async function () {
+    const fixture = await loadFixture(extendDepositSetup);
+    const { stakingPool, nxm } = fixture;
+    const [user] = fixture.accounts.members;
+
+    const { firstActiveTrancheId, maxTranche } = await getTranches();
+
+    await generateRewards(stakingPool, fixture.coverSigner);
+
+    // Simulate member vote lock
+    await nxm.setLock(user.address, 3 * 24 * 60 * 60); // 3 days in seconds
+
+    const extendDeposit = stakingPool
+      .connect(user)
+      .extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, parseEther('50'));
+
+    await expect(extendDeposit).to.be.revertedWithCustomError(stakingPool, 'NxmIsLockedForGovernanceVote');
+  });
+
+  it('should not revert if trying to extend the deposit duration, while nxm is locked', async function () {
+    const fixture = await loadFixture(extendDepositSetup);
+    const { stakingPool, nxm } = fixture;
+    const [user] = fixture.accounts.members;
+
+    const { firstActiveTrancheId, maxTranche } = await getTranches();
+
+    await generateRewards(stakingPool, fixture.coverSigner);
+
+    const accNxmPerRewardsShareBefore = await stakingPool.getAccNxmPerRewardsShare();
+    const lastAccNxmUpdateBefore = await stakingPool.getLastAccNxmUpdate();
+
+    // Simulate member vote lock
+    await nxm.setLock(user.address, 3 * 24 * 60 * 60); // 3 days in seconds);
+
+    await stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, 0);
+
+    const accNxmPerRewardsShareAfter = await stakingPool.getAccNxmPerRewardsShare();
+    const lastAccNxmUpdateAfter = await stakingPool.getLastAccNxmUpdate();
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const depositData = await stakingPool.deposits(depositNftId, maxTranche);
+
+    expect(accNxmPerRewardsShareAfter).to.gt(accNxmPerRewardsShareBefore);
+    expect(accNxmPerRewardsShareAfter).to.equal(depositData.lastAccNxmPerRewardShare);
+    expect(lastAccNxmUpdateAfter).to.gt(lastAccNxmUpdateBefore);
+    expect(lastAccNxmUpdateAfter).to.equal(timestamp);
+  });
+
   it('withdraws and make a new deposit if initial tranche is expired', async function () {
     const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;

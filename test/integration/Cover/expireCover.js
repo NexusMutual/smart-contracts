@@ -90,11 +90,14 @@ describe('expireCover', function () {
 
   it('should expire a cover', async function () {
     const fixture = await loadFixture(expireCoverSetup);
-    const { cover, stakingPool1 } = fixture.contracts;
+    const { cover, stakingPool1, ra: ramm } = fixture.contracts;
+    const { BUCKET_DURATION, NXM_PER_ALLOCATION_UNIT } = fixture.config;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, period, productId } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
+    // skip time so we would have less ratchet impact on internal price
+    await increaseTime(period);
     const initialAllocations = await stakingPool1.getActiveAllocations(productId);
 
     await cover
@@ -113,8 +116,25 @@ describe('expireCover', function () {
     await cover.connect(coverBuyer).expireCover(coverId);
     const allocationsAfter = await stakingPool1.getActiveAllocations(productId);
 
+    await increaseTime(BUCKET_DURATION.toNumber()); // go to next bucket
+    const internalPrice = await ramm.getInternalPrice();
+    await cover
+      .connect(coverBuyer)
+      .buyCover(
+        { ...buyCoverFixture, owner: coverBuyerAddress },
+        [{ poolId: 1, coverAmountInAsset: buyCoverFixture.amount }],
+        { value: amount },
+      );
+
+    const totalCoverAmountAfter = await cover.totalActiveCoverInAsset(0);
+    const allocationsAfterBucketExpiration = await stakingPool1.getActiveAllocations(productId);
+    const coverAmountInNXM = sum(allocationsAfterBucketExpiration).mul(NXM_PER_ALLOCATION_UNIT);
+    const expectedTotalActiveAmount = internalPrice.mul(coverAmountInNXM).div(parseEther('1'));
+
     expect(sum(allocationsWithCover)).not.to.be.equal(sum(allocationsAfter));
     expect(sum(initialAllocations)).to.be.equal(sum(allocationsAfter));
+    expect(sum(allocationsAfterBucketExpiration)).to.be.equal(sum(allocationsWithCover));
+    expect(totalCoverAmountAfter).to.be.equal(expectedTotalActiveAmount);
   });
 
   it('should emit an event on expire a cover', async function () {

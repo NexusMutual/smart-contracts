@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import "solmate/src/tokens/ERC721.sol";
+import "./ERC721.sol";
 
 contract ERC721Mock is ERC721 {
 
@@ -23,20 +23,20 @@ contract ERC721Mock is ERC721 {
 
   function _operatorTransferFrom(address from, address to, uint256 tokenId) internal {
 
-        require(from == _ownerOf[tokenId], "WRONG_FROM");
-        require(to != address(0), "INVALID_RECIPIENT");
+    require(from == _ownerOf[tokenId], "WRONG_FROM");
+    require(to != address(0), "INVALID_RECIPIENT");
 
-        // Underflow of the sender's balance is impossible because we check for
-        // ownership above and the recipient's balance can't realistically overflow.
-        unchecked {
-            _balanceOf[from]--;
-            _balanceOf[to]++;
-        }
+    // Underflow of the sender's balance is impossible because we check for
+    // ownership above and the recipient's balance can't realistically overflow.
+    unchecked {
+      _balanceOf[from]--;
+      _balanceOf[to]++;
+    }
 
-        _ownerOf[tokenId] = to;
-        delete getApproved[tokenId];
+    _ownerOf[tokenId] = to;
+    delete getApproved[tokenId];
 
-        emit Transfer(from, to, tokenId);
+    emit Transfer(from, to, tokenId);
   }
 
 }

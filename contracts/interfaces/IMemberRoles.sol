@@ -45,4 +45,6 @@ interface IMemberRoles {
   event MemberJoined(address indexed newMember, uint indexed nonce);
 
   event switchedMembership(address indexed previousMember, address indexed newMember, uint timeStamp);
+  
+  event MembershipWithdrawn(address indexed member, uint timestamp);
 }

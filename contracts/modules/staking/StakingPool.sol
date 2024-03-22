@@ -533,7 +533,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
 
     // pass false as it does not modify the share supply nor the reward per second
-    processExpirations(false);
+    processExpirations(true);
 
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;

@@ -8,6 +8,7 @@ async function setup() {
   // Deploy ERC20 test tokens
   const dai = await ERC20Mock.deploy();
   const wbtc = await ERC20Mock.deploy();
+  const st = await ERC20Mock.deploy();
 
   // Deploy price aggregators
   const daiAggregator = await ChainlinkAggregatorMock.deploy();
@@ -18,10 +19,12 @@ async function setup() {
     [dai.address, wbtc.address],
     [daiAggregator.address, wbtcAggregator.address],
     [18, 8],
+    st.address,
   );
 
   return {
     dai,
+    st,
     wbtc,
     daiAggregator,
     wbtcAggregator,

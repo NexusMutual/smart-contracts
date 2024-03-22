@@ -10,16 +10,22 @@ contract PriceFeedOracle is IPriceFeedOracle {
   mapping(address => OracleAsset) public assets;
 
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+  address public immutable safeTracker;
 
   constructor(
     address[] memory _assetAddresses,
     address[] memory _assetAggregators,
-    uint8[] memory _assetDecimals
+    uint8[] memory _assetDecimals,
+    address _safeTracker
   ) {
     require(
       _assetAddresses.length == _assetAggregators.length && _assetAggregators.length == _assetDecimals.length,
       "PriceFeedOracle: different args length"
     );
+    require(_safeTracker != address(0), "PriceFeedOracle: safeTracker cannot be zero address");
+
+    safeTracker = _safeTracker;
+    assets[_safeTracker] = OracleAsset(Aggregator(_safeTracker), 18);
 
     for (uint i = 0; i < _assetAddresses.length; i++) {
       assets[_assetAddresses[i]] = OracleAsset(Aggregator(_assetAggregators[i]), _assetDecimals[i]);
@@ -32,7 +38,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
    * @return price in ether
    */
   function getAssetToEthRate(address assetAddress) public view returns (uint) {
-    if (assetAddress == ETH) {
+    if (assetAddress == ETH || assetAddress == safeTracker) {
       return 1 ether;
     }
 
@@ -47,7 +53,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
    * @return asset amount
    */
   function getAssetForEth(address assetAddress, uint ethIn) external view returns (uint) {
-    if (assetAddress == ETH) {
+    if (assetAddress == ETH || assetAddress == safeTracker) {
       return ethIn;
     }
 
@@ -64,7 +70,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
    * @return amount of ether
    */
   function getEthForAsset(address assetAddress, uint amount) external view returns (uint) {
-    if (assetAddress == ETH) {
+    if (assetAddress == ETH || assetAddress == safeTracker) {
       return amount;
     }
 

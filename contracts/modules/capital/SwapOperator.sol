@@ -5,11 +5,12 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import "../../external/cow/GPv2Order.sol";
 import "../../interfaces/ICowSettlement.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/ISwapOperator.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
+import "../../interfaces/ISafeTracker.sol";
 import "../../interfaces/IWeth.sol";
 import "../../interfaces/IERC20Detailed.sol";
 
@@ -22,8 +23,14 @@ import "../../external/enzyme/IEnzymePolicyManager.sol";
   @title A contract for swapping Pool's assets using CoW protocol
   @dev This contract's address is set on the Pool's swapOperator variable via governance
  */
-contract SwapOperator {
+contract SwapOperator is ISwapOperator{
   using SafeERC20 for IERC20;
+
+  // Structs
+  struct Request {
+    address asset;
+    uint amount;
+  }
 
   // Storage
   bytes public currentOrderUID;
@@ -48,13 +55,18 @@ contract SwapOperator {
   uint public constant MIN_TIME_BETWEEN_ORDERS = 900; // 15 minutes
   uint public constant maxFee = 0.3 ether;
 
-  // Events
-  event OrderPlaced(GPv2Order.Data order);
-  event OrderClosed(GPv2Order.Data order, uint filledAmount);
-  event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
+  // Safe variables
+  address public safe;
+  Request public transferRequest;
+  mapping(address => bool) public allowedSafeTransferAssets;
 
   modifier onlyController() {
     require(msg.sender == swapController, "SwapOp: only controller can execute");
+    _;
+  }
+
+  modifier onlySafe() {
+    require(msg.sender == safe, "SwapOp: only Safe can execute");
     _;
   }
 
@@ -70,6 +82,8 @@ contract SwapOperator {
     address _master,
     address _weth,
     address _enzymeV4VaultProxyAddress,
+    address _safe,
+    address _dai,
     IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter,
     uint _minPoolEth
   ) {
@@ -82,6 +96,9 @@ contract SwapOperator {
     enzymeV4VaultProxyAddress = _enzymeV4VaultProxyAddress;
     enzymeFundValueCalculatorRouter = _enzymeFundValueCalculatorRouter;
     minPoolEth = _minPoolEth;
+    safe = _safe;
+    allowedSafeTransferAssets[_dai] = true;
+    allowedSafeTransferAssets[ETH] = true;
   }
 
   receive() external payable {}
@@ -332,6 +349,14 @@ contract SwapOperator {
   }
 
   /**
+   * @dev Get the SafeTracker's instance through master contract
+   * @return The safe tracker instance
+   */
+  function safeTracker() internal view returns (ISafeTracker) {
+    return ISafeTracker(master.getLatestAddress("ST"));
+  }
+
+  /**
    * @dev Validates that a given asset is not swapped too fast
    * @param swapDetails Swap details for the given asset
    */
@@ -502,6 +527,32 @@ contract SwapOperator {
 
     IERC20 token = IERC20(asset);
     token.safeTransfer(to, amount);
+  }
+
+
+  /**
+   * @dev Create a request for the transfer to the safe
+   */
+  function requestAsset(address asset, uint amount) external onlySafe {
+    require(allowedSafeTransferAssets[asset] == true, "SwapOp: asset not allowed");
+    transferRequest = Request(asset, amount);
+  }
+
+  /**
+   * @dev Transfer request amount of the asset to the safe
+   */
+  function transferRequestedAsset(address requestedAsset, uint requestedAmount) external onlyController {
+    require(transferRequest.amount > 0, "SwapOp: request amount must be greater than 0");
+
+    (address asset, uint amount) = (transferRequest.asset, transferRequest.amount);
+    delete transferRequest;
+
+    require(requestedAsset == asset, "SwapOp: request assets need to match");
+    require(requestedAmount == amount, "SwapOp: request amounts need to match");
+
+    _pool().transferAssetToSwapOperator(asset, amount);
+    transferAssetTo(asset, safe, amount);
+    emit TransferredToSafe(asset, amount);
   }
 
   function recoverAsset(address assetAddress, address receiver) public onlyController {

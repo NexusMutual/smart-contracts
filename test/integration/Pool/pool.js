@@ -14,6 +14,8 @@ const { parseEther, parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 const { BigNumber } = ethers;
 
+const ETH_ASSET = { address: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' };
+
 const ethCoverTemplate = {
   productId: 0, // DEFAULT_PRODUCT
   coverAsset: ETH_ASSET_ID, // ETH
@@ -68,28 +70,46 @@ describe('Pool functions', function () {
 
   it('getPoolValueInEth calculates pool value correctly', async function () {
     const fixture = await loadFixture(tokenPriceSetup);
-    const { p1: pool, dai, usdc } = fixture.contracts;
-    const { daiToEthRate, usdcToEthRate } = fixture.rates;
+    const { p1: pool, dai, usdc, stETH, rETH, st, enzymeVault } = fixture.contracts;
+    const { daiToEthRate, usdcToEthRate, nxmtyToEthRate } = fixture.rates;
     const { USDC_DECIMALS } = fixture.config;
 
     const totalAssetValue = await pool.getPoolValueInEth();
-
     const poolBalance = BigNumber.from(await ethers.provider.getBalance(pool.address));
 
-    const daiBalance = await dai.balanceOf(pool.address);
-    const expectedDaiValueInEth = daiToEthRate.mul(daiBalance).div(parseEther('1'));
+    // NOTE: any new pool assets must be added here
+    const allAssets = [dai, stETH, enzymeVault, usdc, rETH, st];
+    const poolAssets = (await pool.getAssets()).map(asset => asset[0]);
+    expect(poolAssets).to.be.lengthOf([ETH_ASSET, ...allAssets].length);
+    [ETH_ASSET, ...allAssets].forEach(asset => expect(poolAssets).to.include(asset.address));
 
-    const usdcBalance = await usdc.balanceOf(pool.address);
-    const expectedUsdcValueInEth = usdcToEthRate.mul(usdcBalance).div(parseUnits('1', USDC_DECIMALS));
+    const balancePromises = allAssets.map(asset => asset.balanceOf(pool.address));
+    const [daiBal, stEthBal, nxmtyBal, usdcBal, rEthBal, stBal] = await Promise.all(balancePromises);
 
-    const expectedTotalAssetValue = poolBalance.add(expectedDaiValueInEth).add(expectedUsdcValueInEth);
+    const expectedDaiValueInEth = daiToEthRate.mul(daiBal).div(parseEther('1'));
+    const expectedUsdcValueInEth = usdcToEthRate.mul(usdcBal).div(parseUnits('1', USDC_DECIMALS));
+    const expectedNxmtyValueInEth = nxmtyToEthRate.mul(nxmtyBal).div(parseEther('1'));
+
+    const expectedTotalAssetValue = poolBalance
+      .add(expectedDaiValueInEth)
+      .add(expectedUsdcValueInEth)
+      .add(expectedNxmtyValueInEth)
+      .add(stEthBal)
+      .add(rEthBal)
+      .add(stBal);
     expect(totalAssetValue.toString()).to.be.equal(expectedTotalAssetValue.toString());
   });
 
   it('getMCRRatio calculates MCR ratio correctly', async function () {
     const fixture = await loadFixture(tokenPriceSetup);
-    const { p1: pool } = fixture.contracts;
+    const { p1: pool, mcr } = fixture.contracts;
+
+    const MCR_RATIO_DECIMALS = 4;
+    const totalAssetValue = await pool.getPoolValueInEth();
+    const mcrEth = await mcr.getMCR();
+    const expectedMcrRatio = totalAssetValue.mul(BigNumber.from(10).pow(MCR_RATIO_DECIMALS)).div(mcrEth);
+
     const mcrRatio = await pool.getMCRRatio();
-    expect(mcrRatio.toString()).to.be.equal('22000'); // ETH + DAI + USDC
+    expect(mcrRatio).to.be.equal(expectedMcrRatio);
   });
 });

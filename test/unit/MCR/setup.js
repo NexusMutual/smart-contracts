@@ -18,6 +18,7 @@ async function setup() {
   const master = await MasterMock.deploy();
   const dai = await ERC20Mock.deploy();
   const stETH = await ERC20Mock.deploy();
+  const st = await ERC20Mock.deploy();
 
   const ethToDaiRate = parseEther('2000');
   const daiToEthRate = parseUnits('1', 36).div(ethToDaiRate);
@@ -31,6 +32,7 @@ async function setup() {
     [dai.address, stETH.address],
     [chainlinkDAI.address, chainlinkSteth.address],
     [18, 18],
+    st.address,
   );
 
   const pool = await Pool.deploy(priceFeedOracle.address);
@@ -76,6 +78,7 @@ async function setup() {
     master,
     pool,
     dai,
+    st,
     chainlinkDAI,
     mcr,
     cover,

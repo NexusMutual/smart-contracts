@@ -12,9 +12,9 @@ const productId = 0;
 
 async function getEffectiveWeightSetup() {
   const fixture = await loadFixture(setup);
-  const { cover } = fixture;
+  const { cover, coverProducts } = fixture;
   const capacityRatio = await cover.GLOBAL_CAPACITY_RATIO();
-  const product = await cover.products(productId);
+  const product = await coverProducts.products(productId);
 
   fixture.globalCapacityRatio = capacityRatio;
   fixture.capacityReductionRatio = product.capacityReductionRatio;

@@ -22,10 +22,7 @@ contract ICMockCover {
   mapping(uint => PoolAllocation[]) poolAllocations;
   mapping(uint => uint96) public activeCoverAmountInNXM;
 
-  Product[] internal _products;
   mapping(uint => uint) capacityFactors;
-
-  ProductType[] internal _productTypes;
 
   mapping(uint => uint) initialPrices;
 
@@ -53,14 +50,6 @@ contract ICMockCover {
 
   constructor(address coverNFTAddress) {
     coverNFT = ICoverNFT(coverNFTAddress);
-  }
-
-  function products(uint id) external view returns (Product memory) {
-    return _products[id];
-  }
-
-  function productTypes(uint id) external view returns (ProductType memory) {
-    return _productTypes[id];
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -95,32 +84,6 @@ contract ICMockCover {
       ? segment.amount - amountPaidOut
       : 0;
     return segment;
-  }
-
-  function addProductType(
-    uint8 claimMethod,
-    uint16 gracePeriod,
-    uint16 /*burnRatio*/
-  ) external {
-    _productTypes.push(ProductType(
-      claimMethod,
-      gracePeriod
-    ));
-  }
-
-  function editProductTypes(
-    uint[] calldata productTypeIds,
-    uint32[] calldata gracePeriods,
-    string[] calldata ipfsHash
-  ) external {
-    ipfsHash;
-    for (uint i = 0; i < productTypeIds.length; i++) {
-      _productTypes[productTypeIds[i]].gracePeriod = gracePeriods[i];
-    }
-  }
-
-  function addProduct(Product calldata product) external {
-    _products.push(product);
   }
 
   function setActiveCoverAmountInNXM(

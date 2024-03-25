@@ -6,6 +6,7 @@ import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
+import "../../interfaces/ICoverProducts.sol";
 
 contract StakingProductsMockCover {
 
@@ -17,15 +18,12 @@ contract StakingProductsMockCover {
   uint public lastPremium;
 
   mapping(uint => address) public stakingPool;
-  mapping(uint => Product) public products;
-  mapping(uint => ProductType) public productTypes;
-  mapping(uint => mapping(uint => bool)) public allowedPools;
-  uint public productsCount;
 
   ICoverNFT public coverNFT;
   IStakingNFT public stakingNFT;
   IStakingPoolFactory public stakingPoolFactory;
   address public stakingPoolImplementation;
+  ICoverProducts coverProducts;
 
   error ProductDeprecatedOrNotInitialized();
 
@@ -33,35 +31,21 @@ contract StakingProductsMockCover {
     ICoverNFT _coverNFT,
     IStakingNFT _stakingNFT,
     IStakingPoolFactory _stakingPoolFactory,
-    address _stakingPoolImplementation
+    address _stakingPoolImplementation,
+    address _coverProducts
   ) {
     // in constructor we only initialize immutable fields
     coverNFT = _coverNFT;
     stakingNFT = _stakingNFT;
     stakingPoolFactory = _stakingPoolFactory;
     stakingPoolImplementation = _stakingPoolImplementation;
+    coverProducts = ICoverProducts(_coverProducts);
   }
 
   event RequestAllocationReturned(uint premium, uint allocationId);
 
   function setStakingPool(address addr, uint id) public {
     stakingPool[id] = addr;
-  }
-
-  function setProduct(Product memory _product, uint id) public {
-    products[id] = _product;
-    productsCount++;
-  }
-
-  function setProducts(Product[] memory _products, uint[] memory productIds) public {
-    for (uint i = 0; i < _products.length; i++) {
-      products[productIds[i]] = _products[i];
-      productsCount++;
-    }
-  }
-
-  function setProductType(ProductType calldata product, uint id) public {
-    productTypes[id] = product;
   }
 
   function allocateCapacity(
@@ -71,8 +55,8 @@ contract StakingProductsMockCover {
     IStakingPool _stakingPool
   ) public returns (uint premium, uint) {
 
-    Product memory product = products[params.productId];
-    uint gracePeriod = productTypes[product.productType].gracePeriod;
+    Product memory product = coverProducts.products(params.productId);
+    uint gracePeriod = coverProducts.productTypes(product.productType).gracePeriod;
 
     (premium, allocationId) = _stakingPool.requestAllocation(
       params.amount,
@@ -152,48 +136,6 @@ contract StakingProductsMockCover {
     );
   }
 
-  error TargetPriceBelowGlobalMinPriceRatio();
-
-  function createStakingPool(
-    bool isPrivatePool,
-    uint initialPoolFee,
-    uint maxPoolFee,
-    ProductInitializationParams[] memory productInitParams,
-    string calldata ipfsDescriptionHash
-  ) external returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
-
-    // override with initial price
-    for (uint i = 0; i < productInitParams.length; i++) {
-
-      uint productId = productInitParams[i].productId;
-      productInitParams[i].initialPrice = products[productId].initialPriceRatio;
-
-      if (productInitParams[i].targetPrice < GLOBAL_MIN_PRICE_RATIO) {
-        revert TargetPriceBelowGlobalMinPriceRatio();
-      }
-    }
-
-    (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(address(this));
-
-    IStakingPool(stakingPoolAddress).initialize(
-      isPrivatePool,
-      initialPoolFee,
-      maxPoolFee,
-      poolId,
-      ipfsDescriptionHash
-    );
-
-    return (poolId, stakingPoolAddress);
-  }
-
-  function setPoolAllowed(uint productId, uint poolId, bool allowed) external {
-    allowedPools[productId][poolId] = allowed;
-  }
-
-  function isPoolAllowed(uint productId, uint poolId) external view returns (bool) {
-    return allowedPools[productId][poolId];
-  }
-
   function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (
     uint _globalCapacityRatio,
     uint _globalMinPriceRatio,
@@ -206,21 +148,12 @@ contract StakingProductsMockCover {
     _initialPrices = new uint[](productIds.length);
 
     for (uint i = 0; i < productIds.length; i++) {
-      Product memory product = products[productIds[i]];
+      Product memory product = coverProducts.products(productIds[i]);
       if (product.initialPriceRatio == 0) {
         revert ProductDeprecatedOrNotInitialized();
       }
       _initialPrices[i] = uint(product.initialPriceRatio);
       _capacityReductionRatios[i] = uint(product.capacityReductionRatio);
-    }
-  }
-
-  function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external view {
-    for (uint i = 0; i < productIds.length; i++) {
-      uint productId = productIds[i];
-      if (!allowedPools[productId][poolId]) {
-        revert ICover.PoolNotAllowedForThisProduct(productId);
-      }
     }
   }
 }

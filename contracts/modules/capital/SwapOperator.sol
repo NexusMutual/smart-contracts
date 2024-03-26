@@ -232,6 +232,7 @@ contract SwapOperator is ISwapOperator {
   /// @dev Performs pre-swap validation checks for the given order
   function performPreSwapValidations(
     IPool pool,
+    IPriceFeedOracle priceFeedOracle,
     GPv2Order.Data calldata order,
     SwapOperationType swapOperationType,
     uint totalOutAmount
@@ -253,7 +254,7 @@ contract SwapOperator is ISwapOperator {
     validateSwapFrequency(buySwapDetails);
 
     // validate max fee and max slippage
-    validateMaxFee(pool, address(order.sellToken), order.feeAmount);
+    validateMaxFee(priceFeedOracle, address(order.sellToken), order.feeAmount);
     validateOrderAmount(order, sellSwapDetails, buySwapDetails);
   }
 
@@ -261,11 +262,11 @@ contract SwapOperator is ISwapOperator {
   /// Additionally if selling ETH, wraps received Pool ETH to WETH
   function executeAssetTransfer(
     IPool pool,
+    IPriceFeedOracle priceFeedOracle,
     GPv2Order.Data calldata order,
     SwapOperationType swapOperationType,
     uint totalOutAmount
   ) internal returns (uint swapValueEth) {
-    IPriceFeedOracle priceFeedOracle = pool.priceFeedOracle();
     address sellTokenAddress = address(order.sellToken);
     address buyTokenAddress = address(order.buyToken);
 
@@ -312,14 +313,15 @@ contract SwapOperator is ISwapOperator {
     validateBasicCowParams(order);
 
     IPool pool = _pool();
+    IPriceFeedOracle priceFeedOracle = pool.priceFeedOracle();
     uint totalOutAmount = order.sellAmount + order.feeAmount;
     SwapOperationType swapOperationType = getSwapOperationType(order);
 
     // Perform validations
-    performPreSwapValidations(pool, order, swapOperationType, totalOutAmount);
+    performPreSwapValidations(pool, priceFeedOracle, order, swapOperationType, totalOutAmount);
 
     // Execute swap based on operation type
-    uint swapValueEth = executeAssetTransfer(pool, order, swapOperationType, totalOutAmount);
+    uint swapValueEth = executeAssetTransfer(pool, priceFeedOracle, order, swapOperationType, totalOutAmount);
 
     // Set the swapValue on the pool
     pool.setSwapValue(swapValueEth);
@@ -461,13 +463,13 @@ contract SwapOperator is ISwapOperator {
   /// @param sellToken The sell asset
   /// @param feeAmount The fee (will always be denominated in the sell asset units)
   function validateMaxFee(
-    IPool pool,
+    IPriceFeedOracle priceFeedOracle,
     address sellToken,
     uint feeAmount
   ) internal view {
     uint feeInEther = sellToken == address(weth)
       ? feeAmount
-      : pool.priceFeedOracle().getEthForAsset(sellToken, feeAmount);
+      : priceFeedOracle.getEthForAsset(sellToken, feeAmount);
     if (feeInEther > MAX_FEE) {
       revert AboveMaxFee(feeInEther, MAX_FEE);
     }

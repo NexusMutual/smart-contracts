@@ -20,6 +20,24 @@ const OUTPUT_FILE = path.join(
 const YIELD_TOKEN_PRODUCT_TYPE_ID = '2';
 const COVER_PROXY_ADDRESS = '0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62';
 
+const retryUpload = async (filePath, retries = 3) => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`Attempt ${attempt}: Uploading ${filePath} to IPFS`);
+      const file = await ipfs.add(fs.readFileSync(filePath));
+      await ipfs.pin.add(file.path);
+      return file;
+    } catch (error) {
+      console.log(`Attempt ${attempt} failed:`, error.message);
+      if (attempt === retries) {
+        throw new Error(`Failed to upload ${filePath} after ${retries} attempts`);
+      }
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+    }
+  }
+};
+
 /**
  *
  * Generate the tx data for the Cover.setProducts transaction based using the data
@@ -40,7 +58,7 @@ const COVER_PROXY_ADDRESS = '0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62';
  * @returns {Promise<{setProductsTransaction: *}>}
  */
 const main = async (provider, productsDataFilePath) => {
-  console.log(`Using cover address: ${COVER_PROXY_ADDRESS}.`);
+  console.log(`Using cover address: ${COVER_PROXY_ADDRESS}`);
 
   const cover = await ethers.getContractAt('Cover', COVER_PROXY_ADDRESS);
 
@@ -49,47 +67,46 @@ const main = async (provider, productsDataFilePath) => {
     skip_empty_lines: true,
   });
 
+  console.log(productData);
+
   const productEntries = await Promise.all(
     productData.map(async data => {
       const coverAssetsAsText = data['Cover Assets'];
       const coverAssets =
-        (coverAssetsAsText === 'DAI' && 0b10) || // Yield token cover that uses DAI
-        (coverAssetsAsText === 'ETH' && 0b01) || // Yield token cover that uses ETH
+        (coverAssetsAsText === 'DAI' && 0b10) || // DAI
+        (coverAssetsAsText === 'ETH' && 0b01) || // ETH
         0; // The default is 0 - this means all assets are allowed (no whitelist)
 
-      // const filePath = data['IPFS Metadata'];
-      //
-      // console.log(`Uploading ${data['Product Name']} annex from ${filePath} to IPFS`);
-      // const annex = await ipfs.add(fs.readFileSync(filePath));
-      // console.log(`Pinning ${annex.path}`);
-      // await ipfs.pin.add(annex.path);
-      //
-      // console.log(`Appending ${annex.path} to ${data['Product Name']} metadata on IPFS`);
-      // const metadata = await ipfs.add(Buffer.from(JSON.stringify({ annex: annex.path })));
-      // console.log(`Pinning ${metadata.path}`);
-      // await ipfs.pin.add(metadata.path);
+      const filePath = data['IPFS Metadata'];
+      const annex = await retryUpload(filePath);
 
+      console.log(`Appending ${annex.path} to ${data['Product Name']} metadata on IPFS`);
+      const metadataContent = Buffer.from(JSON.stringify({ annex: annex.path }));
+      const metadataFilePath = 'metadata.json'; // Temporary file path for metadata content
+      fs.writeFileSync(metadataFilePath, metadataContent); // Write metadata content to a temporary file
+
+      // Use retryUpload for uploading and pinning metadata
+      const metadata = await retryUpload(metadataFilePath);
+      console.log(`Metadata pinned at ${metadata.path}`);
+
+      // Clean up the temporary metadata file after successful upload
+      // fs.unlinkSync(metadataFilePath);
+      //
       const productParams = {
         productName: data['Product Name'],
         productId: data['Product Id'] || MaxUint256, // create new product - use Max Uint.
-        ipfsMetadata: '', // metadata.path, // IPFS metadata is optional.
+        ipfsMetadata: metadata.path, // IPFS metadata is optional.
         product: {
           productType: data['Product Type'],
-          yieldTokenAddress:
-            data['Product Type'] === YIELD_TOKEN_PRODUCT_TYPE_ID
-              ? data['Yield Token Address']
-              : '0x0000000000000000000000000000000000000000',
+          yieldTokenAddress: '0x0000000000000000000000000000000000000000',
           coverAssets,
-          // works for integers: parseInt('10%') === 10; to convert it to 4 decimal ratio you multiply by 100
-          initialPriceRatio: parseInt(data['Initial Price Ratio']) * 100,
-          // works for integers: parseInt('0%') === 0
+          initialPriceRatio: parseInt(parseFloat(data['Initial Price Ratio']) * 100),
           capacityReductionRatio: parseInt(data['Capacity Reduction Ratio']),
           useFixedPrice: data['Use fixed price'].trim() === 'TRUE',
           isDeprecated: data['Is deprecated'].trim() === 'TRUE',
         },
-        allowedPools: [],
+        allowedPools: data['Allowed Pools'] ? data['Allowed Pools'].split(',').map(pool => pool.trim()) : [],
       };
-
       return productParams;
     }),
   );

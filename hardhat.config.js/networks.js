@@ -19,7 +19,7 @@ const getenv = (network, key, fallback, parser = i => i) => {
   return value ? parser(value) : fallback;
 };
 
-for (const network of ['MAINNET', 'GOERLI', 'KOVAN', 'RINKEBY', 'TENDERLY', 'LOCALHOST']) {
+for (const network of ['MAINNET', 'GOERLI', 'SEPOLIA', 'GNOSIS', 'TENDERLY', 'LOCALHOST']) {
   const url = getenv(network, 'PROVIDER_URL', false);
   if (!url) {
     continue;

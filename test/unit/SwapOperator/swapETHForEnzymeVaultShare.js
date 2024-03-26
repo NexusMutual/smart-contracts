@@ -22,12 +22,10 @@ describe('swapETHForEnzymeVaultShare', function () {
   it('should revert when called by an address that is not swap controller', async function () {
     const fixture = await loadFixture(setup);
     const { swapOperator } = fixture.contracts;
+    const [nobody] = fixture.accounts.nonMembers;
 
-    const nobody = fixture.accounts.nonMembers[0];
-
-    await expect(swapOperator.connect(nobody).swapETHForEnzymeVaultShare('0', '0')).to.be.revertedWith(
-      'SwapOp: only controller can execute',
-    );
+    const swap = swapOperator.connect(nobody).swapETHForEnzymeVaultShare('0', '0');
+    await expect(swap).to.revertedWithCustomError(swapOperator, 'OnlyController');
   });
 
   it('should revert when asset is not enabled', async function () {
@@ -42,9 +40,8 @@ describe('swapETHForEnzymeVaultShare', function () {
       '100', // 1% max slippage
     );
 
-    await expect(swapOperator.swapETHForEnzymeVaultShare(parseEther('1'), '0')).to.be.revertedWith(
-      'SwapOp: asset is not enabled',
-    );
+    const swap = swapOperator.swapETHForEnzymeVaultShare(parseEther('1'), '0');
+    await expect(swap).to.be.revertedWithCustomError(swapOperator, 'TokenDisabled').withArgs(enzymeV4Vault.address);
   });
 
   it('should revert if ether left in pool is less than minPoolEth', async function () {
@@ -64,9 +61,9 @@ describe('swapETHForEnzymeVaultShare', function () {
     const maxPoolTradableEther = currentEther.sub(minPoolEth);
 
     // should fail with max + 1
-    await expect(swapOperator.swapETHForEnzymeVaultShare(currentEther, currentEther)).to.be.revertedWith(
-      'SwapOp: insufficient ether left',
-    );
+    await expect(swapOperator.swapETHForEnzymeVaultShare(currentEther, currentEther))
+      .to.be.revertedWithCustomError(swapOperator, 'InvalidPostSwapBalance')
+      .withArgs(0, minPoolEth);
 
     // should work with max
     await swapOperator.swapETHForEnzymeVaultShare(maxPoolTradableEther, maxPoolTradableEther);
@@ -101,9 +98,9 @@ describe('swapETHForEnzymeVaultShare', function () {
 
     // enzyme lowers the rate.
     await enzymeV4Comptroller.setETHToVaultSharesRate('500');
-    await expect(swapOperator.swapETHForEnzymeVaultShare(amountIn, amountIn)).to.be.revertedWith(
-      'SwapOp: amountOut < amountOutMin',
-    );
+    await expect(swapOperator.swapETHForEnzymeVaultShare(amountIn, amountIn))
+      .to.be.revertedWithCustomError(swapOperator, 'AmountOutTooLow')
+      .withArgs(parseEther('50'), amountIn);
   });
 
   it('should revert if balanceAfter > max', async function () {
@@ -127,9 +124,9 @@ describe('swapETHForEnzymeVaultShare', function () {
     });
 
     const etherIn = max.add(10001);
-    await expect(swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn)).to.be.revertedWith(
-      'SwapOp: balanceAfter > max',
-    );
+    await expect(swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn))
+      .to.be.revertedWithCustomError(swapOperator, 'InvalidPostSwapBalance')
+      .withArgs(etherIn, max);
   });
 
   it('should swap asset for eth and emit a Swapped event with correct values', async function () {
@@ -295,8 +292,8 @@ describe('swapETHForEnzymeVaultShare', function () {
     }
 
     const etherIn = minAssetAmount.div(2);
-    await expect(swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn)).to.be.revertedWith(
-      'SwapOp: balanceBefore >= min',
-    );
+    await expect(swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn))
+      .to.be.revertedWithCustomError(swapOperator, 'InvalidBalance')
+      .withArgs(BigNumber.from('116666666666666666666'), minAssetAmount);
   });
 });

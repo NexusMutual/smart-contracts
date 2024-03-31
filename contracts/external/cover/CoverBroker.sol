@@ -3,32 +3,23 @@
 pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-v4/access/Ownable.sol";
 
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverBroker.sol";
 import "../../interfaces/IMemberRoles.sol";
 
 /// @dev Allows cover distribution by buying cover in behalf of the caller
-contract CoverBroker is ICoverBroker, ReentrancyGuard {
+contract CoverBroker is ICoverBroker, Ownable {
 
   // Immutables
-  address owner;
   ICover cover;
   IMemberRoles memberRoles;
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-  modifier onlyOwner() {
-    if (msg.sender != owner) {
-      revert OnlyOwner();
-    }
-    _;
-  }
-
-  constructor(address _owner, address _cover, address _memberRoles) {
-    owner = _owner;
+  constructor(address _cover, address _memberRoles) {
     cover = ICover(_cover);
     memberRoles = IMemberRoles(_memberRoles);
   }

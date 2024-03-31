@@ -18,7 +18,6 @@ interface ICoverBroker {
 
   /* ==== ERRORS ==== */
 
-  error OnlyOwner();
   error TransferFailed(address to, uint value, address token);
   error ZeroBalance(address token);
 }

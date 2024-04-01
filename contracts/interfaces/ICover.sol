@@ -129,15 +129,15 @@ interface ICover {
 
   function totalActiveCoverInAsset(uint coverAsset) external view returns (uint);
 
-  function globalCapacityRatio() external view returns (uint);
+  function getGlobalCapacityRatio() external view returns (uint);
 
-  function globalRewardsRatio() external view returns (uint);
+  function getGlobalRewardsRatio() external view returns (uint);
 
-  function getPriceAndCapacityRatios(uint[] calldata productIds) external view returns (
+  function getGlobalMinPriceRatio() external pure returns (uint);
+
+  function getGlobalCapacityAndPriceRatios() external view returns (
     uint _globalCapacityRatio,
-    uint _globalMinPriceRatio,
-    uint[] memory _initialPriceRatios,
-    uint[] memory _capacityReductionRatios
+    uint _globalMinPriceRatio
   );
 
   function GLOBAL_MIN_PRICE_RATIO() external view returns (uint);

@@ -10,8 +10,10 @@ import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingNFT.sol";
+import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
@@ -19,8 +21,6 @@ import "../../interfaces/ITokenController.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
-import "../../interfaces/IStakingProducts.sol";
-import "../../interfaces/ICoverProducts.sol";
 
 contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
@@ -32,10 +32,10 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
   // productId => product name
   mapping(uint => string) public productNames;
   // productTypeId => productType name
-  mapping(uint => string) public productTypeNames;
+  mapping(uint => string) internal productTypeNames;
 
   // product id => allowed pool ids
-  mapping(uint => uint[]) public allowedPools;
+  mapping(uint => uint[]) internal allowedPools;
 
   /* ========== CONSTANTS ========== */
 
@@ -45,23 +45,31 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
   /* ========== VIEWS ========== */
 
-  function allowedPoolsCount(uint productId) external view returns (uint) {
-    return allowedPools[productId].length;
+  function getProductType(uint productTypeId) external view returns (ProductType memory) {
+    return _productTypes[productTypeId];
   }
 
-  function products(uint id) external override view returns (Product memory) {
-    return _products[id];
+  function getProductTypeName(uint productTypeId) external view returns (string memory) {
+    return productTypeNames[productTypeId];
   }
 
-  function productTypes(uint id) external view returns (ProductType memory) {
-    return _productTypes[id];
-  }
-
-  function productTypesCount() external view returns (uint) {
+  function getProductTypeCount() external view returns (uint) {
     return _productTypes.length;
   }
 
-  function productsCount() public view returns (uint) {
+  function getProductTypes() external view returns (ProductType[] memory) {
+    return _productTypes;
+  }
+
+  function getProduct(uint productId) external view returns (Product memory) {
+    return _products[productId];
+  }
+
+  function getProductName(uint productId) external view returns (string memory) {
+    return productNames[productId];
+  }
+
+  function getProductCount() public view returns (uint) {
     return _products.length;
   }
 
@@ -69,32 +77,84 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     return _products;
   }
 
-  function getProductTypes() external view returns (ProductType[] memory) {
-    return _productTypes;
-  }
-
-  function getProductWithType(uint productId)  external override view returns (Product memory product, ProductType memory) {
-    product = _products[productId];
-    return (product, _productTypes[product.productType]);
-  }
-
-  function getPriceAndCapacityRatios(uint[] calldata productIds) external view returns (
-    uint[] memory _initialPrices,
-    uint[] memory _capacityReductionRatios
+  function getProductWithType(uint productId)  external override view returns (
+    Product memory product,
+    ProductType memory productType
   ) {
-    _capacityReductionRatios = new uint[](productIds.length);
-    _initialPrices = new uint[](productIds.length);
+    product = _products[productId];
+    productType = _productTypes[product.productType];
+  }
+
+  function getAllowedPools(uint productId) external view returns (uint[] memory _allowedPools) {
+
+    uint allowedPoolCount = allowedPools[productId].length;
+    _allowedPools = new uint[](allowedPoolCount);
+
+    for (uint i = 0; i < allowedPoolCount; i++) {
+      _allowedPools[i] = allowedPools[productId][i];
+    }
+  }
+
+  function getAllowedPoolsCount(uint productId) external view returns (uint) {
+    return allowedPools[productId].length;
+  }
+
+  function getInitialPrices(
+    uint[] calldata productIds
+  ) external view returns (uint[] memory initialPrices) {
+
+    uint productCount = _products.length;
+    initialPrices = new uint[](productIds.length);
 
     for (uint i = 0; i < productIds.length; i++) {
       uint productId = productIds[i];
 
-      uint _productsCount = _products.length;
-      if (productId >= _productsCount) {
+      if (productId >= productCount) {
         revert ProductDoesntExist();
       }
 
-      _initialPrices[i] = uint(_products[productId].initialPriceRatio);
-      _capacityReductionRatios[i] = uint(_products[productId].capacityReductionRatio);
+      initialPrices[i] = _products[productId].initialPriceRatio;
+    }
+  }
+
+  function getCapacityReductionRatios(
+    uint[] calldata productIds
+  ) external view returns (uint[] memory capacityReductionRatios) {
+
+    uint productCount = _products.length;
+    capacityReductionRatios = new uint[](productIds.length);
+
+    for (uint i = 0; i < productIds.length; i++) {
+      uint productId = productIds[i];
+
+      if (productId >= productCount) {
+        revert ProductDoesntExist();
+      }
+
+      capacityReductionRatios[i] = _products[productId].capacityReductionRatio;
+    }
+  }
+
+  function getCapacityReductionRatiosInitialPrices(
+    uint[] calldata productIds
+  ) external view returns (
+    uint[] memory initialPrices,
+    uint[] memory capacityReductionRatios
+  ) {
+
+    uint productCount = _products.length;
+    initialPrices = new uint[](productIds.length);
+    capacityReductionRatios = new uint[](productIds.length);
+
+    for (uint i = 0; i < productIds.length; i++) {
+      uint productId = productIds[i];
+
+      if (productId >= productCount) {
+        revert ProductDoesntExist();
+      }
+
+      initialPrices[i] = _products[productId].initialPriceRatio;
+      capacityReductionRatios[i] = _products[productId].capacityReductionRatio;
     }
   }
 
@@ -103,7 +163,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
   function setProducts(ProductParam[] calldata productParams) external override onlyAdvisoryBoard {
 
     uint unsupportedCoverAssetsBitmap = type(uint).max;
-
+    uint globalMinPriceRatio = cover().getGlobalMinPriceRatio();
 
     Asset[] memory assets = pool().getAssets();
     uint assetsLength = assets.length;
@@ -128,7 +188,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
         revert UnsupportedCoverAssets();
       }
 
-      if (product.initialPriceRatio < cover().GLOBAL_MIN_PRICE_RATIO()) {
+      if (product.initialPriceRatio < globalMinPriceRatio) {
         revert InitialPriceRatioBelowGlobalMinPriceRatio();
       }
 
@@ -204,7 +264,6 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
   }
 
   /* ========== COVER ASSETS HELPERS ========== */
-
 
   // Returns true if the product exists and the pool is authorized to have the product
   function isPoolAllowed(uint productId, uint poolId) public view returns (bool) {

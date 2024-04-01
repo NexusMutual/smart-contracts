@@ -82,6 +82,25 @@ contract CoverProductsMockCover is ICover {
     revert("Unsupported");
   }
 
+  function getGlobalCapacityAndPriceRatios() external pure returns (
+    uint /* _globalCapacityRatio */,
+    uint /* _globalMinPriceRatio */
+  ) {
+    revert("Unsupported");
+  }
+
+  function getGlobalCapacityRatio() external pure returns (uint) {
+    revert("Unsupported");
+  }
+
+  function getGlobalMinPriceRatio() external pure returns (uint) {
+    revert("Unsupported");
+  }
+
+  function getGlobalRewardsRatio() external pure returns (uint) {
+    revert("Unsupported");
+  }
+
   function getProducts() external view returns (Product[] memory) {
     return _products;
   }

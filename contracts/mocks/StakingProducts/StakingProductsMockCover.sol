@@ -55,8 +55,8 @@ contract StakingProductsMockCover {
     IStakingPool _stakingPool
   ) public returns (uint premium, uint) {
 
-    Product memory product = coverProducts.products(params.productId);
-    uint gracePeriod = coverProducts.productTypes(product.productType).gracePeriod;
+    Product memory product = coverProducts.getProduct(params.productId);
+    uint gracePeriod = coverProducts.getProductType(product.productType).gracePeriod;
 
     (premium, allocationId) = _stakingPool.requestAllocation(
       params.amount,
@@ -148,7 +148,7 @@ contract StakingProductsMockCover {
     _initialPrices = new uint[](productIds.length);
 
     for (uint i = 0; i < productIds.length; i++) {
-      Product memory product = coverProducts.products(productIds[i]);
+      Product memory product = coverProducts.getProduct(productIds[i]);
       if (product.initialPriceRatio == 0) {
         revert ProductDeprecatedOrNotInitialized();
       }

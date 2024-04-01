@@ -10,6 +10,7 @@ import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
@@ -20,7 +21,6 @@ import "../../interfaces/IStakingProducts.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
-import "../../interfaces/ICoverProducts.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Multicall {
   using SafeERC20 for IERC20;
@@ -28,19 +28,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   /* ========== STATE VARIABLES ========== */
 
-  // To be removed once migration is completed
-  Product[] internal _products;
-  ProductType[] internal _productTypes;
+  // moved to cover products
+  Product[] private _unused_products;
+  ProductType[] private _unused_productTypes;
 
   mapping(uint => CoverData) private _coverData;
 
   // cover id => segment id => pool allocations array
   mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
+  // moved to cover products
   mapping(uint => uint[]) private _unused_allowedPools;
 
   // Each cover has an array of segments. A new segment is created
-  // every time a cover is edited to deliniate the different cover periods.
+  // every time a cover is edited to indicate the different cover periods.
   mapping(uint => CoverSegment[]) private _coverSegments;
 
   // assetId => { lastBucketUpdateId, totalActiveCoverInAsset }
@@ -48,10 +49,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   // assetId => bucketId => amount
   mapping(uint => mapping(uint => uint)) internal activeCoverExpirationBuckets;
 
-  // productId => product name
-  mapping(uint => string) public _unused_productNames;
-  // productTypeId => productType name
-  mapping(uint => string) public _unused_productTypeNames;
+  // moved to cover products
+  mapping(uint => string) private _unused_productNames;
+  mapping(uint => string) private _unused_productTypeNames;
 
   /* ========== CONSTANTS ========== */
 
@@ -67,7 +67,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   uint private constant MAX_COVER_PERIOD = 365 days;
   uint private constant MIN_COVER_PERIOD = 28 days;
   uint private constant BUCKET_SIZE = 7 days;
-  // this constant is used for calculating the normalized yearly percentage cost of cover
   uint private constant ONE_YEAR = 365 days;
 
   uint public constant MAX_COMMISSION_RATIO = 3000; // 30%
@@ -136,11 +135,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     {
 
       ICoverProducts _coverProducts = coverProducts();
-      if (_coverProducts.productsCount() <= params.productId) {
+
+      if (_coverProducts.getProductCount() <= params.productId) {
         revert ProductDoesntExist();
       }
 
-      Product memory product = _coverProducts.products(params.productId);
+      (Product memory product, ProductType memory productType) = _coverProducts.getProductWithType(params.productId);
 
       if (product.isDeprecated) {
         revert ProductDoesntExistOrIsDeprecated();
@@ -153,7 +153,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.productId = params.productId;
       allocationRequest.coverId = coverId;
       allocationRequest.period = params.period;
-      allocationRequest.gracePeriod = _coverProducts.productTypes(product.productType).gracePeriod;
+      allocationRequest.gracePeriod = productType.gracePeriod;
       allocationRequest.useFixedPrice = product.useFixedPrice;
       allocationRequest.globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
       allocationRequest.capacityReductionRatio = product.capacityReductionRatio;
@@ -271,7 +271,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationIndex < coverSegmentAllocations[coverId][segmentId].length;
       allocationIndex++
     ) {
-      PoolAllocation memory allocation =  coverSegmentAllocations[coverId][segmentId][allocationIndex];
+      PoolAllocation memory allocation = coverSegmentAllocations[coverId][segmentId][allocationIndex];
       AllocationRequest memory allocationRequest;
       // editing just the needed props for deallocation
       allocationRequest.productId = cover.productId;
@@ -279,7 +279,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.previousStart = lastSegment.start;
       allocationRequest.previousExpiration = expiration;
 
-      stakingProducts().stakingPool(allocation.poolId).requestAllocation(
+      stakingPool(allocation.poolId).requestAllocation(
         0, // amount
         0, // previous premium
         allocationRequest
@@ -308,7 +308,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       // if there is a previous segment and this index is present on it
       if (vars.previousPoolAllocationsLength > i) {
         PoolAllocation memory previousPoolAllocation =
-          coverSegmentAllocations[allocationRequest.coverId][segmentId - 1][i];
+                    coverSegmentAllocations[allocationRequest.coverId][segmentId - 1][i];
 
         // poolAllocationRequests must match the pools in the previous segment
         if (previousPoolAllocation.poolId != poolAllocationRequests[i].poolId) {
@@ -341,7 +341,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         NXM_PER_ALLOCATION_UNIT
       );
 
-      (uint premiumInNXM, uint allocationId) = stakingProducts().stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
+      (uint premiumInNXM, uint allocationId) = stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
         coverAmountInNXM,
         vars.previousPremiumInNXM,
         allocationRequest
@@ -506,7 +506,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   ) external onlyInternal returns (uint coverId) {
 
     ICoverProducts _coverProducts = coverProducts();
-    ProductType memory productType = _coverProducts.productTypes(_coverProducts.products(productId).productType);
+    (/* product */, ProductType memory productType) = _coverProducts.getProductWithType(productId);
 
     // uses the current v2 grace period
     if (block.timestamp >= start + period + productType.gracePeriod) {
@@ -527,7 +527,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         period.toUint32(),
         productType.gracePeriod,
         0, // global rewards ratio
-        1
+        1  // global capacity ratio
       )
     );
 
@@ -585,7 +585,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     // increase amountPaidOut only *after* you read the segment
     cover.amountPaidOut += payoutAmountInAsset.toUint96();
 
-    IStakingProducts _stakingProducts = stakingProducts();
     for (uint i = 0; i < allocations.length; i++) {
       PoolAllocation memory allocation = allocations[i];
 
@@ -604,7 +603,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       );
 
       uint poolId = allocations[i].poolId;
-      _stakingProducts.stakingPool(poolId).burnStake(burnAmountInNxm, params);
+      stakingPool(poolId).burnStake(burnAmountInNxm, params);
     }
 
     return coverNFT.ownerOf(coverId);
@@ -646,26 +645,21 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return uint(activeCover[assetId].totalActiveCoverInAsset);
   }
 
-  function globalCapacityRatio() external pure returns (uint) {
+  function getGlobalCapacityRatio() external pure returns (uint) {
     return GLOBAL_CAPACITY_RATIO;
   }
 
-  function globalRewardsRatio() external pure returns (uint) {
+  function getGlobalRewardsRatio() external pure returns (uint) {
     return GLOBAL_REWARDS_RATIO;
   }
 
-  function getPriceAndCapacityRatios(uint[] calldata productIds) external view returns (
-    uint _globalCapacityRatio,
-    uint _globalMinPriceRatio,
-    uint[] memory _initialPrices,
-    uint[] memory _capacityReductionRatios
-  ) {
+  function getGlobalMinPriceRatio() external pure returns (uint) {
+    return GLOBAL_MIN_PRICE_RATIO;
+  }
+
+  function getGlobalCapacityAndPriceRatios() external pure returns (uint _globalCapacityRatio, uint _globalMinPriceRatio) {
     _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
     _globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
-    ICoverProducts _coverProducts = coverProducts();
-
-    (_initialPrices, _capacityReductionRatios) = _coverProducts.getPriceAndCapacityRatios(productIds);
-
   }
 
   function isCoverAssetSupported(uint assetId, uint productCoverAssetsBitmap) internal view returns (bool) {
@@ -684,6 +678,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return asset.isCoverAsset && !asset.isAbandoned;
   }
 
+  function stakingPool(uint poolId) public view returns (IStakingPool) {
+    return IStakingPool(
+      StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId)
+    );
+  }
+
   /* ========== DEPENDENCIES ========== */
 
   function pool() internal view returns (IPool) {
@@ -698,10 +698,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return IMemberRoles(internalContracts[uint(ID.MR)]);
   }
 
-  function stakingProducts() internal view returns (IStakingProducts) {
-    return IStakingProducts(getInternalContractAddress(ID.SP));
-  }
-
   function coverProducts() internal view returns (ICoverProducts) {
     return ICoverProducts(getInternalContractAddress(ID.CP));
   }
@@ -710,7 +706,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
-    internalContracts[uint(ID.SP)] = master.getLatestAddress("SP");
     internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
   }
 }

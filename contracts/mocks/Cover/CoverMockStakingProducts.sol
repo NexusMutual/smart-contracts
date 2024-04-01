@@ -159,16 +159,17 @@ contract CoverMockStakingProducts is IStakingProducts {
       uint productId = productInitParams[i].productId;
 
       ICoverProducts _coverProducts = coverProducts();
+
       // if there is a list of allowed pools for this product - this pool didn't exist yet so it's not in it
-      if (_coverProducts.allowedPoolsCount(productId) > 0) {
+      if (_coverProducts.getAllowedPoolsCount(productId) > 0) {
         revert ICoverProducts.PoolNotAllowedForThisProduct(productId);
       }
 
-      if (productId >= _coverProducts.productsCount()) {
+      if (productId >= _coverProducts.getProductCount()) {
         revert ProductDoesntExistOrIsDeprecated();
       }
 
-      Product memory product = _coverProducts.products(productId);
+      Product memory product = _coverProducts.getProduct(productId);
 
       if (product.isDeprecated) {
         revert ProductDoesntExistOrIsDeprecated();

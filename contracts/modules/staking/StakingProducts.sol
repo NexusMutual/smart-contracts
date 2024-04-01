@@ -87,13 +87,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     IStakingPool _stakingPool = stakingPool(poolId);
 
-    (
-      uint globalCapacityRatio,
-      /* globalMinPriceRatio */,
-      /* initialPriceRatios */,
-      /* capacityReductionRatios */
-      uint[] memory capacityReductionRatios
-    ) = ICover(coverContract).getPriceAndCapacityRatios(productIds);
+    uint[] memory capacityReductionRatios = coverProducts().getCapacityReductionRatios(productIds);
+    uint globalCapacityRatio = cover().getGlobalCapacityRatio();
 
     uint _totalEffectiveWeight = weights[poolId].totalEffectiveWeight;
 
@@ -118,8 +113,10 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function recalculateEffectiveWeightsForAllProducts(uint poolId) external {
 
-    uint productsCount = coverProducts().productsCount();
+    ICoverProducts _coverProducts = coverProducts();
     IStakingPool _stakingPool = stakingPool(poolId);
+
+    uint productsCount = _coverProducts.getProductCount();
 
     // initialize array for all possible products
     uint[] memory productIdsRaw = new uint[](productsCount);
@@ -140,13 +137,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       productIds[i] = productIdsRaw[i];
     }
 
-    (
-      uint globalCapacityRatio,
-      /* globalMinPriceRatio */,
-      /* initialPriceRatios */,
-      /* capacityReductionRatios */
-      uint[] memory capacityReductionRatios
-    ) = ICover(coverContract).getPriceAndCapacityRatios(productIds);
+    uint globalCapacityRatio = cover().getGlobalCapacityRatio();
+    uint[] memory capacityReductionRatios = _coverProducts.getCapacityReductionRatios(productIds);
 
     uint _totalEffectiveWeight;
 
@@ -177,8 +169,11 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       revert OnlyManager();
     }
 
-    uint globalCapacityRatio;
-    uint globalMinPriceRatio;
+    (
+      uint globalCapacityRatio,
+      uint globalMinPriceRatio
+    ) = ICover(coverContract).getGlobalCapacityAndPriceRatios();
+
     uint[] memory initialPriceRatios;
     uint[] memory capacityReductionRatios;
 
@@ -190,16 +185,13 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
         productIds[i] = params[i].productId;
       }
 
-      // reverts if poolId is not allowed for any of these products
-      coverProducts().requirePoolIsAllowed(productIds, poolId);
+      ICoverProducts _coverProducts = coverProducts();
 
-      // reverts if any of the products do not exist
-      (
-        globalCapacityRatio,
-        globalMinPriceRatio,
-        initialPriceRatios,
-        capacityReductionRatios
-      ) = ICover(coverContract).getPriceAndCapacityRatios(productIds);
+      // reverts if poolId is not allowed for any of these products
+      _coverProducts.requirePoolIsAllowed(productIds, poolId);
+
+      initialPriceRatios = _coverProducts.getInitialPrices(productIds);
+      capacityReductionRatios = _coverProducts.getCapacityReductionRatios(productIds);
     }
 
     Weights memory _weights = weights[poolId];
@@ -352,10 +344,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint actualWeight = Math.min(totalAllocation * WEIGHT_DENOMINATOR / totalCapacity, type(uint16).max);
 
     return Math.max(targetWeight, actualWeight).toUint16();
-  }
-
-  function setInitialProducts(uint poolId, ProductInitializationParams[] memory params) public onlyInternal {
-    _setInitialProducts(poolId, params);
   }
 
   function _setInitialProducts(uint poolId, ProductInitializationParams[] memory params) internal {
@@ -617,28 +605,31 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     string calldata ipfsDescriptionHash
   ) external whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
 
+    ICoverProducts _coverProducts = coverProducts();
+
+    uint productCount = _coverProducts.getProductCount();
+    uint globalMinPriceRatio = ICover(coverContract).getGlobalMinPriceRatio();
     uint numProducts = productInitParams.length;
 
     // override with initial price and check if pool is allowed
     for (uint i = 0; i < numProducts; i++) {
 
-      if (productInitParams[i].targetPrice < ICover(coverContract).GLOBAL_MIN_PRICE_RATIO()) {
+      if (productInitParams[i].targetPrice < globalMinPriceRatio) {
         revert TargetPriceBelowGlobalMinPriceRatio();
       }
 
       uint productId = productInitParams[i].productId;
 
-      ICoverProducts _coverProducts = coverProducts();
       // if there is a list of allowed pools for this product - this pool didn't exist yet so it's not in it
-      if (_coverProducts.allowedPoolsCount(productId) > 0) {
+      if (_coverProducts.getAllowedPoolsCount(productId) > 0) {
         revert ICoverProducts.PoolNotAllowedForThisProduct(productId);
       }
 
-      if (productId >= _coverProducts.productsCount()) {
+      if (productId >= productCount) {
         revert ProductDoesntExistOrIsDeprecated();
       }
 
-      Product memory product = _coverProducts.products(productId);
+      Product memory product = _coverProducts.getProduct(productId);
 
       if (product.isDeprecated) {
         revert ProductDoesntExistOrIsDeprecated();
@@ -674,10 +665,14 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     return ICoverProducts(getInternalContractAddress(ID.CP));
   }
 
+  function cover() internal view returns (ICover) {
+    return ICover(getInternalContractAddress(ID.CO));
+  }
+
   function changeDependentContractAddress() external {
-    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
-    internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
+    internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
+    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
   }
 
 }

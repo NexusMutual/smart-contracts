@@ -6,53 +6,70 @@ import "./ICover.sol";
 
 /* ========== DATA STRUCTURES ========== */
 
-struct ProductParam {
-  string productName;
-  uint productId;
-  string ipfsMetadata;
-  Product product;
-  uint[] allowedPools;
-}
+  struct ProductParam {
+    string productName;
+    uint productId;
+    string ipfsMetadata;
+    Product product;
+    uint[] allowedPools;
+  }
 
-struct ProductTypeParam {
-  string productTypeName;
-  uint productTypeId;
-  string ipfsMetadata;
-  ProductType productType;
-}
+  struct ProductTypeParam {
+    string productTypeName;
+    uint productTypeId;
+    string ipfsMetadata;
+    ProductType productType;
+  }
 
 interface ICoverProducts {
 
   /* ========== VIEWS ========== */
 
-  function allowedPoolsCount(uint productId) external view returns (uint);
+  function getProductType(uint productTypeId) external view returns (ProductType memory);
 
-  function products(uint id) external view returns (Product memory);
+  function getProductTypeName(uint productTypeId) external view returns (string memory);
 
-  function productNames(uint productId) external view returns (string memory);
+  function getProductTypeCount() external view returns (uint);
 
-  function productsCount() external view returns (uint);
+  function getProductTypes() external view returns (ProductType[] memory);
 
-  function productTypesCount() external view returns (uint);
+  function getProduct(uint productId) external view returns (Product memory);
 
-  function productTypes(uint id) external view returns (ProductType memory);
+  function getProductName(uint productTypeId) external view returns (string memory);
+
+  function getProductCount() external view returns (uint);
 
   function getProducts() external view returns (Product[] memory);
 
-  function getProductTypes() external view returns (ProductType[] memory);
+  function getProductWithType(uint productId) external view returns (Product memory, ProductType memory);
+
+  function getAllowedPools(uint productId) external view returns (uint[] memory _allowedPools);
+
+  function getAllowedPoolsCount(uint productId) external view returns (uint);
 
   function isPoolAllowed(uint productId, uint poolId) external view returns (bool);
 
   function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external view;
 
-  function getProductWithType(uint productId)  external view returns (Product memory, ProductType memory);
+  function getCapacityReductionRatios(uint[] calldata productIds) external view returns (uint[] memory);
+
+  function getInitialPrices(uint[] calldata productIds) external view returns (uint[] memory);
+
+  function getCapacityReductionRatiosInitialPrices(
+    uint[] calldata productIds
+  ) external view returns (
+    uint[] memory initialPrices,
+    uint[] memory capacityReductionRatios
+  );
+
+  // deprecated
+  function productNames(uint) external view returns (string memory);
 
   /* === MUTATIVE FUNCTIONS ==== */
 
   function setProductTypes(ProductTypeParam[] calldata productTypes) external;
 
   function setProducts(ProductParam[] calldata params) external;
-
 
   /* ========== EVENTS ========== */
 
@@ -81,8 +98,4 @@ interface ICoverProducts {
   // Misc
   error CapacityReductionRatioAbove100Percent();
 
-  function getPriceAndCapacityRatios(uint[] calldata productIds) external view returns (
-    uint[] memory _initialPrices,
-    uint[] memory _capacityReductionRatios
-  );
 }

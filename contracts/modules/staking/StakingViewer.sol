@@ -91,7 +91,7 @@ contract StakingViewer is Multicall {
   function stakingProducts() internal view returns (IStakingProducts) {
     return IStakingProducts(master.contractAddresses('SP'));
   }
-  
+
   function coverProducts() internal view returns (ICoverProducts) {
     return ICoverProducts(master.contractAddresses('CP'));
   }
@@ -182,7 +182,7 @@ contract StakingViewer is Multicall {
   function getPoolProducts(uint poolId) public view returns (StakingProduct[] memory products) {
 
     uint stakedProductsCount = 0;
-    uint coverProductCount = coverProducts().productsCount();
+    uint coverProductCount = coverProducts().getProductCount();
     StakingProduct[] memory stakedProductsQueue = new StakingProduct[](coverProductCount);
 
     for (uint i = 0; i < coverProductCount; i++) {

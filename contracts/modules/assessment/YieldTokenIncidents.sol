@@ -145,9 +145,11 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     uint expectedPayoutInNXM,
     string calldata ipfsMetadata
   ) external override onlyGovernance whenNotPaused {
+
     ICoverProducts coverProductsContract = coverProducts();
-    Product memory product = coverProductsContract.products(productId);
-    ProductType memory productType = coverProductsContract.productTypes(product.productType);
+    Product memory product = coverProductsContract.getProduct(productId);
+    ProductType memory productType = coverProductsContract.getProductType(product.productType);
+
     require(
       productType.claimMethod == uint8(ClaimMethod.YieldTokenIncidents),
       "Invalid claim method for this product type"
@@ -198,7 +200,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
 
     ICover coverContract = ICover(getInternalContractAddress(ID.CO));
     CoverData memory coverData = coverContract.coverData(coverId);
-    Product memory product = coverProducts().products(coverData.productId);
+    Product memory product = coverProducts().getProduct(coverData.productId);
 
     uint payoutAmount;
     {

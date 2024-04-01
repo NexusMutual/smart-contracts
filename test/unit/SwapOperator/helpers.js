@@ -9,8 +9,8 @@ const {
 const daiMinAmount = parseEther('3000');
 const daiMaxAmount = parseEther('20000');
 
-const stethMinAmount = parseEther('10');
-const stethMaxAmount = parseEther('20');
+const stEthMinAmount = parseEther('10');
+const stEthMaxAmount = parseEther('20');
 
 const makeContractOrder = order => {
   return {
@@ -55,6 +55,10 @@ const makeWrongValue = value => {
     return value + 1;
   } else if (typeof value === 'boolean') {
     return !value;
+  } else if (value === 'erc20') {
+    return 'internal';
+  } else if (typeof value === 'string') {
+    return value + '!';
   } else {
     throw new Error(`Unsupported value while fuzzing order: ${value}`);
   }
@@ -67,7 +71,7 @@ module.exports = {
   makeContractOrder,
   daiMaxAmount,
   daiMinAmount,
-  stethMaxAmount,
-  stethMinAmount,
+  stEthMaxAmount,
+  stEthMinAmount,
   lodashValues,
 };

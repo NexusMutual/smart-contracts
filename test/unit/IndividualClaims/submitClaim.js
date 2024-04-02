@@ -298,7 +298,7 @@ describe('submitClaim', function () {
     const { individualClaims, cover, coverProducts } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const coverAsset = ASSET.ETH;
-    const { gracePeriod } = await coverProducts.productTypes(0);
+    const { gracePeriod } = await coverProducts.getProductType(0);
     const segment0 = await getCoverSegment();
     segment0.gracePeriod = gracePeriod;
     const segment1 = { ...segment0 };
@@ -342,7 +342,7 @@ describe('submitClaim', function () {
     const [boardMember] = fixture.accounts.advisoryBoardMembers;
 
     const coverAsset = ASSET.ETH;
-    const { gracePeriod } = await coverProducts.productTypes(0);
+    const { gracePeriod } = await coverProducts.getProductType(0);
     const segment0 = await getCoverSegment();
     const segment1 = await getCoverSegment();
     segment0.gracePeriod = gracePeriod;

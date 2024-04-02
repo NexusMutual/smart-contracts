@@ -58,9 +58,8 @@ contract ICMockCoverProducts is ICoverProducts {
   function editProductTypes(
     uint[] calldata productTypeIds,
     uint32[] calldata gracePeriods,
-    string[] calldata ipfsHash
+    string[] calldata /* ipfsHash */
   ) external {
-    ipfsHash;
     for (uint i = 0; i < productTypeIds.length; i++) {
       _productTypes[productTypeIds[i]].gracePeriod = gracePeriods[i];
     }
@@ -68,6 +67,10 @@ contract ICMockCoverProducts is ICoverProducts {
 
   function addProduct(Product calldata product) external {
     _products.push(product);
+  }
+
+  function getProductType(uint productTypeId) external view returns (ProductType memory) {
+    return _productTypes[productTypeId];
   }
 
   function setProductTypes(ProductTypeParam[] calldata /*  productTypes */) external pure {
@@ -132,10 +135,6 @@ contract ICMockCoverProducts is ICoverProducts {
   }
 
   function getProductName(uint /* productTypeId */) external pure returns (string memory) {
-    revert("Unsupported");
-  }
-
-  function getProductType(uint /* productTypeId */) external pure returns (ProductType memory) {
     revert("Unsupported");
   }
 

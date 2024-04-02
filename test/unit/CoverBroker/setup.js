@@ -10,7 +10,8 @@ async function setup() {
   const dai = await ethers.deployContract('ERC20Mock');
   const cover = await ethers.deployContract('CMMockCover');
   const memberRoles = await ethers.deployContract('MemberRolesMock');
-  const coverBroker = await ethers.deployContract('CoverBroker', [cover.address, memberRoles.address]);
+  const pool = await ethers.deployContract('PoolMock');
+  const coverBroker = await ethers.deployContract('CoverBroker', [cover.address, memberRoles.address, pool.address]);
 
   await memberRoles.setRole(coverBroker.address, 2);
   await coverBroker.transferOwnership(coverBrokerOwner.address);

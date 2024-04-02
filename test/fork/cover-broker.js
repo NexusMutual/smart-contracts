@@ -214,7 +214,11 @@ describe('CoverBroker', function () {
   });
 
   it('Deploy CoverBroker contract and transfer ownership and membership', async function () {
-    this.coverBroker = await ethers.deployContract('CoverBroker', [this.cover.address, this.memberRoles.address]);
+    this.coverBroker = await ethers.deployContract('CoverBroker', [
+      this.cover.address,
+      this.memberRoles.address,
+      this.pool.address,
+    ]);
 
     await this.coverBroker.transferOwnership(this.coverBrokerOwner.address);
     const ownerAfter = await this.coverBroker.owner();

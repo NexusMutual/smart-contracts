@@ -193,9 +193,6 @@ async function setup() {
   await coverNFT.changeOperator(cover.address);
   await cover.changeMasterAddress(master.address);
 
-  // deploy CoverBroker
-  const coverBroker = await ethers.deployContract('CoverBroker', [cover.address, mr.address]);
-
   const ci = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
   const cg = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
   const as = await deployProxy('Assessment', [tk.address]);
@@ -486,6 +483,9 @@ async function setup() {
     'Pool',
     [master, priceFeedOracle, swapOperatorPlaceholder, tk, legacyPool].map(c => c.address),
   );
+
+  // deploy CoverBroker
+  const coverBroker = await ethers.deployContract('CoverBroker', [cover.address, mr.address, p1.address]);
 
   await master.connect(governanceSigner).upgradeMultipleContracts([toBytes2('P1')], [p1.address]);
 

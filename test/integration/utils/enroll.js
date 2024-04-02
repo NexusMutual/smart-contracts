@@ -24,8 +24,10 @@ async function enrollMember({ mr, tk, tc }, members, kycAuthSigner, options = {}
       value: JOINING_FEE,
     });
 
-    await tk.connect(member).approve(tc.address, ethers.constants.MaxUint256);
-    await tk.transfer(member.address, initialTokens);
+    if (initialTokens && initialTokens.gt(0)) {
+      await tk.connect(member).approve(tc.address, ethers.constants.MaxUint256);
+      await tk.transfer(member.address, initialTokens);
+    }
   }
 }
 async function enrollABMember({ mr, gv }, members) {

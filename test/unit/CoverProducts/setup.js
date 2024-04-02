@@ -25,7 +25,7 @@ async function setup() {
   await mcr.setMCR(parseEther('600000'));
 
   const coverProducts = await ethers.deployContract('CoverProducts');
-  const cover = await ethers.deployContract('CoverProductsMockCover');
+  const cover = await ethers.deployContract('CPMockCover');
 
   const stakingProducts = await ethers.deployContract('CoverMockStakingProducts', [
     AddressZero,

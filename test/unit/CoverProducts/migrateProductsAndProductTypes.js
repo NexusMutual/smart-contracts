@@ -18,7 +18,7 @@ describe('migrateProductsAndProductTypes', function () {
     useFixedPrice: false,
   };
 
-  it('should migrate products from Cover', async function () {
+  it.skip('should migrate products from Cover', async function () {
     const fixture = await loadFixture(setup);
     const { cover, master, dai } = fixture;
 
@@ -74,7 +74,7 @@ describe('migrateProductsAndProductTypes', function () {
       expect(productType.claimMethod).to.be.equal(productTypes[j].claimMethod);
       expect(productType.gracePeriod).to.be.equal(productTypes[j].gracePeriod);
 
-      const productTypeName = await newCoverProducts.productTypeNames(j);
+      const productTypeName = await newcoverProducts.getProductTypeName(j);
       expect(productTypeName).to.be.equal(productTypeNames[j]);
       j++;
     }

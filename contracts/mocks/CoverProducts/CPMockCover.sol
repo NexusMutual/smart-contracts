@@ -8,7 +8,7 @@ import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
 import "../../interfaces/ICoverProducts.sol";
 
-contract CoverProductsMockCover is ICover {
+contract CPMockCover is ICover {
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   Product[] internal _products;
@@ -36,6 +36,10 @@ contract CoverProductsMockCover is ICover {
       _productTypes.push(productTypeArray[i]);
       productTypeNames[i] = _productTypeNames[i];
     }
+  }
+
+  function getGlobalMinPriceRatio() external pure returns (uint) {
+    return GLOBAL_MIN_PRICE_RATIO;
   }
 
   function coverData(uint /* coverId */) external pure returns (CoverData memory) {
@@ -90,10 +94,6 @@ contract CoverProductsMockCover is ICover {
   }
 
   function getGlobalCapacityRatio() external pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function getGlobalMinPriceRatio() external pure returns (uint) {
     revert("Unsupported");
   }
 

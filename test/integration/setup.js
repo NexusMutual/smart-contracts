@@ -5,6 +5,7 @@ const { toBytes2, toBytes8 } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
 const { enrollMember, enrollABMember, getGovernanceSigner } = require('./utils/enroll');
 const { getAccounts } = require('../utils/accounts');
+const { impersonateAccount, setEtherBalance } = require('../utils').evm;
 
 const { BigNumber } = ethers;
 const { parseEther, parseUnits } = ethers.utils;
@@ -191,6 +192,9 @@ async function setup() {
   await stakingNFT.changeOperator(cover.address);
   await coverNFT.changeOperator(cover.address);
   await cover.changeMasterAddress(master.address);
+
+  // deploy CoverBroker
+  const coverBroker = await ethers.deployContract('CoverBroker', [cover.address, mr.address]);
 
   const ci = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
   const cg = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
@@ -551,7 +555,7 @@ async function setup() {
     cover: await ethers.getContractAt('Cover', cover.address),
   };
 
-  const nonInternal = { priceFeedOracle, swapOperator };
+  const nonInternal = { priceFeedOracle, swapOperator, coverBroker };
 
   fixture.contracts = {
     ...external,
@@ -573,6 +577,13 @@ async function setup() {
   await enrollMember(fixture.contracts, stakingPoolManagers, owner);
   await enrollMember(fixture.contracts, advisoryBoardMembers, owner);
   await enrollABMember(fixture.contracts, advisoryBoardMembers);
+
+  // enroll coverBroker as member
+  await impersonateAccount(coverBroker.address);
+  await setEtherBalance(coverBroker.address, parseEther('1000'));
+  const coverBrokerSigner = await ethers.getSigner(coverBroker.address);
+  accounts.coverBrokerSigner = coverBrokerSigner;
+  await enrollMember(fixture.contracts, [coverBrokerSigner], owner, { initialTokens: parseEther('0') });
 
   const product = {
     productId: 0,

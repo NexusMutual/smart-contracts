@@ -1138,7 +1138,7 @@ describe('buyCover', function () {
       { value: expectedPremium },
     );
 
-    const globalRewardsRatio = await cover.globalRewardsRatio();
+    const globalRewardsRatio = await cover.getGlobalRewardsRatio();
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     const coverId = await cover.coverDataCount();
@@ -1369,7 +1369,7 @@ describe('buyCover', function () {
       { value: expectedPremium },
     );
 
-    const globalRewardsRatio = await cover.globalRewardsRatio();
+    const globalRewardsRatio = await cover.getGlobalRewardsRatio();
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     // Validate data for second cover

@@ -334,7 +334,7 @@ describe('redeemPayout', function () {
     const { yieldTokenIncidents, assessment, coverProducts, cover } = fixture.contracts;
     const [member1] = fixture.accounts.members;
     const [governance] = fixture.accounts.governanceContracts;
-    const { gracePeriod } = await coverProducts.productTypes(2);
+    const { gracePeriod } = await coverProducts.getProductType(2);
     const segment0 = await getCoverSegment();
     segment0.gracePeriod = gracePeriod;
     const segment1 = { ...segment0 };
@@ -369,7 +369,7 @@ describe('redeemPayout', function () {
     const { yieldTokenIncidents, assessment, coverProducts, cover } = fixture.contracts;
     const [member1] = fixture.accounts.members;
     const [governance] = fixture.accounts.governanceContracts;
-    const { gracePeriod } = await coverProducts.productTypes(2);
+    const { gracePeriod } = await coverProducts.getProductType(2);
 
     const segment0 = await getCoverSegment();
     const segment1 = await getCoverSegment();
@@ -384,7 +384,7 @@ describe('redeemPayout', function () {
     // Change product grace period
     const newGracePeriod = gracePeriod * 1000;
     await coverProducts.connect(governance).editProductTypes([2], [newGracePeriod], ['ipfs hash']);
-    const { gracePeriod: actualNewGracePeriod } = await coverProducts.productTypes(2);
+    const { gracePeriod: actualNewGracePeriod } = await coverProducts.getProductType(2);
     expect(actualNewGracePeriod).to.equal(newGracePeriod);
 
     await yieldTokenIncidents

@@ -5,7 +5,7 @@ pragma solidity ^0.8.18;
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
 
-contract SPMockCover {
+contract StakingPoolMockCover {
 
   uint public constant globalCapacityRatio = 20000;
   uint public constant globalRewardsRatio = 5000;
@@ -20,22 +20,16 @@ contract SPMockCover {
 
   event RequestAllocationReturned(uint premium, uint allocationId);
 
+  function getGlobalRewardsRatio() external pure returns (uint) {
+    return globalRewardsRatio;
+  }
+
+  function getGlobalCapacityRatio() external pure returns (uint) {
+    return globalCapacityRatio;
+  }
+
   function setStakingPool(address addr, uint id) public {
     stakingPool[id] = addr;
-  }
-
-  function setProduct(Product memory _product, uint id) public {
-    products[id] = _product;
-  }
-
-  function setProducts(Product[] memory _products, uint[] memory productIds) public {
-    for (uint i = 0; i < _products.length; i++) {
-      products[productIds[i]] = _products[i];
-    }
-  }
-
-  function setProductType(ProductType calldata product, uint id) public {
-    productTypes[id] = product;
   }
 
   function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (

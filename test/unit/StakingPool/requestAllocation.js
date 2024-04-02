@@ -108,14 +108,14 @@ const trancheOffset = 5;
 
 async function requestAllocationSetup() {
   const fixture = await loadFixture(setup);
-  const { stakingPool, stakingProducts, cover } = fixture;
+  const { stakingPool, stakingProducts, coverProducts } = fixture;
   const [staker] = fixture.accounts.members;
   const productId = 0;
   const trancheId = (await getCurrentTrancheId()) + trancheOffset;
 
   // Set global product and product type
-  await cover.setProduct(coverProductTemplate, productId);
-  await cover.setProductType({ claimMethod: 1, gracePeriod: daysToSeconds(7) }, productId);
+  await coverProducts.setProduct(coverProductTemplate, productId);
+  await coverProducts.setProductType({ claimMethod: 1, gracePeriod: daysToSeconds(7) }, productId);
 
   // Initialize staking pool
   const poolId = 1;

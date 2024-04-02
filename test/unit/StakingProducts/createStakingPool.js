@@ -137,7 +137,7 @@ describe('createStakingPool', function () {
     // check initial product values
     const { timestamp } = await ethers.provider.getBlock('latest');
     for (const product of productInitializationParams) {
-      const coverProduct = await coverProducts.products(product.productId);
+      const coverProduct = await coverProducts.getProduct(product.productId);
       const { lastEffectiveWeight, targetWeight, targetPrice, bumpedPrice, bumpedPriceUpdateTime } =
         await stakingProducts.getProduct(poolId, product.productId);
       expect(lastEffectiveWeight).to.be.equal(product.weight);

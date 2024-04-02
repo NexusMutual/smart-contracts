@@ -8,7 +8,7 @@ import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
 
-contract StakingProductsMockCoverProducts is ICoverProducts {
+contract SPMockCoverProducts is ICoverProducts {
 
   mapping(uint => Product) public _products;
   mapping(uint => ProductType) public _productTypes;

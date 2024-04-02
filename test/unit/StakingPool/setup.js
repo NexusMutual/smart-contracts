@@ -18,12 +18,13 @@ async function setup() {
   // TODO: move to separate folder
   const multicallMock = await ethers.deployContract('MulticallMock');
 
-  const cover = await ethers.deployContract('SPMockCover');
-  const stakingNFT = await ethers.deployContract('SPMockStakingNFT');
+  const cover = await ethers.deployContract('StakingPoolMockCover');
+  const coverProducts = await ethers.deployContract('StakingPoolMockCoverProducts');
+  const stakingNFT = await ethers.deployContract('StakingPoolMockStakingNFT');
   const spf = await ethers.deployContract('StakingPoolFactory', [cover.address]);
 
   // address _coverContract, address _stakingPoolFactory, address _coverProductsContract
-  const stakingProducts = await ethers.deployContract('SPMockStakingProducts', [
+  const stakingProducts = await ethers.deployContract('StakingPoolMockStakingProducts', [
     cover.address,
     spf.address,
     AddressZero,
@@ -89,7 +90,7 @@ async function setup() {
     GLOBAL_CAPACITY_DENOMINATOR: await stakingPool.GLOBAL_CAPACITY_DENOMINATOR(),
     TRANCHE_DURATION: await stakingProducts.TRANCHE_DURATION(),
     GLOBAL_CAPACITY_RATIO: await cover.globalCapacityRatio(),
-    GLOBAL_REWARDS_RATIO: await cover.globalRewardsRatio(),
+    GLOBAL_REWARDS_RATIO: await cover.getGlobalRewardsRatio(),
     GLOBAL_MIN_PRICE_RATIO: await cover.GLOBAL_MIN_PRICE_RATIO(),
   };
 
@@ -111,6 +112,7 @@ async function setup() {
     stakingPool,
     stakingProducts,
     cover,
+    coverProducts,
     stakingProductsSigner,
   };
 }

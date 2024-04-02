@@ -8,7 +8,7 @@ import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
 import "../../interfaces/ICoverProducts.sol";
 
-contract StakingProductsMockCover {
+contract SPMockCover {
 
   uint public constant GLOBAL_CAPACITY_RATIO = 20000;
   uint public constant GLOBAL_REWARDS_RATIO = 5000;

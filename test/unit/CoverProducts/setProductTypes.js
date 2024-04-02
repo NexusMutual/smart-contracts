@@ -64,7 +64,7 @@ describe('setProductTypes', function () {
       await expect(coverProducts.connect(advisoryBoardMember0).setProductTypes([productEditParams]))
         .to.emit(coverProducts, 'ProductTypeSet')
         .withArgs(productTypeId, ipfsMetadata);
-      const productTypeActual = resultAsObject(await coverProducts.productTypes(productTypeId));
+      const productTypeActual = resultAsObject(await coverProducts.getProductType(productTypeId));
       expect(productTypeActual.gracePeriod).to.be.equal(gracePeriod);
       expect(productTypeActual.claimMethod).to.be.equal(ProductTypeTemplate.claimMethod);
     }
@@ -97,7 +97,7 @@ describe('setProductTypes', function () {
     };
     await coverProducts.connect(advisoryBoardMember0).setProductTypes([productTypeParams]);
 
-    const productTypeName = await coverProducts.productTypeNames(expectedProductTypeId);
+    const productTypeName = await coverProducts.getProductTypeName(expectedProductTypeId);
     expect(productTypeName).to.be.equal(expectedProductTypeName);
   });
 
@@ -107,7 +107,7 @@ describe('setProductTypes', function () {
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
     const expectedProductTypeId = 0;
-    const productTypeNameBefore = await coverProducts.productTypeNames(expectedProductTypeId);
+    const productTypeNameBefore = await coverProducts.getProductTypeName(expectedProductTypeId);
 
     const productTypeParams = {
       ...ProductTypeParamTemplate,
@@ -116,7 +116,7 @@ describe('setProductTypes', function () {
     };
     await coverProducts.connect(advisoryBoardMember0).setProductTypes([productTypeParams]);
 
-    const productTypeNameAfter = await coverProducts.productTypeNames(expectedProductTypeId);
+    const productTypeNameAfter = await coverProducts.getProductTypeName(expectedProductTypeId);
     expect(productTypeNameAfter).to.be.equal(productTypeNameBefore);
   });
 
@@ -134,8 +134,8 @@ describe('setProductTypes', function () {
     };
     await coverProducts.connect(advisoryBoardMember0).setProductTypes([productTypeParams]);
 
-    const productTypesCount = await coverProducts.productTypesCount();
-    const productTypeName = await coverProducts.productTypeNames(productTypesCount.sub(1));
+    const productTypesCount = await coverProducts.getProductTypeCount();
+    const productTypeName = await coverProducts.getProductTypeName(productTypesCount.sub(1));
     expect(productTypeName).to.be.equal(expectedProductTypeName);
   });
 });

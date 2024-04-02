@@ -41,9 +41,9 @@ async function setup() {
   const mcr = await ethers.deployContract('CoverMockMCR');
   await mcr.setMCR(parseEther('600000'));
 
-  const stakingNFT = await ethers.deployContract('SPMockStakingNFT');
+  const stakingNFT = await ethers.deployContract('StakingPoolMockStakingNFT');
 
-  const coverProducts = await ethers.deployContract('StakingProductsMockCoverProducts');
+  const coverProducts = await ethers.deployContract('SPMockCoverProducts');
 
   const nonce = (await accounts.defaultSender.getTransactionCount()) + 2;
   const expectedStakingProductsAddress = getContractAddress({ from: accounts.defaultSender.address, nonce });
@@ -70,7 +70,7 @@ async function setup() {
     master.address,
     stakingProducts.address,
   ]);
-  const cover = await ethers.deployContract('StakingProductsMockCover', [
+  const cover = await ethers.deployContract('SPMockCover', [
     coverNFT.address,
     stakingNFT.address,
     stakingPoolFactory.address,

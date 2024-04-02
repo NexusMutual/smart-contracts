@@ -35,11 +35,11 @@ describe('setProducts', function () {
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productParams = { ...productParamsTemplate };
-    const expectedProductId = await coverProducts.productsCount();
+    const expectedProductId = await coverProducts.getProductCount();
     await expect(coverProducts.connect(advisoryBoardMember0).setProducts([productParams]))
       .to.emit(coverProducts, 'ProductSet')
       .withArgs(expectedProductId, defaultIpfsData);
-    const product = resultAsObject(await coverProducts.products(expectedProductId));
+    const product = resultAsObject(await coverProducts.getProduct(expectedProductId));
     const expectedProduct = productParams.product;
     expect(product).to.deep.equal(expectedProduct);
   });
@@ -54,13 +54,13 @@ describe('setProducts', function () {
     // edit product
     const capacityReductionRatio = 500;
     const product = { ...productParams.product, capacityReductionRatio };
-    const productId = (await coverProducts.productsCount()).sub(1);
+    const productId = (await coverProducts.getProductCount()).sub(1);
     const ipfsMetadata = 'new ipfs hash';
     const editParams = { ...productParams, ipfsMetadata, productId, product };
     await expect(coverProducts.connect(advisoryBoardMember0).setProducts([editParams]))
       .to.emit(coverProducts, 'ProductSet')
       .withArgs(productId, ipfsMetadata);
-    const actualProduct = resultAsObject(await coverProducts.products(productId));
+    const actualProduct = resultAsObject(await coverProducts.getProduct(productId));
     const expectedProduct = editParams.product;
     expect(actualProduct).to.deep.equal(expectedProduct);
   });
@@ -80,7 +80,7 @@ describe('setProducts', function () {
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
-    const previousProductsCount = await coverProducts.productsCount();
+    const previousProductsCount = await coverProducts.getProductCount();
     const newProductsCount = 40;
     const productParams = Array.from({ length: newProductsCount }, () => ({ ...productParamsTemplate }));
     await expect(coverProducts.connect(advisoryBoardMember0).setProducts(productParams))
@@ -94,7 +94,7 @@ describe('setProducts', function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
-    const productId = await coverProducts.productsCount();
+    const productId = await coverProducts.getProductCount();
     const productParams = { ...productParamsTemplate, productId };
     await expect(
       coverProducts.connect(advisoryBoardMember0).setProducts([productParams]),
@@ -121,7 +121,7 @@ describe('setProducts', function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
-    const productId = await coverProducts.productsCount();
+    const productId = await coverProducts.getProductCount();
     const productParams = { ...productParamsTemplate };
     await expect(coverProducts.connect(advisoryBoardMember0).setProducts([productParams]))
       .to.emit(coverProducts, 'ProductSet')
@@ -152,7 +152,7 @@ describe('setProducts', function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
-    const productId = await coverProducts.productsCount();
+    const productId = await coverProducts.getProductCount();
     const productParams = { ...productParamsTemplate };
     await expect(coverProducts.connect(advisoryBoardMember0).setProducts([productParams]))
       .to.emit(coverProducts, 'ProductSet')
@@ -214,7 +214,7 @@ describe('setProducts', function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
-    const productId = await coverProducts.productsCount();
+    const productId = await coverProducts.getProductCount();
     const productParams = { ...productParamsTemplate };
     await expect(coverProducts.connect(advisoryBoardMember0).setProducts([productParams]))
       .to.emit(coverProducts, 'ProductSet')
@@ -280,7 +280,7 @@ describe('setProducts', function () {
     };
     await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
 
-    const productsCount = await coverProducts.productsCount();
+    const productsCount = await coverProducts.getProductCount();
     const productName = await coverProducts.productNames(productsCount.sub(1));
     expect(productName).to.be.equal(expectedProductName);
   });

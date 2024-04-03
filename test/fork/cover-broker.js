@@ -218,6 +218,7 @@ describe('CoverBroker', function () {
       this.cover.address,
       this.memberRoles.address,
       this.pool.address,
+      this.nxm.address,
     ]);
 
     await this.coverBroker.transferOwnership(this.coverBrokerOwner.address);

@@ -351,8 +351,23 @@ describe('buyCover', function () {
         ),
     ).to.revertedWithCustomError(cover, 'ProductDoesntExistOrIsDeprecated');
   });
+});
 
-  it('should buy cover thorough the broker with ETH', async function () {
+describe('CoverBroker - buyCover', function () {
+  it('should revert with InvalidPayment if paymentAsset is not ETH and msg.value > 0', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const { coverBroker } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.nonMembers;
+
+    const poolAllocationRequest = { poolId: 1, coverAmountInAsset: parseEther('1') };
+    const buyCover = coverBroker
+      .connect(coverBuyer)
+      .buyCover({ ...buyCoverFixture, paymentAsset: 1 }, [poolAllocationRequest], { value: parseEther('1') });
+
+    await expect(buyCover).to.revertedWithCustomError(coverBroker, 'InvalidPayment');
+  });
+
+  it('should buy cover through the broker with ETH', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { tc: tokenController, stakingProducts, p1: pool, ra: ramm, mcr, coverBroker, coverNFT } = fixture.contracts;
     const {
@@ -391,13 +406,17 @@ describe('buyCover', function () {
     const nftBalanceBefore = await coverNFT.balanceOf(coverBuyer.address);
     await setNextBlockTime(nextBlockTimestamp);
 
-    const tx = await coverBroker
-      .connect(coverBuyer)
-      .buyCover(
-        { ...buyCoverFixture, productId, owner: coverBuyer.address, maxPremiumInAsset: premium },
-        [{ poolId: 1, coverAmountInAsset: amount }],
-        { value: premium.add(amountOver) },
-      );
+    const tx = await coverBroker.connect(coverBuyer).buyCover(
+      {
+        ...buyCoverFixture,
+        paymentAsset: 0, // ETH
+        productId,
+        owner: coverBuyer.address,
+        maxPremiumInAsset: premium,
+      },
+      [{ poolId: 1, coverAmountInAsset: amount }],
+      { value: premium.add(amountOver) },
+    );
 
     const receipt = await tx.wait();
 
@@ -415,7 +434,7 @@ describe('buyCover', function () {
     expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premium));
   });
 
-  it('should buy cover thorough the broker with DAI', async function () {
+  it('should buy cover through the broker with DAI', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const {
       tc: tokenController,
@@ -439,6 +458,7 @@ describe('buyCover', function () {
 
     await dai.mint(coverBuyer.address, parseEther('1000'));
     await dai.connect(coverBuyer).approve(coverBroker.address, parseEther('1000'));
+    await coverBroker.maxApproveCoverContract(dai.address);
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = currentTimestamp + 1;

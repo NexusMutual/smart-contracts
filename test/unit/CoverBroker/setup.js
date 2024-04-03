@@ -11,7 +11,13 @@ async function setup() {
   const cover = await ethers.deployContract('CMMockCover');
   const memberRoles = await ethers.deployContract('MemberRolesMock');
   const pool = await ethers.deployContract('PoolMock');
-  const coverBroker = await ethers.deployContract('CoverBroker', [cover.address, memberRoles.address, pool.address]);
+  const tk = await ethers.deployContract('NXMTokenMock');
+  const coverBroker = await ethers.deployContract('CoverBroker', [
+    cover.address,
+    memberRoles.address,
+    pool.address,
+    tk.address,
+  ]);
 
   await memberRoles.setRole(coverBroker.address, 2);
   await coverBroker.transferOwnership(coverBrokerOwner.address);

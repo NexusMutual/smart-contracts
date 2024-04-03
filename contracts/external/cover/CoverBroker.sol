@@ -10,6 +10,8 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverBroker.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/INXMToken.sol";
+
 
 /// @dev Allows cover distribution by buying cover in behalf of the caller
 contract CoverBroker is ICoverBroker, Ownable {
@@ -19,15 +21,17 @@ contract CoverBroker is ICoverBroker, Ownable {
   ICover cover;
   IMemberRoles memberRoles;
   IPool pool;
+  INXMToken nxmToken;
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint private constant ETH_ASSET_ID = 0;
 
-  constructor(address _cover, address _memberRoles, address _pool) {
+  constructor(address _cover, address _memberRoles, address _pool, address _nxmToken) {
     cover = ICover(_cover);
     memberRoles = IMemberRoles(_memberRoles);
     pool = IPool(_pool);
+    nxmToken = INXMToken(_nxmToken);
   }
 
   /// @dev Buys cover in behalf of the caller
@@ -64,27 +68,28 @@ contract CoverBroker is ICoverBroker, Ownable {
     }
 
     address paymentAsset = pool.getAsset(params.paymentAsset).assetAddress;
-    IERC20 token = IERC20(paymentAsset);
-    uint erc20BalanceBefore = token.balanceOf(address(this));
+    IERC20 erc20 = IERC20(paymentAsset);
+    uint erc20BalanceBefore = erc20.balanceOf(address(this));
 
-    token.safeTransferFrom(msg.sender, address(this), params.maxPremiumInAsset);
+    erc20.safeTransferFrom(msg.sender, address(this), params.maxPremiumInAsset);
     coverId = cover.buyCover(params, poolAllocationRequests);
 
     // send any ERC20 refund back to msg.sender
-    uint erc20BalanceAfter = token.balanceOf(address(this));
+    uint erc20BalanceAfter = erc20.balanceOf(address(this));
     if (erc20BalanceAfter > erc20BalanceBefore) {
       uint erc20Refund = erc20BalanceAfter - erc20BalanceBefore;
-      token.safeTransfer(msg.sender, erc20Refund);
+      erc20.safeTransfer(msg.sender, erc20Refund);
     }
   }
 
   /// @dev Approves cover contract to spend max value of the given ERC20 token in behalf of CoverBroker
-  function maxApproveCoverContract(IERC20 token) external onlyOwner {
-    token.safeApprove(address(cover), type(uint256).max);
+  function maxApproveCoverContract(IERC20 erc20) external onlyOwner {
+    erc20.safeApprove(address(cover), type(uint256).max);
   }
 
   /// @dev Switches the membership to the given address
   function switchMembership(address newAddress) external onlyOwner {
+    nxmToken.approve(address(memberRoles), type(uint256).max);
     memberRoles.switchMembership(newAddress);
   }
 

@@ -18,14 +18,15 @@ contract CoverBroker is ICoverBroker, Ownable {
   using SafeERC20 for IERC20;
 
   // Immutables
-  ICover cover;
-  IMemberRoles memberRoles;
-  IPool pool;
-  INXMToken nxmToken;
+  ICover public immutable cover;
+  IMemberRoles public immutable memberRoles;
+  IPool public immutable pool;
+  INXMToken public immutable nxmToken;
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint private constant ETH_ASSET_ID = 0;
+  uint private constant NXM_ASSET_ID = type(uint8).max;
 
   constructor(address _cover, address _memberRoles, address _pool, address _nxmToken) {
     cover = ICover(_cover);
@@ -60,12 +61,29 @@ contract CoverBroker is ICoverBroker, Ownable {
       return coverId;
     }
 
-    // ERC20 payment
-
     if (msg.value > 0) {
-      // msg.value must be 0 if ERC20 payment
+      // msg.value must be 0 if not ETH payment
       revert InvalidPayment();
     }
+
+    // NXM payment
+
+    if (params.paymentAsset == NXM_ASSET_ID) {
+      uint nxmBalanceBefore = nxmToken.balanceOf(address(this));
+
+      nxmToken.transferFrom(msg.sender, address(this), params.maxPremiumInAsset);
+      coverId = cover.buyCover(params, poolAllocationRequests);
+
+      // send any NXM refund back to msg.sender
+      uint nxmBalanceAfter = nxmToken.balanceOf(address(this));
+      if (nxmBalanceAfter > nxmBalanceBefore) {
+        uint erc20Refund = nxmBalanceAfter - nxmBalanceBefore;
+        nxmToken.transfer(msg.sender, erc20Refund);
+      }
+      return coverId;
+    }
+
+    // ERC20 payment
 
     address paymentAsset = pool.getAsset(params.paymentAsset).assetAddress;
     IERC20 erc20 = IERC20(paymentAsset);

@@ -68,14 +68,14 @@ contract CoverBroker is ICoverBroker, Ownable {
     return _handleErc20Payment(params, poolAllocationRequests);
   }
 
-  /// @notice Allows the CoverBroker contract to spend the maximum possible amount of a specified ERC20 token on behalf of the CoverBroker.
+  /// @notice Allows the Cover contract to spend the maximum possible amount of a specified ERC20 token on behalf of the CoverBroker.
   /// @param erc20 The ERC20 token for which to approve spending.
   function maxApproveCoverContract(IERC20 erc20) external onlyOwner {
     erc20.safeApprove(address(cover), type(uint256).max);
   }
 
   /// @notice Switches CoverBroker's membership to a new address.
-  /// @dev MemberRoles contract needs to be approved to transfer NXM tokens to new membership address/
+  /// @dev MemberRoles contract needs to be approved to transfer NXM tokens to new membership address.
   /// @param newAddress The address to which the membership will be switched.
   function switchMembership(address newAddress) external onlyOwner {
     nxmToken.approve(address(memberRoles), type(uint256).max);
@@ -83,7 +83,7 @@ contract CoverBroker is ICoverBroker, Ownable {
   }
 
   /// @notice Transfers all available funds of a specified asset (ETH or ERC20) to the contract owner.
-  /// @param assetAddress The address of the asset to transfer funds from.
+  /// @param assetAddress The address of the asset to be transferred.
   function transferFunds(address assetAddress) external onlyOwner {
 
     if (assetAddress == ETH) {
@@ -153,8 +153,8 @@ contract CoverBroker is ICoverBroker, Ownable {
 
     // transfer any NXM refund back to msg.sender
     if (nxmBalanceAfter > nxmBalanceBefore) {
-      uint erc20Refund = nxmBalanceAfter - nxmBalanceBefore;
-      nxmToken.transfer(msg.sender, erc20Refund);
+      uint nxmRefund = nxmBalanceAfter - nxmBalanceBefore;
+      nxmToken.transfer(msg.sender, nxmRefund);
     }
   }
 

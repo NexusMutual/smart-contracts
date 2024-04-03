@@ -367,7 +367,7 @@ describe('CoverBroker - buyCover', function () {
     await expect(buyCover).to.revertedWithCustomError(coverBroker, 'InvalidPayment');
   });
 
-  it('should buy cover through the broker with ETH', async function () {
+  it('should enable non-members to buy cover through the broker with ETH', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { tc: tokenController, stakingProducts, p1: pool, ra: ramm, mcr, coverBroker, coverNFT } = fixture.contracts;
     const {
@@ -425,6 +425,7 @@ describe('CoverBroker - buyCover', function () {
     const nftBalanceAfter = await coverNFT.balanceOf(coverBuyer.address);
 
     expect(nftBalanceAfter).to.be.equal(nftBalanceBefore.add(1));
+    // amountOver should have been refunded
     expect(balanceAfter).to.be.equal(balanceBefore.sub(premium).sub(receipt.effectiveGasPrice.mul(receipt.gasUsed)));
     const rewards = calculateRewards(premiumInNxm, timestamp, period, GLOBAL_REWARDS_RATIO);
 
@@ -434,7 +435,7 @@ describe('CoverBroker - buyCover', function () {
     expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premium));
   });
 
-  it('should buy cover through the broker with DAI', async function () {
+  it('should enable non-members to buy cover through the broker with DAI', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const {
       tc: tokenController,
@@ -484,6 +485,7 @@ describe('CoverBroker - buyCover', function () {
     const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
     const poolBeforeETH = await ethers.provider.getBalance(pool.address);
 
+    const amountOver = parseEther('1');
     const balanceBefore = await dai.balanceOf(coverBuyer.address);
     const nftBalanceBefore = await coverNFT.balanceOf(coverBuyer.address);
     await setNextBlockTime(nextBlockTimestamp);
@@ -493,7 +495,7 @@ describe('CoverBroker - buyCover', function () {
         ...buyCoverFixture,
         productId,
         owner: coverBuyer.address,
-        maxPremiumInAsset: premium,
+        maxPremiumInAsset: premium.add(amountOver),
         coverAsset: 1,
         paymentAsset: 1, // DAI
       },
@@ -505,6 +507,7 @@ describe('CoverBroker - buyCover', function () {
     const balanceAfter = await dai.balanceOf(coverBuyer.address);
     const nftBalanceAfter = await coverNFT.balanceOf(coverBuyer.address);
 
+    // amountOver should have been refunded
     expect(balanceAfter).to.be.equal(balanceBefore.sub(premium));
     expect(nftBalanceAfter).to.be.equal(nftBalanceBefore.add(1));
     const rewards = calculateRewards(premiumInNxm, timestamp, period, GLOBAL_REWARDS_RATIO);
@@ -516,7 +519,7 @@ describe('CoverBroker - buyCover', function () {
     expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premiumInEth));
   });
 
-  it('should buy cover through the broker from a member with NXM', async function () {
+  it('should enable members to buy cover through the broker with NXM', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const {
       tc: tokenController,
@@ -557,6 +560,7 @@ describe('CoverBroker - buyCover', function () {
 
     const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
 
+    const amountOver = parseEther('1');
     const balanceBefore = await nxm.balanceOf(coverBuyer.address);
     const nftBalanceBefore = await coverNFT.balanceOf(coverBuyer.address);
     await setNextBlockTime(nextBlockTimestamp);
@@ -567,7 +571,7 @@ describe('CoverBroker - buyCover', function () {
         paymentAsset: 255, // NXM
         productId,
         owner: coverBuyer.address,
-        maxPremiumInAsset: premiumInNxm,
+        maxPremiumInAsset: premiumInNxm.add(amountOver),
       },
       [{ poolId: 1, coverAmountInAsset: amount }],
       { value: '0' },
@@ -577,6 +581,7 @@ describe('CoverBroker - buyCover', function () {
     const balanceAfter = await nxm.balanceOf(coverBuyer.address);
     const nftBalanceAfter = await coverNFT.balanceOf(coverBuyer.address);
 
+    // amountOver should have been refunded
     expect(balanceAfter).to.be.equal(balanceBefore.sub(premiumInNxm));
     expect(nftBalanceAfter).to.be.equal(nftBalanceBefore.add(1));
     const rewards = calculateRewards(premiumInNxm, timestamp, period, GLOBAL_REWARDS_RATIO);

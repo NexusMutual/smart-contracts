@@ -353,7 +353,7 @@ describe('buyCover', function () {
   });
 });
 
-describe('CoverBroker - buyCover', function () {
+describe.only('CoverBroker - buyCover', function () {
   it('should revert with InvalidPayment if paymentAsset is not ETH and msg.value > 0', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { coverBroker } = fixture.contracts;
@@ -495,7 +495,7 @@ describe('CoverBroker - buyCover', function () {
         owner: coverBuyer.address,
         maxPremiumInAsset: premium,
         coverAsset: 1,
-        paymentAsset: 1,
+        paymentAsset: 1, // DAI
       },
       [{ poolId: 1, coverAmountInAsset: amount }],
       { value: '0' },
@@ -512,6 +512,87 @@ describe('CoverBroker - buyCover', function () {
     const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);
     const poolAfterETH = await ethers.provider.getBalance(pool.address);
     const premiumInEth = premium.mul(parseEther('1').div(daiRate));
+    expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBefore.rewards.add(rewards));
+    expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premiumInEth));
+  });
+
+  it.only('should buy cover through the broker from a member with NXM', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const {
+      tc: tokenController,
+      stakingProducts,
+      p1: pool,
+      ra: ramm,
+      mcr,
+      coverBroker,
+      dai,
+      priceFeedOracle,
+      coverNFT,
+      tk: nxm,
+    } = fixture.contracts;
+    const {
+      members: [coverBuyer],
+      defaultSender,
+    } = fixture.accounts;
+    const {
+      config: { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO },
+      productList,
+    } = fixture;
+    const { period, amount } = buyCoverFixture;
+
+    await nxm.connect(defaultSender).transfer(coverBuyer.address, parseEther('1000'));
+    await nxm.connect(coverBuyer).approve(coverBroker.address, parseEther('1000'));
+    await coverBroker.maxApproveCoverContract(nxm.address);
+
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = currentTimestamp + 1;
+    const nxmRate = parseEther('1').div(50);
+
+    const { targetPrice } = stakedProductParamTemplate;
+
+    const productId = productList.findIndex(
+      ({ product: { initialPriceRatio, useFixedPrice } }) => targetPrice !== initialPriceRatio && useFixedPrice,
+    );
+
+    const product = await stakingProducts.getProduct(1, productId);
+    const { premiumInNxm, premiumInAsset: premium } = calculatePremium(
+      amount,
+      nxmRate,
+      period,
+      product.targetPrice,
+      NXM_PER_ALLOCATION_UNIT,
+    );
+
+    const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
+    const poolBeforeETH = await ethers.provider.getBalance(pool.address);
+
+    const balanceBefore = await nxm.balanceOf(coverBuyer.address);
+    const nftBalanceBefore = await coverNFT.balanceOf(coverBuyer.address);
+    await setNextBlockTime(nextBlockTimestamp);
+
+    await coverBroker.connect(coverBuyer).buyCover(
+      {
+        ...buyCoverFixture,
+        paymentAsset: 255, // NXM
+        productId,
+        owner: coverBuyer.address,
+        maxPremiumInAsset: premium,
+      },
+      [{ poolId: 1, coverAmountInAsset: amount }],
+      { value: '0' },
+    );
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const balanceAfter = await nxm.balanceOf(coverBuyer.address);
+    const nftBalanceAfter = await coverNFT.balanceOf(coverBuyer.address);
+
+    expect(balanceAfter).to.be.equal(balanceBefore.sub(premiumInNxm));
+    expect(nftBalanceAfter).to.be.equal(nftBalanceBefore.add(1));
+    const rewards = calculateRewards(premiumInNxm, timestamp, period, GLOBAL_REWARDS_RATIO);
+
+    const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);
+    const poolAfterETH = await ethers.provider.getBalance(pool.address);
+    const premiumInEth = premium.mul(nxmRate);
     expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBefore.rewards.add(rewards));
     expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premiumInEth));
   });

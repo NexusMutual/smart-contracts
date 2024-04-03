@@ -485,7 +485,13 @@ async function setup() {
   );
 
   // deploy CoverBroker
-  const coverBroker = await ethers.deployContract('CoverBroker', [cover.address, mr.address, p1.address, tk.address]);
+  const coverBroker = await ethers.deployContract('CoverBroker', [
+    cover.address,
+    mr.address,
+    p1.address,
+    tk.address,
+    tc.address,
+  ]);
 
   await master.connect(governanceSigner).upgradeMultipleContracts([toBytes2('P1')], [p1.address]);
 

@@ -25,17 +25,21 @@ contract CoverBroker is ICoverBroker, Ownable {
   IMemberRoles public immutable memberRoles;
   IPool public immutable pool;
   INXMToken public immutable nxmToken;
+  address public immutable tokenController;
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint private constant ETH_ASSET_ID = 0;
   uint private constant NXM_ASSET_ID = type(uint8).max;
 
-  constructor(address _cover, address _memberRoles, address _pool, address _nxmToken) {
+  constructor(address _cover, address _memberRoles, address _pool, address _nxmToken, address _tokenController) {
     cover = ICover(_cover);
     memberRoles = IMemberRoles(_memberRoles);
     pool = IPool(_pool);
     nxmToken = INXMToken(_nxmToken);
+
+    tokenController = _tokenController;
+    nxmToken.approve(tokenController, type(uint256).max);
   }
 
   /// @notice Buys cover on behalf of the caller. Supports ETH, NXM and ERC20 asset payments which are supported by the pool.

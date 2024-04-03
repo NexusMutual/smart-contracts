@@ -58,7 +58,7 @@ describe('transferFunds', function () {
     const fixture = await loadFixture(setup);
     const { coverBroker } = fixture.contracts;
     const nonOwner = await ethers.Wallet.createRandom().connect(ethers.provider);
-    await setEtherBalance(nonOwner.address, parseEther('1'));
+    await setEtherBalance(nonOwner.address, parseEther('1000000'));
 
     const balanceBefore = await ethers.provider.getBalance(coverBroker.address);
 

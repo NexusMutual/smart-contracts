@@ -78,24 +78,28 @@ const main = async (provider, productsDataFilePath) => {
         0; // The default is 0 - this means all assets are allowed (no whitelist)
 
       const filePath = data['IPFS Metadata'];
-      const annex = await retryUpload(filePath);
+      let metadata = '';
 
-      console.log(`Appending ${annex.path} to ${data['Product Name']} metadata on IPFS`);
-      const metadataContent = Buffer.from(JSON.stringify({ annex: annex.path }));
-      const metadataFilePath = 'metadata.json'; // Temporary file path for metadata content
-      fs.writeFileSync(metadataFilePath, metadataContent); // Write metadata content to a temporary file
+      if (filePath) {
+        const annex = await retryUpload(filePath);
 
-      // Use retryUpload for uploading and pinning metadata
-      const metadata = await retryUpload(metadataFilePath);
-      console.log(`Metadata pinned at ${metadata.path}`);
+        console.log(`Appending ${annex.path} to ${data['Product Name']} metadata on IPFS`);
+        const metadataContent = Buffer.from(JSON.stringify({ annex: annex.path }));
+        const metadataFilePath = '/Users/rox/data/projects/nexus-mutual/prod/smart-contracts/metadata.json'; // Temporary file path for metadata content
+        fs.writeFileSync(metadataFilePath, metadataContent); // Write metadata content to a temporary file
 
-      // Clean up the temporary metadata file after successful upload
-      // fs.unlinkSync(metadataFilePath);
-      //
+        // Use retryUpload for uploading and pinning metadata
+        metadata = await retryUpload(metadataFilePath);
+        console.log(`Metadata pinned at ${metadata.path}`);
+
+        // Clean up the temporary metadata file after successful upload
+        // fs.unlinkSync(metadataFilePath);
+      }
+
       const productParams = {
         productName: data['Product Name'],
         productId: data['Product Id'] || MaxUint256, // create new product - use Max Uint.
-        ipfsMetadata: metadata.path, // IPFS metadata is optional.
+        ipfsMetadata: metadata ? metadata.path : '', // IPFS metadata is optional.
         product: {
           productType: data['Product Type'],
           yieldTokenAddress: '0x0000000000000000000000000000000000000000',

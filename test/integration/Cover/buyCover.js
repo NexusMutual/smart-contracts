@@ -380,7 +380,7 @@ describe('CoverBroker - buyCover', function () {
     await expect(buyCover).to.revertedWithCustomError(coverBroker, 'InvalidOwnerAddress');
   });
 
-  it('should revert with InvalidPaymentAsset if paymentAsset NXM asset ID (255)', async function () {
+  it('should revert with InvalidPaymentAsset if paymentAsset is NXM asset ID (255)', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { coverBroker } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.nonMembers;

@@ -16,9 +16,9 @@ import "../../interfaces/INXMMaster.sol";
 
 /// @title Cover Broker Contract
 /// @notice Enables non-members of the mutual to purchase cover policies.
-/// Supports ETH and ERC20 asset payments which are supported by the pool.
+/// Supports payments in ETH and pool supported ERC20 assets.
 /// For NXM payments by members, please call Cover.buyCover instead.
-/// @dev See supported ERC20 payment methods via pool.getAssets.
+/// @dev See supported ERC20 asset payments via pool.getAssets.
 contract CoverBroker is ICoverBroker, Ownable {
   using SafeERC20 for IERC20;
 
@@ -40,9 +40,9 @@ contract CoverBroker is ICoverBroker, Ownable {
     master = INXMMaster(_master);
   }
 
-  /// @notice Buys cover on behalf of the caller. Supports ETH and ERC20 asset payments which are supported by the pool.
+  /// @notice Buys cover on behalf of the caller. Supports payments in ETH and pool supported ERC20 assets.
   /// @dev For ERC20 payments, ensure the Cover contract is approved to spend the tokens first (maxApproveCoverContract).
-  /// See supported ERC20 payment methods via pool.getAssets.
+  /// See supported ERC20 asset payments via pool.getAssets.
   /// @param params The parameters required to buy cover.
   /// @param poolAllocationRequests The allocation requests for the pool's liquidity.
   /// @return coverId The ID of the purchased cover.

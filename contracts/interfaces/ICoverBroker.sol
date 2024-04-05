@@ -18,7 +18,7 @@ interface ICoverBroker {
   
   function switchMembership(address newAddress) external;
 
-  function transferFunds(address assetAddress) external;
+  function rescueFunds(address assetAddress) external;
 
   /* ==== ERRORS ==== */
 

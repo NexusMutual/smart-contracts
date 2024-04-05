@@ -11,6 +11,7 @@ import "../../interfaces/ICoverBroker.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/INXMToken.sol";
+import "../../interfaces/INXMMaster.sol";
 
 
 /// @title Cover Broker Contract
@@ -107,7 +108,7 @@ contract CoverBroker is ICoverBroker, Ownable {
     PoolAllocationRequest[] calldata poolAllocationRequests
   ) internal returns (uint coverId) {
     
-    address paymentAsset = pool.getAsset(params.paymentAsset).assetAddress;
+    address paymentAsset = _pool().getAsset(params.paymentAsset).assetAddress;
     IERC20 erc20 = IERC20(paymentAsset);
 
     uint erc20BalanceBefore = erc20.balanceOf(address(this));
@@ -122,6 +123,55 @@ contract CoverBroker is ICoverBroker, Ownable {
       uint erc20Refund = erc20BalanceAfter - erc20BalanceBefore;
       erc20.safeTransfer(msg.sender, erc20Refund);
     }
+  }
+
+  /// @notice Allows the Cover contract to spend the maximum possible amount of a specified ERC20 token on behalf of the CoverBroker.
+  /// @param erc20 The ERC20 token for which to approve spending.
+  function maxApproveCoverContract(IERC20 erc20) external onlyOwner {
+    erc20.safeApprove(address(cover), type(uint256).max);
+  }
+
+  /// @notice Switches CoverBroker's membership to a new address.
+  /// @dev MemberRoles contract needs to be approved to transfer NXM tokens to new membership address.
+  /// @param newAddress The address to which the membership will be switched.
+  function switchMembership(address newAddress) external onlyOwner {
+    nxmToken.approve(address(memberRoles), type(uint256).max);
+    memberRoles.switchMembership(newAddress);
+  }
+
+  /// @notice Recovers all available funds of a specified asset (ETH or ERC20) to the contract owner.
+  /// @param assetAddress The address of the asset to be rescued.
+  function rescueFunds(address assetAddress) external onlyOwner {
+
+    if (assetAddress == ETH) {
+      uint ethBalance = address(this).balance;
+      if (ethBalance == 0) {
+        revert ZeroBalance(ETH);
+      }
+
+      (bool sent, ) = payable(msg.sender).call{value: ethBalance}("");
+      if (!sent) {
+        revert TransferFailed(msg.sender, ethBalance, ETH);
+      }
+
+      return;
+    }
+
+    IERC20 asset = IERC20(assetAddress);
+    uint erc20Balance = asset.balanceOf(address(this));
+    if (erc20Balance == 0) {
+      revert ZeroBalance(assetAddress);
+    }
+
+    asset.transfer(msg.sender, erc20Balance);
+  }
+
+  /* ========== DEPENDENCIES ========== */
+
+  /// @dev Fetches the Pool's instance through master contract
+  /// @return The Pool's instance
+  function _pool() internal view returns (IPool) {
+    return IPool(master.getLatestAddress("P1"));
   }
 
   receive() external payable {}

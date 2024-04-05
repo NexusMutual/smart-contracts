@@ -24,5 +24,7 @@ interface ICoverBroker {
 
   error TransferFailed(address to, uint value, address token);
   error ZeroBalance(address token);
+  error InvalidOwnerAddress();
+  error InvalidPaymentAsset();
   error InvalidPayment();
 }

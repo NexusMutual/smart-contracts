@@ -217,9 +217,8 @@ describe('CoverBroker', function () {
     this.coverBroker = await ethers.deployContract('CoverBroker', [
       this.cover.address,
       this.memberRoles.address,
-      this.pool.address,
       this.nxm.address,
-      this.tokenController.address,
+      this.master.address,
     ]);
 
     await this.coverBroker.transferOwnership(this.coverBrokerOwner.address);

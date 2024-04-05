@@ -488,9 +488,8 @@ async function setup() {
   const coverBroker = await ethers.deployContract('CoverBroker', [
     cover.address,
     mr.address,
-    p1.address,
     tk.address,
-    tc.address,
+    master.address,
   ]);
 
   await master.connect(governanceSigner).upgradeMultipleContracts([toBytes2('P1')], [p1.address]);

@@ -9,10 +9,9 @@ import "@openzeppelin/contracts-v4/access/Ownable.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverBroker.sol";
 import "../../interfaces/IMemberRoles.sol";
-import "../../interfaces/IPool.sol";
-import "../../interfaces/INXMToken.sol";
 import "../../interfaces/INXMMaster.sol";
-
+import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IPool.sol";
 
 /// @title Cover Broker Contract
 /// @notice Enables non-members of the mutual to purchase cover policies.
@@ -33,11 +32,18 @@ contract CoverBroker is ICoverBroker, Ownable {
   uint private constant ETH_ASSET_ID = 0;
   uint private constant NXM_ASSET_ID = type(uint8).max;
 
-  constructor(address _cover, address _memberRoles, address _nxmToken, address _master) {
+  constructor(
+    address _cover,
+    address _memberRoles,
+    address _nxmToken,
+    address _master,
+    address _owner
+  ) {
     cover = ICover(_cover);
     memberRoles = IMemberRoles(_memberRoles);
     nxmToken = INXMToken(_nxmToken);
     master = INXMMaster(_master);
+    transferOwnership(_owner);
   }
 
   /// @notice Buys cover on behalf of the caller. Supports payments in ETH and pool supported ERC20 assets.
@@ -90,13 +96,13 @@ contract CoverBroker is ICoverBroker, Ownable {
     // transfer any ETH refund back to msg.sender
     if (ethBalanceAfter > ethBalanceBefore) {
       uint ethRefund = ethBalanceAfter - ethBalanceBefore;
-      (bool sent, ) = payable(msg.sender).call{value: ethRefund}("");
+      (bool sent,) = payable(msg.sender).call{value: ethRefund}("");
       if (!sent) {
         revert TransferFailed(msg.sender, ethRefund, ETH);
       }
     }
   }
-  
+
   /// @notice Handles ERC20 payments for buying cover.
   /// @dev Transfers ERC20 tokens from the caller to the contract, then buys cover on behalf of the caller.
   /// Calculates ERC20 refunds if any and sends back to msg.sender.
@@ -107,7 +113,7 @@ contract CoverBroker is ICoverBroker, Ownable {
     BuyCoverParams calldata params,
     PoolAllocationRequest[] calldata poolAllocationRequests
   ) internal returns (uint coverId) {
-    
+
     address paymentAsset = _pool().getAsset(params.paymentAsset).assetAddress;
     IERC20 erc20 = IERC20(paymentAsset);
 
@@ -149,7 +155,7 @@ contract CoverBroker is ICoverBroker, Ownable {
         revert ZeroBalance(ETH);
       }
 
-      (bool sent, ) = payable(msg.sender).call{value: ethBalance}("");
+      (bool sent,) = payable(msg.sender).call{value: ethBalance}("");
       if (!sent) {
         revert TransferFailed(msg.sender, ethBalance, ETH);
       }

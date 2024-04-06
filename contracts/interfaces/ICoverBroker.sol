@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "../interfaces/ICover.sol";
 
 interface ICoverBroker {
+
   /* ==== FUNCTIONS ==== */
 
   function buyCover(
@@ -15,7 +16,7 @@ interface ICoverBroker {
   ) external payable returns (uint coverId);
 
   function maxApproveCoverContract(IERC20 token) external;
-  
+
   function switchMembership(address newAddress) external;
 
   function rescueFunds(address assetAddress) external;

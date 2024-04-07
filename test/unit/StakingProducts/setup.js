@@ -30,6 +30,7 @@ const ProductTypeFixture = {
   claimMethod: 1,
   gracePeriod: 7 * 24 * 3600, // 7 days
 };
+
 async function setup() {
   const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
@@ -42,7 +43,6 @@ async function setup() {
   await mcr.setMCR(parseEther('600000'));
 
   const stakingNFT = await ethers.deployContract('StakingPoolMockStakingNFT');
-
   const coverProducts = await ethers.deployContract('SPMockCoverProducts');
 
   const nonce = (await accounts.defaultSender.getTransactionCount()) + 2;

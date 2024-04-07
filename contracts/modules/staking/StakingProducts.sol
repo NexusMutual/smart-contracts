@@ -4,13 +4,13 @@ pragma solidity ^0.8.18;
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
+import "../../interfaces/ICover.sol";
+import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IStakingProducts.sol";
+import "../../interfaces/ITokenController.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
-import "../../interfaces/ICover.sol";
-import "../../interfaces/ITokenController.sol";
-import "../../interfaces/ICoverProducts.sol";
 
 contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   using SafeUintCast for uint;
@@ -346,45 +346,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     return Math.max(targetWeight, actualWeight).toUint16();
   }
 
-  function _setInitialProducts(uint poolId, ProductInitializationParams[] memory params) internal {
-
-    uint totalTargetWeight;
-
-    for (uint i = 0; i < params.length; i++) {
-
-      ProductInitializationParams memory param = params[i];
-
-      if (param.targetPrice > TARGET_PRICE_DENOMINATOR) {
-        revert TargetPriceTooHigh();
-      }
-
-      if (param.weight > WEIGHT_DENOMINATOR) {
-        revert TargetWeightTooHigh();
-      }
-
-      StakedProduct memory product;
-      product.bumpedPrice = param.initialPrice;
-      product.bumpedPriceUpdateTime = block.timestamp.toUint32();
-      product.targetPrice = param.targetPrice;
-      product.targetWeight = param.weight;
-      product.lastEffectiveWeight = param.weight;
-
-      // sstore
-      _products[poolId][param.productId] = product;
-
-      totalTargetWeight += param.weight;
-    }
-
-    if (totalTargetWeight > MAX_TOTAL_WEIGHT) {
-      revert TotalTargetWeightExceeded();
-    }
-
-    weights[poolId] = Weights({
-      totalTargetWeight: totalTargetWeight.toUint32(),
-      totalEffectiveWeight: totalTargetWeight.toUint32()
-    });
-  }
-
   /* pricing code */
   function getPremium(
     uint poolId,
@@ -607,36 +568,9 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     ICoverProducts _coverProducts = coverProducts();
 
-    uint productCount = _coverProducts.getProductCount();
-    uint globalMinPriceRatio = ICover(coverContract).getGlobalMinPriceRatio();
-    uint numProducts = productInitParams.length;
-
-    // override with initial price and check if pool is allowed
-    for (uint i = 0; i < numProducts; i++) {
-
-      if (productInitParams[i].targetPrice < globalMinPriceRatio) {
-        revert TargetPriceBelowGlobalMinPriceRatio();
-      }
-
-      uint productId = productInitParams[i].productId;
-
-      // if there is a list of allowed pools for this product - this pool didn't exist yet so it's not in it
-      if (_coverProducts.getAllowedPoolsCount(productId) > 0) {
-        revert ICoverProducts.PoolNotAllowedForThisProduct(productId);
-      }
-
-      if (productId >= productCount) {
-        revert ProductDoesntExistOrIsDeprecated();
-      }
-
-      Product memory product = _coverProducts.getProduct(productId);
-
-      if (product.isDeprecated) {
-        revert ProductDoesntExistOrIsDeprecated();
-      }
-
-      productInitParams[i].initialPrice = product.initialPriceRatio;
-    }
+    ProductInitializationParams[] memory initializedProducts = _coverProducts.prepareStakingProductsParams(
+      productInitParams
+    );
 
     (uint poolId, address stakingPoolAddress) = IStakingPoolFactory(stakingPoolFactory).create(coverContract);
 
@@ -650,9 +584,58 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     tokenController().assignStakingPoolManager(poolId, msg.sender);
 
-    _setInitialProducts(poolId, productInitParams);
+    _setInitialProducts(poolId, initializedProducts);
 
     return (poolId, stakingPoolAddress);
+  }
+
+  // TODO: needs to be removed, only used for testing
+  function setInitialProducts(uint poolId, ProductInitializationParams[] memory params) public onlyInternal {
+    _setInitialProducts(poolId, params);
+  }
+
+  function _setInitialProducts(uint poolId, ProductInitializationParams[] memory params) internal {
+
+    uint globalMinPriceRatio = cover().getGlobalMinPriceRatio();
+    uint totalTargetWeight;
+
+    for (uint i = 0; i < params.length; i++) {
+
+      ProductInitializationParams memory param = params[i];
+
+      if (params[i].targetPrice < globalMinPriceRatio) {
+        revert TargetPriceBelowGlobalMinPriceRatio();
+      }
+
+      if (param.targetPrice > TARGET_PRICE_DENOMINATOR) {
+        revert TargetPriceTooHigh();
+      }
+
+      if (param.weight > WEIGHT_DENOMINATOR) {
+        revert TargetWeightTooHigh();
+      }
+
+      StakedProduct memory product;
+      product.bumpedPrice = param.initialPrice;
+      product.bumpedPriceUpdateTime = block.timestamp.toUint32();
+      product.targetPrice = param.targetPrice;
+      product.targetWeight = param.weight;
+      product.lastEffectiveWeight = param.weight;
+
+      // sstore
+      _products[poolId][param.productId] = product;
+
+      totalTargetWeight += param.weight;
+    }
+
+    if (totalTargetWeight > MAX_TOTAL_WEIGHT) {
+      revert TotalTargetWeightExceeded();
+    }
+
+    weights[poolId] = Weights({
+      totalTargetWeight: totalTargetWeight.toUint32(),
+      totalEffectiveWeight: totalTargetWeight.toUint32()
+    });
   }
 
   /* dependencies */
@@ -670,6 +653,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   }
 
   function changeDependentContractAddress() external {
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");

@@ -657,9 +657,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return GLOBAL_MIN_PRICE_RATIO;
   }
 
-  function getGlobalCapacityAndPriceRatios() external pure returns (uint _globalCapacityRatio, uint _globalMinPriceRatio) {
-    _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
+  function getGlobalCapacityAndPriceRatios() external pure returns (
+    uint _globalCapacityRatio,
+    uint _globalMinPriceRatio
+  ) {
     _globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
+    _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
   }
 
   function isCoverAssetSupported(uint assetId, uint productCoverAssetsBitmap) internal view returns (bool) {

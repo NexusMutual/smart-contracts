@@ -6,20 +6,27 @@ import "./ICover.sol";
 
 /* ========== DATA STRUCTURES ========== */
 
-  struct ProductParam {
-    string productName;
-    uint productId;
-    string ipfsMetadata;
-    Product product;
-    uint[] allowedPools;
-  }
+struct ProductParam {
+  string productName;
+  uint productId;
+  string ipfsMetadata;
+  Product product;
+  uint[] allowedPools;
+}
 
-  struct ProductTypeParam {
-    string productTypeName;
-    uint productTypeId;
-    string ipfsMetadata;
-    ProductType productType;
-  }
+struct ProductTypeParam {
+  string productTypeName;
+  uint productTypeId;
+  string ipfsMetadata;
+  ProductType productType;
+}
+
+struct ProductInitializationParams {
+  uint productId;
+  uint8 weight;
+  uint96 initialPrice;
+  uint96 targetPrice;
+}
 
 interface ICoverProducts {
 
@@ -41,6 +48,7 @@ interface ICoverProducts {
 
   function getProducts() external view returns (Product[] memory);
 
+  // add grace period function?
   function getProductWithType(uint productId) external view returns (Product memory, ProductType memory);
 
   function getAllowedPools(uint productId) external view returns (uint[] memory _allowedPools);
@@ -55,11 +63,10 @@ interface ICoverProducts {
 
   function getInitialPrices(uint[] calldata productIds) external view returns (uint[] memory);
 
-  function getCapacityReductionRatiosInitialPrices(
-    uint[] calldata productIds
-  ) external view returns (
-    uint[] memory initialPrices,
-    uint[] memory capacityReductionRatios
+  function prepareStakingProductsParams(
+    ProductInitializationParams[] calldata params
+  ) external returns (
+    ProductInitializationParams[] memory validatedParams
   );
 
   // deprecated

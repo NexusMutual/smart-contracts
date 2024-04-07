@@ -29,24 +29,6 @@ contract StakingPoolMockCoverProducts is ICoverProducts {
     _productTypes[id] = product;
   }
 
-  function initializeStaking(
-    address staking_,
-    bool _isPrivatePool,
-    uint _initialPoolFee,
-    uint _maxPoolFee,
-    uint _poolId,
-    string calldata ipfsDescriptionHash
-  ) external {
-
-    IStakingPool(staking_).initialize(
-      _isPrivatePool,
-      _initialPoolFee,
-      _maxPoolFee,
-      _poolId,
-      ipfsDescriptionHash
-    );
-  }
-
   function setPoolAllowed(uint productId, uint poolId, bool allowed) external {
     allowedPools[productId][poolId] = allowed;
     _allowedPoolsCount[productId]++;
@@ -63,6 +45,14 @@ contract StakingPoolMockCoverProducts is ICoverProducts {
         revert PoolNotAllowedForThisProduct(productId);
       }
     }
+  }
+
+  function prepareStakingProductsParams(
+    ProductInitializationParams[] calldata /* params */
+  ) external pure returns (
+    ProductInitializationParams[] memory /* validatedParams */
+  ) {
+    revert("Unsupported");
   }
 
   function getInitialPrices(uint[] calldata /*productIds*/) external pure returns (uint[] memory) {
@@ -82,15 +72,6 @@ contract StakingPoolMockCoverProducts is ICoverProducts {
   }
 
   function getProductTypesCount() external pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function getCapacityReductionRatiosInitialPrices(
-    uint[] calldata /* productIds */
-  ) external pure returns (
-    uint[] memory /* initialPrices */,
-    uint[] memory /* capacityReductionRatios */
-  ) {
     revert("Unsupported");
   }
 

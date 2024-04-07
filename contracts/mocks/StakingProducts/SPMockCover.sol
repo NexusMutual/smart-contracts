@@ -8,6 +8,7 @@ import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
 import "../../interfaces/ICoverProducts.sol";
 
+// TODO: needs to implement ICover
 contract SPMockCover {
 
   uint public constant GLOBAL_CAPACITY_RATIO = 20000;
@@ -46,6 +47,18 @@ contract SPMockCover {
 
   function setStakingPool(address addr, uint id) public {
     stakingPool[id] = addr;
+  }
+
+  function getGlobalMinPriceRatio() public pure returns (uint) {
+    return GLOBAL_MIN_PRICE_RATIO;
+  }
+
+  function getGlobalCapacityRatio() public pure returns (uint) {
+    return GLOBAL_CAPACITY_RATIO;
+  }
+
+  function getGlobalCapacityAndPriceRatios() public pure returns (uint, uint) {
+    return (GLOBAL_CAPACITY_RATIO, GLOBAL_MIN_PRICE_RATIO);
   }
 
   function allocateCapacity(
@@ -116,24 +129,6 @@ contract SPMockCover {
     (uint premium, uint allocationId) = abi.decode(result, (uint, uint));
 
     emit RequestAllocationReturned(premium, allocationId);
-  }
-
-  function initializeStaking(
-    address staking_,
-    bool _isPrivatePool,
-    uint _initialPoolFee,
-    uint _maxPoolFee,
-    uint _poolId,
-    string calldata ipfsDescriptionHash
-  ) external {
-
-    IStakingPool(staking_).initialize(
-      _isPrivatePool,
-      _initialPoolFee,
-      _maxPoolFee,
-      _poolId,
-      ipfsDescriptionHash
-    );
   }
 
   function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (

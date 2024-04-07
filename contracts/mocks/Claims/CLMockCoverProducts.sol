@@ -31,6 +31,14 @@ contract CLMockCoverProducts is ICoverProducts {
     _products.push(product);
   }
 
+  function prepareStakingProductsParams(
+    ProductInitializationParams[] calldata /* params */
+  ) external pure returns (
+    ProductInitializationParams[] memory /* validatedParams */
+  ) {
+    revert("Unsupported");
+  }
+
   function setProductTypes(ProductTypeParam[] calldata /*  productTypes */) external pure {
     revert("Unsupported");
   }
@@ -68,15 +76,6 @@ contract CLMockCoverProducts is ICoverProducts {
   }
 
   function getProductTypesCount() external pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function getCapacityReductionRatiosInitialPrices(
-    uint[] calldata /* productIds */
-  ) external pure returns (
-    uint[] memory /* initialPrices */,
-    uint[] memory /* capacityReductionRatios */
-  ) {
     revert("Unsupported");
   }
 

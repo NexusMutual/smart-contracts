@@ -122,24 +122,6 @@ contract StakingPoolMockCover {
     emit RequestAllocationReturned(premium, allocationId);
   }
 
-  function initializeStaking(
-    address staking_,
-    bool _isPrivatePool,
-    uint _initialPoolFee,
-    uint _maxPoolFee,
-    uint _poolId,
-    string calldata ipfsDescriptionHash
-  ) external {
-
-    IStakingPool(staking_).initialize(
-      _isPrivatePool,
-      _initialPoolFee,
-      _maxPoolFee,
-      _poolId,
-      ipfsDescriptionHash
-    );
-  }
-
   function isPoolAllowed(uint /*productId*/, uint /*poolId*/) external pure returns (bool) {
     return true;
   }

@@ -55,13 +55,6 @@ struct BuyCoverParams {
   string ipfsData;
 }
 
-struct ProductInitializationParams {
-  uint productId;
-  uint8 weight;
-  uint96 initialPrice;
-  uint96 targetPrice;
-}
-
 /* storage structs */
 
 struct PoolAllocation {

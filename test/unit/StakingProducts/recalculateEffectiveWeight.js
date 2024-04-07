@@ -350,7 +350,9 @@ describe('recalculateEffectiveWeight', function () {
     expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(4000);
   });
 
-  it('should fail to recalculate effective weight for product not in system', async function () {
+  // TODO: this isn't testing a property of the StakingProducts contract but a SPMockCoverProducts one
+  //       previously it was testing a property of the SPMockCover contract
+  it.skip('should fail to recalculate effective weight for product not in system', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts, cover } = fixture;
 

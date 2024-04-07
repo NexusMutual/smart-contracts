@@ -2,12 +2,11 @@
 
 pragma solidity >=0.5.0;
 
-import "./ICover.sol";
+import "./ICoverProducts.sol";
 import "./IStakingPool.sol";
 
 interface IStakingProducts {
 
-  // TODO: resize values?
   struct Weights {
     uint32 totalEffectiveWeight;
     uint32 totalTargetWeight;

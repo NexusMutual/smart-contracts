@@ -2,59 +2,57 @@
 
 pragma solidity ^0.8.18;
 
-import "../../interfaces/IStakingPool.sol";
-import "../../interfaces/ICover.sol";
-import "../../interfaces/IStakingProducts.sol";
+//import "../../interfaces/IStakingPool.sol";
+//import "../../interfaces/ICover.sol";
+//import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/ICoverProducts.sol";
-import "../../interfaces/IStakingPoolFactory.sol";
+//import "../../interfaces/IStakingPoolFactory.sol";
 
 contract SPMockCoverProducts is ICoverProducts {
 
   mapping(uint => Product) public _products;
   mapping(uint => ProductType) public _productTypes;
   mapping(uint => mapping(uint => bool)) public allowedPools;
-  uint public productsCount;
-  mapping(uint => uint)  private _allowedPoolsCount;
 
-  constructor(
-
-  ) {
-  }
+  uint private productsCount;
+  mapping(uint => uint) private _allowedPoolsCount;
 
   function setProduct(Product memory _product, uint id) public {
     _products[id] = _product;
     productsCount++;
   }
 
+  function getProduct(uint productId) external view returns (Product memory) {
+    return _products[productId];
+  }
+
+  function getProductCount() external view returns (uint) {
+    return productsCount;
+  }
+
   function allowedPoolsCount(uint productId) external view returns (uint) {
     return _allowedPoolsCount[productId];
   }
 
-  function setProductType(ProductType calldata product, uint id) public {
-    _productTypes[id] = product;
+  function setProductType(ProductType calldata productType, uint id) public {
+    _productTypes[id] = productType;
   }
 
-  function initializeStaking(
-    address staking_,
-    bool _isPrivatePool,
-    uint _initialPoolFee,
-    uint _maxPoolFee,
-    uint _poolId,
-    string calldata ipfsDescriptionHash
-  ) external {
-
-    IStakingPool(staking_).initialize(
-      _isPrivatePool,
-      _initialPoolFee,
-      _maxPoolFee,
-      _poolId,
-      ipfsDescriptionHash
-    );
+  function getProductType(uint productTypeId) external view returns (ProductType memory) {
+    return _productTypes[productTypeId];
   }
 
   function setPoolAllowed(uint productId, uint poolId, bool allowed) external {
+    bool wasAllowed = allowedPools[productId][poolId];
     allowedPools[productId][poolId] = allowed;
-    _allowedPoolsCount[productId]++;
+
+    if (!wasAllowed && allowed) {
+      _allowedPoolsCount[productId]++;
+    }
+
+    if (wasAllowed && !allowed) {
+      _allowedPoolsCount[productId]--;
+    }
   }
 
   function isPoolAllowed(uint productId, uint poolId) external view returns (bool) {
@@ -70,12 +68,23 @@ contract SPMockCoverProducts is ICoverProducts {
     }
   }
 
-  function getInitialPrices(uint[] calldata /*productIds*/) external pure returns (uint[] memory) {
-    revert("Unsupported");
+  function getAllowedPoolsCount(uint productId) external view returns (uint) {
+    return _allowedPoolsCount[productId];
   }
 
-  function getAllowedPoolsCount(uint /* productId */) external pure returns (uint) {
-    revert("Unsupported");
+  function prepareStakingProductsParams(
+    ProductInitializationParams[] calldata params
+  ) external pure returns (
+    ProductInitializationParams[] memory validatedParams
+  ) {
+    validatedParams = params;
+  }
+
+  function getInitialPrices(uint[] calldata productIds) external view returns (uint[] memory initialPrices) {
+    initialPrices = new uint[](productIds.length);
+    for (uint i = 0; i < productIds.length; i++) {
+      initialPrices[i] = _products[productIds[i]].initialPriceRatio;
+    }
   }
 
   function getProducts() external pure returns (Product[] memory) {
@@ -90,15 +99,6 @@ contract SPMockCoverProducts is ICoverProducts {
     revert("Unsupported");
   }
 
-  function getCapacityReductionRatiosInitialPrices(
-    uint[] calldata /* productIds */
-  ) external pure returns (
-    uint[] memory /* initialPrices */,
-    uint[] memory /* capacityReductionRatios */
-  ) {
-    revert("Unsupported");
-  }
-
   function getProductWithType(uint /* productId */) external pure returns (Product memory, ProductType memory) {
     revert("Unsupported");
   }
@@ -107,23 +107,14 @@ contract SPMockCoverProducts is ICoverProducts {
     revert("Unsupported");
   }
 
-  function getCapacityReductionRatios(uint[] calldata /* productIds */) external pure returns (uint[] memory) {
-    revert("Unsupported");
-  }
-
-  function getProduct(uint /* productId */) external pure returns (Product memory) {
-    revert("Unsupported");
-  }
-
-  function getProductCount() external pure returns (uint) {
-    revert("Unsupported");
+  function getCapacityReductionRatios(uint[] calldata productIds) external view returns (uint[] memory reductionRatios) {
+    reductionRatios = new uint[](productIds.length);
+    for (uint i = 0; i < productIds.length; i++) {
+      reductionRatios[i] = _products[productIds[i]].capacityReductionRatio;
+    }
   }
 
   function getProductName(uint /* productTypeId */) external pure returns (string memory) {
-    revert("Unsupported");
-  }
-
-  function getProductType(uint /* productTypeId */) external pure returns (ProductType memory) {
     revert("Unsupported");
   }
 

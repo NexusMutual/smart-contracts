@@ -490,6 +490,7 @@ async function setup() {
     mr.address,
     tk.address,
     master.address,
+    owner.address,
   ]);
 
   await master.connect(governanceSigner).upgradeMultipleContracts([toBytes2('P1')], [p1.address]);

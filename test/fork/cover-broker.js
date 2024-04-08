@@ -219,9 +219,9 @@ describe('CoverBroker', function () {
       this.memberRoles.address,
       this.nxm.address,
       this.master.address,
+      this.coverBrokerOwner.address,
     ]);
 
-    await this.coverBroker.transferOwnership(this.coverBrokerOwner.address);
     const ownerAfter = await this.coverBroker.owner();
     expect(this.coverBrokerOwner.address).to.be.equal(ownerAfter);
 

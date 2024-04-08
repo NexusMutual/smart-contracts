@@ -8,11 +8,13 @@ describe('CoverBroker - switchMembership', function () {
   it('should switch membership', async function () {
     const fixture = await loadFixture(setup);
     const { cover, mr, coverBroker, tk, master } = fixture.contracts;
+    const { defaultSender } = fixture.accounts;
     const newCoverBroker = await ethers.deployContract('CoverBroker', [
       cover.address,
       mr.address,
       tk.address,
       master.address,
+      defaultSender.address,
     ]);
 
     // Add NXM balance to CoverBroker
@@ -28,12 +30,13 @@ describe('CoverBroker - switchMembership', function () {
   it('should fail to switch membership if the caller is not the owner', async function () {
     const fixture = await loadFixture(setup);
     const { cover, mr, coverBroker, tk, master } = fixture.contracts;
-    const { members } = fixture.accounts;
+    const { members, defaultSender } = fixture.accounts;
     const newCoverBroker = await ethers.deployContract('CoverBroker', [
       cover.address,
       mr.address,
       tk.address,
       master.address,
+      defaultSender.address,
     ]);
 
     await expect(coverBroker.connect(members[0]).switchMembership(newCoverBroker.address)).to.revertedWith(

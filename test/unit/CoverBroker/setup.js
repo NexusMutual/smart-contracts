@@ -17,10 +17,10 @@ async function setup() {
     memberRoles.address,
     tk.address,
     master.address,
+    coverBrokerOwner.address,
   ]);
 
   await memberRoles.setRole(coverBroker.address, 2);
-  await coverBroker.transferOwnership(coverBrokerOwner.address);
 
   return {
     coverBrokerOwner,

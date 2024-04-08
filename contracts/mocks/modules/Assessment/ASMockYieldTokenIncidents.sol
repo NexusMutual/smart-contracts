@@ -6,8 +6,9 @@ import "../../../interfaces/IYieldTokenIncidents.sol";
 import "../../../interfaces/IAssessment.sol";
 
 import "../../../abstract/MasterAwareV2.sol";
+import "../../generic/YieldTokenIncidentsGeneric.sol";
 
-contract ASMockYieldTokenIncidents is MasterAwareV2 {
+contract ASMockYieldTokenIncidents is YieldTokenIncidentsGeneric, MasterAwareV2 {
 
   // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
   uint internal constant REWARD_DENOMINATOR = 10000;
@@ -15,10 +16,6 @@ contract ASMockYieldTokenIncidents is MasterAwareV2 {
 
   // Used in operations involving NXM tokens and divisions
   uint internal constant PRECISION = 10 ** 18;
-
-  Incident[] public incidents;
-
-  Configuration public config;
 
   function assessment() internal view returns (IAssessment) {
     return IAssessment(getInternalContractAddress(ID.AS));
@@ -28,9 +25,9 @@ contract ASMockYieldTokenIncidents is MasterAwareV2 {
     uint24 productId,
     uint96 priceBefore,
     uint32 date,
-    uint96 expectedPayoutInNXM,
+    uint expectedPayoutInNXM,
     string calldata /*ipfsMetadata*/
-  ) external {
+  ) external override {
     Incident memory incident = Incident(
       0, // assessmentId
       productId,

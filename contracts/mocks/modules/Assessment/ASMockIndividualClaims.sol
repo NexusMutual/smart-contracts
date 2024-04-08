@@ -7,12 +7,11 @@ import "../../../interfaces/IIndividualClaims.sol";
 import "../../../interfaces/IAssessment.sol";
 
 import "../../../abstract/MasterAwareV2.sol";
+import "../../generic/IndividualClaimsGeneric.sol";
 
-contract ASMockIndividualClaims is MasterAwareV2 {
+contract ASMockIndividualClaims is MasterAwareV2, IndividualClaimsGeneric {
 
   INXMToken public token;
-  Configuration public config;
-  Claim[] public claims;
 
   constructor(address tokenAddress) {
     token = INXMToken(tokenAddress);
@@ -23,11 +22,11 @@ contract ASMockIndividualClaims is MasterAwareV2 {
   }
 
   function submitClaim(
-    uint24 coverId,
+    uint32 coverId,
     uint16 segmentId,
     uint96 requestedAmount,
     string calldata /*ipfsMetadata*/
-  ) external payable {
+  ) external payable override returns (Claim memory) {
     Claim memory claim = Claim(
       0,
       coverId,
@@ -40,6 +39,8 @@ contract ASMockIndividualClaims is MasterAwareV2 {
     uint assessmentId = assessment().startAssessment(config.rewardRatio * requestedAmount / 10000, 0);
     claim.assessmentId = uint80(assessmentId);
     claims.push(claim);
+
+    return claim;
   }
 
   function changeDependentContractAddress() external override {

@@ -3,10 +3,9 @@
 pragma solidity ^0.8.18;
 
 import "../../../interfaces/INXMToken.sol";
+import "../../generic/TokenControllerGeneric.sol";
 
-contract ASMockTokenController {
-
-  INXMToken public token;
+contract ASMockTokenController is TokenControllerGeneric {
 
   address public addToWhitelistLastCalledWith;
 
@@ -14,18 +13,17 @@ contract ASMockTokenController {
     token = INXMToken(tokenAddres);
   }
 
-  function operatorTransfer(address _from, address _to, uint _value) external returns (bool) {
+  function operatorTransfer(address _from, address _to, uint _value) override external returns (bool) {
     token.operatorTransfer(_from, _value);
     token.transfer(_to, _value);
     return true;
   }
 
-  function mint(address _to, uint _value) external returns (bool) {
+  function mint(address _to, uint _value) override external {
     token.mint(_to, _value);
-    return true;
   }
 
-  function addToWhitelist(address _member) public {
+  function addToWhitelist(address _member) override public {
     addToWhitelistLastCalledWith = _member;
   }
 }

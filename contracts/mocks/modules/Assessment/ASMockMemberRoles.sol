@@ -4,20 +4,25 @@ pragma solidity ^0.8.18;
 
 import "../../../interfaces/INXMMaster.sol";
 import "../../../interfaces/IMemberRoles.sol";
+import "../../generic/MemberRolesGeneric.sol";
 
-contract ASMockMemberRoles {
-  mapping(address => uint) public members;
+contract ASMockMemberRoles is MemberRolesGeneric {
+  mapping(address => uint) public _members;
 
   function enrollMember(address newMember, uint role) public {
-    members[newMember] = role;
+    _members[newMember] = role;
   }
 
-  function checkRole(address user, uint role) external view returns (bool) {
-    return members[user] == role;
+  function checkRole(address user, uint role) public override view returns (bool) {
+    return _members[user] == role;
   }
 
   function isMember(address user) external view returns (bool) {
-    return members[user] == uint(IMemberRoles.Role.Member);
+    return checkRole(user, uint(IMemberRoles.Role.Member));
+  }
+
+  function members(address user) external view returns (uint roleId) {
+    return _members[user];
   }
 
 }

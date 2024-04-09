@@ -2,7 +2,9 @@
 
 pragma solidity ^0.8.18;
 
-contract MCRMockPriceFeedOracle {
+import "../../generic/PriceFeedOracleGeneric.sol";
+
+contract MCRMockPriceFeedOracle is PriceFeedOracleGeneric {
 
     address public daiAddress;
     uint public daiToEthRate;
@@ -12,7 +14,7 @@ contract MCRMockPriceFeedOracle {
         daiToEthRate = _daiToEthRate;
     }
 
-    function getAssetToEthRate(address asset) public view returns (uint) {
+    function getAssetToEthRate(address asset) external override view returns (uint) {
         require(asset == daiAddress);
         return daiToEthRate;
     }

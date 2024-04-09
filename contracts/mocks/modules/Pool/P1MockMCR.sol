@@ -2,30 +2,36 @@
 
 pragma solidity ^0.8.18;
 
-contract P1MockMCR {
-    uint public mcr;
+import "../../generic/MCRGeneric.sol";
 
-    function getMCR() public view returns (uint) {
-        return mcr;
-    }
+contract P1MockMCR is MCRGeneric {
+  uint public _mcr;
 
-    function changeMasterAddress(address) external {
-        // no-op
-    }
+  function getMCR() external override view returns (uint) {
+      return _mcr;
+  }
 
-    function changeDependentContractAddress() external {
-        // no-op
-    }
+  function setMCR(uint80 value) public  {
+      _mcr = value;
+  }
 
-    function setMCR(uint _mcr) public  {
-        mcr = _mcr;
-    }
+  function mcr() external override view returns (uint80) {
+    return uint80(_mcr);
+  }
 
-    function updateMCR(uint) external {
-        // no-op
-    }
+  function updateMCR(uint) public override {
+    // no-op
+  }
 
-    function updateMCRInternal(bool) public {
-        // no-op
-    }
+  function updateMCRInternal(bool) public override {
+    // no-op
+  }
+
+  function changeDependentContractAddress() external {
+    // no-op
+  }
+
+  function changeMasterAddress(address) external {
+    // no-op
+  }
 }

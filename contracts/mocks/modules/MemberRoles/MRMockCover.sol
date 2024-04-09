@@ -6,33 +6,46 @@ import "../../../interfaces/ICoverNFT.sol";
 import "../../../interfaces/IStakingNFT.sol";
 import "../../../interfaces/IStakingPool.sol";
 import "../../../interfaces/IMemberRoles.sol";
+import "../../generic/CoverGeneric.sol";
 
-contract MRMockCover {
+contract MRMockCover is CoverGeneric {
 
-  ICoverNFT immutable public coverNFT;
-  IMemberRoles immutable public memberRoles;
-  IStakingNFT immutable public stakingNFT;
+  ICoverNFT immutable public _coverNFT;
+  IMemberRoles immutable public _memberRoles;
+  IStakingNFT immutable public _stakingNFT;
   address[] public stakingPools;
 
   constructor(address coverNFTAddress, address memberRolesAddress, address stakingNFTAddress) {
-    coverNFT = ICoverNFT(coverNFTAddress);
-    memberRoles = IMemberRoles(memberRolesAddress);
-    stakingNFT = IStakingNFT(stakingNFTAddress);
+    _coverNFT = ICoverNFT(coverNFTAddress);
+    _memberRoles = IMemberRoles(memberRolesAddress);
+    _stakingNFT = IStakingNFT(stakingNFTAddress);
   }
 
   function transferCovers(address from, address to, uint256[] calldata tokenIds) external {
     for (uint256 i = 0; i < tokenIds.length; i++) {
-      coverNFT.transferFrom(from, to, tokenIds[i]);
+      _coverNFT.transferFrom(from, to, tokenIds[i]);
     }
   }
 
   function transferStakingPoolTokens(address from, address to, uint256[] calldata tokenIds) external {
     for (uint256 i = 0; i < tokenIds.length; i++) {
-      stakingNFT.transferFrom(from, to, tokenIds[i]);
+      _stakingNFT.transferFrom(from, to, tokenIds[i]);
     }
   }
 
   function createMockCover(address to) public returns (uint tokenId) {
-    return coverNFT.mint(to);
+    return _coverNFT.mint(to);
+  }
+
+  function coverNFT() external override view returns (ICoverNFT) {
+    return _coverNFT;
+  }
+
+  function stakingNFT() external override view returns (IStakingNFT) {
+    return _stakingNFT;
+  }
+
+  function memberRoles() external view returns (IMemberRoles) {
+    return _memberRoles;
   }
 }

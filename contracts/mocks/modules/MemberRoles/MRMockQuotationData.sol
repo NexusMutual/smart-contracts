@@ -2,10 +2,16 @@
 
 pragma solidity ^0.8.18;
 
-contract MRMockQuotationData {
-  address public kycAuthAddress;
+import "../../generic/QuotationDataGeneric.sol";
 
-  function setKycAuthAddress(address _add) external {
-    kycAuthAddress = _add;
+contract MRMockQuotationData is QuotationDataGeneric {
+  address public _kycAuthAddress;
+
+  function setKycAuthAddress(address _add) external override {
+    _kycAuthAddress = _add;
+  }
+
+  function kycAuthAddress() external override view returns (address) {
+    return _kycAuthAddress;
   }
 }

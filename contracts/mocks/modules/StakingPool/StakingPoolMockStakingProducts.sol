@@ -10,8 +10,9 @@ import "../../../interfaces/ICoverProducts.sol";
 import "../../../libraries/Math.sol";
 import "../../../libraries/SafeUintCast.sol";
 import "../../../libraries/StakingPoolLibrary.sol";
+import "../../generic/StakingProductsGeneric.sol";
 
-contract StakingPoolMockStakingProducts is IStakingProducts, MasterAwareV2, Multicall {
+contract StakingPoolMockStakingProducts is StakingProductsGeneric, MasterAwareV2, Multicall {
   using SafeUintCast for uint;
 
   uint public constant SURGE_PRICE_RATIO = 2 ether;
@@ -47,7 +48,7 @@ contract StakingPoolMockStakingProducts is IStakingProducts, MasterAwareV2, Mult
     coverProductsContract = _coverProductsContract;
   }
 
-  function stakingPool(uint poolId) public view returns (IStakingPool stakingPoolAddress) {
+  function stakingPool(uint poolId) public override view returns (IStakingPool stakingPoolAddress) {
     stakingPoolAddress = IStakingPool(StakingPoolLibrary.getAddress(stakingPoolFactory, poolId));
   }
 
@@ -108,7 +109,7 @@ contract StakingPoolMockStakingProducts is IStakingProducts, MasterAwareV2, Mult
     weights[poolId].totalEffectiveWeight = _totalEffectiveWeight.toUint32();
   }
 
-  function setProducts(uint poolId, StakedProductParam[] memory params) external {
+  function setProducts(uint poolId, StakedProductParam[] memory params) external override {
 
     IStakingPool _stakingPool = stakingPool(poolId);
 
@@ -327,7 +328,7 @@ contract StakingPoolMockStakingProducts is IStakingProducts, MasterAwareV2, Mult
     bool useFixedPrice,
     uint nxmPerAllocationUnit,
     uint allocationUnitsPerNXM
-  ) public returns (uint premium) {
+  ) public override returns (uint premium) {
 
     StakedProduct memory product = _products[poolId][productId];
     uint targetPrice = Math.max(product.targetPrice, globalMinPrice);
@@ -361,7 +362,7 @@ contract StakingPoolMockStakingProducts is IStakingProducts, MasterAwareV2, Mult
     uint fixedPrice,
     uint nxmPerAllocationUnit,
     uint targetPriceDenominator
-  ) public pure returns (uint) {
+  ) public override pure returns (uint) {
 
     uint premiumPerYear =
     coverAmount
@@ -383,7 +384,7 @@ contract StakingPoolMockStakingProducts is IStakingProducts, MasterAwareV2, Mult
     uint nxmPerAllocationUnit,
     uint allocationUnitsPerNxm,
     uint targetPriceDenominator
-  ) public pure returns (uint premium, StakedProduct memory) {
+  ) public override pure returns (uint premium, StakedProduct memory) {
 
     uint basePrice;
     {
@@ -426,7 +427,7 @@ contract StakingPoolMockStakingProducts is IStakingProducts, MasterAwareV2, Mult
     uint nxmPerAllocationUnit,
     uint allocationUnitsPerNxm,
     uint targetPriceDenominator
-  ) public pure returns (uint) {
+  ) public override pure returns (uint) {
     // cover amount has 2 decimals (100 = 1 unit)
     // scale coverAmount to 18 decimals and apply price percentage
     uint basePremium = coverAmount * nxmPerAllocationUnit * basePrice / targetPriceDenominator;
@@ -480,7 +481,7 @@ contract StakingPoolMockStakingProducts is IStakingProducts, MasterAwareV2, Mult
     uint amountOnSurge,
     uint totalCapacity,
     uint allocationUnitsPerNxm
-  ) public pure returns (uint) {
+  ) public override pure returns (uint) {
 
     // for every percent of capacity used, the surge price has a +2% increase per annum
     // meaning a +200% increase for 100%, ie x2 for a whole unit (100%) of capacity in ratio terms
@@ -504,16 +505,6 @@ contract StakingPoolMockStakingProducts is IStakingProducts, MasterAwareV2, Mult
 
   function changeDependentContractAddress() external {
     // none :)
-  }
-
-  function createStakingPool(
-    bool /*  isPrivatePool */,
-    uint /*  initialPoolFee */,
-    uint /* maxPoolFee */,
-    ProductInitializationParams[] memory /* productInitParams */,
-    string calldata /* ipfsDescriptionHash */
-  ) external pure returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
-    revert('CoverMockStakingProducts: Not callable');
   }
 
 }

@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.18;
 
-contract MRMockGovernance {
+import "../../generic/GovernanceGeneric.sol";
+
+contract MRMockGovernance is GovernanceGeneric {
   function removeDelegation(address) public {}
 }

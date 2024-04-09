@@ -4,33 +4,19 @@ pragma solidity ^0.8.18;
 
 import "../../../interfaces/INXMToken.sol";
 import "../../../interfaces/ITokenController.sol";
-import "../../../interfaces/IAssessment.sol";
 import "../../../abstract/MasterAwareV2.sol";
+import "../../generic/AssessmentGeneric.sol";
 
-contract ICMockAssessment {
+contract ICMockAssessment is AssessmentGeneric {
 
   /* ========== STATE VARIABLES ========== */
-
-  IAssessment.Configuration public config;
-
-  // Stake states of users. (See Stake struct)
-  mapping(address => IAssessment.Stake) public stakeOf;
-
-  // Votes of users. (See Vote struct)
-  mapping(address => IAssessment.Vote[]) public votesOf;
-
-  // Mapping used to determine if a user has already voted, using a vote hash as a key
-  mapping(address => mapping(uint => bool)) public hasAlreadyVotedOn;
-
   // An array of merkle tree roots used to indicate fraudulent assessors. Each root represents a
   // fraud attempt by one or multiple addresses. Once the root is submitted by adivsory board
   // members through governance, burnFraud uses this root to burn the fraudulent assessors' stakes
   // and correct the outcome of the poll.
   bytes32[] internal fraudMerkleRoots;
 
-  mapping(uint => IAssessment.Poll) internal fraudSnapshot;
-
-  IAssessment.Assessment[] public assessments;
+  mapping(uint => Poll) internal fraudSnapshot;
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -45,20 +31,20 @@ contract ICMockAssessment {
     return a <= b ? a : b;
   }
 
-  function getVoteCountOfAssessor(address assessor) external view returns (uint) {
+  function getVoteCountOfAssessor(address assessor) external override view returns (uint) {
     return votesOf[assessor].length;
   }
 
-  function getAssessmentsCount() external  view returns (uint) {
+  function getAssessmentsCount() external override  view returns (uint) {
     return assessments.length;
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function startAssessment(uint totalAssessmentReward, uint assessmentDeposit) external
+  function startAssessment(uint totalAssessmentReward, uint assessmentDeposit) external override
   returns (uint) {
-    assessments.push(IAssessment.Assessment(
-      IAssessment.Poll(
+    assessments.push(Assessment(
+      Poll(
         0, // accepted
         0, // denied
         uint32(block.timestamp), // start
@@ -70,12 +56,12 @@ contract ICMockAssessment {
     return assessments.length - 1;
   }
 
-  function getPoll(uint assessmentId) external view returns (IAssessment.Poll memory) {
+  function getPoll(uint assessmentId) external override view returns (Poll memory) {
     return assessments[assessmentId].poll;
   }
 
   function castVote(uint assessmentId, bool isAcceptVote, uint96 stakeAmount) external {
-    IAssessment.Poll memory poll = assessments[assessmentId].poll;
+    Poll memory poll = assessments[assessmentId].poll;
 
     if (isAcceptVote && poll.accepted == 0) {
       // Reset the poll end when the first accepted vote
@@ -96,7 +82,7 @@ contract ICMockAssessment {
 
     assessments[assessmentId].poll = poll;
 
-    votesOf[msg.sender].push(IAssessment.Vote(
+    votesOf[msg.sender].push(Vote(
       uint80(assessmentId),
       isAcceptVote,
       uint32(block.timestamp),

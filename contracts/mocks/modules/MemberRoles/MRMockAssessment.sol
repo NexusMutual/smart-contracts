@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.8.18;
-import "../../../interfaces/IAssessment.sol";
+import "../../generic/AssessmentGeneric.sol";
 
-contract MRMockAssessment {
-  mapping(address => IAssessment.Stake) public stakeOf;
-
+contract MRMockAssessment is AssessmentGeneric {
   function setStakeOf(address staker, uint96 stakeAmount) external {
     stakeOf[staker] = IAssessment.Stake(stakeAmount, 0 /* rewardWithdrawableFromIndex */ , 0 /* fraudCount */);
   }

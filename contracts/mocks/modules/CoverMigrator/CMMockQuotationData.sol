@@ -2,13 +2,11 @@
 
 pragma solidity ^0.8.18;
 
-contract CMMockQuotationData {
+import "../../generic/QuotationDataGeneric.sol";
+
+contract CMMockQuotationData is QuotationDataGeneric {
 
   mapping(bytes4 => uint) public sumAssuredByCurrency;
-
-  enum HCIDStatus {NA, kycPending, kycPass, kycFailedOrRefunded, kycPassNoCover}
-
-  enum CoverStatus {Active, ClaimAccepted, ClaimDenied, CoverExpired, ClaimSubmitted, Requested}
 
   struct Cover {
     address payable memberAddress;
@@ -19,8 +17,6 @@ contract CMMockQuotationData {
     address scAddress;
     uint premiumNXM;
   }
-
-  address public authQuoteEngine;
 
   mapping(bytes4 => uint) internal currencyCSA;
   mapping(address => uint[]) internal userCover;
@@ -35,7 +31,7 @@ contract CMMockQuotationData {
     address _scAddress,
     uint /*premium*/,
     uint premiumNXM
-  ) external {
+  ) external override {
     uint expiryDate = block.timestamp + uint(_coverPeriod) * 1 days;
     allCovers.push(
       Cover(

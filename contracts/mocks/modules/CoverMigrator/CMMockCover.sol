@@ -2,7 +2,9 @@
 
 pragma solidity ^0.8.18;
 
-contract CMMockCover {
+import "../../generic/CoverGeneric.sol";
+
+contract CMMockCover is CoverGeneric{
 
   event AddLegacyCoverCalledWith(
     uint productId,
@@ -22,7 +24,7 @@ contract CMMockCover {
     uint start,
     uint period,
     address newOwner
-  ) external returns (uint coverId) {
+  ) external override returns (uint coverId) {
 
     emit AddLegacyCoverCalledWith(
       productId,

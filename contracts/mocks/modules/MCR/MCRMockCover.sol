@@ -3,16 +3,21 @@
 pragma solidity ^0.8.18;
 
 import "../../../interfaces/ICover.sol";
+import "../../generic/CoverGeneric.sol";
 
-contract MCRMockCover {
+contract MCRMockCover is CoverGeneric {
 
-  mapping(uint => uint) public totalActiveCoverInAsset;
+  mapping(uint => uint) public _totalActiveCoverInAsset;
 
   function getTotalActiveCoverInAsset(uint coverAsset) external view returns (uint) {
-    return totalActiveCoverInAsset[coverAsset];
+    return _totalActiveCoverInAsset[coverAsset];
   }
 
   function setTotalActiveCoverInAsset(uint asset, uint amount) public {
-    totalActiveCoverInAsset[asset] = amount;
+    _totalActiveCoverInAsset[asset] = amount;
+  }
+
+  function totalActiveCoverInAsset(uint coverAsset) external override view returns (uint) {
+    return _totalActiveCoverInAsset[coverAsset];
   }
 }

@@ -2,12 +2,14 @@
 
 pragma solidity ^0.8.18;
 
-contract MCRMockQuotationData {
+import "../../generic/QuotationDataGeneric.sol";
+
+contract MCRMockQuotationData is QuotationDataGeneric {
 
     mapping(bytes4 => uint) public sumAssuredByCurrency;
 
     /// @dev Gets the Total Sum Assured amount of a given currency.
-    function getTotalSumAssured(bytes4 currency) external view returns (uint amount) {
+    function getTotalSumAssured(bytes4 currency) external override view returns (uint amount) {
         amount = sumAssuredByCurrency[currency];
     }
 

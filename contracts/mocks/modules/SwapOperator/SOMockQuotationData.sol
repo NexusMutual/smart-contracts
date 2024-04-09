@@ -2,9 +2,11 @@
 
 pragma solidity ^0.8.18;
 
-contract SOMockQuotationData {
+import "../../generic/QuotationDataGeneric.sol";
 
-  function getTotalSumAssured(bytes4) external pure returns (uint) {
+contract SOMockQuotationData is QuotationDataGeneric {
+
+  function getTotalSumAssured(bytes4) external override pure returns (uint) {
     return 0;
   }
 

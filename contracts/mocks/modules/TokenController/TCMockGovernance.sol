@@ -2,12 +2,6 @@
 
 pragma solidity ^0.5.0;
 
-import "../../../libraries/external/SafeMath.sol";
-import "../../../abstract/LegacyMasterAware.sol";
-import "../../../interfaces/IGovernance.sol";
-import "../../../interfaces/IMemberRoles.sol";
-import "../../../interfaces/IProposalCategory.sol";
-import "../../../interfaces/ITokenController.sol";
 
 contract TCMockGovernance {
   mapping(address => uint) public unclaimedGovernanceRewards;

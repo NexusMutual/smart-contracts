@@ -2,7 +2,9 @@
 
 pragma solidity ^0.8.18;
 
-contract TCMockStakingPool {
+import "../../generic/StakingProductsGeneric.sol";
+
+contract TCMockStakingPool is StakingProductsGeneric {
   uint public calls;
   mapping(uint => uint) public withdrawCalledWithTokenId;
   mapping(uint => bool) public withdrawCalledWithStake;

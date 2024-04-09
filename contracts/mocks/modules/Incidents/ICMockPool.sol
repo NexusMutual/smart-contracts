@@ -7,10 +7,14 @@ import "../../../interfaces/IPriceFeedOracle.sol";
 
 contract ICMockPool is PoolMock {
 
-  IPriceFeedOracle public override priceFeedOracle;
+  IPriceFeedOracle public _priceFeedOracle;
 
-  constructor (address _priceFeedOracle) {
-    priceFeedOracle = IPriceFeedOracle(_priceFeedOracle);
+  constructor (address priceFeedOracleAddress) {
+    _priceFeedOracle = IPriceFeedOracle(priceFeedOracleAddress);
+  }
+
+  function priceFeedOracle() external override view returns (IPriceFeedOracle) {
+    return _priceFeedOracle;
   }
 
 }

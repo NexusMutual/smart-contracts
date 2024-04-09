@@ -2,20 +2,28 @@
 pragma solidity ^0.8.18;
 
 import "../../../abstract/MasterAwareV2.sol";
-import "../../../interfaces/IPooledStaking.sol";
+import "../../generic/PooledStakingGeneric.sol";
 
-contract MRMockPooledStaking {
+contract MRMockPooledStaking is PooledStakingGeneric {
 
-  mapping(address => uint) public stakerReward;
-  mapping(address => uint) public stakerDeposit;
+  mapping(address => uint) public _stakerReward;
+  mapping(address => uint) public _stakerDeposit;
 
   // Manually set the staker reward
   function setStakerReward(address staker, uint reward) external {
-    stakerReward[staker] = reward;
+    _stakerReward[staker] = reward;
   }
 
   // Manually set the staker deposit
   function setStakerDeposit(address staker, uint deposit) external {
-    stakerDeposit[staker] = deposit;
+    _stakerDeposit[staker] = deposit;
+  }
+
+  function stakerReward(address staker) external override view returns (uint) {
+    return _stakerReward[staker];
+  }
+
+  function stakerDeposit(address staker) external override view returns (uint) {
+    return _stakerDeposit[staker];
   }
 }

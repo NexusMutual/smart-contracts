@@ -4,8 +4,9 @@ pragma solidity ^0.8.18;
 
 import "../../../abstract/MasterAware.sol";
 import "../../../interfaces/ITokenController.sol";
+import "../../generic/GovernanceGeneric.sol";
 
-contract MSMockGovernance is MasterAware {
+contract MSMockGovernance is GovernanceGeneric, MasterAware {
 
   ITokenController tc;
 

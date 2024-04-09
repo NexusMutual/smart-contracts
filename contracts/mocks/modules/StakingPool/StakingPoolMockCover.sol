@@ -4,43 +4,42 @@ pragma solidity ^0.8.18;
 
 import "../../../interfaces/IStakingPool.sol";
 import "../../../interfaces/ICover.sol";
+import "../../generic/CoverGeneric.sol";
 
-contract StakingPoolMockCover {
+contract StakingPoolMockCover is CoverGeneric {
 
-  uint public constant globalCapacityRatio = 20000;
-  uint public constant globalRewardsRatio = 5000;
-
-  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+  uint public constant _globalCapacityRatio = 20000;
+  uint public constant _globalRewardsRatio = 5000;
 
   uint public lastPremium;
 
   mapping(uint => address) public stakingPool;
   mapping(uint => Product) public products;
-  mapping(uint => ProductType) public productTypes;
+  mapping(uint => ProductType) public _productTypes;
 
   event RequestAllocationReturned(uint premium, uint allocationId);
 
-  function getGlobalRewardsRatio() external pure returns (uint) {
-    return globalRewardsRatio;
+  function getGlobalRewardsRatio() public override pure returns (uint) {
+    return _globalRewardsRatio;
   }
 
-  function getGlobalCapacityRatio() external pure returns (uint) {
-    return globalCapacityRatio;
+  function getGlobalCapacityRatio() public override pure returns (uint) {
+    return _globalCapacityRatio;
   }
 
   function setStakingPool(address addr, uint id) public {
     stakingPool[id] = addr;
   }
 
-  function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (
-    uint _globalCapacityRatio,
-    uint _globalMinPriceRatio,
+  function getPriceAndCapacityRatios(uint[] calldata productIds) public override view returns (
+    uint _globalCapacityRatioValue,
+    uint _globalMinPriceRatioValue,
     uint[] memory _initialPrices,
     uint[] memory _capacityReductionRatios
   ) {
 
-    _globalCapacityRatio = globalCapacityRatio;
-    _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
+    _globalCapacityRatioValue = _globalCapacityRatio;
+    _globalMinPriceRatioValue = GLOBAL_MIN_PRICE_RATIO;
     _capacityReductionRatios = new uint[](productIds.length);
     _initialPrices  = new uint[](productIds.length);
 
@@ -60,7 +59,7 @@ contract StakingPoolMockCover {
   ) public returns (uint premium, uint) {
 
     Product memory product = products[params.productId];
-    uint gracePeriod = productTypes[product.productType].gracePeriod;
+    uint gracePeriod = _productTypes[product.productType].gracePeriod;
 
     (premium, allocationId) = _stakingPool.requestAllocation(
       params.amount,
@@ -77,9 +76,9 @@ contract StakingPoolMockCover {
         0, // previous cover start
         0,  // previous cover expiration
         0,  // previous rewards ratio
-        globalCapacityRatio,
+        _globalCapacityRatio,
         product.capacityReductionRatio,
-        globalRewardsRatio,
+        _globalRewardsRatio,
         GLOBAL_MIN_PRICE_RATIO
       )
     );
@@ -124,5 +123,17 @@ contract StakingPoolMockCover {
 
   function isPoolAllowed(uint /*productId*/, uint /*poolId*/) external pure returns (bool) {
     return true;
+  }
+
+  function globalCapacityRatio() external override pure returns (uint) {
+    return _globalCapacityRatio;
+  }
+
+  function globalRewardsRatio() external override pure  returns (uint){
+    return _globalRewardsRatio;
+  }
+
+  function productTypes(uint productType) external override virtual view returns (ProductType memory) {
+    return _productTypes[productType];
   }
 }

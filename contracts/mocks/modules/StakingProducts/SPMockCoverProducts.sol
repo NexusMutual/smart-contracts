@@ -5,10 +5,10 @@ pragma solidity ^0.8.18;
 //import "../../../interfaces/IStakingPool.sol";
 //import "../../../interfaces/ICover.sol";
 //import "../../../interfaces/IStakingProducts.sol";
-import "../../../interfaces/ICoverProducts.sol";
+import "../../generic/CoverProductsGeneric.sol";
 //import "../../../interfaces/IStakingPoolFactory.sol";
 
-contract SPMockCoverProducts is ICoverProducts {
+contract SPMockCoverProducts is CoverProductsGeneric {
 
   mapping(uint => Product) public _products;
   mapping(uint => ProductType) public _productTypes;
@@ -22,11 +22,11 @@ contract SPMockCoverProducts is ICoverProducts {
     productsCount++;
   }
 
-  function getProduct(uint productId) external view returns (Product memory) {
+  function getProduct(uint productId) external override view returns (Product memory) {
     return _products[productId];
   }
 
-  function getProductCount() external view returns (uint) {
+  function getProductCount() external override view returns (uint) {
     return productsCount;
   }
 
@@ -38,7 +38,7 @@ contract SPMockCoverProducts is ICoverProducts {
     _productTypes[id] = productType;
   }
 
-  function getProductType(uint productTypeId) external view returns (ProductType memory) {
+  function getProductType(uint productTypeId) external override view returns (ProductType memory) {
     return _productTypes[productTypeId];
   }
 
@@ -55,11 +55,11 @@ contract SPMockCoverProducts is ICoverProducts {
     }
   }
 
-  function isPoolAllowed(uint productId, uint poolId) external view returns (bool) {
+  function isPoolAllowed(uint productId, uint poolId) external override view returns (bool) {
     return allowedPools[productId][poolId];
   }
 
-  function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external view {
+  function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external override view {
     for (uint i = 0; i < productIds.length; i++) {
       uint productId = productIds[i];
       if (!allowedPools[productId][poolId]) {
@@ -68,73 +68,29 @@ contract SPMockCoverProducts is ICoverProducts {
     }
   }
 
-  function getAllowedPoolsCount(uint productId) external view returns (uint) {
+  function getAllowedPoolsCount(uint productId) external override view returns (uint) {
     return _allowedPoolsCount[productId];
   }
 
   function prepareStakingProductsParams(
     ProductInitializationParams[] calldata params
-  ) external pure returns (
+  ) external override pure returns (
     ProductInitializationParams[] memory validatedParams
   ) {
     validatedParams = params;
   }
 
-  function getInitialPrices(uint[] calldata productIds) external view returns (uint[] memory initialPrices) {
+  function getInitialPrices(uint[] calldata productIds) external override view returns (uint[] memory initialPrices) {
     initialPrices = new uint[](productIds.length);
     for (uint i = 0; i < productIds.length; i++) {
       initialPrices[i] = _products[productIds[i]].initialPriceRatio;
     }
   }
 
-  function getProducts() external pure returns (Product[] memory) {
-    revert("Unsupported");
-  }
-
-  function getProductTypes() external pure returns (ProductType[] memory) {
-    revert("Unsupported");
-  }
-
-  function getProductTypesCount() external pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function getProductWithType(uint /* productId */) external pure returns (Product memory, ProductType memory) {
-    revert("Unsupported");
-  }
-
-  function getAllowedPools(uint /* productId */) external pure returns (uint[] memory) {
-    revert("Unsupported");
-  }
-
-  function getCapacityReductionRatios(uint[] calldata productIds) external view returns (uint[] memory reductionRatios) {
+  function getCapacityReductionRatios(uint[] calldata productIds) external override view returns (uint[] memory reductionRatios) {
     reductionRatios = new uint[](productIds.length);
     for (uint i = 0; i < productIds.length; i++) {
       reductionRatios[i] = _products[productIds[i]].capacityReductionRatio;
     }
-  }
-
-  function getProductName(uint /* productTypeId */) external pure returns (string memory) {
-    revert("Unsupported");
-  }
-
-  function getProductTypeCount() external pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function getProductTypeName(uint /* productTypeId */) external pure returns (string memory) {
-    revert("Unsupported");
-  }
-
-  function productNames(uint) external pure returns (string memory) {
-    revert("Unsupported");
-  }
-
-  function setProductTypes(ProductTypeParam[] calldata /*  productTypes */ ) external pure {
-    revert("Unsupported");
-  }
-
-  function setProducts(ProductParam[] calldata /* params */ ) external pure {
-    revert("Unsupported");
   }
 }

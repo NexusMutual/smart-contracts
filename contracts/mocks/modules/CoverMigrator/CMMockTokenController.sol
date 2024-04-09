@@ -2,17 +2,9 @@
 
 pragma solidity ^0.8.18;
 
-contract CMMockTokenController {
+import "../../generic/TokenControllerGeneric.sol";
 
-  struct CoverInfo {
-    uint16 claimCount;
-    bool hasOpenClaim;
-    bool hasAcceptedClaim;
-    uint96 requestedPayoutAmount;
-    // note: still 128 bits available here, can be used later
-  }
-
-  mapping(uint => CoverInfo) public coverInfo;
+contract CMMockTokenController is TokenControllerGeneric {
 
   function addCoverInfo(
     uint coverId,

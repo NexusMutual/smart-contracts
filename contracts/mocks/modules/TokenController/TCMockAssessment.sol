@@ -2,9 +2,10 @@
 
 pragma solidity ^0.8.18;
 import "../../../interfaces/IAssessment.sol";
+import "../../generic/AssessmentGeneric.sol";
 
-contract TCMockAssessment {
-  mapping(address => IAssessment.Stake) public stakeOf;
+contract TCMockAssessment is AssessmentGeneric {
+
   mapping(address => uint) public unclaimedGovernanceRewards;
   address public withdrawRewardsLastCalledWithStaker;
   uint public withdrawRewardsLastCalledWithBatchSize;
@@ -16,7 +17,7 @@ contract TCMockAssessment {
   function withdrawRewards(
     address staker,
     uint104 batchSize
-  ) external returns (uint /* withdrawn */, uint /*withdrawnUntilIndex*/) {
+  ) external override returns (uint /* withdrawn */, uint /*withdrawnUntilIndex*/) {
     withdrawRewardsLastCalledWithStaker = staker;
     withdrawRewardsLastCalledWithBatchSize = batchSize;
 

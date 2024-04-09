@@ -7,8 +7,9 @@ import "../../../interfaces/ICover.sol";
 import "../../../interfaces/IStakingProducts.sol";
 import "../../../interfaces/ICoverProducts.sol";
 import "../../../interfaces/IStakingPoolFactory.sol";
+import "../../generic/CoverProductsGeneric.sol";
 
-contract StakingPoolMockCoverProducts is ICoverProducts {
+contract StakingPoolMockCoverProducts is CoverProductsGeneric {
 
   mapping(uint => Product) public _products;
   mapping(uint => ProductType) public _productTypes;
@@ -34,92 +35,16 @@ contract StakingPoolMockCoverProducts is ICoverProducts {
     _allowedPoolsCount[productId]++;
   }
 
-  function isPoolAllowed(uint productId, uint poolId) external view returns (bool) {
+  function isPoolAllowed(uint productId, uint poolId) external override view returns (bool) {
     return allowedPools[productId][poolId];
   }
 
-  function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external view {
+  function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external override view {
     for (uint i = 0; i < productIds.length; i++) {
       uint productId = productIds[i];
       if (!allowedPools[productId][poolId]) {
         revert PoolNotAllowedForThisProduct(productId);
       }
     }
-  }
-
-  function prepareStakingProductsParams(
-    ProductInitializationParams[] calldata /* params */
-  ) external pure returns (
-    ProductInitializationParams[] memory /* validatedParams */
-  ) {
-    revert("Unsupported");
-  }
-
-  function getInitialPrices(uint[] calldata /*productIds*/) external pure returns (uint[] memory) {
-    revert("Unsupported");
-  }
-
-  function getAllowedPoolsCount(uint /* productId */) external pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function getProducts() external pure returns (Product[] memory) {
-    revert("Unsupported");
-  }
-
-  function getProductTypes() external pure returns (ProductType[] memory) {
-    revert("Unsupported");
-  }
-
-  function getProductTypesCount() external pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function getProductWithType(uint /* productId */) external pure returns (Product memory, ProductType memory) {
-    revert("Unsupported");
-  }
-
-  function getAllowedPools(uint /* productId */) external pure returns (uint[] memory) {
-    revert("Unsupported");
-  }
-
-  function getCapacityReductionRatios(uint[] calldata /* productIds */) external pure returns (uint[] memory) {
-    revert("Unsupported");
-  }
-
-  function getProduct(uint /* productId */) external pure returns (Product memory) {
-    revert("Unsupported");
-  }
-
-  function getProductCount() external pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function getProductName(uint /* productTypeId */) external pure returns (string memory) {
-    revert("Unsupported");
-  }
-
-  function getProductType(uint /* productTypeId */) external pure returns (ProductType memory) {
-    revert("Unsupported");
-  }
-
-  function getProductTypeCount() external pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function getProductTypeName(uint /* productTypeId */) external pure returns (string memory) {
-    revert("Unsupported");
-  }
-
-  function productNames(uint) external pure returns (string memory) {
-    revert("Unsupported");
-  }
-
-  function setProductTypes(ProductTypeParam[] calldata /*  productTypes */ ) external pure {
-    revert("Unsupported");
-  }
-
-  function setProducts(ProductParam[] calldata /* params */ ) external pure {
-    revert("Unsupported");
   }
 }

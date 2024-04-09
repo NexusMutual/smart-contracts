@@ -4,8 +4,9 @@ pragma solidity ^0.8.18;
 
 import "../../../interfaces/ICover.sol";
 import "../../../interfaces/ICoverNFT.sol";
+import "../../generic/CoverGeneric.sol";
 
-contract ICMockCover {
+contract ICMockCover is CoverGeneric {
 
   struct BurnStakeCalledWith {
     uint coverId;
@@ -13,10 +14,10 @@ contract ICMockCover {
     uint amount;
   }
 
-  ICoverNFT public immutable coverNFT;
+  ICoverNFT public immutable _coverNFT;
   BurnStakeCalledWith public burnStakeCalledWith;
 
-  mapping(uint => CoverData) public coverData;
+  mapping(uint => CoverData) public _coverData;
   mapping(uint => CoverSegment[]) _coverSegments;
 
   mapping(uint => PoolAllocation[]) poolAllocations;
@@ -49,7 +50,7 @@ contract ICMockCover {
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
 
   constructor(address coverNFTAddress) {
-    coverNFT = ICoverNFT(coverNFTAddress);
+    _coverNFT = ICoverNFT(coverNFTAddress);
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -61,9 +62,9 @@ contract ICMockCover {
     CoverSegment[] memory segments
   ) external payable returns (uint coverId) {
 
-    coverId = coverNFT.mint(owner);
+    coverId = _coverNFT.mint(owner);
 
-    coverData[coverId] = CoverData(
+    _coverData[coverId] = CoverData(
       productId,
       coverAsset,
       0
@@ -77,9 +78,9 @@ contract ICMockCover {
   function coverSegmentWithRemainingAmount(
     uint coverId,
     uint segmentId
-  ) external view returns (CoverSegment memory) {
+  ) external override view returns (CoverSegment memory) {
     CoverSegment memory segment = _coverSegments[coverId][segmentId];
-    uint96 amountPaidOut = coverData[coverId].amountPaidOut;
+    uint96 amountPaidOut = _coverData[coverId].amountPaidOut;
     segment.amount = segment.amount >= amountPaidOut
       ? segment.amount - amountPaidOut
       : 0;
@@ -94,8 +95,16 @@ contract ICMockCover {
   }
 
 
-  function burnStake(uint coverId, uint segmentId, uint amount) external returns (address) {
+  function burnStake(uint coverId, uint segmentId, uint amount) external override returns (address) {
     burnStakeCalledWith = BurnStakeCalledWith(coverId, segmentId, amount);
-    return coverNFT.ownerOf(coverId);
+    return _coverNFT.ownerOf(coverId);
+  }
+
+  function coverNFT() external override view returns (ICoverNFT) {
+    return _coverNFT;
+  }
+
+  function coverData(uint coverId) external override view returns (CoverData memory) {
+    return _coverData[coverId];
   }
 }

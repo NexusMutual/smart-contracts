@@ -6,11 +6,12 @@ import "../../../interfaces/IStakingNFT.sol";
 import "../../../interfaces/IStakingPool.sol";
 import "../../../interfaces/IStakingPoolFactory.sol";
 import "../../../libraries/StakingPoolLibrary.sol";
+import "../../generic/CoverGeneric.sol";
 /**
  * @dev Simple library to derive the staking pool address from the pool id without external calls
  */
 
-contract SNFTMockCover {
+contract SNFTMockCover is CoverGeneric {
     IStakingPoolFactory stakingPoolFactory;
     IStakingNFT stakingNFT;
 

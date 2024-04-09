@@ -7,8 +7,9 @@ import "../../../interfaces/INXMToken.sol";
 import "../../../interfaces/IPool.sol";
 import "../../../abstract/MasterAwareV2.sol";
 import "../../../libraries/Math.sol";
+import "../../generic/MCRGeneric.sol";
 
-contract RammMockMCR is IMCR {
+contract RammMockMCR is MCRGeneric {
 
   uint public mockMCRValue;
   uint public lastMCRUpdateTime;
@@ -21,45 +22,19 @@ contract RammMockMCR is IMCR {
     lastMCRUpdateTime = block.timestamp;
   }
 
-  function setPool(address _poolAddress) public {
+  function setPool(address _poolAddress) public override {
     pool = IPool(_poolAddress);
   }
 
-  function getMCR() public view returns (uint) {
+  function getMCR() external override view returns (uint) {
     return mockMCRValue;
   }
 
-  function updateMCR(uint newMCRValue) public {
+  function updateMCR(uint newMCRValue) public override {
     mockMCRValue = newMCRValue;
   }
 
-  function updateMCRInternal(bool) public {
+  function updateMCRInternal(bool) public override {
     lastMCRUpdateTime = block.timestamp;
-  }
-
-  /* ====== NOT NEEDED FUNCTIONS ====== */
-
-  function mcr() external override pure returns (uint80) {
-    revert("Unsupported");
-  }
-
-  function desiredMCR() external override pure returns (uint80) {
-    revert("Unsupported");
-  }
-
-  function lastUpdateTime() external override pure returns (uint32) {
-    revert("Unsupported");
-  }
-
-  function gearingFactor() external pure returns (uint24) {
-    revert("Unsupported");
-  }
-
-  function maxMCRIncrement() external pure returns (uint16) {
-    revert("Unsupported");
-  }
-
-  function minUpdateTime() external pure returns (uint16) {
-    revert("Unsupported");
   }
 }

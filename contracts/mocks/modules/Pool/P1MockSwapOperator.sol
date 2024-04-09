@@ -2,9 +2,11 @@
 
 pragma solidity ^0.8.18;
 
-contract P1MockSwapOperator {
+import "../../generic/SwapOperatorGeneric.sol";
 
-  function orderInProgress() public pure returns (bool) {
+contract P1MockSwapOperator is SwapOperatorGeneric {
+
+  function orderInProgress() external override pure returns (bool) {
     return false;
   }
 }

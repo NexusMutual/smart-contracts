@@ -7,39 +7,37 @@ import "../../../interfaces/ICover.sol";
 import "../../../interfaces/IStakingProducts.sol";
 import "../../../interfaces/IStakingPoolFactory.sol";
 import "../../../interfaces/ICoverProducts.sol";
+import "../../generic/CoverGeneric.sol";
 
-// TODO: needs to implement ICover
-contract SPMockCover {
+contract SPMockCover is CoverGeneric {
 
   uint public constant GLOBAL_CAPACITY_RATIO = 20000;
   uint public constant GLOBAL_REWARDS_RATIO = 5000;
-
-  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   uint public lastPremium;
 
   mapping(uint => address) public stakingPool;
 
-  ICoverNFT public coverNFT;
-  IStakingNFT public stakingNFT;
-  IStakingPoolFactory public stakingPoolFactory;
-  address public stakingPoolImplementation;
+  ICoverNFT public _coverNFT;
+  IStakingNFT public _stakingNFT;
+  IStakingPoolFactory public _stakingPoolFactory;
+  address public _stakingPoolImplementation;
   ICoverProducts coverProducts;
 
   error ProductDeprecatedOrNotInitialized();
 
   constructor(
-    ICoverNFT _coverNFT,
-    IStakingNFT _stakingNFT,
-    IStakingPoolFactory _stakingPoolFactory,
-    address _stakingPoolImplementation,
+    ICoverNFT coverNFTAddress,
+    IStakingNFT stakingNFTAddress,
+    IStakingPoolFactory stakingPoolFactoryAddress,
+    address stakingPoolImplementationAddress,
     address _coverProducts
   ) {
     // in constructor we only initialize immutable fields
-    coverNFT = _coverNFT;
-    stakingNFT = _stakingNFT;
-    stakingPoolFactory = _stakingPoolFactory;
-    stakingPoolImplementation = _stakingPoolImplementation;
+    _coverNFT = coverNFTAddress;
+    _stakingNFT = stakingNFTAddress;
+    _stakingPoolFactory = stakingPoolFactoryAddress;
+    _stakingPoolImplementation = stakingPoolImplementationAddress;
     coverProducts = ICoverProducts(_coverProducts);
   }
 
@@ -49,15 +47,15 @@ contract SPMockCover {
     stakingPool[id] = addr;
   }
 
-  function getGlobalMinPriceRatio() public pure returns (uint) {
+  function getGlobalMinPriceRatio() public override pure returns (uint) {
     return GLOBAL_MIN_PRICE_RATIO;
   }
 
-  function getGlobalCapacityRatio() public pure returns (uint) {
+  function getGlobalCapacityRatio() public override pure returns (uint) {
     return GLOBAL_CAPACITY_RATIO;
   }
 
-  function getGlobalCapacityAndPriceRatios() public pure returns (uint, uint) {
+  function getGlobalCapacityAndPriceRatios() public override pure returns (uint, uint) {
     return (GLOBAL_CAPACITY_RATIO, GLOBAL_MIN_PRICE_RATIO);
   }
 
@@ -131,7 +129,7 @@ contract SPMockCover {
     emit RequestAllocationReturned(premium, allocationId);
   }
 
-  function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (
+  function getPriceAndCapacityRatios(uint[] calldata productIds) public override view returns (
     uint _globalCapacityRatio,
     uint _globalMinPriceRatio,
     uint[] memory _initialPrices,
@@ -150,5 +148,9 @@ contract SPMockCover {
       _initialPrices[i] = uint(product.initialPriceRatio);
       _capacityReductionRatios[i] = uint(product.capacityReductionRatio);
     }
+  }
+
+  function stakingPoolImplementation() public view returns (address) {
+    return _stakingPoolImplementation;
   }
 }

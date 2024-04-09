@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.18;
 
-import "../../../interfaces/ICover.sol";
+import "../../generic/CoverGeneric.sol";
 
-contract CVMockCover {
+contract CVMockCover is CoverGeneric {
 
   mapping(uint => CoverSegment[]) public _coverSegments;
   mapping(uint => CoverData) public _coverData;
@@ -19,22 +19,22 @@ contract CVMockCover {
     }
   }
 
-  function coverData(uint coverId) external view returns (CoverData memory) {
+  function coverData(uint coverId) external override view returns (CoverData memory) {
     return _coverData[coverId];
   }
 
-  function coverSegmentsCount(uint coverId) external view returns (uint) {
+  function coverSegmentsCount(uint coverId) external override view returns (uint) {
     return _coverSegments[coverId].length;
   }
 
-  function coverSegments(uint coverId) external view returns (CoverSegment[] memory)  {
+  function coverSegments(uint coverId) external override view returns (CoverSegment[] memory)  {
     return _coverSegments[coverId];
   }
 
   function coverSegmentWithRemainingAmount(
     uint coverId,
     uint segmentId
-  ) external view returns (CoverSegment memory) {
+  ) external override view returns (CoverSegment memory) {
     return _coverSegments[coverId][segmentId];
   }
 }

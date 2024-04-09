@@ -4,12 +4,13 @@ pragma solidity ^0.8.18;
 
 import "../../../interfaces/IStakingPool.sol";
 import "../../../libraries/Math.sol";
+import "../../generic/StakingPoolGeneric.sol";
 
-contract CoverMockStakingPool is IStakingPool {
+contract CoverMockStakingPool is StakingPoolGeneric {
 
   uint internal activeStake;
   uint internal rewardPerSecond;
-  bool public isPrivatePool;
+  bool public override isPrivatePool;
   uint8 internal poolFee;
   uint8 internal maxPoolFee;
   uint internal accNxmPerRewardsShare;
@@ -55,7 +56,7 @@ contract CoverMockStakingPool is IStakingPool {
     uint _maxPoolFee,
     uint _poolId,
     string calldata _ipfsDescriptionHash /* ipfsDescriptionHash */
-  ) external {
+  ) external override {
     isPrivatePool = _isPrivatePool;
     poolFee = uint8(_initialPoolFee);
     maxPoolFee = uint8(_maxPoolFee);
@@ -108,24 +109,24 @@ contract CoverMockStakingPool is IStakingPool {
     activeStake = activeStake;
   }
 
-  function processExpirations(bool) external {
+  function processExpirations(bool) external override {
     activeStake = activeStake;
     revert("CoverMockStakingPool: not callable");
   }
 
-  function getAvailableCapacity(uint productId, uint capacityFactor) external /*override*/ view returns (uint) {
+  function getAvailableCapacity(uint productId, uint capacityFactor) external view returns (uint) {
     return stakedAmount[productId] * capacityFactor - usedCapacity[productId];
   }
 
-  function getCapacity(uint productId, uint capacityFactor) external /*override*/ view returns (uint) {
+  function getCapacity(uint productId, uint capacityFactor) external view returns (uint) {
     return stakedAmount[productId] * capacityFactor;
   }
 
-  function getUsedCapacity(uint productId) external /*override*/ view returns (uint) {
+  function getUsedCapacity(uint productId) external view returns (uint) {
     return usedCapacity[productId];
   }
 
-  function getStake(uint productId) external /*override*/ view returns (uint) {
+  function getStake(uint productId) external view returns (uint) {
     return stakedAmount[productId];
   }
 
@@ -149,7 +150,7 @@ contract CoverMockStakingPool is IStakingPool {
     // noop
   }
 
-  function burnStake(uint amount, BurnStakeParams calldata params) external {
+  function burnStake(uint amount, BurnStakeParams calldata params) external override {
     // no-op
     burnStakeCalledWithAmount = amount;
     burnStakeCalledWithParams = params;
@@ -160,7 +161,7 @@ contract CoverMockStakingPool is IStakingPool {
     uint /*trancheId*/,
     uint /*requestTokenId*/,
     address /*destination*/
-  ) external returns (uint /* tokenId */) {
+  ) external override returns (uint /* tokenId */) {
     activeStake = activeStake;
     revert("CoverMockStakingPool: not callable");
   }
@@ -170,17 +171,17 @@ contract CoverMockStakingPool is IStakingPool {
     bool /*withdrawStake*/,
     bool /*withdrawRewards*/,
     uint[] memory /*trancheIds*/
-  ) public returns (uint /*withdrawnStake*/, uint /*withdrawnRewards*/) {
+  ) public override returns (uint /*withdrawnStake*/, uint /*withdrawnRewards*/) {
     activeStake = activeStake;
     revert("CoverMockStakingPool: not callable");
   }
 
-  function setPoolFee(uint /* newFee */) external {
+  function setPoolFee(uint /* newFee */) external override {
     activeStake = activeStake;
     revert("CoverMockStakingPool: not callable");
   }
 
-  function setPoolPrivacy(bool /* isPrivatePool */) external {
+  function setPoolPrivacy(bool /* isPrivatePool */) external override {
     activeStake = activeStake;
     revert("CoverMockStakingPool: not callable");
   }
@@ -190,19 +191,19 @@ contract CoverMockStakingPool is IStakingPool {
     revert("CoverMockStakingPool: not callable");
   }
 
-  function getAccNxmPerRewardsShare() external pure returns (uint) {
+  function getAccNxmPerRewardsShare() external override pure returns (uint) {
     return 0;
   }
 
-  function getLastAccNxmUpdate() external pure returns (uint) {
+  function getLastAccNxmUpdate() external override pure returns (uint) {
     return 0;
   }
 
-  function getActiveStake() external pure returns (uint) {
+  function getActiveStake() external override pure returns (uint) {
     return 0;
   }
 
-  function getDeposit(uint /*tokenId*/, uint /*trancheId*/) external pure returns (
+  function getDeposit(uint /*tokenId*/, uint /*trancheId*/) external override pure returns (
     uint lastAccNxmPerRewardShare,
     uint pendingRewards,
     uint stakeShares,
@@ -211,7 +212,7 @@ contract CoverMockStakingPool is IStakingPool {
     return (0, 0, 0, 0);
   }
 
-  function getExpiredTranche(uint /*trancheId*/) external pure returns (
+  function getExpiredTranche(uint /*trancheId*/) external override pure returns (
     uint accNxmPerRewardShareAtExpiry,
     uint stakeAmountAtExpiry,
     uint stakeShareSupplyAtExpiry
@@ -219,19 +220,19 @@ contract CoverMockStakingPool is IStakingPool {
     return (0, 0, 0);
   }
 
-  function getMaxPoolFee() external view returns (uint) {
+  function getMaxPoolFee() external override view returns (uint) {
     return maxPoolFee;
   }
 
-  function getPoolFee() external view returns (uint) {
+  function getPoolFee() external override view returns (uint) {
     return poolFee;
   }
 
-  function getPoolId() external view returns (uint) {
+  function getPoolId() external override view returns (uint) {
     return poolId;
   }
 
-  function manager() external pure returns (address) {
+  function manager() external override pure returns (address) {
     return address(0);
   }
 
@@ -245,27 +246,27 @@ contract CoverMockStakingPool is IStakingPool {
     return (0, 0, 0, 0, 0);
   }
 
-  function getRewardPerSecond() external pure returns (uint) {
+  function getRewardPerSecond() external override pure returns (uint) {
     return 0;
   }
 
-  function getStakeSharesSupply() external pure returns (uint) {
+  function getStakeSharesSupply() external override pure returns (uint) {
     return 0;
   }
 
-  function getRewardsSharesSupply() external pure returns (uint) {
+  function getRewardsSharesSupply() external override pure returns (uint) {
     return 0;
   }
 
-  function getFirstActiveTrancheId() external pure returns (uint) {
+  function getFirstActiveTrancheId() external override pure returns (uint) {
     return 0;
   }
 
-  function getFirstActiveBucketId() external pure returns (uint) {
+  function getFirstActiveBucketId() external override pure returns (uint) {
     return 0;
   }
 
-  function getNextAllocationId() external pure returns (uint) {
+  function getNextAllocationId() external override pure returns (uint) {
     return 0;
   }
 
@@ -277,30 +278,14 @@ contract CoverMockStakingPool is IStakingPool {
     return 0;
   }
 
-  function getTranche(uint /*trancheId*/) external pure returns (
+  function getTranche(uint /*trancheId*/) external override pure returns (
     uint stakeShares,
     uint rewardsShares
   ) {
     return (0, 0);
   }
 
-  function isHalted() external pure returns (bool) {
+  function isHalted() external override pure returns (bool) {
     return false;
-  }
-
-  function getActiveAllocations(
-    uint /*productId*/
-  ) external pure returns (uint[] memory /*trancheAllocations*/){
-    revert("CoverMockStakingPool: not callable");
-  }
-
-  function getTrancheCapacities(
-    uint /*productId*/,
-    uint /*firstTrancheId*/,
-    uint /*trancheCount*/,
-    uint /*capacityRatio*/,
-    uint /*reductionRatio*/
-  ) external pure returns (uint[] memory /*trancheCapacities*/){
-    revert("CoverMockStakingPool: not callable");
   }
 }

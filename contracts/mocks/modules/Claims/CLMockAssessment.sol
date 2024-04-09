@@ -6,24 +6,15 @@ import "../../../interfaces/INXMToken.sol";
 import "../../../interfaces/ITokenController.sol";
 import "../../../interfaces/IAssessment.sol";
 import "../../../abstract/MasterAwareV2.sol";
+import "../../generic/AssessmentGeneric.sol";
 
-contract CLMockAssessment {
+contract CLMockAssessment is AssessmentGeneric {
 
   /* ========== STATE VARIABLES ========== */
-
-  IAssessment.Configuration public config;
-
-  mapping(address => IAssessment.Stake) public stakeOf;
-
-  mapping(address => IAssessment.Vote[]) public votesOf;
-
-  mapping(address => mapping(uint => bool)) public hasAlreadyVotedOn;
 
   bytes32[] internal fraudMerkleRoots;
 
   mapping(uint => IAssessment.Poll) internal fraudSnapshot;
-
-  IAssessment.Assessment[] public assessments;
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -38,17 +29,17 @@ contract CLMockAssessment {
     return a <= b ? a : b;
   }
 
-  function getVoteCountOfAssessor(address assessor) external view returns (uint) {
+  function getVoteCountOfAssessor(address assessor) external override view returns (uint) {
     return votesOf[assessor].length;
   }
 
-  function getAssessmentsCount() external  view returns (uint) {
+  function getAssessmentsCount() external override view returns (uint) {
     return assessments.length;
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function startAssessment(uint totalAssessmentReward, uint assessmentDeposit) external
+  function startAssessment(uint totalAssessmentReward, uint assessmentDeposit) external override
   returns (uint) {
     assessments.push(IAssessment.Assessment(
       IAssessment.Poll(
@@ -63,7 +54,7 @@ contract CLMockAssessment {
     return assessments.length - 1;
   }
 
-  function getPoll(uint assessmentId) external view returns (IAssessment.Poll memory) {
+  function getPoll(uint assessmentId) external override view returns (IAssessment.Poll memory) {
     return assessments[assessmentId].poll;
   }
 

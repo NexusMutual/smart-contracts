@@ -6,8 +6,9 @@ import "../../../interfaces/IStakingProducts.sol";
 import "../../../interfaces/ICoverProducts.sol";
 import "../../../interfaces/ITokenController.sol";
 import "../../../libraries/StakingPoolLibrary.sol";
+import "../../generic/StakingProductsGeneric.sol";
 
-contract CoverMockStakingProducts is IStakingProducts {
+contract CoverMockStakingProducts is StakingProductsGeneric {
 
   mapping(uint => mapping(uint => StakedProduct)) private _products;
 
@@ -30,10 +31,6 @@ contract CoverMockStakingProducts is IStakingProducts {
     coverProductsContract = _coverProductsContract;
   }
 
-  function setProducts(uint /*poolId*/, StakedProductParam[] memory /*params*/) external pure {
-    revert('CoverMockStakingProducts: Not callable');
-  }
-
   function setInitialProducts(uint poolId, ProductInitializationParams[] memory params) public {
     for (uint i = 0; i < params.length; i++) {
       _products[poolId][params[i].productId] = StakedProduct({
@@ -46,19 +43,7 @@ contract CoverMockStakingProducts is IStakingProducts {
     }
   }
 
-  function getProductTargetWeight(uint /*poolId*/, uint /*productId*/) external pure returns (uint) {
-    revert('CoverMockStakingProducts: Not callable');
-  }
-
-  function getTotalTargetWeight(uint /*poolId*/) external pure returns (uint) {
-    revert('CoverMockStakingProducts: Not callable');
-  }
-
-  function getTotalEffectiveWeight(uint /*poolId*/) external pure returns (uint) {
-    revert('CoverMockStakingProducts: Not callable');
-  }
-
-  function getProduct(uint poolId, uint productId) external view returns (
+  function getProduct(uint poolId, uint productId) external override view returns (
     uint lastEffectiveWeight,
     uint targetWeight,
     uint targetPrice,
@@ -75,67 +60,7 @@ contract CoverMockStakingProducts is IStakingProducts {
     );
   }
 
-  function getPremium(
-    uint /*poolId*/,
-    uint /*productId*/,
-    uint /*period*/,
-    uint /*coverAmount*/,
-    uint /*initialCapacityUsed*/,
-    uint /*totalCapacity*/,
-    uint /*globalMinPrice*/,
-    bool /*useFixedPrice*/,
-    uint /*nxmPerAllocationUnit*/,
-    uint /*allocationUnitsPerNxm*/
-  ) external pure returns (uint /*premium*/) {
-    revert('CoverMockStakingProducts: Not callable');
-  }
-
-  function calculateFixedPricePremium(
-    uint /*coverAmount*/,
-    uint /*period*/,
-    uint /*fixedPrice*/,
-    uint /*nxmPerAllocationUnit*/,
-    uint /*targetPriceDenominator*/
-  ) external pure returns (uint) {
-    revert('CoverMockStakingProducts: Not callable');
-  }
-
-  function calculatePremium(
-    StakedProduct memory /*product*/,
-    uint /*period*/,
-    uint /*coverAmount*/,
-    uint /*initialCapacityUsed*/,
-    uint /*totalCapacity*/,
-    uint /*targetPrice*/,
-    uint /*currentBlockTimestamp*/,
-    uint /*nxmPerAllocationUnit*/,
-    uint /*allocationUnitsPerNxm*/,
-    uint /*targetPriceDenominator*/
-  ) external pure returns (uint /*premium*/, StakedProduct memory) {
-    revert('CoverMockStakingProducts: calculatePremium Not callable');
-  }
-
-  function calculatePremiumPerYear(
-    uint /*basePrice*/,
-    uint /*coverAmount*/,
-    uint /*initialCapacityUsed*/,
-    uint /*totalCapacity*/,
-    uint /*nxmPerAllocationUnit*/,
-    uint /*allocationUnitsPerNxm*/,
-    uint /*targetPriceDenominator*/
-  ) external pure returns (uint) {
-    revert('CoverMockStakingProducts: calculatePremiumPerYear Not callable');
-  }
-
-  function calculateSurgePremium(
-    uint /*amountOnSurge*/,
-    uint /*totalCapacity*/,
-    uint /*allocationUnitsPerNxm*/
-  ) external pure returns (uint) {
-    revert('CoverMockStakingProducts: calculateSurgePremium Not callable');
-  }
-
-  function stakingPool(uint poolId) public view returns (IStakingPool stakingPoolAddress) {
+  function stakingPool(uint poolId) public override view returns (IStakingPool stakingPoolAddress) {
     stakingPoolAddress = IStakingPool(StakingPoolLibrary.getAddress(stakingPoolFactory, poolId));
   }
 
@@ -145,7 +70,7 @@ contract CoverMockStakingProducts is IStakingProducts {
     uint maxPoolFee,
     ProductInitializationParams[] memory productInitParams,
     string calldata ipfsDescriptionHash
-  ) external returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+  ) external override returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
 
     uint numProducts = productInitParams.length;
 

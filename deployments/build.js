@@ -12,7 +12,7 @@ const contractList = [
   'CoverNFT',
   'CoverViewer',
   ['Aggregator', 'EACAggregatorProxy'],
-  ['@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20', 'ERC20'],
+  ['@openzeppelin/contracts-v4/token/ERC20/ERC20.sol:ERC20', 'ERC20'],
   'Governance',
   'IndividualClaims',
   'LegacyClaimProofs',
@@ -38,6 +38,7 @@ const contractList = [
   'StakingViewer',
   'SwapOperator',
   'TokenController',
+  'CoverBroker',
   'wNXM',
   'YieldTokenIncidents',
 ];

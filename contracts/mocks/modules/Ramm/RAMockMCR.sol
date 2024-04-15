@@ -9,7 +9,7 @@ import "../../../abstract/MasterAwareV2.sol";
 import "../../../libraries/Math.sol";
 import "../../generic/MCRGeneric.sol";
 
-contract RammMockMCR is MCRGeneric {
+contract RAMockMCR is MCRGeneric {
 
   uint public mockMCRValue;
   uint public lastMCRUpdateTime;

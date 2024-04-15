@@ -1,9 +1,7 @@
 const { expect } = require('chai');
-const { ethers } = require('hardhat');
-const { verifyInitialProduct, depositTo, buyCoverParamsTemplate } = require('./helpers');
+const { verifyInitialProduct } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { parseEther } = ethers.utils;
 
 const MAX_TOTAL_WEIGHT = 2000;
 

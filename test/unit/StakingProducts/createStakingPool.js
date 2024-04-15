@@ -123,7 +123,7 @@ describe('createStakingPool', function () {
     const beacon = await proxyInstance.beacon();
     expect(beacon).to.be.equal(cover.address);
 
-    const stakingPoolInstance = await ethers.getContractAt('CoverMockStakingPool', expectedAddress);
+    const stakingPoolInstance = await ethers.getContractAt('COMockStakingPool', expectedAddress);
 
     // validate variable is initialized
     const contractPoolId = await stakingPoolInstance.getPoolId();

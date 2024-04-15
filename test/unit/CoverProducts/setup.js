@@ -21,20 +21,20 @@ async function setup() {
 
   await nxm.setOperator(tokenController.address);
 
-  const mcr = await ethers.deployContract('CoverMockMCR');
+  const mcr = await ethers.deployContract('COMockMCR');
   await mcr.setMCR(parseEther('600000'));
 
   const coverProducts = await ethers.deployContract('CoverProducts');
   const cover = await ethers.deployContract('CPMockCover');
 
-  const stakingProducts = await ethers.deployContract('CoverMockStakingProducts', [
+  const stakingProducts = await ethers.deployContract('COMockStakingProducts', [
     AddressZero,
     AddressZero,
     AddressZero,
     AddressZero,
   ]);
 
-  const coverNFT = await ethers.deployContract('CoverMockCoverNFT');
+  const coverNFT = await ethers.deployContract('COMockCoverNFT');
 
   const dai = await ethers.deployContract('ERC20Mock');
   const usdc = await ethers.deployContract('ERC20CustomDecimalsMock', [6]); // 6 decimals

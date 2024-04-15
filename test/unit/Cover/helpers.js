@@ -36,7 +36,7 @@ async function createStakingPool(
 
   const stakingPoolId = await stakingPoolFactory.stakingPoolCount();
   const stakingPoolAddress = await stakingProducts.stakingPool(stakingPoolId);
-  const stakingPool = await ethers.getContractAt('CoverMockStakingPool', stakingPoolAddress);
+  const stakingPool = await ethers.getContractAt('COMockStakingPool', stakingPoolAddress);
 
   await stakingPool.setStake(productId, capacity);
   await stakingPool.setUsedCapacity(productId, activeCover);

@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 
 import "../../generic/MCRGeneric.sol";
 
-contract CoverMockMCR is MCRGeneric {
+contract COMockMCR is MCRGeneric {
 
   uint public mockMCRValue;
 

@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 
 import "../../tokens/ERC721Mock.sol";
 
-contract CoverMockCoverNFT is ERC721Mock {
+contract COMockStakingNFT is ERC721Mock {
 
   constructor() ERC721Mock("", "") {}
 

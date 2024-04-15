@@ -149,7 +149,7 @@ describe('buyCover', function () {
     const productId = 1;
     const stakingPoolId = poolAllocationRequest[0].poolId;
     const stakingPool = await ethers.getContractAt(
-      'CoverMockStakingPool',
+      'COMockStakingPool',
       await stakingProducts.stakingPool(stakingPoolId),
     );
     await stakingPool.setPrice(productId, targetPriceRatio);

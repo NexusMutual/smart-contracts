@@ -6,7 +6,7 @@ import "../../../interfaces/IStakingPool.sol";
 import "../../../libraries/Math.sol";
 import "../../generic/StakingPoolGeneric.sol";
 
-contract CoverMockStakingPool is StakingPoolGeneric {
+contract COMockStakingPool is StakingPoolGeneric {
 
   uint internal activeStake;
   uint internal rewardPerSecond;

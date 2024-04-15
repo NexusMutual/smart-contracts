@@ -8,7 +8,7 @@ import "../../../interfaces/ITokenController.sol";
 import "../../../libraries/StakingPoolLibrary.sol";
 import "../../generic/StakingProductsGeneric.sol";
 
-contract CoverMockStakingProducts is StakingProductsGeneric {
+contract COMockStakingProducts is StakingProductsGeneric {
 
   mapping(uint => mapping(uint => StakedProduct)) private _products;
 

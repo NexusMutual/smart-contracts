@@ -12,7 +12,7 @@ async function setup() {
   const nxm = await ethers.deployContract('NXMTokenMock');
   const tokenController = await ethers.deployContract('TokenControllerMock', [nxm.address]);
 
-  const mcr = await ethers.deployContract('CoverMockMCR');
+  const mcr = await ethers.deployContract('COMockMCR');
   await mcr.setMCR(parseEther('600000'));
 
   // TODO: move to separate folder

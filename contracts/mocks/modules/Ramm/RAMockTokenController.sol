@@ -6,7 +6,7 @@ import "../../../interfaces/INXMToken.sol";
 import "../../../interfaces/ITokenController.sol";
 import "../../generic/TokenControllerGeneric.sol";
 
-contract RammMockTokenController is TokenControllerGeneric {
+contract RAMockTokenController is TokenControllerGeneric {
 
   constructor(address tokenAddres) {
     token = INXMToken(tokenAddres);

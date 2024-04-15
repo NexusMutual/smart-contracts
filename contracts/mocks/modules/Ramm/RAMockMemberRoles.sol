@@ -5,7 +5,7 @@ pragma solidity ^0.8.18;
 import "../../../interfaces/INXMMaster.sol";
 import "../../generic/MemberRolesGeneric.sol";
 
-contract RammMockMemberRoles is MemberRolesGeneric {
+contract RAMockMemberRoles is MemberRolesGeneric {
   mapping(address => uint) public membersData;
 
   function enrollMember(address newMember, uint role) public {

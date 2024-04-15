@@ -74,7 +74,7 @@ describe('migrateProductsAndProductTypes', function () {
       expect(productType.claimMethod).to.be.equal(productTypes[j].claimMethod);
       expect(productType.gracePeriod).to.be.equal(productTypes[j].gracePeriod);
 
-      const productTypeName = await newcoverProducts.getProductTypeName(j);
+      const productTypeName = await newCoverProducts.getProductTypeName(j);
       expect(productTypeName).to.be.equal(productTypeNames[j]);
       j++;
     }

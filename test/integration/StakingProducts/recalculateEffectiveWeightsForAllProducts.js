@@ -95,11 +95,11 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
       divCeil(amount.mul(ONE_NXM), nxmPriceInCoverAsset),
       NXM_PER_ALLOCATION_UNIT,
     );
-    const { _globalCapacityRatio, _capacityReductionRatios } = await cover.getPriceAndCapacityRatios([productId]);
+    const { _globalCapacityRatio, _globalMinPriceRatio } = await cover.getGlobalCapacityAndPriceRatios();
 
     const expectedCapacity = stakeAmount
       .mul(_globalCapacityRatio)
-      .mul(CAPACITY_REDUCTION_DENOMINATOR.sub(_capacityReductionRatios[0]))
+      .mul(CAPACITY_REDUCTION_DENOMINATOR.sub(_globalMinPriceRatio))
       .div(GLOBAL_CAPACITY_DENOMINATOR)
       .div(CAPACITY_REDUCTION_DENOMINATOR);
     const expectedActiveWeight = coverAmountInNXM.mul(WEIGHT_DENOMINATOR).div(expectedCapacity);
@@ -173,11 +173,11 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
         divCeil(amount.mul(ONE_NXM), nxmPriceInCoverAsset),
         NXM_PER_ALLOCATION_UNIT,
       );
-      const { _globalCapacityRatio, _capacityReductionRatios } = await cover.getPriceAndCapacityRatios([productId]);
+      const { _globalCapacityRatio, _globalMinPriceRatio } = await cover.getGlobalCapacityAndPriceRatios();
 
       const expectedCapacity = stakeAmount
         .mul(_globalCapacityRatio)
-        .mul(CAPACITY_REDUCTION_DENOMINATOR.sub(_capacityReductionRatios[0]))
+        .mul(CAPACITY_REDUCTION_DENOMINATOR.sub(_globalMinPriceRatio))
         .div(GLOBAL_CAPACITY_DENOMINATOR)
         .div(CAPACITY_REDUCTION_DENOMINATOR);
       const expectedActiveWeight = coverAmountInNXM.mul(WEIGHT_DENOMINATOR).div(expectedCapacity);
@@ -214,11 +214,11 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
         divCeil(amount.mul(ONE_NXM), nxmPriceInCoverAsset),
         NXM_PER_ALLOCATION_UNIT,
       );
-      const { _globalCapacityRatio, _capacityReductionRatios } = await cover.getPriceAndCapacityRatios([productId]);
+      const { _globalCapacityRatio, _globalMinPriceRatio } = await cover.getGlobalCapacityAndPriceRatios();
 
       const expectedCapacity = stakeAmount
         .mul(_globalCapacityRatio)
-        .mul(CAPACITY_REDUCTION_DENOMINATOR.sub(_capacityReductionRatios[0]))
+        .mul(CAPACITY_REDUCTION_DENOMINATOR.sub(_globalMinPriceRatio))
         .div(GLOBAL_CAPACITY_DENOMINATOR)
         .div(CAPACITY_REDUCTION_DENOMINATOR);
       const expectedActiveWeight = coverAmountInNXM.mul(WEIGHT_DENOMINATOR).div(expectedCapacity);

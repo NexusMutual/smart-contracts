@@ -350,20 +350,6 @@ describe('recalculateEffectiveWeight', function () {
     expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(4000);
   });
 
-  // TODO: this isn't testing a property of the StakingProducts contract but a SPMockCoverProducts one
-  //       previously it was testing a property of the SPMockCover contract
-  it.skip('should fail to recalculate effective weight for product not in system', async function () {
-    const fixture = await loadFixture(setup);
-    const { stakingProducts, cover } = fixture;
-
-    const nonExistentProductId = 9999999;
-
-    await setStakedProducts.call(fixture, { productIds: [1, 2, 3] });
-    await expect(
-      stakingProducts.recalculateEffectiveWeights(fixture.poolId, [nonExistentProductId]),
-    ).to.be.revertedWithCustomError(cover, 'ProductDeprecatedOrNotInitialized');
-  });
-
   it('should fail to increase target weight when effective weight is at the limit', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;

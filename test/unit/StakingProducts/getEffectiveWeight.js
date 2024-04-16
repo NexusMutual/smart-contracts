@@ -82,7 +82,6 @@ describe('getEffectiveWeight', function () {
     expect(effectiveWeight).to.equal(100);
   });
 
-  // TODO: call directly into the staking products contract instead of calling SPMockCover
   it('effective weight should be 100 when capacity == allocations', async function () {
     const fixture = await loadFixture(getEffectiveWeightSetup);
     const { stakingProducts } = fixture;

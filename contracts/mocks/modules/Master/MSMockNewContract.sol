@@ -5,7 +5,7 @@ pragma solidity ^0.8.18;
 import "../../../abstract/MasterAwareV2.sol";
 import "../../../interfaces/ITokenController.sol";
 
-contract MMockNewContract is MasterAwareV2 {
+contract MSMockNewContract is MasterAwareV2 {
 
   constructor() { }
 

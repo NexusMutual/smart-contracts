@@ -18,13 +18,13 @@ async function setup() {
   // TODO: move to separate folder
   const multicallMock = await ethers.deployContract('MulticallMock');
 
-  const cover = await ethers.deployContract('StakingPoolMockCover');
-  const coverProducts = await ethers.deployContract('StakingPoolMockCoverProducts');
-  const stakingNFT = await ethers.deployContract('StakingPoolMockStakingNFT');
+  const cover = await ethers.deployContract('STMockCover');
+  const coverProducts = await ethers.deployContract('STMockCoverProducts');
+  const stakingNFT = await ethers.deployContract('STMockStakingNFT');
   const spf = await ethers.deployContract('StakingPoolFactory', [cover.address]);
 
   // address _coverContract, address _stakingPoolFactory, address _coverProductsContract
-  const stakingProducts = await ethers.deployContract('StakingPoolMockStakingProducts', [
+  const stakingProducts = await ethers.deployContract('STMockStakingProducts', [
     cover.address,
     spf.address,
     AddressZero,

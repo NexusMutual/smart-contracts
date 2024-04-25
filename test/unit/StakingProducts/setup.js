@@ -177,6 +177,7 @@ async function setup() {
     cover,
     poolId,
     stakingPoolFactory,
+    coverProductTemplate,
   };
 }
 

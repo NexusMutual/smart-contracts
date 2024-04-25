@@ -9,7 +9,6 @@ const {
   setStakedProducts,
   daysToSeconds,
   burnStakeParams,
-  buyCoverParamsTemplate,
   newProductTemplate,
 } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
@@ -58,7 +57,7 @@ describe('recalculateEffectiveWeight', function () {
   it('should calculate effective weight properly when decreasing target weight', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
-    const [staker, coverBuyer] = fixture.accounts.members;
+    const [staker] = fixture.accounts.members;
 
     const amount = parseEther('12345');
     const coverBuyAmount = amount.mul(8).div(100).mul(2); // 8% of capacity with 2x capacity multiplier
@@ -72,7 +71,7 @@ describe('recalculateEffectiveWeight', function () {
 
     // buy cover
     const expectedEffectiveWeight = 8;
-    await allocateCapacity.call(fixture, { coverBuyer, amount: coverBuyAmount, productId: productIdToAdd });
+    await allocateCapacity.call(fixture, { amount: coverBuyAmount, productId: productIdToAdd });
 
     // recalculate effective weight
     await stakingProducts.recalculateEffectiveWeights(fixture.poolId, [productIdToAdd]);
@@ -119,7 +118,7 @@ describe('recalculateEffectiveWeight', function () {
   it('should reduce effective weight when allocations expire', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
-    const [staker, coverBuyer] = fixture.accounts.members;
+    const [staker] = fixture.accounts.members;
 
     const stakeAmount = parseEther('12345');
     const coverBuyAmount = stakeAmount.mul(8).div(100).mul(2); // 8% of capacity with 2x capacity multiplier
@@ -133,7 +132,7 @@ describe('recalculateEffectiveWeight', function () {
     await depositTo.call(fixture, { staker, amount: stakeAmount });
 
     // buy cover
-    await allocateCapacity.call(fixture, { coverBuyer, amount: coverBuyAmount, productId });
+    await allocateCapacity.call(fixture, { amount: coverBuyAmount, productId });
 
     // recalculate effective weight
     await stakingProducts.recalculateEffectiveWeights(fixture.poolId, [productId]);
@@ -169,7 +168,7 @@ describe('recalculateEffectiveWeight', function () {
   it('effective weight should be lowered from extra deposits', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
-    const [staker, coverBuyer] = fixture.accounts.members;
+    const [staker] = fixture.accounts.members;
 
     const amount = parseEther('10000');
     // buy a quarter of the capacity
@@ -184,7 +183,7 @@ describe('recalculateEffectiveWeight', function () {
     await depositTo.call(fixture, { staker, amount });
 
     // buy cover
-    await allocateCapacity.call(fixture, { coverBuyer, amount: coverBuyAmount, productId: productIdToAdd });
+    await allocateCapacity.call(fixture, { amount: coverBuyAmount, productId: productIdToAdd });
 
     // lower target weight to 0
     await setStakedProducts.call(fixture, { productIds: [productIdToAdd], targetWeight: 0 });
@@ -212,7 +211,7 @@ describe('recalculateEffectiveWeight', function () {
   it('it should return uint16.max when allocation is much larger than capacity', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
-    const [staker, coverBuyer] = fixture.accounts.members;
+    const [staker] = fixture.accounts.members;
     const amount = parseEther('12345');
     const coverBuyAmount = parseEther('12345');
 
@@ -225,7 +224,7 @@ describe('recalculateEffectiveWeight', function () {
     await depositTo.call(fixture, { staker, amount });
 
     // buy all cover
-    await allocateCapacity.call(fixture, { coverBuyer, amount: coverBuyAmount, productId: productIdToAdd });
+    await allocateCapacity.call(fixture, { amount: coverBuyAmount, productId: productIdToAdd });
 
     // burn stake
     await burnStake.call(fixture, { start, amount: amount.sub(fixture.config.NXM_PER_ALLOCATION_UNIT) });
@@ -288,7 +287,7 @@ describe('recalculateEffectiveWeight', function () {
   it('should correctly calculate effective weight after several burns', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool } = fixture;
-    const [staker, coverBuyer] = fixture.accounts.members;
+    const [staker] = fixture.accounts.members;
     const amount = parseEther('1');
     const coverBuyAmount = parseEther('1');
     const initialTargetWeight = 50;
@@ -304,7 +303,7 @@ describe('recalculateEffectiveWeight', function () {
     // buy all cover on all products at 50% target weight (1/2 max)
     const allocationPromises = [];
     for (const productId of DEFAULT_PRODUCTS) {
-      allocationPromises.push(allocateCapacity.call(fixture, { coverBuyer, amount: coverBuyAmount, productId }));
+      allocationPromises.push(allocateCapacity.call(fixture, { amount: coverBuyAmount, productId }));
     }
     await Promise.all(allocationPromises);
     expect(await stakingProducts.getTotalEffectiveWeight(fixture.poolId)).to.be.equal(
@@ -353,7 +352,7 @@ describe('recalculateEffectiveWeight', function () {
   it('should fail to increase target weight when effective weight is at the limit', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
-    const [manager, staker, coverBuyer] = fixture.accounts.members;
+    const [manager, staker] = fixture.accounts.members;
     const [internalContract] = fixture.accounts.internalContracts;
 
     // Impersonate cover contract
@@ -361,7 +360,6 @@ describe('recalculateEffectiveWeight', function () {
     await setEtherBalance(cover.address, parseEther('100000'));
 
     const numProducts = 200;
-    const coverId = 1;
     const amount = parseEther('10000');
     const initialTargetWeight = 5;
     const totalExpectedTargetWeight = numProducts * initialTargetWeight;
@@ -382,14 +380,7 @@ describe('recalculateEffectiveWeight', function () {
     // Buy all available cover for every product
     const allocationPromises = [];
     for (let i = 0; i < products.length; i++) {
-      allocationPromises.push(
-        cover.allocateCapacity(
-          { ...buyCoverParamsTemplate, productId: i, owner: coverBuyer.address, amount: amount.div(10) },
-          coverId,
-          0,
-          stakingPool.address,
-        ),
-      );
+      allocationPromises.push(allocateCapacity.call(fixture, { productId: i, amount: amount.div(10) }));
     }
     await Promise.all(allocationPromises);
 

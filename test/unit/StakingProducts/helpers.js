@@ -23,6 +23,16 @@ const buyCoverParamsTemplate = {
   ipfsData: 'ipfs data',
 };
 
+const allocationRequestTemplate = {
+  coverId: 0,
+  allocationId: 0,
+  period: daysToSeconds('30'),
+  gracePeriod: daysToSeconds('7'),
+  previousStart: 0,
+  previousExpiration: 0,
+  previousRewardsRatio: 0,
+};
+
 const initialProductTemplate = {
   productId: 0,
   weight: 100, // 1.00
@@ -90,14 +100,22 @@ async function depositTo(params) {
   await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ 0, staker.address);
 }
 
-async function allocateCapacity(params) {
-  const { cover, stakingPool } = this;
-  const { coverBuyer, amount, productId } = params;
+async function allocateCapacity({ amount, productId }) {
+  const { stakingPool, coverSigner, coverProductTemplate } = this;
 
-  const buyCoverParams = { ...buyCoverParamsTemplate, owner: coverBuyer.address, amount, productId };
-  await cover
-    .connect(coverBuyer)
-    .allocateCapacity(buyCoverParams, 0 /* cover id */, 0 /* allocationId */, stakingPool.address);
+  const { GLOBAL_CAPACITY_RATIO, GLOBAL_REWARDS_RATIO, GLOBAL_MIN_PRICE_RATIO } = this.config;
+
+  const allocationRequest = {
+    ...allocationRequestTemplate,
+    productId,
+    globalCapacityRatio: GLOBAL_CAPACITY_RATIO,
+    capacityReductionRatio: coverProductTemplate.capacityReductionRatio,
+    useFixedPrice: coverProductTemplate.useFixedPrice,
+    rewardRatio: GLOBAL_REWARDS_RATIO,
+    globalMinPrice: GLOBAL_MIN_PRICE_RATIO,
+  };
+
+  await stakingPool.connect(coverSigner).requestAllocation(amount, 0, allocationRequest);
 }
 
 async function setStakedProducts(params) {

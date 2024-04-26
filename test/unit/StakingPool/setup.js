@@ -12,19 +12,19 @@ async function setup() {
   const nxm = await ethers.deployContract('NXMTokenMock');
   const tokenController = await ethers.deployContract('TokenControllerMock', [nxm.address]);
 
-  const mcr = await ethers.deployContract('CoverMockMCR');
+  const mcr = await ethers.deployContract('COMockMCR');
   await mcr.setMCR(parseEther('600000'));
 
   // TODO: move to separate folder
   const multicallMock = await ethers.deployContract('MulticallMock');
 
-  const cover = await ethers.deployContract('StakingPoolMockCover');
-  const coverProducts = await ethers.deployContract('StakingPoolMockCoverProducts');
-  const stakingNFT = await ethers.deployContract('StakingPoolMockStakingNFT');
+  const cover = await ethers.deployContract('STMockCover');
+  const coverProducts = await ethers.deployContract('STMockCoverProducts');
+  const stakingNFT = await ethers.deployContract('STMockStakingNFT');
   const spf = await ethers.deployContract('StakingPoolFactory', [cover.address]);
 
   // address _coverContract, address _stakingPoolFactory, address _coverProductsContract
-  const stakingProducts = await ethers.deployContract('StakingPoolMockStakingProducts', [
+  const stakingProducts = await ethers.deployContract('STMockStakingProducts', [
     cover.address,
     spf.address,
     AddressZero,

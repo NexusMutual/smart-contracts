@@ -31,12 +31,12 @@ async function setup() {
 
   await nxm.setOperator(tokenController.address);
 
-  const mcr = await ethers.deployContract('CoverMockMCR');
+  const mcr = await ethers.deployContract('COMockMCR');
   await mcr.setMCR(parseEther('600000'));
 
-  const stakingPoolImplementation = await ethers.deployContract('CoverMockStakingPool');
-  const coverNFT = await ethers.deployContract('CoverMockCoverNFT');
-  const stakingNFT = await ethers.deployContract('CoverMockStakingNFT');
+  const stakingPoolImplementation = await ethers.deployContract('COMockStakingPool');
+  const coverNFT = await ethers.deployContract('COMockCoverNFT');
+  const stakingNFT = await ethers.deployContract('COMockStakingNFT');
 
   const { defaultSender } = accounts;
   const expectedStakingProductsAddress = await getDeployAddressAfter(defaultSender, 3);
@@ -52,7 +52,7 @@ async function setup() {
 
   const coverProducts = await ethers.deployContract('CoverProducts');
 
-  const stakingProducts = await ethers.deployContract('CoverMockStakingProducts', [
+  const stakingProducts = await ethers.deployContract('COMockStakingProducts', [
     cover.address,
     stakingPoolFactory.address,
     tokenController.address,

@@ -82,16 +82,15 @@ describe('getEffectiveWeight', function () {
     expect(effectiveWeight).to.equal(100);
   });
 
-  // TODO: call directly into the staking products contract instead of calling SPMockCover
   it('effective weight should be 100 when capacity == allocations', async function () {
     const fixture = await loadFixture(getEffectiveWeightSetup);
     const { stakingProducts } = fixture;
-    const [staker, coverBuyer] = fixture.accounts.members;
+    const [staker] = fixture.accounts.members;
 
     await setStakedProducts.call(fixture, { productIds: [productId] });
     await depositTo.call(fixture, { staker, amount: parseEther('100') });
     // 2x capacity ratio
-    await allocateCapacity.call(fixture, { coverBuyer, amount: parseEther('200'), productId });
+    await allocateCapacity.call(fixture, { amount: parseEther('200'), productId });
 
     {
       const effectiveWeight = await stakingProducts.getEffectiveWeight(
@@ -119,13 +118,13 @@ describe('getEffectiveWeight', function () {
   it('should return effective weight, when actual weight is greater than the target weight', async function () {
     const fixture = await loadFixture(getEffectiveWeightSetup);
     const { stakingProducts } = fixture;
-    const [staker, coverBuyer] = fixture.accounts.members;
+    const [staker] = fixture.accounts.members;
 
     const { timestamp: start } = await ethers.provider.getBlock('latest');
     await setStakedProducts.call(fixture, { productIds: [productId] });
     await depositTo.call(fixture, { staker, amount: parseEther('100') });
     // 50% allocation
-    await allocateCapacity.call(fixture, { coverBuyer, amount: parseEther('100'), productId });
+    await allocateCapacity.call(fixture, { amount: parseEther('100'), productId });
     // burn 50%
     await burnStake.call(fixture, { start, amount: parseEther('50') });
 
@@ -143,11 +142,11 @@ describe('getEffectiveWeight', function () {
     const fixture = await loadFixture(getEffectiveWeightSetup);
     // capacity will be 0 when capacity ratio is 0
     const { stakingProducts } = fixture;
-    const [staker, coverBuyer] = fixture.accounts.members;
+    const [staker] = fixture.accounts.members;
 
     await setStakedProducts.call(fixture, { productIds: [productId] });
     await depositTo.call(fixture, { staker, amount: parseEther('100') });
-    await allocateCapacity.call(fixture, { coverBuyer, amount: parseEther('100'), productId });
+    await allocateCapacity.call(fixture, { amount: parseEther('100'), productId });
 
     const effectiveWeight = await stakingProducts.getEffectiveWeight(
       poolId,
@@ -174,11 +173,11 @@ describe('getEffectiveWeight', function () {
     const fixture = await loadFixture(getEffectiveWeightSetup);
     // capacity will be 0
     const { stakingProducts } = fixture;
-    const [staker, coverBuyer] = fixture.accounts.members;
+    const [staker] = fixture.accounts.members;
 
     await setStakedProducts.call(fixture, { productIds: [productId] });
     await depositTo.call(fixture, { staker, amount: parseEther('100') });
-    await allocateCapacity.call(fixture, { coverBuyer, amount: parseEther('100'), productId });
+    await allocateCapacity.call(fixture, { amount: parseEther('100'), productId });
 
     const effectiveWeight = await stakingProducts.getEffectiveWeight(
       poolId,
@@ -193,12 +192,12 @@ describe('getEffectiveWeight', function () {
   it('increasing capacity reduction ratio should increase effective weight', async function () {
     const fixture = await loadFixture(getEffectiveWeightSetup);
     const { stakingProducts } = fixture;
-    const [staker, coverBuyer] = fixture.accounts.members;
+    const [staker] = fixture.accounts.members;
 
     await setStakedProducts.call(fixture, { productIds: [productId] });
     await depositTo.call(fixture, { staker, amount: parseEther('100') });
     // 1% of capacity
-    await allocateCapacity.call(fixture, { coverBuyer, amount: parseEther('2'), productId });
+    await allocateCapacity.call(fixture, { amount: parseEther('2'), productId });
 
     {
       const effectiveWeight = await stakingProducts.getEffectiveWeight(
@@ -224,12 +223,12 @@ describe('getEffectiveWeight', function () {
   it('increasing capacity ratio should decrease effective weight', async function () {
     const fixture = await loadFixture(getEffectiveWeightSetup);
     const { stakingProducts } = fixture;
-    const [staker, coverBuyer] = fixture.accounts.members;
+    const [staker] = fixture.accounts.members;
 
     await setStakedProducts.call(fixture, { productIds: [productId] });
     await depositTo.call(fixture, { staker, amount: parseEther('100') });
     // 10% of capacity
-    await allocateCapacity.call(fixture, { coverBuyer, amount: parseEther('20'), productId });
+    await allocateCapacity.call(fixture, { amount: parseEther('20'), productId });
 
     {
       const effectiveWeight = await stakingProducts.getEffectiveWeight(

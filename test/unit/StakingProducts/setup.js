@@ -39,10 +39,10 @@ async function setup() {
   const nxm = await ethers.deployContract('NXMTokenMock');
   const tokenController = await ethers.deployContract('TokenControllerMock', [nxm.address]);
 
-  const mcr = await ethers.deployContract('CoverMockMCR');
+  const mcr = await ethers.deployContract('COMockMCR');
   await mcr.setMCR(parseEther('600000'));
 
-  const stakingNFT = await ethers.deployContract('StakingPoolMockStakingNFT');
+  const stakingNFT = await ethers.deployContract('STMockStakingNFT');
   const coverProducts = await ethers.deployContract('SPMockCoverProducts');
 
   const nonce = (await accounts.defaultSender.getTransactionCount()) + 2;
@@ -177,6 +177,7 @@ async function setup() {
     cover,
     poolId,
     stakingPoolFactory,
+    coverProductTemplate,
   };
 }
 

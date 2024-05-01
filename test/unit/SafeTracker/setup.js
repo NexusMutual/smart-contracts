@@ -16,8 +16,8 @@ async function setup() {
   const master = await ethers.deployContract('MasterMock');
   const nxm = await ethers.deployContract('NXMTokenMock');
   const priceFeedOracle = await ethers.deployContract('PriceFeedOracleMock', [ETH_RATE]);
-  const swapOperator = await ethers.deployContract('SafeTrackerSwapOperatorMock');
-  const pool = await ethers.deployContract('SafeTrackerMockPool', [priceFeedOracle.address, swapOperator.address]);
+  const swapOperator = await ethers.deployContract('STMockSwapOperator');
+  const pool = await ethers.deployContract('STMockPool', [priceFeedOracle.address, swapOperator.address]);
   const tokenController = await ethers.deployContract('TokenControllerMock', [nxm.address]);
 
   const tokenAmount = parseEther('100000');

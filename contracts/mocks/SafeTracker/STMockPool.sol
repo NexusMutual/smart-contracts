@@ -5,7 +5,7 @@ pragma solidity ^0.8.18;
 import "../common/PoolMock.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 
-contract SafeTrackerMockPool is PoolMock {
+contract STMockPool is PoolMock {
 
   IPriceFeedOracle public override priceFeedOracle;
 

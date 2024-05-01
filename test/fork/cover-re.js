@@ -32,6 +32,7 @@ const INTERAST_RATE_MODE = {
 
 /* ========== SAFE ========== */
 const GNOSIS_SAFE_ADDRESS = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';
+const SUPPLY_AMOUNT = parseEther('15369');
 
 async function calculateSafeTrackerBalance({ awEth, usdc, aaveUsdcVariableDebtToken, dai, priceFeedOracle }) {
   const ethAmount = await ethers.provider.getBalance(GNOSIS_SAFE_ADDRESS);
@@ -127,6 +128,7 @@ describe('coverRe', function () {
       GNOSIS_SAFE_ADDRESS,
       Address.USDC_ADDRESS,
       Address.DAI_ADDRESS,
+      Address.WETH_ADDRESS,
       Address.AWETH_ADDRESS,
       Aave.VARIABLE_DEBT_USDC_ADDRESS,
     ]);
@@ -414,14 +416,13 @@ describe('coverRe', function () {
   });
 
   it('supply ETH to AAVE Pool V3', async function () {
-    const supplyAmount = parseEther('15369');
     const ethBalanceBefore = await ethers.provider.getBalance(GNOSIS_SAFE_ADDRESS);
     const tx = await this.aaveWethGateway
       .connect(this.gnosisSafe)
-      .depositETH(Aave.POOL_V3_ADDRESS, GNOSIS_SAFE_ADDRESS, 0, { value: supplyAmount });
+      .depositETH(Aave.POOL_V3_ADDRESS, GNOSIS_SAFE_ADDRESS, 0, { value: SUPPLY_AMOUNT });
     const ethBalanceAfter = await ethers.provider.getBalance(GNOSIS_SAFE_ADDRESS);
 
-    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(supplyAmount).sub(tx.gasPrice.mul(tx.gasLimit)));
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(SUPPLY_AMOUNT).sub(tx.gasPrice.mul(tx.gasLimit)));
 
     const poolValueInEthAfterDeposit = await this.pool.getPoolValueInEth();
     expect(poolValueInEthAfterDeposit).to.be.equal(this.poolValueInEth);
@@ -520,5 +521,21 @@ describe('coverRe', function () {
     const safeTrackerBalance = await this.safeTracker.balanceOf(this.pool.address);
     const expectedSafeTrackerBalance = await this.safeTracker.balanceOf(this.pool.address);
     expect(safeTrackerBalance).to.be.lte(expectedSafeTrackerBalance);
+  });
+
+  it('withdraw deposit', async function () {
+    const awethBalanceBefore = await this.awEth.balanceOf(GNOSIS_SAFE_ADDRESS);
+    const ethBalanceBefore = await ethers.provider.getBalance(GNOSIS_SAFE_ADDRESS);
+
+    await this.awEth.connect(this.gnosisSafe).approve(Aave.WETH_GATEWAY_ADDRESS, MaxUint256);
+    const tx = await this.aaveWethGateway
+      .connect(this.gnosisSafe)
+      .withdrawETH(Aave.POOL_V3_ADDRESS, MaxUint256, GNOSIS_SAFE_ADDRESS);
+
+    const awethBalanceAfter = await this.awEth.balanceOf(GNOSIS_SAFE_ADDRESS);
+    const ethBalanceAfter = await ethers.provider.getBalance(GNOSIS_SAFE_ADDRESS);
+
+    expect(awethBalanceAfter).to.be.equal(0);
+    expect(ethBalanceAfter).to.be.gte(ethBalanceBefore.add(awethBalanceBefore).sub(tx.gasPrice.mul(tx.gasLimit)));
   });
 });

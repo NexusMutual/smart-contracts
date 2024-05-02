@@ -12,7 +12,7 @@ import "../../../libraries/SafeUintCast.sol";
 import "../../../libraries/StakingPoolLibrary.sol";
 import "../../generic/StakingProductsGeneric.sol";
 
-contract STMockStakingProducts is StakingProductsGeneric, MasterAwareV2, Multicall {
+contract SKMockStakingProducts is StakingProductsGeneric, MasterAwareV2, Multicall {
   using SafeUintCast for uint;
 
   uint public constant SURGE_PRICE_RATIO = 2 ether;

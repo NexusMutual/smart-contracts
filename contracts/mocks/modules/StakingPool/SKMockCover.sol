@@ -6,7 +6,7 @@ import "../../../interfaces/IStakingPool.sol";
 import "../../../interfaces/ICover.sol";
 import "../../generic/CoverGeneric.sol";
 
-contract STMockCover is CoverGeneric {
+contract SKMockCover is CoverGeneric {
 
   uint public constant _globalCapacityRatio = 20000;
   uint public constant _globalRewardsRatio = 5000;

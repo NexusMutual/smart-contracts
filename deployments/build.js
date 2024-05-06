@@ -41,6 +41,7 @@ const contractList = [
   'CoverBroker',
   'wNXM',
   'YieldTokenIncidents',
+  'YieldDeposit',
 ];
 
 const updateVersion = () => {

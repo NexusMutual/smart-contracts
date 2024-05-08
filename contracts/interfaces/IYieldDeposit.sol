@@ -5,7 +5,7 @@ pragma solidity ^0.8.18;
 interface IYieldDeposit {
   /* ========== VIEWS ========== */
 
-  function getCurrentTokenPrice() external returns (uint);
+  function getCurrentTokenRate() external returns (uint);
 
   function getAvailableYield() external returns (uint);
 

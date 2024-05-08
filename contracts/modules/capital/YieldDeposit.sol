@@ -29,7 +29,9 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
   mapping(address => uint256) public coverAmounts;
   mapping(address => uint256) public initialRates;
 
-  uint public totalPrincipal; // Total principal deposited in the contract
+  uint public totalDeposit;
+  uint public availableYield;
+  uint public previousRate;
 
   /* ========== CONSTANTS ========== */
 
@@ -53,12 +55,11 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
 
   /**
    * @notice Deposits a specified amount of tokens into the contract.
-   * @dev Requires the sender to have approved the contract to spend at least `amount` tokens on their behalf.
+   * @dev User can must withdraw first to change their deposit amount.
    *      Reverts with `InvalidDepositAmount` if the deposit amount is zero or negative.
    * @param amount The quantity of tokens to deposit.
    */
   function deposit(uint256 amount) external {
-
     if (deposits[msg.sender] > 0) {
       revert WithdrawBeforeMakingNewDeposit();
     }
@@ -67,11 +68,16 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
     }
 
     token.safeTransferFrom(msg.sender, address(this), amount);
-    deposits[msg.sender] += amount;
-    initialRates[msg.sender] = getCurrentTokenPrice();
 
-    totalPrincipal += amount;
-    uint coverAmount = updateCoverAmount(msg.sender);
+    uint currentRate = getCurrentTokenRate();
+    recalculateAvailableYield(currentRate);
+
+    deposits[msg.sender] += amount;
+    initialRates[msg.sender] = currentRate;
+    totalDeposit = amount * currentRate;
+
+    uint coverAmount = (amount * currentRate * coverPricePercentage) / PRICE_DENOMINATOR / (10 ** tokenDecimals);
+    coverAmounts[msg.sender] = coverAmount;
 
     emit TokenDeposited(msg.sender, amount, coverAmount);
   }
@@ -82,16 +88,17 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
    *      This action is only possible if the caller has a positive deposited balance.
    */
   function withdraw() external nonReentrant {
-
-    uint principalAmount = deposits[msg.sender];
-    if (principalAmount <= 0) {
+    uint userDeposit = deposits[msg.sender];
+    if (userDeposit <= 0) {
       revert InsufficientDepositForWithdrawal();
     }
 
-    uint currentRate = getCurrentTokenPrice();
-    uint withdrawAmount = (principalAmount * initialRates[msg.sender]) / currentRate;
+    uint currentRate = getCurrentTokenRate();
+    recalculateAvailableYield(currentRate);
 
-    totalPrincipal -= principalAmount;
+    uint withdrawAmount = (userDeposit * initialRates[msg.sender]) / currentRate;
+
+    totalDeposit -= withdrawAmount;
     deposits[msg.sender] = 0;
     coverAmounts[msg.sender] = 0;
     initialRates[msg.sender] = 0;
@@ -102,13 +109,26 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
   }
 
   /**
+   * @dev Gets the current token price from the price feed contract.
+   * @return uint The current token price.
+   */
+  function getCurrentTokenRate() public view returns (uint) {
+    (, int256 price, , , ) = priceFeed.latestRoundData();
+    if (price <= 0) {
+      revert InvalidTokenRate();
+    }
+    return uint256(price);
+  }
+
+  /**
    * @notice Allows the contract owner to withdraw the accumulated yield.
    * @dev The yield is defined as the difference between the current token balance of the contract
    *      and the total principal. Reverts with `NoYieldAvailable` if there is no yield.
    */
   function withdrawAvailableYield() external onlyOwner nonReentrant {
+    uint currentRate = getCurrentTokenRate();
+    recalculateAvailableYield(currentRate);
 
-    uint availableYield = getAvailableYield();
     if (availableYield == 0) {
       revert NoYieldAvailable();
     }
@@ -117,46 +137,16 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
   }
 
   /**
-   * @notice Retrieves the current yield of the contract based on the token's price and total deposits.
-   * @dev Calculates yield as the difference between current token value and total principal if positive.
-   * @return The current yield as an unsigned integer. Returns zero if the current value is less than the total principal.
+   * @dev Recalculates financial metrics based on the current token price.
    */
-  function getAvailableYield() public view returns (uint) {
-
-    uint currentContractValue = getCurrentTokenValue();
-    if (currentContractValue < totalPrincipal) {
-      return 0;
+  function recalculateAvailableYield(uint currentRate) private {
+    if (previousRate > 0 && totalDeposit > 0) {
+      uint previousDeposits = totalDeposit;
+      totalDeposit = (previousDeposits * previousRate) / currentRate;
+      uint newYield = previousDeposits - totalDeposit; // will underflow if rate dropped
+      availableYield += newYield;
     }
-    return currentContractValue - totalPrincipal;
-  }
-
-  /**
-   * @notice Calculates the current market value of the tokens held by the contract.
-   * @dev Fetches the latest token price from the Chainlink price feed and multiplies it by the number of tokens in the contract.
-   * @return The total value of the tokens held by the contract as an unsigned integer.
-   */
-  function getCurrentTokenValue() private view returns (uint) {
-
-    uint totalTokens = token.balanceOf(address(this));
-    uint currentTokenPrice = getCurrentTokenPrice();
-
-    return (totalTokens * currentTokenPrice) / (10 ** tokenDecimals);
-  }
-
-  /**
-   * @dev Updates the cover amount for a given user based on their deposits and the current token price.
-   * @param user The address of the user.
-   * @return coverAmount The updated cover amount in uint.
-   */
-
-  function updateCoverAmount(address user) private returns (uint coverAmount) {
-
-    uint256 userDeposits = deposits[user];
-    uint256 currentPrice = getCurrentTokenPrice();
-
-    // Calculate cover amount in ETH
-    coverAmount = (userDeposits * currentPrice * coverPricePercentage) / PRICE_DENOMINATOR / (10 ** tokenDecimals);
-    coverAmounts[user] = coverAmount;
+    previousRate = currentRate;
   }
 
   /**
@@ -165,18 +155,5 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
    */
   function updateCoverPricePercentage(uint16 _coverPricePercentage) external onlyOwner {
     coverPricePercentage = _coverPricePercentage;
-  }
-
-  /**
-   * @dev Gets the current token price from the price feed contract.
-   * @return uint The current token price.
-   */
-  function getCurrentTokenPrice() public view returns (uint) {
-
-    (, int256 price, , , ) = priceFeed.latestRoundData();
-    if (price <= 0) {
-      revert InvalidTokenRate();
-    }
-    return uint256(price);
   }
 }

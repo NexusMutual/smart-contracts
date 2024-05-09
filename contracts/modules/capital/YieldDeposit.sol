@@ -18,39 +18,27 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
 
   /* ========== STATE VARIABLES ========== */
 
-  AggregatorV3Interface internal priceFeed;
-  IERC20 public token;
-  uint8 public tokenDecimals;
-  uint16 public coverPricePercentage; // between 0 - 10,000
-  // TODO: do we need productId?
-  // uint public productId;
+  mapping(address => address) public priceFeedOracle;
+  mapping(address => uint16) public tokenCoverPricePercentages;
+  mapping(address => mapping(address => uint)) public userTokenDepositValue; // user > token > depositValue
 
-  mapping(address => uint256) public deposits; // user's principal deposit amount
-  mapping(address => uint256) public coverAmounts; // user's coverAmounts corresponding their deposit amount
-  mapping(address => uint256) public initialRates; // the price rate at the time of the user's deposit
-
-  uint public totalDeposit; // total deposit adjusted with price rate
-  uint public availableYield; // availableYield adjusted with price rate
-  uint public previousRate; // the rate used for the previous calculation
+  uint public totalDepositValue; // the total all deposits valued at the priceRate at the time of each deposit
+  uint public totalYieldWithdrawn;
 
   /* ========== CONSTANTS ========== */
 
   uint private constant PRICE_DENOMINATOR = 10_000;
+  uint private constant RATE_DENOMINATOR = 1e18;
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(
-    address _manager,
-    address _tokenAddress,
-    uint8 _decimals,
-    address _priceFeedAddress,
-    uint16 _coverPricePercentage
-  ) {
-    token = IERC20(_tokenAddress);
-    tokenDecimals = _decimals;
-    priceFeed = AggregatorV3Interface(_priceFeedAddress);
-    coverPricePercentage = _coverPricePercentage;
+  constructor(address _manager) {
     transferOwnership(_manager);
+  }
+
+  function listToken(address tokenAddress, address priceFeedAddress, uint16 coverPricePercentage) external onlyOwner {
+    priceFeedOracle[tokenAddress] = priceFeedAddress;
+    tokenCoverPricePercentages[tokenAddress] = coverPricePercentage;
   }
 
   /**
@@ -59,64 +47,98 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
    *      Reverts with `InvalidDepositAmount` if the deposit amount is zero or negative.
    * @param amount The quantity of tokens to deposit.
    */
-  function deposit(uint256 amount) external {
-    if (deposits[msg.sender] > 0) {
-      revert WithdrawBeforeMakingNewDeposit();
-    }
+  function deposit(address tokenAddress, uint256 amount) external {
     if (amount <= 0) {
       revert InvalidDepositAmount();
     }
 
+    uint currentRate = getCurrentTokenRate(tokenAddress);
+    uint userDepositValue = (amount * currentRate) / RATE_DENOMINATOR;
+
+    IERC20 token = IERC20(tokenAddress);
     token.safeTransferFrom(msg.sender, address(this), amount);
 
-    uint currentRate = getCurrentTokenRate();
-    recalculateAvailableYield(currentRate);
+    totalDepositValue += userDepositValue;
+    userTokenDepositValue[msg.sender][tokenAddress] += userDepositValue;
 
-    deposits[msg.sender] += amount;
-    initialRates[msg.sender] = currentRate;
-    totalDeposit = (amount * currentRate) / (10 ** tokenDecimals);
-
-    uint coverAmount = (amount * currentRate * PRICE_DENOMINATOR) / coverPricePercentage;
-    coverAmounts[msg.sender] = coverAmount;
-
-    emit TokenDeposited(msg.sender, amount, coverAmount);
+    emit TokenDeposited(msg.sender, amount, currentRate);
   }
 
   /**
    * @notice Withdraws the entire principal amount previously deposited by the caller.
    * @dev Transfers the deposited tokens back to the caller and resets their deposited balance to zero.
    *      This action is only possible if the caller has a positive deposited balance.
+   * @param tokenAddress - TODO
    */
-  function withdraw() external nonReentrant {
-    uint userDeposit = deposits[msg.sender];
-    if (userDeposit <= 0) {
+  function withdraw(address tokenAddress, uint amount) external nonReentrant {
+    uint userDepositValue = userTokenDepositValue[msg.sender][tokenAddress];
+    if (userDepositValue <= 0) {
       revert InsufficientDepositForWithdrawal();
     }
 
-    uint currentRate = getCurrentTokenRate();
-    recalculateAvailableYield(currentRate);
+    uint currentRate = getCurrentTokenRate(tokenAddress);
+    uint maxWithdrawalAmount = userDepositValue / currentRate;
 
-    uint withdrawAmount = (userDeposit * initialRates[msg.sender]) / currentRate;
+    if (amount < 0) {
+      revert InvalidWithdrawalAmount(maxWithdrawalAmount);
+    }
 
-    totalDeposit -= withdrawAmount;
-    deposits[msg.sender] = 0;
-    coverAmounts[msg.sender] = 0;
-    initialRates[msg.sender] = 0;
+    if (amount > maxWithdrawalAmount) {
+      revert InvalidWithdrawalAmount(maxWithdrawalAmount);
+    }
 
-    token.safeTransfer(msg.sender, withdrawAmount);
+    uint withdrawalValue = amount * currentRate;
 
-    emit TokenWithdrawn(msg.sender, withdrawAmount);
+    totalDepositValue -= withdrawalValue;
+    userTokenDepositValue[msg.sender][tokenAddress] -= withdrawalValue;
+
+    IERC20 token = IERC20(tokenAddress);
+    token.safeTransfer(msg.sender, amount);
+
+    emit TokenWithdrawn(msg.sender, amount, currentRate);
+  }
+
+  /**
+   * @notice Withdraws the entire principal amount previously deposited by the caller.
+   * TODO: finish
+   */
+  function withdrawAll(address tokenAddress) external nonReentrant {
+    uint userDepositValue = userTokenDepositValue[msg.sender][tokenAddress];
+    if (userDepositValue <= 0) {
+      revert InsufficientDepositForWithdrawal();
+    }
+
+    uint currentRate = getCurrentTokenRate(tokenAddress);
+    uint withdrawalAmount = userDepositValue / currentRate; // withdraw max amount
+    uint withdrawalValue = withdrawalAmount * currentRate;
+
+    totalDepositValue -= withdrawalValue;
+    userTokenDepositValue[msg.sender][tokenAddress] -= withdrawalValue;
+
+    IERC20 token = IERC20(tokenAddress);
+    token.safeTransfer(msg.sender, withdrawalAmount);
+
+    emit TokenWithdrawn(msg.sender, withdrawalAmount, currentRate);
   }
 
   /**
    * @dev Gets the current token price from the price feed contract.
    * @return uint The current token price.
+   * @param tokenAddress - TODO
    */
-  function getCurrentTokenRate() public view returns (uint) {
+  function getCurrentTokenRate(address tokenAddress) public view returns (uint) {
+    address priceFeedAddress = priceFeedOracle[tokenAddress];
+    if (priceFeedAddress == address(0)) {
+      revert TokenNotSupported();
+    }
+
+    AggregatorV3Interface priceFeed = AggregatorV3Interface(priceFeedAddress);
     (, int256 price, , , ) = priceFeed.latestRoundData();
+
     if (price <= 0) {
       revert InvalidTokenRate();
     }
+
     return uint256(price);
   }
 
@@ -125,35 +147,36 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
    * @dev The yield is defined as the difference between the current token balance of the contract
    *      and the total principal. Reverts with `NoYieldAvailable` if there is no yield.
    */
-  function withdrawAvailableYield() external onlyOwner nonReentrant {
-    uint currentRate = getCurrentTokenRate();
-    recalculateAvailableYield(currentRate);
+  function withdrawAvailableYield(address tokenAddress) external onlyOwner nonReentrant {
+    uint currentRate = getCurrentTokenRate(tokenAddress);
+    uint usersMaxWithdrawalAmount = totalDepositValue / currentRate;
 
+    IERC20 token = IERC20(tokenAddress);
+    uint totalDepositAmount = token.balanceOf(address(this));
+    uint totalYield = totalDepositAmount - usersMaxWithdrawalAmount;
+
+    uint availableYield = totalYield - totalYieldWithdrawn;
     if (availableYield == 0) {
       revert NoYieldAvailable();
     }
 
+    totalYieldWithdrawn += availableYield;
+    
     token.safeTransfer(owner(), availableYield);
   }
 
   /**
-   * @dev Recalculates financial metrics based on the current token price.
-   */
-  function recalculateAvailableYield(uint currentRate) private {
-    if (previousRate > 0 && totalDeposit > 0) {
-      uint previousDeposits = totalDeposit;
-      totalDeposit = (previousDeposits * previousRate) / currentRate;
-      uint newYield = previousDeposits - totalDeposit; // will underflow if rate dropped
-      availableYield += newYield;
-    }
-    previousRate = currentRate;
-  }
-
-  /**
    * @dev Updates the cover price percentage. Only the owner can call this function.
-   * @param _coverPricePercentage The new cover price percentage to set.
+   * @param tokenAddress - TODO
+   * @param newCoverPricePercentage The new cover price percentage to set.
    */
-  function updateCoverPricePercentage(uint16 _coverPricePercentage) external onlyOwner {
-    coverPricePercentage = _coverPricePercentage;
+  function updateCoverPricePercentage(address tokenAddress, uint16 newCoverPricePercentage) external onlyOwner {
+    // ensure tokenAddress has corresponding priceOracle
+    address priceFeedAddress = priceFeedOracle[tokenAddress];
+    if (priceFeedAddress == address(0)) {
+      revert TokenNotSupported();
+    }
+    
+    tokenCoverPricePercentages[tokenAddress] = newCoverPricePercentage;
   }
 }

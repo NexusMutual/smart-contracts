@@ -25,13 +25,13 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
   // TODO: do we need productId?
   // uint public productId;
 
-  mapping(address => uint256) public deposits; // User's principal deposits
-  mapping(address => uint256) public coverAmounts;
-  mapping(address => uint256) public initialRates;
+  mapping(address => uint256) public deposits; // user's principal deposit amount
+  mapping(address => uint256) public coverAmounts; // user's coverAmounts corresponding their deposit amount
+  mapping(address => uint256) public initialRates; // the price rate at the time of the user's deposit
 
-  uint public totalDeposit;
-  uint public availableYield;
-  uint public previousRate;
+  uint public totalDeposit; // total deposit adjusted with price rate
+  uint public availableYield; // availableYield adjusted with price rate
+  uint public previousRate; // the rate used for the previous calculation
 
   /* ========== CONSTANTS ========== */
 
@@ -55,7 +55,7 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
 
   /**
    * @notice Deposits a specified amount of tokens into the contract.
-   * @dev User can must withdraw first to change their deposit amount.
+   * @dev User must withdraw first to change their deposit amount.
    *      Reverts with `InvalidDepositAmount` if the deposit amount is zero or negative.
    * @param amount The quantity of tokens to deposit.
    */
@@ -74,9 +74,9 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
 
     deposits[msg.sender] += amount;
     initialRates[msg.sender] = currentRate;
-    totalDeposit = amount * currentRate;
+    totalDeposit = (amount * currentRate) / (10 ** tokenDecimals);
 
-    uint coverAmount = (amount * currentRate * coverPricePercentage) / PRICE_DENOMINATOR / (10 ** tokenDecimals);
+    uint coverAmount = (amount * currentRate * PRICE_DENOMINATOR) / coverPricePercentage;
     coverAmounts[msg.sender] = coverAmount;
 
     emit TokenDeposited(msg.sender, amount, coverAmount);

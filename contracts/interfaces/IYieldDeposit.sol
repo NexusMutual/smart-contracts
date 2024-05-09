@@ -7,8 +7,6 @@ interface IYieldDeposit {
 
   function getCurrentTokenRate() external returns (uint);
 
-  function getAvailableYield() external returns (uint);
-
   /* ==== MUTATIVE FUNCTIONS ==== */
 
   function deposit(uint256 amount) external;

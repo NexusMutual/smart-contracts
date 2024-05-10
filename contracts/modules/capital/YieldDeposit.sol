@@ -22,8 +22,8 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
   mapping(address => uint16) public tokenCoverPricePercentages;
   mapping(address => mapping(address => uint)) public userTokenDepositValue; // user > token > depositValue
 
-  uint public totalDepositValue; // the total all deposits valued at the priceRate at the time of each deposit
-  uint public totalYieldWithdrawn;
+  mapping(address => uint) public totalDepositValue; // the total deposits for each token valued at the priceRate at the time of each deposit
+  mapping(address => uint) public totalYieldWithdrawn;
 
   /* ========== CONSTANTS ========== */
 
@@ -58,7 +58,7 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
     IERC20 token = IERC20(tokenAddress);
     token.safeTransferFrom(msg.sender, address(this), amount);
 
-    totalDepositValue += userDepositValue;
+    totalDepositValue[tokenAddress] += userDepositValue;
     userTokenDepositValue[msg.sender][tokenAddress] += userDepositValue;
 
     emit TokenDeposited(msg.sender, amount, currentRate);
@@ -71,25 +71,21 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
    * @param tokenAddress - TODO
    */
   function withdraw(address tokenAddress, uint amount) external nonReentrant {
+    uint currentRate = getCurrentTokenRate(tokenAddress);
     uint userDepositValue = userTokenDepositValue[msg.sender][tokenAddress];
+    uint maxWithdrawalAmount = userDepositValue * RATE_DENOMINATOR / currentRate;
+
     if (userDepositValue <= 0) {
       revert InsufficientDepositForWithdrawal();
     }
 
-    uint currentRate = getCurrentTokenRate(tokenAddress);
-    uint maxWithdrawalAmount = userDepositValue / currentRate;
-
-    if (amount < 0) {
+    if (amount == 0 || amount > maxWithdrawalAmount) {
       revert InvalidWithdrawalAmount(maxWithdrawalAmount);
     }
 
-    if (amount > maxWithdrawalAmount) {
-      revert InvalidWithdrawalAmount(maxWithdrawalAmount);
-    }
+    uint withdrawalValue = amount * currentRate / RATE_DENOMINATOR;
 
-    uint withdrawalValue = amount * currentRate;
-
-    totalDepositValue -= withdrawalValue;
+    totalDepositValue[tokenAddress] -= withdrawalValue;
     userTokenDepositValue[msg.sender][tokenAddress] -= withdrawalValue;
 
     IERC20 token = IERC20(tokenAddress);
@@ -109,10 +105,10 @@ contract YieldDeposit is IYieldDeposit, Ownable, ReentrancyGuard {
     }
 
     uint currentRate = getCurrentTokenRate(tokenAddress);
-    uint withdrawalAmount = userDepositValue / currentRate; // withdraw max amount
-    uint withdrawalValue = withdrawalAmount * currentRate;
+    uint withdrawalAmount = userDepositValue * RATE_DENOMINATOR / currentRate; // withdraw max amount
+    uint withdrawalValue = userDepositValue;
 
-    totalDepositValue -= withdrawalValue;
+    totalDepositValue[tokenAddress] -= withdrawalValue;
     userTokenDepositValue[msg.sender][tokenAddress] -= withdrawalValue;
 
     IERC20 token = IERC20(tokenAddress);

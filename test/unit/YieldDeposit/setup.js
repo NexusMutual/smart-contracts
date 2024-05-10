@@ -5,6 +5,7 @@ const { getAccounts } = require('../utils').accounts;
 const { parseEther } = ethers.utils;
 
 const PRICE_DENOMINATOR = 10000;
+const RATE_DENOMINATOR = ethers.BigNumber.from('10').pow(18);
 
 async function setup() {
   const accounts = await getAccounts();
@@ -15,29 +16,30 @@ async function setup() {
 
   const coverPricePercentage = 500;
   const weEth = await ethers.deployContract('ERC20Mock');
-  const stEth = await ethers.deployContract('ERC20Mock');
+  const wstEth = await ethers.deployContract('ERC20Mock');
   const chainLinkPriceFeedWeEth = await ethers.deployContract('ChainlinkAggregatorMock');
-  const chainLinkPriceFeedStEth = await ethers.deployContract('ChainlinkAggregatorMock');
+  const chainLinkPriceFeedWstEth = await ethers.deployContract('ChainlinkAggregatorMock');
 
   await yieldDeposit.connect(manager).listToken(weEth.address, chainLinkPriceFeedWeEth.address, coverPricePercentage);
-  await yieldDeposit.connect(manager).listToken(stEth.address, chainLinkPriceFeedStEth.address, coverPricePercentage);
+  await yieldDeposit.connect(manager).listToken(wstEth.address, chainLinkPriceFeedWstEth.address, coverPricePercentage);
 
   await weEth.mint(accounts.members[0].address, parseEther('1000000'));
-  await stEth.mint(accounts.members[0].address, parseEther('1000000'));
+  await wstEth.mint(accounts.members[0].address, parseEther('1000000'));
 
   await chainLinkPriceFeedWeEth.setLatestAnswer(parseEther('1.0374'));
-  await chainLinkPriceFeedStEth.setLatestAnswer(parseEther('1.1365'));
+  await chainLinkPriceFeedWstEth.setLatestAnswer(parseEther('1.1365'));
 
   return {
     manager,
     accounts,
-    coverPricePercentage,
-    priceDenominator: PRICE_DENOMINATOR,
+    coverPricePercentage, // TODO: remove if unused
+    priceDenominator: PRICE_DENOMINATOR, // tODO: remove if unused
+    rateDenominator: RATE_DENOMINATOR,
     contracts: {
       weEth,
-      stEth,
+      wstEth,
       yieldDeposit,
-      chainLinkPriceFeedStEth,
+      chainLinkPriceFeedWstEth,
       chainLinkPriceFeedWeEth,
     },
   };

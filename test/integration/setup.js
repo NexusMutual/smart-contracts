@@ -184,6 +184,7 @@ async function setup() {
     AddressZero, // _enzymeV4VaultProxyAddress
     AddressZero, // _safe
     dai.address, // _dai
+    usdc.address, // _usdc
     AddressZero, // _enzymeFundValueCalculatorRouter
     '0',
   ]);

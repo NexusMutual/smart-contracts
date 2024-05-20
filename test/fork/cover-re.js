@@ -268,6 +268,7 @@ describe('coverRe', function () {
       EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS,
       GNOSIS_SAFE_ADDRESS, // _safe
       Address.DAI_ADDRESS, // _dai
+      Address.USDC_ADDRESS, // _usdc
       EnzymeAdress.ENZYME_FUND_VALUE_CALCULATOR_ROUTER,
       0, // Min Pool ETH
     ]);

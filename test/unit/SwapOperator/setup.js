@@ -100,6 +100,7 @@ async function setup() {
     enzymeV4Vault.address,
     await owner.getAddress(), // _safe
     dai.address,
+    usdc.address,
     enzymeFundValueCalculatorRouter.address,
     parseEther('1'),
   );

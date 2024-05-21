@@ -83,6 +83,7 @@ contract SwapOperator is ISwapOperator {
     address _enzymeV4VaultProxyAddress,
     address _safe,
     address _dai,
+    address _usdc,
     IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter,
     uint _minPoolEth
   ) {
@@ -97,6 +98,7 @@ contract SwapOperator is ISwapOperator {
     minPoolEth = _minPoolEth;
     safe = _safe;
     allowedSafeTransferAssets[_dai] = true;
+    allowedSafeTransferAssets[_usdc] = true;
     allowedSafeTransferAssets[ETH] = true;
   }
 

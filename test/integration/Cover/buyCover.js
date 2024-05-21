@@ -352,3 +352,209 @@ describe('buyCover', function () {
     ).to.revertedWithCustomError(cover, 'ProductDoesntExistOrIsDeprecated');
   });
 });
+
+describe('CoverBroker - buyCover', function () {
+  it('should revert with InvalidOwnerAddress if params.owner is zero address', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const { coverBroker } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.nonMembers;
+
+    const buyCoverParams = { ...buyCoverFixture, paymentAsset: 1, owner: AddressZero };
+    const buyCover = coverBroker
+      .connect(coverBuyer)
+      .buyCover(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], { value: parseEther('1') });
+
+    await expect(buyCover).to.revertedWithCustomError(coverBroker, 'InvalidOwnerAddress');
+  });
+
+  it('should revert with InvalidOwnerAddress if params.owner is CoverBroker address', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const { coverBroker } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.nonMembers;
+
+    const buyCoverParams = { ...buyCoverFixture, paymentAsset: 1, owner: coverBroker.address };
+    const buyCover = coverBroker
+      .connect(coverBuyer)
+      .buyCover(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], { value: parseEther('1') });
+
+    await expect(buyCover).to.revertedWithCustomError(coverBroker, 'InvalidOwnerAddress');
+  });
+
+  it('should revert with InvalidPaymentAsset if paymentAsset is NXM asset ID (255)', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const { coverBroker } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.nonMembers;
+
+    const buyCoverParams = { ...buyCoverFixture, paymentAsset: 255, owner: coverBuyer.address }; // NXM (invalid)
+    const buyCover = coverBroker
+      .connect(coverBuyer)
+      .buyCover(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], { value: parseEther('1') });
+
+    await expect(buyCover).to.revertedWithCustomError(coverBroker, 'InvalidPaymentAsset');
+  });
+
+  it('should revert with InvalidPayment if paymentAsset is not ETH and msg.value > 0', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const { coverBroker } = fixture.contracts;
+    const [coverBuyer] = fixture.accounts.nonMembers;
+
+    const buyCoverParams = { ...buyCoverFixture, paymentAsset: 2, owner: coverBuyer.address }; // DAI
+    const buyCover = coverBroker
+      .connect(coverBuyer)
+      .buyCover(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], { value: parseEther('1') });
+
+    await expect(buyCover).to.revertedWithCustomError(coverBroker, 'InvalidPayment');
+  });
+
+  it('should enable non-members to buy cover through the broker with ETH', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const { tc: tokenController, stakingProducts, p1: pool, ra: ramm, mcr, coverBroker, coverNFT } = fixture.contracts;
+    const {
+      nonMembers: [coverBuyer],
+    } = fixture.accounts;
+    const {
+      config: { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO },
+      productList,
+    } = fixture;
+    const { period, amount } = buyCoverFixture;
+
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = currentTimestamp + 1;
+    const ethRate = await getInternalPrice(ramm, pool, tokenController, mcr, nextBlockTimestamp);
+
+    const { targetPrice } = stakedProductParamTemplate;
+
+    const productId = productList.findIndex(
+      ({ product: { initialPriceRatio, useFixedPrice } }) => targetPrice !== initialPriceRatio && useFixedPrice,
+    );
+
+    const product = await stakingProducts.getProduct(1, productId);
+    const { premiumInNxm, premiumInAsset: premium } = calculatePremium(
+      amount,
+      ethRate,
+      period,
+      product.targetPrice,
+      NXM_PER_ALLOCATION_UNIT,
+    );
+
+    const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
+    const poolBeforeETH = await ethers.provider.getBalance(pool.address);
+
+    const amountOver = parseEther('1');
+    const balanceBefore = await ethers.provider.getBalance(coverBuyer.address);
+    const nftBalanceBefore = await coverNFT.balanceOf(coverBuyer.address);
+    await setNextBlockTime(nextBlockTimestamp);
+
+    const tx = await coverBroker.connect(coverBuyer).buyCover(
+      {
+        ...buyCoverFixture,
+        paymentAsset: 0, // ETH
+        productId,
+        owner: coverBuyer.address,
+        maxPremiumInAsset: premium,
+      },
+      [{ poolId: 1, coverAmountInAsset: amount }],
+      { value: premium.add(amountOver) },
+    );
+
+    const receipt = await tx.wait();
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const balanceAfter = await ethers.provider.getBalance(coverBuyer.address);
+    const nftBalanceAfter = await coverNFT.balanceOf(coverBuyer.address);
+
+    expect(nftBalanceAfter).to.be.equal(nftBalanceBefore.add(1));
+    // amountOver should have been refunded
+    expect(balanceAfter).to.be.equal(balanceBefore.sub(premium).sub(receipt.effectiveGasPrice.mul(receipt.gasUsed)));
+    const rewards = calculateRewards(premiumInNxm, timestamp, period, GLOBAL_REWARDS_RATIO);
+
+    const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);
+    const poolAfterETH = await ethers.provider.getBalance(pool.address);
+    expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBefore.rewards.add(rewards));
+    expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premium));
+  });
+
+  it('should enable non-members to buy cover through the broker with DAI', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const {
+      tc: tokenController,
+      stakingProducts,
+      p1: pool,
+      ra: ramm,
+      mcr,
+      coverBroker,
+      dai,
+      priceFeedOracle,
+      coverNFT,
+    } = fixture.contracts;
+    const {
+      nonMembers: [coverBuyer],
+    } = fixture.accounts;
+    const {
+      config: { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO },
+      productList,
+    } = fixture;
+    const { period, amount } = buyCoverFixture;
+
+    await dai.mint(coverBuyer.address, parseEther('1000'));
+    await dai.connect(coverBuyer).approve(coverBroker.address, parseEther('1000'));
+    await coverBroker.maxApproveCoverContract(dai.address);
+
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = currentTimestamp + 1;
+    const ethRate = await getInternalPrice(ramm, pool, tokenController, mcr, nextBlockTimestamp);
+    const daiRate = await priceFeedOracle.getAssetForEth(dai.address, parseEther('1'));
+    const nxmDaiRate = ethRate.mul(daiRate).div(parseEther('1'));
+
+    const { targetPrice } = stakedProductParamTemplate;
+
+    const productId = productList.findIndex(
+      ({ product: { initialPriceRatio, useFixedPrice } }) => targetPrice !== initialPriceRatio && useFixedPrice,
+    );
+
+    const product = await stakingProducts.getProduct(1, productId);
+    const { premiumInNxm, premiumInAsset: premium } = calculatePremium(
+      amount,
+      nxmDaiRate,
+      period,
+      product.targetPrice,
+      NXM_PER_ALLOCATION_UNIT,
+    );
+
+    const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
+    const poolBeforeETH = await ethers.provider.getBalance(pool.address);
+
+    const amountOver = parseEther('1');
+    const balanceBefore = await dai.balanceOf(coverBuyer.address);
+    const nftBalanceBefore = await coverNFT.balanceOf(coverBuyer.address);
+    await setNextBlockTime(nextBlockTimestamp);
+
+    await coverBroker.connect(coverBuyer).buyCover(
+      {
+        ...buyCoverFixture,
+        productId,
+        owner: coverBuyer.address,
+        maxPremiumInAsset: premium.add(amountOver),
+        coverAsset: 1,
+        paymentAsset: 1, // DAI
+      },
+      [{ poolId: 1, coverAmountInAsset: amount }],
+      { value: '0' },
+    );
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const balanceAfter = await dai.balanceOf(coverBuyer.address);
+    const nftBalanceAfter = await coverNFT.balanceOf(coverBuyer.address);
+
+    // amountOver should have been refunded
+    expect(balanceAfter).to.be.equal(balanceBefore.sub(premium));
+    expect(nftBalanceAfter).to.be.equal(nftBalanceBefore.add(1));
+    const rewards = calculateRewards(premiumInNxm, timestamp, period, GLOBAL_REWARDS_RATIO);
+
+    const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);
+    const poolAfterETH = await ethers.provider.getBalance(pool.address);
+    const premiumInEth = premium.mul(parseEther('1').div(daiRate));
+    expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBefore.rewards.add(rewards));
+    expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premiumInEth));
+  });
+});

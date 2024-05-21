@@ -533,7 +533,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
 
     // pass false as it does not modify the share supply nor the reward per second
-    processExpirations(false);
+    processExpirations(true);
 
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
@@ -1125,6 +1125,10 @@ contract StakingPool is IStakingPool, Multicall {
 
     if (!stakingNFT.isApprovedOrOwner(msg.sender, tokenId)) {
       revert NotTokenOwnerOrApproved();
+    }
+
+    if (topUpAmount > 0 && block.timestamp <= nxm.isLockedForMV(msg.sender)) {
+      revert NxmIsLockedForGovernanceVote();
     }
 
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;

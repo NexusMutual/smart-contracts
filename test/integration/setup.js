@@ -5,6 +5,7 @@ const { toBytes2, toBytes8 } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
 const { enrollMember, enrollABMember, getGovernanceSigner } = require('./utils/enroll');
 const { getAccounts } = require('../utils/accounts');
+const { impersonateAccount, setEtherBalance } = require('../utils').evm;
 
 const { BigNumber } = ethers;
 const { parseEther, parseUnits } = ethers.utils;
@@ -483,6 +484,15 @@ async function setup() {
     [master, priceFeedOracle, swapOperatorPlaceholder, tk, legacyPool].map(c => c.address),
   );
 
+  // deploy CoverBroker
+  const coverBroker = await ethers.deployContract('CoverBroker', [
+    cover.address,
+    mr.address,
+    tk.address,
+    master.address,
+    owner.address,
+  ]);
+
   await master.connect(governanceSigner).upgradeMultipleContracts([toBytes2('P1')], [p1.address]);
 
   // [todo] We should probably call changeDependentContractAddress on every contract
@@ -551,7 +561,7 @@ async function setup() {
     cover: await ethers.getContractAt('Cover', cover.address),
   };
 
-  const nonInternal = { priceFeedOracle, swapOperator };
+  const nonInternal = { priceFeedOracle, swapOperator, coverBroker };
 
   fixture.contracts = {
     ...external,
@@ -573,6 +583,13 @@ async function setup() {
   await enrollMember(fixture.contracts, stakingPoolManagers, owner);
   await enrollMember(fixture.contracts, advisoryBoardMembers, owner);
   await enrollABMember(fixture.contracts, advisoryBoardMembers);
+
+  // enroll coverBroker as member
+  await impersonateAccount(coverBroker.address);
+  await setEtherBalance(coverBroker.address, parseEther('1000'));
+  const coverBrokerSigner = await ethers.getSigner(coverBroker.address);
+  accounts.coverBrokerSigner = coverBrokerSigner;
+  await enrollMember(fixture.contracts, [coverBrokerSigner], owner, { initialTokens: parseEther('0') });
 
   const product = {
     productId: 0,

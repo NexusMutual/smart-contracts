@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+
 const { increaseTime, mineNextBlock, setNextBlockTime } = require('../utils').evm;
 const {
   getTranches,
@@ -15,7 +16,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 const { BigNumber } = ethers;
-const { AddressZero } = ethers.constants;
+const { AddressZero, WeiPerEther } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 const product0 = {
@@ -505,7 +506,7 @@ describe('withdraw', function () {
     const lastTokenId = await stakingNFT.totalSupply();
     const [aliceTokenId, bobTokenId] = [lastTokenId.add(1), lastTokenId.add(2)];
 
-    // alice creates 2 deposits at the same time
+    // creates 2 deposits at the same time: one for alice, one for bob
     await stakingPool
       .connect(alice)
       .multicall(
@@ -551,15 +552,18 @@ describe('withdraw', function () {
     const withdrawRewards = true;
 
     // half way through rewards period
-    await increaseTime(rewardsPeriod / 2);
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    await setNextBlockTime(timestamp + rewardsPeriod / 2);
     await stakingPool.withdraw(aliceTokenId, withdrawStake, withdrawRewards, [lastTrancheId]);
+    const firstAccNxmPerRewardShare = await stakingPool.getAccNxmPerRewardsShare();
 
-    // advance time untill after the rewards period has ended
-    await increaseTime(rewardsPeriod + BUCKET_DURATION);
+    // advance time until after the rewards period has ended
+    await setNextBlockTime(timestamp + rewardsPeriod + BUCKET_DURATION);
     await stakingPool.withdraw(aliceTokenId, withdrawStake, withdrawRewards, [lastTrancheId]);
     await stakingPool.withdraw(bobTokenId, withdrawStake, withdrawRewards, [lastTrancheId]);
     await stakingPool.withdraw(0, withdrawStake, withdrawRewards, [lastTrancheId]);
 
+    const secondAccNxmPerRewardShare = await stakingPool.getAccNxmPerRewardsShare();
     const { rewards: rewardsLeft } = await tokenController.stakingPoolNXMBalances(poolId);
 
     const rewardPerSecond = premium.div(rewardStreamPeriod);
@@ -577,15 +581,22 @@ describe('withdraw', function () {
     const rewardShareSupply = await stakingPool.getRewardsSharesSupply();
     const expectedManagerRewards = expectedRewardsMinted.mul(managerDeposit.rewardsShares).div(rewardShareSupply);
 
-    const expectedPerStakerRewards = expectedRewardsMinted.mul(aliceDeposit.rewardsShares).div(rewardShareSupply);
-    const expectedWithdrawnRewards = expectedPerStakerRewards.mul(2).add(expectedManagerRewards);
+    const aliceFirstWithdraw = firstAccNxmPerRewardShare.mul(aliceDeposit.rewardsShares).div(WeiPerEther);
+    const aliceSecondWithdraw = secondAccNxmPerRewardShare
+      .sub(firstAccNxmPerRewardShare)
+      .mul(aliceDeposit.rewardsShares)
+      .div(WeiPerEther);
+    const expectedAliceRewards = aliceFirstWithdraw.add(aliceSecondWithdraw);
+
+    const expectedBobRewards = expectedRewardsMinted.mul(aliceDeposit.rewardsShares).div(rewardShareSupply);
+    const expectedWithdrawnRewards = expectedBobRewards.add(expectedAliceRewards).add(expectedManagerRewards);
     const expectedLeftRewards = expectedRewardsMinted.sub(expectedWithdrawnRewards);
 
+    expect(managerRewards).to.eq(expectedManagerRewards);
+    expect(aliceRewards).to.eq(expectedAliceRewards);
+    expect(bobRewards).to.eq(expectedBobRewards);
     expect(actualRewardsMinted).to.eq(expectedRewardsMinted);
     expect(rewardsLeft).to.eq(expectedLeftRewards);
-    expect(managerRewards).to.eq(expectedManagerRewards);
-    expect(aliceRewards).to.eq(expectedPerStakerRewards);
-    expect(aliceRewards).to.eq(bobRewards);
   });
 
   it('should emit some event', async function () {

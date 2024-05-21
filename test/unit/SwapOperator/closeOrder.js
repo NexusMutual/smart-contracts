@@ -23,6 +23,7 @@ const setup = require('./setup');
 
 const {
   utils: { parseEther, hexZeroPad },
+  constants: { MaxUint256 },
 } = ethers;
 
 async function closeOrderSetup() {
@@ -123,10 +124,8 @@ describe('closeOrder', function () {
 
     // Executing as non-controller should fail
     await setNextBlockTime(deadline);
-    await expect(swapOperator.connect(governance).closeOrder(contractOrder)).to.be.revertedWith(
-      'SwapOp: only controller can execute',
-    );
-
+    const closeOrder = swapOperator.connect(governance).closeOrder(contractOrder);
+    await expect(closeOrder).to.be.revertedWithCustomError(swapOperator, 'OnlyController');
     // Executing as controller should succeed
     await revertToSnapshot(snapshot);
     await setNextBlockTime(deadline);
@@ -158,17 +157,20 @@ describe('closeOrder', function () {
     const {
       contracts: { swapOperator },
       contractOrder,
+      order,
+      orderUID,
+      domain,
     } = await loadFixture(closeOrderSetup);
     // the contract's currentOrderUID is the one for the placed order in beforeEach step
     // we call with multiple invalid orders, with each individual field modified. it should fail
-    for (const [key, value] of Object.entries(contractOrder)) {
-      const wrongOrder = {
-        ...contractOrder,
-        [key]: makeWrongValue(value),
-      };
-      await expect(swapOperator.closeOrder(wrongOrder)).to.revertedWith(
-        'SwapOp: Provided UID doesnt match calculated UID',
-      );
+    for (const [key, value] of Object.entries(order)) {
+      const wrongOrder = { ...order, [key]: makeWrongValue(value) };
+      const wrongOrderUID = computeOrderUid(domain, wrongOrder, wrongOrder.receiver);
+      const wrongContractOrder = makeContractOrder(wrongOrder);
+
+      await expect(swapOperator.closeOrder(wrongContractOrder))
+        .to.revertedWithCustomError(swapOperator, 'OrderUidMismatch')
+        .withArgs(orderUID, wrongOrderUID);
     }
 
     // call with an order that matches currentOrderUID, should succeed
@@ -183,10 +185,10 @@ describe('closeOrder', function () {
     // cancel the current order, leaving no order in place
     await expect(swapOperator.closeOrder(contractOrder)).to.not.be.reverted;
 
-    await expect(swapOperator.closeOrder(contractOrder)).to.be.revertedWith('SwapOp: No order in place');
+    await expect(swapOperator.closeOrder(contractOrder)).to.be.revertedWithCustomError(swapOperator, 'NoOrderInPlace');
   });
 
-  it('presignature is false and allowance is 0 when order was not filled at all', async function () {
+  it('cancels order and removes signature and allowance when order was not filled at all', async function () {
     const {
       contracts: { swapOperator, cowSettlement, weth, cowVaultRelayer },
       contractOrder,
@@ -194,24 +196,28 @@ describe('closeOrder', function () {
       order,
     } = await loadFixture(closeOrderSetup);
     expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
+    expect(await cowSettlement.filledAmount(orderUID)).to.equal(0);
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(
       order.sellAmount.add(order.feeAmount),
     );
 
     await swapOperator.closeOrder(contractOrder);
 
+    // order is cancelled when filledAmount is set to MaxUint256
+    expect(await cowSettlement.filledAmount(orderUID)).to.equal(MaxUint256);
+    // removes signature and allowance
     expect(await cowSettlement.presignatures(orderUID)).to.equal(false);
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(0);
   });
 
-  it('cancels presignature and allowance when the order is partially filled', async function () {
+  it('cancels order and removes signature and allowance when the order is partially filled', async function () {
     const {
       contracts: { swapOperator, cowSettlement, weth, dai, cowVaultRelayer },
       contractOrder,
       orderUID,
       order,
     } = await loadFixture(closeOrderSetup);
-    // intially there is some sellToken, no buyToken
+    // initially there is some sellToken, no buyToken
     expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
     expect(await weth.balanceOf(swapOperator.address)).to.gt(0);
 
@@ -228,20 +234,23 @@ describe('closeOrder', function () {
     expect(await dai.balanceOf(swapOperator.address)).to.gt(0);
     expect(await weth.balanceOf(swapOperator.address)).to.gt(0);
 
-    // presignature still valid, allowance was decreased
+    // presignature still exists, order not cancelled and allowance was decreased
     expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
+    expect(await cowSettlement.filledAmount(orderUID)).to.equal(order.sellAmount.div(2));
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(
       order.sellAmount.div(2).add(order.feeAmount.div(2)),
     );
 
     await swapOperator.closeOrder(contractOrder);
 
-    // after closing, presignature = false and allowance = 0
+    // order is cancelled when filledAmount is set to MaxUint256 / 0 allowance
+    expect(await cowSettlement.filledAmount(orderUID)).to.equal(MaxUint256);
+    // removes signature and allowance
     expect(await cowSettlement.presignatures(orderUID)).to.equal(false);
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(0);
   });
 
-  it('cancels presignature and allowance when the order is fully filled', async function () {
+  it('cancels order and removes signature and allowance when the order is fully filled', async function () {
     const {
       contracts: { swapOperator, weth, dai, cowSettlement, cowVaultRelayer },
       contractOrder,
@@ -249,6 +258,7 @@ describe('closeOrder', function () {
       order,
     } = await loadFixture(closeOrderSetup);
     expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
+    expect(await cowSettlement.filledAmount(orderUID)).to.equal(0);
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(
       order.sellAmount.add(order.feeAmount),
     );
@@ -264,8 +274,9 @@ describe('closeOrder', function () {
 
     await swapOperator.closeOrder(contractOrder);
 
-    // After closing, presignature should be false
-    expect(await cowSettlement.presignatures(orderUID)).to.equal(false);
+    // order is cancelled when filledAmount is set to MaxUint256 / 0 allowance
+    expect(await cowSettlement.filledAmount(orderUID)).to.equal(MaxUint256);
+    // removes signature and allowance
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(0);
   });
 

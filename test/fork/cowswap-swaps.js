@@ -1,5 +1,6 @@
 const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
+const crypto = require('crypto');
 const { parseEther, hexZeroPad, toUtf8Bytes } = ethers.utils;
 
 const evm = require('./evm')();
@@ -15,7 +16,7 @@ const COWSWAP_SETTLEMENT = '0x9008D19f58AAbD9eD0D60971565AA8510560ab41';
 const COWSWAP_RELAYER = '0xC92E8bdf79f0507f65a392b0ab4667716BFE0110';
 const STABLECOIN_WHALE = '0x66f62574ab04989737228d18c3624f7fc1edae14';
 const COWSWAP_SOLVER = '0x423cEc87f19F0778f549846e0801ee267a917935';
-const TRADER_PKEY = '489cddb08499334cf55b9649459915dfc6606cb7aa50e0aef22259b08d6d6fe4';
+const TRADER_PKEY = crypto.randomBytes(32).toString('hex');
 
 const NXM_TOKEN_ADDRESS = '0xd7c49CEE7E9188cCa6AD8FF264C1DA2e69D4Cf3B';
 

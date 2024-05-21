@@ -1,6 +1,6 @@
 {
   "name": "nexusmutual",
-  "version": "2.4.2",
+  "version": "2.5.0",
   "description": "NexusMutual smart contracts",
   "repository": {
     "type": "git",
@@ -20,9 +20,8 @@
   },
   "homepage": "https://github.com/NexusMutual/smart-contracts",
   "dependencies": {
-    "@nexusmutual/deployments": "^2.4.2",
+    "@nexusmutual/deployments": "^2.5.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
-    "@openzeppelin/contracts": "^2.5.1",
     "@openzeppelin/contracts-v4": "npm:@openzeppelin/contracts@^4.7.3",
     "dotenv": "^8.6.0",
     "ethereum-cryptography": "^1.0.1",
@@ -31,7 +30,6 @@
     "hardhat-ignore-warnings": "^0.2.8",
     "merkletreejs": "^0.2.32",
     "node-fetch": "^2.6.7",
-    "solmate": "^6.6.1",
     "workerpool": "^6.2.0"
   },
   "devDependencies": {

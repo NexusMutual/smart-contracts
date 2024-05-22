@@ -23,6 +23,7 @@ contract PoolMock is IPool {
   using SafeUintCast for uint;
 
   Asset[] public assets;
+  address public swapOperator;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;

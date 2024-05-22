@@ -5,14 +5,15 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import "../../external/cow/GPv2Order.sol";
 import "../../interfaces/ICowSettlement.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/ISwapOperator.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/IWeth.sol";
 import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/ISwapOperator.sol";
+import "../../interfaces/ISafeTracker.sol";
 
 import "../../external/enzyme/IEnzymeFundValueCalculatorRouter.sol";
 import "../../external/enzyme/IEnzymeV4Vault.sol";
@@ -23,6 +24,12 @@ import "../../external/enzyme/IEnzymePolicyManager.sol";
 /// @dev This contract's address is set on the Pool's swapOperator variable via governance
 contract SwapOperator is ISwapOperator {
   using SafeERC20 for IERC20;
+
+  // Structs
+  struct Request {
+    address asset;
+    uint amount;
+  }
 
   // Storage
   bytes public currentOrderUID;
@@ -47,12 +54,22 @@ contract SwapOperator is ISwapOperator {
   uint public constant MIN_TIME_BETWEEN_ORDERS = 900; // 15 minutes
   uint public constant MAX_FEE = 0.3 ether;
 
+  // Safe variables
+  address public safe;
+  Request public transferRequest;
+  mapping(address => bool) public allowedSafeTransferAssets;
+
   modifier onlyController() {
     if (msg.sender != swapController) {
-      revert OnlyController(); 
+      revert OnlyController();
     }
     _;
   }
+
+    modifier onlySafe() {
+      require(msg.sender == safe, "SwapOp: only Safe can execute");
+      _;
+    }
 
   /// @param _cowSettlement Address of CoW protocol's settlement contract
   /// @param _swapController Account allowed to place and close orders
@@ -64,6 +81,9 @@ contract SwapOperator is ISwapOperator {
     address _master,
     address _weth,
     address _enzymeV4VaultProxyAddress,
+    address _safe,
+    address _dai,
+    address _usdc,
     IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter,
     uint _minPoolEth
   ) {
@@ -76,6 +96,10 @@ contract SwapOperator is ISwapOperator {
     enzymeV4VaultProxyAddress = _enzymeV4VaultProxyAddress;
     enzymeFundValueCalculatorRouter = _enzymeFundValueCalculatorRouter;
     minPoolEth = _minPoolEth;
+    safe = _safe;
+    allowedSafeTransferAssets[_dai] = true;
+    allowedSafeTransferAssets[_usdc] = true;
+    allowedSafeTransferAssets[ETH] = true;
   }
 
   receive() external payable {}
@@ -97,7 +121,7 @@ contract SwapOperator is ISwapOperator {
     GPv2Order.packOrderUidParams(uid, digest, order.receiver, order.validTo);
     return uid;
   }
-  
+
   /// @dev Using oracle prices, returns the equivalent amount in `toAsset` for a given `fromAmount` in `fromAsset`
   /// Supports conversions for ETH to Asset, Asset to ETH, and Asset to Asset
   function getOracleAmount(address fromAsset, address toAsset, uint fromAmount) internal view returns (uint) {
@@ -116,7 +140,7 @@ contract SwapOperator is ISwapOperator {
     return priceFeedOracle.getAssetForEth(toAsset, fromAmountInEth);
   }
 
-  /// @dev Reverts if amountOut is less than amountOutMin 
+  /// @dev Reverts if amountOut is less than amountOutMin
   function validateAmountOut(uint amountOut, uint amountOutMin) internal pure {
     if (amountOut < amountOutMin) {
       revert AmountOutTooLow(amountOut, amountOutMin);
@@ -131,7 +155,7 @@ contract SwapOperator is ISwapOperator {
     SwapDetails memory buySwapDetails
   ) internal view {
     uint oracleBuyAmount = getOracleAmount(address(order.sellToken), address(order.buyToken), order.sellAmount);
-    
+
     // Use the higher slippage ratio of either sell/buySwapDetails
     uint16 higherMaxSlippageRatio = sellSwapDetails.maxSlippageRatio > buySwapDetails.maxSlippageRatio
       ? sellSwapDetails.maxSlippageRatio
@@ -142,7 +166,7 @@ contract SwapOperator is ISwapOperator {
 
     validateAmountOut(order.buyAmount, minBuyAmountOnMaxSlippage);
   }
-  
+
   /// @dev Reverts if both swapDetails min/maxAmount are set to 0
   function validateTokenIsEnabled(address token, SwapDetails memory swapDetails) internal pure {
     if (swapDetails.minAmount == 0 && swapDetails.maxAmount == 0) {
@@ -185,10 +209,10 @@ contract SwapOperator is ISwapOperator {
       revert InvalidBalance(sellTokenBalance, sellSwapDetails.maxAmount);
     }
     // NOTE: the totalOutAmount (i.e. sellAmount + fee) is used to get postSellTokenSwapBalance
-    uint postSellTokenSwapBalance = sellTokenBalance - totalOutAmount; 
+    uint postSellTokenSwapBalance = sellTokenBalance - totalOutAmount;
     if (postSellTokenSwapBalance < sellSwapDetails.minAmount) {
       revert InvalidPostSwapBalance(postSellTokenSwapBalance, sellSwapDetails.minAmount);
-    }      
+    }
   }
 
   /// @dev Validates two conditions:
@@ -201,7 +225,7 @@ contract SwapOperator is ISwapOperator {
     SwapDetails memory buySwapDetails
   ) internal view {
     uint buyTokenBalance = order.buyToken.balanceOf(address(pool));
-    
+
     // skip validation for WETH since it does not have set swapDetails
     if (address(order.buyToken) == address(weth)) {
       return;
@@ -211,7 +235,7 @@ contract SwapOperator is ISwapOperator {
       revert InvalidBalance(buyTokenBalance, buySwapDetails.minAmount);
     }
     // NOTE: use order.buyAmount to get postBuyTokenSwapBalance
-    uint postBuyTokenSwapBalance = buyTokenBalance + order.buyAmount; 
+    uint postBuyTokenSwapBalance = buyTokenBalance + order.buyAmount;
     if (postBuyTokenSwapBalance > buySwapDetails.maxAmount) {
       revert InvalidPostSwapBalance(postBuyTokenSwapBalance, buySwapDetails.maxAmount);
     }
@@ -416,7 +440,7 @@ contract SwapOperator is ISwapOperator {
       revert AboveMaxValidTo(maxValidTo);
     }
     if (order.receiver != address(this)) {
-      revert InvalidReceiver(address(this));      
+      revert InvalidReceiver(address(this));
     }
     if (address(order.sellToken) == ETH) {
       // must to be WETH address for ETH swaps
@@ -450,12 +474,19 @@ contract SwapOperator is ISwapOperator {
     return IPool(master.getLatestAddress("P1"));
   }
 
+
+   // @dev Get the SafeTracker's instance through master contract
+   // @return The safe tracker instance
+  function safeTracker() internal view returns (ISafeTracker) {
+    return ISafeTracker(master.getLatestAddress("ST"));
+  }
+
   /// @dev Validates that a given asset is not swapped too fast
   /// @param swapDetails Swap details for the given asset
   function validateSwapFrequency(SwapDetails memory swapDetails) internal view {
-    uint minValidSwapTime = swapDetails.lastSwapTime + MIN_TIME_BETWEEN_ORDERS; 
+    uint minValidSwapTime = swapDetails.lastSwapTime + MIN_TIME_BETWEEN_ORDERS;
     if (block.timestamp < minValidSwapTime) {
-      revert InsufficientTimeBetweenSwaps(minValidSwapTime);      
+      revert InsufficientTimeBetweenSwaps(minValidSwapTime);
     }
   }
 
@@ -583,7 +614,7 @@ contract SwapOperator is ISwapOperator {
       // slippage check
       validateAmountOut(amountOutMin, minOutOnMaxSlippage);
       if (balanceBefore <= swapDetails.maxAmount) {
-        revert InvalidBalance(balanceBefore, swapDetails.maxAmount);  
+        revert InvalidBalance(balanceBefore, swapDetails.maxAmount);
       }
       if (balanceBefore - amountIn < swapDetails.minAmount) {
         revert InvalidPostSwapBalance(balanceBefore - amountIn, swapDetails.minAmount);
@@ -627,6 +658,28 @@ contract SwapOperator is ISwapOperator {
 
     IERC20 token = IERC20(asset);
     token.safeTransfer(to, amount);
+  }
+
+
+   // @dev Create a request for the transfer to the safe
+  function requestAsset(address asset, uint amount) external onlySafe {
+    require(allowedSafeTransferAssets[asset] == true, "SwapOp: asset not allowed");
+    transferRequest = Request(asset, amount);
+  }
+
+  // @dev Transfer request amount of the asset to the safe
+  function transferRequestedAsset(address requestedAsset, uint requestedAmount) external onlyController {
+    require(transferRequest.amount > 0, "SwapOp: request amount must be greater than 0");
+
+    (address asset, uint amount) = (transferRequest.asset, transferRequest.amount);
+    delete transferRequest;
+
+    require(requestedAsset == asset, "SwapOp: request assets need to match");
+    require(requestedAmount == amount, "SwapOp: request amounts need to match");
+
+    _pool().transferAssetToSwapOperator(asset, amount);
+    transferAssetTo(asset, safe, amount);
+    emit TransferredToSafe(asset, amount);
   }
 
   /// @dev Recovers assets in the SwapOperator to the pool or a specified receiver, ensuring no ongoing CoW swap orders

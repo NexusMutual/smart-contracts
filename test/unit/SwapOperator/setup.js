@@ -3,7 +3,6 @@ const { getAccounts } = require('../../utils/accounts');
 const { hex } = require('../utils').helpers;
 
 const {
-  constants: { AddressZero },
   utils: { parseEther },
 } = ethers;
 
@@ -36,6 +35,7 @@ async function setup() {
   const dai = await ERC20Mock.deploy();
   const usdc = await ERC20CustomDecimalsMock.deploy(6);
   const stEth = await ERC20Mock.deploy();
+  const st = await ERC20Mock.deploy();
 
   // Deploy CoW Protocol mocks
   const cowVaultRelayer = await SOMockVaultRelayer.deploy();
@@ -88,13 +88,28 @@ async function setup() {
     [dai.address, stEth.address, usdc.address, enzymeV4Vault.address],
     [daiAggregator.address, stethAggregator.address, usdcAggregator.address, enzymeV4VaultAggregator.address],
     [18, 18, 6, 18],
+    st.address,
+  );
+
+  // Deploy SwapOperator
+  const swapOperator = await SwapOperator.deploy(
+    cowSettlement.address,
+    await owner.getAddress(),
+    master.address,
+    weth.address,
+    enzymeV4Vault.address,
+    await owner.getAddress(), // _safe
+    dai.address,
+    usdc.address,
+    enzymeFundValueCalculatorRouter.address,
+    parseEther('1'),
   );
 
   // Deploy Pool
   const legacyPool = await LegacyPool.deploy(
     master.address,
     priceFeedOracle.address, // price feed oracle, add to setup if needed
-    AddressZero, // swap operator
+    swapOperator.address, // swap operator
     dai.address,
     stEth.address,
     enzymeV4Vault.address,
@@ -104,7 +119,7 @@ async function setup() {
   const pool = await Pool.deploy(
     master.address,
     priceFeedOracle.address, // price feed oracle, add to setup if needed
-    AddressZero, // swap operator
+    swapOperator.address, // swap operator
     nxmToken.address,
     legacyPool.address,
   );
@@ -121,17 +136,6 @@ async function setup() {
 
   await pool.connect(governance).addAsset(usdc.address, true, 0, parseEther('1000'), 0);
 
-  // Deploy SwapOperator
-  const swapOperator = await SwapOperator.deploy(
-    cowSettlement.address,
-    await owner.getAddress(),
-    master.address,
-    weth.address,
-    enzymeV4Vault.address,
-    enzymeFundValueCalculatorRouter.address,
-    parseEther('1'),
-  );
-
   // Setup pool's swap operator
   await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), swapOperator.address);
 
@@ -145,6 +149,7 @@ async function setup() {
       weth,
       stEth,
       usdc,
+      st,
       master,
       pool,
       mcr,
@@ -157,6 +162,10 @@ async function setup() {
       enzymeV4Comptroller,
       enzymeFundValueCalculatorRouter,
       nxmToken,
+    },
+    constants: {
+      ETH_ADDRESS: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+      DAI_ADDRESS: dai.address,
     },
   };
 }

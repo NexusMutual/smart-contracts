@@ -33,11 +33,16 @@ interface ISwapOperator {
 
   function recoverAsset(address assetAddress, address receiver) external;
 
+  function requestAsset(address asset, uint amount) external;
+
+  function transferRequestedAsset(address requestedAsset, uint requestedAmount) external;
+
   /* ========== EVENTS AND ERRORS ========== */
 
   event OrderPlaced(GPv2Order.Data order);
   event OrderClosed(GPv2Order.Data order, uint filledAmount);
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
+  event TransferredToSafe(address asset, uint amount);
 
   // Swap Order
   error OrderInProgress(bytes currentOrderUID);
@@ -60,7 +65,7 @@ interface ISwapOperator {
 
   // Access Controls
   error OnlyController();
-  
+
   // Transfer
   error TransferFailed(address to, uint value, address token);
 

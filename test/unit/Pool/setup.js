@@ -30,6 +30,7 @@ async function setup() {
   const stETH = await ERC20BlacklistableMock.deploy();
   const enzymeVault = await ERC20Mock.deploy();
   const otherAsset = await ERC20Mock.deploy();
+  const st = await ERC20Mock.deploy();
   const memberRoles = await MemberRolesMock.deploy();
   const ramm = await RammMock.deploy();
 
@@ -52,6 +53,7 @@ async function setup() {
     [dai, stETH, enzymeVault, otherAsset].map(c => c.address),
     [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkOtherAsset].map(c => c.address),
     [18, 18, 18, 18],
+    st.address,
   );
 
   const swapOperator = await P1MockSwapOperator.deploy();
@@ -135,6 +137,7 @@ async function setup() {
     stETH,
     enzymeVault,
     otherAsset,
+    st, // safeTracker
 
     // oracles
     chainlinkDAI,

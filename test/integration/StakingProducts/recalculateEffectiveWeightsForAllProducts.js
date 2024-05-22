@@ -141,7 +141,8 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     const firstProductId = 1;
     const secondProductId = 2;
 
-    const stakeAmount = parseEther('5000000');
+    // NOTE: either bump the stakeAmount or pool asset value to fix InsufficientCapacity() error
+    const stakeAmount = parseEther('6000000');
 
     // setup products with an initial target weight of 10 in order to buy cover
     const initialTargetWeight = 10;

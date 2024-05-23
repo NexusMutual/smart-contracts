@@ -30,6 +30,7 @@ const contractList = [
   'ProductsV1',
   'ProposalCategory',
   'Ramm',
+  'SafeTracker',
   'StakingNFTDescriptor',
   'StakingNFT',
   'StakingPoolFactory',

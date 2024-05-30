@@ -18,9 +18,6 @@ const {
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const { daysToSeconds, categoryParamsToValues } = require('../../lib/helpers');
 const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
-const AavePoolAbi = require('./abi/aave/AavePool.json');
-const AaveProtocolDataProviderAbi = require('./abi/aave/AaveProtocolDataProvider.json');
-const WETHGatewayAbi = require('./abi/aave/WETHGateway.json');
 const VariableDebtTokenAbi = require('./abi/aave/VariableDebtToken.json');
 const { InternalContractsIDs } = require('../utils').constants;
 
@@ -187,7 +184,7 @@ describe('basic functionality tests', function () {
     }
   });
 
-  it.skip('Swap NXM for ETH', async function () {
+  it('Swap NXM for ETH', async function () {
     const [member] = this.abMembers;
     const nxmIn = parseEther('1');
     const minEthOut = parseEther('0.0152');
@@ -213,7 +210,7 @@ describe('basic functionality tests', function () {
     expect(after.ethBalance).to.be.equal(before.ethBalance.add(ethOut)); // member receives ETH
   });
 
-  it.skip('Swap ETH for NXM', async function () {
+  it('Swap ETH for NXM', async function () {
     const [member] = this.abMembers;
     const ethIn = parseEther('1');
     const minNxmOut = parseEther('28.8');

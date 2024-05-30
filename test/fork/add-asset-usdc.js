@@ -2,7 +2,14 @@ const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
 const { addresses } = require('@nexusmutual/deployments');
 
-const { Address, UserAddress, EnzymeAdress, V2Addresses, getSigner, submitGovernanceProposal } = require('./utils');
+const {
+  Address,
+  UserAddress,
+  EnzymeAdress,
+  V2Addresses,
+  getSigner,
+  submitMemberVoteGovernanceProposal,
+} = require('./utils');
 const { ContractCode, ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const { SigningScheme, domain: makeDomain, SettlementEncoder } = require('@cowprotocol/contracts');
 
@@ -113,14 +120,19 @@ describe('usdc', function () {
   it('Add USDC as an asset to the pool', async function () {
     const min = parseUnits('10000000', 6).toString();
     const max = parseUnits('15000000', 6).toString();
-    await submitGovernanceProposal(
+
+    const poolValueInEthBefore = await this.pool.getPoolValueInEth();
+
+    await submitMemberVoteGovernanceProposal(
       PROPOSAL_CATEGORIES.addAsset,
       defaultAbiCoder.encode(['address', 'bool', 'uint', 'uint', 'uint'], [Address.USDC_ADDRESS, true, min, max, 250]),
       this.abMembers,
       this.governance,
     );
 
-    this.poolValueInEth = await this.pool.getPoolValueInEth();
+    const poolValueInEthAfter = await this.pool.getPoolValueInEth();
+    // Pool value should increase since we have usdc already in the pool
+    expect(poolValueInEthAfter).to.be.gt(poolValueInEthBefore);
   });
 
   it('fail to buy cover that only supports DAI', async function () {
@@ -230,6 +242,13 @@ describe('usdc', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     const sellAmount = parseEther('10');
     const buyAmount = parseUnits('38000', 6);
+
+    const usdcBalanceBefore = await this.usdc.balanceOf(this.pool.address);
+    const ethBalanceBefore = await ethers.provider.getBalance(this.pool.address);
+
+    const usdcEthPrice = await this.priceFeedOracle.getEthForAsset(Address.USDC_ADDRESS, parseUnits('1', 6));
+    const ethUsdcPrice = await this.priceFeedOracle.getAssetForEth(Address.USDC_ADDRESS, parseEther('1'));
+
     const order = {
       sellToken: Address.WETH_ADDRESS,
       buyToken: Address.USDC_ADDRESS,
@@ -259,7 +278,7 @@ describe('usdc', function () {
     await this.encoder.encodeTrade(order, preSignSignature);
 
     // lower the imaginary buy amount slightly so the limit price is respected on both sides of the trades
-    const imaginaryBuyAmount = sellAmount.sub(parseEther('0.5'));
+    const imaginaryBuyAmount = sellAmount.sub(parseEther('0.1'));
 
     await addOrder(
       this.trader,
@@ -279,18 +298,37 @@ describe('usdc', function () {
     );
     console.log(`Settle trade`);
 
-    const sellPrice = await this.priceFeedOracle.getEthForAsset(Address.USDC_ADDRESS, parseUnits('1', 6));
-
-    const buyPrice = await this.priceFeedOracle.getAssetForEth(Address.USDC_ADDRESS, parseEther('1'));
+    console.log('----------------------------------');
+    console.log(usdcEthPrice.toString());
+    console.log(ethUsdcPrice.toString());
+    console.log('----------------------------------');
+    console.log(buyAmount.toString());
+    console.log(imaginaryBuyAmount.toString());
+    console.log('----------------------------------');
+    console.log(buyAmount.mul(usdcEthPrice).toString());
+    console.log(imaginaryBuyAmount.mul(ethUsdcPrice).toString());
+    console.log('----------------------------------');
 
     const encodedSettlement = this.encoder.encodedSettlement({
-      [Address.USDC_ADDRESS]: buyPrice,
-      [Address.WETH_ADDRESS]: sellPrice,
+      [Address.USDC_ADDRESS]: usdcEthPrice.mul(1000000000000),
+      [Address.WETH_ADDRESS]: ethUsdcPrice,
     });
+
+    console.log(encodedSettlement);
 
     await this.cowswapSettlement.connect(this.cowswapSolver).settle(...encodedSettlement);
 
     await this.swapOperator.connect(this.swapController).closeOrder(contractOrder);
+
+    const ethBalanceAfter = await ethers.provider.getBalance(this.pool.address);
+    const usdcBalanceAfter = await this.usdc.balanceOf(this.pool.address);
+
+    const usdcBalanceIncrease = usdcBalanceAfter.sub(usdcBalanceBefore);
+    const ethBalanceDecrease = ethBalanceBefore.sub(ethBalanceAfter);
+
+    expect(ethBalanceDecrease).to.be.equal(order.sellAmount);
+
+    expect(usdcBalanceIncrease).to.be.equal(order.buyAmount);
   });
 
   require('./basic-functionality-tests');

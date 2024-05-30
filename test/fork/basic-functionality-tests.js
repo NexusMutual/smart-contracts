@@ -535,7 +535,7 @@ describe('basic functionality tests', function () {
     const coverBuyer = await getSigner(HUGH);
     const coverBuyerAddress = await coverBuyer.getAddress();
 
-    const coverAsset = 6; // DAI
+    const coverAsset = 6; // USDC
     const amount = parseUnits('1000', 6);
     const commissionRatio = '500'; // 5%
 

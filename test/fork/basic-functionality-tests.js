@@ -12,31 +12,35 @@ const {
   submitGovernanceProposal,
   submitMemberVoteGovernanceProposal,
   toBytes,
+  Aave,
 } = require('./utils');
 
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const { daysToSeconds, categoryParamsToValues } = require('../../lib/helpers');
 const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
+const VariableDebtTokenAbi = require('./abi/aave/VariableDebtToken.json');
 const { InternalContractsIDs } = require('../utils').constants;
 
 const { BigNumber, deployContract } = ethers;
 const { AddressZero, MaxUint256 } = ethers.constants;
-const { parseEther, defaultAbiCoder, toUtf8Bytes, formatEther } = ethers.utils;
+const { parseEther, defaultAbiCoder, toUtf8Bytes, formatEther, parseUnits } = ethers.utils;
 
 const ASSESSMENT_VOTER_COUNT = 3;
-const { DAI_ADDRESS, STETH_ADDRESS, RETH_ADDRESS } = Address;
-const { NXM_WHALE_1, NXM_WHALE_2, DAI_NXM_HOLDER, NXMHOLDER, DAI_HOLDER } = UserAddress;
+const { DAI_ADDRESS, STETH_ADDRESS, RETH_ADDRESS, USDC_ADDRESS } = Address;
+const { NXM_WHALE_1, NXM_WHALE_2, DAI_NXM_HOLDER, NXMHOLDER, DAI_HOLDER, HUGH } = UserAddress;
 const { ENZYMEV4_VAULT_PROXY_ADDRESS } = EnzymeAdress;
 const {
   DAI_PRICE_FEED_ORACLE_AGGREGATOR,
   STETH_PRICE_FEED_ORACLE_AGGREGATOR,
   ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
   RETH_PRICE_FEED_ORACLE_AGGREGATOR,
+  USDC_PRICE_FEED_ORACLE_AGGREGATOR,
 } = PriceFeedOracle;
 
-let ybDAI, ybETH;
+let ybDAI, ybETH, ybUSDC;
 
 let ybDaiProductId, ybDaiCoverId, ybDaiIncidentId;
+let ybUSDCProductId, ybUSDCCoverId, ybUSDCIncidentId;
 let ybEthProductId;
 let custodyProductId, custodyCoverId;
 let protocolProductId, protocolCoverId;
@@ -44,6 +48,7 @@ let assessmentId, requestedClaimAmount, claimDeposit;
 let poolId, trancheId, tokenId;
 
 const NEW_POOL_MANAGER = NXM_WHALE_1;
+const GNOSIS_SAFE_ADDRESS = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';
 
 const compareProxyImplementationAddress = async (proxyAddress, addressToCompare) => {
   const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
@@ -87,6 +92,15 @@ describe('basic functionality tests', function () {
     await evm.connect(ethers.provider);
     await evm.increaseTime(7 * 24 * 3600); // +7 days
     trancheId = await calculateCurrentTrancheId();
+  });
+
+  it('load token contracts', async function () {
+    this.dai = await ethers.getContractAt('ERC20Mock', Address.DAI_ADDRESS);
+    this.usdc = await ethers.getContractAt('ERC20Mock', Address.USDC_ADDRESS);
+    this.rEth = await ethers.getContractAt('ERC20Mock', Address.RETH_ADDRESS);
+    this.stEth = await ethers.getContractAt('ERC20Mock', Address.STETH_ADDRESS);
+    this.awEth = await ethers.getContractAt('ERC20Mock', Address.AWETH_ADDRESS);
+    this.enzymeShares = await ethers.getContractAt('ERC20Mock', EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS);
   });
 
   it('Impersonate addresses', async function () {
@@ -290,6 +304,34 @@ describe('basic functionality tests', function () {
     expect(productsAfter.length).to.be.equal(productsBefore.length + 1);
   });
 
+  it('Add ybUSDC yield token cover', async function () {
+    ybUSDC = await deployContract('ERC20MintableDetailed', ['yield bearing USDC', 'ybUSDC', 6]);
+    const productsBefore = await this.cover.getProducts();
+
+    await this.cover.connect(this.abMembers[0]).setProducts([
+      {
+        productName: 'ybUSDC yield token',
+        productId: MaxUint256,
+        ipfsMetadata: '',
+        product: {
+          productType: 2,
+          yieldTokenAddress: ybUSDC.address,
+          coverAssets: 64,
+          initialPriceRatio: 1000,
+          capacityReductionRatio: 1000,
+          useFixedPrice: false,
+          isDeprecated: false,
+        },
+        allowedPools: [],
+      },
+    ]);
+
+    const productsAfter = await this.cover.getProducts();
+    ybUSDCProductId = productsAfter.length - 1;
+
+    expect(productsAfter.length).to.be.equal(productsBefore.length + 1);
+  });
+
   it('Add ybETH yield token cover', async function () {
     ybETH = await deployContract('ERC20MintableDetailed', ['yield bearing DAI', 'ybDAI', 18]);
     const productsBefore = await this.cover.getProducts();
@@ -380,6 +422,12 @@ describe('basic functionality tests', function () {
         targetPrice: 1000,
       },
       {
+        productId: ybUSDCProductId, // ybUSDC
+        weight: 100,
+        initialPrice: 1000,
+        targetPrice: 1000,
+      },
+      {
         productId: ybEthProductId, // ybETH
         weight: 100,
         initialPrice: 1000,
@@ -454,8 +502,7 @@ describe('basic functionality tests', function () {
     const amount = parseEther('1');
     const commissionRatio = '500'; // 5%
 
-    const dai = await ethers.getContractAt('ERC20MintableDetailed', DAI_ADDRESS);
-    await dai.connect(coverBuyer).approve(this.cover.address, amount);
+    await this.dai.connect(coverBuyer).approve(this.cover.address, amount);
     const coverCountBefore = await this.cover.coverDataCount();
 
     await this.cover.connect(coverBuyer).buyCover(
@@ -479,6 +526,43 @@ describe('basic functionality tests', function () {
 
     const coverCountAfter = await this.cover.coverDataCount();
     ybDaiCoverId = coverCountAfter;
+
+    expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
+  });
+
+  it('Buy ybUSDC yield token cover with USDC', async function () {
+    await evm.impersonate(HUGH);
+    const coverBuyer = await getSigner(HUGH);
+    const coverBuyerAddress = await coverBuyer.getAddress();
+
+    const coverAsset = 6; // USDC
+    const amount = parseUnits('1000', 6);
+    const commissionRatio = '500'; // 5%
+
+    await this.usdc.connect(coverBuyer).approve(this.cover.address, amount);
+    const coverCountBefore = await this.cover.coverDataCount();
+
+    await this.cover.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyerAddress,
+        productId: ybUSDCProductId,
+        coverAsset,
+        amount,
+        period: 3600 * 24 * 30, // 30 days
+        maxPremiumInAsset: amount,
+        paymentAsset: coverAsset,
+        payWithNXM: false,
+        commissionRatio,
+        commissionDestination: coverBuyerAddress,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+      { value: '0' },
+    );
+
+    const coverCountAfter = await this.cover.coverDataCount();
+    ybUSDCCoverId = coverCountAfter;
 
     expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
   });
@@ -570,6 +654,30 @@ describe('basic functionality tests', function () {
     await castAssessmentVote.call(this);
   });
 
+  it('Create Yield Token Incident for ybUSDC cover', async function () {
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+
+    ybUSDCIncidentId = (await this.yieldTokenIncidents.getIncidentsCount()).toNumber();
+
+    const assessmentCountBefore = await this.assessment.getAssessmentsCount();
+    assessmentId = assessmentCountBefore.toString();
+
+    const proposalCategoryCount = await this.proposalCategory.totalCategories();
+    const submitIncidentCategoryId = proposalCategoryCount.sub(1);
+
+    await submitGovernanceProposal(
+      submitIncidentCategoryId,
+      defaultAbiCoder.encode(
+        ['uint24', 'uint96', 'uint32', 'uint', 'string'],
+        [ybUSDCProductId, parseUnits('1.1', 6), currentTime, parseEther('20000'), 'hashedMetadata'],
+      ),
+      this.abMembers,
+      this.governance,
+    );
+
+    await castAssessmentVote.call(this);
+  });
+
   it('redeem ybDAI cover', async function () {
     const member = DAI_NXM_HOLDER;
     const coverBuyer = await getSigner(member);
@@ -599,6 +707,37 @@ describe('basic functionality tests', function () {
     const expectedBalanceAfter = daiBalanceBefore.add(payoutAmount);
 
     expect(daiBalanceAfter).to.be.equal(expectedBalanceAfter);
+  });
+
+  it('redeem ybUSDC cover', async function () {
+    const member = HUGH;
+    const coverBuyer = await getSigner(member);
+
+    const claimedAmount = parseUnits('1000', 6);
+
+    await ybUSDC.mint(member, parseEther('10000000'));
+
+    await ybUSDC.connect(coverBuyer).approve(this.yieldTokenIncidents.address, parseUnits('1000000', 6));
+
+    const usdcBalanceBefore = await this.usdc.balanceOf(member);
+    await this.yieldTokenIncidents
+      .connect(coverBuyer)
+      .redeemPayout(ybUSDCIncidentId, ybUSDCCoverId, 0, claimedAmount, member, []);
+
+    const usdcBalanceAfter = await this.usdc.balanceOf(member);
+
+    const priceBefore = parseEther('1.1');
+    const coverAssetDecimals = ethers.BigNumber.from('10').pow(18);
+
+    const { payoutDeductibleRatio } = await this.yieldTokenIncidents.config();
+    const INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR = '10000';
+
+    const ratio = priceBefore.mul(payoutDeductibleRatio);
+
+    const payoutAmount = claimedAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals);
+    const expectedBalanceAfter = usdcBalanceBefore.add(payoutAmount);
+
+    expect(usdcBalanceAfter).to.be.equal(expectedBalanceAfter);
   });
 
   it('Buy custody cover', async function () {
@@ -790,6 +929,101 @@ describe('basic functionality tests', function () {
     expect(payoutRedeemed).to.be.equal(true);
   });
 
+  it('Buy protocol USDC cover', async function () {
+    await evm.impersonate(HUGH);
+    const coverBuyer = await getSigner(HUGH);
+    const coverBuyerAddress = await coverBuyer.getAddress();
+
+    const coverAsset = 6; // USDC
+    const amount = parseUnits('1000', 6);
+    const commissionRatio = '500'; // 5%
+
+    const usdcTopUpAmount = parseUnits('1000000', 6);
+
+    const coverCountBefore = await this.cover.coverDataCount();
+
+    await this.usdc.connect(coverBuyer).approve(this.cover.address, usdcTopUpAmount);
+
+    const maxPremiumInAsset = amount.mul(260).div(10000);
+
+    console.log('Buying cover..');
+    await this.cover.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyerAddress,
+        productId: protocolProductId,
+        coverAsset,
+        amount,
+        period: 3600 * 24 * 30, // 30 days
+        maxPremiumInAsset,
+        paymentAsset: coverAsset,
+        payWithNXM: false,
+        commissionRatio,
+        commissionDestination: coverBuyerAddress,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+    );
+
+    console.log('Bought..');
+    const coverCountAfter = await this.cover.coverDataCount();
+    protocolCoverId = coverCountAfter;
+
+    expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
+  });
+
+  it('Submit claim for protocol cover in USDC', async function () {
+    await evm.impersonate(HUGH);
+    const coverBuyer = await getSigner(HUGH);
+
+    const claimsCountBefore = await this.individualClaims.getClaimsCount();
+    const assessmentCountBefore = await this.assessment.getAssessmentsCount();
+
+    const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
+    const requestedAmount = parseUnits('1000', 6);
+    const segmentId = (await this.cover.coverSegmentsCount(custodyCoverId)).sub(1);
+    const segment = await this.cover.coverSegmentWithRemainingAmount(custodyCoverId, segmentId);
+
+    const [deposit] = await this.individualClaims.getAssessmentDepositAndReward(
+      requestedAmount,
+      segment.period,
+      6, // USDC
+    );
+    await this.individualClaims
+      .connect(coverBuyer)
+      .submitClaim(protocolCoverId, segmentId, requestedAmount, ipfsHash, { value: deposit });
+
+    const claimsCountAfter = await this.individualClaims.getClaimsCount();
+    const assessmentCountAfter = await this.assessment.getAssessmentsCount();
+
+    assessmentId = assessmentCountBefore.toString();
+    expect(claimsCountAfter).to.be.equal(claimsCountBefore.add(1));
+    expect(assessmentCountAfter).to.be.equal(assessmentCountBefore.add(1));
+
+    requestedClaimAmount = requestedAmount;
+    claimDeposit = deposit;
+  });
+
+  it('Process assessment and USDC payout for protocol cover', async function () {
+    await castAssessmentVote.call(this);
+
+    const coverIdV2 = protocolCoverId;
+    const claimId = (await this.individualClaims.getClaimsCount()).toNumber() - 1;
+
+    const memberAddress = await this.coverNFT.ownerOf(coverIdV2);
+
+    const usdcBalanceBefore = await this.usdc.balanceOf(memberAddress);
+
+    // redeem payout
+    await this.individualClaims.redeemClaimPayout(claimId);
+
+    const usdcBalanceAfter = await this.usdc.balanceOf(memberAddress);
+    expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(requestedClaimAmount));
+
+    const { payoutRedeemed } = await this.individualClaims.claims(claimId);
+    expect(payoutRedeemed).to.be.equal(true);
+  });
+
   it('Update MCR GEAR parameter', async function () {
     const GEAR = toBytes('GEAR', 8);
     const currentGearValue = BigNumber.from(48000);
@@ -807,9 +1041,15 @@ describe('basic functionality tests', function () {
     expect(newGearValue).to.be.eq(await this.mcr.gearingFactor());
   });
 
+  it('AAVE contracts', async function () {
+    this.aaveUsdcVariableDebtToken = await ethers.getContractAt(VariableDebtTokenAbi, Aave.VARIABLE_DEBT_USDC_ADDRESS);
+  });
+
   it('Gets all pool assets balances before upgrade', async function () {
     // Pool value related info
+    this.aaveDebtBefore = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
     this.poolValueBefore = await this.pool.getPoolValueInEth();
+    console.log(this.poolValueBefore.toString());
     this.ethBalanceBefore = await ethers.provider.getBalance(this.pool.address);
     this.daiBalanceBefore = await this.dai.balanceOf(this.pool.address);
     this.stEthBalanceBefore = await this.stEth.balanceOf(this.pool.address);
@@ -877,15 +1117,21 @@ describe('basic functionality tests', function () {
     ]);
 
     // PriceFeedOracle.sol
-    const assetAddresses = [DAI_ADDRESS, STETH_ADDRESS, ENZYMEV4_VAULT_PROXY_ADDRESS, RETH_ADDRESS];
+    const assetAddresses = [DAI_ADDRESS, STETH_ADDRESS, ENZYMEV4_VAULT_PROXY_ADDRESS, RETH_ADDRESS, USDC_ADDRESS];
     const assetAggregators = [
       DAI_PRICE_FEED_ORACLE_AGGREGATOR,
       STETH_PRICE_FEED_ORACLE_AGGREGATOR,
       ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
       RETH_PRICE_FEED_ORACLE_AGGREGATOR,
+      USDC_PRICE_FEED_ORACLE_AGGREGATOR,
     ];
-    const assetDecimals = [18, 18, 18, 18];
-    const priceFeedOracle = await deployContract('PriceFeedOracle', [assetAddresses, assetAggregators, assetDecimals]);
+    const assetDecimals = [18, 18, 18, 18, 6];
+    const priceFeedOracle = await deployContract('PriceFeedOracle', [
+      assetAddresses,
+      assetAggregators,
+      assetDecimals,
+      this.safeTracker.address,
+    ]);
 
     const swapOperatorAddress = await this.swapOperator.address;
 
@@ -942,6 +1188,8 @@ describe('basic functionality tests', function () {
       this.governance,
     );
 
+    console.log(pooledStaking.address);
+
     // Compare proxy implementation addresses
     await compareProxyImplementationAddress(this.memberRoles.address, memberRoles.address);
     await compareProxyImplementationAddress(this.pooledStaking.address, pooledStaking.address);
@@ -965,7 +1213,11 @@ describe('basic functionality tests', function () {
 
   it('Check Pool balance after upgrades', async function () {
     const poolValueAfter = await this.pool.getPoolValueInEth();
+    const aaveDebtAfter = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
+
     const poolValueDiff = poolValueAfter.sub(this.poolValueBefore);
+    const aaveDebtDiff = aaveDebtAfter.sub(this.aaveDebtBefore);
+    const ethDebt = await this.priceFeedOracle.getEthForAsset(USDC_ADDRESS, aaveDebtDiff);
 
     const ethBalanceAfter = await ethers.provider.getBalance(this.pool.address);
     const daiBalanceAfter = await this.dai.balanceOf(this.pool.address);
@@ -994,7 +1246,7 @@ describe('basic functionality tests', function () {
       rethBalanceDiff: formatEther(rEthBalanceAfter.sub(this.rethBalanceBefore)),
     });
 
-    expect(poolValueDiff.abs(), 'Pool value in ETH should be the same').to.be.lte(2);
+    expect(poolValueDiff.abs(), 'Pool value in ETH should be the same').to.be.lte(ethDebt.add(2));
     expect(stEthBalanceAfter.sub(this.stEthBalanceBefore).abs(), 'stETH balance should be the same').to.be.lte(2);
     expect(ethBalanceAfter.sub(this.ethBalanceBefore), 'ETH balance should be the same').to.be.eq(0);
     expect(daiBalanceAfter.sub(this.daiBalanceBefore), 'DAI balance should be the same').to.be.eq(0);

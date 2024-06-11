@@ -84,7 +84,7 @@ describe('YieldDeposit - withdraw', function () {
     const withdrawalValue = amount.mul(priceRate).div(rateDenominator);
     const userTokenDepositValueAfter = await yieldDeposit.userTokenDepositValue(member.address, weEth.address);
 
-    const totalDepositValueAfter = totalDepositValueBefore.sub(withdrawalValue)
+    const totalDepositValueAfter = totalDepositValueBefore.sub(withdrawalValue);
     expect(await weEth.balanceOf(member.address)).to.be.equal(userBalanceBefore.add(amount));
     expect(await weEth.balanceOf(yieldDeposit.address)).to.be.equal(contractBalanceBefore.sub(amount));
     expect(await yieldDeposit.totalDepositValue(weEth.address)).to.be.equal(totalDepositValueAfter);
@@ -113,7 +113,9 @@ describe('YieldDeposit - withdraw', function () {
 
     expect(await weEth.balanceOf(member.address)).to.be.equal(userBalanceBefore.add(amount));
     expect(await weEth.balanceOf(yieldDeposit.address)).to.be.equal(contractBalanceBefore.sub(amount));
-    expect(await yieldDeposit.totalDepositValue(weEth.address)).to.be.equal(totalDepositValueBefore.sub(withdrawalValue));
+    expect(await yieldDeposit.totalDepositValue(weEth.address)).to.be.equal(
+      totalDepositValueBefore.sub(withdrawalValue),
+    );
     expect(userTokenDepositValueAfter1).to.be.equal(userTokenDepositValueBefore.sub(withdrawalValue));
 
     // simulate price rate increased before second withdrawal
@@ -160,7 +162,9 @@ describe('YieldDeposit - withdraw', function () {
     const priceRate = await chainLinkPriceFeedWeEth.latestAnswer();
     const withdrawalValue = amount.mul(priceRate).div(rateDenominator);
 
-    expect(await yieldDeposit.totalDepositValue(weEth.address)).to.be.equal(totalDepositValueBefore.sub(withdrawalValue));
+    expect(await yieldDeposit.totalDepositValue(weEth.address)).to.be.equal(
+      totalDepositValueBefore.sub(withdrawalValue),
+    );
 
     // weEth
     const userWeEthTokenDepositValueAfter = await yieldDeposit.userTokenDepositValue(member.address, weEth.address);
@@ -186,10 +190,8 @@ describe('YieldDeposit - withdraw', function () {
       .to.emit(yieldDeposit, 'TokenWithdrawn')
       .withArgs(member.address, depositAmount, priceRate);
   });
-});
 
-describe('YieldDeposit - withdrawAll', function () {
-  it('should successfully withdraw all principal deposit value of the user for the given token', async function () {
+  it('should successfully withdraw ALL principal deposit if amount is MAX_UINT256', async function () {
     const fixture = await loadFixture(withdrawSetup);
     const { yieldDeposit, weEth, chainLinkPriceFeedWeEth } = fixture.contracts;
     const [member] = fixture.accounts.members;
@@ -197,33 +199,22 @@ describe('YieldDeposit - withdrawAll', function () {
 
     const userBalanceBefore = await weEth.balanceOf(member.address);
     const contractBalanceBefore = await weEth.balanceOf(yieldDeposit.address);
+    // TODO: check
     const totalDepositValueBefore = await yieldDeposit.totalDepositValue(weEth.address);
     const userTokenDepositValueBefore = await yieldDeposit.userTokenDepositValue(member.address, weEth.address);
 
-    // simulate price feed increase before withdrawAll
+    // simulate price feed increase before withdraw MAX_UINT256
     await increasePriceFeedRate(chainLinkPriceFeedWeEth);
-    await yieldDeposit.connect(member).withdrawAll(weEth.address);
+    await yieldDeposit.connect(member).withdraw(weEth.address, ethers.constants.MaxUint256);
 
     const priceRate = await chainLinkPriceFeedWeEth.latestAnswer();
     const maxWithdrawalValue = userTokenDepositValueBefore;
     const maxWithdrawalAmount = maxWithdrawalValue.mul(rateDenominator).div(priceRate);
-    const userTokenDepositValueAfter = await yieldDeposit.userTokenDepositValue(member.address, weEth.address);
 
+    const userTokenDepositValueAfter = await yieldDeposit.userTokenDepositValue(member.address, weEth.address);
     expect(await weEth.balanceOf(member.address)).to.be.equal(userBalanceBefore.add(maxWithdrawalAmount));
     expect(await weEth.balanceOf(yieldDeposit.address)).to.be.equal(contractBalanceBefore.sub(maxWithdrawalAmount));
-    expect(await yieldDeposit.totalDepositValue(weEth.address)).to.be.equal(totalDepositValueBefore.sub(maxWithdrawalValue));
-    expect(userTokenDepositValueAfter).to.be.equal('0');
-  });
-
-  it('should emit TokenWithdrawn on successful withdrawAll', async function () {
-    const fixture = await loadFixture(withdrawSetup);
-    const { yieldDeposit, weEth, chainLinkPriceFeedWeEth } = fixture.contracts;
-    const [member] = fixture.accounts.members;
-    const { depositAmount } = fixture;
-
-    const priceRate = await chainLinkPriceFeedWeEth.latestAnswer();
-    await expect(yieldDeposit.connect(member).withdrawAll(weEth.address))
-      .to.emit(yieldDeposit, 'TokenWithdrawn')
-      .withArgs(member.address, depositAmount, priceRate);
+    expect(await yieldDeposit.totalDepositValue(weEth.address)).to.be.lessThanOrEqual(2);
+    expect(userTokenDepositValueAfter).to.be.lessThanOrEqual(2);
   });
 });

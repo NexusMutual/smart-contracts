@@ -5,7 +5,27 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { increasePriceFeedRate } = require('./helper');
 const { setup } = require('./setup');
 
+// disableToken, expect TokenDisabled
+// ExceedTokenDepositLimit(maxDepositAmount - balance)
+// revert ExceedTokenDepositLimit
+// updateMaxDepositAmount
+// should not revert anymore
+// ethers.constants.MaxUint256
 describe('YieldDeposit - deposit', function () {
+  it.only('should revert TokenDepositDisabled if the deposit for the token is disabled', async function () {
+    const fixture = await loadFixture(setup);
+    const { yieldDeposit, weEth } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    await yieldDeposit.disableToken(weEth.address);
+
+    const depositError = yieldDeposit.connect(member).deposit(weEth.address, '0');
+    await expect(depositError).to.revertedWithCustomError(yieldDeposit, 'TokenDepositDisabled');
+
+    expect(await yieldDeposit.totalDepositValue(weEth.address)).to.be.equal('0');
+    expect(await yieldDeposit.userTokenDepositValue(member.address, weEth.address)).to.be.equal('0');
+  });
+
   it('should revert InvalidDepositAmount if deposit amount is less than or equal to zero', async function () {
     const fixture = await loadFixture(setup);
     const { yieldDeposit, weEth } = fixture.contracts;
@@ -29,6 +49,36 @@ describe('YieldDeposit - deposit', function () {
 
     expect(await yieldDeposit.totalDepositValue(weEth.address)).to.be.equal('0');
     expect(await yieldDeposit.userTokenDepositValue(member.address, weEth.address)).to.be.equal('0');
+  });
+
+  it.only('should revert ExceedTokenDepositLimit if token is not supported', async function () {
+    const fixture = await loadFixture(setup);
+    const { yieldDeposit, weEth, chainLinkPriceFeedWeEth } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+    const { depositLimit, manager, rateDenominator } = fixture;
+
+    const depositAmountOverLimit = depositLimit.weEth.add(1);
+    const depositError = yieldDeposit.connect(member).deposit(weEth.address, depositAmountOverLimit);
+    await expect(depositError).to.revertedWithCustomError(yieldDeposit, 'ExceedTokenDepositLimit');
+
+    expect(await yieldDeposit.totalDepositValue(weEth.address)).to.be.equal('0');
+    expect(await yieldDeposit.userTokenDepositValue(member.address, weEth.address)).to.be.equal('0');
+
+    const userWeEthBalanceBefore = await weEth.balanceOf(member.address);
+
+    // update deposit limit amount
+    await yieldDeposit.connect(manager).updateDepositLimit(weEth.address, depositAmountOverLimit);
+
+    await weEth.connect(member).approve(yieldDeposit.address, depositAmountOverLimit);
+    await yieldDeposit.connect(member).deposit(weEth.address, depositAmountOverLimit);
+    const priceRate = await chainLinkPriceFeedWeEth.latestAnswer();
+    const userDepositValue = depositAmountOverLimit.mul(priceRate).div(rateDenominator);
+
+    const userWeEthBalanceAfter = await weEth.balanceOf(member.address);
+    expect(userWeEthBalanceAfter).to.be.equal(userWeEthBalanceBefore.sub(depositAmountOverLimit));
+    expect(await weEth.balanceOf(yieldDeposit.address)).to.be.equal(depositAmountOverLimit);
+    expect(await yieldDeposit.totalDepositValue(weEth.address)).to.be.equal(userDepositValue);
+    expect(await yieldDeposit.userTokenDepositValue(member.address, weEth.address)).to.be.equal(userDepositValue);
   });
 
   it('should be able to deposit to contract', async function () {

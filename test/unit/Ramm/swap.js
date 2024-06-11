@@ -357,7 +357,7 @@ describe('swap', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
-    const swap = ramm.connect(member).swap(parseEther('1'), parseEther('0.015'), deadline);
+    const swap = ramm.connect(member).swap(parseEther('1'), parseEther('0.015'), timestamp + 5 * 60);
     await expect(swap).to.be.revertedWithCustomError(ramm, 'SystemPaused');
   });
 

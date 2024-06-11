@@ -20,3 +20,12 @@
 ## Bug Bounty
 
 - [Smart Contracts Bug Bounty](https://immunefi.com/bounty/nexusmutual/)
+
+// YieldDeposit
+// TODO: test withdraw amount calculatoin when rate moves up
+// TODO: test withdraw/withdrawYield calculation (tokenValue etc..) are correct
+// TODO: think how it can be hacked with invalid token rate price feed
+
+// OUtstanding tasks:
+- [write down the timestamp]
+- mint an NFT

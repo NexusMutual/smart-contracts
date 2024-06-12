@@ -108,6 +108,10 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
+  function recalculateActiveCoverInAsset(uint) external virtual pure {
+    revert("Unsupported");
+  }
+
   function coverNFT() external virtual view returns (ICoverNFT) {
     revert("Unsupported");
   }

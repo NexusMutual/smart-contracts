@@ -40,4 +40,12 @@ contract SwapOperatorGeneric is ISwapOperator {
   function recoverAsset(address, address) external virtual {
     revert("Unsupported");
   }
+
+  function requestAsset(address, uint) external virtual {
+    revert("Unsupported");
+  }
+
+  function transferRequestedAsset(address, uint) external virtual {
+    revert("Unsupported");
+  }
 }

@@ -7,6 +7,8 @@ import "../../interfaces/IPriceFeedOracle.sol";
 
 contract PoolGeneric is IPool {
 
+  address public swapOperator;
+
   function getAsset(uint) external virtual view returns (Asset memory) {
     revert("Unsupported");
   }

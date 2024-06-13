@@ -34,18 +34,8 @@ const retryUpload = async (filePath, retries = 3) => {
  * Generate the tx data for the Cover.setProducts transaction based using the data
  * in the productsDataFile CSV.
  *
- * CLI parameters in this order: productsDataFilePath
- *
- * NOTE: Product editing not yet supported. 'Product Id' is ignored.
- *
- * The output is written to OUTPUT_FILE.
- *
- * Use setProductsTransaction.data as the transaction data in your wallet of choice.
- *
  * @param provider
  * @param productsDataFilePath path for file of products
- * @param coverAddress address of the Cover contract
- * @param signerAddress address of the AB signer - not encoded in the transaction blob
  * @returns {Promise<{setProductsTransaction: *}>}
  */
 const main = async (provider, productsDataFilePath) => {
@@ -92,7 +82,7 @@ const main = async (provider, productsDataFilePath) => {
         console.log(`Metadata pinned at ${metadata.path}`);
       }
 
-      const productParams = {
+      return {
         productName: data['Product Name'],
         productId: data['Product Id'] || MaxUint256, // create new product - use Max Uint.
         ipfsMetadata: metadata ? metadata.path : '', // IPFS metadata is optional.
@@ -109,7 +99,6 @@ const main = async (provider, productsDataFilePath) => {
         },
         allowedPools: data['Allowed Pools'] ? data['Allowed Pools'].split(',').map(pool => pool.trim()) : [],
       };
-      return productParams;
     }),
   );
 
@@ -122,7 +111,6 @@ const main = async (provider, productsDataFilePath) => {
   console.log(`Destination address: ${COVER_PROXY_ADDRESS}`);
   console.log(`Tx data ${setProductsTransaction.data}`);
 
-  // fs.writeFileSync(OUTPUT_FILE, JSON.stringify(setProductsTransaction, null, 2), 'utf8');
   return setProductsTransaction;
 };
 

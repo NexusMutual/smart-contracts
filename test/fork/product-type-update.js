@@ -10,7 +10,7 @@ const { daysToSeconds } = require('../../lib/helpers');
 const path = require('path');
 const { parse: csvParse } = require('csv-parse/sync');
 const fs = require('fs');
-const generateProductTypesTx = require('../../scripts/products/generate-product-types-tx');
+const generateProductTypesTx = require('../../scripts/products/get-setProductTypes-txdata');
 
 const { parseEther, toUtf8Bytes } = ethers.utils;
 

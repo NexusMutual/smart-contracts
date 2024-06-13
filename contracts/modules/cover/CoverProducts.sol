@@ -15,6 +15,7 @@ import "../../interfaces/ILegacyCover.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingProducts.sol";
+import "../../interfaces/IStakingPoolFactory.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
@@ -315,18 +316,33 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
   /* ========== DEPENDENCIES ========== */
 
-  function migrateProductsAndProductTypes() external {
+  function migrateCoverData() external {
     require(_products.length == 0, "CoverProducts: _products already migrated");
     require(_productTypes.length == 0, "CoverProducts: _productTypes already migrated");
 
     ILegacyCover _cover = ILegacyCover(address(cover()));
+    IStakingPoolFactory _stakingPoolFactory = IStakingPoolFactory(_cover.stakingPoolFactory());
+
     Product[] memory _productsToMigrate = _cover.getProducts();
     uint _productTypeCount = _cover.productTypesCount();
+    uint stakingPoolCount = _stakingPoolFactory.stakingPoolCount();
 
     for (uint i = 0; i < _productsToMigrate.length; i++) {
       _products.push(_productsToMigrate[i]);
       productNames[i] = _cover.productNames(i);
-      allowedPools[i] = _cover.allowedPools(i);
+      uint[] storage _allowedPools = allowedPools[i];
+
+      if (!_productsToMigrate[i].useFixedPrice || _productsToMigrate[i].isDeprecated) {
+        continue;
+      }
+
+      for (uint j = 0; j < stakingPoolCount; j++) {
+        try _cover.allowedPools(i, j) returns (uint poolId) {
+          _allowedPools.push(poolId);
+        } catch {
+          break;
+        }
+      }
     }
 
     for (uint i = 0; i < _productTypeCount; i++) {

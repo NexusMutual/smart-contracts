@@ -12,7 +12,7 @@ interface ILegacyCover {
 
   function productNames(uint productId) external view returns (string memory);
 
-  function allowedPools(uint productId) external view returns (uint[] memory);
+  function allowedPools(uint productId, uint index) external view returns (uint);
 
   function productTypes(uint id) external view returns (ProductType memory);
 

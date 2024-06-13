@@ -5,6 +5,7 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
+import "hardhat/console.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
@@ -320,7 +321,16 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     for (uint i = 0; i < _productsToMigrate.length; i++) {
       _products.push(_productsToMigrate[i]);
       productNames[i] = _cover.productNames(i);
-      allowedPools[i] = _cover.allowedPools(i);
+
+      /*
+      * Currently only products with fixed price have allowed pools
+      * And all of them have only one allowed pool that's why we fetch only the first one
+      */
+      if (_productsToMigrate[i].useFixedPrice && !_productsToMigrate[i].isDeprecated) {
+        uint _allowedPool = _cover.allowedPools(i, 0);
+        allowedPools[i] = [_allowedPool];
+      }
+
     }
 
     for (uint i = 0; i < _productTypeCount; i++) {

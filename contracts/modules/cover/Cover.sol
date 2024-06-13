@@ -641,6 +641,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   /* ========== COVER ASSETS HELPERS ========== */
 
+  function recalculateActiveCoverInAsset(uint coverAsset) public {
+    uint currentBucketId = block.timestamp / BUCKET_SIZE;
+    uint totalActiveCover = 0;
+    uint8 yearlyBucketsCount = 53; // rounded up max cover duration divided by bucket duration (365 / 7)
+
+    for (uint i = 0; i < yearlyBucketsCount; i++) {
+      uint bucketId = currentBucketId + i;
+      totalActiveCover += activeCoverExpirationBuckets[coverAsset][bucketId];
+    }
+
+    activeCover[coverAsset].totalActiveCoverInAsset = totalActiveCover.toUint192();
+    activeCover[coverAsset].lastBucketUpdateId = currentBucketId.toUint64();
+  }
+
   function totalActiveCoverInAsset(uint assetId) public view returns (uint) {
     return uint(activeCover[assetId].totalActiveCoverInAsset);
   }

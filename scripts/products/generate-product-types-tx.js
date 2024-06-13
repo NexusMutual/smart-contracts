@@ -1,24 +1,14 @@
 require('dotenv').config();
-const { ethers, config } = require('hardhat');
+const { ethers } = require('hardhat');
 const fs = require('fs');
-const path = require('path');
-const { MaxUint256 } = ethers.constants;
-
 const { parse: csvParse } = require('csv-parse/sync');
+
 const ipfsClient = require('ipfs-http-client');
-const fetch = require('node-fetch');
-
 const IPFS_API_URL = 'https://api.nexusmutual.io/ipfs-api/api/v0';
-
-const OUTPUT_FILE = path.join(
-  config.paths.root,
-  'scripts/products/', // dir
-  'setProductTypes-txs.json', // filename
-);
-
-const COVER_ADDRESS = '0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62';
-
 const ipfs = ipfsClient({ url: IPFS_API_URL });
+
+const { MaxUint256 } = ethers.constants;
+const COVER_ADDRESS = '0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62';
 
 /**
  *
@@ -45,19 +35,19 @@ const main = async productsTypesDataFilePath => {
   const productTypeEntries = await Promise.all(
     productTypeData.map(async (productType, i) => {
       const filePath = productType['Cover Wording URL'];
-      
+
       console.log(`Uploading ${productType.Name} cover wording from ${filePath} to IPFS`);
-      const coverWording = await ipfs.add(fs.readFileSync(filePath));      
-      
+      const coverWording = await ipfs.add(fs.readFileSync(filePath));
+
       console.log(`Pinning ${coverWording.path}`);
       await ipfs.pin.add(coverWording.path);
 
       return {
         productTypeName: productType.Name,
-        productTypeId: productType['Id'] || MaxUint256, // create new product type
+        productTypeId: productType.Id || MaxUint256, // create new product type
         ipfsMetadata: coverWording.path,
         productType: {
-          claimMethod: productType['Claim Method'],
+          claimMethod: 0, // none of the current products use group claims
           gracePeriod: productType['Grace Period (days)'] * 24 * 3600, // This MUST be in seconds
         },
         expectedProductTypeId: i,
@@ -67,7 +57,7 @@ const main = async productsTypesDataFilePath => {
 
   const setProductTypesTransaction = await cover.populateTransaction.setProductTypes(productTypeEntries);
   console.log(setProductTypesTransaction);
-  
+
   return { setProductTypesTransaction };
 };
 

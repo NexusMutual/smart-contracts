@@ -1,24 +1,15 @@
 require('dotenv').config();
-const { ethers, config } = require('hardhat');
+const { ethers } = require('hardhat');
 const fs = require('fs');
-const path = require('path');
-
 const { parse: csvParse } = require('csv-parse/sync');
-const ipfsClient = require('ipfs-http-client');
 
+const ipfsClient = require('ipfs-http-client');
 const IPFS_API_URL = 'https://api.nexusmutual.io/ipfs-api/api/v0';
 const ipfs = ipfsClient({ url: IPFS_API_URL });
 
 const { MaxUint256 } = ethers.constants;
-
-const OUTPUT_FILE = path.join(
-  config.paths.root,
-  'scripts/products', // dir
-  'setProducts-txs.json', // filename
-);
-
-const YIELD_TOKEN_PRODUCT_TYPE_ID = '2';
 const COVER_PROXY_ADDRESS = '0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62';
+const metadataFilePath = '/Users/rox/data/projects/nexus-mutual/prod/smart-contracts/metadata.json';
 
 const retryUpload = async (filePath, retries = 3) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -58,10 +49,7 @@ const retryUpload = async (filePath, retries = 3) => {
  * @returns {Promise<{setProductsTransaction: *}>}
  */
 const main = async (provider, productsDataFilePath) => {
-  console.log(`Using cover address: ${COVER_PROXY_ADDRESS}`);
-
   const cover = await ethers.getContractAt('Cover', COVER_PROXY_ADDRESS);
-
   const productData = csvParse(fs.readFileSync(productsDataFilePath, 'utf8'), {
     columns: true,
     skip_empty_lines: true,
@@ -73,27 +61,35 @@ const main = async (provider, productsDataFilePath) => {
     productData.map(async data => {
       const coverAssetsAsText = data['Cover Assets'];
       const coverAssets =
-        (coverAssetsAsText === 'DAI' && 0b10) || // DAI
-        (coverAssetsAsText === 'ETH' && 0b01) || // ETH
+        (coverAssetsAsText === 'DAI' && 0b10) || // DAI only
+        (coverAssetsAsText === 'ETH' && 0b01) || // ETH only
+        (coverAssetsAsText === 'USDC' && 0b100000) || // USDC only
+        (coverAssetsAsText === 'DAI,USDC' && 0b1000010) || // DAI & USDC
+        (coverAssetsAsText === 'ETH,USDC' && 0b1000001) || // ETH & USDC
         0; // The default is 0 - this means all assets are allowed (no whitelist)
 
-      const filePath = data['IPFS Metadata'];
+      const annexPath = data.Annex;
+      const schedulePath = data.Schedule;
       let metadata = '';
+      let metadataContent = Buffer.from('');
 
-      if (filePath) {
-        const annex = await retryUpload(filePath);
-
+      if (annexPath) {
+        const annex = await retryUpload(annexPath);
         console.log(`Appending ${annex.path} to ${data['Product Name']} metadata on IPFS`);
-        const metadataContent = Buffer.from(JSON.stringify({ annex: annex.path }));
-        const metadataFilePath = '/Users/rox/data/projects/nexus-mutual/prod/smart-contracts/metadata.json'; // Temporary file path for metadata content
+        metadataContent = Buffer.from(JSON.stringify({ annex: annex.path }));
+      } else if (schedulePath) {
+        const schedule = await retryUpload(schedulePath);
+        console.log(`Appending ${schedule.path} to ${data['Product Name']} metadata on IPFS`);
+        metadataContent = Buffer.from(JSON.stringify({ schedule: schedule.path }));
+      }
+
+      if (metadataContent.length > 0) {
+        // Temporary file path for metadata content
         fs.writeFileSync(metadataFilePath, metadataContent); // Write metadata content to a temporary file
 
         // Use retryUpload for uploading and pinning metadata
         metadata = await retryUpload(metadataFilePath);
         console.log(`Metadata pinned at ${metadata.path}`);
-
-        // Clean up the temporary metadata file after successful upload
-        // fs.unlinkSync(metadataFilePath);
       }
 
       const productParams = {
@@ -102,7 +98,9 @@ const main = async (provider, productsDataFilePath) => {
         ipfsMetadata: metadata ? metadata.path : '', // IPFS metadata is optional.
         product: {
           productType: data['Product Type'],
-          yieldTokenAddress: '0x0000000000000000000000000000000000000000',
+          yieldTokenAddress: '0x0000000000000000000000000000000000000000', // this only applies
+          // to products that fall under Yield Token Incidents claim method. We don't have any
+          // products in that category atm, so we can just hardcode it to 0x0.
           coverAssets,
           initialPriceRatio: parseInt(parseFloat(data['Initial Price Ratio']) * 100),
           capacityReductionRatio: parseInt(data['Capacity Reduction Ratio']),
@@ -115,14 +113,16 @@ const main = async (provider, productsDataFilePath) => {
     }),
   );
 
+  // Clean up the temporary metadata file after successful upload
+  fs.unlinkSync(metadataFilePath);
+
   console.log('Tx input: ', productEntries);
 
   const setProductsTransaction = await cover.populateTransaction.setProducts(productEntries);
-
+  console.log(`Destination address: ${COVER_PROXY_ADDRESS}`);
   console.log(`Tx data ${setProductsTransaction.data}`);
 
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(setProductsTransaction, null, 2), 'utf8');
-
+  // fs.writeFileSync(OUTPUT_FILE, JSON.stringify(setProductsTransaction, null, 2), 'utf8');
   return setProductsTransaction;
 };
 

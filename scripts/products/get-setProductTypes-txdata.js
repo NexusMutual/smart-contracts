@@ -15,12 +15,6 @@ const COVER_ADDRESS = '0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62';
  * Generate the tx data for the Cover.setProductsTypes transaction based on the data
  * in the productsDataFile CSV.
  *
- * CLI parameters in this order: productsTypesDataFilePath
- *
- * NOTE: Product type editing not yet supported. 'Id' is ignored.
- *
- * The output is written to OUTPUT_FILE.
- *
  * @param productsTypesDataFilePath path for file of products
  * @returns {Promise<{setProductsTransaction: *}>}
  */

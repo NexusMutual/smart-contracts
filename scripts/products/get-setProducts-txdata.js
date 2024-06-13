@@ -1,7 +1,9 @@
 require('dotenv').config();
 const path = require('node:path');
+const { inspect } = require('node:util');
 
 const nexusSdk = require('@nexusmutual/deployments');
+const axios = require('axios');
 const { parse: csvParse } = require('csv-parse/sync');
 const fs = require('fs');
 const { ethers } = require('hardhat');
@@ -11,8 +13,44 @@ const IPFS_API_URL = 'https://api.nexusmutual.io/ipfs-api/api/v0';
 const ipfs = ipfsClient({ url: IPFS_API_URL });
 
 const { MaxUint256 } = ethers.constants;
+const HUGH = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
 const COVER_PROXY_ADDRESS = nexusSdk.addresses.Cover;
 const metadataFilePath = path.resolve(__dirname, '../../', 'metadata.json'); // root dir of repo
+
+/**
+ * NOTE: requires TENDERLY_ACCESS_KEY env
+ * @param {HexString} input - the tx.data
+ */
+const simulateTransaction = async input => {
+  const payload = {
+    save: true, // save result to dashboard
+    save_if_fails: true, // show reverted txs in dashboard
+    simulation_type: 'full',
+    network_id: '1',
+    from: HUGH,
+    to: COVER_PROXY_ADDRESS,
+    gas: 8000000,
+    gas_price: 0,
+    value: 0,
+    input,
+  };
+
+  const response = await axios.post(
+    `https://api.tenderly.co/api/v1/account/NexusMutual/project/nexusmutual/simulate`,
+    payload,
+    { headers: { 'X-Access-Key': process.env.TENDERLY_ACCESS_KEY } },
+  );
+
+  const { transaction, simulation } = response.data;
+  console.info(
+    'cover.setProducts input:\n',
+    inspect(transaction.transaction_info.call_trace.decoded_input[0].value, { depth: null }),
+  );
+  console.info(
+    '\nTenderly Simulated transaction:\n',
+    `https://dashboard.tenderly.co/NexusMutual/nexusmutual/simulator/${simulation.id}`,
+  );
+};
 
 const retryUpload = async (filePath, retries = 3) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -111,8 +149,8 @@ const main = async (provider, productsDataFilePath) => {
   console.log('Tx input: ', productEntries);
 
   const setProductsTransaction = await cover.populateTransaction.setProducts(productEntries);
-  console.log(`Destination address: ${COVER_PROXY_ADDRESS}`);
-  console.log(`Tx data:\n${setProductsTransaction.data}`);
+
+  await simulateTransaction(setProductsTransaction.data);
 
   return setProductsTransaction;
 };

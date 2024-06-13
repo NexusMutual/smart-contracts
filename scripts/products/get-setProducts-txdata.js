@@ -1,15 +1,18 @@
 require('dotenv').config();
-const { ethers } = require('hardhat');
-const fs = require('fs');
-const { parse: csvParse } = require('csv-parse/sync');
+const path = require('node:path');
 
+const nexusSdk = require('@nexusmutual/deployments');
+const { parse: csvParse } = require('csv-parse/sync');
+const fs = require('fs');
+const { ethers } = require('hardhat');
 const ipfsClient = require('ipfs-http-client');
+
 const IPFS_API_URL = 'https://api.nexusmutual.io/ipfs-api/api/v0';
 const ipfs = ipfsClient({ url: IPFS_API_URL });
 
 const { MaxUint256 } = ethers.constants;
-const COVER_PROXY_ADDRESS = '0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62';
-const metadataFilePath = '/Users/rox/data/projects/nexus-mutual/prod/smart-contracts/metadata.json';
+const COVER_PROXY_ADDRESS = nexusSdk.addresses.Cover;
+const metadataFilePath = path.resolve(__dirname, '../../', 'metadata.json'); // root dir of repo
 
 const retryUpload = async (filePath, retries = 3) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -51,11 +54,11 @@ const main = async (provider, productsDataFilePath) => {
     productData.map(async data => {
       const coverAssetsAsText = data['Cover Assets'];
       const coverAssets =
-        (coverAssetsAsText === 'DAI' && 0b10) || // DAI only
-        (coverAssetsAsText === 'ETH' && 0b01) || // ETH only
-        (coverAssetsAsText === 'USDC' && 0b100000) || // USDC only
-        (coverAssetsAsText === 'DAI,USDC' && 0b1000010) || // DAI & USDC
-        (coverAssetsAsText === 'ETH,USDC' && 0b1000001) || // ETH & USDC
+        (coverAssetsAsText === 'DAI' && 0b10) || // DAI only (2)
+        (coverAssetsAsText === 'ETH' && 0b01) || // ETH only (1)
+        (coverAssetsAsText === 'USDC' && 0b100000) || // USDC only (32)
+        (coverAssetsAsText === 'DAI,USDC' && 0b1000010) || // DAI & USDC (66)
+        (coverAssetsAsText === 'ETH,USDC' && 0b1000001) || // ETH & USDC (65)
         0; // The default is 0 - this means all assets are allowed (no whitelist)
 
       const annexPath = data.Annex;
@@ -109,7 +112,7 @@ const main = async (provider, productsDataFilePath) => {
 
   const setProductsTransaction = await cover.populateTransaction.setProducts(productEntries);
   console.log(`Destination address: ${COVER_PROXY_ADDRESS}`);
-  console.log(`Tx data ${setProductsTransaction.data}`);
+  console.log(`Tx data:\n${setProductsTransaction.data}`);
 
   return setProductsTransaction;
 };

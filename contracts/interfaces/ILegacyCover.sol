@@ -6,13 +6,15 @@ import "./ICover.sol";
 
 interface ILegacyCover {
 
+  function stakingPoolFactory() external view returns (address);
+
   function getProducts() external view returns (Product[] memory);
 
   function productTypesCount() external view returns (uint);
 
   function productNames(uint productId) external view returns (string memory);
 
-  function allowedPools(uint productId) external view returns (uint[] memory);
+  function allowedPools(uint productId, uint index) external view returns (uint);
 
   function productTypes(uint id) external view returns (ProductType memory);
 

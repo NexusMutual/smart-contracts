@@ -53,6 +53,10 @@ contract StakingProductsGeneric is IStakingProducts {
     revert("Unsupported");
   }
 
+  function getStakingPoolCount() external virtual view returns (uint) {
+    revert("Unsupported");
+  }
+
   function createStakingPool(bool, uint, uint, ProductInitializationParams[] calldata, string calldata)
   external virtual returns (uint, address) {
     revert("Unsupported");

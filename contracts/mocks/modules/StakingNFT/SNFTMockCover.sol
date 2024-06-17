@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 
 import "../../../interfaces/IStakingNFT.sol";
 import "../../../interfaces/IStakingPool.sol";
-import "../../../interfaces/IExtendedStakingPoolFactory.sol";
+import "../../../interfaces/IStakingPoolFactory.sol";
 import "../../../libraries/StakingPoolLibrary.sol";
 import "../../generic/CoverGeneric.sol";
 /**
@@ -12,11 +12,11 @@ import "../../generic/CoverGeneric.sol";
  */
 
 contract SNFTMockCover is CoverGeneric {
-    IExtendedStakingPoolFactory stakingPoolFactory;
+    IStakingPoolFactory stakingPoolFactory;
     IStakingNFT stakingNFT;
 
     constructor(address _stakingPoolFactory) {
-        stakingPoolFactory = IExtendedStakingPoolFactory(_stakingPoolFactory);
+        stakingPoolFactory = IStakingPoolFactory(_stakingPoolFactory);
     }
 
     function setStakingNFT(address _stakingNFT) public {

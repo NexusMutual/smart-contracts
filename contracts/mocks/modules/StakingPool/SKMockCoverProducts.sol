@@ -6,7 +6,6 @@ import "../../../interfaces/IStakingPool.sol";
 import "../../../interfaces/ICover.sol";
 import "../../../interfaces/IStakingProducts.sol";
 import "../../../interfaces/ICoverProducts.sol";
-import "../../../interfaces/IExtendedStakingPoolFactory.sol";
 import "../../generic/CoverProductsGeneric.sol";
 
 contract SKMockCoverProducts is CoverProductsGeneric {

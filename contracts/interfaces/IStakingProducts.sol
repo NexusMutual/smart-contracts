@@ -106,6 +106,8 @@ interface IStakingProducts {
     string calldata ipfsDescriptionHash
   ) external returns (uint poolId, address stakingPoolAddress);
 
+  function changeStakingPoolFactoryOperator(address newOperator) external;
+
   /* ============= EVENTS ============= */
 
   event ProductUpdated(uint productId, uint8 targetWeight, uint96 targetPrice);

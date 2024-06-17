@@ -576,7 +576,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       productInitParams
     );
 
-    (uint poolId, address stakingPoolAddress) = IExtendedStakingPoolFactory(stakingPoolFactory).create(coverContract);
+    (uint poolId, address stakingPoolAddress) = ICompleteStakingPoolFactory(stakingPoolFactory).create(coverContract);
 
     IStakingPool(stakingPoolAddress).initialize(
       isPrivatePool,
@@ -664,7 +664,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   }
 
   function changeStakingPoolFactoryOperator(address _operator) external onlyInternal {
-    IExtendedStakingPoolFactory(stakingPoolFactory).changeOperator(_operator);
+    ICompleteStakingPoolFactory(stakingPoolFactory).changeOperator(_operator);
   }
 
 }

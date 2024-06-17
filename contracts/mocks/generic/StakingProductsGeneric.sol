@@ -61,4 +61,8 @@ contract StakingProductsGeneric is IStakingProducts {
   external virtual returns (uint, address) {
     revert("Unsupported");
   }
+
+  function changeStakingPoolFactoryOperator(address) external virtual pure {
+    revert("Unsupported");
+  }
 }

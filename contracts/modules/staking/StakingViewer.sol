@@ -8,7 +8,7 @@ import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingProducts.sol";
-import "../../interfaces/IExtendedStakingPoolFactory.sol";
+import "../../interfaces/IStakingPoolFactory.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../interfaces/ICoverProducts.sol";
@@ -70,7 +70,7 @@ contract StakingViewer is Multicall {
 
   INXMMaster public immutable master;
   IStakingNFT public immutable stakingNFT;
-  IExtendedStakingPoolFactory public immutable stakingPoolFactory;
+  IStakingPoolFactory public immutable stakingPoolFactory;
 
   uint public constant TRANCHE_DURATION = 91 days;
   uint public constant MAX_ACTIVE_TRANCHES = 8;
@@ -81,7 +81,7 @@ contract StakingViewer is Multicall {
   constructor(
     INXMMaster _master,
     IStakingNFT _stakingNFT,
-    IExtendedStakingPoolFactory _stakingPoolFactory
+    IStakingPoolFactory _stakingPoolFactory
   ) {
     master = _master;
     stakingNFT = _stakingNFT;

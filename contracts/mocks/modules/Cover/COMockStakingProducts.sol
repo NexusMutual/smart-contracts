@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 
 import "../../../interfaces/IStakingProducts.sol";
 import "../../../interfaces/ICoverProducts.sol";
+import "../../../interfaces/IStakingPoolFactory.sol";
 import "../../../interfaces/ITokenController.sol";
 import "../../../libraries/StakingPoolLibrary.sol";
 import "../../generic/StakingProductsGeneric.sol";
@@ -103,7 +104,7 @@ contract COMockStakingProducts is StakingProductsGeneric {
       productInitParams[i].initialPrice = product.initialPriceRatio;
     }
 
-    (uint poolId, address stakingPoolAddress) = IExtendedStakingPoolFactory(stakingPoolFactory).create(coverContract);
+    (uint poolId, address stakingPoolAddress) = IStakingPoolFactory(stakingPoolFactory).create(coverContract);
 
     IStakingPool(stakingPoolAddress).initialize(
       isPrivatePool,

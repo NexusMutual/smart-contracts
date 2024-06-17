@@ -4,7 +4,7 @@ pragma solidity >=0.5.0;
 
 import "./IStakingPoolFactory.sol";
 
-interface IExtendedStakingPoolFactory is IStakingPoolFactory {
+interface ICompleteStakingPoolFactory is IStakingPoolFactory {
 
   function changeOperator(address newOperator) external;
 }

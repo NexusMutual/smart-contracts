@@ -394,123 +394,23 @@ async function setup() {
     },
   ]);
 
-  const productList = [
-    {
-      productName: 'Product 0',
-      productId: MaxUint256,
-      ipfsMetadata: 'product 0 metadata',
-      product: {
-        productType: 0, // Protocol Cover
-        yieldTokenAddress: AddressZero,
-        coverAssets: 0, // Use fallback
-        initialPriceRatio: 100,
-        capacityReductionRatio: 0,
-        useFixedPrice: false,
-      },
-      allowedPools: [],
+  const defaultProduct = {
+    productName: 'Product 0',
+    productId: MaxUint256,
+    ipfsMetadata: 'product 0 metadata',
+    product: {
+      productType: 0, // Protocol Cover
+      yieldTokenAddress: AddressZero,
+      coverAssets: 0, // Use fallback
+      initialPriceRatio: 100,
+      capacityReductionRatio: 0,
+      useFixedPrice: false,
     },
-    {
-      productName: 'Product 1',
-      productId: MaxUint256,
-      ipfsMetadata: 'product 1 metadata',
-      product: {
-        productType: 1, // Custody Cover
-        yieldTokenAddress: AddressZero,
-        coverAssets: 0, // Use fallback
-        initialPriceRatio: 100,
-        capacityReductionRatio: 0,
-        useFixedPrice: false,
-      },
-      allowedPools: [],
-    },
-    {
-      productName: 'Product 2',
-      productId: MaxUint256,
-      ipfsMetadata: 'product 2 metadata',
-      product: {
-        productType: 2, // Yield Token Cover
-        yieldTokenAddress: ybETH.address,
-        coverAssets: 0b01, // ETH
-        initialPriceRatio: 500,
-        capacityReductionRatio: 0,
-        useFixedPrice: false,
-      },
-      allowedPools: [],
-    },
-    {
-      productName: 'Product 3',
-      productId: MaxUint256,
-      ipfsMetadata: 'product 3 metadata',
-      product: {
-        productType: 2, // Yield Token Cover
-        yieldTokenAddress: ybDAI.address,
-        coverAssets: 0b10, // DAI
-        initialPriceRatio: 100,
-        capacityReductionRatio: 0,
-        useFixedPrice: false,
-      },
-      allowedPools: [],
-    },
-    {
-      productName: 'Product 4',
-      productId: MaxUint256,
-      ipfsMetadata: 'product 4 metadata',
-      product: {
-        productType: 0, // Protocol Cover
-        yieldTokenAddress: AddressZero,
-        coverAssets: 0, // Use fallback
-        initialPriceRatio: 500,
-        capacityReductionRatio: 0,
-        useFixedPrice: true,
-      },
-      allowedPools: [1, 7],
-    },
-    {
-      productName: 'Product 5',
-      productId: MaxUint256,
-      ipfsMetadata: 'product 5 metadata',
-      product: {
-        productType: 2, // Yield Token Cover
-        yieldTokenAddress: ybUSDC.address,
-        coverAssets: 0b10000, // USDC
-        initialPriceRatio: 100,
-        capacityReductionRatio: 0,
-        useFixedPrice: false,
-      },
-      allowedPools: [],
-    },
-    {
-      productName: 'Product 6',
-      productId: MaxUint256,
-      ipfsMetadata: 'product 6 metadata',
-      product: {
-        productType: 0, // Protocol Cover
-        yieldTokenAddress: ybUSDC.address,
-        coverAssets: 0b10000, // use usdc
-        initialPriceRatio: 100,
-        capacityReductionRatio: 0,
-        useFixedPrice: false,
-      },
-      allowedPools: [3],
-    },
-    {
-      productName: 'Product 7',
-      productId: MaxUint256,
-      ipfsMetadata: 'product 7 metadata',
-      product: {
-        productType: 0, // Protocol Cover
-        yieldTokenAddress: AddressZero,
-        coverAssets: 0, // Use fallback
-        initialPriceRatio: 100,
-        capacityReductionRatio: 0,
-        useFixedPrice: true,
-        isDeprecated: true,
-      },
-      allowedPools: [],
-    },
-  ];
+    allowedPools: [],
+  };
 
-  await coverProducts.setProducts(productList);
+  // set default product
+  await coverProducts.setProducts([defaultProduct]);
 
   await gv.changeMasterAddress(master.address);
 
@@ -679,7 +579,7 @@ async function setup() {
   const DEFAULT_PRODUCTS = [product];
   const DEFAULT_POOL_FEE = '5';
 
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 10; i++) {
     await stakingProducts.connect(stakingPoolManagers[i]).createStakingPool(
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
@@ -694,6 +594,111 @@ async function setup() {
 
     fixture.contracts['stakingPool' + poolId] = stakingPoolInstance;
   }
+
+  // set the rest of the products
+  const productList = [
+    {
+      productName: 'Product 1',
+      productId: MaxUint256,
+      ipfsMetadata: 'product 1 metadata',
+      product: {
+        productType: 1, // Custody Cover
+        yieldTokenAddress: AddressZero,
+        coverAssets: 0, // Use fallback
+        initialPriceRatio: 100,
+        capacityReductionRatio: 0,
+        useFixedPrice: false,
+      },
+      allowedPools: [],
+    },
+    {
+      productName: 'Product 2',
+      productId: MaxUint256,
+      ipfsMetadata: 'product 2 metadata',
+      product: {
+        productType: 2, // Yield Token Cover
+        yieldTokenAddress: ybETH.address,
+        coverAssets: 0b01, // ETH
+        initialPriceRatio: 500,
+        capacityReductionRatio: 0,
+        useFixedPrice: false,
+      },
+      allowedPools: [],
+    },
+    {
+      productName: 'Product 3',
+      productId: MaxUint256,
+      ipfsMetadata: 'product 3 metadata',
+      product: {
+        productType: 2, // Yield Token Cover
+        yieldTokenAddress: ybDAI.address,
+        coverAssets: 0b10, // DAI
+        initialPriceRatio: 100,
+        capacityReductionRatio: 0,
+        useFixedPrice: false,
+      },
+      allowedPools: [],
+    },
+    {
+      productName: 'Product 4',
+      productId: MaxUint256,
+      ipfsMetadata: 'product 4 metadata',
+      product: {
+        productType: 0, // Protocol Cover
+        yieldTokenAddress: AddressZero,
+        coverAssets: 0, // Use fallback
+        initialPriceRatio: 500,
+        capacityReductionRatio: 0,
+        useFixedPrice: true,
+      },
+      allowedPools: [1, 7],
+    },
+    {
+      productName: 'Product 5',
+      productId: MaxUint256,
+      ipfsMetadata: 'product 5 metadata',
+      product: {
+        productType: 2, // Yield Token Cover
+        yieldTokenAddress: ybUSDC.address,
+        coverAssets: 0b10000, // USDC
+        initialPriceRatio: 100,
+        capacityReductionRatio: 0,
+        useFixedPrice: false,
+      },
+      allowedPools: [],
+    },
+    {
+      productName: 'Product 6',
+      productId: MaxUint256,
+      ipfsMetadata: 'product 6 metadata',
+      product: {
+        productType: 0, // Protocol Cover
+        yieldTokenAddress: ybUSDC.address,
+        coverAssets: 0b10000, // use usdc
+        initialPriceRatio: 100,
+        capacityReductionRatio: 0,
+        useFixedPrice: false,
+      },
+      allowedPools: [],
+    },
+    {
+      productName: 'Product 7',
+      productId: MaxUint256,
+      ipfsMetadata: 'product 7 metadata',
+      product: {
+        productType: 0, // Protocol Cover
+        yieldTokenAddress: AddressZero,
+        coverAssets: 0, // Use fallback
+        initialPriceRatio: 100,
+        capacityReductionRatio: 0,
+        useFixedPrice: true,
+        isDeprecated: true,
+      },
+      allowedPools: [],
+    },
+  ];
+
+  await coverProducts.setProducts(productList);
 
   const config = {
     TRANCHE_DURATION: await fixture.contracts.stakingPool1.TRANCHE_DURATION(),
@@ -714,7 +719,7 @@ async function setup() {
   fixture.config = config;
   fixture.accounts = accounts;
   fixture.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS;
-  fixture.productList = productList;
+  fixture.productList = [defaultProduct, ...productList];
 
   return fixture;
 }

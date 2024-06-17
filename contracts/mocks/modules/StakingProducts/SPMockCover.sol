@@ -5,7 +5,7 @@ pragma solidity ^0.8.18;
 import "../../../interfaces/IStakingPool.sol";
 import "../../../interfaces/ICover.sol";
 import "../../../interfaces/IStakingProducts.sol";
-import "../../../interfaces/IStakingPoolFactory.sol";
+import "../../../interfaces/IExtendedStakingPoolFactory.sol";
 import "../../../interfaces/ICoverProducts.sol";
 import "../../generic/CoverGeneric.sol";
 
@@ -20,7 +20,7 @@ contract SPMockCover is CoverGeneric {
 
   ICoverNFT public _coverNFT;
   IStakingNFT public _stakingNFT;
-  IStakingPoolFactory public _stakingPoolFactory;
+  IExtendedStakingPoolFactory public _stakingPoolFactory;
   address public _stakingPoolImplementation;
   ICoverProducts coverProducts;
 
@@ -29,7 +29,7 @@ contract SPMockCover is CoverGeneric {
   constructor(
     ICoverNFT coverNFTAddress,
     IStakingNFT stakingNFTAddress,
-    IStakingPoolFactory stakingPoolFactoryAddress,
+    IExtendedStakingPoolFactory stakingPoolFactoryAddress,
     address stakingPoolImplementationAddress,
     address _coverProducts
   ) {

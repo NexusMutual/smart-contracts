@@ -5,7 +5,6 @@ pragma solidity ^0.8.18;
 import "../../../interfaces/IStakingPool.sol";
 import "../../../interfaces/ICover.sol";
 import "../../../interfaces/IStakingProducts.sol";
-import "../../../interfaces/IStakingPoolFactory.sol";
 import "../../../interfaces/ICoverProducts.sol";
 import "../../generic/CoverGeneric.sol";
 

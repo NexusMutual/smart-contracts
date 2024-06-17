@@ -15,7 +15,7 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
-import "../../interfaces/IStakingPoolFactory.sol";
+import "../../interfaces/IExtendedStakingPoolFactory.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IStakingProducts.sol";
 import "../../libraries/Math.sol";
@@ -88,7 +88,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   ICoverNFT public immutable override coverNFT;
   IStakingNFT public immutable override stakingNFT;
-  IStakingPoolFactory public immutable override stakingPoolFactory;
+  IExtendedStakingPoolFactory public immutable override stakingPoolFactory;
   address public immutable stakingPoolImplementation;
 
   /* ========== CONSTRUCTOR ========== */
@@ -96,7 +96,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   constructor(
     ICoverNFT _coverNFT,
     IStakingNFT _stakingNFT,
-    IStakingPoolFactory _stakingPoolFactory,
+    IExtendedStakingPoolFactory _stakingPoolFactory,
     address _stakingPoolImplementation
   ) {
     // in constructor we only initialize immutable fields

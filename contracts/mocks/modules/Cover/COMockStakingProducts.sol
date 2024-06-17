@@ -103,7 +103,7 @@ contract COMockStakingProducts is StakingProductsGeneric {
       productInitParams[i].initialPrice = product.initialPriceRatio;
     }
 
-    (uint poolId, address stakingPoolAddress) = IStakingPoolFactory(stakingPoolFactory).create(coverContract);
+    (uint poolId, address stakingPoolAddress) = IExtendedStakingPoolFactory(stakingPoolFactory).create(coverContract);
 
     IStakingPool(stakingPoolAddress).initialize(
       isPrivatePool,

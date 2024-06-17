@@ -214,16 +214,15 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
         revert CapacityReductionRatioAbove100Percent();
       }
 
-      // TODO: https://github.com/NexusMutual/smart-contracts/issues/859
-      if (product.useFixedPrice) {
-        uint productId = param.productId == type(uint256).max ? _products.length : param.productId;
-        allowedPools[productId] = param.allowedPools;
+      if (param.allowedPools.length > 0) {
+        requirePoolExists(param.allowedPools);
       }
 
       // New product has id == uint256.max
       if (param.productId == type(uint256).max) {
         emit ProductSet(_products.length, param.ipfsMetadata);
         productNames[_products.length] = param.productName;
+        allowedPools[_products.length] = param.allowedPools;
         _products.push(product);
         continue;
       }
@@ -238,6 +237,8 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       newProductValue.coverAssets = product.coverAssets;
       newProductValue.initialPriceRatio = product.initialPriceRatio;
       newProductValue.capacityReductionRatio = product.capacityReductionRatio;
+
+      allowedPools[param.productId] = param.allowedPools;
 
       if (bytes(param.productName).length > 0) {
         productNames[param.productId] = param.productName;
@@ -307,6 +308,15 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     }
   }
 
+  function requirePoolExists(uint[] calldata poolIds) internal view {
+    uint poolCount = stakingProducts().getStakingPoolCount();
+    for (uint i = 0; i < poolIds.length; i++) {
+      if (poolIds[i] > poolCount) {
+        revert StakingPoolDoesNotExist();
+      }
+    }
+  }
+
   /* ========== DEPENDENCIES ========== */
 
   function migrateProductsAndProductTypes() external {
@@ -338,6 +348,10 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
   function cover() internal view returns (ICover) {
     return ICover(internalContracts[uint(ID.CO)]);
+  }
+
+  function stakingProducts() internal view returns (IStakingProducts) {
+    return IStakingProducts(internalContracts[uint(ID.SP)]);
   }
 
   function changeDependentContractAddress() public {

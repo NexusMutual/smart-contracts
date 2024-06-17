@@ -558,6 +558,10 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     );
   }
 
+  function getStakingPoolCount() external view returns (uint) {
+    return IStakingPoolFactory(stakingPoolFactory).stakingPoolCount();
+  }
+
   function createStakingPool(
     bool isPrivatePool,
     uint initialPoolFee,

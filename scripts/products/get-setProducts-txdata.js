@@ -13,7 +13,7 @@ const IPFS_API_URL = 'https://api.nexusmutual.io/ipfs-api/api/v0';
 const ipfs = ipfsClient({ url: IPFS_API_URL });
 
 const { MaxUint256 } = ethers.constants;
-const HUGH = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
+const AB_MEMBER = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
 const COVER_PROXY_ADDRESS = nexusSdk.addresses.Cover;
 const metadataFilePath = path.resolve(__dirname, '../../', 'metadata.json'); // root dir of repo
 
@@ -27,7 +27,7 @@ const simulateTransaction = async input => {
     save_if_fails: true, // show reverted txs in dashboard
     simulation_type: 'full',
     network_id: '1',
-    from: HUGH,
+    from: AB_MEMBER,
     to: COVER_PROXY_ADDRESS,
     gas: 8000000,
     gas_price: 0,

@@ -96,6 +96,8 @@ interface IStakingProducts {
 
   function stakingPool(uint poolId) external view returns (IStakingPool);
 
+  function getStakingPoolCount() external view returns (uint);
+
   function createStakingPool(
     bool isPrivatePool,
     uint initialPoolFee,

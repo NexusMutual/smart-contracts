@@ -90,6 +90,7 @@ interface ICoverProducts {
   error InvalidProductType();
   error UnexpectedProductId();
   error PoolNotAllowedForThisProduct(uint productId);
+  error StakingPoolDoesNotExist();
 
   // Cover and payment assets
   error UnsupportedCoverAssets();

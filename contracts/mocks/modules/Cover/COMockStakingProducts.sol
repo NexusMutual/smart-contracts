@@ -120,6 +120,10 @@ contract COMockStakingProducts is StakingProductsGeneric {
     return (poolId, stakingPoolAddress);
   }
 
+  function getStakingPoolCount() external override pure returns (uint) {
+    return 1;
+  }
+
   /* dependencies */
 
   function tokenController() internal view returns (ITokenController) {

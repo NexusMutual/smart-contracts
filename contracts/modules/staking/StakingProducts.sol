@@ -663,4 +663,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
   }
 
+  function changeStakingPoolFactoryOperator(address _operator) external onlyInternal {
+    IStakingPoolFactory(stakingPoolFactory).changeOperator(_operator);
+  }
+
 }

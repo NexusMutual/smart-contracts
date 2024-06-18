@@ -4,8 +4,6 @@ pragma solidity ^0.8.18;
 
 import "../../abstract/Multicall.sol";
 import "../../interfaces/IStakingPool.sol";
-import "../../interfaces/IGovernance.sol";
-import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/INXMMaster.sol";

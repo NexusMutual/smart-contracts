@@ -171,7 +171,7 @@ const main = async productsDataFilePath => {
 
   const productEntries = await Promise.all(
     productData.map(async data => {
-      const coverAssetsAsText = data['Cover Assets'];
+      const coverAssetsAsText = data['Cover Assets'].replace(/\s+/g, ''); // remove whitespace
       const coverAssets =
         (coverAssetsAsText === 'DAI' && 0b10) || // DAI only (2)
         (coverAssetsAsText === 'ETH' && 0b01) || // ETH only (1)

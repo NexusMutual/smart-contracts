@@ -642,6 +642,23 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     });
   }
 
+  // initial role transfer
+  function takeOverStakingPoolFactoryOperatorRole(address _operator) external {
+    ICover _cover = cover();
+    ICompleteStakingPoolFactory _factory = ICompleteStakingPoolFactory(stakingPoolFactory);
+
+    if (_factory.operator() != address(_cover)) {
+      revert OperatorAlreadyChanged();
+    }
+
+    _cover.changeStakingPoolFactoryOperator(address(this));
+  }
+
+  // future role transfers
+  function changeStakingPoolFactoryOperator(address _operator) external onlyInternal {
+    ICompleteStakingPoolFactory(stakingPoolFactory).changeOperator(_operator);
+  }
+
   /* dependencies */
 
   function tokenController() internal view returns (ITokenController) {
@@ -660,10 +677,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
-  }
-
-  function changeStakingPoolFactoryOperator(address _operator) external onlyInternal {
-    ICompleteStakingPoolFactory(stakingPoolFactory).changeOperator(_operator);
   }
 
 }

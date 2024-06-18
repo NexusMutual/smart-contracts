@@ -649,18 +649,17 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   }
 
   function coverProducts() internal view returns (ICoverProducts) {
-    return ICoverProducts(getInternalContractAddress(ID.CP));
+    return ICoverProducts(internalContracts[uint(ID.CP)]);
   }
 
   function cover() internal view returns (ICover) {
-    return ICover(getInternalContractAddress(ID.CO));
+    return ICover(coverContract);
   }
 
   function changeDependentContractAddress() external {
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
-    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
   }
 
   function changeStakingPoolFactoryOperator(address _operator) external onlyInternal {

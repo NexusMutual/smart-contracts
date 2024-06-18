@@ -90,6 +90,17 @@ describe('setProducts', function () {
     expect(products.length).to.be.equal(previousProductsCount.add(newProductsCount).toNumber());
   });
 
+  it('should revert if trying to add a product with non existing pool in allowedPools', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+    const productParams = { ...productParamsTemplate, allowedPools: [99] };
+    await expect(coverProducts.connect(advisoryBoardMember0).setProducts([productParams])).to.revertedWithCustomError(
+      coverProducts,
+      'StakingPoolDoesNotExist',
+    );
+  });
+
   it('should revert if trying to edit a non-existing product', async function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;

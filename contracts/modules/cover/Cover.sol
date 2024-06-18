@@ -17,7 +17,6 @@ import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
 import "../../interfaces/ICompleteStakingPoolFactory.sol";
 import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IStakingProducts.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
@@ -739,7 +738,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   }
 
   function coverProducts() internal view returns (ICoverProducts) {
-    return ICoverProducts(getInternalContractAddress(ID.CP));
+    return ICoverProducts(internalContracts[uint(ID.CP)]);
   }
 
   function changeDependentContractAddress() external override {

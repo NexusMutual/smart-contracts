@@ -8,7 +8,6 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/IIndividualClaims.sol";
-import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IRamm.sol";
@@ -50,23 +49,23 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   /* ========== VIEWS ========== */
 
   function cover() internal view returns (ICover) {
-    return ICover(getInternalContractAddress(ID.CO));
+    return ICover(internalContracts[uint(ID.CO)]);
   }
 
   function coverProducts() internal view returns (ICoverProducts) {
-    return ICoverProducts(getInternalContractAddress(ID.CP));
+    return ICoverProducts(internalContracts[uint(ID.CP)]);
   }
 
   function assessment() internal view returns (IAssessment) {
-    return IAssessment(getInternalContractAddress(ID.AS));
+    return IAssessment(internalContracts[uint(ID.AS)]);
   }
 
   function pool() internal view returns (IPool) {
-    return IPool(getInternalContractAddress(ID.P1));
+    return IPool(internalContracts[uint(ID.P1)]);
   }
 
   function ramm() internal view returns (IRamm) {
-    return IRamm(getInternalContractAddress(ID.RA));
+    return IRamm(internalContracts[uint(ID.RA)]);
   }
 
   function getClaimsCount() external override view returns (uint) {

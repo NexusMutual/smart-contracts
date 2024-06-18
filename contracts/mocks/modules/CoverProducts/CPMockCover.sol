@@ -11,28 +11,34 @@ import "../../generic/CoverGeneric.sol";
 
 contract CPMockCover is CoverGeneric {
 
+  IStakingPoolFactory public immutable _stakingPoolFactory;
+
   Product[] internal _products;
   ProductType[] internal _productTypes;
 
   mapping(uint => string) public productNames;
   mapping(uint => string) public productTypeNames;
-  mapping(uint => uint[]) public _allowedPools;
+  mapping(uint => uint[]) public allowedPools;
+
+  constructor (address stakingPoolFactoryAddress) {
+    _stakingPoolFactory = IStakingPoolFactory(stakingPoolFactoryAddress);
+  }
 
   function setProductsAndProductTypes(
     Product[] memory products,
     ProductType[] memory productTypeArray,
     string[] memory _productNames,
     string[] memory _productTypeNames,
-    uint[][] memory allowedPoolsList
+    uint[][] memory _allowedPools
   ) external override {
 
     for (uint i = 0; i < products.length; i++) {
       _products.push(products[i]);
       productNames[i] = _productNames[i];
-      _allowedPools[i] = allowedPoolsList[i];
+      allowedPools[i] = _allowedPools[i];
     }
 
-    for (uint i = 0; i < products.length; i++) {
+    for (uint i = 0; i < productTypeArray.length; i++) {
       _productTypes.push(productTypeArray[i]);
       productTypeNames[i] = _productTypeNames[i];
     }
@@ -54,7 +60,7 @@ contract CPMockCover is CoverGeneric {
     return _productTypes[id];
   }
 
-  function allowedPools(uint productId) external override view returns (uint[] memory) {
-    return _allowedPools[productId];
+  function stakingPoolFactory() external override view returns (IStakingPoolFactory) {
+    return _stakingPoolFactory;
   }
 }

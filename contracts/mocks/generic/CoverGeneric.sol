@@ -8,6 +8,7 @@ import "../../interfaces/ICoverNFT.sol";
 contract CoverGeneric is ICover {
 
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+  uint public constant MAX_COMMISSION_RATIO = 3000; // 30%
 
   function setProductsAndProductTypes(
     Product[] memory /* products*/,
@@ -120,7 +121,7 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
-  function stakingPoolFactory() external virtual pure returns (IStakingPoolFactory) {
+  function stakingPoolFactory() external virtual view returns (IStakingPoolFactory) {
     revert("Unsupported");
   }
 }

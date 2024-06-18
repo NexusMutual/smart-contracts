@@ -179,6 +179,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     uint unsupportedCoverAssetsBitmap = type(uint).max;
     uint globalMinPriceRatio = cover().getGlobalMinPriceRatio();
 
+    uint poolCount = stakingProducts().getStakingPoolCount();
     Asset[] memory assets = pool().getAssets();
     uint assetsLength = assets.length;
 
@@ -215,7 +216,11 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       }
 
       if (param.allowedPools.length > 0) {
-        requirePoolExists(param.allowedPools);
+        for (uint j = 0; j < param.allowedPools.length; j++) {
+          if (param.allowedPools[j] > poolCount) {
+            revert StakingPoolDoesNotExist();
+          }
+        }
       }
 
       // New product has id == uint256.max
@@ -304,15 +309,6 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     for (uint i = 0; i < productIds.length; i++) {
       if (!isPoolAllowed(productIds[i], poolId) ) {
         revert PoolNotAllowedForThisProduct(productIds[i]);
-      }
-    }
-  }
-
-  function requirePoolExists(uint[] calldata poolIds) internal view {
-    uint poolCount = stakingProducts().getStakingPoolCount();
-    for (uint i = 0; i < poolIds.length; i++) {
-      if (poolIds[i] > poolCount) {
-        revert StakingPoolDoesNotExist();
       }
     }
   }

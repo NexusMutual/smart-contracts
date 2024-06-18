@@ -25,7 +25,8 @@ async function setup() {
   await mcr.setMCR(parseEther('600000'));
 
   const coverProducts = await ethers.deployContract('CoverProducts');
-  const cover = await ethers.deployContract('CPMockCover');
+  const stakingPoolFactory = await ethers.deployContract('CPMockStakingPoolFactory');
+  const cover = await ethers.deployContract('CPMockCover', [stakingPoolFactory.address]);
 
   const stakingProducts = await ethers.deployContract('COMockStakingProducts', [
     AddressZero,
@@ -89,30 +90,29 @@ async function setup() {
 
   await master.setEmergencyAdmin(accounts.emergencyAdmin.address);
 
-  await coverProducts.connect(accounts.advisoryBoardMembers[0]).setProductTypes([
+  const productTypes = [
     {
       productTypeName: 'ProductType X',
       productTypeId: MaxUint256,
       ipfsMetadata: 'ipfs metadata',
       productType: {
-        claimMethod: '1',
+        claimMethod: 1,
         gracePeriod: 120 * 24 * 3600, // 120 days
       },
     },
-  ]);
+  ];
 
-  // add products
-  await coverProducts.connect(accounts.advisoryBoardMembers[0]).setProducts([
+  const products = [
     {
       productName: 'Product A',
       productId: MaxUint256,
       ipfsMetadata: 'ipfs metadata',
       product: {
-        productType: '0',
+        productType: 0,
         yieldTokenAddress: AddressZero,
         coverAssets: 0, // use fallback
-        initialPriceRatio: '1000', // 10%
-        capacityReductionRatio: '0',
+        initialPriceRatio: 1000, // 10%
+        capacityReductionRatio: 0,
         isDeprecated: false,
         useFixedPrice: false,
       },
@@ -123,11 +123,11 @@ async function setup() {
       productId: MaxUint256,
       ipfsMetadata: 'ipfs metadata',
       product: {
-        productType: '0',
+        productType: 0,
         yieldTokenAddress: '0x0000000000000000000000000000000000000001',
         coverAssets: 0, // use fallback
-        initialPriceRatio: '1000', // 10%
-        capacityReductionRatio: '0',
+        initialPriceRatio: 1000, // 10%
+        capacityReductionRatio: 0,
         isDeprecated: false,
         useFixedPrice: true,
       },
@@ -138,11 +138,11 @@ async function setup() {
       productId: MaxUint256,
       ipfsMetadata: 'ipfs metadata',
       product: {
-        productType: '0',
+        productType: 0,
         yieldTokenAddress: AddressZero,
         coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
-        initialPriceRatio: '1000', // 10%
-        capacityReductionRatio: '0',
+        initialPriceRatio: 1000, // 10%
+        capacityReductionRatio: 0,
         isDeprecated: false,
         useFixedPrice: true,
       },
@@ -153,17 +153,22 @@ async function setup() {
       productId: MaxUint256,
       ipfsMetadata: 'ipfs metadata',
       product: {
-        productType: '0',
+        productType: 0,
         yieldTokenAddress: AddressZero,
         coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
-        initialPriceRatio: '1000', // 10%
-        capacityReductionRatio: '0',
+        initialPriceRatio: 1000, // 10%
+        capacityReductionRatio: 0,
         isDeprecated: false,
         useFixedPrice: true,
       },
       allowedPools: [],
     },
-  ]);
+  ];
+
+  await coverProducts.connect(accounts.advisoryBoardMembers[0]).setProductTypes(productTypes);
+
+  // add products
+  await coverProducts.connect(accounts.advisoryBoardMembers[0]).setProducts(products);
 
   const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
   const BUCKET_SIZE = BigNumber.from(7 * 24 * 3600); // 7 days
@@ -176,6 +181,7 @@ async function setup() {
     usdc,
     nxm,
     cover,
+    stakingPoolFactory,
     tokenController,
     memberRoles,
     coverNFT,
@@ -186,6 +192,8 @@ async function setup() {
     config: { GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE },
     Assets,
     pooledStakingSigner,
+    productTypes,
+    products,
   };
 }
 

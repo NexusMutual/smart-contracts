@@ -10,15 +10,13 @@ import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
-import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IYieldTokenIncidents.sol";
 import "../../interfaces/IRamm.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
-import "../../interfaces/ICoverProducts.sol";
 
 /// Allows cover owners to redeem payouts from yield token depeg incidents. It is an entry point
 /// to the assessment process where the members of the mutual decides the validity of the
@@ -57,18 +55,6 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
   }
 
   /* ========== VIEWS ========== */
-
-  function assessment() internal view returns (IAssessment) {
-    return IAssessment(getInternalContractAddress(ID.AS));
-  }
-
-  function cover() internal view returns (ICover) {
-    return ICover(internalContracts[uint(ID.CO)]);
-  }
-
-  function ramm() internal view returns (IRamm) {
-    return IRamm(internalContracts[uint(ID.RA)]);
-  }
 
   /// @dev Returns the number of incidents.
   function getIncidentsCount() external override view returns (uint) {
@@ -355,12 +341,26 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     config = newConfig;
   }
 
+  /* ========== DEPENDENCIES ========== */
+
   function pool() internal view returns (IPool) {
     return IPool(internalContracts[uint(ID.P1)]);
   }
 
   function coverProducts() internal view returns (ICoverProducts) {
-    return ICoverProducts(getInternalContractAddress(ID.CP));
+    return ICoverProducts(internalContracts[uint(ID.CP)]);
+  }
+
+  function assessment() internal view returns (IAssessment) {
+    return IAssessment(internalContracts[uint(ID.AS)]);
+  }
+
+  function cover() internal view returns (ICover) {
+    return ICover(internalContracts[uint(ID.CO)]);
+  }
+
+  function ramm() internal view returns (IRamm) {
+    return IRamm(internalContracts[uint(ID.RA)]);
   }
 
   /// @dev Updates internal contract addresses to the ones stored in master. This function is

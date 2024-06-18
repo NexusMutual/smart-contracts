@@ -7,13 +7,12 @@ import "@openzeppelin/contracts-v4/utils/Strings.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/ICoverNFTDescriptor.sol";
+import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
 import "../../libraries/DateTime.sol";
 import "../../libraries/FloatingPoint.sol";
-import "./CoverNFT.sol";
-import "../../interfaces/ICoverProducts.sol";
 
 
 contract CoverNFTDescriptor is ICoverNFTDescriptor {

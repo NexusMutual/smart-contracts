@@ -11,5 +11,7 @@ import "./IStakingPoolFactory.sol";
 */
 interface ICompleteStakingPoolFactory is IStakingPoolFactory {
 
+  function operator() external view returns (address);
+
   function changeOperator(address newOperator) external;
 }

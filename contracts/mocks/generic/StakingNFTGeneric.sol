@@ -71,4 +71,8 @@ contract StakingNFTGeneric is IStakingNFT {
   function supportsInterface(bytes4) public pure returns (bool) {
     revert("Unsupported");
   }
+
+  function changeNFTDescriptor(address) external virtual {
+    revert("Unsupported");
+  }
 }

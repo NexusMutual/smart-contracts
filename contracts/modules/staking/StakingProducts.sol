@@ -642,21 +642,14 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     });
   }
 
-  // initial role transfer
-  function takeOverStakingPoolFactoryOperatorRole(address _operator) external {
-    ICover _cover = cover();
-    ICompleteStakingPoolFactory _factory = ICompleteStakingPoolFactory(stakingPoolFactory);
-
-    if (_factory.operator() != address(_cover)) {
-      revert OperatorAlreadyChanged();
-    }
-
-    _cover.changeStakingPoolFactoryOperator(address(this));
-  }
-
   // future role transfers
   function changeStakingPoolFactoryOperator(address _operator) external onlyInternal {
-    ICompleteStakingPoolFactory(stakingPoolFactory).changeOperator(_operator);
+    ICompleteStakingPoolFactory _factory = ICompleteStakingPoolFactory(stakingPoolFactory);
+
+    if (_factory.operator() != address(this)) {
+      revert OperatorAlreadyChanged();
+    }
+    _factory.changeOperator(_operator);
   }
 
   /* dependencies */

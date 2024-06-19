@@ -172,6 +172,7 @@ interface ICover {
   // Auth
   error OnlyMemberRolesCanOperateTransfer();
   error OnlyOwnerOrApproved();
+  error OperatorAlreadyChanged();
 
   // Cover details
   error CoverPeriodTooShort();

@@ -711,11 +711,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     );
   }
 
-  function changeCoverNFTDescriptor(address _coverNFTDescriptor) external {
+  function changeCoverNFTDescriptor(address _coverNFTDescriptor) external onlyAdvisoryBoard {
     coverNFT.changeNFTDescriptor(_coverNFTDescriptor);
   }
 
-  function changeStakingNFTDescriptor(address _stakingNFTDescriptor) external onlyInternal {
+  function changeStakingNFTDescriptor(address _stakingNFTDescriptor) external onlyAdvisoryBoard {
     stakingNFT.changeNFTDescriptor(_stakingNFTDescriptor);
   }
 

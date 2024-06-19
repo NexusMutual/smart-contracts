@@ -371,11 +371,18 @@ describe('recalculateEffectiveWeight', function () {
     const products = Array(numProducts)
       .fill('')
       .map((value, index) => {
-        return { initialPrice: 500, targetPrice: 200, productId: index, weight: initialTargetWeight };
+        return {
+          productId: index,
+          recalculateEffectiveWeight: true,
+          setTargetWeight: true,
+          targetWeight: initialTargetWeight,
+          setTargetPrice: true,
+          targetPrice: 200,
+        };
       });
 
     // Add products
-    await stakingProducts.connect(internalContract).setInitialProducts(fixture.poolId, products);
+    await stakingProducts.connect(manager).setProducts(fixture.poolId, products);
 
     // Buy all available cover for every product
     const allocationPromises = [];

@@ -239,6 +239,16 @@ describe('setProducts', function () {
     ).to.be.revertedWithCustomError(coverProducts, 'CapacityReductionRatioAbove100Percent');
   });
 
+  it('should revert if product type does not exist', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+    const productParams = { ...productParamsTemplate, product: { ...productTemplate, productType: 99 } };
+    await expect(
+      coverProducts.connect(advisoryBoardMember0).setProducts([productParams]),
+    ).to.be.revertedWithCustomError(coverProducts, 'InvalidProductType');
+  });
+
   it('should store product name for existing product', async function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;

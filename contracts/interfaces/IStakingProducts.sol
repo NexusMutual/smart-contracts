@@ -134,7 +134,4 @@ interface IStakingProducts {
   error InvalidProductType();
   error TargetPriceBelowGlobalMinPriceRatio();
 
-  // Misc
-  error OperatorAlreadyChanged();
-
 }

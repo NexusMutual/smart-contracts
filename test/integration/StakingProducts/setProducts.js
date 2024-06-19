@@ -114,4 +114,28 @@ describe('setProducts', function () {
       ]),
     ).to.be.revertedWithCustomError(coverProducts, 'ProductDoesntExist');
   });
+
+  it('should fail to set product that is not allowed', async function () {
+    const fixture = await loadFixture(setProductsSetup);
+    const { stakingProducts, coverProducts } = fixture.contracts;
+    const { productList } = fixture;
+
+    const productId = productList.findIndex(product => product.allowedPools.length !== 0);
+    const poolId = Array.from({ length: 10 }, (_, i) => i + 1).find(
+      id => !productList[productId].allowedPools.includes(id),
+    );
+
+    const stakingPoolsManager = fixture.accounts.stakingPoolManagers[poolId - 1];
+
+    await expect(
+      stakingProducts.connect(stakingPoolsManager).setProducts(poolId /* poolId */, [
+        {
+          ...stakedProductParamTemplate,
+          productId,
+        },
+      ]),
+    )
+      .to.be.revertedWithCustomError(coverProducts, 'PoolNotAllowedForThisProduct')
+      .withArgs(productId);
+  });
 });

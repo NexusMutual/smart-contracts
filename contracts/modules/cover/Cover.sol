@@ -719,7 +719,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     stakingNFT.changeNFTDescriptor(_stakingNFTDescriptor);
   }
 
-  function changeStakingPoolFactoryOperator() external onlyInternal {
+  function changeStakingPoolFactoryOperator() external {
     address _operator = master.getLatestAddress("SP");
     stakingPoolFactory.changeOperator(_operator);
   }

@@ -593,11 +593,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     return (poolId, stakingPoolAddress);
   }
 
-  // TODO: needs to be removed, only used for testing
-  function setInitialProducts(uint poolId, ProductInitializationParams[] memory params) public onlyInternal {
-    _setInitialProducts(poolId, params);
-  }
-
   function _setInitialProducts(uint poolId, ProductInitializationParams[] memory params) internal {
 
     uint globalMinPriceRatio = cover().getGlobalMinPriceRatio();

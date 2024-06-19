@@ -482,11 +482,11 @@ describe('setProducts unit tests', function () {
     const amount = parseEther('1');
 
     let i = 0;
-    const initialProducts = Array(20)
+    const stakingProductsList = Array(20)
       .fill('')
-      .map(() => ({ ...initialProductTemplate, productId: i++ }));
+      .map(() => ({ ...newProductTemplate, productId: i++ }));
 
-    await stakingProducts.setInitialProducts(poolId, initialProducts);
+    await stakingProducts.connect(manager).setProducts(poolId, stakingProductsList);
 
     // Get capacity in staking pool
     await depositTo.call(fixture, { staker, amount });
@@ -519,17 +519,17 @@ describe('setProducts unit tests', function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const {
-      members: [staker, coverBuyer],
+      members: [manager, staker, coverBuyer],
       nonMembers: [anybody],
     } = fixture.accounts;
     const amount = parseEther('200');
 
     let i = 0;
-    const initialProducts = Array(20)
+    const stakingProductsList = Array(20)
       .fill('')
-      .map(() => ({ ...initialProductTemplate, productId: i++ }));
+      .map(() => ({ ...newProductTemplate, productId: i++ }));
 
-    await stakingProducts.setInitialProducts(poolId, initialProducts);
+    await stakingProducts.connect(manager).setProducts(poolId, stakingProductsList);
 
     // Get capacity in staking pool
     await depositTo.call(fixture, { staker, amount });
@@ -554,7 +554,7 @@ describe('setProducts unit tests', function () {
 
     await stakingProducts.connect(anybody).recalculateEffectiveWeights(
       poolId,
-      initialProducts.map(p => p.productId),
+      stakingProductsList.map(p => p.productId),
     );
   });
 

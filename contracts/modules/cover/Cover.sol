@@ -15,7 +15,7 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
-import "../../interfaces/IStakingPoolFactory.sol";
+import "../../interfaces/ICompleteStakingPoolFactory.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IStakingProducts.sol";
 import "../../libraries/Math.sol";
@@ -88,7 +88,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   ICoverNFT public immutable override coverNFT;
   IStakingNFT public immutable override stakingNFT;
-  IStakingPoolFactory public immutable override stakingPoolFactory;
+  ICompleteStakingPoolFactory public immutable override stakingPoolFactory;
   address public immutable stakingPoolImplementation;
 
   /* ========== CONSTRUCTOR ========== */
@@ -96,7 +96,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   constructor(
     ICoverNFT _coverNFT,
     IStakingNFT _stakingNFT,
-    IStakingPoolFactory _stakingPoolFactory,
+    ICompleteStakingPoolFactory _stakingPoolFactory,
     address _stakingPoolImplementation
   ) {
     // in constructor we only initialize immutable fields
@@ -709,6 +709,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return IStakingPool(
       StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId)
     );
+  }
+
+  function changeCoverNFTDescriptor(address _coverNFTDescriptor) external onlyAdvisoryBoard {
+    coverNFT.changeNFTDescriptor(_coverNFTDescriptor);
+  }
+
+  function changeStakingNFTDescriptor(address _stakingNFTDescriptor) external onlyAdvisoryBoard {
+    stakingNFT.changeNFTDescriptor(_stakingNFTDescriptor);
+  }
+
+  function changeStakingPoolFactoryOperator() external {
+    address _operator = master.getLatestAddress("SP");
+    stakingPoolFactory.changeOperator(_operator);
   }
 
   /* ========== DEPENDENCIES ========== */

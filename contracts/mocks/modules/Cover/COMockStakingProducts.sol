@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 
 import "../../../interfaces/IStakingProducts.sol";
 import "../../../interfaces/ICoverProducts.sol";
+import "../../../interfaces/IStakingPoolFactory.sol";
 import "../../../interfaces/ITokenController.sol";
 import "../../../libraries/StakingPoolLibrary.sol";
 import "../../generic/StakingProductsGeneric.sol";

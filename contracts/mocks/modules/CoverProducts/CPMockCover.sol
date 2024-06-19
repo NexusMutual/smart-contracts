@@ -2,16 +2,16 @@
 
 pragma solidity ^0.8.18;
 
-import "../../../interfaces/IStakingPool.sol";
+import "../../../interfaces/ICompleteStakingPoolFactory.sol";
 import "../../../interfaces/ICover.sol";
-import "../../../interfaces/IStakingProducts.sol";
-import "../../../interfaces/IStakingPoolFactory.sol";
 import "../../../interfaces/ICoverProducts.sol";
+import "../../../interfaces/IStakingProducts.sol";
+import "../../../interfaces/IStakingPool.sol";
 import "../../generic/CoverGeneric.sol";
 
 contract CPMockCover is CoverGeneric {
 
-  IStakingPoolFactory public immutable _stakingPoolFactory;
+  ICompleteStakingPoolFactory public immutable _stakingPoolFactory;
 
   Product[] internal _products;
   ProductType[] internal _productTypes;
@@ -21,7 +21,7 @@ contract CPMockCover is CoverGeneric {
   mapping(uint => uint[]) public allowedPools;
 
   constructor (address stakingPoolFactoryAddress) {
-    _stakingPoolFactory = IStakingPoolFactory(stakingPoolFactoryAddress);
+    _stakingPoolFactory = ICompleteStakingPoolFactory(stakingPoolFactoryAddress);
   }
 
   function setProductsAndProductTypes(
@@ -60,7 +60,7 @@ contract CPMockCover is CoverGeneric {
     return _productTypes[id];
   }
 
-  function stakingPoolFactory() external override view returns (IStakingPoolFactory) {
+  function stakingPoolFactory() external override view returns (ICompleteStakingPoolFactory) {
     return _stakingPoolFactory;
   }
 }

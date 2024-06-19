@@ -21,6 +21,10 @@ contract CoverNFTGeneric is ICoverNFT {
     revert("Unsupported");
   }
 
+  function changeNFTDescriptor(address) external pure {
+    revert("Unsupported");
+  }
+
   function totalSupply() external pure returns (uint) {
     revert("Unsupported");
   }

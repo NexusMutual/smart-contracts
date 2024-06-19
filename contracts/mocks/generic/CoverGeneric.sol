@@ -113,6 +113,10 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
+  function changeStakingPoolFactoryOperator() external virtual {
+    revert("Unsupported");
+  }
+
   function coverNFT() external virtual view returns (ICoverNFT) {
     revert("Unsupported");
   }
@@ -121,7 +125,7 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
-  function stakingPoolFactory() external virtual view returns (IStakingPoolFactory) {
+  function stakingPoolFactory() external virtual view returns (ICompleteStakingPoolFactory) {
     revert("Unsupported");
   }
 }

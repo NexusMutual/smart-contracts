@@ -711,7 +711,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     );
   }
 
-  function changeCoverNFTDescriptor(address _coverNFTDescriptor) external onlyInternal {
+  function changeCoverNFTDescriptor(address _coverNFTDescriptor) external {
     coverNFT.changeNFTDescriptor(_coverNFTDescriptor);
   }
 
@@ -719,7 +719,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     stakingNFT.changeNFTDescriptor(_stakingNFTDescriptor);
   }
 
-  function changeStakingPoolFactoryOperator(address _operator) external onlyInternal {
+  function changeStakingPoolFactoryOperator() external onlyInternal {
+    address _operator = master.getLatestAddress("SP");
     ICompleteStakingPoolFactory _factory = ICompleteStakingPoolFactory(stakingPoolFactory);
 
     if (_factory.operator() != address(this)) {
@@ -727,8 +728,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     }
 
     _factory.changeOperator(_operator);
-
-    stakingPoolFactory.changeOperator(_operator);
   }
 
   /* ========== DEPENDENCIES ========== */

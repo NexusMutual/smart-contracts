@@ -644,12 +644,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   // future role transfers
   function changeStakingPoolFactoryOperator(address _operator) external onlyInternal {
-    ICompleteStakingPoolFactory _factory = ICompleteStakingPoolFactory(stakingPoolFactory);
-
-    if (_factory.operator() != address(this)) {
-      revert OperatorAlreadyChanged();
-    }
-    _factory.changeOperator(_operator);
+    ICompleteStakingPoolFactory(stakingPoolFactory).changeOperator(_operator);
   }
 
   /* dependencies */

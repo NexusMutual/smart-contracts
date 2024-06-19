@@ -721,13 +721,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   function changeStakingPoolFactoryOperator() external onlyInternal {
     address _operator = master.getLatestAddress("SP");
-    ICompleteStakingPoolFactory _factory = ICompleteStakingPoolFactory(stakingPoolFactory);
-
-    if (_factory.operator() != address(this)) {
-      revert OperatorAlreadyChanged();
-    }
-
-    _factory.changeOperator(_operator);
+    stakingPoolFactory.changeOperator(_operator);
   }
 
   /* ========== DEPENDENCIES ========== */

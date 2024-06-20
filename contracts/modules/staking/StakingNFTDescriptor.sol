@@ -11,12 +11,6 @@ import "../../libraries/DateTime.sol";
 import "../../libraries/FloatingPoint.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 
-struct StakeData {
-  uint poolId;
-  uint stakeAmount;
-  uint tokenId;
-}
-
 contract StakingNFTDescriptor is IStakingNFTDescriptor {
   using Strings for uint;
   using DateTime for uint;

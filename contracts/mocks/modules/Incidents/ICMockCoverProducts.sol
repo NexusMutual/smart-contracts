@@ -28,7 +28,6 @@ contract ICMockCoverProducts is CoverProductsGeneric {
 
   ProductType[] internal _productTypes;
 
-
   /* === CONSTANTS ==== */
 
   uint public REWARD_BPS = 5000;

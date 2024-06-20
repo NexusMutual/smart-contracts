@@ -97,10 +97,6 @@ contract COMockStakingPool is StakingPoolGeneric {
     return premiumPerYear * period / 365 days;
   }
 
-  function setProducts(StakedProductParam[] memory /*params*/) external {
-    activeStake = activeStake;
-  }
-
   function calculatePremium(uint priceRatio, uint coverAmount, uint period) public pure returns (uint) {
     return priceRatio * coverAmount / MAX_PRICE_RATIO * period / 365 days;
   }

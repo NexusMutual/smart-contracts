@@ -4,23 +4,6 @@ pragma solidity >=0.5.0;
 
 import "./ICover.sol";
 
-/* ========== DATA STRUCTURES ========== */
-
-struct ProductParam {
-  string productName;
-  uint productId;
-  string ipfsMetadata;
-  Product product;
-  uint[] allowedPools;
-}
-
-struct ProductTypeParam {
-  string productTypeName;
-  uint productTypeId;
-  string ipfsMetadata;
-  ProductType productType;
-}
-
 struct ProductInitializationParams {
   uint productId;
   uint8 weight;
@@ -29,6 +12,23 @@ struct ProductInitializationParams {
 }
 
 interface ICoverProducts {
+
+  /* ========== IO STRUCTURES ========== */
+
+  struct ProductParam {
+    string productName;
+    uint productId;
+    string ipfsMetadata;
+    Product product;
+    uint[] allowedPools;
+  }
+
+  struct ProductTypeParam {
+    string productTypeName;
+    uint productTypeId;
+    string ipfsMetadata;
+    ProductType productType;
+  }
 
   /* ========== VIEWS ========== */
 

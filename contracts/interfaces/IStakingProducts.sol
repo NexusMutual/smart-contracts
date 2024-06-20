@@ -7,6 +7,15 @@ import "./IStakingPool.sol";
 
 interface IStakingProducts {
 
+  struct StakedProductParam {
+    uint productId;
+    bool recalculateEffectiveWeight;
+    bool setTargetWeight;
+    uint8 targetWeight;
+    bool setTargetPrice;
+    uint96 targetPrice;
+  }
+
   struct Weights {
     uint32 totalEffectiveWeight;
     uint32 totalTargetWeight;

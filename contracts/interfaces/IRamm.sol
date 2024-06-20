@@ -6,44 +6,44 @@ import "./IPool.sol";
 import "./INXMToken.sol";
 import "./ITokenController.sol";
 
-// storage structs
-
-struct Slot0 {
-  uint128 nxmReserveA;
-  uint128 nxmReserveB;
-}
-
-struct Slot1 {
-  uint128 ethReserve;
-  uint88 budget;
-  uint32 updatedAt;
-  bool swapPaused; // emergency pause
-}
-
-struct Observation {
-  uint32 timestamp;
-  uint112 priceCumulativeAbove;
-  uint112 priceCumulativeBelow;
-}
-
-// memory structs
-
-struct State {
-  uint nxmA;
-  uint nxmB;
-  uint eth;
-  uint budget;
-  uint ratchetSpeedB;
-  uint timestamp;
-}
-
-struct Context {
-  uint capital;
-  uint supply;
-  uint mcr;
-}
-
 interface IRamm {
+
+  // storage structs
+
+  struct Slot0 {
+    uint128 nxmReserveA;
+    uint128 nxmReserveB;
+  }
+
+  struct Slot1 {
+    uint128 ethReserve;
+    uint88 budget;
+    uint32 updatedAt;
+    bool swapPaused; // emergency pause
+  }
+
+  struct Observation {
+    uint32 timestamp;
+    uint112 priceCumulativeAbove;
+    uint112 priceCumulativeBelow;
+  }
+
+  // memory structs
+
+  struct State {
+    uint nxmA;
+    uint nxmB;
+    uint eth;
+    uint budget;
+    uint ratchetSpeedB;
+    uint timestamp;
+  }
+
+  struct Context {
+    uint capital;
+    uint supply;
+    uint mcr;
+  }
 
   struct CumulativePriceCalculationProps {
     uint previousEthReserve;

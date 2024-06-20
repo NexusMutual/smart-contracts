@@ -7,38 +7,17 @@ import "./IStakingNFT.sol";
 import "./IStakingPool.sol";
 import "./ICompleteStakingPoolFactory.sol";
 
-/* ========== DATA STRUCTURES ========== */
+/* io structs */
 
 enum ClaimMethod {
   IndividualClaims,
   YieldTokenIncidents
 }
 
-// Basically CoverStatus from QuotationData.sol but with the extra Migrated status to avoid
-// polluting Cover.sol state layout with new status variables.
-enum LegacyCoverStatus {
-  Active,
-  ClaimAccepted,
-  ClaimDenied,
-  CoverExpired,
-  ClaimSubmitted,
-  Requested,
-  Migrated
-}
-
-/* io structs */
-
 struct PoolAllocationRequest {
   uint40 poolId;
   bool skip;
   uint coverAmountInAsset;
-}
-
-struct RequestAllocationVariables {
-  uint previousPoolAllocationsLength;
-  uint previousPremiumInNXM;
-  uint refund;
-  uint coverAmountInNXM;
 }
 
 struct BuyCoverParams {
@@ -56,6 +35,23 @@ struct BuyCoverParams {
 }
 
 /* storage structs */
+
+struct Product {
+  uint16 productType;
+  address yieldTokenAddress;
+  // cover assets bitmap. each bit represents whether the asset with
+  // the index of that bit is enabled as a cover asset for this product
+  uint32 coverAssets;
+  uint16 initialPriceRatio;
+  uint16 capacityReductionRatio;
+  bool isDeprecated;
+  bool useFixedPrice;
+}
+
+struct ProductType {
+  uint8 claimMethod;
+  uint32 gracePeriod;
+}
 
 struct PoolAllocation {
   uint40 poolId;
@@ -79,31 +75,27 @@ struct CoverSegment {
   uint24 globalCapacityRatio;
 }
 
-struct Product {
-  uint16 productType;
-  address yieldTokenAddress;
-  // cover assets bitmap. each bit represents whether the asset with
-  // the index of that bit is enabled as a cover asset for this product
-  uint32 coverAssets;
-  uint16 initialPriceRatio;
-  uint16 capacityReductionRatio;
-  bool isDeprecated;
-  bool useFixedPrice;
-}
-
-struct ProductType {
-  uint8 claimMethod;
-  uint32 gracePeriod;
-}
-
-struct ActiveCover {
-  // Global active cover amount per asset.
-  uint192 totalActiveCoverInAsset;
-  // The last time activeCoverExpirationBuckets was updated
-  uint64 lastBucketUpdateId;
-}
-
 interface ICover {
+
+  /* ========== DATA STRUCTURES ========== */
+
+  /* internal structs */
+
+  struct RequestAllocationVariables {
+    uint previousPoolAllocationsLength;
+    uint previousPremiumInNXM;
+    uint refund;
+    uint coverAmountInNXM;
+  }
+
+  /* storage structs */
+
+  struct ActiveCover {
+    // Global active cover amount per asset.
+    uint192 totalActiveCoverInAsset;
+    // The last time activeCoverExpirationBuckets was updated
+    uint64 lastBucketUpdateId;
+  }
 
   /* ========== VIEWS ========== */
 

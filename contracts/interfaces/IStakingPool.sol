@@ -20,22 +20,13 @@ struct AllocationRequest {
   uint globalMinPrice;
 }
 
-struct StakedProductParam {
+struct BurnStakeParams {
+  uint allocationId;
   uint productId;
-  bool recalculateEffectiveWeight;
-  bool setTargetWeight;
-  uint8 targetWeight;
-  bool setTargetPrice;
-  uint96 targetPrice;
+  uint start;
+  uint period;
+  uint deallocationAmount;
 }
-
-  struct BurnStakeParams {
-    uint allocationId;
-    uint productId;
-    uint start;
-    uint period;
-    uint deallocationAmount;
-  }
 
 interface IStakingPool {
 

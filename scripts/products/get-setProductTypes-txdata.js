@@ -4,11 +4,50 @@ const fs = require('fs');
 const { parse: csvParse } = require('csv-parse/sync');
 
 const ipfsClient = require('ipfs-http-client');
-const IPFS_API_URL = 'https://api.nexusmutual.io/ipfs-api/api/v0';
-const ipfs = ipfsClient({ url: IPFS_API_URL });
+
+const { simulateTransaction, constants } = require('./helpers');
 
 const { MaxUint256 } = ethers.constants;
-const COVER_ADDRESS = '0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62';
+const { COVER_ADDRESS, IPFS_API_URL } = constants;
+
+const ipfs = ipfsClient({ url: IPFS_API_URL });
+
+const verifyDecodedTxInputs = (csvProductTypeData, decodedTxInputs) => {
+  for (const csvProductTypes of csvProductTypeData) {
+    // Find matching object in decodedTxInputs by 'Product Name'
+    const productTypeName = csvProductTypes.Name;
+    const decodedProductType = decodedTxInputs.find(decoded => decoded.productTypeName === productTypeName);
+
+    if (!decodedProductType) {
+      console.log(`\nVerification failed. No matching product found for: ${productTypeName}`);
+      return;
+    }
+
+    const { claimMethod, gracePeriod } = decodedProductType.productType;
+
+    // Set csv default values
+    const csvProductTypeId = csvProductTypes.Id || MaxUint256.toString();
+    const csvGracePeriod = Number(csvProductTypes['Grace Period (days)']) * 24 * 3600; // This MUST be in seconds
+
+    // Verify and match properties
+    if (decodedProductType.productTypeId !== csvProductTypeId) {
+      console.log(decodedProductType.productTypeId, csvProductTypeId);
+      throw new Error(`Product Type Id mismatch for: ${productTypeName}`);
+    }
+
+    if (gracePeriod !== csvGracePeriod) {
+      console.log(decodedProductType.product.gracePeriod, csvGracePeriod);
+      throw new Error(`Grace Period mismatch for: ${productTypeName}`);
+    }
+
+    if (claimMethod !== 0) {
+      console.log(claimMethod, 0);
+      throw new Error(`Claim Method: ${productTypeName}`);
+    }
+  }
+
+  console.info('\nSuccessfully verified all csv data matches decoded simulated tx inputs');
+};
 
 /**
  *
@@ -51,6 +90,9 @@ const main = async productsTypesDataFilePath => {
 
   const setProductTypesTransaction = await cover.populateTransaction.setProductTypes(productTypeEntries);
   console.log(setProductTypesTransaction);
+
+  const decodedTxInputs = await simulateTransaction(setProductTypesTransaction.data);
+  verifyDecodedTxInputs(productTypeData, decodedTxInputs);
 
   return { setProductTypesTransaction };
 };

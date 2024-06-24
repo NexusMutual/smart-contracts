@@ -1,56 +1,15 @@
 require('dotenv').config();
 const path = require('node:path');
-const { inspect } = require('node:util');
 
-const nexusSdk = require('@nexusmutual/deployments');
-const axios = require('axios');
 const { parse: csvParse } = require('csv-parse/sync');
 const fs = require('fs');
 const { ethers } = require('hardhat');
 const ipfsClient = require('ipfs-http-client');
 
-const IPFS_API_URL = 'https://api.nexusmutual.io/ipfs-api/api/v0';
-const ipfs = ipfsClient({ url: IPFS_API_URL });
+const { simulateTransaction, constants } = require('./helpers');
 
+const { COVER_ADDRESS, IPFS_API_URL } = constants;
 const { MaxUint256 } = ethers.constants;
-const AB_MEMBER = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
-const COVER_PROXY_ADDRESS = nexusSdk.addresses.Cover;
-const metadataFilePath = path.resolve(__dirname, '../../', 'metadata.json'); // root dir of repo
-
-/**
- * NOTE: requires TENDERLY_ACCESS_KEY env
- * @param {HexString} input - the tx.data
- */
-const simulateTransaction = async input => {
-  const payload = {
-    save: true, // save result to dashboard
-    save_if_fails: true, // show reverted txs in dashboard
-    simulation_type: 'full',
-    network_id: '1',
-    from: AB_MEMBER,
-    to: COVER_PROXY_ADDRESS,
-    gas: 8000000,
-    gas_price: 0,
-    value: 0,
-    input,
-  };
-
-  const response = await axios.post(
-    `https://api.tenderly.co/api/v1/account/NexusMutual/project/nexusmutual/simulate`,
-    payload,
-    { headers: { 'X-Access-Key': process.env.TENDERLY_ACCESS_KEY } },
-  );
-
-  const { transaction, simulation } = response.data;
-  const [{ value: decodedTxInputs }] = transaction.transaction_info.call_trace.decoded_input;
-  console.info('cover.setProducts input:\n', inspect(decodedTxInputs, { depth: null }));
-  console.info(
-    '\nTenderly Simulated transaction:\n',
-    `https://dashboard.tenderly.co/NexusMutual/nexusmutual/simulator/${simulation.id}`,
-  );
-
-  return decodedTxInputs;
-};
 
 /**
  * ETH,DAI,USDC - i.e. all cover assets defaults to 0 (see: verifyDecodedTxInputs)
@@ -63,6 +22,27 @@ const COVER_ASSETS_ID_MAPPING = {
   'USDC,ETH': 65,
   'DAI,USDC': 66,
   'USDC,DAI': 66,
+};
+
+const ipfs = ipfsClient({ url: IPFS_API_URL });
+const metadataFilePath = path.resolve(__dirname, '../../', 'metadata.json'); // root dir of repo
+
+const retryUpload = async (filePath, retries = 3) => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`Attempt ${attempt}: Uploading ${filePath} to IPFS`);
+      const file = await ipfs.add(fs.readFileSync(filePath));
+      await ipfs.pin.add(file.path);
+      return file;
+    } catch (error) {
+      console.log(`Attempt ${attempt} failed:`, error.message);
+      if (attempt === retries) {
+        throw new Error(`Failed to upload ${filePath} after ${retries} attempts`);
+      }
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+    }
+  }
 };
 
 const verifyDecodedTxInputs = (csvProductData, decodedTxInputs) => {
@@ -133,24 +113,6 @@ const verifyDecodedTxInputs = (csvProductData, decodedTxInputs) => {
   console.info('\nSuccessfully verified all csv data matches decoded simulated tx inputs');
 };
 
-const retryUpload = async (filePath, retries = 3) => {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      console.log(`Attempt ${attempt}: Uploading ${filePath} to IPFS`);
-      const file = await ipfs.add(fs.readFileSync(filePath));
-      await ipfs.pin.add(file.path);
-      return file;
-    } catch (error) {
-      console.log(`Attempt ${attempt} failed:`, error.message);
-      if (attempt === retries) {
-        throw new Error(`Failed to upload ${filePath} after ${retries} attempts`);
-      }
-      // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-    }
-  }
-};
-
 /**
  *
  * Generate the tx data for the Cover.setProducts transaction based using the data
@@ -161,7 +123,7 @@ const retryUpload = async (filePath, retries = 3) => {
  * @returns {Promise<{setProductsTransaction: *}>}
  */
 const main = async productsDataFilePath => {
-  const cover = await ethers.getContractAt('Cover', COVER_PROXY_ADDRESS);
+  const cover = await ethers.getContractAt('Cover', COVER_ADDRESS);
   const productData = csvParse(fs.readFileSync(productsDataFilePath, 'utf8'), {
     columns: true,
     skip_empty_lines: true,

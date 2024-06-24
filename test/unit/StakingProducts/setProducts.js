@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { verifyProduct, depositTo, daysToSeconds, initialProductTemplate, newProductTemplate } = require('./helpers');
+const { verifyProduct, depositTo, daysToSeconds, newProductTemplate } = require('./helpers');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;

@@ -353,7 +353,6 @@ describe('recalculateEffectiveWeight', function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const [manager, staker] = fixture.accounts.members;
-    const [internalContract] = fixture.accounts.internalContracts;
 
     // Impersonate cover contract
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);

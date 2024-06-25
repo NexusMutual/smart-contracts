@@ -108,11 +108,12 @@ describe('basic functionality tests', function () {
     await evm.impersonate(NXM_WHALE_2);
     await evm.impersonate(NXMHOLDER);
     await evm.impersonate(NEW_POOL_MANAGER);
-    await evm.setBalance(NXM_WHALE_1, parseEther('1000'));
-    await evm.setBalance(NXM_WHALE_2, parseEther('1000'));
-    await evm.setBalance(NXMHOLDER, parseEther('1000'));
-    await evm.setBalance(NEW_POOL_MANAGER, parseEther('1000'));
-    await evm.setBalance(DAI_HOLDER, parseEther('1000'));
+    await evm.setBalance(NXM_WHALE_1, parseEther('100000'));
+    await evm.setBalance(NXM_WHALE_2, parseEther('100000'));
+    await evm.setBalance(NXMHOLDER, parseEther('100000'));
+    await evm.setBalance(NEW_POOL_MANAGER, parseEther('100000'));
+    await evm.setBalance(DAI_HOLDER, parseEther('100000'));
+    await evm.setBalance(DAI_NXM_HOLDER, parseEther('100000'));
 
     this.members = [];
     this.members.push(await getSigner(NXM_WHALE_1));

@@ -66,6 +66,10 @@ contract StakingPool is IStakingPool, Multicall {
 
   // 32 bytes left in slot 3
 
+  // slot 4
+  // 1 nxm = 1e18
+  uint internal constant ONE_NXM = 1 ether;
+
   // tranche id => tranche data
   mapping(uint => Tranche) internal tranches;
 
@@ -118,9 +122,6 @@ contract StakingPool is IStakingPool, Multicall {
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 100_00;
 
   // +2% for every 1%, ie +200% for 100%
-
-  // 1 nxm = 1e18
-  uint public constant ONE_NXM = 1 ether;
 
   // internally we store capacity using 2 decimals
   // 1 nxm of capacity is stored as 100
@@ -214,6 +215,17 @@ contract StakingPool is IStakingPool, Multicall {
       _firstActiveTrancheId = currentTrancheId;
     }
 
+    if (poolId == 8) {
+      uint lowerTimestamp = Math.min(
+        (_firstActiveBucketId + 1) * BUCKET_DURATION,
+        (_firstActiveTrancheId + 1) * TRANCHE_DURATION
+      );
+
+      if (lowerTimestamp < lastAccNxmUpdate) {
+        lastAccNxmUpdate = lowerTimestamp.toUint32();
+      }
+    }
+
     // if a force update was not requested
     if (!updateUntilCurrentTimestamp) {
 
@@ -237,12 +249,6 @@ contract StakingPool is IStakingPool, Multicall {
 
     // exit early if we already updated in the current block
     if (_lastAccNxmUpdate == block.timestamp) {
-      return;
-    }
-
-    if (_rewardsSharesSupply == 0) {
-      // nothing to do, just update lastAccNxmUpdate
-      lastAccNxmUpdate = block.timestamp.toUint32();
       return;
     }
 

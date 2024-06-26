@@ -695,7 +695,7 @@ async function setup() {
     GLOBAL_REWARDS_RATIO: BigNumber.from(5000), // 50%
     COMMISSION_DENOMINATOR: BigNumber.from(10000),
     TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
-    ONE_NXM: await stakingPool.ONE_NXM(),
+    ONE_NXM: parseEther('1'),
     NXM_PER_ALLOCATION_UNIT: await stakingPool.NXM_PER_ALLOCATION_UNIT(),
     USDC_DECIMALS: usdcDecimals,
   };

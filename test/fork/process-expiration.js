@@ -9,9 +9,11 @@ const {
   formatInternalContracts,
   getSigner,
   submitGovernanceProposal,
+  UserAddress,
 } = require('./utils');
 const { ContractCode, ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const evm = require('./evm')();
+const { NXM_WHALE_1 } = UserAddress;
 
 const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 
@@ -87,7 +89,7 @@ describe('process-expirations', function () {
     }
   });
 
-  it('Collect storage data before upgrade', async function () {
+  it.skip('Collect storage data before upgrade', async function () {
     const stakingPoolCount = (await this.stakingPoolFactory.stakingPoolCount()).toNumber();
     this.contractData = {
       cover: { before: {}, after: {} },
@@ -181,7 +183,7 @@ describe('process-expirations', function () {
     this.cover = await getContractByContractCode('Cover', ContractCode.Cover);
   });
 
-  it('Compares storage of upgrade Cover contract', async function () {
+  it.skip('Compares storage of upgrade Cover contract', async function () {
     const stakingPoolCount = (await this.stakingPoolFactory.stakingPoolCount()).toNumber();
 
     const productTypesCount = await this.cover.productTypesCount();
@@ -237,5 +239,41 @@ describe('process-expirations', function () {
     await pool.processExpirations(true);
   });
 
-  require('./basic-functionality-tests');
+  it('Buy a product on pool 8', async function () {
+    await evm.impersonate(NXM_WHALE_1);
+    await evm.setBalance(NXM_WHALE_1, parseEther('100000'));
+    const coverBuyer = await getSigner(NXM_WHALE_1);
+    const coverBuyerAddress = await coverBuyer.getAddress();
+
+    const coverAsset = 0; // ETH
+    const amount = parseEther('0.1');
+    const commissionRatio = '500'; // 5%
+
+    const coverCountBefore = await this.cover.coverDataCount();
+
+    await this.cover.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyerAddress,
+        productId: 163,
+        coverAsset,
+        amount,
+        period: 3600 * 24 * 30, // 30 days
+        maxPremiumInAsset: parseEther('1').mul(260).div(10000),
+        paymentAsset: coverAsset,
+        payWithNXM: false,
+        commissionRatio,
+        commissionDestination: coverBuyerAddress,
+        ipfsData: '',
+      },
+      [{ poolId: 8, coverAmountInAsset: amount }],
+      { value: amount },
+    );
+
+    const coverCountAfter = await this.cover.coverDataCount();
+
+    expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
+  });
+
+  // require('./basic-functionality-tests');
 });

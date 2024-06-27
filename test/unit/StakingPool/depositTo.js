@@ -9,7 +9,7 @@ const { daysToSeconds } = require('../utils').helpers;
 const { DIVISION_BY_ZERO } = require('../utils').errors;
 
 const { BigNumber } = ethers;
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 const depositToFixture = {
@@ -690,6 +690,30 @@ describe('depositTo', function () {
       stakingPool,
       'NxmIsLockedForGovernanceVote',
     );
+  });
+
+  it('should not revert if manager is trying to deposit, while nxm is locked for governance vote', async function () {
+    const fixture = await loadFixture(depositToSetup);
+    const { stakingPool, nxm, tokenController } = fixture;
+    const manager = fixture.accounts.defaultSender;
+    const { amount, tokenId, destination } = depositToFixture;
+
+    const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
+
+    await nxm.mint(manager.address, amount);
+    await nxm.connect(manager).approve(tokenController.address, MaxUint256);
+
+    const managerBalanceBefore = await nxm.balanceOf(manager.address);
+    const tokenControllerBalanceBefore = await nxm.balanceOf(tokenController.address);
+
+    // Simulate member vote lock
+    await nxm.setLock(manager.address, 1e6);
+    await stakingPool.connect(manager).depositTo(amount, firstActiveTrancheId, tokenId, destination);
+
+    const managerBalanceAfter = await nxm.balanceOf(manager.address);
+    const tokenControllerBalanceAfter = await nxm.balanceOf(tokenController.address);
+    expect(managerBalanceAfter).to.equal(managerBalanceBefore.sub(amount));
+    expect(tokenControllerBalanceAfter).to.equal(tokenControllerBalanceBefore.add(amount));
   });
 
   it('should revert if trying to deposit with token from other pool', async function () {

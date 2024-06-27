@@ -343,7 +343,7 @@ contract StakingPool is IStakingPool, Multicall {
       revert PrivatePool();
     }
 
-    if (block.timestamp <= nxm.isLockedForMV(msg.sender)) {
+    if (block.timestamp <= nxm.isLockedForMV(msg.sender) && msg.sender != manager()) {
       revert NxmIsLockedForGovernanceVote();
     }
 

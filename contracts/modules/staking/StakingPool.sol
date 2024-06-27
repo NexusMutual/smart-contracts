@@ -214,18 +214,6 @@ contract StakingPool is IStakingPool, Multicall {
       _firstActiveTrancheId = currentTrancheId;
     }
 
-    // bug fix
-    if (poolId == 8) {
-      uint lowerTimestamp = Math.min(
-        (_firstActiveBucketId + 1) * BUCKET_DURATION,
-        (_firstActiveTrancheId + 1) * TRANCHE_DURATION
-      );
-
-      if (lowerTimestamp < lastAccNxmUpdate) {
-        lastAccNxmUpdate = lowerTimestamp.toUint32();
-      }
-    }
-
     // if a force update was not requested
     if (!updateUntilCurrentTimestamp) {
 

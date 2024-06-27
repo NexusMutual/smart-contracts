@@ -59,13 +59,13 @@ const verifyDecodedTxInputs = (csvProductData, decodedTxInputs) => {
     const { productType, coverAssets, initialPriceRatio, capacityReductionRatio } = decodedProduct.product;
 
     // Set csv default values
-    const csvCoverAssetsId = COVER_ASSETS_ID_MAPPING[csvProduct['Cover Assets']] ?? 0; // default to 0 (all coverAssets)
+    const csvCoverAssets = csvProduct['Cover Assets'].replace(/\s+/g, '');
+    const allowedPools = csvProduct['Allowed Pools'].replace(/\s+/g, '');
+    const csvCoverAssetsId = COVER_ASSETS_ID_MAPPING[csvCoverAssets] ?? 0; // default to 0 (all coverAssets)
     const csvProductId = csvProduct['Product Id'] || MaxUint256.toString();
     const csvUseFixedPrice = csvProduct['Use fixed price'].trim() === 'TRUE';
     const csvIsDeprecated = csvProduct['Is deprecated'].trim() === 'TRUE';
-    const csvAllowedPools = csvProduct['Allowed Pools']
-      ? csvProduct['Allowed Pools']?.split(',').map(pool => pool.trim())
-      : [];
+    const csvAllowedPools = allowedPools ? allowedPools?.split(',').map(pool => pool.trim()) : [];
 
     // Verify and match properties
     if (decodedProduct.productId !== csvProductId) {
@@ -131,9 +131,29 @@ const main = async productsDataFilePath => {
 
   console.log(productData);
 
+  // check for any missing required data before processing and uploading files to IPFS
+  productData.forEach(data => {
+    const productName = data['Product Name'];
+    if (!productName) {
+      throw new Error('Missing Product Name');
+    }
+    if (!data['Product Type']) {
+      throw new Error(`${productName} - Missing Product Type`);
+    }
+    if (!data['Initial Price Ratio']) {
+      throw new Error(`${productName} - Missing Initial Price Ratio`);
+    }
+    if (!data['Capacity Reduction Ratio']) {
+      throw new Error(`${productName} - Missing Capacity Reduction Ratio`);
+    }
+  });
+
   const productEntries = await Promise.all(
     productData.map(async data => {
-      const coverAssetsAsText = data['Cover Assets'].replace(/\s+/g, ''); // remove whitespace
+      // remove whitespaces
+      const allowedPools = data['Allowed Pools'].replace(/\s+/g, '');
+      const coverAssetsAsText = data['Cover Assets'].replace(/\s+/g, '');
+
       const coverAssets =
         (coverAssetsAsText === 'DAI' && 0b10) || // DAI only (2)
         (coverAssetsAsText === 'ETH' && 0b01) || // ETH only (1)
@@ -181,7 +201,7 @@ const main = async productsDataFilePath => {
           useFixedPrice: data['Use fixed price'].trim() === 'TRUE',
           isDeprecated: data['Is deprecated'].trim() === 'TRUE',
         },
-        allowedPools: data['Allowed Pools'] ? data['Allowed Pools'].split(',').map(pool => pool.trim()) : [],
+        allowedPools: allowedPools ? allowedPools.split(',').map(pool => pool.trim()) : [],
       };
     }),
   );

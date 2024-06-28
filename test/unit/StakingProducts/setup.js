@@ -56,7 +56,7 @@ async function setup() {
   ]);
 
   const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [expectedStakingProductsAddress]);
-  const stakingProducts = await ethers.deployContract('StakingProducts', [
+  const stakingProducts = await ethers.deployContract('SPMockStakingProducts', [
     expectedCoverAddress,
     stakingPoolFactory.address,
   ]);

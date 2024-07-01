@@ -65,6 +65,19 @@ const main = async productsTypesDataFilePath => {
     skip_empty_lines: true,
   });
 
+  // check for any missing required data before processing and uploading files to IPFS
+  productTypeData.forEach(productType => {
+    if (!productType.Name) {
+      throw new Error('Missing ProductType Name');
+    }
+    if (!productType['Grace Period (days)']) {
+      throw new Error(`${productType.Name} - Missing Grace Period (days)ype`);
+    }
+    if (!productType['Cover Wording URL']) {
+      throw new Error(`${productType.Name} - Missing Cover Wording URL`);
+    }
+  });
+
   const productTypeEntries = await Promise.all(
     productTypeData.map(async (productType, i) => {
       const filePath = productType['Cover Wording URL'];

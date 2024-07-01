@@ -125,12 +125,12 @@ describe('coverProducts', function () {
     console.info('CoverProducts Contracts before:', formatInternalContracts(contractsBefore));
     console.info('CoverProducts Contracts after:', formatInternalContracts(contractsAfter));
 
-    // Set this.coverProducts to the coverProducts proxy contract
-    const coverProductsProxyAddress = calculateProxyAddress(this.master.address, coverProductsCreate2Salt);
-    this.coverProducts = await ethers.getContractAt('CoverProducts', coverProductsProxyAddress);
-
+    const expectedCoverProductsProxyAddress = calculateProxyAddress(this.master.address, coverProductsCreate2Salt);
     const actualCoverProductsProxyAddress = await this.master.getLatestAddress(toUtf8Bytes('CP'));
-    expect(actualCoverProductsProxyAddress).to.equal(coverProductsProxyAddress);
+    expect(actualCoverProductsProxyAddress).to.equal(expectedCoverProductsProxyAddress);
+
+    // set this.coverProducts to the coverProducts proxy contract
+    this.coverProducts = await ethers.getContractAt('CoverProducts', actualCoverProductsProxyAddress);
   });
 
   it('Collect storage data before upgrade', async function () {

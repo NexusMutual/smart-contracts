@@ -9,63 +9,12 @@ import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
+import "../../interfaces/IStakingViewer.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../libraries/UncheckedMath.sol";
 
-contract StakingViewer is Multicall {
+contract StakingViewer is IStakingViewer, Multicall {
   using UncheckedMath for uint;
-
-  struct Pool {
-    uint poolId;
-    bool isPrivatePool;
-    address manager;
-    uint poolFee;
-    uint maxPoolFee;
-    uint activeStake;
-    uint currentAPY;
-  }
-
-  struct StakingProduct {
-    uint productId;
-    uint lastEffectiveWeight;
-    uint targetWeight;
-    uint targetPrice;
-    uint bumpedPrice;
-    uint bumpedPriceUpdateTime;
-  }
-
-  struct Deposit {
-    uint tokenId;
-    uint trancheId;
-    uint stake;
-    uint stakeShares;
-    uint reward;
-  }
-
-  struct Token {
-    uint tokenId;
-    uint poolId;
-    uint activeStake;
-    uint expiredStake;
-    uint rewards;
-    Deposit[] deposits;
-  }
-
-  struct TokenPoolMap {
-    uint poolId;
-    uint tokenId;
-  }
-
-  struct AggregatedTokens {
-    uint totalActiveStake;
-    uint totalExpiredStake;
-    uint totalRewards;
-  }
-
-  struct AggregatedRewards {
-    uint totalRewards;
-    uint[] trancheIds;
-  }
 
   INXMMaster public immutable master;
   IStakingNFT public immutable stakingNFT;
@@ -367,17 +316,69 @@ contract StakingViewer is Multicall {
     return aggregated;
   }
 
-  function getManagerRewards (uint[] memory poolIds) public view returns (Token[] memory tokens) {
+  function getManagedStakingPools(address manager) public view returns (Pool[] memory) {
+
+    (Pool[] memory unfilledPoolsArray, uint256 matchingCount) = _getMatchingPools(manager);
+    Pool[] memory pools = new Pool[](matchingCount);
+
+    // fill the new pools array with exactly the number of managed staking pools
+    for (uint256 i = 0; i < matchingCount; i++) {
+      pools[i] = unfilledPoolsArray[i];
+    }
+
+    return pools;
+  }
+
+  function getManagerTokenRewards(address manager) public view returns (Token[] memory tokens) {
+    
+    (Pool[] memory managedPools, uint256 managedPoolCount) = _getMatchingPools(manager);
+    tokens = new Token[](managedPoolCount);
+
+    for (uint256 i = 0; i < managedPoolCount; i++) {
+      tokens[i] = _getToken(managedPools[i].poolId, 0);
+    }
+
+    return tokens;
+  }
+
+  function getManagerRewards(uint[] memory poolIds) public view returns (Token[] memory tokens) {
+
     tokens = new Token[](poolIds.length);
 
     for (uint i = 0; i < poolIds.length; i++) {
       tokens[i] = _getToken(poolIds[i], 0);
     }
   }
+  
+  function processExpirationsFor(uint[] memory tokenIds) public {
+
+    for (uint i = 0; i < tokenIds.length; i++) {
+      uint poolId = stakingNFT.stakingPoolOf(tokenIds[i]);
+      stakingPool(poolId).processExpirations(true);
+    }
+  }
 
   function processExpirations(uint[] memory poolIds) public {
+
     for (uint i = 0; i < poolIds.length; i++) {
       stakingPool(poolIds[i]).processExpirations(true);
     }
+  }
+
+  function _getMatchingPools(address manager) internal view returns (Pool[] memory matchingPools, uint matchingCount) {
+
+    uint poolCount = stakingPoolFactory.stakingPoolCount();
+    matchingPools = new Pool[](poolCount);
+    uint index = 0;
+
+    for (uint i = 1; i <= poolCount; i++) {
+        Pool memory pool = getPool(i);
+        if (pool.manager == manager) {
+            matchingPools[index] = pool;
+            index++;
+        }
+    }
+
+    return (matchingPools, index);
   }
 }

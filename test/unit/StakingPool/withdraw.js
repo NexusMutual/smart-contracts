@@ -45,18 +45,18 @@ const withdrawFixture = {
 
 async function withdrawSetup() {
   const fixture = await loadFixture(setup);
-  const { stakingPool, stakingProducts, coverSigner, tokenController } = fixture;
+  const { stakingPool, stakingProducts, tokenController } = fixture;
   const manager = fixture.accounts.defaultSender;
 
   const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
 
   await stakingPool
-    .connect(coverSigner)
+    .connect(fixture.stakingProductsSigner)
     .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
 
   await tokenController.setStakingPoolManager(poolId, manager.address);
 
-  await stakingProducts.connect(fixture.coverSigner).setInitialProducts(poolId, products);
+  await stakingProducts.connect(fixture.stakingProductsSigner).setInitialProducts(poolId, products);
 
   // Move to the beginning of the next tranche
   const { firstActiveTrancheId: trancheId } = await getTranches();

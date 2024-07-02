@@ -44,8 +44,8 @@ describe('master', function () {
 
     const code = hex('XX');
 
-    const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
-    const newContract = await MMockNewContract.deploy();
+    const MSMockNewContract = await ethers.getContractFactory('MSMockNewContract');
+    const newContract = await MSMockNewContract.deploy();
 
     const actionData = defaultAbiCoder.encode(
       ['bytes2[]', 'address[]', 'uint[]'],
@@ -68,8 +68,8 @@ describe('master', function () {
     const fixture = await loadFixture(setup);
     const { master, gv } = fixture.contracts;
 
-    const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
-    const newContract = await MMockNewContract.deploy();
+    const MSMockNewContract = await ethers.getContractFactory('MSMockNewContract');
+    const newContract = await MSMockNewContract.deploy();
 
     const code = hex('XX');
     const actionData = defaultAbiCoder.encode(
@@ -86,7 +86,7 @@ describe('master', function () {
     const implementation = await proxy.implementation();
     assert.equal(implementation, newContract.address);
 
-    const newContractInstance = await ethers.getContractAt('MMockNewContract', address);
+    const newContractInstance = await ethers.getContractAt('MSMockNewContract', address);
     // can perform onlyInternal action
     await newContractInstance.mint(fixture.accounts.defaultSender.address, parseEther('1'));
   });
@@ -95,8 +95,8 @@ describe('master', function () {
     const fixture = await loadFixture(setup);
     const { master, gv } = fixture.contracts;
 
-    const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
-    const newContract = await MMockNewContract.deploy();
+    const MSMockNewContract = await ethers.getContractFactory('MSMockNewContract');
+    const newContract = await MSMockNewContract.deploy();
 
     const salt = 2;
 
@@ -360,8 +360,8 @@ describe('master', function () {
 
     const code = hex('RE');
     const existingCode = hex('GW');
-    const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
-    const newContract = await MMockNewContract.deploy();
+    const MSMockNewContract = await ethers.getContractFactory('MSMockNewContract');
+    const newContract = await MSMockNewContract.deploy();
     const actionData = defaultAbiCoder.encode(
       ['bytes2[]', 'address[]', 'uint[]'],
       [[code], [newContract.address], [ContractTypes.Replaceable]],

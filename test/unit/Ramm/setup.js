@@ -14,10 +14,10 @@ const SPOT_PRICE_B = parseEther('0.0152');
 async function setup() {
   const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
-  const memberRoles = await ethers.deployContract('RammMockMemberRoles');
+  const memberRoles = await ethers.deployContract('RAMockMemberRoles');
   const nxm = await ethers.deployContract('NXMTokenMock');
-  const tokenController = await ethers.deployContract('RammMockTokenController', [nxm.address]);
-  const mcr = await ethers.deployContract('RammMockMCR', [master.address]);
+  const tokenController = await ethers.deployContract('RAMockTokenController', [nxm.address]);
+  const mcr = await ethers.deployContract('RAMockMCR', [master.address]);
   const pool = await ethers.deployContract('PoolMock');
   const ramm = await ethers.deployContract('Ramm', [SPOT_PRICE_B]);
 

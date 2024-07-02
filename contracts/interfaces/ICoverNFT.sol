@@ -12,6 +12,8 @@ interface ICoverNFT is IERC721 {
 
   function changeOperator(address newOperator) external;
 
+  function changeNFTDescriptor(address newNFTDescriptor) external;
+
   function totalSupply() external view returns (uint);
 
   function name() external view returns (string memory);

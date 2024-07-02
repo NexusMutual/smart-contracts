@@ -295,10 +295,10 @@ describe('submitClaim', function () {
 
   it('reverts if the cover segment is outside the grace period', async function () {
     const fixture = await loadFixture(setup);
-    const { individualClaims, cover } = fixture.contracts;
+    const { individualClaims, cover, coverProducts } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const coverAsset = ASSET.ETH;
-    const { gracePeriod } = await cover.productTypes(0);
+    const { gracePeriod } = await coverProducts.getProductType(0);
     const segment0 = await getCoverSegment();
     segment0.gracePeriod = gracePeriod;
     const segment1 = { ...segment0 };
@@ -337,11 +337,12 @@ describe('submitClaim', function () {
 
   it('Assessment should use cover segment grace period and not product.gracePeriod', async function () {
     const fixture = await loadFixture(setup);
-    const { individualClaims, cover } = fixture.contracts;
+    const { individualClaims, cover, coverProducts } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const [boardMember] = fixture.accounts.advisoryBoardMembers;
+
     const coverAsset = ASSET.ETH;
-    const { gracePeriod } = await cover.productTypes(0);
+    const { gracePeriod } = await coverProducts.getProductType(0);
     const segment0 = await getCoverSegment();
     const segment1 = await getCoverSegment();
     segment0.gracePeriod = gracePeriod;
@@ -355,7 +356,7 @@ describe('submitClaim', function () {
     );
 
     const longerGracePeriod = gracePeriod * 100;
-    await cover.connect(boardMember).editProductTypes([0], [longerGracePeriod], ['ipfs hash']);
+    await coverProducts.connect(boardMember).editProductTypes([0], [longerGracePeriod], ['ipfs hash']);
 
     const latestBlock = await ethers.provider.getBlock('latest');
     const currentTime = latestBlock.timestamp;

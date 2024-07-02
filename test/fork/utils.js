@@ -270,7 +270,7 @@ async function getConfig() {
     GLOBAL_CAPACITY_DENOMINATOR: stakingPool.GLOBAL_CAPACITY_DENOMINATOR(),
     TRANCHE_DURATION: stakingProducts.TRANCHE_DURATION(),
     GLOBAL_CAPACITY_RATIO: cover.globalCapacityRatio(),
-    GLOBAL_REWARDS_RATIO: cover.globalRewardsRatio(),
+    GLOBAL_REWARDS_RATIO: cover.getGlobalRewardsRatio(),
     GLOBAL_MIN_PRICE_RATIO: cover.GLOBAL_MIN_PRICE_RATIO(),
   };
   await Promise.all(Object.keys(config).map(async key => (config[key] = await config[key])));

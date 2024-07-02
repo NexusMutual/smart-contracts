@@ -1,9 +1,7 @@
 const { expect } = require('chai');
-const { ethers } = require('hardhat');
-const { verifyInitialProduct, depositTo, buyCoverParamsTemplate } = require('./helpers');
+const { verifyInitialProduct } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { parseEther } = ethers.utils;
 
 const MAX_TOTAL_WEIGHT = 2000;
 
@@ -83,15 +81,12 @@ describe('initializeProducts', function () {
 
   it('should initialize 1000 products with target weight set to 2', async function () {
     const fixture = await loadFixture(setup);
-    const { stakingProducts, stakingPool, cover } = fixture;
-    const {
-      internalContracts: [internalContract],
-      members: [staker, coverBuyer],
-    } = fixture.accounts;
+    const { stakingProducts } = fixture;
+    const [internalContract] = fixture.accounts.internalContracts;
 
     const { poolId } = initializeParams;
 
-    const initialProduct = { ...product0, productId: 0, weight: 2, targetPrice: 0 };
+    const initialProduct = { ...product0, productId: 0, weight: 2, targetPrice: 100 };
     const numProducts = 1000;
 
     const validProducts = Array(numProducts)
@@ -116,16 +111,6 @@ describe('initializeProducts', function () {
     expect(weights.totalEffectiveWeight).to.be.equal(MAX_TOTAL_WEIGHT);
     expect(await stakingProducts.getTotalTargetWeight(poolId)).to.be.equal(MAX_TOTAL_WEIGHT);
     expect(await stakingProducts.getTotalEffectiveWeight(poolId)).to.be.equal(MAX_TOTAL_WEIGHT);
-
-    await depositTo.call(fixture, { staker, amount: parseEther('1000') });
-
-    // Buy cover
-    await cover.allocateCapacity(
-      { ...buyCoverParamsTemplate, owner: coverBuyer.address, amount: parseEther('10') },
-      0,
-      0,
-      stakingPool.address,
-    );
   });
 
   it('should initialize products successfully', async function () {

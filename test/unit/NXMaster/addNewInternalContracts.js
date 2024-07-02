@@ -52,7 +52,7 @@ describe('addNewInternalContracts', function () {
     const { master, governance } = fixture;
 
     const code = hex('XX');
-    const newContract = await ethers.deployContract('MMockNewContract');
+    const newContract = await ethers.deployContract('MSMockNewContract');
 
     const { _contractCodes: prevContractCodes } = await master.getInternalContracts();
 
@@ -77,7 +77,7 @@ describe('addNewInternalContracts', function () {
     const { master, governance } = fixture;
 
     const code = hex('XX');
-    const newContract = await ethers.deployContract('MMockNewContract');
+    const newContract = await ethers.deployContract('MSMockNewContract');
 
     const { _contractCodes: prevContractCodes } = await master.getInternalContracts();
 
@@ -106,8 +106,8 @@ describe('addNewInternalContracts', function () {
 
     const replaceableCode = hex('RE');
     const proxyCode = hex('PX');
-    const newReplaceableContract = await ethers.deployContract('MMockNewContract');
-    const newProxyContract = await ethers.deployContract('MMockNewContract');
+    const newReplaceableContract = await ethers.deployContract('MSMockNewContract');
+    const newProxyContract = await ethers.deployContract('MSMockNewContract');
 
     const { _contractCodes: prevContractCodes } = await master.getInternalContracts();
 

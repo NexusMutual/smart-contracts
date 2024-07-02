@@ -13,6 +13,18 @@ import "../../interfaces/ITokenController.sol";
 /// using the submitClaim claim function.
 contract CoverMigrator is MasterAwareV2 {
 
+  // Basically CoverStatus from QuotationData.sol but with the extra Migrated status to avoid
+  // polluting Cover.sol state layout with new status variables.
+  enum LegacyCoverStatus {
+    Active,
+    ClaimAccepted,
+    ClaimDenied,
+    CoverExpired,
+    ClaimSubmitted,
+    Requested,
+    Migrated
+  }
+
   event CoverMigrated(uint coverIdV1, uint coverIdV2, address newOwner);
 
   // v1

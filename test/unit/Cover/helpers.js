@@ -8,17 +8,25 @@ const DEFAULT_POOL_FEE = '5';
 const DEFAULT_PRODUCTS = [{ productId: 0, weight: 100 }];
 const MAX_COVER_PERIOD = 3600 * 24 * 365;
 
-async function createStakingPool(cover, productId, capacity, targetPrice, activeCover, manager, currentPrice) {
+async function createStakingPool(
+  stakingProducts,
+  productId,
+  capacity,
+  targetPrice,
+  activeCover,
+  manager,
+  currentPrice,
+) {
   const productInitializationParams = DEFAULT_PRODUCTS.map(p => {
     p.initialPrice = currentPrice;
     p.targetPrice = targetPrice;
     return p;
   });
 
-  const factoryAddress = await cover.stakingPoolFactory();
+  const factoryAddress = await stakingProducts.stakingPoolFactory();
   const stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', factoryAddress);
 
-  await cover.connect(manager).createStakingPool(
+  await stakingProducts.connect(manager).createStakingPool(
     false, // isPrivatePool,
     DEFAULT_POOL_FEE, // initialPoolFee
     DEFAULT_POOL_FEE, // maxPoolFee,
@@ -27,8 +35,8 @@ async function createStakingPool(cover, productId, capacity, targetPrice, active
   );
 
   const stakingPoolId = await stakingPoolFactory.stakingPoolCount();
-  const stakingPoolAddress = await cover.stakingPool(stakingPoolId);
-  const stakingPool = await ethers.getContractAt('CoverMockStakingPool', stakingPoolAddress);
+  const stakingPoolAddress = await stakingProducts.stakingPool(stakingPoolId);
+  const stakingPool = await ethers.getContractAt('COMockStakingPool', stakingPoolAddress);
 
   await stakingPool.setStake(productId, capacity);
   await stakingPool.setUsedCapacity(productId, activeCover);
@@ -53,14 +61,14 @@ async function assertCoverFields(
 }
 
 async function buyCoverOnOnePool(params) {
-  const { cover } = this;
+  const { stakingProducts } = this;
   const [, stakingPoolManager] = this.accounts.members;
 
   const { productId, capacity, activeCover, targetPriceRatio, amount } = params;
 
   // TODO: call this ONCE in beforeEach or setup to avoid creating a new pool on every cover buy
   await createStakingPool(
-    cover,
+    stakingProducts,
     productId,
     capacity,
     targetPriceRatio,

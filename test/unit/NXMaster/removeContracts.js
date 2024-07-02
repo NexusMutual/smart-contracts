@@ -30,8 +30,8 @@ describe('removeContracts', function () {
 
     const replaceableCode = hex('RE');
     const proxyCode = hex('PX');
-    const newReplaceableContract = await ethers.deployContract('MMockNewContract');
-    const newProxyContract = await ethers.deployContract('MMockNewContract');
+    const newReplaceableContract = await ethers.deployContract('MSMockNewContract');
+    const newProxyContract = await ethers.deployContract('MSMockNewContract');
 
     const { _contractCodes: prevContractCodes } = await master.getInternalContracts();
 

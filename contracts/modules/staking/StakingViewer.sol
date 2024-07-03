@@ -349,7 +349,6 @@ contract StakingViewer is IStakingViewer, Multicall {
     return ManagerPoolsAndRewards({ pools: pools, rewards: tokens });
   }
 
-
   function getManagerRewards(uint[] memory poolIds) external view returns (Token[] memory tokens) {
 
     tokens = new Token[](poolIds.length);

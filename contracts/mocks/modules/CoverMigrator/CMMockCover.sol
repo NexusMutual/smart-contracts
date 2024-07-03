@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 
 import "../../generic/CoverGeneric.sol";
 
-contract CMMockCover is CoverGeneric{
+contract CMMockCover is CoverGeneric {
 
   event AddLegacyCoverCalledWith(
     uint productId,

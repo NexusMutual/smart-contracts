@@ -309,7 +309,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
   /* ========== DEPENDENCIES ========== */
 
-  function migrateCoverData() external {
+  function migrateCoverProducts() external {
     require(_products.length == 0, "CoverProducts: _products already migrated");
     require(_productTypes.length == 0, "CoverProducts: _productTypes already migrated");
 

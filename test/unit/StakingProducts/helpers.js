@@ -58,10 +58,10 @@ const burnStakeParams = {
 };
 
 async function verifyProduct(params) {
-  const { cover } = this;
+  const { coverProducts } = this;
   let { product, productParams } = params;
 
-  const { _initialPrices } = await cover.getPriceAndCapacityRatios([productParams.productId]);
+  const [_initialPrice] = await coverProducts.getInitialPrices([productParams.productId]);
 
   if (!productParams.bumpedPriceUpdateTime) {
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -72,7 +72,7 @@ async function verifyProduct(params) {
   expect(product.targetPrice).to.be.equal(productParams.targetPrice);
 
   expect(product.bumpedPriceUpdateTime).to.be.equal(productParams.bumpedPriceUpdateTime);
-  expect(product.bumpedPrice).to.be.equal(_initialPrices[0]);
+  expect(product.bumpedPrice).to.be.equal(_initialPrice);
 }
 
 async function verifyInitialProduct(params) {

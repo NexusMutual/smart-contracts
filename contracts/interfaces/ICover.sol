@@ -36,23 +36,6 @@ struct BuyCoverParams {
 
 /* storage structs */
 
-struct Product {
-  uint16 productType;
-  address yieldTokenAddress;
-  // cover assets bitmap. each bit represents whether the asset with
-  // the index of that bit is enabled as a cover asset for this product
-  uint32 coverAssets;
-  uint16 initialPriceRatio;
-  uint16 capacityReductionRatio;
-  bool isDeprecated;
-  bool useFixedPrice;
-}
-
-struct ProductType {
-  uint8 claimMethod;
-  uint32 gracePeriod;
-}
-
 struct PoolAllocation {
   uint40 poolId;
   uint96 coverAmountInNXM;

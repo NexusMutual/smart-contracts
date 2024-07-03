@@ -4,6 +4,8 @@ pragma solidity >=0.5.0;
 
 import "./ICover.sol";
 
+/* io structs */
+
 struct ProductInitializationParams {
   uint productId;
   uint8 weight;
@@ -11,9 +13,28 @@ struct ProductInitializationParams {
   uint96 targetPrice;
 }
 
+/* storage structs */
+
+struct Product {
+  uint16 productType;
+  address yieldTokenAddress;
+  // cover assets bitmap. each bit represents whether the asset with
+  // the index of that bit is enabled as a cover asset for this product
+  uint32 coverAssets;
+  uint16 initialPriceRatio;
+  uint16 capacityReductionRatio;
+  bool isDeprecated;
+  bool useFixedPrice;
+}
+
+struct ProductType {
+  uint8 claimMethod;
+  uint32 gracePeriod;
+}
+
 interface ICoverProducts {
 
-  /* ========== IO STRUCTURES ========== */
+  /* io structs */
 
   struct ProductParam {
     string productName;

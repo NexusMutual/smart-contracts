@@ -3,7 +3,6 @@
 pragma solidity ^0.8.18;
 
 import "../../../interfaces/ICompleteStakingPoolFactory.sol";
-import "../../../interfaces/ICover.sol";
 import "../../../interfaces/ICoverProducts.sol";
 import "../../../interfaces/IStakingProducts.sol";
 import "../../../interfaces/IStakingPool.sol";
@@ -24,13 +23,15 @@ contract CPMockCover is CoverGeneric {
     _stakingPoolFactory = ICompleteStakingPoolFactory(stakingPoolFactoryAddress);
   }
 
+  // TODO: this is a one-time use function, the test is going to be removed after the upgrade
+  //       see https://github.com/NexusMutual/smart-contracts/issues/1161
   function setProductsAndProductTypes(
     Product[] memory products,
     ProductType[] memory productTypeArray,
     string[] memory _productNames,
     string[] memory _productTypeNames,
     uint[][] memory _allowedPools
-  ) external override {
+  ) external {
 
     for (uint i = 0; i < products.length; i++) {
       _products.push(products[i]);
@@ -48,15 +49,15 @@ contract CPMockCover is CoverGeneric {
     return GLOBAL_MIN_PRICE_RATIO;
   }
 
-  function getProducts() external override view returns (Product[] memory) {
+  function getProducts() external view returns (Product[] memory) {
     return _products;
   }
 
-  function productTypesCount() external override view returns (uint) {
+  function productTypesCount() external view returns (uint) {
     return _productTypes.length;
   }
 
-  function productTypes(uint id) external override view returns (ProductType memory) {
+  function productTypes(uint id) external view returns (ProductType memory) {
     return _productTypes[id];
   }
 

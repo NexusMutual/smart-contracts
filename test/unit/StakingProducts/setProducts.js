@@ -149,12 +149,11 @@ describe('setProducts unit tests', function () {
 
   it('should edit targetPrice and update bumpedPrice and bumpedPriceUpdateTime', async function () {
     const fixture = await loadFixture(setup);
-    const { stakingProducts, cover } = fixture;
+    const { stakingProducts, coverProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
     const products = [{ ...newProductTemplate, targetPrice: 100 }];
-
-    const { _initialPrices } = await cover.getPriceAndCapacityRatios(products.map(p => p.productId));
+    const [initialPrice] = await coverProducts.getInitialPrices(products.map(p => p.productId));
 
     // set products
     await stakingProducts.connect(manager).setProducts(poolId, products);
@@ -164,7 +163,7 @@ describe('setProducts unit tests', function () {
     const { bumpedPrice: bumpedPriceBefore, bumpedPriceUpdateTime: bumpedPriceUpdateTimeBefore } =
       await stakingProducts.getProduct(poolId, newProductTemplate.productId);
 
-    expect(bumpedPriceBefore).to.be.equal(_initialPrices[0]);
+    expect(bumpedPriceBefore).to.be.equal(initialPrice);
     expect(bumpedPriceUpdateTimeBefore).to.be.equal(initialTimestamp);
 
     await increaseTime(daysToSeconds(2)); // 2 days * 2% per day
@@ -185,7 +184,7 @@ describe('setProducts unit tests', function () {
 
   it('should update bumpedPrice correctly when decreasing targetPrice', async function () {
     const fixture = await loadFixture(setup);
-    const { stakingProducts, cover } = fixture;
+    const { stakingProducts, coverProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
     // target price = 300
@@ -193,7 +192,7 @@ describe('setProducts unit tests', function () {
     const products = [{ ...newProductTemplate, targetPrice: initialTargetPrice }];
 
     // initial price = 500
-    const { _initialPrices } = await cover.getPriceAndCapacityRatios(products.map(p => p.productId));
+    const [initialPrice] = await coverProducts.getInitialPrices(products.map(p => p.productId));
 
     // set products
     await stakingProducts.connect(manager).setProducts(poolId, products);
@@ -202,7 +201,7 @@ describe('setProducts unit tests', function () {
     const { bumpedPrice: bumpedPriceBefore, bumpedPriceUpdateTime: bumpedPriceUpdateTimeBefore } =
       await stakingProducts.getProduct(poolId, newProductTemplate.productId);
 
-    expect(bumpedPriceBefore).to.be.equal(_initialPrices[0]); // 500
+    expect(bumpedPriceBefore).to.be.equal(initialPrice); // 500
     expect(bumpedPriceUpdateTimeBefore).to.be.equal(initialTimestamp);
 
     await increaseTime(daysToSeconds(8));

@@ -3,7 +3,6 @@
 pragma solidity ^0.8.18;
 
 import "../../../interfaces/IStakingPool.sol";
-import "../../../interfaces/ICover.sol";
 import "../../../interfaces/IStakingProducts.sol";
 import "../../../interfaces/IStakingPoolFactory.sol";
 import "../../../interfaces/ICoverProducts.sol";
@@ -59,6 +58,7 @@ contract SPMockCover is CoverGeneric {
     return (GLOBAL_CAPACITY_RATIO, GLOBAL_MIN_PRICE_RATIO);
   }
 
+  // TODO: remove me. see https://github.com/NexusMutual/smart-contracts/issues/1161
   function allocateCapacity(
     BuyCoverParams memory params,
     uint coverId,
@@ -127,27 +127,6 @@ contract SPMockCover is CoverGeneric {
     (uint premium, uint allocationId) = abi.decode(result, (uint, uint));
 
     emit RequestAllocationReturned(premium, allocationId);
-  }
-
-  function getPriceAndCapacityRatios(uint[] calldata productIds) public override view returns (
-    uint _globalCapacityRatio,
-    uint _globalMinPriceRatio,
-    uint[] memory _initialPrices,
-    uint[] memory _capacityReductionRatios
-  ) {
-    _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
-    _globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
-    _capacityReductionRatios = new uint[](productIds.length);
-    _initialPrices = new uint[](productIds.length);
-
-    for (uint i = 0; i < productIds.length; i++) {
-      Product memory product = coverProducts.getProduct(productIds[i]);
-      if (product.initialPriceRatio == 0) {
-        revert ProductDeprecatedOrNotInitialized();
-      }
-      _initialPrices[i] = uint(product.initialPriceRatio);
-      _capacityReductionRatios[i] = uint(product.capacityReductionRatio);
-    }
   }
 
   function stakingPoolImplementation() public view returns (address) {

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.18;
 
 import "../../../interfaces/IStakingPool.sol";
-import "../../../interfaces/ICover.sol";
+import "../../../interfaces/ICoverProducts.sol";
 import "../../generic/CoverGeneric.sol";
 
 contract SKMockCover is CoverGeneric {
@@ -31,26 +31,7 @@ contract SKMockCover is CoverGeneric {
     stakingPool[id] = addr;
   }
 
-  function getPriceAndCapacityRatios(uint[] calldata productIds) public override view returns (
-    uint _globalCapacityRatioValue,
-    uint _globalMinPriceRatioValue,
-    uint[] memory _initialPrices,
-    uint[] memory _capacityReductionRatios
-  ) {
-
-    _globalCapacityRatioValue = _globalCapacityRatio;
-    _globalMinPriceRatioValue = GLOBAL_MIN_PRICE_RATIO;
-    _capacityReductionRatios = new uint[](productIds.length);
-    _initialPrices  = new uint[](productIds.length);
-
-    for (uint i = 0; i < productIds.length; i++) {
-      Product memory product = products[productIds[i]];
-      require(product.initialPriceRatio > 0, "Cover: Product deprecated or not initialized");
-      _initialPrices[i] = uint(product.initialPriceRatio);
-      _capacityReductionRatios[i] = uint(product.capacityReductionRatio);
-    }
-  }
-
+  // TODO: get rid of this function https://github.com/NexusMutual/smart-contracts/issues/1161
   function allocateCapacity(
     BuyCoverParams memory params,
     uint coverId,
@@ -131,9 +112,5 @@ contract SKMockCover is CoverGeneric {
 
   function globalRewardsRatio() external override pure  returns (uint){
     return _globalRewardsRatio;
-  }
-
-  function productTypes(uint productType) external override virtual view returns (ProductType memory) {
-    return _productTypes[productType];
   }
 }

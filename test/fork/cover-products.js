@@ -226,7 +226,7 @@ describe('coverProducts', function () {
   });
 
   it('Migrate the products and productTypes from the Cover to CoverProducts', async function () {
-    const tx = await this.coverProducts.migrateCoverData();
+    const tx = await this.coverProducts.migrateCoverProducts();
     const receipt = await tx.wait();
     console.log('Migrate Products and ProductTypes gas used:', receipt.gasUsed.toString());
     console.log('Migrate Products and ProductTypes gas price:', receipt.effectiveGasPrice.toString());

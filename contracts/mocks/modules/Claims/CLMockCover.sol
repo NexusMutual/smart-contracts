@@ -32,10 +32,7 @@ contract CLMockCover is CoverGeneric {
 
   mapping(uint => uint96) public activeCoverAmountInNXM;
 
-  Product[] internal _products;
   mapping(uint => uint) capacityFactors;
-
-  ProductType[] internal _productTypes;
 
   mapping(uint => uint) initialPrices;
 
@@ -65,18 +62,9 @@ contract CLMockCover is CoverGeneric {
     _coverNFT = ICoverNFT(coverNFTAddress);
   }
 
-  function products(uint id) external view returns (Product memory) {
-    return _products[id];
-  }
-
-  function productTypes(uint id) external override view returns (ProductType memory) {
-    return _productTypes[id];
-  }
-
   function coverData(uint id) external override view returns (CoverData memory) {
     return _coverData[id];
   }
-
 
   /* === MUTATIVE FUNCTIONS ==== */
 
@@ -109,32 +97,6 @@ contract CLMockCover is CoverGeneric {
 
     for (uint i = 0; i < segments.length; i++) {
       _coverSegments[coverId].push(segments[i]);
-    }
-  }
-
-  function addProductType(
-    uint8 claimMethod,
-    uint32 gracePeriod,
-    uint16 /*burnRatio*/
-  ) external {
-    _productTypes.push(ProductType(
-      claimMethod,
-      gracePeriod
-    ));
-  }
-
-  function addProduct(Product calldata product) external {
-    _products.push(product);
-  }
-
-  function editProductTypes(
-    uint[] calldata productTypeIds,
-    uint32[] calldata gracePeriods,
-    string[] calldata ipfsMetadata
-  ) external {
-    ipfsMetadata;
-    for (uint i = 0; i < productTypeIds.length; i++) {
-      _productTypes[productTypeIds[i]].gracePeriod = gracePeriods[i];
     }
   }
 

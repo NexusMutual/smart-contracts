@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
-async function migrateCoverSetup() {
+async function migrateCoverProductsSetup() {
   const fixture = await loadFixture(setup);
   const { cover, stakingPoolFactory, master, products, productTypes } = fixture;
   await stakingPoolFactory.setStakingPoolCount(3);
@@ -46,14 +46,14 @@ async function migrateCoverSetup() {
   return { ...fixture, coverProducts, productTypesList, productTypeNames, productsList, productNames, allowedPools };
 }
 
-describe('migrateCoverData', function () {
+describe('migrateCoverProducts', function () {
   it('should migrate all the product, productTypes and allowedPools', async function () {
-    const fixture = await loadFixture(migrateCoverSetup);
+    const fixture = await loadFixture(migrateCoverProductsSetup);
 
     const { coverProducts, productTypesList, productsList, allowedPools, productNames, productTypeNames } = fixture;
 
     // migrate data
-    await coverProducts.migrateCoverData();
+    await coverProducts.migrateCoverProducts();
 
     const productTypes = await coverProducts.getProductTypes();
     const products = await coverProducts.getProducts();
@@ -91,16 +91,18 @@ describe('migrateCoverData', function () {
 
     await coverProducts.connect(advisoryBoardMember0).setProductTypes(productTypes);
 
-    await expect(coverProducts.migrateCoverData()).to.be.revertedWith('CoverProducts: _products already migrated');
+    await expect(coverProducts.migrateCoverProducts()).to.be.revertedWith('CoverProducts: _products already migrated');
   });
 
   it('should revert if productTypes are already set', async function () {
-    const fixture = await loadFixture(migrateCoverSetup);
+    const fixture = await loadFixture(migrateCoverProductsSetup);
     const { coverProducts, productTypes } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
     await coverProducts.connect(advisoryBoardMember0).setProductTypes(productTypes);
 
-    await expect(coverProducts.migrateCoverData()).to.be.revertedWith('CoverProducts: _productTypes already migrated');
+    await expect(coverProducts.migrateCoverProducts()).to.be.revertedWith(
+      'CoverProducts: _productTypes already migrated',
+    );
   });
 });

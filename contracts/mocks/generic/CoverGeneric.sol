@@ -10,16 +10,6 @@ contract CoverGeneric is ICover {
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
   uint public constant MAX_COMMISSION_RATIO = 3000; // 30%
 
-  function setProductsAndProductTypes(
-    Product[] memory /* products*/,
-    ProductType[] memory /* productTypeArray*/,
-    string[] memory /* _productNames*/,
-    string[] memory /* _productTypeNames*/,
-    uint[][] memory /* allowedPoolsList*/
-  ) external virtual {
-    revert("Unsupported");
-  }
-
   function getGlobalMinPriceRatio() public virtual pure returns (uint) {
     revert("Unsupported");
   }
@@ -65,22 +55,6 @@ contract CoverGeneric is ICover {
   }
 
   function getGlobalRewardsRatio() public virtual pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function getProducts() external virtual view returns (Product[] memory) {
-    revert("Unsupported");
-  }
-
-  function productTypesCount() external virtual view returns (uint) {
-    revert("Unsupported");
-  }
-
-  function productTypes(uint) external virtual view returns (ProductType memory) {
-    revert("Unsupported");
-  }
-
-  function allowedPools(uint) external virtual view returns (uint[] memory) {
     revert("Unsupported");
   }
 

@@ -37,11 +37,11 @@ contract StakingViewer is IStakingViewer, Multicall {
     stakingPoolFactory = _stakingPoolFactory;
   }
 
-  function stakingProducts() internal view returns (IStakingProducts) {
+  function _stakingProducts() internal view returns (IStakingProducts) {
     return IStakingProducts(master.contractAddresses("SP"));
   }
 
-  function coverProducts() internal view returns (ICoverProducts) {
+  function _coverProducts() internal view returns (ICoverProducts) {
     return ICoverProducts(master.contractAddresses('CP'));
   }
 
@@ -99,6 +99,7 @@ contract StakingViewer is IStakingViewer, Multicall {
     uint queueSize = 0;
     uint poolCount = stakingPoolFactory.stakingPoolCount();
     Pool[] memory stakedPoolsQueue = new Pool[](poolCount);
+    IStakingProducts stakingProducts = _stakingProducts();
 
     for (uint i = 1; i <= poolCount; i++) {
       (
@@ -107,7 +108,7 @@ contract StakingViewer is IStakingViewer, Multicall {
         /* uint targetPrice */,
         /* uint bumpedPrice */,
         uint bumpedPriceUpdateTime
-      ) = stakingProducts().getProduct(i, productId);
+      ) = stakingProducts.getProduct(i, productId);
 
       if (targetWeight == 0 && lastEffectiveWeight == 0 && bumpedPriceUpdateTime == 0) {
         continue;
@@ -131,7 +132,8 @@ contract StakingViewer is IStakingViewer, Multicall {
   function getPoolProducts(uint poolId) public view returns (StakingProduct[] memory products) {
 
     uint stakedProductsCount = 0;
-    uint coverProductCount = coverProducts().getProductCount();
+    uint coverProductCount = _coverProducts().getProductCount();
+    IStakingProducts stakingProducts = _stakingProducts();
     StakingProduct[] memory stakedProductsQueue = new StakingProduct[](coverProductCount);
     for (uint i = 0; i < coverProductCount; i++) {
       (
@@ -140,7 +142,7 @@ contract StakingViewer is IStakingViewer, Multicall {
         uint targetPrice,
         uint bumpedPrice,
         uint bumpedPriceUpdateTime
-      ) = stakingProducts().getProduct(poolId, i);
+      ) = stakingProducts.getProduct(poolId, i);
 
       if (targetWeight == 0 && lastEffectiveWeight == 0 && bumpedPriceUpdateTime == 0) {
         continue;

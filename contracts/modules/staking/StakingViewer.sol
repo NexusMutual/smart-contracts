@@ -360,7 +360,7 @@ contract StakingViewer is IStakingViewer, Multicall {
     }
   }
 
-  function processExpirationsFor(uint[] memory tokenIds) public {
+  function processExpirationsFor(uint[] memory tokenIds) external {
 
     for (uint i = 0; i < tokenIds.length; i++) {
       uint poolId = stakingNFT.stakingPoolOf(tokenIds[i]);

@@ -8,6 +8,8 @@ const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 
 describe('AssessmentViewer', function () {
+  const member = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
+
   before(async function () {
     // Initialize evm helper
     await evm.connect(ethers.provider);
@@ -28,17 +30,24 @@ describe('AssessmentViewer', function () {
 
   it('load contracts', async function () {
     this.master = await ethers.getContractAt(abis.NXMaster, addresses.NXMaster);
+    this.assessment = await ethers.getContractAt(abis.Assessment, addresses.Assessment);
+    this.nxm = await ethers.getContractAt('NXMToken', addresses.NXMToken);
+    this.individualClaims = await ethers.getContractAt(abis.IndividualClaims, addresses.IndividualClaims);
   });
 
   it('deploy AssessmentViewer', async function () {
-    this.assessmentViewer = await ethers.deployContract('AssessmentViewer', [this.master.address]);
+    this.assessmentViewer = await ethers.deployContract('AssessmentViewer', [this.master.address, this.nxm.address]);
   });
 
   it('getManagerPoolsAndRewards should return manager pools and rewards', async function () {
-    const member = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
     const assessmentRewards = await this.assessmentViewer.getRewards(member);
     expect(assessmentRewards.totalPendingAmountInNXM).to.be.instanceOf(BigNumber);
     expect(assessmentRewards.withdrawableAmountInNXM).to.be.instanceOf(BigNumber);
     expect(assessmentRewards.withdrawableUntilIndex).to.be.instanceOf(BigNumber);
+  });
+
+  it('isStakeLocked should return false if the member has no stake locked for voting', async function () {
+    const stakeLocked = await this.assessmentViewer.isStakeLocked(ethers.constants.AddressZero);
+    expect(stakeLocked).to.equal(false);
   });
 });

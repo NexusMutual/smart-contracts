@@ -138,7 +138,6 @@ describe('basic functionality tests', function () {
       CO: ['P1', 'TC', 'MR', 'SP'],
       CL: ['CO', 'TC', 'CI'],
       MR: ['TC', 'P1', 'CO', 'PS', 'AS'],
-      GW: ['MR', 'CL'],
       PS: ['TC', 'MR'],
       SP: [], // none
       TC: ['PS', 'AS', 'GV', 'P1'],
@@ -1137,7 +1136,6 @@ describe('basic functionality tests', function () {
     // PS - PooledStaking.sol
     const pooledStaking = await deployContract('LegacyPooledStaking', [
       this.cover.address,
-      this.productsV1.address,
       this.stakingNFT.address,
       this.nxm.address,
     ]);
@@ -1170,12 +1168,6 @@ describe('basic functionality tests', function () {
       this.pool.address,
     ]);
 
-    // CL - CoverMigrator.sol
-    const coverMigrator = await deployContract('CoverMigrator', [this.quotationData.address, this.productsV1.address]);
-
-    // GW - Gateway.sol
-    const gateway = await deployContract('LegacyGateway', [this.quotationData.address, this.nxm.address]);
-
     // AS - Assessment.sol
     const assessment = await deployContract('Assessment', [this.nxm.address]);
 
@@ -1193,7 +1185,7 @@ describe('basic functionality tests', function () {
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]'],
         [
-          ['MR', 'MC', 'CO', 'TC', 'PS', 'P1', 'CL', 'GW', 'AS', 'CI', 'CG', 'RA'].map(code => toUtf8Bytes(code)),
+          ['MR', 'MC', 'CO', 'TC', 'PS', 'P1', 'AS', 'CI', 'CG', 'RA'].map(code => toUtf8Bytes(code)),
           [
             memberRoles,
             mcr,
@@ -1201,8 +1193,6 @@ describe('basic functionality tests', function () {
             tokenController,
             pooledStaking,
             pool,
-            coverMigrator,
-            gateway,
             assessment,
             individualClaims,
             yieldTokenIncidents,
@@ -1218,7 +1208,6 @@ describe('basic functionality tests', function () {
     await compareProxyImplementationAddress(this.memberRoles.address, memberRoles.address);
     await compareProxyImplementationAddress(this.pooledStaking.address, pooledStaking.address);
     await compareProxyImplementationAddress(this.tokenController.address, tokenController.address);
-    await compareProxyImplementationAddress(this.gateway.address, gateway.address);
     await compareProxyImplementationAddress(this.individualClaims.address, individualClaims.address);
     await compareProxyImplementationAddress(this.assessment.address, assessment.address);
     await compareProxyImplementationAddress(this.yieldTokenIncidents.address, yieldTokenIncidents.address);
@@ -1228,11 +1217,9 @@ describe('basic functionality tests', function () {
     // Compare non-proxy addresses
     expect(pool.address).to.be.equal(await this.master.contractAddresses(toUtf8Bytes('P1')));
     expect(mcr.address).to.be.equal(await this.master.contractAddresses(toUtf8Bytes('MC')));
-    expect(coverMigrator.address).to.be.equal(await this.master.contractAddresses(toUtf8Bytes('CL')));
 
     this.mcr = mcr;
     this.pool = pool;
-    this.coverMigrator = coverMigrator;
   });
 
   it('Check Pool balance after upgrades', async function () {

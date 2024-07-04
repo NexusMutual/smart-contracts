@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 
 const { setEtherBalance } = require('../utils').evm;
+const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 async function setup() {
@@ -8,15 +9,12 @@ async function setup() {
   await setEtherBalance(coverBrokerOwner.address, parseEther('1000000'));
 
   const dai = await ethers.deployContract('ERC20Mock');
-  const cover = await ethers.deployContract('CMMockCover');
   const memberRoles = await ethers.deployContract('MemberRolesMock');
-  const tk = await ethers.deployContract('NXMTokenMock');
-  const master = await ethers.deployContract('MasterMock');
   const coverBroker = await ethers.deployContract('CoverBroker', [
-    cover.address,
+    AddressZero,
     memberRoles.address,
-    tk.address,
-    master.address,
+    AddressZero,
+    AddressZero,
     coverBrokerOwner.address,
   ]);
 

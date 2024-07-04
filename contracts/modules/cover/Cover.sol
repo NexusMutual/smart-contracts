@@ -658,7 +658,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint totalActiveCover = 0;
     uint8 yearlyBucketsCount = 53; // rounded up max cover duration divided by bucket duration (365 / 7)
 
-    for (uint i = 0; i < yearlyBucketsCount; i++) {
+    for (uint i = 1; i <= yearlyBucketsCount; i++) {
       uint bucketId = currentBucketId + i;
       totalActiveCover += activeCoverExpirationBuckets[coverAsset][bucketId];
     }

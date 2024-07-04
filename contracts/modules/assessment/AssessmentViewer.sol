@@ -7,11 +7,12 @@ import {IAssessmentViewer} from "../../interfaces/IAssessmentViewer.sol";
 import {INXMMaster} from "../../interfaces/INXMMaster.sol";
 import {INXMToken} from "../../interfaces/INXMToken.sol";
 
+/// @title AssessmentViewer Contract
+/// @notice This contract is viewer contract for the Assessment module
 contract AssessmentViewer is IAssessmentViewer {
 
   INXMMaster public immutable master;
   INXMToken public immutable nxmToken;
-  
 
   constructor(INXMMaster _master, INXMToken _nxmToken) {
     master = _master;
@@ -22,6 +23,9 @@ contract AssessmentViewer is IAssessmentViewer {
     return IAssessment(master.getLatestAddress("AS"));
   }
 
+  /// @notice Get rewards details for a user
+  /// @param user The address of the user
+  /// @return AssessmentRewards structure containing reward details
   function getRewards(address user) external view returns (AssessmentRewards memory) {
 
     (
@@ -37,11 +41,14 @@ contract AssessmentViewer is IAssessmentViewer {
     });
   }
 
+  /// @notice Check if the stake of a member is locked
+  /// @param member The address of the member
+  /// @return stakeLocked Boolean indicating if the stake is locked
   function isStakeLocked(address member) external view returns (bool stakeLocked) {
 
     IAssessment _assessment = assessment();
 
-    if (block.timestamp < nxmToken.isLockedForMV(member)) {
+    if (nxmToken.isLockedForMV(member) > block.timestamp) {
       return true; // NXM is locked for voting in governance
     }
 

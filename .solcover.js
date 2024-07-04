@@ -53,7 +53,7 @@ module.exports = {
     'abstract/',
     'external/',
     'interfaces/',
-    'libraries',
+    'libraries/',
     'mocks/',
     'modules/assessment/AssessmentViews.sol',
     'modules/cover/CoverViewer.sol',

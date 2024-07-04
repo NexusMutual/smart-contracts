@@ -221,9 +221,6 @@ describe('tokenomics', function () {
   it('Upgrade existing contracts', async function () {
     const contractsBefore = await this.master.getInternalContracts();
 
-    // LegacyGateway.sol
-    this.gateway = await ethers.deployContract('LegacyGateway', [this.quotationData.address, this.nxm.address]);
-
     // MCR.sol
     const { timestamp } = await ethers.provider.getBlock('latest');
     this.mcr = await ethers.deployContract('MCR', [this.master.address, timestamp + 3600]);

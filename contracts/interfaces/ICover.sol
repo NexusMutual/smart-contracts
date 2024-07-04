@@ -114,15 +114,6 @@ interface ICover {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function addLegacyCover(
-    uint productId,
-    uint coverAsset,
-    uint amount,
-    uint start,
-    uint period,
-    address newOwner
-  ) external returns (uint coverId);
-
   function buyCover(
     BuyCoverParams calldata params,
     PoolAllocationRequest[] calldata coverChunkRequests

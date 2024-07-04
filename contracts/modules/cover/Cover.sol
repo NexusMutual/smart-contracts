@@ -508,46 +508,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     activeCoverExpirationBuckets[coverAsset][bucketAtExpiry] += newCoverAmountInAsset;
   }
 
-  function addLegacyCover(
-    uint productId,
-    uint coverAsset,
-    uint amount,
-    uint start,
-    uint period,
-    address newOwner
-  ) external onlyInternal returns (uint coverId) {
-
-    ICoverProducts _coverProducts = coverProducts();
-    (/* product */, ProductType memory productType) = _coverProducts.getProductWithType(productId);
-
-    // uses the current v2 grace period
-    if (block.timestamp >= start + period + productType.gracePeriod) {
-      revert CoverOutsideOfTheGracePeriod();
-    }
-
-    coverId = coverNFT.mint(newOwner);
-    _coverData[coverId] = CoverData(productId.toUint24(), coverAsset.toUint8(), 0 /* amountPaidOut */);
-
-    uint bucketAtExpiry = Math.divCeil((start + period), BUCKET_SIZE);
-    activeCoverExpirationBuckets[coverAsset][bucketAtExpiry] += amount;
-    activeCover[coverAsset].totalActiveCoverInAsset += amount.toUint192();
-
-    _coverSegments[coverId].push(
-      CoverSegment(
-        amount.toUint96(),
-        start.toUint32(),
-        period.toUint32(),
-        productType.gracePeriod,
-        0, // global rewards ratio
-        1  // global capacity ratio
-      )
-    );
-
-    emit CoverEdited(coverId, productId, 0, msg.sender, "");
-
-    return coverId;
-  }
-
   // Gets the total amount of active cover that is currently expired for this asset
   function getExpiredCoverAmount(
     uint coverAsset,

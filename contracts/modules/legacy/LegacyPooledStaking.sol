@@ -7,12 +7,10 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
-import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingNFT.sol";
-import "./PricesV1.sol";
 
-contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
+contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
   /* Constants */
 
   address constant ARMOR_STAKER = 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4;
@@ -22,7 +20,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
   uint constant MAX_ACTIVE_TRANCHES = 8;
 
   ICover public immutable cover;
-  IProductsV1 public immutable productsV1;
   IStakingNFT public immutable stakingNFT;
 
   /* Structs */
@@ -61,9 +58,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
 
   // pending actions processing
   event PendingActionsProcessed(bool finished);
-
-  // used for logging products not listed in ProductsV1.sol when migrating to a new pool
-  event ProductNotFound(address oldProductId);
 
   /* Storage variables */
 
@@ -141,8 +135,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2, PricesV1 {
     _;
   }
 
-  constructor(address coverAddress, address productsV1Address, address stakingNFTAddress, address _tokenAddress) {
-    productsV1 = IProductsV1(productsV1Address);
+  constructor(address coverAddress, address stakingNFTAddress, address _tokenAddress) {
     cover = ICover(coverAddress);
     stakingNFT = IStakingNFT(stakingNFTAddress);
     token = INXMToken(_tokenAddress);

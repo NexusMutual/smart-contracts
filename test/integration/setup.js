@@ -109,7 +109,6 @@ async function setup() {
   const tk = await ethers.deployContract('NXMToken', [owner.address, INITIAL_SUPPLY]);
 
   const qd = await ethers.deployContract('TestnetQuotationData', [QE, owner.address]);
-  const productsV1 = await ethers.deployContract('ProductsV1');
 
   // proxy contracts
   const master = await deployProxy('DisposableNXMaster');
@@ -118,7 +117,6 @@ async function setup() {
   const ramm = await deployProxy('Ramm', [INITIAL_SPOT_PRICE_B]);
   const pc = await deployProxy('DisposableProposalCategory');
   const gv = await deployProxy('DisposableGovernance');
-  const gateway = await deployProxy('DisposableGateway', [qd.address, tk.address]);
   const st = await deployProxy('SafeTracker', [
     INVESTMENT_LIMIT,
     gnosisSafe.address,
@@ -243,14 +241,13 @@ async function setup() {
   const ci = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
   const cg = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
   const as = await deployProxy('Assessment', [tk.address]);
-  const cl = await deployProxy('CoverMigrator', [qd.address, productsV1.address]);
   const coverProducts = await deployProxy('CoverProducts');
 
   await coverProducts.changeMasterAddress(master.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CI', 'CG', 'AS', 'CO', 'CL', 'SP', 'RA', 'ST', 'CP'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'CI', 'CG', 'AS', 'CO', 'SP', 'RA', 'ST', 'CP'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -272,10 +269,8 @@ async function setup() {
     { address: pc.address, code: 'PC' },
     { address: mr.address, code: 'MR' },
     { address: ps.address, code: 'PS' },
-    { address: gateway.address, code: 'GW' },
     { address: ci.address, code: 'CI' },
     { address: cg.address, code: 'CG' },
-    { address: cl.address, code: 'CL' },
     { address: as.address, code: 'AS' },
     { address: cover.address, code: 'CO' },
     { address: lcr.address, code: 'CR' },
@@ -416,20 +411,12 @@ async function setup() {
 
   await master.switchGovernanceAddress(gv.address);
 
-  await gateway.initialize(master.address, dai.address);
-
   await upgradeProxy(mr.address, 'MemberRoles', [tk.address]);
   await upgradeProxy(tc.address, 'TokenController', [qd.address, lcr.address, spf.address, tk.address]);
-  await upgradeProxy(ps.address, 'LegacyPooledStaking', [
-    cover.address,
-    productsV1.address,
-    stakingNFT.address,
-    tk.address,
-  ]);
+  await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, stakingNFT.address, tk.address]);
   await upgradeProxy(pc.address, 'ProposalCategory');
   await upgradeProxy(master.address, 'NXMaster');
   await upgradeProxy(gv.address, 'Governance');
-  await upgradeProxy(gateway.address, 'LegacyGateway', [qd.address, tk.address]);
 
   // replace legacy pool after Ramm is initialized
   const governanceSigner = await getGovernanceSigner(gv);
@@ -450,7 +437,6 @@ async function setup() {
   await master.connect(governanceSigner).upgradeMultipleContracts([toBytes2('P1')], [p1.address]);
 
   // [todo] We should probably call changeDependentContractAddress on every contract
-  await gateway.changeDependentContractAddress();
   await cover.changeDependentContractAddress();
   await ramm.changeDependentContractAddress();
   await ci.changeDependentContractAddress();
@@ -465,10 +451,8 @@ async function setup() {
   await transferProxyOwnership(ps.address, master.address);
   await transferProxyOwnership(pc.address, master.address);
   await transferProxyOwnership(gv.address, master.address);
-  await transferProxyOwnership(gateway.address, master.address);
   await transferProxyOwnership(ci.address, master.address);
   await transferProxyOwnership(cg.address, master.address);
-  await transferProxyOwnership(cl.address, master.address);
   await transferProxyOwnership(as.address, master.address);
   await transferProxyOwnership(cover.address, gv.address);
   await transferProxyOwnership(master.address, gv.address);
@@ -510,13 +494,12 @@ async function setup() {
     rETH,
     aWETH,
     enzymeVault,
-    productsV1,
     ybDAI,
     ybETH,
     ybUSDC,
   };
-  const nonUpgradable = { qd, productsV1, spf, coverNFT, stakingNFT };
-  const instances = { tk, cl, p1, mcr: mc, lcr };
+  const nonUpgradable = { qd, spf, coverNFT, stakingNFT };
+  const instances = { tk, p1, mcr: mc, lcr };
 
   // we upgraded them, get non-disposable instances because
   const proxies = {
@@ -528,10 +511,8 @@ async function setup() {
     ps: await ethers.getContractAt('LegacyPooledStaking', ps.address),
     ra: await ethers.getContractAt('Ramm', ramm.address),
     st: await ethers.getContractAt('SafeTracker', st.address),
-    gateway: await ethers.getContractAt('LegacyGateway', gateway.address),
     ci: await ethers.getContractAt('IndividualClaims', ci.address),
     cg: await ethers.getContractAt('YieldTokenIncidents', cg.address),
-    cl: await ethers.getContractAt('CoverMigrator', cl.address),
     as: await ethers.getContractAt('Assessment', as.address),
     cover: await ethers.getContractAt('Cover', cover.address),
   };

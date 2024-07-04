@@ -14,7 +14,7 @@ interface IMasterAwareV2 {
     SP, // StakingProducts.sol
     PS, // LegacyPooledStaking.sol
     GV, // Governance.sol
-    GW, // LegacyGateway.sol
+    // GW, // LegacyGateway.sol
     CL, // CoverMigrator.sol
     AS, // Assessment.sol
     CI, // IndividualClaims.sol - Claims for Individuals

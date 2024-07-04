@@ -8,7 +8,7 @@ const artifactByCode = {
   CP: 'contracts/modules/claims/ClaimProofs.sol/ClaimProofs.json',
   CR: 'contracts/modules/claims/ClaimsReward.sol/ClaimsReward.json',
   GV: 'contracts/modules/governance/Governance.sol/Governance.json',
-  GW: 'contracts/modules/cover/Gateway.sol/Gateway.json',
+  // GW: 'contracts/modules/cover/Gateway.sol/Gateway.json',
   CI: 'contracts/modules/claims/IndividualClaims.sol/IndividualClaims.json',
   CG: 'contracts/modules/claims/YieldTokenIncidents.sol/YieldTokenIncidents.json',
   AS: 'contracts/modules/claims/Assessment.sol/Assessment.json',
@@ -28,7 +28,7 @@ const artifactByCode = {
   TF: 'contracts/modules/token/TokenFunctions.sol/TokenFunctions.json',
   PRICEORACLE: 'contracts/modules/oracles/PriceFeedOracle.sol/PriceFeedOracle.json',
   TWAP: 'contracts/modules/oracles/TwapOracle.sol/TwapOracle.json',
-  DF: 'contracts/modules/distributor/DistributorFactory.sol/DistributorFactory.json',
+  // DF: 'contracts/modules/distributor/DistributorFactory.sol/DistributorFactory.json',
   CSI: '../scripts/external/CommunityStakingIncentives.json',
   // external
   DAI: '@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json',

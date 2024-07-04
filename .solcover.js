@@ -56,7 +56,6 @@ module.exports = {
     'mocks/',
     'modules/assessment/AssessmentViews.sol',
     'modules/cover/CoverViewer.sol',
-    'modules/cover/ProductsV1.sol',
     'modules/governance/external',
     'modules/legacy',
     'modules/token/external',

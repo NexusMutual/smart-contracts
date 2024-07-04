@@ -2,20 +2,24 @@
 
 pragma solidity ^0.8.18;
 
-import {INXMMaster} from "../../interfaces/INXMMaster.sol";
 import {IAssessment} from "../../interfaces/IAssessment.sol";
 import {IAssessmentViewer} from "../../interfaces/IAssessmentViewer.sol";
+import {INXMMaster} from "../../interfaces/INXMMaster.sol";
+import {INXMToken} from "../../interfaces/INXMToken.sol";
 
 contract AssessmentViewer is IAssessmentViewer {
 
   INXMMaster public immutable master;
+  INXMToken public immutable nxmToken;
+  
 
-  constructor(INXMMaster _master) {
+  constructor(INXMMaster _master, INXMToken _nxmToken) {
     master = _master;
+    nxmToken = _nxmToken;
   }
 
   function assessment() public view returns (IAssessment) {
-    return IAssessment(master.contractAddresses("AS"));
+    return IAssessment(master.getLatestAddress("AS"));
   }
 
   function getRewards(address user) external view returns (AssessmentRewards memory) {
@@ -33,13 +37,21 @@ contract AssessmentViewer is IAssessmentViewer {
     });
   }
 
-  function isStakeLocked(address member) external view returns (bool stakeLocked, uint stakeLockupExpiry) {
+  function isStakeLocked(address member) external view returns (bool stakeLocked) {
 
-    Vote[] memory votes = votesOf[member];
-    if (votes.length == 0) return (false, 0);
+    IAssessment _assessment = assessment();
 
-    Vote memory vote = votes[votes.length - 1];
-    stakeLockupExpiry = vote.timestamp + uint(config.stakeLockupPeriodInDays) * 1 days;
-    stakeLocked = block.timestamp > stakeLockupExpiry;
+    if (block.timestamp < nxmToken.isLockedForMV(member)) {
+      return true; // NXM is locked for voting in governance
+    }
+
+    uint voteCount = _assessment.getVoteCountOfAssessor(member);
+    if (voteCount == 0) return false;
+
+    (,, uint32 timestamp,) = _assessment.votesOf(member, voteCount - 1);
+    (, uint8 stakeLockupPeriodInDays,,) = _assessment.config();
+
+    uint stakeLockupExpiry = timestamp + stakeLockupPeriodInDays * 1 days;
+    stakeLocked = stakeLockupExpiry > block.timestamp;
   }
 }

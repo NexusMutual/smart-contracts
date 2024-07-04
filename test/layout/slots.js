@@ -40,12 +40,10 @@ describe('Storage layout', function () {
       'ProposalCategory',
       'LegacyPooledStaking',
       'TokenController',
-      'LegacyGateway',
       'IndividualClaims',
       'YieldTokenIncidents',
       'Assessment',
       'Cover',
-      'CoverMigrator',
       'StakingProducts',
       'Ramm',
     ];

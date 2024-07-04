@@ -55,7 +55,6 @@ describe('coverProducts', function () {
     this.pool = await ethers.getContractAt(abis.Pool, addresses.Pool);
     this.safeTracker = await ethers.getContractAt(abis.SafeTracker, addresses.SafeTracker);
     this.assessment = await ethers.getContractAt(abis.Assessment, addresses.Assessment);
-    this.productsV1 = await ethers.getContractAt(abis.ProductsV1, addresses.ProductsV1);
     this.stakingNFT = await ethers.getContractAt(abis.StakingNFT, addresses.StakingNFT);
     this.stakingProducts = await ethers.getContractAt(abis.StakingProducts, addresses.StakingProducts);
     this.swapOperator = await ethers.getContractAt(abis.SwapOperator, addresses.SwapOperator);
@@ -68,7 +67,6 @@ describe('coverProducts', function () {
     this.proposalCategory = await ethers.getContractAt(abis.ProposalCategory, addresses.ProposalCategory);
     this.stakingPoolFactory = await ethers.getContractAt(abis.StakingPoolFactory, addresses.StakingPoolFactory);
     this.pooledStaking = await ethers.getContractAt(abis.LegacyPooledStaking, addresses.LegacyPooledStaking);
-    this.gateway = await ethers.getContractAt(abis.LegacyGateway, addresses.LegacyGateway);
     this.yieldTokenIncidents = await ethers.getContractAt(abis.YieldTokenIncidents, addresses.YieldTokenIncidents);
     this.ramm = await ethers.getContractAt(abis.Ramm, addresses.Ramm);
 
@@ -145,7 +143,6 @@ describe('coverProducts', function () {
 
     // Cover
     const productTypesCount = await this.cover.productTypesCount();
-
     this.contractData.cover.before.productTypes = [];
     this.contractData.cover.before.productTypeNames = [];
     this.contractData.cover.before.productNames = [];
@@ -159,7 +156,6 @@ describe('coverProducts', function () {
     }
 
     this.contractData.cover.before.products = await this.cover.getProducts();
-
     const productsCount = this.contractData.cover.before.products.length;
 
     for (let i = 0; i < productsCount; i++) {
@@ -233,7 +229,6 @@ describe('coverProducts', function () {
     console.log('Migrate Products and ProductTypes cost:', receipt.effectiveGasPrice.mul(receipt.gasUsed).toString());
 
     this.coverProductsData = {};
-
     this.coverProductsData.products = await this.coverProducts.getProducts();
     this.coverProductsData.productTypes = await this.coverProducts.getProductTypes();
     this.coverProductsData.productTypeNames = [];
@@ -438,7 +433,6 @@ describe('coverProducts', function () {
     await this.cover.changeStakingPoolFactoryOperator();
   });
 
-  // TODO: double check the logic in the function
   it('Recalculate the active cover amount', async function () {
     const ASSETS = {
       ETH: 0,

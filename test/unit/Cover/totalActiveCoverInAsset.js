@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { increaseTime, setNextBlockTime } = require('../utils').evm;
+const { increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 const { buyCoverOnOnePool } = require('./helpers');
 const setup = require('./setup');

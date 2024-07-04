@@ -55,10 +55,7 @@ console.log({ addresses });
 fs.writeFileSync(`${deployPath}/${network}-addresses.json`, JSON.stringify(addresses, null, 2));
 
 const artifactPathOfContractCode = {
-  // LCD: 'modules/claims/LegacyClaimsData.sol/LegacyClaimsData.json',
-  // LCL: 'modules/claims/LegacyClaims.sol/LegacyClaims.json',
   CR: 'modules/legacy/LegacyClaimsReward.sol/LegacyClaimsReward.json',
-  // LCP: 'modules/claims/LegacyClaimProofs.sol/LegacyClaimProofs.json',
   CL: 'modules/cover/CoverMigrator.sol/CoverMigrator.json',
   GV: 'modules/governance/Governance.sol/Governance.json',
   MC: 'modules/capital/MCR.sol/MCR.json',
@@ -68,11 +65,8 @@ const artifactPathOfContractCode = {
   P1: 'modules/capital/Pool.sol/Pool.json',
   PC: 'modules/governance/ProposalCategory.sol/ProposalCategory.json',
   QD: 'mocks/Testnet/TestnetQuotationData.sol/TestnetQuotationData.json',
-  // QT: 'modules/cover/Quotation.sol/Quotation.json',
   TC: 'modules/token/TokenController.sol/TokenController.json',
-  // TD: 'modules/token/TokenData.sol/TokenData.json',
   PS: 'modules/legacy/LegacyPooledStaking.sol/LegacyPooledStaking.json',
-  // GW: 'modules/legacy/LegacyGateway.sol/LegacyGateway.json',
   SO: 'modules/capital/SwapOperator.sol/SwapOperator.json',
   CO: 'modules/cover/Cover.sol/Cover.json',
   IC: 'modules/assessment/IndividualClaims.sol/IndividualClaims.json',
@@ -97,7 +91,6 @@ const contractNameByCode = {
   TC: 'TokenController',
   TD: 'TokenData',
   PS: 'PooledStaking',
-  // GW: 'Gateway',
   SO: 'SwapOperator',
   CO: 'Cover',
   IC: 'IndividualClaims',

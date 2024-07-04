@@ -32,4 +32,14 @@ contract AssessmentViewer is IAssessmentViewer {
       withdrawableUntilIndex: withdrawableUntilIndex
     });
   }
+
+  function isStakeLocked(address member) external view returns (bool stakeLocked, uint stakeLockupExpiry) {
+
+    Vote[] memory votes = votesOf[member];
+    if (votes.length == 0) return (false, 0);
+
+    Vote memory vote = votes[votes.length - 1];
+    stakeLockupExpiry = vote.timestamp + uint(config.stakeLockupPeriodInDays) * 1 days;
+    stakeLocked = block.timestamp > stakeLockupExpiry;
+  }
 }

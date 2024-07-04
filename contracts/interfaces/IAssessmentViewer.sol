@@ -11,4 +11,6 @@ interface IAssessmentViewer {
   }
 
   function getRewards(address user) external view returns (AssessmentRewards memory);
+
+  function isStakeLocked(address member) external view returns (bool stakeLocked, uint stakeLockupExpiry);
 }

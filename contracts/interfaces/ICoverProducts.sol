@@ -90,9 +90,6 @@ interface ICoverProducts {
     ProductInitializationParams[] memory validatedParams
   );
 
-  // deprecated
-  function productNames(uint) external view returns (string memory);
-
   /* === MUTATIVE FUNCTIONS ==== */
 
   function setProductTypes(ProductTypeParam[] calldata productTypes) external;

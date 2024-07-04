@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.8.0;
 
@@ -68,7 +68,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
 
     // Get cover data
     CoverData memory coverData = cover.coverData(tokenId);
-    string memory productName = coverProducts.productNames(coverData.productId);
+    string memory productName = coverProducts.getProductName(coverData.productId);
     CoverSegment memory lastSegment = cover.coverSegmentWithRemainingAmount(tokenId, cover.coverSegmentsCount(tokenId) - 1);
 
     // Check if cover has already expired

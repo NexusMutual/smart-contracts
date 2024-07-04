@@ -13,9 +13,6 @@ import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/ILegacyCover.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingProducts.sol";
-import "../../libraries/Math.sol";
-import "../../libraries/SafeUintCast.sol";
-import "../../libraries/StakingPoolLibrary.sol";
 
 contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
@@ -28,14 +25,12 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
   mapping(uint => string) public productNames;
   // productTypeId => productType name
   mapping(uint => string) internal productTypeNames;
-
   // product id => allowed pool ids
   mapping(uint => uint[]) internal allowedPools;
 
   /* ========== CONSTANTS ========== */
 
   uint private constant PRICE_DENOMINATOR = 10000;
-
   uint private constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
 
   /* ========== VIEWS ========== */

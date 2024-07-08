@@ -109,7 +109,7 @@ describe('setProducts', function () {
     const productParams = { ...productParamsTemplate, productId };
     await expect(
       coverProducts.connect(advisoryBoardMember0).setProducts([productParams]),
-    ).to.be.revertedWithCustomError(coverProducts, 'ProductDoesntExist');
+    ).to.be.revertedWithCustomError(coverProducts, 'ProductNotFound');
   });
 
   it('should revert if updated coverAssets are unsupported', async function () {
@@ -246,7 +246,7 @@ describe('setProducts', function () {
     const productParams = { ...productParamsTemplate, product: { ...productTemplate, productType: 99 } };
     await expect(
       coverProducts.connect(advisoryBoardMember0).setProducts([productParams]),
-    ).to.be.revertedWithCustomError(coverProducts, 'InvalidProductType');
+    ).to.be.revertedWithCustomError(coverProducts, 'ProductTypeNotFound');
   });
 
   it('should store product name for existing product', async function () {

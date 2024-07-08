@@ -125,7 +125,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       uint productId = productIds[i];
 
       if (productId >= productCount) {
-        revert ProductDoesntExist();
+        revert ProductNotFound();
       }
 
       initialPrices[i] = _products[productId].initialPriceRatio;
@@ -143,7 +143,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       uint productId = productIds[i];
 
       if (productId >= productCount) {
-        revert ProductDoesntExist();
+        revert ProductNotFound();
       }
 
       capacityReductionRatios[i] = _products[productId].capacityReductionRatio;
@@ -166,7 +166,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       uint productId = params[i].productId;
 
       if (productId >= productCount) {
-        revert ProductDoesntExist();
+        revert ProductNotFound();
       }
 
       // if there is a list of allowed pools for this product - the new pool didn't exist yet
@@ -210,7 +210,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       Product calldata product = param.product;
 
       if (product.productType >= _productTypes.length) {
-        revert InvalidProductType();
+        revert ProductTypeNotFound();
       }
 
       if (unsupportedCoverAssetsBitmap & product.coverAssets != 0) {
@@ -250,7 +250,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
       // Existing product
       if (param.productId >= _products.length) {
-        revert ProductDoesntExist();
+        revert ProductNotFound();
       }
 
       Product storage newProductValue = _products[param.productId];
@@ -301,12 +301,20 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     uint[] calldata productIds,
     string[] calldata ipfsMetadata
   ) external onlyAdvisoryBoard {
-    require(productIds.length == ipfsMetadata.length, "CoverProducts: length mismatch");
+
+    if (productIds.length != ipfsMetadata.length) {
+      revert MismatchedArrayLengths();
+    }
+
     uint productCount = _products.length;
 
     for (uint i = 0; i < productIds.length; i++) {
       uint productId = productIds[i];
-      require(productId < productCount, "CoverProducts: product does not exist");
+
+      if (productId >= productCount) {
+        revert ProductNotFound();
+      }
+
       productMetadata[productId].push(Metadata(ipfsMetadata[i], block.timestamp));
     }
   }
@@ -315,12 +323,20 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     uint[] calldata productTypeIds,
     string[] calldata ipfsMetadata
   ) external onlyAdvisoryBoard {
-    require(productTypeIds.length == ipfsMetadata.length, "CoverProducts: length mismatch");
+
+    if (productTypeIds.length != ipfsMetadata.length) {
+      revert MismatchedArrayLengths();
+    }
+
     uint productTypeCount = _productTypes.length;
 
     for (uint i = 0; i < productTypeIds.length; i++) {
       uint productTypeId = productTypeIds[i];
-      require(productTypeId < productTypeCount, "CoverProducts: product type does not exist");
+
+      if (productTypeId >= productTypeCount) {
+        revert ProductTypeNotFound();
+      }
+
       productTypeMetadata[productTypeId].push(Metadata(ipfsMetadata[i], block.timestamp));
     }
   }

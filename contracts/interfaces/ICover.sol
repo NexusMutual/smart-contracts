@@ -138,7 +138,6 @@ interface ICover {
   event CoverEdited(uint indexed coverId, uint indexed productId, uint indexed segmentId, address buyer, string ipfsMetadata);
 
   // Auth
-  error OnlyMemberRolesCanOperateTransfer();
   error OnlyOwnerOrApproved();
 
   // Cover details
@@ -149,23 +148,18 @@ interface ICover {
 
   // Products
   error ProductDoesntExist();
-  error ProductTypeNotFound();
-  error ProductDoesntExistOrIsDeprecated();
-  error InvalidProductType();
+  error ProductDeprecated();
   error UnexpectedProductId();
 
   // Cover and payment assets
   error CoverAssetNotSupported();
   error InvalidPaymentAsset();
   error UnexpectedCoverAsset();
-  error UnsupportedCoverAssets();
   error UnexpectedEthSent();
   error EditNotSupported();
 
   // Price & Commission
   error PriceExceedsMaxPremiumInAsset();
-  error InitialPriceRatioBelowGlobalMinPriceRatio();
-  error InitialPriceRatioAbove100Percent();
   error CommissionRateTooHigh();
 
   // ETH transfers
@@ -175,11 +169,8 @@ interface ICover {
   error ReturningEthRemainderToSenderFailed();
 
   // Misc
-  error AlreadyInitialized();
   error ExpiredCoversCannotBeEdited();
   error CoverNotYetExpired(uint coverId);
-  error CoverAlreadyExpired(uint coverId);
   error InsufficientCoverAmountAllocated();
   error UnexpectedPoolId();
-  error CapacityReductionRatioAbove100Percent();
 }

@@ -120,6 +120,7 @@ interface ICoverProducts {
   error PoolNotAllowedForThisProduct(uint productId);
   error StakingPoolDoesNotExist();
   error MismatchedArrayLengths();
+  error MetadataRequired();
 
   // Misc
   error UnsupportedCoverAssets();

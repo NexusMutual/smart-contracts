@@ -79,6 +79,14 @@ interface ICoverProducts {
   // add grace period function?
   function getProductWithType(uint productId) external view returns (Product memory, ProductType memory);
 
+  function getLatestProductMetadata(uint productId) external view returns (Metadata memory);
+
+  function getLatestProductTypeMetadata(uint productTypeId) external view returns (Metadata memory);
+
+  function getProductMetadata(uint productId) external view returns (Metadata[] memory);
+
+  function getProductTypeMetadata(uint productTypeId) external view returns (Metadata[] memory);
+
   function getAllowedPools(uint productId) external view returns (uint[] memory _allowedPools);
 
   function getAllowedPoolsCount(uint productId) external view returns (uint);

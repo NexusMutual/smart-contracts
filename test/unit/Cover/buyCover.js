@@ -486,7 +486,7 @@ describe('buyCover', function () {
         poolAllocationRequest,
         { value: '0' },
       ),
-    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExist');
+    ).to.be.revertedWithCustomError(cover, 'ProductNotFound');
   });
 
   it('should revert if cover asset does not exist', async function () {

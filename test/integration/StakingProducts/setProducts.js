@@ -112,7 +112,7 @@ describe('setProducts', function () {
           productId: nonExistentProductId,
         },
       ]),
-    ).to.be.revertedWithCustomError(coverProducts, 'ProductDoesntExist');
+    ).to.be.revertedWithCustomError(coverProducts, 'ProductNotFound');
   });
 
   it('should fail to set product that is not allowed', async function () {

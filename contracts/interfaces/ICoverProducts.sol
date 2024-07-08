@@ -105,30 +105,18 @@ interface ICoverProducts {
 
   /* ========== EVENTS ========== */
 
-  event ProductSet(uint id, string ipfsMetadata);
-  event ProductTypeSet(uint id, string ipfsMetadata);
-
-  // Products
-  error ProductDoesntExist();
+  // Products and product types
+  error ProductNotFound();
   error ProductTypeNotFound();
   error ProductDeprecated();
-  error InvalidProductType();
-  error UnexpectedProductId();
   error PoolNotAllowedForThisProduct(uint productId);
   error StakingPoolDoesNotExist();
-
-  // Cover and payment assets
-  error UnsupportedCoverAssets();
-  error UnexpectedEthSent();
-
-  // Price & Commission
-  error PriceExceedsMaxPremiumInAsset();
-  error TargetPriceBelowGlobalMinPriceRatio();
-  error InitialPriceRatioBelowGlobalMinPriceRatio();
-  error InitialPriceRatioAbove100Percent();
-  error CommissionRateTooHigh();
+  error MismatchedArrayLengths();
 
   // Misc
+  error UnsupportedCoverAssets();
+  error InitialPriceRatioBelowGlobalMinPriceRatio();
+  error InitialPriceRatioAbove100Percent();
   error CapacityReductionRatioAbove100Percent();
 
 }

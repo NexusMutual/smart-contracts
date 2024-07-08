@@ -5,6 +5,7 @@ const { ethers, network } = require('hardhat');
 const evm = require('./evm')();
 
 const { parseEther } = ethers.utils;
+const { BigNumber } = ethers;
 
 describe('NexusViewer', function () {
   before(async function () {
@@ -44,27 +45,16 @@ describe('NexusViewer', function () {
     const member = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
     const tokenIds = [2, 31, 38, 86];
     const claimableNxm = await this.nexusViewer.getClaimableNxm(member, tokenIds);
-    console.debug('claimableNxm: ', require('util').inspect(claimableNxm, { depth: null }));
 
-    return;
-
-    expect(claimableNxm.aggregateStakingTokens.totalActiveStake).to.equal();
-    expect(claimableNxm.aggregateStakingTokens.totalExpiredStake).to.equal();
-    expect(claimableNxm.aggregateStakingTokens.totalRewards).to.equal();
-    expect(claimableNxm.assessmentRewards.totalPendingAmountInNXM).to.equal();
-    expect(claimableNxm.assessmentRewards.withdrawableAmountInNXM).to.equal();
-    expect(claimableNxm.assessmentRewards.withdrawableUntilIndex).to.equal();
-    expect(claimableNxm.governanceRewards).to.equal();
-    expect(claimableNxm.v1CoverNotesAmount).to.equal();
-
-    expect(claimableNxm.legacyPooledStakingTokens.deposit).to.equal();
-    expect(claimableNxm.legacyPooledStakingTokens.rewards).to.equal();
-    expect(claimableNxm.legacyPooledStakingTokens.stakes).to.equal();
-    expect(claimableNxm.legacyPooledStakingTokens.pendingUnstakeRequestsTotal).to.equal();
-    expect(claimableNxm.legacyPooledStakingTokens.isInContractStakers).to.equal();
-
-    claimableNxm.legacyPooledStakingTokens.contracts.forEach(contract => {
-      //
-    });
+    expect(claimableNxm.governanceRewards).to.be.instanceOf(BigNumber);
+    expect(claimableNxm.aggregateStakingTokens.totalActiveStake).to.be.instanceOf(BigNumber);
+    expect(claimableNxm.aggregateStakingTokens.totalExpiredStake).to.be.instanceOf(BigNumber);
+    expect(claimableNxm.aggregateStakingTokens.totalRewards).to.be.instanceOf(BigNumber);
+    expect(claimableNxm.assessmentRewards.totalPendingAmountInNXM).to.be.instanceOf(BigNumber);
+    expect(claimableNxm.assessmentRewards.withdrawableAmountInNXM).to.be.instanceOf(BigNumber);
+    expect(claimableNxm.assessmentRewards.withdrawableUntilIndex).to.be.instanceOf(BigNumber);
+    expect(claimableNxm.legacyPooledStake.deposit).to.be.instanceOf(BigNumber);
+    expect(claimableNxm.legacyPooledStake.reward).to.be.instanceOf(BigNumber);
+    expect(claimableNxm.v1CoverNotesAmount).to.be.instanceOf(BigNumber);
   });
 });

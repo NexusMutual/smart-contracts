@@ -239,11 +239,14 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
       // New product has id == uint256.max
       if (param.productId == type(uint256).max) {
+        // the metadata is optional, do not push if empty
         if (bytes(param.ipfsMetadata).length > 0) {
-          productMetadata[param.productId].push(Metadata(param.ipfsMetadata, block.timestamp));
+          productMetadata[_products.length].push(Metadata(param.ipfsMetadata, block.timestamp));
         }
+
         productNames[_products.length] = param.productName;
         allowedPools[_products.length] = param.allowedPools;
+
         _products.push(product);
         continue;
       }
@@ -265,9 +268,8 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
         productNames[param.productId] = param.productName;
       }
 
-      if (bytes(param.ipfsMetadata).length > 0) {
-        productMetadata[param.productId].push(Metadata(param.ipfsMetadata, block.timestamp));
-      }
+      // can push empty metadata when updating to "remove" it
+      productMetadata[param.productId].push(Metadata(param.ipfsMetadata, block.timestamp));
     }
   }
 
@@ -278,22 +280,32 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
       // New product has id == uint256.max
       if (param.productTypeId == type(uint256).max) {
+
+        // the product type metadata is mandatory
+        if (bytes(param.ipfsMetadata).length == 0) {
+          revert MetadataRequired();
+        }
+
         productTypeMetadata[param.productTypeId].push(Metadata(param.ipfsMetadata, block.timestamp));
         productTypeNames[_productTypes.length] = param.productTypeName;
         _productTypes.push(param.productType);
+
         continue;
       }
 
       if (param.productTypeId >= _productTypes.length) {
         revert ProductTypeNotFound();
       }
+
       _productTypes[param.productTypeId].gracePeriod = param.productType.gracePeriod;
 
       if (bytes(param.productTypeName).length > 0) {
         productTypeNames[param.productTypeId] = param.productTypeName;
       }
 
-      productTypeMetadata[param.productTypeId].push(Metadata(param.ipfsMetadata, block.timestamp));
+      if (bytes(param.ipfsMetadata).length > 0) {
+        productTypeMetadata[param.productTypeId].push(Metadata(param.ipfsMetadata, block.timestamp));
+      }
     }
   }
 
@@ -337,6 +349,10 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
         revert ProductTypeNotFound();
       }
 
+      if (bytes(ipfsMetadata[i]).length == 0) {
+        revert MetadataRequired();
+      }
+
       productTypeMetadata[productTypeId].push(Metadata(ipfsMetadata[i], block.timestamp));
     }
   }
@@ -373,7 +389,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
   /* ========== DEPENDENCIES ========== */
 
-  function migrateCoverProducts() external {
+  function migrateCoverProductsz() external {
     require(_products.length == 0, "CoverProducts: _products already migrated");
     require(_productTypes.length == 0, "CoverProducts: _productTypes already migrated");
 

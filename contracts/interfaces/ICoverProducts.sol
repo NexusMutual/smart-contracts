@@ -34,6 +34,13 @@ struct ProductType {
 
 interface ICoverProducts {
 
+  /* storage structs */
+
+  struct Metadata {
+    string ipfsHash;
+    uint timestamp;
+  }
+
   /* io structs */
 
   struct ProductParam {

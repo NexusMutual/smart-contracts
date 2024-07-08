@@ -28,6 +28,9 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
   // product id => allowed pool ids
   mapping(uint => uint[]) internal allowedPools;
 
+  mapping(uint => Metadata[]) internal productMetadata;
+  mapping(uint => Metadata[]) internal productTypeMetadata;
+
   /* ========== CONSTANTS ========== */
 
   uint private constant PRICE_DENOMINATOR = 10000;
@@ -73,6 +76,28 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
   ) {
     product = _products[productId];
     productType = _productTypes[product.productType];
+  }
+
+  function getLatestProductMetadata(uint productId) public view returns (Metadata memory) {
+    uint metadataLength = productMetadata[productId].length;
+    return metadataLength > 0
+      ? productMetadata[productId][metadataLength - 1]
+      : Metadata("", 0);
+  }
+
+  function getLatestProductTypeMetadata(uint productTypeId) public view returns (Metadata memory) {
+    uint metadataLength = productTypeMetadata[productTypeId].length;
+    return metadataLength > 0
+      ? productTypeMetadata[productTypeId][metadataLength - 1]
+      : Metadata("", 0);
+  }
+
+  function getProductMetadata(uint productId) public view returns (Metadata[] memory) {
+    return productMetadata[productId];
+  }
+
+  function getProductTypeMetadata(uint productTypeId) public view returns (Metadata[] memory) {
+    return productTypeMetadata[productTypeId];
   }
 
   function getAllowedPools(uint productId) external view returns (uint[] memory _allowedPools) {
@@ -214,7 +239,9 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
       // New product has id == uint256.max
       if (param.productId == type(uint256).max) {
-        emit ProductSet(_products.length, param.ipfsMetadata);
+        if (bytes(param.ipfsMetadata).length > 0) {
+          productMetadata[param.productId].push(Metadata(param.ipfsMetadata, block.timestamp));
+        }
         productNames[_products.length] = param.productName;
         allowedPools[_products.length] = param.allowedPools;
         _products.push(product);
@@ -239,7 +266,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       }
 
       if (bytes(param.ipfsMetadata).length > 0) {
-        emit ProductSet(param.productId, param.ipfsMetadata);
+        productMetadata[param.productId].push(Metadata(param.ipfsMetadata, block.timestamp));
       }
     }
   }
@@ -251,7 +278,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
       // New product has id == uint256.max
       if (param.productTypeId == type(uint256).max) {
-        emit ProductTypeSet(_productTypes.length, param.ipfsMetadata);
+        productTypeMetadata[param.productTypeId].push(Metadata(param.ipfsMetadata, block.timestamp));
         productTypeNames[_productTypes.length] = param.productTypeName;
         _productTypes.push(param.productType);
         continue;
@@ -266,9 +293,35 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
         productTypeNames[param.productTypeId] = param.productTypeName;
       }
 
-      if (bytes(param.ipfsMetadata).length > 0) {
-        emit ProductTypeSet(param.productTypeId, param.ipfsMetadata);
-      }
+      productTypeMetadata[param.productTypeId].push(Metadata(param.ipfsMetadata, block.timestamp));
+    }
+  }
+
+  function setProductsMetadata(
+    uint[] calldata productIds,
+    string[] calldata ipfsMetadata
+  ) external onlyAdvisoryBoard {
+    require(productIds.length == ipfsMetadata.length, "CoverProducts: length mismatch");
+    uint productCount = _products.length;
+
+    for (uint i = 0; i < productIds.length; i++) {
+      uint productId = productIds[i];
+      require(productId < productCount, "CoverProducts: product does not exist");
+      productMetadata[productId].push(Metadata(ipfsMetadata[i], block.timestamp));
+    }
+  }
+
+  function setProductTypesMetadata(
+    uint[] calldata productTypeIds,
+    string[] calldata ipfsMetadata
+  ) external onlyAdvisoryBoard {
+    require(productTypeIds.length == ipfsMetadata.length, "CoverProducts: length mismatch");
+    uint productTypeCount = _productTypes.length;
+
+    for (uint i = 0; i < productTypeIds.length; i++) {
+      uint productTypeId = productTypeIds[i];
+      require(productTypeId < productTypeCount, "CoverProducts: product type does not exist");
+      productTypeMetadata[productTypeId].push(Metadata(ipfsMetadata[i], block.timestamp));
     }
   }
 

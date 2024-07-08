@@ -78,25 +78,25 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     productType = _productTypes[product.productType];
   }
 
-  function getLatestProductMetadata(uint productId) public view returns (Metadata memory) {
+  function getLatestProductMetadata(uint productId) external view returns (Metadata memory) {
     uint metadataLength = productMetadata[productId].length;
     return metadataLength > 0
       ? productMetadata[productId][metadataLength - 1]
       : Metadata("", 0);
   }
 
-  function getLatestProductTypeMetadata(uint productTypeId) public view returns (Metadata memory) {
+  function getLatestProductTypeMetadata(uint productTypeId) external view returns (Metadata memory) {
     uint metadataLength = productTypeMetadata[productTypeId].length;
     return metadataLength > 0
       ? productTypeMetadata[productTypeId][metadataLength - 1]
       : Metadata("", 0);
   }
 
-  function getProductMetadata(uint productId) public view returns (Metadata[] memory) {
+  function getProductMetadata(uint productId) external view returns (Metadata[] memory) {
     return productMetadata[productId];
   }
 
-  function getProductTypeMetadata(uint productTypeId) public view returns (Metadata[] memory) {
+  function getProductTypeMetadata(uint productTypeId) external view returns (Metadata[] memory) {
     return productTypeMetadata[productTypeId];
   }
 

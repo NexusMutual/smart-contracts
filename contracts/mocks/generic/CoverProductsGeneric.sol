@@ -45,6 +45,22 @@ contract CoverProductsGeneric is ICoverProducts {
     revert("Unsupported");
   }
 
+  function getLatestProductMetadata(uint) external virtual view returns (Metadata memory) {
+    revert("Unsupported");
+  }
+
+  function getLatestProductTypeMetadata(uint) external virtual view returns (Metadata memory) {
+    revert("Unsupported");
+  }
+
+  function getProductMetadata(uint) external virtual view returns (Metadata[] memory) {
+    revert("Unsupported");
+  }
+
+  function getProductTypeMetadata(uint) external virtual view returns (Metadata[] memory) {
+    revert("Unsupported");
+  }
+
   function getAllowedPools(uint) external virtual view returns (uint[] memory) {
     revert("Unsupported");
   }

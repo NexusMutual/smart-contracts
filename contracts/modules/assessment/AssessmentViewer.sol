@@ -23,16 +23,16 @@ contract AssessmentViewer is IAssessmentViewer {
     return IAssessment(master.getLatestAddress("AS"));
   }
 
-  /// @notice Get rewards details for a user
-  /// @param user The address of the user
+  /// @notice Get rewards details for a member
+  /// @param member The address of the member
   /// @return AssessmentRewards structure containing reward details
-  function getRewards(address user) external view returns (AssessmentRewards memory) {
+  function getRewards(address member) external view returns (AssessmentRewards memory) {
 
     (
       uint totalPendingAmountInNXM,
       uint withdrawableAmountInNXM,
       uint withdrawableUntilIndex
-    ) = assessment().getRewards(user);
+    ) = assessment().getRewards(member);
 
     return AssessmentRewards({
       totalPendingAmountInNXM: totalPendingAmountInNXM,

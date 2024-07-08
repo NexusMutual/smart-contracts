@@ -136,7 +136,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       ICoverProducts _coverProducts = coverProducts();
 
       if (_coverProducts.getProductCount() <= params.productId) {
-        revert ProductDoesntExist();
+        revert ProductNotFound();
       }
 
       (

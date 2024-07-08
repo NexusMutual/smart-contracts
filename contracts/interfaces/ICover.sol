@@ -147,7 +147,7 @@ interface ICover {
   error CoverAmountIsZero();
 
   // Products
-  error ProductDoesntExist();
+  error ProductNotFound();
   error ProductDeprecated();
   error UnexpectedProductId();
 

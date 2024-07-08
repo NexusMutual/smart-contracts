@@ -11,6 +11,8 @@ import {IPooledStaking} from "../../interfaces/IPooledStaking.sol";
 import {IStakingViewer} from "../../interfaces/IStakingViewer.sol";
 import {ITokenController} from "../../interfaces/ITokenController.sol";
 
+/// @title NexusViewer Contract
+/// @notice This contract provides a unified view of system-wide data from various contracts within the Nexus Mutual platform.
 contract NexusViewer is Multicall {
   struct LegacyPoolStake {
     uint deposit;
@@ -40,19 +42,23 @@ contract NexusViewer is Multicall {
     assessmentViewer = _assessmentViewer;
   }
 
-  /// @notice This does not include NXM from manager rewards (use stakingViewer.getManagedPoolsAndRewards)
-  function getClaimableNxm(address user, uint[] calldata tokenIds) public view returns (ClaimableNxm memory) {
+  /// @notice Retrieves the claimable NXM tokens for a given member.
+  /// @dev This does not include NXM from manager rewards (use stakingViewer.getManagerTokenRewards)
+  /// @param member The address of the member to query.
+  /// @param tokenIds An array of staking NFT token IDs associated with the member.
+  /// @return A ClaimableNxm struct containing details of the claimable NXM tokens.
+  function getClaimableNxm(address member, uint[] calldata tokenIds) public view returns (ClaimableNxm memory) {
 
     IPooledStaking legacyPooledStaking = _legacyPooledStaking();
-    uint deposit = legacyPooledStaking.stakerDeposit(user);
-    uint reward = legacyPooledStaking.stakerReward(user);
+    uint deposit = legacyPooledStaking.stakerDeposit(member);
+    uint reward = legacyPooledStaking.stakerReward(member);
     LegacyPoolStake memory legacyPooledStake = LegacyPoolStake({deposit: deposit, reward: reward});
 
     IStakingViewer.AggregatedTokens memory aggregatedTokens = stakingViewer.getAggregatedTokens(tokenIds);
-    IAssessmentViewer.AssessmentRewards memory assessmentRewards = assessmentViewer.getRewards(user);
+    IAssessmentViewer.AssessmentRewards memory assessmentRewards = assessmentViewer.getRewards(member);
 
-    uint governanceRewards = _governance().getPendingReward(user);
-    (, , uint withdrawableAmount) = _tokenController().getWithdrawableCoverNotes(user);
+    uint governanceRewards = _governance().getPendingReward(member);
+    (, , uint withdrawableAmount) = _tokenController().getWithdrawableCoverNotes(member);
 
     return ClaimableNxm({
       aggregateStakingTokens: aggregatedTokens,
@@ -63,6 +69,10 @@ contract NexusViewer is Multicall {
     });
   }
 
+  /// @notice Retrieves the locked NXM tokens for a given member.
+  /// @param member The address of the member to query.
+  /// @param tokenIds An array of staking NFT token IDs associated with the member.
+  /// @return A LockedNxm struct containing details of the locked NXM tokens.
   function getLockedNxm(address member, uint[] calldata tokenIds) public view returns (LockedNxm memory) {
 
     IStakingViewer.AggregatedTokens memory aggregatedTokens = stakingViewer.getAggregatedTokens(tokenIds);

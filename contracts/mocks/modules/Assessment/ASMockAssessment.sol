@@ -29,67 +29,82 @@ contract ASMockAssessment is IAssessment {
     votesOf[assessor].push(Vote(uint80(assessmentId), isAcceptVote, uint32(block.timestamp), stakeAmount));
   }
 
+  function setStakeOf(
+    address assessor,
+    uint96 amount,
+    uint104 rewardsWithdrawableFromIndex,
+    uint16 fraudCount
+  ) external {
+    stakeOf[assessor] = Stake({
+      amount: amount,
+      rewardsWithdrawableFromIndex: rewardsWithdrawableFromIndex,
+      fraudCount: fraudCount
+    });
+  }
+
   /* ========== VIEWS ========== */
 
   function getVoteCountOfAssessor(address assessor) external view override returns (uint) {
     return votesOf[assessor].length;
   }
 
+  /* ========== NOT YET IMPLEMENTED ========== */
+
   function getAssessmentsCount() external pure override returns (uint) {
-    revert("Not yet implemented");
+    revert("getAssessmentsCount not yet implemented");
   }
 
   function assessments(uint) external pure override returns (Poll memory, uint128, uint128) {
-    revert("Not yet implemented");
+    revert("assessments not yet implemented");
   }
 
   function getPoll(uint) external pure override returns (Poll memory) {
-    revert("Not yet implemented");
+    revert("getPoll not yet implemented");
   }
 
   function getRewards(address) external pure override returns (uint, uint, uint) {
-    revert("Not yet implemented");
+    revert("getRewards not yet implemented");
   }
 
   function hasAlreadyVotedOn(address, uint) external pure override returns (bool) {
-    revert("Not yet implemented");
+    revert("hasAlreadyVotedOn not yet implemented");
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
 
   function stake(uint96) external pure override {
-    revert("Not yet implemented");
+    revert("stake not yet implemented");
   }
 
   function unstake(uint96, address) external pure override {
-    revert("Not yet implemented");
+    revert("unstake not yet implemented");
   }
 
   function withdrawRewards(address, uint104) external pure override returns (uint, uint) {
-    revert("Not yet implemented");
+    revert("withdrawRewards not yet implemented");
   }
 
   function withdrawRewardsTo(address, uint104) external pure override returns (uint, uint) {
-    revert("Not yet implemented");
+    revert("withdrawRewardsTo not yet implemented");
   }
 
   function startAssessment(uint, uint) external pure override returns (uint) {
-    revert("Not yet implemented");
+    revert("startAssessment not yet implemented");
   }
 
   function castVotes(uint[] calldata, bool[] calldata, string[] calldata, uint96) external pure override {
-    revert("Not yet implemented");
+    revert("castVotes not yet implemented");
   }
 
   function submitFraud(bytes32) external pure override {
-    revert("Not yet implemented");
+    revert("submitFraud not yet implemented");
   }
 
   function processFraud(uint256, bytes32[] calldata, address, uint256, uint96, uint16, uint256) external pure override {
-    revert("Not yet implemented");
+    revert("processFraud not yet implemented");
   }
 
   function updateUintParameters(UintParams[] calldata, uint[] calldata) external pure override {
-    revert("Not yet implemented");
+    revert("updateUintParameters not yet implemented");
   }
 }

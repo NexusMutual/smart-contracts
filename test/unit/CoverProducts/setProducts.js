@@ -1,7 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const setup = require('../Cover/setup');
+const setup = require('./setup');
+
 const { resultAsObject } = require('../utils').results;
 const { AddressZero, MaxUint256 } = ethers.constants;
 

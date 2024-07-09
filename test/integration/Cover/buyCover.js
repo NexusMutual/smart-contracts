@@ -349,7 +349,7 @@ describe('buyCover', function () {
           [{ poolId: 1, coverAmountInAsset: amount }],
           { value: amount },
         ),
-    ).to.revertedWithCustomError(cover, 'ProductDoesntExistOrIsDeprecated');
+    ).to.revertedWithCustomError(cover, 'ProductDeprecated');
   });
 });
 

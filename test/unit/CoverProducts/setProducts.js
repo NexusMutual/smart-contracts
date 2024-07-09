@@ -92,7 +92,7 @@ describe('setProducts', function () {
     expect(actualProduct).to.deep.equal(expectedProduct);
   });
 
-  it('should update metadata when editing the product if the new value is empty', async function () {
+  it('should not update metadata when editing the product if the new value is empty', async function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
@@ -112,9 +112,11 @@ describe('setProducts', function () {
     await coverProducts.connect(advisoryBoardMember0).setProducts([updateProductParams]);
 
     const productMetadata = await coverProducts.getProductMetadata(expectedProductId);
+    expect(productMetadata.length).to.be.equal(1);
+    expect(productMetadata[0].ipfsHash).to.be.equal(addProductParams.ipfsMetadata);
 
-    expect(productMetadata.length).to.be.equal(2);
-    expect(productMetadata[1].ipfsHash).to.be.equal(newMetadata);
+    const latestMetadata = await coverProducts.getLatestProductMetadata(expectedProductId);
+    expect(latestMetadata.ipfsHash).to.be.equal(addProductParams.ipfsMetadata);
   });
 
   it('should update metadata when editing the product if the new value is not empty', async function () {

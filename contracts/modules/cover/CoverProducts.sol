@@ -286,7 +286,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
           revert MetadataRequired();
         }
 
-        productTypeMetadata[param.productTypeId].push(Metadata(param.ipfsMetadata, block.timestamp));
+        productTypeMetadata[_productTypes.length].push(Metadata(param.ipfsMetadata, block.timestamp));
         productTypeNames[_productTypes.length] = param.productTypeName;
         _productTypes.push(param.productType);
 
@@ -389,7 +389,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
   /* ========== DEPENDENCIES ========== */
 
-  function migrateCoverProductsz() external {
+  function migrateCoverProducts() external {
     require(_products.length == 0, "CoverProducts: _products already migrated");
     require(_productTypes.length == 0, "CoverProducts: _productTypes already migrated");
 

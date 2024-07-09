@@ -37,37 +37,83 @@ describe('setProductTypes', function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
-    const productTypeId = 1;
+
+    expect(await coverProducts.getProductTypeCount()).to.be.equal(1);
+
+    const expectedProductTypeId = 1;
     const productTypeParams = { ...ProductTypeParamTemplate };
-    await expect(coverProducts.connect(advisoryBoardMember0).setProductTypes([productTypeParams]))
-      .to.emit(coverProducts, 'ProductTypeSet')
-      .withArgs(productTypeId, ipfsMetadata);
+    const tx = await coverProducts.connect(advisoryBoardMember0).setProductTypes([productTypeParams]);
+    const receipt = await tx.wait();
+    const { timestamp } = await ethers.provider.getBlock(receipt.blockNumber);
+
+    const actualProductType = await coverProducts.getProductType(expectedProductTypeId);
+    const metadata = await coverProducts.getProductTypeMetadata(expectedProductTypeId);
+    const [metadataItem] = metadata;
+
+    expect(await coverProducts.getProductTypeCount()).to.be.equal(2);
+    expect(actualProductType.gracePeriod).to.be.equal(ProductTypeTemplate.gracePeriod);
+    expect(actualProductType.claimMethod).to.be.equal(ProductTypeTemplate.claimMethod);
+
+    expect(metadata.length).to.be.equal(1);
+    expect(metadataItem.ipfsHash).to.be.equal(productTypeParams.ipfsMetadata);
+    expect(metadataItem.timestamp).to.be.equal(timestamp);
   });
 
-  it('should edit gracePeriod on an existing product', async function () {
+  it('should revert if product type ipfs hash is empty for new product types', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+
+    const productTypeParams = { ...ProductTypeParamTemplate, ipfsMetadata: '' };
+    await expect(
+      coverProducts.connect(advisoryBoardMember0).setProductTypes([productTypeParams]),
+    ).to.be.revertedWithCustomError(coverProducts, 'MetadataRequired');
+  });
+
+  it('should not update metadata if the ipfs hash is empty', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+    const productTypeId = 1;
+
+    const initialProductTypeParam = { ...ProductTypeParamTemplate };
+    await coverProducts.connect(advisoryBoardMember0).setProductTypes([initialProductTypeParam]);
+
+    const updatedProductTypeParam = { ...ProductTypeParamTemplate, ipfsMetadata: '', productTypeId };
+    await coverProducts.connect(advisoryBoardMember0).setProductTypes([updatedProductTypeParam]);
+
+    const metadata = await coverProducts.getProductTypeMetadata(productTypeId);
+    expect(metadata.length).to.be.equal(1);
+
+    const [metadataItem] = metadata;
+    expect(metadataItem.ipfsHash).to.be.equal(initialProductTypeParam.ipfsMetadata);
+  });
+
+  it('should edit gracePeriod and metadata on an existing product', async function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
     const productTypeId = 1;
     const productTypeParams = { ...ProductTypeParamTemplate };
-    await expect(coverProducts.connect(advisoryBoardMember0).setProductTypes([productTypeParams]))
-      .to.emit(coverProducts, 'ProductTypeSet')
-      .withArgs(productTypeId, ipfsMetadata);
-    {
-      const gracePeriod = 10 * 24 * 3600; // 10 days
-      // claim method should not get updated
-      const claimMethod = 10;
-      const ipfsMetadata = 'new ipfs metadata';
-      const productType = { ...ProductTypeTemplate, claimMethod, gracePeriod };
-      const productEditParams = { ...ProductTypeParamTemplate, productTypeId, ipfsMetadata, productType };
-      await expect(coverProducts.connect(advisoryBoardMember0).setProductTypes([productEditParams]))
-        .to.emit(coverProducts, 'ProductTypeSet')
-        .withArgs(productTypeId, ipfsMetadata);
-      const productTypeActual = resultAsObject(await coverProducts.getProductType(productTypeId));
-      expect(productTypeActual.gracePeriod).to.be.equal(gracePeriod);
-      expect(productTypeActual.claimMethod).to.be.equal(ProductTypeTemplate.claimMethod);
-    }
+    await coverProducts.connect(advisoryBoardMember0).setProductTypes([productTypeParams]);
+
+    const claimMethod = 10;
+    const gracePeriod = 10 * 24 * 3600; // 10 days
+    const ipfsMetadata = 'new ipfs metadata';
+    const productType = { ...ProductTypeTemplate, claimMethod, gracePeriod };
+    const updatedProductTypeParam = { ...ProductTypeParamTemplate, productTypeId, ipfsMetadata, productType };
+    await coverProducts.connect(advisoryBoardMember0).setProductTypes([updatedProductTypeParam]);
+
+    const actualProductType = resultAsObject(await coverProducts.getProductType(productTypeId));
+    expect(actualProductType.gracePeriod).to.be.equal(gracePeriod);
+    expect(actualProductType.claimMethod).to.be.equal(ProductTypeTemplate.claimMethod);
+
+    const metadata = await coverProducts.getProductTypeMetadata(productTypeId);
+    expect(metadata.length).to.be.equal(2);
+
+    const [_unusedInitialMetadata, metadataItem] = metadata;
+    expect(metadataItem.ipfsHash).to.be.equal(ipfsMetadata);
   });
 
   it('should revert if trying to edit a non existing productType', async function () {
@@ -101,7 +147,7 @@ describe('setProductTypes', function () {
     expect(productTypeName).to.be.equal(expectedProductTypeName);
   });
 
-  it('should not change productTyype name for existing productType if passed empty string', async function () {
+  it('should not change productType name for existing productType if passed empty string', async function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;

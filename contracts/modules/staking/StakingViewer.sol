@@ -56,16 +56,17 @@ contract StakingViewer is IStakingViewer, Multicall {
   function getPool(uint poolId) public view returns (Pool memory pool) {
 
     IStakingPool _stakingPool = stakingPool(poolId);
+    uint activeStake = _stakingPool.getActiveStake();
 
     pool.poolId = poolId;
     pool.isPrivatePool = _stakingPool.isPrivatePool();
     pool.manager = _stakingPool.manager();
     pool.poolFee = _stakingPool.getPoolFee();
     pool.maxPoolFee = _stakingPool.getMaxPoolFee();
-    pool.activeStake = _stakingPool.getActiveStake();
+    pool.activeStake = activeStake;
     pool.currentAPY =
-      _stakingPool.getActiveStake() != 0
-        ? 1 ether * _stakingPool.getRewardPerSecond() * 365 days / _stakingPool.getActiveStake()
+      activeStake != 0
+        ? 1 ether * _stakingPool.getRewardPerSecond() * 365 days / activeStake
         : 0;
 
     return pool;

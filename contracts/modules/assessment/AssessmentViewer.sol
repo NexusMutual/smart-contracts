@@ -12,11 +12,9 @@ import {INXMToken} from "../../interfaces/INXMToken.sol";
 contract AssessmentViewer is IAssessmentViewer {
 
   INXMMaster public immutable master;
-  INXMToken public immutable nxmToken;
 
-  constructor(INXMMaster _master, INXMToken _nxmToken) {
+  constructor(INXMMaster _master) {
     master = _master;
-    nxmToken = _nxmToken;
   }
 
   function assessment() public view returns (IAssessment) {
@@ -47,10 +45,6 @@ contract AssessmentViewer is IAssessmentViewer {
   function isStakeLocked(address member) external view returns (bool stakeLocked) {
 
     IAssessment _assessment = assessment();
-
-    if (nxmToken.isLockedForMV(member) > block.timestamp) {
-      return true; // NXM is locked for voting in governance
-    }
 
     uint voteCount = _assessment.getVoteCountOfAssessor(member);
     if (voteCount == 0) return false;

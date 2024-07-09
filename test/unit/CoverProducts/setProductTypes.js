@@ -3,8 +3,8 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { resultAsObject } = require('../../utils/').results;
-const { MaxUint256 } = ethers.constants;
 
+const { MaxUint256 } = ethers.constants;
 const ipfsMetadata = 'ipfs metadata';
 
 //  coverProducts.ProductType

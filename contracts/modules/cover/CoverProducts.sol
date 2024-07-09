@@ -268,8 +268,9 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
         productNames[param.productId] = param.productName;
       }
 
-      // can push empty metadata when updating to "remove" it
-      productMetadata[param.productId].push(Metadata(param.ipfsMetadata, block.timestamp));
+      if (bytes(param.ipfsMetadata).length > 0) {
+        productMetadata[param.productId].push(Metadata(param.ipfsMetadata, block.timestamp));
+      }
     }
   }
 

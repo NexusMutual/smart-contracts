@@ -13,7 +13,7 @@ const setTime = async timestamp => {
 describe('isStakeLocked', function () {
   const ONE_DAY_SECONDS = 24 * 60 * 60;
 
-  it('should return false if user no locked NXM for governance and has 0 vote count in assessment', async function () {
+  it('should return false if user has 0 vote count in assessment', async function () {
     const fixture = await loadFixture(setup);
     const [member] = fixture.accounts.members;
     const { assessmentViewer } = fixture.contracts;
@@ -21,7 +21,7 @@ describe('isStakeLocked', function () {
     expect(await assessmentViewer.isStakeLocked(member.address)).to.equal(false);
   });
 
-  it('should return false if no locked NXM for governance and assessment lockup expiry has passed', async function () {
+  it('should return false if assessment lockup expiry has passed', async function () {
     const fixture = await loadFixture(setup);
     const [member] = fixture.accounts.members;
     const { assessmentViewer, assessment } = fixture.contracts;
@@ -38,17 +38,7 @@ describe('isStakeLocked', function () {
     expect(await assessmentViewer.isStakeLocked(member.address)).to.equal(false);
   });
 
-  it('should return true if user has locked NXM for governance', async function () {
-    const fixture = await loadFixture(setup);
-    const [member] = fixture.accounts.members;
-    const { assessmentViewer, nxm } = fixture.contracts;
-
-    await nxm.setLock(member.address, ONE_DAY_SECONDS);
-
-    expect(await assessmentViewer.isStakeLocked(member.address)).to.equal(true);
-  });
-
-  it('should return true if no locked NXM governance and assessment lockup expiry has not passed', async function () {
+  it('should return true if assessment lockup expiry has not passed', async function () {
     const fixture = await loadFixture(setup);
     const [member] = fixture.accounts.members;
     const { assessmentViewer, assessment } = fixture.contracts;

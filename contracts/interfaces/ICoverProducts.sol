@@ -34,6 +34,13 @@ struct ProductType {
 
 interface ICoverProducts {
 
+  /* storage structs */
+
+  struct Metadata {
+    string ipfsHash;
+    uint timestamp;
+  }
+
   /* io structs */
 
   struct ProductParam {
@@ -72,6 +79,14 @@ interface ICoverProducts {
   // add grace period function?
   function getProductWithType(uint productId) external view returns (Product memory, ProductType memory);
 
+  function getLatestProductMetadata(uint productId) external view returns (Metadata memory);
+
+  function getLatestProductTypeMetadata(uint productTypeId) external view returns (Metadata memory);
+
+  function getProductMetadata(uint productId) external view returns (Metadata[] memory);
+
+  function getProductTypeMetadata(uint productTypeId) external view returns (Metadata[] memory);
+
   function getAllowedPools(uint productId) external view returns (uint[] memory _allowedPools);
 
   function getAllowedPoolsCount(uint productId) external view returns (uint);
@@ -98,30 +113,19 @@ interface ICoverProducts {
 
   /* ========== EVENTS ========== */
 
-  event ProductSet(uint id, string ipfsMetadata);
-  event ProductTypeSet(uint id, string ipfsMetadata);
-
-  // Products
-  error ProductDoesntExist();
+  // Products and product types
+  error ProductNotFound();
   error ProductTypeNotFound();
   error ProductDeprecated();
-  error InvalidProductType();
-  error UnexpectedProductId();
   error PoolNotAllowedForThisProduct(uint productId);
   error StakingPoolDoesNotExist();
-
-  // Cover and payment assets
-  error UnsupportedCoverAssets();
-  error UnexpectedEthSent();
-
-  // Price & Commission
-  error PriceExceedsMaxPremiumInAsset();
-  error TargetPriceBelowGlobalMinPriceRatio();
-  error InitialPriceRatioBelowGlobalMinPriceRatio();
-  error InitialPriceRatioAbove100Percent();
-  error CommissionRateTooHigh();
+  error MismatchedArrayLengths();
+  error MetadataRequired();
 
   // Misc
+  error UnsupportedCoverAssets();
+  error InitialPriceRatioBelowGlobalMinPriceRatio();
+  error InitialPriceRatioAbove100Percent();
   error CapacityReductionRatioAbove100Percent();
 
 }

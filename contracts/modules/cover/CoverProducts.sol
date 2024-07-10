@@ -28,6 +28,9 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
   // product id => allowed pool ids
   mapping(uint => uint[]) internal allowedPools;
 
+  mapping(uint => Metadata[]) internal productMetadata;
+  mapping(uint => Metadata[]) internal productTypeMetadata;
+
   /* ========== CONSTANTS ========== */
 
   uint private constant PRICE_DENOMINATOR = 10000;
@@ -75,6 +78,28 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     productType = _productTypes[product.productType];
   }
 
+  function getLatestProductMetadata(uint productId) external view returns (Metadata memory) {
+    uint metadataLength = productMetadata[productId].length;
+    return metadataLength > 0
+      ? productMetadata[productId][metadataLength - 1]
+      : Metadata("", 0);
+  }
+
+  function getLatestProductTypeMetadata(uint productTypeId) external view returns (Metadata memory) {
+    uint metadataLength = productTypeMetadata[productTypeId].length;
+    return metadataLength > 0
+      ? productTypeMetadata[productTypeId][metadataLength - 1]
+      : Metadata("", 0);
+  }
+
+  function getProductMetadata(uint productId) external view returns (Metadata[] memory) {
+    return productMetadata[productId];
+  }
+
+  function getProductTypeMetadata(uint productTypeId) external view returns (Metadata[] memory) {
+    return productTypeMetadata[productTypeId];
+  }
+
   function getAllowedPools(uint productId) external view returns (uint[] memory _allowedPools) {
 
     uint allowedPoolCount = allowedPools[productId].length;
@@ -100,7 +125,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       uint productId = productIds[i];
 
       if (productId >= productCount) {
-        revert ProductDoesntExist();
+        revert ProductNotFound();
       }
 
       initialPrices[i] = _products[productId].initialPriceRatio;
@@ -118,7 +143,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       uint productId = productIds[i];
 
       if (productId >= productCount) {
-        revert ProductDoesntExist();
+        revert ProductNotFound();
       }
 
       capacityReductionRatios[i] = _products[productId].capacityReductionRatio;
@@ -141,7 +166,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       uint productId = params[i].productId;
 
       if (productId >= productCount) {
-        revert ProductDoesntExist();
+        revert ProductNotFound();
       }
 
       // if there is a list of allowed pools for this product - the new pool didn't exist yet
@@ -185,7 +210,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       Product calldata product = param.product;
 
       if (product.productType >= _productTypes.length) {
-        revert InvalidProductType();
+        revert ProductTypeNotFound();
       }
 
       if (unsupportedCoverAssetsBitmap & product.coverAssets != 0) {
@@ -214,16 +239,21 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
       // New product has id == uint256.max
       if (param.productId == type(uint256).max) {
-        emit ProductSet(_products.length, param.ipfsMetadata);
+        // the metadata is optional, do not push if empty
+        if (bytes(param.ipfsMetadata).length > 0) {
+          productMetadata[_products.length].push(Metadata(param.ipfsMetadata, block.timestamp));
+        }
+
         productNames[_products.length] = param.productName;
         allowedPools[_products.length] = param.allowedPools;
+
         _products.push(product);
         continue;
       }
 
       // Existing product
       if (param.productId >= _products.length) {
-        revert ProductDoesntExist();
+        revert ProductNotFound();
       }
 
       Product storage newProductValue = _products[param.productId];
@@ -239,7 +269,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       }
 
       if (bytes(param.ipfsMetadata).length > 0) {
-        emit ProductSet(param.productId, param.ipfsMetadata);
+        productMetadata[param.productId].push(Metadata(param.ipfsMetadata, block.timestamp));
       }
     }
   }
@@ -251,15 +281,23 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
       // New product has id == uint256.max
       if (param.productTypeId == type(uint256).max) {
-        emit ProductTypeSet(_productTypes.length, param.ipfsMetadata);
+
+        // the product type metadata is mandatory
+        if (bytes(param.ipfsMetadata).length == 0) {
+          revert MetadataRequired();
+        }
+
+        productTypeMetadata[_productTypes.length].push(Metadata(param.ipfsMetadata, block.timestamp));
         productTypeNames[_productTypes.length] = param.productTypeName;
         _productTypes.push(param.productType);
+
         continue;
       }
 
       if (param.productTypeId >= _productTypes.length) {
         revert ProductTypeNotFound();
       }
+
       _productTypes[param.productTypeId].gracePeriod = param.productType.gracePeriod;
 
       if (bytes(param.productTypeName).length > 0) {
@@ -267,8 +305,56 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       }
 
       if (bytes(param.ipfsMetadata).length > 0) {
-        emit ProductTypeSet(param.productTypeId, param.ipfsMetadata);
+        productTypeMetadata[param.productTypeId].push(Metadata(param.ipfsMetadata, block.timestamp));
       }
+    }
+  }
+
+  function setProductsMetadata(
+    uint[] calldata productIds,
+    string[] calldata ipfsMetadata
+  ) external onlyAdvisoryBoard {
+
+    if (productIds.length != ipfsMetadata.length) {
+      revert MismatchedArrayLengths();
+    }
+
+    uint productCount = _products.length;
+
+    for (uint i = 0; i < productIds.length; i++) {
+      uint productId = productIds[i];
+
+      if (productId >= productCount) {
+        revert ProductNotFound();
+      }
+
+      productMetadata[productId].push(Metadata(ipfsMetadata[i], block.timestamp));
+    }
+  }
+
+  function setProductTypesMetadata(
+    uint[] calldata productTypeIds,
+    string[] calldata ipfsMetadata
+  ) external onlyAdvisoryBoard {
+
+    if (productTypeIds.length != ipfsMetadata.length) {
+      revert MismatchedArrayLengths();
+    }
+
+    uint productTypeCount = _productTypes.length;
+
+    for (uint i = 0; i < productTypeIds.length; i++) {
+      uint productTypeId = productTypeIds[i];
+
+      if (productTypeId >= productTypeCount) {
+        revert ProductTypeNotFound();
+      }
+
+      if (bytes(ipfsMetadata[i]).length == 0) {
+        revert MetadataRequired();
+      }
+
+      productTypeMetadata[productTypeId].push(Metadata(ipfsMetadata[i], block.timestamp));
     }
   }
 

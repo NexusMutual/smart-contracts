@@ -1683,7 +1683,7 @@ describe('requestAllocation', function () {
       ),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
-    stakingPool.connect(fixture.coverSigner).requestAllocation(
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(
       maxCoverAmount, // exact available amount
       previousPremium,
       secondAllocationRequest,

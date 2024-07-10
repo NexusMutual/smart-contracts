@@ -1,7 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const setup = require('../Cover/setup');
+const setup = require('./setup');
+
 const { resultAsObject } = require('../utils').results;
 const { AddressZero, MaxUint256 } = ethers.constants;
 
@@ -30,21 +31,50 @@ describe('setProducts', function () {
     allowedPools: [],
   };
 
-  it('should add a single product and emit ProductSet event', async function () {
+  it('should add a single product', async function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productParams = { ...productParamsTemplate };
     const expectedProductId = await coverProducts.getProductCount();
-    await expect(coverProducts.connect(advisoryBoardMember0).setProducts([productParams]))
-      .to.emit(coverProducts, 'ProductSet')
-      .withArgs(expectedProductId, defaultIpfsData);
+    await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
     const product = resultAsObject(await coverProducts.getProduct(expectedProductId));
     const expectedProduct = productParams.product;
     expect(product).to.deep.equal(expectedProduct);
   });
 
-  it('should edit a single product and emit ProductSet event with updated args', async function () {
+  it('should set the metadata of the newly added product', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+    const productParams = { ...productParamsTemplate };
+    const expectedProductId = await coverProducts.getProductCount();
+
+    const tx = await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
+    const receipt = await tx.wait();
+    const { timestamp } = await ethers.provider.getBlock(receipt.blockNumber);
+
+    const actualProductMetadata = await coverProducts.getLatestProductMetadata(expectedProductId);
+
+    expect(actualProductMetadata.timestamp).to.be.equal(timestamp);
+    expect(actualProductMetadata.ipfsHash).to.be.equal(productParams.ipfsMetadata);
+  });
+
+  it('should leave the metadata of the newly added product empty', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+    const productParams = { ...productParamsTemplate, ipfsMetadata: '' };
+    const expectedProductId = await coverProducts.getProductCount();
+
+    await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
+    const actualProductMetadata = await coverProducts.getLatestProductMetadata(expectedProductId);
+
+    expect(actualProductMetadata.ipfsHash).to.be.equal('');
+    expect(actualProductMetadata.timestamp).to.be.equal(0);
+  });
+
+  it('should edit a single product', async function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
@@ -55,14 +85,63 @@ describe('setProducts', function () {
     const capacityReductionRatio = 500;
     const product = { ...productParams.product, capacityReductionRatio };
     const productId = (await coverProducts.getProductCount()).sub(1);
-    const ipfsMetadata = 'new ipfs hash';
-    const editParams = { ...productParams, ipfsMetadata, productId, product };
-    await expect(coverProducts.connect(advisoryBoardMember0).setProducts([editParams]))
-      .to.emit(coverProducts, 'ProductSet')
-      .withArgs(productId, ipfsMetadata);
+    const editParams = { ...productParams, productId, product };
+    await coverProducts.connect(advisoryBoardMember0).setProducts([editParams]);
     const actualProduct = resultAsObject(await coverProducts.getProduct(productId));
     const expectedProduct = editParams.product;
     expect(actualProduct).to.deep.equal(expectedProduct);
+  });
+
+  it('should not update metadata when editing the product if the new value is empty', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+    const expectedProductId = await coverProducts.getProductCount();
+
+    // add
+    const addProductParams = { ...productParamsTemplate };
+    await coverProducts.connect(advisoryBoardMember0).setProducts([addProductParams]);
+
+    // update
+    const newMetadata = ''; // empty
+    const updateProductParams = {
+      ...productParamsTemplate,
+      productId: expectedProductId,
+      ipfsMetadata: newMetadata,
+    };
+    await coverProducts.connect(advisoryBoardMember0).setProducts([updateProductParams]);
+
+    const productMetadata = await coverProducts.getProductMetadata(expectedProductId);
+    expect(productMetadata.length).to.be.equal(1);
+    expect(productMetadata[0].ipfsHash).to.be.equal(addProductParams.ipfsMetadata);
+
+    const latestMetadata = await coverProducts.getLatestProductMetadata(expectedProductId);
+    expect(latestMetadata.ipfsHash).to.be.equal(addProductParams.ipfsMetadata);
+  });
+
+  it('should update metadata when editing the product if the new value is not empty', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+    const expectedProductId = await coverProducts.getProductCount();
+
+    // add
+    const addProductParams = { ...productParamsTemplate };
+    await coverProducts.connect(advisoryBoardMember0).setProducts([addProductParams]);
+
+    // update
+    const newMetadata = 'non-empty-ipfs-hash';
+    const updateProductParams = {
+      ...productParamsTemplate,
+      productId: expectedProductId,
+      ipfsMetadata: newMetadata,
+    };
+    await coverProducts.connect(advisoryBoardMember0).setProducts([updateProductParams]);
+
+    const productMetadata = await coverProducts.getProductMetadata(expectedProductId);
+
+    expect(productMetadata.length).to.be.equal(2);
+    expect(productMetadata[1].ipfsHash).to.be.equal(newMetadata);
   });
 
   it('should revert if called by address not on advisory board', async function () {
@@ -83,9 +162,7 @@ describe('setProducts', function () {
     const previousProductsCount = await coverProducts.getProductCount();
     const newProductsCount = 40;
     const productParams = Array.from({ length: newProductsCount }, () => ({ ...productParamsTemplate }));
-    await expect(coverProducts.connect(advisoryBoardMember0).setProducts(productParams))
-      .to.emit(coverProducts, 'ProductSet')
-      .withArgs(40, defaultIpfsData);
+    await coverProducts.connect(advisoryBoardMember0).setProducts(productParams);
     const products = await coverProducts.getProducts();
     expect(products.length).to.be.equal(previousProductsCount.add(newProductsCount).toNumber());
   });
@@ -109,7 +186,7 @@ describe('setProducts', function () {
     const productParams = { ...productParamsTemplate, productId };
     await expect(
       coverProducts.connect(advisoryBoardMember0).setProducts([productParams]),
-    ).to.be.revertedWithCustomError(coverProducts, 'ProductDoesntExist');
+    ).to.be.revertedWithCustomError(coverProducts, 'ProductNotFound');
   });
 
   it('should revert if updated coverAssets are unsupported', async function () {
@@ -134,17 +211,14 @@ describe('setProducts', function () {
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = await coverProducts.getProductCount();
     const productParams = { ...productParamsTemplate };
-    await expect(coverProducts.connect(advisoryBoardMember0).setProducts([productParams]))
-      .to.emit(coverProducts, 'ProductSet')
-      .withArgs(productId, defaultIpfsData);
-    {
-      const coverAssets = parseInt('1111', 2); // ETH DAI, USDC and WBTC supported
-      const product = { ...productTemplate, coverAssets };
-      const productParams = { ...productParamsTemplate, product, productId };
-      await expect(
-        coverProducts.connect(advisoryBoardMember0).setProducts([productParams]),
-      ).to.be.revertedWithCustomError(coverProducts, 'UnsupportedCoverAssets');
-    }
+    await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
+
+    const coverAssets = parseInt('1111', 2); // ETH DAI, USDC and WBTC supported
+    const product = { ...productTemplate, coverAssets };
+    const updatedProductParams = { ...productParamsTemplate, product, productId };
+    await expect(
+      coverProducts.connect(advisoryBoardMember0).setProducts([updatedProductParams]),
+    ).to.be.revertedWithCustomError(coverProducts, 'UnsupportedCoverAssets');
   });
 
   it('should revert if initialPriceRatio > 100', async function () {
@@ -165,17 +239,14 @@ describe('setProducts', function () {
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = await coverProducts.getProductCount();
     const productParams = { ...productParamsTemplate };
-    await expect(coverProducts.connect(advisoryBoardMember0).setProducts([productParams]))
-      .to.emit(coverProducts, 'ProductSet')
-      .withArgs(productId, defaultIpfsData);
-    {
-      const initialPriceRatio = priceDenominator + 1;
-      const product = { ...productTemplate, initialPriceRatio };
-      const productParams = { ...productParamsTemplate, product, productId };
-      await expect(
-        coverProducts.connect(advisoryBoardMember0).setProducts([productParams]),
-      ).to.be.revertedWithCustomError(coverProducts, 'InitialPriceRatioAbove100Percent');
-    }
+    await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
+
+    const initialPriceRatio = priceDenominator + 1;
+    const product = { ...productTemplate, initialPriceRatio };
+    const updatedProductParams = { ...productParamsTemplate, product, productId };
+    await expect(
+      coverProducts.connect(advisoryBoardMember0).setProducts([updatedProductParams]),
+    ).to.be.revertedWithCustomError(coverProducts, 'InitialPriceRatioAbove100Percent');
   });
 
   it('should revert if initialPriceRatio is below GLOBAL_MIN_PRICE_RATIO', async function () {
@@ -227,9 +298,7 @@ describe('setProducts', function () {
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = await coverProducts.getProductCount();
     const productParams = { ...productParamsTemplate };
-    await expect(coverProducts.connect(advisoryBoardMember0).setProducts([productParams]))
-      .to.emit(coverProducts, 'ProductSet')
-      .withArgs(productId, defaultIpfsData);
+    await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
 
     const capacityReductionRatio = capacityFactor + 1; // 100.01 %
     const product = { ...productTemplate, capacityReductionRatio };
@@ -246,7 +315,7 @@ describe('setProducts', function () {
     const productParams = { ...productParamsTemplate, product: { ...productTemplate, productType: 99 } };
     await expect(
       coverProducts.connect(advisoryBoardMember0).setProducts([productParams]),
-    ).to.be.revertedWithCustomError(coverProducts, 'InvalidProductType');
+    ).to.be.revertedWithCustomError(coverProducts, 'ProductTypeNotFound');
   });
 
   it('should store product name for existing product', async function () {

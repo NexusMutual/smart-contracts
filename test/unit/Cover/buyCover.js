@@ -486,7 +486,7 @@ describe('buyCover', function () {
         poolAllocationRequest,
         { value: '0' },
       ),
-    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExist');
+    ).to.be.revertedWithCustomError(cover, 'ProductNotFound');
   });
 
   it('should revert if cover asset does not exist', async function () {
@@ -1436,7 +1436,7 @@ describe('buyCover', function () {
       cover.connect(coverBuyer).buyCover(buyCoverParams, [poolAllocationRequestTemplate], {
         value: expectedPremium,
       }),
-    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExistOrIsDeprecated');
+    ).to.be.revertedWithCustomError(cover, 'ProductDeprecated');
   });
 
   it('should be able to buy cover on a previously deprecated product', async function () {
@@ -1536,6 +1536,6 @@ describe('buyCover', function () {
     // edit cover
     await expect(
       cover.connect(coverBuyer).buyCover(editCoverParams, [poolAllocationRequestTemplate], { value: expectedPremium }),
-    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExistOrIsDeprecated');
+    ).to.be.revertedWithCustomError(cover, 'ProductDeprecated');
   });
 });

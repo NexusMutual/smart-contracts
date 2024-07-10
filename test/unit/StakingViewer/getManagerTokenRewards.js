@@ -2,7 +2,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { expect } = require('chai');
 
 const { setup } = require('./setup');
-const { calculateCurrentTrancheId } = require('./utils');
+const { calculateCurrentTrancheId } = require('../../fork/utils');
 
 describe('getManagerTokenRewards', function () {
   it('getManagerTokenRewards should return the correct rewards for the manager', async function () {

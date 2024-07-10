@@ -20,14 +20,19 @@ const main = async () => {
   const productSetEvents = await cover.queryFilter(productSetFilter, 16792244); // Cover deploy block
   const productTypesEvents = await cover.queryFilter(productTypesFilter, 16792244);
 
-  const productsMetadata = productSetEvents
+  const latestProductsMetadata = productSetEvents
     .sort((a, b) => a.blockNumber - b.blockNumber)
     .map(({ blockNumber, args }) => ({ id: args.id.toNumber(), ipfsMetadata: args.ipfsMetadata, blockNumber }))
-    .filter(event => event.ipfsMetadata !== '');
+    .reduce((acc, item) => ({ ...acc, [item.id]: item }), {});
 
-  const productTypesMetadata = productTypesEvents
+  const productsMetadata = Object.values(latestProductsMetadata).filter(event => event.ipfsMetadata !== '');
+
+  const latestProductTypesMetadata = productTypesEvents
     .sort((a, b) => a.blockNumber - b.blockNumber)
-    .map(({ blockNumber, args }) => ({ id: args.id.toNumber(), ipfsMetadata: args.ipfsMetadata, blockNumber }));
+    .map(({ blockNumber, args }) => ({ id: args.id.toNumber(), ipfsMetadata: args.ipfsMetadata, blockNumber }))
+    .reduce((acc, item) => ({ ...acc, [item.id]: item }), {});
+
+  const productTypesMetadata = Object.values(latestProductTypesMetadata);
 
   const setProductsMetadataTx = await coverProducts.populateTransaction.setProductsMetadata(
     productsMetadata.map(({ id }) => id),

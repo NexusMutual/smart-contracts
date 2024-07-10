@@ -1,4 +1,4 @@
-const { artifacts, config } = require('hardhat');
+const { artifacts, config, run } = require('hardhat');
 const fs = require('fs');
 const path = require('path');
 
@@ -73,7 +73,8 @@ if (require.main === module) {
     process.exit(1);
   }
 
-  main(outputFile)
+  run('compile')
+    .then(() => main(outputFile))
     .then(() => process.exit(0))
     .catch(e => {
       console.log('Unhandled error encountered: ', e.stack);

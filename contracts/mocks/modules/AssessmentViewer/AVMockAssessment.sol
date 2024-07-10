@@ -4,7 +4,7 @@ pragma solidity >=0.5.0;
 
 import {IAssessment} from "../../../interfaces/IAssessment.sol";
 
-contract ASMockAssessment is IAssessment {
+contract AVMockAssessment is IAssessment {
   Configuration public override config;
   mapping(address => Stake) public override stakeOf;
   mapping(address => Vote[]) public override votesOf;

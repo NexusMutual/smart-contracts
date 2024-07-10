@@ -7,7 +7,7 @@ async function setup() {
   const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
   const stakeLockupPeriodInDays = 2;
-  const assessment = await ethers.deployContract('ASMockAssessment', [1, stakeLockupPeriodInDays, 3, 4]);
+  const assessment = await ethers.deployContract('AVMockAssessment', [1, stakeLockupPeriodInDays, 3, 4]);
 
   await master.setLatestAddress(hex('AS'), assessment.address);
 

@@ -5,7 +5,7 @@ const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../utils').accounts;
 const { Role } = require('../utils').constants;
 const { setEtherBalance } = require('../utils').evm;
-const { calculateCurrentTrancheId } = require('./utils');
+const { calculateCurrentTrancheId } = require('../../fork/utils');
 
 const { parseEther, getContractAddress } = ethers.utils;
 

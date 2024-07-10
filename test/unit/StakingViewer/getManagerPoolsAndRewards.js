@@ -2,7 +2,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { expect } = require('chai');
 
 const { setup } = require('./setup');
-const { calculateCurrentTrancheId } = require('./utils');
+const { calculateCurrentTrancheId } = require('../../fork/utils');
 
 describe('getManagerPoolsAndRewards', function () {
   it('getManagerPoolsAndRewards should return the managed pools and rewards for the manager', async function () {

@@ -41,6 +41,7 @@ async function updateMCRSetup() {
 
   const operator = await tk.operator();
   await setEtherBalance(operator, parseEther('10000000'));
+  await setEtherBalance(member1.address, parseEther('1000000'));
 
   await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
   await tk.connect(member1).approve(tc.address, MaxUint256);

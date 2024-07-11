@@ -279,20 +279,14 @@ describe('coverProducts', function () {
   it('Upgrade contracts', async function () {
     const contractsBefore = await this.master.getInternalContracts();
 
-    // IndividualClaims.sol
-    this.individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
+    const individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
 
-    // YieldTokenIncidents.sol
-    this.yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
+    const yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
       this.nxm.address,
       this.coverNFT.address,
     ]);
 
-    // CoverNFTDescriptor.sol
-    this.coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [this.master.address]);
-
-    // StakingPool.sol
-    this.stakingPool = await ethers.deployContract('StakingPool', [
+    const stakingPool = await ethers.deployContract('StakingPool', [
       this.stakingNFT.address,
       this.nxm.address,
       this.cover.address,
@@ -301,33 +295,33 @@ describe('coverProducts', function () {
       this.stakingProducts.address,
     ]);
 
-    // Cover.sol
-    this.cover = await ethers.deployContract('Cover', [
+    const cover = await ethers.deployContract('Cover', [
       this.coverNFT.address,
       this.stakingNFT.address,
       this.stakingPoolFactory.address,
-      this.stakingPool.address,
+      stakingPool.address,
     ]);
 
-    // StakingViewer.sol
+    const stakingProducts = await ethers.deployContract('StakingProducts', [
+      this.cover.address,
+      this.stakingPoolFactory.address,
+    ]);
+
+    this.coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [this.master.address]);
+
     this.stakingViewer = await ethers.deployContract('StakingViewer', [
       this.master.address,
       this.stakingNFT.address,
       this.stakingPoolFactory.address,
     ]);
 
-    // StakingProducts.sol
-    this.stakingProducts = await ethers.deployContract('StakingProducts', [
-      this.cover.address,
-      this.stakingPoolFactory.address,
-    ]);
-
     const contractCodeAddressMapping = {
-      [ContractCode.IndividualClaims]: this.individualClaims.address,
-      [ContractCode.YieldTokenIncidents]: this.yieldTokenIncidents.address,
-      [ContractCode.Cover]: this.cover.address,
-      [ContractCode.StakingProducts]: this.stakingProducts.address,
+      [ContractCode.IndividualClaims]: individualClaims.address,
+      [ContractCode.YieldTokenIncidents]: yieldTokenIncidents.address,
+      [ContractCode.Cover]: cover.address,
+      [ContractCode.StakingProducts]: stakingProducts.address,
     };
+
     // NOTE: Do not manipulate the map between Object.keys and Object.values otherwise the ordering could go wrong
     const codes = Object.keys(contractCodeAddressMapping).map(code => toUtf8Bytes(code));
     const addresses = Object.values(contractCodeAddressMapping);
@@ -343,12 +337,6 @@ describe('coverProducts', function () {
 
     console.info('Upgrade Contracts before:', formatInternalContracts(contractsBefore));
     console.info('Upgrade Contracts after:', formatInternalContracts(contractsAfter));
-
-    // Set references to proxy contracts
-    this.individualClaims = await getContractByContractCode('IndividualClaims', ContractCode.IndividualClaims);
-    this.yieldTokenIncidents = await getContractByContractCode('YieldTokenIncidents', ContractCode.YieldTokenIncidents);
-    this.cover = await getContractByContractCode('Cover', ContractCode.Cover);
-    this.stakingProducts = await getContractByContractCode('StakingProducts', ContractCode.StakingProducts);
   });
 
   it('Compares storage of upgrade IndividualClaims contract', async function () {

@@ -170,11 +170,10 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
   ///
   /// @param _userAddress  The address of the user for whom the joining fee is paid.
   /// @param nonce        Signers nonce. Increments if new signature needed for the same address
-  /// @param  signature   The signed message hash
   function join(
     address _userAddress,
     uint nonce,
-    bytes calldata signature
+    bytes calldata
   ) public override payable {
     require(_userAddress != address(0), "MemberRoles: Address 0 cannot be used");
     require(!master.isPause(), "MemberRoles: Emergency pause applied");
@@ -185,27 +184,27 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     );
 
     // Reconstruct the original message hash.
-    bytes32 messageHash = keccak256(abi.encode(MEMBERSHIP_APPROVAL, nonce, _userAddress, block.chainid));
+    // bytes32 messageHash = keccak256(abi.encode(MEMBERSHIP_APPROVAL, nonce, _userAddress, block.chainid));
 
     // Verify if the message hash hasn't been used before. If it has, it means that the nonce for
     // the given _userAddress needs to be higher and the signature should use the first available
     // one.
-    require(
-      usedMessageHashes[messageHash] == false,
-      "MemberRoles: Signature already used"
-    );
+    // require(
+    //   usedMessageHashes[messageHash] == false,
+    //   "MemberRoles: Signature already used"
+    // );
 
     // Mark it as used to avoid whitelisting an unbounded number of addresses when combining this
     // function with the switchMembership function.
-    usedMessageHashes[messageHash] = true;
+    // usedMessageHashes[messageHash] = true;
 
     // Signatures are obtained by signing the hash of the messageHash prefixed with
     // "\x19Ethereum Signed Message:\n32". This gives us the actual hash that was signed off chain.
-    bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(messageHash);
+    // bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(messageHash);
 
     // Verify the signature to see if membership has been approved.
-    address recoveredAddress = ECDSA.recover(ethSignedMessageHash, signature);
-    require(recoveredAddress == kycAuthAddress, "MemberRoles: Signature is invalid");
+    // address recoveredAddress = ECDSA.recover(ethSignedMessageHash, signature);
+    // require(recoveredAddress == kycAuthAddress, "MemberRoles: Signature is invalid");
 
     // Whitelist the address.
     tokenController().addToWhitelist(_userAddress);

@@ -344,12 +344,22 @@ contract StakingViewer is IStakingViewer, Multicall {
     return tokens;
   }
 
+  function getManagerTotalRewards(address member) public view returns (uint managerTotalRewards) {
+
+    Token[] memory tokenRewards = getManagerTokenRewards(member);
+
+    for (uint i = 0; i < tokenRewards.length; i++) {
+      managerTotalRewards += tokenRewards[i].rewards;
+    }
+  }
+
   function getManagerPoolsAndRewards(address manager) external view returns (ManagerPoolsAndRewards memory) {
 
     Pool[] memory pools =  getManagedStakingPools(manager);
     Token[] memory tokens = getManagerTokenRewards(manager);
+    uint totalRewards = getManagerTotalRewards(manager);
 
-    return ManagerPoolsAndRewards({ pools: pools, rewards: tokens });
+    return ManagerPoolsAndRewards({ pools: pools, rewards: tokens, totalRewards: totalRewards });
   }
 
   function getManagerRewards(uint[] memory poolIds) external view returns (Token[] memory tokens) {

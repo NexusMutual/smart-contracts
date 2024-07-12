@@ -13,7 +13,7 @@ import {IStakingViewer} from "../../interfaces/IStakingViewer.sol";
 import {ITokenController} from "../../interfaces/ITokenController.sol";
 
 /// @title NexusViewer Contract
-/// @notice This contract provides a unified view of system-wide data from various contracts within the Nexus Mutual platform.
+/// @notice This contract provides a unified view of system-wide data from various contracts within the Nexus Mutual protocol.
 contract NexusViewer is INexusViewer, Multicall {
 
   INXMMaster public immutable master;
@@ -26,7 +26,7 @@ contract NexusViewer is INexusViewer, Multicall {
     assessmentViewer = _assessmentViewer;
   }
 
-  /// @notice Retrieves the claimable NXM tokens across the platform for a given member.
+  /// @notice Retrieves the claimable NXM tokens across the protocol for a given member.
   /// @dev Ensure the tokenIds passed belongs to the member address.
   /// @param member The address of the member to query.
   /// @param tokenIds An array of staking NFT token IDs associated with the member.
@@ -64,7 +64,7 @@ contract NexusViewer is INexusViewer, Multicall {
     });
   }
 
-  /// @notice Retrieves the locked NXM tokens across the platform for a given member.
+  /// @notice Retrieves the locked NXM tokens across the protocol for a given member.
   /// @dev Ensure the tokenIds passed belongs to the member address.
   /// @param member The address of the member to query.
   /// @param tokenIds An array of staking NFT token IDs associated with the member.

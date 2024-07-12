@@ -5,7 +5,7 @@ const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../utils').accounts;
 const { Role } = require('../utils').constants;
 const { setEtherBalance } = require('../utils').evm;
-const { calculateCurrentTrancheId } = require('../../fork/utils');
+const { calculateCurrentTrancheId } = require('../utils').stakingPool;
 
 const { parseEther, getContractAddress } = ethers.utils;
 
@@ -99,6 +99,9 @@ async function setup() {
 
   // deposit into staking pool
   const trancheId = await calculateCurrentTrancheId();
+  const tokenId = await stakingPool
+    .connect(manager)
+    .callStatic.depositTo(stakedNxmAmount, trancheId, 0, manager.address);
   await stakingPool.connect(manager).depositTo(stakedNxmAmount, trancheId, 0, manager.address);
 
   const stakingViewer = await ethers.deployContract('StakingViewer', [
@@ -122,7 +125,11 @@ async function setup() {
       coverProducts,
       cover,
     },
-    stakedNxmAmount,
+    stakingPool: {
+      stakedNxmAmount,
+      poolId,
+      tokenIds: [tokenId],
+    },
   };
 }
 

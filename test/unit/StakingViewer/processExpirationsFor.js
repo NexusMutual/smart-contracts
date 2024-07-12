@@ -16,20 +16,21 @@ async function getCurrentBucket() {
 async function processExpirationsForSetup() {
   const fixture = await loadFixture(setup);
   const { stakingNFT } = fixture.contracts;
+  const { tokenIds, poolId } = fixture.stakingPool;
   const [manager] = fixture.accounts.members;
 
-  const expectedPoolId = 1;
-  await stakingNFT.mint(expectedPoolId, manager.address);
+  const tokenId = await stakingNFT.callStatic.mint(poolId, manager.address);
+  await stakingNFT.mint(poolId, manager.address);
+  tokenIds.push(tokenId);
 
-  return {
-    ...fixture,
-  };
+  return fixture;
 }
 
 describe('processExpirationsFor', function () {
   it('processExpirationsFor should return the correct staking pools for the manager', async function () {
     const fixture = await loadFixture(processExpirationsForSetup);
     const { stakingViewer, stakingPool, stakingNFT } = fixture.contracts;
+    const { tokenIds } = fixture.stakingPool;
 
     const firstActiveBucketIdBefore = await stakingPool.getFirstActiveBucketId();
     const initialCurrentBucket = await getCurrentBucket();
@@ -39,7 +40,6 @@ describe('processExpirationsFor', function () {
     const increasedBuckets = 7;
     await increaseTime(BUCKET_DURATION * increasedBuckets);
 
-    const tokenIds = [1, 2];
     for (const tokenId of tokenIds) {
       const poolId = await stakingNFT.stakingPoolOf(tokenId);
       expect(poolId.toString()).to.equal('1');

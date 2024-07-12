@@ -2,13 +2,14 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { expect } = require('chai');
 
 const { setup } = require('./setup');
-const { calculateCurrentTrancheId } = require('../../fork/utils');
+const { calculateCurrentTrancheId } = require('../utils').stakingPool;
 
 describe('getManagerPoolsAndRewards', function () {
   it('getManagerPoolsAndRewards should return the managed pools and rewards for the manager', async function () {
     const fixture = await loadFixture(setup);
     const [manager] = fixture.accounts.members;
     const { stakingViewer } = fixture.contracts;
+    const { stakedNxmAmount } = fixture.stakingPool;
 
     const { pools, rewards } = await stakingViewer.getManagerPoolsAndRewards(manager.address);
 
@@ -19,7 +20,7 @@ describe('getManagerPoolsAndRewards', function () {
     expect(managedStakingPool.manager).to.equal(manager.address);
     expect(managedStakingPool.poolFee.toString()).to.equal('5');
     expect(managedStakingPool.maxPoolFee.toString()).to.equal('5');
-    expect(managedStakingPool.activeStake).to.equal(fixture.stakedNxmAmount);
+    expect(managedStakingPool.activeStake).to.equal(stakedNxmAmount);
     expect(managedStakingPool.currentAPY.toString()).to.equal('0');
 
     // rewards

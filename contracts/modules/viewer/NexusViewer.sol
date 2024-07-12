@@ -42,7 +42,7 @@ contract NexusViewer is INexusViewer, Multicall {
 
     // Staking Pool
     IStakingViewer.AggregatedTokens memory aggregatedTokens = stakingViewer.getAggregatedTokens(tokenIds);
-    uint managerTotalRewards = _getManagerTotalRewards(member);
+    uint managerTotalRewards = stakingViewer.getManagerTotalRewards(member);
     
     // V1
     uint legacyPooledStakeDeposits = _legacyPooledStaking().stakerDeposit(member);
@@ -81,15 +81,6 @@ contract NexusViewer is INexusViewer, Multicall {
       assessmentStake: isStakeLocked ? assessmentStake : 0,
       assessmentRewards: assessmentRewards.totalPendingAmountInNXM - assessmentRewards.withdrawableAmountInNXM
     });
-  }
-
-  function _getManagerTotalRewards(address member) internal view returns (uint managerTotalRewards) {
-
-    IStakingViewer.Token[] memory tokenRewards = stakingViewer.getManagerTokenRewards(member);
-
-    for (uint i = 0; i < tokenRewards.length; i++) {
-      managerTotalRewards += tokenRewards[i].rewards;
-    }
   }
 
   function _getAssessmentStake(address member) internal view returns (uint assessmentStake, bool isStakeLocked) {

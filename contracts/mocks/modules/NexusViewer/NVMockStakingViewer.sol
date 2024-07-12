@@ -100,6 +100,10 @@ contract NVMockStakingViewer is IStakingViewer {
     revert("getManagerTokenRewards not yet implemented");
   }
 
+  function getManagerTotalRewards(address) public pure returns (uint) {
+    revert("getManagerTotalRewards not yet implemented");
+  }
+
   function getManagerPoolsAndRewards(address) external pure returns (ManagerPoolsAndRewards memory) {
     revert("getManagerPoolsAndRewards not yet implemented");
   }

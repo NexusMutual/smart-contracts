@@ -6,20 +6,22 @@ const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 
-describe('getStakedNXM', function () {
+describe.only('getStakedNXM', function () {
   const tokenIds = [2, 31, 38, 86];
 
   it('should return aggregatedTokens and 0 assessmentStake if user has NO stake locked', async function () {
     const fixture = await loadFixture(setup);
     const [member] = fixture.accounts.members;
-    const { assessmentViewer, nexusViewer } = fixture.contracts;
+    const { assessmentViewer, nexusViewer, stakingViewer } = fixture.contracts;
 
     // no stake locked
+    const totalActiveStake = parseEther('10');
     await assessmentViewer.setStakeLocked(false);
+    await stakingViewer.setAggregatedTokens(totalActiveStake, parseEther('5'), parseEther('5'));
 
     const stakedNXM = await nexusViewer.getStakedNXM(member.address, tokenIds);
 
-    expect(stakedNXM.stakingPoolTotalActiveStake).to.be.equal(parseEther('10'));
+    expect(stakedNXM.stakingPoolTotalActiveStake).to.be.equal(totalActiveStake);
     expect(stakedNXM.assessmentStake).to.be.equal('0');
     expect(stakedNXM.assessmentRewards.toString()).to.be.equal('0');
   });
@@ -27,16 +29,18 @@ describe('getStakedNXM', function () {
   it('should return aggregatedTokens and assessmentStake amount if user has stake locked', async function () {
     const fixture = await loadFixture(setup);
     const [member] = fixture.accounts.members;
-    const { assessment, assessmentViewer, nexusViewer } = fixture.contracts;
+    const { assessment, assessmentViewer, nexusViewer, stakingViewer } = fixture.contracts;
 
     // has stake locked
+    const totalActiveStake = parseEther('10');
     const lockedStake = parseEther('111111');
     await assessmentViewer.setStakeLocked(true);
     await assessment.setStakeOf(member.address, lockedStake, 0, 0);
+    await stakingViewer.setAggregatedTokens(totalActiveStake, parseEther('5'), parseEther('5'));
 
     const stakedNXM = await nexusViewer.getStakedNXM(member.address, tokenIds);
 
-    expect(stakedNXM.stakingPoolTotalActiveStake).to.be.equal(parseEther('10'));
+    expect(stakedNXM.stakingPoolTotalActiveStake).to.be.equal(totalActiveStake);
     expect(stakedNXM.assessmentStake).to.be.equal(lockedStake);
     expect(stakedNXM.assessmentRewards.toString()).to.be.equal('0');
   });

@@ -11,7 +11,7 @@ describe('getManagerPoolsAndRewards', function () {
     const { stakingViewer } = fixture.contracts;
     const { stakedNxmAmount } = fixture.stakingPool;
 
-    const { pools, rewards } = await stakingViewer.getManagerPoolsAndRewards(manager.address);
+    const { pools, rewards, totalRewards } = await stakingViewer.getManagerPoolsAndRewards(manager.address);
 
     // pools
     const [managedStakingPool] = pools;
@@ -39,5 +39,7 @@ describe('getManagerPoolsAndRewards', function () {
       expect(deposit.stakeShares.toString()).to.equal('0');
       expect(deposit.reward.toString()).to.equal('0');
     });
+
+    expect(totalRewards.toString()).to.equal('0');
   });
 });

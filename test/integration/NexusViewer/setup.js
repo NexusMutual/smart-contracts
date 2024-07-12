@@ -70,8 +70,6 @@ async function stakingPoolSetup(fixture) {
 
   fixture.tokenIds = [tokenId1, tokenId2, tokenId3];
   fixture.stakeAmount = stakeAmount;
-
-  return fixture;
 }
 
 async function buyCoverSetup(fixture) {
@@ -105,8 +103,6 @@ async function buyCoverSetup(fixture) {
     ],
     { value: premium },
   );
-
-  return fixture;
 }
 
 async function assessmentStakeSetup(fixture) {
@@ -124,15 +120,15 @@ async function assessmentStakeSetup(fixture) {
   // vote
   await assessment.connect(manager1).castVotes([0], [true], ['Assessment data hash'], 0);
   await assessment.connect(manager2).castVotes([0], [true], ['Assessment data hash'], 0);
-
-  return fixture;
 }
 
 async function nexusViewerSetup() {
-  let fixture = await loadFixture(setup);
-  fixture = await stakingPoolSetup(fixture);
-  fixture = await buyCoverSetup(fixture);
-  fixture = await assessmentStakeSetup(fixture);
+  const fixture = await loadFixture(setup);
+
+  // do not change the order
+  await stakingPoolSetup(fixture);
+  await buyCoverSetup(fixture);
+  await assessmentStakeSetup(fixture);
 
   return fixture;
 }

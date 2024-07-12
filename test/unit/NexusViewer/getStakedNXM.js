@@ -6,7 +6,7 @@ const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
 
-describe.only('getStakedNXM', function () {
+describe('getStakedNXM', function () {
   const tokenIds = [2, 31, 38, 86];
 
   it('should return aggregatedTokens and 0 assessmentStake if user has NO stake locked', async function () {

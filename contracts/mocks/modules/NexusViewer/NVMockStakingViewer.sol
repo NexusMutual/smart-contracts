@@ -16,7 +16,7 @@ contract NVMockStakingViewer is IStakingViewer {
   uint public constant TRANCHE_DURATION = 91 days;
   uint public constant MAX_ACTIVE_TRANCHES = 8;
   uint public constant ONE_NXM = 1 ether;
-  uint public constant TRANCHE_ID_AT_DEPLOY = 213; // first active tranche at deploy time
+  uint public constant TRANCHE_ID_AT_DEPLOY = 213;
   uint public constant MAX_UINT = type(uint).max;
   AggregatedTokens aggregatedTokens;
 

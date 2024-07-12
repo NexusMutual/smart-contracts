@@ -8,6 +8,7 @@ import {INXMMaster} from "../../../interfaces/INXMMaster.sol";
 import {INXMToken} from "../../../interfaces/INXMToken.sol";
 
 contract NVMockAssessmentViewer is IAssessmentViewer {
+
   bool stakeLocked;
   AssessmentRewards assessmentRewards;
 
@@ -29,7 +30,7 @@ contract NVMockAssessmentViewer is IAssessmentViewer {
     });
   }
 
-  /* ========== GETTERS ========== */
+  /* ========== VIEWS ========== */
 
   function isStakeLocked(address) external view returns (bool) {
     return stakeLocked;

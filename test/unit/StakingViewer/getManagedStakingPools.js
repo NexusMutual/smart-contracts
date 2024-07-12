@@ -8,6 +8,7 @@ describe('getManagedStakingPools', function () {
     const fixture = await loadFixture(setup);
     const [manager, otherManager] = fixture.accounts.members;
     const { stakingViewer, stakingProducts, tokenController } = fixture.contracts;
+    const { stakedNxmAmount } = fixture.stakingPool;
 
     // create a 2nd staking pool that does not belong to the manager
     const params = [false, 5, 5, [], 'ipfs hash'];
@@ -23,7 +24,7 @@ describe('getManagedStakingPools', function () {
     expect(managedStakingPool.manager).to.equal(manager.address);
     expect(managedStakingPool.poolFee.toString()).to.equal('5');
     expect(managedStakingPool.maxPoolFee.toString()).to.equal('5');
-    expect(managedStakingPool.activeStake).to.equal(fixture.stakedNxmAmount);
+    expect(managedStakingPool.activeStake).to.equal(stakedNxmAmount);
     expect(managedStakingPool.currentAPY.toString()).to.equal('0');
   });
 });

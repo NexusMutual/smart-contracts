@@ -92,9 +92,9 @@ interface IStakingViewer {
 
   function getManagedStakingPools(address manager) external view returns (Pool[] memory);
 
-  function getManagerTokenRewards(address manager) external view returns (Token[] memory tokens);
+  function getManagerTokenRewardsByAddr(address manager) external view returns (Token[] memory tokens);
 
-  function getManagerTotalRewards(address member) external view returns (uint managerTotalRewards);
+  function getManagerTotalRewards(address manager) external view returns (uint managerTotalRewards);
 
   function getManagerPoolsAndRewards(address manager) external view returns (ManagerPoolsAndRewards memory);
 

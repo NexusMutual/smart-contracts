@@ -4,13 +4,13 @@ const { expect } = require('chai');
 const { setup } = require('./setup');
 const { calculateCurrentTrancheId } = require('../utils').stakingPool;
 
-describe('getManagerTokenRewards', function () {
-  it('getManagerTokenRewards should return the correct rewards for the manager', async function () {
+describe('getManagerTokenRewardsByAddr', function () {
+  it('getManagerTokenRewardsByAddr should return the correct rewards for the manager', async function () {
     const fixture = await loadFixture(setup);
     const [manager] = fixture.accounts.members;
     const { stakingViewer } = fixture.contracts;
 
-    const [tokenReward] = await stakingViewer.getManagerTokenRewards(manager.address);
+    const [tokenReward] = await stakingViewer.getManagerTokenRewardsByAddr(manager.address);
 
     expect(tokenReward.tokenId.toString()).to.equal('0');
     expect(tokenReward.poolId.toString()).to.equal('1');

@@ -1,5 +1,7 @@
 const { ethers } = require('hardhat');
 
+const { daysToSeconds } = require('../../../lib/helpers');
+
 const { parseEther, parseUnits } = ethers.utils;
 const { AddressZero } = ethers.constants;
 
@@ -8,6 +10,7 @@ const DAI_ASSET_ID = 1;
 const STETH_ASSET_ID = 2;
 const ENZYME_ASSET_ID = 3;
 const USDC_ASSET_ID = 4;
+const COVER_PRICE_DENOMINATOR = 10000;
 
 async function buyCover({
   amount,
@@ -52,9 +55,24 @@ async function transferCoverAsset({ tokenOwner, coverBuyer, asset, cover }) {
   await asset.connect(coverBuyer).approve(cover.address, amount);
 }
 
+function calculatePremium(amount, rate, period, price, allocationUnit) {
+  const nxmAmount = amount.mul(parseEther('1')).div(rate);
+
+  const coverNXMAmount = nxmAmount.mod(allocationUnit).eq(0)
+    ? nxmAmount
+    : nxmAmount.div(allocationUnit).add(1).mul(allocationUnit);
+
+  const premiumInNxm = coverNXMAmount.mul(price).div(COVER_PRICE_DENOMINATOR).mul(period).div(daysToSeconds(365));
+
+  const premiumInAsset = premiumInNxm.mul(rate).div(parseEther('1'));
+
+  return { premiumInNxm, premiumInAsset, coverNXMAmount };
+}
+
 module.exports = {
   buyCover,
   transferCoverAsset,
+  calculatePremium,
   ETH_ASSET_ID,
   DAI_ASSET_ID,
   STETH_ASSET_ID,

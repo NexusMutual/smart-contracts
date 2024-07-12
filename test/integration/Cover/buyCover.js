@@ -5,6 +5,7 @@ const { BigNumber } = require('ethers');
 
 const setup = require('../setup');
 const { calculateFirstTrancheId } = require('../utils/staking');
+const { calculatePremium } = require('../utils/cover');
 const { setNextBlockTime } = require('../utils').evm;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { BUCKET_DURATION } = require('../../unit/StakingPool/helpers');
@@ -13,23 +14,8 @@ const { getInternalPrice } = require('../../utils/rammCalculations');
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 
-const PRICE_DENOMINATOR = 10000;
 const REWARD_DENOMINATOR = 10000;
 const PRICE_CHANGE_PER_DAY = 200;
-
-function calculatePremium(amount, rate, period, price, allocationUnit) {
-  const nxmAmount = amount.mul(parseEther('1')).div(rate);
-
-  const coverNXMAmount = nxmAmount.mod(allocationUnit).eq(0)
-    ? nxmAmount
-    : nxmAmount.div(allocationUnit).add(1).mul(allocationUnit);
-
-  const premiumInNxm = coverNXMAmount.mul(price).div(PRICE_DENOMINATOR).mul(period).div(daysToSeconds(365));
-
-  const premiumInAsset = premiumInNxm.mul(rate).div(parseEther('1'));
-
-  return { premiumInNxm, premiumInAsset, coverNXMAmount };
-}
 
 function calculateRewards(premium, timestamp, period, rewardRation) {
   const expirationBucket = Math.ceil((timestamp + period) / BUCKET_DURATION);

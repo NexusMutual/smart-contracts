@@ -3,6 +3,7 @@
 pragma solidity >=0.5.0;
 
 interface Aggregator {
+  function decimals() external view returns (uint8);
   function latestAnswer() external view returns (int);
 }
 

@@ -133,8 +133,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
   ) external override onlyGovernance whenNotPaused {
 
     ICoverProducts coverProductsContract = coverProducts();
-    Product memory product = coverProductsContract.getProduct(productId);
-    ProductType memory productType = coverProductsContract.getProductType(product.productType);
+    (, ProductType memory productType) = coverProductsContract.getProductWithType(productId);
 
     require(
       productType.claimMethod == uint8(ClaimMethod.YieldTokenIncidents),

@@ -231,7 +231,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
       if (param.allowedPools.length > 0) {
         for (uint j = 0; j < param.allowedPools.length; j++) {
-          if (param.allowedPools[j] > poolCount) {
+          if (param.allowedPools[j] > poolCount || param.allowedPools[j] == 0) {
             revert StakingPoolDoesNotExist();
           }
         }

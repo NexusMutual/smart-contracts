@@ -131,7 +131,7 @@ async function setup() {
         isDeprecated: false,
         useFixedPrice: true,
       },
-      allowedPools: [0],
+      allowedPools: [1],
     },
     {
       productName: 'Product C',
@@ -146,7 +146,7 @@ async function setup() {
         isDeprecated: false,
         useFixedPrice: true,
       },
-      allowedPools: [0],
+      allowedPools: [1],
     },
     {
       productName: 'Product D',

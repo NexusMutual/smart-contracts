@@ -318,6 +318,16 @@ describe('setProducts', function () {
     ).to.be.revertedWithCustomError(coverProducts, 'ProductTypeNotFound');
   });
 
+  it('should revert if allowed pools contain pool 0', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+    const productParams = { ...productParamsTemplate, product: { ...productTemplate }, allowedPools: [0] };
+    await expect(
+      coverProducts.connect(advisoryBoardMember0).setProducts([productParams]),
+    ).to.be.revertedWithCustomError(coverProducts, 'StakingPoolDoesNotExist');
+  });
+
   it('should store product name for existing product', async function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
@@ -333,7 +343,7 @@ describe('setProducts', function () {
     };
     await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
 
-    const productName = await coverProducts.productNames(expectedProductId);
+    const productName = await coverProducts.getProductName(expectedProductId);
     expect(productName).to.be.equal(expectedProductName);
   });
 
@@ -343,7 +353,7 @@ describe('setProducts', function () {
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
     const expectedProductId = 0;
-    const productNameBefore = await coverProducts.productNames(expectedProductId);
+    const productNameBefore = await coverProducts.getProductName(expectedProductId);
 
     const productParams = {
       ...productParamsTemplate,
@@ -352,7 +362,7 @@ describe('setProducts', function () {
     };
     await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
 
-    const productNameAfter = await coverProducts.productNames(expectedProductId);
+    const productNameAfter = await coverProducts.getProductName(expectedProductId);
     expect(productNameAfter).to.be.equal(productNameBefore);
   });
 
@@ -371,7 +381,7 @@ describe('setProducts', function () {
     await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
 
     const productsCount = await coverProducts.getProductCount();
-    const productName = await coverProducts.productNames(productsCount.sub(1));
+    const productName = await coverProducts.getProductName(productsCount.sub(1));
     expect(productName).to.be.equal(expectedProductName);
   });
 });

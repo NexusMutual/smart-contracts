@@ -207,7 +207,9 @@ const main = async productsDataFilePath => {
   );
 
   // Clean up the temporary metadata file after successful upload
-  fs.unlinkSync(metadataFilePath);
+  if (fs.existsSync(metadataFilePath)) {
+    fs.unlinkSync(metadataFilePath);
+  }
 
   console.log('Tx input: ', productEntries);
 

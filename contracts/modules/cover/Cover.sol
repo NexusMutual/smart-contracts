@@ -57,16 +57,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   uint private constant GLOBAL_CAPACITY_RATIO = 20000; // 2
   uint private constant GLOBAL_REWARDS_RATIO = 5000; // 50%
 
-  uint private constant PRICE_DENOMINATOR = 10000;
   uint private constant COMMISSION_DENOMINATOR = 10000;
-  uint private constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
   uint private constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
-  uint private constant REWARD_DENOMINATOR = 10_000;
 
   uint private constant MAX_COVER_PERIOD = 365 days;
   uint private constant MIN_COVER_PERIOD = 28 days;
   uint private constant BUCKET_SIZE = 7 days;
-  uint private constant ONE_YEAR = 365 days;
 
   uint public constant MAX_COMMISSION_RATIO = 3000; // 30%
 

@@ -59,6 +59,20 @@ describe('setProductTypes', function () {
     expect(metadataItem.timestamp).to.be.equal(timestamp);
   });
 
+  it('should emit a ProductTypeSet event when adding a new product type', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+
+    expect(await coverProducts.getProductTypeCount()).to.be.equal(1);
+
+    const expectedProductTypeId = 1;
+    const productTypeParams = { ...ProductTypeParamTemplate };
+    await expect(coverProducts.connect(advisoryBoardMember0).setProductTypes([productTypeParams]))
+      .to.emit(coverProducts, 'ProductTypeSet')
+      .withArgs(expectedProductTypeId);
+  });
+
   it('should revert if product type ipfs hash is empty for new product types', async function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
@@ -145,6 +159,25 @@ describe('setProductTypes', function () {
 
     const productTypeName = await coverProducts.getProductTypeName(expectedProductTypeId);
     expect(productTypeName).to.be.equal(expectedProductTypeName);
+  });
+
+  it('should emit a ProductTypeSet event when editing a product type', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+
+    const expectedProductTypeId = 0;
+    const newProductTypeName = 'Product Type Test';
+
+    const productTypeParams = {
+      ...ProductTypeParamTemplate,
+      productTypeId: expectedProductTypeId,
+      productTypeName: newProductTypeName,
+    };
+
+    await expect(coverProducts.connect(advisoryBoardMember0).setProductTypes([productTypeParams]))
+      .to.emit(coverProducts, 'ProductTypeSet')
+      .withArgs(expectedProductTypeId);
   });
 
   it('should not change productType name for existing productType if passed empty string', async function () {

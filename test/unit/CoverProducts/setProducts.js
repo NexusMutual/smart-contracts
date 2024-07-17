@@ -43,6 +43,17 @@ describe('setProducts', function () {
     expect(product).to.deep.equal(expectedProduct);
   });
 
+  it('should emit a ProductSet event when adding a product', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+    const productParams = { ...productParamsTemplate };
+    const expectedProductId = await coverProducts.getProductCount();
+    await expect(coverProducts.connect(advisoryBoardMember0).setProducts([productParams]))
+      .to.emit(coverProducts, 'ProductSet')
+      .withArgs(expectedProductId);
+  });
+
   it('should set the metadata of the newly added product', async function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
@@ -90,6 +101,23 @@ describe('setProducts', function () {
     const actualProduct = resultAsObject(await coverProducts.getProduct(productId));
     const expectedProduct = editParams.product;
     expect(actualProduct).to.deep.equal(expectedProduct);
+  });
+
+  it('should emit a ProductSet event when editing a product', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+    const productParams = { ...productParamsTemplate };
+    // add product
+    await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
+    // edit product
+    const capacityReductionRatio = 500;
+    const product = { ...productParams.product, capacityReductionRatio };
+    const productId = (await coverProducts.getProductCount()).sub(1);
+    const editParams = { ...productParams, productId, product };
+    await expect(coverProducts.connect(advisoryBoardMember0).setProducts([editParams]))
+      .to.emit(coverProducts, 'ProductSet')
+      .withArgs(productId);
   });
 
   it('should not update metadata when editing the product if the new value is empty', async function () {

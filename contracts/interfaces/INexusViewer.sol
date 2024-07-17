@@ -16,8 +16,8 @@ interface INexusViewer {
     uint managerTotalRewards; // Pool manager total staking rewards in NXM
     uint legacyPooledStakeRewards; // Legacy pooled staking rewards in NXM
     uint legacyPooledStakeDeposits; // Legacy pooled staking deposits in NXM
-    uint legacyCoverNoteDeposits; // Legacy cover note deposits in NXM
     uint legacyClaimAssessmentTokens; // Legacy claim assessment tokens in NXM
+    uint legacyCoverNoteDeposits; // Legacy cover note deposits in NXM
   }
 
   struct StakedNXM {

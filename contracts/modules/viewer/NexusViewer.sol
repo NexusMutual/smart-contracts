@@ -45,8 +45,8 @@ contract NexusViewer is INexusViewer, Multicall {
     uint managerTotalRewards = stakingViewer.getManagerTotalRewards(member);
     
     // V1
-    uint legacyPooledStakeDeposits = _legacyPooledStaking().stakerDeposit(member);
     uint legacyPooledStakeRewards = _legacyPooledStaking().stakerReward(member);
+    uint legacyPooledStakeDeposits = _legacyPooledStaking().stakerDeposit(member);
     uint legacyClaimAssessmentTokens = _tokenController().tokensLocked(member, "CLA");
     (, , uint legacyCoverNoteDeposits) = _tokenController().getWithdrawableCoverNotes(member);
     
@@ -59,8 +59,8 @@ contract NexusViewer is INexusViewer, Multicall {
       managerTotalRewards: managerTotalRewards,
       legacyPooledStakeRewards: legacyPooledStakeRewards,
       legacyPooledStakeDeposits: legacyPooledStakeDeposits,
-      legacyCoverNoteDeposits: legacyCoverNoteDeposits,
-      legacyClaimAssessmentTokens: legacyClaimAssessmentTokens
+      legacyClaimAssessmentTokens: legacyClaimAssessmentTokens,
+      legacyCoverNoteDeposits: legacyCoverNoteDeposits
     });
   }
 

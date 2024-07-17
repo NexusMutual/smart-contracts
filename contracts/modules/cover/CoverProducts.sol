@@ -445,7 +445,6 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.SP)] = master.getLatestAddress("SP");
-    internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
   }
 
 }

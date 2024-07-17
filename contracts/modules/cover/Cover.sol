@@ -128,6 +128,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       revert CoverAmountIsZero();
     }
 
+    // can pay with cover asset or nxm only
+    if (params.paymentAsset != params.coverAsset && params.paymentAsset != NXM_ASSET_ID) {
+      revert InvalidPaymentAsset();
+    }
+
     uint segmentId;
 
     AllocationRequest memory allocationRequest;
@@ -239,10 +244,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       )
     );
 
-    // can pay with cover asset or nxm only
-    if (params.paymentAsset != params.coverAsset && params.paymentAsset != NXM_ASSET_ID) {
-      revert InvalidPaymentAsset();
-    }
     _updateTotalActiveCoverAmount(params.coverAsset, coverAmountInCoverAsset, params.period, previousSegmentAmount);
 
     retrievePayment(
@@ -623,8 +624,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       totalActiveCover += activeCoverExpirationBuckets[coverAsset][bucketId];
     }
 
-    activeCover[coverAsset].totalActiveCoverInAsset = totalActiveCover.toUint192();
-    activeCover[coverAsset].lastBucketUpdateId = currentBucketId.toUint64();
+    activeCover[coverAsset] = ActiveCover(totalActiveCover.toUint192(), currentBucketId.toUint64());
   }
 
   function totalActiveCoverInAsset(uint assetId) public view returns (uint) {

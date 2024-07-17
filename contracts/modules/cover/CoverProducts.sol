@@ -22,7 +22,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
   ProductType[] internal _productTypes;
 
   // productId => product name
-  mapping(uint => string) public productNames;
+  mapping(uint => string) internal productNames;
   // productTypeId => productType name
   mapping(uint => string) internal productTypeNames;
   // product id => allowed pool ids

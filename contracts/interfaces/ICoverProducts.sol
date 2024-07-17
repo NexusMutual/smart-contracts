@@ -113,6 +113,9 @@ interface ICoverProducts {
 
   /* ========== EVENTS ========== */
 
+  event ProductSet(uint id);
+  event ProductTypeSet(uint id);
+
   // Products and product types
   error ProductNotFound();
   error ProductTypeNotFound();

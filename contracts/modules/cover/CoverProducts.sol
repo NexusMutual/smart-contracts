@@ -239,15 +239,18 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
       // New product has id == uint256.max
       if (param.productId == type(uint256).max) {
+        uint productId = _products.length;
+
         // the metadata is optional, do not push if empty
         if (bytes(param.ipfsMetadata).length > 0) {
-          productMetadata[_products.length].push(Metadata(param.ipfsMetadata, block.timestamp));
+          productMetadata[productId].push(Metadata(param.ipfsMetadata, block.timestamp));
         }
 
-        productNames[_products.length] = param.productName;
-        allowedPools[_products.length] = param.allowedPools;
+        productNames[productId] = param.productName;
+        allowedPools[productId] = param.allowedPools;
 
         _products.push(product);
+        emit ProductSet(productId);
         continue;
       }
 
@@ -271,6 +274,8 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       if (bytes(param.ipfsMetadata).length > 0) {
         productMetadata[param.productId].push(Metadata(param.ipfsMetadata, block.timestamp));
       }
+
+      emit ProductSet(param.productId);
     }
   }
 
@@ -281,16 +286,18 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
       // New product has id == uint256.max
       if (param.productTypeId == type(uint256).max) {
+        uint productTypeId = _productTypes.length;
 
         // the product type metadata is mandatory
         if (bytes(param.ipfsMetadata).length == 0) {
           revert MetadataRequired();
         }
 
-        productTypeMetadata[_productTypes.length].push(Metadata(param.ipfsMetadata, block.timestamp));
-        productTypeNames[_productTypes.length] = param.productTypeName;
+        productTypeMetadata[productTypeId].push(Metadata(param.ipfsMetadata, block.timestamp));
+        productTypeNames[productTypeId] = param.productTypeName;
         _productTypes.push(param.productType);
 
+        emit ProductTypeSet(productTypeId);
         continue;
       }
 
@@ -307,6 +314,8 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       if (bytes(param.ipfsMetadata).length > 0) {
         productTypeMetadata[param.productTypeId].push(Metadata(param.ipfsMetadata, block.timestamp));
       }
+
+      emit ProductTypeSet(param.productTypeId);
     }
   }
 

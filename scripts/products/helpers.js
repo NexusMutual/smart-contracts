@@ -3,7 +3,7 @@ const { inspect } = require('node:util');
 const nexusSdk = require('@nexusmutual/deployments');
 
 const AB_MEMBER = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
-const COVER_ADDRESS = nexusSdk.addresses.Cover;
+const COVER_PRODUCTS_ADDRESS = nexusSdk.addresses.CoverProducts;
 
 const IPFS_API_URL = 'https://api.nexusmutual.io/ipfs-api/api/v0';
 
@@ -18,7 +18,7 @@ const simulateTransaction = async input => {
     simulation_type: 'full',
     network_id: '1',
     from: AB_MEMBER,
-    to: COVER_ADDRESS,
+    to: COVER_PRODUCTS_ADDRESS,
     gas: 8000000,
     gas_price: 0,
     value: 0,
@@ -45,7 +45,7 @@ const simulateTransaction = async input => {
 module.exports = {
   simulateTransaction,
   constants: {
-    COVER_ADDRESS,
+    COVER_PRODUCTS_ADDRESS,
     AB_MEMBER,
     IPFS_API_URL,
   },

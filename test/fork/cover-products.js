@@ -335,6 +335,11 @@ describe('coverProducts', function () {
 
     const contractsAfter = await this.master.getInternalContracts();
 
+    this.cover = await getContractByContractCode('Cover', ContractCode.Cover);
+    this.individualClaims = await getContractByContractCode('IndividualClaims', ContractCode.IndividualClaims);
+    this.yieldTokenIncidents = await getContractByContractCode('YieldTokenIncidents', ContractCode.YieldTokenIncidents);
+    this.stakingProducts = await getContractByContractCode('StakingProducts', ContractCode.StakingProducts);
+
     console.info('Upgrade Contracts before:', formatInternalContracts(contractsBefore));
     console.info('Upgrade Contracts after:', formatInternalContracts(contractsAfter));
   });

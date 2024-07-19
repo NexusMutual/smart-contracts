@@ -219,6 +219,40 @@ describe('coverProducts', function () {
         this.contractData.stakingProducts.before.stakingPoolsProducts[i].push(stakingProduct);
       }
     }
+
+    // StakikngPool
+    const poolCount = (await this.stakingPoolFactory.stakingPoolCount()).toNumber();
+    for (let i = 1; i <= poolCount; i++) {
+      const stakingPoolAddress = await this.cover.stakingPool(i);
+      const stakingPool = await ethers.getContractAt('StakingPool', stakingPoolAddress);
+      const manager = await stakingPool.manager();
+      const poolFee = await stakingPool.getPoolFee();
+      const maxPoolFee = await stakingPool.getMaxPoolFee();
+      const activeStake = await stakingPool.getActiveStake();
+      const stakeSharesSupply = await stakingPool.getStakeSharesSupply();
+      const rewardsSharesSupply = await stakingPool.getRewardsSharesSupply();
+      const rewardPerSecond = await stakingPool.getRewardPerSecond();
+      const accNxmPerRewardsShare = await stakingPool.getAccNxmPerRewardsShare();
+      const lastAccNxmUpdate = await stakingPool.getLastAccNxmUpdate();
+      const firstActiveTrancheId = await stakingPool.getFirstActiveTrancheId();
+      const firstActiveBucketId = await stakingPool.getFirstActiveBucketId();
+      const nextAllocationId = await stakingPool.getNextAllocationId();
+
+      this.contractData.stakingPool.before[i] = {
+        manager,
+        poolFee,
+        maxPoolFee,
+        activeStake,
+        stakeSharesSupply,
+        rewardsSharesSupply,
+        rewardPerSecond,
+        accNxmPerRewardsShare,
+        lastAccNxmUpdate,
+        firstActiveTrancheId,
+        firstActiveBucketId,
+        nextAllocationId,
+      };
+    }
   });
 
   it('Migrate the products and productTypes from the Cover to CoverProducts', async function () {
@@ -414,6 +448,39 @@ describe('coverProducts', function () {
         );
       },
     );
+  });
+
+  it('Compares storage of upgrade StakingPool contract', async function () {
+    const poolCount = (await this.stakingPoolFactory.stakingPoolCount()).toNumber();
+    for (let i = 1; i <= poolCount; i++) {
+      const stakingPoolAddress = await this.cover.stakingPool(i);
+      const stakingPool = await ethers.getContractAt('StakingPool', stakingPoolAddress);
+      const manager = await stakingPool.manager();
+      const poolFee = await stakingPool.getPoolFee();
+      const maxPoolFee = await stakingPool.getMaxPoolFee();
+      const activeStake = await stakingPool.getActiveStake();
+      const stakeSharesSupply = await stakingPool.getStakeSharesSupply();
+      const rewardsSharesSupply = await stakingPool.getRewardsSharesSupply();
+      const rewardPerSecond = await stakingPool.getRewardPerSecond();
+      const accNxmPerRewardsShare = await stakingPool.getAccNxmPerRewardsShare();
+      const lastAccNxmUpdate = await stakingPool.getLastAccNxmUpdate();
+      const firstActiveTrancheId = await stakingPool.getFirstActiveTrancheId();
+      const firstActiveBucketId = await stakingPool.getFirstActiveBucketId();
+      const nextAllocationId = await stakingPool.getNextAllocationId();
+
+      expect(this.contractData.stakingPool.before[i].manager).to.be.equal(manager);
+      expect(this.contractData.stakingPool.before[i].poolFee).to.be.equal(poolFee);
+      expect(this.contractData.stakingPool.before[i].maxPoolFee).to.be.equal(maxPoolFee);
+      expect(this.contractData.stakingPool.before[i].activeStake).to.be.equal(activeStake);
+      expect(this.contractData.stakingPool.before[i].stakeSharesSupply).to.be.equal(stakeSharesSupply);
+      expect(this.contractData.stakingPool.before[i].rewardsSharesSupply).to.be.equal(rewardsSharesSupply);
+      expect(this.contractData.stakingPool.before[i].rewardPerSecond).to.be.equal(rewardPerSecond);
+      expect(this.contractData.stakingPool.before[i].accNxmPerRewardsShare).to.be.equal(accNxmPerRewardsShare);
+      expect(this.contractData.stakingPool.before[i].lastAccNxmUpdate).to.be.equal(lastAccNxmUpdate);
+      expect(this.contractData.stakingPool.before[i].firstActiveTrancheId).to.be.equal(firstActiveTrancheId);
+      expect(this.contractData.stakingPool.before[i].firstActiveBucketId).to.be.equal(firstActiveBucketId);
+      expect(this.contractData.stakingPool.before[i].nextAllocationId).to.be.equal(nextAllocationId);
+    }
   });
 
   it('change the CoverNFTDescriptor address', async function () {

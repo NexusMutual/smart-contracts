@@ -186,6 +186,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param batchSize   The index until which (but not including) the rewards should be withdrawn.
   ///                    Used if a large number of assessments accumulates and the function doesn't
   ///                    fit in one block, thus requiring multiple batched transactions.
+  /// @return withdrawn The amount of rewards withdrawn.
+  /// @return withdrawnUntilIndex The index up to (but not including) the withdrawal was processed.
   function withdrawRewards(
     address staker,
     uint104 batchSize
@@ -201,6 +203,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param batchSize   The index until which (but not including) the rewards should be withdrawn.
   ///                    Used if a large number of assessments accumulates and the function doesn't
   ///                    fit in one block, thus requiring multiple batched transactions.
+  /// @return withdrawn The amount of rewards withdrawn.
+  /// @return withdrawnUntilIndex The index up to (but not including) the withdrawal was processed.
   function withdrawRewardsTo(
     address destination,
     uint104 batchSize
@@ -213,20 +217,22 @@ contract Assessment is IAssessment, MasterAwareV2 {
     address destination,
     uint104 batchSize
   ) internal returns (uint withdrawn, uint withdrawnUntilIndex) {
-    require(
-      IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(
-        destination,
-        uint(IMemberRoles.Role.Member)
-      ),
-      "Destination address is not a member"
+    bool isMember = IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(
+      destination,
+      uint(IMemberRoles.Role.Member)
     );
+    if (!isMember) {
+      revert NotMember(destination);
+    }
 
     // This is the index until which (but not including) the previous withdrawal was processed.
     // The current withdrawal starts from this index.
     uint104 rewardsWithdrawableFromIndex = stakeOf[staker].rewardsWithdrawableFromIndex;
     {
       uint voteCount = votesOf[staker].length;
-      require(rewardsWithdrawableFromIndex < voteCount, "No withdrawable rewards");
+      if (rewardsWithdrawableFromIndex >= voteCount) {
+        revert NoWithdrawableRewards();
+      }
       // If batchSize is a non-zero value, it means the withdrawal is going to be batched in
       // multiple transactions.
       withdrawnUntilIndex = batchSize > 0 ? rewardsWithdrawableFromIndex + batchSize : voteCount;
@@ -298,14 +304,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
     string[] calldata ipfsAssessmentDataHashes,
     uint96 stakeIncrease
   ) external override onlyMember whenNotPaused {
-    require(
-      assessmentIds.length == votes.length,
-      "The lengths of the assessment ids and votes arrays mismatch"
-    );
-    require(
-      assessmentIds.length == ipfsAssessmentDataHashes.length,
-      "The lengths of the assessment ids and ipfs assessment data hashes arrays mismatch"
-    );
+    if (assessmentIds.length != votes.length) {
+      revert AssessmentIdsVotesLengthMismatch();
+    }
+    if (assessmentIds.length != ipfsAssessmentDataHashes.length) {
+      revert AssessmentIdsIpfsLengthMismatch();
+    }
 
     if (stakeIncrease > 0) {
       stake(stakeIncrease);
@@ -329,19 +333,24 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param isAcceptVote  True to accept, false to deny
   function castVote(uint assessmentId, bool isAcceptVote, string memory ipfsAssessmentDataHash) internal {
     {
-      require(!hasAlreadyVotedOn[msg.sender][assessmentId], "Already voted");
+      if (hasAlreadyVotedOn[msg.sender][assessmentId]) {
+        revert AlreadyVoted();
+      }
       hasAlreadyVotedOn[msg.sender][assessmentId] = true;
     }
 
     uint96 stakeAmount = stakeOf[msg.sender].amount;
-    require(stakeAmount > 0, "A stake is required to cast votes");
+    if (stakeAmount <= 0) {
+      revert StakeRequired();
+    }
 
     Poll memory poll = assessments[assessmentId].poll;
-    require(block.timestamp < poll.end, "Voting is closed");
-    require(
-      poll.accepted > 0 || isAcceptVote,
-      "At least one accept vote is required to vote deny"
-    );
+    if (block.timestamp >= poll.end) {
+      revert VotingClosed();
+    }
+    if (!(poll.accepted > 0 || isAcceptVote)) {
+      revert AcceptVoteRequired();
+    }
 
     if (poll.accepted == 0) {
       // Reset the poll end date on the first accept vote
@@ -414,14 +423,15 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint16 fraudCount,
     uint256 voteBatchSize
   ) external override whenNotPaused {
-    require(
-      MerkleProof.verify(
+    if (
+      !MerkleProof.verify(
         proof,
         fraudResolution[rootIndex],
         keccak256(abi.encodePacked(assessor, lastFraudulentVoteIndex, burnAmount, fraudCount))
-      ),
-      "Invalid merkle proof"
-    );
+      )
+    ) {
+      revert InvalidMerkleProof();
+    }
 
     Stake memory _stake = stakeOf[assessor];
 

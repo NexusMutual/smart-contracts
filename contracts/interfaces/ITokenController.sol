@@ -24,12 +24,48 @@ interface ITokenController {
     uint96 deadline;
   }
 
+  /* ========== VIEWS ========== */
+
+  function token() external view returns (INXMToken);
+
   function coverInfo(uint id) external view returns (
     uint16 claimCount,
     bool hasOpenClaim,
     bool hasAcceptedClaim,
     uint96 requestedPayoutAmount
   );
+
+  function getLockReasons(address _of) external view returns (bytes32[] memory reasons);
+
+  function totalSupply() external view returns (uint);
+
+  function totalBalanceOf(address _of) external view returns (uint amount);
+
+  function totalBalanceOfWithoutDelegations(address _of) external view returns (uint amount);
+
+  function getTokenPrice() external view returns (uint tokenPrice);
+
+  function getPendingRewards(address member) external view returns (uint);
+
+  function tokensLocked(address _of, bytes32 _reason) external view returns (uint256 amount);
+  
+  function getWithdrawableCoverNotes(
+    address coverOwner
+  ) external view returns (
+    uint[] memory coverIds,
+    bytes32[] memory lockReasons,
+    uint withdrawableAmount
+  );
+
+  function getStakingPoolManager(uint poolId) external view returns (address manager);
+
+  function getManagerStakingPools(address manager) external view returns (uint[] memory poolIds);
+
+  function isStakingPoolManager(address member) external view returns (bool);
+
+  function getStakingPoolOwnershipOffer(uint poolId) external view returns (address proposedManager, uint deadline);
+
+  /* ========== MUTATIVE FUNCTIONS ========== */
 
   function withdrawCoverNote(
     address _of,
@@ -53,26 +89,6 @@ interface ITokenController {
 
   function withdrawClaimAssessmentTokens(address[] calldata users) external;
 
-  function getLockReasons(address _of) external view returns (bytes32[] memory reasons);
-
-  function totalSupply() external view returns (uint);
-
-  function totalBalanceOf(address _of) external view returns (uint amount);
-
-  function totalBalanceOfWithoutDelegations(address _of) external view returns (uint amount);
-
-  function getTokenPrice() external view returns (uint tokenPrice);
-
-  function token() external view returns (INXMToken);
-
-  function getStakingPoolManager(uint poolId) external view returns (address manager);
-
-  function getManagerStakingPools(address manager) external view returns (uint[] memory poolIds);
-
-  function isStakingPoolManager(address member) external view returns (bool);
-
-  function getStakingPoolOwnershipOffer(uint poolId) external view returns (address proposedManager, uint deadline);
-
   function transferStakingPoolsOwnership(address from, address to) external;
 
   function assignStakingPoolManager(uint poolId, address manager) external;
@@ -94,16 +110,4 @@ interface ITokenController {
   function burnStakedNXM(uint amount, uint poolId) external;
 
   function stakingPoolNXMBalances(uint poolId) external view returns(uint128 rewards, uint128 deposits);
-
-  function tokensLocked(address _of, bytes32 _reason) external view returns (uint256 amount);
-
-  function getWithdrawableCoverNotes(
-    address coverOwner
-  ) external view returns (
-    uint[] memory coverIds,
-    bytes32[] memory lockReasons,
-    uint withdrawableAmount
-  );
-
-  function getPendingRewards(address member) external view returns (uint);
 }

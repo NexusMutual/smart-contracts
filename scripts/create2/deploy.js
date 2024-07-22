@@ -2,6 +2,8 @@ const { artifacts, ethers, run } = require('hardhat');
 const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 
+const { getSigner, SIGNER_TYPE } = require('./get-signer');
+
 const usage = () => {
   console.log(`
     Usage:
@@ -24,6 +26,8 @@ const usage = () => {
         [gas price] Miner tip in gwei. Default: 2 gwei. This is a required parameter.
       --gas-limit, -l GAS_LIMIT
         Gas limit for the tx.
+      --kms, -k
+        Use AWS KMS to sign the transaction.
       --help, -h
         Print this help message.
   `);
@@ -33,6 +37,7 @@ const parseArgs = async args => {
   const opts = {
     constructorArgs: [],
     priorityFee: '2',
+    kms: false,
   };
 
   const argsArray = args.slice(2);
@@ -49,6 +54,11 @@ const parseArgs = async args => {
     if (['--help', '-h'].includes(arg)) {
       usage();
       process.exit();
+    }
+
+    if (['--kms', '-k'].includes(arg)) {
+      opts.kms = true;
+      continue;
     }
 
     if (['--address', '-a'].includes(arg)) {
@@ -180,7 +190,8 @@ async function main() {
   const maxPriorityFeePerGas = ethers.utils.parseUnits(opts.priorityFee, 'gwei');
   const maxFeePerGas = baseFee.add(maxPriorityFeePerGas);
 
-  const deployer = await ethers.getContractAt('Deployer', opts.factory);
+  const signer = await getSigner(opts.kms ? SIGNER_TYPE.AWS_KMS : SIGNER_TYPE.LOCAL);
+  const deployer = await ethers.getContractAt('Deployer', opts.factory, signer);
   const deployTx = await deployer.deployAt(bytecode, opts.salt, opts.address, {
     maxFeePerGas,
     maxPriorityFeePerGas,

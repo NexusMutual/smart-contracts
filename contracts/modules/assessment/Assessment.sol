@@ -132,25 +132,49 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param to      The member address where the NXM is transfered to. Useful for switching
   ///                membership during stake lockup period and thus allowing the user to withdraw
   ///                their staked amount to the new address when possible.
-  function unstake(uint96 amount, address to) external whenNotPaused override {
+  function unstake(uint96 amount, address to) external whenNotPaused {
+    _unstake(msg.sender, amount, to);
+  }
+
+  /// Withdraws a portion or all of the user's stake
+  ///
+  /// @dev At least stakeLockupPeriodInDays must have passed since the last vote.
+  ///
+  /// @param staker  The address of the staker whose stake will be unstaked
+  /// @param amount  The amount of nxm to unstake
+  /// @param to      The member address where the NXM is transfered to. Useful for switching
+  ///                membership during stake lockup period and thus allowing the user to withdraw
+  ///                their staked amount to the new address when possible.
+  function unstakeFor(address staker, uint96 amount, address to) external whenNotPaused {
+    _unstake(staker, amount, to);
+  }
+
+  function _unstake(address staker, uint96 amount, address to) internal {
+
+    uint stakeAmount = stakeOf[staker].amount;
+    if (amount > stakeAmount) {
+      revert InvalidAmount(stakeAmount);
+    }
+
     // Restrict unstaking to a different account if still locked for member vote
-    if (block.timestamp < nxm.isLockedForMV(msg.sender)) {
-      require(to == msg.sender, "Assessment: NXM is locked for voting in governance");
+    uint govLockupExpiry = nxm.isLockedForMV(staker);
+    if (block.timestamp < govLockupExpiry && to != staker) {
+      revert StakeLockedForGovernance(govLockupExpiry);
     }
 
-    uint voteCount = votesOf[msg.sender].length;
+    uint voteCount = votesOf[staker].length;
     if (voteCount > 0) {
-      Vote memory vote = votesOf[msg.sender][voteCount - 1];
-      require(
-        block.timestamp > vote.timestamp + uint(config.stakeLockupPeriodInDays) * 1 days,
-        "Stake is in lockup period"
-      );
+      Vote memory latestVote = votesOf[staker][voteCount - 1];
+      uint assessmentLockupExpiry = latestVote.timestamp + uint(config.stakeLockupPeriodInDays) * 1 days;
+      if (block.timestamp <= assessmentLockupExpiry) {
+        revert StakeLockedForAssessment(assessmentLockupExpiry);
+      }
     }
 
-    stakeOf[msg.sender].amount -= amount;
+    stakeOf[staker].amount -= amount;
     nxm.transfer(to, amount);
 
-    emit StakeWithdrawn(msg.sender, to, amount);
+    emit StakeWithdrawn(staker, to, amount);
   }
 
   /// Withdraws a staker's accumulated rewards to a destination address but only the staker can

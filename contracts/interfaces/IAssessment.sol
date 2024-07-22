@@ -131,6 +131,8 @@ interface IAssessment {
 
   function unstake(uint96 amount, address to) external;
 
+  function unstakeFor(address staker, uint96 amount, address to) external;
+
   function withdrawRewards(
     address user,
     uint104 batchSize
@@ -174,4 +176,20 @@ interface IAssessment {
   event FraudProcessed(uint assessmentId, address assessor, Poll poll);
   event FraudSubmitted(bytes32 root);
 
+  /* ========== ERRORS ========== */
+
+  error InvalidAmount(uint maxUnstakeAmount);
+  error StakeLockedForAssessment(uint lockupExpiry);
+  error StakeLockedForGovernance(uint lockupExpiry);
+  error NotMember(address nonMember);
+  error NoWithdrawableRewards();
+  error InvalidMerkleProof();
+
+  // Votes
+  error AssessmentIdsVotesLengthMismatch();
+  error AssessmentIdsIpfsLengthMismatch();
+  error AlreadyVoted();
+  error StakeRequired();
+  error VotingClosed();
+  error AcceptVoteRequired();
 }

@@ -26,6 +26,8 @@ const usage = () => {
         [gas price] Miner tip in gwei. Default: 2 gwei. This is a required parameter.
       --gas-limit, -l GAS_LIMIT
         Gas limit for the tx.
+      --kms, -k
+        Use AWS KMS to sign the transaction.
       --help, -h
         Print this help message.
   `);

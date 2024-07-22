@@ -32,9 +32,8 @@ describe('processFraud', function () {
         fraudCount: 0,
         merkleTree,
       });
-      await expect(
-        assessment.processFraud(0, proof, honestMember.address, 0, parseEther('100'), 0, 100),
-      ).to.be.revertedWith('Invalid merkle proof');
+      const processFraud = assessment.processFraud(0, proof, honestMember.address, 0, parseEther('100'), 0, 100);
+      await expect(processFraud).to.be.revertedWithCustomError(assessment, 'InvalidMerkleProof');
     }
 
     {
@@ -45,9 +44,8 @@ describe('processFraud', function () {
         fraudCount: 0,
         merkleTree,
       });
-      await expect(
-        assessment.processFraud(0, proof, fraudulentMember.address, 0, parseEther('200'), 0, 100),
-      ).to.be.revertedWith('Invalid merkle proof');
+      const processFraud = assessment.processFraud(0, proof, fraudulentMember.address, 0, parseEther('200'), 0, 100);
+      await expect(processFraud).to.be.revertedWithCustomError(assessment, 'InvalidMerkleProof');
     }
 
     {
@@ -58,9 +56,8 @@ describe('processFraud', function () {
         fraudCount: 1,
         merkleTree,
       });
-      await expect(
-        assessment.processFraud(0, proof, fraudulentMember.address, 1, parseEther('100'), 0, 100),
-      ).to.be.revertedWith('Invalid merkle proof');
+      const processFraud = assessment.processFraud(0, proof, fraudulentMember.address, 1, parseEther('100'), 0, 100);
+      await expect(processFraud).to.be.revertedWithCustomError(assessment, 'InvalidMerkleProof');
     }
 
     {
@@ -71,9 +68,8 @@ describe('processFraud', function () {
         fraudCount: 0,
         merkleTree,
       });
-      await expect(
-        assessment.processFraud(0, proof, fraudulentMember.address, 0, parseEther('100'), 0, 100),
-      ).not.to.be.revertedWith('Invalid merkle proof');
+      const processFraud = assessment.processFraud(0, proof, fraudulentMember.address, 0, parseEther('100'), 0, 100);
+      await expect(processFraud).to.not.be.revertedWithCustomError(assessment, 'InvalidMerkleProof');
     }
   });
 

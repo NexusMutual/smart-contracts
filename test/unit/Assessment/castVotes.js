@@ -18,12 +18,12 @@ describe('castVotes', function () {
     await assessment.connect(user).stake(parseEther('100'));
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
-    await expect(assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
-      'Already voted',
-    );
-    await expect(assessment.connect(user).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
-      'Already voted',
-    );
+
+    const castVotesTrue = assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
+    await expect(castVotesTrue).to.be.revertedWithCustomError(assessment, 'AlreadyVoted');
+
+    const castVotesFalse = assessment.connect(user).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0);
+    await expect(castVotesFalse).to.be.revertedWithCustomError(assessment, 'AlreadyVoted');
   });
 
   it('reverts if the user has no stake', async function () {
@@ -31,12 +31,12 @@ describe('castVotes', function () {
     const { assessment, individualClaims } = fixture.contracts;
     const user = fixture.accounts.members[0];
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
-    await expect(assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
-      'A stake is required to cast votes',
-    );
-    await expect(assessment.connect(user).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
-      'A stake is required to cast votes',
-    );
+
+    const castVotesTrue = assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
+    await expect(castVotesTrue).to.be.revertedWithCustomError(assessment, 'StakeRequired');
+
+    const castVotesFalse = assessment.connect(user).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0);
+    await expect(castVotesFalse).to.be.revertedWithCustomError(assessment, 'StakeRequired');
   });
 
   it('reverts if the voting period has ended', async function () {
@@ -50,12 +50,12 @@ describe('castVotes', function () {
       const { poll } = await assessment.assessments(0);
       await setTime(poll.end);
     }
-    await expect(assessment.connect(user1).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
-      'Voting is closed',
-    );
-    await expect(assessment.connect(user1).castVotes([0], [ASSESSMENT_DATA_HASH], [false], 0)).to.be.revertedWith(
-      'Voting is closed',
-    );
+
+    const castVotesTrue0 = assessment.connect(user1).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
+    await expect(castVotesTrue0).to.be.revertedWithCustomError(assessment, 'VotingClosed');
+
+    const castVotesFalse0 = assessment.connect(user1).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0);
+    await expect(castVotesFalse0).to.be.revertedWithCustomError(assessment, 'VotingClosed');
 
     await individualClaims.submitClaim(1, 0, parseEther('100'), '');
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -65,23 +65,24 @@ describe('castVotes', function () {
       const { poll } = await assessment.assessments(1);
       await setTime(poll.end);
     }
-    await expect(assessment.connect(user2).castVotes([1], [true], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
-      'Voting is closed',
-    );
-    await expect(assessment.connect(user2).castVotes([1], [false], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
-      'Voting is closed',
-    );
+
+    const castVotesTrue1 = assessment.connect(user2).castVotes([1], [true], [ASSESSMENT_DATA_HASH], 0);
+    await expect(castVotesTrue1).to.be.revertedWithCustomError(assessment, 'VotingClosed');
+
+    const castVotesFalse1 = assessment.connect(user2).castVotes([1], [false], [ASSESSMENT_DATA_HASH], 0);
+    await expect(castVotesFalse1).to.be.revertedWithCustomError(assessment, 'VotingClosed');
   });
 
   it('reverts if the first vote is deny', async function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const user = fixture.accounts.members[0];
+
     await assessment.connect(user).stake(parseEther('100'));
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
-    await expect(assessment.connect(user).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
-      'At least one accept vote is required to vote deny',
-    );
+
+    const castVotesDeny = assessment.connect(user).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0);
+    await expect(castVotesDeny).to.be.revertedWithCustomError(assessment, 'AcceptVoteRequired');
   });
 
   it('resets the voting period to minVotingPeriodInDays after the first accept vote', async function () {
@@ -378,9 +379,10 @@ describe('castVotes', function () {
     const { assessment } = fixture.contracts;
     const [user] = fixture.accounts.members;
 
-    await expect(
-      assessment.connect(user).castVotes([0], [true, true], [ASSESSMENT_DATA_HASH, ASSESSMENT_DATA_HASH], 0),
-    ).to.revertedWith('The lengths of the assessment ids and votes arrays mismatch');
+    const ipfsHashes = [ASSESSMENT_DATA_HASH, ASSESSMENT_DATA_HASH];
+    const castVotes = assessment.connect(user).castVotes([0], [true, true], ipfsHashes, 0);
+
+    await expect(castVotes).to.be.revertedWithCustomError(assessment, 'AssessmentIdsVotesLengthMismatch');
   });
 
   it('reverts if array length of assessments id and ipfsHashes does not match', async function () {
@@ -388,9 +390,9 @@ describe('castVotes', function () {
     const { assessment } = fixture.contracts;
     const [user] = fixture.accounts.members;
 
-    await expect(
-      assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH, ASSESSMENT_DATA_HASH], 0),
-    ).to.revertedWith('The lengths of the assessment ids and ipfs assessment data hashes arrays mismatch');
+    const ipfsHashes = [ASSESSMENT_DATA_HASH, ASSESSMENT_DATA_HASH];
+    const castVotes = assessment.connect(user).castVotes([0], [true], ipfsHashes, 0);
+    await expect(castVotes).to.be.revertedWithCustomError(assessment, 'AssessmentIdsIpfsLengthMismatch');
   });
 
   it('does not revert on empty arrays', async function () {

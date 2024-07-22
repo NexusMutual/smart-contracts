@@ -26,20 +26,21 @@ module.exports = { SIGNER_TYPE, getSigner };
 
 if (require.main === module) {
   (async () => {
-    // get signer
+    const testMessage = 'Hello, mutants!';
+
+    // get signer and sign message
     const signer = await getSigner(SIGNER_TYPE.AWS_KMS);
-    const address = await signer.getAddress();
-    console.log(`Signer address: ${address}`);
+    const [signature, ethAddress] = await Promise.all([signer.signMessage(testMessage), signer.getAddress()]);
 
-    // send tx to self
-    const tx = await signer.sendTransaction({
-      to: address,
-      value: '0',
-      maxFeePerGas: ethers.utils.parseUnits('15', 'gwei'),
-      maxPriorityFeePerGas: ethers.utils.parseUnits('1', 'gwei'),
-    });
-    console.log(`Tx sent: https://etherscan.io/tx/${tx.hash}`);
+    // recover address from signature
+    const eip191Hash = ethers.utils.hashMessage(testMessage);
+    const recoveredAddress = ethers.utils.recoverAddress(eip191Hash, signature);
 
+    if (recoveredAddress !== ethAddress) {
+      throw new Error(`Recovered address ${recoveredAddress} does not match signer address ${ethAddress}`);
+    }
+
+    console.log(`Recovered address matches signature address (${recoveredAddress})`);
     process.exit();
   })().catch(console.error);
 }

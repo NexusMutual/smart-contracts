@@ -15,123 +15,123 @@ contract TokenControllerGeneric is ITokenController {
     uint[] calldata,
     uint[] calldata
   ) external pure {
-    revert("Unsupported");
+    revert("withdrawCoverNote unsupported");
   }
 
   function changeOperator(address) external pure {
-    revert("Unsupported");
+    revert("changeOperator unsupported");
   }
 
   function operatorTransfer(address, address, uint) external virtual returns (bool) {
-    revert("Unsupported");
+    revert("operatorTransfer unsupported");
   }
 
   function burnFrom(address, uint) external virtual returns (bool) {
-    revert("Unsupported");
+    revert("burnFrom unsupported");
   }
 
   function addToWhitelist(address) external virtual {
-    revert("Unsupported");
+    revert("addToWhitelist unsupported");
   }
 
   function removeFromWhitelist(address) external virtual {
-    revert("Unsupported");
+    revert("removeFromWhitelist unsupported");
   }
 
   function mint(address, uint) external virtual {
-    revert("Unsupported");
+    revert("mint unsupported");
   }
 
   function lockForMemberVote(address, uint) external pure {
-    revert("Unsupported");
+    revert("lockForMemberVote unsupported");
   }
 
   function withdrawClaimAssessmentTokens(address[] calldata) external pure {
-    revert("Unsupported");
+    revert("withdrawClaimAssessmentTokens unsupported");
   }
 
   function getLockReasons(address) external pure returns (bytes32[] memory) {
-    revert("Unsupported");
+    revert("getLockReasons unsupported");
   }
 
   function totalSupply() external virtual view returns (uint) {
-    revert("Unsupported");
+    revert("totalSupply unsupported");
   }
 
   function totalBalanceOf(address) external pure returns (uint) {
-    revert("Unsupported");
+    revert("totalBalanceOf unsupported");
   }
 
   function totalBalanceOfWithoutDelegations(address) external pure returns (uint) {
-    revert("Unsupported");
+    revert("totalBalanceOfWithoutDelegations unsupported");
   }
 
   function getTokenPrice() external pure returns (uint) {
-    revert("Unsupported");
+    revert("getTokenPrice unsupported");
   }
 
   function getStakingPoolManager(uint) external virtual view returns (address) {
-    revert("Unsupported");
+    revert("getStakingPoolManager unsupported");
   }
 
   function getManagerStakingPools(address) external pure returns (uint[] memory) {
-    revert("Unsupported");
+    revert("getManagerStakingPools unsupported");
   }
 
   function isStakingPoolManager(address) external virtual view returns (bool) {
-    revert("Unsupported");
+    revert("isStakingPoolManager unsupported");
   }
 
   function getStakingPoolOwnershipOffer(uint) external pure returns (address, uint) {
-    revert("Unsupported");
+    revert("getStakingPoolOwnershipOffer unsupported");
   }
 
   function transferStakingPoolsOwnership(address, address) external virtual {
-    revert("Unsupported");
+    revert("transferStakingPoolsOwnership unsupported");
   }
 
   function assignStakingPoolManager(uint, address) external virtual {
-    revert("Unsupported");
+    revert("assignStakingPoolManager unsupported");
   }
 
   function createStakingPoolOwnershipOffer(uint, address, uint) external pure {
-    revert("Unsupported");
+    revert("createStakingPoolOwnershipOffer unsupported");
   }
 
   function acceptStakingPoolOwnershipOffer(uint) external pure {
-    revert("Unsupported");
+    revert("acceptStakingPoolOwnershipOffer unsupported");
   }
 
   function cancelStakingPoolOwnershipOffer(uint) external pure {
-    revert("Unsupported");
+    revert("cancelStakingPoolOwnershipOffer unsupported");
   }
 
   function mintStakingPoolNXMRewards(uint, uint) external virtual {
-    revert("Unsupported");
+    revert("mintStakingPoolNXMRewards unsupported");
   }
 
   function burnStakingPoolNXMRewards(uint, uint) external virtual {
-    revert("Unsupported");
+    revert("burnStakingPoolNXMRewards unsupported");
   }
 
   function depositStakedNXM(address, uint, uint) external virtual {
-    revert("Unsupported");
+    revert("depositStakedNXM unsupported");
   }
 
   function withdrawNXMStakeAndRewards(address, uint, uint, uint) external virtual {
-    revert("Unsupported");
+    revert("withdrawNXMStakeAndRewards unsupported");
   }
 
   function burnStakedNXM(uint, uint) external virtual {
-    revert("Unsupported");
+    revert("burnStakedNXM unsupported");
   }
 
   function stakingPoolNXMBalances(uint) external virtual view returns(uint128, uint128) {
-    revert("Unsupported");
+    revert("stakingPoolNXMBalances unsupported");
   }
 
   function tokensLocked(address, bytes32) external virtual view returns (uint256) {
-    revert("Unsupported");
+    revert("tokensLocked unsupported");
   }
 
   function getWithdrawableCoverNotes(address) external virtual view returns (
@@ -139,10 +139,10 @@ contract TokenControllerGeneric is ITokenController {
     bytes32[] memory,
     uint
   ) {
-    revert("Unsupported");
+    revert("getWithdrawableCoverNotes unsupported");
   }
 
   function getPendingRewards(address) external virtual view returns (uint) {
-    revert("Unsupported");
+    revert("getPendingRewards unsupported");
   }
 }

@@ -434,6 +434,15 @@ async function setup() {
     owner.address,
   ]);
 
+  // deploy viewer contracts
+  const stakingViewer = await ethers.deployContract('StakingViewer', [master.address, stakingNFT.address, spf.address]);
+  const assessmentViewer = await ethers.deployContract('AssessmentViewer', [master.address]);
+  const nexusViewer = await ethers.deployContract('NexusViewer', [
+    master.address,
+    stakingViewer.address,
+    assessmentViewer.address,
+  ]);
+
   await master.connect(governanceSigner).upgradeMultipleContracts([toBytes2('P1')], [p1.address]);
 
   // [todo] We should probably call changeDependentContractAddress on every contract
@@ -517,7 +526,7 @@ async function setup() {
     cover: await ethers.getContractAt('Cover', cover.address),
   };
 
-  const nonInternal = { priceFeedOracle, swapOperator, coverBroker };
+  const nonInternal = { priceFeedOracle, swapOperator, coverBroker, stakingViewer, assessmentViewer, nexusViewer };
 
   fixture.contracts = {
     ...external,

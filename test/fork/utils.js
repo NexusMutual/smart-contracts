@@ -3,6 +3,7 @@ const { artifacts, ethers, network } = require('hardhat');
 const assert = require('assert');
 
 const { setEtherBalance } = require('../utils/evm');
+const { calculateCurrentTrancheId } = require('../utils/stakingPool');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const { parseEther, defaultAbiCoder, keccak256 } = ethers.utils;
 const { BigNumber } = ethers;
@@ -155,11 +156,6 @@ async function submitMemberVoteGovernanceProposal(categoryId, actionData, signer
 
   const proposal = await gv.proposal(id);
   assert.equal(proposal[2].toNumber(), 3, 'Proposal Status != ACCEPTED');
-}
-
-async function calculateCurrentTrancheId() {
-  const lastBlock = await ethers.provider.getBlock('latest');
-  return Math.floor(lastBlock.timestamp / (91 * 24 * 3600));
 }
 
 const getSigner = async address => {

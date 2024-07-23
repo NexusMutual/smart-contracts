@@ -9,64 +9,13 @@ import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
+import "../../interfaces/IStakingViewer.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../interfaces/ICoverProducts.sol";
 
-contract StakingViewer is Multicall {
+contract StakingViewer is IStakingViewer, Multicall {
   using UncheckedMath for uint;
-
-  struct Pool {
-    uint poolId;
-    bool isPrivatePool;
-    address manager;
-    uint poolFee;
-    uint maxPoolFee;
-    uint activeStake;
-    uint currentAPY;
-  }
-
-  struct StakingProduct {
-    uint productId;
-    uint lastEffectiveWeight;
-    uint targetWeight;
-    uint targetPrice;
-    uint bumpedPrice;
-    uint bumpedPriceUpdateTime;
-  }
-
-  struct Deposit {
-    uint tokenId;
-    uint trancheId;
-    uint stake;
-    uint stakeShares;
-    uint reward;
-  }
-
-  struct Token {
-    uint tokenId;
-    uint poolId;
-    uint activeStake;
-    uint expiredStake;
-    uint rewards;
-    Deposit[] deposits;
-  }
-
-  struct TokenPoolMap {
-    uint poolId;
-    uint tokenId;
-  }
-
-  struct AggregatedTokens {
-    uint totalActiveStake;
-    uint totalExpiredStake;
-    uint totalRewards;
-  }
-
-  struct AggregatedRewards {
-    uint totalRewards;
-    uint[] trancheIds;
-  }
 
   INXMMaster public immutable master;
   IStakingNFT public immutable stakingNFT;
@@ -88,11 +37,11 @@ contract StakingViewer is Multicall {
     stakingPoolFactory = _stakingPoolFactory;
   }
 
-  function stakingProducts() internal view returns (IStakingProducts) {
-    return IStakingProducts(master.contractAddresses('SP'));
+  function _stakingProducts() internal view returns (IStakingProducts) {
+    return IStakingProducts(master.contractAddresses("SP"));
   }
 
-  function coverProducts() internal view returns (ICoverProducts) {
+  function _coverProducts() internal view returns (ICoverProducts) {
     return ICoverProducts(master.contractAddresses('CP'));
   }
 
@@ -107,16 +56,17 @@ contract StakingViewer is Multicall {
   function getPool(uint poolId) public view returns (Pool memory pool) {
 
     IStakingPool _stakingPool = stakingPool(poolId);
+    uint activeStake = _stakingPool.getActiveStake();
 
     pool.poolId = poolId;
     pool.isPrivatePool = _stakingPool.isPrivatePool();
     pool.manager = _stakingPool.manager();
     pool.poolFee = _stakingPool.getPoolFee();
     pool.maxPoolFee = _stakingPool.getMaxPoolFee();
-    pool.activeStake = _stakingPool.getActiveStake();
+    pool.activeStake = activeStake;
     pool.currentAPY =
-      _stakingPool.getActiveStake() != 0
-        ? 1 ether * _stakingPool.getRewardPerSecond() * 365 days / _stakingPool.getActiveStake()
+      activeStake != 0
+        ? 1 ether * _stakingPool.getRewardPerSecond() * 365 days / activeStake
         : 0;
 
     return pool;
@@ -150,6 +100,7 @@ contract StakingViewer is Multicall {
     uint queueSize = 0;
     uint poolCount = stakingPoolFactory.stakingPoolCount();
     Pool[] memory stakedPoolsQueue = new Pool[](poolCount);
+    IStakingProducts stakingProducts = _stakingProducts();
 
     for (uint i = 1; i <= poolCount; i++) {
       (
@@ -158,7 +109,7 @@ contract StakingViewer is Multicall {
         /* uint targetPrice */,
         /* uint bumpedPrice */,
         uint bumpedPriceUpdateTime
-      ) = stakingProducts().getProduct(i, productId);
+      ) = stakingProducts.getProduct(i, productId);
 
       if (targetWeight == 0 && lastEffectiveWeight == 0 && bumpedPriceUpdateTime == 0) {
         continue;
@@ -182,9 +133,9 @@ contract StakingViewer is Multicall {
   function getPoolProducts(uint poolId) public view returns (StakingProduct[] memory products) {
 
     uint stakedProductsCount = 0;
-    uint coverProductCount = coverProducts().getProductCount();
+    uint coverProductCount = _coverProducts().getProductCount();
+    IStakingProducts stakingProducts = _stakingProducts();
     StakingProduct[] memory stakedProductsQueue = new StakingProduct[](coverProductCount);
-
     for (uint i = 0; i < coverProductCount; i++) {
       (
         uint lastEffectiveWeight,
@@ -192,7 +143,7 @@ contract StakingViewer is Multicall {
         uint targetPrice,
         uint bumpedPrice,
         uint bumpedPriceUpdateTime
-      ) = stakingProducts().getProduct(poolId, i);
+      ) = stakingProducts.getProduct(poolId, i);
 
       if (targetWeight == 0 && lastEffectiveWeight == 0 && bumpedPriceUpdateTime == 0) {
         continue;
@@ -368,7 +319,51 @@ contract StakingViewer is Multicall {
     return aggregated;
   }
 
-  function getManagerRewards (uint[] memory poolIds) public view returns (Token[] memory tokens) {
+  function getManagedStakingPools(address manager) public view returns (Pool[] memory) {
+
+    (Pool[] memory unfilledPoolsArray, uint256 matchingCount) = _getMatchingPools(manager);
+    Pool[] memory pools = new Pool[](matchingCount);
+
+    // fill the new pools array with exactly the number of managed staking pools
+    for (uint256 i = 0; i < matchingCount; i++) {
+      pools[i] = unfilledPoolsArray[i];
+    }
+
+    return pools;
+  }
+
+  function getManagerTokenRewardsByAddr(address manager) public view returns (Token[] memory tokens) {
+    
+    (Pool[] memory managedPools, uint256 managedPoolCount) = _getMatchingPools(manager);
+    tokens = new Token[](managedPoolCount);
+
+    for (uint256 i = 0; i < managedPoolCount; i++) {
+      tokens[i] = _getToken(managedPools[i].poolId, 0);
+    }
+
+    return tokens;
+  }
+
+  function getManagerTotalRewards(address manager) public view returns (uint managerTotalRewards) {
+
+    Token[] memory tokenRewards = getManagerTokenRewardsByAddr(manager);
+
+    for (uint i = 0; i < tokenRewards.length; i++) {
+      managerTotalRewards += tokenRewards[i].rewards;
+    }
+  }
+
+  function getManagerPoolsAndRewards(address manager) external view returns (ManagerPoolsAndRewards memory) {
+
+    Pool[] memory pools =  getManagedStakingPools(manager);
+    Token[] memory tokens = getManagerTokenRewardsByAddr(manager);
+    uint totalRewards = getManagerTotalRewards(manager);
+
+    return ManagerPoolsAndRewards({pools: pools, rewards: tokens, totalRewards: totalRewards});
+  }
+
+  function getManagerRewards(uint[] memory poolIds) external view returns (Token[] memory tokens) {
+
     tokens = new Token[](poolIds.length);
 
     for (uint i = 0; i < poolIds.length; i++) {
@@ -376,9 +371,35 @@ contract StakingViewer is Multicall {
     }
   }
 
+  function processExpirationsFor(uint[] memory tokenIds) external {
+
+    for (uint i = 0; i < tokenIds.length; i++) {
+      uint poolId = stakingNFT.stakingPoolOf(tokenIds[i]);
+      stakingPool(poolId).processExpirations(true);
+    }
+  }
+
   function processExpirations(uint[] memory poolIds) public {
+
     for (uint i = 0; i < poolIds.length; i++) {
       stakingPool(poolIds[i]).processExpirations(true);
     }
+  }
+
+  function _getMatchingPools(address manager) internal view returns (Pool[] memory matchingPools, uint matchingCount) {
+
+    uint poolCount = stakingPoolFactory.stakingPoolCount();
+    matchingPools = new Pool[](poolCount);
+    uint index = 0;
+
+    for (uint i = 1; i <= poolCount; i++) {
+        Pool memory pool = getPool(i);
+        if (pool.manager == manager) {
+            matchingPools[index] = pool;
+            index++;
+        }
+    }
+
+    return (matchingPools, index);
   }
 }

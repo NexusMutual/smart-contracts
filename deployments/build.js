@@ -6,7 +6,10 @@ const { build } = require('tsup');
 const rootPath = config.paths.root;
 const contractList = [
   'Assessment',
+  'AssessmentViewer',
   'Cover',
+  'CoverBroker',
+  'CoverProducts',
   'CoverMigrator',
   'CoverNFTDescriptor',
   'CoverNFT',
@@ -23,6 +26,7 @@ const contractList = [
   'LegacyQuotationData',
   'MCR',
   'MemberRoles',
+  'NexusViewer',
   'NXMaster',
   'NXMToken',
   'Pool',
@@ -39,7 +43,6 @@ const contractList = [
   'StakingViewer',
   'SwapOperator',
   'TokenController',
-  'CoverBroker',
   'wNXM',
   'YieldTokenIncidents',
 ];

@@ -9,7 +9,7 @@ const { daysToSeconds } = require('../utils').helpers;
 
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
 
 const gracePeriod = 120 * 24 * 3600; // 120 days
 const NXM_ASSET_ID = 255;
@@ -32,11 +32,11 @@ const poolAllocationRequest = [{ poolId: 1, coverAmountInAsset: buyCoverFixture.
 
 async function buyCoverSetup() {
   const fixture = await loadFixture(setup);
-  const { cover } = fixture;
+  const { stakingProducts } = fixture;
   const [stakingPoolManager] = fixture.accounts.members;
 
   await createStakingPool(
-    cover,
+    stakingProducts,
     buyCoverFixture.productId,
     buyCoverFixture.capacity,
     buyCoverFixture.targetPriceRatio,
@@ -44,10 +44,60 @@ async function buyCoverSetup() {
     stakingPoolManager,
     buyCoverFixture.targetPriceRatio,
   );
+
   return fixture;
 }
 
 describe('buyCover', function () {
+  const amount = parseEther('1000');
+  const targetPriceRatio = '260';
+  const activeCover = parseEther('8000');
+  const capacity = parseEther('10000');
+  const priceDenominator = 10000;
+  const capacityFactor = 10000;
+  const defaultIpfsData = 'QmRmkky7qQBjCAU3gFUqfy3NXD6CPq8YVLPM7GHXBz7b5P';
+
+  // Cover.PoolAllocationRequest
+  const poolAllocationRequestTemplate = {
+    poolId: 1,
+    coverAmountInAsset: amount,
+  };
+
+  // Cover.BuyCoverParams
+  const buyCoverTemplate = {
+    owner: AddressZero,
+    coverId: 0,
+    productId: 0,
+    coverAsset: 0,
+    amount,
+    period: daysToSeconds(50),
+    maxPremiumInAsset: parseEther('100'),
+    paymentAsset: 0,
+    commissionRatio: parseEther('0'),
+    commissionDestination: AddressZero,
+    ipfsData: defaultIpfsData,
+  };
+
+  // Cover.Product
+  const productTemplate = {
+    productType: 0,
+    yieldTokenAddress: AddressZero,
+    coverAssets: parseInt('111', 2), // ETH/DAI/USDC
+    initialPriceRatio: 1000, // 10%
+    capacityReductionRatio: capacityFactor, // 100%
+    isDeprecated: false,
+    useFixedPrice: false,
+  };
+
+  // Cover.ProductParams
+  const productParamsTemplate = {
+    productName: 'xyz',
+    productId: MaxUint256,
+    ipfsMetadata: defaultIpfsData,
+    product: { ...productTemplate },
+    allowedPools: [],
+  };
+
   it('should purchase new cover using 1 staking pool', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { cover, pool } = fixture;
@@ -91,13 +141,17 @@ describe('buyCover', function () {
 
   it('should purchase new cover with fixed price using 1 staking pool', async function () {
     const fixture = await loadFixture(buyCoverSetup);
-    const { cover, pool } = fixture;
+    const { cover, pool, stakingProducts } = fixture;
     const [coverBuyer] = fixture.accounts.members;
+
     const { amount, targetPriceRatio, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     const productId = 1;
     const stakingPoolId = poolAllocationRequest[0].poolId;
-    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(stakingPoolId));
+    const stakingPool = await ethers.getContractAt(
+      'COMockStakingPool',
+      await stakingProducts.stakingPool(stakingPoolId),
+    );
     await stakingPool.setPrice(productId, targetPriceRatio);
 
     const poolEthBalanceBefore = await ethers.provider.getBalance(pool.address);
@@ -138,14 +192,15 @@ describe('buyCover', function () {
 
   it('should purchase new cover using 2 staking pools', async function () {
     const fixture = await loadFixture(buyCoverSetup);
-    const { cover, pool } = fixture;
+    const { cover, pool, stakingProducts } = fixture;
     const [coverBuyer, stakingPoolManager] = fixture.accounts.members;
+
     const { amount, targetPriceRatio, productId, coverAsset, period, expectedPremium, capacity, activeCover } =
       buyCoverFixture;
 
     // create a 2nd pool
     await createStakingPool(
-      cover,
+      stakingProducts,
       productId,
       capacity,
       targetPriceRatio,
@@ -431,7 +486,7 @@ describe('buyCover', function () {
         poolAllocationRequest,
         { value: '0' },
       ),
-    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExist');
+    ).to.be.revertedWithCustomError(cover, 'ProductNotFound');
   });
 
   it('should revert if cover asset does not exist', async function () {
@@ -1083,7 +1138,7 @@ describe('buyCover', function () {
       { value: expectedPremium },
     );
 
-    const globalRewardsRatio = await cover.globalRewardsRatio();
+    const globalRewardsRatio = await cover.getGlobalRewardsRatio();
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     const coverId = await cover.coverDataCount();
@@ -1314,7 +1369,7 @@ describe('buyCover', function () {
       { value: expectedPremium },
     );
 
-    const globalRewardsRatio = await cover.globalRewardsRatio();
+    const globalRewardsRatio = await cover.getGlobalRewardsRatio();
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     // Validate data for second cover
@@ -1338,5 +1393,149 @@ describe('buyCover', function () {
     const segmentAllocations = await cover.coverSegmentAllocations(coverId, segmentId, segmentPoolAllocationIndex);
     expect(segmentAllocations.poolId).to.be.equal(poolId);
     expect(segmentAllocations.coverAmountInNXM).to.be.equal(amount);
+  });
+
+  it('should fail to buy cover for deprecated product', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const { cover, stakingProducts, coverProducts } = fixture;
+    const {
+      members: [coverBuyer, stakingPoolManager],
+      advisoryBoardMembers: [advisoryBoardMember0],
+    } = fixture.accounts;
+
+    const productId = 1;
+
+    // create staking pool
+    await createStakingPool(
+      stakingProducts,
+      productId,
+      capacity,
+      targetPriceRatio,
+      activeCover,
+      stakingPoolManager,
+      targetPriceRatio,
+    );
+
+    const productParams = {
+      ...productParamsTemplate,
+    };
+    // Add new product
+    await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
+
+    // deprecate product
+    const isDeprecated = true;
+    const product = { ...productParams.product, isDeprecated };
+    const deprecateProductParams = { ...productParamsTemplate, productId, product };
+    await coverProducts.connect(advisoryBoardMember0).setProducts([deprecateProductParams]);
+
+    // buy cover
+    const owner = coverBuyer.address;
+    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const buyCoverParams = { ...buyCoverTemplate, owner, expectedPremium, productId };
+    await expect(
+      cover.connect(coverBuyer).buyCover(buyCoverParams, [poolAllocationRequestTemplate], {
+        value: expectedPremium,
+      }),
+    ).to.be.revertedWithCustomError(cover, 'ProductDeprecated');
+  });
+
+  it('should be able to buy cover on a previously deprecated product', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const { cover, stakingProducts, coverProducts } = fixture;
+    const {
+      members: [coverBuyer, stakingPoolManager],
+      advisoryBoardMembers: [advisoryBoardMember0],
+    } = fixture.accounts;
+
+    const productId = 1;
+
+    // create staking pool
+    await createStakingPool(
+      stakingProducts,
+      productId,
+      capacity,
+      targetPriceRatio,
+      activeCover,
+      stakingPoolManager,
+      targetPriceRatio,
+    );
+
+    const productParams = {
+      ...productParamsTemplate,
+    };
+    // Add new product
+    await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
+
+    // deprecate product
+    const isDeprecated = true;
+    const product = { ...productParams.product, isDeprecated };
+    const deprecateProductParams = { ...productParamsTemplate, productId, product };
+    await coverProducts.connect(advisoryBoardMember0).setProducts([deprecateProductParams]);
+
+    {
+      // re-enable product
+      const isDeprecated = false;
+      const product = { ...productParams.product, isDeprecated };
+      const restoreProductParams = { ...deprecateProductParams, product };
+      await coverProducts.connect(advisoryBoardMember0).setProducts([restoreProductParams]);
+    }
+
+    // buy cover
+    const owner = coverBuyer.address;
+    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const buyCoverParams = { ...buyCoverTemplate, owner, expectedPremium, productId };
+    await cover
+      .connect(coverBuyer)
+      .buyCover(buyCoverParams, [poolAllocationRequestTemplate], { value: expectedPremium });
+  });
+
+  it('should fail to edit cover for deprecated product', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const { cover, stakingProducts, coverProducts } = fixture;
+    const {
+      members: [coverBuyer, stakingPoolManager],
+      advisoryBoardMembers: [advisoryBoardMember0],
+    } = fixture.accounts;
+
+    const productId = 1;
+
+    // create staking pool
+    await createStakingPool(
+      stakingProducts,
+      productId,
+      capacity,
+      targetPriceRatio,
+      activeCover,
+      stakingPoolManager,
+      targetPriceRatio,
+    );
+
+    const productParams = {
+      ...productParamsTemplate,
+    };
+    // Add new product
+    await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
+
+    // buy cover
+    const owner = coverBuyer.address;
+    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const buyCoverParams = { ...buyCoverTemplate, owner, expectedPremium, productId };
+    await cover
+      .connect(coverBuyer)
+      .buyCover(buyCoverParams, [poolAllocationRequestTemplate], { value: expectedPremium });
+
+    // deprecate product
+    const isDeprecated = true;
+    const product = { ...productParams.product, isDeprecated };
+    const deprecateProductParams = { ...productParamsTemplate, productId, product };
+    await coverProducts.connect(advisoryBoardMember0).setProducts([deprecateProductParams]);
+
+    const coverId = await cover.coverDataCount();
+    const editCoverParams = { ...buyCoverParams, coverId };
+
+    // edit cover
+    await expect(
+      cover.connect(coverBuyer).buyCover(editCoverParams, [poolAllocationRequestTemplate], { value: expectedPremium }),
+    ).to.be.revertedWithCustomError(cover, 'ProductDeprecated');
   });
 });

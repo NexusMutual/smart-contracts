@@ -30,6 +30,7 @@ const ProductTypeFixture = {
   claimMethod: 1,
   gracePeriod: 7 * 24 * 3600, // 7 days
 };
+
 async function setup() {
   const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
@@ -38,24 +39,29 @@ async function setup() {
   const nxm = await ethers.deployContract('NXMTokenMock');
   const tokenController = await ethers.deployContract('TokenControllerMock', [nxm.address]);
 
-  const mcr = await ethers.deployContract('CoverMockMCR');
+  const mcr = await ethers.deployContract('COMockMCR');
   await mcr.setMCR(parseEther('600000'));
 
-  const stakingNFT = await ethers.deployContract('SPMockStakingNFT');
+  const stakingNFT = await ethers.deployContract('SKMockStakingNFT');
+  const coverProducts = await ethers.deployContract('SPMockCoverProducts');
 
-  const nonce = (await accounts.defaultSender.getTransactionCount()) + 4;
-  const expectedCoverAddress = getContractAddress({ from: accounts.defaultSender.address, nonce });
+  const nonce = (await accounts.defaultSender.getTransactionCount()) + 2;
+  const expectedStakingProductsAddress = getContractAddress({ from: accounts.defaultSender.address, nonce });
+  const expectedCoverAddress = getContractAddress({ from: accounts.defaultSender.address, nonce: nonce + 2 });
   const coverNFT = await ethers.deployContract('CoverNFT', [
     'CoverNFT',
     'CNFT',
     accounts.defaultSender.address,
-    expectedCoverAddress,
+    expectedStakingProductsAddress,
   ]);
-  const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [expectedCoverAddress]);
-  const stakingProducts = await ethers.deployContract('StakingProducts', [
+
+  const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [expectedStakingProductsAddress]);
+  const stakingProducts = await ethers.deployContract('SPMockStakingProducts', [
     expectedCoverAddress,
     stakingPoolFactory.address,
   ]);
+  expect(stakingProducts.address).to.equal(expectedStakingProductsAddress);
+
   const stakingPoolImplementation = await ethers.deployContract('StakingPool', [
     stakingNFT.address,
     nxm.address,
@@ -64,13 +70,14 @@ async function setup() {
     master.address,
     stakingProducts.address,
   ]);
-  const cover = await ethers.deployContract('StakingProductsMockCover', [
+  const cover = await ethers.deployContract('SPMockCover', [
     coverNFT.address,
     stakingNFT.address,
     stakingPoolFactory.address,
     stakingPoolImplementation.address,
+    coverProducts.address,
   ]);
-  expect(cover.address).to.equal(expectedCoverAddress);
+  expect(cover.address).to.be.equal(expectedCoverAddress);
 
   // set contract addresses
   await master.setTokenAddress(nxm.address);
@@ -79,10 +86,14 @@ async function setup() {
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('SP'), stakingProducts.address);
+  await master.setLatestAddress(hex('CP'), coverProducts.address);
+
+  const pooledStakingSigner = accounts.members[4];
+  await master.setLatestAddress(hex('PS'), pooledStakingSigner.address);
+
   await tokenController.setContractAddresses(cover.address, nxm.address);
   await master.setTokenAddress(nxm.address);
   await master.enrollInternal(accounts.defaultSender.address);
-  await stakingProducts.changeMasterAddress(master.address);
   await nxm.setOperator(tokenController.address);
 
   for (const member of accounts.members) {
@@ -94,21 +105,30 @@ async function setup() {
     await master.enrollInternal(internalContract.address);
   }
 
+  for (const contract of [stakingProducts]) {
+    await contract.changeMasterAddress(master.address);
+    await contract.changeDependentContractAddress();
+    await master.enrollInternal(contract.address);
+  }
+
   let i = 0;
   const initialProducts = Array(200)
     .fill('')
     .map(() => ({ ...initialProductTemplate, productId: i++ }));
   // Add products to cover contract
   await Promise.all(
-    initialProducts.map(({ productId, initialPrice: initialPriceRatio }) => [
-      cover.setProduct({ ...coverProductTemplate, initialPriceRatio }, productId),
-      cover.setProductType(ProductTypeFixture, productId),
-      cover.setPoolAllowed(productId, 1 /* poolID */, true),
-    ]),
+    initialProducts.map(async ({ productId, initialPrice: initialPriceRatio }) => {
+      await coverProducts.setProduct({ ...coverProductTemplate, initialPriceRatio }, productId);
+      await coverProducts.setProductType(ProductTypeFixture, productId);
+      await coverProducts.setPoolAllowed(productId, 1 /* poolID */, true);
+    }),
   );
-  const ret = await cover.callStatic.createStakingPool(false, 5, 5, [], 'ipfs hash');
 
-  await cover.createStakingPool(false, 5, 5, [], 'ipfs hash');
+  const ret = await stakingProducts
+    .connect(accounts.members[0])
+    .callStatic.createStakingPool(false, 5, 5, [], 'ipfs hash');
+
+  await stakingProducts.connect(accounts.members[0]).createStakingPool(false, 5, 5, [], 'ipfs hash');
 
   const stakingPool = await ethers.getContractAt('StakingPool', ret[1]);
   tokenController.setStakingPoolManager(1 /* poolID */, accounts.members[0].address);
@@ -144,8 +164,10 @@ async function setup() {
   return {
     accounts,
     coverSigner,
+    pooledStakingSigner,
+    initialProducts,
+    coverProducts,
     config,
-
     tokenController,
     master,
     nxm,
@@ -154,6 +176,8 @@ async function setup() {
     stakingProducts,
     cover,
     poolId,
+    stakingPoolFactory,
+    coverProductTemplate,
   };
 }
 

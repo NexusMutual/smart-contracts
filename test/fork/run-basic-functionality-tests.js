@@ -5,7 +5,6 @@ const evm = require('./evm')();
 const { parseEther, toUtf8Bytes } = ethers.utils;
 
 const V2Addresses = {
-  ProductsV1: '0xcafeab02966FdC69Ce5aFDD532DD51466892E32B',
   CoverNFT: '0xcafeaCa76be547F14D0220482667B42D8E7Bc3eb',
   StakingPoolFactory: '0xcafeafb97BF8831D95C0FC659b8eB3946B101CB3',
   StakingNFT: '0xcafea508a477D94c502c253A58239fb8F948e97f',
@@ -46,7 +45,6 @@ describe('Run Basic Functionality Tests', function () {
 
   it('load contracts', async function () {
     this.master = await ethers.getContractAt('NXMaster', '0x01BFd82675DBCc7762C84019cA518e701C0cD07e');
-    this.productsV1 = await ethers.getContractAt('ProductsV1', V2Addresses.ProductsV1);
     this.gateway = await ethers.getContractAt('LegacyGateway', '0x089Ab1536D032F54DFbC194Ba47529a4351af1B5');
     this.quotationData = await ethers.getContractAt(
       'LegacyQuotationData',

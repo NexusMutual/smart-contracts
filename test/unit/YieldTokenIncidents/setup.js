@@ -76,6 +76,9 @@ async function setup() {
   const ramm = await Ramm.deploy();
   await ramm.deployed();
 
+  const CoverProducts = await ethers.getContractFactory('ICMockCoverProducts');
+  const coverProducts = await CoverProducts.deploy();
+
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setLatestAddress(hex('MR'), memberRoles.address),
@@ -83,19 +86,20 @@ async function setup() {
     master.setLatestAddress(hex('CO'), cover.address),
     master.setLatestAddress(hex('AS'), assessment.address),
     master.setLatestAddress(hex('RA'), ramm.address),
+    master.setLatestAddress(hex('CP'), coverProducts.address),
     master.setTokenAddress(nxm.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
-  await cover.addProductType('0', '30', '5000');
-  await cover.addProductType('0', '90', '5000');
-  await cover.addProductType('1', '30', '5000');
+  await coverProducts.addProductType('0', '30', '5000');
+  await coverProducts.addProductType('0', '90', '5000');
+  await coverProducts.addProductType('1', '30', '5000');
 
-  await cover.addProduct(['0', '0x0000000000000000000000000000000000000001', '1', '0', '0']);
-  await cover.addProduct(['1', '0x0000000000000000000000000000000000000002', '1', '0', '0']);
-  await cover.addProduct(['2', ybEth.address, '1', 0b01, '0']);
-  await cover.addProduct(['2', ybDai.address, '1', 0b10, '0']);
-  await cover.addProduct(['2', ybPermitDai.address, 0b10, '1', '0']);
+  await coverProducts.addProduct(['0', '0x0000000000000000000000000000000000000001', '1', '0', '0']);
+  await coverProducts.addProduct(['1', '0x0000000000000000000000000000000000000002', '1', '0', '0']);
+  await coverProducts.addProduct(['2', ybEth.address, '1', 0b01, '0']);
+  await coverProducts.addProduct(['2', ybDai.address, '1', 0b10, '0']);
+  await coverProducts.addProduct(['2', ybPermitDai.address, 0b10, '1', '0']);
 
   await cover.setActiveCoverAmountInNXM(2, parseEther('3500'));
 
@@ -135,6 +139,7 @@ async function setup() {
       coverNFT,
       master,
       ramm,
+      coverProducts,
     },
   };
 }

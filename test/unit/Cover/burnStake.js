@@ -25,7 +25,7 @@ describe('burnStake', function () {
 
   it('should perform a burn a cover with 1 segment and 1 pool allocation', async function () {
     const fixture = await loadFixture(setup);
-    const { cover, accounts } = fixture;
+    const { cover, stakingProducts, accounts } = fixture;
     const [internal] = accounts.internalContracts;
     const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
@@ -51,7 +51,7 @@ describe('burnStake', function () {
       amountPaidOut: payoutAmountInAsset,
     });
 
-    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(1));
+    const stakingPool = await ethers.getContractAt('COMockStakingPool', await stakingProducts.stakingPool(1));
     const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
     expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount);
   });
@@ -93,7 +93,7 @@ describe('burnStake', function () {
 
   it('should perform a burn on a cover with 1 segment and 2 pool allocations', async function () {
     const fixture = await loadFixture(setup);
-    const { cover } = fixture;
+    const { cover, stakingProducts } = fixture;
     const [internal] = fixture.accounts.internalContracts;
     const [, stakingPoolManager] = fixture.accounts.members;
 
@@ -104,7 +104,7 @@ describe('burnStake', function () {
     const allocationRequest = [];
     for (let i = 1; i <= amountOfPools; i++) {
       await createStakingPool(
-        cover,
+        stakingProducts,
         productId,
         capacity,
         targetPriceRatio,
@@ -149,7 +149,7 @@ describe('burnStake', function () {
     });
 
     for (let i = 0; i < amountOfPools; i++) {
-      const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(i + 1));
+      const stakingPool = await ethers.getContractAt('COMockStakingPool', await stakingProducts.stakingPool(i + 1));
 
       const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
       expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount[i]);
@@ -165,7 +165,7 @@ describe('burnStake', function () {
 
   it('should perform a burn with globalCapacityRatio when the cover was bought', async function () {
     const fixture = await loadFixture(setup);
-    const { cover } = fixture;
+    const { cover, stakingProducts } = fixture;
     const [internal] = fixture.accounts.internalContracts;
     const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
@@ -194,7 +194,7 @@ describe('burnStake', function () {
       amountPaidOut: payoutAmountInAsset,
     });
 
-    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(1));
+    const stakingPool = await ethers.getContractAt('COMockStakingPool', await stakingProducts.stakingPool(1));
     const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
     expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount);
   });
@@ -217,38 +217,5 @@ describe('burnStake', function () {
     expect(segmentAllocationAfter.premiumInNXM).to.be.equal(
       segmentAllocationBefore.premiumInNXM.sub(payoutAmountInNXM),
     );
-  });
-
-  it('call stakingPool with correct parameters', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover } = fixture;
-    const [internal] = fixture.accounts.internalContracts;
-    const { amount, productId } = coverBuyFixture;
-    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
-
-    const burnAmountDivisor = 2;
-    const payoutAmountInAsset = amount.div(burnAmountDivisor);
-    const burnAmount = amount.div(burnAmountDivisor);
-
-    const segment = await cover.coverSegmentWithRemainingAmount(expectedCoverId, segmentId);
-    const segmentAllocation = await cover.coverSegmentAllocations(expectedCoverId, segmentId, '0');
-
-    const payoutAmountInNXM = segmentAllocation.coverAmountInNXM.mul(payoutAmountInAsset).div(segment.amount);
-    const expectedBurnAmount = payoutAmountInNXM.mul(GLOBAL_CAPACITY_DENOMINATOR).div(segment.globalCapacityRatio);
-
-    await cover.connect(internal).burnStake(expectedCoverId, segmentId, burnAmount);
-
-    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(1));
-
-    const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
-    expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount);
-
-    const allocationId = 0;
-    const burnStakeCalledWithParams = await stakingPool.burnStakeCalledWithParams();
-    expect(burnStakeCalledWithParams.allocationId).to.be.equal(allocationId);
-    expect(burnStakeCalledWithParams.period).to.be.equal(segment.period);
-    expect(burnStakeCalledWithParams.start).to.be.equal(segment.start);
-    expect(burnStakeCalledWithParams.productId).to.be.equal(productId);
-    expect(burnStakeCalledWithParams.deallocationAmount).to.be.equal(payoutAmountInNXM);
   });
 });

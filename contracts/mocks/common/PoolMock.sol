@@ -12,18 +12,18 @@ import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
+import "../generic/PoolGeneric.sol";
 
 /**
  * @notice Pool mock base contract
  * @dev Use this base contract as is or override as needed
  * @dev For functions that are yet to be implemented (including setters), implement it here as needed
  */
-contract PoolMock is IPool {
+contract PoolMock is PoolGeneric {
   using SafeERC20 for IERC20;
   using SafeUintCast for uint;
 
   Asset[] public assets;
-  address public swapOperator;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -41,14 +41,14 @@ contract PoolMock is IPool {
       )
     );
   }
-  function getAsset(uint assetId) external virtual view returns (Asset memory) {
+  function getAsset(uint assetId) external override virtual view returns (Asset memory) {
     require(assetId < assets.length, "Pool: Invalid asset id");
     return assets[assetId];
   }
-  function getAssets() external virtual view returns (Asset[] memory) {
+  function getAssets() external override virtual view returns (Asset[] memory) {
     return assets;
   }
-  function getPoolValueInEth() public virtual view returns (uint) {
+  function getPoolValueInEth() public override virtual view returns (uint) {
     return address(this).balance;
   }
 
@@ -57,7 +57,7 @@ contract PoolMock is IPool {
     address payable payoutAddress,
     uint amount,
     uint ethDepositAmount
-  ) external virtual {
+  ) external override virtual {
     Asset memory asset = assets[assetIndex];
 
     if (asset.assetAddress == ETH) {
@@ -75,7 +75,7 @@ contract PoolMock is IPool {
     }
   }
 
-  function sendEth(address payoutAddress, uint amount) external virtual {
+  function sendEth(address payoutAddress, uint amount) external override virtual {
     (bool transferSucceeded, bytes memory returndata) = payoutAddress.call{value: amount}("");
 
     if (transferSucceeded) {
@@ -93,18 +93,18 @@ contract PoolMock is IPool {
     revert("Pool: ETH transfer failed");
   }
 
-  function getInternalTokenPriceInAsset(uint assetId) public virtual view returns (uint) {
+  function getInternalTokenPriceInAsset(uint assetId) public override virtual view returns (uint) {
     return prices[assetId];
   }
 
   event TwapUpdateTriggered();
 
-  function getInternalTokenPriceInAssetAndUpdateTwap(uint assetId) public virtual returns (uint) {
+  function getInternalTokenPriceInAssetAndUpdateTwap(uint assetId) public override virtual returns (uint) {
     emit TwapUpdateTriggered();
     return prices[assetId];
   }
 
-  function calculateMCRRatio(uint totalAssetValue, uint mcrEth) public virtual pure returns (uint) {
+  function calculateMCRRatio(uint totalAssetValue, uint mcrEth) public override virtual pure returns (uint) {
       return totalAssetValue * (10 ** MCR_RATIO_DECIMALS) / mcrEth;
   }
 
@@ -132,58 +132,8 @@ contract PoolMock is IPool {
     assets[assetId].isAbandoned = isAbandoned;
   }
 
-  function getTokenPrice() public virtual view returns (uint) {
+  function getTokenPrice() public override virtual view returns (uint) {
     return prices[0];
-  }
-
-  /* ====== NOT YET IMPLEMENTED ====== */
-
-  function getAssetValueInEth(address) internal virtual pure returns (uint) {
-    revert("getAssetValueInEth not yet implemented");
-  }
-
-  function getAssetSwapDetails(address) external virtual pure returns (SwapDetails memory) {
-    revert("getAssetSwapDetails not yet implemented");
-  }
-
-  function setAssetDetails(uint, bool, bool) external virtual pure {
-    revert("setAssetDetails not yet implemented");
-  }
-
-  function setSwapDetails(address, uint, uint, uint) external virtual pure {
-    revert("setSwapDetails not yet implemented");
-  }
-
-  function transferAsset(address, address, uint) external virtual pure {
-    revert("transferAsset not yet implemented");
-  }
-
-  function transferAssetToSwapOperator(address, uint) public virtual pure {
-    revert("transferAssetToSwapOperator not yet implemented");
-  }
-
-  function setSwapDetailsLastSwapTime(address, uint32) public virtual pure {
-    revert("setSwapDetailsLastSwapTime not yet implemented");
-  }
-
-  function setSwapValue(uint) external virtual pure {
-    revert("setSwapValue not yet implemented");
-  }
-
-  function getMCRRatio() public virtual pure returns (uint) {
-    revert("getMCRRatio not yet implemented");
-  }
-
-  function priceFeedOracle() external virtual view returns (IPriceFeedOracle) {
-    revert("priceFeedOracle not yet implemented");
-  }
-
-  function upgradeCapitalPool(address payable) external virtual pure {
-    revert("upgradeCapitalPool not yet implemented");
-  }
-
-  function calculateTokenSpotPrice(uint, uint) external virtual pure returns (uint) {
-    revert("calculateTokenSpotPrice not yet implemented");
   }
 
   receive() external payable virtual {}

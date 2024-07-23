@@ -8,12 +8,10 @@ const proxyContracts = [
   'ProposalCategory',
   'LegacyPooledStaking',
   'TokenController',
-  'LegacyGateway',
   'IndividualClaims',
   'YieldTokenIncidents',
   'Assessment',
   'Cover',
-  'CoverMigrator',
   'StakingProducts',
   'Ramm',
 ];

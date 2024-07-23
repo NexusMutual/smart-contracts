@@ -10,13 +10,13 @@ import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
-import "../../interfaces/IStakingPoolFactory.sol";
+import "../../interfaces/ICompleteStakingPoolFactory.sol";
 import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IStakingProducts.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
@@ -27,19 +27,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   /* ========== STATE VARIABLES ========== */
 
-  Product[] internal _products;
-  ProductType[] internal _productTypes;
+  // moved to cover products
+  Product[] private _unused_products;
+  ProductType[] private _unused_productTypes;
 
   mapping(uint => CoverData) private _coverData;
 
   // cover id => segment id => pool allocations array
   mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
-  // product id => allowed pool ids
-  mapping(uint => uint[]) public allowedPools;
+  // moved to cover products
+  mapping(uint => uint[]) private _unused_allowedPools;
 
   // Each cover has an array of segments. A new segment is created
-  // every time a cover is edited to deliniate the different cover periods.
+  // every time a cover is edited to indicate the different cover periods.
   mapping(uint => CoverSegment[]) private _coverSegments;
 
   // assetId => { lastBucketUpdateId, totalActiveCoverInAsset }
@@ -47,27 +48,21 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   // assetId => bucketId => amount
   mapping(uint => mapping(uint => uint)) internal activeCoverExpirationBuckets;
 
-  // productId => product name
-  mapping(uint => string) public productNames;
-  // productTypeId => productType name
-  mapping(uint => string) public productTypeNames;
+  // moved to cover products
+  mapping(uint => string) private _unused_productNames;
+  mapping(uint => string) private _unused_productTypeNames;
 
   /* ========== CONSTANTS ========== */
 
   uint private constant GLOBAL_CAPACITY_RATIO = 20000; // 2
   uint private constant GLOBAL_REWARDS_RATIO = 5000; // 50%
 
-  uint private constant PRICE_DENOMINATOR = 10000;
   uint private constant COMMISSION_DENOMINATOR = 10000;
-  uint private constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
   uint private constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
-  uint private constant REWARD_DENOMINATOR = 10_000;
 
   uint private constant MAX_COVER_PERIOD = 365 days;
   uint private constant MIN_COVER_PERIOD = 28 days;
   uint private constant BUCKET_SIZE = 7 days;
-  // this constant is used for calculating the normalized yearly percentage cost of cover
-  uint private constant ONE_YEAR = 365 days;
 
   uint public constant MAX_COMMISSION_RATIO = 3000; // 30%
 
@@ -88,7 +83,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   ICoverNFT public immutable override coverNFT;
   IStakingNFT public immutable override stakingNFT;
-  IStakingPoolFactory public immutable override stakingPoolFactory;
+  ICompleteStakingPoolFactory public immutable override stakingPoolFactory;
   address public immutable stakingPoolImplementation;
 
   /* ========== CONSTRUCTOR ========== */
@@ -96,7 +91,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   constructor(
     ICoverNFT _coverNFT,
     IStakingNFT _stakingNFT,
-    IStakingPoolFactory _stakingPoolFactory,
+    ICompleteStakingPoolFactory _stakingPoolFactory,
     address _stakingPoolImplementation
   ) {
     // in constructor we only initialize immutable fields
@@ -129,19 +124,29 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       revert CoverAmountIsZero();
     }
 
+    // can pay with cover asset or nxm only
+    if (params.paymentAsset != params.coverAsset && params.paymentAsset != NXM_ASSET_ID) {
+      revert InvalidPaymentAsset();
+    }
+
     uint segmentId;
 
     AllocationRequest memory allocationRequest;
     {
 
-      if (_products.length <= params.productId) {
-        revert ProductDoesntExist();
+      ICoverProducts _coverProducts = coverProducts();
+
+      if (_coverProducts.getProductCount() <= params.productId) {
+        revert ProductNotFound();
       }
 
-      Product memory product = _products[params.productId];
+      (
+        Product memory product,
+        ProductType memory productType
+      ) = _coverProducts.getProductWithType(params.productId);
 
       if (product.isDeprecated) {
-        revert ProductDoesntExistOrIsDeprecated();
+        revert ProductDeprecated();
       }
 
       if (!isCoverAssetSupported(params.coverAsset, product.coverAssets)) {
@@ -151,7 +156,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.productId = params.productId;
       allocationRequest.coverId = coverId;
       allocationRequest.period = params.period;
-      allocationRequest.gracePeriod = _productTypes[product.productType].gracePeriod;
+      allocationRequest.gracePeriod = productType.gracePeriod;
       allocationRequest.useFixedPrice = product.useFixedPrice;
       allocationRequest.globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
       allocationRequest.capacityReductionRatio = product.capacityReductionRatio;
@@ -235,10 +240,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       )
     );
 
-    // can pay with cover asset or nxm only
-    if (params.paymentAsset != params.coverAsset && params.paymentAsset != NXM_ASSET_ID) {
-      revert InvalidPaymentAsset();
-    }
     _updateTotalActiveCoverAmount(params.coverAsset, coverAmountInCoverAsset, params.period, previousSegmentAmount);
 
     retrievePayment(
@@ -269,7 +270,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationIndex < coverSegmentAllocations[coverId][segmentId].length;
       allocationIndex++
     ) {
-      PoolAllocation memory allocation =  coverSegmentAllocations[coverId][segmentId][allocationIndex];
+      PoolAllocation memory allocation = coverSegmentAllocations[coverId][segmentId][allocationIndex];
       AllocationRequest memory allocationRequest;
       // editing just the needed props for deallocation
       allocationRequest.productId = cover.productId;
@@ -282,6 +283,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         0, // previous premium
         allocationRequest
       );
+    }
+
+    uint currentBucketId = block.timestamp / BUCKET_SIZE;
+    uint bucketAtExpiry = Math.divCeil(expiration, BUCKET_SIZE);
+
+    // if it expires in a future bucket
+    if (currentBucketId < bucketAtExpiry) {
+      // remove cover amount from expiration buckets and totalActiveCoverInAsset without updating last bucket id
+      activeCoverExpirationBuckets[cover.coverAsset][bucketAtExpiry] -= lastSegment.amount;
+      activeCover[cover.coverAsset].totalActiveCoverInAsset -= lastSegment.amount;
     }
   }
 
@@ -303,12 +314,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       : 0;
 
     for (uint i = 0; i < poolAllocationRequests.length; i++) {
-
       // if there is a previous segment and this index is present on it
       if (vars.previousPoolAllocationsLength > i) {
-
         PoolAllocation memory previousPoolAllocation =
-          coverSegmentAllocations[allocationRequest.coverId][segmentId - 1][i];
+                    coverSegmentAllocations[allocationRequest.coverId][segmentId - 1][i];
 
         // poolAllocationRequests must match the pools in the previous segment
         if (previousPoolAllocation.poolId != poolAllocationRequests[i].poolId) {
@@ -496,93 +505,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     activeCoverExpirationBuckets[coverAsset][bucketAtExpiry] += newCoverAmountInAsset;
   }
 
-  function addLegacyCover(
-    uint productId,
-    uint coverAsset,
-    uint amount,
-    uint start,
-    uint period,
-    address newOwner
-  ) external onlyInternal returns (uint coverId) {
-
-    ProductType memory productType = _productTypes[_products[productId].productType];
-
-    // uses the current v2 grace period
-    if (block.timestamp >= start + period + productType.gracePeriod) {
-      revert CoverOutsideOfTheGracePeriod();
-    }
-
-    coverId = coverNFT.mint(newOwner);
-    _coverData[coverId] = CoverData(productId.toUint24(), coverAsset.toUint8(), 0 /* amountPaidOut */);
-
-    uint bucketAtExpiry = Math.divCeil((start + period), BUCKET_SIZE);
-    activeCoverExpirationBuckets[coverAsset][bucketAtExpiry] += amount;
-    activeCover[coverAsset].totalActiveCoverInAsset += amount.toUint192();
-
-    _coverSegments[coverId].push(
-      CoverSegment(
-        amount.toUint96(),
-        start.toUint32(),
-        period.toUint32(),
-        productType.gracePeriod,
-        0, // global rewards ratio
-        1
-      )
-    );
-
-    emit CoverEdited(coverId, productId, 0, msg.sender, "");
-
-    return coverId;
-  }
-
-  function createStakingPool(
-    bool isPrivatePool,
-    uint initialPoolFee,
-    uint maxPoolFee,
-    ProductInitializationParams[] memory productInitParams,
-    string calldata ipfsDescriptionHash
-  ) external whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
-
-    uint numProducts = productInitParams.length;
-
-    // override with initial price and check if pool is allowed
-    for (uint i = 0; i < numProducts; i++) {
-
-      if (productInitParams[i].targetPrice < GLOBAL_MIN_PRICE_RATIO) {
-        revert TargetPriceBelowGlobalMinPriceRatio();
-      }
-
-      uint productId = productInitParams[i].productId;
-
-      // if there is a list of allowed pools for this product - this pool didn't exist yet so it's not in it
-      if (allowedPools[productId].length > 0) {
-        revert PoolNotAllowedForThisProduct(productId);
-      }
-
-      if (productId >= _products.length || _products[productId].isDeprecated) {
-        revert ProductDoesntExistOrIsDeprecated();
-      }
-
-      productInitParams[i].initialPrice = _products[productId].initialPriceRatio;
-    }
-
-    (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(address(this));
-
-    IStakingPool(stakingPoolAddress).initialize(
-      isPrivatePool,
-      initialPoolFee,
-      maxPoolFee,
-      poolId,
-      ipfsDescriptionHash
-    );
-
-    tokenController().assignStakingPoolManager(poolId, msg.sender);
-
-    stakingProducts().setInitialProducts(poolId, productInitParams);
-
-    return (poolId, stakingPoolAddress);
-  }
-
   // Gets the total amount of active cover that is currently expired for this asset
   function getExpiredCoverAmount(
     uint coverAsset,
@@ -658,12 +580,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   /* ========== VIEWS ========== */
 
-  function stakingPool(uint poolId) public view returns (IStakingPool) {
-    return IStakingPool(
-      StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId)
-    );
-  }
-
   function coverData(uint coverId) external override view returns (CoverData memory) {
     return _coverData[coverId];
   }
@@ -692,194 +608,43 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return coverNFT.totalSupply();
   }
 
-  function products(uint id) external override view returns (Product memory) {
-    return _products[id];
-  }
-
-  function productsCount() external override view returns (uint) {
-    return _products.length;
-  }
-
-  function getProducts() external view returns (Product[] memory) {
-    return _products;
-  }
-
-  function productTypes(uint id) external override view returns (ProductType memory) {
-    return _productTypes[id];
-  }
-
-  function productTypesCount() external override view returns (uint) {
-    return _productTypes.length;
-  }
-
-  /* ========== PRODUCT CONFIGURATION ========== */
-
-  function setProducts(ProductParam[] calldata productParams) external override onlyAdvisoryBoard {
-
-    uint unsupportedCoverAssetsBitmap = type(uint).max;
-
-
-    Asset[] memory assets = pool().getAssets();
-    uint assetsLength = assets.length;
-
-    for (uint i = 0; i < assetsLength; i++) {
-      if (assets[i].isCoverAsset && !assets[i].isAbandoned) {
-        // clear the bit at index i
-        unsupportedCoverAssetsBitmap ^= 1 << i;
-      }
-    }
-
-    for (uint i = 0; i < productParams.length; i++) {
-
-      ProductParam calldata param = productParams[i];
-      Product calldata product = param.product;
-
-      if (product.productType >= _productTypes.length) {
-        revert InvalidProductType();
-      }
-
-      if (unsupportedCoverAssetsBitmap & product.coverAssets != 0) {
-        revert UnsupportedCoverAssets();
-      }
-
-      if (product.initialPriceRatio < GLOBAL_MIN_PRICE_RATIO) {
-        revert InitialPriceRatioBelowGlobalMinPriceRatio();
-      }
-
-      if (product.initialPriceRatio > PRICE_DENOMINATOR) {
-        revert InitialPriceRatioAbove100Percent();
-      }
-
-      if (product.capacityReductionRatio > CAPACITY_REDUCTION_DENOMINATOR) {
-        revert CapacityReductionRatioAbove100Percent();
-      }
-
-      // TODO: https://github.com/NexusMutual/smart-contracts/issues/859
-      if (product.useFixedPrice) {
-        uint productId = param.productId == type(uint256).max ? _products.length : param.productId;
-        allowedPools[productId] = param.allowedPools;
-      }
-
-      // New product has id == uint256.max
-      if (param.productId == type(uint256).max) {
-        emit ProductSet(_products.length, param.ipfsMetadata);
-        productNames[_products.length] = param.productName;
-        _products.push(product);
-        continue;
-      }
-
-      // Existing product
-      if (param.productId >= _products.length) {
-        revert ProductDoesntExist();
-      }
-
-      Product storage newProductValue = _products[param.productId];
-      newProductValue.isDeprecated = product.isDeprecated;
-      newProductValue.coverAssets = product.coverAssets;
-      newProductValue.initialPriceRatio = product.initialPriceRatio;
-      newProductValue.capacityReductionRatio = product.capacityReductionRatio;
-
-      if (bytes(param.productName).length > 0) {
-        productNames[param.productId] = param.productName;
-      }
-
-      if (bytes(param.ipfsMetadata).length > 0) {
-        emit ProductSet(param.productId, param.ipfsMetadata);
-      }
-    }
-  }
-
-  function setProductTypes(ProductTypeParam[] calldata productTypeParams) external onlyAdvisoryBoard {
-
-    for (uint i = 0; i < productTypeParams.length; i++) {
-      ProductTypeParam calldata param = productTypeParams[i];
-
-      // New product has id == uint256.max
-      if (param.productTypeId == type(uint256).max) {
-        emit ProductTypeSet(_productTypes.length, param.ipfsMetadata);
-        productTypeNames[_productTypes.length] = param.productTypeName;
-        _productTypes.push(param.productType);
-        continue;
-      }
-
-      if (param.productTypeId >= _productTypes.length) {
-        revert ProductTypeNotFound();
-      }
-      _productTypes[param.productTypeId].gracePeriod = param.productType.gracePeriod;
-
-      if (bytes(param.productTypeName).length > 0) {
-        productTypeNames[param.productTypeId] = param.productTypeName;
-      }
-
-      if (bytes(param.ipfsMetadata).length > 0) {
-        emit ProductTypeSet(param.productTypeId, param.ipfsMetadata);
-      }
-    }
-  }
-
   /* ========== COVER ASSETS HELPERS ========== */
+
+  function recalculateActiveCoverInAsset(uint coverAsset) public {
+    uint currentBucketId = block.timestamp / BUCKET_SIZE;
+    uint totalActiveCover = 0;
+    uint yearlyBucketsCount = Math.divCeil(MAX_COVER_PERIOD, BUCKET_SIZE);
+
+    for (uint i = 1; i <= yearlyBucketsCount; i++) {
+      uint bucketId = currentBucketId + i;
+      totalActiveCover += activeCoverExpirationBuckets[coverAsset][bucketId];
+    }
+
+    activeCover[coverAsset] = ActiveCover(totalActiveCover.toUint192(), currentBucketId.toUint64());
+  }
 
   function totalActiveCoverInAsset(uint assetId) public view returns (uint) {
     return uint(activeCover[assetId].totalActiveCoverInAsset);
   }
 
-  // Returns true if the product exists and the pool is authorized to have the product
-  function isPoolAllowed(uint productId, uint poolId) public view returns (bool) {
-
-      uint poolCount = allowedPools[productId].length;
-
-      // If no pools are specified, every pool is allowed
-      if (poolCount == 0) {
-        return true;
-      }
-
-      for (uint i = 0; i < poolCount; i++) {
-        if (allowedPools[productId][i] == poolId) {
-          return true;
-        }
-      }
-
-      // Product has allow list and pool is not in it
-      return false;
-  }
-
-  function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external view {
-    for (uint i = 0; i < productIds.length; i++) {
-      if (!isPoolAllowed(productIds[i], poolId) ) {
-        revert PoolNotAllowedForThisProduct(productIds[i]);
-      }
-    }
-  }
-
-  function globalCapacityRatio() external pure returns (uint) {
+  function getGlobalCapacityRatio() external pure returns (uint) {
     return GLOBAL_CAPACITY_RATIO;
   }
 
-  function globalRewardsRatio() external pure returns (uint) {
+  function getGlobalRewardsRatio() external pure returns (uint) {
     return GLOBAL_REWARDS_RATIO;
   }
 
-  function getPriceAndCapacityRatios(uint[] calldata productIds) external view returns (
+  function getGlobalMinPriceRatio() external pure returns (uint) {
+    return GLOBAL_MIN_PRICE_RATIO;
+  }
+
+  function getGlobalCapacityAndPriceRatios() external pure returns (
     uint _globalCapacityRatio,
-    uint _globalMinPriceRatio,
-    uint[] memory _initialPrices,
-    uint[] memory _capacityReductionRatios
+    uint _globalMinPriceRatio
   ) {
-    _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
     _globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
-    _capacityReductionRatios = new uint[](productIds.length);
-    _initialPrices = new uint[](productIds.length);
-
-    for (uint i = 0; i < productIds.length; i++) {
-      uint productId = productIds[i];
-
-      if (productId >= _products.length) {
-        revert ProductDoesntExist();
-      }
-
-      _initialPrices[i] = uint(_products[productId].initialPriceRatio);
-      _capacityReductionRatios[i] = uint(_products[productId].capacityReductionRatio);
-    }
+    _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
   }
 
   function isCoverAssetSupported(uint assetId, uint productCoverAssetsBitmap) internal view returns (bool) {
@@ -898,6 +663,25 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return asset.isCoverAsset && !asset.isAbandoned;
   }
 
+  function stakingPool(uint poolId) public view returns (IStakingPool) {
+    return IStakingPool(
+      StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId)
+    );
+  }
+
+  function changeCoverNFTDescriptor(address _coverNFTDescriptor) external onlyAdvisoryBoard {
+    coverNFT.changeNFTDescriptor(_coverNFTDescriptor);
+  }
+
+  function changeStakingNFTDescriptor(address _stakingNFTDescriptor) external onlyAdvisoryBoard {
+    stakingNFT.changeNFTDescriptor(_stakingNFTDescriptor);
+  }
+
+  function changeStakingPoolFactoryOperator() external {
+    address _operator = master.getLatestAddress("SP");
+    stakingPoolFactory.changeOperator(_operator);
+  }
+
   /* ========== DEPENDENCIES ========== */
 
   function pool() internal view returns (IPool) {
@@ -912,14 +696,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return IMemberRoles(internalContracts[uint(ID.MR)]);
   }
 
-  function stakingProducts() internal view returns (IStakingProducts) {
-    return IStakingProducts(getInternalContractAddress(ID.SP));
+  function coverProducts() internal view returns (ICoverProducts) {
+    return ICoverProducts(internalContracts[uint(ID.CP)]);
   }
 
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
-    internalContracts[uint(ID.SP)] = master.getLatestAddress("SP");
+    internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
   }
 }

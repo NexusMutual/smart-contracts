@@ -44,8 +44,8 @@ describe('master', function () {
 
     const code = hex('XX');
 
-    const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
-    const newContract = await MMockNewContract.deploy();
+    const MSMockNewContract = await ethers.getContractFactory('MSMockNewContract');
+    const newContract = await MSMockNewContract.deploy();
 
     const actionData = defaultAbiCoder.encode(
       ['bytes2[]', 'address[]', 'uint[]'],
@@ -68,8 +68,8 @@ describe('master', function () {
     const fixture = await loadFixture(setup);
     const { master, gv } = fixture.contracts;
 
-    const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
-    const newContract = await MMockNewContract.deploy();
+    const MSMockNewContract = await ethers.getContractFactory('MSMockNewContract');
+    const newContract = await MSMockNewContract.deploy();
 
     const code = hex('XX');
     const actionData = defaultAbiCoder.encode(
@@ -86,7 +86,7 @@ describe('master', function () {
     const implementation = await proxy.implementation();
     assert.equal(implementation, newContract.address);
 
-    const newContractInstance = await ethers.getContractAt('MMockNewContract', address);
+    const newContractInstance = await ethers.getContractAt('MSMockNewContract', address);
     // can perform onlyInternal action
     await newContractInstance.mint(fixture.accounts.defaultSender.address, parseEther('1'));
   });
@@ -95,8 +95,8 @@ describe('master', function () {
     const fixture = await loadFixture(setup);
     const { master, gv } = fixture.contracts;
 
-    const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
-    const newContract = await MMockNewContract.deploy();
+    const MSMockNewContract = await ethers.getContractFactory('MSMockNewContract');
+    const newContract = await MSMockNewContract.deploy();
 
     const salt = 2;
 
@@ -239,35 +239,31 @@ describe('master', function () {
 
   it('upgrades all contracts', async function () {
     const fixture = await loadFixture(setup);
-    const { master, gv, dai, priceFeedOracle, p1, tk, qd, lcr, spf, cover, productsV1, coverNFT } = fixture.contracts;
+    const { master, gv, dai, priceFeedOracle, p1, tk, qd, lcr, spf, cover, coverNFT } = fixture.contracts;
     const owner = fixture.accounts.defaultSender;
 
     const TokenController = await ethers.getContractFactory('TokenController');
-    const CoverMigrator = await ethers.getContractFactory('CoverMigrator');
     const LegacyClaimsReward = await ethers.getContractFactory('LegacyClaimsReward');
     const MCR = await ethers.getContractFactory('MCR');
     const Pool = await ethers.getContractFactory('Pool');
     const Governance = await ethers.getContractFactory('Governance');
     const ProposalCategoryContract = await ethers.getContractFactory('ProposalCategory');
     const MemberRoles = await ethers.getContractFactory('MemberRoles');
-    const LegacyGateway = await ethers.getContractFactory('LegacyGateway');
     const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
     const LegacyPooledStaking = await ethers.getContractFactory('LegacyPooledStaking');
 
     const pool = await Pool.deploy(master.address, priceFeedOracle.address, AddressZero, tk.address, p1.address);
 
-    const contractCodes = ['TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'CI'];
+    const contractCodes = ['TC', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'CI'];
     const newAddresses = [
       await TokenController.deploy(qd.address, lcr.address, spf.address, tk.address),
-      await CoverMigrator.deploy(qd.address, productsV1.address),
       await LegacyClaimsReward.deploy(master.address, dai.address),
       pool,
       await MCR.deploy(master.address, 0),
       await Governance.deploy(),
       await ProposalCategoryContract.deploy(),
       await MemberRoles.deploy(tk.address),
-      await LegacyPooledStaking.deploy(cover.address, productsV1.address, AddressZero, tk.address),
-      await LegacyGateway.deploy(AddressZero, tk.address),
+      await LegacyPooledStaking.deploy(cover.address, AddressZero, tk.address),
       await IndividualClaims.deploy(tk.address, coverNFT.address),
     ].map(c => {
       return c.address;
@@ -359,9 +355,9 @@ describe('master', function () {
     const { master, gv } = fixture.contracts;
 
     const code = hex('RE');
-    const existingCode = hex('GW');
-    const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
-    const newContract = await MMockNewContract.deploy();
+    const existingCode = hex('CO');
+    const MSMockNewContract = await ethers.getContractFactory('MSMockNewContract');
+    const newContract = await MSMockNewContract.deploy();
     const actionData = defaultAbiCoder.encode(
       ['bytes2[]', 'address[]', 'uint[]'],
       [[code], [newContract.address], [ContractTypes.Replaceable]],

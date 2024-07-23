@@ -109,7 +109,6 @@ async function setup() {
   const tk = await ethers.deployContract('NXMToken', [owner.address, INITIAL_SUPPLY]);
 
   const qd = await ethers.deployContract('TestnetQuotationData', [QE, owner.address]);
-  const productsV1 = await ethers.deployContract('ProductsV1');
 
   // proxy contracts
   const master = await deployProxy('DisposableNXMaster');
@@ -118,7 +117,6 @@ async function setup() {
   const ramm = await deployProxy('Ramm', [INITIAL_SPOT_PRICE_B]);
   const pc = await deployProxy('DisposableProposalCategory');
   const gv = await deployProxy('DisposableGovernance');
-  const gateway = await deployProxy('DisposableGateway', [qd.address, tk.address]);
   const st = await deployProxy('SafeTracker', [
     INVESTMENT_LIMIT,
     gnosisSafe.address,
@@ -213,7 +211,7 @@ async function setup() {
     coverNFTDescriptor.address,
   ]);
 
-  // 2. deploy Cover, StakingProducts and TokenController proxies
+  // 2. deploy Cover, StakingProducts, CoverProducts and TokenController proxies
   let cover = await deployProxy('Stub');
   let stakingProducts = await deployProxy('Stub');
   let tc = await deployProxy('Stub');
@@ -234,19 +232,22 @@ async function setup() {
   tc = await ethers.getContractAt('DisposableTokenController', tc.address);
 
   // 5. update operators
-  await spf.changeOperator(cover.address);
+  await spf.changeOperator(stakingProducts.address);
   await stakingNFT.changeOperator(cover.address);
   await coverNFT.changeOperator(cover.address);
   await cover.changeMasterAddress(master.address);
+  await stakingProducts.changeMasterAddress(master.address);
 
   const ci = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
   const cg = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
   const as = await deployProxy('Assessment', [tk.address]);
-  const cl = await deployProxy('CoverMigrator', [qd.address, productsV1.address]);
+  const coverProducts = await deployProxy('CoverProducts');
+
+  await coverProducts.changeMasterAddress(master.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CI', 'CG', 'AS', 'CO', 'CL', 'SP', 'RA', 'ST'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'CI', 'CG', 'AS', 'CO', 'SP', 'RA', 'ST', 'CP'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -268,16 +269,15 @@ async function setup() {
     { address: pc.address, code: 'PC' },
     { address: mr.address, code: 'MR' },
     { address: ps.address, code: 'PS' },
-    { address: gateway.address, code: 'GW' },
     { address: ci.address, code: 'CI' },
     { address: cg.address, code: 'CG' },
-    { address: cl.address, code: 'CL' },
     { address: as.address, code: 'AS' },
     { address: cover.address, code: 'CO' },
     { address: lcr.address, code: 'CR' },
     { address: stakingProducts.address, code: 'SP' },
     { address: ramm.address, code: 'RA' },
     { address: st.address, code: 'ST' },
+    { address: coverProducts.address, code: 'CP' },
   ];
 
   await master.initialize(
@@ -350,8 +350,10 @@ async function setup() {
   };
 
   await cover.changeDependentContractAddress();
+  await stakingProducts.changeDependentContractAddress();
+  await coverProducts.changeDependentContractAddress();
 
-  await cover.setProductTypes([
+  await coverProducts.setProductTypes([
     {
       // Protocol Cover
       productTypeName: 'Protocol',
@@ -387,21 +389,195 @@ async function setup() {
     },
   ]);
 
-  const productList = [
-    {
-      productName: 'Product 0',
-      productId: MaxUint256,
-      ipfsMetadata: 'product 0 metadata',
-      product: {
-        productType: 0, // Protocol Cover
-        yieldTokenAddress: AddressZero,
-        coverAssets: 0, // Use fallback
-        initialPriceRatio: 100,
-        capacityReductionRatio: 0,
-        useFixedPrice: false,
-      },
-      allowedPools: [],
+  const defaultProduct = {
+    productName: 'Product 0',
+    productId: MaxUint256,
+    ipfsMetadata: 'product 0 metadata',
+    product: {
+      productType: 0, // Protocol Cover
+      yieldTokenAddress: AddressZero,
+      coverAssets: 0, // Use fallback
+      initialPriceRatio: 100,
+      capacityReductionRatio: 0,
+      useFixedPrice: false,
     },
+    allowedPools: [],
+  };
+
+  // set default product
+  await coverProducts.setProducts([defaultProduct]);
+
+  await gv.changeMasterAddress(master.address);
+
+  await master.switchGovernanceAddress(gv.address);
+
+  await upgradeProxy(mr.address, 'MemberRoles', [tk.address]);
+  await upgradeProxy(tc.address, 'TokenController', [qd.address, lcr.address, spf.address, tk.address]);
+  await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, stakingNFT.address, tk.address]);
+  await upgradeProxy(pc.address, 'ProposalCategory');
+  await upgradeProxy(master.address, 'NXMaster');
+  await upgradeProxy(gv.address, 'Governance');
+
+  // replace legacy pool after Ramm is initialized
+  const governanceSigner = await getGovernanceSigner(gv);
+  const p1 = await ethers.deployContract(
+    'Pool',
+    [master, priceFeedOracle, swapOperator, tk, legacyPool].map(c => c.address),
+  );
+
+  // deploy CoverBroker
+  const coverBroker = await ethers.deployContract('CoverBroker', [
+    cover.address,
+    mr.address,
+    tk.address,
+    master.address,
+    owner.address,
+  ]);
+
+  await master.connect(governanceSigner).upgradeMultipleContracts([toBytes2('P1')], [p1.address]);
+
+  // [todo] We should probably call changeDependentContractAddress on every contract
+  await cover.changeDependentContractAddress();
+  await ramm.changeDependentContractAddress();
+  await ci.changeDependentContractAddress();
+  await cg.changeDependentContractAddress();
+  await as.changeDependentContractAddress();
+  await mc.changeDependentContractAddress();
+  await mr.changeDependentContractAddress();
+  await tc.changeDependentContractAddress();
+
+  await transferProxyOwnership(mr.address, master.address);
+  await transferProxyOwnership(tc.address, master.address);
+  await transferProxyOwnership(ps.address, master.address);
+  await transferProxyOwnership(pc.address, master.address);
+  await transferProxyOwnership(gv.address, master.address);
+  await transferProxyOwnership(ci.address, master.address);
+  await transferProxyOwnership(cg.address, master.address);
+  await transferProxyOwnership(as.address, master.address);
+  await transferProxyOwnership(cover.address, gv.address);
+  await transferProxyOwnership(master.address, gv.address);
+
+  // Ensure ALL pool supported assets has fund (except st)
+  const POOL_ETHER = parseEther('90000');
+  const poolAssets = [
+    { asset: dai, poolValue: parseEther('2000000') },
+    { asset: usdc, poolValue: parseUnits('2000000', usdcDecimals) },
+    { asset: stETH, poolValue: parseEther('33202') },
+    { asset: rETH, poolValue: parseEther('13358') },
+    { asset: enzymeVault, poolValue: parseEther('15348') },
+  ];
+  await owner.sendTransaction({ to: p1.address, value: POOL_ETHER.toString() });
+  await Promise.all(poolAssets.map(pa => pa.asset.transfer(p1.address, pa.poolValue)));
+
+  // Rates
+  const assetToEthRate = (rate, powValue = 36) => BigNumber.from(10).pow(BigNumber.from(powValue)).div(rate);
+
+  const ethToDaiRate = 20000;
+  const ethToNxmtyRate = 1000;
+  const ethToUsdcRate = parseUnits('200', usdcDecimals);
+
+  const daiToEthRate = assetToEthRate(parseEther((ethToDaiRate / 100).toString()));
+  const nxmtyToEthRate = assetToEthRate(parseEther((ethToNxmtyRate / 100).toString()));
+  const usdcToEthRate = assetToEthRate(ethToUsdcRate, 24);
+
+  await chainlinkDAI.setLatestAnswer(daiToEthRate);
+  await chainlinkUSDC.setLatestAnswer(usdcToEthRate);
+  await chainlinkEnzymeVault.setLatestAnswer(nxmtyToEthRate);
+
+  const external = {
+    chainlinkDAI,
+    dai,
+    usdc,
+    debtUsdc,
+    weth,
+    stETH,
+    rETH,
+    aWETH,
+    enzymeVault,
+    ybDAI,
+    ybETH,
+    ybUSDC,
+  };
+  const nonUpgradable = { qd, spf, coverNFT, stakingNFT };
+  const instances = { tk, p1, mcr: mc, lcr };
+
+  // we upgraded them, get non-disposable instances because
+  const proxies = {
+    master: await ethers.getContractAt('NXMaster', master.address),
+    tc: await ethers.getContractAt('TokenController', tc.address),
+    gv: await ethers.getContractAt('Governance', gv.address),
+    pc: await ethers.getContractAt('ProposalCategory', pc.address),
+    mr: await ethers.getContractAt('MemberRoles', mr.address),
+    ps: await ethers.getContractAt('LegacyPooledStaking', ps.address),
+    ra: await ethers.getContractAt('Ramm', ramm.address),
+    st: await ethers.getContractAt('SafeTracker', st.address),
+    ci: await ethers.getContractAt('IndividualClaims', ci.address),
+    cg: await ethers.getContractAt('YieldTokenIncidents', cg.address),
+    as: await ethers.getContractAt('Assessment', as.address),
+    cover: await ethers.getContractAt('Cover', cover.address),
+  };
+
+  const nonInternal = { priceFeedOracle, swapOperator, coverBroker };
+
+  fixture.contracts = {
+    ...external,
+    ...nonUpgradable,
+    ...instances,
+    ...proxies,
+    ...nonInternal,
+  };
+
+  fixture.rates = {
+    ethToDaiRate,
+    ethToNxmtyRate,
+    ethToUsdcRate,
+    daiToEthRate,
+    usdcToEthRate,
+    nxmtyToEthRate,
+  };
+
+  fixture.contractType = contractType;
+
+  await enrollMember(fixture.contracts, members, owner);
+  await enrollMember(fixture.contracts, stakingPoolManagers, owner);
+  await enrollMember(fixture.contracts, advisoryBoardMembers, owner);
+  await enrollABMember(fixture.contracts, advisoryBoardMembers);
+
+  // enroll coverBroker as member
+  await impersonateAccount(coverBroker.address);
+  await setEtherBalance(coverBroker.address, parseEther('1000'));
+  const coverBrokerSigner = await ethers.getSigner(coverBroker.address);
+  accounts.coverBrokerSigner = coverBrokerSigner;
+  await enrollMember(fixture.contracts, [coverBrokerSigner], owner, { initialTokens: parseEther('0') });
+
+  const product = {
+    productId: 0,
+    weight: 100,
+    initialPrice: 1000,
+    targetPrice: 100,
+  };
+
+  const DEFAULT_PRODUCTS = [product];
+  const DEFAULT_POOL_FEE = '5';
+
+  for (let i = 0; i < 10; i++) {
+    await stakingProducts.connect(stakingPoolManagers[i]).createStakingPool(
+      false, // isPrivatePool,
+      DEFAULT_POOL_FEE, // initialPoolFee
+      DEFAULT_POOL_FEE, // maxPoolFee,
+      DEFAULT_PRODUCTS,
+      '', // ipfs hash
+    );
+
+    const poolId = i + 1;
+    const stakingPoolAddress = await stakingProducts.stakingPool(poolId);
+    const stakingPoolInstance = await ethers.getContractAt('StakingPool', stakingPoolAddress);
+
+    fixture.contracts['stakingPool' + poolId] = stakingPoolInstance;
+  }
+
+  // set the rest of the products
+  const productList = [
     {
       productName: 'Product 1',
       productId: MaxUint256,
@@ -484,7 +660,7 @@ async function setup() {
         capacityReductionRatio: 0,
         useFixedPrice: false,
       },
-      allowedPools: [3],
+      allowedPools: [],
     },
     {
       productName: 'Product 7',
@@ -503,190 +679,7 @@ async function setup() {
     },
   ];
 
-  await cover.setProducts(productList);
-
-  await gv.changeMasterAddress(master.address);
-
-  await master.switchGovernanceAddress(gv.address);
-
-  await gateway.initialize(master.address, dai.address);
-
-  await upgradeProxy(mr.address, 'MemberRoles', [tk.address]);
-  await upgradeProxy(tc.address, 'TokenController', [qd.address, lcr.address, spf.address, tk.address]);
-  await upgradeProxy(ps.address, 'LegacyPooledStaking', [
-    cover.address,
-    productsV1.address,
-    stakingNFT.address,
-    tk.address,
-  ]);
-  await upgradeProxy(pc.address, 'ProposalCategory');
-  await upgradeProxy(master.address, 'NXMaster');
-  await upgradeProxy(gv.address, 'Governance');
-  await upgradeProxy(gateway.address, 'LegacyGateway', [qd.address, tk.address]);
-
-  // replace legacy pool after Ramm is initialized
-  const governanceSigner = await getGovernanceSigner(gv);
-  const p1 = await ethers.deployContract(
-    'Pool',
-    [master, priceFeedOracle, swapOperator, tk, legacyPool].map(c => c.address),
-  );
-
-  // deploy CoverBroker
-  const coverBroker = await ethers.deployContract('CoverBroker', [
-    cover.address,
-    mr.address,
-    tk.address,
-    master.address,
-    owner.address,
-  ]);
-
-  await master.connect(governanceSigner).upgradeMultipleContracts([toBytes2('P1')], [p1.address]);
-
-  // [todo] We should probably call changeDependentContractAddress on every contract
-  await gateway.changeDependentContractAddress();
-  await cover.changeDependentContractAddress();
-  await ramm.changeDependentContractAddress();
-  await ci.changeDependentContractAddress();
-  await cg.changeDependentContractAddress();
-  await as.changeDependentContractAddress();
-  await mc.changeDependentContractAddress();
-  await mr.changeDependentContractAddress();
-  await tc.changeDependentContractAddress();
-
-  await transferProxyOwnership(mr.address, master.address);
-  await transferProxyOwnership(tc.address, master.address);
-  await transferProxyOwnership(ps.address, master.address);
-  await transferProxyOwnership(pc.address, master.address);
-  await transferProxyOwnership(gv.address, master.address);
-  await transferProxyOwnership(gateway.address, master.address);
-  await transferProxyOwnership(ci.address, master.address);
-  await transferProxyOwnership(cg.address, master.address);
-  await transferProxyOwnership(cl.address, master.address);
-  await transferProxyOwnership(as.address, master.address);
-  await transferProxyOwnership(cover.address, gv.address);
-  await transferProxyOwnership(master.address, gv.address);
-
-  // Ensure ALL pool supported assets has fund (except st)
-  const POOL_ETHER = parseEther('90000');
-  const poolAssets = [
-    { asset: dai, poolValue: parseEther('2000000') },
-    { asset: usdc, poolValue: parseUnits('2000000', usdcDecimals) },
-    { asset: stETH, poolValue: parseEther('33202') },
-    { asset: rETH, poolValue: parseEther('13358') },
-    { asset: enzymeVault, poolValue: parseEther('15348') },
-  ];
-  await owner.sendTransaction({ to: p1.address, value: POOL_ETHER.toString() });
-  await Promise.all(poolAssets.map(pa => pa.asset.transfer(p1.address, pa.poolValue)));
-
-  // Rates
-  const assetToEthRate = (rate, powValue = 36) => BigNumber.from(10).pow(BigNumber.from(powValue)).div(rate);
-
-  const ethToDaiRate = 20000;
-  const ethToNxmtyRate = 1000;
-  const ethToUsdcRate = parseUnits('200', usdcDecimals);
-
-  const daiToEthRate = assetToEthRate(parseEther((ethToDaiRate / 100).toString()));
-  const nxmtyToEthRate = assetToEthRate(parseEther((ethToNxmtyRate / 100).toString()));
-  const usdcToEthRate = assetToEthRate(ethToUsdcRate, 24);
-
-  await chainlinkDAI.setLatestAnswer(daiToEthRate);
-  await chainlinkUSDC.setLatestAnswer(usdcToEthRate);
-  await chainlinkEnzymeVault.setLatestAnswer(nxmtyToEthRate);
-
-  const external = {
-    chainlinkDAI,
-    dai,
-    usdc,
-    debtUsdc,
-    weth,
-    stETH,
-    rETH,
-    aWETH,
-    enzymeVault,
-    productsV1,
-    ybDAI,
-    ybETH,
-    ybUSDC,
-  };
-  const nonUpgradable = { qd, productsV1, spf, coverNFT, stakingNFT };
-  const instances = { tk, cl, p1, mcr: mc, lcr };
-
-  // we upgraded them, get non-disposable instances because
-  const proxies = {
-    master: await ethers.getContractAt('NXMaster', master.address),
-    tc: await ethers.getContractAt('TokenController', tc.address),
-    gv: await ethers.getContractAt('Governance', gv.address),
-    pc: await ethers.getContractAt('ProposalCategory', pc.address),
-    mr: await ethers.getContractAt('MemberRoles', mr.address),
-    ps: await ethers.getContractAt('LegacyPooledStaking', ps.address),
-    ra: await ethers.getContractAt('Ramm', ramm.address),
-    st: await ethers.getContractAt('SafeTracker', st.address),
-    gateway: await ethers.getContractAt('LegacyGateway', gateway.address),
-    ci: await ethers.getContractAt('IndividualClaims', ci.address),
-    cg: await ethers.getContractAt('YieldTokenIncidents', cg.address),
-    cl: await ethers.getContractAt('CoverMigrator', cl.address),
-    as: await ethers.getContractAt('Assessment', as.address),
-    cover: await ethers.getContractAt('Cover', cover.address),
-  };
-
-  const nonInternal = { priceFeedOracle, swapOperator, coverBroker };
-
-  fixture.contracts = {
-    ...external,
-    ...nonUpgradable,
-    ...instances,
-    ...proxies,
-    ...nonInternal,
-  };
-
-  fixture.rates = {
-    ethToDaiRate,
-    ethToNxmtyRate,
-    ethToUsdcRate,
-    daiToEthRate,
-    usdcToEthRate,
-    nxmtyToEthRate,
-  };
-
-  fixture.contractType = contractType;
-
-  await enrollMember(fixture.contracts, members, owner);
-  await enrollMember(fixture.contracts, stakingPoolManagers, owner);
-  await enrollMember(fixture.contracts, advisoryBoardMembers, owner);
-  await enrollABMember(fixture.contracts, advisoryBoardMembers);
-
-  // enroll coverBroker as member
-  await impersonateAccount(coverBroker.address);
-  await setEtherBalance(coverBroker.address, parseEther('1000'));
-  const coverBrokerSigner = await ethers.getSigner(coverBroker.address);
-  accounts.coverBrokerSigner = coverBrokerSigner;
-  await enrollMember(fixture.contracts, [coverBrokerSigner], owner, { initialTokens: parseEther('0') });
-
-  const product = {
-    productId: 0,
-    weight: 100,
-    initialPrice: 1000,
-    targetPrice: 100,
-  };
-
-  const DEFAULT_PRODUCTS = [product];
-  const DEFAULT_POOL_FEE = '5';
-
-  for (let i = 0; i < 5; i++) {
-    await cover.connect(stakingPoolManagers[i]).createStakingPool(
-      false, // isPrivatePool,
-      DEFAULT_POOL_FEE, // initialPoolFee
-      DEFAULT_POOL_FEE, // maxPoolFee,
-      DEFAULT_PRODUCTS,
-      '', // ipfs hash
-    );
-
-    const poolId = i + 1;
-    const stakingPoolAddress = await cover.stakingPool(poolId);
-    const stakingPoolInstance = await ethers.getContractAt('StakingPool', stakingPoolAddress);
-
-    fixture.contracts['stakingPool' + poolId] = stakingPoolInstance;
-  }
+  await coverProducts.setProducts(productList);
 
   const config = {
     TRANCHE_DURATION: await fixture.contracts.stakingPool1.TRANCHE_DURATION(),
@@ -701,12 +694,13 @@ async function setup() {
   };
 
   fixture.contracts.stakingProducts = stakingProducts;
+  fixture.contracts.coverProducts = coverProducts;
   fixture.contracts.coverNFTDescriptor = coverNFTDescriptor;
   fixture.contracts.stakingNFTDescriptor = stakingNFTDescriptor;
   fixture.config = config;
   fixture.accounts = accounts;
   fixture.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS;
-  fixture.productList = productList;
+  fixture.productList = [defaultProduct, ...productList];
 
   return fixture;
 }

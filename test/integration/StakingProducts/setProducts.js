@@ -33,7 +33,7 @@ const coverProductParamTemplate = {
 
 async function setProductsSetup() {
   const fixture = await loadFixture(setup);
-  const { cover } = fixture.contracts;
+  const { stakingProducts } = fixture.contracts;
   const {
     stakingPoolManagers: [manager],
   } = fixture.accounts;
@@ -41,9 +41,9 @@ async function setProductsSetup() {
   const initialPoolFee = 50; // 50%
   const maxPoolFee = 80; // 80%
 
-  const [poolId] = await cover.callStatic.createStakingPool(true, initialPoolFee, maxPoolFee, [], '');
+  const [poolId] = await stakingProducts.callStatic.createStakingPool(true, initialPoolFee, maxPoolFee, [], '');
 
-  await cover.connect(manager).createStakingPool(
+  await stakingProducts.connect(manager).createStakingPool(
     true, // isPrivatePool,
     initialPoolFee,
     maxPoolFee,
@@ -60,7 +60,7 @@ async function setProductsSetup() {
 describe('setProducts', function () {
   it('should be able to raise and lower weights of deprecated products', async function () {
     const fixture = await loadFixture(setProductsSetup);
-    const { stakingProducts, cover } = fixture.contracts;
+    const { stakingProducts, coverProducts } = fixture.contracts;
     const {
       defaultSender: admin,
       stakingPoolManagers: [manager1],
@@ -77,7 +77,7 @@ describe('setProducts', function () {
       ...coverProductParamTemplate,
       product: { ...coverProductTemplate, isDeprecated: true },
     };
-    await cover.connect(admin).setProducts([coverProductParams]);
+    await coverProducts.connect(admin).setProducts([coverProductParams]);
 
     // raise target weight
     await stakingProducts.connect(manager1).setProducts(fixture.poolId /* poolId */, [
@@ -98,7 +98,7 @@ describe('setProducts', function () {
 
   it('should fail to set product that doesnt exist', async function () {
     const fixture = await loadFixture(setProductsSetup);
-    const { stakingProducts, cover } = fixture.contracts;
+    const { stakingProducts, coverProducts } = fixture.contracts;
     const {
       stakingPoolManagers: [manager1],
     } = fixture.accounts;
@@ -112,6 +112,30 @@ describe('setProducts', function () {
           productId: nonExistentProductId,
         },
       ]),
-    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExist');
+    ).to.be.revertedWithCustomError(coverProducts, 'ProductNotFound');
+  });
+
+  it('should fail to set product that is not allowed', async function () {
+    const fixture = await loadFixture(setProductsSetup);
+    const { stakingProducts, coverProducts } = fixture.contracts;
+    const { productList } = fixture;
+
+    const productId = productList.findIndex(product => product.allowedPools.length !== 0);
+    const poolId = Array.from({ length: 10 }, (_, i) => i + 1).find(
+      id => !productList[productId].allowedPools.includes(id),
+    );
+
+    const stakingPoolsManager = fixture.accounts.stakingPoolManagers[poolId - 1];
+
+    await expect(
+      stakingProducts.connect(stakingPoolsManager).setProducts(poolId /* poolId */, [
+        {
+          ...stakedProductParamTemplate,
+          productId,
+        },
+      ]),
+    )
+      .to.be.revertedWithCustomError(coverProducts, 'PoolNotAllowedForThisProduct')
+      .withArgs(productId);
   });
 });

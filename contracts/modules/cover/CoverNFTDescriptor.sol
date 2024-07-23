@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.8.0;
 
@@ -7,12 +7,12 @@ import "@openzeppelin/contracts-v4/utils/Strings.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/ICoverNFTDescriptor.sol";
+import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
 import "../../libraries/DateTime.sol";
 import "../../libraries/FloatingPoint.sol";
-import "./CoverNFT.sol";
 
 
 contract CoverNFTDescriptor is ICoverNFTDescriptor {
@@ -60,6 +60,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
   function generateDescription(uint tokenId) public view returns (string memory descriptionString,
     CoverDescription memory descriptionData) {
     ICover cover = ICover(master.getLatestAddress("CO"));
+    ICoverProducts coverProducts = ICoverProducts(master.getLatestAddress("CP"));
 
     if (cover.coverDataCount() < tokenId) {
       return ("This NFT does not exist", CoverDescription("", "", "", 0, 0, 0));
@@ -67,7 +68,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
 
     // Get cover data
     CoverData memory coverData = cover.coverData(tokenId);
-    string memory productName = cover.productNames(coverData.productId);
+    string memory productName = coverProducts.getProductName(coverData.productId);
     CoverSegment memory lastSegment = cover.coverSegmentWithRemainingAmount(tokenId, cover.coverSegmentsCount(tokenId) - 1);
 
     // Check if cover has already expired

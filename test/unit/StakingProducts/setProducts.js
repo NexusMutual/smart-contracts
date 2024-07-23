@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { verifyProduct, depositTo, daysToSeconds, initialProductTemplate, newProductTemplate } = require('./helpers');
+const { verifyProduct, depositTo, daysToSeconds, newProductTemplate } = require('./helpers');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
@@ -149,12 +149,11 @@ describe('setProducts unit tests', function () {
 
   it('should edit targetPrice and update bumpedPrice and bumpedPriceUpdateTime', async function () {
     const fixture = await loadFixture(setup);
-    const { stakingProducts, cover } = fixture;
+    const { stakingProducts, coverProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
     const products = [{ ...newProductTemplate, targetPrice: 100 }];
-
-    const { _initialPrices } = await cover.getPriceAndCapacityRatios(products.map(p => p.productId));
+    const [initialPrice] = await coverProducts.getInitialPrices(products.map(p => p.productId));
 
     // set products
     await stakingProducts.connect(manager).setProducts(poolId, products);
@@ -164,7 +163,7 @@ describe('setProducts unit tests', function () {
     const { bumpedPrice: bumpedPriceBefore, bumpedPriceUpdateTime: bumpedPriceUpdateTimeBefore } =
       await stakingProducts.getProduct(poolId, newProductTemplate.productId);
 
-    expect(bumpedPriceBefore).to.be.equal(_initialPrices[0]);
+    expect(bumpedPriceBefore).to.be.equal(initialPrice);
     expect(bumpedPriceUpdateTimeBefore).to.be.equal(initialTimestamp);
 
     await increaseTime(daysToSeconds(2)); // 2 days * 2% per day
@@ -185,7 +184,7 @@ describe('setProducts unit tests', function () {
 
   it('should update bumpedPrice correctly when decreasing targetPrice', async function () {
     const fixture = await loadFixture(setup);
-    const { stakingProducts, cover } = fixture;
+    const { stakingProducts, coverProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
     // target price = 300
@@ -193,7 +192,7 @@ describe('setProducts unit tests', function () {
     const products = [{ ...newProductTemplate, targetPrice: initialTargetPrice }];
 
     // initial price = 500
-    const { _initialPrices } = await cover.getPriceAndCapacityRatios(products.map(p => p.productId));
+    const [initialPrice] = await coverProducts.getInitialPrices(products.map(p => p.productId));
 
     // set products
     await stakingProducts.connect(manager).setProducts(poolId, products);
@@ -202,7 +201,7 @@ describe('setProducts unit tests', function () {
     const { bumpedPrice: bumpedPriceBefore, bumpedPriceUpdateTime: bumpedPriceUpdateTimeBefore } =
       await stakingProducts.getProduct(poolId, newProductTemplate.productId);
 
-    expect(bumpedPriceBefore).to.be.equal(_initialPrices[0]); // 500
+    expect(bumpedPriceBefore).to.be.equal(initialPrice); // 500
     expect(bumpedPriceUpdateTimeBefore).to.be.equal(initialTimestamp);
 
     await increaseTime(daysToSeconds(8));
@@ -419,12 +418,12 @@ describe('setProducts unit tests', function () {
 
   it('should fail to add non-existing product', async function () {
     const fixture = await loadFixture(setup);
-    const { stakingProducts, cover } = fixture;
+    const { stakingProducts, coverProducts } = fixture;
     const [manager] = fixture.accounts.members;
 
     const product = { ...newProductTemplate, productId: 999000 };
     await expect(stakingProducts.connect(manager).setProducts(poolId, [product]))
-      .to.be.revertedWithCustomError(cover, 'PoolNotAllowedForThisProduct')
+      .to.be.revertedWithCustomError(coverProducts, 'PoolNotAllowedForThisProduct')
       .withArgs(product.productId);
   });
 
@@ -482,11 +481,11 @@ describe('setProducts unit tests', function () {
     const amount = parseEther('1');
 
     let i = 0;
-    const initialProducts = Array(20)
+    const stakingProductsList = Array(20)
       .fill('')
-      .map(() => ({ ...initialProductTemplate, productId: i++ }));
+      .map(() => ({ ...newProductTemplate, productId: i++ }));
 
-    await stakingProducts.setInitialProducts(poolId, initialProducts);
+    await stakingProducts.connect(manager).setProducts(poolId, stakingProductsList);
 
     // Get capacity in staking pool
     await depositTo.call(fixture, { staker, amount });
@@ -519,17 +518,17 @@ describe('setProducts unit tests', function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const {
-      members: [staker, coverBuyer],
+      members: [manager, staker, coverBuyer],
       nonMembers: [anybody],
     } = fixture.accounts;
     const amount = parseEther('200');
 
     let i = 0;
-    const initialProducts = Array(20)
+    const stakingProductsList = Array(20)
       .fill('')
-      .map(() => ({ ...initialProductTemplate, productId: i++ }));
+      .map(() => ({ ...newProductTemplate, productId: i++ }));
 
-    await stakingProducts.setInitialProducts(poolId, initialProducts);
+    await stakingProducts.connect(manager).setProducts(poolId, stakingProductsList);
 
     // Get capacity in staking pool
     await depositTo.call(fixture, { staker, amount });
@@ -554,7 +553,7 @@ describe('setProducts unit tests', function () {
 
     await stakingProducts.connect(anybody).recalculateEffectiveWeights(
       poolId,
-      initialProducts.map(p => p.productId),
+      stakingProductsList.map(p => p.productId),
     );
   });
 

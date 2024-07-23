@@ -57,9 +57,9 @@ async function setup() {
   const cover = await Cover.deploy(coverNFT.address);
   await cover.deployed();
 
-  const Distributor = await ethers.getContractFactory('CLMockDistributor');
-  const distributor = await Distributor.deploy(individualClaims.address);
-  await distributor.deployed();
+  const CoverProducts = await ethers.getContractFactory('ICMockCoverProducts');
+  const coverProducts = await CoverProducts.deploy();
+  await coverProducts.deployed();
 
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
@@ -67,14 +67,15 @@ async function setup() {
     master.setLatestAddress(hex('P1'), pool.address),
     master.setLatestAddress(hex('AS'), assessment.address),
     master.setLatestAddress(hex('CO'), cover.address),
+    master.setLatestAddress(hex('CP'), coverProducts.address),
     master.setLatestAddress(hex('CI'), individualClaims.address),
     master.setLatestAddress(hex('RA'), ramm.address),
     master.setTokenAddress(nxm.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
-  await cover.addProductType('0', '30', '5000');
-  await cover.addProductType('0', '90', '5000');
-  await cover.addProductType('1', '30', '5000');
+  await coverProducts.addProductType('0', '30', '5000');
+  await coverProducts.addProductType('0', '90', '5000');
+  await coverProducts.addProductType('1', '30', '5000');
 
   const productTemplate = {
     productType: '0',
@@ -86,19 +87,19 @@ async function setup() {
     useFixedPrice: false,
   };
 
-  await cover.addProduct({
+  await coverProducts.addProduct({
     ...productTemplate,
     productType: '0',
     yieldTokenAddress: '0x1111111111111111111111111111111111111111',
   });
 
-  await cover.addProduct({
+  await coverProducts.addProduct({
     ...productTemplate,
     productType: '1',
     yieldTokenAddress: '0x2222222222222222222222222222222222222222',
   });
 
-  await cover.addProduct({
+  await coverProducts.addProduct({
     ...productTemplate,
     productType: '2',
     yieldTokenAddress: '0x3333333333333333333333333333333333333333',
@@ -129,7 +130,7 @@ async function setup() {
       individualClaims,
       assessment,
       cover,
-      distributor,
+      coverProducts,
       coverNFT,
       master,
       memberRoles,

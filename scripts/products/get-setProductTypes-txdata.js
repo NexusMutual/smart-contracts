@@ -8,7 +8,7 @@ const ipfsClient = require('ipfs-http-client');
 const { simulateTransaction, constants } = require('./helpers');
 
 const { MaxUint256 } = ethers.constants;
-const { COVER_ADDRESS, IPFS_API_URL } = constants;
+const { COVER_PRODUCTS_ADDRESS, IPFS_API_URL } = constants;
 
 const ipfs = ipfsClient({ url: IPFS_API_URL });
 
@@ -58,7 +58,7 @@ const verifyDecodedTxInputs = (csvProductTypeData, decodedTxInputs) => {
  * @returns {Promise<{setProductsTransaction: *}>}
  */
 const main = async productsTypesDataFilePath => {
-  const cover = await ethers.getContractAt('Cover', COVER_ADDRESS);
+  const coverProducts = await ethers.getContractAt('CoverProducts', COVER_PRODUCTS_ADDRESS);
 
   const productTypeData = csvParse(fs.readFileSync(productsTypesDataFilePath, 'utf8'), {
     columns: true,
@@ -101,7 +101,7 @@ const main = async productsTypesDataFilePath => {
     }),
   );
 
-  const setProductTypesTransaction = await cover.populateTransaction.setProductTypes(productTypeEntries);
+  const setProductTypesTransaction = await coverProducts.populateTransaction.setProductTypes(productTypeEntries);
   console.log(setProductTypesTransaction);
 
   const decodedTxInputs = await simulateTransaction(setProductTypesTransaction.data);

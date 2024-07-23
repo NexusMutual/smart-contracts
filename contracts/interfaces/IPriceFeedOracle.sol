@@ -7,12 +7,12 @@ interface Aggregator {
   function latestAnswer() external view returns (int);
 }
 
-struct OracleAsset {
-  Aggregator aggregator;
-  uint8 decimals;
-}
-
 interface IPriceFeedOracle {
+
+  struct OracleAsset {
+    Aggregator aggregator;
+    uint8 decimals;
+  }
 
   function ETH() external view returns (address);
   function assets(address) external view returns (Aggregator, uint8);

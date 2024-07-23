@@ -29,7 +29,7 @@ describe('Storage layout', function () {
 
     await extractStorageLayout(currentStorageFile);
 
-    const previousLayout = require(path.join(__dirname, './storage/previousLayout.json'));
+    const previousLayout = require(path.join(__dirname, './storage/mainnetLayout.json'));
     const currentLayout = require(currentStorageFile);
 
     // proxy contracts
@@ -40,12 +40,10 @@ describe('Storage layout', function () {
       'ProposalCategory',
       'LegacyPooledStaking',
       'TokenController',
-      'LegacyGateway',
       'IndividualClaims',
       'YieldTokenIncidents',
       'Assessment',
       'Cover',
-      'CoverMigrator',
       'StakingProducts',
       'Ramm',
     ];

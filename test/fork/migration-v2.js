@@ -316,9 +316,9 @@ describe('V2 upgrade', function () {
   });
 
   // Use deployed contract
-  it('Deploy ProductsV1.sol', async function () {
-    this.productsV1 = await ethers.getContractAt('ProductsV1', V2Addresses.ProductsV1);
-  });
+  // it('Deploy ProductsV1.sol', async function () {
+  //   this.productsV1 = await ethers.getContractAt('ProductsV1', V2Addresses.ProductsV1);
+  // });
 
   // Use deployed contract
   it('Deploy SwapOperator.sol', async function () {

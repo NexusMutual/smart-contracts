@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 // Modified from: https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary/blob/master/contracts/BokkyPooBahsDateTimeLibrary.sol
 library DateTime {
-  uint constant SECONDS_PER_MINUTE = 60;
-  uint constant SECONDS_PER_HOUR = SECONDS_PER_MINUTE * SECONDS_PER_MINUTE;
-  uint constant SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR;
-  int constant OFFSET19700101 = 2440588;
-
+  uint internal constant SECONDS_PER_MINUTE = 60;
+  uint internal constant SECONDS_PER_HOUR = SECONDS_PER_MINUTE * SECONDS_PER_MINUTE;
+  uint internal constant SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR;
+  int internal constant OFFSET19700101 = 2440588;
 
   function _daysToDate(uint _days) internal pure returns (uint year, uint month, uint day) {
     int __days = int(_days);

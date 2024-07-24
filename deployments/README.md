@@ -55,7 +55,7 @@ node_modules/@nexusmutual/deployments/dist/data/abis/Assessment.json
 Run build script:
 
 ```shell
-npm run build:deployments
+npm run deployments:build
 ```
 
 This script will generate abis and typings for contracts defined by `contractList` in the `build.js` file using Hardhat. The script will also auto update the `package.json` version.

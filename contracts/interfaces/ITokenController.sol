@@ -24,6 +24,29 @@ interface ITokenController {
     uint96 deadline;
   }
 
+  struct WithdrawNxmOptions {
+    bool assessmentStake;
+    bool stakingPoolStake;
+    bool assessmentRewards;
+    bool stakingPoolRewards;
+    bool governanceRewards;
+    bool v1CoverNote;
+    bool v1ClaimAssessmentTokens;
+    bool v1PooledStakingStake;
+    bool v1PooledStakingRewards;
+  }
+
+  struct V1CoverNotes {
+    uint[] coverIds;
+    uint[] indexes;
+  }
+
+  struct StakingPoolDeposit {
+    // tokenId and trancheIds ordering needs to match
+    uint[] tokenIds;
+    uint[][] tokenTrancheIds;
+  }
+
   /* ========== VIEWS ========== */
 
   function token() external view returns (INXMToken);
@@ -110,4 +133,13 @@ interface ITokenController {
   function burnStakedNXM(uint amount, uint poolId) external;
 
   function stakingPoolNXMBalances(uint poolId) external view returns(uint128 rewards, uint128 deposits);
+
+  function withdrawNXM(
+    address member,
+    StakingPoolDeposit calldata stakingPoolDeposit,
+    V1CoverNotes calldata coverNotes,
+    AssessementStake calldata assessmentStake,
+    uint assessmentRewardBatchSize,
+    WithdrawNxmOptions calldata withdrawOptions
+  ) external;
 }

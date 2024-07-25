@@ -8,6 +8,7 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../libraries/SafeUintCast.sol";
@@ -40,6 +41,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   INXMToken public immutable token;
   IQuotationData public immutable quotationData;
+  IStakingNFT public immutable stakingNFT;
   address public immutable claimsReward;
   address public immutable stakingPoolFactory;
 
@@ -47,12 +49,14 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     address quotationDataAddress,
     address claimsRewardAddress,
     address stakingPoolFactoryAddress,
-    address tokenAddress
+    address tokenAddress,
+    address stakingNFTAddress
   ) {
     quotationData = IQuotationData(quotationDataAddress);
     claimsReward = claimsRewardAddress;
     stakingPoolFactory = stakingPoolFactoryAddress;
     token = INXMToken(tokenAddress);
+    stakingNFT = IStakingNFT(stakingNFTAddress);
   }
 
   /* ========== DEPENDENCIES ========== */
@@ -71,6 +75,12 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   function pool() internal view returns (IPool) {
     return IPool(internalContracts[uint(ID.P1)]);
+  }
+
+  function stakingPool(uint poolId) internal view returns (IStakingPool) {
+    return IStakingPool(
+      StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId)
+    );
   }
 
   function changeDependentContractAddress() public override {
@@ -297,7 +307,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     bool fromGovernance,
     bool fromAssessment,
     uint batchSize
-  ) external whenNotPaused {
+  ) public whenNotPaused {
 
     if (fromAssessment) {
       assessment().withdrawRewards(forUser, batchSize.toUint104());
@@ -307,6 +317,62 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
       uint governanceRewards = governance().claimReward(forUser, batchSize);
       require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
       token.transfer(forUser, governanceRewards);
+    }
+  }
+
+  /// @notice Withdraws NXM from the Nexus platform based on specified options.
+  /// @dev Ensure the NXM is available and not locked before withdrawal. Only set flags in `WithdrawNxmOptions` for withdrawable NXM.
+  ///      Reverts if some of the NXM being withdrawn is locked or unavailable.
+  /// @param member Address of the member to withdraw NXM from.
+  /// @param stakingPoolDeposit Details for withdrawing from staking pools.
+  /// @param coverNotes Details for withdrawing V1 cover notes.
+  /// @param batchSize The maximum number of iterations to avoid unbounded loops when withdrawing governance and/or assessment rewards.
+  /// @param withdrawOptions Options specifying which NXM types to withdraw, set flags to true to include specific withdrawable NXM.
+  function withdrawNXM(
+    address member,
+    StakingPoolDeposit calldata stakingPoolDeposit,
+    V1CoverNotes calldata coverNotes,
+    uint batchSize,
+    WithdrawNxmOptions calldata withdrawOptions
+  ) external whenNotPaused {
+    if (withdrawOptions.assessmentStake) {
+      IAssessment _assessment = assessment();
+      (uint96 amount, , ) = _assessment.stakeOf(member);
+      _assessment.unstakeFor(member, amount, member);
+    }
+
+    if (withdrawOptions.governanceRewards || withdrawOptions.assessmentRewards) {
+      withdrawPendingRewards(
+        member,
+        withdrawOptions.governanceRewards,
+        withdrawOptions.assessmentRewards,
+        batchSize
+      );
+    }
+
+    if (withdrawOptions.stakingPoolStake || withdrawOptions.stakingPoolRewards) {
+      for (uint i = 0; i < stakingPoolDeposit.tokenIds.length; i++) {
+        uint tokenId = stakingPoolDeposit.tokenIds[i];
+        uint[] memory trancheIds = stakingPoolDeposit.tokenTrancheIds[i];
+        uint poolId = stakingNFT.stakingPoolOf(tokenId);
+        stakingPool(poolId).withdraw(tokenId, withdrawOptions.stakingPoolStake, withdrawOptions.stakingPoolRewards, trancheIds);
+      }
+    }
+
+    if (withdrawOptions.v1CoverNote) {
+        withdrawCoverNote(member, coverNotes.coverIds, coverNotes.indexes);
+    }
+
+    if (withdrawOptions.v1ClaimAssessmentTokens) {
+      _withdrawClaimAssessmentTokensForUser(member);
+    }
+
+    if (withdrawOptions.v1PooledStakingStake) {
+      pooledStaking().withdrawForUser(member);
+    }
+
+    if (withdrawOptions.v1PooledStakingRewards) {
+      pooledStaking().withdrawReward(member);
     }
   }
 
@@ -366,7 +432,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     address user,
     uint[] calldata coverIds,
     uint[] calldata indexes
-  ) external whenNotPaused override {
+  ) public whenNotPaused override {
 
     uint reasonCount = lockReason[user].length;
     require(reasonCount > 0, "TokenController: No locked cover notes found");

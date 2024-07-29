@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { getTranches, getNewRewardShares, TRANCHE_DURATION, generateRewards, setTime } = require('./helpers');
+const { getTranches, TRANCHE_DURATION, generateRewards, setTime } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { increaseTime } = require('../utils').evm;
@@ -249,13 +249,9 @@ describe('extendDeposit', function () {
     const newTrancheDeposit = await stakingPool.deposits(depositNftId, maxTranche);
     const accNxmPerRewardsShare = await stakingPool.getAccNxmPerRewardsShare();
 
-    const newRewardsIncrease = await getNewRewardShares({
-      stakingPool,
-      initialStakeShares: initialDeposit.stakeShares,
-      stakeSharesIncrease: 0,
-      initialTrancheId: firstActiveTrancheId,
-      newTrancheId: maxTranche,
-    });
+    const expectedPendingRewards = initialDeposit.rewardsShares
+      .mul(newTrancheDeposit.lastAccNxmPerRewardShare.sub(initialDeposit.lastAccNxmPerRewardShare))
+      .div(parseEther('1'));
 
     expect(updatedInitialDeposit.stakeShares).to.equal(0);
     expect(updatedInitialDeposit.rewardsShares).to.equal(0);
@@ -263,12 +259,8 @@ describe('extendDeposit', function () {
     expect(updatedInitialDeposit.lastAccNxmPerRewardShare).to.equal(0);
 
     expect(newTrancheDeposit.stakeShares).to.equal(initialDeposit.stakeShares);
-    expect(newTrancheDeposit.rewardsShares).to.equal(initialDeposit.rewardsShares.add(newRewardsIncrease));
-    expect(newTrancheDeposit.pendingRewards).to.equal(
-      initialDeposit.rewardsShares
-        .mul(newTrancheDeposit.lastAccNxmPerRewardShare.sub(initialDeposit.lastAccNxmPerRewardShare))
-        .div(parseEther('1')),
-    );
+    expect(newTrancheDeposit.rewardsShares).to.equal(initialDeposit.rewardsShares);
+    expect(newTrancheDeposit.pendingRewards).to.equal(expectedPendingRewards);
     expect(newTrancheDeposit.lastAccNxmPerRewardShare).to.equal(accNxmPerRewardsShare);
   });
 
@@ -291,23 +283,15 @@ describe('extendDeposit', function () {
     const updatedDeposit = await stakingPool.deposits(depositNftId, maxTranche);
     const accNxmPerRewardsShare = await stakingPool.getAccNxmPerRewardsShare();
 
-    const newRewardsIncrease = await getNewRewardShares({
-      stakingPool,
-      initialStakeShares: initialDeposit.stakeShares,
-      stakeSharesIncrease: updatedDeposit.stakeShares.sub(initialDeposit.stakeShares),
-      initialTrancheId: firstActiveTrancheId,
-      newTrancheId: maxTranche,
-    });
+    const expectedPendingRewards = initialDeposit.rewardsShares
+      .mul(updatedDeposit.lastAccNxmPerRewardShare.sub(initialDeposit.lastAccNxmPerRewardShare))
+      .div(parseEther('1'));
 
-    expect(updatedDeposit.stakeShares).to.equal(
-      initialDeposit.stakeShares.add(topUpAmount.mul(stakeSharesSupply).div(activeStake)),
-    );
-    expect(updatedDeposit.rewardsShares).to.equal(initialDeposit.rewardsShares.add(newRewardsIncrease));
-    expect(updatedDeposit.pendingRewards).to.equal(
-      initialDeposit.rewardsShares
-        .mul(updatedDeposit.lastAccNxmPerRewardShare.sub(initialDeposit.lastAccNxmPerRewardShare))
-        .div(parseEther('1')),
-    );
+    const expectedNewShares = topUpAmount.mul(stakeSharesSupply).div(activeStake).add(initialDeposit.stakeShares);
+
+    expect(updatedDeposit.stakeShares).to.equal(expectedNewShares);
+    expect(updatedDeposit.rewardsShares).to.equal(expectedNewShares);
+    expect(updatedDeposit.pendingRewards).to.equal(expectedPendingRewards);
     expect(updatedDeposit.lastAccNxmPerRewardShare).to.equal(accNxmPerRewardsShare);
   });
 
@@ -329,17 +313,10 @@ describe('extendDeposit', function () {
     const updatedDeposit = await stakingPool.deposits(depositNftId, maxTranche);
     const accNxmPerRewardsShare = await stakingPool.getAccNxmPerRewardsShare();
 
-    const newRewardsShares = await getNewRewardShares({
-      stakingPool,
-      initialStakeShares: 0,
-      stakeSharesIncrease: updatedDeposit.stakeShares,
-      initialTrancheId: maxTranche,
-      newTrancheId: maxTranche,
-    });
+    const expectedShares = Math.floor(Math.sqrt(amount.add(topUpAmount)));
 
-    const expectedStakeShares = Math.floor(Math.sqrt(amount.add(topUpAmount)));
-    expect(updatedDeposit.stakeShares).to.equal(expectedStakeShares);
-    expect(updatedDeposit.rewardsShares).to.equal(newRewardsShares);
+    expect(updatedDeposit.stakeShares).to.equal(expectedShares);
+    expect(updatedDeposit.rewardsShares).to.equal(expectedShares);
     expect(updatedDeposit.pendingRewards).to.equal(0);
     expect(updatedDeposit.lastAccNxmPerRewardShare).to.equal(accNxmPerRewardsShare);
   });
@@ -366,11 +343,17 @@ describe('extendDeposit', function () {
     const updatedInitialTranche = await stakingPool.getTranche(firstActiveTrancheId);
     const newTranche = await stakingPool.getTranche(maxTranche);
 
+    const updatedManagerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
+    const newTrancheManagerDeposit = await stakingPool.deposits(managerDepositId, maxTranche);
+
     expect(updatedInitialTranche.stakeShares).to.equal(0);
-    expect(updatedInitialTranche.rewardsShares).to.equal(managerDeposit.rewardsShares);
+    expect(updatedInitialTranche.rewardsShares).to.equal(0);
+    expect(updatedManagerDeposit.rewardsShares).to.equal(0);
 
     expect(newTranche.stakeShares).to.equal(newTrancheDeposit.stakeShares);
-    expect(newTranche.rewardsShares).to.equal(newTrancheDeposit.rewardsShares);
+    expect(newTranche.rewardsShares).to.equal(
+      newTrancheDeposit.rewardsShares.add(newTrancheManagerDeposit.rewardsShares),
+    );
   });
 
   it('updates global stake and reward shares supply', async function () {
@@ -382,28 +365,27 @@ describe('extendDeposit', function () {
 
     await generateRewards(stakingPool, fixture.coverSigner);
 
-    const initialDeposit = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
+    const poolFeeDenominator = await stakingPool.POOL_FEE_DENOMINATOR();
+    const poolFee = await stakingPool.getPoolFee();
+
     const activeStake = await stakingPool.getActiveStake();
-    const stakeSharesSupply = await stakingPool.getStakeSharesSupply();
-    const rewardsSharesSupply = await stakingPool.getRewardsSharesSupply();
+    const stakeSharesSupplyBefore = await stakingPool.getStakeSharesSupply();
+    const rewardsSharesSupplyBefore = await stakingPool.getRewardsSharesSupply();
 
     const topUpAmount = parseEther('50');
     await stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount);
 
-    const updatedDeposit = await stakingPool.deposits(depositNftId, maxTranche);
     const stakeSharesSupplyAfter = await stakingPool.getStakeSharesSupply();
     const rewardsSharesSupplyAfter = await stakingPool.getRewardsSharesSupply();
 
-    const newRewardsIncrease = await getNewRewardShares({
-      stakingPool,
-      initialStakeShares: initialDeposit.stakeShares,
-      stakeSharesIncrease: updatedDeposit.stakeShares.sub(initialDeposit.stakeShares),
-      initialTrancheId: firstActiveTrancheId,
-      newTrancheId: maxTranche,
-    });
+    const newShares = topUpAmount.mul(stakeSharesSupplyBefore).div(activeStake);
+    const newManagerFeeShares = newShares.mul(poolFee).div(poolFeeDenominator.sub(poolFee));
 
-    expect(stakeSharesSupplyAfter).to.equal(stakeSharesSupply.add(topUpAmount.mul(stakeSharesSupply).div(activeStake)));
-    expect(rewardsSharesSupplyAfter).to.equal(rewardsSharesSupply.add(newRewardsIncrease));
+    const expectedSharesSupplyAfter = stakeSharesSupplyBefore.add(newShares);
+    const expectedRewardsSharesSupplyAfter = rewardsSharesSupplyBefore.add(newShares).add(newManagerFeeShares);
+
+    expect(stakeSharesSupplyAfter).to.equal(expectedSharesSupplyAfter);
+    expect(rewardsSharesSupplyAfter).to.equal(expectedRewardsSharesSupplyAfter);
   });
 
   it('transfers increased deposit amount to token controller', async function () {

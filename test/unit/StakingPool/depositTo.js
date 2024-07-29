@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { increaseTime } = require('../utils').evm;
 
-const { getTranches, getNewRewardShares, estimateStakeShares, setTime, TRANCHE_DURATION } = require('./helpers');
+const { getTranches, getNewRewardShares, calculateStakeShares, setTime, TRANCHE_DURATION } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { daysToSeconds } = require('../utils').helpers;
@@ -196,24 +196,18 @@ describe('depositTo', function () {
     const { amount, tokenId, destination } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
-    const newStakeShares = await estimateStakeShares({ amount, stakingPool });
+    const newShares = await calculateStakeShares(stakingPool, amount);
 
     const expectedTokenId = 1;
     const tx = await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
     await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user.address, expectedTokenId);
 
     const deposit = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
-    const newRewardShares = await getNewRewardShares({
-      stakingPool,
-      initialStakeShares: 0,
-      stakeSharesIncrease: deposit.stakeShares,
-      initialTrancheId: firstActiveTrancheId,
-      newTrancheId: firstActiveTrancheId,
-    });
+
     expect(deposit.pendingRewards).to.equal(0);
     expect(deposit.lastAccNxmPerRewardShare).to.equal(0);
-    expect(deposit.stakeShares).to.equal(newStakeShares);
-    expect(deposit.rewardsShares).to.equal(newRewardShares);
+    expect(deposit.stakeShares).to.equal(newShares);
+    expect(deposit.rewardsShares).to.equal(newShares);
   });
 
   it('register deposit to an existing nft', async function () {
@@ -231,23 +225,17 @@ describe('depositTo', function () {
     await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user.address, expectedTokenId);
 
     const firstDepositData = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
-    const newStakeShares = await estimateStakeShares({ amount, stakingPool });
+    const newShares = await calculateStakeShares(stakingPool, amount);
 
     // deposit to the same tokenId
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, expectedTokenId, destination);
 
     const updatedDepositData = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
-    const newRewardShares = await getNewRewardShares({
-      stakingPool,
-      initialStakeShares: firstDepositData.stakeShares,
-      stakeSharesIncrease: newStakeShares,
-      initialTrancheId: firstActiveTrancheId,
-      newTrancheId: firstActiveTrancheId,
-    });
+
     expect(updatedDepositData.pendingRewards).to.equal(0);
     expect(updatedDepositData.lastAccNxmPerRewardShare).to.equal(0);
-    expect(updatedDepositData.stakeShares).to.equal(firstDepositData.stakeShares.add(newStakeShares));
-    expect(updatedDepositData.rewardsShares).to.equal(firstDepositData.rewardsShares.add(newRewardShares));
+    expect(updatedDepositData.stakeShares).to.equal(firstDepositData.stakeShares.add(newShares));
+    expect(updatedDepositData.rewardsShares).to.equal(firstDepositData.rewardsShares.add(newShares));
   });
 
   it('reverts deposit to an existing nft that msg.sender is not an owner of / approved for', async function () {
@@ -578,23 +566,15 @@ describe('depositTo', function () {
       const trancheId = tranches[tokenId - 1];
       const deposit = await stakingPool.deposits(tokenId, trancheId);
 
-      const newRewardShares = await getNewRewardShares({
-        stakingPool,
-        initialStakeShares: totalStakeShares,
-        stakeSharesIncrease: deposit.stakeShares,
-        initialTrancheId: trancheId,
-        newTrancheId: trancheId,
-      });
-
-      const newStakeShares =
+      const newShares =
         tokenId === 1
           ? Math.sqrt(amount) // first deposit uses sqrt(amount)
           : amount.mul(totalStakeShares).div(stakedAmount);
 
       expect(deposit.pendingRewards).to.equal(0);
       expect(deposit.lastAccNxmPerRewardShare).to.equal(0);
-      expect(deposit.stakeShares).to.equal(newStakeShares);
-      expect(deposit.rewardsShares).to.be.approximately(newRewardShares.toNumber(), 1);
+      expect(deposit.stakeShares).to.equal(newShares);
+      expect(deposit.rewardsShares).to.equal(newShares);
 
       const managerDeposit = await stakingPool.deposits(managerDepositId, trancheId);
 

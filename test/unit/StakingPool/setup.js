@@ -30,14 +30,14 @@ async function setup() {
     AddressZero,
   ]);
 
-  const stakingPool = await ethers.deployContract('StakingPool', [
-    stakingNFT.address,
-    nxm.address,
-    cover.address,
-    tokenController.address,
-    master.address,
-    stakingProducts.address,
-  ]);
+  const stakingExtrasLib = await ethers.deployContract('StakingExtrasLib');
+  await stakingExtrasLib.deployed();
+
+  const stakingPool = await ethers.deployContract(
+    'StakingPool',
+    [stakingNFT, nxm, cover, tokenController, master, stakingProducts].map(c => c.address),
+    { libraries: { StakingExtrasLib: stakingExtrasLib.address } },
+  );
 
   await nxm.setOperator(tokenController.address);
   await tokenController.setContractAddresses(cover.address, nxm.address);

@@ -4,8 +4,7 @@ const { expect } = require('chai');
 const { increaseTime, mineNextBlock, setNextBlockTime } = require('../utils').evm;
 const {
   getTranches,
-  getNewRewardShares,
-  estimateStakeShares,
+  calculateStakeShares,
   calculateStakeAndRewardsWithdrawAmounts,
   setTime,
   generateRewards,
@@ -213,14 +212,7 @@ describe('withdraw', function () {
       destination,
     );
 
-    const expectedStakeShares = Math.sqrt(amount);
-    const expectedRewardShares = await getNewRewardShares({
-      stakingPool,
-      initialStakeShares: 0,
-      stakeSharesIncrease: expectedStakeShares,
-      initialTrancheId: firstActiveTrancheId,
-      newTrancheId: firstActiveTrancheId,
-    });
+    const expectedShares = Math.sqrt(amount);
 
     const tcBalanceInitial = await nxm.balanceOf(tokenController.address);
     await generateRewards(stakingPool, coverSigner);
@@ -253,10 +245,10 @@ describe('withdraw', function () {
     const managerBalanceAfter = await nxm.balanceOf(manager.address);
     const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
 
-    expect(depositBefore.stakeShares).to.be.eq(expectedStakeShares);
-    expect(depositAfter.stakeShares).to.be.eq(expectedStakeShares);
+    expect(depositBefore.stakeShares).to.be.eq(expectedShares);
+    expect(depositAfter.stakeShares).to.be.eq(expectedShares);
 
-    expect(depositBefore.rewardsShares).to.be.eq(expectedRewardShares);
+    expect(depositBefore.rewardsShares).to.be.eq(expectedShares);
     expect(depositAfter.pendingRewards).to.be.eq(0);
 
     const { accNxmPerRewardShareAtExpiry } = await stakingPool.getExpiredTranche(firstActiveTrancheId);
@@ -693,7 +685,7 @@ describe('withdraw', function () {
         const user = users[uid];
         const amount = depositAmounts[t][uid];
 
-        const stakeShares = await estimateStakeShares({ amount, stakingPool });
+        const stakeShares = await calculateStakeShares(stakingPool, amount);
         userShares[t][uid] = { amount, stakeShares };
 
         await stakingPool.connect(user).depositTo(

@@ -217,8 +217,13 @@ async function setup() {
   let tc = await deployProxy('Stub');
 
   // 3. deploy StakingPool implementation
+  const stakingExtrasLib = await ethers.deployContract('StakingExtrasLib');
+  await stakingExtrasLib.deployed();
+
   const spArgs = [stakingNFT, tk, cover, tc, master, stakingProducts].map(c => c.address);
-  const stakingPool = await ethers.deployContract('StakingPool', spArgs);
+  const stakingPool = await ethers.deployContract('StakingPool', spArgs, {
+    libraries: { StakingExtrasLib: stakingExtrasLib.address },
+  });
 
   // 4. deploy implementations and upgrade Cover, StakingProducts and DisposableTokenController proxies
   await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);

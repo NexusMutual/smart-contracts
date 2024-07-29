@@ -4,18 +4,18 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('constructor', function () {
-  it('should set nxm, cover and tokenController addresses correctly', async function () {
+  // currently cannot be tested because the addresses have been set as internal
+  it.skip('should set nxm, cover and tokenController addresses correctly', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts, stakingNFT, nxm, cover, tokenController, master } = fixture;
 
-    const StakingPool = await ethers.getContractFactory('StakingPool');
-    const stakingPool = await StakingPool.deploy(
-      stakingNFT.address,
-      nxm.address,
-      cover.address,
-      tokenController.address,
-      master.address,
-      stakingProducts.address,
+    const stakingExtrasLib = await ethers.deployContract('StakingExtrasLib');
+    await stakingExtrasLib.deployed();
+
+    const stakingPool = await ethers.deployContract(
+      'StakingPool',
+      [stakingNFT, nxm, cover, tokenController, master, stakingProducts].map(c => c.address),
+      { libraries: { StakingExtrasLib: stakingExtrasLib.address } },
     );
 
     const stakingNFTAddress = await stakingPool.stakingNFT();

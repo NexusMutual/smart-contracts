@@ -159,20 +159,25 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token.lockForMemberVote(_of, _days);
   }
 
-  /**
-  * @dev Unlocks the withdrawable tokens against CLA of a specified addresses
-  * @param users  Addresses of users for whom the tokens are unlocked
-  */
-  function withdrawClaimAssessmentTokens(address[] calldata users) external whenNotPaused {
+  /// @dev Unlocks the withdrawable tokens against CLA for specified addresses.
+  /// @param users The addresses of users for whom the tokens are unlocked.
+  function withdrawClaimAssessmentTokens(address[] calldata users) external override whenNotPaused {
+
     for (uint256 i = 0; i < users.length; i++) {
-      if (locked[users[i]]["CLA"].claimed) {
-        continue;
-      }
-      uint256 amount = locked[users[i]]["CLA"].amount;
+      _withdrawClaimAssessmentTokensForUser(users[i]);
+    }
+  }
+
+  /// @dev Internal function to withdraw claim assessment tokens for a user.
+  /// @param user The user's address.
+  function _withdrawClaimAssessmentTokensForUser(address user) internal whenNotPaused {
+
+    if (!locked[user]["CLA"].claimed) {
+      uint256 amount = locked[user]["CLA"].amount;
       if (amount > 0) {
-        locked[users[i]]["CLA"].claimed = true;
-        emit Unlocked(users[i], "CLA", amount);
-        token.transfer(users[i], amount);
+        locked[user]["CLA"].claimed = true;
+        emit Unlocked(user, "CLA", amount);
+        token.transfer(user, amount);
       }
     }
   }

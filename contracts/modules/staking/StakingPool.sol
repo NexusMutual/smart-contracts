@@ -88,12 +88,12 @@ contract StakingPool is IStakingPool, Multicall {
 
   /* immutables */
 
-  IStakingNFT public immutable stakingNFT;
-  INXMToken public immutable nxm;
-  ITokenController public  immutable tokenController;
-  address public immutable coverContract;
-  INXMMaster public immutable masterContract;
-  IStakingProducts public immutable stakingProducts;
+  IStakingNFT internal immutable stakingNFT;
+  INXMToken internal immutable nxm;
+  ITokenController internal  immutable tokenController;
+  address internal immutable coverContract;
+  INXMMaster internal immutable masterContract;
+  IStakingProducts internal immutable stakingProducts;
 
   /* constants */
 
@@ -1382,12 +1382,11 @@ contract StakingPool is IStakingPool, Multicall {
     uint stakeShares,
     uint rewardsShares
   ) {
-    Deposit memory deposit = deposits[tokenId][trancheId];
     return (
-      deposit.lastAccNxmPerRewardShare,
-      deposit.pendingRewards,
-      deposit.stakeShares,
-      deposit.rewardsShares
+      deposits[tokenId][trancheId].lastAccNxmPerRewardShare,
+      deposits[tokenId][trancheId].pendingRewards,
+      deposits[tokenId][trancheId].stakeShares,
+      deposits[tokenId][trancheId].rewardsShares
     );
   }
 
@@ -1395,10 +1394,9 @@ contract StakingPool is IStakingPool, Multicall {
     uint stakeShares,
     uint rewardsShares
   ) {
-    Tranche memory tranche = tranches[trancheId];
     return (
-      tranche.stakeShares,
-      tranche.rewardsShares
+      tranches[trancheId].stakeShares,
+      tranches[trancheId].rewardsShares
     );
   }
 
@@ -1407,11 +1405,10 @@ contract StakingPool is IStakingPool, Multicall {
     uint stakeAmountAtExpiry,
     uint stakeSharesSupplyAtExpiry
   ) {
-    ExpiredTranche memory expiredTranche = expiredTranches[trancheId];
     return (
-      expiredTranche.accNxmPerRewardShareAtExpiry,
-      expiredTranche.stakeAmountAtExpiry,
-      expiredTranche.stakeSharesSupplyAtExpiry
+      expiredTranches[trancheId].accNxmPerRewardShareAtExpiry,
+      expiredTranches[trancheId].stakeAmountAtExpiry,
+      expiredTranches[trancheId].stakeSharesSupplyAtExpiry
     );
   }
 

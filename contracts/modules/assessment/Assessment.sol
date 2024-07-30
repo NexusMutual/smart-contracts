@@ -132,7 +132,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param to      The member address where the NXM is transfered to. Useful for switching
   ///                membership during stake lockup period and thus allowing the user to withdraw
   ///                their staked amount to the new address when possible.
-  function unstake(uint96 amount, address to) external whenNotPaused {
+  function unstake(uint96 amount, address to) external override whenNotPaused {
     _unstake(msg.sender, amount, to);
   }
 
@@ -145,7 +145,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param to      The member address where the NXM is transfered to. Useful for switching
   ///                membership during stake lockup period and thus allowing the user to withdraw
   ///                their staked amount to the new address when possible.
-  function unstakeFor(address staker, uint96 amount, address to) external whenNotPaused {
+  function unstakeFor(address staker, uint96 amount, address to) external override whenNotPaused {
     _unstake(staker, amount, to);
   }
 

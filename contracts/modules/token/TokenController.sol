@@ -90,20 +90,16 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
   }
 
-  /**
-   * @dev to change the operator address
-   * @param _newOperator is the new address of operator
-   */
+  /// @dev Changes the operator address.
+  /// @param _newOperator The new address of the operator.
   function changeOperator(address _newOperator) public override onlyGovernance {
     token.changeOperator(_newOperator);
   }
 
-  /**
-   * @dev Proxies token transfer through this contract to allow staking when members are locked for voting
-   * @param _from   Source address
-   * @param _to     Destination address
-   * @param _value  Amount to transfer
-   */
+  /// @dev Proxies token transfer through this contract to allow staking when members are locked for voting.
+  /// @param _from The source address.
+  /// @param _to The destination address.
+  /// @param _value The amount to transfer.
   function operatorTransfer(
     address _from,
     address _to,
@@ -117,47 +113,37 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     return true;
   }
 
-  /**
-   * @dev burns tokens of an address
-   * @param _of is the address to burn tokens of
-   * @param amount is the amount to burn
-   * @return the boolean status of the burning process
-   */
+  /// @dev Burns tokens of an address.
+  /// @param _of The address to burn tokens of.
+  /// @param amount The amount to burn.
+  /// @return The boolean status of the burning process.
   function burnFrom(address _of, uint amount) public override onlyInternal returns (bool) {
     return token.burnFrom(_of, amount);
   }
 
-  /**
-  * @dev Adds an address to whitelist maintained in the contract
-  * @param _member address to add to whitelist
-  */
+  /// @dev Adds an address to the whitelist maintained in the contract.
+  /// @param _member The address to add to the whitelist.
   function addToWhitelist(address _member) public virtual override onlyInternal {
     token.addToWhiteList(_member);
   }
 
-  /**
-  * @dev Removes an address from the whitelist in the token
-  * @param _member address to remove
-  */
+  /// @dev Removes an address from the whitelist in the token.
+  /// @param _member The address to remove.
   function removeFromWhitelist(address _member) public override onlyInternal {
     token.removeFromWhiteList(_member);
   }
 
-  /**
-  * @dev Mints new tokens for an address and checks if the address is a member
-  * @param _member address to send the minted tokens to
-  * @param _amount number of tokens to mint
-  */
+  /// @dev Mints new tokens for an address and checks if the address is a member.
+  /// @param _member The address to send the minted tokens to.
+  /// @param _amount The number of tokens to mint.
   function mint(address _member, uint _amount) public override onlyInternal {
     _mint(_member, _amount);
   }
 
-  /**
-  * @dev Internal function to mint new tokens for an address and checks if the address is a member
-  * @dev Other internal functions in this contract should use _mint and never token.mint directly
-  * @param _member address to send the minted tokens to
-  * @param _amount number of tokens to mint
-  */
+  /// @dev Internal function to mint new tokens for an address and checks if the address is a member.
+  /// @dev Other internal functions in this contract should use _mint and never token.mint directly.
+  /// @param _member The address to send the minted tokens to.
+  /// @param _amount The number of tokens to mint.
   function _mint(address _member, uint _amount) internal {
     require(
       _member == address(this) || token.whiteListed(_member),
@@ -166,10 +152,9 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token.mint(_member, _amount);
   }
 
-  /**
-   * @dev Lock the user's tokens
-   * @param _of user's address.
-   */
+  /// @dev Locks the user's tokens.
+  /// @param _of The user's address.
+  /// @param _days The number of days to lock the tokens.
   function lockForMemberVote(address _of, uint _days) public override onlyInternal {
     token.lockForMemberVote(_of, _days);
   }
@@ -192,11 +177,9 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     }
   }
 
-  /**
-   * @dev Updates Uint Parameters of a code
-   * @param code whose details we want to update
-   * @param value value to set
-   */
+  /// @dev Updates Uint Parameters of a code.
+  /// @param code The code whose details we want to update.
+  /// @param value The value to set.
   function updateUintParameters(bytes8 code, uint value) external view onlyGovernance {
     // silence compiler warnings
     code;
@@ -376,13 +359,10 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     }
   }
 
-  /**
-  * @dev Returns tokens locked for a specified address for a
-  *    specified reason
-  *
-  * @param _of The address whose tokens are locked
-  * @param _reason The reason to query the lock tokens for
-  */
+  /// @dev Returns tokens locked for a specified address for a
+  ///      specified reason
+  /// @param _of The address whose tokens are locked
+  /// @param _reason The reason to query the locked tokens for
   function tokensLocked(
     address _of,
     bytes32 _reason

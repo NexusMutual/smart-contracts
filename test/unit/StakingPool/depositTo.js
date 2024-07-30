@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { increaseTime } = require('../utils').evm;
 
-const { getTranches, getNewRewardShares, calculateStakeShares, setTime, TRANCHE_DURATION } = require('./helpers');
+const { getTranches, calculateStakeShares, setTime, TRANCHE_DURATION } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { daysToSeconds } = require('../utils').helpers;

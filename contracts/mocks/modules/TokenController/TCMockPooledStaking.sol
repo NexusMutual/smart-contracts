@@ -4,7 +4,6 @@ pragma solidity ^0.8.18;
 import "../../../abstract/MasterAwareV2.sol";
 import "../../../interfaces/IPooledStaking.sol";
 import "../../generic/PooledStakingGeneric.sol";
-import "hardhat/console.sol";
 
 contract TCMockPooledStaking is PooledStakingGeneric {
 

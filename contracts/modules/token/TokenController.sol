@@ -591,19 +591,19 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     return StakingPoolLibrary.getAddress(stakingPoolFactory, poolId);
   }
 
-  function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
+  function mintStakingPoolNXMRewards(uint amount, uint poolId) external override {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     _mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 
-  function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
+  function burnStakingPoolNXMRewards(uint amount, uint poolId) external override {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
     token.burn(amount);
   }
 
-  function depositStakedNXM(address from, uint amount, uint poolId) external {
+  function depositStakedNXM(address from, uint amount, uint poolId) external override {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
     token.operatorTransfer(from, amount);
@@ -614,7 +614,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     uint stakeToWithdraw,
     uint rewardsToWithdraw,
     uint poolId
-  ) external {
+  ) external override {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     StakingPoolNXMBalances memory poolBalances = stakingPoolNXMBalances[poolId];
     poolBalances.deposits -= stakeToWithdraw.toUint128();
@@ -623,7 +623,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token.transfer(to, stakeToWithdraw + rewardsToWithdraw);
   }
 
-  function burnStakedNXM(uint amount, uint poolId) external {
+  function burnStakedNXM(uint amount, uint poolId) external override {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
     token.burn(amount);

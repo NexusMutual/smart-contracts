@@ -55,7 +55,14 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // Buy Cover
     await buyCover({
@@ -107,7 +114,14 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // Buy Cover
     await buyCover({
@@ -160,7 +174,14 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // Buy Cover
     await buyCover({
@@ -210,7 +231,14 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // Buy Cover
     await buyCover({
@@ -260,7 +288,14 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // cover buyer gets cover asset
     await transferCoverAsset({
@@ -319,7 +354,14 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // cover buyer gets cover asset
     await transferCoverAsset({
@@ -378,7 +420,14 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // cover buyer gets cover asset
     await transferCoverAsset({
@@ -436,7 +485,14 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // cover buyer gets cover asset
     await transferCoverAsset({
@@ -496,7 +552,14 @@ describe('submitClaim', function () {
     const amount = parseUnits('10', usdcDecimals);
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // cover buyer gets cover asset
     await transferCoverAsset({
@@ -557,7 +620,14 @@ describe('submitClaim', function () {
     const amount = parseUnits('10', usdcDecimals);
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // cover buyer gets cover asset
     await transferCoverAsset({
@@ -618,7 +688,14 @@ describe('submitClaim', function () {
     const amount = parseUnits('10', usdcDecimals);
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // cover buyer gets cover asset
     await transferCoverAsset({
@@ -676,7 +753,14 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // Buy Cover
     await buyCover({
@@ -797,7 +881,14 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // cover buyer gets cover asset
     await transferCoverAsset({
@@ -924,7 +1015,14 @@ describe('submitClaim', function () {
     const amount = parseUnits('10', usdcDecimals);
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // cover buyer gets cover asset
     await transferCoverAsset({
@@ -1049,7 +1147,14 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // Buy Cover
     await buyCover({
@@ -1169,7 +1274,14 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
     await stakeOnly({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, trancheIdOffset: 1 });
 
     // Buy Cover
@@ -1287,7 +1399,14 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
     await stakeOnly({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, trancheIdOffset: 1 });
 
     const allocationId = await stakingPool1.getNextAllocationId();

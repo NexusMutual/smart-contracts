@@ -22,7 +22,9 @@ async function stakeOnly({ stakingPool, staker, period, gracePeriod, trancheIdOf
   );
 }
 
-async function stake({ stakingPool, staker, productId, period, gracePeriod, amount = 0 }) {
+async function stake({ contracts, stakingPool, staker, productId, period, gracePeriod, amount = 0 }) {
+  const { stakingProducts } = contracts;
+
   // Staking inputs
   const stakingAmount = amount !== 0 ? BigNumber.from(amount) : parseEther('10000');
   const lastBlock = await ethers.provider.getBlock('latest');
@@ -47,8 +49,8 @@ async function stake({ stakingPool, staker, productId, period, gracePeriod, amou
 
   // Set staked products
   const managerSigner = await ethers.getSigner(await stakingPool.manager());
-  const stakingProducts = await ethers.getContractAt('StakingProducts', await stakingPool.stakingProducts());
-  await stakingProducts.connect(managerSigner).setProducts(await stakingPool.getPoolId(), [stakingProductParams]);
+  const poolId = await stakingPool.getPoolId();
+  await stakingProducts.connect(managerSigner).setProducts(poolId, [stakingProductParams]);
 }
 
 module.exports = {

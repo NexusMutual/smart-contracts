@@ -31,20 +31,19 @@ interface ITokenController {
     bool stakingPoolRewards;
     bool governanceRewards;
     bool v1CoverNote;
-    bool v1ClaimAssessmentTokens;
     bool v1PooledStakingStake;
-    bool v1PooledStakingRewards;
-  }
-
-  struct V1CoverNotes {
-    uint[] coverIds;
-    uint[] indexes;
   }
 
   struct StakingPoolDeposit {
     // tokenId and trancheIds ordering needs to match
     uint[] tokenIds;
     uint[][] tokenTrancheIds;
+  }
+
+  struct V1CoverNotes {
+    // coverIds and reasonIndexes ordering needs to match
+    uint[] coverIds;
+    uint[] reasonIndexes;
   }
 
   /* ========== VIEWS ========== */
@@ -138,8 +137,7 @@ interface ITokenController {
     address member,
     StakingPoolDeposit calldata stakingPoolDeposit,
     V1CoverNotes calldata coverNotes,
-    AssessementStake calldata assessmentStake,
-    uint assessmentRewardBatchSize,
+    uint batchSize,
     WithdrawNxmOptions calldata withdrawOptions
   ) external;
 }

@@ -1275,8 +1275,6 @@ contract StakingPool is IStakingPool, Multicall {
     if (newFee > maxPoolFee) {
       revert PoolFeeExceedsMax();
     }
-    uint oldFee = poolFee;
-    poolFee = uint8(newFee);
 
     // passing true because the amount of rewards shares changes
     processExpirations(true);
@@ -1284,26 +1282,33 @@ contract StakingPool is IStakingPool, Multicall {
     uint fromTrancheId = block.timestamp / TRANCHE_DURATION;
     uint toTrancheId = fromTrancheId + MAX_ACTIVE_TRANCHES - 1;
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
+    uint _rewardsSharesSupply = rewardsSharesSupply;
 
     for (uint trancheId = fromTrancheId; trancheId <= toTrancheId; trancheId++) {
 
       // sload
       Deposit memory feeDeposit = deposits[0][trancheId];
+      Tranche memory tranche = tranches[trancheId];
 
-      if (feeDeposit.rewardsShares == 0) {
-        continue;
-      }
+      tranche.rewardsShares -= feeDeposit.rewardsShares;
+      _rewardsSharesSupply -= feeDeposit.rewardsShares;
 
-      // update pending reward and reward shares
+      // update pending rewards
       uint newRewardPerRewardsShare = _accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
       feeDeposit.pendingRewards += (newRewardPerRewardsShare * feeDeposit.rewardsShares / ONE_NXM).toUint96();
       feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare.toUint96();
-      // TODO: would using tranche.rewardsShares give a better precision?
-      feeDeposit.rewardsShares = (uint(feeDeposit.rewardsShares) * newFee / oldFee).toUint128();
+
+      feeDeposit.rewardsShares = (tranche.rewardsShares * newFee / (POOL_FEE_DENOMINATOR - newFee)).toUint128();
+      tranche.rewardsShares += feeDeposit.rewardsShares;
+      _rewardsSharesSupply += feeDeposit.rewardsShares;
 
       // sstore
       deposits[0][trancheId] = feeDeposit;
+      tranches[trancheId] = tranche;
     }
+
+    rewardsSharesSupply = _rewardsSharesSupply.toUint128();
+    poolFee = uint8(newFee);
 
     emit PoolFeeChanged(msg.sender, newFee);
   }

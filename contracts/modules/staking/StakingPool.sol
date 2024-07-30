@@ -380,7 +380,6 @@ contract StakingPool is IStakingPool, Multicall {
     uint _stakeSharesSupply = stakeSharesSupply;
     uint _rewardsSharesSupply = rewardsSharesSupply;
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-    uint totalAmount;
 
     // deposit to token id = 0 is not allowed
     // we treat it as a flag to create a new token
@@ -405,7 +404,7 @@ contract StakingPool is IStakingPool, Multicall {
       ? Math.sqrt(amount)
       : _stakeSharesSupply * amount / _activeStake;
 
-    uint newRewardsShares;
+    uint newRewardsShares = newStakeShares;
 
     // update deposit and pending reward
     {
@@ -413,14 +412,6 @@ contract StakingPool is IStakingPool, Multicall {
       Deposit memory deposit = requestTokenId == 0
         ? Deposit(0, 0, 0, 0)
         : deposits[tokenId][trancheId];
-
-      newRewardsShares = calculateNewRewardShares(
-        deposit.stakeShares, // initialStakeShares
-        newStakeShares, // newStakeShares
-        trancheId, // initialTrancheId
-        trancheId, // newTrancheId, the same as initialTrancheId in this case
-        block.timestamp
-      );
 
       // if we're increasing an existing deposit
       if (deposit.rewardsShares != 0) {
@@ -463,13 +454,12 @@ contract StakingPool is IStakingPool, Multicall {
       tranches[trancheId] = tranche;
     }
 
-    totalAmount += amount;
     _activeStake += amount;
     _stakeSharesSupply += newStakeShares;
     _rewardsSharesSupply += newRewardsShares;
 
     // transfer nxm from the staker and update the pool deposit balance
-    tokenController.depositStakedNXM(msg.sender, totalAmount, poolId);
+    tokenController.depositStakedNXM(msg.sender, amount, poolId);
 
     // update globals
     activeStake = _activeStake.toUint96();

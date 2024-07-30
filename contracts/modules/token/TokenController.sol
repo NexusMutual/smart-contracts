@@ -322,13 +322,16 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     V1CoverNotes calldata coverNotes,
     uint batchSize,
     WithdrawNxmOptions calldata withdrawOptions
-  ) external whenNotPaused {
+  ) external override whenNotPaused {
+
+    // assessment stake
     if (withdrawOptions.assessmentStake) {
       IAssessment _assessment = assessment();
       (uint96 amount, , ) = _assessment.stakeOf(member);
       _assessment.unstakeFor(member, amount, member);
     }
 
+    // assessment and governance rewards
     if (withdrawOptions.governanceRewards || withdrawOptions.assessmentRewards) {
       withdrawPendingRewards(
         member,
@@ -338,6 +341,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
       );
     }
 
+    // staking pools rewards and stake (including manager rewards)
     if (withdrawOptions.stakingPoolStake || withdrawOptions.stakingPoolRewards) {
       for (uint i = 0; i < stakingPoolDeposit.tokenIds.length; i++) {
         uint tokenId = stakingPoolDeposit.tokenIds[i];
@@ -347,21 +351,20 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
       }
     }
 
+    // v1 cover notes
     if (withdrawOptions.v1CoverNote) {
-        withdrawCoverNote(member, coverNotes.coverIds, coverNotes.indexes);
+      withdrawCoverNote(member, coverNotes.coverIds, coverNotes.reasonIndexes);
     }
 
-    if (withdrawOptions.v1ClaimAssessmentTokens) {
-      _withdrawClaimAssessmentTokensForUser(member);
-    }
 
+    // v1 pooled staking stake
     if (withdrawOptions.v1PooledStakingStake) {
       pooledStaking().withdrawForUser(member);
     }
 
-    if (withdrawOptions.v1PooledStakingRewards) {
-      pooledStaking().withdrawReward(member);
-    }
+    // v1 - always withdraw (no revert)
+    _withdrawClaimAssessmentTokensForUser(member);
+    pooledStaking().withdrawReward(member);
   }
 
   /// @dev Returns tokens locked for a specified address for a

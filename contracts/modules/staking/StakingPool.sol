@@ -13,6 +13,7 @@ import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
+import "./StakingExtrasLib.sol";
 
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
@@ -1097,10 +1098,10 @@ contract StakingPool is IStakingPool, Multicall {
       // this requires the user to have grante sufficient allowance
       if (initialTrancheId < _firstActiveTrancheId) {
 
-      uint[] memory trancheIds = new uint[](1);
-      trancheIds[0] = initialTrancheId;
+        uint[] memory trancheIds = new uint[](1);
+        trancheIds[0] = initialTrancheId;
 
-      (uint withdrawnStake, /* uint rewardsToWithdraw */) = withdraw(
+        (uint withdrawnStake, /* uint rewardsToWithdraw */) = withdraw(
           tokenId,
           true, // withdraw the deposit
           true, // withdraw the rewards
@@ -1320,6 +1321,29 @@ contract StakingPool is IStakingPool, Multicall {
 
   function setPoolDescription(string memory ipfsDescriptionHash) external onlyManager {
     emit PoolDescriptionSet(ipfsDescriptionHash);
+  }
+
+  /* fixes */
+
+  function updateRewardsShares(
+    uint trancheId,
+    uint[] calldata tokenIds
+  ) external {
+
+    if (msg.sender != coverContract) {
+      revert OnlyCoverContract();
+    }
+
+    uint _rewardsSharesSupply = StakingExtrasLib.updateRewardsShares(
+      // storage refs
+      deposits, tranches,
+      // state
+      accNxmPerRewardsShare, rewardsSharesSupply, poolFee,
+      // inputs
+      trancheId, tokenIds
+    );
+
+    rewardsSharesSupply = _rewardsSharesSupply.toUint128();
   }
 
   /* getters */

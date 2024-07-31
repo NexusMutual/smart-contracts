@@ -145,4 +145,13 @@ contract TokenControllerGeneric is ITokenController {
   function getPendingRewards(address) external virtual view returns (uint) {
     revert("getPendingRewards unsupported");
   }
+
+  function withdrawNXM(
+    StakingPoolDeposit calldata,
+    V1CoverNotes calldata,
+    uint,
+    WithdrawNxmOptions calldata
+  ) external virtual {
+    revert("withdrawNXM unsupported");
+  }
 }

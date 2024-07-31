@@ -97,8 +97,8 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   /// @dev Proxies token transfer through this contract to allow staking when members are locked for voting.
-  /// @param _from The source address.
-  /// @param _to The destination address.
+  /// @param _from  The source address.
+  /// @param _to    The destination address.
   /// @param _value The amount to transfer.
   function operatorTransfer(
     address _from,
@@ -114,9 +114,9 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   /// @dev Burns tokens of an address.
-  /// @param _of The address to burn tokens of.
-  /// @param amount The amount to burn.
-  /// @return The boolean status of the burning process.
+  /// @param _of     The address to burn tokens of.
+  /// @param amount  The amount to burn.
+  /// @return        The boolean status of the burning process.
   function burnFrom(address _of, uint amount) public override onlyInternal returns (bool) {
     return token.burnFrom(_of, amount);
   }
@@ -153,8 +153,8 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   /// @dev Locks the user's tokens.
-  /// @param _of The user's address.
-  /// @param _days The number of days to lock the tokens.
+  /// @param _of    The user's address.
+  /// @param _days  The number of days to lock the tokens.
   function lockForMemberVote(address _of, uint _days) public override onlyInternal {
     token.lockForMemberVote(_of, _days);
   }
@@ -183,8 +183,8 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   /// @dev Updates Uint Parameters of a code.
-  /// @param code The code whose details we want to update.
-  /// @param value The value to set.
+  /// @param code   The code whose details we want to update.
+  /// @param value  The value to set.
   function updateUintParameters(bytes8 code, uint value) external view onlyGovernance {
     // silence compiler warnings
     code;
@@ -192,26 +192,29 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     revert("TokenController: invalid param code");
   }
 
+  /// @notice Retrieves the reasons why a user's tokens were locked.
+  /// @param _of       The address of the user whose lock reasons are being retrieved.
+  /// @return reasons  An array of reasons (as bytes32) for the token lock.
   function getLockReasons(address _of) external override view returns (bytes32[] memory reasons) {
     return lockReason[_of];
   }
 
+  /// @notice Returns the total supply of the NXM token.
+  /// @return The total supply of the NXM token.
   function totalSupply() public override view returns (uint256) {
     return token.totalSupply();
   }
 
-  /// Returns the base voting power. It is used in governance and snapshot voting.
-  /// Includes the delegated tokens via staking pools.
-  ///
+  /// @notice Returns the base voting power. It is used in governance and snapshot voting.
+  ///         Includes the delegated tokens via staking pools.
   /// @param _of  The member address for which the base voting power is calculated.
   function totalBalanceOf(address _of) public override view returns (uint) {
     return _totalBalanceOf(_of, true);
   }
 
-  /// Returns the base voting power. It is used in governance and snapshot voting.
-  /// Does not include the delegated tokens via staking pools in order to act as a fallback if
-  /// voting including delegations fails for whatever reason.
-  ///
+  /// @notice Returns the base voting power. It is used in governance and snapshot voting.
+  /// @dev    Does not include the delegated tokens via staking pools in order to act as a fallback if
+  ///         voting including delegations fails for whatever reason.
   /// @param _of  The member address for which the base voting power is calculated.
   function totalBalanceOfWithoutDelegations(address _of) public override view returns (uint) {
     return _totalBalanceOf(_of, false);
@@ -244,16 +247,17 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     return amount;
   }
 
-  /// Returns the NXM price in ETH. To be use by external protocols.
-  ///
+  /// @notice Returns the NXM price in ETH. To be use by external protocols.
   /// @dev Intended for external protocols - this is a proxy and the contract address won't change
   function getTokenPrice() public override view returns (uint tokenPrice) {
     // get spot price from ramm
     return pool().getTokenPrice();
   }
 
-  /// Withdraws governance rewards for the given member address
-  /// @dev This function requires a batchSize that fits in one block. It cannot be 0.
+  /// @notice Withdraws governance rewards for the given member address
+  /// @param memberAddress  The address of the member whose governance rewards are to be withdrawn.
+  /// @param batchSize      The maximum number of iterations to avoid unbounded loops when withdrawing governance rewards.
+  ///                       Cannot be 0 and must fit in one block
   function withdrawGovernanceRewards(
     address memberAddress,
     uint batchSize
@@ -263,9 +267,11 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token.transfer(memberAddress, governanceRewards);
   }
 
-  /// Withdraws governance rewards to the destination address. It can only be called by the owner
-  /// of the rewards.
-  /// @dev This function requires a batchSize that fits in one block. It cannot be 0.
+  /// @notice Withdraws governance rewards to the destination address. It can only be called by the owner
+  ///         of the rewards.
+  /// @param destination  The address to which the governance rewards will be transferred.
+  /// @param batchSize    The maximum number of iterations to avoid unbounded loops when withdrawing governance rewards.
+  ///                     Cannot be 0 and must fit in one block
   function withdrawGovernanceRewardsTo(
     address destination,
     uint batchSize
@@ -275,21 +281,21 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token.transfer(destination, governanceRewards);
   }
 
+  /// @notice Retrieves the pending rewards for a given member.
+  /// @param member  The address of the member whose pending rewards are to be retrieved.
+  /// @return        The total amount of pending rewards for the given member.
   function getPendingRewards(address member) public view returns (uint) {
     (uint totalPendingAmountInNXM,,) = assessment().getRewards(member);
     uint governanceRewards = governance().getPendingReward(member);
     return totalPendingAmountInNXM + governanceRewards;
   }
 
-  /// Function used to claim all pending rewards in one tx. It can be used to selectively withdraw
-  /// rewards.
-  ///
-  /// @param forUser           The address for whom the governance and/or assessment rewards are
-  ///                          withdrawn.
-  /// @param fromGovernance    When true, governance rewards are withdrawn.
-  /// @param fromAssessment    When true, assessment rewards are withdrawn.
-  /// @param batchSize         The maximum number of iterations to avoid unbounded loops when
-  ///                          withdrawing governance and/or assessment rewards.
+  /// @notice Function used to claim all pending rewards in one tx. It can be used to selectively withdraw rewards.
+  /// @param forUser         The address for whom the governance and/or assessment rewards are withdrawn.
+  /// @param fromGovernance  When true, governance rewards are withdrawn.
+  /// @param fromAssessment  When true, assessment rewards are withdrawn.
+  /// @param batchSize       The maximum number of iterations to avoid unbounded loops when withdrawing governance 
+  ///                        and/or assessment rewards. Cannot be 0 and must fit in one block.
   function withdrawPendingRewards(
     address forUser,
     bool fromGovernance,
@@ -309,13 +315,14 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   /// @notice Withdraws NXM from the Nexus platform based on specified options.
-  /// @dev Ensure the NXM is available and not locked before withdrawal. Only set flags in `WithdrawNxmOptions` for withdrawable NXM.
-  ///      Reverts if some of the NXM being withdrawn is locked or unavailable.
-  /// @param member Address of the member to withdraw NXM from.
-  /// @param stakingPoolDeposit Details for withdrawing from staking pools.
-  /// @param coverNotes Details for withdrawing V1 cover notes.
-  /// @param batchSize The maximum number of iterations to avoid unbounded loops when withdrawing governance and/or assessment rewards.
-  /// @param withdrawOptions Options specifying which NXM types to withdraw, set flags to true to include specific withdrawable NXM.
+  /// @dev    Ensure the NXM is available and not locked before withdrawal. Only set flags in `WithdrawNxmOptions` for
+  ///         withdrawable NXM. Reverts if some of the NXM being withdrawn is locked or unavailable.
+  /// @param stakingPoolDeposit  Details for withdrawing from staking pools.
+  /// @param coverNotes          Details for withdrawing V1 cover notes.
+  /// @param batchSize           The maximum number of iterations to avoid unbounded loops when withdrawing
+  ///                            governance and/or assessment rewards.
+  /// @param withdrawOptions     Options specifying which NXM types to withdraw, set flags to true to include specific
+  ///                            withdrawable NXM.
   function withdrawNXM(
     address member,
     StakingPoolDeposit calldata stakingPoolDeposit,
@@ -367,10 +374,9 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     pooledStaking().withdrawReward(member);
   }
 
-  /// @dev Returns tokens locked for a specified address for a
-  ///      specified reason
-  /// @param _of The address whose tokens are locked
-  /// @param _reason The reason to query the locked tokens for
+  /// @dev Returns tokens locked for a specified address for a specified reason
+  /// @param _of      The address whose tokens are locked
+  /// @param _reason  The reason to query the locked tokens for
   function tokensLocked(
     address _of,
     bytes32 _reason
@@ -380,7 +386,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     }
   }
 
-  // Can be removed once all cover notes are withdrawn
+  /// @dev Can be removed once all cover notes are withdrawn
   function getWithdrawableCoverNotes(
     address coverOwner
   ) public view returns (
@@ -415,7 +421,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     }
   }
 
-  // Can be removed once all cover notes are withdrawn
+  /// @dev Can be removed once all cover notes are withdrawn
   function withdrawCoverNote(
     address user,
     uint[] calldata coverIds,
@@ -457,18 +463,30 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token.transfer(user, totalAmount);
   }
 
+  /// @notice Retrieves the manager of a specific staking pool.
+  /// @param poolId  The ID of the staking pool.
+  /// @return        The address of the staking pool manager.
   function getStakingPoolManager(uint poolId) external override view returns (address) {
     return stakingPoolManagers[poolId];
   }
 
+  /// @notice Retrieves the staking pools managed by a specific manager.
+  /// @param manager  The address of the manager.
+  /// @return         An array of staking pool IDs managed by the specified manager.
   function getManagerStakingPools(address manager) external override view returns (uint[] memory) {
     return managerStakingPools[manager];
   }
 
+  /// @notice Checks if a given address is a staking pool manager.
+  /// @param member  The address to check.
   function isStakingPoolManager(address member) external override view returns (bool) {
     return managerStakingPools[member].length > 0;
   }
 
+  /// @notice Retrieves the ownership offer details for a specific staking pool.
+  /// @param poolId            The ID of the staking pool.
+  /// @return proposedManager  The address of the proposed new manager.
+  /// @return deadline         The deadline for accepting the ownership offer.
   function getStakingPoolOwnershipOffer(
     uint poolId
   ) external override view returns (address proposedManager, uint deadline) {
@@ -478,8 +496,8 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     );
   }
 
-  /// Transfer ownership of all staking pools managed by a member to a new address. Used when switching membership.
-  ///
+  /// @notice Transfer ownership of all staking pools managed by a member to a new address.
+  /// @dev    Used when switching membership.
   /// @param from  address of the member whose pools are being transferred
   /// @param to    the new address of the member
   function transferStakingPoolsOwnership(address from, address to) external override onlyInternal {
@@ -528,18 +546,16 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     stakingPoolManagers[poolId] = manager;
   }
 
-  /// Transfers the ownership of a staking pool to a new address
-  /// Used by PooledStaking during the migration
-  ///
+  /// @notice Transfers the ownership of a staking pool to a new address
+  /// @dev    Used by PooledStaking during the migration
   /// @param poolId       id of the staking pool
   /// @param manager      address of the new manager of the staking pool
   function assignStakingPoolManager(uint poolId, address manager) external override onlyInternal {
     _assignStakingPoolManager(poolId, manager);
   }
 
-  /// Creates a ownership transfer offer for a staking pool
-  /// The offer can be accepted by the proposed manager before the deadline expires
-  ///
+  /// @notice Creates a ownership transfer offer for a staking pool
+  /// @dev    The offer can be accepted by the proposed manager before the deadline expires
   /// @param poolId           id of the staking pool
   /// @param proposedManager  address of the proposed manager
   /// @param deadline         timestamp after which the offer expires
@@ -553,8 +569,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     stakingPoolOwnershipOffers[poolId] = StakingPoolOwnershipOffer(proposedManager, deadline.toUint96());
   }
 
-  /// Accepts a staking pool ownership offer
-  ///
+  /// @notice Accepts a staking pool ownership offer
   /// @param poolId  id of the staking pool
   function acceptStakingPoolOwnershipOffer(uint poolId) external override {
 
@@ -579,8 +594,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     delete stakingPoolOwnershipOffers[poolId];
   }
 
-  /// Cancels a staking pool ownership offer
-  ///
+  /// @notice Cancels a staking pool ownership offer
   /// @param poolId  id of the staking pool
   function cancelStakingPoolOwnershipOffer(uint poolId) external override {
     require(msg.sender == stakingPoolManagers[poolId], "TokenController: Caller is not staking pool manager");
@@ -591,24 +605,43 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     return StakingPoolLibrary.getAddress(stakingPoolFactory, poolId);
   }
 
+  /// @notice Mints a specified amount of NXM rewards for a staking pool.
+  /// @dev    Only callable by the staking pool associated with the given poolId
+  /// @param amount  The amount of NXM to mint.
+  /// @param poolId  The ID of the staking pool.
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external override {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     _mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 
+  /// @notice Burns a specified amount of NXM rewards from a staking pool.
+  /// @dev    Only callable by the staking pool associated with the given poolId
+  /// @param amount  The amount of NXM to burn.
+  /// @param poolId  The ID of the staking pool.
   function burnStakingPoolNXMRewards(uint amount, uint poolId) external override {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
     token.burn(amount);
   }
 
+  /// @notice Deposits a specified amount of staked NXM from the member into a staking pool.
+  /// @dev    Only callable by the staking pool associated with the given poolId
+  /// @param from    The member address from which the NXM is transferred.
+  /// @param amount  The amount of NXM to deposit.
+  /// @param poolId  The ID of the staking pool.
   function depositStakedNXM(address from, uint amount, uint poolId) external override {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
     token.operatorTransfer(from, amount);
   }
 
+  /// @notice Withdraws a specified amount of staked NXM and rewards from a staking pool to the member address
+  /// @dev    Only callable by the staking pool associated with the given poolId
+  /// @param to                 The address to which the NXM and rewards are transferred.
+  /// @param stakeToWithdraw    The amount of staked NXM to withdraw.
+  /// @param rewardsToWithdraw  The amount of rewards to withdraw.
+  /// @param poolId             The ID of the staking pool.
   function withdrawNXMStakeAndRewards(
     address to,
     uint stakeToWithdraw,
@@ -623,6 +656,10 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token.transfer(to, stakeToWithdraw + rewardsToWithdraw);
   }
 
+  /// @notice Burns a specified amount of staked NXM from a staking pool.
+  /// @dev    Only callable by the staking pool associated with the given poolId
+  /// @param amount  The amount of staked NXM to burn.
+  /// @param poolId  The ID of the staking pool.
   function burnStakedNXM(uint amount, uint poolId) external override {
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();

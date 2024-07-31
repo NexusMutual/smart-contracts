@@ -321,24 +321,23 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @param withdrawOptions     Options specifying which NXM types to withdraw, set flags to true to include specific
   ///                            withdrawable NXM.
   function withdrawNXM(
-    address member,
     StakingPoolDeposit calldata stakingPoolDeposit,
     V1CoverNotes calldata coverNotes,
     uint batchSize,
     WithdrawNxmOptions calldata withdrawOptions
-  ) external override whenNotPaused {
+  ) external whenNotPaused {
 
     // assessment stake
     if (withdrawOptions.assessmentStake) {
       IAssessment _assessment = assessment();
-      (uint96 amount, , ) = _assessment.stakeOf(member);
-      _assessment.unstakeFor(member, amount, member);
+      (uint96 amount, , ) = _assessment.stakeOf(msg.sender);
+      _assessment.unstakeFor(msg.sender, amount, msg.sender);
     }
 
     // assessment and governance rewards
     if (withdrawOptions.governanceRewards || withdrawOptions.assessmentRewards) {
       withdrawPendingRewards(
-        member,
+        msg.sender,
         withdrawOptions.governanceRewards,
         withdrawOptions.assessmentRewards,
         batchSize
@@ -356,19 +355,19 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     }
 
     // v1 cover notes
-    if (withdrawOptions.v1CoverNote) {
-      withdrawCoverNote(member, coverNotes.coverIds, coverNotes.reasonIndexes);
+    if (withdrawOptions.v1CoverNotes) {
+      withdrawCoverNote(msg.sender, coverNotes.coverIds, coverNotes.reasonIndexes);
     }
 
 
     // v1 pooled staking stake
     if (withdrawOptions.v1PooledStakingStake) {
-      pooledStaking().withdrawForUser(member);
+      pooledStaking().withdrawForUser(msg.sender);
     }
 
     // v1 - always withdraw (no revert)
-    _withdrawClaimAssessmentTokensForUser(member);
-    pooledStaking().withdrawReward(member);
+    _withdrawClaimAssessmentTokensForUser(msg.sender);
+    pooledStaking().withdrawReward(msg.sender);
   }
 
   /// @dev Returns tokens locked for a specified address for a specified reason

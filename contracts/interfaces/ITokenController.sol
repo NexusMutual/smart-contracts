@@ -30,7 +30,7 @@ interface ITokenController {
     bool assessmentRewards;
     bool stakingPoolRewards;
     bool governanceRewards;
-    bool v1CoverNote;
+    bool v1CoverNotes;
     bool v1PooledStakingStake;
   }
 
@@ -132,12 +132,4 @@ interface ITokenController {
   function burnStakedNXM(uint amount, uint poolId) external;
 
   function stakingPoolNXMBalances(uint poolId) external view returns(uint128 rewards, uint128 deposits);
-
-  function withdrawNXM(
-    address member,
-    StakingPoolDeposit calldata stakingPoolDeposit,
-    V1CoverNotes calldata coverNotes,
-    uint batchSize,
-    WithdrawNxmOptions calldata withdrawOptions
-  ) external;
 }

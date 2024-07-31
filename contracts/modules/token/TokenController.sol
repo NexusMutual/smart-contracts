@@ -73,9 +73,11 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   function stakingPool(uint poolId) internal view returns (IStakingPool) {
-    return IStakingPool(
-      StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId)
-    );
+    return IStakingPool(_stakingPool(poolId));
+  }
+
+  function _stakingPool(uint poolId) internal view returns (address) {
+    return StakingPoolLibrary.getAddress(stakingPoolFactory, poolId);
   }
 
   function changeDependentContractAddress() public override {
@@ -594,10 +596,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   function cancelStakingPoolOwnershipOffer(uint poolId) external override {
     require(msg.sender == stakingPoolManagers[poolId], "TokenController: Caller is not staking pool manager");
     delete stakingPoolOwnershipOffers[poolId];
-  }
-
-  function _stakingPool(uint poolId) internal view returns (address) {
-    return StakingPoolLibrary.getAddress(stakingPoolFactory, poolId);
   }
 
   /// @notice Mints a specified amount of NXM rewards for a staking pool.

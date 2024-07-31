@@ -18,6 +18,10 @@ contract TCMockGovernance {
     unclaimedGovernanceRewards[_memberAddress] = 0;
   }
 
+  function getPendingReward(address _memberAddress) external view returns(uint) {
+    return unclaimedGovernanceRewards[_memberAddress];
+  }
+
   function setUnclaimedGovernanceRewards(address _memberAddress, uint amount) public {
     unclaimedGovernanceRewards[_memberAddress] = amount;
   }

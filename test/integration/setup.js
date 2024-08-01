@@ -233,7 +233,14 @@ async function setup() {
   stakingProducts = await ethers.getContractAt('StakingProducts', stakingProducts.address);
 
   // TODO: get rid of DisposableTokenController and use TokenController instead with owner as operator
-  await upgradeProxy(tc.address, 'DisposableTokenController', [qd.address, lcr.address, spf.address, tk.address]);
+  await upgradeProxy(tc.address, 'DisposableTokenController', [
+    qd.address,
+    lcr.address,
+    spf.address,
+    tk.address,
+    stakingNFT.address,
+  ]);
+  console.log('DisposableTokenController done');
   tc = await ethers.getContractAt('DisposableTokenController', tc.address);
 
   // 5. update operators
@@ -417,11 +424,18 @@ async function setup() {
   await master.switchGovernanceAddress(gv.address);
 
   await upgradeProxy(mr.address, 'MemberRoles', [tk.address]);
-  await upgradeProxy(tc.address, 'TokenController', [qd.address, lcr.address, spf.address, tk.address]);
   await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, stakingNFT.address, tk.address]);
   await upgradeProxy(pc.address, 'ProposalCategory');
   await upgradeProxy(master.address, 'NXMaster');
   await upgradeProxy(gv.address, 'Governance');
+  await upgradeProxy(tc.address, 'TokenController', [
+    qd.address,
+    lcr.address,
+    spf.address,
+    tk.address,
+    stakingNFT.address,
+  ]);
+  console.log('upgradeProxy done - TokenController');
 
   // replace legacy pool after Ramm is initialized
   const governanceSigner = await getGovernanceSigner(gv);
@@ -519,7 +533,8 @@ async function setup() {
   const proxies = {
     master: await ethers.getContractAt('NXMaster', master.address),
     tc: await ethers.getContractAt('TokenController', tc.address),
-    gv: await ethers.getContractAt('Governance', gv.address),
+    // gv: await ethers.getContractAt('Governance', gv.address),
+    gv: await ethers.getContractAt('DisposableGovernance', gv.address), // put back above?
     pc: await ethers.getContractAt('ProposalCategory', pc.address),
     mr: await ethers.getContractAt('MemberRoles', mr.address),
     ps: await ethers.getContractAt('LegacyPooledStaking', ps.address),

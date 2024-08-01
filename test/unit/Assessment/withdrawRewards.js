@@ -15,10 +15,11 @@ describe('withdrawRewards', function () {
     const fixture = await loadFixture(setup);
     const { assessment } = fixture.contracts;
     const [user] = fixture.accounts.members;
+
     await assessment.connect(user).stake(parseEther('10'));
-    await expect(assessment.connect(user).withdrawRewards(user.address, 0)).to.be.revertedWith(
-      'No withdrawable rewards',
-    );
+
+    const withdrawRewards = assessment.connect(user).withdrawRewards(user.address, 0);
+    await expect(withdrawRewards).to.be.revertedWithCustomError(assessment, 'NoWithdrawableRewards');
   });
 
   it("allows any address to call but the reward is withdrawn to the staker's address", async function () {
@@ -206,9 +207,8 @@ describe('withdrawRewards', function () {
 
     await generateRewards({ assessment, individualClaims, staker });
 
-    await expect(assessment.connect(staker).withdrawRewards(nonMember.address, 0)).to.be.revertedWith(
-      'Destination address is not a member',
-    );
+    const withdrawRewards = assessment.connect(staker).withdrawRewards(nonMember.address, 0);
+    await expect(withdrawRewards).to.be.revertedWithCustomError(assessment, 'NotMember').withArgs(nonMember.address);
   });
 
   it('reverts if assessment rewards already claimed', async function () {
@@ -233,9 +233,8 @@ describe('withdrawRewards', function () {
     expect(stakerBalanceAfter).to.be.equal(stakerBalanceBefore.add(totalRewardInNXM));
     expect(stakeOfAfter.rewardsWithdrawableFromIndex).to.be.equal(stakeOfBefore.rewardsWithdrawableFromIndex.add(1));
 
-    await expect(assessment.connect(staker).withdrawRewards(staker.address, 0)).to.be.revertedWith(
-      'No withdrawable rewards',
-    );
+    const withdrawRewards = assessment.connect(staker).withdrawRewards(staker.address, 0);
+    await expect(withdrawRewards).to.be.revertedWithCustomError(assessment, 'NoWithdrawableRewards');
   });
 
   it('withdraws zero amount if poll is not final', async function () {

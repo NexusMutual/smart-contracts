@@ -132,25 +132,49 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param to      The member address where the NXM is transfered to. Useful for switching
   ///                membership during stake lockup period and thus allowing the user to withdraw
   ///                their staked amount to the new address when possible.
-  function unstake(uint96 amount, address to) external whenNotPaused override {
+  function unstake(uint96 amount, address to) external override whenNotPaused {
+    _unstake(msg.sender, amount, to);
+  }
+
+  /// Withdraws a portion or all of the user's stake
+  ///
+  /// @dev At least stakeLockupPeriodInDays must have passed since the last vote.
+  ///
+  /// @param staker  The address of the staker whose stake will be unstaked
+  /// @param amount  The amount of nxm to unstake
+  /// @param to      The member address where the NXM is transfered to. Useful for switching
+  ///                membership during stake lockup period and thus allowing the user to withdraw
+  ///                their staked amount to the new address when possible.
+  function unstakeFor(address staker, uint96 amount, address to) external override whenNotPaused {
+    _unstake(staker, amount, to);
+  }
+
+  function _unstake(address staker, uint96 amount, address to) internal {
+
+    uint stakeAmount = stakeOf[staker].amount;
+    if (amount > stakeAmount) {
+      revert InvalidAmount(stakeAmount);
+    }
+
     // Restrict unstaking to a different account if still locked for member vote
-    if (block.timestamp < nxm.isLockedForMV(msg.sender)) {
-      require(to == msg.sender, "Assessment: NXM is locked for voting in governance");
+    uint govLockupExpiry = nxm.isLockedForMV(staker);
+    if (block.timestamp < govLockupExpiry && to != staker) {
+      revert StakeLockedForGovernance(govLockupExpiry);
     }
 
-    uint voteCount = votesOf[msg.sender].length;
+    uint voteCount = votesOf[staker].length;
     if (voteCount > 0) {
-      Vote memory vote = votesOf[msg.sender][voteCount - 1];
-      require(
-        block.timestamp > vote.timestamp + uint(config.stakeLockupPeriodInDays) * 1 days,
-        "Stake is in lockup period"
-      );
+      Vote memory latestVote = votesOf[staker][voteCount - 1];
+      uint assessmentLockupExpiry = latestVote.timestamp + uint(config.stakeLockupPeriodInDays) * 1 days;
+      if (block.timestamp <= assessmentLockupExpiry) {
+        revert StakeLockedForAssessment(assessmentLockupExpiry);
+      }
     }
 
-    stakeOf[msg.sender].amount -= amount;
+    stakeOf[staker].amount -= amount;
     nxm.transfer(to, amount);
 
-    emit StakeWithdrawn(msg.sender, to, amount);
+    emit StakeWithdrawn(staker, to, amount);
   }
 
   /// Withdraws a staker's accumulated rewards to a destination address but only the staker can
@@ -162,6 +186,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param batchSize   The index until which (but not including) the rewards should be withdrawn.
   ///                    Used if a large number of assessments accumulates and the function doesn't
   ///                    fit in one block, thus requiring multiple batched transactions.
+  /// @return withdrawn The amount of rewards withdrawn.
+  /// @return withdrawnUntilIndex The index up to (but not including) the withdrawal was processed.
   function withdrawRewards(
     address staker,
     uint104 batchSize
@@ -177,6 +203,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param batchSize   The index until which (but not including) the rewards should be withdrawn.
   ///                    Used if a large number of assessments accumulates and the function doesn't
   ///                    fit in one block, thus requiring multiple batched transactions.
+  /// @return withdrawn The amount of rewards withdrawn.
+  /// @return withdrawnUntilIndex The index up to (but not including) the withdrawal was processed.
   function withdrawRewardsTo(
     address destination,
     uint104 batchSize
@@ -189,20 +217,22 @@ contract Assessment is IAssessment, MasterAwareV2 {
     address destination,
     uint104 batchSize
   ) internal returns (uint withdrawn, uint withdrawnUntilIndex) {
-    require(
-      IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(
-        destination,
-        uint(IMemberRoles.Role.Member)
-      ),
-      "Destination address is not a member"
+    bool isMember = IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(
+      destination,
+      uint(IMemberRoles.Role.Member)
     );
+    if (!isMember) {
+      revert NotMember(destination);
+    }
 
     // This is the index until which (but not including) the previous withdrawal was processed.
     // The current withdrawal starts from this index.
     uint104 rewardsWithdrawableFromIndex = stakeOf[staker].rewardsWithdrawableFromIndex;
     {
       uint voteCount = votesOf[staker].length;
-      require(rewardsWithdrawableFromIndex < voteCount, "No withdrawable rewards");
+      if (rewardsWithdrawableFromIndex >= voteCount) {
+        revert NoWithdrawableRewards();
+      }
       // If batchSize is a non-zero value, it means the withdrawal is going to be batched in
       // multiple transactions.
       withdrawnUntilIndex = batchSize > 0 ? rewardsWithdrawableFromIndex + batchSize : voteCount;
@@ -274,14 +304,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
     string[] calldata ipfsAssessmentDataHashes,
     uint96 stakeIncrease
   ) external override onlyMember whenNotPaused {
-    require(
-      assessmentIds.length == votes.length,
-      "The lengths of the assessment ids and votes arrays mismatch"
-    );
-    require(
-      assessmentIds.length == ipfsAssessmentDataHashes.length,
-      "The lengths of the assessment ids and ipfs assessment data hashes arrays mismatch"
-    );
+    if (assessmentIds.length != votes.length) {
+      revert AssessmentIdsVotesLengthMismatch();
+    }
+    if (assessmentIds.length != ipfsAssessmentDataHashes.length) {
+      revert AssessmentIdsIpfsLengthMismatch();
+    }
 
     if (stakeIncrease > 0) {
       stake(stakeIncrease);
@@ -305,19 +333,24 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param isAcceptVote  True to accept, false to deny
   function castVote(uint assessmentId, bool isAcceptVote, string memory ipfsAssessmentDataHash) internal {
     {
-      require(!hasAlreadyVotedOn[msg.sender][assessmentId], "Already voted");
+      if (hasAlreadyVotedOn[msg.sender][assessmentId]) {
+        revert AlreadyVoted();
+      }
       hasAlreadyVotedOn[msg.sender][assessmentId] = true;
     }
 
     uint96 stakeAmount = stakeOf[msg.sender].amount;
-    require(stakeAmount > 0, "A stake is required to cast votes");
+    if (stakeAmount <= 0) {
+      revert StakeRequired();
+    }
 
     Poll memory poll = assessments[assessmentId].poll;
-    require(block.timestamp < poll.end, "Voting is closed");
-    require(
-      poll.accepted > 0 || isAcceptVote,
-      "At least one accept vote is required to vote deny"
-    );
+    if (block.timestamp >= poll.end) {
+      revert VotingClosed();
+    }
+    if (!(poll.accepted > 0 || isAcceptVote)) {
+      revert AcceptVoteRequired();
+    }
 
     if (poll.accepted == 0) {
       // Reset the poll end date on the first accept vote
@@ -390,14 +423,15 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint16 fraudCount,
     uint256 voteBatchSize
   ) external override whenNotPaused {
-    require(
-      MerkleProof.verify(
+    if (
+      !MerkleProof.verify(
         proof,
         fraudResolution[rootIndex],
         keccak256(abi.encodePacked(assessor, lastFraudulentVoteIndex, burnAmount, fraudCount))
-      ),
-      "Invalid merkle proof"
-    );
+      )
+    ) {
+      revert InvalidMerkleProof();
+    }
 
     Stake memory _stake = stakeOf[assessor];
 

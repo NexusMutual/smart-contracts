@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
+import "../../interfaces/ICompleteStakingPoolFactory.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/ICoverProducts.sol";
@@ -15,7 +16,7 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
-import "../../interfaces/ICompleteStakingPoolFactory.sol";
+import "../../interfaces/ISwapOperator.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
@@ -682,9 +683,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     stakingPoolFactory.changeOperator(_operator);
   }
 
+  /* ========== Temporary utilities ========== */
+
   function updateStakingPoolsRewardShares(
     uint[][][] calldata tokenIds // tokenIds[ pool_id ][ tranche_idx ] => [token ids]
   ) external {
+
+    ISwapOperator swapOperator = ISwapOperator(pool().swapOperator());
+
+    if (msg.sender != swapOperator.swapController()) {
+      revert OnlySwapOperator();
+    }
 
     uint firstActiveTrancheId = block.timestamp / 91 days; // TRANCHE_DURATION = 91 days
     uint stakingPoolCount = stakingPoolFactory.stakingPoolCount();

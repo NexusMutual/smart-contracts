@@ -173,4 +173,7 @@ interface ICover {
   error CoverNotYetExpired(uint coverId);
   error InsufficientCoverAmountAllocated();
   error UnexpectedPoolId();
+
+  // TODO: remove me after the rewards update
+  error OnlySwapOperator();
 }

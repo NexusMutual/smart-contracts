@@ -5,8 +5,6 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import "../../interfaces/ICowSettlement.sol";
-import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/ISwapOperator.sol";
 import "../../interfaces/IPriceFeedOracle.sol";

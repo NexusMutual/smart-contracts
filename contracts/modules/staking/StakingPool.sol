@@ -3,15 +3,15 @@
 pragma solidity ^0.8.18;
 
 import "../../abstract/Multicall.sol";
-import "../../interfaces/IStakingPool.sol";
-import "../../interfaces/IStakingNFT.sol";
-import "../../interfaces/ITokenController.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IStakingNFT.sol";
+import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingProducts.sol";
+import "../../interfaces/ITokenController.sol";
 import "../../libraries/Math.sol";
-import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
+import "../../libraries/UncheckedMath.sol";
 import "./StakingTypesLib.sol";
 import "./StakingExtrasLib.sol";
 

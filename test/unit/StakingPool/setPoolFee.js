@@ -44,12 +44,12 @@ const initializeParams = {
 async function setPoolFeeSetup() {
   const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts, tokenController } = fixture;
-  const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
+  const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool } = initializeParams;
   const manager = fixture.accounts.defaultSender;
 
   await stakingPool
     .connect(fixture.stakingProductsSigner)
-    .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+    .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId);
   await tokenController.setStakingPoolManager(poolId, manager.address);
 
   await stakingProducts.connect(fixture.stakingProductsSigner).setInitialProducts(poolId, products);

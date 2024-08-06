@@ -77,7 +77,7 @@ async function burnStakeSetup() {
   const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts, coverProducts } = fixture;
   const [staker] = fixture.accounts.members;
-  const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
+  const { poolId, initialPoolFee, maxPoolFee, products } = poolInitParams;
 
   await coverProducts.setProductType(productTypeFixture, initialProduct.productId);
   await coverProducts.setProduct(coverProductTemplate, initialProduct.productId);
@@ -87,7 +87,6 @@ async function burnStakeSetup() {
     initialPoolFee,
     maxPoolFee,
     poolId,
-    ipfsDescriptionHash,
   );
 
   await stakingProducts.connect(fixture.stakingProductsSigner).setInitialProducts(poolId, products);

@@ -47,11 +47,11 @@ async function withdrawSetup() {
   const { stakingPool, stakingProducts, tokenController } = fixture;
   const manager = fixture.accounts.defaultSender;
 
-  const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
+  const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool } = initializeParams;
 
   await stakingPool
     .connect(fixture.stakingProductsSigner)
-    .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+    .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId);
 
   await tokenController.setStakingPoolManager(poolId, manager.address);
 

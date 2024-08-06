@@ -295,60 +295,47 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @notice Withdraws NXM from the Nexus platform based on specified options.
   /// @dev    Ensure the NXM is available and not locked before withdrawal. Only set flags in `WithdrawNxmOptions` for
   ///         withdrawable NXM. Reverts if some of the NXM being withdrawn is locked or unavailable.
-  /// @param stakingPoolDeposit  Details for withdrawing from staking pools.
-  /// @param coverNotes          Details for withdrawing V1 cover notes.
-  /// @param batchSize           The maximum number of iterations to avoid unbounded loops when withdrawing
-  ///                            governance and/or assessment rewards.
-  /// @param withdrawOptions     Options specifying which NXM types to withdraw, set flags to true to include specific
-  ///                            withdrawable NXM.
+  /// @param stakingPoolDeposits        Details for withdrawing staking pools stake and rewards. Empty array to skip
+  /// @param stakingPoolManagerRewards  Details for withdrawing staking pools manager rewards. Empty array to skip
+  /// @param batchSize                  The maximum number of iterations to avoid unbounded loops when withdrawing
+  ///                                   governance or assessment rewards.
+  /// @param withdrawAssessment         Options specifying assesment withdrawals, set flags to true to include
+  ///                                   specific assesment stake or rewards withdrawal.
   function withdrawNXM(
-    StakingPoolDeposit calldata stakingPoolDeposit,
-    V1CoverNotes calldata coverNotes,
+    StakingPoolDeposit[] calldata stakingPoolDeposits,
+    StakingPoolManagerReward[] calldata stakingPoolManagerRewards,
     uint batchSize,
-    WithdrawNxmOptions calldata withdrawOptions
+    WithdrawAssessment calldata withdrawAssessment
   ) external whenNotPaused {
 
     // assessment stake
-    if (withdrawOptions.assessmentStake) {
-      IAssessment _assessment = assessment();
-      (uint96 amount, , ) = _assessment.stakeOf(msg.sender);
-      _assessment.unstakeFor(msg.sender, amount, msg.sender);
+    if (withdrawAssessment.stake) {
+      assessment().unstakeAllFor(msg.sender);
     }
 
-    // assessment and governance rewards
-    if (withdrawOptions.governanceRewards || withdrawOptions.assessmentRewards) {
-      withdrawPendingRewards(
-        msg.sender,
-        withdrawOptions.governanceRewards,
-        withdrawOptions.assessmentRewards,
-        batchSize
-      );
+    // assessment rewards
+    if (withdrawAssessment.rewards) {
+      assessment().withdrawRewards(msg.sender, batchSize.toUint104());
     }
 
-    // staking pools rewards and stake (including manager rewards)
-    if (withdrawOptions.stakingPoolStake || withdrawOptions.stakingPoolRewards) {
-      for (uint i = 0; i < stakingPoolDeposit.tokenIds.length; i++) {
-        uint tokenId = stakingPoolDeposit.tokenIds[i];
-        uint[] memory trancheIds = stakingPoolDeposit.tokenTrancheIds[i];
-        uint poolId = stakingNFT.stakingPoolOf(tokenId);
-        stakingPool(poolId).withdraw(tokenId, withdrawOptions.stakingPoolStake, withdrawOptions.stakingPoolRewards, trancheIds);
-      }
+    // governance rewards
+    uint governanceRewards = governance().claimReward(msg.sender, batchSize);
+    if (governanceRewards > 0) {
+      token.transfer(msg.sender, governanceRewards);
     }
 
-    // v1 cover notes
-    if (withdrawOptions.v1CoverNotes) {
-      withdrawCoverNote(msg.sender, coverNotes.coverIds, coverNotes.reasonIndexes);
+    // staking pool rewards and stake
+    for (uint i = 0; i < stakingPoolDeposits.length; i++) {
+      uint tokenId = stakingPoolDeposits[i].tokenId;
+      uint poolId = stakingNFT.stakingPoolOf(tokenId);
+      stakingPool(poolId).withdraw(tokenId, true, true, stakingPoolDeposits[i].trancheIds);
     }
 
-
-    // v1 pooled staking stake
-    if (withdrawOptions.v1PooledStakingStake) {
-      pooledStaking().withdrawForUser(msg.sender);
+    // staking pool manager rewards    
+    for (uint i = 0; i < stakingPoolManagerRewards.length; i++) {
+      uint poolId = stakingPoolManagerRewards[i].poolId;
+      stakingPool(poolId).withdraw(0, false, true, stakingPoolManagerRewards[i].trancheIds);
     }
-
-    // v1 - always withdraw (no revert)
-    _withdrawClaimAssessmentTokensForUser(msg.sender);
-    pooledStaking().withdrawReward(msg.sender);
   }
 
   /// @dev Returns tokens locked for a specified address for a specified reason

@@ -40,7 +40,7 @@ contract AssessmentGeneric is IAssessment {
     revert("unstake unsupported");
   }
 
-  function unstakeFor(address, uint96, address) external pure {
+  function unstakeAllFor(address) external pure {
     revert("unstakeFor unsupported");
   }
 

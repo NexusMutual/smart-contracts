@@ -39,10 +39,8 @@ async function extendDepositSetup() {
   const [user] = fixture.accounts.members;
   const manager = fixture.accounts.defaultSender;
 
-  const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
-  await stakingPool
-    .connect(fixture.stakingProductsSigner)
-    .initialize(false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+  const { poolId, initialPoolFee, maxPoolFee, products } = poolInitParams;
+  await stakingPool.connect(fixture.stakingProductsSigner).initialize(false, initialPoolFee, maxPoolFee, poolId);
   await tokenController.setStakingPoolManager(poolId, manager.address);
 
   await stakingProducts.connect(fixture.stakingProductsSigner).setInitialProducts(poolId, products);

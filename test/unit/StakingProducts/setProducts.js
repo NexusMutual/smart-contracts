@@ -50,7 +50,10 @@ describe('setProducts unit tests', function () {
     const [manager] = fixture.accounts.members;
 
     const product = { ...newProductTemplate };
-    await expect(stakingProducts.connect(manager).setProducts(324985304958, [product])).to.be.revertedWithoutReason();
+    await expect(stakingProducts.connect(manager).setProducts(324985304958, [product])).to.be.revertedWithCustomError(
+      stakingProducts,
+      'OnlyManager',
+    );
   });
 
   it('should set products and store values correctly', async function () {

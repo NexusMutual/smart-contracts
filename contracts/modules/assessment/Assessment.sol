@@ -213,14 +213,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
     address destination,
     uint104 batchSize
   ) internal returns (uint withdrawn, uint withdrawnUntilIndex) {
-    bool isMember = IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(
-      destination,
-      uint(IMemberRoles.Role.Member)
-    );
-    if (!isMember) {
-      revert NotMember(destination);
-    }
-
     // This is the index until which (but not including) the previous withdrawal was processed.
     // The current withdrawal starts from this index.
     uint104 rewardsWithdrawableFromIndex = stakeOf[staker].rewardsWithdrawableFromIndex;

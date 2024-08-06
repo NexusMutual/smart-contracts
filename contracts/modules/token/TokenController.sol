@@ -292,30 +292,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     return totalPendingAmountInNXM + governanceRewards;
   }
 
-  /// @notice Function used to claim all pending rewards in one tx. It can be used to selectively withdraw rewards.
-  /// @param forUser         The address for whom the governance and/or assessment rewards are withdrawn.
-  /// @param fromGovernance  When true, governance rewards are withdrawn.
-  /// @param fromAssessment  When true, assessment rewards are withdrawn.
-  /// @param batchSize       The maximum number of iterations to avoid unbounded loops when withdrawing governance 
-  ///                        and/or assessment rewards. Cannot be 0 and must fit in one block.
-  function withdrawPendingRewards(
-    address forUser,
-    bool fromGovernance,
-    bool fromAssessment,
-    uint batchSize
-  ) public whenNotPaused {
-
-    if (fromAssessment) {
-      assessment().withdrawRewards(forUser, batchSize.toUint104());
-    }
-
-    if (fromGovernance) {
-      uint governanceRewards = governance().claimReward(forUser, batchSize);
-      require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
-      token.transfer(forUser, governanceRewards);
-    }
-  }
-
   /// @notice Withdraws NXM from the Nexus platform based on specified options.
   /// @dev    Ensure the NXM is available and not locked before withdrawal. Only set flags in `WithdrawNxmOptions` for
   ///         withdrawable NXM. Reverts if some of the NXM being withdrawn is locked or unavailable.

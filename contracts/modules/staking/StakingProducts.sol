@@ -15,15 +15,26 @@ import "../../libraries/StakingPoolLibrary.sol";
 contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   using SafeUintCast for uint;
 
+  // pool id => product id => Product
+  mapping(uint => mapping(uint => StakedProduct)) private _products;
+  // pool id => { totalEffectiveWeight, totalTargetWeight }
+  mapping(uint => Weights) public weights;
+
+  address public immutable coverContract;
+  address public immutable stakingPoolFactory;
+
   uint public constant SURGE_PRICE_RATIO = 2 ether;
   uint public constant SURGE_THRESHOLD_RATIO = 90_00; // 90.00%
   uint public constant SURGE_THRESHOLD_DENOMINATOR = 100_00; // 100.00%
+
   // base price bump
   // +0.2% for each 1% of capacity used, ie +20% for 100%
   uint public constant PRICE_BUMP_RATIO = 20_00; // 20%
+
   // bumped price smoothing
   // 0.5% per day
   uint public constant PRICE_CHANGE_PER_DAY = 200; // 2%
+
   uint public constant INITIAL_PRICE_DENOMINATOR = 100_00;
   uint public constant TARGET_PRICE_DENOMINATOR = 100_00;
   uint public constant MAX_TOTAL_WEIGHT = 20_00; // 20x
@@ -40,14 +51,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   uint public constant ONE_NXM = 1 ether;
   uint public constant ALLOCATION_UNITS_PER_NXM = 100;
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
-
-  // pool id => product id => Product
-  mapping(uint => mapping(uint => StakedProduct)) private _products;
-  // pool id => { totalEffectiveWeight, totalTargetWeight }
-  mapping(uint => Weights) public weights;
-
-  address public immutable coverContract;
-  address public immutable stakingPoolFactory;
 
   constructor(address _coverContract, address _stakingPoolFactory) {
     coverContract = _coverContract;

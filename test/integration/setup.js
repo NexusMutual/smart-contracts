@@ -531,8 +531,7 @@ async function setup() {
   const proxies = {
     master: await ethers.getContractAt('NXMaster', master.address),
     tc: await ethers.getContractAt('TokenController', tc.address),
-    // gv: await ethers.getContractAt('Governance', gv.address),
-    gv: await ethers.getContractAt('DisposableGovernance', gv.address), // put back above?
+    gv: await ethers.getContractAt('Governance', gv.address),
     pc: await ethers.getContractAt('ProposalCategory', pc.address),
     mr: await ethers.getContractAt('MemberRoles', mr.address),
     ps: await ethers.getContractAt('LegacyPooledStaking', ps.address),

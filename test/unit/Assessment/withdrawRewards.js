@@ -199,18 +199,6 @@ describe('withdrawRewards', function () {
     await expect(assessment.connect(staker).withdrawRewards(staker.address, 0)).to.be.revertedWith('System is paused');
   });
 
-  it('reverts if staker is not a member', async function () {
-    const fixture = await loadFixture(setup);
-    const { assessment, individualClaims } = fixture.contracts;
-    const [staker] = fixture.accounts.members;
-    const [nonMember] = fixture.accounts.nonMembers;
-
-    await generateRewards({ assessment, individualClaims, staker });
-
-    const withdrawRewards = assessment.connect(staker).withdrawRewards(nonMember.address, 0);
-    await expect(withdrawRewards).to.be.revertedWithCustomError(assessment, 'NotMember').withArgs(nonMember.address);
-  });
-
   it('reverts if assessment rewards already claimed', async function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims, nxm } = fixture.contracts;

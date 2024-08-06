@@ -133,34 +133,30 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///                membership during stake lockup period and thus allowing the user to withdraw
   ///                their staked amount to the new address when possible.
   function unstake(uint96 amount, address to) external override whenNotPaused {
-    _unstake(msg.sender, amount, to);
-  }
 
-  /// Withdraws a portion or all of the user's stake
-  ///
-  /// @dev At least stakeLockupPeriodInDays must have passed since the last vote.
-  ///
-  /// @param staker  The address of the staker whose stake will be unstaked
-  /// @param amount  The amount of nxm to unstake
-  /// @param to      The member address where the NXM is transfered to. Useful for switching
-  ///                membership during stake lockup period and thus allowing the user to withdraw
-  ///                their staked amount to the new address when possible.
-  function unstakeFor(address staker, uint96 amount, address to) external override whenNotPaused {
-    _unstake(staker, amount, to);
-  }
-
-  function _unstake(address staker, uint96 amount, address to) internal {
-
-    uint stakeAmount = stakeOf[staker].amount;
+    uint stakeAmount = stakeOf[msg.sender].amount;
     if (amount > stakeAmount) {
       revert InvalidAmount(stakeAmount);
     }
 
-    // Restrict unstaking to a different account if still locked for member vote
-    uint govLockupExpiry = nxm.isLockedForMV(staker);
-    if (block.timestamp < govLockupExpiry && to != staker) {
+    uint govLockupExpiry = nxm.isLockedForMV(msg.sender);
+    if (block.timestamp < govLockupExpiry && to != msg.sender) {
       revert StakeLockedForGovernance(govLockupExpiry);
     }
+
+    _unstake(msg.sender, amount, to);
+  }
+
+  /// Withdraws all of the the given staker's stake
+  ///
+  /// @dev At least stakeLockupPeriodInDays must have passed since the last vote.
+  ///
+  /// @param staker  The address of the staker whose stake will be unstaked
+  function unstakeAllFor(address staker) external override whenNotPaused {
+    _unstake(staker, stakeOf[staker].amount, staker);
+  }
+
+  function _unstake(address staker, uint96 amount, address to) internal {
 
     uint voteCount = votesOf[staker].length;
     if (voteCount > 0) {

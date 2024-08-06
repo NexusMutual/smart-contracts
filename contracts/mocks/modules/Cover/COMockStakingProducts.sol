@@ -70,7 +70,7 @@ contract COMockStakingProducts is StakingProductsGeneric {
     uint initialPoolFee,
     uint maxPoolFee,
     ProductInitializationParams[] memory productInitParams,
-    string calldata ipfsDescriptionHash
+    string calldata /*ipfsDescriptionHash*/
   ) external override returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
 
     uint numProducts = productInitParams.length;
@@ -110,8 +110,7 @@ contract COMockStakingProducts is StakingProductsGeneric {
       isPrivatePool,
       initialPoolFee,
       maxPoolFee,
-      poolId,
-      ipfsDescriptionHash
+      poolId
     );
 
     tokenController().assignStakingPoolManager(poolId, msg.sender);

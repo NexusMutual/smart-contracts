@@ -20,6 +20,9 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   // pool id => { totalEffectiveWeight, totalTargetWeight }
   mapping(uint => Weights) public weights;
 
+  // pool id => metadata
+  mapping(uint => string) internal poolMetadata;
+
   address public immutable coverContract;
   address public immutable stakingPoolFactory;
 
@@ -51,6 +54,13 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   uint public constant ONE_NXM = 1 ether;
   uint public constant ALLOCATION_UNITS_PER_NXM = 100;
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
+
+  modifier onlyManager(uint poolId) {
+    if (msg.sender != getPoolManager(poolId)) {
+      revert OnlyManager();
+    }
+    _;
+  }
 
   constructor(address _coverContract, address _stakingPoolFactory) {
     coverContract = _coverContract;
@@ -84,6 +94,14 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       product.bumpedPrice,
       product.bumpedPriceUpdateTime
     );
+  }
+
+  function getPoolManager(uint poolId) public view override returns (address) {
+    return tokenController().getStakingPoolManager(poolId);
+  }
+
+  function getPoolMetadata(uint poolId) external override view returns (string memory ipfsHash) {
+    return poolMetadata[poolId];
   }
 
   function recalculateEffectiveWeights(uint poolId, uint[] calldata productIds) external {
@@ -168,7 +186,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     IStakingPool _stakingPool = stakingPool(poolId);
 
-    if (msg.sender != _stakingPool.manager()) {
+    if (msg.sender != tokenController().getStakingPoolManager(poolId)) {
       revert OnlyManager();
     }
 
@@ -570,28 +588,26 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint initialPoolFee,
     uint maxPoolFee,
     ProductInitializationParams[] memory productInitParams,
-    string calldata ipfsDescriptionHash
-  ) external whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+    string calldata ipfsHash
+  ) external override whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
 
     ICoverProducts _coverProducts = coverProducts();
 
+    // create and initialize staking pool
+    (uint poolId, address stakingPoolAddress) = ICompleteStakingPoolFactory(stakingPoolFactory).create(coverContract);
+    IStakingPool(stakingPoolAddress).initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId);
+
+    // assign pool manager
+    tokenController().assignStakingPoolManager(poolId, msg.sender);
+
+    // set products
     ProductInitializationParams[] memory initializedProducts = _coverProducts.prepareStakingProductsParams(
       productInitParams
     );
-
-    (uint poolId, address stakingPoolAddress) = ICompleteStakingPoolFactory(stakingPoolFactory).create(coverContract);
-
-    IStakingPool(stakingPoolAddress).initialize(
-      isPrivatePool,
-      initialPoolFee,
-      maxPoolFee,
-      poolId,
-      ipfsDescriptionHash
-    );
-
-    tokenController().assignStakingPoolManager(poolId, msg.sender);
-
     _setInitialProducts(poolId, initializedProducts);
+
+    // set metadata
+    poolMetadata[poolId] = ipfsHash;
 
     return (poolId, stakingPoolAddress);
   }
@@ -640,9 +656,29 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     });
   }
 
-  // future role transfers
+  // future operator role transfers
   function changeStakingPoolFactoryOperator(address _operator) external onlyInternal {
     ICompleteStakingPoolFactory(stakingPoolFactory).changeOperator(_operator);
+  }
+
+  function setPoolMetadata(
+    uint poolId,
+    string memory ipfsHash
+  ) external override onlyManager(poolId) {
+    poolMetadata[poolId] = ipfsHash;
+  }
+
+  // temporary migration function
+
+  function setInitialMetadata(string[] calldata ipfsHashes) external onlyAdvisoryBoard {
+
+    uint poolCount = IStakingPoolFactory(stakingPoolFactory).stakingPoolCount();
+    require(ipfsHashes.length == poolCount, "StakingProducts: Metadata length mismatch");
+    require(bytes(poolMetadata[1]).length == 0, "StakingProducts: Metadata already set");
+
+    for (uint i = 0; i < poolCount; i++) {
+      poolMetadata[i + 1] = ipfsHashes[i];
+    }
   }
 
   /* dependencies */

@@ -71,6 +71,7 @@ async function stakingPoolSetup(fixture) {
 
   fixture.tokenIds = [tokenId1, tokenId2, tokenId3];
   fixture.stakeAmount = stakeAmount;
+  fixture.trancheIds = [[trancheId], [trancheId], [trancheId]];
   fixture.trancheId = trancheId;
 }
 
@@ -126,7 +127,6 @@ async function generateAssessmentRewards(fixture) {
 
 async function withdrawNXMSetup() {
   const fixture = await loadFixture(setup);
-  console.log('integration setup done');
 
   // do not change the order
   await stakingPoolSetup(fixture);
@@ -134,17 +134,15 @@ async function withdrawNXMSetup() {
   await generateAssessmentRewards(fixture);
 
   // StakingPool1 deposit params
-  const stakingPool1Deposit = { tokenIds: [fixture.tokenIds[0]], tokenTrancheIds: [[fixture.trancheId]] };
-  const v1CoverNotes = { coverIds: [], reasonIndexes: [] };
+  const stakingPoolDeposits = [];
+  const stakingPoolManagerRewards = [];
   const batchSize = 0;
 
   return {
     ...fixture,
-    params: {
-      stakingPoolDeposit: stakingPool1Deposit,
-      v1CoverNotes,
-      batchSize,
-    },
+    stakingPoolDeposits,
+    stakingPoolManagerRewards,
+    batchSize,
   };
 }
 

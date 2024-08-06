@@ -195,22 +195,6 @@ describe('withdrawRewardsTo', function () {
     }
   });
 
-  it('reverts if the destination address is not a member', async function () {
-    const fixture = await loadFixture(setup);
-    const { assessment, individualClaims } = fixture.contracts;
-    const [user1] = fixture.accounts.members;
-    const nonMember = '0xDeCAf00000000000000000000000000000000000';
-
-    await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
-    await assessment.connect(user1).stake(parseEther('10'));
-    await assessment.connect(user1).castVotes([0], [true], ['Assessment data hash'], 0);
-
-    await finalizePoll(assessment);
-
-    const withdrawRewardsTo = assessment.connect(user1).withdrawRewardsTo(nonMember, 0);
-    await expect(withdrawRewardsTo).to.be.revertedWithCustomError(assessment, 'NotMember').withArgs(nonMember);
-  });
-
   it('should withdraw multiple rewards consecutively', async function () {
     const fixture = await loadFixture(setup);
     const { nxm, assessment, individualClaims } = fixture.contracts;

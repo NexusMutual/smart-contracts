@@ -72,8 +72,6 @@ async function setup() {
   }
 
   const config = {
-    REWARD_BONUS_PER_TRANCHE_RATIO: await stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO(),
-    REWARD_BONUS_PER_TRANCHE_DENOMINATOR: await stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR(),
     PRICE_CHANGE_PER_DAY: await stakingProducts.PRICE_CHANGE_PER_DAY(),
     PRICE_BUMP_RATIO: await stakingProducts.PRICE_BUMP_RATIO(),
     SURGE_PRICE_RATIO: await stakingProducts.SURGE_PRICE_RATIO(),

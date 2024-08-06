@@ -240,7 +240,6 @@ async function setup() {
     tk.address,
     stakingNFT.address,
   ]);
-  console.log('DisposableTokenController done');
   tc = await ethers.getContractAt('DisposableTokenController', tc.address);
 
   // 5. update operators
@@ -435,7 +434,6 @@ async function setup() {
     tk.address,
     stakingNFT.address,
   ]);
-  console.log('upgradeProxy done - TokenController');
 
   // replace legacy pool after Ramm is initialized
   const governanceSigner = await getGovernanceSigner(gv);

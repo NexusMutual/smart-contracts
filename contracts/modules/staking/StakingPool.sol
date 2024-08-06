@@ -1195,19 +1195,28 @@ contract StakingPool is IStakingPool, Multicall {
     // passing false because neither the amount of shares nor the reward per second are changed
     processExpirations(false);
 
-    // sload
-    uint _activeStake = activeStake;
+    // burn stake
+    {
+      // sload
+      uint _activeStake = activeStake;
 
-    // If all stake is burned, leave 1 wei and close pool
-    if (amount >= _activeStake) {
-      amount = _activeStake - 1;
-      isHalted = true;
+      // if all stake is burned, leave 1 wei and close pool
+      if (amount >= _activeStake) {
+        amount = _activeStake - 1;
+        isHalted = true;
+      }
+
+      tokenController.burnStakedNXM(amount, poolId);
+
+      // sstore & log event
+      activeStake = (_activeStake - amount).toUint96();
+      emit StakeBurned(amount);
     }
 
-    tokenController.burnStakedNXM(amount, poolId);
-
-    // sstore
-    activeStake = (_activeStake - amount).toUint96();
+    // do not deallocate if in grace period
+    if (params.start + params.period <= block.timestamp) {
+      return;
+    }
 
     uint initialPackedCoverTrancheAllocation = coverTrancheAllocations[params.allocationId];
     uint[] memory activeAllocations = getActiveAllocations(params.productId);
@@ -1258,8 +1267,6 @@ contract StakingPool is IStakingPool, Multicall {
       currentFirstActiveTrancheId,
       activeAllocations
     );
-
-    emit StakeBurned(amount);
   }
 
   /* pool management */

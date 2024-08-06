@@ -57,7 +57,7 @@ describe('emergency pause', function () {
 
   it('should be able to perform proxy and replaceable upgrades during emergency pause', async function () {
     const fixture = await loadFixture(emergencyPauseSetup);
-    const { master, gv, qd, lcr, spf, tk } = fixture.contracts;
+    const { master, gv, qd, lcr, spf, tk, stakingNFT } = fixture.contracts;
     const emergencyAdmin = fixture.accounts.emergencyAdmin;
     const owner = fixture.accounts.defaultSender;
 
@@ -77,6 +77,7 @@ describe('emergency pause', function () {
       lcr.address,
       spf.address,
       tk.address,
+      stakingNFT.address,
     );
 
     const contractCodes = [mcrCode, tcCode];

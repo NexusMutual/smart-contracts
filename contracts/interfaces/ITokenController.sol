@@ -24,26 +24,27 @@ interface ITokenController {
     uint96 deadline;
   }
 
-  struct WithdrawNxmOptions {
-    bool assessmentStake;
-    bool stakingPoolStake;
-    bool assessmentRewards;
-    bool stakingPoolRewards;
-    bool governanceRewards;
-    bool v1CoverNotes;
-    bool v1PooledStakingStake;
+  struct WithdrawAssessment {
+    bool stake;
+    bool rewards;
   }
 
+  /// @dev Represents a deposit in a staking pool.
+  /// @param tokenId The ID of the token being deposited.
+  /// @param trancheIds An array of tranche IDs representing the tranches where the stake was deposited.
+  /// @dev Call StakingViewer.getToken to get tokenId / trancheId information
   struct StakingPoolDeposit {
-    // tokenId and trancheIds ordering needs to match
-    uint[] tokenIds;
-    uint[][] tokenTrancheIds;
+    uint tokenId;
+    uint[] trancheIds;
   }
 
-  struct V1CoverNotes {
-    // coverIds and reasonIndexes ordering needs to match
-    uint[] coverIds;
-    uint[] reasonIndexes;
+  /// @dev Represents the rewards distributed to a staking pool manager.
+  /// @param poolId The ID of the pool for which the manager rewards are distributed.
+  /// @param trancheIds An array of tranche IDs representing the tranches where the manager rewards were distributed.
+  /// @dev Call StakingViewer.getManagerTokenRewardsByAddr to get poolId / trancheId information
+  struct StakingPoolManagerReward {
+    uint poolId;
+    uint[] trancheIds;
   }
 
   /* ========== VIEWS ========== */
@@ -70,7 +71,7 @@ interface ITokenController {
   function getPendingRewards(address member) external view returns (uint);
 
   function tokensLocked(address _of, bytes32 _reason) external view returns (uint256 amount);
-  
+
   function getWithdrawableCoverNotes(
     address coverOwner
   ) external view returns (
@@ -131,5 +132,5 @@ interface ITokenController {
 
   function burnStakedNXM(uint amount, uint poolId) external;
 
-  function stakingPoolNXMBalances(uint poolId) external view returns(uint128 rewards, uint128 deposits);
+  function stakingPoolNXMBalances(uint poolId) external view returns (uint128 rewards, uint128 deposits);
 }

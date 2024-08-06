@@ -106,8 +106,6 @@ contract StakingPool is IStakingPool, Multicall {
   uint public constant COVER_TRANCHE_GROUP_SIZE = 5;
   uint public constant BUCKET_TRANCHE_GROUP_SIZE = 8;
 
-  uint public constant REWARD_BONUS_PER_TRANCHE_RATIO = 10_00; // 10.00%
-  uint public constant REWARD_BONUS_PER_TRANCHE_DENOMINATOR = 100_00;
   uint public constant WEIGHT_DENOMINATOR = 100;
   uint public constant REWARDS_DENOMINATOR = 100_00;
   uint public constant POOL_FEE_DENOMINATOR = 100;
@@ -115,8 +113,6 @@ contract StakingPool is IStakingPool, Multicall {
   // denominators for cover contract parameters
   uint public constant GLOBAL_CAPACITY_DENOMINATOR = 100_00;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 100_00;
-
-  // +2% for every 1%, ie +200% for 100%
 
   // 1 nxm = 1e18
   uint internal constant ONE_NXM = 1 ether;

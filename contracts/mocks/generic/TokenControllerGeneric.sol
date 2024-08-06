@@ -147,10 +147,10 @@ contract TokenControllerGeneric is ITokenController {
   }
 
   function withdrawNXM(
-    StakingPoolDeposit calldata,
-    V1CoverNotes calldata,
+    StakingPoolDeposit[] calldata,
+    StakingPoolManagerReward[] calldata,
     uint,
-    WithdrawNxmOptions calldata
+    WithdrawAssessment calldata
   ) external virtual {
     revert("withdrawNXM unsupported");
   }

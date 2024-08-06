@@ -29,19 +29,19 @@ interface ITokenController {
     bool rewards;
   }
 
-  /// @dev Represents a deposit in a staking pool.
-  /// @param tokenId The ID of the token being deposited.
+  /// @notice The stake deposit / rewards in a staking pool that will be withdrawn.
+  /// @dev    Call StakingViewer.getToken to get tokenId / trancheId information
+  /// @param tokenId The ID of the token stake deposit / rewards that will be withrawn.
   /// @param trancheIds An array of tranche IDs representing the tranches where the stake was deposited.
-  /// @dev Call StakingViewer.getToken to get tokenId / trancheId information
   struct StakingPoolDeposit {
     uint tokenId;
     uint[] trancheIds;
   }
 
-  /// @dev Represents the rewards distributed to a staking pool manager.
-  /// @param poolId The ID of the pool for which the manager rewards are distributed.
+  /// @notice Represents the rewards distributed to a staking pool manager.
+  /// @dev    Call StakingViewer.getManagerTokenRewardsByAddr to get poolId / trancheId information
+  /// @param poolId The ID of the pool managed by the manager.
   /// @param trancheIds An array of tranche IDs representing the tranches where the manager rewards were distributed.
-  /// @dev Call StakingViewer.getManagerTokenRewardsByAddr to get poolId / trancheId information
   struct StakingPoolManagerReward {
     uint poolId;
     uint[] trancheIds;

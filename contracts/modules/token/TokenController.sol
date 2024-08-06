@@ -24,15 +24,20 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   uint public _unused_minCALockTime;
   uint public _unused_claimSubmissionGracePeriod;
 
-  mapping(uint coverId => CoverInfo) public override coverInfo;
+  // coverId => CoverInfo
+  mapping(uint => CoverInfo) public override coverInfo;
 
-  mapping(uint poolId => StakingPoolNXMBalances) public override stakingPoolNXMBalances;
+  // pool id => { rewards, deposits }
+  mapping(uint => StakingPoolNXMBalances) public override stakingPoolNXMBalances;
 
-  mapping(uint poolId => address manager) internal stakingPoolManagers;
+  // pool id => manager
+  mapping(uint => address) internal stakingPoolManagers;
 
-  mapping(uint poolId => StakingPoolOwnershipOffer) internal stakingPoolOwnershipOffers;
+  // pool id => offer
+  mapping(uint => StakingPoolOwnershipOffer) internal stakingPoolOwnershipOffers;
 
-  mapping(address manager => uint[] poolIds) internal managerStakingPools;
+  // manager => pool ids
+  mapping(address => uint[]) internal managerStakingPools;
 
   INXMToken public immutable token;
   IQuotationData public immutable quotationData;

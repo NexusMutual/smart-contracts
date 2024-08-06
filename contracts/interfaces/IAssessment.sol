@@ -131,7 +131,7 @@ interface IAssessment {
 
   function unstake(uint96 amount, address to) external;
 
-  function unstakeFor(address staker, uint96 amount, address to) external;
+  function unstakeAllFor(address staker) external;
 
   function withdrawRewards(
     address user,

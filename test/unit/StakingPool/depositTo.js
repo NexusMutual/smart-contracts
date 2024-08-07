@@ -31,7 +31,6 @@ const poolInitParams = {
   initialPoolFee: 5, // 5%
   maxPoolFee: 5, // 5%
   products: [productParams],
-  ipfsDescriptionHash: 'Description Hash',
 };
 
 const managerDepositId = 0;

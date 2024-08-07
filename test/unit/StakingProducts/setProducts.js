@@ -1,12 +1,14 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const { verifyProduct, depositTo, daysToSeconds, newProductTemplate } = require('./helpers');
+const { increaseTime, setEtherBalance } = require('../utils').evm;
+const setup = require('./setup');
+
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
-const { increaseTime, setEtherBalance } = require('../../utils/evm');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const setup = require('./setup');
 
 const poolId = 1;
 

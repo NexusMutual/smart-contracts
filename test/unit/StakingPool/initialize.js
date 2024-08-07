@@ -15,7 +15,6 @@ const initializeParams = {
   initialPoolFee: 5, // 5%
   maxPoolFee: 5, // 5%
   products: [product0],
-  ipfsDescriptionHash: 'Description Hash',
 };
 
 describe('initialize', function () {

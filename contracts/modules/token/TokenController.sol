@@ -41,9 +41,9 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   INXMToken public immutable token;
   IQuotationData public immutable quotationData;
-  IStakingNFT public immutable stakingNFT;
   address public immutable claimsReward;
   address public immutable stakingPoolFactory;
+  IStakingNFT public immutable stakingNFT;
 
   constructor(
     address quotationDataAddress,

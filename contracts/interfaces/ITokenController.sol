@@ -88,6 +88,8 @@ interface ITokenController {
 
   function getStakingPoolOwnershipOffer(uint poolId) external view returns (address proposedManager, uint deadline);
 
+  function stakingPoolNXMBalances(uint poolId) external view returns (uint128 rewards, uint128 deposits);
+
   /* ========== MUTATIVE FUNCTIONS ========== */
 
   function withdrawCoverNote(
@@ -131,6 +133,4 @@ interface ITokenController {
   function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external;
 
   function burnStakedNXM(uint amount, uint poolId) external;
-
-  function stakingPoolNXMBalances(uint poolId) external view returns (uint128 rewards, uint128 deposits);
 }

@@ -4,21 +4,23 @@ const { expect } = require('chai');
 const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const setup = require('./setup');
+
 const { AddressZero } = ethers.constants;
+
+const product = {
+  productId: 200,
+  weight: 100,
+  initialPrice: '500',
+  targetPrice: '500',
+};
 
 const newPoolFixture = {
   initialPoolFee: 5, // 5%
   maxPoolFee: 5, // 5%
-  productInitializationParams: [
-    {
-      productId: 200,
-      weight: 100,
-      initialPrice: '500',
-      targetPrice: '500',
-    },
-  ],
-  ipfsDescriptionHash: 'Description Hash',
+  productInitializationParams: [product],
+  ipfsDescriptionHash: 'staking-pool-ipfs-metadata',
 };
 
 async function createStakingPoolSetup() {
@@ -34,18 +36,10 @@ async function createStakingPoolSetup() {
   };
 
   const productId = initialProducts.length;
+  const productParam = { ...coverProductTemplate, initialPriceRatio: coverProductTemplate.initialPriceRatio };
 
-  await coverProducts.setProduct(
-    { ...coverProductTemplate, initialPriceRatio: coverProductTemplate.initialPriceRatio },
-    productId,
-  );
-  await coverProducts.setProductType(
-    {
-      claimMethod: 1,
-      gracePeriod: 7 * 24 * 3600, // 7 days
-    },
-    productId,
-  );
+  await coverProducts.setProduct(productParam, productId);
+  await coverProducts.setProductType({ claimMethod: 1, gracePeriod: 7 * 24 * 3600 /* = 7 days */ }, productId);
 
   return fixture;
 }
@@ -66,7 +60,7 @@ describe('createStakingPool', function () {
         initialPoolFee,
         maxPoolFee,
         productInitializationParams,
-        '', // ipfsDescriptionHash
+        'staking-pool-ipfs-metadata',
       ),
     ).to.be.revertedWith('System is paused');
   });

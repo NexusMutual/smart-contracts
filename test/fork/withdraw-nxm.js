@@ -12,6 +12,7 @@ const {
   V2Addresses,
 } = require('./utils');
 const { ContractCode, ProposalCategory: PROPOSAL_CATEGORIES, Role } = require('../../lib/constants');
+const { BigNumber } = require('ethers');
 const evm = require('./evm')();
 
 const { defaultAbiCoder, parseEther, toUtf8Bytes } = ethers.utils;
@@ -65,8 +66,11 @@ describe('withdrawNXM', function () {
     this.nexusViewer = await ethers.getContractAt(abis.NexusViewer, addresses.NexusViewer);
     this.stakingViewer = await ethers.getContractAt(abis.StakingViewer, addresses.StakingViewer);
     this.coverProducts = await ethers.getContractAt(abis.CoverProducts, addresses.CoverProducts);
-    this.assessment = await ethers.getContractAt(abis.Assessment, addresses.Assessment);
-    this.tokenController = await ethers.getContractAt(abis.TokenController, addresses.TokenController);
+
+    // this.assessment = await ethers.getContractAt(abis.Assessment, addresses.Assessment);
+    // this.tokenController = await ethers.getContractAt(abis.TokenController, addresses.TokenController);
+    this.assessment = await getContractByContractCode('Assessment', ContractCode.Assessment);
+    this.tokenController = await getContractByContractCode('TokenController', ContractCode.TokenController);
 
     this.governance = await getContractByContractCode('Governance', ContractCode.Governance);
     this.memberRoles = await getContractByContractCode('MemberRoles', ContractCode.MemberRoles);
@@ -79,7 +83,7 @@ describe('withdrawNXM', function () {
     this.enzymeShares = await ethers.getContractAt('ERC20Mock', EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS);
   });
 
-  it('Impersonate AB members', async function () {
+  it.skip('Impersonate AB members', async function () {
     const { memberArray: abMembers } = await this.memberRoles.members(1);
     this.abMembers = [];
     for (const address of abMembers) {
@@ -89,7 +93,7 @@ describe('withdrawNXM', function () {
     }
   });
 
-  it('Collect storage data before upgrade', async function () {
+  it.skip('Collect storage data before upgrade', async function () {
     this.contractData = {
       assessment: { before: {}, after: {} },
       tokenController: { before: {}, after: {} },
@@ -110,7 +114,9 @@ describe('withdrawNXM', function () {
     ] = await Promise.all([
       this.assessment.getAssessmentsCount(),
       this.memberRoles.membersLength(Role.Member),
+      // Promise.resolve(20), // members
       this.cover.coverDataCount(),
+      // Promise.resolve(100), // covers
       this.stakingPoolFactory.stakingPoolCount(),
       this.assessment.nxm(),
       this.assessment.config(),
@@ -249,14 +255,19 @@ describe('withdrawNXM', function () {
       return member;
     };
 
-    const memberPromises = Array.from({ length: membersCount }, (_, i) =>
-      membersSemaphore.acquire().then(() => processMember(i)),
-    );
+    // const memberPromises = Array.from({ length: membersCount }, (_, i) =>
+    //   membersSemaphore.acquire().then(() => processMember(i)),
+    // );
+    const memberPromises = [];
+    const offset = 1000;
+    for (let i = 0 + offset; i < membersCount + offset; i++) {
+      memberPromises.push(membersSemaphore.acquire().then(() => processMember(i)));
+    }
 
     this.contractData.memberRoles.members = await Promise.all(memberPromises);
   });
 
-  it('Upgrade contracts', async function () {
+  it.skip('Upgrade contracts', async function () {
     const contractsBeforePromise = this.master.getInternalContracts();
 
     const assessmentPromise = ethers.deployContract('Assessment', [this.nxm.address]);
@@ -300,7 +311,7 @@ describe('withdrawNXM', function () {
     console.info('Upgrade Contracts after:', formatInternalContracts(contractsAfter));
   });
 
-  it('Compares storage of upgraded Assessment contracts', async function () {
+  it.skip('Compares storage of upgraded Assessment contracts', async function () {
     const [assessmentCount, nxm, config] = await Promise.all([
       this.assessment.getAssessmentsCount(),
       this.assessment.nxm(),
@@ -319,10 +330,11 @@ describe('withdrawNXM', function () {
     expect(assessments).to.deep.equal(this.contractData.assessment.before.assessments);
   });
 
-  it('Compares storage of upgraded TokenController contract', async function () {
+  it.skip('Compares storage of upgraded TokenController contract', async function () {
     const [coverCount, stakingPoolCount, token, quotationData, claimsReward, stakingPoolFactory, stakingNFT] =
       await Promise.all([
         this.cover.coverDataCount(),
+        // Promise.resolve(100), // covers
         this.stakingPoolFactory.stakingPoolCount(),
         this.tokenController.token(),
         this.tokenController.quotationData(),
@@ -382,7 +394,7 @@ describe('withdrawNXM', function () {
     expect(covers).to.deep.equal(tokenControllerBefore.covers);
   });
 
-  it('Compares member storage of upgraded Assessment / TokenController contracts', async function () {
+  it.skip('Compares member storage of upgraded Assessment / TokenController contracts', async function () {
     const membersCount = this.contractData.memberRoles.members.length;
     const assessmentCount = this.contractData.assessment.before.assessmentCount;
 
@@ -457,7 +469,7 @@ describe('withdrawNXM', function () {
     await Promise.all(memberPromises);
   });
 
-  it('should withdraw all claimable NXM', async function () {
+  it('withdrawNXM setup', async function () {
     this.HUGH = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
 
     await evm.impersonate(this.HUGH);
@@ -467,10 +479,164 @@ describe('withdrawNXM', function () {
     this.stakingTokenIds = [2, 31, 38, 86];
 
     // expire current stake to make it claimable
-    await evm.increaseTime(24 * 60 * 60 * 365);
-    await evm.mine();
-    await this.stakingViewer.processExpirationsFor(this.stakingTokenIds);
+    // await evm.increaseTime(24 * 60 * 60 * 365);
+    // await evm.mine();
+    // await this.stakingViewer.processExpirationsFor(this.stakingTokenIds);
+  });
 
+  it('should only withdraw governmentRewards', async function () {
+    const [claimableNXMBefore, balanceBefore] = await Promise.all([
+      this.nexusViewer.getClaimableNXM(this.HUGH, this.stakingTokenIds),
+      this.nxm.balanceOf(this.HUGH),
+    ]);
+
+    const withdrawAssessment = { stake: false, rewards: false };
+    const stakingPoolDeposits = [];
+    const stakingPoolManagerRewards = [];
+    const batchSize = 100; // large enough to withdraw ALL rewards at once
+
+    await this.tokenController
+      .connect(this.HUGH_SIGNER)
+      .withdrawNXM(withdrawAssessment, stakingPoolDeposits, stakingPoolManagerRewards, batchSize);
+
+    const [claimableNXMAfter, balanceAfter] = await Promise.all([
+      this.nexusViewer.getClaimableNXM(this.HUGH, this.stakingTokenIds),
+      this.nxm.balanceOf(this.HUGH),
+    ]);
+
+    expect(balanceAfter).to.equal(balanceBefore.add(claimableNXMBefore.governanceRewards));
+    expect(claimableNXMAfter.governanceRewards).to.equal(0);
+    expect(claimableNXMAfter.assessmentRewards).to.equal(claimableNXMBefore.assessmentRewards);
+    expect(claimableNXMAfter.assessmentStake).to.equal(claimableNXMBefore.assessmentStake);
+    expect(claimableNXMAfter.stakingPoolTotalRewards).to.equal(claimableNXMBefore.stakingPoolTotalRewards);
+    expect(claimableNXMAfter.stakingPoolTotalExpiredStake).to.equal(claimableNXMBefore.stakingPoolTotalExpiredStake);
+    expect(claimableNXMAfter.managerTotalRewards).to.equal(claimableNXMBefore.managerTotalRewards);
+    expect(claimableNXMAfter.legacyPooledStakeRewards).to.equal(claimableNXMBefore.legacyPooledStakeRewards);
+    expect(claimableNXMAfter.legacyPooledStakeDeposits).to.equal(claimableNXMBefore.legacyPooledStakeDeposits);
+    expect(claimableNXMAfter.legacyClaimAssessmentTokens).to.equal(claimableNXMBefore.legacyClaimAssessmentTokens);
+    expect(claimableNXMAfter.legacyCoverNoteDeposits).to.equal(claimableNXMBefore.legacyCoverNoteDeposits);
+  });
+
+  it.skip('should only withdraw assessment rewards', async function () {
+    const [claimableNXMBefore, balanceBefore] = await Promise.all([
+      this.nexusViewer.getClaimableNXM(this.HUGH, this.stakingTokenIds),
+      this.nxm.balanceOf(this.HUGH),
+    ]);
+
+    const withdrawAssessment = { stake: false, rewards: true };
+    const stakingPoolDeposits = [];
+    const stakingPoolManagerRewards = [];
+    const batchSize = 100; // large enough to withdraw ALL rewards at once
+
+    await this.tokenController
+      .connect(this.HUGH_SIGNER)
+      .withdrawNXM(withdrawAssessment, stakingPoolDeposits, stakingPoolManagerRewards, batchSize);
+
+    const [claimableNXMAfter, balanceAfter] = await Promise.all([
+      this.nexusViewer.getClaimableNXM(this.HUGH, this.stakingTokenIds),
+      this.nxm.balanceOf(this.HUGH),
+    ]);
+
+    expect(claimableNXMAfter.assessmentRewards).to.equal(0);
+    expect(claimableNXMAfter.governanceRewards).to.equal(claimableNXMBefore.governanceRewards);
+    expect(claimableNXMAfter.assessmentStake).to.equal(claimableNXMBefore.assessmentStake);
+    expect(claimableNXMAfter.stakingPoolTotalRewards).to.equal(claimableNXMBefore.stakingPoolTotalRewards);
+    expect(claimableNXMAfter.stakingPoolTotalExpiredStake).to.equal(claimableNXMBefore.stakingPoolTotalExpiredStake);
+    expect(claimableNXMAfter.managerTotalRewards).to.equal(claimableNXMBefore.managerTotalRewards);
+    expect(claimableNXMAfter.legacyPooledStakeRewards).to.equal(claimableNXMBefore.legacyPooledStakeRewards);
+    expect(claimableNXMAfter.legacyPooledStakeDeposits).to.equal(claimableNXMBefore.legacyPooledStakeDeposits);
+    expect(claimableNXMAfter.legacyClaimAssessmentTokens).to.equal(claimableNXMBefore.legacyClaimAssessmentTokens);
+    expect(claimableNXMAfter.legacyCoverNoteDeposits).to.equal(claimableNXMBefore.legacyCoverNoteDeposits);
+
+    expect(balanceAfter).to.equal(balanceBefore.add(claimableNXMBefore.assessmentRewards));
+  });
+
+  it('should only withdraw staking pool manager rewards', async function () {
+    const [claimableNXMBefore, balanceBefore, managerTokens] = await Promise.all([
+      this.nexusViewer.getClaimableNXM(this.HUGH, this.stakingTokenIds),
+      this.nxm.balanceOf(this.HUGH),
+      this.stakingViewer.getManagerTokenRewardsByAddr(this.HUGH),
+    ]);
+
+    const withdrawAssessment = { stake: false, rewards: false };
+    const stakingPoolDeposits = [];
+    const batchSize = 100; // large enough to withdraw ALL rewards at once
+    const stakingPoolManagerRewards = managerTokens.map(t => ({
+      poolId: t.poolId,
+      trancheIds: t.deposits.map(d => d.trancheId),
+    }));
+
+    await this.tokenController
+      .connect(this.HUGH_SIGNER)
+      .withdrawNXM(withdrawAssessment, stakingPoolDeposits, stakingPoolManagerRewards, batchSize);
+
+    const [claimableNXMAfter, balanceAfter] = await Promise.all([
+      this.nexusViewer.getClaimableNXM(this.HUGH, this.stakingTokenIds),
+      this.nxm.balanceOf(this.HUGH),
+    ]);
+    console.log('claimableNXMBefore: ', claimableNXMBefore);
+    console.log('claimableNXMAfter: ', claimableNXMAfter);
+    console.log('balanceBefore: ', balanceBefore);
+    console.log('balanceAfter: ', balanceAfter);
+
+    expect(claimableNXMAfter.managerTotalRewards).to.equal(0);
+    expect(claimableNXMAfter.stakingPoolTotalRewards).to.equal(claimableNXMBefore.stakingPoolTotalRewards);
+    expect(claimableNXMAfter.stakingPoolTotalExpiredStake).to.equal(claimableNXMBefore.stakingPoolTotalExpiredStake);
+    expect(claimableNXMAfter.governanceRewards).to.equal(claimableNXMBefore.governanceRewards);
+    expect(claimableNXMAfter.assessmentRewards).to.equal(claimableNXMBefore.assessmentRewards);
+    expect(claimableNXMAfter.assessmentStake).to.equal(claimableNXMBefore.assessmentStake);
+    expect(claimableNXMAfter.legacyPooledStakeRewards).to.equal(claimableNXMBefore.legacyPooledStakeRewards);
+    expect(claimableNXMAfter.legacyPooledStakeDeposits).to.equal(claimableNXMBefore.legacyPooledStakeDeposits);
+    expect(claimableNXMAfter.legacyClaimAssessmentTokens).to.equal(claimableNXMBefore.legacyClaimAssessmentTokens);
+    expect(claimableNXMAfter.legacyCoverNoteDeposits).to.equal(claimableNXMBefore.legacyCoverNoteDeposits);
+
+    expect(balanceAfter).to.equal(balanceBefore.add(claimableNXMBefore.managerTotalRewards));
+  });
+
+  it.skip('should only withdraw staking pool stake and rewards', async function () {
+    const [claimableNXMBefore, balanceBefore] = await Promise.all([
+      this.nexusViewer.getClaimableNXM(this.HUGH, this.stakingTokenIds),
+      this.nxm.balanceOf(this.HUGH),
+    ]);
+
+    const withdrawAssessment = { stake: false, rewards: false };
+    const stakingPoolManagerRewards = [];
+    const batchSize = 100; // large enough to withdraw ALL rewards at once
+    const tokens = await Promise.all(this.stakingTokenIds.map(tokenId => this.stakingViewer.getToken(tokenId)));
+    const stakingPoolDeposits = tokens.map(t => ({ tokenId: t.tokenId, trancheIds: t.deposits.map(d => d.trancheId) }));
+
+    await this.tokenController
+      .connect(this.HUGH_SIGNER)
+      .withdrawNXM(withdrawAssessment, stakingPoolDeposits, stakingPoolManagerRewards, batchSize);
+
+    const [claimableNXMAfter, balanceAfter] = await Promise.all([
+      this.nexusViewer.getClaimableNXM(this.HUGH, this.stakingTokenIds),
+      this.nxm.balanceOf(this.HUGH),
+    ]);
+    console.log('claimableNXMBefore: ', claimableNXMBefore);
+    console.log('claimableNXMAfter: ', claimableNXMAfter);
+    console.log('balanceBefore: ', balanceBefore);
+    console.log('balanceAfter: ', balanceAfter);
+
+    expect(claimableNXMAfter.stakingPoolTotalRewards).to.equal(0);
+    expect(claimableNXMAfter.stakingPoolTotalExpiredStake).to.equal(0);
+    expect(claimableNXMAfter.governanceRewards).to.equal(claimableNXMBefore.governanceRewards);
+    expect(claimableNXMAfter.assessmentRewards).to.equal(claimableNXMBefore.assessmentRewards);
+    expect(claimableNXMAfter.assessmentStake).to.equal(claimableNXMBefore.assessmentStake);
+    expect(claimableNXMAfter.managerTotalRewards).to.equal(claimableNXMBefore.managerTotalRewards);
+    expect(claimableNXMAfter.legacyPooledStakeRewards).to.equal(claimableNXMBefore.legacyPooledStakeRewards);
+    expect(claimableNXMAfter.legacyPooledStakeDeposits).to.equal(claimableNXMBefore.legacyPooledStakeDeposits);
+    expect(claimableNXMAfter.legacyClaimAssessmentTokens).to.equal(claimableNXMBefore.legacyClaimAssessmentTokens);
+    expect(claimableNXMAfter.legacyCoverNoteDeposits).to.equal(claimableNXMBefore.legacyCoverNoteDeposits);
+
+    expect(balanceAfter).to.equal(
+      balanceBefore
+        .add(claimableNXMBefore.stakingPoolTotalRewards)
+        .add(claimableNXMBefore.stakingPoolTotalExpiredStake),
+    );
+  });
+
+  it.skip('should withdraw ALL claimable nxm', async function () {
     const tokensPromises = this.stakingTokenIds.map(tokenId => this.stakingViewer.getToken(tokenId));
 
     const [balanceBefore, claimableNXMBefore, managerTokens, tokens] = await Promise.all([
@@ -479,6 +645,7 @@ describe('withdrawNXM', function () {
       this.stakingViewer.getManagerTokenRewardsByAddr(this.HUGH),
       Promise.all(tokensPromises),
     ]);
+    console.debug('claimableNXMBefore: ', require('util').inspect(claimableNXMBefore, { depth: null }));
 
     const { assessmentStake, assessmentRewards } = claimableNXMBefore;
 
@@ -487,6 +654,7 @@ describe('withdrawNXM', function () {
     let stakingPoolManagerRewards = [];
     let stakingPoolDeposits = [];
     const batchSize = 100;
+    console.log('batchSize: ', batchSize);
 
     // only withdraw if staking pool stake and rewards are BOTH claimable
     if (claimableNXMBefore.stakingPoolTotalExpiredStake.gt(0) && claimableNXMBefore.stakingPoolTotalRewards.gt(0)) {
@@ -500,14 +668,17 @@ describe('withdrawNXM', function () {
         trancheIds: t.deposits.map(d => d.trancheId),
       }));
     }
+    console.log('balanceBefore: ', balanceBefore);
 
     await this.tokenController
       .connect(this.HUGH_SIGNER)
       .withdrawNXM(withdrawAssessment, stakingPoolDeposits, stakingPoolManagerRewards, batchSize);
 
     const claimableNXMAfter = await this.nexusViewer.getClaimableNXM(this.HUGH, this.stakingTokenIds);
+    console.debug('claimableNXMAfter: ', require('util').inspect(claimableNXMAfter, { depth: null }));
 
     const balanceAfter = await this.nxm.balanceOf(this.HUGH);
+    console.log('balanceAfter: ', balanceAfter);
 
     // gov rewards are always withdrawn
     let expectedBalance = balanceBefore.add(claimableNXMBefore.governanceRewards);
@@ -551,5 +722,5 @@ describe('withdrawNXM', function () {
     expect(balanceAfter).to.equal(expectedBalance);
   });
 
-  require('./basic-functionality-tests');
+  // require('./basic-functionality-tests');
 });

@@ -1,9 +1,16 @@
 const { Sema } = require('async-sema');
 const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
-const { addresses } = require('@nexusmutual/deployments');
+const { abis, addresses } = require('@nexusmutual/deployments');
 
-const { Address, EnzymeAdress, formatInternalContracts, getSigner, submitGovernanceProposal } = require('./utils');
+const {
+  Address,
+  EnzymeAdress,
+  formatInternalContracts,
+  getSigner,
+  submitGovernanceProposal,
+  V2Addresses,
+} = require('./utils');
 const { ContractCode, ProposalCategory: PROPOSAL_CATEGORIES, Role } = require('../../lib/constants');
 const evm = require('./evm')();
 
@@ -36,27 +43,28 @@ describe('withdrawNXM', function () {
 
   it('load contracts', async function () {
     // TODO: remove unused ones
-    this.stakingProducts = await ethers.getContractAt('StakingProducts', addresses.StakingProducts);
-    this.cover = await ethers.getContractAt('Cover', addresses.Cover);
-    this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', addresses.StakingPoolFactory);
-    this.stakingViewer = await ethers.getContractAt('StakingViewer', addresses.StakingViewer);
-    this.mcr = await ethers.getContractAt('MCR', addresses.MCR);
-    this.nxm = await ethers.getContractAt('NXMToken', addresses.NXMToken);
-    this.master = await ethers.getContractAt('NXMaster', addresses.NXMaster);
-    this.coverNFT = await ethers.getContractAt('CoverNFT', addresses.CoverNFT);
-    this.pool = await ethers.getContractAt('ILegacyPool', addresses.Pool);
-    this.ramm = await ethers.getContractAt('Ramm', addresses.Ramm);
-    this.assessment = await ethers.getContractAt('Assessment', addresses.Assessment);
-    this.stakingNFT = await ethers.getContractAt('StakingNFT', addresses.StakingNFT);
-    this.swapOperator = await ethers.getContractAt('SwapOperator', addresses.SwapOperator);
-    this.priceFeedOracle = await ethers.getContractAt('PriceFeedOracle', addresses.PriceFeedOracle);
-    this.tokenController = await ethers.getContractAt('TokenController', addresses.TokenController);
-    this.individualClaims = await ethers.getContractAt('IndividualClaims', addresses.IndividualClaims);
-    this.quotationData = await ethers.getContractAt('LegacyQuotationData', addresses.LegacyQuotationData);
-    this.newClaimsReward = await ethers.getContractAt('LegacyClaimsReward', addresses.LegacyClaimsReward);
-    this.proposalCategory = await ethers.getContractAt('ProposalCategory', addresses.ProposalCategory);
-    this.yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', addresses.YieldTokenIncidents);
-    this.pooledStaking = await ethers.getContractAt('LegacyPooledStaking', addresses.LegacyPooledStaking);
+    this.mcr = await ethers.getContractAt(abis.MCR, addresses.MCR);
+    this.cover = await ethers.getContractAt(abis.Cover, addresses.Cover);
+    this.nxm = await ethers.getContractAt(abis.NXMToken, addresses.NXMToken);
+    this.master = await ethers.getContractAt(abis.NXMaster, addresses.NXMaster);
+    this.coverNFT = await ethers.getContractAt(abis.CoverNFT, addresses.CoverNFT);
+    this.pool = await ethers.getContractAt(abis.Pool, addresses.Pool);
+    this.safeTracker = await ethers.getContractAt(abis.SafeTracker, addresses.SafeTracker);
+    this.assessment = await ethers.getContractAt(abis.Assessment, addresses.Assessment);
+    this.stakingNFT = await ethers.getContractAt(abis.StakingNFT, addresses.StakingNFT);
+    this.stakingProducts = await ethers.getContractAt(abis.StakingProducts, addresses.StakingProducts);
+    this.swapOperator = await ethers.getContractAt(abis.SwapOperator, addresses.SwapOperator);
+    this.stakingPool = await ethers.getContractAt(abis.StakingPool, V2Addresses.StakingPoolImpl);
+    this.priceFeedOracle = await ethers.getContractAt(abis.PriceFeedOracle, addresses.PriceFeedOracle);
+    this.tokenController = await ethers.getContractAt(abis.TokenController, addresses.TokenController);
+    this.individualClaims = await ethers.getContractAt(abis.IndividualClaims, addresses.IndividualClaims);
+    this.quotationData = await ethers.getContractAt(abis.LegacyQuotationData, addresses.LegacyQuotationData);
+    this.newClaimsReward = await ethers.getContractAt(abis.LegacyClaimsReward, addresses.LegacyClaimsReward);
+    this.proposalCategory = await ethers.getContractAt(abis.ProposalCategory, addresses.ProposalCategory);
+    this.stakingPoolFactory = await ethers.getContractAt(abis.StakingPoolFactory, addresses.StakingPoolFactory);
+    this.pooledStaking = await ethers.getContractAt(abis.LegacyPooledStaking, addresses.LegacyPooledStaking);
+    this.yieldTokenIncidents = await ethers.getContractAt(abis.YieldTokenIncidents, addresses.YieldTokenIncidents);
+    this.ramm = await ethers.getContractAt(abis.Ramm, addresses.Ramm);
     this.nexusViewer = await ethers.getContractAt('NexusViewer', addresses.NexusViewer);
     this.coverProducts = await ethers.getContractAt('CoverProducts', addresses.CoverProducts);
 

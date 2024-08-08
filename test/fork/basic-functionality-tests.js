@@ -1116,6 +1116,7 @@ describe('basic functionality tests', function () {
       newClaimsReward.address,
       this.stakingPoolFactory.address,
       this.nxm.address,
+      this.stakingNFT.address,
     ]);
 
     // MCR - MCR.sol

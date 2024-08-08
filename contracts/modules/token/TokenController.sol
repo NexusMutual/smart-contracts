@@ -297,15 +297,15 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   ///         withdrawable NXM. Reverts if some of the NXM being withdrawn is locked or unavailable.
   /// @param stakingPoolDeposits        Details for withdrawing staking pools stake and rewards. Empty array to skip
   /// @param stakingPoolManagerRewards  Details for withdrawing staking pools manager rewards. Empty array to skip
-  /// @param batchSize                  The maximum number of iterations to avoid unbounded loops when withdrawing
-  ///                                   governance or assessment rewards.
+  /// @param govRewardsBatchSize        The maximum number of iterations to avoid unbounded loops when withdrawing
+  ///                                   governance rewards.
   /// @param withdrawAssessment         Options specifying assesment withdrawals, set flags to true to include
   ///                                   specific assesment stake or rewards withdrawal.
   function withdrawNXM(
+    WithdrawAssessment calldata withdrawAssessment,
     StakingPoolDeposit[] calldata stakingPoolDeposits,
     StakingPoolManagerReward[] calldata stakingPoolManagerRewards,
-    uint batchSize,
-    WithdrawAssessment calldata withdrawAssessment
+    uint govRewardsBatchSize
   ) external whenNotPaused {
 
     // assessment stake
@@ -315,11 +315,12 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
     // assessment rewards
     if (withdrawAssessment.rewards) {
-      assessment().withdrawRewards(msg.sender, batchSize.toUint104());
+      // pass in 0 batchSize to withdraw ALL Assessment rewards
+      assessment().withdrawRewards(msg.sender, 0);
     }
 
     // governance rewards
-    uint governanceRewards = governance().claimReward(msg.sender, batchSize);
+    uint governanceRewards = governance().claimReward(msg.sender, govRewardsBatchSize);
     if (governanceRewards > 0) {
       token.transfer(msg.sender, governanceRewards);
     }

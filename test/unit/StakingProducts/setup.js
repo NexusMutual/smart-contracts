@@ -45,9 +45,9 @@ async function setup() {
   const stakingNFT = await ethers.deployContract('SKMockStakingNFT');
   const coverProducts = await ethers.deployContract('SPMockCoverProducts');
 
-  const nonce = (await accounts.defaultSender.getTransactionCount()) + 2;
-  const expectedStakingProductsAddress = getContractAddress({ from: accounts.defaultSender.address, nonce });
-  const expectedCoverAddress = getContractAddress({ from: accounts.defaultSender.address, nonce: nonce + 2 });
+  const nonce = await accounts.defaultSender.getTransactionCount();
+  const expectedStakingProductsAddress = getContractAddress({ from: accounts.defaultSender.address, nonce: nonce + 2 });
+  const expectedCoverAddress = getContractAddress({ from: accounts.defaultSender.address, nonce: nonce + 5 });
   const coverNFT = await ethers.deployContract('CoverNFT', [
     'CoverNFT',
     'CNFT',
@@ -62,14 +62,22 @@ async function setup() {
   ]);
   expect(stakingProducts.address).to.equal(expectedStakingProductsAddress);
 
-  const stakingPoolImplementation = await ethers.deployContract('StakingPool', [
-    stakingNFT.address,
-    nxm.address,
-    expectedCoverAddress,
-    tokenController.address,
-    master.address,
-    stakingProducts.address,
-  ]);
+  const stakingExtrasLib = await ethers.deployContract('StakingExtrasLib');
+  await stakingExtrasLib.deployed();
+
+  const stakingPoolImplementation = await ethers.deployContract(
+    'StakingPool',
+    [
+      stakingNFT.address,
+      nxm.address,
+      expectedCoverAddress,
+      tokenController.address,
+      master.address,
+      stakingProducts.address,
+    ],
+    { libraries: { StakingExtrasLib: stakingExtrasLib.address } },
+  );
+
   const cover = await ethers.deployContract('SPMockCover', [
     coverNFT.address,
     stakingNFT.address,
@@ -134,8 +142,6 @@ async function setup() {
   tokenController.setStakingPoolManager(1 /* poolID */, accounts.members[0].address);
 
   const config = {
-    REWARD_BONUS_PER_TRANCHE_RATIO: await stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO(),
-    REWARD_BONUS_PER_TRANCHE_DENOMINATOR: await stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR(),
     PRICE_CHANGE_PER_DAY: await stakingProducts.PRICE_CHANGE_PER_DAY(),
     PRICE_BUMP_RATIO: await stakingProducts.PRICE_BUMP_RATIO(),
     SURGE_PRICE_RATIO: await stakingProducts.SURGE_PRICE_RATIO(),

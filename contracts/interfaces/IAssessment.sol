@@ -109,7 +109,7 @@ interface IAssessment {
 
   function getVoteCountOfAssessor(address assessor) external view returns (uint);
 
-  function votesOf(address user, uint id) external view
+  function votesOf(address user, uint voteIndex) external view
   returns (uint80 assessmentId, bool accepted, uint32 timestamp, uint96 stakedAmount);
 
   function stakeOf(address user) external view
@@ -122,7 +122,7 @@ interface IAssessment {
     uint8 silentEndingPeriodInDays
   );
 
-  function hasAlreadyVotedOn(address voter, uint pollId) external view returns (bool);
+  function hasAlreadyVotedOn(address voter, uint assessmentId) external view returns (bool);
 
 
   /* === MUTATIVE FUNCTIONS ==== */

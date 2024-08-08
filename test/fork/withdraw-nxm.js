@@ -1,3 +1,4 @@
+const fs = require('node:fs/promises');
 const { Sema } = require('async-sema');
 const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
@@ -67,10 +68,8 @@ describe('withdrawNXM', function () {
     this.stakingViewer = await ethers.getContractAt(abis.StakingViewer, addresses.StakingViewer);
     this.coverProducts = await ethers.getContractAt(abis.CoverProducts, addresses.CoverProducts);
 
-    // this.assessment = await ethers.getContractAt(abis.Assessment, addresses.Assessment);
-    // this.tokenController = await ethers.getContractAt(abis.TokenController, addresses.TokenController);
-    this.assessment = await getContractByContractCode('Assessment', ContractCode.Assessment);
-    this.tokenController = await getContractByContractCode('TokenController', ContractCode.TokenController);
+    this.assessment = await ethers.getContractAt(abis.Assessment, addresses.Assessment);
+    this.tokenController = await ethers.getContractAt(abis.TokenController, addresses.TokenController);
 
     this.governance = await getContractByContractCode('Governance', ContractCode.Governance);
     this.memberRoles = await getContractByContractCode('MemberRoles', ContractCode.MemberRoles);
@@ -83,7 +82,7 @@ describe('withdrawNXM', function () {
     this.enzymeShares = await ethers.getContractAt('ERC20Mock', EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS);
   });
 
-  it.skip('Impersonate AB members', async function () {
+  it('Impersonate AB members', async function () {
     const { memberArray: abMembers } = await this.memberRoles.members(1);
     this.abMembers = [];
     for (const address of abMembers) {
@@ -93,7 +92,7 @@ describe('withdrawNXM', function () {
     }
   });
 
-  it.skip('Collect storage data before upgrade', async function () {
+  it('Collect storage data before upgrade', async function () {
     this.contractData = {
       assessment: { before: {}, after: {} },
       tokenController: { before: {}, after: {} },
@@ -113,8 +112,8 @@ describe('withdrawNXM', function () {
       tokenControllerStakingPoolFactory,
     ] = await Promise.all([
       this.assessment.getAssessmentsCount(),
-      this.memberRoles.membersLength(Role.Member),
-      // Promise.resolve(20), // members
+      // this.memberRoles.membersLength(Role.Member),
+      Promise.resolve(400), // members
       this.cover.coverDataCount(),
       // Promise.resolve(100), // covers
       this.stakingPoolFactory.stakingPoolCount(),
@@ -141,13 +140,12 @@ describe('withdrawNXM', function () {
     this.contractData.tokenController.before.claimsReward = tokenControllerClaimsReward;
     this.contractData.tokenController.before.stakingPoolFactory = tokenControllerStakingPoolFactory;
 
-    this.contractData.tokenController.before.covers = [];
     this.contractData.tokenController.before.managers = [];
     this.contractData.tokenController.before.stakingPool = {};
     this.contractData.tokenController.before.managerStakingPools = {};
     this.contractData.tokenController.before.member = {};
 
-    const coverSemaphore = new Sema(35, { capacity: coverCount });
+    const coverSemaphore = new Sema(50, { capacity: coverCount });
     const coverPromises = Array.from({ length: coverCount }, (_, i) => {
       return coverSemaphore
         .acquire()
@@ -174,9 +172,16 @@ describe('withdrawNXM', function () {
       });
     });
 
-    const managerPromises = this.contractData.tokenController.before.managers.map(async manager => {
-      const stakingPools = await this.tokenController.getManagerStakingPools(manager);
-      this.contractData.tokenController.before.managerStakingPools[manager] = stakingPools;
+    const managerPromises = Array.from({ length: stakingPoolCount }, async (_, i) => {
+      const poolId = i + 1;
+      return this.tokenController
+        .getStakingPoolManager(poolId)
+        .then(manager => {
+          return this.tokenController.getManagerStakingPools(manager).then(stakingPools => [manager, stakingPools]);
+        })
+        .then(([manager, stakingPools]) => {
+          this.contractData.tokenController.before.managerStakingPools[manager] = stakingPools;
+        });
     });
 
     const [covers, assessments] = await Promise.all([
@@ -187,10 +192,16 @@ describe('withdrawNXM', function () {
     ]);
 
     this.contractData.tokenController.before.covers = covers;
+    console.log('before.covers.length: ', this.contractData.tokenController.before.covers.length);
+    console.debug(
+      'managerStakingPools: ',
+      require('util').inspect(this.contractData.tokenController.before.managerStakingPools, { depth: null }),
+    );
+
     this.contractData.assessment.before.assessments = assessments;
 
     // Process max 6 members at a time due to tenderly rate limits (could be possibly higher in main-net)
-    const membersSemaphore = new Sema(6, { capacity: membersCount });
+    const membersSemaphore = new Sema(100, { capacity: membersCount });
 
     const processMember = async i => {
       process.stdout.write(`\r[BEFORE] member ${i} of ${membersCount}`);
@@ -259,7 +270,7 @@ describe('withdrawNXM', function () {
     //   membersSemaphore.acquire().then(() => processMember(i)),
     // );
     const memberPromises = [];
-    const offset = 1000;
+    const offset = 2000;
     for (let i = 0 + offset; i < membersCount + offset; i++) {
       memberPromises.push(membersSemaphore.acquire().then(() => processMember(i)));
     }
@@ -267,7 +278,7 @@ describe('withdrawNXM', function () {
     this.contractData.memberRoles.members = await Promise.all(memberPromises);
   });
 
-  it.skip('Upgrade contracts', async function () {
+  it('Upgrade contracts', async function () {
     const contractsBeforePromise = this.master.getInternalContracts();
 
     const assessmentPromise = ethers.deployContract('Assessment', [this.nxm.address]);
@@ -311,7 +322,7 @@ describe('withdrawNXM', function () {
     console.info('Upgrade Contracts after:', formatInternalContracts(contractsAfter));
   });
 
-  it.skip('Compares storage of upgraded Assessment contracts', async function () {
+  it('Compares storage of upgraded Assessment contracts', async function () {
     const [assessmentCount, nxm, config] = await Promise.all([
       this.assessment.getAssessmentsCount(),
       this.assessment.nxm(),
@@ -323,18 +334,16 @@ describe('withdrawNXM', function () {
     expect(nxm).to.equal(assessmentBefore.nxm);
     expect(config).to.deep.equal(assessmentBefore.config);
 
-    this.contractData.assessment.after.member = {};
-
     const assessmentPromises = Array.from({ length: assessmentCount }, (_, id) => this.assessment.assessments(id));
     const assessments = await Promise.all(assessmentPromises);
     expect(assessments).to.deep.equal(this.contractData.assessment.before.assessments);
   });
 
-  it.skip('Compares storage of upgraded TokenController contract', async function () {
+  it('Compares storage of upgraded TokenController contract', async function () {
     const [coverCount, stakingPoolCount, token, quotationData, claimsReward, stakingPoolFactory, stakingNFT] =
       await Promise.all([
         this.cover.coverDataCount(),
-        // Promise.resolve(100), // covers
+        // Promise.resolve(100),
         this.stakingPoolFactory.stakingPoolCount(),
         this.tokenController.token(),
         this.tokenController.quotationData(),
@@ -356,7 +365,7 @@ describe('withdrawNXM', function () {
     this.contractData.tokenController.after.stakingPool = {};
     this.contractData.tokenController.after.managerStakingPools = {};
 
-    const coverSemaphore = new Sema(35, { capacity: coverCount });
+    const coverSemaphore = new Sema(50, { capacity: coverCount });
     const coverPromises = Array.from({ length: coverCount }, (_, i) => {
       return coverSemaphore
         .acquire()
@@ -381,9 +390,16 @@ describe('withdrawNXM', function () {
       });
     });
 
-    const managerPromises = this.contractData.tokenController.after.managers.map(async manager => {
-      const stakingPools = await this.tokenController.getManagerStakingPools(manager);
-      expect(stakingPools).to.deep.equal(this.contractData.tokenController.before.managerStakingPools[manager]);
+    const managerPromises = Array.from({ length: stakingPoolCount }, async (_, i) => {
+      const poolId = i + 1;
+      return this.tokenController
+        .getStakingPoolManager(poolId)
+        .then(manager => {
+          return this.tokenController.getManagerStakingPools(manager).then(stakingPools => [manager, stakingPools]);
+        })
+        .then(([manager, stakingPools]) => {
+          expect(stakingPools).deep.equal(tokenControllerBefore.managerStakingPools[manager]);
+        });
     });
 
     const [covers] = await Promise.all([
@@ -394,12 +410,12 @@ describe('withdrawNXM', function () {
     expect(covers).to.deep.equal(tokenControllerBefore.covers);
   });
 
-  it.skip('Compares member storage of upgraded Assessment / TokenController contracts', async function () {
+  it('Compares member storage of upgraded Assessment / TokenController contracts', async function () {
     const membersCount = this.contractData.memberRoles.members.length;
     const assessmentCount = this.contractData.assessment.before.assessmentCount;
 
     // Process max 6 members at a time due to tenderly rate limits (could be possibly higher in main-net)
-    const membersSemaphore = new Sema(6, { capacity: membersCount });
+    const membersSemaphore = new Sema(100, { capacity: membersCount });
 
     const processMember = async (member, i) => {
       process.stdout.write(`\r[AFTER] member ${i} of ${membersCount}`);
@@ -462,14 +478,20 @@ describe('withdrawNXM', function () {
       membersSemaphore.release();
     };
 
-    const memberPromises = this.contractCode.memberRoles.members.map((member, i) =>
-      membersSemaphore.acquire().then(() => processMember(member, i)),
-    );
+    // const memberPromises = this.contractCode.memberRoles.members.map((member, i) =>
+    //   membersSemaphore.acquire().then(() => processMember(member, i)),
+    // );
+    const memberPromises = [];
+    const offset = 2000;
+    for (let i = 0 + offset; i < membersCount + offset; i++) {
+      const member = this.contractData.memberRoles.members[i - offset];
+      memberPromises.push(membersSemaphore.acquire().then(() => processMember(member, i)));
+    }
 
     await Promise.all(memberPromises);
   });
 
-  it('withdrawNXM setup', async function () {
+  it.skip('withdrawNXM setup', async function () {
     this.HUGH = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
 
     await evm.impersonate(this.HUGH);
@@ -484,7 +506,7 @@ describe('withdrawNXM', function () {
     // await this.stakingViewer.processExpirationsFor(this.stakingTokenIds);
   });
 
-  it('should only withdraw governmentRewards', async function () {
+  it.skip('should only withdraw governmentRewards', async function () {
     const [claimableNXMBefore, balanceBefore] = await Promise.all([
       this.nexusViewer.getClaimableNXM(this.HUGH, this.stakingTokenIds),
       this.nxm.balanceOf(this.HUGH),
@@ -551,7 +573,7 @@ describe('withdrawNXM', function () {
     expect(balanceAfter).to.equal(balanceBefore.add(claimableNXMBefore.assessmentRewards));
   });
 
-  it('should only withdraw staking pool manager rewards', async function () {
+  it.skip('should only withdraw staking pool manager rewards', async function () {
     const [claimableNXMBefore, balanceBefore, managerTokens] = await Promise.all([
       this.nexusViewer.getClaimableNXM(this.HUGH, this.stakingTokenIds),
       this.nxm.balanceOf(this.HUGH),

@@ -703,9 +703,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       sp.processExpirations(true);
 
       for (uint trancheIdx = 0; trancheIdx <= 7; trancheIdx++) {
-        if (tokenIds[poolIndex][trancheIdx].length > 0) {
-          sp.updateRewardsShares(firstActiveTrancheId + trancheIdx, tokenIds[poolIndex][trancheIdx]);
-        }
+        sp.updateRewardsShares(firstActiveTrancheId + trancheIdx, tokenIds[poolIndex][trancheIdx]);
       }
     }
   }

@@ -58,7 +58,6 @@ describe('coverProducts', function () {
     this.stakingNFT = await ethers.getContractAt(abis.StakingNFT, addresses.StakingNFT);
     this.stakingProducts = await ethers.getContractAt(abis.StakingProducts, addresses.StakingProducts);
     this.swapOperator = await ethers.getContractAt(abis.SwapOperator, addresses.SwapOperator);
-    this.stakingPool = await ethers.getContractAt(abis.StakingPool, V2Addresses.StakingPoolImpl);
     this.priceFeedOracle = await ethers.getContractAt(abis.PriceFeedOracle, addresses.PriceFeedOracle);
     this.tokenController = await ethers.getContractAt(abis.TokenController, addresses.TokenController);
     this.individualClaims = await ethers.getContractAt(abis.IndividualClaims, addresses.IndividualClaims);

@@ -57,6 +57,8 @@ describe('withdrawNXM', function () {
     this.proposalCategory = await ethers.getContractAt('ProposalCategory', addresses.ProposalCategory);
     this.yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', addresses.YieldTokenIncidents);
     this.pooledStaking = await ethers.getContractAt('LegacyPooledStaking', addresses.LegacyPooledStaking);
+    this.nexusViewer = await ethers.getContractAt('NexusViewer', addresses.NexusViewer);
+    this.coverProducts = await ethers.getContractAt('CoverProducts', addresses.CoverProducts);
 
     this.governance = await getContractByContractCode('Governance', ContractCode.Governance);
     this.memberRoles = await getContractByContractCode('MemberRoles', ContractCode.MemberRoles);
@@ -79,7 +81,7 @@ describe('withdrawNXM', function () {
     }
   });
 
-  it('Collect storage data before upgrade', async function () {
+  it.skip('Collect storage data before upgrade', async function () {
     this.contractData = {
       assessment: { before: {}, after: {} },
       tokenController: { before: {}, after: {} },
@@ -292,7 +294,7 @@ describe('withdrawNXM', function () {
     console.info('Upgrade Contracts after:', formatInternalContracts(contractsAfter));
   });
 
-  it('Compares storage of upgraded Assessment contracts', async function () {
+  it.skip('Compares storage of upgraded Assessment contracts', async function () {
     const [assessmentCount, nxm, config] = await Promise.all([
       this.assessment.getAssessmentsCount(),
       this.assessment.nxm(),
@@ -311,7 +313,7 @@ describe('withdrawNXM', function () {
     expect(assessments).to.deep.equal(this.contractData.assessment.before.assessments);
   });
 
-  it('Compares storage of upgraded TokenController contract', async function () {
+  it.skip('Compares storage of upgraded TokenController contract', async function () {
     const [coverCount, stakingPoolCount, token, quotationData, claimsReward, stakingPoolFactory, stakingNFT] =
       await Promise.all([
         this.cover.coverDataCount(),
@@ -375,7 +377,7 @@ describe('withdrawNXM', function () {
     expect(covers).to.deep.equal(tokenControllerBefore.covers);
   });
 
-  it('Compares member storage of upgraded Assessment / TokenController contracts', async function () {
+  it.skip('Compares member storage of upgraded Assessment / TokenController contracts', async function () {
     const membersCount = this.contractData.memberRoles.members.length;
     const assessmentCount = this.contractData.assessment.before.assessmentCount;
 

@@ -86,6 +86,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   function changeDependentContractAddress() public override {
+
     internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
     internalContracts[uint(ID.GV)] = master.getLatestAddress("GV");
@@ -147,6 +148,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @param _member The address to send the minted tokens to.
   /// @param _amount The number of tokens to mint.
   function _mint(address _member, uint _amount) internal {
+
     require(
       _member == address(this) || token.whiteListed(_member),
       "TokenController: Address is not a member"
@@ -264,8 +266,10 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     address memberAddress,
     uint batchSize
   ) public whenNotPaused {
+
     uint governanceRewards = governance().claimReward(memberAddress, batchSize);
     require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
+
     token.transfer(memberAddress, governanceRewards);
   }
 
@@ -278,8 +282,10 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     address destination,
     uint batchSize
   ) public whenNotPaused {
+
     uint governanceRewards = governance().claimReward(msg.sender, batchSize);
     require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
+
     token.transfer(destination, governanceRewards);
   }
 
@@ -287,8 +293,10 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @param member  The address of the member whose pending rewards are to be retrieved.
   /// @return        The total amount of pending rewards for the given member.
   function getPendingRewards(address member) public view returns (uint) {
+
     (uint totalPendingAmountInNXM,,) = assessment().getRewards(member);
     uint governanceRewards = governance().getPendingReward(member);
+
     return totalPendingAmountInNXM + governanceRewards;
   }
 
@@ -346,6 +354,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     address _of,
     bytes32 _reason
   ) public view returns (uint256 amount) {
+
     if (!locked[_of][_reason].claimed) {
       amount = locked[_of][_reason].amount;
     }
@@ -529,8 +538,10 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     address proposedManager,
     uint deadline
   ) external override {
+
     require(msg.sender == stakingPoolManagers[poolId], "TokenController: Caller is not staking pool manager");
     require(block.timestamp < deadline, "TokenController: Deadline cannot be in the past");
+
     stakingPoolOwnershipOffers[poolId] = StakingPoolOwnershipOffer(proposedManager, deadline.toUint96());
   }
 
@@ -556,13 +567,16 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     );
 
     _assignStakingPoolManager(poolId, msg.sender);
+
     delete stakingPoolOwnershipOffers[poolId];
   }
 
   /// @notice Cancels a staking pool ownership offer
   /// @param poolId  id of the staking pool
   function cancelStakingPoolOwnershipOffer(uint poolId) external override {
+
     require(msg.sender == stakingPoolManagers[poolId], "TokenController: Caller is not staking pool manager");
+
     delete stakingPoolOwnershipOffers[poolId];
   }
 
@@ -571,8 +585,11 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @param amount  The amount of NXM to mint.
   /// @param poolId  The ID of the staking pool.
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external override {
+
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
+
     _mint(address(this), amount);
+
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 
@@ -581,8 +598,11 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @param amount  The amount of NXM to burn.
   /// @param poolId  The ID of the staking pool.
   function burnStakingPoolNXMRewards(uint amount, uint poolId) external override {
+
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
+
     stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
+
     token.burn(amount);
   }
 
@@ -592,8 +612,11 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @param amount  The amount of NXM to deposit.
   /// @param poolId  The ID of the staking pool.
   function depositStakedNXM(address from, uint amount, uint poolId) external override {
+
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
+
     stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
+
     token.operatorTransfer(from, amount);
   }
 
@@ -609,11 +632,14 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     uint rewardsToWithdraw,
     uint poolId
   ) external override {
+
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     StakingPoolNXMBalances memory poolBalances = stakingPoolNXMBalances[poolId];
+
     poolBalances.deposits -= stakeToWithdraw.toUint128();
     poolBalances.rewards -= rewardsToWithdraw.toUint128();
     stakingPoolNXMBalances[poolId] = poolBalances;
+
     token.transfer(to, stakeToWithdraw + rewardsToWithdraw);
   }
 
@@ -622,8 +648,11 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @param amount  The amount of staked NXM to burn.
   /// @param poolId  The ID of the staking pool.
   function burnStakedNXM(uint amount, uint poolId) external override {
+
     require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
+
     stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
+
     token.burn(amount);
   }
 }

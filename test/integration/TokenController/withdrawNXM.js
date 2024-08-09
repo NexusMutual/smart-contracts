@@ -30,9 +30,11 @@ describe('withdrawNXM', function () {
     const { stakeLockupPeriodInDays } = await assessment.config();
     await setTime(timestamp + stakeLockupPeriodInDays * ONE_DAY_SECONDS);
 
+    const withdrawAssessment = { stake: true, rewards: false };
+
     await tokenController
       .connect(manager)
-      .withdrawNXM({ stake: true, rewards: false }, stakingPoolDeposits, stakingPoolManagerRewards, batchSize);
+      .withdrawNXM(withdrawAssessment, stakingPoolDeposits, stakingPoolManagerRewards, batchSize, batchSize);
 
     const balanceAfter = await nxm.balanceOf(manager.address);
     const assessmentStakeAfter = await assessment.stakeOf(manager.address);
@@ -50,6 +52,7 @@ describe('withdrawNXM', function () {
     const balanceBefore = await nxm.balanceOf(manager.address);
 
     // finalize assessment to release rewards
+    const withdrawAssessment = { rewards: true, stake: false };
     const { timestamp } = await ethers.provider.getBlock('latest');
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
     await setTime(timestamp + (minVotingPeriodInDays + payoutCooldownInDays) * ONE_DAY_SECONDS + 1);
@@ -59,7 +62,7 @@ describe('withdrawNXM', function () {
 
     await tokenController
       .connect(manager)
-      .withdrawNXM({ rewards: true, stake: false }, stakingPoolDeposits, stakingPoolManagerRewards, batchSize);
+      .withdrawNXM(withdrawAssessment, stakingPoolDeposits, stakingPoolManagerRewards, batchSize, batchSize);
 
     const balanceAfter = await nxm.balanceOf(manager.address);
     const assessmentRewardsAfter = await assessment.getRewards(manager.address);
@@ -84,11 +87,12 @@ describe('withdrawNXM', function () {
     expect(tokenBefore.expiredStake).to.equal(fixture.stakeAmount);
     expect(tokenBefore.rewards.toString()).to.be.greaterThan(ethers.utils.parseEther('0.01'));
 
+    const withdrawAssessment = { stake: false, rewards: false };
     const stakingPoolDeposits = [{ tokenId, trancheIds: [fixture.trancheId] }]; // StakingPool1 deposits
 
     await tokenController
       .connect(manager)
-      .withdrawNXM({ stake: false, rewards: false }, stakingPoolDeposits, stakingPoolManagerRewards, batchSize);
+      .withdrawNXM(withdrawAssessment, stakingPoolDeposits, stakingPoolManagerRewards, batchSize, batchSize);
 
     const balanceAfter = await nxm.balanceOf(manager.address);
     const [tokenAfter] = await stakingViewer.getTokens([tokenId]);
@@ -108,6 +112,7 @@ describe('withdrawNXM', function () {
     await increaseTime(TRANCHE_DURATION_SECONDS * 7);
     await stakingPool1.processExpirations(true);
 
+    const withdrawAssessment = { stake: false, rewards: false };
     const managerRewardsBefore = await stakingViewer.getManagerTotalRewards(manager.address);
     const stakingPoolManagerRewards = [
       { poolId: 1, trancheIds: [fixture.trancheId] },
@@ -117,7 +122,7 @@ describe('withdrawNXM', function () {
 
     await tokenController
       .connect(manager)
-      .withdrawNXM({ stake: false, rewards: false }, stakingPoolDeposits, stakingPoolManagerRewards, batchSize);
+      .withdrawNXM(withdrawAssessment, stakingPoolDeposits, stakingPoolManagerRewards, batchSize, batchSize);
 
     const balanceAfter = await nxm.balanceOf(manager.address);
     const managerRewardsAfter = await stakingViewer.getManagerTotalRewards(manager.address);
@@ -142,6 +147,7 @@ describe('withdrawNXM', function () {
     const [tokenBefore] = await stakingViewer.getTokens([tokenId]);
     const managerRewardsBefore = await stakingViewer.getManagerTotalRewards(manager.address);
 
+    const withdrawAssessment = { stake: true, rewards: true };
     const stakingPoolDeposits = [{ tokenId, trancheIds: [fixture.trancheId] }]; // StakingPool1 deposits
     const stakingPoolManagerRewards = [
       { poolId: 1, trancheIds: [fixture.trancheId] },
@@ -151,7 +157,7 @@ describe('withdrawNXM', function () {
 
     await tokenController
       .connect(manager)
-      .withdrawNXM({ stake: true, rewards: true }, stakingPoolDeposits, stakingPoolManagerRewards, batchSize);
+      .withdrawNXM(withdrawAssessment, stakingPoolDeposits, stakingPoolManagerRewards, batchSize, batchSize);
 
     const balanceAfter = await nxm.balanceOf(manager.address);
     const assessmentRewardsAfter = await assessment.getRewards(manager.address);

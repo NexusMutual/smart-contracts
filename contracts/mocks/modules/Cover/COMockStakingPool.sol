@@ -54,14 +54,12 @@ contract COMockStakingPool is StakingPoolGeneric {
     bool _isPrivatePool,
     uint _initialPoolFee,
     uint _maxPoolFee,
-    uint _poolId,
-    string calldata _ipfsDescriptionHash /* ipfsDescriptionHash */
+    uint _poolId
   ) external override {
     isPrivatePool = _isPrivatePool;
     poolFee = uint8(_initialPoolFee);
     maxPoolFee = uint8(_maxPoolFee);
     poolId = uint40(_poolId);
-    ipfsHash = _ipfsDescriptionHash;
   }
 
   function requestAllocation(

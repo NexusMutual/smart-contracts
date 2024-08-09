@@ -28,6 +28,10 @@ contract StakingProductsGeneric is IStakingProducts {
     revert("Unsupported");
   }
 
+  function getPoolManager(uint) public pure override returns (address) {
+    revert("Unsupported");
+  }
+
   function getPremium(uint, uint, uint, uint, uint, uint, uint, bool, uint, uint) public virtual returns (uint) {
     revert("Unsupported");
   }
@@ -35,7 +39,6 @@ contract StakingProductsGeneric is IStakingProducts {
   function calculateFixedPricePremium(uint, uint, uint, uint, uint) public virtual pure returns (uint) {
     revert("Unsupported");
   }
-
 
   function calculatePremium(StakedProduct memory, uint, uint, uint, uint, uint, uint, uint, uint, uint) public virtual pure returns (uint, StakedProduct memory) {
     revert("Unsupported");
@@ -63,6 +66,18 @@ contract StakingProductsGeneric is IStakingProducts {
   }
 
   function changeStakingPoolFactoryOperator(address) external virtual pure {
+    revert("Unsupported");
+  }
+
+  function setPoolMetadata(uint, string memory) external pure {
+    revert("Unsupported");
+  }
+
+  function getPoolMetadata(uint) external pure returns (string memory) {
+    revert("Unsupported");
+  }
+
+  function setInitialMetadata(string[] calldata) external pure {
     revert("Unsupported");
   }
 }

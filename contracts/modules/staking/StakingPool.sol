@@ -173,8 +173,7 @@ contract StakingPool is IStakingPool, Multicall {
     bool _isPrivatePool,
     uint _initialPoolFee,
     uint _maxPoolFee,
-    uint _poolId,
-    string  calldata ipfsDescriptionHash
+    uint _poolId
   ) external {
 
     if (msg.sender != address(stakingProducts)) {
@@ -193,8 +192,6 @@ contract StakingPool is IStakingPool, Multicall {
     poolFee = uint8(_initialPoolFee);
     maxPoolFee = uint8(_maxPoolFee);
     poolId = _poolId.toUint40();
-
-    emit PoolDescriptionSet(ipfsDescriptionHash);
   }
 
   // updateUntilCurrentTimestamp forces rewards update until current timestamp not just until
@@ -1313,10 +1310,6 @@ contract StakingPool is IStakingPool, Multicall {
   function setPoolPrivacy(bool _isPrivatePool) external onlyManager {
     isPrivatePool = _isPrivatePool;
     emit PoolPrivacyChanged(msg.sender, _isPrivatePool);
-  }
-
-  function setPoolDescription(string memory ipfsDescriptionHash) external onlyManager {
-    emit PoolDescriptionSet(ipfsDescriptionHash);
   }
 
   /* fixes */

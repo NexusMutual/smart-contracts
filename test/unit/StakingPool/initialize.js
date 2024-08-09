@@ -15,23 +15,20 @@ const initializeParams = {
   initialPoolFee: 5, // 5%
   maxPoolFee: 5, // 5%
   products: [product0],
-  ipfsDescriptionHash: 'Description Hash',
 };
 
 describe('initialize', function () {
   it('reverts if cover contract is not the caller', async function () {
     const fixture = await loadFixture(setup);
     const { stakingPool, stakingProductsSigner } = fixture;
-    const { poolId, initialPoolFee, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
+    const { poolId, initialPoolFee, maxPoolFee, isPrivatePool } = initializeParams;
 
     await expect(
-      stakingPool.initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash),
+      stakingPool.initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId),
     ).to.be.revertedWithCustomError(stakingPool, 'OnlyStakingProductsContract');
 
     await expect(
-      stakingPool
-        .connect(stakingProductsSigner)
-        .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash),
+      stakingPool.connect(stakingProductsSigner).initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId),
     ).to.not.be.reverted;
   });
 
@@ -39,35 +36,29 @@ describe('initialize', function () {
     const fixture = await loadFixture(setup);
     const { stakingPool, stakingProductsSigner } = fixture;
 
-    const { poolId, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
+    const { poolId, maxPoolFee, isPrivatePool } = initializeParams;
 
     await expect(
-      stakingPool
-        .connect(stakingProductsSigner)
-        .initialize(isPrivatePool, maxPoolFee + 1, maxPoolFee, poolId, ipfsDescriptionHash),
+      stakingPool.connect(stakingProductsSigner).initialize(isPrivatePool, maxPoolFee + 1, maxPoolFee, poolId),
     ).to.be.revertedWithCustomError(stakingPool, 'PoolFeeExceedsMax');
   });
 
   it('reverts if max pool fee is 100%', async function () {
     const fixture = await loadFixture(setup);
     const { stakingPool, stakingProductsSigner } = fixture;
-    const { poolId, initialPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
+    const { poolId, initialPoolFee, isPrivatePool } = initializeParams;
 
     await expect(
-      stakingPool
-        .connect(stakingProductsSigner)
-        .initialize(isPrivatePool, initialPoolFee, 100, poolId, ipfsDescriptionHash),
+      stakingPool.connect(stakingProductsSigner).initialize(isPrivatePool, initialPoolFee, 100, poolId),
     ).to.be.revertedWithCustomError(stakingPool, 'MaxPoolFeeAbove100');
   });
 
   it('correctly initialize pool parameters', async function () {
     const fixture = await loadFixture(setup);
     const { stakingPool, stakingProductsSigner } = fixture;
-    const { poolId, initialPoolFee, maxPoolFee, isPrivatePool, ipfsDescriptionHash } = initializeParams;
+    const { poolId, initialPoolFee, maxPoolFee, isPrivatePool } = initializeParams;
 
-    await stakingPool
-      .connect(stakingProductsSigner)
-      .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+    await stakingPool.connect(stakingProductsSigner).initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId);
 
     expect(await stakingPool.getPoolFee()).to.be.equal(initialPoolFee);
     expect(await stakingPool.getMaxPoolFee()).to.be.equal(maxPoolFee);

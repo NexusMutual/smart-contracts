@@ -1,12 +1,14 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const { verifyProduct, depositTo, daysToSeconds, newProductTemplate } = require('./helpers');
+const { increaseTime, setEtherBalance } = require('../utils').evm;
+const setup = require('./setup');
+
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
-const { increaseTime, setEtherBalance } = require('../../utils/evm');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const setup = require('./setup');
 
 const poolId = 1;
 
@@ -50,7 +52,10 @@ describe('setProducts unit tests', function () {
     const [manager] = fixture.accounts.members;
 
     const product = { ...newProductTemplate };
-    await expect(stakingProducts.connect(manager).setProducts(324985304958, [product])).to.be.revertedWithoutReason();
+    await expect(stakingProducts.connect(manager).setProducts(324985304958, [product])).to.be.revertedWithCustomError(
+      stakingProducts,
+      'OnlyManager',
+    );
   });
 
   it('should set products and store values correctly', async function () {

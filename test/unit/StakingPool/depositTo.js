@@ -31,7 +31,6 @@ const poolInitParams = {
   initialPoolFee: 5, // 5%
   maxPoolFee: 5, // 5%
   products: [productParams],
-  ipfsDescriptionHash: 'Description Hash',
 };
 
 const managerDepositId = 0;
@@ -43,14 +42,13 @@ async function depositToSetup() {
   const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts, tokenController } = fixture;
   const { defaultSender: manager } = fixture.accounts;
-  const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
+  const { poolId, initialPoolFee, maxPoolFee, products } = poolInitParams;
 
   await stakingPool.connect(fixture.stakingProductsSigner).initialize(
     false, // isPrivatePool
     initialPoolFee,
     maxPoolFee,
     poolId,
-    ipfsDescriptionHash,
   );
   await tokenController.setStakingPoolManager(poolId, manager.address);
 

@@ -47,6 +47,8 @@ interface IStakingProducts {
     uint bumpedPriceUpdateTime
   );
 
+  function getPoolManager(uint poolId) external view returns (address);
+
   /* ============= PRICING FUNCTIONS ============= */
 
   function getPremium(
@@ -116,6 +118,12 @@ interface IStakingProducts {
   ) external returns (uint poolId, address stakingPoolAddress);
 
   function changeStakingPoolFactoryOperator(address newOperator) external;
+
+  function setPoolMetadata(uint poolId, string memory ipfsHash) external;
+
+  function getPoolMetadata(uint poolId) external returns (string memory ipfsHash);
+
+  function setInitialMetadata(string[] calldata ipfsHashes) external;
 
   /* ============= EVENTS ============= */
 

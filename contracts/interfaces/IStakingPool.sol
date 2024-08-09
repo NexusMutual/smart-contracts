@@ -57,8 +57,7 @@ interface IStakingPool {
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,
-    uint _poolId,
-    string memory ipfsDescriptionHash
+    uint _poolId
   ) external;
 
   function processExpirations(bool updateUntilCurrentTimestamp) external;
@@ -163,8 +162,6 @@ interface IStakingPool {
   event PoolPrivacyChanged(address indexed manager, bool isPrivate);
 
   event PoolFeeChanged(address indexed manager, uint newFee);
-
-  event PoolDescriptionSet(string ipfsDescriptionHash);
 
   event Withdraw(address indexed user, uint indexed tokenId, uint tranche, uint amountStakeWithdrawn, uint amountRewardsWithdrawn);
 

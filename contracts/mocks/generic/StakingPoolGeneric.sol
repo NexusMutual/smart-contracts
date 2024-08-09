@@ -6,7 +6,7 @@ import "../../interfaces/IStakingPool.sol";
 
 contract StakingPoolGeneric is IStakingPool {
 
-  function initialize(bool, uint, uint, uint, string memory) external virtual {
+  function initialize(bool, uint, uint, uint) external virtual {
     revert("Unsupported");
   }
 

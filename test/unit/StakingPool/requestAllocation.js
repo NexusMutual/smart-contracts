@@ -120,13 +120,12 @@ async function requestAllocationSetup() {
   // Initialize staking pool
   const poolId = 1;
   const isPrivatePool = false;
-  const ipfsDescriptionHash = 'Staking pool 1';
   const maxPoolFee = 10; // 10%
   const initialPoolFee = 7; // 7%
 
   await stakingPool
     .connect(fixture.stakingProductsSigner)
-    .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+    .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId);
 
   await stakingProducts
     .connect(fixture.stakingProductsSigner)

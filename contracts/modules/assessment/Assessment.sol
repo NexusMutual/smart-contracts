@@ -78,6 +78,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint withdrawableAmountInNXM,
     uint withdrawableUntilIndex
   ) {
+
     uint104 rewardsWithdrawableFromIndex = stakeOf[staker].rewardsWithdrawableFromIndex;
     Vote memory vote;
     Assessment memory assessment;
@@ -117,9 +118,9 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///
   /// @param amount  The amount of nxm to stake
   function stake(uint96 amount) public whenNotPaused {
+
     stakeOf[msg.sender].amount += amount;
-    ITokenController(getInternalContractAddress(ID.TC))
-      .operatorTransfer(msg.sender, address(this), amount);
+    ITokenController(getInternalContractAddress(ID.TC)).operatorTransfer(msg.sender, address(this), amount);
 
     emit StakeDeposited(msg.sender, amount);
   }
@@ -213,6 +214,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     address destination,
     uint104 batchSize
   ) internal returns (uint withdrawn, uint withdrawnUntilIndex) {
+
     // This is the index until which (but not including) the previous withdrawal was processed.
     // The current withdrawal starts from this index.
     uint104 rewardsWithdrawableFromIndex = stakeOf[staker].rewardsWithdrawableFromIndex;
@@ -248,7 +250,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
     emit RewardWithdrawn(staker, destination, withdrawn);
   }
 
-
   /// Creates a new assessment
   ///
   /// @dev Is used only by contracts acting as redemption methods for cover product types.
@@ -262,6 +263,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint totalAssessmentReward,
     uint assessmentDepositInETH
   ) external override onlyInternal returns (uint) {
+
     assessments.push(Assessment(
       Poll(
         0, // accepted
@@ -272,6 +274,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       uint128(totalAssessmentReward),
       uint128(assessmentDepositInETH)
     ));
+
     return assessments.length - 1;
   }
 
@@ -292,6 +295,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     string[] calldata ipfsAssessmentDataHashes,
     uint96 stakeIncrease
   ) external override onlyMember whenNotPaused {
+
     if (assessmentIds.length != votes.length) {
       revert AssessmentIdsVotesLengthMismatch();
     }
@@ -320,6 +324,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param assessmentId  The index of the assessment for which the vote is cast
   /// @param isAcceptVote  True to accept, false to deny
   function castVote(uint assessmentId, bool isAcceptVote, string memory ipfsAssessmentDataHash) internal {
+
     {
       if (hasAlreadyVotedOn[msg.sender][assessmentId]) {
         revert AlreadyVoted();
@@ -411,6 +416,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint16 fraudCount,
     uint256 voteBatchSize
   ) external override whenNotPaused {
+
     if (
       !MerkleProof.verify(
         proof,
@@ -490,20 +496,26 @@ contract Assessment is IAssessment, MasterAwareV2 {
     UintParams[] calldata paramNames,
     uint[] calldata values
   ) external override onlyGovernance {
+
     Configuration memory newConfig = config;
+
     for (uint i = 0; i < paramNames.length; i++) {
+
       if (paramNames[i] == IAssessment.UintParams.minVotingPeriodInDays) {
         newConfig.minVotingPeriodInDays = uint8(values[i]);
         continue;
       }
+
       if (paramNames[i] == IAssessment.UintParams.stakeLockupPeriodInDays) {
         newConfig.stakeLockupPeriodInDays = uint8(values[i]);
         continue;
       }
+
       if (paramNames[i] == IAssessment.UintParams.payoutCooldownInDays) {
         newConfig.payoutCooldownInDays = uint8(values[i]);
         continue;
       }
+
       if (paramNames[i] == IAssessment.UintParams.silentEndingPeriodInDays) {
         newConfig.silentEndingPeriodInDays = uint8(values[i]);
         continue;
@@ -515,6 +527,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @dev Updates internal contract addresses to the ones stored in master. This function is
   /// automatically called by the master contract when a contract is added or upgraded.
   function changeDependentContractAddress() external override {
+
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");

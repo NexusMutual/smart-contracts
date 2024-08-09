@@ -1213,7 +1213,7 @@ contract StakingPool is IStakingPool, Multicall {
       emit StakeBurned(amount);
     }
 
-    // do not deallocate if in grace period
+    // do not deallocate if the cover has expired (grace period)
     if (params.start + params.period <= block.timestamp) {
       return;
     }

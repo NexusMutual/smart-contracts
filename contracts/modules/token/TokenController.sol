@@ -313,6 +313,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     WithdrawAssessment calldata withdrawAssessment,
     StakingPoolDeposit[] calldata stakingPoolDeposits,
     StakingPoolManagerReward[] calldata stakingPoolManagerRewards,
+    uint assessmentRewardsBatchSize,
     uint govRewardsBatchSize
   ) external whenNotPaused {
 
@@ -324,7 +325,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     // assessment rewards
     if (withdrawAssessment.rewards) {
       // pass in 0 batchSize to withdraw ALL Assessment rewards
-      assessment().withdrawRewards(msg.sender, 0);
+      assessment().withdrawRewards(msg.sender, assessmentRewardsBatchSize.toUint104());
     }
 
     // governance rewards

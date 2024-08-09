@@ -2,13 +2,10 @@
 
 pragma solidity >=0.5.0;
 
-import {IAssessment} from "../../../interfaces/IAssessment.sol";
+import {AssessmentGeneric} from "../../generic/AssessmentGeneric.sol";
 
-contract AVMockAssessment is IAssessment {
+contract AVMockAssessment is AssessmentGeneric {
 
-  Configuration public override config;
-  mapping(address => Stake) public override stakeOf;
-  mapping(address => Vote[]) public override votesOf;
   uint totalPendingAmountInNXM;
   uint withdrawableAmountInNXM;
   uint withdrawableUntilIndex;
@@ -64,61 +61,5 @@ contract AVMockAssessment is IAssessment {
 
   function getRewards(address) external view override returns (uint, uint, uint) {
     return (totalPendingAmountInNXM, withdrawableAmountInNXM, withdrawableUntilIndex);
-  }
-
-  /* ========== NOT YET IMPLEMENTED ========== */
-
-  function getAssessmentsCount() external pure override returns (uint) {
-    revert("getAssessmentsCount not yet implemented");
-  }
-
-  function assessments(uint) external pure override returns (Poll memory, uint128, uint128) {
-    revert("assessments not yet implemented");
-  }
-
-  function getPoll(uint) external pure override returns (Poll memory) {
-    revert("getPoll not yet implemented");
-  }
-
-  function hasAlreadyVotedOn(address, uint) external pure override returns (bool) {
-    revert("hasAlreadyVotedOn not yet implemented");
-  }
-
-  /* === MUTATIVE FUNCTIONS ==== */
-
-  function stake(uint96) external pure override {
-    revert("stake not yet implemented");
-  }
-
-  function unstake(uint96, address) external pure override {
-    revert("unstake not yet implemented");
-  }
-
-  function withdrawRewards(address, uint104) external pure override returns (uint, uint) {
-    revert("withdrawRewards not yet implemented");
-  }
-
-  function withdrawRewardsTo(address, uint104) external pure override returns (uint, uint) {
-    revert("withdrawRewardsTo not yet implemented");
-  }
-
-  function startAssessment(uint, uint) external pure override returns (uint) {
-    revert("startAssessment not yet implemented");
-  }
-
-  function castVotes(uint[] calldata, bool[] calldata, string[] calldata, uint96) external pure override {
-    revert("castVotes not yet implemented");
-  }
-
-  function submitFraud(bytes32) external pure override {
-    revert("submitFraud not yet implemented");
-  }
-
-  function processFraud(uint256, bytes32[] calldata, address, uint256, uint96, uint16, uint256) external pure override {
-    revert("processFraud not yet implemented");
-  }
-
-  function updateUintParameters(UintParams[] calldata, uint[] calldata) external pure override {
-    revert("updateUintParameters not yet implemented");
   }
 }

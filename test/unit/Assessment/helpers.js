@@ -125,7 +125,7 @@ const finalizePoll = async assessment => {
   const { timestamp } = await ethers.provider.getBlock('latest');
   const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
-  await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+  await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays) + 1);
 };
 
 const generateRewards = async ({ assessment, individualClaims, staker }) => {

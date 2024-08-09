@@ -11,8 +11,15 @@ contract DisposableTokenController is TokenController {
     address quotationDataAddress,
     address claimsRewardAddress,
     address stakingPoolFactoryAddress,
-    address tokenAddress
-  ) TokenController(quotationDataAddress, claimsRewardAddress, stakingPoolFactoryAddress, tokenAddress) {}
+    address tokenAddress,
+    address stakingNFTAddress
+  ) TokenController(
+    quotationDataAddress,
+    claimsRewardAddress,
+    stakingPoolFactoryAddress,
+    tokenAddress,
+    stakingNFTAddress
+  ) {}
 
   function initialize(
     address payable _masterAddress,

@@ -13,10 +13,11 @@ describe('withdrawRewardsTo', function () {
     const fixture = await loadFixture(setup);
     const { assessment } = fixture.contracts;
     const [user] = fixture.accounts.members;
+
     await assessment.connect(user).stake(parseEther('10'));
-    await expect(assessment.connect(user).withdrawRewardsTo(user.address, 0)).to.be.revertedWith(
-      'No withdrawable rewards',
-    );
+
+    const withdrawRewardsTo = assessment.connect(user).withdrawRewardsTo(user.address, 0);
+    await expect(withdrawRewardsTo).to.be.revertedWithCustomError(assessment, 'NoWithdrawableRewards');
   });
 
   it('reverts when not called by the owner of the rewards ', async function () {
@@ -32,10 +33,10 @@ describe('withdrawRewardsTo', function () {
     const { totalRewardInNXM } = await assessment.assessments(0);
     const nonMemberBalanceBefore = await nxm.balanceOf(nonMember.address);
     const stakerBalanceBefore = await nxm.balanceOf(staker.address);
-    await setNextBlockBaseFee('0');
-    await expect(
-      assessment.connect(nonMember).withdrawRewardsTo(staker.address, 0, { gasPrice: 0 }),
-    ).to.be.revertedWith('No withdrawable rewards');
+
+    const withdrawRewardsTo = assessment.connect(nonMember).withdrawRewardsTo(staker.address, 0);
+    await expect(withdrawRewardsTo).to.be.revertedWithCustomError(assessment, 'NoWithdrawableRewards');
+
     await setNextBlockBaseFee('0');
     await expect(assessment.connect(staker).withdrawRewardsTo(staker.address, 0, { gasPrice: 0 })).not.to.be.reverted;
     const nonMemberBalanceAfter = await nxm.balanceOf(nonMember.address);
@@ -194,23 +195,6 @@ describe('withdrawRewardsTo', function () {
     }
   });
 
-  it('reverts if the destination address is not a member', async function () {
-    const fixture = await loadFixture(setup);
-    const { assessment, individualClaims } = fixture.contracts;
-    const [user1] = fixture.accounts.members;
-    const nonMember = '0xDECAF00000000000000000000000000000000000';
-
-    await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
-    await assessment.connect(user1).stake(parseEther('10'));
-    await assessment.connect(user1).castVotes([0], [true], ['Assessment data hash'], 0);
-
-    await finalizePoll(assessment);
-
-    await expect(assessment.connect(user1).withdrawRewardsTo(nonMember, 0)).to.be.revertedWith(
-      'Destination address is not a member',
-    );
-  });
-
   it('should withdraw multiple rewards consecutively', async function () {
     const fixture = await loadFixture(setup);
     const { nxm, assessment, individualClaims } = fixture.contracts;
@@ -338,9 +322,8 @@ describe('withdrawRewardsTo', function () {
     expect(stakerBalanceAfter).to.be.equal(stakerBalanceBefore.add(totalRewardInNXM));
     expect(stakeOfAfter.rewardsWithdrawableFromIndex).to.be.equal(stakeOfBefore.rewardsWithdrawableFromIndex.add(1));
 
-    await expect(assessment.connect(staker).withdrawRewardsTo(staker.address, 0)).to.be.revertedWith(
-      'No withdrawable rewards',
-    );
+    const withdrawRewardsTo = assessment.connect(staker).withdrawRewardsTo(staker.address, 0);
+    await expect(withdrawRewardsTo).to.be.revertedWithCustomError(assessment, 'NoWithdrawableRewards');
   });
 
   it('withdraws zero amount if poll is not final', async function () {

@@ -167,7 +167,14 @@ describe('emergency pause', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // Buy Cover
     const expectedPremium = amount
@@ -227,7 +234,14 @@ describe('emergency pause', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, gracePeriod, period, productId });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      gracePeriod,
+      period,
+      productId,
+    });
 
     // Buy Cover
     const expectedPremium = amount

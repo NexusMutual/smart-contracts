@@ -138,28 +138,15 @@ async function getCurrentBucket() {
   return Math.floor(lastBlock.timestamp / BUCKET_DURATION);
 }
 
-async function estimateStakeShares({ amount, stakingPool }) {
+async function calculateStakeShares(stakingPool, depositAmount) {
   const stakeShareSupply = await stakingPool.getStakeSharesSupply();
 
   if (stakeShareSupply.isZero()) {
-    return Math.sqrt(amount);
+    return Math.sqrt(depositAmount);
   }
 
   const activeStake = await stakingPool.getActiveStake();
-  return amount.mul(stakeShareSupply).div(activeStake);
-}
-
-async function getNewRewardShares(params) {
-  const { stakingPool, initialStakeShares, stakeSharesIncrease, initialTrancheId, newTrancheId } = params;
-  const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-
-  return stakingPool.calculateNewRewardShares(
-    initialStakeShares,
-    stakeSharesIncrease,
-    initialTrancheId,
-    newTrancheId,
-    currentTime,
-  );
+  return depositAmount.mul(stakeShareSupply).div(activeStake);
 }
 
 async function generateRewards(
@@ -226,8 +213,7 @@ module.exports = {
   getTranches,
   getCurrentTrancheId,
   getCurrentBucket,
-  getNewRewardShares,
-  estimateStakeShares,
+  calculateStakeShares,
   generateRewards,
   calculateStakeAndRewardsWithdrawAmounts,
   moveTimeToNextBucket,

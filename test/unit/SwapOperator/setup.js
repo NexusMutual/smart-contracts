@@ -1,12 +1,17 @@
+require('dotenv').config();
 const { ethers, network } = require('hardhat');
 // const { getAccounts } = require('../../utils/accounts');
 const { hex } = require('../utils').helpers;
 const { evm } = require('../utils');
 
-const { parseEther } = ethers.utils;
+const { parseEther, parseUnits } = ethers.utils;
 
+const USDC_DECIMALS = 6;
 const COW_SETTLEMENT_ADDRESS = '0x9008D19f58AAbD9eD0D60971565AA8510560ab41';
 const COWSWAP_RELAYER = '0xC92E8bdf79f0507f65a392b0ab4667716BFE0110';
+const GNOSIS_USDC_ADDRESS = '0xddafbb505ad214d7b80b1f830fccc89b60fb7a83';
+const GNOSIS_USDT_ADDRESS = '0x4ECaBa5870353805a9F068101A40E0f32ed605C6';
+const GNOSIS_WXDAI_ADDRESS = '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d';
 
 async function setup() {
   // Get or revert snapshot if network is tenderly
@@ -21,49 +26,16 @@ async function setup() {
   }
   // const accounts = await getAccounts();
 
-  // Owner and governance account is the same
-  const OWNER_PK = 'ca0e8abd66d05a20bc204176f3829da57d7407411f308f88983820b7c5da0b48'; // has some sepolia ETH
-  const TRADER_PK = '5fb8a6805e34bb0ab87332e575e8ce5c647a2c52a05f3b0d378bef9d832ae414';
-  const owner = new ethers.Wallet(OWNER_PK, ethers.provider);
-  const trader = new ethers.Wallet(TRADER_PK, ethers.provider);
+  // Owner and governance account is the same, same as swapController
+  const owner = new ethers.Wallet(process.env.GNOSIS_ACCOUNT_KEY, ethers.provider);
   const governance = owner;
   const beforeBalance = await ethers.provider.getBalance(owner.address);
+  console.log('current balance: ', beforeBalance.toString());
 
-  const MasterMock = await ethers.getContractFactory('MasterMock');
   const Pool = await ethers.getContractFactory('PoolMockCowSwap');
   const SwapOperator = await ethers.getContractFactory('SwapOperator');
-  const ERC20Dai = await ethers.getContractFactory('ERC20Dai');
-  const ERC20StEth = await ethers.getContractFactory('ERC20StEth');
-  const SOMockWeth = await ethers.getContractFactory('SOMockWeth');
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
-  // const TokenController = await ethers.getContractFactory('TokenControllerMock');
-  // const TokenMock = await ethers.getContractFactory('NXMTokenMock');
-  // const LegacyPool = await ethers.getContractFactory('LegacyPool');
-  // const MCR = await ethers.getContractFactory('MCR');
-  // const ERC20CustomDecimalsMock = await ethers.getContractFactory('ERC20CustomDecimalsMock');
-  // const SOMockSettlement = await ethers.getContractFactory('SOMockSettlement');
-  // const SOMockVaultRelayer = await ethers.getContractFactory('SOMockVaultRelayer');
-  // const SOMockEnzymeV4Comptroller = await ethers.getContractFactory('SOMockEnzymeV4Comptroller');
-  // const SOMockEnzymeFundValueCalculatorRouter = await ethers.getContractFactory(
-  //   'SOMockEnzymeFundValueCalculatorRouter',
-  // );
-  // const SOMockEnzymeV4Vault = await ethers.getContractFactory('SOMockEnzymeV4Vault');
-
-  // Deploy WETH + ERC20 test tokens
-  console.log('current balance: ', beforeBalance.toString());
-  // const weth = await SOMockWeth.deploy();
-  // const dai = await ERC20Dai.deploy();
-  // const stEth = await ERC20StEth.deploy();
-
-  // Deploy Master, MCR, TC, NXMToken
-  // const master = await MasterMock.deploy();
-
-  // SEPOLIA
-  // const weth = await ethers.getContractAt('SOMockWeth', '0xfABAcE08E021F7cBb2EDc95F358ee3ef87D33Ad1');
-  // const dai = await ethers.getContractAt('ERC20Mock', '0x49dc690e3c67F4544CeeaDcFc02780B128aD2578');
-  // const stEth = await ethers.getContractAt('ERC20Mock', '0xD99Ab0cDB81bb15448FD6d7D3da08CE20455152d');
-  // const master = await ethers.getContractAt('MasterMock', '0xEa8862d84a2D4b37E85811f98e0a4C22A5f5f364');
 
   // GNOSIS
   const weth = await ethers.getContractAt('SOMockWeth', '0x0315deBA093423852F02e30C950C91fa589c0f89');
@@ -85,65 +57,39 @@ async function setup() {
   // console.log({
   //   daiAggregator: daiAggregator.address,
   //   stethAggregator: stethAggregator.address,
-  // })
-
-  // SEPOLIA
-  // const daiAggregator = await ethers.getContractAt(
-  //   'ChainlinkAggregatorMock',
-  //   '0x228A206b28B66Aff45c7c666EFA9EbBab8cD335A',
-  // );
-  // const stethAggregator = await ethers.getContractAt(
-  //   'ChainlinkAggregatorMock',
-  //   '0xAaA081A81bD34dB71F0262927c1d5e5ECe8DC33e',
-  // );
+  // });
 
   // GNOSIS
   const daiAggregator = await ethers.getContractAt(
     'ChainlinkAggregatorMock',
-    '0x472c54eb97e224bbf957ac2b43caf93fad1f27d6',
+    '0x3c05fefFd6E94778E91273A622e8AE9f8C7a5550',
   );
   const stethAggregator = await ethers.getContractAt(
     'ChainlinkAggregatorMock',
-    '0xa9d715ef755c69680c0d5ee8100d86d1db82148e',
+    '0xdaf2B4efCE6eC6E63650A9CAF39bD367e394917A',
+  );
+  const usdcAggregator = await ethers.getContractAt(
+    'ChainlinkAggregatorMock',
+    '0xB57a918dF3e8549c88cFc2d2452caae28b270F0f',
+  );
+  const usdtAggregator = await ethers.getContractAt(
+    'ChainlinkAggregatorMock',
+    '0x69317BF21CADf10Fc8F0EDF9A92A44E95E39aDF8',
   );
   // const usdcAggregator = await ChainlinkAggregatorMock.deploy();
   // const usdtAggregator = await ChainlinkAggregatorMock.deploy();
   // await usdcAggregator.setLatestAnswer(parseEther('1')); // gnosis 1 usdc = 1 xdai
   // await usdtAggregator.setLatestAnswer(parseEther('1')); // gnosis 1 usdc = 1 xdai
-  // console.log({
-  //   usdcAggregator: usdcAggregator.address,
-  //   usdtAggregator: usdtAggregator.address,
-  // });
+  console.log({
+    usdcAggregator: usdcAggregator.address,
+    usdtAggregator: usdtAggregator.address,
+  });
 
-  // console.log('setting lastest answer daiAggregator');
+  console.log('setting latest answer daiAggregator');
   // await daiAggregator.setLatestAnswer(0.0004 * 1e18); // 1 dai = 0.0004 eth, 1 eth = 2500 dai
-  // console.log('setting lastest answer stethAggregator');
+  console.log('setting latest answer stethAggregator');
   // await stethAggregator.setLatestAnswer(parseEther('1')); // 1 steth = 1 eth
-  // const usdcAggregator = await ChainlinkAggregatorMock.deploy();
   // await usdcAggregator.setLatestAnswer(0.0004 * 1e18); // 1 usdc = 0.0004 eth, 1 eth = 2500 dai
-
-  // const enzymeV4VaultAggregator = await ChainlinkAggregatorMock.deploy();
-  // await enzymeV4VaultAggregator.setLatestAnswer(parseEther('1')); // 1 ETH = 1 share
-
-  /* deploy enzyme mocks */
-  // const enzymeV4Comptroller = await SOMockEnzymeV4Comptroller.deploy(weth.address);
-
-  /* move weth to Comptroller */
-
-  // const comptrollerWethReserves = parseEther('10000');
-  // await weth.deposit({ value: comptrollerWethReserves });
-  // await weth.transfer(enzymeV4Comptroller.address, comptrollerWethReserves);
-
-  // const enzymeV4Vault = await SOMockEnzymeV4Vault.deploy(
-  //   enzymeV4Comptroller.address,
-  //   'Enzyme V4 Vault Share ETH',
-  //   'EVSE',
-  //   18,
-  // );
-
-  // await enzymeV4Comptroller.setVault(enzymeV4Vault.address);
-
-  // const enzymeFundValueCalculatorRouter = await SOMockEnzymeFundValueCalculatorRouter.deploy(weth.address);
 
   console.log('deploying priceFeedOracle');
   // Deploy PriceFeedOracle
@@ -154,10 +100,8 @@ async function setup() {
   //   [daiAggregator.address, stethAggregator.address, usdcAggregator.address, usdtAggregator.address],
   //   [18, 18, 6, 6],
   // );
-  // SEPOLIA
-  // const priceFeedOracle = await ethers.getContractAt('PriceFeedOracle', '0xE205970C0Af83a1E6cC17FdE3a0b00CdDE90054F');
   // GNOSIS
-  const priceFeedOracle = await ethers.getContractAt('PriceFeedOracle', '0xcB7542DcC55129a099601a081E1c276799716478');
+  const priceFeedOracle = await ethers.getContractAt('PriceFeedOracle', '0x667a530889ce2d890B57E9bEaAed0A2F00ac9340');
   console.log('priceFeedOracle done', priceFeedOracle.address);
 
   // const pool = await Pool.deploy(owner.address, dai.address, stEth.address);
@@ -165,7 +109,7 @@ async function setup() {
   // SEPOLIA
   // const pool = await ethers.getContractAt('PoolMockCowSwap', '0xAB1E07497166E456dFfBC608b573c3B5330a06b3');
   // GNOSIS
-  const pool = await ethers.getContractAt('PoolMockCowSwap', '0xfABAcE08E021F7cBb2EDc95F358ee3ef87D33Ad1');
+  const pool = await ethers.getContractAt('PoolMockCowSwap', '0x7183a0272aBF15B35109fe9992b16304cf5C8860');
 
   // Setup master, token, token controller, pool and mcr connections
   // console.log('setting master enrollGovernance/P1 setLatestAddress');
@@ -174,86 +118,55 @@ async function setup() {
 
   // Deploy SwapOperator
   console.log('deploying swapOperator...');
-  const GNOSIS_WRAPPED_XDAI = '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d';
-  const swapOperator = await SwapOperator.deploy(
-    COW_SETTLEMENT_ADDRESS,
-    owner.address, // swapController account
-    master.address,
-    GNOSIS_WRAPPED_XDAI,
-    ethers.constants.AddressZero, // enzymeV4Vault
-    ethers.constants.AddressZero, // enzymeFundValueCalculatorRouter
-    parseEther('0.0001'),
-  );
-  console.log('swapOperator done', swapOperator.address);
+  // const GNOSIS_WRAPPED_XDAI = '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d';
+  // const swapOperator = await SwapOperator.deploy(
+  //   COW_SETTLEMENT_ADDRESS,
+  //   owner.address, // swapController account
+  //   master.address,
+  //   GNOSIS_WRAPPED_XDAI,
+  //   ethers.constants.AddressZero, // enzymeV4Vault
+  //   ethers.constants.AddressZero, // safe
+  //   dai.address,
+  //   GNOSIS_USDC_ADDRESS,
+  //   ethers.constants.AddressZero, // enzymeFundValueCalculatorRouter
+  //   parseEther('0.0001'), // minPoolEth
+  // );
 
   // SEPOLIA
   // const swapOperator = await ethers.getContractAt('SwapOperator', '0x759556e9B66bdE59289a44C8E6BB3a798231153D');
 
   // GNOSIS
-  // const swapOperator = await ethers.getContractAt('SwapOperator', '0x2CEb3A2E6a9118d108Df01dd37d7299413026872');
+  const swapOperator = await ethers.getContractAt('SwapOperator', '0xB018ffa6c0319423730EF58a1DE57cd06b8bC328');
+  console.log('swapOperator done', swapOperator.address);
 
   // Setup pool's swap operator
   console.log('setting pool SWP_OP/PRC_FEED');
-  await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), swapOperator.address);
-  // await pool.connect(governance).updateAddressParameters(hex('PRC_FEED'.padEnd(8, '\0')), priceFeedOracle.address);
+  // await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), swapOperator.address);
+  await pool.connect(governance).updateAddressParameters(hex('PRC_FEED'.padEnd(8, '\0')), priceFeedOracle.address);
+
+  // Add asset to pool
+  await pool.addAsset(GNOSIS_WXDAI_ADDRESS, false);
+  await pool.addAsset(GNOSIS_USDC_ADDRESS, false);
+  await pool.addAsset(GNOSIS_USDT_ADDRESS, false);
 
   // Set Swap details
   const daiMinAmount = parseEther('3000');
   const daiMaxAmount = parseEther('20000');
-  const stethMinAmount = parseEther('10');
-  const stethMaxAmount = parseEther('20');
+  const stEthMinAmount = parseEther('10');
+  const stEthMaxAmount = parseEther('20');
 
   console.log('setting pool dai/stEth SwapDetails');
   // await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 0);
-  // await pool.connect(governance).setSwapDetails(stEth.address, stethMinAmount, stethMaxAmount, 0);
+  // await pool.connect(governance).setSwapDetails(stEth.address, stEthMinAmount, stEthMaxAmount, 0);
+  // await pool
+  //   .connect(owner)
+  //   .setSwapDetails(GNOSIS_USDC_ADDRESS, parseUnits('10', USDC_DECIMALS), parseUnits('20', USDC_DECIMALS), 250);
+  // await pool
+  //   .connect(owner)
+  //   .setSwapDetails(GNOSIS_USDT_ADDRESS, parseUnits('10', USDC_DECIMALS), parseUnits('20', USDC_DECIMALS), 250);
 
-  // Fund the pool contract
-  console.log('minting stEth and dai to pool');
-  // await stEth.mint(pool.address, parseEther('50'));
-  // await dai.mint(pool.address, parseEther('2500'));
-
-  // mint / approve trader
-  console.log('minting stETH and dai to trader');
-  // await weth.mint(trader.address, parseEther('500'));
-  // await stEth.mint(trader.address, parseEther('500'));
-  // await dai.mint(trader.address, parseEther('1500000'));
-
-  // approve cow swap relayer
-  console.log('approving cowswap relayer');
-  // await dai.connect(trader).approve(COWSWAP_RELAYER, ethers.constants.MaxUint256);
-  // await weth.connect(trader).approve(COWSWAP_RELAYER, ethers.constants.MaxUint256);
-  // await stEth.connect(trader).approve(COWSWAP_RELAYER, ethers.constants.MaxUint256);
-
-  // const afterBalance = await ethers.provider.getBalance(owner.address);
-
-  // console.log({ beforeBalance: beforeBalance.toString(), afterBalance: afterBalance.toString() });
-
-  // return {
-  //   accounts: {
-  //     ...accounts,
-  //     governanceAccounts: [governance],
-  //   },
-  //   contracts: {
-  //     // cowSettlement,
-  //     // cowVaultRelayer,
-  //     dai,
-  //     weth,
-  //     stEth,
-  //     // usdc,
-  //     master,
-  //     pool,
-  //     swapOperator,
-  //     priceFeedOracle,
-  //     daiAggregator,
-  //     // enzymeV4Vault,
-  //     // enzymeV4Comptroller,
-  //     // enzymeFundValueCalculatorRouter,
-  //   },
-  // };
-
-  // TODO:
-  // add USDC / USDT as pool asset
-  // add USDC / USDT swap details
+  const afterBalance = await ethers.provider.getBalance(owner.address);
+  console.log('afterBalance: ', afterBalance);
 }
 
 setup()

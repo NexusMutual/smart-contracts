@@ -5,14 +5,13 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import "../../external/cow/GPv2Order.sol";
-import "../../interfaces/ICowSettlement.sol";
-import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/ISwapOperator.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/IWeth.sol";
 import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/ISwapOperator.sol";
+import "../../interfaces/ISafeTracker.sol";
 
 import "../../external/enzyme/IEnzymeFundValueCalculatorRouter.sol";
 import "../../external/enzyme/IEnzymeV4Vault.sol";
@@ -23,6 +22,12 @@ import "../../external/enzyme/IEnzymePolicyManager.sol";
 /// @dev This contract's address is set on the Pool's swapOperator variable via governance
 contract SwapOperator is ISwapOperator {
   using SafeERC20 for IERC20;
+
+  // Structs
+  struct Request {
+    address asset;
+    uint amount;
+  }
 
   // Storage
   bytes public currentOrderUID;
@@ -45,12 +50,24 @@ contract SwapOperator is ISwapOperator {
   uint public constant MIN_VALID_TO_PERIOD = 600; // 10 minutes
   uint public constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
   uint public constant MIN_TIME_BETWEEN_ORDERS = 900; // 15 minutes
-  uint public constant maxFee = 0.3 ether;
+  uint public constant MAX_FEE = 0.3 ether;
+
+  // Safe variables
+  address public safe;
+  Request public transferRequest;
+  mapping(address => bool) public allowedSafeTransferAssets;
 
   modifier onlyController() {
-    require(msg.sender == swapController, "SwapOp: only controller can execute");
+    if (msg.sender != swapController) {
+      revert OnlyController();
+    }
     _;
   }
+
+    modifier onlySafe() {
+      require(msg.sender == safe, "SwapOp: only Safe can execute");
+      _;
+    }
 
   /// @param _cowSettlement Address of CoW protocol's settlement contract
   /// @param _swapController Account allowed to place and close orders
@@ -62,6 +79,9 @@ contract SwapOperator is ISwapOperator {
     address _master,
     address _weth,
     address _enzymeV4VaultProxyAddress,
+    address _safe,
+    address _dai,
+    address _usdc,
     IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter,
     uint _minPoolEth
   ) {
@@ -74,6 +94,10 @@ contract SwapOperator is ISwapOperator {
     enzymeV4VaultProxyAddress = _enzymeV4VaultProxyAddress;
     enzymeFundValueCalculatorRouter = _enzymeFundValueCalculatorRouter;
     minPoolEth = _minPoolEth;
+    safe = _safe;
+    allowedSafeTransferAssets[_dai] = true;
+    allowedSafeTransferAssets[_usdc] = true;
+    allowedSafeTransferAssets[ETH] = true;
   }
 
   receive() external payable {}
@@ -95,75 +119,64 @@ contract SwapOperator is ISwapOperator {
     GPv2Order.packOrderUidParams(uid, digest, order.receiver, order.validTo);
     return uid;
   }
-  
-  /// @dev Using oracle prices, returns the equivalent amount in `toAsset` for a given `fromAssetAmount` in `fromAsset`
+
+  /// @dev Using oracle prices, returns the equivalent amount in `toAsset` for a given `fromAmount` in `fromAsset`
   /// Supports conversions for ETH to Asset, Asset to ETH, and Asset to Asset
-  function getOracleAmount(address toAsset, address fromAsset, uint fromAssetAmount) internal view returns (uint) {
+  function getOracleAmount(address fromAsset, address toAsset, uint fromAmount) internal view returns (uint) {
     IPriceFeedOracle priceFeedOracle = _pool().priceFeedOracle();
 
     if (fromAsset == address(weth)) {
       // ETH -> toAsset
-      return priceFeedOracle.getAssetForEth(toAsset, fromAssetAmount);
+      return priceFeedOracle.getAssetForEth(toAsset, fromAmount);
     }
     if (toAsset == address(weth)) {
       // fromAsset -> ETH
-      return priceFeedOracle.getEthForAsset(fromAsset, fromAssetAmount);
+      return priceFeedOracle.getEthForAsset(fromAsset, fromAmount);
     }
     // fromAsset -> toAsset via ETH
-    uint fromAssetInEth = priceFeedOracle.getEthForAsset(fromAsset, fromAssetAmount);
-    return priceFeedOracle.getAssetForEth(toAsset, fromAssetInEth);
+    uint fromAmountInEth = priceFeedOracle.getEthForAsset(fromAsset, fromAmount);
+    return priceFeedOracle.getAssetForEth(toAsset, fromAmountInEth);
   }
 
-  /// @dev Validates the amount against the oracle price adjusted with max slippage tolerances
-  function verifySlippage(uint amount, uint oracleAmount, uint16 maxSlippageRatio) internal pure {
-    // Calculate slippage and minimum amount we should accept
-    uint maxSlippageAmount = (oracleAmount * maxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
-    uint minBuyAmountOnMaxSlippage = oracleAmount - maxSlippageAmount;
-    if (amount < minBuyAmountOnMaxSlippage) {
-      revert AmountTooLow(amount, minBuyAmountOnMaxSlippage);
+  /// @dev Reverts if amountOut is less than amountOutMin
+  function validateAmountOut(uint amountOut, uint amountOutMin) internal pure {
+    if (amountOut < amountOutMin) {
+      revert AmountOutTooLow(amountOut, amountOutMin);
     }
   }
 
-  /// @dev Validates order amounts against oracle prices and slippage limits.
-  /// Uses the higher maxSlippageRatio from sell/buySwapDetails, then checks if the swap amount meets the minimum after slippage.
-  function validateOrderAmount(SwapOperation memory swapOp) internal view {
-    // Determine the higher maxSlippageRatio
-    if (swapOp.sellSwapDetails.maxSlippageRatio > swapOp.buySwapDetails.maxSlippageRatio) {
-      // verify sellAmount because sellToken maxSlippageRatio is higher
-      address fromAsset = address(swapOp.order.buyToken);
-      address toAsset = address(swapOp.order.sellToken);
-      uint fromAmount = swapOp.order.buyAmount;
-      uint amountToCheck = swapOp.order.sellAmount;
-      uint16 higherMaxSlippageRatio = swapOp.sellSwapDetails.maxSlippageRatio;
-      
-      uint oracleAmount = getOracleAmount(toAsset, fromAsset, fromAmount);
-      verifySlippage(amountToCheck, oracleAmount, higherMaxSlippageRatio);
-    } else {
-      // verify buyAmount because buyToken maxSlippageRatio is higher
-      address fromAsset = address(swapOp.order.sellToken);
-      address toAsset = address(swapOp.order.buyToken);
-      uint fromAmount = swapOp.order.sellAmount;
-      uint amountToCheck = swapOp.order.buyAmount;
-      uint16 higherMaxSlippageRatio = swapOp.buySwapDetails.maxSlippageRatio;
+  /// @dev Validates order.buyAmount against oracle prices and slippage limits
+  /// Uses the higher maxSlippageRatio of either sell or buy swap details, then checks if the swap amount meets the minimum after slippage
+  function validateOrderAmount(
+    GPv2Order.Data calldata order,
+    SwapDetails memory sellSwapDetails,
+    SwapDetails memory buySwapDetails
+  ) internal view {
+    uint oracleBuyAmount = getOracleAmount(address(order.sellToken), address(order.buyToken), order.sellAmount);
 
-      uint oracleAmount = getOracleAmount(toAsset, fromAsset, fromAmount);
-      verifySlippage(amountToCheck, oracleAmount, higherMaxSlippageRatio);
+    // Use the higher slippage ratio of either sell/buySwapDetails
+    uint16 higherMaxSlippageRatio = sellSwapDetails.maxSlippageRatio > buySwapDetails.maxSlippageRatio
+      ? sellSwapDetails.maxSlippageRatio
+      : buySwapDetails.maxSlippageRatio;
+
+    uint maxSlippageAmount = (oracleBuyAmount * higherMaxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
+    uint minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
+
+    validateAmountOut(order.buyAmount, minBuyAmountOnMaxSlippage);
+  }
+
+  /// @dev Reverts if both swapDetails min/maxAmount are set to 0
+  function validateTokenIsEnabled(address token, SwapDetails memory swapDetails) internal pure {
+    if (swapDetails.minAmount == 0 && swapDetails.maxAmount == 0) {
+      revert TokenDisabled(token);
     }
   }
-  
-  /// @dev Validates if a token is enabled for swapping.
+
+  /// @dev Reverts if both swapDetails min/maxAmount (excluding WETH) are set to 0
   /// WETH is excluded in validation since it does not have set swapDetails (i.e. SwapDetails(0,0,0,0))
-  function validateTokenIsEnabled(address token, SwapDetails memory swapDetails) internal view {
-    if (token != address(weth) && swapDetails.minAmount == 0 && swapDetails.maxAmount == 0) {
-      revert OrderTokenIsDisabled(token);
-    }
-  }
-
-  /// @dev Validates minimum pool ETH reserve is not breached after selling ETH
-  function validateEthBalance(IPool pool, uint totalOutAmount) internal view {
-    uint ethPostSwap = address(pool).balance - totalOutAmount;
-    if (ethPostSwap < minPoolEth) {
-      revert EthReserveBelowMin(ethPostSwap, minPoolEth);
+  function validateTokenIsEnabledSkipWeth(address token, SwapDetails memory swapDetails) internal view {
+    if (token != address(weth)) {
+      validateTokenIsEnabled(token, swapDetails);
     }
   }
 
@@ -171,140 +184,150 @@ contract SwapOperator is ISwapOperator {
   /// 1. The current sellToken balance is greater than sellSwapDetails.maxAmount
   /// 2. The post-swap sellToken balance is greater than or equal to sellSwapDetails.minAmount
   /// Skips validation for WETH since it does not have set swapDetails
-  function validateSellTokenBalance(IPool pool, SwapOperation memory swapOp, uint totalOutAmount) internal view {
-    uint sellTokenBalance = swapOp.order.sellToken.balanceOf(address(pool));
+  function validateSellTokenBalance(
+    IPool pool,
+    GPv2Order.Data calldata order,
+    SwapDetails memory sellSwapDetails,
+    SwapOperationType swapOperationType,
+    uint totalOutAmount
+  ) internal view {
+    uint sellTokenBalance = order.sellToken.balanceOf(address(pool));
 
-    // skip validation for WETH since it does not have set swapDetails
-    if (address(swapOp.order.sellToken) == address(weth)) {
+    // validate ETH balance is within ETH reserves after the swap
+    if (swapOperationType == SwapOperationType.EthToAsset) {
+      uint ethPostSwap = address(pool).balance - totalOutAmount;
+      if (ethPostSwap < minPoolEth) {
+        revert InvalidPostSwapBalance(ethPostSwap, minPoolEth);
+      }
+      // skip sellSwapDetails validation for ETH/WETH since it does not have set swapDetails
       return;
     }
 
-    if (sellTokenBalance <= swapOp.sellSwapDetails.maxAmount) {
-      revert InvalidBalance(sellTokenBalance, swapOp.sellSwapDetails.maxAmount, 'max');
+    if (sellTokenBalance <= sellSwapDetails.maxAmount) {
+      revert InvalidBalance(sellTokenBalance, sellSwapDetails.maxAmount);
     }
     // NOTE: the totalOutAmount (i.e. sellAmount + fee) is used to get postSellTokenSwapBalance
-    uint postSellTokenSwapBalance = sellTokenBalance - totalOutAmount; 
-    if (postSellTokenSwapBalance < swapOp.sellSwapDetails.minAmount) {
-      revert InvalidPostSwapBalance(postSellTokenSwapBalance, swapOp.sellSwapDetails.minAmount, 'min');
-    }      
+    uint postSellTokenSwapBalance = sellTokenBalance - totalOutAmount;
+    if (postSellTokenSwapBalance < sellSwapDetails.minAmount) {
+      revert InvalidPostSwapBalance(postSellTokenSwapBalance, sellSwapDetails.minAmount);
+    }
   }
 
   /// @dev Validates two conditions:
-  /// 1. The current buyToken balance is less than buySwapDetails.minAmount.
-  /// 2. The post-swap buyToken balance is less than or equal to buySwapDetails.maxAmount.
+  /// 1. The current buyToken balance is less than buySwapDetails.minAmount
+  /// 2. The post-swap buyToken balance is less than or equal to buySwapDetails.maxAmount
   /// Skip validation for WETH since it does not have set swapDetails
-  function validateBuyTokenBalance(IPool pool, SwapOperation memory swapOp) internal view {
-    uint buyTokenBalance = swapOp.order.buyToken.balanceOf(address(pool));
-    
+  function validateBuyTokenBalance(
+    IPool pool,
+    GPv2Order.Data calldata order,
+    SwapDetails memory buySwapDetails
+  ) internal view {
+    uint buyTokenBalance = order.buyToken.balanceOf(address(pool));
+
     // skip validation for WETH since it does not have set swapDetails
-    if (address(swapOp.order.buyToken) == address(weth)) {
+    if (address(order.buyToken) == address(weth)) {
       return;
     }
 
-    if (buyTokenBalance >= swapOp.buySwapDetails.minAmount) {
-      revert InvalidBalance(buyTokenBalance, swapOp.buySwapDetails.minAmount, 'min');
+    if (buyTokenBalance >= buySwapDetails.minAmount) {
+      revert InvalidBalance(buyTokenBalance, buySwapDetails.minAmount);
     }
     // NOTE: use order.buyAmount to get postBuyTokenSwapBalance
-    uint postBuyTokenSwapBalance = buyTokenBalance + swapOp.order.buyAmount; 
-    if (postBuyTokenSwapBalance > swapOp.buySwapDetails.maxAmount) {
-      revert InvalidPostSwapBalance(postBuyTokenSwapBalance, swapOp.buySwapDetails.maxAmount, 'max');
+    uint postBuyTokenSwapBalance = buyTokenBalance + order.buyAmount;
+    if (postBuyTokenSwapBalance > buySwapDetails.maxAmount) {
+      revert InvalidPostSwapBalance(postBuyTokenSwapBalance, buySwapDetails.maxAmount);
     }
   }
 
   /// @dev Helper function to determine the SwapOperationType of the order
+  /// NOTE: ETH orders has WETH address because ETH will be eventually converted to WETH to do the swap
   function getSwapOperationType(GPv2Order.Data memory order) internal view returns (SwapOperationType) {
     if (address(order.sellToken) == address(weth)) {
-      return SwapOperationType.WethToAsset;
+      return SwapOperationType.EthToAsset;
     }
     if (address(order.buyToken) == address(weth)) {
-      return SwapOperationType.AssetToWeth;
+      return SwapOperationType.AssetToEth;
     }
     return SwapOperationType.AssetToAsset;
   }
 
-  /// @dev NOTE: for assets that does not have any set swapDetails such as WETH it will have SwapDetails(0,0,0,0)
-  function prepareSwapDetails(IPool pool, GPv2Order.Data calldata order) internal view returns (SwapOperation memory) {
+  /// @dev Performs pre-swap validation checks for the given order
+  function performPreSwapValidations(
+    IPool pool,
+    IPriceFeedOracle priceFeedOracle,
+    GPv2Order.Data calldata order,
+    SwapOperationType swapOperationType,
+    uint totalOutAmount
+  ) internal view {
+    // NOTE: for assets that does not have any set swapDetails such as WETH it will have SwapDetails(0,0,0,0)
     SwapDetails memory sellSwapDetails = pool.getAssetSwapDetails(address(order.sellToken));
     SwapDetails memory buySwapDetails = pool.getAssetSwapDetails(address(order.buyToken));
 
-    return SwapOperation({
-        order: order,
-        sellSwapDetails: sellSwapDetails,
-        buySwapDetails: buySwapDetails,
-        swapType: getSwapOperationType(order)
-    });
-  }
-
-  /// @dev Performs pre-swap validation checks for a given swap operation
-  function performPreSwapValidations(IPool pool, SwapOperation memory swapOp, uint totalOutAmount) internal view {
-    address sellTokenAddress = address(swapOp.order.sellToken);
-    address buyTokenAddress = address(swapOp.order.buyToken);
-
     // validate both sell and buy tokens are enabled
-    validateTokenIsEnabled(sellTokenAddress, swapOp.sellSwapDetails);
-    validateTokenIsEnabled(buyTokenAddress, swapOp.buySwapDetails);
+    validateTokenIsEnabledSkipWeth(address(order.sellToken), sellSwapDetails);
+    validateTokenIsEnabledSkipWeth(address(order.buyToken), buySwapDetails);
 
-    // validate ETH balance is within ETH reserves after the swap
-    if (swapOp.swapType == SwapOperationType.WethToAsset) {
-      validateEthBalance(pool, totalOutAmount);
-    }
-    
     // validate sell/buy token balances against swapDetails min/max
-    validateSellTokenBalance(pool, swapOp, totalOutAmount);
-    validateBuyTokenBalance(pool, swapOp);
+    validateSellTokenBalance(pool, order, sellSwapDetails, swapOperationType, totalOutAmount);
+    validateBuyTokenBalance(pool, order, buySwapDetails);
 
     // validate swap frequency to enforce cool down periods
-    validateSwapFrequency(swapOp.sellSwapDetails);
-    validateSwapFrequency(swapOp.buySwapDetails);
+    validateSwapFrequency(sellSwapDetails);
+    validateSwapFrequency(buySwapDetails);
 
     // validate max fee and max slippage
-    validateMaxFee(sellTokenAddress, swapOp.order.feeAmount);
-    validateOrderAmount(swapOp);
+    validateMaxFee(priceFeedOracle, address(order.sellToken), order.feeAmount);
+    validateOrderAmount(order, sellSwapDetails, buySwapDetails);
   }
 
   /// @dev Executes asset transfers from Pool to SwapOperator for CoW Swap order executions
   /// Additionally if selling ETH, wraps received Pool ETH to WETH
-  function executeAssetTransfer(IPool pool, SwapOperation memory swapOp, uint totalOutAmount) internal returns (uint swapValueEth) {
-    IPriceFeedOracle priceFeedOracle = pool.priceFeedOracle();
-    address sellTokenAddress = address(swapOp.order.sellToken);
-    address buyTokenAddress = address(swapOp.order.buyToken);
+  function executeAssetTransfer(
+    IPool pool,
+    IPriceFeedOracle priceFeedOracle,
+    GPv2Order.Data calldata order,
+    SwapOperationType swapOperationType,
+    uint totalOutAmount
+  ) internal returns (uint swapValueEth) {
+    address sellTokenAddress = address(order.sellToken);
+    address buyTokenAddress = address(order.buyToken);
 
-    if (swapOp.swapType == SwapOperationType.WethToAsset) {
-        // set lastSwapTime of buyToken only (sellToken WETH has no set swapDetails)
-        pool.setSwapDetailsLastSwapTime(buyTokenAddress, uint32(block.timestamp));
-        // transfer ETH from pool and wrap it (use ETH address here because swapOp.sellToken is WETH address)
-        pool.transferAssetToSwapOperator(ETH, totalOutAmount);
-        weth.deposit{value: totalOutAmount}();
-        // no need to convert since totalOutAmount is already in ETH (i.e. WETH)
-        swapValueEth = totalOutAmount;
-    } else if (swapOp.swapType == SwapOperationType.AssetToWeth) {
-        // set lastSwapTime of sellToken only (buyToken WETH has no set swapDetails)
-        pool.setSwapDetailsLastSwapTime(sellTokenAddress, uint32(block.timestamp));
-        // transfer ERC20 asset from Pool
-        pool.transferAssetToSwapOperator(sellTokenAddress, totalOutAmount);
-        // convert totalOutAmount (sellAmount + fee) to ETH
-        swapValueEth = priceFeedOracle.getEthForAsset(sellTokenAddress, totalOutAmount);
-    } else { // SwapOperationType.AssetToAsset
-        // set lastSwapTime of sell / buy tokens
-        pool.setSwapDetailsLastSwapTime(sellTokenAddress, uint32(block.timestamp));
-        pool.setSwapDetailsLastSwapTime(buyTokenAddress, uint32(block.timestamp));
-        // transfer ERC20 asset from Pool
-        pool.transferAssetToSwapOperator(sellTokenAddress, totalOutAmount);
-        // convert totalOutAmount (sellAmount + fee) to ETH
-        swapValueEth = priceFeedOracle.getEthForAsset(sellTokenAddress, totalOutAmount);
+    if (swapOperationType == SwapOperationType.EthToAsset) {
+      // set lastSwapTime of buyToken only (sellToken WETH has no set swapDetails)
+      pool.setSwapDetailsLastSwapTime(buyTokenAddress, uint32(block.timestamp));
+      // transfer ETH from pool and wrap it (use ETH address here because swapOp.sellToken is WETH address)
+      pool.transferAssetToSwapOperator(ETH, totalOutAmount);
+      weth.deposit{value: totalOutAmount}();
+      // no need to convert since totalOutAmount is already in ETH (i.e. WETH)
+      swapValueEth = totalOutAmount;
+    } else if (swapOperationType == SwapOperationType.AssetToEth) {
+      // set lastSwapTime of sellToken only (buyToken WETH has no set swapDetails)
+      pool.setSwapDetailsLastSwapTime(sellTokenAddress, uint32(block.timestamp));
+      // transfer ERC20 asset from Pool
+      pool.transferAssetToSwapOperator(sellTokenAddress, totalOutAmount);
+      // convert totalOutAmount (sellAmount + fee) to ETH
+      swapValueEth = priceFeedOracle.getEthForAsset(sellTokenAddress, totalOutAmount);
+    } else {
+      // SwapOperationType.AssetToAsset
+      // set lastSwapTime of sell / buy tokens
+      pool.setSwapDetailsLastSwapTime(sellTokenAddress, uint32(block.timestamp));
+      pool.setSwapDetailsLastSwapTime(buyTokenAddress, uint32(block.timestamp));
+      // transfer ERC20 asset from Pool
+      pool.transferAssetToSwapOperator(sellTokenAddress, totalOutAmount);
+      // convert totalOutAmount (sellAmount + fee) to ETH
+      swapValueEth = priceFeedOracle.getEthForAsset(sellTokenAddress, totalOutAmount);
     }
-
-    return swapValueEth;
   }
 
   /// @dev Approve a given order to be executed, by presigning it on CoW protocol's settlement contract
   /// Validates the order before the sellToken is transferred from the Pool to the SwapOperator for the CoW swap operation
   /// Emits OrderPlaced event on success. Only one order can be open at the same time
+  /// NOTE: ETH orders are expected to have a WETH address because ETH will be eventually converted to WETH to do the swap
   /// @param order - The order to be placed
   /// @param orderUID - the UID of the of the order to be placed
   function placeOrder(GPv2Order.Data calldata order, bytes calldata orderUID) public onlyController {
     if (orderInProgress()) {
-      revert OrderInProgress();
+      revert OrderInProgress(currentOrderUID);
     }
 
     // Order UID and basic CoW params validations
@@ -312,16 +335,15 @@ contract SwapOperator is ISwapOperator {
     validateBasicCowParams(order);
 
     IPool pool = _pool();
+    IPriceFeedOracle priceFeedOracle = pool.priceFeedOracle();
     uint totalOutAmount = order.sellAmount + order.feeAmount;
-
-    // Prepare swap details
-    SwapOperation memory swapOp = prepareSwapDetails(pool, order);
+    SwapOperationType swapOperationType = getSwapOperationType(order);
 
     // Perform validations
-    performPreSwapValidations(pool, swapOp, totalOutAmount);
+    performPreSwapValidations(pool, priceFeedOracle, order, swapOperationType, totalOutAmount);
 
     // Execute swap based on operation type
-    uint swapValueEth = executeAssetTransfer(pool, swapOp, totalOutAmount);
+    uint swapValueEth = executeAssetTransfer(pool, priceFeedOracle, order, swapOperationType, totalOutAmount);
 
     // Set the swapValue on the pool
     pool.setSwapValue(swapValueEth);
@@ -344,31 +366,36 @@ contract SwapOperator is ISwapOperator {
   /// @param order The order to close
   function closeOrder(GPv2Order.Data calldata order) external {
     // Validate there is an order in place
-    require(orderInProgress(), "SwapOp: No order in place");
+    if (!orderInProgress()) {
+      revert NoOrderInPlace();
+    }
 
     // Before validTo, only controller can call this. After it, everyone can call
-    if (block.timestamp <= order.validTo) {
-      require(msg.sender == swapController, "SwapOp: only controller can execute");
+    if (block.timestamp <= order.validTo && msg.sender != swapController) {
+      revert OnlyController();
     }
 
     validateUID(order, currentOrderUID);
 
-    // Check how much of the order was filled, and if it was fully filled
+    // Check how much of the order was filled
     uint filledAmount = cowSettlement.filledAmount(currentOrderUID);
 
-    // Cancel signature and unapprove tokens
+    // Invalidate signature, cancel order and unapprove tokens
+    cowSettlement.setPreSignature(currentOrderUID, false);
     cowSettlement.invalidateOrder(currentOrderUID);
     order.sellToken.safeApprove(cowVaultRelayer, 0);
 
     // Clear the current order
     delete currentOrderUID;
 
+    IPool pool = _pool();
+
     // Withdraw both buyToken and sellToken
-    returnAssetToPool(order.buyToken);
-    returnAssetToPool(order.sellToken);
+    returnAssetToPool(pool, order.buyToken);
+    returnAssetToPool(pool, order.sellToken);
 
     // Set swapValue on pool to 0
-    _pool().setSwapValue(0);
+    pool.setSwapValue(0);
 
     // Emit event
     emit OrderClosed(order, filledAmount);
@@ -376,7 +403,7 @@ contract SwapOperator is ISwapOperator {
 
   /// @dev Return a given asset to the pool, either ETH or ERC20
   /// @param asset The asset
-  function returnAssetToPool(IERC20 asset) internal {
+  function returnAssetToPool(IPool pool, IERC20 asset) internal {
     uint balance = asset.balanceOf(address(this));
 
     if (balance == 0) {
@@ -388,11 +415,13 @@ contract SwapOperator is ISwapOperator {
       weth.withdraw(balance);
 
       // Transfer ETH to pool
-      (bool sent, ) = payable(address(_pool())).call{value: balance}("");
-      require(sent, "SwapOp: Failed to send Ether to pool");
+      (bool sent, ) = payable(address(pool)).call{value: balance}("");
+      if (!sent) {
+        revert TransferFailed(address(pool), balance, ETH);
+      }
     } else {
       // Transfer ERC20 to pool
-      asset.safeTransfer(address(_pool()), balance);
+      asset.safeTransfer(address(pool), balance);
     }
   }
 
@@ -409,7 +438,15 @@ contract SwapOperator is ISwapOperator {
       revert AboveMaxValidTo(maxValidTo);
     }
     if (order.receiver != address(this)) {
-      revert InvalidReceiver();      
+      revert InvalidReceiver(address(this));
+    }
+    if (address(order.sellToken) == ETH) {
+      // must to be WETH address for ETH swaps
+      revert InvalidTokenAddress('sellToken');
+    }
+    if (address(order.buyToken) == ETH) {
+      // must to be WETH address for ETH swaps
+      revert InvalidTokenAddress('buyToken');
     }
     if (order.sellTokenBalance != GPv2Order.BALANCE_ERC20) {
       revert UnsupportedTokenBalance('sell');
@@ -435,12 +472,19 @@ contract SwapOperator is ISwapOperator {
     return IPool(master.getLatestAddress("P1"));
   }
 
+
+   // @dev Get the SafeTracker's instance through master contract
+   // @return The safe tracker instance
+  function safeTracker() internal view returns (ISafeTracker) {
+    return ISafeTracker(master.getLatestAddress("ST"));
+  }
+
   /// @dev Validates that a given asset is not swapped too fast
   /// @param swapDetails Swap details for the given asset
   function validateSwapFrequency(SwapDetails memory swapDetails) internal view {
-    uint minValidSwapTime = swapDetails.lastSwapTime + MIN_TIME_BETWEEN_ORDERS; 
+    uint minValidSwapTime = swapDetails.lastSwapTime + MIN_TIME_BETWEEN_ORDERS;
     if (block.timestamp < minValidSwapTime) {
-      revert InsufficientTimeBetweenSwaps(minValidSwapTime);      
+      revert InsufficientTimeBetweenSwaps(minValidSwapTime);
     }
   }
 
@@ -448,14 +492,15 @@ contract SwapOperator is ISwapOperator {
   /// @param sellToken The sell asset
   /// @param feeAmount The fee (will always be denominated in the sell asset units)
   function validateMaxFee(
+    IPriceFeedOracle priceFeedOracle,
     address sellToken,
     uint feeAmount
   ) internal view {
     uint feeInEther = sellToken == address(weth)
       ? feeAmount
-      : _pool().priceFeedOracle().getEthForAsset(sellToken, feeAmount);
-    if (feeInEther > maxFee) {
-      revert AboveMaxFee(maxFee);
+      : priceFeedOracle.getEthForAsset(sellToken, feeAmount);
+    if (feeInEther > MAX_FEE) {
+      revert AboveMaxFee(feeInEther, MAX_FEE);
     }
   }
 
@@ -465,7 +510,9 @@ contract SwapOperator is ISwapOperator {
   function swapETHForEnzymeVaultShare(uint amountIn, uint amountOutMin) external onlyController {
 
     // Validate there's no current cow swap order going on
-    require(!orderInProgress(), "SwapOp: an order is already in place");
+    if (orderInProgress()) {
+      revert OrderInProgress(currentOrderUID);
+    }
 
     IPool pool = _pool();
     IEnzymeV4Comptroller comptrollerProxy = IEnzymeV4Comptroller(IEnzymeV4Vault(enzymeV4VaultProxyAddress).getAccessor());
@@ -474,13 +521,8 @@ contract SwapOperator is ISwapOperator {
 
     SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(toToken));
 
-    require(!(swapDetails.minAmount == 0 && swapDetails.maxAmount == 0), "SwapOp: asset is not enabled");
-
-    {
-      // scope for swap frequency check
-      uint timeSinceLastTrade = block.timestamp - uint(swapDetails.lastSwapTime);
-      require(timeSinceLastTrade > MIN_TIME_BETWEEN_ORDERS, "SwapOp: too fast");
-    }
+    validateTokenIsEnabled(address(toToken), swapDetails);
+    validateSwapFrequency(swapDetails);
 
     {
       // check slippage
@@ -490,13 +532,16 @@ contract SwapOperator is ISwapOperator {
       uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / MAX_SLIPPAGE_DENOMINATOR;
       uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
-      require(amountOutMin >= minOutOnMaxSlippage, "SwapOp: amountOutMin < minOutOnMaxSlippage");
+      validateAmountOut(amountOutMin, minOutOnMaxSlippage);
     }
 
     uint balanceBefore = toToken.balanceOf(address(pool));
     pool.transferAssetToSwapOperator(ETH, amountIn);
 
-    require(comptrollerProxy.getDenominationAsset() == address(weth), "SwapOp: invalid denomination asset");
+    address denominationAsset = comptrollerProxy.getDenominationAsset();
+    if (denominationAsset != address(weth)) {
+      revert InvalidDenominationAsset(denominationAsset, address(weth));
+    }
 
     weth.deposit{ value: amountIn }();
     weth.approve(address(comptrollerProxy), amountIn);
@@ -506,13 +551,17 @@ contract SwapOperator is ISwapOperator {
 
     uint amountOut = toToken.balanceOf(address(this));
 
-    require(amountOut >= amountOutMin, "SwapOp: amountOut < amountOutMin");
-    require(balanceBefore < swapDetails.minAmount, "SwapOp: balanceBefore >= min");
-    require(balanceBefore + amountOutMin <= swapDetails.maxAmount, "SwapOp: balanceAfter > max");
+    validateAmountOut(amountOut, amountOutMin);
+    if (balanceBefore >= swapDetails.minAmount) {
+      revert InvalidBalance(balanceBefore, swapDetails.minAmount);
+    }
+    if (balanceBefore + amountOutMin > swapDetails.maxAmount) {
+      revert InvalidPostSwapBalance(balanceBefore + amountOutMin, swapDetails.maxAmount);
+    }
 
-    {
-      uint ethBalanceAfter = address(pool).balance;
-      require(ethBalanceAfter >= minPoolEth, "SwapOp: insufficient ether left");
+    uint ethBalanceAfter = address(pool).balance;
+    if (ethBalanceAfter < minPoolEth) {
+      revert InvalidPostSwapBalance(ethBalanceAfter, minPoolEth);
     }
 
     transferAssetTo(enzymeV4VaultProxyAddress, address(pool), amountOut);
@@ -529,7 +578,9 @@ contract SwapOperator is ISwapOperator {
   ) external onlyController {
 
     // Validate there's no current cow swap order going on
-    require(!orderInProgress(), "SwapOp: an order is already in place");
+    if (orderInProgress()) {
+      revert OrderInProgress(currentOrderUID);
+    }
 
     IPool pool = _pool();
     IERC20Detailed fromToken = IERC20Detailed(enzymeV4VaultProxyAddress);
@@ -539,11 +590,8 @@ contract SwapOperator is ISwapOperator {
 
       SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(fromToken));
 
-      require(!(swapDetails.minAmount == 0 && swapDetails.maxAmount == 0), "SwapOp: asset is not enabled");
-
-      // swap frequency check
-      uint timeSinceLastTrade = block.timestamp - uint(swapDetails.lastSwapTime);
-      require(timeSinceLastTrade > MIN_TIME_BETWEEN_ORDERS, "SwapOp: too fast");
+      validateTokenIsEnabled(address(fromToken), swapDetails);
+      validateSwapFrequency(swapDetails);
 
       uint netShareValue;
       {
@@ -551,7 +599,9 @@ contract SwapOperator is ISwapOperator {
         (denominationAsset, netShareValue) =
         enzymeFundValueCalculatorRouter.calcNetShareValue(enzymeV4VaultProxyAddress);
 
-        require(denominationAsset ==  address(weth), "SwapOp: invalid denomination asset");
+        if (denominationAsset != address(weth)) {
+          revert InvalidDenominationAsset(denominationAsset, address(weth));
+        }
       }
 
       // avgAmountOut in ETH
@@ -560,9 +610,13 @@ contract SwapOperator is ISwapOperator {
       uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
       // slippage check
-      require(amountOutMin >= minOutOnMaxSlippage, "SwapOp: amountOutMin < minOutOnMaxSlippage");
-      require(balanceBefore > swapDetails.maxAmount, "SwapOp: balanceBefore <= max");
-      require(balanceBefore - amountIn >= swapDetails.minAmount, "SwapOp: tokenBalanceAfter < min");
+      validateAmountOut(amountOutMin, minOutOnMaxSlippage);
+      if (balanceBefore <= swapDetails.maxAmount) {
+        revert InvalidBalance(balanceBefore, swapDetails.maxAmount);
+      }
+      if (balanceBefore - amountIn < swapDetails.minAmount) {
+        revert InvalidPostSwapBalance(balanceBefore - amountIn, swapDetails.minAmount);
+      }
     }
 
     pool.transferAssetToSwapOperator(address(fromToken), amountIn);
@@ -583,7 +637,7 @@ contract SwapOperator is ISwapOperator {
 
     pool.setSwapDetailsLastSwapTime(address(fromToken), uint32(block.timestamp));
 
-    require(amountOut >= amountOutMin, "SwapOp: amountOut < amountOutMin");
+    validateAmountOut(amountOut, amountOutMin);
 
     transferAssetTo(ETH, address(pool), amountOut);
 
@@ -594,7 +648,9 @@ contract SwapOperator is ISwapOperator {
 
     if (asset == ETH) {
       (bool ok, /* data */) = to.call{ value: amount }("");
-      require(ok, "SwapOp: Eth transfer failed");
+      if (!ok) {
+        revert TransferFailed(to, amount, ETH);
+      }
       return;
     }
 
@@ -602,18 +658,32 @@ contract SwapOperator is ISwapOperator {
     token.safeTransfer(to, amount);
   }
 
-  function transferAssetToController (address asset, uint amount) public onlyController {
-    IPool pool = _pool();
-    pool.transferAssetToSwapOperator(asset, amount);
 
-    if (asset == ETH) {
-      (bool ok, /* data */) = swapController.call{ value: amount }("");
-      require(ok, "SwapOp: Eth transfer failed");
-      return;
-    }
+   // @dev Create a request for the transfer to the safe
+  function requestAsset(address asset, uint amount) external onlySafe {
+    require(allowedSafeTransferAssets[asset] == true, "SwapOp: asset not allowed");
+    transferRequest = Request(asset, amount);
+  }
 
-    IERC20 token = IERC20(asset);
-    token.safeTransfer(swapController, amount);
+  // @dev Transfer request amount of the asset to the safe
+  function transferRequestedAsset(address requestedAsset, uint requestedAmount) external onlyController {
+    require(transferRequest.amount > 0, "SwapOp: request amount must be greater than 0");
+
+    (address asset, uint amount) = (transferRequest.asset, transferRequest.amount);
+    delete transferRequest;
+
+    require(requestedAsset == asset, "SwapOp: request assets need to match");
+    require(requestedAmount == amount, "SwapOp: request amounts need to match");
+
+    _pool().transferAssetToSwapOperator(asset, amount);
+    transferAssetTo(asset, safe, amount);
+    emit TransferredToSafe(asset, amount);
+  }
+
+  function transferAssetToController(address asset, uint amount) external onlyController {
+    _pool().transferAssetToSwapOperator(asset, amount);
+    transferAssetTo(asset, swapController, amount);
+    emit TransferredToController(asset, amount);
   }
 
   /// @dev Recovers assets in the SwapOperator to the pool or a specified receiver, ensuring no ongoing CoW swap orders
@@ -622,17 +692,23 @@ contract SwapOperator is ISwapOperator {
   function recoverAsset(address assetAddress, address receiver) public onlyController {
 
     // Validate there's no current cow swap order going on
-    require(!orderInProgress(), "SwapOp: an order is already in place");
+    if (orderInProgress()) {
+      revert OrderInProgress(currentOrderUID);
+    }
 
     IPool pool = _pool();
 
     if (assetAddress == ETH) {
       uint ethBalance = address(this).balance;
-      require(ethBalance > 0, "SwapOp: ETH balance to recover is 0");
+      if (ethBalance == 0) {
+        revert InvalidBalance(ethBalance, 0);
+      }
 
       // We assume ETH is always supported so we directly transfer it back to the Pool
       (bool sent, ) = payable(address(pool)).call{value: ethBalance}("");
-      require(sent, "SwapOp: Failed to send Ether to pool");
+      if (!sent) {
+        revert TransferFailed(address(pool), ethBalance, ETH);
+      }
 
       return;
     }
@@ -640,7 +716,9 @@ contract SwapOperator is ISwapOperator {
     IERC20 asset = IERC20(assetAddress);
 
     uint balance = asset.balanceOf(address(this));
-    require(balance > 0, "SwapOp: Balance = 0");
+    if (balance == 0) {
+      revert InvalidBalance(balance, 0);
+    }
 
     SwapDetails memory swapDetails = pool.getAssetSwapDetails(assetAddress);
 
@@ -653,8 +731,8 @@ contract SwapOperator is ISwapOperator {
     asset.transfer(address(pool), balance);
   }
 
-  /// @dev Checks if there is an ongoing order.
-  /// @return bool True if an order is currently in progress, otherwise false.
+  /// @dev Checks if there is an ongoing order
+  /// @return bool True if an order is currently in progress, otherwise false
   function orderInProgress() public view returns (bool) {
     return currentOrderUID.length > 0;
   }

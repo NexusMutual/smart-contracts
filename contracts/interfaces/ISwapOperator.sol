@@ -3,20 +3,18 @@
 pragma solidity >=0.5.0;
 
 import "../external/cow/GPv2Order.sol";
-import "../interfaces/IPool.sol";
+import "../external/enzyme/IEnzymeFundValueCalculatorRouter.sol";
+import "./ICowSettlement.sol";
+import "./INXMMaster.sol";
+import "./IPool.sol";
+import "./IWeth.sol";
 
 interface ISwapOperator {
-  enum SwapOperationType {
-    WethToAsset,
-    AssetToWeth,
-    AssetToAsset
-  }
 
-  struct SwapOperation {
-    GPv2Order.Data order;
-    SwapDetails sellSwapDetails;
-    SwapDetails buySwapDetails;
-    SwapOperationType swapType;
+  enum SwapOperationType {
+    EthToAsset,
+    AssetToEth,
+    AssetToAsset
   }
 
   /* ========== VIEWS ========== */
@@ -26,6 +24,28 @@ interface ISwapOperator {
   function getUID(GPv2Order.Data calldata order) external view returns (bytes memory);
 
   function orderInProgress() external view returns (bool);
+
+  function currentOrderUID() external view returns (bytes memory);
+
+  /* ========== IMMUTABLES ========== */
+
+  function cowSettlement() external view returns (ICowSettlement);
+
+  function cowVaultRelayer() external view returns (address);
+
+  function master() external view returns (INXMMaster);
+
+  function swapController() external view returns (address);
+
+  function weth() external view returns (IWeth);
+
+  function domainSeparator() external view returns (bytes32);
+
+  function enzymeV4VaultProxyAddress() external view returns (address);
+
+  function enzymeFundValueCalculatorRouter() external view returns (IEnzymeFundValueCalculatorRouter);
+
+  function minPoolEth() external view returns (uint);
 
   /* ==== MUTATIVE FUNCTIONS ==== */
 
@@ -39,32 +59,46 @@ interface ISwapOperator {
 
   function recoverAsset(address assetAddress, address receiver) external;
 
+  function requestAsset(address asset, uint amount) external;
+
+  function transferRequestedAsset(address requestedAsset, uint requestedAmount) external;
+
   /* ========== EVENTS AND ERRORS ========== */
 
   event OrderPlaced(GPv2Order.Data order);
   event OrderClosed(GPv2Order.Data order, uint filledAmount);
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
+  event TransferredToSafe(address asset, uint amount);
+  event TransferredToController(address asset, uint amount);
 
-  // Order
-  error OrderInProgress();
+  // Swap Order
+  error OrderInProgress(bytes currentOrderUID);
+  error NoOrderInPlace();
   error OrderUidMismatch(bytes providedOrderUID, bytes expectedOrderUID);
   error UnsupportedTokenBalance(string kind);
-  error InvalidReceiver();
-  error OrderTokenIsDisabled(address token);
-  error AmountTooLow(uint amount, uint minAmount);
+  error InvalidReceiver(address validReceiver);
+  error TokenDisabled(address token);
+  error AmountOutTooLow(uint amountOut, uint minAmount);
+  error InvalidTokenAddress(string token);
+  error InvalidDenominationAsset(address invalidAsset, address validAsset);
 
   // Valid To
   error BelowMinValidTo(uint minValidTo);
   error AboveMaxValidTo(uint maxValidTo);
 
   // Balance
-  error EthReserveBelowMin(uint ethPostSwap, uint minEthReserve);
-  error InvalidBalance(uint tokenBalance, uint limit, string limitType);
-  error InvalidPostSwapBalance(uint postSwapBalance, uint limit, string limitType);
+  error InvalidBalance(uint tokenBalance, uint limit);
+  error InvalidPostSwapBalance(uint postSwapBalance, uint limit);
+
+  // Access Controls
+  error OnlyController();
+
+  // Transfer
+  error TransferFailed(address to, uint value, address token);
 
   // Cool down
   error InsufficientTimeBetweenSwaps(uint minValidSwapTime);
 
   // Fee
-  error AboveMaxFee(uint maxFee);
+  error AboveMaxFee(uint feeInEth, uint maxFee);
 }

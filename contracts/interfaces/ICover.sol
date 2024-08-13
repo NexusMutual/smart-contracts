@@ -126,7 +126,6 @@ struct ActiveCover {
 }
 
 interface ICover {
-
   /* ========== VIEWS ========== */
 
   function coverData(uint coverId) external view returns (CoverData memory);
@@ -137,10 +136,7 @@ interface ICover {
 
   function coverSegments(uint coverId) external view returns (CoverSegment[] memory);
 
-  function coverSegmentWithRemainingAmount(
-    uint coverId,
-    uint segmentId
-  ) external view returns (CoverSegment memory);
+  function coverSegmentWithRemainingAmount(uint coverId, uint segmentId) external view returns (CoverSegment memory);
 
   function products(uint id) external view returns (Product memory);
 
@@ -160,12 +156,17 @@ interface ICover {
 
   function globalRewardsRatio() external view returns (uint);
 
-  function getPriceAndCapacityRatios(uint[] calldata productIds) external view returns (
-    uint _globalCapacityRatio,
-    uint _globalMinPriceRatio,
-    uint[] memory _initialPriceRatios,
-    uint[] memory _capacityReductionRatios
-  );
+  function getPriceAndCapacityRatios(
+    uint[] calldata productIds
+  )
+    external
+    view
+    returns (
+      uint _globalCapacityRatio,
+      uint _globalMinPriceRatio,
+      uint[] memory _initialPriceRatios,
+      uint[] memory _capacityReductionRatios
+    );
 
   /* === MUTATIVE FUNCTIONS ==== */
 
@@ -187,11 +188,7 @@ interface ICover {
 
   function setProducts(ProductParam[] calldata params) external;
 
-  function burnStake(
-    uint coverId,
-    uint segmentId,
-    uint amount
-  ) external returns (address coverOwner);
+  function burnStake(uint coverId, uint segmentId, uint amount) external returns (address coverOwner);
 
   function coverNFT() external returns (ICoverNFT);
 
@@ -208,13 +205,20 @@ interface ICover {
   ) external returns (uint poolId, address stakingPoolAddress);
 
   function isPoolAllowed(uint productId, uint poolId) external returns (bool);
+
   function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external view;
 
   /* ========== EVENTS ========== */
 
   event ProductSet(uint id, string ipfsMetadata);
   event ProductTypeSet(uint id, string ipfsMetadata);
-  event CoverEdited(uint indexed coverId, uint indexed productId, uint indexed segmentId, address buyer, string ipfsMetadata);
+  event CoverEdited(
+    uint indexed coverId,
+    uint indexed productId,
+    uint indexed segmentId,
+    address buyer,
+    string ipfsMetadata
+  );
 
   // Auth
   error OnlyMemberRolesCanOperateTransfer();

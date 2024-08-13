@@ -14,8 +14,6 @@ import "../../interfaces/ISwapOperator.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @notice Pool mock base contract
  * @dev Use this base contract as is or override as needed
@@ -258,7 +256,6 @@ contract PoolMockCowSwap is IPool {
 
     // start from 1 (0 is ETH and doesn't need an oracle)
     for (uint i = 1; i < assetCount; i++) {
-      console.log('ASSEt address checking aggregator:', assets[i].assetAddress);
       (Aggregator aggregator,) = _priceFeedOracle.assets(assets[i].assetAddress);
       require(address(aggregator) != address(0), "Pool: PriceFeedOracle lacks aggregator for asset");
     }

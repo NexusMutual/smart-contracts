@@ -155,7 +155,7 @@ describe('withdrawNXM', function () {
 
     const stakingPoolPromises = Array.from({ length: stakingPoolCount }).map(async (_, i) => {
       const poolId = i + 1;
-      const [stakingPoolNXMBalances, manager, ownershipOffer] = Promise.all([
+      const [stakingPoolNXMBalances, manager, ownershipOffer] = await Promise.all([
         this.tokenController.stakingPoolNXMBalances(poolId),
         this.tokenController.getStakingPoolManager(poolId),
         this.tokenController.getStakingPoolOwnershipOffer(poolId),
@@ -169,8 +169,8 @@ describe('withdrawNXM', function () {
 
     const managerPromises = Array.from({ length: stakingPoolCount }).map(async (_, i) => {
       const poolId = i + 1;
-      const manager = this.tokenController.getStakingPoolManager(poolId);
-      const stakingPools = this.tokenController.getManagerStakingPools(manager);
+      const manager = await this.tokenController.getStakingPoolManager(poolId);
+      const stakingPools = await this.tokenController.getManagerStakingPools(manager);
       this.contractData.tokenController.before.managerStakingPools[manager] = stakingPools;
     });
 
@@ -216,7 +216,7 @@ describe('withdrawNXM', function () {
 
       const votesPromises = Array.from({ length: voteCount }, (_, i) => this.assessment.votesOf(member, i));
       const hasAlreadyVotedPromises = Array.from({ length: assessmentCount }).map(async (_, id) => {
-        const hasAlreadyVotedResult = this.assessment.hasAlreadyVotedOn(member, id);
+        const hasAlreadyVotedResult = await this.assessment.hasAlreadyVotedOn(member, id);
         this.contractData.assessment.before.member[member].hasAlreadyVotedOn[id] = hasAlreadyVotedResult;
       });
       const lockReasonsPromises = lockReasons.map(async lockReason => {
@@ -369,7 +369,7 @@ describe('withdrawNXM', function () {
 
     const managerPromises = Array.from({ length: stakingPoolCount }).map(async (_, i) => {
       const poolId = i + 1;
-      const manager = this.tokenController.getStakingPoolManager(poolId);
+      const manager = await this.tokenController.getStakingPoolManager(poolId);
       const stakingPools = await this.tokenController.getManagerStakingPools(manager);
       expect(stakingPools).deep.equal(tokenControllerBefore.managerStakingPools[manager]);
     });

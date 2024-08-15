@@ -104,6 +104,16 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     return poolMetadata[poolId];
   }
 
+  function getPoolMetadataFor(uint[] calldata poolIds) external override view returns (string[] memory) {
+
+    string[] memory ipfsHashes = new string[](poolIds.length);
+    for (uint i = 0; i < poolIds.length; i++) {
+      ipfsHashes[i] = poolMetadata[poolIds[i]];
+    }
+
+    return ipfsHashes;
+  }
+
   function recalculateEffectiveWeights(uint poolId, uint[] calldata productIds) external {
 
     IStakingPool _stakingPool = stakingPool(poolId);

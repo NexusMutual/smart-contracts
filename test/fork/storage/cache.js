@@ -22,8 +22,8 @@ const parseCache = item => {
 
 const load = async (fileName, defaultState = {}) => {
   const filePath = path.join(__dirname, 'data', fileName);
-  const fileExists = await fs.exists(filePath);
-  if (!fileExists) {
+  const exists = await fileExists(filePath);
+  if (!exists) {
     return defaultState;
   }
 
@@ -34,13 +34,22 @@ const load = async (fileName, defaultState = {}) => {
   parsedData.assets = { ...defaultState.assets };
   parsedData.productPriorityPoolsFixedPrice = { ...defaultState.productPriorityPoolsFixedPrice };
 
+  console.info(`Loaded ${fileName}`);
+
   return parsedData;
 };
+
+const fileExists = async path =>
+  fs
+    .access(path)
+    .then(() => true)
+    .catch(() => false);
 
 const save = async (storage, fileName) => {
   const serialized = JSON.stringify(storage, null, 2);
   const storagePath = path.join(__dirname, 'data', fileName);
   await fs.writeFile(storagePath, serialized);
+  console.info(`Successfully save ${fileName}`);
 };
 
 const clear = async storagePath => {

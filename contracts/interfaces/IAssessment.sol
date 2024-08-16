@@ -184,6 +184,7 @@ interface IAssessment {
   error NotMember(address nonMember);
   error NoWithdrawableRewards();
   error InvalidMerkleProof();
+  error OnlyTokenController();
 
   // Votes
   error AssessmentIdsVotesLengthMismatch();

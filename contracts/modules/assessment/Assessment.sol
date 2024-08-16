@@ -41,6 +41,15 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   Assessment[] public override assessments;
 
+  /* ========== MODIFIERS ========== */
+
+  modifier onlyTokenController {
+    if (msg.sender != getInternalContractAddress(ID.TC)) {
+      revert OnlyTokenController();
+    }
+    _;
+  }
+
   /* ========== CONSTRUCTOR ========== */
 
   constructor(address nxmAddress) {
@@ -120,7 +129,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function stake(uint96 amount) public whenNotPaused {
 
     stakeOf[msg.sender].amount += amount;
-    ITokenController(getInternalContractAddress(ID.TC)).operatorTransfer(msg.sender, address(this), amount);
+    _tokenController().operatorTransfer(msg.sender, address(this), amount);
 
     emit StakeDeposited(msg.sender, amount);
   }
@@ -153,7 +162,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @dev At least stakeLockupPeriodInDays must have passed since the last vote.
   ///
   /// @param staker  The address of the staker whose stake will be unstaked
-  function unstakeAllFor(address staker) external override whenNotPaused {
+  function unstakeAllFor(address staker) external override whenNotPaused onlyTokenController {
     _unstake(staker, stakeOf[staker].amount, staker);
   }
 
@@ -245,7 +254,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     // This is the index where the next withdrawReward call will start iterating from
     stakeOf[staker].rewardsWithdrawableFromIndex = SafeUintCast.toUint104(withdrawnUntilIndex);
-    ITokenController(getInternalContractAddress(ID.TC)).mint(destination, withdrawn);
+    _tokenController().mint(destination, withdrawn);
 
     emit RewardWithdrawn(staker, destination, withdrawn);
   }
@@ -308,7 +317,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
 
     for (uint i = 0; i < assessmentIds.length; i++) {
-      castVote(assessmentIds[i], votes[i], ipfsAssessmentDataHashes[i]);
+      _castVote(assessmentIds[i], votes[i], ipfsAssessmentDataHashes[i]);
     }
   }
 
@@ -323,7 +332,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///
   /// @param assessmentId  The index of the assessment for which the vote is cast
   /// @param isAcceptVote  True to accept, false to deny
-  function castVote(uint assessmentId, bool isAcceptVote, string memory ipfsAssessmentDataHash) internal {
+  function _castVote(uint assessmentId, bool isAcceptVote, string memory ipfsAssessmentDataHash) internal {
 
     {
       if (hasAlreadyVotedOn[msg.sender][assessmentId]) {
@@ -476,7 +485,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       _stake.fraudCount++;
 
       // TODO: consider burning the tokens in the token controller contract
-      ramm().updateTwap();
+      _ramm().updateTwap();
       nxm.burn(burnAmount);
     }
 
@@ -524,6 +533,16 @@ contract Assessment is IAssessment, MasterAwareV2 {
     config = newConfig;
   }
 
+  /* ========== DEPENDENCIES ========== */
+
+  function _tokenController() internal view returns (ITokenController) {
+    return ITokenController(getInternalContractAddress(ID.TC));
+  }
+
+  function _ramm() internal view returns (IRamm) {
+    return IRamm(getInternalContractAddress(ID.RA));
+  }
+
   /// @dev Updates internal contract addresses to the ones stored in master. This function is
   /// automatically called by the master contract when a contract is added or upgraded.
   function changeDependentContractAddress() external override {
@@ -549,11 +568,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       config.stakeLockupPeriodInDays = 14; // days
       config.silentEndingPeriodInDays = 1; // days
       // whitelist current contract
-      ITokenController(getInternalContractAddress(ID.TC)).addToWhitelist(address(this));
+      _tokenController().addToWhitelist(address(this));
     }
-  }
-
-  function ramm() internal view returns (IRamm) {
-    return IRamm(internalContracts[uint(ID.RA)]);
   }
 }

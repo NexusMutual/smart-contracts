@@ -41,15 +41,10 @@ async function setProductsSetup() {
   const initialPoolFee = 50; // 50%
   const maxPoolFee = 80; // 80%
 
-  const [poolId] = await stakingProducts.callStatic.createStakingPool(true, initialPoolFee, maxPoolFee, [], '');
+  const params = [true /* isPrivatePool */, initialPoolFee, maxPoolFee, [], 'ipfsDescriptionHash'];
+  const [poolId] = await stakingProducts.callStatic.createStakingPool(...params);
 
-  await stakingProducts.connect(manager).createStakingPool(
-    true, // isPrivatePool,
-    initialPoolFee,
-    maxPoolFee,
-    [],
-    '', // ipfsDescriptionHash
-  );
+  await stakingProducts.connect(manager).createStakingPool(...params);
 
   return {
     ...fixture,

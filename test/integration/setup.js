@@ -592,7 +592,7 @@ async function setup() {
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,
       DEFAULT_PRODUCTS,
-      '', // ipfs hash
+      'ipfs-hash', // ipfs hash
     );
 
     const poolId = i + 1;

@@ -590,6 +590,9 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     ProductInitializationParams[] memory productInitParams,
     string calldata ipfsHash
   ) external override whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+    if (bytes(ipfsHash).length == 0) {
+      revert IpfsHashRequired();
+    }
 
     ICoverProducts _coverProducts = coverProducts();
 
@@ -663,8 +666,11 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function setPoolMetadata(
     uint poolId,
-    string memory ipfsHash
+    string calldata ipfsHash
   ) external override onlyManager(poolId) {
+    if (bytes(ipfsHash).length == 0) {
+      revert IpfsHashRequired();
+    }
     poolMetadata[poolId] = ipfsHash;
   }
 
@@ -677,6 +683,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     require(bytes(poolMetadata[1]).length == 0, "StakingProducts: Metadata already set");
 
     for (uint i = 0; i < poolCount; i++) {
+      if (bytes(poolMetadata[i + 1]).length != 0) continue;
       poolMetadata[i + 1] = ipfsHashes[i];
     }
   }

@@ -82,6 +82,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
+  uint private constant MAX_ACTIVE_TRANCHES = 8; // 7 whole quarters + 1 partial quarter
+
   ICoverNFT public immutable override coverNFT;
   IStakingNFT public immutable override stakingNFT;
   ICompleteStakingPoolFactory public immutable override stakingPoolFactory;
@@ -702,7 +704,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       IStakingPool sp = IStakingPool(StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolIndex + 1));
       sp.processExpirations(true);
 
-      for (uint trancheIdx = 0; trancheIdx <= 7; trancheIdx++) {
+      for (uint trancheIdx = 0; trancheIdx < MAX_ACTIVE_TRANCHES; trancheIdx++) {
         sp.updateRewardsShares(firstActiveTrancheId + trancheIdx, tokenIds[poolIndex][trancheIdx]);
       }
     }

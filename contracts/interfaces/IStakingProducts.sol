@@ -151,4 +151,6 @@ interface IStakingProducts {
   error InvalidProductType();
   error TargetPriceBelowGlobalMinPriceRatio();
 
+  // IPFS
+  error IpfsHashRequired();
 }

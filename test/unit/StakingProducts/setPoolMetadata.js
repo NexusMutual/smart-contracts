@@ -18,6 +18,18 @@ describe('setPoolMetadata', function () {
     );
   });
 
+  it('reverts if ipfsHash is empty', async function () {
+    const fixture = await loadFixture(setup);
+    const [nonManager] = fixture.accounts.nonMembers;
+    const stakingProducts = fixture.stakingProducts.connect(nonManager);
+
+    const poolId = 1;
+    const emptyIpfsHash = '';
+
+    const setPoolMetadata = stakingProducts.setPoolMetadata(poolId, emptyIpfsHash);
+    await expect(setPoolMetadata).to.be.revertedWithCustomError(stakingProducts, 'OnlyManager');
+  });
+
   it('updates pool metadata', async function () {
     const fixture = await loadFixture(setup);
     const [manager] = fixture.accounts.members;

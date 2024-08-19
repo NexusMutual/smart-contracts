@@ -50,7 +50,7 @@ describe('createStakingPool', function () {
     const { stakingProducts, master } = fixture;
     const [stakingPoolCreator] = fixture.accounts.members;
 
-    const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
+    const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
 
     await master.setEmergencyPause(true);
 
@@ -60,9 +60,26 @@ describe('createStakingPool', function () {
         initialPoolFee,
         maxPoolFee,
         productInitializationParams,
-        'staking-pool-ipfs-metadata',
+        ipfsDescriptionHash,
       ),
     ).to.be.revertedWith('System is paused');
+  });
+
+  it('reverts if ipfsHash is empty', async function () {
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { stakingProducts } = fixture;
+    const [stakingPoolCreator] = fixture.accounts.members;
+
+    const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
+
+    const createStakingPool = stakingProducts.connect(stakingPoolCreator).createStakingPool(
+      false, // isPrivatePool,
+      initialPoolFee,
+      maxPoolFee,
+      productInitializationParams,
+      '', // empty ipfsHash
+    );
+    await expect(createStakingPool).to.be.revertedWithCustomError(stakingProducts, 'IpfsHashRequired');
   });
 
   it('should create and initialize a new pool minimal beacon proxy pool', async function () {
@@ -183,7 +200,7 @@ describe('createStakingPool', function () {
     const { stakingProducts } = fixture;
     const [nonMember] = fixture.accounts.nonMembers;
 
-    const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
+    const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
 
     await expect(
       stakingProducts.connect(nonMember).createStakingPool(
@@ -191,7 +208,7 @@ describe('createStakingPool', function () {
         initialPoolFee,
         maxPoolFee,
         productInitializationParams,
-        '', // ipfsDescriptionHash
+        ipfsDescriptionHash,
       ),
     ).to.be.revertedWith('Caller is not a member');
   });
@@ -221,7 +238,7 @@ describe('createStakingPool', function () {
     const { stakingProducts, stakingPoolFactory } = fixture;
     const [stakingPoolCreator] = fixture.accounts.members;
 
-    const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
+    const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
 
     const stakingPoolCountBefore = await stakingPoolFactory.stakingPoolCount();
 
@@ -230,7 +247,7 @@ describe('createStakingPool', function () {
       initialPoolFee,
       maxPoolFee,
       productInitializationParams,
-      '', // ipfsDescriptionHash
+      ipfsDescriptionHash,
     );
 
     const stakingPoolCountAfter = await stakingPoolFactory.stakingPoolCount();
@@ -242,7 +259,7 @@ describe('createStakingPool', function () {
     const { stakingProducts } = fixture;
     const { GLOBAL_MIN_PRICE_RATIO } = fixture.config;
     const [stakingPoolCreator] = fixture.accounts.members;
-    const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
+    const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
 
     const products = [{ ...productInitializationParams[0], targetPrice: GLOBAL_MIN_PRICE_RATIO - 1 }];
     await expect(
@@ -251,7 +268,7 @@ describe('createStakingPool', function () {
         initialPoolFee,
         maxPoolFee,
         products,
-        '', // ipfsDescriptionHash
+        ipfsDescriptionHash,
       ),
     ).to.be.revertedWithCustomError(stakingProducts, 'TargetPriceBelowGlobalMinPriceRatio');
   });

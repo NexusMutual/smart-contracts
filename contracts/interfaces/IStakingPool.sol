@@ -53,6 +53,15 @@ interface IStakingPool {
     uint128 rewardsShares;
   }
 
+  struct WithdrawTrancheContext {
+    uint _firstActiveTrancheId;
+    uint _accNxmPerRewardsShare;
+    uint managerLockedInGovernanceUntil;
+    bool withdrawStake;
+    bool withdrawRewards;
+    address destination;
+}
+
   function initialize(
     bool isPrivatePool,
     uint initialPoolFee,

@@ -593,7 +593,7 @@ describe('withdraw', function () {
   it('should emit some event', async function () {
     const fixture = await loadFixture(withdrawSetup);
     const { coverSigner, stakingPool } = fixture;
-    const [user] = fixture.accounts.members;
+    const [user, otherUser] = fixture.accounts.members;
     const { amount, tokenId, destination } = withdrawFixture;
 
     const TRANCHES_NUMBER = 3;
@@ -639,7 +639,7 @@ describe('withdraw', function () {
       rewards.push(currentReward);
     }
 
-    await expect(stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds))
+    await expect(stakingPool.connect(otherUser).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds))
       .to.emit(stakingPool, 'Withdraw')
       .withArgs(user.address, tokenId, trancheIds[0], stakes[0], rewards[0])
       .to.emit(stakingPool, 'Withdraw')

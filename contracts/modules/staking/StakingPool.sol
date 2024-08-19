@@ -463,6 +463,17 @@ contract StakingPool is IStakingPool, Multicall {
     emit StakeDeposited(msg.sender, amount, trancheId, tokenId);
   }
 
+  /// @notice Withdraws stake and rewards for a given token and specified tranches.
+  /// @dev The function processes the withdrawal of both stake and rewards for a given staking NFT (`tokenId`).
+  ///      Call StakingPoolViewer.getTokens to retrieve the relevant tranche IDs for a tokenId.
+  ///      A stake can only be withdrawn if the the associated tranche where it was deposited has expired
+  ///      Operates only when the contract is not paused.
+  /// @param tokenId The ID of the staking NFT representing the deposited stake and its associated rewards.
+  /// @param withdrawStake Whether to withdraw the total stake associated with the `tokenId`.
+  /// @param withdrawRewards Whether to withdraw the total rewards associated with the `tokenId`.
+  /// @param trancheIds An array of tranche IDs associated with the `tokenId`, used to specify which tranches to withdraw from.
+  /// @return withdrawnStake The total stake withdrawn across all specified tranche IDs for the given `tokenId`.
+  /// @return withdrawnRewards The total rewards withdrawn across all specified tranche IDs for the given `tokenId`.
   function withdraw(
     uint tokenId,
     bool withdrawStake,
@@ -470,79 +481,78 @@ contract StakingPool is IStakingPool, Multicall {
     uint[] memory trancheIds
   ) public whenNotPaused returns (uint withdrawnStake, uint withdrawnRewards) {
 
-    uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
-
     // pass false as it does not modify the share supply nor the reward per second
     processExpirations(true);
 
-    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-    uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+    WithdrawTrancheContext memory trancheContext;
+    trancheContext.withdrawStake = withdrawStake;
+    trancheContext.withdrawRewards = withdrawRewards;
+    trancheContext._accNxmPerRewardsShare = accNxmPerRewardsShare;
+    trancheContext._firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+    trancheContext.managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
+    trancheContext.destination = tokenId == 0 ? manager() : stakingNFT.ownerOf(tokenId);
+
     uint trancheCount = trancheIds.length;
 
     for (uint j = 0; j < trancheCount; j++) {
 
       uint trancheId = trancheIds[j];
+      (uint trancheStakeToWithdraw, uint trancheRewardsToWithdraw) = _processTrancheWithdrawal(
+        tokenId, 
+        trancheId,
+        trancheContext
+      );
 
-      Deposit memory deposit = deposits[tokenId][trancheId];
+      withdrawnStake += trancheStakeToWithdraw;
+      withdrawnRewards += trancheRewardsToWithdraw;
 
-      {
-        uint trancheRewardsToWithdraw;
-        uint trancheStakeToWithdraw;
-
-        // can withdraw stake only if the tranche is expired
-        if (withdrawStake && trancheId < _firstActiveTrancheId) {
-
-          // Deposit withdrawals are not permitted while the manager is locked in governance to
-          // prevent double voting.
-          if (managerLockedInGovernanceUntil > block.timestamp) {
-            revert ManagerNxmIsLockedForGovernanceVote();
-          }
-
-          // calculate the amount of nxm for this deposit
-          uint stake = expiredTranches[trancheId].stakeAmountAtExpiry;
-          uint _stakeSharesSupply = expiredTranches[trancheId].stakeSharesSupplyAtExpiry;
-          trancheStakeToWithdraw = stake * deposit.stakeShares / _stakeSharesSupply;
-          withdrawnStake += trancheStakeToWithdraw;
-
-          // mark as withdrawn
-          deposit.stakeShares = 0;
-        }
-
-        if (withdrawRewards) {
-
-          // if the tranche is expired, use the accumulator value saved at expiration time
-          uint accNxmPerRewardShareToUse = trancheId < _firstActiveTrancheId
-            ? expiredTranches[trancheId].accNxmPerRewardShareAtExpiry
-            : _accNxmPerRewardsShare;
-
-          // calculate reward since checkpoint
-          uint newRewardPerShare = accNxmPerRewardShareToUse.uncheckedSub(deposit.lastAccNxmPerRewardShare);
-          trancheRewardsToWithdraw = newRewardPerShare * deposit.rewardsShares / ONE_NXM + deposit.pendingRewards;
-          withdrawnRewards += trancheRewardsToWithdraw;
-
-          // save checkpoint
-          deposit.lastAccNxmPerRewardShare = accNxmPerRewardShareToUse.toUint96();
-          deposit.pendingRewards = 0;
-        }
-
-        emit Withdraw(msg.sender, tokenId, trancheId, trancheStakeToWithdraw, trancheRewardsToWithdraw);
-      }
-
-      deposits[tokenId][trancheId] = deposit;
+      emit Withdraw(trancheContext.destination, tokenId, trancheId, trancheStakeToWithdraw, trancheRewardsToWithdraw);
     }
 
-    address destination = tokenId == 0
-      ? manager()
-      : stakingNFT.ownerOf(tokenId);
-
     tokenController.withdrawNXMStakeAndRewards(
-      destination,
+      trancheContext.destination,
       withdrawnStake,
       withdrawnRewards,
       poolId
     );
 
     return (withdrawnStake, withdrawnRewards);
+  }
+  
+  function _processTrancheWithdrawal(
+    uint tokenId,
+    uint trancheId,
+    WithdrawTrancheContext memory context
+  ) internal returns (uint trancheStakeToWithdraw, uint trancheRewardsToWithdraw) {
+
+    Deposit memory deposit = deposits[tokenId][trancheId];
+
+    if (context.withdrawStake && trancheId < context._firstActiveTrancheId) {
+      if (context.managerLockedInGovernanceUntil > block.timestamp) {
+        revert ManagerNxmIsLockedForGovernanceVote();
+      }
+
+      uint stake = expiredTranches[trancheId].stakeAmountAtExpiry;
+      uint _stakeSharesSupply = expiredTranches[trancheId].stakeSharesSupplyAtExpiry;
+      trancheStakeToWithdraw = stake * deposit.stakeShares / _stakeSharesSupply;
+      deposit.stakeShares = 0;
+    }
+
+    if (context.withdrawRewards) {
+      uint accNxmPerRewardShareToUse = trancheId < context._firstActiveTrancheId
+        ? expiredTranches[trancheId].accNxmPerRewardShareAtExpiry
+        : context._accNxmPerRewardsShare;
+
+      uint newRewardPerShare = accNxmPerRewardShareToUse.uncheckedSub(deposit.lastAccNxmPerRewardShare);
+      trancheRewardsToWithdraw = newRewardPerShare * deposit.rewardsShares / ONE_NXM + deposit.pendingRewards;
+
+      deposit.lastAccNxmPerRewardShare = accNxmPerRewardShareToUse.toUint96();
+      deposit.pendingRewards = 0;
+    }
+
+    deposits[tokenId][trancheId] = deposit;
+
+    return (trancheStakeToWithdraw, trancheRewardsToWithdraw);
   }
 
   function requestAllocation(

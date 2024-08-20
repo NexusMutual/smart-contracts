@@ -31,14 +31,7 @@ const main = async provider => {
 };
 
 const withdrawCoverNotes = async tc => {
-  // const coverNotesData = require('../cn-locked-amount.json');
-  const coverNotesData = [
-    {
-      member: '0x5D93f3c0e6134cDb10c2eb46ABC82353637C9983',
-      coverIds: ['2387', '2383', '2385', '2386'],
-      lockReasonIndexes: ['0', '1', '2', '3'],
-    },
-  ];
+  const coverNotesData = require('../cn-locked-amount.json');
 
   let failed = 0;
   let success = 0;
@@ -162,6 +155,24 @@ const exec = async () => {
   console.log('5 gwei: ', await getGasCost(182221106, 5));
 };
 
+const getAmounts = (label, usersAndAmounts) => {
+  const totalAmountNxm = usersAndAmounts.reduce((acc, data) => acc.add(data.amount), ethers.BigNumber.from(0));
+  const totalNxm = ethers.utils.formatEther(totalAmountNxm);
+  console.log(`${label} ${totalNxm} NXM`);
+};
+
+const amounts = () => {
+  const stakeData = require('../v1-pooled-staking-stake.json');
+  const rewardsData = require('../v1-pooled-staking-rewards.json');
+  const claData = require('../cla-locked-amount.json');
+  const cnData = require('../cn-locked-amount.json');
+  getAmounts('Stake', stakeData);
+  getAmounts('Rewards', rewardsData);
+  getAmounts('CLA', claData);
+  getAmounts('CN', cnData);
+};
+
+amounts();
 // exec();
 
 // 2 gwei: '0.519778412 ETH

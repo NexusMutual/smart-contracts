@@ -121,7 +121,7 @@ interface IStakingProducts {
 
   function setPoolMetadata(uint poolId, string memory ipfsHash) external;
 
-  function getPoolMetadata(uint poolId) external returns (string memory ipfsHash);
+  function getPoolMetadata(uint poolId) external view returns (string memory ipfsHash);
 
   function setInitialMetadata(string[] calldata ipfsHashes) external;
 

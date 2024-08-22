@@ -38,17 +38,14 @@ const poolInitParams = {
   initialPoolFee: 5, // 5%
   maxPoolFee: 5, // 5%
   products: [productParams],
-  ipfsDescriptionHash: 'Description Hash',
 };
 
 async function proccessExpirationSetup() {
   const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts } = fixture;
-  const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
+  const { poolId, initialPoolFee, maxPoolFee, products } = poolInitParams;
 
-  await stakingPool
-    .connect(fixture.stakingProductsSigner)
-    .initialize(false, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+  await stakingPool.connect(fixture.stakingProductsSigner).initialize(false, initialPoolFee, maxPoolFee, poolId);
 
   await stakingProducts.connect(fixture.stakingProductsSigner).setInitialProducts(poolId, products);
 

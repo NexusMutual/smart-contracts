@@ -1,6 +1,6 @@
 {
   "name": "nexusmutual",
-  "version": "2.7.1",
+  "version": "2.8.0",
   "description": "NexusMutual smart contracts",
   "repository": {
     "type": "git",
@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/NexusMutual/smart-contracts",
   "dependencies": {
-    "@nexusmutual/deployments": "^2.6.2",
+    "@nexusmutual/deployments": "^2.7.1",
     "@nexusmutual/ethers-v5-aws-kms-signer": "^0.0.1",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
     "@openzeppelin/contracts-v4": "npm:@openzeppelin/contracts@^4.7.3",
@@ -41,6 +41,7 @@
     "@tenderly/hardhat-tenderly": "^1.7.7",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.5",
+    "async-sema": "^3.1.1",
     "chai": "^4.3.6",
     "coveralls": "^3.1.1",
     "csv-parse": "^5.3.4",

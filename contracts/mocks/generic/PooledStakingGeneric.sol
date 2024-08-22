@@ -7,50 +7,50 @@ import "../../interfaces/IPooledStaking.sol";
 contract PooledStakingGeneric is IPooledStaking {
 
   function accumulateReward(address, uint) external virtual {
-    revert("Unsupported");
+    revert("accumulateReward unsupported");
   }
 
   function pushBurn(address, uint) external virtual {
-    revert("Unsupported");
+    revert("pushBurn unsupported");
   }
 
   function hasPendingActions() external virtual view returns (bool) {
-    revert("Unsupported");
+    revert("hasPendingActions unsupported");
   }
 
   function processPendingActions(uint) external virtual returns (bool) {
-    revert("Unsupported");
+    revert("processPendingActions unsupported");
   }
 
   function contractStake(address) external virtual view returns (uint) {
-    revert("Unsupported");
+    revert("contractStake unsupported");
   }
 
   function stakerReward(address) external virtual view returns (uint) {
-    revert("Unsupported");
+    revert("stakerReward unsupported");
   }
 
   function stakerDeposit(address) external virtual view returns (uint) {
-    revert("Unsupported");
+    revert("stakerDeposit unsupported");
   }
 
   function stakerContractStake(address, address) external virtual view returns (uint) {
-    revert("Unsupported");
+    revert("stakerContractStake unsupported");
   }
 
   function withdraw(uint) external virtual {
-    revert("Unsupported");
+    revert("withdraw unsupported");
   }
 
   function withdrawForUser(address) external virtual {
-    revert("Unsupported");
+    revert("withdrawForUser unsupported");
   }
 
   function stakerMaxWithdrawable(address) external virtual view returns (uint) {
-    revert("Unsupported");
+    revert("stakerMaxWithdrawable unsupported");
   }
 
   function withdrawReward(address) external virtual {
-    revert("Unsupported");
+    revert("withdrawReward unsupported");
   }
 }

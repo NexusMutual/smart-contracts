@@ -217,8 +217,13 @@ async function setup() {
   let tc = await deployProxy('Stub');
 
   // 3. deploy StakingPool implementation
+  const stakingExtrasLib = await ethers.deployContract('StakingExtrasLib');
+  await stakingExtrasLib.deployed();
+
   const spArgs = [stakingNFT, tk, cover, tc, master, stakingProducts].map(c => c.address);
-  const stakingPool = await ethers.deployContract('StakingPool', spArgs);
+  const stakingPool = await ethers.deployContract('StakingPool', spArgs, {
+    libraries: { StakingExtrasLib: stakingExtrasLib.address },
+  });
 
   // 4. deploy implementations and upgrade Cover, StakingProducts and DisposableTokenController proxies
   await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
@@ -228,7 +233,13 @@ async function setup() {
   stakingProducts = await ethers.getContractAt('StakingProducts', stakingProducts.address);
 
   // TODO: get rid of DisposableTokenController and use TokenController instead with owner as operator
-  await upgradeProxy(tc.address, 'DisposableTokenController', [qd.address, lcr.address, spf.address, tk.address]);
+  await upgradeProxy(tc.address, 'DisposableTokenController', [
+    qd.address,
+    lcr.address,
+    spf.address,
+    tk.address,
+    stakingNFT.address,
+  ]);
   tc = await ethers.getContractAt('DisposableTokenController', tc.address);
 
   // 5. update operators
@@ -412,11 +423,17 @@ async function setup() {
   await master.switchGovernanceAddress(gv.address);
 
   await upgradeProxy(mr.address, 'MemberRoles', [tk.address]);
-  await upgradeProxy(tc.address, 'TokenController', [qd.address, lcr.address, spf.address, tk.address]);
   await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, stakingNFT.address, tk.address]);
   await upgradeProxy(pc.address, 'ProposalCategory');
   await upgradeProxy(master.address, 'NXMaster');
   await upgradeProxy(gv.address, 'Governance');
+  await upgradeProxy(tc.address, 'TokenController', [
+    qd.address,
+    lcr.address,
+    spf.address,
+    tk.address,
+    stakingNFT.address,
+  ]);
 
   // replace legacy pool after Ramm is initialized
   const governanceSigner = await getGovernanceSigner(gv);
@@ -575,7 +592,7 @@ async function setup() {
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,
       DEFAULT_PRODUCTS,
-      '', // ipfs hash
+      'ipfs-hash', // ipfs hash
     );
 
     const poolId = i + 1;

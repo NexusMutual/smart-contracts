@@ -260,7 +260,6 @@ describe('basic functionality tests', function () {
     expect(nxmOut).to.be.equal(nxmReceived);
     expect(after.ethBalance).to.be.equal(before.ethBalance.sub(ethIn)); // member sends ETH
     expect(after.ethCapital).to.be.closeTo(expectedCapital, 1); // time sensitive due to rewards and debt
-    expect(after.ethCapital).to.be.equal(before.ethCapital.add(ethIn).sub(ethDebt).add(awEthRewards));
     expect(after.nxmSupply).to.be.equal(before.nxmSupply.add(nxmReceived)); // nxmOut is minted
     expect(after.nxmBalance).to.be.equal(before.nxmBalance.add(nxmOut)); // member receives NXM
   });
@@ -1117,6 +1116,7 @@ describe('basic functionality tests', function () {
       newClaimsReward.address,
       this.stakingPoolFactory.address,
       this.nxm.address,
+      this.stakingNFT.address,
     ]);
 
     // MCR - MCR.sol

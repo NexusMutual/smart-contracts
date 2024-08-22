@@ -1,7 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { parseEther } = ethers.utils;
-const { Zero, One } = ethers.constants;
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const {
   allocateCapacity,
   depositTo,
@@ -11,14 +10,17 @@ const {
   burnStakeParams,
   newProductTemplate,
 } = require('./helpers');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { increaseTime, setEtherBalance } = require('../../utils').evm;
+const { increaseTime, setEtherBalance } = require('../utils').evm;
+
+const { parseEther } = ethers.utils;
+const { Zero, One } = ethers.constants;
 
 const DEFAULT_PRODUCTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 const MAX_TARGET_WEIGHT = 100;
 const MAX_TOTAL_EFFECTIVE_WEIGHT = 2000;
 const UINT16_MAX = 65535;
+
 describe('recalculateEffectiveWeight', function () {
   it('recalculating effective weight should have no effect for products not found in stakingPool', async function () {
     const fixture = await loadFixture(setup);

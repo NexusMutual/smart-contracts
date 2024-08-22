@@ -40,6 +40,7 @@ async function tokenPriceSetup() {
 
   await tk.connect(member1).approve(tc.address, MaxUint256);
   await stake({
+    contracts: fixture.contracts,
     stakingPool,
     staker: member1,
     productId: ethCoverTemplate.productId,

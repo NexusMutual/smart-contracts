@@ -66,7 +66,14 @@ describe('submitClaim', function () {
     const coverAsset = 0; // ETH
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      productId,
+      period,
+      gracePeriod,
+    });
 
     // cover buyer gets yield token
     await transferYieldToken({
@@ -138,7 +145,14 @@ describe('submitClaim', function () {
     const coverAsset = 1; // DAI
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      productId,
+      period,
+      gracePeriod,
+    });
 
     // cover buyer gets cover asset
     await transferCoverAsset({
@@ -218,7 +232,14 @@ describe('submitClaim', function () {
     const coverAsset = 0; // ETH
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      productId,
+      period,
+      gracePeriod,
+    });
 
     // cover buyer gets yield token
     await transferYieldToken({
@@ -273,7 +294,14 @@ describe('submitClaim', function () {
     const coverAsset = 1; // DAI
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      productId,
+      period,
+      gracePeriod,
+    });
 
     // cover buyer gets cover asset
     await transferCoverAsset({
@@ -335,7 +363,14 @@ describe('submitClaim', function () {
     const coverAsset = 0; // ETH
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      productId,
+      period,
+      gracePeriod,
+    });
 
     // cover buyer gets yield token
     await transferYieldToken({
@@ -393,7 +428,14 @@ describe('submitClaim', function () {
     const coverAsset = 1; // DAI
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      productId,
+      period,
+      gracePeriod,
+    });
 
     // cover buyer gets cover asset
     await transferCoverAsset({
@@ -456,7 +498,14 @@ describe('submitClaim', function () {
     const coverAsset = 0; // ETH
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      productId,
+      period,
+      gracePeriod,
+    });
 
     // coverBuyer1 gets yield token
     await transferYieldToken({
@@ -582,7 +631,14 @@ describe('submitClaim', function () {
       const coverAsset = 0; // ETH
 
       // Stake to open up capacity
-      await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
+      await stake({
+        contracts: fixture.contracts,
+        stakingPool: stakingPool1,
+        staker: staker1,
+        productId,
+        period,
+        gracePeriod,
+      });
 
       // cover buyer gets yield token
       await transferYieldToken({
@@ -617,7 +673,14 @@ describe('submitClaim', function () {
       const coverAsset = 1; // DAI
 
       // Stake to open up capacity
-      await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
+      await stake({
+        contracts: fixture.contracts,
+        stakingPool: stakingPool1,
+        staker: staker1,
+        productId,
+        period,
+        gracePeriod,
+      });
 
       // cover buyer gets cover asset
       await transferCoverAsset({
@@ -695,7 +758,7 @@ describe('submitClaim', function () {
     const coverAsset = 4; // usdc
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker, productId, period, gracePeriod });
+    await stake({ contracts: fixture.contracts, stakingPool: stakingPool1, staker, productId, period, gracePeriod });
 
     // cover buyer gets cover asset
     await transferCoverAsset({ tokenOwner: fixture.accounts.defaultSender, coverBuyer, asset: usdc, cover });
@@ -749,7 +812,14 @@ describe('submitClaim', function () {
     const coverAsset = 4; // usdc
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, productId, period, gracePeriod });
+    await stake({
+      contracts: fixture.contracts,
+      stakingPool: stakingPool1,
+      staker: staker1,
+      productId,
+      period,
+      gracePeriod,
+    });
 
     // cover buyer gets cover asset
     await transferCoverAsset({

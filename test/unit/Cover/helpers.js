@@ -31,7 +31,7 @@ async function createStakingPool(
     DEFAULT_POOL_FEE, // initialPoolFee
     DEFAULT_POOL_FEE, // maxPoolFee,
     productInitializationParams,
-    '', // ipfsDescriptionHash
+    'ipfsDescriptionHash',
   );
 
   const stakingPoolId = await stakingPoolFactory.stakingPoolCount();

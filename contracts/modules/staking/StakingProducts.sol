@@ -100,7 +100,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     return tokenController().getStakingPoolManager(poolId);
   }
 
-  function getPoolMetadata(uint poolId) external override view returns (string memory ipfsHash) {
+  function getPoolMetadata(uint poolId) external view override returns (string memory ipfsHash) {
     return poolMetadata[poolId];
   }
 

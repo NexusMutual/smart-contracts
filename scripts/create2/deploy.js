@@ -5,6 +5,8 @@ const linker = require('solc/linker');
 
 const { getSigner, SIGNER_TYPE } = require('./get-signer');
 
+const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
+
 const usage = () => {
   console.log(`
     Usage:
@@ -31,12 +33,10 @@ const usage = () => {
         Use AWS KMS to sign the transaction.
       --help, -h
         Print this help message.
-      --library, -l PATH:CONTRACT_NAME:ADDRESS
+      --library, -l CONTRACT_NAME:ADDRESS
         Link an external library.
   `);
 };
-
-const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 
 const parseArgs = async args => {
   const opts = {
@@ -112,12 +112,14 @@ const parseArgs = async args => {
     if (['--library', '-l'].includes(arg)) {
       const libArg = argsArray.shift();
 
-      const [path, contractName, address] = libArg.split(':');
-      if (!path || !contractName || !address || !address.match(ADDRESS_REGEX)) {
-        throw new Error(`Invalid library format: ${libArg}. Expected format is PATH:CONTRACT_NAME:ADDRESS`);
+      const [contractName, address] = libArg.split(':');
+      if (!contractName || !address || !address.match(ADDRESS_REGEX)) {
+        throw new Error(`Invalid library format: ${libArg}. Expected format is CONTRACT_NAME:ADDRESS`);
       }
 
-      opts.libraries[`${path}:${contractName}`] = address;
+      const { sourceName } = await artifacts.readArtifact(contractName);
+      opts.libraries[`${sourceName}:${contractName}`] = address;
+
       continue;
     }
 

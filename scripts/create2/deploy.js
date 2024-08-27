@@ -1,6 +1,7 @@
 const { artifacts, ethers, run } = require('hardhat');
 const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
+const linker = require('solc/linker');
 
 const { getSigner, SIGNER_TYPE } = require('./get-signer');
 
@@ -24,20 +25,25 @@ const usage = () => {
         [gas price] Base fee in gwei. This is a required parameter.
       --priority-fee, -p MINER_TIP
         [gas price] Miner tip in gwei. Default: 2 gwei. This is a required parameter.
-      --gas-limit, -l GAS_LIMIT
+      --gas-limit, -g GAS_LIMIT
         Gas limit for the tx.
       --kms, -k
         Use AWS KMS to sign the transaction.
       --help, -h
         Print this help message.
+      --library, -l PATH:CONTRACT_NAME:ADDRESS
+        Link an external library.
   `);
 };
+
+const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 
 const parseArgs = async args => {
   const opts = {
     constructorArgs: [],
     priorityFee: '2',
     kms: false,
+    libraries: {},
   };
 
   const argsArray = args.slice(2);
@@ -63,7 +69,7 @@ const parseArgs = async args => {
 
     if (['--address', '-a'].includes(arg)) {
       opts.address = argsArray.shift();
-      if (opts.address.match(/^0x[^a-f0-9]{40}$/i)) {
+      if (!opts.address.match(ADDRESS_REGEX)) {
         throw new Error(`Invalid address: ${opts.address}`);
       }
       continue;
@@ -71,7 +77,7 @@ const parseArgs = async args => {
 
     if (['--factory-address', '-f'].includes(arg)) {
       opts.factory = argsArray.shift();
-      if (!(opts.factory || '').match(/0x[a-f0-9]{40}/i)) {
+      if (!(opts.factory || '').match(ADDRESS_REGEX)) {
         throw new Error(`Invalid factory address: ${opts.factory}`);
       }
       continue;
@@ -98,8 +104,20 @@ const parseArgs = async args => {
       continue;
     }
 
-    if (['--gas-limit', '-l'].includes(arg)) {
+    if (['--gas-limit', '-g'].includes(arg)) {
       opts.gasLimit = parseInt(argsArray.shift(), 10);
+      continue;
+    }
+
+    if (['--library', '-l'].includes(arg)) {
+      const libArg = argsArray.shift();
+
+      const [path, contractName, address] = libArg.split(':');
+      if (!path || !contractName || !address || !address.match(ADDRESS_REGEX)) {
+        throw new Error(`Invalid library format: ${libArg}. Expected format is PATH:CONTRACT_NAME:ADDRESS`);
+      }
+
+      opts.libraries[`${path}:${contractName}`] = address;
       continue;
     }
 
@@ -128,11 +146,14 @@ const parseArgs = async args => {
 };
 
 const getDeploymentBytecode = async options => {
-  const { abi, bytecode } = await artifacts.readArtifact(options.contract);
+  const { abi, bytecode: initialBytecode } = await artifacts.readArtifact(options.contract);
 
-  // FIXME: implement library linking
+  const bytecode = initialBytecode.includes('__$')
+    ? linker.linkBytecode(initialBytecode, options.libraries)
+    : initialBytecode;
+
   if (bytecode.includes('__$')) {
-    throw new Error('Library linking is not implemented yet');
+    throw new Error('Missing external library address link. Please use --library, -l option');
   }
 
   const constructorAbi = abi.find(({ type }) => type === 'constructor');

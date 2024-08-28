@@ -1,8 +1,10 @@
 const { ethers } = require('hardhat');
+const { AwsKmsSigner } = require('@nexusmutual/ethers-v5-aws-kms-signer');
 const { addresses, StakingPoolFactory, StakingNFT, StakingViewer } = require('@nexusmutual/deployments');
 
-const { toBytes2 } = require('../lib/helpers');
+const { waitForInput } = require('../lib/helpers');
 
+const { AWS_REGION, AWS_KMS_KEY_ID } = process.env;
 const TRANCHE_DURATION = 91 * 24 * 3600; // 91 days
 
 async function main() {
@@ -47,49 +49,16 @@ async function main() {
     }
   }
 
-  console.log('Deploying contracts');
-
-  const extras = await ethers.deployContract('StakingExtrasLib');
-  await extras.deployed();
-
-  const newStakingPool = await ethers.deployContract(
-    'StakingPool',
-    [
-      addresses.StakingNFT,
-      addresses.NXMToken,
-      addresses.Cover,
-      addresses.TokenController,
-      addresses.NXMaster,
-      addresses.StakingProducts,
-    ],
-    { libraries: { StakingExtrasLib: extras.address } },
-  );
-  await newStakingPool.deployed();
-
-  const newCover = await ethers.deployContract('Cover', [
-    addresses.CoverNFT,
-    addresses.StakingNFT,
-    addresses.StakingPoolFactory,
-    newStakingPool.address,
-  ]);
-  await newCover.deployed();
-
-  console.log('Upgrading contracts');
-
-  // impersonate governance to upgrade cover
-  const govSigner = ethers.provider.getSigner(addresses.Governance);
-  const balance = ethers.utils.parseEther('1000');
-  await ethers.provider.send('hardhat_setBalance', [addresses.Governance, ethers.utils.hexValue(balance)]);
-  await ethers.provider.send('hardhat_impersonateAccount', [addresses.Governance]);
-
-  const master = await ethers.getContractAt('NXMaster', addresses.NXMaster, govSigner);
-  await master.upgradeMultipleContracts([toBytes2('CO')], [newCover.address]);
-
-  const cover = await ethers.getContractAt('Cover', addresses.Cover, govSigner);
+  const signer = new AwsKmsSigner(AWS_REGION, AWS_KMS_KEY_ID, ethers.provider);
+  const cover = await ethers.getContractAt('Cover', addresses.Cover, signer);
   const txData = cover.interface.encodeFunctionData('updateStakingPoolsRewardShares', [data]);
 
+  console.log('signer:', await signer.getAddress());
   console.log('to:', addresses.Cover);
   console.log('data: ', txData);
+
+  await waitForInput('Press enter key to continue...');
+  console.log('Calling updateStakingPoolsRewardShares');
 
   const tx = await cover.updateStakingPoolsRewardShares(data);
   const receipt = await tx.wait();

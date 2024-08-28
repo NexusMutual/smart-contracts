@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { addresses, StakingPool, StakingPoolFactory, StakingProducts } = require('@nexusmutual/deployments');
+const { addresses, StakingPool, StakingPoolFactory } = require('@nexusmutual/deployments');
 
 async function main() {
   const factory = await ethers.getContractAt(StakingPoolFactory, addresses.StakingPoolFactory);

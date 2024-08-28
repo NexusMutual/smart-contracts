@@ -5,11 +5,11 @@ async function main() {
   const factory = await ethers.getContractAt(StakingPoolFactory, addresses.StakingPoolFactory);
   const stakingPoolCount = (await factory.stakingPoolCount()).toNumber();
   const stakingPoolIds = new Array(stakingPoolCount).fill('').map((_, i) => i + 1);
+  const cover = await ethers.getContractAt('Cover', addresses.Cover);
 
   const ipfsHashes = [];
 
   for (const poolId of stakingPoolIds) {
-    const cover = await ethers.getContractAt('Cover', addresses.Cover);
     const stakingPoolAddress = await cover.stakingPool(poolId);
     const stakingPool = await ethers.getContractAt(StakingPool, stakingPoolAddress);
 

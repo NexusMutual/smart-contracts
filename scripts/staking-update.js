@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { ethers } = require('hardhat');
 const { AwsKmsSigner } = require('@nexusmutual/ethers-v5-aws-kms-signer');
 const { addresses, StakingPoolFactory, StakingNFT, StakingViewer } = require('@nexusmutual/deployments');
@@ -49,7 +50,7 @@ async function main() {
     }
   }
 
-  const signer = new AwsKmsSigner(AWS_REGION, AWS_KMS_KEY_ID, ethers.provider);
+  const signer = new AwsKmsSigner(AWS_KMS_KEY_ID, AWS_REGION, ethers.provider);
   const cover = await ethers.getContractAt('Cover', addresses.Cover, signer);
   const txData = cover.interface.encodeFunctionData('updateStakingPoolsRewardShares', [data]);
 

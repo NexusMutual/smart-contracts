@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/NexusMutual/smart-contracts",
   "dependencies": {
-    "@nexusmutual/deployments": "^2.7.1",
+    "@nexusmutual/deployments": "^2.8.0",
     "@nexusmutual/ethers-v5-aws-kms-signer": "^0.0.1",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
     "@openzeppelin/contracts-v4": "npm:@openzeppelin/contracts@^4.7.3",

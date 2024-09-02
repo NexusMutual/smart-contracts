@@ -1,4 +1,4 @@
-const { ethers, config } = require('hardhat');
+const { ethers, config, network } = require('hardhat');
 const { expect } = require('chai');
 const { join } = require('node:path');
 
@@ -14,6 +14,24 @@ const sum = arr => arr.reduce((a, b) => a.add(b), ethers.constants.Zero);
 const { formatEther, formatUnits, parseEther, toUtf8Bytes } = ethers.utils;
 
 describe('StakingPool rewards update', function () {
+  before(async function () {
+    // Initialize evm helper
+    await evm.connect(ethers.provider);
+
+    // Get or revert snapshot if network is tenderly
+    if (network.name === 'tenderly') {
+      const { TENDERLY_SNAPSHOT_ID } = process.env;
+      if (TENDERLY_SNAPSHOT_ID) {
+        await evm.revert(TENDERLY_SNAPSHOT_ID);
+        console.info(`Reverted to snapshot ${TENDERLY_SNAPSHOT_ID}`);
+      } else {
+        console.info('Snapshot ID: ', await evm.snapshot());
+      }
+    }
+    const [deployer] = await ethers.getSigners();
+    await evm.setBalance(deployer.address, parseEther('1000'));
+  });
+
   it('initializes contract instances', async function () {
     this.mcr = await ethers.getContractAt('MCR', addresses.MCR);
     this.cover = await ethers.getContractAt('Cover', addresses.Cover);

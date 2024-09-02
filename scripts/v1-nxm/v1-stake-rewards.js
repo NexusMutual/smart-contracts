@@ -18,21 +18,29 @@ const getContractFactory = providerOrSigner => {
 const getMemberV1PooledStaking = async (memberId, mr, ps) => {
   process.stdout.write(`\rProcessing memberId ${memberId}`);
 
-  const [member, active] = await mr.memberAtIndex(ROLE_MEMBER, memberId);
+  try {
+    const [member, active] = await mr.memberAtIndex(ROLE_MEMBER, memberId);
 
-  if (!active) {
+    if (!active) {
+      return {
+        stake: { member, amount: '0' },
+        rewards: { member, amount: '0' },
+      };
+    }
+
+    const [deposit, rewards] = await Promise.all([ps.stakerDeposit(member), ps.stakerReward(member)]);
+
     return {
-      stake: { member, amount: '0' },
-      rewards: { member, amount: '0' },
+      stake: { member, amount: deposit.toString() },
+      rewards: { member, amount: rewards.toString() },
+    };
+  } catch (error) {
+    console.error(`Error processing memberId ${memberId}: ${error.message}`);
+    return {
+      stake: { member: 'unknown', amount: '0', error: error.message },
+      rewards: { member: 'unknown', amount: '0', error: error.message },
     };
   }
-
-  const [deposit, rewards] = await Promise.all([ps.stakerDeposit(member), ps.stakerReward(member)]);
-
-  return {
-    stake: { member, amount: deposit.toString() },
-    rewards: { member, amount: rewards.toString() },
-  };
 };
 
 const main = async provider => {
@@ -50,15 +58,20 @@ const main = async provider => {
   const memberPromises = Array.from({ length: membersCount }).map(async (_, i) => {
     await membersSemaphore.acquire();
 
-    const { stake, rewards } = await getMemberV1PooledStaking(i, mr, ps);
-    if (stake.amount !== '0') {
-      v1Stake.push(stake);
+    try {
+      const { stake, rewards } = await getMemberV1PooledStaking(i, mr, ps);
+      if (stake.amount !== '0') {
+        v1Stake.push(stake);
+      }
+      if (rewards.amount !== '0') {
+        v1Rewards.push(rewards);
+      }
+      if (stake.error || rewards.error) {
+        console.error(`\nError event for memberId ${i}: ${stake.error || rewards.error}`);
+      }
+    } finally {
+      membersSemaphore.release();
     }
-    if (rewards.amount !== '0') {
-      v1Rewards.push(rewards);
-    }
-
-    membersSemaphore.release();
   });
 
   await Promise.all(memberPromises);

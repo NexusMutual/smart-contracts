@@ -31,7 +31,7 @@ const main = async provider => {
 };
 
 const withdrawCoverNotes = async tc => {
-  const coverNotesData = require('../cn-locked-amount.json');
+  const coverNotesData = require('../../cn-locked-amount.json');
 
   let failed = 0;
   let success = 0;
@@ -66,14 +66,14 @@ const withdrawCoverNotes = async tc => {
 
 const withdrawClaimsAssessment = async tokenController => {
   console.log('estimating v1 CLA tokens withdrawal...');
-  const usersAndAmount = require('../cla-locked-amount.json');
+  const usersAndAmount = require('../../cla-locked-amount.json');
   const users = usersAndAmount.map(data => data.member);
   const gasEstimate = await tokenController.estimateGas.withdrawClaimAssessmentTokens(users);
   console.log('CLA gasEstimate: ', gasEstimate);
 };
 
 const withdrawV1StakingStake = async pooledStaking => {
-  const usersAndAmounts = require('../v1-pooled-staking-stake.json');
+  const usersAndAmounts = require('../../v1-pooled-staking-stake.json');
   const users = usersAndAmounts.map(data => data.member);
 
   let totalGas = ethers.BigNumber.from(0);
@@ -98,7 +98,7 @@ const withdrawV1StakingStake = async pooledStaking => {
 };
 
 const withdrawV1StakingRewards = async pooledStaking => {
-  const usersAndAmounts = require('../v1-pooled-staking-rewards.json');
+  const usersAndAmounts = require('../../v1-pooled-staking-rewards.json');
   const users = usersAndAmounts.map(data => data.member);
 
   let totalGas = ethers.BigNumber.from(0);
@@ -162,10 +162,10 @@ const getAmounts = (label, usersAndAmounts) => {
 };
 
 const amounts = () => {
-  const stakeData = require('../v1-pooled-staking-stake.json');
-  const rewardsData = require('../v1-pooled-staking-rewards.json');
-  const claData = require('../cla-locked-amount.json');
-  const cnData = require('../cn-locked-amount.json');
+  const stakeData = require('../../v1-pooled-staking-stake.json');
+  const rewardsData = require('../../v1-pooled-staking-rewards.json');
+  const claData = require('../../cla-locked-amount.json');
+  const cnData = require('../../cn-locked-amount.json');
   getAmounts('Stake', stakeData);
   getAmounts('Rewards', rewardsData);
   getAmounts('CLA', claData);

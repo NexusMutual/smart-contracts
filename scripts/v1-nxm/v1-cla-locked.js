@@ -40,7 +40,7 @@ const main = async provider => {
 
   console.log('Fetching V1 Pooled Staking stake / rewards for all members...');
 
-  const memberPromises = Array.from({ length: memberCount.toNumber() }).map(async (_, i) => {
+  const memberPromises = Array.from({ length: memberCount }).map(async (_, i) => {
     await membersSemaphore.acquire();
 
     const result = await getMemberCLA(i, claReason, mr, tc);

@@ -20,35 +20,31 @@ const main = async provider => {
   const factory = getContractFactory(provider);
   const [tc, ps] = await Promise.all([factory('TokenController'), factory('LegacyPooledStaking')]);
 
-  console.log('withdrawing all V1 NXM members...');
+  console.log('estimating withdrawing all V1 NXM members...');
 
-  const locks = await tc.getLockReasons('0x5D93f3c0e6134cDb10c2eb46ABC82353637C9983');
-  console.log('locks: ', locks);
-  // await withdrawCoverNotes(tc);
-  // await withdrawClaimsAssessment(tc);
-  // await withdrawV1StakingStake(ps);
-  // await withdrawV1StakingRewards(ps);
+  await withdrawCoverNotes(tc);
+  await withdrawClaimsAssessment(tc);
+  await withdrawV1StakingStake(ps);
+  await withdrawV1StakingRewards(ps);
 };
 
 const withdrawCoverNotes = async tc => {
-  const coverNotesData = require('../../cn-locked-amount.json');
+  const coverNotesData = require('../../v1-cn-locked-amount.json');
 
   let failed = 0;
   let success = 0;
-  // let totalGas = ethers.BigNumber.from(0);
+  let totalGas = ethers.BigNumber.from(0);
   const membersSemaphore = new Sema(10, { capacity: coverNotesData.length });
 
   const promises = coverNotesData.map(async (data, i) => {
     const { member, coverIds, lockReasonIndexes } = data;
     process.stdout.write(`\rmember ${++i} of ${coverNotesData.length}`);
 
-    // await membersSemaphore.acquire();
+    await membersSemaphore.acquire();
 
     try {
-      const tx = await tc.withdrawCoverNote(member, coverIds, lockReasonIndexes);
-      await tx.wait();
-      // const gasEstimate = await tc.estimateGas.withdrawCoverNote(member, coverIds, lockReasonIndexes);
-      // totalGas = totalGas.add(gasEstimate);
+      const gasEstimate = await tc.estimateGas.withdrawCoverNote(member, coverIds, lockReasonIndexes);
+      totalGas = totalGas.add(gasEstimate);
       success++;
     } catch (e) {
       console.log(e);
@@ -56,7 +52,7 @@ const withdrawCoverNotes = async tc => {
       failed++;
     }
 
-    // membersSemaphore.release();
+    membersSemaphore.release();
   });
 
   await Promise.all(promises);
@@ -66,7 +62,7 @@ const withdrawCoverNotes = async tc => {
 
 const withdrawClaimsAssessment = async tokenController => {
   console.log('estimating v1 CLA tokens withdrawal...');
-  const usersAndAmount = require('../../cla-locked-amount.json');
+  const usersAndAmount = require('../../v1-cla-locked-amount.json');
   const users = usersAndAmount.map(data => data.member);
   const gasEstimate = await tokenController.estimateGas.withdrawClaimAssessmentTokens(users);
   console.log('CLA gasEstimate: ', gasEstimate);

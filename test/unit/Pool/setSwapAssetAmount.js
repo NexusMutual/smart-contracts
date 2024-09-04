@@ -4,9 +4,10 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
 const { BigNumber } = ethers;
-const { toBytes8 } = require('../utils').helpers;
+const utils = require('../utils');
 
-const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+const { toBytes8 } = utils.helpers;
+const { ETH } = utils.constants.Assets;
 
 describe('setSwapAssetAmount', function () {
   it('is only callabe by swap operator', async function () {

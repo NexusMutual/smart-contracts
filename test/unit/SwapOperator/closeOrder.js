@@ -10,16 +10,13 @@ const {
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { domain: makeDomain, computeOrderUid } = require('@cowprotocol/contracts');
-const {
-  setEtherBalance,
-  setNextBlockTime,
-  revertToSnapshot,
-  takeSnapshot,
-  increaseTime,
-  mineNextBlock,
-} = require('../../utils/evm');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const setup = require('./setup');
+const utils = require('../utils');
+
+const { setEtherBalance, setNextBlockTime, revertToSnapshot, takeSnapshot, increaseTime, mineNextBlock } = utils.evm;
+const { ETH } = utils.constants.Assets;
 
 const {
   utils: { parseEther, hexZeroPad },
@@ -462,12 +459,12 @@ describe('closeOrder', function () {
       contracts: { swapOperator, pool },
       contractOrder,
     } = await loadFixture(closeOrderSetup);
-    const oldSwapValue = await pool.swapValue();
+    const oldSwapValue = await pool.assetsInSwapOperator(ETH);
     expect(oldSwapValue).to.be.gt(0);
 
     await swapOperator.closeOrder(contractOrder);
 
-    const newSwapValue = await pool.swapValue();
+    const newSwapValue = await pool.assetsInSwapOperator(ETH);
     expect(newSwapValue).to.eq(0);
   });
 });

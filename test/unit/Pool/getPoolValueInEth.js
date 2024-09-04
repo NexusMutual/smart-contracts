@@ -3,8 +3,14 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
+const utils = require('../utils');
 
-const { toBytes8 } = require('../utils').helpers;
+const {
+  helpers: { toBytes8 },
+  constants: {
+    Assets: { ETH },
+  },
+} = utils;
 
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
@@ -77,9 +83,9 @@ describe('getPoolValueInEth', function () {
     const oldPoolValue = await pool.getPoolValueInEth();
 
     await pool.connect(governance).updateAddressParameters(toBytes8('SWP_OP'), defaultSender.address);
-    await pool.setSwapValue(parseEther('1'));
+    await pool.setSwapAssetAmount(ETH, parseEther('1'));
 
-    const swapValue = await pool.swapValue();
+    const swapValue = await pool.assetsInSwapOperator(ETH);
     expect(swapValue.toString()).to.eq(parseEther('1').toString());
 
     const newPoolValue = await pool.getPoolValueInEth();

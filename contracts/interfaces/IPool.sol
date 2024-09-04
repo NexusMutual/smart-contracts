@@ -52,5 +52,5 @@ interface IPool {
 
   function getMCRRatio() external view returns (uint);
 
-  function setSwapValue(uint value) external;
+  function setSwapAssetAmount(address assetAddress, uint value) external;
 }

@@ -28,7 +28,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   // parameters
   IPriceFeedOracle public override priceFeedOracle;
   address public swapOperator;
-  uint96 public swapValue;
 
   /* constants */
 
@@ -36,6 +35,9 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   uint public constant MCR_RATIO_DECIMALS = 4;
   uint internal constant MAX_SLIPPAGE_DENOMINATOR = 10000;
+
+  mapping  (address => uint256) internal assetsInSwapOperator;
+  uint32 internal assetsInSwapOperatorBitmap;
 
   INXMToken public immutable nxmToken;
 
@@ -102,13 +104,13 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   /* ========== ASSET RELATED VIEW FUNCTIONS ========== */
 
-  function getAssetValueInEth(address assetAddress) internal view returns (uint) {
+  function getAssetValueInEth(address assetAddress, uint amountInSwapOperator) internal view returns (uint) {
 
     uint assetBalance;
 
     if (assetAddress.code.length != 0) {
       try IERC20(assetAddress).balanceOf(address(this)) returns (uint balance) {
-        assetBalance = balance;
+        assetBalance = balance + amountInSwapOperator;
       } catch {
         // If balanceOf reverts consider it 0
       }
@@ -127,8 +129,9 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   ///
   function getPoolValueInEth() public override view returns (uint) {
 
-    uint total = address(this).balance + swapValue;
+    uint total = address(this).balance;
     uint assetCount = assets.length;
+    uint _assetsInSwapOperatorBitmap = assetsInSwapOperatorBitmap;
 
     // Skip ETH (index 0)
     for (uint i = 1; i < assetCount; i++) {
@@ -137,7 +140,14 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
         continue;
       }
 
-      total += getAssetValueInEth(assets[i].assetAddress);
+      address assetAddress = assets[i].assetAddress;
+      uint amountInSwapOperator;
+
+      if (isAssetInSwapOperator(i, _assetsInSwapOperatorBitmap)) {
+        amountInSwapOperator = assetsInSwapOperator[assetAddress];
+      }
+
+      total += getAssetValueInEth(assetAddress, amountInSwapOperator);
     }
 
     return total;
@@ -154,6 +164,30 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   function getAssetSwapDetails(address assetAddress) external view returns (SwapDetails memory) {
     return swapDetails[assetAddress];
+  }
+
+  function getAssetId(address assetAddress) public view returns (uint) {
+    uint assetCount = assets.length;
+    for (uint i = 0; i < assetCount; i++) {
+      if (assets[i].assetAddress == assetAddress) {
+        return i;
+      }
+    }
+    revert("Pool: Asset not found");
+  }
+
+  function isAssetInSwapOperator(uint _assetId, uint _assetsInSwapOperatorBitmap) internal pure returns (bool) {
+
+    if (
+      // product does not use default cover assets
+      _assetsInSwapOperatorBitmap != 0 &&
+      // asset id is not in the product's cover assets bitmap
+      ((1 << _assetId) & _assetsInSwapOperatorBitmap == 0)
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   /* ========== ASSET RELATED MUTATIVE FUNCTIONS ========== */
@@ -275,8 +309,16 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     swapDetails[assetAddress].lastSwapTime = lastSwapTime;
   }
 
-  function setSwapValue(uint newValue) external onlySwapOperator whenNotPaused {
-    swapValue = newValue.toUint96();
+  function setSwapAssetAmount(address assetAddress, uint value) external onlySwapOperator whenNotPaused {
+    assetsInSwapOperator[assetAddress] = value;
+
+    if (value > 0) {
+      uint assetId = getAssetId(assetAddress);
+      assetsInSwapOperatorBitmap = uint32(1 << assetId);
+    } else {
+      assetsInSwapOperatorBitmap = 0;
+    }
+
   }
 
   /* ========== CLAIMS RELATED MUTATIVE FUNCTIONS ========== */

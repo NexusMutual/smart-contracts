@@ -53,14 +53,15 @@ const main = async provider => {
 
   const membersCount = await mr.membersLength(ROLE_MEMBER);
   const membersSemaphore = new Sema(100, { capacity: membersCount });
+  const failedMemberIds = [];
 
   console.log('Fetching V1 Pooled Staking stake / rewards for all members...');
 
-  const memberPromises = Array.from({ length: membersCount }).map(async (_, i) => {
+  const memberPromises = Array.from({ length: membersCount }).map(async (_, memberId) => {
     await membersSemaphore.acquire();
 
     try {
-      const { stake, rewards } = await getMemberV1PooledStaking(i, mr, ps);
+      const { stake, rewards } = await getMemberV1PooledStaking(memberId, mr, ps);
       if (stake.amount !== '0') {
         v1Stake.push(stake);
       }
@@ -68,8 +69,12 @@ const main = async provider => {
         v1Rewards.push(rewards);
       }
       if (stake.error || rewards.error) {
-        console.error(`\nError event for memberId ${i}: ${stake.error || rewards.error}`);
+        console.error(`\nError event for memberId ${memberId}: ${stake.error || rewards.error}`);
+        failedMemberIds.push(memberId);
       }
+    } catch (e) {
+      console.error(`Error processing memberId ${memberId}: ${e.message}`);
+      failedMemberIds.push(memberId);
     } finally {
       membersSemaphore.release();
     }

@@ -1,4 +1,6 @@
 require('dotenv').config();
+const { inspect } = require('node:util');
+
 const { ethers } = require('hardhat');
 const fs = require('fs');
 const { Sema } = require('async-sema');
@@ -61,6 +63,7 @@ const main = async provider => {
   const memberCount = (await mr.membersLength(ROLE_MEMBER)).toNumber();
   const membersSemaphore = new Sema(100, { capacity: memberCount });
   const memberLockedCN = [];
+  const failedMemberIds = [];
 
   console.log('Fetching locked CN amounts for all members...');
 
@@ -70,13 +73,17 @@ const main = async provider => {
     try {
       process.stdout.write(`\rProcessing memberId ${memberId}`);
       const lockedCN = await getMemberCN(memberId, mr, tc);
-      
+
       if (lockedCN.amount !== '0') {
         memberLockedCN.push(lockedCN);
       }
       if (lockedCN.error) {
         console.error(`\nError event for memberId ${memberId}: ${lockedCN.error}`);
+        failedMemberIds.push(memberId);
       }
+    } catch (e) {
+      console.error(`\nError event for memberId ${memberId}: ${e.message}`);
+      failedMemberIds.push(memberId);
     } finally {
       membersSemaphore.release();
     }
@@ -84,7 +91,8 @@ const main = async provider => {
 
   await Promise.all(memberPromises);
 
-  console.log(`\nFound ${memberLockedCN.length} members with locked NXM for CN`);
+  console.log(`\nFound ${memberLockedCN.length} members with locked v1 NXM for CN`);
+  console.log(`Failed members: ${inspect(failedMemberIds, { depth: null })}`);
 
   console.log(`Writing output to ${OUTPUT_FILE}...`);
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(memberLockedCN, null, 2), 'utf8');

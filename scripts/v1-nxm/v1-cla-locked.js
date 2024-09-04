@@ -1,4 +1,6 @@
 require('dotenv').config();
+const { inspect } = require('node:util');
+
 const { ethers } = require('hardhat');
 const fs = require('fs');
 const { Sema } = require('async-sema');
@@ -40,17 +42,19 @@ const main = async provider => {
   const membersSemaphore = new Sema(100, { capacity: memberCount });
 
   console.log('Fetching V1 Pooled Staking stake / rewards for all members...');
+  const failedMemberIds = [];
 
-  const memberPromises = Array.from({ length: memberCount }).map(async (_, i) => {
+  const memberPromises = Array.from({ length: memberCount }).map(async (_, memberId) => {
     await membersSemaphore.acquire();
 
     try {
-      const result = await getMemberCLA(i, claReason, mr, tc);
+      const result = await getMemberCLA(memberId, claReason, mr, tc);
       if (result.amount !== '0') {
         v1ClaimAssessment.push(result);
       }
     } catch (e) {
-      console.error(`Error processing memberId ${i}: ${e.message}`);
+      console.error(`Error processing memberId ${memberId}: ${e.message}`);
+      failedMemberIds.push(memberId);
     }
 
     membersSemaphore.release();
@@ -58,7 +62,8 @@ const main = async provider => {
 
   await Promise.all(memberPromises);
 
-  console.log(`Found ${v1ClaimAssessment.length} members with v1 Pooled Staking rewards`);
+  console.log(`Found ${v1ClaimAssessment.length} members with locked v1 NXM for CLA`);
+  console.log(`Failed members: ${inspect(failedMemberIds, { depth: null })}`);
 
   console.log(`Writing output to ${OUTPUT_FILE}...`);
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(v1ClaimAssessment, null, 2), 'utf8');

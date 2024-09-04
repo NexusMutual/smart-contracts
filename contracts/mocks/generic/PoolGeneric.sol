@@ -69,7 +69,7 @@ contract PoolGeneric is IPool {
     revert("Unsupported");
   }
 
-  function setSwapValue(uint) external virtual pure {
+  function setSwapAssetAmount(address, uint) external virtual pure {
     revert("Unsupported");
   }
 }

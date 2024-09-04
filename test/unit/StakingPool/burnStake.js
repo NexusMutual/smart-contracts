@@ -2,10 +2,10 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { getTranches, moveTimeToNextTranche, BUCKET_DURATION } = require('./helpers');
+const { getTranches, moveTimeToNextBucket, moveTimeToNextTranche, BUCKET_DURATION, setTime } = require('./helpers');
 const { daysToSeconds } = require('../../../lib/helpers');
 
-const { AddressZero, Two } = ethers.constants;
+const { AddressZero, Two, Zero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 const MaxUint32 = Two.pow(32).sub(1);
@@ -27,7 +27,6 @@ const poolInitParams = {
   initialPoolFee: 5, // 5%
   maxPoolFee: 5, // 5%
   products: [initialProduct],
-  ipfsDescriptionHash: 'Description Hash',
 };
 
 const productTypeFixture = {
@@ -77,7 +76,7 @@ async function burnStakeSetup() {
   const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts, coverProducts } = fixture;
   const [staker] = fixture.accounts.members;
-  const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
+  const { poolId, initialPoolFee, maxPoolFee, products } = poolInitParams;
 
   await coverProducts.setProductType(productTypeFixture, initialProduct.productId);
   await coverProducts.setProduct(coverProductTemplate, initialProduct.productId);
@@ -87,7 +86,6 @@ async function burnStakeSetup() {
     initialPoolFee,
     maxPoolFee,
     poolId,
-    ipfsDescriptionHash,
   );
 
   await stakingProducts.connect(fixture.stakingProductsSigner).setInitialProducts(poolId, products);
@@ -398,7 +396,43 @@ describe('burnStake', function () {
     }
   });
 
-  it('correctly deallocates expiring cover amounts', async function () {
+  it('does not deallocate after cover expiry', async function () {
+    const fixture = await loadFixture(burnStakeSetup);
+    const { stakingPool } = fixture;
+    const { productId, period } = allocationRequestParams;
+
+    // get to a new bucket to avoid expiration issues
+    await moveTimeToNextBucket(1);
+
+    const allocationId = await stakingPool.getNextAllocationId();
+    const allocateTx = await stakingPool
+      .connect(fixture.coverSigner)
+      .requestAllocation(stakedNxmAmount, 0, allocationRequestParams);
+
+    const { blockNumber } = await allocateTx.wait();
+    const { timestamp: allocationTimestamp } = await ethers.provider.getBlock(blockNumber);
+
+    const initialAllocations = await stakingPool.getActiveAllocations(productId);
+    const initiallyAllocatedTotal = initialAllocations.reduce((acc, val) => acc.add(val), Zero);
+
+    const burnParams = {
+      allocationId,
+      productId,
+      start: allocationTimestamp,
+      period,
+      deallocationAmount: initiallyAllocatedTotal.div(2), // claimed half of the cover amount
+    };
+
+    await setTime(allocationTimestamp + period + 1);
+    await stakingPool.connect(fixture.coverSigner).burnStake(0, burnParams);
+
+    const finalAllocations = await stakingPool.getActiveAllocations(productId);
+    const finallyAllocatedTotal = finalAllocations.reduce((acc, val) => acc.add(val), Zero);
+
+    expect(initiallyAllocatedTotal).to.equal(finallyAllocatedTotal);
+  });
+
+  it('does not deallocate if in grace period', async function () {
     const fixture = await loadFixture(burnStakeSetup);
     const { stakingPool } = fixture;
     const { NXM_PER_ALLOCATION_UNIT } = fixture.config;

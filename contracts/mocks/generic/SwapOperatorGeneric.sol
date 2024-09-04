@@ -19,6 +19,48 @@ contract SwapOperatorGeneric is ISwapOperator {
     revert("Unsupported");
   }
 
+  function currentOrderUID() external pure returns (bytes memory) {
+    revert("Unsupported");
+  }
+
+  /* ==== IMMUTABLES ==== */
+
+  function cowSettlement() external pure returns (ICowSettlement) {
+    revert("Unsupported");
+  }
+
+  function cowVaultRelayer() external pure returns (address) {
+    revert("Unsupported");
+  }
+
+  function master() external pure returns (INXMMaster) {
+    revert("Unsupported");
+  }
+
+  function swapController() external pure returns (address) {
+    revert("Unsupported");
+  }
+
+  function weth() external pure returns (IWeth) {
+    revert("Unsupported");
+  }
+
+  function domainSeparator() external pure returns (bytes32) {
+    revert("Unsupported");
+  }
+
+  function enzymeV4VaultProxyAddress() external pure returns (address) {
+    revert("Unsupported");
+  }
+
+  function enzymeFundValueCalculatorRouter() external pure returns (IEnzymeFundValueCalculatorRouter) {
+    revert("Unsupported");
+  }
+
+  function minPoolEth() external pure returns (uint) {
+    revert("Unsupported");
+  }
+
   /* ==== MUTATIVE FUNCTIONS ==== */
 
   function placeOrder(GPv2Order.Data calldata, bytes calldata) external virtual {

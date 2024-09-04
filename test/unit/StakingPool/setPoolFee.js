@@ -38,18 +38,17 @@ const initializeParams = {
   initialPoolFee: 5, // 5%
   maxPoolFee: 5, // 5%
   products: [product],
-  ipfsDescriptionHash: 'Description Hash',
 };
 
 async function setPoolFeeSetup() {
   const fixture = await loadFixture(setup);
   const { stakingPool, stakingProducts, tokenController } = fixture;
-  const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
+  const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool } = initializeParams;
   const manager = fixture.accounts.defaultSender;
 
   await stakingPool
     .connect(fixture.stakingProductsSigner)
-    .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+    .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId);
   await tokenController.setStakingPoolManager(poolId, manager.address);
 
   await stakingProducts.connect(fixture.stakingProductsSigner).setInitialProducts(poolId, products);
@@ -121,6 +120,7 @@ describe('setPoolFee', function () {
     const { initialPoolFee } = initializeParams;
     const newPoolFee = initialPoolFee - 2;
 
+    const feeDenominator = await stakingPool.POOL_FEE_DENOMINATOR();
     await stakingPool.connect(user).depositTo(depositAmount, trancheId, tokenId, AddressZero);
 
     // Generate rewards
@@ -131,23 +131,43 @@ describe('setPoolFee', function () {
     await stakingPool.connect(coverSigner).requestAllocation(coverAmount, previousPremium, allocationRequest);
     await increaseTime(daysToSeconds(25));
 
-    const depositBefore = await stakingPool.deposits(managerDepositId, trancheId);
+    const rewardsSharesSupplyBefore = await stakingPool.getRewardsSharesSupply();
+    const trancheBefore = await stakingPool.getTranche(trancheId);
+    const managerDepositBefore = await stakingPool.deposits(managerDepositId, trancheId);
+
+    const expectedFeeSharesBefore = trancheBefore.stakeShares
+      .mul(initialPoolFee)
+      .div(feeDenominator.sub(initialPoolFee));
+
+    const expectedTrancheRewardsSharesBefore = trancheBefore.stakeShares.add(expectedFeeSharesBefore);
+    expect(trancheBefore.rewardsShares).to.equal(expectedTrancheRewardsSharesBefore);
 
     await stakingPool.connect(manager).setPoolFee(newPoolFee);
 
     const accNxmPerRewardsShareAfter = await stakingPool.getAccNxmPerRewardsShare();
-    const depositAfter = await stakingPool.deposits(managerDepositId, trancheId);
+    const rewardsSharesSupplyAfter = await stakingPool.getRewardsSharesSupply();
+    const trancheAfter = await stakingPool.getTranche(trancheId);
 
-    const expectedLastAccNxmPerRewardShare = accNxmPerRewardsShareAfter.sub(depositBefore.lastAccNxmPerRewardShare);
-    expect(depositAfter.lastAccNxmPerRewardShare).to.equal(expectedLastAccNxmPerRewardShare);
+    const expectedFeeSharesAfter = trancheAfter.stakeShares.mul(newPoolFee).div(feeDenominator.sub(newPoolFee));
+    const expectedTrancheRewardsSharesAfter = trancheAfter.stakeShares.add(expectedFeeSharesAfter);
 
-    const expectedPendingRewards = depositAfter.lastAccNxmPerRewardShare
-      .mul(depositBefore.rewardsShares)
+    expect(trancheAfter.stakeShares).to.equal(trancheBefore.stakeShares);
+    expect(trancheAfter.rewardsShares).to.equal(expectedTrancheRewardsSharesAfter);
+
+    const managerDepositAfter = await stakingPool.deposits(managerDepositId, trancheId);
+    expect(managerDepositAfter.lastAccNxmPerRewardShare).to.equal(accNxmPerRewardsShareAfter);
+
+    const expectedPendingRewards = accNxmPerRewardsShareAfter
+      .mul(managerDepositBefore.rewardsShares)
       .div(parseEther('1'));
-    expect(depositAfter.pendingRewards).to.equal(expectedPendingRewards);
 
-    const expectedRewardsShares = depositBefore.rewardsShares.mul(newPoolFee).div(initialPoolFee);
-    expect(depositAfter.rewardsShares).to.equal(expectedRewardsShares);
+    expect(managerDepositAfter.pendingRewards).to.equal(expectedPendingRewards);
+    expect(managerDepositAfter.rewardsShares).to.equal(expectedFeeSharesAfter);
+
+    const expectedRewardsShareSupplyAfter = rewardsSharesSupplyBefore
+      .sub(expectedFeeSharesBefore)
+      .add(expectedFeeSharesAfter);
+    expect(rewardsSharesSupplyAfter).to.equal(expectedRewardsShareSupplyAfter);
   });
 
   it('emits and PoolFeeChanged', async function () {

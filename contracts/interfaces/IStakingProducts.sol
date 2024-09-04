@@ -47,6 +47,8 @@ interface IStakingProducts {
     uint bumpedPriceUpdateTime
   );
 
+  function getPoolManager(uint poolId) external view returns (address);
+
   /* ============= PRICING FUNCTIONS ============= */
 
   function getPremium(
@@ -117,6 +119,12 @@ interface IStakingProducts {
 
   function changeStakingPoolFactoryOperator(address newOperator) external;
 
+  function setPoolMetadata(uint poolId, string memory ipfsHash) external;
+
+  function getPoolMetadata(uint poolId) external view returns (string memory ipfsHash);
+
+  function setInitialMetadata(string[] calldata ipfsHashes) external;
+
   /* ============= EVENTS ============= */
 
   event ProductUpdated(uint productId, uint8 targetWeight, uint96 targetPrice);
@@ -143,4 +151,6 @@ interface IStakingProducts {
   error InvalidProductType();
   error TargetPriceBelowGlobalMinPriceRatio();
 
+  // IPFS
+  error IpfsHashRequired();
 }

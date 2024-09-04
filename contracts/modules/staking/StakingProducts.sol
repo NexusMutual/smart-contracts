@@ -15,15 +15,29 @@ import "../../libraries/StakingPoolLibrary.sol";
 contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   using SafeUintCast for uint;
 
+  // pool id => product id => Product
+  mapping(uint => mapping(uint => StakedProduct)) private _products;
+  // pool id => { totalEffectiveWeight, totalTargetWeight }
+  mapping(uint => Weights) public weights;
+
+  // pool id => metadata
+  mapping(uint => string) internal poolMetadata;
+
+  address public immutable coverContract;
+  address public immutable stakingPoolFactory;
+
   uint public constant SURGE_PRICE_RATIO = 2 ether;
   uint public constant SURGE_THRESHOLD_RATIO = 90_00; // 90.00%
   uint public constant SURGE_THRESHOLD_DENOMINATOR = 100_00; // 100.00%
+
   // base price bump
   // +0.2% for each 1% of capacity used, ie +20% for 100%
   uint public constant PRICE_BUMP_RATIO = 20_00; // 20%
+
   // bumped price smoothing
   // 0.5% per day
   uint public constant PRICE_CHANGE_PER_DAY = 200; // 2%
+
   uint public constant INITIAL_PRICE_DENOMINATOR = 100_00;
   uint public constant TARGET_PRICE_DENOMINATOR = 100_00;
   uint public constant MAX_TOTAL_WEIGHT = 20_00; // 20x
@@ -41,13 +55,12 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   uint public constant ALLOCATION_UNITS_PER_NXM = 100;
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
-  // pool id => product id => Product
-  mapping(uint => mapping(uint => StakedProduct)) private _products;
-  // pool id => { totalEffectiveWeight, totalTargetWeight }
-  mapping(uint => Weights) public weights;
-
-  address public immutable coverContract;
-  address public immutable stakingPoolFactory;
+  modifier onlyManager(uint poolId) {
+    if (msg.sender != getPoolManager(poolId)) {
+      revert OnlyManager();
+    }
+    _;
+  }
 
   constructor(address _coverContract, address _stakingPoolFactory) {
     coverContract = _coverContract;
@@ -81,6 +94,14 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       product.bumpedPrice,
       product.bumpedPriceUpdateTime
     );
+  }
+
+  function getPoolManager(uint poolId) public view override returns (address) {
+    return tokenController().getStakingPoolManager(poolId);
+  }
+
+  function getPoolMetadata(uint poolId) external view override returns (string memory ipfsHash) {
+    return poolMetadata[poolId];
   }
 
   function recalculateEffectiveWeights(uint poolId, uint[] calldata productIds) external {
@@ -165,7 +186,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     IStakingPool _stakingPool = stakingPool(poolId);
 
-    if (msg.sender != _stakingPool.manager()) {
+    if (msg.sender != tokenController().getStakingPoolManager(poolId)) {
       revert OnlyManager();
     }
 
@@ -567,28 +588,29 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint initialPoolFee,
     uint maxPoolFee,
     ProductInitializationParams[] memory productInitParams,
-    string calldata ipfsDescriptionHash
-  ) external whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+    string calldata ipfsHash
+  ) external override whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+    if (bytes(ipfsHash).length == 0) {
+      revert IpfsHashRequired();
+    }
 
     ICoverProducts _coverProducts = coverProducts();
 
+    // create and initialize staking pool
+    (uint poolId, address stakingPoolAddress) = ICompleteStakingPoolFactory(stakingPoolFactory).create(coverContract);
+    IStakingPool(stakingPoolAddress).initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId);
+
+    // assign pool manager
+    tokenController().assignStakingPoolManager(poolId, msg.sender);
+
+    // set products
     ProductInitializationParams[] memory initializedProducts = _coverProducts.prepareStakingProductsParams(
       productInitParams
     );
-
-    (uint poolId, address stakingPoolAddress) = ICompleteStakingPoolFactory(stakingPoolFactory).create(coverContract);
-
-    IStakingPool(stakingPoolAddress).initialize(
-      isPrivatePool,
-      initialPoolFee,
-      maxPoolFee,
-      poolId,
-      ipfsDescriptionHash
-    );
-
-    tokenController().assignStakingPoolManager(poolId, msg.sender);
-
     _setInitialProducts(poolId, initializedProducts);
+
+    // set metadata
+    poolMetadata[poolId] = ipfsHash;
 
     return (poolId, stakingPoolAddress);
   }
@@ -637,9 +659,33 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     });
   }
 
-  // future role transfers
+  // future operator role transfers
   function changeStakingPoolFactoryOperator(address _operator) external onlyInternal {
     ICompleteStakingPoolFactory(stakingPoolFactory).changeOperator(_operator);
+  }
+
+  function setPoolMetadata(
+    uint poolId,
+    string calldata ipfsHash
+  ) external override onlyManager(poolId) {
+    if (bytes(ipfsHash).length == 0) {
+      revert IpfsHashRequired();
+    }
+    poolMetadata[poolId] = ipfsHash;
+  }
+
+  // temporary migration function
+
+  function setInitialMetadata(string[] calldata ipfsHashes) external onlyAdvisoryBoard {
+
+    uint poolCount = IStakingPoolFactory(stakingPoolFactory).stakingPoolCount();
+    require(ipfsHashes.length == poolCount, "StakingProducts: Metadata length mismatch");
+    require(bytes(poolMetadata[1]).length == 0, "StakingProducts: Metadata already set");
+
+    for (uint i = 0; i < poolCount; i++) {
+      if (bytes(poolMetadata[i + 1]).length != 0) continue;
+      poolMetadata[i + 1] = ipfsHashes[i];
+    }
   }
 
   /* dependencies */

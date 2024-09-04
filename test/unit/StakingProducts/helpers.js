@@ -1,7 +1,8 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { getCurrentTrancheId } = require('../StakingPool/helpers');
-const { setEtherBalance } = require('../../utils/evm');
+
+const { setEtherBalance } = require('../utils').evm;
+
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
@@ -56,6 +57,13 @@ const burnStakeParams = {
   period: buyCoverParamsTemplate.period,
   deallocationAmount: 0,
 };
+
+const TRANCHE_DURATION = daysToSeconds(91);
+
+async function getCurrentTrancheId() {
+  const { timestamp } = await ethers.provider.getBlock('latest');
+  return Math.floor(timestamp / TRANCHE_DURATION);
+}
 
 async function verifyProduct(params) {
   const { coverProducts } = this;

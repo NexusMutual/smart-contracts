@@ -46,6 +46,7 @@ async function updateMCRSetup() {
   await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
   await tk.connect(member1).approve(tc.address, MaxUint256);
   await stake({
+    contracts: fixture.contracts,
     stakingPool,
     staker: member1,
     productId: newEthCoverTemplate.productId,
@@ -54,6 +55,7 @@ async function updateMCRSetup() {
     amount: parseEther('10000000000'),
   });
   await stake({
+    contracts: fixture.contracts,
     stakingPool,
     staker: member1,
     productId: 2,

@@ -122,7 +122,7 @@ describe('switchMembershipAndAssets', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker, gracePeriod, period, productId });
+    await stake({ contracts: fixture.contracts, stakingPool: stakingPool1, staker, gracePeriod, period, productId });
 
     for (let i = 0; i < 3; i++) {
       const expectedPremium = parseEther('1');

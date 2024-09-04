@@ -133,7 +133,7 @@ describe('totalActiveCover', function () {
     expect(await stakingProducts.stakingPool(1)).to.be.equal(stakingPool1.address);
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
+    await stake({ contracts: fixture.contracts, stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
 
     // cover buyer gets yield token
     await transferYieldToken({ tokenOwner: fixture.accounts.defaultSender, coverBuyer1, cg, ybETH });
@@ -203,7 +203,7 @@ describe('totalActiveCover', function () {
       buyCoverFixture;
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
+    await stake({ contracts: fixture.contracts, stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
 
     // cover buyer gets yield token
     await transferYieldToken({ tokenOwner: fixture.accounts.defaultSender, coverBuyer1, cg, ybETH });
@@ -280,7 +280,7 @@ describe('totalActiveCover', function () {
       buyCoverFixture;
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
+    await stake({ contracts: fixture.contracts, stakingPool: stakingPool1, staker: staker1, period, gracePeriod });
 
     // cover buyer gets yield token
     await transferYieldToken({ tokenOwner: fixture.accounts.defaultSender, coverBuyer1, cg, ybETH });

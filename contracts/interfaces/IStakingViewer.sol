@@ -13,6 +13,7 @@ interface IStakingViewer {
     uint maxPoolFee;
     uint activeStake;
     uint currentAPY;
+    string metadataIpfsHash;
   }
 
   struct StakingProduct {

@@ -63,6 +63,7 @@ contract StakingViewer is IStakingViewer, Multicall {
     pool.manager = _stakingPool.manager();
     pool.poolFee = _stakingPool.getPoolFee();
     pool.maxPoolFee = _stakingPool.getMaxPoolFee();
+    pool.metadataIpfsHash = _stakingProducts().getPoolMetadata(poolId);
     pool.activeStake = activeStake;
     pool.currentAPY =
       activeStake != 0
@@ -90,7 +91,7 @@ contract StakingViewer is IStakingViewer, Multicall {
     pools = new Pool[](poolCount);
 
     for (uint i = 0; i < poolCount; i++) {
-      pools[i] = getPool(i+1); // poolId starts from 1
+      pools[i] = getPool(i + 1); // poolId starts from 1
     }
 
     return pools;

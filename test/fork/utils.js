@@ -102,21 +102,19 @@ async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
   await gv.connect(signers[0]).categorizeProposal(id, categoryId, 0);
   await gv.connect(signers[0]).submitProposalWithSolution(id, '', actionData);
 
-  for (let i = 0; i < signers.length; i++) {
-    await gv.connect(signers[i]).submitVote(id, 1);
-  }
+  await Promise.all(signers.map(signer => gv.connect(signer).submitVote(id, 1)));
 
   const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
   const receipt = await tx.wait();
 
-  assert.equal(
+  assert(
     receipt.events.some(x => x.event === 'ActionSuccess' && x.address === gv.address),
     true,
     'ActionSuccess was expected',
   );
 
   const proposal = await gv.proposal(id);
-  assert.equal(proposal[2].toNumber(), 3, 'Proposal Status != ACCEPTED');
+  assert(proposal[2].toNumber(), 3, 'Proposal Status != ACCEPTED');
 }
 
 async function submitMemberVoteGovernanceProposal(categoryId, actionData, signers, gv) {
@@ -248,8 +246,6 @@ async function getConfig() {
   }
 
   const config = {
-    REWARD_BONUS_PER_TRANCHE_RATIO: stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO(),
-    REWARD_BONUS_PER_TRANCHE_DENOMINATOR: stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR(),
     PRICE_CHANGE_PER_DAY: stakingProducts.PRICE_CHANGE_PER_DAY(),
     PRICE_BUMP_RATIO: stakingProducts.PRICE_BUMP_RATIO(),
     SURGE_PRICE_RATIO: stakingProducts.SURGE_PRICE_RATIO(),

@@ -10,17 +10,19 @@ async function setup() {
   const { internalContracts, members } = accounts;
   const internal = internalContracts[0];
 
-  const pooledStaking = await ethers.deployContract('TCMockPooledStaking');
-
   const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [accounts.defaultSender.address]);
+  const stakingNFT = await ethers.deployContract('TCMockStakingNFT');
 
   const nxm = await ethers.deployContract('NXMTokenMock');
-  const tokenController = await ethers.deployContract('TokenController', [
+  const tokenController = await ethers.deployContract('DisposableTokenController', [
     '0x0000000000000000000000000000000000000000',
     '0x0000000000000000000000000000000000000000',
     stakingPoolFactory.address,
     nxm.address,
+    stakingNFT.address,
   ]);
+
+  const pooledStaking = await ethers.deployContract('TCMockPooledStaking', [nxm.address]);
 
   await nxm.addToWhiteList(tokenController.address);
 

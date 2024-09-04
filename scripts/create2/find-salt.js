@@ -1,9 +1,12 @@
+const path = require('node:path');
+
 const { artifacts, ethers, run } = require('hardhat');
 const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
+const linker = require('solc/linker');
 const workerpool = require('workerpool');
-const path = require('path');
 
+const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 const Position = {
   start: 'start',
   end: 'end',
@@ -32,6 +35,8 @@ const usage = () => {
         Start the search from this salt.
       --help, -h
         Print this help message.
+      --library, -l CONTRACT_NAME:ADDRESS
+        Link an external library.
   `);
 };
 
@@ -42,6 +47,7 @@ const parseArgs = async args => {
     ignoreCase: false,
     constructorArgs: [],
     salt: 0,
+    libraries: {},
   };
 
   const argsArray = args.slice(2);
@@ -95,9 +101,23 @@ const parseArgs = async args => {
 
     if (['--factory-address', '-f'].includes(arg)) {
       opts.factory = argsArray.shift();
-      if (!(opts.factory || '').match(/0x[a-f0-9]{40}/i)) {
+      if (!(opts.factory || '').match(ADDRESS_REGEX)) {
         throw new Error(`Invalid factory address: ${opts.factory}`);
       }
+      continue;
+    }
+
+    if (['--library', '-l'].includes(arg)) {
+      const libArg = argsArray.shift();
+
+      const [contractName, address] = libArg.split(':');
+      if (!contractName || !address || !address.match(ADDRESS_REGEX)) {
+        throw new Error(`Invalid library format: ${libArg}. Expected format is CONTRACT_NAME:ADDRESS`);
+      }
+
+      const { sourceName } = await artifacts.readArtifact(contractName);
+      opts.libraries[`${sourceName}:${contractName}`] = address;
+
       continue;
     }
 
@@ -122,11 +142,14 @@ const parseArgs = async args => {
 };
 
 const getDeploymentBytecode = async options => {
-  const { abi, bytecode } = await artifacts.readArtifact(options.contract);
+  const { abi, bytecode: initialBytecode } = await artifacts.readArtifact(options.contract);
 
-  // FIXME: implement library linking
+  const bytecode = initialBytecode.includes('__$')
+    ? linker.linkBytecode(initialBytecode, options.libraries)
+    : initialBytecode;
+
   if (bytecode.includes('__$')) {
-    throw new Error('Library linking is not implemented yet');
+    throw new Error('Missing external library address link. Please use --library, -l option');
   }
 
   const constructorAbi = abi.find(({ type }) => type === 'constructor');

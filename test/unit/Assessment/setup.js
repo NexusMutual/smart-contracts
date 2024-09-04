@@ -2,6 +2,7 @@ const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
 const { Role } = require('../../../lib/constants');
 const { getAccounts } = require('../../utils/accounts');
+const { impersonateAccount, setEtherBalance } = require('../utils').evm;
 const { parseEther } = ethers.utils;
 
 async function setup() {
@@ -74,6 +75,10 @@ async function setup() {
   }
 
   const config = await assessment.config();
+
+  await impersonateAccount(tokenController.address);
+  await setEtherBalance(tokenController.address, parseEther('100'));
+  accounts.tokenControllerSigner = await ethers.getSigner(tokenController.address);
 
   return {
     config,

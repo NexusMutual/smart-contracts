@@ -4,8 +4,7 @@ const { expect } = require('chai');
 const { increaseTime, mineNextBlock, setNextBlockTime } = require('../utils').evm;
 const {
   getTranches,
-  getNewRewardShares,
-  estimateStakeShares,
+  calculateStakeShares,
   calculateStakeAndRewardsWithdrawAmounts,
   setTime,
   generateRewards,
@@ -32,7 +31,6 @@ const initializeParams = {
   initialPoolFee: 5, // 5%
   maxPoolFee: 5, // 5%
   products: [product0],
-  ipfsDescriptionHash: 'Description Hash',
 };
 
 const withdrawFixture = {
@@ -48,11 +46,11 @@ async function withdrawSetup() {
   const { stakingPool, stakingProducts, tokenController } = fixture;
   const manager = fixture.accounts.defaultSender;
 
-  const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool, ipfsDescriptionHash } = initializeParams;
+  const { poolId, initialPoolFee, maxPoolFee, products, isPrivatePool } = initializeParams;
 
   await stakingPool
     .connect(fixture.stakingProductsSigner)
-    .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId, ipfsDescriptionHash);
+    .initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId);
 
   await tokenController.setStakingPoolManager(poolId, manager.address);
 
@@ -213,14 +211,7 @@ describe('withdraw', function () {
       destination,
     );
 
-    const expectedStakeShares = Math.sqrt(amount);
-    const expectedRewardShares = await getNewRewardShares({
-      stakingPool,
-      initialStakeShares: 0,
-      stakeSharesIncrease: expectedStakeShares,
-      initialTrancheId: firstActiveTrancheId,
-      newTrancheId: firstActiveTrancheId,
-    });
+    const expectedShares = Math.sqrt(amount);
 
     const tcBalanceInitial = await nxm.balanceOf(tokenController.address);
     await generateRewards(stakingPool, coverSigner);
@@ -253,10 +244,10 @@ describe('withdraw', function () {
     const managerBalanceAfter = await nxm.balanceOf(manager.address);
     const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
 
-    expect(depositBefore.stakeShares).to.be.eq(expectedStakeShares);
-    expect(depositAfter.stakeShares).to.be.eq(expectedStakeShares);
+    expect(depositBefore.stakeShares).to.be.eq(expectedShares);
+    expect(depositAfter.stakeShares).to.be.eq(expectedShares);
 
-    expect(depositBefore.rewardsShares).to.be.eq(expectedRewardShares);
+    expect(depositBefore.rewardsShares).to.be.eq(expectedShares);
     expect(depositAfter.pendingRewards).to.be.eq(0);
 
     const { accNxmPerRewardShareAtExpiry } = await stakingPool.getExpiredTranche(firstActiveTrancheId);
@@ -602,7 +593,7 @@ describe('withdraw', function () {
   it('should emit some event', async function () {
     const fixture = await loadFixture(withdrawSetup);
     const { coverSigner, stakingPool } = fixture;
-    const [user] = fixture.accounts.members;
+    const [user, otherUser] = fixture.accounts.members;
     const { amount, tokenId, destination } = withdrawFixture;
 
     const TRANCHES_NUMBER = 3;
@@ -648,7 +639,7 @@ describe('withdraw', function () {
       rewards.push(currentReward);
     }
 
-    await expect(stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds))
+    await expect(stakingPool.connect(otherUser).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds))
       .to.emit(stakingPool, 'Withdraw')
       .withArgs(user.address, tokenId, trancheIds[0], stakes[0], rewards[0])
       .to.emit(stakingPool, 'Withdraw')
@@ -693,7 +684,7 @@ describe('withdraw', function () {
         const user = users[uid];
         const amount = depositAmounts[t][uid];
 
-        const stakeShares = await estimateStakeShares({ amount, stakingPool });
+        const stakeShares = await calculateStakeShares(stakingPool, amount);
         userShares[t][uid] = { amount, stakeShares };
 
         await stakingPool.connect(user).depositTo(

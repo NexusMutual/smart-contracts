@@ -1,3 +1,4 @@
+require('dotenv').config();
 const deployments = require('@nexusmutual/deployments');
 const { ethers } = require('hardhat');
 
@@ -53,7 +54,7 @@ async function logPoolBalances(provider) {
 }
 
 if (require.main === module) {
-  const provider = new ethers.providers.JsonRpcProvider('https://mainnet.gateway.tenderly.co/1fszebY5zJfEzQPs7VUgYm');
+  const provider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
   logPoolBalances(provider)
     .then(() => process.exit(0))
     .catch(e => {

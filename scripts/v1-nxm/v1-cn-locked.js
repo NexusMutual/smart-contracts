@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { ethers } = require('hardhat');
 const fs = require('fs');
 const { Sema } = require('async-sema');
@@ -91,7 +92,7 @@ const main = async provider => {
 };
 
 if (require.main === module) {
-  const provider = new ethers.providers.JsonRpcProvider('https://mainnet.gateway.tenderly.co/1fszebY5zJfEzQPs7VUgYm');
+  const provider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
   main(provider)
     .then(() => process.exit(0))
     .catch(e => {

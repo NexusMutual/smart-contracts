@@ -36,7 +36,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   uint public constant MCR_RATIO_DECIMALS = 4;
   uint internal constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
-  mapping  (address => uint256) internal assetsInSwapOperator;
+  mapping  (address => uint256) public assetsInSwapOperator;
   uint32 internal assetsInSwapOperatorBitmap;
 
   INXMToken public immutable nxmToken;

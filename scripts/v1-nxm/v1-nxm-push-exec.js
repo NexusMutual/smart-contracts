@@ -2,8 +2,7 @@ require('dotenv').config();
 const fs = require('node:fs/promises');
 const util = require('node:util');
 
-const { addresses, TokenController, LegacyPooledStaking } = require('@nexusmutual/deployments');
-const { Sema } = require('async-sema');
+const deployments = require('@nexusmutual/deployments');
 const { ethers } = require('ethers');
 
 const { pushCoverNotes, pushClaimsAssessment, pushV1StakingStake, pushV1StakingRewards } = require('./v1-nxm-push');
@@ -11,6 +10,15 @@ const { pushCoverNotes, pushClaimsAssessment, pushV1StakingStake, pushV1StakingR
 const PROGRESS_FILE = 'v1-nxm-progress.json';
 
 const waitFor = util.promisify(setTimeout);
+
+const getContract = (contractName, signer) => {
+  const abi = deployments[contractName];
+  const address = deployments.addresses[contractName];
+  if (!abi || !address) {
+    throw new Error(`address or abi not found for ${contractName} contract`);
+  }
+  return new ethers.Contract(address, abi, signer);
+};
 
 async function getGasFees(provider, priorityFee) {
   const { baseFeePerGas } = await provider.getBlock('pending');
@@ -32,27 +40,37 @@ async function loadProgress() {
   }
 }
 
+/**
+ * Processes V1 NXM push tokens for different types (ClaimsAssessment, StakingStake, StakingRewards, CoverNotes).
+ *
+ * @param {ethers.providers.JsonRpcProvider} provider - Ethereum provider
+ * @param {number} userMaxFeePerGasGwei - Maximum gas fee user is willing to pay (in Gwei)
+ * @param {number} priorityFeeGwei - Priority fee (in Gwei)
+ * @param {number} txPerBlock - Number of transactions to process per block
+ *
+ * Features:
+ * - Only executes txs within the gas fee limit set by the user
+ * - Batches transactions for efficiency
+ * - Tracks progress and allows resuming from last processed item (in case of any tx errors)
+ */
 async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txPerBlock) {
   const userMaxFeePerGas = ethers.utils.parseUnits(userMaxFeePerGasGwei.toString(), 'gwei');
-  // TODO: use AWS KMS signer
-  const signer = provider.getSigner('0x87B2a7559d85f4653f13E6546A14189cd5455d45');
-  const tc = new ethers.Contract(addresses.TokenController, TokenController, signer);
-  const ps = new ethers.Contract(addresses.LegacyPooledStaking, LegacyPooledStaking, signer);
+  const signer = new ethers.Wallet(process.env.WALLET_PK, provider);
+  const tc = getContract('TokenController', signer);
+  const ps = getContract('LegacyPooledStaking', signer);
 
   const types = [
-    // { name: 'ClaimsAssessment', data: require('../../v1-cla-locked-amount.json'), func: pushClaimsAssessment },
-    // { name: 'StakingStake', data: require('../../v1-pooled-staking-stake.json'), func: pushV1StakingStake },
-    // { name: 'StakingRewards', data: require('../../v1-pooled-staking-rewards.json'), func: pushV1StakingRewards },
+    { name: 'ClaimsAssessment', data: require('../../v1-cla-locked-amount.json'), func: pushClaimsAssessment },
+    { name: 'StakingStake', data: require('../../v1-pooled-staking-stake.json'), func: pushV1StakingStake },
+    { name: 'StakingRewards', data: require('../../v1-pooled-staking-rewards.json'), func: pushV1StakingRewards },
     { name: 'CoverNotes', data: require('../../v1-cn-locked-amount.json'), func: pushCoverNotes },
   ];
 
   const progress = await loadProgress();
 
   for (const type of types) {
-    console.log('type.name: ', type.name);
     progress[type.name] ||= { processedCount: 0 };
     const remainingData = type.data.slice(progress[type.name].processedCount);
-    console.log('remainingData: ', remainingData);
     const totalData = type.data.length;
     let counter = progress[type.name].processedCount;
 
@@ -62,11 +80,12 @@ async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txP
 
       const maxFeePerGas = await getGasFees(provider, priorityFeeGwei);
       if (maxFeePerGas.gt(userMaxFeePerGas)) {
-        console.log('Gas fee too high. Waiting for next block...', {
-          maxFeePerGas: ethers.utils.formatUnits(maxFeePerGas, 'gwei') + ' gwei',
-          userMaxFeePerGas: ethers.utils.formatUnits(userMaxFeePerGas, 'gwei') + ' gwei',
-        });
-        await waitFor(15000);
+        console.log(
+          'Gas fee too high. Waiting for next block...',
+          `maxFeePerGas: ${ethers.utils.formatUnits(maxFeePerGas, 'gwei')} gwei`,
+          `userMaxFeePerGas: ${ethers.utils.formatUnits(userMaxFeePerGas, 'gwei')} gwei`,
+        );
+        await waitFor(15000); // ~15s average block time
         continue;
       }
 
@@ -91,6 +110,8 @@ async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txP
 
       remainingData.splice(0, txPerBlock);
     }
+
+    console.log(`Successfully pushed all v1 NXM ${type.name}`);
   }
 
   console.log('All v1 NXM types processed successfully.');

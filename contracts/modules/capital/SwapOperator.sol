@@ -294,12 +294,16 @@ contract SwapOperator is ISwapOperator {
     if (swapOperationType == SwapOperationType.EthToAsset) {
       // set lastSwapTime of buyToken only (sellToken WETH has no set swapDetails)
       pool.setSwapDetailsLastSwapTime(buyTokenAddress, uint32(block.timestamp));
+      // Set the setSwapAssetAmount on the pool
+      pool.setSwapAssetAmount(ETH, totalOutAmount);
       // transfer ETH from pool and wrap it (use ETH address here because swapOp.sellToken is WETH address)
       pool.transferAssetToSwapOperator(ETH, totalOutAmount);
       weth.deposit{value: totalOutAmount}();
     } else if (swapOperationType == SwapOperationType.AssetToEth) {
       // set lastSwapTime of sellToken only (buyToken WETH has no set swapDetails)
       pool.setSwapDetailsLastSwapTime(sellTokenAddress, uint32(block.timestamp));
+      // Set the setSwapAssetAmount on the pool
+      pool.setSwapAssetAmount(sellTokenAddress, totalOutAmount);
       // transfer ERC20 asset from Pool
       pool.transferAssetToSwapOperator(sellTokenAddress, totalOutAmount);
     } else {
@@ -307,6 +311,8 @@ contract SwapOperator is ISwapOperator {
       // set lastSwapTime of sell / buy tokens
       pool.setSwapDetailsLastSwapTime(sellTokenAddress, uint32(block.timestamp));
       pool.setSwapDetailsLastSwapTime(buyTokenAddress, uint32(block.timestamp));
+      // Set the setSwapAssetAmount on the pool
+      pool.setSwapAssetAmount(sellTokenAddress, totalOutAmount);
       // transfer ERC20 asset from Pool
       pool.transferAssetToSwapOperator(sellTokenAddress, totalOutAmount);
     }
@@ -337,9 +343,6 @@ contract SwapOperator is ISwapOperator {
 
     // Execute swap based on operation type
     executeAssetTransfer(pool, order, swapOperationType, totalOutAmount);
-
-    // Set the swapValue on the pool
-    pool.setSwapAssetAmount(address(order.sellToken), totalOutAmount);
 
     // Approve cowVaultRelayer contract to spend sellToken totalOutAmount
     order.sellToken.safeApprove(cowVaultRelayer, totalOutAmount);

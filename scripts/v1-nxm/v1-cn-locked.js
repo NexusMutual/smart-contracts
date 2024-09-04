@@ -6,7 +6,7 @@ const deployments = require('@nexusmutual/deployments');
 
 const { BigNumber } = ethers;
 
-const OUTPUT_FILE = 'cn-locked-amount.json';
+const OUTPUT_FILE = 'v1-cn-locked-amount.json';
 const ROLE_MEMBER = 2;
 
 const getContractFactory = async providerOrSigner => {

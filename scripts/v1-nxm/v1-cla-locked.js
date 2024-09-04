@@ -4,7 +4,7 @@ const fs = require('fs');
 const { Sema } = require('async-sema');
 const deployments = require('@nexusmutual/deployments');
 
-const OUTPUT_FILE = 'cla-locked-amount.json';
+const OUTPUT_FILE = 'v1-cla-locked-amount.json';
 const ROLE_MEMBER = 2;
 
 const getContractFactory = async providerOrSigner => {

@@ -5,7 +5,7 @@ async function pushCoverNotes({ tc }, item) {
 
 async function pushClaimsAssessment({ tc }, items) {
   const members = items.map(item => item.member);
-  await tc.withdrawClaimAssessmentTokens(members, { gasLimit: '15000000' });
+  await tc.withdrawClaimAssessmentTokens(members);
 }
 
 async function pushV1StakingStake({ ps }, item) {

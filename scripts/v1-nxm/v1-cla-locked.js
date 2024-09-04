@@ -1,10 +1,10 @@
 require('dotenv').config();
 const { inspect } = require('node:util');
 
-const { ethers } = require('hardhat');
-const fs = require('fs');
-const { Sema } = require('async-sema');
 const deployments = require('@nexusmutual/deployments');
+const { Sema } = require('async-sema');
+const fs = require('fs');
+const { ethers } = require('hardhat');
 
 const OUTPUT_FILE = 'v1-cla-locked-amount.json';
 const ROLE_MEMBER = 2;

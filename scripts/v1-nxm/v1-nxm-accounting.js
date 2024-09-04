@@ -62,3 +62,23 @@ if (require.main === module) {
       process.exit(1);
     });
 }
+
+/* Get total v1 NXM amounts that is owed to members */
+const getAmounts = (label, usersAndAmounts) => {
+  const totalAmountNxm = usersAndAmounts.reduce((acc, data) => acc.add(data.amount), ethers.BigNumber.from(0));
+  const totalNxm = ethers.utils.formatEther(totalAmountNxm);
+  console.log(`${label} ${totalNxm} NXM`);
+};
+
+const amounts = () => {
+  const stakeData = require('../../v1-pooled-staking-stake.json');
+  const rewardsData = require('../../v1-pooled-staking-rewards.json');
+  const claData = require('../../v1-cla-locked-amount.json');
+  const cnData = require('../../v1-cn-locked-amount.json');
+  getAmounts('Stake', stakeData);
+  getAmounts('Rewards', rewardsData);
+  getAmounts('CLA', claData);
+  getAmounts('CN', cnData);
+};
+
+module.exports = { amounts };

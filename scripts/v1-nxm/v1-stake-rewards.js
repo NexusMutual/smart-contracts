@@ -1,8 +1,9 @@
 require('dotenv').config();
-const { ethers } = require('hardhat');
-const fs = require('fs');
-const { Sema } = require('async-sema');
+
 const deployments = require('@nexusmutual/deployments');
+const { Sema } = require('async-sema');
+const fs = require('fs');
+const { ethers } = require('hardhat');
 
 const OUTPUT_PATH_STAKE = 'v1-pooled-staking-stake.json';
 const OUTPUT_PATH_REWARDS = 'v1-pooled-staking-rewards.json';

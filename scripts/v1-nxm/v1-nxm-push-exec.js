@@ -70,12 +70,13 @@ async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txP
 
   for (const type of types) {
     progress[type.name] ||= { processedCount: 0 };
-    const remainingData = type.data.slice(progress[type.name].processedCount);
-    const totalData = type.data.length;
+
     let counter = progress[type.name].processedCount;
+    const totalData = type.data.length;
+    const remainingData = type.data.slice(progress[type.name].processedCount);
 
     while (remainingData.length > 0) {
-      counter += Math.min(txPerBlock, counter - progress[type.name].processedCount);
+      counter += txPerBlock;
       process.stdout.write(`\r[${type.name}] Processing members ${counter} of ${totalData}`);
 
       const maxFeePerGas = await getGasFees(provider, priorityFeeGwei);
@@ -93,20 +94,19 @@ async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txP
 
       try {
         if (type.name === 'ClaimsAssessment') {
-          await type.func({ tc, ps }, batch, type.data.length);
-          progress[type.name].processedCount += batch.length;
+          await type.func({ tc, ps }, batch);
         } else {
           const promises = batch.map(item => type.func({ tc, ps }, item));
           await Promise.all(promises);
-          progress[type.name].processedCount += batch.length;
         }
-
-        // Save progress after processing the batch
-        await fs.writeFile(PROGRESS_FILE, JSON.stringify(progress, null, 2));
       } catch (error) {
         console.error(`Error processing ${type.name}:`, error);
         throw error; // This will stop the process
       }
+
+      // Save progress after processing the batch
+      progress[type.name].processedCount += batch.length;
+      await fs.writeFile(PROGRESS_FILE, JSON.stringify(progress, null, 2));
 
       remainingData.splice(0, txPerBlock);
     }
@@ -117,7 +117,6 @@ async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txP
   console.log('All v1 NXM types processed successfully.');
 }
 
-// CLI entry point
 if (require.main === module) {
   const args = process.argv.slice(2);
   if (args.length !== 3) {

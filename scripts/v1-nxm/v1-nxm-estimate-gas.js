@@ -1,10 +1,7 @@
 require('dotenv').config();
-const { ethers } = require('hardhat');
-const fs = require('node:fs/promises');
-const { Sema } = require('async-sema');
 const deployments = require('@nexusmutual/deployments');
-
-const totalGas = 0;
+const { Sema } = require('async-sema');
+const { ethers } = require('hardhat');
 
 const getContractFactory = provider => {
   const signer = provider.getSigner('0x87B2a7559d85f4653f13E6546A14189cd5455d45');
@@ -73,23 +70,20 @@ const withdrawV1StakingStake = async pooledStaking => {
   const users = usersAndAmounts.map(data => data.member);
 
   let totalGas = ethers.BigNumber.from(0);
-  // const membersSemaphore = new Sema(10, { capacity: users.length });
+  const membersSemaphore = new Sema(10, { capacity: users.length });
 
-  // const promises = users.map(async (user, i) => {
-  let count = 0;
-  for (const user of users) {
-    process.stdout.write(`\rmember ${++count} of ${users.length}`);
+  const promises = users.map(async (user, i) => {
+    process.stdout.write(`\rmember ${++i} of ${users.length}`);
 
-    // await membersSemaphore.acquire();
+    await membersSemaphore.acquire();
 
     const gasEstimate = await pooledStaking.estimateGas.withdrawForUser(user);
     totalGas = totalGas.add(gasEstimate);
 
-    // membersSemaphore.release();
-  }
-  // });
+    membersSemaphore.release();
+  });
 
-  // await Promise.all(promises);
+  await Promise.all(promises);
   console.log('totalGas: ', totalGas);
 };
 
@@ -146,32 +140,4 @@ const getGasCost = async (totalGas, gasPriceGwei) => {
   return `${totalCostEth.toString()} ETH`;
 };
 
-const exec = async () => {
-  console.log('3 gwei: ', await getGasCost(182221106, 3));
-  console.log('5 gwei: ', await getGasCost(182221106, 5));
-};
-
-const getAmounts = (label, usersAndAmounts) => {
-  const totalAmountNxm = usersAndAmounts.reduce((acc, data) => acc.add(data.amount), ethers.BigNumber.from(0));
-  const totalNxm = ethers.utils.formatEther(totalAmountNxm);
-  console.log(`${label} ${totalNxm} NXM`);
-};
-
-const amounts = () => {
-  const stakeData = require('../../v1-pooled-staking-stake.json');
-  const rewardsData = require('../../v1-pooled-staking-rewards.json');
-  const claData = require('../../cla-locked-amount.json');
-  const cnData = require('../../cn-locked-amount.json');
-  getAmounts('Stake', stakeData);
-  getAmounts('Rewards', rewardsData);
-  getAmounts('CLA', claData);
-  getAmounts('CN', cnData);
-};
-
-amounts();
-// exec();
-
-// 2 gwei: '0.519778412 ETH
-// 3 gwei: '0.779667618 ETH
-// 5 gwei: '1.29944603 ETH
-// 10 gwei: '2.59889206 ETH
+module.exports = { getGasCost };

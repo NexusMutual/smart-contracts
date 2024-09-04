@@ -48,7 +48,7 @@ contract SwapOperator is ISwapOperator {
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint public constant MAX_SLIPPAGE_DENOMINATOR = 10000;
   uint public constant MIN_VALID_TO_PERIOD = 600; // 10 minutes
-  uint public constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
+  uint public constant MAX_VALID_TO_PERIOD = 31 days; // 1 month
   uint public constant MIN_TIME_BETWEEN_ORDERS = 900; // 15 minutes
   uint public constant MAX_FEE = 0.3 ether;
 
@@ -284,11 +284,10 @@ contract SwapOperator is ISwapOperator {
   /// Additionally if selling ETH, wraps received Pool ETH to WETH
   function executeAssetTransfer(
     IPool pool,
-    IPriceFeedOracle priceFeedOracle,
     GPv2Order.Data calldata order,
     SwapOperationType swapOperationType,
     uint totalOutAmount
-  ) internal returns (uint swapValueEth) {
+  ) internal {
     address sellTokenAddress = address(order.sellToken);
     address buyTokenAddress = address(order.buyToken);
 
@@ -298,15 +297,11 @@ contract SwapOperator is ISwapOperator {
       // transfer ETH from pool and wrap it (use ETH address here because swapOp.sellToken is WETH address)
       pool.transferAssetToSwapOperator(ETH, totalOutAmount);
       weth.deposit{value: totalOutAmount}();
-      // no need to convert since totalOutAmount is already in ETH (i.e. WETH)
-      swapValueEth = totalOutAmount;
     } else if (swapOperationType == SwapOperationType.AssetToEth) {
       // set lastSwapTime of sellToken only (buyToken WETH has no set swapDetails)
       pool.setSwapDetailsLastSwapTime(sellTokenAddress, uint32(block.timestamp));
       // transfer ERC20 asset from Pool
       pool.transferAssetToSwapOperator(sellTokenAddress, totalOutAmount);
-      // convert totalOutAmount (sellAmount + fee) to ETH
-      swapValueEth = priceFeedOracle.getEthForAsset(sellTokenAddress, totalOutAmount);
     } else {
       // SwapOperationType.AssetToAsset
       // set lastSwapTime of sell / buy tokens
@@ -314,8 +309,6 @@ contract SwapOperator is ISwapOperator {
       pool.setSwapDetailsLastSwapTime(buyTokenAddress, uint32(block.timestamp));
       // transfer ERC20 asset from Pool
       pool.transferAssetToSwapOperator(sellTokenAddress, totalOutAmount);
-      // convert totalOutAmount (sellAmount + fee) to ETH
-      swapValueEth = priceFeedOracle.getEthForAsset(sellTokenAddress, totalOutAmount);
     }
   }
 
@@ -343,10 +336,10 @@ contract SwapOperator is ISwapOperator {
     performPreSwapValidations(pool, priceFeedOracle, order, swapOperationType, totalOutAmount);
 
     // Execute swap based on operation type
-    uint swapValueEth = executeAssetTransfer(pool, priceFeedOracle, order, swapOperationType, totalOutAmount);
+    executeAssetTransfer(pool, order, swapOperationType, totalOutAmount);
 
     // Set the swapValue on the pool
-    pool.setSwapValue(swapValueEth);
+    pool.setSwapAssetAmount(address(order.sellToken), totalOutAmount);
 
     // Approve cowVaultRelayer contract to spend sellToken totalOutAmount
     order.sellToken.safeApprove(cowVaultRelayer, totalOutAmount);
@@ -395,7 +388,7 @@ contract SwapOperator is ISwapOperator {
     returnAssetToPool(pool, order.sellToken);
 
     // Set swapValue on pool to 0
-    pool.setSwapValue(0);
+    pool.setSwapAssetAmount(address(order.sellToken), 0);
 
     // Emit event
     emit OrderClosed(order, filledAmount);

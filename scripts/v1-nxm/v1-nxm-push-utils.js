@@ -28,6 +28,8 @@ async function getGasFees(provider, priorityFee) {
   return maxFeePerGas;
 }
 
+/* Load / Save Progress */
+
 async function loadProgress() {
   try {
     const data = await fs.readFile(PROGRESS_FILE, 'utf-8');
@@ -42,26 +44,35 @@ async function saveProgress(data) {
 }
 
 /* v1 NXM push contract functions */
-async function pushClaimsAssessment({ tc }, batch) {
-  const members = batch.map(item => item.member);
-  await tc.withdrawClaimAssessmentTokens(members);
-}
 
 async function pushCoverNotes({ tc }, batch) {
-  const promises = batch.map(item => {
+  const promises = batch.map(async item => {
     const { member, coverIds, lockReasonIndexes } = item;
-    return tc.withdrawCoverNote(member, coverIds, lockReasonIndexes);
+    const tx = await tc.withdrawCoverNote(member, coverIds, lockReasonIndexes);
+    await tx.wait();
   });
   await Promise.all(promises);
 }
 
+async function pushClaimsAssessment({ tc }, batch) {
+  const members = batch.map(item => item.member);
+  const tx = await tc.withdrawClaimAssessmentTokens(members);
+  await tx.wait();
+}
+
 async function pushV1StakingStake({ ps }, batch) {
-  const promises = batch.map(item => ps.withdrawForUser(item.member));
+  const promises = batch.map(async item => {
+    const tx = await ps.withdrawForUser(item.member);
+    await tx.wait();
+  });
   await Promise.all(promises);
 }
 
 async function pushV1StakingRewards({ ps }, batch) {
-  const promises = batch.map(item => ps.withdrawReward(item.member));
+  const promises = batch.map(async item => {
+    const tx = await ps.withdrawReward(item.member);
+    await tx.wait();
+  });
   await Promise.all(promises);
 }
 

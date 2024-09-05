@@ -1,4 +1,5 @@
 require('dotenv').config();
+const { inspect } = require('node:util');
 
 const deployments = require('@nexusmutual/deployments');
 const { Sema } = require('async-sema');
@@ -85,6 +86,7 @@ const main = async provider => {
 
   console.log(`Found ${v1Stake.length} members with v1 Pooled Staking stake`);
   console.log(`Found ${v1Rewards.length} members with v1 Pooled Staking rewards`);
+  console.log(`Failed members: ${inspect(failedMemberIds, { depth: null })}`);
 
   console.log(`Writing output to ${OUTPUT_PATH_STAKE}/${OUTPUT_PATH_REWARDS}...`);
   fs.writeFileSync(OUTPUT_PATH_STAKE, JSON.stringify(v1Stake, null, 2), 'utf8');

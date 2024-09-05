@@ -36,7 +36,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   uint public constant MCR_RATIO_DECIMALS = 4;
   uint internal constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
-  mapping  (address => uint256) public assetsInSwapOperator;
+  mapping(address => uint256) public assetsInSwapOperator;
   uint32 internal assetsInSwapOperatorBitmap;
 
   INXMToken public immutable nxmToken;
@@ -104,13 +104,13 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   /* ========== ASSET RELATED VIEW FUNCTIONS ========== */
 
-  function getAssetValueInEth(address assetAddress, uint amountInSwapOperator) internal view returns (uint) {
+  function getAssetValueInEth(address assetAddress, uint assetAmountInSwapOperator) internal view returns (uint) {
 
     uint assetBalance;
 
     if (assetAddress.code.length != 0) {
       try IERC20(assetAddress).balanceOf(address(this)) returns (uint balance) {
-        assetBalance = balance + amountInSwapOperator;
+        assetBalance = balance + assetAmountInSwapOperator;
       } catch {
         // If balanceOf reverts consider it 0
       }
@@ -130,24 +130,29 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   function getPoolValueInEth() public override view returns (uint) {
 
     uint total = address(this).balance;
+
     uint assetCount = assets.length;
-    uint _assetsInSwapOperatorBitmap = assetsInSwapOperatorBitmap;
+    uint32 _assetsInSwapOperatorBitmap = assetsInSwapOperatorBitmap;
 
-    // Skip ETH (index 0)
-    for (uint i = 1; i < assetCount; i++) {
+    for (uint i = 0; i < assetCount; i++) {
+      Asset memory asset = assets[i];
 
-      if (assets[i].isAbandoned) {
+      if (asset.isAbandoned) {
         continue;
       }
 
-      address assetAddress = assets[i].assetAddress;
-      uint amountInSwapOperator;
+      address assetAddress = asset.assetAddress;
 
-      if (isAssetInSwapOperator(i, _assetsInSwapOperatorBitmap)) {
-        amountInSwapOperator = assetsInSwapOperator[assetAddress];
+      uint assetAmountInSwapOperator = isAssetInSwapOperator(i, _assetsInSwapOperatorBitmap)
+        ? assetsInSwapOperator[assetAddress]
+        : 0;
+
+      if (assetAddress == ETH) {
+        total += assetAmountInSwapOperator;
+        continue;
       }
 
-      total += getAssetValueInEth(assetAddress, amountInSwapOperator);
+      total += getAssetValueInEth(assetAddress, assetAmountInSwapOperator);
     }
 
     return total;
@@ -167,6 +172,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   }
 
   function getAssetId(address assetAddress) public view returns (uint) {
+
     uint assetCount = assets.length;
     for (uint i = 0; i < assetCount; i++) {
       if (assets[i].assetAddress == assetAddress) {
@@ -310,6 +316,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   }
 
   function setSwapAssetAmount(address assetAddress, uint value) external onlySwapOperator whenNotPaused {
+
     assetsInSwapOperator[assetAddress] = value;
 
     if (value > 0) {
@@ -318,7 +325,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     } else {
       assetsInSwapOperatorBitmap = 0;
     }
-
   }
 
   /* ========== CLAIMS RELATED MUTATIVE FUNCTIONS ========== */

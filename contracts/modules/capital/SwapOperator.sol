@@ -390,8 +390,9 @@ contract SwapOperator is ISwapOperator {
     returnAssetToPool(pool, order.buyToken);
     returnAssetToPool(pool, order.sellToken);
 
+    address sellToken = address(order.sellToken) == address(weth) ? ETH : address(order.sellToken);
     // Set swapValue on pool to 0
-    pool.setSwapAssetAmount(address(order.sellToken), 0);
+    pool.setSwapAssetAmount(sellToken, 0);
 
     // Emit event
     emit OrderClosed(order, filledAmount);

@@ -32,7 +32,7 @@ const simulateTransaction = async input => {
   );
 
   const { transaction, simulation } = response.data;
-  const [{ value: decodedTxInputs }] = transaction.transaction_info.call_trace.decoded_input;
+  const [{ value: decodedTxInputs }] = transaction.transaction_info.call_trace.calls[0].decoded_input;
   console.info('cover.setProducts input:\n', inspect(decodedTxInputs, { depth: null }));
   console.info(
     '\nTenderly Simulated transaction:\n',

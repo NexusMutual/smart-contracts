@@ -8,13 +8,13 @@ const PROGRESS_FILE = 'v1-nxm-progress.json';
 
 const waitFor = util.promisify(setTimeout);
 
-function getContract(contractName, signer) {
+function getContract(contractName, providerOrSigner) {
   const abi = deployments[contractName];
   const address = deployments.addresses[contractName];
   if (!abi || !address) {
     throw new Error(`address or abi not found for ${contractName} contract`);
   }
-  return new ethers.Contract(address, abi, signer);
+  return new ethers.Contract(address, abi, providerOrSigner);
 }
 
 async function getGasFees(provider, priorityFee) {
@@ -42,22 +42,27 @@ async function saveProgress(data) {
 }
 
 /* v1 NXM push contract functions */
-async function pushCoverNotes({ tc }, item) {
-  const { member, coverIds, lockReasonIndexes } = item;
-  await tc.withdrawCoverNote(member, coverIds, lockReasonIndexes);
-}
-
-async function pushClaimsAssessment({ tc }, items) {
-  const members = items.map(item => item.member);
+async function pushClaimsAssessment({ tc }, batch) {
+  const members = batch.map(item => item.member);
   await tc.withdrawClaimAssessmentTokens(members);
 }
 
-async function pushV1StakingStake({ ps }, item) {
-  await ps.withdrawForUser(item.member);
+async function pushCoverNotes({ tc }, batch) {
+  const promises = batch.map(item => {
+    const { member, coverIds, lockReasonIndexes } = item;
+    return tc.withdrawCoverNote(member, coverIds, lockReasonIndexes);
+  });
+  await Promise.all(promises);
 }
 
-async function pushV1StakingRewards({ ps }, item) {
-  await ps.withdrawReward(item.member);
+async function pushV1StakingStake({ ps }, batch) {
+  const promises = batch.map(item => ps.withdrawForUser(item.member));
+  await Promise.all(promises);
+}
+
+async function pushV1StakingRewards({ ps }, batch) {
+  const promises = batch.map(item => ps.withdrawReward(item.member));
+  await Promise.all(promises);
 }
 
 module.exports = {

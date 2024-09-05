@@ -32,10 +32,8 @@ const types = [
  * - Batches transactions for efficiency
  * - Tracks progress and allows resuming from last processed item (in case of any tx errors)
  */
-async function processV1NXM(userMaxFeePerGasGwei, priorityFeeGwei, txPerBlock) {
+async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txPerBlock) {
   const userMaxFeePerGas = ethers.utils.parseUnits(userMaxFeePerGasGwei.toString(), 'gwei');
-
-  const provider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
   const signer = new ethers.Wallet(process.env.WALLET_PK, provider);
 
   const tc = getContract('TokenController', signer);
@@ -66,20 +64,8 @@ async function processV1NXM(userMaxFeePerGasGwei, priorityFeeGwei, txPerBlock) {
       }
 
       const batch = remainingData.slice(0, txPerBlock);
+      await type.func({ tc, ps }, batch);
 
-      try {
-        if (type.name === 'ClaimsAssessment') {
-          await type.func({ tc, ps }, batch);
-        } else {
-          const promises = batch.map(item => type.func({ tc, ps }, item));
-          await Promise.all(promises);
-        }
-      } catch (error) {
-        console.error(`Error processing ${type.name}:`, error);
-        throw error; // This will stop the process
-      }
-
-      // Save progress after processing the batch
       progress[type.name].processedCount += batch.length;
       await saveProgress(progress);
 
@@ -100,8 +86,9 @@ if (require.main === module) {
   }
 
   const [maxGasFeeGwei, priorityFeeGwei, txPerBlock] = args.map(Number);
+  const provider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
 
-  processV1NXM(maxGasFeeGwei, priorityFeeGwei, txPerBlock)
+  processV1NXM(provider, maxGasFeeGwei, priorityFeeGwei, txPerBlock)
     .then(() => process.exit(0))
     .catch(error => {
       console.error('Unhandled error:', error);

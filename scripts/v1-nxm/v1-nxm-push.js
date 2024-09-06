@@ -1,4 +1,3 @@
-require('dotenv').config();
 const { ethers } = require('ethers');
 
 const {
@@ -14,10 +13,10 @@ const {
 } = require('./v1-nxm-push-utils');
 
 const types = [
-  // { name: 'ClaimsAssessment', data: require('../../v1-cla-locked-amount.json'), func: pushClaimsAssessment },
   { name: 'StakingRewards', data: require('../../v1-pooled-staking-rewards.json'), func: pushV1StakingRewards },
   { name: 'StakingStake', data: require('../../v1-pooled-staking-stake.json'), func: pushV1StakingStake },
   { name: 'CoverNotes', data: require('../../v1-cn-locked-amount.json'), func: pushCoverNotes },
+  { name: 'ClaimsAssessment', data: require('../../v1-cla-locked-amount.json'), func: pushClaimsAssessment },
 ];
 
 /**

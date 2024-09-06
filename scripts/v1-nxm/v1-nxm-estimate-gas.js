@@ -1,4 +1,3 @@
-require('dotenv').config();
 const deployments = require('@nexusmutual/deployments');
 const { Sema } = require('async-sema');
 const { ethers } = require('hardhat');

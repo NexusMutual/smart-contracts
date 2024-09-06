@@ -32,7 +32,7 @@ const types = [
  * - Batches transactions for efficiency
  * - Tracks progress and allows resuming from last processed item (in case of any tx errors)
  */
-async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txPerBlock) {
+async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txPerBlock, manualNonce) {
   const userMaxFeePerGas = ethers.utils.parseUnits(userMaxFeePerGasGwei.toString(), 'gwei');
   const signer = new ethers.Wallet(process.env.WALLET_PK, provider);
 
@@ -61,10 +61,11 @@ async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txP
       }
 
       counter += txPerBlock;
-      process.stdout.write(`\n\r[${type.name}] Processing members ${counter} of ${totalData}`);
+      process.stdout.write(`\r[${type.name}] Processing members ${counter} of ${totalData}`);
 
       const batch = remainingData.slice(0, txPerBlock);
-      await type.func({ tc, ps }, batch, gasFees);
+      const nonce = manualNonce || (await signer.getTransactionCount());
+      await type.func({ tc, ps }, batch, { ...gasFees, nonce });
 
       progress[type.name].processedCount += batch.length;
       await saveProgress(progress);
@@ -80,15 +81,15 @@ async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txP
 
 if (require.main === module) {
   const args = process.argv.slice(2);
-  if (args.length !== 3) {
-    console.error('Usage: node v1-nxm-coordinator.js <maxGasFee> <priorityFee> <txPerBlock>');
+  if (args.length < 3) {
+    console.error('Usage: node v1-nxm-coordinator.js <maxGasFee> <priorityFee> <txPerBlock> <optionalManualNonce>');
     process.exit(1);
   }
 
-  const [maxGasFeeGwei, priorityFeeGwei, txPerBlock] = args.map(Number);
+  const [maxGasFeeGwei, priorityFeeGwei, txPerBlock, manualNonce] = args.map(Number);
   const provider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
 
-  processV1NXM(provider, maxGasFeeGwei, priorityFeeGwei, txPerBlock)
+  processV1NXM(provider, maxGasFeeGwei, priorityFeeGwei, txPerBlock, manualNonce)
     .then(() => process.exit(0))
     .catch(error => {
       console.error('Unhandled error:', error);

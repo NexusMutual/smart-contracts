@@ -47,32 +47,40 @@ async function saveProgress(data) {
 
 /* v1 NXM push contract functions */
 
-async function pushCoverNotes({ tc }, batch, gasFees) {
-  for (const item of batch) {
+async function pushCoverNotes({ tc }, batch, txOpts) {
+  const promises = batch.map(async (item, i) => {
     const { member, coverIds, lockReasonIndexes } = item;
-    const tx = await tc.withdrawCoverNote(member, coverIds, lockReasonIndexes, { ...gasFees, gasLimit: '150000' });
+    const nonce = txOpts.nonce + i;
+    const tx = await tc.withdrawCoverNote(member, coverIds, lockReasonIndexes, {
+      ...txOpts,
+      nonce,
+      gasLimit: '150000',
+    });
     await tx.wait();
-  }
+  });
+  await Promise.all(promises);
 }
 
-async function pushClaimsAssessment({ tc }, batch, gasFees) {
+async function pushClaimsAssessment({ tc }, batch, txOpts) {
   const members = batch.map(item => item.member);
-  const tx = await tc.withdrawClaimAssessmentTokens(members, gasFees);
+  const tx = await tc.withdrawClaimAssessmentTokens(members, txOpts);
   await tx.wait();
 }
 
-async function pushV1StakingStake({ ps }, batch, gasFees) {
-  for (const item of batch) {
-    const tx = await ps.withdrawForUser(item.member, { ...gasFees, gasLimit: '100000' });
+async function pushV1StakingStake({ ps }, batch, txOpts) {
+  const promises = batch.map(async (item, i) => {
+    const tx = await ps.withdrawForUser(item.member, { ...txOpts, nonce: txOpts.nonce + i, gasLimit: '100000' });
     await tx.wait();
-  }
+  });
+  await Promise.all(promises);
 }
 
-async function pushV1StakingRewards({ ps }, batch, gasFees) {
-  for (const item of batch) {
-    const tx = await ps.withdrawReward(item.member, { ...gasFees, gasLimit: '100000' });
+async function pushV1StakingRewards({ ps }, batch, txOpts) {
+  const promises = batch.map(async (item, i) => {
+    const tx = await ps.withdrawReward(item.member, { ...txOpts, nonce: txOpts.nonce + i, gasLimit: '100000' });
     await tx.wait();
-  }
+  });
+  await Promise.all(promises);
 }
 
 module.exports = {

@@ -14,7 +14,7 @@ const {
 } = require('./v1-nxm-push-utils');
 
 const types = [
-  { name: 'ClaimsAssessment', data: require('../../v1-cla-locked-amount.json'), func: pushClaimsAssessment },
+  // { name: 'ClaimsAssessment', data: require('../../v1-cla-locked-amount.json'), func: pushClaimsAssessment },
   { name: 'StakingStake', data: require('../../v1-pooled-staking-stake.json'), func: pushV1StakingStake },
   { name: 'StakingRewards', data: require('../../v1-pooled-staking-rewards.json'), func: pushV1StakingRewards },
   { name: 'CoverNotes', data: require('../../v1-cn-locked-amount.json'), func: pushCoverNotes },
@@ -49,9 +49,6 @@ async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txP
     const remainingData = type.data.slice(progress[type.name].processedCount);
 
     while (remainingData.length > 0) {
-      counter += txPerBlock;
-      process.stdout.write(`\r[${type.name}] Processing members ${counter} of ${totalData}`);
-
       const maxFeePerGas = await getGasFees(provider, priorityFeeGwei);
       if (maxFeePerGas.gt(userMaxFeePerGas)) {
         console.log(
@@ -62,6 +59,9 @@ async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txP
         await waitFor(15000); // ~15s average block time
         continue;
       }
+
+      counter += txPerBlock;
+      process.stdout.write(`\n\r[${type.name}] Processing members ${counter} of ${totalData}`);
 
       const batch = remainingData.slice(0, txPerBlock);
       await type.func({ tc, ps }, batch);

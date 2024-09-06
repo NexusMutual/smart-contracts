@@ -1,22 +1,14 @@
-require('dotenv').config();
 const { inspect } = require('node:util');
+const fs = require('node:fs');
 
-const deployments = require('@nexusmutual/deployments');
 const { Sema } = require('async-sema');
-const fs = require('fs');
 const { ethers } = require('hardhat');
+
+const { getContract } = require('./v1-nxm-push-utils');
 
 const OUTPUT_PATH_STAKE = 'v1-pooled-staking-stake.json';
 const OUTPUT_PATH_REWARDS = 'v1-pooled-staking-rewards.json';
 const ROLE_MEMBER = 2;
-
-const getContractFactory = providerOrSigner => {
-  return contractName => {
-    const abi = deployments[contractName];
-    const address = deployments.addresses[contractName];
-    return new ethers.Contract(address, abi, providerOrSigner);
-  };
-};
 
 const getMemberV1PooledStaking = async (memberId, mr, ps) => {
   process.stdout.write(`\rProcessing memberId ${memberId}`);
@@ -46,12 +38,12 @@ const getMemberV1PooledStaking = async (memberId, mr, ps) => {
   }
 };
 
-const main = async provider => {
+const main = async () => {
   const v1Stake = [];
   const v1Rewards = [];
 
-  const factory = getContractFactory(provider);
-  const [mr, ps] = await Promise.all([factory('MemberRoles'), factory('LegacyPooledStaking')]);
+  const mr = getContract('MemberRoles');
+  const ps = getContract('LegacyPooledStaking');
 
   const membersCount = await mr.membersLength(ROLE_MEMBER);
   const membersSemaphore = new Sema(100, { capacity: membersCount });

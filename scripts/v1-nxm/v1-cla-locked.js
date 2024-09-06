@@ -1,21 +1,13 @@
-require('dotenv').config();
 const { inspect } = require('node:util');
+const fs = require('node:fs');
 
-const deployments = require('@nexusmutual/deployments');
 const { Sema } = require('async-sema');
-const fs = require('fs');
 const { ethers } = require('hardhat');
+
+const { getContract } = require('./v1-nxm-push-utils');
 
 const OUTPUT_FILE = 'v1-cla-locked-amount.json';
 const ROLE_MEMBER = 2;
-
-const getContractFactory = async providerOrSigner => {
-  return async contractName => {
-    const abi = deployments[contractName];
-    const address = deployments.addresses[contractName];
-    return new ethers.Contract(address, abi, providerOrSigner);
-  };
-};
 
 async function getMemberCLA(memberId, claReason, mr, tc) {
   process.stdout.write(`\rProcessing memberId ${memberId}`);
@@ -31,11 +23,11 @@ async function getMemberCLA(memberId, claReason, mr, tc) {
   return { member, amount: amount.toString() };
 }
 
-const main = async provider => {
+const main = async () => {
   const v1ClaimAssessment = [];
 
-  const factory = await getContractFactory(provider);
-  const [mr, tc] = await Promise.all([factory('MemberRoles'), factory('TokenController')]);
+  const mr = getContract('MemberRoles');
+  const tc = getContract('TokenController');
 
   const claReason = ethers.utils.formatBytes32String('CLA');
   const memberCount = (await mr.membersLength(ROLE_MEMBER)).toNumber();
@@ -71,8 +63,7 @@ const main = async provider => {
 };
 
 if (require.main === module) {
-  const provider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
-  main(provider)
+  main()
     .then(() => process.exit(0))
     .catch(e => {
       console.log('Unhandled error encountered: ', e.stack);

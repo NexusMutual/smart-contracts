@@ -1,23 +1,15 @@
-require('dotenv').config();
 const { inspect } = require('node:util');
+const fs = require('node:fs');
 
-const deployments = require('@nexusmutual/deployments');
 const { Sema } = require('async-sema');
-const fs = require('fs');
 const { ethers } = require('hardhat');
+
+const { getContract } = require('./v1-nxm-push-utils');
 
 const { BigNumber } = ethers;
 
 const OUTPUT_FILE = 'v1-cn-locked-amount.json';
 const ROLE_MEMBER = 2;
-
-const getContractFactory = async providerOrSigner => {
-  return async contractName => {
-    const abi = deployments[contractName];
-    const address = deployments.addresses[contractName];
-    return new ethers.Contract(address, abi, providerOrSigner);
-  };
-};
 
 async function getMemberCN(memberId, mr, tc) {
   try {
@@ -55,10 +47,9 @@ async function getMemberCN(memberId, mr, tc) {
   }
 }
 
-const main = async provider => {
-  const factory = await getContractFactory(provider);
-  const tc = await factory('TokenController');
-  const mr = await factory('MemberRoles');
+const main = async () => {
+  const tc = getContract('TokenController');
+  const mr = getContract('MemberRoles');
 
   const memberCount = (await mr.membersLength(ROLE_MEMBER)).toNumber();
   const membersSemaphore = new Sema(100, { capacity: memberCount });

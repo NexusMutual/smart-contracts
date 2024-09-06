@@ -2,13 +2,13 @@ const fs = require('node:fs/promises');
 const util = require('node:util');
 
 const deployments = require('@nexusmutual/deployments');
-const { ethers } = require('ethers');
+const { ethers } = require('hardhat');
 
 const PROGRESS_FILE = 'v1-nxm-progress.json';
 
 const waitFor = util.promisify(setTimeout);
 
-function getContract(contractName, providerOrSigner) {
+function getContract(contractName, providerOrSigner = ethers.provider) {
   const abi = deployments[contractName];
   const address = deployments.addresses[contractName];
   if (!abi || !address) {

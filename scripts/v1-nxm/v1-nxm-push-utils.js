@@ -50,7 +50,7 @@ async function saveProgress(data) {
 async function pushCoverNotes({ tc }, batch, gasFees) {
   const promises = batch.map(async item => {
     const { member, coverIds, lockReasonIndexes } = item;
-    const tx = await tc.withdrawCoverNote(member, coverIds, lockReasonIndexes, gasFees);
+    const tx = await tc.withdrawCoverNote(member, coverIds, lockReasonIndexes, { ...gasFees, gasLimit: '150000' });
     await tx.wait();
   });
   await Promise.all(promises);
@@ -72,7 +72,7 @@ async function pushV1StakingStake({ ps }, batch, gasFees) {
 
 async function pushV1StakingRewards({ ps }, batch, gasFees) {
   const promises = batch.map(async item => {
-    const tx = await ps.withdrawReward(item.member, gasFees);
+    const tx = await ps.withdrawReward(item.member, gasFees, { ...gasFees, gasLimit: '100000' });
     await tx.wait();
   });
   await Promise.all(promises);

@@ -1,16 +1,19 @@
-require('dotenv').config();
 const deployments = require('@nexusmutual/deployments');
 const { ethers } = require('hardhat');
 
 const { getContract } = require('./v1-nxm-push-utils');
 
-async function logPoolBalances(provider) {
-  const tokenController = await getContract('TokenController', provider);
+async function logPoolBalances() {
+  const tokenController = getContract('TokenController');
+  const nxm = getContract('NXMToken');
+  const stakingPoolFactory = getContract('StakingPoolFactory');
 
   let totalDeposits = ethers.BigNumber.from(0);
   let totalRewards = ethers.BigNumber.from(0);
 
-  for (let poolId = 1; poolId <= 25; poolId++) {
+  const stakingPoolCount = await stakingPoolFactory.stakingPoolCount();
+
+  for (let poolId = 1; poolId <= stakingPoolCount.toNumber(); poolId++) {
     const { rewards, deposits } = await tokenController.stakingPoolNXMBalances(poolId);
     const depositsETH = ethers.utils.formatEther(deposits);
     const rewardsETH = ethers.utils.formatEther(rewards);
@@ -39,7 +42,9 @@ async function logPoolBalances(provider) {
   const totalPoolBalance = totalDeposits.add(totalRewards).add(cnBalance).add(claBalance);
   console.log(`EXPECTED Total Pool Balance: ${ethers.utils.formatEther(totalPoolBalance)} NXM`);
 
-  const tokenControllerBalance = ethers.utils.parseEther('507780.73694946');
+  const tcBal = await nxm.balanceOf(deployments.addresses.TokenController);
+  const tokenControllerBalance = ethers.utils.formatEther(tcBal);
+
   console.log(`ACTUAL Token Controller Balance: ${ethers.utils.formatEther(tokenControllerBalance)} NXM`);
 
   const difference = tokenControllerBalance.sub(totalPoolBalance);
@@ -56,8 +61,8 @@ const getAmounts = (label, usersAndAmounts) => {
   return totalNxm;
 };
 
-async function legacyPooledStakingAccounting(provider) {
-  const nxm = getContract('NXMToken', provider);
+async function legacyPooledStakingAccounting() {
+  const nxm = getContract('NXMToken');
 
   const psBal = await nxm.balanceOf(deployments.addresses.LegacyPooledStaking);
   const psBalNxm = ethers.utils.formatEther(psBal);
@@ -72,11 +77,9 @@ async function legacyPooledStakingAccounting(provider) {
 }
 
 if (require.main === module) {
-  const provider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
-
-  legacyPooledStakingAccounting(provider)
+  legacyPooledStakingAccounting()
     .then(() => console.log('\n--------------------\n'))
-    .then(() => logPoolBalances(provider))
+    .then(() => logPoolBalances())
     .then(() => process.exit(0))
     .catch(e => {
       console.log('Unhandled error encountered: ', e.stack);

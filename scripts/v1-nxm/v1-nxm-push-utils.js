@@ -48,12 +48,11 @@ async function saveProgress(data) {
 /* v1 NXM push contract functions */
 
 async function pushCoverNotes({ tc }, batch, gasFees) {
-  const promises = batch.map(async item => {
+  for (const item of batch) {
     const { member, coverIds, lockReasonIndexes } = item;
     const tx = await tc.withdrawCoverNote(member, coverIds, lockReasonIndexes, { ...gasFees, gasLimit: '150000' });
     await tx.wait();
-  });
-  await Promise.all(promises);
+  }
 }
 
 async function pushClaimsAssessment({ tc }, batch, gasFees) {
@@ -63,19 +62,17 @@ async function pushClaimsAssessment({ tc }, batch, gasFees) {
 }
 
 async function pushV1StakingStake({ ps }, batch, gasFees) {
-  const promises = batch.map(async item => {
+  for (const item of batch) {
     const tx = await ps.withdrawForUser(item.member, { ...gasFees, gasLimit: '100000' });
     await tx.wait();
-  });
-  await Promise.all(promises);
+  }
 }
 
 async function pushV1StakingRewards({ ps }, batch, gasFees) {
-  const promises = batch.map(async item => {
+  for (const item of batch) {
     const tx = await ps.withdrawReward(item.member, { ...gasFees, gasLimit: '100000' });
     await tx.wait();
-  });
-  await Promise.all(promises);
+  }
 }
 
 module.exports = {

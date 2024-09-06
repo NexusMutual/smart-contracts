@@ -23,9 +23,11 @@ async function getGasFees(provider, priorityFee) {
     throw new Error('Failed to get baseFeePerGas. Please try again');
   }
   const priorityFeeWei = ethers.utils.parseUnits(priorityFee.toString(), 'gwei');
-  const maxFeePerGas = baseFeePerGas.add(priorityFeeWei);
 
-  return maxFeePerGas;
+  return {
+    maxFeePerGas: baseFeePerGas.add(priorityFeeWei),
+    maxPriorityFeePerGas: priorityFeeWei,
+  };
 }
 
 /* Load / Save Progress */
@@ -45,32 +47,32 @@ async function saveProgress(data) {
 
 /* v1 NXM push contract functions */
 
-async function pushCoverNotes({ tc }, batch) {
+async function pushCoverNotes({ tc }, batch, gasFees) {
   const promises = batch.map(async item => {
     const { member, coverIds, lockReasonIndexes } = item;
-    const tx = await tc.withdrawCoverNote(member, coverIds, lockReasonIndexes);
+    const tx = await tc.withdrawCoverNote(member, coverIds, lockReasonIndexes, gasFees);
     await tx.wait();
   });
   await Promise.all(promises);
 }
 
-async function pushClaimsAssessment({ tc }, batch) {
+async function pushClaimsAssessment({ tc }, batch, gasFees) {
   const members = batch.map(item => item.member);
-  const tx = await tc.withdrawClaimAssessmentTokens(members);
+  const tx = await tc.withdrawClaimAssessmentTokens(members, gasFees);
   await tx.wait();
 }
 
-async function pushV1StakingStake({ ps }, batch) {
+async function pushV1StakingStake({ ps }, batch, gasFees) {
   const promises = batch.map(async item => {
-    const tx = await ps.withdrawForUser(item.member);
+    const tx = await ps.withdrawForUser(item.member, gasFees);
     await tx.wait();
   });
   await Promise.all(promises);
 }
 
-async function pushV1StakingRewards({ ps }, batch) {
+async function pushV1StakingRewards({ ps }, batch, gasFees) {
   const promises = batch.map(async item => {
-    const tx = await ps.withdrawReward(item.member);
+    const tx = await ps.withdrawReward(item.member, gasFees);
     await tx.wait();
   });
   await Promise.all(promises);

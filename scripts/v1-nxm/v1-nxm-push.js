@@ -49,11 +49,11 @@ async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txP
     const remainingData = type.data.slice(progress[type.name].processedCount);
 
     while (remainingData.length > 0) {
-      const maxFeePerGas = await getGasFees(provider, priorityFeeGwei);
-      if (maxFeePerGas.gt(userMaxFeePerGas)) {
+      const gasFees = await getGasFees(provider, priorityFeeGwei);
+      if (gasFees.maxFeePerGas.gt(userMaxFeePerGas)) {
         console.log(
           'Gas fee too high. Waiting for next block...',
-          `maxFeePerGas: ${ethers.utils.formatUnits(maxFeePerGas, 'gwei')} gwei`,
+          `maxFeePerGas: ${ethers.utils.formatUnits(gasFees.maxFeePerGas, 'gwei')} gwei`,
           `userMaxFeePerGas: ${ethers.utils.formatUnits(userMaxFeePerGas, 'gwei')} gwei`,
         );
         await waitFor(15000); // ~15s average block time
@@ -64,7 +64,7 @@ async function processV1NXM(provider, userMaxFeePerGasGwei, priorityFeeGwei, txP
       process.stdout.write(`\n\r[${type.name}] Processing members ${counter} of ${totalData}`);
 
       const batch = remainingData.slice(0, txPerBlock);
-      await type.func({ tc, ps }, batch);
+      await type.func({ tc, ps }, batch, gasFees);
 
       progress[type.name].processedCount += batch.length;
       await saveProgress(progress);

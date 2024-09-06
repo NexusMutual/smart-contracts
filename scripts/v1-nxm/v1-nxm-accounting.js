@@ -15,10 +15,10 @@ async function logPoolBalances() {
 
   for (let poolId = 1; poolId <= stakingPoolCount.toNumber(); poolId++) {
     const { rewards, deposits } = await tokenController.stakingPoolNXMBalances(poolId);
-    const depositsETH = ethers.utils.formatEther(deposits);
-    const rewardsETH = ethers.utils.formatEther(rewards);
+    const depositsNXM = ethers.utils.formatEther(deposits);
+    const rewardsNXM = ethers.utils.formatEther(rewards);
 
-    console.log(`Pool ${poolId}: Deposits: ${depositsETH} ETH, Rewards: ${rewardsETH} ETH`);
+    console.log(`Pool ${poolId}: Deposits: ${depositsNXM} NXM, Rewards: ${rewardsNXM} NXM`);
 
     totalDeposits = totalDeposits.add(deposits);
     totalRewards = totalRewards.add(rewards);
@@ -42,15 +42,13 @@ async function logPoolBalances() {
   const totalPoolBalance = totalDeposits.add(totalRewards).add(cnBalance).add(claBalance);
   console.log(`EXPECTED Total Pool Balance: ${ethers.utils.formatEther(totalPoolBalance)} NXM`);
 
-  const tcBal = await nxm.balanceOf(deployments.addresses.TokenController);
-  const tokenControllerBalance = ethers.utils.formatEther(tcBal);
-
+  const tokenControllerBalance = await nxm.balanceOf(deployments.addresses.TokenController);
   console.log(`ACTUAL Token Controller Balance: ${ethers.utils.formatEther(tokenControllerBalance)} NXM`);
 
   const difference = tokenControllerBalance.sub(totalPoolBalance);
-  const differenceETH = ethers.utils.formatEther(difference);
+  const differenceNXM = ethers.utils.formatEther(difference);
 
-  console.log(`Difference: ${differenceETH} NXM`);
+  console.log(`Difference: ${differenceNXM} NXM`);
 }
 
 /* Get total v1 NXM amounts that is owed to members */

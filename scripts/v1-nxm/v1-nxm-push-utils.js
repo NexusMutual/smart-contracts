@@ -64,7 +64,7 @@ async function pushClaimsAssessment({ tc }, batch, gasFees) {
 
 async function pushV1StakingStake({ ps }, batch, gasFees) {
   const promises = batch.map(async item => {
-    const tx = await ps.withdrawForUser(item.member, gasFees);
+    const tx = await ps.withdrawForUser(item.member, { ...gasFees, gasLimit: '100000' });
     await tx.wait();
   });
   await Promise.all(promises);

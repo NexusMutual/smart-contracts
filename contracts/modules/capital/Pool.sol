@@ -179,7 +179,8 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
         return i;
       }
     }
-    revert("Pool: Asset not found");
+
+    revert AssetNotFound();
   }
 
   function isAssetInSwapOperator(uint _assetId, uint _assetsInSwapOperatorBitmap) internal pure returns (bool) {
@@ -272,7 +273,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       return;
     }
 
-    revert("Pool: Asset not found");
+    revert AssetNotFound();
   }
 
   function transferAsset(
@@ -320,6 +321,10 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     assetsInSwapOperator[assetAddress] = value;
 
     if (value > 0) {
+      if (assetsInSwapOperatorBitmap != 0) {
+        revert OrderInProgress();
+      }
+
       uint assetId = getAssetId(assetAddress);
       assetsInSwapOperatorBitmap = uint32(1 << assetId);
     } else {
@@ -477,7 +482,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   }
 
   function updateUintParameters(bytes8 /* code */, uint /* value */) external view onlyGovernance {
-    revert("Pool: Unknown parameter");
+    revert UnknownParameter();
   }
 
   function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
@@ -495,7 +500,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       return;
     }
 
-    revert("Pool: Unknown parameter");
+    revert UnknownParameter();
   }
 
   /* ========== DEPENDENCIES ========== */

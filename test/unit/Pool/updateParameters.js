@@ -139,6 +139,6 @@ describe('updateAddressParameters', function () {
 
     const unknownParam = toBytes8('UNKNOWN');
     const promise = pool.connect(governanceContract).updateAddressParameters(unknownParam, generalPurpose.address);
-    await expect(promise).to.be.revertedWith('Pool: Unknown parameter');
+    await expect(promise).to.be.revertedWithCustomError(pool, 'UnknownParameter');
   });
 });

@@ -20,6 +20,11 @@ struct Asset {
 
 interface IPool {
 
+  error RevertedWithoutReason(uint index);
+  error AssetNotFound();
+  error UnknownParameter();
+  error OrderInProgress();
+
   function swapOperator() external view returns (address);
 
   function getAsset(uint assetId) external view returns (Asset memory);

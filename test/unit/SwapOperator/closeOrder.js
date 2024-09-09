@@ -16,7 +16,7 @@ const setup = require('./setup');
 const utils = require('../utils');
 
 const { setEtherBalance, setNextBlockTime, revertToSnapshot, takeSnapshot, increaseTime, mineNextBlock } = utils.evm;
-const { ETH } = utils.constants.Assets;
+const { ETH } = utils.constants.PoolAsset;
 
 const {
   utils: { parseEther, hexZeroPad },

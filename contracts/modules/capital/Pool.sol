@@ -29,15 +29,16 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   IPriceFeedOracle public override priceFeedOracle;
   address public swapOperator;
 
+  // SwapOperator assets
+  uint32 internal assetsInSwapOperatorBitmap;
+  mapping(address => uint) public assetsInSwapOperator;
+
   /* constants */
 
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
   uint internal constant MAX_SLIPPAGE_DENOMINATOR = 10000;
-
-  mapping(address => uint256) public assetsInSwapOperator;
-  uint32 internal assetsInSwapOperatorBitmap;
 
   INXMToken public immutable nxmToken;
 
@@ -106,11 +107,11 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   function getAssetValueInEth(address assetAddress, uint assetAmountInSwapOperator) internal view returns (uint) {
 
-    uint assetBalance;
+    uint assetBalance = assetAmountInSwapOperator;
 
     if (assetAddress.code.length != 0) {
       try IERC20(assetAddress).balanceOf(address(this)) returns (uint balance) {
-        assetBalance = balance + assetAmountInSwapOperator;
+        assetBalance += balance;
       } catch {
         // If balanceOf reverts consider it 0
       }
@@ -132,7 +133,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     uint total = address(this).balance;
 
     uint assetCount = assets.length;
-    uint32 _assetsInSwapOperatorBitmap = assetsInSwapOperatorBitmap;
+    uint _assetsInSwapOperatorBitmap = assetsInSwapOperatorBitmap;
 
     for (uint i = 0; i < assetCount; i++) {
       Asset memory asset = assets[i];
@@ -186,9 +187,9 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   function isAssetInSwapOperator(uint _assetId, uint _assetsInSwapOperatorBitmap) internal pure returns (bool) {
 
     if (
-      // product does not use default cover assets
+      // there are assets in the swap operator
       _assetsInSwapOperatorBitmap != 0 &&
-      // asset id is not in the product's cover assets bitmap
+      // asset id is not in the swap operator assets
       ((1 << _assetId) & _assetsInSwapOperatorBitmap == 0)
     ) {
       return false;

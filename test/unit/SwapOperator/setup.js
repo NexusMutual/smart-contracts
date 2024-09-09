@@ -167,6 +167,11 @@ async function setup() {
       ETH_ADDRESS: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
       DAI_ADDRESS: dai.address,
     },
+    poolAssetAddressIdMapping: {
+      [dai.address]: 1,
+      [stEth.address]: 2,
+      [usdc.address]: 6,
+    },
   };
 }
 

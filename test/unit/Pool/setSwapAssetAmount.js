@@ -7,7 +7,8 @@ const { BigNumber } = ethers;
 const utils = require('../utils');
 
 const { toBytes8 } = utils.helpers;
-const { ETH } = utils.constants.Assets;
+const { ETH } = utils.constants.PoolAsset;
+const { ETH: ETH_ADDRESS } = utils.constants.Assets;
 
 describe('setSwapAssetAmount', function () {
   it('is only callabe by swap operator', async function () {
@@ -19,13 +20,15 @@ describe('setSwapAssetAmount', function () {
     } = fixture.accounts;
 
     // Not calling from swap operator reverts
-    await expect(pool.setSwapAssetAmount(ETH, BigNumber.from('123'))).to.be.revertedWith('Pool: Not swapOperator');
+    await expect(pool.setSwapAssetAmount(ETH_ADDRESS, BigNumber.from('123'))).to.be.revertedWith(
+      'Pool: Not swapOperator',
+    );
 
     // Set swap operator
     await pool.connect(governance).updateAddressParameters(toBytes8('SWP_OP'), swapOperator.address);
 
     // Call should succeed
-    await pool.connect(swapOperator).setSwapAssetAmount(ETH, BigNumber.from('123'));
+    await pool.connect(swapOperator).setSwapAssetAmount(ETH_ADDRESS, BigNumber.from('123'));
   });
 
   it('sets the swapValue value', async function () {
@@ -39,7 +42,7 @@ describe('setSwapAssetAmount', function () {
     expect(await pool.assetsInSwapOperator(ETH)).to.eq(0);
     // Set swap operator and set swap value
     await pool.connect(governance).updateAddressParameters(toBytes8('SWP_OP'), swapOperator.address);
-    await pool.connect(swapOperator).setSwapAssetAmount(ETH, 123);
+    await pool.connect(swapOperator).setSwapAssetAmount(ETH_ADDRESS, 123);
 
     expect(await pool.assetsInSwapOperator(ETH)).to.eq(123);
   });

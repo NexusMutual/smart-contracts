@@ -16,7 +16,8 @@ const setup = require('./setup');
 const utils = require('../utils');
 
 const { setEtherBalance, setNextBlockTime } = utils.evm;
-const { ETH } = utils.constants.Assets;
+const { ETH, stETH } = utils.constants.PoolAsset;
+const { ETH: ETH_ADDRESS } = utils.constants.Assets;
 
 const { parseEther, hexZeroPad, hexlify, randomBytes } = ethers.utils;
 
@@ -262,7 +263,7 @@ describe('placeOrder', function () {
     const { contracts, order, domain } = await loadFixture(placeSellWethOrderSetup);
     const { swapOperator } = contracts;
 
-    const badOrder = createContractOrder(domain, order, { sellToken: ETH });
+    const badOrder = createContractOrder(domain, order, { sellToken: ETH_ADDRESS });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'InvalidTokenAddress').withArgs('sellToken');
   });
@@ -271,7 +272,7 @@ describe('placeOrder', function () {
     const { contracts, order, domain } = await loadFixture(placeSellDaiOrderSetup);
     const { swapOperator } = contracts;
 
-    const badOrder = createContractOrder(domain, order, { buyToken: ETH });
+    const badOrder = createContractOrder(domain, order, { buyToken: ETH_ADDRESS });
     const placeOrder = swapOperator.placeOrder(badOrder.contractOrder, badOrder.orderUID);
     await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'InvalidTokenAddress').withArgs('buyToken');
   });
@@ -961,16 +962,17 @@ describe('placeOrder', function () {
   it('should set totalOutAmount in ETH as pool.swapValue when selling non-ETH assets', async function () {
     const orderSetupsToTest = [placeSellDaiOrderSetup, placeNonEthOrderSellStethSetup, placeNonEthOrderSellDaiSetup];
     for (const orderSetup of orderSetupsToTest) {
-      const { contracts, order, contractOrder, orderUID } = await loadFixture(orderSetup);
+      const { contracts, order, contractOrder, orderUID, poolAssetAddressIdMapping } = await loadFixture(orderSetup);
       const { swapOperator, pool } = contracts;
 
-      expect(await pool.assetsInSwapOperator(order.sellToken)).to.eq(0);
+      const assetId = poolAssetAddressIdMapping[order.sellToken];
+      expect(await pool.assetsInSwapOperator(assetId)).to.eq(0);
 
       await swapOperator.placeOrder(contractOrder, orderUID);
 
       // convert non-ETH sellAmount + fee to ETH
       const { sellAmount, feeAmount } = contractOrder;
-      expect(await pool.assetsInSwapOperator(order.sellToken)).to.be.equal(sellAmount.add(feeAmount));
+      expect(await pool.assetsInSwapOperator(assetId)).to.be.equal(sellAmount.add(feeAmount));
     }
   });
 
@@ -979,13 +981,14 @@ describe('placeOrder', function () {
     const { swapOperator, pool, priceFeedOracle, stEth } = contracts;
     const { sellAmount, feeAmount } = order;
 
+    console.log(order.sellToken);
     expect(await pool.assetsInSwapOperator(order.sellToken)).to.eq(0);
 
     await swapOperator.placeOrder(contractOrder, orderUID);
 
     // convert stETH sellAmount + fee to ETH
     const totalOutAmountInEth = await priceFeedOracle.getEthForAsset(stEth.address, sellAmount.add(feeAmount));
-    expect(await pool.assetsInSwapOperator(order.sellToken)).to.eq(totalOutAmountInEth);
+    expect(await pool.assetsInSwapOperator(stETH)).to.eq(totalOutAmountInEth);
   });
 
   it('approves CoW vault relayer to spend exactly sellAmount + fee', async function () {

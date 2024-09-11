@@ -15,6 +15,8 @@ import "../../libraries/UncheckedMath.sol";
 import "./StakingTypesLib.sol";
 import "./StakingExtrasLib.sol";
 
+import "hardhat/console.sol";
+
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
 // total product capacity = total capacity * capacity reduction factor * product weight
@@ -833,15 +835,27 @@ contract StakingPool is IStakingPool, Multicall {
       capacityRatio
       * (CAPACITY_REDUCTION_DENOMINATOR - reductionRatio)
       * stakingProducts.getProductTargetWeight(poolId, productId);
+    console.log('multiplier: ', multiplier);
 
     uint denominator =
       GLOBAL_CAPACITY_DENOMINATOR
       * CAPACITY_REDUCTION_DENOMINATOR
       * WEIGHT_DENOMINATOR;
+    console.log('denominator: ', denominator);
 
     for (uint i = 0; i < trancheCount; i++) {
+      console.log('tranche index: ', i);
+      console.log('_activeStake: ', _activeStake);
+      console.log('tranches[firstTrancheId + i].stakeShares: ', tranches[firstTrancheId + i].stakeShares);
+      console.log('_stakeSharesSupply: ', _stakeSharesSupply);
+
       uint trancheStake = (_activeStake * tranches[firstTrancheId + i].stakeShares / _stakeSharesSupply);
-      trancheCapacities[i] = trancheStake * multiplier / denominator / NXM_PER_ALLOCATION_UNIT;
+      console.log('trancheStake: ', trancheStake);
+
+      uint trancheCapacity = trancheStake * multiplier / denominator / NXM_PER_ALLOCATION_UNIT;
+      console.log('trancheCapacity: ', trancheCapacity);
+
+      trancheCapacities[i] = trancheCapacity;
     }
 
     return trancheCapacities;

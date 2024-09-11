@@ -81,21 +81,14 @@ describe('StakingPool rewards update', function () {
   });
 
   it('should upgrade staking pool contract', async function () {
-    const extras = await ethers.deployContract('StakingExtrasLib');
-    await extras.deployed();
-
-    const newStakingPool = await ethers.deployContract(
-      'StakingPool',
-      [
-        addresses.StakingNFT,
-        addresses.NXMToken,
-        addresses.Cover,
-        addresses.TokenController,
-        addresses.NXMaster,
-        addresses.StakingProducts,
-      ],
-      { libraries: { StakingExtrasLib: extras.address } },
-    );
+    const newStakingPool = await ethers.deployContract('StakingPool', [
+      addresses.StakingNFT,
+      addresses.NXMToken,
+      addresses.Cover,
+      addresses.TokenController,
+      addresses.NXMaster,
+      addresses.StakingProducts,
+    ]);
     await newStakingPool.deployed();
 
     const newCover = await ethers.deployContract('Cover', [
@@ -120,16 +113,18 @@ describe('StakingPool rewards update', function () {
   it('getTrancheCapacities logs', async function () {
     const POOL_ID = 22;
     const PRODUCT_ID = 196; // Dialectic Chronograph
+    console.log('POOL_ID: ', POOL_ID);
+    console.log('PRODUCT_ID: ', PRODUCT_ID);
+
     const stakingPoolAddr = await this.cover.stakingPool(POOL_ID);
     const stakingPool = await ethers.getContractAt('StakingPool', stakingPoolAddr);
 
     // globalCapacityRatio
-    const globalCapacityRatio = await this.cover.globalCapacityRatio();
+    const globalCapacityRatio = await this.cover.getGlobalCapacityRatio();
     console.log('JS globalCapacityRatio: ', globalCapacityRatio);
 
     // capacityReductionRatio
-    const product = await this.cover.products(PRODUCT_ID);
-    const capacityReductionRatio = product.capacityReductionRatio;
+    const [capacityReductionRatio] = await this.coverProducts.getCapacityReductionRatios([PRODUCT_ID]);
     console.log('JS capacityReductionRatio: ', capacityReductionRatio);
 
     const [trancheCapacities, totalCapacity] = await stakingPool.getActiveTrancheCapacities(

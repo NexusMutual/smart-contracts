@@ -685,31 +685,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     stakingPoolFactory.changeOperator(_operator);
   }
 
-  /* ========== Temporary utilities ========== */
-
-  function updateStakingPoolsRewardShares(
-    uint[][][] calldata tokenIds // tokenIds[ pool_id ][ tranche_idx ] => [token ids]
-  ) external {
-
-    ISwapOperator swapOperator = ISwapOperator(pool().swapOperator());
-
-    if (msg.sender != swapOperator.swapController()) {
-      revert OnlySwapOperator();
-    }
-
-    uint firstActiveTrancheId = block.timestamp / 91 days; // TRANCHE_DURATION = 91 days
-    uint stakingPoolCount = stakingPoolFactory.stakingPoolCount();
-
-    for (uint poolIndex = 0; poolIndex < stakingPoolCount; poolIndex++) {
-      IStakingPool sp = IStakingPool(StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolIndex + 1));
-      sp.processExpirations(true);
-
-      for (uint trancheIdx = 0; trancheIdx < MAX_ACTIVE_TRANCHES; trancheIdx++) {
-        sp.updateRewardsShares(firstActiveTrancheId + trancheIdx, tokenIds[poolIndex][trancheIdx]);
-      }
-    }
-  }
-
   /* ========== DEPENDENCIES ========== */
 
   function pool() internal view returns (IPool) {

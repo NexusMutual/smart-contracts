@@ -13,7 +13,6 @@ import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/UncheckedMath.sol";
 import "./StakingTypesLib.sol";
-import "./StakingExtrasLib.sol";
 
 import "hardhat/console.sol";
 
@@ -1341,29 +1340,6 @@ contract StakingPool is IStakingPool, Multicall {
   function setPoolPrivacy(bool _isPrivatePool) external onlyManager {
     isPrivatePool = _isPrivatePool;
     emit PoolPrivacyChanged(msg.sender, _isPrivatePool);
-  }
-
-  /* fixes */
-
-  function updateRewardsShares(
-    uint trancheId,
-    uint[] calldata tokenIds
-  ) external {
-
-    if (msg.sender != coverContract) {
-      revert OnlyCoverContract();
-    }
-
-    uint _rewardsSharesSupply = StakingExtrasLib.updateRewardsShares(
-      // storage refs
-      deposits, tranches,
-      // state
-      accNxmPerRewardsShare, rewardsSharesSupply, poolFee,
-      // inputs
-      trancheId, tokenIds
-    );
-
-    rewardsSharesSupply = _rewardsSharesSupply.toUint128();
   }
 
   /* getters */

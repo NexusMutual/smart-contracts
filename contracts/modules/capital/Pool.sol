@@ -30,8 +30,8 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   address public swapOperator;
 
   // SwapOperator assets
-  uint32 internal assetsInSwapOperatorBitmap;
-  mapping(uint => uint) public assetsInSwapOperator;
+  uint32 public assetsInSwapOperatorBitmap;
+  uint public assetInSwapOperator;
 
   /* constants */
 
@@ -143,7 +143,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       }
 
       uint assetAmountInSwapOperator = isAssetInSwapOperator(i, _assetsInSwapOperatorBitmap)
-        ? assetsInSwapOperator[i]
+        ? assetInSwapOperator
         : 0;
 
       // check if the asset is ETH and skip the oracle call
@@ -319,7 +319,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   function setSwapAssetAmount(address assetAddress, uint value) external onlySwapOperator whenNotPaused {
 
     uint assetId = getAssetId(assetAddress);
-    assetsInSwapOperator[assetId] = value;
+    assetInSwapOperator = value;
 
     if (value > 0) {
       if (assetsInSwapOperatorBitmap != 0) {

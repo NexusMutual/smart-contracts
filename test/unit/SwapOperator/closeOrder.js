@@ -16,7 +16,6 @@ const setup = require('./setup');
 const utils = require('../utils');
 
 const { setEtherBalance, setNextBlockTime, revertToSnapshot, takeSnapshot, increaseTime, mineNextBlock } = utils.evm;
-const { ETH } = utils.constants.PoolAsset;
 
 const {
   utils: { parseEther, hexZeroPad },
@@ -459,12 +458,12 @@ describe('closeOrder', function () {
       contracts: { swapOperator, pool },
       contractOrder,
     } = await loadFixture(closeOrderSetup);
-    const oldSwapValue = await pool.assetsInSwapOperator(ETH);
+    const oldSwapValue = await pool.assetInSwapOperator();
     expect(oldSwapValue).to.be.gt(0);
 
     await swapOperator.closeOrder(contractOrder);
 
-    const newSwapValue = await pool.assetsInSwapOperator(ETH);
+    const newSwapValue = await pool.assetInSwapOperator();
     expect(newSwapValue).to.eq(0);
   });
 });

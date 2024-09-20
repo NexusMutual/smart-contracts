@@ -7,7 +7,6 @@ const { BigNumber } = ethers;
 const utils = require('../utils');
 
 const { toBytes8 } = utils.helpers;
-const { ETH } = utils.constants.PoolAsset;
 const { ETH: ETH_ADDRESS } = utils.constants.Assets;
 
 describe('setSwapAssetAmount', function () {
@@ -39,11 +38,11 @@ describe('setSwapAssetAmount', function () {
       nonMembers: [swapOperator],
     } = fixture.accounts;
 
-    expect(await pool.assetsInSwapOperator(ETH)).to.eq(0);
+    expect(await pool.assetInSwapOperator()).to.eq(0);
     // Set swap operator and set swap value
     await pool.connect(governance).updateAddressParameters(toBytes8('SWP_OP'), swapOperator.address);
     await pool.connect(swapOperator).setSwapAssetAmount(ETH_ADDRESS, 123);
 
-    expect(await pool.assetsInSwapOperator(ETH)).to.eq(123);
+    expect(await pool.assetInSwapOperator()).to.eq(123);
   });
 });

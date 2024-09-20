@@ -8,7 +8,6 @@ const utils = require('../utils');
 const {
   helpers: { toBytes8 },
   constants: {
-    PoolAsset: { ETH },
     Assets: { ETH: ETH_ADDRESS },
   },
 } = utils;
@@ -86,7 +85,7 @@ describe('getPoolValueInEth', function () {
     await pool.connect(governance).updateAddressParameters(toBytes8('SWP_OP'), defaultSender.address);
     await pool.setSwapAssetAmount(ETH_ADDRESS, parseEther('1'));
 
-    const swapValue = await pool.assetsInSwapOperator(ETH);
+    const swapValue = await pool.assetInSwapOperator();
     expect(swapValue.toString()).to.eq(parseEther('1').toString());
 
     const newPoolValue = await pool.getPoolValueInEth();

@@ -1,0 +1,9 @@
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+REGEX="^(master|develop|((feat|fix|docs|chore|refactor|release|test)\/.+))$"
+
+if ! [[ $BRANCH =~ $REGEX ]]; then
+  echo "Your commit was rejected due to branching name"
+  echo "Please rename your branch with $REGEX syntax"
+  echo "Required prefix can be one of: feat|fix|docs|chore|refactor|release|test"
+  exit 1
+fi

@@ -61,6 +61,7 @@
     "hardhat": "^2.13.0",
     "hardhat-contract-sizer": "^2.8.0",
     "hardhat-tracer": "^2.1.2",
+    "husky": "^9.1.6",
     "ipfs-http-client": "^47.0.1",
     "nodemon": "^2.0.20",
     "prettier": "^2.7.1",
@@ -88,6 +89,7 @@
     "typechain": "hardhat typechain",
     "deployments:build": "node deployments/build.js",
     "deployments:publish:next": "cd deployments && npm publish --access public --tag next",
-    "deployments:publish:latest": "cd deployments && npm publish --access public"
+    "deployments:publish:latest": "cd deployments && npm publish --access public",
+    "prepare": "husky"
   }
 }

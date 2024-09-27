@@ -1,1 +1,8 @@
-npm run lint && { [ "$PRE_PUSH_RUN_TEST" = "true" ] && npm test; } || exit 0
+#!/bin/sh
+set -e
+
+npm run lint
+
+if [ "$PRE_PUSH_RUN_TEST" = "true" ]; then
+  npm test
+fi

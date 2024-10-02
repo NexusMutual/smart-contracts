@@ -13,10 +13,12 @@ const {
   daiMaxAmount,
 } = require('./helpers');
 const setup = require('./setup');
-const { setEtherBalance, setNextBlockTime } = require('../../utils/evm');
+const utils = require('../utils');
+
+const { setEtherBalance, setNextBlockTime } = utils.evm;
+const { ETH: ETH_ADDRESS } = utils.constants.Assets;
 
 const { parseEther, hexZeroPad, hexlify, randomBytes } = ethers.utils;
-const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 function createContractOrder(domain, order, overrides = {}) {
   order = { ...order, ...overrides };
@@ -274,8 +276,8 @@ describe('placeOrder', function () {
     await expect(placeOrder).to.be.revertedWithCustomError(swapOperator, 'InvalidTokenAddress').withArgs('buyToken');
   });
 
-  it('validates that order.validTo is at most 60 minutes in the future', async function () {
-    const MAX_VALID_TO_PERIOD_SECONDS = 60 * 60; // 60 minutes
+  it('validates that order.validTo is at most 1 month in the future', async function () {
+    const MAX_VALID_TO_PERIOD_SECONDS = 60 * 60 * 24 * 31; // 1 month
     const { contracts, order, domain } = await loadFixture(placeSellWethOrderSetup);
     const { swapOperator } = contracts;
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -943,48 +945,48 @@ describe('placeOrder', function () {
 
   // TODO: transfers assets to swapOperator tests
 
-  it('should set totalOutAmount in ETH as pool.swapValue when selling ETH', async function () {
+  it('should set totalOutAmount in ETH as pool.assetInSwapOperator when selling ETH', async function () {
     const { contracts, order, contractOrder, orderUID } = await loadFixture(placeSellWethOrderSetup);
     const { swapOperator, pool } = contracts;
 
-    expect(await pool.swapValue()).to.eq(0);
+    expect(await pool.assetInSwapOperator()).to.eq(0);
 
     await swapOperator.placeOrder(contractOrder, orderUID);
 
     // sellAmount & already in ETH
     const totalOutAmountInEth = order.sellAmount.add(order.feeAmount);
-    expect(await pool.swapValue()).to.eq(totalOutAmountInEth);
+    expect(await pool.assetInSwapOperator()).to.eq(totalOutAmountInEth);
   });
 
-  it('should set totalOutAmount in ETH as pool.swapValue when selling non-ETH assets', async function () {
+  it('should set totalOutAmount in ETH as pool.assetInSwapOperator when selling non-ETH assets', async function () {
     const orderSetupsToTest = [placeSellDaiOrderSetup, placeNonEthOrderSellStethSetup, placeNonEthOrderSellDaiSetup];
     for (const orderSetup of orderSetupsToTest) {
-      const { contracts, order, contractOrder, orderUID } = await loadFixture(orderSetup);
-      const { swapOperator, pool, priceFeedOracle } = contracts;
+      const { contracts, contractOrder, orderUID } = await loadFixture(orderSetup);
+      const { swapOperator, pool } = contracts;
 
-      expect(await pool.swapValue()).to.eq(0);
+      expect(await pool.assetInSwapOperator()).to.eq(0);
 
       await swapOperator.placeOrder(contractOrder, orderUID);
 
       // convert non-ETH sellAmount + fee to ETH
       const { sellAmount, feeAmount } = contractOrder;
-      const totalOutAmountInEth = await priceFeedOracle.getEthForAsset(order.sellToken, sellAmount.add(feeAmount));
-      expect(await pool.swapValue()).to.be.equal(totalOutAmountInEth);
+      expect(await pool.assetInSwapOperator()).to.be.equal(sellAmount.add(feeAmount));
     }
   });
 
-  it('should set totalOutAmount in ETH as pool.swapValue on non-ETH asset swaps', async function () {
+  it('should set totalOutAmount in ETH as pool.assetInSwapOperator on non-ETH asset swaps', async function () {
     const { contracts, order, orderUID, contractOrder } = await loadFixture(placeNonEthOrderSellStethSetup);
     const { swapOperator, pool, priceFeedOracle, stEth } = contracts;
     const { sellAmount, feeAmount } = order;
 
-    expect(await pool.swapValue()).to.eq(0);
+    console.log(order.sellToken);
+    expect(await pool.assetInSwapOperator()).to.eq(0);
 
     await swapOperator.placeOrder(contractOrder, orderUID);
 
     // convert stETH sellAmount + fee to ETH
     const totalOutAmountInEth = await priceFeedOracle.getEthForAsset(stEth.address, sellAmount.add(feeAmount));
-    expect(await pool.swapValue()).to.eq(totalOutAmountInEth);
+    expect(await pool.assetInSwapOperator()).to.eq(totalOutAmountInEth);
   });
 
   it('approves CoW vault relayer to spend exactly sellAmount + fee', async function () {

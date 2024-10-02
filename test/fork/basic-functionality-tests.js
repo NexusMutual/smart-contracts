@@ -175,7 +175,7 @@ describe('basic functionality tests', function () {
 
   it('Stake for assessment', async function () {
     // stake
-    const amount = parseEther('500');
+    const amount = parseEther('200');
     for (const abMember of this.abMembers.slice(0, ASSESSMENT_VOTER_COUNT)) {
       const memberAddress = await abMember.getAddress();
       const { amount: stakeAmountBefore } = await this.assessment.stakeOf(memberAddress);

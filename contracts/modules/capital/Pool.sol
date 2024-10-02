@@ -28,7 +28,10 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   // parameters
   IPriceFeedOracle public override priceFeedOracle;
   address public swapOperator;
-  uint96 public swapValue;
+
+  // SwapOperator assets
+  uint32 public assetsInSwapOperatorBitmap;
+  uint public assetInSwapOperator;
 
   /* constants */
 
@@ -102,13 +105,13 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   /* ========== ASSET RELATED VIEW FUNCTIONS ========== */
 
-  function getAssetValueInEth(address assetAddress) internal view returns (uint) {
+  function getAssetValueInEth(address assetAddress, uint assetAmountInSwapOperator) internal view returns (uint) {
 
-    uint assetBalance;
+    uint assetBalance = assetAmountInSwapOperator;
 
     if (assetAddress.code.length != 0) {
       try IERC20(assetAddress).balanceOf(address(this)) returns (uint balance) {
-        assetBalance = balance;
+        assetBalance += balance;
       } catch {
         // If balanceOf reverts consider it 0
       }
@@ -127,17 +130,29 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   ///
   function getPoolValueInEth() public override view returns (uint) {
 
-    uint total = address(this).balance + swapValue;
+    uint total = address(this).balance;
+
     uint assetCount = assets.length;
+    uint _assetsInSwapOperatorBitmap = assetsInSwapOperatorBitmap;
 
-    // Skip ETH (index 0)
-    for (uint i = 1; i < assetCount; i++) {
+    for (uint i = 0; i < assetCount; i++) {
+      Asset memory asset = assets[i];
 
-      if (assets[i].isAbandoned) {
+      if (asset.isAbandoned) {
         continue;
       }
 
-      total += getAssetValueInEth(assets[i].assetAddress);
+      uint assetAmountInSwapOperator = isAssetInSwapOperator(i, _assetsInSwapOperatorBitmap)
+        ? assetInSwapOperator
+        : 0;
+
+      // check if the asset is ETH and skip the oracle call
+      if (i == 0) {
+        total += assetAmountInSwapOperator;
+        continue;
+      }
+
+      total += getAssetValueInEth(asset.assetAddress, assetAmountInSwapOperator);
     }
 
     return total;
@@ -154,6 +169,32 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   function getAssetSwapDetails(address assetAddress) external view returns (SwapDetails memory) {
     return swapDetails[assetAddress];
+  }
+
+  function getAssetId(address assetAddress) public view returns (uint) {
+
+    uint assetCount = assets.length;
+    for (uint i = 0; i < assetCount; i++) {
+      if (assets[i].assetAddress == assetAddress) {
+        return i;
+      }
+    }
+
+    revert AssetNotFound();
+  }
+
+  function isAssetInSwapOperator(uint _assetId, uint _assetsInSwapOperatorBitmap) internal pure returns (bool) {
+
+    if (
+      // there are assets in the swap operator
+      _assetsInSwapOperatorBitmap != 0 &&
+      // asset id is not in the swap operator assets
+      ((1 << _assetId) & _assetsInSwapOperatorBitmap == 0)
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   /* ========== ASSET RELATED MUTATIVE FUNCTIONS ========== */
@@ -232,7 +273,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       return;
     }
 
-    revert("Pool: Asset not found");
+    revert AssetNotFound();
   }
 
   function transferAsset(
@@ -275,8 +316,20 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     swapDetails[assetAddress].lastSwapTime = lastSwapTime;
   }
 
-  function setSwapValue(uint newValue) external onlySwapOperator whenNotPaused {
-    swapValue = newValue.toUint96();
+  function setSwapAssetAmount(address assetAddress, uint value) external onlySwapOperator whenNotPaused {
+
+    uint assetId = getAssetId(assetAddress);
+    assetInSwapOperator = value;
+
+    if (value > 0) {
+      if (assetsInSwapOperatorBitmap != 0) {
+        revert OrderInProgress();
+      }
+
+      assetsInSwapOperatorBitmap = uint32(1 << assetId);
+    } else {
+      assetsInSwapOperatorBitmap = 0;
+    }
   }
 
   /* ========== CLAIMS RELATED MUTATIVE FUNCTIONS ========== */
@@ -429,7 +482,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   }
 
   function updateUintParameters(bytes8 /* code */, uint /* value */) external view onlyGovernance {
-    revert("Pool: Unknown parameter");
+    revert UnknownParameter();
   }
 
   function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
@@ -447,7 +500,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       return;
     }
 
-    revert("Pool: Unknown parameter");
+    revert UnknownParameter();
   }
 
   /* ========== DEPENDENCIES ========== */

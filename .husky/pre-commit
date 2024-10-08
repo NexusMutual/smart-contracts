@@ -1,0 +1,11 @@
+#!/bin/sh
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+REGEX="^(master|dev|release-candidate|((audit|breaking|build|chore|ci|docs|feat|fix|perf|refactor|release|revert|test|wip)/.+))$"
+
+if ! echo "$BRANCH" | grep -Eq "$REGEX"; then
+  echo "Your commit was rejected due to invalid branch name: '$BRANCH'"
+  echo "Please rename your branch to follow one of the accepted formats:"
+  echo "  - audit/*, breaking/*, build/*, chore/*, ci/*, docs/*, feat/*, fix/*, perf/*, refactor/*, release/*, revert/*, test/*, wip/*"
+  exit 1
+fi

@@ -81,21 +81,14 @@ describe('StakingPool rewards update', function () {
   });
 
   it('should upgrade staking pool contract', async function () {
-    const extras = await ethers.deployContract('StakingExtrasLib');
-    await extras.deployed();
-
-    const newStakingPool = await ethers.deployContract(
-      'StakingPool',
-      [
-        addresses.StakingNFT,
-        addresses.NXMToken,
-        addresses.Cover,
-        addresses.TokenController,
-        addresses.NXMaster,
-        addresses.StakingProducts,
-      ],
-      { libraries: { StakingExtrasLib: extras.address } },
-    );
+    const newStakingPool = await ethers.deployContract('StakingPool', [
+      addresses.StakingNFT,
+      addresses.NXMToken,
+      addresses.Cover,
+      addresses.TokenController,
+      addresses.NXMaster,
+      addresses.StakingProducts,
+    ]);
     await newStakingPool.deployed();
 
     const newCover = await ethers.deployContract('Cover', [

@@ -157,11 +157,6 @@ interface IStakingPool {
     uint reductionRatio
   ) external view returns (uint[] memory trancheCapacities);
 
-  function updateRewardsShares(
-    uint trancheId,
-    uint[] calldata tokenIds
-  ) external;
-
   /* ========== EVENTS ========== */
 
   event StakeDeposited(address indexed user, uint256 amount, uint256 trancheId, uint256 tokenId);

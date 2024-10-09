@@ -30,13 +30,9 @@ async function setup() {
     AddressZero,
   ]);
 
-  const stakingExtrasLib = await ethers.deployContract('StakingExtrasLib');
-  await stakingExtrasLib.deployed();
-
   const stakingPool = await ethers.deployContract(
     'StakingPool',
     [stakingNFT, nxm, cover, tokenController, master, stakingProducts].map(c => c.address),
-    { libraries: { StakingExtrasLib: stakingExtrasLib.address } },
   );
 
   await nxm.setOperator(tokenController.address);

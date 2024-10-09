@@ -125,8 +125,6 @@ interface ICover {
     uint amount
   ) external returns (address coverOwner);
 
-  function changeStakingPoolFactoryOperator() external;
-
   function coverNFT() external returns (ICoverNFT);
 
   function stakingNFT() external returns (IStakingNFT);

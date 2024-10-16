@@ -4,7 +4,7 @@ const {
 } = require('../../../lib/constants');
 const {
   ethers: {
-    utils: { parseEther },
+    utils: { parseEther, parseUnits },
   },
   ethers,
 } = require('hardhat');
@@ -40,5 +40,29 @@ describe('getAssetForEth', function () {
 
     const twoEthInDAI = await priceFeedOracle.getAssetForEth(dai.address, parseEther('2'));
     expect(twoEthInDAI).to.eq(parseEther('10000'));
+  });
+
+  // New test case for cbBTC
+  it('returns correct amount for cbBTC (USD-based asset)', async function () {
+    const fixture = await loadFixture(setup);
+    const { cbBTC, cbBTCAggregator, ethAggregator, priceFeedOracle } = fixture;
+
+    // Set cbBTC/USD rate to 65000
+    await cbBTCAggregator.setLatestAnswer(parseUnits('65000', 8)); // Assuming 8 decimals for USD price feeds
+
+    // Set ETH/USD rate to 2500
+    await ethAggregator.setLatestAnswer(parseUnits('2500', 8)); // Assuming 8 decimals for USD price feeds
+
+    const ethAmount = parseEther('2'); // 2 ETH
+
+    const cbBTCAmount = await priceFeedOracle.getAssetForEth(cbBTC.address, ethAmount);
+
+    // Expected calculation:
+    // 2 ETH * (2500 USD/ETH) = 5000 USD
+    // 5000 USD / (65000 USD/cbBTC) = 0.076923076923076923 cbBTC
+    // 0.076923076923076923 * 10^8 (cbBTC decimals) = 7692307 (in cbBTC's smallest unit)
+    const expectedAmount = parseUnits('0.07692307', 8);
+
+    expect(cbBTCAmount).to.eq(expectedAmount);
   });
 });

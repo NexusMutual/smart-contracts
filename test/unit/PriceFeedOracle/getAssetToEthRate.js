@@ -4,7 +4,7 @@ const {
 } = require('../../../lib/constants');
 const {
   ethers: {
-    utils: { parseEther },
+    utils: { parseEther, parseUnits },
   },
   ethers,
 } = require('hardhat');
@@ -37,5 +37,24 @@ describe('getAssetToEthRate', function () {
 
     expect(await priceFeedOracle.getAssetToEthRate(dai.address)).to.eq(1111);
     expect(await priceFeedOracle.getAssetToEthRate(wbtc.address)).to.eq(2222);
+  });
+
+  it('returns correct ETH rate for cbBTC asset', async function () {
+    const fixture = await loadFixture(setup);
+    const { cbBTC, cbBTCAggregator, ethAggregator, priceFeedOracle } = fixture;
+
+    // Set cbBTC/USD rate to 65000
+    await cbBTCAggregator.setLatestAnswer(parseUnits('65000', 8)); // Assuming 8 decimals for USD price feeds
+
+    // Set ETH/USD rate to 2500
+    await ethAggregator.setLatestAnswer(parseUnits('2500', 8)); // Assuming 8 decimals for USD price feeds
+
+    const cbBTCEthRate = await priceFeedOracle.getAssetToEthRate(cbBTC.address);
+
+    // Expected rate: (cbBTC/USD) / (ETH/USD) * 1e18
+    // (65000 / 2500) * 1e18 = 26e18
+    const expectedRate = parseEther('26');
+
+    expect(cbBTCEthRate).to.eq(expectedRate);
   });
 });

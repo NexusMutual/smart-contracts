@@ -4,7 +4,7 @@ const {
 } = require('../../../lib/constants');
 const {
   ethers: {
-    utils: { parseEther },
+    utils: { parseEther, parseUnits },
   },
   ethers,
 } = require('hardhat');
@@ -22,7 +22,7 @@ describe('getEthForAsset', function () {
     );
   });
 
-  it('returns asset amount if asset is ETH', async function () {
+  it('returns amount if asset is ETH', async function () {
     const fixture = await loadFixture(setup);
     const { priceFeedOracle } = fixture;
     const ethAmount = await priceFeedOracle.getEthForAsset(ETH, 1234);
@@ -35,10 +35,33 @@ describe('getEthForAsset', function () {
     await daiAggregator.setLatestAnswer(0.0002 * 1e18); // 1 dai = 0.0002 eth, 1 eth = 5000 dai
     await wbtcAggregator.setLatestAnswer(parseEther('16')); // 1 wbtc = 16 eth; 1 eth = 0,0625 wbtc
 
-    const twoWBTCinEth = await priceFeedOracle.getEthForAsset(wbtc.address, 2e8); // 2e8 = 2 WBTC
-    expect(twoWBTCinEth).to.eq(parseEther('32'));
+    const tenThousandDaiInEth = await priceFeedOracle.getEthForAsset(dai.address, parseEther('10000'));
+    expect(tenThousandDaiInEth).to.eq(parseEther('2'));
 
-    const twoDAIinEth = await priceFeedOracle.getEthForAsset(dai.address, parseEther('2')); // 2e18 = 2 DAI
-    expect(twoDAIinEth).to.eq(parseEther('0.0004'));
+    const oneWBTCInEth = await priceFeedOracle.getEthForAsset(wbtc.address, 1e8);
+    expect(oneWBTCInEth).to.eq(parseEther('16'));
+  });
+
+  // New test case for cbBTC
+  it('returns correct amount of ETH for cbBTC (USD-based asset)', async function () {
+    const fixture = await loadFixture(setup);
+    const { cbBTC, cbBTCAggregator, ethAggregator, priceFeedOracle } = fixture;
+
+    // Set cbBTC/USD rate to 65000
+    await cbBTCAggregator.setLatestAnswer(parseUnits('65000', 8)); // Assuming 8 decimals for USD price feeds
+
+    // Set ETH/USD rate to 2500
+    await ethAggregator.setLatestAnswer(parseUnits('2500', 8)); // Assuming 8 decimals for USD price feeds
+
+    const cbBTCAmount = parseUnits('2', 8); // 2 cbBTC
+
+    const ethAmount = await priceFeedOracle.getEthForAsset(cbBTC.address, cbBTCAmount);
+
+    // Expected calculation:
+    // 2 cbBTC * (65000 USD/cbBTC) = 130000 USD
+    // 130000 USD / (2500 USD/ETH) = 52 ETH
+    const expectedAmount = parseEther('52');
+
+    expect(ethAmount).to.eq(expectedAmount);
   });
 });

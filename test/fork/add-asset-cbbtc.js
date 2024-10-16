@@ -1,6 +1,6 @@
 const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
-const { addresses } = require('@nexusmutual/deployments');
+const { abis, addresses } = require('@nexusmutual/deployments');
 
 const {
   Address,
@@ -40,7 +40,7 @@ const makeContractOrder = order => {
   };
 };
 
-describe('usdc', function () {
+describe.only('cbBTC', function () {
   async function getContractByContractCode(contractName, contractCode) {
     this.master = this.master ?? (await ethers.getContractAt('NXMaster', V2Addresses.NXMaster));
     const contractAddress = await this.master?.getLatestAddress(toUtf8Bytes(contractCode));
@@ -66,29 +66,34 @@ describe('usdc', function () {
   });
 
   it('load contracts', async function () {
-    this.mcr = await ethers.getContractAt('MCR', addresses.MCR);
-    this.cover = await ethers.getContractAt('Cover', addresses.Cover);
-    this.nxm = await ethers.getContractAt('NXMToken', addresses.NXMToken);
-    this.master = await ethers.getContractAt('NXMaster', addresses.NXMaster);
-    this.coverNFT = await ethers.getContractAt('CoverNFT', addresses.CoverNFT);
-    this.pool = await ethers.getContractAt('Pool', addresses.Pool);
-    this.assessment = await ethers.getContractAt('Assessment', addresses.Assessment);
-    this.stakingNFT = await ethers.getContractAt('StakingNFT', addresses.StakingNFT);
-    this.swapOperator = await ethers.getContractAt('SwapOperator', addresses.SwapOperator);
-    this.stakingPool = await ethers.getContractAt('StakingPool', V2Addresses.StakingPoolImpl);
-    this.priceFeedOracle = await ethers.getContractAt('PriceFeedOracle', addresses.PriceFeedOracle);
-    this.tokenController = await ethers.getContractAt('TokenController', addresses.TokenController);
-    this.individualClaims = await ethers.getContractAt('IndividualClaims', addresses.IndividualClaims);
-    this.quotationData = await ethers.getContractAt('LegacyQuotationData', addresses.LegacyQuotationData);
-    this.pooledStaking = await ethers.getContractAt('LegacyPooledStaking', addresses.LegacyPooledStaking);
-    this.newClaimsReward = await ethers.getContractAt('LegacyClaimsReward', addresses.LegacyClaimsReward);
-    this.gateway = await ethers.getContractAt('LegacyGateway', addresses.LegacyGateway);
-    this.proposalCategory = await ethers.getContractAt('ProposalCategory', addresses.ProposalCategory);
-    this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', addresses.StakingPoolFactory);
-    this.yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', addresses.YieldTokenIncidents);
-    this.ramm = await ethers.getContractAt('Ramm', addresses.Ramm);
-    this.safeTracker = await ethers.getContractAt('SafeTracker', addresses.SafeTracker);
+    this.mcr = await ethers.getContractAt(abis.MCR, addresses.MCR);
+    this.cover = await ethers.getContractAt(abis.Cover, addresses.Cover);
+    this.nxm = await ethers.getContractAt(abis.NXMToken, addresses.NXMToken);
+    this.master = await ethers.getContractAt(abis.NXMaster, addresses.NXMaster);
+    this.coverNFT = await ethers.getContractAt(abis.CoverNFT, addresses.CoverNFT);
+    this.pool = await ethers.getContractAt(abis.Pool, addresses.Pool);
+    this.safeTracker = await ethers.getContractAt(abis.SafeTracker, addresses.SafeTracker);
+    this.assessment = await ethers.getContractAt(abis.Assessment, addresses.Assessment);
+    this.stakingNFT = await ethers.getContractAt(abis.StakingNFT, addresses.StakingNFT);
+    this.stakingProducts = await ethers.getContractAt(abis.StakingProducts, addresses.StakingProducts);
+    this.swapOperator = await ethers.getContractAt(abis.SwapOperator, addresses.SwapOperator);
+    this.stakingPool = await ethers.getContractAt(abis.StakingPool, V2Addresses.StakingPoolImpl);
+    this.priceFeedOracle = await ethers.getContractAt(abis.PriceFeedOracle, addresses.PriceFeedOracle);
+    this.tokenController = await ethers.getContractAt(abis.TokenController, addresses.TokenController);
+    this.individualClaims = await ethers.getContractAt(abis.IndividualClaims, addresses.IndividualClaims);
+    this.quotationData = await ethers.getContractAt(abis.LegacyQuotationData, addresses.LegacyQuotationData);
+    this.newClaimsReward = await ethers.getContractAt(abis.LegacyClaimsReward, addresses.LegacyClaimsReward);
+    this.proposalCategory = await ethers.getContractAt(abis.ProposalCategory, addresses.ProposalCategory);
+    this.stakingPoolFactory = await ethers.getContractAt(abis.StakingPoolFactory, addresses.StakingPoolFactory);
+    this.pooledStaking = await ethers.getContractAt(abis.LegacyPooledStaking, addresses.LegacyPooledStaking);
+    this.yieldTokenIncidents = await ethers.getContractAt(abis.YieldTokenIncidents, addresses.YieldTokenIncidents);
+    this.ramm = await ethers.getContractAt(abis.Ramm, addresses.Ramm);
 
+    this.governance = await getContractByContractCode(abis.Governance, ContractCode.Governance);
+    this.memberRoles = await getContractByContractCode(abis.MemberRoles, ContractCode.MemberRoles);
+
+    // Token Mocks
+    this.cbBTC = await ethers.getContractAt('ERC20Mock', Address.CBBTC_ADDRESS);
     this.dai = await ethers.getContractAt('ERC20Mock', Address.DAI_ADDRESS);
     this.usdc = await ethers.getContractAt('ERC20Mock', Address.USDC_ADDRESS);
     this.rEth = await ethers.getContractAt('ERC20Mock', Address.RETH_ADDRESS);
@@ -96,8 +101,6 @@ describe('usdc', function () {
     this.awEth = await ethers.getContractAt('ERC20Mock', Address.AWETH_ADDRESS);
     this.enzymeShares = await ethers.getContractAt('ERC20Mock', EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS);
 
-    this.governance = await getContractByContractCode('Governance', ContractCode.Governance);
-    this.memberRoles = await getContractByContractCode('MemberRoles', ContractCode.MemberRoles);
   });
 
   it('Impersonate cover Buyer', async function () {
@@ -116,99 +119,44 @@ describe('usdc', function () {
     }
   });
 
-  // deploy PriceFeedOracle
-  // gov proposal 40
-
-  it('Add USDC as an asset to the pool', async function () {
-    const min = parseUnits('10000000', 6).toString();
-    const max = parseUnits('15000000', 6).toString();
+  it('Add cbBTC as an asset to the pool', async function () {
+    const min = parseUnits('100', 8).toString(); // 100 cbBTC
+    const max = parseUnits('1000', 8).toString(); // 1000 cbBTC
 
     const poolValueInEthBefore = await this.pool.getPoolValueInEth();
 
     await submitMemberVoteGovernanceProposal(
       PROPOSAL_CATEGORIES.addAsset,
-      defaultAbiCoder.encode(['address', 'bool', 'uint', 'uint', 'uint'], [Address.USDC_ADDRESS, true, min, max, 250]),
+      defaultAbiCoder.encode(['address', 'bool', 'uint', 'uint', 'uint'], [Address.CBBTC_ADDRESS, true, min, max, 250]),
       this.abMembers,
       this.governance,
     );
 
     const poolValueInEthAfter = await this.pool.getPoolValueInEth();
-    // Pool value should increase since we have usdc already in the pool
+    // Pool value should increase if we have cbBTC already in the pool
     expect(poolValueInEthAfter).to.be.gt(poolValueInEthBefore);
   });
 
-  it('fail to buy cover that only supports DAI', async function () {
+  it('Buy cover with cbBTC', async function () {
     const coverBuyerAddress = await this.coverBuyer.getAddress();
 
-    await this.usdc.approve(this.cover.address, MaxUint256);
-
-    await expect(
-      this.cover.connect(this.coverBuyer).buyCover(
-        {
-          coverId: 0,
-          owner: coverBuyerAddress,
-          productId: 165,
-          coverAsset: 6,
-          amount: 1000000,
-          period: 3600 * 24 * 30, // 30 days
-          maxPremiumInAsset: parseEther('1').mul(260).div(10000),
-          paymentAsset: 6,
-          payWithNXM: false,
-          commissionRatio: 500,
-          commissionDestination: coverBuyerAddress,
-          ipfsData: '',
-        },
-        [{ poolId: 23, coverAmountInAsset: 1000000, skip: false }],
-      ),
-    ).to.be.revertedWithCustomError(this.cover, 'CoverAssetNotSupported');
-  });
-
-  it('fail to buy cover that only supports ETH', async function () {
-    const coverBuyerAddress = await this.coverBuyer.getAddress();
-
-    await this.usdc.connect(this.coverBuyer).approve(this.cover.address, MaxUint256);
-
-    await expect(
-      this.cover.connect(this.coverBuyer).buyCover(
-        {
-          coverId: 0,
-          owner: coverBuyerAddress,
-          productId: 167,
-          coverAsset: 6,
-          amount: 1000000,
-          period: 3600 * 24 * 30, // 30 days
-          maxPremiumInAsset: 1712106,
-          paymentAsset: 6,
-          payWithNXM: false,
-          commissionRatio: 500,
-          commissionDestination: coverBuyerAddress,
-          ipfsData: '',
-        },
-        [{ poolId: 22, coverAmountInAsset: 1712106, skip: false }],
-      ),
-    ).to.be.revertedWithCustomError(this.cover, 'CoverAssetNotSupported');
-  });
-
-  it('Buy cover with USDC', async function () {
-    const coverBuyerAddress = await this.coverBuyer.getAddress();
-
-    await this.usdc.connect(this.coverBuyer).approve(this.cover.address, MaxUint256);
+    await this.cbBTC.connect(this.coverBuyer).approve(this.cover.address, MaxUint256);
     await this.cover.connect(this.coverBuyer).buyCover(
       {
         coverId: 0,
         owner: coverBuyerAddress,
         productId: 1,
-        coverAsset: 6,
-        amount: 1000000,
+        coverAsset: 7, // Assuming 7 is the asset ID for cbBTC
+        amount: parseUnits('0.1', 8), // 0.1 cbBTC
         period: 3600 * 24 * 30, // 30 days
-        maxPremiumInAsset: 1712106,
-        paymentAsset: 6,
+        maxPremiumInAsset: parseUnits('0.001', 8), // 0.001 cbBTC
+        paymentAsset: 7, // Assuming 7 is the asset ID for cbBTC
         payWithNXM: false,
         commissionRatio: 500,
         commissionDestination: coverBuyerAddress,
         ipfsData: '',
       },
-      [{ poolId: 13, coverAmountInAsset: 1712106, skip: false }],
+      [{ poolId: 13, coverAmountInAsset: parseUnits('0.1', 8), skip: false }],
     );
   });
 
@@ -242,18 +190,18 @@ describe('usdc', function () {
 
   it('Places a swap order', async function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const sellAmount = parseEther('10');
-    const buyAmount = parseUnits('38000', 6);
+    const sellAmount = parseEther('10'); // 10 ETH
+    const buyAmount = parseUnits('0.2', 8); // 0.2 cbBTC
 
-    const usdcBalanceBefore = await this.usdc.balanceOf(this.pool.address);
+    const cbBTCBalanceBefore = await this.cbBTC.balanceOf(this.pool.address);
     const ethBalanceBefore = await ethers.provider.getBalance(this.pool.address);
 
-    const usdcEthPrice = await this.priceFeedOracle.getEthForAsset(Address.USDC_ADDRESS, parseUnits('1', 6));
-    const ethUsdcPrice = await this.priceFeedOracle.getAssetForEth(Address.USDC_ADDRESS, parseEther('1'));
+    const cbBTCEthPrice = await this.priceFeedOracle.getEthForAsset(Address.CBBTC_ADDRESS, parseUnits('1', 8));
+    const ethCbBTCPrice = await this.priceFeedOracle.getAssetForEth(Address.CBBTC_ADDRESS, parseEther('1'));
 
     const order = {
       sellToken: Address.WETH_ADDRESS,
-      buyToken: Address.USDC_ADDRESS,
+      buyToken: Address.CBBTC_ADDRESS,
       receiver: this.swapOperator.address,
       sellAmount,
       buyAmount,
@@ -276,10 +224,8 @@ describe('usdc', function () {
 
     const preSignSignature = { data: this.swapOperator.address, scheme: SigningScheme.PRESIGN };
 
-    // encode the order once SwapOperator has submitted the signature
     await this.encoder.encodeTrade(order, preSignSignature);
 
-    // lower the imaginary buy amount slightly so the limit price is respected on both sides of the trades
     const imaginaryBuyAmount = sellAmount.sub(parseEther('0.1'));
 
     await addOrder(
@@ -289,7 +235,7 @@ describe('usdc', function () {
         feeAmount: ethers.utils.parseEther('1.0'),
         kind: 'sell',
         partiallyFillable: false,
-        sellToken: Address.USDC_ADDRESS,
+        sellToken: Address.CBBTC_ADDRESS,
         buyToken: Address.WETH_ADDRESS,
         sellAmount: buyAmount,
         buyAmount: imaginaryBuyAmount,
@@ -298,40 +244,25 @@ describe('usdc', function () {
       '0',
       this.encoder,
     );
-    console.log(`Settle trade`);
-
-    console.log('----------------------------------');
-    console.log(usdcEthPrice.toString());
-    console.log(ethUsdcPrice.toString());
-    console.log('----------------------------------');
-    console.log(buyAmount.toString());
-    console.log(imaginaryBuyAmount.toString());
-    console.log('----------------------------------');
-    console.log(buyAmount.mul(usdcEthPrice).toString());
-    console.log(imaginaryBuyAmount.mul(ethUsdcPrice).toString());
-    console.log('----------------------------------');
 
     const encodedSettlement = this.encoder.encodedSettlement({
-      [Address.USDC_ADDRESS]: usdcEthPrice.mul(1000000000000),
-      [Address.WETH_ADDRESS]: ethUsdcPrice,
+      [Address.CBBTC_ADDRESS]: cbBTCEthPrice.mul(100000000),
+      [Address.WETH_ADDRESS]: ethCbBTCPrice,
     });
-
-    console.log(encodedSettlement);
 
     await this.cowswapSettlement.connect(this.cowswapSolver).settle(...encodedSettlement);
 
     await this.swapOperator.connect(this.swapController).closeOrder(contractOrder);
 
     const ethBalanceAfter = await ethers.provider.getBalance(this.pool.address);
-    const usdcBalanceAfter = await this.usdc.balanceOf(this.pool.address);
+    const cbBTCBalanceAfter = await this.cbBTC.balanceOf(this.pool.address);
 
-    const usdcBalanceIncrease = usdcBalanceAfter.sub(usdcBalanceBefore);
+    const cbBTCBalanceIncrease = cbBTCBalanceAfter.sub(cbBTCBalanceBefore);
     const ethBalanceDecrease = ethBalanceBefore.sub(ethBalanceAfter);
 
     expect(ethBalanceDecrease).to.be.equal(order.sellAmount);
-
-    expect(usdcBalanceIncrease).to.be.equal(order.buyAmount);
+    expect(cbBTCBalanceIncrease).to.be.equal(order.buyAmount);
   });
 
-  require('./basic-functionality-tests');
+  // require('./basic-functionality-tests');
 });

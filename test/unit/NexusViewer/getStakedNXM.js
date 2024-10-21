@@ -16,7 +16,10 @@ describe('getStakedNXM', function () {
 
     // no stake locked
     const totalActiveStake = parseEther('10');
-    await assessmentViewer.setStakeLocked(false);
+    await assessmentViewer.setStakeLocked({
+      isStakeLocked: false,
+      stakeLockupExpiry: 0,
+    });
     await stakingViewer.setAggregatedTokens(totalActiveStake, parseEther('5'), parseEther('5'));
 
     const stakedNXM = await nexusViewer.getStakedNXM(member.address, tokenIds);
@@ -24,6 +27,7 @@ describe('getStakedNXM', function () {
     expect(stakedNXM.stakingPoolTotalActiveStake).to.be.equal(totalActiveStake);
     expect(stakedNXM.assessmentStake).to.be.equal('0');
     expect(stakedNXM.assessmentRewards.toString()).to.be.equal('0');
+    expect(stakedNXM.assessmentStakeLockupExpiry).to.be.equal(0);
   });
 
   it('should return aggregatedTokens and assessmentStake amount if user has stake locked', async function () {
@@ -34,7 +38,12 @@ describe('getStakedNXM', function () {
     // has stake locked
     const totalActiveStake = parseEther('10');
     const lockedStake = parseEther('111111');
-    await assessmentViewer.setStakeLocked(true);
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const stakeLockupExpiry = timestamp + 1;
+    await assessmentViewer.setStakeLocked({
+      isStakeLocked: true,
+      stakeLockupExpiry,
+    });
     await assessment.setStakeOf(member.address, lockedStake, 0, 0);
     await stakingViewer.setAggregatedTokens(totalActiveStake, parseEther('5'), parseEther('5'));
 
@@ -43,6 +52,7 @@ describe('getStakedNXM', function () {
     expect(stakedNXM.stakingPoolTotalActiveStake).to.be.equal(totalActiveStake);
     expect(stakedNXM.assessmentStake).to.be.equal(lockedStake);
     expect(stakedNXM.assessmentRewards.toString()).to.be.equal('0');
+    expect(stakedNXM.assessmentStakeLockupExpiry).to.be.equal(stakeLockupExpiry);
   });
 
   it('should return assessmentRewards correctly', async function () {

@@ -23,6 +23,7 @@ interface INexusViewer {
   struct StakedNXM {
     uint stakingPoolTotalActiveStake; // Total amount of active stake in staking pools in NXM
     uint assessmentStake; // Locked assessment stake in NXM
+    uint assessmentStakeLockupExpiry; // Locked stake expiry timestamp
     uint assessmentRewards; // Locked assessment rewards in NXM
   }
 

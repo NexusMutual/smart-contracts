@@ -39,20 +39,29 @@ contract AssessmentViewer is IAssessmentViewer {
     });
   }
 
-  /// @notice Check if the stake of a member is locked
+  /// @notice Check if the stake of a member is locked and when it will be unlocked
   /// @param member The address of the member
-  /// @return stakeLocked Boolean indicating if the stake is locked
-  function isStakeLocked(address member) external view returns (bool stakeLocked) {
+  /// @return AssessmentStakeLockedState structure containing locked stake details
+  function getStakeLocked(address member) external view returns (AssessmentStakeLockedState memory) {
 
     IAssessment _assessment = assessment();
 
     uint voteCount = _assessment.getVoteCountOfAssessor(member);
-    if (voteCount == 0) return false;
+    if (voteCount == 0) return AssessmentStakeLockedState({
+      isStakeLocked: false,
+      stakeLockupExpiry: 0
+    });
 
     (,, uint32 timestamp,) = _assessment.votesOf(member, voteCount - 1);
     (, uint8 stakeLockupPeriodInDays,,) = _assessment.config();
 
     uint stakeLockupExpiry = timestamp + stakeLockupPeriodInDays * 1 days;
-    stakeLocked = stakeLockupExpiry > block.timestamp;
+    bool isStakeLocked = stakeLockupExpiry > block.timestamp;
+
+    return AssessmentStakeLockedState({
+      isStakeLocked: isStakeLocked,
+      stakeLockupExpiry: stakeLockupExpiry
+    });
+    
   }
 }

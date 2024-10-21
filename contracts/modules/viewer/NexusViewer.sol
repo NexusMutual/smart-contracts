@@ -38,7 +38,7 @@ contract NexusViewer is INexusViewer, Multicall {
     
     // Assessment
     IAssessmentViewer.AssessmentRewards memory assessmentRewards = assessmentViewer.getRewards(member);
-    (uint assessmentStake, bool isStakeLocked) = _getAssessmentStake(member);
+    (uint assessmentStake, IAssessmentViewer.AssessmentStakeLockedState memory stakeLockedState) = _getAssessmentStake(member);
 
     // Staking Pool
     IStakingViewer.AggregatedTokens memory aggregatedTokens = stakingViewer.getAggregatedTokens(tokenIds);
@@ -53,7 +53,7 @@ contract NexusViewer is INexusViewer, Multicall {
     return ClaimableNXM({
       governanceRewards: governanceRewards,
       assessmentRewards: assessmentRewards.withdrawableAmountInNXM,
-      assessmentStake: isStakeLocked ? 0 : assessmentStake,
+      assessmentStake: stakeLockedState.isStakeLocked ? 0 : assessmentStake,
       stakingPoolTotalRewards: aggregatedTokens.totalRewards,
       stakingPoolTotalExpiredStake: aggregatedTokens.totalExpiredStake,
       managerTotalRewards: managerTotalRewards,
@@ -74,18 +74,19 @@ contract NexusViewer is INexusViewer, Multicall {
     IStakingViewer.AggregatedTokens memory aggregatedTokens = stakingViewer.getAggregatedTokens(tokenIds);
 
     IAssessmentViewer.AssessmentRewards memory assessmentRewards = assessmentViewer.getRewards(member);
-    (uint assessmentStake, bool isStakeLocked) = _getAssessmentStake(member);
+    (uint assessmentStake, IAssessmentViewer.AssessmentStakeLockedState memory  stakeLockedState) = _getAssessmentStake(member);
 
     return StakedNXM({
       stakingPoolTotalActiveStake: aggregatedTokens.totalActiveStake,
-      assessmentStake: isStakeLocked ? assessmentStake : 0,
+      assessmentStake: stakeLockedState.isStakeLocked ? assessmentStake : 0,
+      assessmentStakeLockupExpiry: stakeLockedState.stakeLockupExpiry,
       assessmentRewards: assessmentRewards.totalPendingAmountInNXM - assessmentRewards.withdrawableAmountInNXM
     });
   }
 
-  function _getAssessmentStake(address member) internal view returns (uint assessmentStake, bool isStakeLocked) {
+  function _getAssessmentStake(address member) internal view returns (uint assessmentStake, IAssessmentViewer.AssessmentStakeLockedState memory stakeLockedState) {
     (assessmentStake, , ) = _assessment().stakeOf(member);
-    isStakeLocked = assessmentViewer.isStakeLocked(member);
+    stakeLockedState = assessmentViewer.getStakeLocked(member);
   }
 
   /* ========== DEPENDENCIES ========== */

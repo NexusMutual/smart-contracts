@@ -10,7 +10,12 @@ interface IAssessmentViewer {
     uint withdrawableUntilIndex;
   }
 
+  struct AssessmentStakeLockedState {
+    bool isStakeLocked;
+    uint stakeLockupExpiry;
+  }
+
   function getRewards(address user) external view returns (AssessmentRewards memory);
 
-  function isStakeLocked(address member) external view returns (bool stakeLocked);
+  function getStakeLocked(address member) external view returns (AssessmentStakeLockedState memory);
 }

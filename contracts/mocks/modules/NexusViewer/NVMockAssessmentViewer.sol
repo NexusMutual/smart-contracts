@@ -9,13 +9,13 @@ import {INXMToken} from "../../../interfaces/INXMToken.sol";
 
 contract NVMockAssessmentViewer is IAssessmentViewer {
 
-  bool stakeLocked;
+  AssessmentStakeLockedState stakeLockedState;
   AssessmentRewards assessmentRewards;
 
   /* ========== SETTERS ========== */
 
-  function setStakeLocked(bool _stakeLocked) external {
-    stakeLocked = _stakeLocked;
+  function setStakeLocked(AssessmentStakeLockedState memory _stakeLockedState) external {
+    stakeLockedState = _stakeLockedState;
   }
 
   function setRewards(
@@ -32,8 +32,8 @@ contract NVMockAssessmentViewer is IAssessmentViewer {
 
   /* ========== VIEWS ========== */
 
-  function isStakeLocked(address) external view returns (bool) {
-    return stakeLocked;
+  function getStakeLocked(address) external view returns (AssessmentStakeLockedState memory) {
+    return stakeLockedState;
   }
 
   function getRewards(address) external view returns (AssessmentRewards memory) {

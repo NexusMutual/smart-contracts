@@ -67,7 +67,6 @@ describe('tokenomics', function () {
     this.coverNFT = await ethers.getContractAt('CoverNFT', V2Addresses.CoverNFT);
     this.poolBefore = await ethers.getContractAt('ILegacyPool', V2Addresses.Pool);
     this.assessment = await ethers.getContractAt('Assessment', V2Addresses.Assessment);
-    this.productsV1 = await ethers.getContractAt('ProductsV1', V2Addresses.ProductsV1);
     this.stakingNFT = await ethers.getContractAt('StakingNFT', V2Addresses.StakingNFT);
     this.swapOperator = await ethers.getContractAt('SwapOperator', V2Addresses.SwapOperator);
     this.stakingPool = await ethers.getContractAt('StakingPool', V2Addresses.StakingPoolImpl);
@@ -248,7 +247,6 @@ describe('tokenomics', function () {
     // LegacyPooledStaking.sol
     this.pooledStaking = await ethers.deployContract('LegacyPooledStaking', [
       this.cover.address,
-      this.productsV1.address,
       this.stakingNFT.address,
       this.nxm.address,
     ]);

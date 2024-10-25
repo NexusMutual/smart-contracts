@@ -84,7 +84,6 @@ describe('coverRe', function () {
     this.coverNFT = await ethers.getContractAt('CoverNFT', V2Addresses.CoverNFT);
     this.pool = await ethers.getContractAt('Pool', V2Addresses.Pool);
     this.assessment = await ethers.getContractAt('Assessment', V2Addresses.Assessment);
-    this.productsV1 = await ethers.getContractAt('ProductsV1', V2Addresses.ProductsV1);
     this.stakingNFT = await ethers.getContractAt('StakingNFT', V2Addresses.StakingNFT);
     this.swapOperator = await ethers.getContractAt('SwapOperator', V2Addresses.SwapOperator);
     this.stakingPool = await ethers.getContractAt('StakingPool', V2Addresses.StakingPoolImpl);

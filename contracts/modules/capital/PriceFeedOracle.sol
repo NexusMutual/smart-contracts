@@ -14,20 +14,30 @@ contract PriceFeedOracle is IPriceFeedOracle {
   constructor(
     address[] memory _assetAddresses,
     address[] memory _assetAggregators,
+    AggregatorType[] memory _aggregatorTypes,
     uint8[] memory _assetDecimals,
     address _safeTracker
   ) {
     require(
-      _assetAddresses.length == _assetAggregators.length && _assetAggregators.length == _assetDecimals.length,
+      _assetAddresses.length == _assetAggregators.length &&
+      _assetAggregators.length == _aggregatorTypes.length &&
+      _aggregatorTypes.length && _assetDecimals.length,
       "PriceFeedOracle: different args length"
     );
     require(_safeTracker != address(0), "PriceFeedOracle: safeTracker cannot be zero address");
 
     safeTracker = _safeTracker;
-    assets[_safeTracker] = OracleAsset(Aggregator(_safeTracker), 18);
+    assetsMap[_safeTracker] = OracleAsset(Aggregator(_safeTracker), 18, AggregatorType.ETH);
 
     for (uint i = 0; i < _assetAddresses.length; i++) {
-      assets[_assetAddresses[i]] = OracleAsset(Aggregator(_assetAggregators[i]), _assetDecimals[i]);
+      require(_assetAddresses[i] != address(0), "PriceFeedOracle: asset address cannot be zero");
+      require(_assetAggregators[i] != address(0), "PriceFeedOracle: aggregator address cannot be zero");
+
+      assetsMap[_assetAddresses[i]] = OracleAsset(
+        Aggregator(_assetAggregators[i]),
+        _assetDecimals[i],
+        _aggregatorTypes[i]
+      );
     }
   }
 
@@ -41,8 +51,8 @@ contract PriceFeedOracle is IPriceFeedOracle {
       return 1 ether;
     }
 
-    OracleAsset memory asset = assets[assetAddress];
-    return _getAssetToEthRate(asset.aggregator);
+    OracleAsset memory asset = assetsMap[assetAddress];
+    return _getAssetToEthRate(asset.aggregator, asset.aggregatorType);
   }
 
   /**
@@ -56,10 +66,10 @@ contract PriceFeedOracle is IPriceFeedOracle {
       return ethIn;
     }
 
-    OracleAsset memory asset = assets[assetAddress];
-    uint price = _getAssetToEthRate(asset.aggregator);
+    OracleAsset memory asset = assetsMap[assetAddress];
+    uint price = _getAssetToEthRate(asset.aggregator, asset.aggregatorType);
 
-    return ethIn * (10**uint(asset.decimals)) / price;
+    return ethIn * (10 ** uint(asset.decimals)) / price;
   }
 
   /**
@@ -73,10 +83,10 @@ contract PriceFeedOracle is IPriceFeedOracle {
       return amount;
     }
 
-    OracleAsset memory asset = assets[assetAddress];
-    uint price = _getAssetToEthRate(asset.aggregator);
+    OracleAsset memory asset = assetsMap[assetAddress];
+    uint price = _getAssetToEthRate(asset.aggregator, asset.aggregatorType);
 
-    return amount * (price) / 10**uint(asset.decimals);
+    return amount * (price) / 10 ** uint(asset.decimals);
   }
 
   /**
@@ -84,13 +94,24 @@ contract PriceFeedOracle is IPriceFeedOracle {
    * @param aggregator The asset aggregator
    * @return price in ether
    */
-  function _getAssetToEthRate(Aggregator aggregator) internal view returns (uint) {
+  function _getAssetToEthRate(Aggregator aggregator, AggregatorType aggregatorType) internal view returns (uint) {
     require(address(aggregator) != address(0), "PriceFeedOracle: Unknown asset");
     // TODO: consider checking the latest timestamp and revert if it's *very* old
     int rate = aggregator.latestAnswer();
     require(rate > 0, "PriceFeedOracle: Rate must be > 0");
 
-    return uint(rate);
+    if (aggregatorType == AggregatorType.ETH) {
+      return uint(rate);
+    } else {
+      OracleAsset memory ethAsset = assetsMap[ETH];
+      require(address(ethAsset.aggregator) != address(0), "PriceFeedOracle: ETH/USD aggregator not set");
+      require(ethAsset.aggregatorType == AggregatorType.USD, "PriceFeedOracle: ETH aggregator must be USD type");
+
+      int ethUsdRate = ethAsset.aggregator.latestAnswer();
+      require(ethUsdRate > 0, "PriceFeedOracle: ETH/USD rate must be > 0");
+
+      return (uint(rate) * 1e18) / uint(ethUsdRate);
+    }
   }
 
   function assets(address assetAddress) external view returns (Aggregator, uint8) {

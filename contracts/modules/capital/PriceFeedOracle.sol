@@ -18,10 +18,11 @@ contract PriceFeedOracle is IPriceFeedOracle {
     uint8[] memory _assetDecimals,
     address _safeTracker
   ) {
+    require(_assetAddresses.length > 0, "PriceFeedOracle: asset addresses cannot be empty");
     require(
       _assetAddresses.length == _assetAggregators.length &&
       _assetAggregators.length == _aggregatorTypes.length &&
-      _aggregatorTypes.length && _assetDecimals.length,
+      _aggregatorTypes.length == _assetDecimals.length,
       "PriceFeedOracle: different args length"
     );
     require(_safeTracker != address(0), "PriceFeedOracle: safeTracker cannot be zero address");
@@ -92,6 +93,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
   /**
    * @dev Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
    * @param aggregator The asset aggregator
+   * @param aggregatorType The asset aggregator type (i.e ETH, USD)
    * @return price in ether
    */
   function _getAssetToEthRate(Aggregator aggregator, AggregatorType aggregatorType) internal view returns (uint) {

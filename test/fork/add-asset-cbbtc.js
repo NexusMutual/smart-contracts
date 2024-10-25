@@ -85,11 +85,7 @@ describe('add cbBTC asset to Pool', function () {
     this.stakingProducts = await ethers.getContractAt(abis.StakingProducts, addresses.StakingProducts);
     this.swapOperator = await ethers.getContractAt(abis.SwapOperator, addresses.SwapOperator);
     this.stakingPool = await ethers.getContractAt(abis.StakingPool, V2Addresses.StakingPoolImpl);
-
     this.priceFeedOracle = await ethers.getContractAt(abis.PriceFeedOracle, addresses.PriceFeedOracle);
-    // const poolPriceFeedOracle = await this.pool.priceFeedOracle();
-    // this.priceFeedOracle = await ethers.getContractAt(abis.PriceFeedOracle, poolPriceFeedOracle);
-
     this.tokenController = await ethers.getContractAt(abis.TokenController, addresses.TokenController);
     this.individualClaims = await ethers.getContractAt(abis.IndividualClaims, addresses.IndividualClaims);
     this.quotationData = await ethers.getContractAt(abis.LegacyQuotationData, addresses.LegacyQuotationData);
@@ -139,62 +135,56 @@ describe('add cbBTC asset to Pool', function () {
   });
 
   it('Deploy new PriceFeedOracle contract', async function () {
-    const poolAssets = {
-      dai: {
+    const priceFeedAssets = [
+      {
         address: Address.DAI_ADDRESS,
         aggregator: PriceFeedOracle.DAI_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
         aggregatorType: AggregatorType.ETH,
         decimals: 18,
       },
-      stETH: {
+      {
         address: Address.STETH_ADDRESS,
         aggregator: PriceFeedOracle.STETH_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
         aggregatorType: AggregatorType.ETH,
         decimals: 18,
       },
-      enzyme: {
+      {
         address: EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS,
         aggregator: PriceFeedOracle.ENZYMEV4_VAULT_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
         aggregatorType: AggregatorType.ETH,
         decimals: 18,
       },
-      rETH: {
+      {
         address: Address.RETH_ADDRESS,
         aggregator: PriceFeedOracle.RETH_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
         aggregatorType: AggregatorType.ETH,
         decimals: 18,
       },
-      usdc: {
+      {
         address: Address.USDC_ADDRESS,
         aggregator: PriceFeedOracle.USDC_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
         aggregatorType: AggregatorType.ETH,
         decimals: 6,
       },
-      cbBTC: {
+      {
         address: Address.CBBTC_ADDRESS,
         aggregator: PriceFeedOracle.CBBTC_USD_PRICE_FEED_ORACLE_AGGREGATOR,
         aggregatorType: AggregatorType.USD,
         decimals: 8,
       },
-      ethUsd: {
+      {
         address: Address.ETH,
         aggregator: PriceFeedOracle.ETH_USD_PRICE_FEED_ORACLE_AGGREGATOR,
         aggregatorType: AggregatorType.USD,
         decimals: 18,
       },
-    };
-
-    const assets = Object.values(poolAssets);
-    const assetAddresses = assets.map(asset => asset.address);
-    const assetAggregators = assets.map(asset => asset.aggregator);
-    const aggregatorTypes = assets.map(asset => asset.aggregatorType);
-    const assetDecimals = assets.map(asset => asset.decimals);
+    ];
 
     this.priceFeedOracle = await ethers.deployContract('PriceFeedOracle', [
-      assetAddresses,
-      assetAggregators,
-      aggregatorTypes,
-      assetDecimals,
+      priceFeedAssets.map(asset => asset.address),
+      priceFeedAssets.map(asset => asset.aggregator),
+      priceFeedAssets.map(asset => asset.aggregatorType),
+      priceFeedAssets.map(asset => asset.decimals),
       this.safeTracker.address,
     ]);
   });
@@ -239,8 +229,6 @@ describe('add cbBTC asset to Pool', function () {
     expect(latestPoolAsset.assetAddress).to.equal(Address.CBBTC_ADDRESS);
     expect(latestPoolAsset.isCoverAsset).to.equal(true);
     expect(latestPoolAsset.isAbandoned).to.equal(false);
-
-    console.info('cbBTC asset added - Snapshot ID: ', await evm.snapshot());
   });
 
   it('fail to buy cover that only supports DAI', async function () {

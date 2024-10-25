@@ -1134,61 +1134,56 @@ describe('basic functionality tests', function () {
     ]);
 
     // PriceFeedOracle.sol
-    const priceFeedAssets = {
-      dai: {
+    const priceFeedAssets = [
+      {
         address: Address.DAI_ADDRESS,
         aggregator: PriceFeedOracle.DAI_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
         aggregatorType: AggregatorType.ETH,
         decimals: 18,
       },
-      stETH: {
+      {
         address: Address.STETH_ADDRESS,
         aggregator: PriceFeedOracle.STETH_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
         aggregatorType: AggregatorType.ETH,
         decimals: 18,
       },
-      enzyme: {
+      {
         address: EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS,
         aggregator: PriceFeedOracle.ENZYMEV4_VAULT_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
         aggregatorType: AggregatorType.ETH,
         decimals: 18,
       },
-      rETH: {
+      {
         address: Address.RETH_ADDRESS,
         aggregator: PriceFeedOracle.RETH_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
         aggregatorType: AggregatorType.ETH,
         decimals: 18,
       },
-      usdc: {
+      {
         address: Address.USDC_ADDRESS,
         aggregator: PriceFeedOracle.USDC_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
         aggregatorType: AggregatorType.ETH,
         decimals: 6,
       },
-      cbBTC: {
+      {
         address: Address.CBBTC_ADDRESS,
         aggregator: PriceFeedOracle.CBBTC_USD_PRICE_FEED_ORACLE_AGGREGATOR,
         aggregatorType: AggregatorType.USD,
         decimals: 8,
       },
-      ethUsd: {
+      {
         address: Address.ETH,
         aggregator: PriceFeedOracle.ETH_USD_PRICE_FEED_ORACLE_AGGREGATOR,
         aggregatorType: AggregatorType.USD,
         decimals: 18,
       },
-    };
+    ];
 
-    const assets = Object.values(priceFeedAssets);
-    const assetAddresses = assets.map(asset => asset.address);
-    const assetAggregators = assets.map(asset => asset.aggregator);
-    const aggregatorTypes = assets.map(asset => asset.aggregatorType);
-    const assetDecimals = assets.map(asset => asset.decimals);
-    const priceFeedOracle = await deployContract('PriceFeedOracle', [
-      assetAddresses,
-      assetAggregators,
-      aggregatorTypes,
-      assetDecimals,
+    this.priceFeedOracle = await ethers.deployContract('PriceFeedOracle', [
+      priceFeedAssets.map(asset => asset.address),
+      priceFeedAssets.map(asset => asset.aggregator),
+      priceFeedAssets.map(asset => asset.aggregatorType),
+      priceFeedAssets.map(asset => asset.decimals),
       this.safeTracker.address,
     ]);
 
@@ -1197,7 +1192,7 @@ describe('basic functionality tests', function () {
     // P1 - Pool.sol
     const pool = await deployContract('Pool', [
       this.master.address,
-      priceFeedOracle.address,
+      this.priceFeedOracle.address,
       swapOperatorAddress,
       this.nxm.address,
       this.pool.address,

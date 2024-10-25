@@ -4,10 +4,9 @@ pragma solidity ^0.8.18;
 
 import "../../interfaces/IPriceFeedOracle.sol";
 
-
 contract PriceFeedOracle is IPriceFeedOracle {
 
-  mapping(address => OracleAsset) public assets;
+  mapping(address => OracleAsset) public assetsMap;
 
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   address public immutable safeTracker;
@@ -92,5 +91,10 @@ contract PriceFeedOracle is IPriceFeedOracle {
     require(rate > 0, "PriceFeedOracle: Rate must be > 0");
 
     return uint(rate);
+  }
+
+  function assets(address assetAddress) external view returns (Aggregator, uint8) {
+    OracleAsset memory asset = assetsMap[assetAddress];
+    return (asset.aggregator, asset.decimals);
   }
 }

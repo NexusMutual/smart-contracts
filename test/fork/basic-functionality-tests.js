@@ -6,6 +6,7 @@ const {
   Address,
   UserAddress,
   EnzymeAdress,
+  AggregatorType,
   PriceFeedOracle,
   calculateCurrentTrancheId,
   getSigner,
@@ -26,16 +27,8 @@ const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther, defaultAbiCoder, toUtf8Bytes, formatEther, parseUnits } = ethers.utils;
 
 const ASSESSMENT_VOTER_COUNT = 3;
-const { DAI_ADDRESS, STETH_ADDRESS, RETH_ADDRESS, USDC_ADDRESS } = Address;
+const { USDC_ADDRESS } = Address;
 const { NXM_WHALE_1, NXM_WHALE_2, DAI_NXM_HOLDER, NXMHOLDER, DAI_HOLDER, HUGH } = UserAddress;
-const { ENZYMEV4_VAULT_PROXY_ADDRESS } = EnzymeAdress;
-const {
-  DAI_PRICE_FEED_ORACLE_AGGREGATOR,
-  STETH_PRICE_FEED_ORACLE_AGGREGATOR,
-  ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
-  RETH_PRICE_FEED_ORACLE_AGGREGATOR,
-  USDC_PRICE_FEED_ORACLE_AGGREGATOR,
-} = PriceFeedOracle;
 
 let ybDAI, ybETH, ybUSDC;
 
@@ -1108,7 +1101,7 @@ describe('basic functionality tests', function () {
 
   it('Performs hypothetical future upgrade of proxy and non-proxy', async function () {
     // CR - ClaimRewards.sol
-    const newClaimsReward = await deployContract('LegacyClaimsReward', [this.master.address, DAI_ADDRESS]);
+    const newClaimsReward = await deployContract('LegacyClaimsReward', [this.master.address, Address.DAI_ADDRESS]);
 
     // TC - TokenController.sol
     const tokenController = await deployContract('TokenController', [
@@ -1141,18 +1134,60 @@ describe('basic functionality tests', function () {
     ]);
 
     // PriceFeedOracle.sol
-    const assetAddresses = [DAI_ADDRESS, STETH_ADDRESS, ENZYMEV4_VAULT_PROXY_ADDRESS, RETH_ADDRESS, USDC_ADDRESS];
-    const assetAggregators = [
-      DAI_PRICE_FEED_ORACLE_AGGREGATOR,
-      STETH_PRICE_FEED_ORACLE_AGGREGATOR,
-      ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
-      RETH_PRICE_FEED_ORACLE_AGGREGATOR,
-      USDC_PRICE_FEED_ORACLE_AGGREGATOR,
-    ];
-    const assetDecimals = [18, 18, 18, 18, 6];
+    const priceFeedAssets = {
+      dai: {
+        address: Address.DAI_ADDRESS,
+        aggregator: PriceFeedOracle.DAI_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
+        aggregatorType: AggregatorType.ETH,
+        decimals: 18,
+      },
+      stETH: {
+        address: Address.STETH_ADDRESS,
+        aggregator: PriceFeedOracle.STETH_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
+        aggregatorType: AggregatorType.ETH,
+        decimals: 18,
+      },
+      enzyme: {
+        address: EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS,
+        aggregator: PriceFeedOracle.ENZYMEV4_VAULT_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
+        aggregatorType: AggregatorType.ETH,
+        decimals: 18,
+      },
+      rETH: {
+        address: Address.RETH_ADDRESS,
+        aggregator: PriceFeedOracle.RETH_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
+        aggregatorType: AggregatorType.ETH,
+        decimals: 18,
+      },
+      usdc: {
+        address: Address.USDC_ADDRESS,
+        aggregator: PriceFeedOracle.USDC_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
+        aggregatorType: AggregatorType.ETH,
+        decimals: 6,
+      },
+      cbBTC: {
+        address: Address.CBBTC_ADDRESS,
+        aggregator: PriceFeedOracle.CBBTC_USD_PRICE_FEED_ORACLE_AGGREGATOR,
+        aggregatorType: AggregatorType.USD,
+        decimals: 8,
+      },
+      ethUsd: {
+        address: Address.ETH,
+        aggregator: PriceFeedOracle.ETH_USD_PRICE_FEED_ORACLE_AGGREGATOR,
+        aggregatorType: AggregatorType.USD,
+        decimals: 18,
+      },
+    };
+
+    const assets = Object.values(priceFeedAssets);
+    const assetAddresses = assets.map(asset => asset.address);
+    const assetAggregators = assets.map(asset => asset.aggregator);
+    const aggregatorTypes = assets.map(asset => asset.aggregatorType);
+    const assetDecimals = assets.map(asset => asset.decimals);
     const priceFeedOracle = await deployContract('PriceFeedOracle', [
       assetAddresses,
       assetAggregators,
+      aggregatorTypes,
       assetDecimals,
       this.safeTracker.address,
     ]);

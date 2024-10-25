@@ -244,11 +244,11 @@ describe('coverRe', function () {
       Address.USDC_ADDRESS,
     ];
     const assetAggregators = [
-      PriceFeedOracle.DAI_PRICE_FEED_ORACLE_AGGREGATOR,
-      PriceFeedOracle.STETH_PRICE_FEED_ORACLE_AGGREGATOR,
-      PriceFeedOracle.ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
-      PriceFeedOracle.RETH_PRICE_FEED_ORACLE_AGGREGATOR,
-      PriceFeedOracle.USDC_PRICE_FEED_ORACLE_AGGREGATOR,
+      PriceFeedOracle.DAI_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
+      PriceFeedOracle.STETH_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
+      PriceFeedOracle.ENZYMEV4_VAULT_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
+      PriceFeedOracle.RETH_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
+      PriceFeedOracle.USDC_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
     ];
     const assetDecimals = [18, 18, 18, 18, 6];
     this.priceFeedOracle = await ethers.deployContract('PriceFeedOracle', [

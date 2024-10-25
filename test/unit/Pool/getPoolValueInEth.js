@@ -43,6 +43,7 @@ describe('getPoolValueInEth', function () {
     const { pool, dai, stETH, enzymeVault, st } = fixture;
     const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
+    const { AggregatorType } = fixture;
 
     const ERC20RevertingBalanceOfMock = await ethers.getContractFactory('ERC20RevertingBalanceOfMock');
     const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
@@ -55,6 +56,7 @@ describe('getPoolValueInEth', function () {
     const priceFeedOracle = await PriceFeedOracle.deploy(
       [dai, stETH, enzymeVault, revertingERC20].map(c => c.address),
       [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkForRevertingERC20].map(c => c.address),
+      [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH],
       [18, 18, 18, 18],
       st.address,
     );

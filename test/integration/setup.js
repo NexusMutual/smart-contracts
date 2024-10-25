@@ -11,6 +11,11 @@ const { BigNumber } = ethers;
 const { parseEther, parseUnits } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 
+const AggregatorType = {
+  ETH: 0,
+  USD: 1,
+};
+
 const deployProxy = async (contract, deployParams = [], options = {}) => {
   const contractFactory = await ethers.getContractFactory(contract, options);
   const implementation = await contractFactory.deploy(...deployParams);
@@ -156,18 +161,20 @@ async function setup() {
   await disposableMCR.initializeNextMcr(mc.address, master.address);
 
   const priceFeedOracleAssets = [
-    { contract: dai, aggregator: chainlinkDAI, decimals: 18 },
-    { contract: stETH, aggregator: chainlinkSteth, decimals: 18 },
-    { contract: rETH, aggregator: chainlinkReth, decimals: 18 },
-    { contract: aWETH, aggregator: chainlinkAweth, decimals: 18 },
-    { contract: st, aggregator: chainlinkSt, decimals: 18 },
-    { contract: enzymeVault, aggregator: chainlinkEnzymeVault, decimals: 18 },
-    { contract: usdc, aggregator: chainlinkUSDC, decimals: usdcDecimals },
-    { contract: debtUsdc, aggregator: chainlinkUSDC, decimals: debtUsdcDecimals },
+    { contract: dai, aggregator: chainlinkDAI, aggregatorType: AggregatorType.ETH, decimals: 18 },
+    { contract: stETH, aggregator: chainlinkSteth, aggregatorType: AggregatorType.ETH, decimals: 18 },
+    { contract: rETH, aggregator: chainlinkReth, aggregatorType: AggregatorType.ETH, decimals: 18 },
+    { contract: aWETH, aggregator: chainlinkAweth, aggregatorType: AggregatorType.ETH, decimals: 18 },
+    { contract: st, aggregator: chainlinkSt, aggregatorType: AggregatorType.ETH, decimals: 18 },
+    { contract: enzymeVault, aggregator: chainlinkEnzymeVault, aggregatorType: AggregatorType.ETH, decimals: 18 },
+    { contract: usdc, aggregator: chainlinkUSDC, aggregatorType: AggregatorType.ETH, decimals: usdcDecimals },
+    { contract: debtUsdc, aggregator: chainlinkUSDC, aggregatorType: AggregatorType.ETH, decimals: debtUsdcDecimals },
   ];
+
   const priceFeedOracle = await ethers.deployContract('PriceFeedOracle', [
     priceFeedOracleAssets.map(a => a.contract.address),
     priceFeedOracleAssets.map(a => a.aggregator.address),
+    priceFeedOracleAssets.map(a => a.aggregatorType),
     priceFeedOracleAssets.map(a => a.decimals),
     st.address,
   ]);

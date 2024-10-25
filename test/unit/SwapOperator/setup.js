@@ -6,6 +6,11 @@ const {
   utils: { parseEther },
 } = ethers;
 
+const AggregatorType = {
+  ETH: 0,
+  USD: 1,
+};
+
 async function setup() {
   const accounts = await getAccounts();
   const [owner, governance] = await ethers.getSigners();
@@ -87,6 +92,7 @@ async function setup() {
   const priceFeedOracle = await PriceFeedOracle.deploy(
     [dai.address, stEth.address, usdc.address, enzymeV4Vault.address],
     [daiAggregator.address, stethAggregator.address, usdcAggregator.address, enzymeV4VaultAggregator.address],
+    [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH],
     [18, 18, 6, 18],
     st.address,
   );

@@ -3,6 +3,7 @@ const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
+const { AggregatorType } = require('../../fork/utils');
 
 const { toBytes8 } = require('../utils').helpers;
 const { PoolUintParamType, PoolAddressParamType } = require('../utils').constants;
@@ -52,12 +53,19 @@ describe('updateAddressParameters', function () {
   it('should revert when called with a PRC_FEED oracle parameter that lacks an investment asset', async function () {
     const fixture = await loadFixture(setup);
     const { pool, dai, chainlinkDAI, st } = fixture;
+    const { AggregatorType } = fixture;
     const {
       governanceContracts: [governanceContract],
     } = fixture.accounts;
 
     const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
-    const priceFeedOracle = await PriceFeedOracle.deploy([dai.address], [chainlinkDAI.address], [18], st.address);
+    const priceFeedOracle = await PriceFeedOracle.deploy(
+      [dai.address],
+      [chainlinkDAI.address],
+      [AggregatorType.ETH],
+      [18],
+      st.address,
+    );
 
     await expect(
       pool.connect(governanceContract).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address),
@@ -67,6 +75,7 @@ describe('updateAddressParameters', function () {
   it('should revert when called with a PRC_FEED oracle parameter that lacks a cover asset', async function () {
     const fixture = await loadFixture(setup);
     const { pool, chainlinkSteth, stETH } = fixture;
+    const { AggregatorType } = fixture;
     const {
       governanceContracts: [governanceContract],
       defaultSender,
@@ -76,6 +85,7 @@ describe('updateAddressParameters', function () {
     const priceFeedOracle = await PriceFeedOracle.deploy(
       [stETH.address],
       [chainlinkSteth.address],
+      [AggregatorType.ETH],
       [18],
       defaultSender.address,
     );
@@ -110,12 +120,14 @@ describe('updateAddressParameters', function () {
     const fixture = await loadFixture(setup);
     const { pool, dai, stETH, enzymeVault, chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, st } = fixture;
     const [governanceContract] = fixture.accounts.governanceContracts;
+    const { AggregatorType } = fixture;
 
     const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
 
     const newPriceFeedOracle = await PriceFeedOracle.deploy(
       [dai.address, stETH.address, enzymeVault.address],
       [chainlinkDAI.address, chainlinkSteth.address, chainlinkEnzymeVault.address],
+      [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH],
       [18, 18, 18],
       st.address,
     );

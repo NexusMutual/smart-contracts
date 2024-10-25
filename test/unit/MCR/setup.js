@@ -6,6 +6,11 @@ const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
+const AggregatorType = {
+  ETH: 0,
+  USD: 1,
+};
+
 async function setup() {
   const accounts = await getAccounts();
   const MasterMock = await ethers.getContractFactory('MasterMock');
@@ -29,9 +34,10 @@ async function setup() {
   await chainlinkSteth.setLatestAnswer(parseEther('1'));
 
   const priceFeedOracle = await PriceFeedOracle.deploy(
-    [dai.address, stETH.address],
-    [chainlinkDAI.address, chainlinkSteth.address],
-    [18, 18],
+    [dai.address, stETH.address], // assetAddresses
+    [chainlinkDAI.address, chainlinkSteth.address], // assetAggregators
+    [AggregatorType.ETH, AggregatorType.ETH], // aggregatorTypes
+    [18, 18], // assetDecimals
     st.address,
   );
 

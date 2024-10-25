@@ -3,6 +3,11 @@ const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
 const { parseEther, parseUnits } = ethers.utils;
 
+const AggregatorType = {
+  ETH: 0,
+  USD: 1,
+};
+
 async function setup() {
   const accounts = await getAccounts();
   const NXM = await ethers.getContractFactory('NXMTokenMock');
@@ -50,7 +55,13 @@ async function setup() {
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
-  const priceFeedOracle = await PriceFeedOracle.deploy([dai.address], [chainlinkDAI.address], [18], st.address);
+  const priceFeedOracle = await PriceFeedOracle.deploy(
+    [dai.address],
+    [chainlinkDAI.address],
+    [AggregatorType.ETH],
+    [18],
+    st.address,
+  );
   const ICMockPool = await ethers.getContractFactory('ICMockPool');
   const pool = await ICMockPool.deploy(priceFeedOracle.address);
   await pool.deployed();

@@ -14,6 +14,7 @@ describe('upgradeCapitalPool', function () {
     const { pool, master, dai, stETH, enzymeVault, token, st } = fixture;
     const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
+    const { AggregatorType } = fixture;
     const { defaultSender } = fixture.accounts;
 
     const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
@@ -28,6 +29,7 @@ describe('upgradeCapitalPool', function () {
     const priceFeedOracle = await PriceFeedOracle.deploy(
       [dai.address, stETH.address, enzymeVault.address, coverToken.address],
       [chainlinkDAI.address, chainlinkSteth.address, chainlinkEnzymeVault.address, chainlinkNewAsset.address],
+      [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH],
       [18, 18, 18, 18],
       st.address,
     );
@@ -72,6 +74,7 @@ describe('upgradeCapitalPool', function () {
     const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
     const { defaultSender } = fixture.accounts;
+    const { AggregatorType } = fixture;
 
     const ethAmount = parseEther('10000');
     const tokenAmount = parseEther('100000');
@@ -98,6 +101,7 @@ describe('upgradeCapitalPool', function () {
         chainlinkNewAsset.address,
         chainlinkNewAsset.address,
       ],
+      [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH],
       [18, 18, 18, 18, 18],
       defaultSender.address,
     );

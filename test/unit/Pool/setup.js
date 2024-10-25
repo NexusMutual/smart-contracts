@@ -8,6 +8,11 @@ const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 const { AddressZero, WeiPerEther } = ethers.constants;
 
+const AggregatorType = {
+  ETH: 0,
+  USD: 1,
+};
+
 async function setup() {
   const accounts = await getAccounts();
   // rewrite above artifact imports using ethers.js
@@ -52,6 +57,7 @@ async function setup() {
   const priceFeedOracle = await PriceFeedOracle.deploy(
     [dai, stETH, enzymeVault, otherAsset].map(c => c.address),
     [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkOtherAsset].map(c => c.address),
+    [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH],
     [18, 18, 18, 18],
     st.address,
   );
@@ -143,6 +149,8 @@ async function setup() {
     chainlinkDAI,
     chainlinkSteth,
     chainlinkEnzymeVault,
+
+    AggregatorType,
   };
 }
 

@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-const AggregatorTypes = {
+const AggregatorType = {
   ETH: 0,
   USD: 1,
 };
@@ -27,7 +27,7 @@ async function setup() {
   const priceFeedOracle = await PriceFeedOracle.deploy(
     [dai.address, wbtc.address, cbBTC.address, ETH], // assetAddresses
     [daiAggregator.address, wbtcAggregator.address, cbBTCAggregator.address, ethAggregator.address], // assetAggregators
-    [AggregatorTypes.ETH, AggregatorTypes.ETH, AggregatorTypes.USD, AggregatorTypes.USD], // aggregatorTypes
+    [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.USD, AggregatorType.USD], // aggregatorTypes
     [18, 8, 8, 18], // assetDecimals
     st.address,
   );

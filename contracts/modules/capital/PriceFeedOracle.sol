@@ -6,7 +6,7 @@ import "../../interfaces/IPriceFeedOracle.sol";
 
 contract PriceFeedOracle is IPriceFeedOracle {
 
-  mapping(address => OracleAsset) public assetsMap;
+  mapping(address => AssetInfo) public assetsMap;
 
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   address public immutable safeTracker;
@@ -28,16 +28,16 @@ contract PriceFeedOracle is IPriceFeedOracle {
     require(_safeTracker != address(0), "PriceFeedOracle: safeTracker cannot be zero address");
 
     safeTracker = _safeTracker;
-    assetsMap[_safeTracker] = OracleAsset(Aggregator(_safeTracker), 18, AggregatorType.ETH);
+    assetsMap[_safeTracker] = AssetInfo(Aggregator(_safeTracker), AggregatorType.ETH, 18);
 
     for (uint i = 0; i < _assetAddresses.length; i++) {
       require(_assetAddresses[i] != address(0), "PriceFeedOracle: asset address cannot be zero");
       require(_assetAggregators[i] != address(0), "PriceFeedOracle: aggregator address cannot be zero");
 
-      assetsMap[_assetAddresses[i]] = OracleAsset(
+      assetsMap[_assetAddresses[i]] = AssetInfo(
         Aggregator(_assetAggregators[i]),
-        _assetDecimals[i],
-        _aggregatorTypes[i]
+        _aggregatorTypes[i],
+        _assetDecimals[i]
       );
     }
   }
@@ -52,7 +52,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
       return 1 ether;
     }
 
-    OracleAsset memory asset = assetsMap[assetAddress];
+    AssetInfo memory asset = assetsMap[assetAddress];
     return _getAssetToEthRate(asset.aggregator, asset.aggregatorType);
   }
 
@@ -67,7 +67,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
       return ethIn;
     }
 
-    OracleAsset memory asset = assetsMap[assetAddress];
+    AssetInfo memory asset = assetsMap[assetAddress];
     uint price = _getAssetToEthRate(asset.aggregator, asset.aggregatorType);
 
     return ethIn * (10 ** uint(asset.decimals)) / price;
@@ -84,7 +84,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
       return amount;
     }
 
-    OracleAsset memory asset = assetsMap[assetAddress];
+    AssetInfo memory asset = assetsMap[assetAddress];
     uint price = _getAssetToEthRate(asset.aggregator, asset.aggregatorType);
 
     return amount * (price) / 10 ** uint(asset.decimals);
@@ -105,7 +105,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
     if (aggregatorType == AggregatorType.ETH) {
       return uint(rate);
     } else {
-      OracleAsset memory ethAsset = assetsMap[ETH];
+      AssetInfo memory ethAsset = assetsMap[ETH];
       require(address(ethAsset.aggregator) != address(0), "PriceFeedOracle: ETH/USD aggregator not set");
       require(ethAsset.aggregatorType == AggregatorType.USD, "PriceFeedOracle: ETH aggregator must be USD type");
 
@@ -117,7 +117,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
   }
 
   function assets(address assetAddress) external view returns (Aggregator, uint8) {
-    OracleAsset memory asset = assetsMap[assetAddress];
+    AssetInfo memory asset = assetsMap[assetAddress];
     return (asset.aggregator, asset.decimals);
   }
 }

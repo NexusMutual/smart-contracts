@@ -7,7 +7,7 @@ import "../../interfaces/IPriceFeedOracle.sol";
 contract PriceFeedOracleMock is IPriceFeedOracle {
 
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-  mapping(address => OracleAsset) public assetsMap;
+  mapping(address => AssetInfo) public assetsMap;
 
   uint public ethRate;
 
@@ -28,7 +28,7 @@ contract PriceFeedOracleMock is IPriceFeedOracle {
   }
 
   function assets(address assetAddress) external view returns (Aggregator, uint8) {
-    OracleAsset memory asset = assetsMap[assetAddress];
+    AssetInfo memory asset = assetsMap[assetAddress];
     return (asset.aggregator, asset.decimals);
   }
 }

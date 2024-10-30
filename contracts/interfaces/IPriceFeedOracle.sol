@@ -10,10 +10,11 @@ interface Aggregator {
 interface IPriceFeedOracle {
 
   enum AggregatorType { ETH, USD }
-  struct OracleAsset {
+
+  struct AssetInfo {
     Aggregator aggregator;
-    uint8 decimals;
     AggregatorType aggregatorType;
+    uint8 decimals;
   }
 
   function ETH() external view returns (address);

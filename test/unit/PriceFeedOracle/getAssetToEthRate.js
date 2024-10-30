@@ -38,10 +38,10 @@ describe('getAssetToEthRate', function () {
   it('returns correct ETH rate for cbBTC asset', async function () {
     const fixture = await loadFixture(setup);
     const { cbBTC, cbBTCAggregator, ethAggregator, priceFeedOracle } = fixture;
-    const USD_PRICE_FEED_DECIMALS = 8;
+    const USD_DECIMALS = 8;
 
-    const ethUsdRate = parseUnits('2500', USD_PRICE_FEED_DECIMALS); // 1 ETH = 2500 USD
-    const cbBTCUsdRate = parseUnits('65000', USD_PRICE_FEED_DECIMALS); // 1 cbBTC = 65000 USD
+    const ethUsdRate = parseUnits('2500', USD_DECIMALS); // 1 ETH = 2500 USD
+    const cbBTCUsdRate = parseUnits('65000', USD_DECIMALS); // 1 cbBTC = 65000 USD
 
     // Set the aggregator rates
     await cbBTCAggregator.setLatestAnswer(cbBTCUsdRate);
@@ -49,7 +49,8 @@ describe('getAssetToEthRate', function () {
 
     const cbBTCEthRate = await priceFeedOracle.getAssetToEthRate(cbBTC.address);
 
-    const expectedRate = cbBTCUsdRate.mul(parseEther('1')).div(ethUsdRate);
+    const oneETH = parseEther('1');
+    const expectedRate = cbBTCUsdRate.mul(oneETH).div(ethUsdRate);
     expect(cbBTCEthRate).to.eq(expectedRate);
   });
 });

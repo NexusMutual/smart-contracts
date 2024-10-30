@@ -1,15 +1,11 @@
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const {
-  Assets: { ETH },
-} = require('../../../lib/constants');
-const {
-  ethers: {
-    utils: { parseEther, parseUnits },
-  },
-  ethers,
-} = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const setup = require('./setup');
+const { ETH } = require('../utils').constants.Assets;
+
+const { parseEther, parseUnits } = ethers.utils;
 
 describe('getEthForAsset', function () {
   it('reverts if the asset is unknown', async function () {

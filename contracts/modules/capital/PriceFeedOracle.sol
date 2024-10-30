@@ -40,6 +40,11 @@ contract PriceFeedOracle is IPriceFeedOracle {
         _assetDecimals[i]
       );
     }
+
+    // Require ETH-USD asset
+    AssetInfo memory ethAsset = assetsMap[ETH];
+    require(address(ethAsset.aggregator) != address(0), "PriceFeedOracle: ETH/USD aggregator not set");
+    require(ethAsset.aggregatorType == AggregatorType.USD, "PriceFeedOracle: ETH aggregator must be USD type");
   }
 
   /**
@@ -104,16 +109,14 @@ contract PriceFeedOracle is IPriceFeedOracle {
 
     if (aggregatorType == AggregatorType.ETH) {
       return uint(rate);
-    } else {
-      AssetInfo memory ethAsset = assetsMap[ETH];
-      require(address(ethAsset.aggregator) != address(0), "PriceFeedOracle: ETH/USD aggregator not set");
-      require(ethAsset.aggregatorType == AggregatorType.USD, "PriceFeedOracle: ETH aggregator must be USD type");
-
-      int ethUsdRate = ethAsset.aggregator.latestAnswer();
-      require(ethUsdRate > 0, "PriceFeedOracle: ETH/USD rate must be > 0");
-
-      return (uint(rate) * 1e18) / uint(ethUsdRate);
     }
+
+    AssetInfo memory ethAsset = assetsMap[ETH];
+
+    int ethUsdRate = ethAsset.aggregator.latestAnswer();
+    require(ethUsdRate > 0, "PriceFeedOracle: ETH/USD rate must be > 0");
+
+    return (uint(rate) * 1e18) / uint(ethUsdRate);
   }
 
   function assets(address assetAddress) external view returns (Aggregator, uint8) {

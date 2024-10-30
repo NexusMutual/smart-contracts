@@ -3,6 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
+const { AggregatorType, Assets } = require('../utils').constants;
 const { toBytes8 } = require('../utils').helpers;
 
 const { parseEther } = ethers.utils;
@@ -11,10 +12,9 @@ const { AddressZero } = ethers.constants;
 describe('upgradeCapitalPool', function () {
   it('moves pool funds to new pool', async function () {
     const fixture = await loadFixture(setup);
-    const { pool, master, dai, stETH, enzymeVault, token, st } = fixture;
+    const { pool, master, dai, stETH, enzymeVault, token, st, chainlinkEthUsdAsset } = fixture;
     const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
-    const { AggregatorType } = fixture;
     const { defaultSender } = fixture.accounts;
 
     const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
@@ -27,10 +27,16 @@ describe('upgradeCapitalPool', function () {
 
     const coverToken = await ERC20Mock.deploy();
     const priceFeedOracle = await PriceFeedOracle.deploy(
-      [dai.address, stETH.address, enzymeVault.address, coverToken.address],
-      [chainlinkDAI.address, chainlinkSteth.address, chainlinkEnzymeVault.address, chainlinkNewAsset.address],
-      [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH],
-      [18, 18, 18, 18],
+      [dai.address, stETH.address, enzymeVault.address, coverToken.address, Assets.ETH],
+      [
+        chainlinkDAI.address,
+        chainlinkSteth.address,
+        chainlinkEnzymeVault.address,
+        chainlinkNewAsset.address,
+        chainlinkEthUsdAsset.address,
+      ],
+      [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.USD],
+      [18, 18, 18, 18, 18],
       st.address,
     );
     await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
@@ -70,11 +76,10 @@ describe('upgradeCapitalPool', function () {
 
   it('abandons marked assets on pool upgrade', async function () {
     const fixture = await loadFixture(setup);
-    const { pool, master, dai, stETH, enzymeVault, token } = fixture;
+    const { pool, master, dai, stETH, enzymeVault, token, chainlinkEthUsdAsset } = fixture;
     const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
     const { defaultSender } = fixture.accounts;
-    const { AggregatorType } = fixture;
 
     const ethAmount = parseEther('10000');
     const tokenAmount = parseEther('100000');
@@ -93,16 +98,24 @@ describe('upgradeCapitalPool', function () {
     await chainlinkNewAsset.setLatestAnswer(parseEther('1'));
 
     const priceFeedOracle = await PriceFeedOracle.deploy(
-      [dai.address, stETH.address, enzymeVault.address, coverToken.address, nonRevertingERC20.address],
+      [dai.address, stETH.address, enzymeVault.address, coverToken.address, nonRevertingERC20.address, Assets.ETH],
       [
         chainlinkDAI.address,
         chainlinkSteth.address,
         chainlinkEnzymeVault.address,
         chainlinkNewAsset.address,
         chainlinkNewAsset.address,
+        chainlinkEthUsdAsset.address,
       ],
-      [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH],
-      [18, 18, 18, 18, 18],
+      [
+        AggregatorType.ETH,
+        AggregatorType.ETH,
+        AggregatorType.ETH,
+        AggregatorType.ETH,
+        AggregatorType.ETH,
+        AggregatorType.USD,
+      ],
+      [18, 18, 18, 18, 18, 18],
       defaultSender.address,
     );
     await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);

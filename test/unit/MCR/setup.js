@@ -3,13 +3,8 @@ const { parseEther, parseUnits } = ethers.utils;
 
 const { initMCR } = require('./common');
 const { getAccounts } = require('../../utils/accounts');
-const { Role } = require('../utils').constants;
+const { Assets, AggregatorType, Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
-
-const AggregatorType = {
-  ETH: 0,
-  USD: 1,
-};
 
 async function setup() {
   const accounts = await getAccounts();
@@ -25,19 +20,24 @@ async function setup() {
   const stETH = await ERC20Mock.deploy();
   const st = await ERC20Mock.deploy();
 
+  const ethToUsdRate = parseUnits('2500', 8);
   const ethToDaiRate = parseEther('2000');
   const daiToEthRate = parseUnits('1', 36).div(ethToDaiRate);
 
   const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
+
   const chainlinkSteth = await ChainlinkAggregatorMock.deploy();
   await chainlinkSteth.setLatestAnswer(parseEther('1'));
 
+  const chainlinkEthUsdAsset = await ChainlinkAggregatorMock.deploy();
+  await chainlinkEthUsdAsset.setLatestAnswer(ethToUsdRate);
+
   const priceFeedOracle = await PriceFeedOracle.deploy(
-    [dai.address, stETH.address], // assetAddresses
-    [chainlinkDAI.address, chainlinkSteth.address], // assetAggregators
-    [AggregatorType.ETH, AggregatorType.ETH], // aggregatorTypes
-    [18, 18], // assetDecimals
+    [dai.address, stETH.address, Assets.ETH], // assetAddresses
+    [chainlinkDAI.address, chainlinkSteth.address, chainlinkEthUsdAsset.address], // assetAggregators
+    [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.USD], // aggregatorTypes
+    [18, 18, 18], // assetDecimals
     st.address,
   );
 

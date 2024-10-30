@@ -9,6 +9,7 @@ const {
   helpers: { toBytes8 },
   constants: {
     Assets: { ETH: ETH_ADDRESS },
+    AggregatorType,
   },
 } = utils;
 
@@ -41,9 +42,8 @@ describe('getPoolValueInEth', function () {
   it('should not fail when pool asset balanceOf reverts', async function () {
     const fixture = await loadFixture(setup);
     const { pool, dai, stETH, enzymeVault, st } = fixture;
-    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
+    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkEthUsdAsset } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
-    const { AggregatorType } = fixture;
 
     const ERC20RevertingBalanceOfMock = await ethers.getContractFactory('ERC20RevertingBalanceOfMock');
     const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
@@ -54,10 +54,12 @@ describe('getPoolValueInEth', function () {
     await chainlinkForRevertingERC20.setLatestAnswer(parseEther('1'));
 
     const priceFeedOracle = await PriceFeedOracle.deploy(
-      [dai, stETH, enzymeVault, revertingERC20].map(c => c.address),
-      [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkForRevertingERC20].map(c => c.address),
-      [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH],
-      [18, 18, 18, 18],
+      [dai, stETH, enzymeVault, revertingERC20, { address: ETH_ADDRESS }].map(c => c.address),
+      [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkForRevertingERC20, chainlinkEthUsdAsset].map(
+        c => c.address,
+      ),
+      [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.USD],
+      [18, 18, 18, 18, 18],
       st.address,
     );
 

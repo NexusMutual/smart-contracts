@@ -1,10 +1,6 @@
 const { ethers } = require('hardhat');
 
-const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-const AggregatorType = {
-  ETH: 0,
-  USD: 1,
-};
+const { AggregatorType, Assets } = require('../utils').constants;
 
 async function setup() {
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
@@ -25,7 +21,7 @@ async function setup() {
 
   // Deploy PriceFeedOracle
   const priceFeedOracle = await PriceFeedOracle.deploy(
-    [dai.address, wbtc.address, cbBTC.address, ETH], // assetAddresses
+    [dai.address, wbtc.address, cbBTC.address, Assets.ETH], // assetAddresses
     [daiAggregator.address, wbtcAggregator.address, cbBTCAggregator.address, ethAggregator.address], // assetAggregators
     [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.USD, AggregatorType.USD], // aggregatorTypes
     [18, 8, 8, 18], // assetDecimals

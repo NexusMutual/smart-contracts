@@ -1,15 +1,12 @@
 const { ethers } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
+const { parseUnits } = require('ethers/lib/utils');
 const { hex } = require('../utils').helpers;
+const { AggregatorType, Assets } = require('../utils').constants;
 
 const {
   utils: { parseEther },
 } = ethers;
-
-const AggregatorType = {
-  ETH: 0,
-  USD: 1,
-};
 
 async function setup() {
   const accounts = await getAccounts();
@@ -66,6 +63,9 @@ async function setup() {
   const enzymeV4VaultAggregator = await ChainlinkAggregatorMock.deploy();
   await enzymeV4VaultAggregator.setLatestAnswer(parseEther('1')); // 1 ETH = 1 share
 
+  const chainlinkEthUsdAsset = await ChainlinkAggregatorMock.deploy();
+  await chainlinkEthUsdAsset.setLatestAnswer(parseUnits('2500', 8));
+
   /* deploy enzyme mocks */
   const enzymeV4Comptroller = await SOMockEnzymeV4Comptroller.deploy(weth.address);
 
@@ -90,10 +90,16 @@ async function setup() {
 
   // Deploy PriceFeedOracle
   const priceFeedOracle = await PriceFeedOracle.deploy(
-    [dai.address, stEth.address, usdc.address, enzymeV4Vault.address],
-    [daiAggregator.address, stethAggregator.address, usdcAggregator.address, enzymeV4VaultAggregator.address],
-    [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH],
-    [18, 18, 6, 18],
+    [dai.address, stEth.address, usdc.address, enzymeV4Vault.address, Assets.ETH],
+    [
+      daiAggregator.address,
+      stethAggregator.address,
+      usdcAggregator.address,
+      enzymeV4VaultAggregator.address,
+      chainlinkEthUsdAsset.address,
+    ],
+    [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.USD],
+    [18, 18, 6, 18, 18],
     st.address,
   );
 

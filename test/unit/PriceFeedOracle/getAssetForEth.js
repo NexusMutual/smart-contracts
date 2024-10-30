@@ -38,14 +38,15 @@ describe('getAssetForEth', function () {
     expect(twoEthInDAI).to.eq(parseEther('10000'));
   });
 
-  it('returns correct amount for cbBTC (USD-based asset)', async function () {
+  it('returns correct amount for cbBTC (USD-based oracle) for ETH', async function () {
     const fixture = await loadFixture(setup);
     const { cbBTC, cbBTCAggregator, ethAggregator, priceFeedOracle } = fixture;
-    const USD_PRICE_FEED_DECIMALS = 8;
+    const USD_DECIMALS = 8;
+    const CBBTC_DECIMALS = 8;
 
     const ethAmount = parseEther('2');
-    const ethUsdRate = parseUnits('2500', USD_PRICE_FEED_DECIMALS); // 1 ETH = 2500 USD
-    const cbBTCUsdRate = parseUnits('65000', USD_PRICE_FEED_DECIMALS); // 1 cbBTC = 65000 USD
+    const ethUsdRate = parseUnits('2500', USD_DECIMALS); // 1 ETH = 2500 USD
+    const cbBTCUsdRate = parseUnits('65000', USD_DECIMALS); // 1 cbBTC = 65000 USD
 
     // Set the aggregator rates
     await cbBTCAggregator.setLatestAnswer(cbBTCUsdRate);
@@ -53,8 +54,11 @@ describe('getAssetForEth', function () {
 
     const cbBTCAmount = await priceFeedOracle.getAssetForEth(cbBTC.address, ethAmount);
 
-    const totalUSD = ethAmount.mul(ethUsdRate).div(parseEther('1')); // 2 ETH * (2500 USD/ETH)
-    const expectedAmountcbBTC = totalUSD.mul(parseUnits('1', 8)).div(cbBTCUsdRate); // 5000 USD / (65000 USD/cbBTC)
+    const oneETH = parseEther('1');
+    const oneCBBTC = parseUnits('1', CBBTC_DECIMALS);
+
+    const totalUSD = ethAmount.mul(ethUsdRate).div(oneETH); // 2 ETH * (2500 USD/ETH)
+    const expectedAmountcbBTC = totalUSD.mul(oneCBBTC).div(cbBTCUsdRate); // 5000 USD / (65000 USD/cbBTC)
     expect(cbBTCAmount).to.eq(expectedAmountcbBTC);
   });
 });

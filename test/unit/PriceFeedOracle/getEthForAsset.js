@@ -38,7 +38,7 @@ describe('getEthForAsset', function () {
     expect(twoDAIinEth).to.eq(parseEther('0.0004'));
   });
 
-  it('returns correct amount of ETH for cbBTC (USD-based aggregator)', async function () {
+  it('returns correct amount of ETH for cbBTC (USD-based oracle)', async function () {
     const fixture = await loadFixture(setup);
     const { cbBTC, cbBTCAggregator, ethAggregator, priceFeedOracle } = fixture;
     const USD_DECIMALS = 8;

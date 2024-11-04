@@ -19,6 +19,7 @@ interface IPriceFeedOracle {
 
   function ETH() external view returns (address);
   function assets(address) external view returns (Aggregator, uint8);
+  function assetsMap(address) external view returns (Aggregator, AggregatorType, uint8);
 
   function getAssetToEthRate(address asset) external view returns (uint);
   function getAssetForEth(address asset, uint ethIn) external view returns (uint);

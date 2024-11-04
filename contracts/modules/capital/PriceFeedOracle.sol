@@ -37,11 +37,20 @@ contract PriceFeedOracle is IPriceFeedOracle {
         revert ZeroDecimals(_assetAddresses[i]);
       }
 
-      assetsMap[_assetAddresses[i]] = AssetInfo(
-        Aggregator(_assetAggregators[i]),
-        _aggregatorTypes[i],
-        _assetDecimals[i]
-      );
+      Aggregator aggregator = Aggregator(_assetAggregators[i]);
+      uint8 aggregatorDecimals = aggregator.decimals();
+
+      if (_aggregatorTypes[i] != AggregatorType.ETH && _aggregatorTypes[i] != AggregatorType.USD) {
+          revert UnknownAggregatorType(uint8(_aggregatorTypes[i]));
+      }
+      if (_aggregatorTypes[i] == AggregatorType.ETH && aggregatorDecimals != 18) {
+          revert InvalidAggregatorDecimals(_assetAggregators[i], aggregatorDecimals, 18);
+      }
+      if (_aggregatorTypes[i] == AggregatorType.USD && aggregatorDecimals != 8) {
+          revert InvalidAggregatorDecimals(_assetAggregators[i], aggregatorDecimals, 8);
+      }
+
+      assetsMap[_assetAddresses[i]] = AssetInfo(aggregator, _aggregatorTypes[i], _assetDecimals[i]);
     }
 
     // Require ETH-USD asset

@@ -28,4 +28,6 @@ interface IPriceFeedOracle {
   /* ========== ERRORS ========== */
 
   error ZeroDecimals(address asset);
+  error InvalidAggregatorDecimals(address aggregator, uint8 actual, uint8 expected);
+  error UnknownAggregatorType(uint8 aggregatorType);
 }

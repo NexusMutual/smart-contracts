@@ -14,6 +14,10 @@ contract PriceFeedOracleGeneric is IPriceFeedOracle {
     revert("Unsupported");
   }
 
+  function assetsMap(address) external virtual view returns (Aggregator, AggregatorType, uint8) {
+    revert("Unsupported");
+  }
+
   function getAssetToEthRate(address) external virtual view returns (uint) {
     revert("Unsupported");
   }

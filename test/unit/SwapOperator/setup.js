@@ -65,6 +65,7 @@ async function setup() {
 
   const chainlinkEthUsdAsset = await ChainlinkAggregatorMock.deploy();
   await chainlinkEthUsdAsset.setLatestAnswer(parseUnits('2500', 8));
+  await chainlinkEthUsdAsset.setDecimals(8);
 
   /* deploy enzyme mocks */
   const enzymeV4Comptroller = await SOMockEnzymeV4Comptroller.deploy(weth.address);

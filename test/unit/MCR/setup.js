@@ -32,6 +32,7 @@ async function setup() {
 
   const chainlinkEthUsdAsset = await ChainlinkAggregatorMock.deploy();
   await chainlinkEthUsdAsset.setLatestAnswer(ethToUsdRate);
+  await chainlinkEthUsdAsset.setDecimals(8);
 
   const priceFeedOracle = await PriceFeedOracle.deploy(
     [dai.address, stETH.address, Assets.ETH], // assetAddresses

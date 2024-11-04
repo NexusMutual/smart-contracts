@@ -99,6 +99,7 @@ async function setup() {
 
   const chainlinkEthUsdAsset = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkEthUsdAsset.setLatestAnswer(parseUnits('2500', 8));
+  await chainlinkEthUsdAsset.setDecimals(8);
 
   const ybDAI = await ethers.deployContract('ERC20Mock');
   await ybDAI.mint(owner.address, parseEther('10000000'));

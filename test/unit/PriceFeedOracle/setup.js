@@ -8,16 +8,21 @@ async function setup() {
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
 
   // Deploy ERC20 test tokens
-  const dai = await ERC20Mock.deploy();
-  const wbtc = await ERC20Mock.deploy();
-  const cbBTC = await ERC20Mock.deploy();
-  const st = await ERC20Mock.deploy();
+  const [dai, wbtc, cbBTC, st] = await Promise.all([
+    ERC20Mock.deploy(),
+    ERC20Mock.deploy(),
+    ERC20Mock.deploy(),
+    ERC20Mock.deploy(),
+  ]);
 
   // Deploy price aggregators
-  const daiAggregator = await ChainlinkAggregatorMock.deploy();
-  const wbtcAggregator = await ChainlinkAggregatorMock.deploy();
-  const cbBTCAggregator = await ChainlinkAggregatorMock.deploy();
-  const ethAggregator = await ChainlinkAggregatorMock.deploy();
+  const [daiAggregator, wbtcAggregator, cbBTCAggregator, ethAggregator] = await Promise.all([
+    ChainlinkAggregatorMock.deploy(),
+    ChainlinkAggregatorMock.deploy(),
+    ChainlinkAggregatorMock.deploy(),
+    ChainlinkAggregatorMock.deploy(),
+  ]);
+  await Promise.all([cbBTCAggregator.setDecimals(8), ethAggregator.setDecimals(8)]);
 
   // Deploy PriceFeedOracle
   const priceFeedOracle = await PriceFeedOracle.deploy(

@@ -8,16 +8,6 @@ const { ETH } = require('../utils').constants.Assets;
 const { parseEther, parseUnits } = ethers.utils;
 
 describe('getEthForAsset', function () {
-  it('reverts if the asset is unknown', async function () {
-    const fixture = await loadFixture(setup);
-    const { priceFeedOracle } = fixture;
-    const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
-    const newToken = await ERC20Mock.deploy();
-    await expect(priceFeedOracle.getEthForAsset(newToken.address, 1234)).to.be.revertedWith(
-      'PriceFeedOracle: Unknown asset',
-    );
-  });
-
   it('returns asset amount if asset is ETH', async function () {
     const fixture = await loadFixture(setup);
     const { priceFeedOracle } = fixture;

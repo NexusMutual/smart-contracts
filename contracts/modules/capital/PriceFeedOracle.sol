@@ -18,21 +18,35 @@ contract PriceFeedOracle is IPriceFeedOracle {
     uint8[] memory _assetDecimals,
     address _safeTracker
   ) {
-    require(_assetAddresses.length > 0, "PriceFeedOracle: asset addresses cannot be empty");
-    require(
-      _assetAddresses.length == _assetAggregators.length &&
-      _assetAggregators.length == _aggregatorTypes.length &&
-      _aggregatorTypes.length == _assetDecimals.length,
-      "PriceFeedOracle: different args length"
-    );
-    require(_safeTracker != address(0), "PriceFeedOracle: safeTracker cannot be zero address");
+    if (_assetAddresses.length == 0) {
+      revert EmptyAssetAddresses();
+    }
+    if (
+      _assetAddresses.length != _assetAggregators.length ||
+      _assetAggregators.length != _aggregatorTypes.length ||
+      _aggregatorTypes.length != _assetDecimals.length
+    ) {
+      revert ArgumentLengthMismatch(
+        _assetAddresses.length,
+        _assetAggregators.length,
+        _aggregatorTypes.length,
+        _assetDecimals.length
+      );
+    }
+    if (_safeTracker == address(0)) {
+      revert ZeroAddress("safeTracker");
+    }
 
     safeTracker = _safeTracker;
     assetsMap[_safeTracker] = AssetInfo(Aggregator(_safeTracker), AggregatorType.ETH, 18);
 
     for (uint i = 0; i < _assetAddresses.length; i++) {
-      require(_assetAddresses[i] != address(0), "PriceFeedOracle: asset address cannot be zero");
-      require(_assetAggregators[i] != address(0), "PriceFeedOracle: aggregator address cannot be zero");
+      if (_assetAddresses[i] == address(0)) {
+        revert ZeroAddress("assetAddress");
+      }
+      if (_assetAggregators[i] == address(0)) {
+        revert ZeroAddress("aggregator");
+      }
       if (_assetDecimals[i] == 0) {
         revert ZeroDecimals(_assetAddresses[i]);
       }
@@ -55,8 +69,12 @@ contract PriceFeedOracle is IPriceFeedOracle {
 
     // Require ETH-USD asset
     AssetInfo memory ethAsset = assetsMap[ETH];
-    require(address(ethAsset.aggregator) != address(0), "PriceFeedOracle: ETH/USD aggregator not set");
-    require(ethAsset.aggregatorType == AggregatorType.USD, "PriceFeedOracle: ETH aggregator must be USD type");
+    if (address(ethAsset.aggregator) == address(0)) {
+      revert EthUsdAggregatorNotSet();
+    }
+    if (ethAsset.aggregatorType != AggregatorType.USD) {
+      revert InvalidEthAggregatorType(ethAsset.aggregatorType, AggregatorType.USD);
+    }
   }
 
   /// @notice Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
@@ -108,7 +126,9 @@ contract PriceFeedOracle is IPriceFeedOracle {
   function _getAssetToEthRate(Aggregator aggregator, AggregatorType aggregatorType) internal view returns (uint) {
     // NOTE: Current implementation relies on off-chain staleness checks, consider adding on-chain staleness check?
     int rate = aggregator.latestAnswer();
-    require(rate > 0, "PriceFeedOracle: Rate must be > 0");
+    if (rate <= 0) {
+      revert NonPositiveRate(address(aggregator), rate);
+    }
 
     if (aggregatorType == AggregatorType.ETH) {
       return uint(rate);
@@ -117,7 +137,9 @@ contract PriceFeedOracle is IPriceFeedOracle {
     AssetInfo memory ethAsset = assetsMap[ETH];
 
     int ethUsdRate = ethAsset.aggregator.latestAnswer();
-    require(ethUsdRate > 0, "PriceFeedOracle: ETH/USD rate must be > 0");
+    if (ethUsdRate <= 0) {
+      revert NonPositiveRate(ETH, ethUsdRate);
+    }
 
     return (uint(rate) * 1e18) / uint(ethUsdRate);
   }

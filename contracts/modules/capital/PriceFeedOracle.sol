@@ -47,11 +47,9 @@ contract PriceFeedOracle is IPriceFeedOracle {
     require(ethAsset.aggregatorType == AggregatorType.USD, "PriceFeedOracle: ETH aggregator must be USD type");
   }
 
-  /**
-   * @dev Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
-   * @param assetAddress address of asset
-   * @return price in ether
-   */
+  /// @notice Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
+  /// @param assetAddress address of asset
+  /// @return price in ether
   function getAssetToEthRate(address assetAddress) public view returns (uint) {
     if (assetAddress == ETH || assetAddress == safeTracker) {
       return 1 ether;
@@ -61,12 +59,10 @@ contract PriceFeedOracle is IPriceFeedOracle {
     return _getAssetToEthRate(asset.aggregator, asset.aggregatorType);
   }
 
-  /**
-   * @dev Returns the amount of currency that is equivalent to ethIn amount of ether.
-   * @param assetAddress address of asset
-   * @param ethIn amount of ether to be converted to the asset
-   * @return asset amount
-   */
+  /// @notice Returns the amount of currency that is equivalent to ethIn amount of ether.
+  /// @param assetAddress address of asset
+  /// @param ethIn amount of ether to be converted to the asset
+  /// @return asset amount
   function getAssetForEth(address assetAddress, uint ethIn) external view returns (uint) {
     if (assetAddress == ETH || assetAddress == safeTracker) {
       return ethIn;
@@ -78,12 +74,10 @@ contract PriceFeedOracle is IPriceFeedOracle {
     return ethIn * (10 ** uint(asset.decimals)) / price;
   }
 
-  /**
-   * @dev Returns the amount of eth that is equivalent to a given asset and amount
-   * @param assetAddress address of asset
-   * @param amount amount of asset
-   * @return amount of ether
-   */
+  /// @notice Returns the amount of eth that is equivalent to a given asset and amount
+  /// @param assetAddress address of asset
+  /// @param amount amount of asset
+  /// @return amount of ether
   function getEthForAsset(address assetAddress, uint amount) external view returns (uint) {
     if (assetAddress == ETH || assetAddress == safeTracker) {
       return amount;
@@ -95,14 +89,12 @@ contract PriceFeedOracle is IPriceFeedOracle {
     return amount * (price) / 10 ** uint(asset.decimals);
   }
 
-  /**
-   * @dev Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
-   * @param aggregator The asset aggregator
-   * @param aggregatorType The asset aggregator type (i.e ETH, USD)
-   * @return price in ether
-   */
+  /// @notice Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
+  /// @param aggregator The asset aggregator
+  /// @param aggregatorType The asset aggregator type (i.e ETH, USD)
+  /// @return price in ether
   function _getAssetToEthRate(Aggregator aggregator, AggregatorType aggregatorType) internal view returns (uint) {
-    // TODO: consider checking the latest timestamp and revert if it's *very* old
+    // NOTE: Current implementation relies on off-chain staleness checks, consider adding on-chain staleness check?
     int rate = aggregator.latestAnswer();
     require(rate > 0, "PriceFeedOracle: Rate must be > 0");
 
@@ -118,6 +110,9 @@ contract PriceFeedOracle is IPriceFeedOracle {
     return (uint(rate) * 1e18) / uint(ethUsdRate);
   }
 
+  /// @notice Retrieves the aggregator and decimals for a specific asset
+  /// @param assetAddress address of the asset
+  /// @return Aggregator instance and decimals of the asset
   function assets(address assetAddress) external view returns (Aggregator, uint8) {
     AssetInfo memory asset = assetsMap[assetAddress];
     return (asset.aggregator, asset.decimals);

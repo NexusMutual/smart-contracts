@@ -33,6 +33,9 @@ contract PriceFeedOracle is IPriceFeedOracle {
     for (uint i = 0; i < _assetAddresses.length; i++) {
       require(_assetAddresses[i] != address(0), "PriceFeedOracle: asset address cannot be zero");
       require(_assetAggregators[i] != address(0), "PriceFeedOracle: aggregator address cannot be zero");
+      if (_assetDecimals[i] == 0) {
+        revert ZeroDecimals(_assetAddresses[i]);
+      }
 
       assetsMap[_assetAddresses[i]] = AssetInfo(
         Aggregator(_assetAggregators[i]),

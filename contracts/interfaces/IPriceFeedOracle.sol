@@ -25,4 +25,7 @@ interface IPriceFeedOracle {
   function getAssetForEth(address asset, uint ethIn) external view returns (uint);
   function getEthForAsset(address asset, uint amount) external view returns (uint);
 
+  /* ========== ERRORS ========== */
+
+  error ZeroDecimals(address asset);
 }

@@ -102,7 +102,6 @@ contract PriceFeedOracle is IPriceFeedOracle {
    * @return price in ether
    */
   function _getAssetToEthRate(Aggregator aggregator, AggregatorType aggregatorType) internal view returns (uint) {
-    require(address(aggregator) != address(0), "PriceFeedOracle: Unknown asset");
     // TODO: consider checking the latest timestamp and revert if it's *very* old
     int rate = aggregator.latestAnswer();
     require(rate > 0, "PriceFeedOracle: Rate must be > 0");

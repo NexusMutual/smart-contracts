@@ -134,6 +134,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
       return uint(rate);
     }
 
+    // AggregatorType.USD - convert the USD rate to its equivalent ETH rate using the ETH-USD exchange rate
     AssetInfo memory ethAsset = assetsMap[ETH];
 
     int ethUsdRate = ethAsset.aggregator.latestAnswer();

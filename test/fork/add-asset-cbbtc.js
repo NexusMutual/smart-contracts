@@ -207,8 +207,8 @@ describe('add cbBTC asset to Pool', function () {
   it('Add cbBTC as an asset to the pool', async function () {
     const poolAssetsBefore = await this.pool.getAssets();
 
-    const min = parseUnits('100', 8).toString(); // 100 cbBTC
-    const max = parseUnits('1000', 8).toString(); // 1000 cbBTC
+    const min = parseUnits('150', 8); // 150 cbBTC
+    const max = parseUnits('200', 8); // 200 cbBTC
 
     const poolValueInEthBefore = await this.pool.getPoolValueInEth();
 

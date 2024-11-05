@@ -31,7 +31,7 @@ interface IPriceFeedOracle {
   error ArgumentLengthMismatch(uint assetAddressesLength, uint aggregatorsLength, uint typesLength, uint decimalsLength);
   error ZeroAddress(string parameter);
   error ZeroDecimals(address asset);
-  error InvalidAggregatorDecimals(address aggregator, uint8 actual, uint8 expected);
+  error IncompatibleAggregatorDecimals(address aggregator, uint8 aggregatorDecimals, uint8 expectedDecimals);
   error UnknownAggregatorType(uint8 aggregatorType);
   error EthUsdAggregatorNotSet();
   error InvalidEthAggregatorType(AggregatorType actual, AggregatorType expected);

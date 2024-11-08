@@ -3,6 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
+const { AggregatorType, Assets } = require('../utils').constants;
 const { toBytes8 } = require('../utils').helpers;
 
 const { AddressZero, WeiPerEther } = ethers.constants;
@@ -78,7 +79,7 @@ describe('addAsset', function () {
   it('should add assets setting min, max, slippage ratio, and their bool flags', async function () {
     const fixture = await loadFixture(setup);
     const { pool, dai, stETH, enzymeVault, st } = fixture;
-    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = fixture;
+    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkEthUsdAsset } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
 
     const coverToken = await ethers.deployContract('ERC20Mock');
@@ -90,9 +91,19 @@ describe('addAsset', function () {
     await clInvestmentToken.setLatestAnswer(WeiPerEther);
 
     const priceFeedOracle = await ethers.deployContract('PriceFeedOracle', [
-      [dai, stETH, enzymeVault, coverToken, investmentToken].map(c => c.address),
-      [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, clCoverToken, clInvestmentToken].map(c => c.address),
-      [18, 18, 18, 18, 18],
+      [dai, stETH, enzymeVault, coverToken, investmentToken, { address: Assets.ETH }].map(c => c.address),
+      [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, clCoverToken, clInvestmentToken, chainlinkEthUsdAsset].map(
+        c => c.address,
+      ),
+      [
+        AggregatorType.ETH,
+        AggregatorType.ETH,
+        AggregatorType.ETH,
+        AggregatorType.ETH,
+        AggregatorType.ETH,
+        AggregatorType.USD,
+      ],
+      [18, 18, 18, 18, 18, 18],
       st.address,
     ]);
 

@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 
-const { ContractTypes } = require('../utils').constants;
+const { AggregatorType, Assets, ContractTypes } = require('../utils').constants;
 const { toBytes2 } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
 const { enrollMember, enrollABMember, getGovernanceSigner } = require('./utils/enroll');
@@ -97,6 +97,10 @@ async function setup() {
   const chainlinkSt = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkSt.setLatestAnswer(parseEther('1'));
 
+  const chainlinkEthUsdAsset = await ethers.deployContract('ChainlinkAggregatorMock');
+  await chainlinkEthUsdAsset.setLatestAnswer(parseUnits('2500', 8));
+  await chainlinkEthUsdAsset.setDecimals(8);
+
   const ybDAI = await ethers.deployContract('ERC20Mock');
   await ybDAI.mint(owner.address, parseEther('10000000'));
 
@@ -155,19 +159,23 @@ async function setup() {
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mc.address, master.address);
 
+  const ethContract = { address: Assets.ETH }; // dummy ETH contract
   const priceFeedOracleAssets = [
-    { contract: dai, aggregator: chainlinkDAI, decimals: 18 },
-    { contract: stETH, aggregator: chainlinkSteth, decimals: 18 },
-    { contract: rETH, aggregator: chainlinkReth, decimals: 18 },
-    { contract: aWETH, aggregator: chainlinkAweth, decimals: 18 },
-    { contract: st, aggregator: chainlinkSt, decimals: 18 },
-    { contract: enzymeVault, aggregator: chainlinkEnzymeVault, decimals: 18 },
-    { contract: usdc, aggregator: chainlinkUSDC, decimals: usdcDecimals },
-    { contract: debtUsdc, aggregator: chainlinkUSDC, decimals: debtUsdcDecimals },
+    { contract: dai, aggregator: chainlinkDAI, aggregatorType: AggregatorType.ETH, decimals: 18 },
+    { contract: stETH, aggregator: chainlinkSteth, aggregatorType: AggregatorType.ETH, decimals: 18 },
+    { contract: rETH, aggregator: chainlinkReth, aggregatorType: AggregatorType.ETH, decimals: 18 },
+    { contract: aWETH, aggregator: chainlinkAweth, aggregatorType: AggregatorType.ETH, decimals: 18 },
+    { contract: st, aggregator: chainlinkSt, aggregatorType: AggregatorType.ETH, decimals: 18 },
+    { contract: enzymeVault, aggregator: chainlinkEnzymeVault, aggregatorType: AggregatorType.ETH, decimals: 18 },
+    { contract: usdc, aggregator: chainlinkUSDC, aggregatorType: AggregatorType.ETH, decimals: usdcDecimals },
+    { contract: debtUsdc, aggregator: chainlinkUSDC, aggregatorType: AggregatorType.ETH, decimals: debtUsdcDecimals },
+    { contract: ethContract, aggregator: chainlinkEthUsdAsset, aggregatorType: AggregatorType.USD, decimals: 18 },
   ];
+
   const priceFeedOracle = await ethers.deployContract('PriceFeedOracle', [
     priceFeedOracleAssets.map(a => a.contract.address),
     priceFeedOracleAssets.map(a => a.aggregator.address),
+    priceFeedOracleAssets.map(a => a.aggregatorType),
     priceFeedOracleAssets.map(a => a.decimals),
     st.address,
   ]);

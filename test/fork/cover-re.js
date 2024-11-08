@@ -84,7 +84,6 @@ describe('coverRe', function () {
     this.coverNFT = await ethers.getContractAt('CoverNFT', V2Addresses.CoverNFT);
     this.pool = await ethers.getContractAt('Pool', V2Addresses.Pool);
     this.assessment = await ethers.getContractAt('Assessment', V2Addresses.Assessment);
-    this.productsV1 = await ethers.getContractAt('ProductsV1', V2Addresses.ProductsV1);
     this.stakingNFT = await ethers.getContractAt('StakingNFT', V2Addresses.StakingNFT);
     this.swapOperator = await ethers.getContractAt('SwapOperator', V2Addresses.SwapOperator);
     this.stakingPool = await ethers.getContractAt('StakingPool', V2Addresses.StakingPoolImpl);
@@ -244,11 +243,11 @@ describe('coverRe', function () {
       Address.USDC_ADDRESS,
     ];
     const assetAggregators = [
-      PriceFeedOracle.DAI_PRICE_FEED_ORACLE_AGGREGATOR,
-      PriceFeedOracle.STETH_PRICE_FEED_ORACLE_AGGREGATOR,
-      PriceFeedOracle.ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
-      PriceFeedOracle.RETH_PRICE_FEED_ORACLE_AGGREGATOR,
-      PriceFeedOracle.USDC_PRICE_FEED_ORACLE_AGGREGATOR,
+      PriceFeedOracle.DAI_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
+      PriceFeedOracle.STETH_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
+      PriceFeedOracle.ENZYMEV4_VAULT_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
+      PriceFeedOracle.RETH_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
+      PriceFeedOracle.USDC_ETH_PRICE_FEED_ORACLE_AGGREGATOR,
     ];
     const assetDecimals = [18, 18, 18, 18, 6];
     this.priceFeedOracle = await ethers.deployContract('PriceFeedOracle', [

@@ -73,7 +73,6 @@ describe('usdc', function () {
     this.coverNFT = await ethers.getContractAt('CoverNFT', addresses.CoverNFT);
     this.pool = await ethers.getContractAt('Pool', addresses.Pool);
     this.assessment = await ethers.getContractAt('Assessment', addresses.Assessment);
-    this.productsV1 = await ethers.getContractAt('ProductsV1', addresses.ProductsV1);
     this.stakingNFT = await ethers.getContractAt('StakingNFT', addresses.StakingNFT);
     this.swapOperator = await ethers.getContractAt('SwapOperator', addresses.SwapOperator);
     this.stakingPool = await ethers.getContractAt('StakingPool', V2Addresses.StakingPoolImpl);

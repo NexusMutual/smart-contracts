@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
+const { AggregatorType, Assets } = require('../../utils/').constants;
 const { parseEther, parseUnits } = ethers.utils;
 
 async function setup() {
@@ -42,6 +43,7 @@ async function setup() {
   const ybPermitDai = await ybPermitDAI.deploy('Mock with permit', 'MOCK');
   await ybPermitDai.deployed();
 
+  const ethToUsdRate = parseUnits('2500', 8);
   const ethToDaiRate = parseEther('2000');
   const daiToEthRate = parseUnits('1', 36).div(ethToDaiRate);
 
@@ -49,8 +51,18 @@ async function setup() {
   const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
+  const chainlinkEthUsdAsset = await ChainlinkAggregatorMock.deploy();
+  await chainlinkEthUsdAsset.setLatestAnswer(ethToUsdRate);
+  await chainlinkEthUsdAsset.setDecimals(8);
+
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
-  const priceFeedOracle = await PriceFeedOracle.deploy([dai.address], [chainlinkDAI.address], [18], st.address);
+  const priceFeedOracle = await PriceFeedOracle.deploy(
+    [dai.address, Assets.ETH],
+    [chainlinkDAI.address, chainlinkEthUsdAsset.address],
+    [AggregatorType.ETH, AggregatorType.USD],
+    [18, 18],
+    st.address,
+  );
   const ICMockPool = await ethers.getContractFactory('ICMockPool');
   const pool = await ICMockPool.deploy(priceFeedOracle.address);
   await pool.deployed();

@@ -103,7 +103,6 @@ describe('prevent switch or withdraw membership when tokens are locked', functio
 
   it('load contracts', async function () {
     this.master = await ethers.getContractAt('NXMaster', '0x01BFd82675DBCc7762C84019cA518e701C0cD07e');
-    this.productsV1 = await ethers.getContractAt('ProductsV1', V2Addresses.ProductsV1);
     this.gateway = await ethers.getContractAt('LegacyGateway', '0x089Ab1536D032F54DFbC194Ba47529a4351af1B5');
     this.quotationData = await ethers.getContractAt(
       'LegacyQuotationData',

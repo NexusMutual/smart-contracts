@@ -1,11 +1,11 @@
 const { ethers } = require('hardhat');
 
 const { getAccounts } = require('../utils').accounts;
-const { Role } = require('../utils').constants;
+const { Role, Assets, AggregatorType } = require('../utils').constants;
 const { toBytes2 } = require('../utils').helpers;
 
 const { BigNumber } = ethers;
-const { parseEther } = ethers.utils;
+const { parseEther, parseUnits } = ethers.utils;
 const { AddressZero, WeiPerEther } = ethers.constants;
 
 async function setup() {
@@ -34,6 +34,7 @@ async function setup() {
   const memberRoles = await MemberRolesMock.deploy();
   const ramm = await RammMock.deploy();
 
+  const ethToUsdRate = parseUnits('2500', 8);
   const ethToDaiRate = parseEther('394.59');
   const daiToEthRate = BigNumber.from(10).pow(36).div(ethToDaiRate);
 
@@ -49,10 +50,15 @@ async function setup() {
   const chainlinkOtherAsset = await ChainlinkAggregatorMock.deploy();
   await chainlinkOtherAsset.setLatestAnswer(WeiPerEther);
 
+  const chainlinkEthUsdAsset = await ChainlinkAggregatorMock.deploy();
+  await chainlinkEthUsdAsset.setLatestAnswer(ethToUsdRate);
+  await chainlinkEthUsdAsset.setDecimals(8);
+
   const priceFeedOracle = await PriceFeedOracle.deploy(
-    [dai, stETH, enzymeVault, otherAsset].map(c => c.address),
-    [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkOtherAsset].map(c => c.address),
-    [18, 18, 18, 18],
+    [dai, stETH, enzymeVault, otherAsset, { address: Assets.ETH }].map(c => c.address),
+    [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkOtherAsset, chainlinkEthUsdAsset].map(c => c.address),
+    [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.USD],
+    [18, 18, 18, 18, 18],
     st.address,
   );
 
@@ -143,6 +149,7 @@ async function setup() {
     chainlinkDAI,
     chainlinkSteth,
     chainlinkEnzymeVault,
+    chainlinkEthUsdAsset,
   };
 }
 

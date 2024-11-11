@@ -5,7 +5,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 const { toBytes8 } = require('../utils').helpers;
-const { PoolUintParamType, PoolAddressParamType } = require('../utils').constants;
+const { PoolUintParamType, PoolAddressParamType, Assets, AggregatorType } = require('../utils').constants;
 
 describe('updateUintParameters', function () {
   it('should revert when called by non governance addresses', async function () {
@@ -51,13 +51,19 @@ describe('updateAddressParameters', function () {
 
   it('should revert when called with a PRC_FEED oracle parameter that lacks an investment asset', async function () {
     const fixture = await loadFixture(setup);
-    const { pool, dai, chainlinkDAI, st } = fixture;
+    const { pool, dai, chainlinkDAI, st, chainlinkEthUsdAsset } = fixture;
     const {
       governanceContracts: [governanceContract],
     } = fixture.accounts;
 
     const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
-    const priceFeedOracle = await PriceFeedOracle.deploy([dai.address], [chainlinkDAI.address], [18], st.address);
+    const priceFeedOracle = await PriceFeedOracle.deploy(
+      [dai.address, Assets.ETH],
+      [chainlinkDAI.address, chainlinkEthUsdAsset.address],
+      [AggregatorType.ETH, AggregatorType.USD],
+      [18, 18],
+      st.address,
+    );
 
     await expect(
       pool.connect(governanceContract).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address),
@@ -66,7 +72,7 @@ describe('updateAddressParameters', function () {
 
   it('should revert when called with a PRC_FEED oracle parameter that lacks a cover asset', async function () {
     const fixture = await loadFixture(setup);
-    const { pool, chainlinkSteth, stETH } = fixture;
+    const { pool, chainlinkSteth, stETH, chainlinkEthUsdAsset } = fixture;
     const {
       governanceContracts: [governanceContract],
       defaultSender,
@@ -74,9 +80,10 @@ describe('updateAddressParameters', function () {
 
     const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
     const priceFeedOracle = await PriceFeedOracle.deploy(
-      [stETH.address],
-      [chainlinkSteth.address],
-      [18],
+      [stETH.address, Assets.ETH],
+      [chainlinkSteth.address, chainlinkEthUsdAsset.address],
+      [AggregatorType.ETH, AggregatorType.USD],
+      [18, 18],
       defaultSender.address,
     );
 
@@ -108,15 +115,26 @@ describe('updateAddressParameters', function () {
 
   it('should correctly update the PRC_FEED parameter', async function () {
     const fixture = await loadFixture(setup);
-    const { pool, dai, stETH, enzymeVault, chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, st } = fixture;
+    const {
+      pool,
+      dai,
+      stETH,
+      enzymeVault,
+      chainlinkDAI,
+      chainlinkSteth,
+      chainlinkEnzymeVault,
+      chainlinkEthUsdAsset,
+      st,
+    } = fixture;
     const [governanceContract] = fixture.accounts.governanceContracts;
 
     const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
 
     const newPriceFeedOracle = await PriceFeedOracle.deploy(
-      [dai.address, stETH.address, enzymeVault.address],
-      [chainlinkDAI.address, chainlinkSteth.address, chainlinkEnzymeVault.address],
-      [18, 18, 18],
+      [dai.address, stETH.address, enzymeVault.address, Assets.ETH],
+      [chainlinkDAI.address, chainlinkSteth.address, chainlinkEnzymeVault.address, chainlinkEthUsdAsset.address],
+      [AggregatorType.ETH, AggregatorType.ETH, AggregatorType.ETH, AggregatorType.USD],
+      [18, 18, 18, 18],
       st.address,
     );
 

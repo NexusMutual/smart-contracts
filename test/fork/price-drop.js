@@ -56,7 +56,6 @@ describe('price drop per day change', function () {
     this.pool = await ethers.getContractAt('ILegacyPool', addresses.Pool);
     this.ramm = await ethers.getContractAt('Ramm', addresses.Ramm);
     this.assessment = await ethers.getContractAt('Assessment', addresses.Assessment);
-    this.productsV1 = await ethers.getContractAt('ProductsV1', addresses.ProductsV1);
     this.stakingNFT = await ethers.getContractAt('StakingNFT', addresses.StakingNFT);
     this.swapOperator = await ethers.getContractAt('SwapOperator', addresses.SwapOperator);
     this.priceFeedOracle = await ethers.getContractAt('PriceFeedOracle', addresses.PriceFeedOracle);

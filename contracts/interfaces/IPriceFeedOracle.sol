@@ -9,16 +9,32 @@ interface Aggregator {
 
 interface IPriceFeedOracle {
 
-  struct OracleAsset {
+  enum AggregatorType { ETH, USD }
+
+  struct AssetInfo {
     Aggregator aggregator;
+    AggregatorType aggregatorType;
     uint8 decimals;
   }
 
   function ETH() external view returns (address);
   function assets(address) external view returns (Aggregator, uint8);
+  function assetsMap(address) external view returns (Aggregator, AggregatorType, uint8);
 
   function getAssetToEthRate(address asset) external view returns (uint);
   function getAssetForEth(address asset, uint ethIn) external view returns (uint);
   function getEthForAsset(address asset, uint amount) external view returns (uint);
 
+  /* ========== ERRORS ========== */
+
+  error EmptyAssetAddresses();
+  error ArgumentLengthMismatch(uint assetAddressesLength, uint aggregatorsLength, uint typesLength, uint decimalsLength);
+  error ZeroAddress(string parameter);
+  error ZeroDecimals(address asset);
+  error IncompatibleAggregatorDecimals(address aggregator, uint8 aggregatorDecimals, uint8 expectedDecimals);
+  error UnknownAggregatorType(uint8 aggregatorType);
+  error EthUsdAggregatorNotSet();
+  error InvalidEthAggregatorType(AggregatorType actual, AggregatorType expected);
+  error UnknownAsset(address asset);
+  error NonPositiveRate(address aggregator, int rate);
 }

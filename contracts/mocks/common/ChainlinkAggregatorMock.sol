@@ -5,7 +5,7 @@ pragma solidity ^0.8.18;
 contract ChainlinkAggregatorMock {
 
   uint public latestAnswer;
-  uint public decimals;
+  uint public decimals = 18;
 
   function setDecimals(uint _decimals) public {
     decimals = _decimals;

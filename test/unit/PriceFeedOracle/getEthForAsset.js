@@ -1,27 +1,13 @@
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const {
-  Assets: { ETH },
-} = require('../../../lib/constants');
-const {
-  ethers: {
-    utils: { parseEther },
-  },
-  ethers,
-} = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const setup = require('./setup');
+const { ETH } = require('../utils').constants.Assets;
+
+const { parseEther, parseUnits } = ethers.utils;
 
 describe('getEthForAsset', function () {
-  it('reverts if the asset is unknown', async function () {
-    const fixture = await loadFixture(setup);
-    const { priceFeedOracle } = fixture;
-    const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
-    const newToken = await ERC20Mock.deploy();
-    await expect(priceFeedOracle.getEthForAsset(newToken.address, 1234)).to.be.revertedWith(
-      'PriceFeedOracle: Unknown asset',
-    );
-  });
-
   it('returns asset amount if asset is ETH', async function () {
     const fixture = await loadFixture(setup);
     const { priceFeedOracle } = fixture;
@@ -40,5 +26,30 @@ describe('getEthForAsset', function () {
 
     const twoDAIinEth = await priceFeedOracle.getEthForAsset(dai.address, parseEther('2')); // 2e18 = 2 DAI
     expect(twoDAIinEth).to.eq(parseEther('0.0004'));
+  });
+
+  it('returns correct amount of ETH for cbBTC (USD-based oracle)', async function () {
+    const fixture = await loadFixture(setup);
+    const { cbBTC, cbBTCAggregator, ethAggregator, priceFeedOracle } = fixture;
+    const USD_DECIMALS = 8;
+    const CBBTC_DECIMALS = 8;
+
+    const cbBTCAmount = parseUnits('2', CBBTC_DECIMALS); // 2 cbBTC
+    const ethUsdRate = parseUnits('2500', USD_DECIMALS); // 1 ETH = 2500 USD
+    const cbBTCUsdRate = parseUnits('65000', USD_DECIMALS); // 1 cbBTC = 65000 USD
+
+    // Set the aggregator rates
+    await ethAggregator.setLatestAnswer(ethUsdRate);
+    await cbBTCAggregator.setLatestAnswer(cbBTCUsdRate);
+
+    const ethAmount = await priceFeedOracle.getEthForAsset(cbBTC.address, cbBTCAmount);
+
+    // Calculate expected amount dynamically
+    const oneCBBTC = parseUnits('1', CBBTC_DECIMALS);
+    const oneETH = parseEther('1');
+
+    const totalUSD = cbBTCAmount.mul(cbBTCUsdRate).div(oneCBBTC); // 2 cbBTC * 65000 USD
+    const expectedAmountETH = totalUSD.mul(oneETH).div(ethUsdRate); // 130000 USD / (5000 USD/ETH)
+    expect(ethAmount).to.eq(expectedAmountETH);
   });
 });

@@ -49,7 +49,6 @@ describe('process-expirations', function () {
     this.pool = await ethers.getContractAt(abis.Pool, addresses.Pool);
     this.safeTracker = await ethers.getContractAt(abis.SafeTracker, addresses.SafeTracker);
     this.assessment = await ethers.getContractAt(abis.Assessment, addresses.Assessment);
-    this.productsV1 = await ethers.getContractAt(abis.ProductsV1, addresses.ProductsV1);
     this.stakingNFT = await ethers.getContractAt(abis.StakingNFT, addresses.StakingNFT);
     this.stakingProducts = await ethers.getContractAt(abis.StakingProducts, addresses.StakingProducts);
     this.swapOperator = await ethers.getContractAt(abis.SwapOperator, addresses.SwapOperator);

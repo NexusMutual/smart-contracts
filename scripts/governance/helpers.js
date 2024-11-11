@@ -8,8 +8,12 @@ const GOVERNANCE_ADDRESS = nexusSdk.addresses.Governance;
 const IPFS_API_URL = 'https://api.nexusmutual.io/ipfs-api/api/v0';
 
 const CATEGORY_PARAM_TYPES = {
-  29: ['bytes2[]', 'address[]'],
-  43: ['bytes2[]', 'address[]', 'uint256[]'],
+  10: [], // Changes to Capital Model
+  11: [], // Changes to Pricing Model
+  18: [], // Any other Item
+  29: ['bytes2[]', 'address[]'], // Release new smart contract code
+  42: ['address', 'bool', 'uint256', 'uint256', 'uint256'], // Add Asset to Pool
+  43: ['bytes2[]', 'address[]', 'uint256[]'], // Add new internal contracts
 };
 
 /**

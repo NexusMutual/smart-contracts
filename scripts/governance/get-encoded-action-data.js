@@ -1,10 +1,13 @@
 const { ethers } = require('hardhat');
 
+const { CATEGORY_PARAM_TYPES } = require('./helpers');
+
 const { defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 const CATEGORIES_HANDLERS = {
   29: encodeReleaseNewContractCode,
+  42: encodeAddAssetToPool,
 };
 
 const usage = () => {
@@ -33,6 +36,7 @@ const isValidJSON = str => {
   }
 };
 
+// TODO: should be json
 const parseArgs = async args => {
   const opts = {};
 
@@ -123,10 +127,25 @@ const getContractCodeHexBytes = code => `0x${Buffer.from(toUtf8Bytes(code)).toSt
 
 function encodeReleaseNewContractCode(options) {
   const contractCodeBytes = options.contractCodes.map(getContractCodeHexBytes);
-  const decodedAction = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodeBytes, options.addresses]);
+  const encodedAction = defaultAbiCoder.encode(CATEGORY_PARAM_TYPES[options.category], [
+    contractCodeBytes,
+    options.addresses,
+  ]);
 
-  console.log(`Encoded Release New Contract Code (29):\n${decodedAction}`);
+  console.log(`Encoded Release New Contract Code (29):\n${encodedAction}`);
 }
+
+// function encodeAddAssetToPool(options) {
+//   const encodedAction = defaultAbiCoder.encode(CATEGORY_PARAM_TYPES[options.category], [
+//     address,
+//     isCoverContract,
+//     minAmount,
+//     maxAmount,
+//     maxSlippageRatio,
+//   ]);
+
+//   console.log(`Encoded Add Asset To Pool (42):\n${encodedAction}`);
+// }
 
 if (require.main === module) {
   main()

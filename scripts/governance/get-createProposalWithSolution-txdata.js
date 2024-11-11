@@ -40,9 +40,11 @@ const verifyDecodedTxInputs = (inputs, decodedTxInputs) => {
  *
  * Generate the tx data for the Governance.createProposalWithSolution transaction using the provided proposal data
  *
+ * node get-createProposalWithSolution-txdata.js <PROPOSAL_FILE_PATH> <CATEGORY_ID>, <ACTION_PARAMS_RAW> <SOLUTION_HASH>
+ *
  * @param proposalFilePath path for file of proposal data containing title, shortDescription, and description
  * @param categoryId category id for the proposal
- * @param actionParamsRaw action params for the proposal as stringified JSON
+ * @param actionParamsRaw action params for the proposal as stringified JSON. Empty stringified array for no action '[]'
  * @param solutionHash hash of the solution for the proposal
  * @returns {Promise<{createProposalWithSolution: *}>}
  */

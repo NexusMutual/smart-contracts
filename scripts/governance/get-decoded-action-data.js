@@ -1,11 +1,14 @@
 const util = require('node:util');
 const { ethers } = require('hardhat');
 
+const { CATEGORY_PARAM_TYPES } = require('./helpers').constants;
+
 const { defaultAbiCoder, toUtf8String } = ethers.utils;
 
 const HEX_REGEX = /^0x[a-f0-9]+$/i;
 const CATEGORIES_HANDLERS = {
   29: decodeReleaseNewContractCode,
+  42: decodeAddAssetToPool,
 };
 
 const usage = () => {
@@ -82,10 +85,20 @@ async function main() {
 /* Category Handlers */
 
 function decodeReleaseNewContractCode(options) {
-  const [codes, addresses] = defaultAbiCoder.decode(['bytes2[]', 'address[]'], options.data);
+  const [codes, addresses] = defaultAbiCoder.decode(CATEGORY_PARAM_TYPES[options.category], options.data);
   const contractCodesUtf8 = codes.map(code => toUtf8String(code));
 
   console.log(`Decoded Release New Contract Code (29):\n${util.inspect([contractCodesUtf8, addresses], { depth: 2 })}`);
+}
+
+function decodeAddAssetToPool(options) {
+  const [address, isCoverAsset, minAmount, maxAmount, maxSlippageRatio] = defaultAbiCoder.decode(
+    CATEGORY_PARAM_TYPES[options.category],
+    options.data,
+  );
+  console.log({ address, isCoverAsset, minAmount, maxAmount, maxSlippageRatio });
+  // TODO:
+  // console.log(`Decoded Ass Asset To Pool (43):\n${util.inspect([contractCodesUtf8, addresses], { depth: 2 })}`);
 }
 
 if (require.main === module) {

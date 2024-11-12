@@ -40,22 +40,30 @@ contract NexusViewer is INexusViewer, Multicall {
     
     // Assessment
     IAssessmentViewer.AssessmentRewards memory assessmentRewards = assessmentViewer.getRewards(member);
-    (uint assessmentStake, IAssessmentViewer.AssessmentStakeLockedState memory stakeLockedState) = _getAssessmentStake(member);
+    uint assessmentStakeValue = 0;
+    // Workaround for stack too deep error
+    {
+      (uint assessmentStake, IAssessmentViewer.AssessmentStakeLockedState memory stakeLockedState) = _getAssessmentStake(member);
+      assessmentStakeValue = stakeLockedState.isStakeLocked ? 0 : assessmentStake;
+    }
 
     // Staking Pool
     IStakingViewer.AggregatedTokens memory aggregatedTokens = stakingViewer.getAggregatedTokens(tokenIds);
     uint managerTotalRewards = stakingViewer.getManagerTotalRewards(member);
 
-    IStakingViewer.TokenPoolMap[] memory tokenPools = stakingViewer.getStakingPoolsOf(tokenIds);
     uint poolManagerNXMLockedForMV = 0;
-    // for each token, get the pool and manager
-    for (uint i = 0; i < tokenPools.length; i++) {
-      IStakingViewer.Pool memory pool = stakingViewer.getPool(tokenPools[i].poolId);
-      // check if pool manager is locked for MV
-      uint lockedForMV = nxm.isLockedForMV(pool.manager);
-      // get the latest date locked for MV
-      if (lockedForMV > 0 && lockedForMV > poolManagerNXMLockedForMV) {
-        poolManagerNXMLockedForMV = lockedForMV;
+    // Workaround for stack too deep error
+    {
+      IStakingViewer.TokenPoolMap[] memory tokenPools = stakingViewer.getStakingPoolsOf(tokenIds);
+      // for each token, get the pool and manager
+      for (uint i = 0; i < tokenPools.length; i++) {
+        IStakingViewer.Pool memory pool = stakingViewer.getPool(tokenPools[i].poolId);
+        // check if pool manager is locked for MV
+        uint lockedForMV = nxm.isLockedForMV(pool.manager);
+        // get the latest date locked for MV
+        if (lockedForMV > 0 && lockedForMV > poolManagerNXMLockedForMV) {
+          poolManagerNXMLockedForMV = lockedForMV;
+        }
       }
     }
 
@@ -68,7 +76,7 @@ contract NexusViewer is INexusViewer, Multicall {
     return ClaimableNXM({
       governanceRewards: governanceRewards,
       assessmentRewards: assessmentRewards.withdrawableAmountInNXM,
-      assessmentStake: stakeLockedState.isStakeLocked ? 0 : assessmentStake,
+      assessmentStake: assessmentStakeValue,
       stakingPoolTotalRewards: aggregatedTokens.totalRewards,
       stakingPoolTotalExpiredStake: aggregatedTokens.totalExpiredStake,
       stakingPoolManagerIsNXMLockedForMV: poolManagerNXMLockedForMV,

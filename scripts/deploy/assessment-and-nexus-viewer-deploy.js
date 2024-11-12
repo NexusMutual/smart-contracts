@@ -19,6 +19,7 @@ const main = async () => {
 
   console.log('AssessmentViewer implementation address:', assessmentViewerImplementation.address);
   console.log('NexusViewer implementation address:', nexusViewerImplementation.address);
+  console.log('NexusViewer ABI', nexusViewerImplementation.interface.format(ethers.utils.FormatTypes.json));
 };
 main()
   .then(() => process.exit(0))

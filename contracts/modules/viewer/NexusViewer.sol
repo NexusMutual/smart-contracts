@@ -12,20 +12,22 @@ import {INXMToken} from "../../interfaces/INXMToken.sol";
 import {IPooledStaking} from "../../interfaces/IPooledStaking.sol";
 import {IStakingViewer} from "../../interfaces/IStakingViewer.sol";
 import {ITokenController} from "../../interfaces/ITokenController.sol";
+import {IStakingPool} from  "../../interfaces/IStakingPool.sol";
 
 /// @title NexusViewer Contract
 /// @notice This contract provides a unified view of system-wide data from various contracts within the Nexus Mutual protocol.
 contract NexusViewer is INexusViewer, Multicall {
 
   INXMMaster public immutable master;
-  INXMToken public nxm;
   IStakingViewer public immutable stakingViewer;
   IAssessmentViewer public immutable assessmentViewer;
+  INXMToken public immutable nxm;
 
-  constructor(INXMMaster _master, IStakingViewer _stakingViewer, IAssessmentViewer _assessmentViewer) {
+  constructor(INXMMaster _master, IStakingViewer _stakingViewer, IAssessmentViewer _assessmentViewer, INXMToken _nxm) {
     master = _master;
     stakingViewer = _stakingViewer;
     assessmentViewer = _assessmentViewer;
+    nxm = _nxm;
   }
 
   /// @notice Retrieves the claimable NXM tokens across the protocol for a given member.
@@ -57,9 +59,10 @@ contract NexusViewer is INexusViewer, Multicall {
       IStakingViewer.TokenPoolMap[] memory tokenPools = stakingViewer.getStakingPoolsOf(tokenIds);
       // for each token, get the pool and manager
       for (uint i = 0; i < tokenPools.length; i++) {
-        IStakingViewer.Pool memory pool = stakingViewer.getPool(tokenPools[i].poolId);
+        IStakingPool _stakingPool = stakingViewer.stakingPool(tokenPools[i].poolId);
+        address poolManager = _stakingPool.manager();
         // check if pool manager is locked for MV
-        uint lockedForMV = nxm.isLockedForMV(pool.manager);
+        uint lockedForMV = nxm.isLockedForMV(poolManager);
         // get the latest date locked for MV
         if (lockedForMV > 0 && lockedForMV > poolManagerNXMLockedForMV) {
           poolManagerNXMLockedForMV = lockedForMV;

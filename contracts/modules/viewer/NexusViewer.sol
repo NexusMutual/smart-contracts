@@ -8,9 +8,11 @@ import {IAssessmentViewer} from "../../interfaces/IAssessmentViewer.sol";
 import {IGovernance} from "../../interfaces/IGovernance.sol";
 import {INexusViewer} from "../../interfaces/INexusViewer.sol";
 import {INXMMaster} from "../../interfaces/INXMMaster.sol";
+import {INXMToken} from "../../interfaces/INXMToken.sol";
 import {IPooledStaking} from "../../interfaces/IPooledStaking.sol";
 import {IStakingViewer} from "../../interfaces/IStakingViewer.sol";
 import {ITokenController} from "../../interfaces/ITokenController.sol";
+import {IStakingPool} from  "../../interfaces/IStakingPool.sol";
 
 /// @title NexusViewer Contract
 /// @notice This contract provides a unified view of system-wide data from various contracts within the Nexus Mutual protocol.
@@ -19,11 +21,13 @@ contract NexusViewer is INexusViewer, Multicall {
   INXMMaster public immutable master;
   IStakingViewer public immutable stakingViewer;
   IAssessmentViewer public immutable assessmentViewer;
+  INXMToken public immutable nxm;
 
-  constructor(INXMMaster _master, IStakingViewer _stakingViewer, IAssessmentViewer _assessmentViewer) {
+  constructor(INXMMaster _master, IStakingViewer _stakingViewer, IAssessmentViewer _assessmentViewer, INXMToken _nxm) {
     master = _master;
     stakingViewer = _stakingViewer;
     assessmentViewer = _assessmentViewer;
+    nxm = _nxm;
   }
 
   /// @notice Retrieves the claimable NXM tokens across the protocol for a given member.
@@ -38,12 +42,34 @@ contract NexusViewer is INexusViewer, Multicall {
     
     // Assessment
     IAssessmentViewer.AssessmentRewards memory assessmentRewards = assessmentViewer.getRewards(member);
-    (uint assessmentStake, IAssessmentViewer.AssessmentStakeLockedState memory stakeLockedState) = _getAssessmentStake(member);
+    uint assessmentStakeValue = 0;
+    // Workaround for stack too deep error
+    {
+      (uint assessmentStake, IAssessmentViewer.AssessmentStakeLockedState memory stakeLockedState) = _getAssessmentStake(member);
+      assessmentStakeValue = stakeLockedState.isStakeLocked ? 0 : assessmentStake;
+    }
 
     // Staking Pool
     IStakingViewer.AggregatedTokens memory aggregatedTokens = stakingViewer.getAggregatedTokens(tokenIds);
     uint managerTotalRewards = stakingViewer.getManagerTotalRewards(member);
-    
+
+    uint poolManagerNXMLockedForMV = 0;
+    // Workaround for stack too deep error
+    {
+      IStakingViewer.TokenPoolMap[] memory tokenPools = stakingViewer.getStakingPoolsOf(tokenIds);
+      // for each token, get the pool and manager
+      for (uint i = 0; i < tokenPools.length; i++) {
+        IStakingPool _stakingPool = stakingViewer.stakingPool(tokenPools[i].poolId);
+        address poolManager = _stakingPool.manager();
+        // check if pool manager is locked for MV
+        uint lockedForMV = nxm.isLockedForMV(poolManager);
+        // get the latest date locked for MV
+        if (lockedForMV > 0 && lockedForMV > poolManagerNXMLockedForMV) {
+          poolManagerNXMLockedForMV = lockedForMV;
+        }
+      }
+    }
+
     // V1
     uint legacyPooledStakeRewards = _legacyPooledStaking().stakerReward(member);
     uint legacyPooledStakeDeposits = _legacyPooledStaking().stakerDeposit(member);
@@ -53,9 +79,10 @@ contract NexusViewer is INexusViewer, Multicall {
     return ClaimableNXM({
       governanceRewards: governanceRewards,
       assessmentRewards: assessmentRewards.withdrawableAmountInNXM,
-      assessmentStake: stakeLockedState.isStakeLocked ? 0 : assessmentStake,
+      assessmentStake: assessmentStakeValue,
       stakingPoolTotalRewards: aggregatedTokens.totalRewards,
       stakingPoolTotalExpiredStake: aggregatedTokens.totalExpiredStake,
+      stakingPoolManagerIsNXMLockedForMV: poolManagerNXMLockedForMV,
       managerTotalRewards: managerTotalRewards,
       legacyPooledStakeRewards: legacyPooledStakeRewards,
       legacyPooledStakeDeposits: legacyPooledStakeDeposits,

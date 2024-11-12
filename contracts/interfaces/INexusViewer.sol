@@ -13,6 +13,7 @@ interface INexusViewer {
     uint assessmentStake; // Claimable assessment stake in NXM
     uint stakingPoolTotalRewards; // Total staking pool rewards in NXM
     uint stakingPoolTotalExpiredStake; // Total staking pool expired stake in NXM
+    uint stakingPoolManagerIsNXMLockedForMV; // Staking pool manager NXM locked for MV
     uint managerTotalRewards; // Pool manager total staking rewards in NXM
     uint legacyPooledStakeRewards; // Legacy pooled staking rewards in NXM
     uint legacyPooledStakeDeposits; // Legacy pooled staking deposits in NXM

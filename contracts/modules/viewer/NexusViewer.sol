@@ -8,6 +8,7 @@ import {IAssessmentViewer} from "../../interfaces/IAssessmentViewer.sol";
 import {IGovernance} from "../../interfaces/IGovernance.sol";
 import {INexusViewer} from "../../interfaces/INexusViewer.sol";
 import {INXMMaster} from "../../interfaces/INXMMaster.sol";
+import {INXMToken} from "../../interfaces/INXMToken.sol";
 import {IPooledStaking} from "../../interfaces/IPooledStaking.sol";
 import {IStakingViewer} from "../../interfaces/IStakingViewer.sol";
 import {ITokenController} from "../../interfaces/ITokenController.sol";
@@ -17,6 +18,7 @@ import {ITokenController} from "../../interfaces/ITokenController.sol";
 contract NexusViewer is INexusViewer, Multicall {
 
   INXMMaster public immutable master;
+  INXMToken public nxm;
   IStakingViewer public immutable stakingViewer;
   IAssessmentViewer public immutable assessmentViewer;
 
@@ -43,7 +45,20 @@ contract NexusViewer is INexusViewer, Multicall {
     // Staking Pool
     IStakingViewer.AggregatedTokens memory aggregatedTokens = stakingViewer.getAggregatedTokens(tokenIds);
     uint managerTotalRewards = stakingViewer.getManagerTotalRewards(member);
-    
+
+    IStakingViewer.TokenPoolMap[] memory tokenPools = stakingViewer.getStakingPoolsOf(tokenIds);
+    uint poolManagerNXMLockedForMV = 0;
+    // for each token, get the pool and manager
+    for (uint i = 0; i < tokenPools.length; i++) {
+      IStakingViewer.Pool memory pool = stakingViewer.getPool(tokenPools[i].poolId);
+      // check if pool manager is locked for MV
+      uint lockedForMV = nxm.isLockedForMV(pool.manager);
+      // get the latest date locked for MV
+      if (lockedForMV > 0 && lockedForMV > poolManagerNXMLockedForMV) {
+        poolManagerNXMLockedForMV = lockedForMV;
+      }
+    }
+
     // V1
     uint legacyPooledStakeRewards = _legacyPooledStaking().stakerReward(member);
     uint legacyPooledStakeDeposits = _legacyPooledStaking().stakerDeposit(member);
@@ -56,6 +71,7 @@ contract NexusViewer is INexusViewer, Multicall {
       assessmentStake: stakeLockedState.isStakeLocked ? 0 : assessmentStake,
       stakingPoolTotalRewards: aggregatedTokens.totalRewards,
       stakingPoolTotalExpiredStake: aggregatedTokens.totalExpiredStake,
+      stakingPoolManagerIsNXMLockedForMV: poolManagerNXMLockedForMV,
       managerTotalRewards: managerTotalRewards,
       legacyPooledStakeRewards: legacyPooledStakeRewards,
       legacyPooledStakeDeposits: legacyPooledStakeDeposits,

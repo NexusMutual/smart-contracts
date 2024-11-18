@@ -15,9 +15,12 @@ const usage = () => {
       --actionParams, -a ARGS
         JSON array of action parameters in the order specified by the category types:
         
-        Category 29 (${PROPOSAL_CATEGORY[29].description}): ${JSON.stringify(PROPOSAL_CATEGORY[29].actionParamTypes)}
-        Category 40 (${PROPOSAL_CATEGORY[40].description}): ${JSON.stringify(PROPOSAL_CATEGORY[40].actionParamTypes)}
-        Category 42 (${PROPOSAL_CATEGORY[42].description}): ${JSON.stringify(PROPOSAL_CATEGORY[42].actionParamTypes)}
+        ${Object.entries(PROPOSAL_CATEGORY)
+          .map(
+            ([id, { description, actionParamTypes }]) =>
+              `Category ${id} (${description}): ${JSON.stringify(actionParamTypes)}`,
+          )
+          .join('\n        ')}
 
       --help, -h
         Print this help message.

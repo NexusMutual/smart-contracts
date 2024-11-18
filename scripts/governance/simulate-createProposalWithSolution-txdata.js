@@ -1,7 +1,7 @@
 require('dotenv').config();
 const { ethers, network } = require('hardhat');
 
-const { simulateTransaction, prepareProposalTransaction, verifyDecodedTxInputs } = require('./helpers');
+const { simulateTransaction, prepareProposalTransaction, verifyDecodedCreateProposalTxInputs } = require('./helpers');
 
 /**
  * Generate and simulate the tx data for the Governance.createProposalWithSolution transaction
@@ -35,7 +35,7 @@ const main = async (proposalFilePath, categoryId, actionParamsRaw, solutionHash 
   const decodedTxInputs = await simulateTransaction(transaction.data);
 
   // Verify the decoded inputs match the inputs
-  verifyDecodedTxInputs(inputs, decodedTxInputs);
+  verifyDecodedCreateProposalTxInputs(inputs, decodedTxInputs);
 
   return transaction;
 };

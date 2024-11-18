@@ -9,7 +9,6 @@ const { simulateTransaction, prepareProposalTransaction, verifyDecodedCreateProp
  * @param categoryId category id for the proposal
  * @param actionParamsRaw action params for the proposal as stringified JSON
  * @param solutionHash hash of the solution for the proposal
- * @returns {Promise<{createProposalWithSolution: *}>}
  */
 const main = async (proposalFilePath, categoryId, actionParamsRaw, solutionHash = '') => {
   if (network.name === 'tenderly') {

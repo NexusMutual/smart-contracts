@@ -138,6 +138,13 @@ function processArg(arg, type, argsIndex) {
   return arg;
 }
 
+/**
+ * Encodes the action parameters for a given governance proposal category.
+ *
+ * @param {string} categoryId - The ID of the governance proposal category.
+ * @param {Array} actionParams - The parameters to be encoded, in the order specified by the category.
+ * @returns {string} The encoded action data in a hex string format.
+ */
 function getEncodedAction(categoryId, actionParams) {
   const { actionParamTypes, description } = PROPOSAL_CATEGORY[categoryId];
 

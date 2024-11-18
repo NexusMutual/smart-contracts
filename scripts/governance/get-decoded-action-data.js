@@ -79,6 +79,11 @@ async function main() {
   decodeParamData(opts);
 }
 
+/**
+ * Function to decode action parameters from a governance proposal
+ * @param {Object} options - options object containing categoryId and data
+ * @returns an array of processed values, converting bytes to UTF8 where applicable
+ */
 function decodeParamData(options) {
   const actionParamTypes = PROPOSAL_CATEGORY[options.categoryId].actionParamTypes;
 

@@ -263,6 +263,7 @@ contract ProposalCategory is IProposalCategory, Governed, LegacyMasterAware {
   * @param _contractAddress address of contract to call after proposal is accepted
   * @param _contractName name of contract to be called after proposal is accepted
   * @param _incentives rewards to distributed after proposal is accepted
+  *                    [Minimum stake, Incentives, Advisory Board required, Is Special Resolution]
   * @param _functionHash function signature to be executed
   */
   function editCategory(

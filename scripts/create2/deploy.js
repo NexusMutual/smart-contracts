@@ -3,7 +3,7 @@ const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 const linker = require('solc/linker');
 
-const { getSigner } = require('./get-signer');
+const { SIGNER_TYPE, getSigner } = require('./get-signer');
 const { parseEther } = require('ethers/lib/utils');
 
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
@@ -187,7 +187,7 @@ async function main() {
     process.exit(1);
   });
 
-  const signer = await getSigner(opts, network.name);
+  const signer = await getSigner(opts.kms ? SIGNER_TYPE.AWS_KMS : SIGNER_TYPE.LOCAL);
 
   if (network.name === 'tenderly') {
     const { TENDERLY_SNAPSHOT_ID } = process.env;

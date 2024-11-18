@@ -181,11 +181,14 @@ const getDeploymentBytecode = async options => {
   return `${bytecode}${constructorArgs.replace(/^0x/i, '')}`;
 };
 
-/**
- * Creates a new snapshot or reverts to the given one
- * Also sets ETH balance on the given signer address
- */
-async function tenderlySnapShot(address, ethBalance = '100') {
+async function main() {
+  const opts = await parseArgs(process.argv).catch(err => {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  });
+
+  const signer = await getSigner(opts, network.name);
+
   if (network.name === 'tenderly') {
     const { TENDERLY_SNAPSHOT_ID } = process.env;
     if (TENDERLY_SNAPSHOT_ID) {
@@ -196,19 +199,10 @@ async function tenderlySnapShot(address, ethBalance = '100') {
       console.info(`Snapshot ID: ${snapshotId}`);
       process.env.TENDERLY_SNAPSHOT_ID = snapshotId;
     }
-    await ethers.provider.send('tenderly_setBalance', [address, ethers.utils.hexValue(parseEther(ethBalance))]);
+    await ethers.provider.send('tenderly_setBalance', [signer.address, ethers.utils.hexValue(parseEther('100'))]);
   }
-}
 
-async function main() {
-  const opts = await parseArgs(process.argv).catch(err => {
-    console.error(`Error: ${err.message}`);
-    process.exit(1);
-  });
-
-  const signer = await getSigner(opts, network.name);
-
-  await tenderlySnapShot(signer.address);
+  // make sure the contracts are compiled and we're not deploying an outdated artifact
   await run('compile');
 
   const deploymentBytecode = await getDeploymentBytecode(opts).catch(err => {
@@ -220,11 +214,13 @@ async function main() {
   const bytecode = hexToBytes(deploymentBytecode.replace(/^0x/i, ''));
   const bytecodeHash = bytesToHex(keccak256(bytecode));
 
+  // assemble input
   const saltHex = opts.salt.toString(16).padStart(64, '0');
   const input = hexToBytes(`ff${factory}${saltHex}${bytecodeHash}`);
   const create2Hash = keccak256(input);
   const address = '0x' + bytesToHex(create2Hash.slice(32 - 20));
 
+  // check if the expected address is the same as resulting address
   if (address.toLowerCase() !== opts.address.toLowerCase()) {
     throw new Error(`Expected address to be ${opts.address} but got ${address}`);
   }

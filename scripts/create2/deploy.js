@@ -1,9 +1,10 @@
-const { artifacts, ethers, run } = require('hardhat');
+const { artifacts, ethers, run, network } = require('hardhat');
 const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 const linker = require('solc/linker');
 
-const { getSigner, SIGNER_TYPE } = require('./get-signer');
+const { getSigner } = require('./get-signer');
+const { parseEther } = require('ethers/lib/utils');
 
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 
@@ -180,13 +181,34 @@ const getDeploymentBytecode = async options => {
   return `${bytecode}${constructorArgs.replace(/^0x/i, '')}`;
 };
 
+/**
+ * Creates a new snapshot or reverts to the given one
+ * Also sets ETH balance on the given signer address
+ */
+async function tenderlySnapShot(address, ethBalance = '100') {
+  if (network.name === 'tenderly') {
+    const { TENDERLY_SNAPSHOT_ID } = process.env;
+    if (TENDERLY_SNAPSHOT_ID) {
+      await ethers.provider.send('evm_revert', [TENDERLY_SNAPSHOT_ID]);
+      console.info(`Reverted to snapshot ${TENDERLY_SNAPSHOT_ID}`);
+    } else {
+      const snapshotId = await ethers.provider.send('evm_snapshot', []);
+      console.info(`Snapshot ID: ${snapshotId}`);
+      process.env.TENDERLY_SNAPSHOT_ID = snapshotId;
+    }
+    await ethers.provider.send('tenderly_setBalance', [address, ethers.utils.hexValue(parseEther(ethBalance))]);
+  }
+}
+
 async function main() {
   const opts = await parseArgs(process.argv).catch(err => {
     console.error(`Error: ${err.message}`);
     process.exit(1);
   });
 
-  // make sure the contracts are compiled and we're not deploying an outdated artifact
+  const signer = await getSigner(opts, network.name);
+
+  await tenderlySnapShot(signer.address);
   await run('compile');
 
   const deploymentBytecode = await getDeploymentBytecode(opts).catch(err => {
@@ -198,13 +220,11 @@ async function main() {
   const bytecode = hexToBytes(deploymentBytecode.replace(/^0x/i, ''));
   const bytecodeHash = bytesToHex(keccak256(bytecode));
 
-  // assemble input
   const saltHex = opts.salt.toString(16).padStart(64, '0');
   const input = hexToBytes(`ff${factory}${saltHex}${bytecodeHash}`);
   const create2Hash = keccak256(input);
   const address = '0x' + bytesToHex(create2Hash.slice(32 - 20));
 
-  // check if the expected address is the same as resulting address
   if (address.toLowerCase() !== opts.address.toLowerCase()) {
     throw new Error(`Expected address to be ${opts.address} but got ${address}`);
   }
@@ -213,7 +233,6 @@ async function main() {
   const maxPriorityFeePerGas = ethers.utils.parseUnits(opts.priorityFee, 'gwei');
   const maxFeePerGas = baseFee.add(maxPriorityFeePerGas);
 
-  const signer = await getSigner(opts.kms ? SIGNER_TYPE.AWS_KMS : SIGNER_TYPE.LOCAL);
   const deployer = await ethers.getContractAt('Deployer', opts.factory, signer);
   const deployTx = await deployer.deployAt(bytecode, opts.salt, opts.address, {
     maxFeePerGas,

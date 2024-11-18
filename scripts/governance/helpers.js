@@ -2,14 +2,14 @@ require('dotenv').config();
 
 const path = require('node:path');
 
+const axios = require('axios');
 const fs = require('fs');
 const { ethers } = require('hardhat');
 const ipfsClient = require('ipfs-http-client');
-const axios = require('axios');
 const { inspect } = require('util');
 
-const { getEncodedAction } = require('./get-encoded-action-data');
 const { AB_MEMBER, GOVERNANCE_ADDRESS, IPFS_API_URL } = require('./constants');
+const { getEncodedAction } = require('./get-encoded-action-data');
 
 const ipfs = ipfsClient({ url: IPFS_API_URL });
 
@@ -72,7 +72,7 @@ const sendTransaction = async input => {
   return receipt;
 };
 
-const verifyDecodedTxInputs = (inputs, decodedTxInputs) => {
+const verifyDecodedCreateProposalTxInputs = (inputs, decodedTxInputs) => {
   if (decodedTxInputs[0] !== inputs[0]) {
     throw new Error(`Title mismatch: ${decodedTxInputs[0]} !== ${inputs[0]}`);
   }
@@ -151,6 +151,6 @@ const prepareProposalTransaction = async (proposalFilePath, categoryId, actionPa
 module.exports = {
   simulateTransaction,
   sendTransaction,
-  verifyDecodedTxInputs,
+  verifyDecodedCreateProposalTxInputs,
   prepareProposalTransaction,
 };

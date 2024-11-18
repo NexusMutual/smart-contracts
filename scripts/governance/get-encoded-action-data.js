@@ -1,11 +1,8 @@
 const { ethers } = require('hardhat');
+const { PROPOSAL_CATEGORY } = require('./helpers').constants;
 
 const { defaultAbiCoder, toUtf8Bytes } = ethers.utils;
-
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
-const CATEGORIES_HANDLERS = {
-  29: encodeReleaseNewContractCode,
-};
 
 const usage = () => {
   console.log(`
@@ -15,10 +12,13 @@ const usage = () => {
     Options:
       --category-id, -i CATEGORY_ID
         The category id of the governance proposal.
-      --contract-codes, -c CONTRACT_CODES
-        An array of utf-8 contract codes in JSON format.
-      --addresses, -a ADDRESSES
-        An array of addresses corresponding the contract does in JSON format.
+      --actionParams, -a ARGS
+        JSON array of action parameters in the order specified by the category types:
+        
+        Category 29 (${PROPOSAL_CATEGORY[29].description}): ${JSON.stringify(PROPOSAL_CATEGORY[29].actionParamTypes)}
+        Category 40 (${PROPOSAL_CATEGORY[40].description}): ${JSON.stringify(PROPOSAL_CATEGORY[40].actionParamTypes)}
+        Category 42 (${PROPOSAL_CATEGORY[42].description}): ${JSON.stringify(PROPOSAL_CATEGORY[42].actionParamTypes)}
+
       --help, -h
         Print this help message.
   `);
@@ -35,7 +35,6 @@ const isValidJSON = str => {
 
 const parseArgs = async args => {
   const opts = {};
-
   const argsArray = args.slice(2);
 
   if (argsArray.length === 0) {
@@ -52,58 +51,107 @@ const parseArgs = async args => {
     }
 
     if (['--category-id', '-i'].includes(arg)) {
-      opts.category = argsArray.shift();
-      if (!CATEGORIES_HANDLERS[opts.category]) {
-        const supportedCategories = Object.keys(CATEGORIES_HANDLERS).join(', ');
-        throw new Error(`Category ${opts.category} not yet supported. Supported categories: ${supportedCategories}`);
+      const categoryId = argsArray.shift();
+      if (!PROPOSAL_CATEGORY[categoryId]) {
+        const supportedCategories = Object.keys(PROPOSAL_CATEGORY).join(', ');
+        throw new Error(`Category ${categoryId} not yet supported. Supported categories: ${supportedCategories}`);
       }
+      opts.categoryId = categoryId;
       continue;
     }
 
-    if (['--contract-codes', '-c'].includes(arg)) {
-      const contractCodesString = argsArray.shift();
-
-      if (!isValidJSON(contractCodesString)) {
-        throw new Error('-c CONTRACT_CODES must be in JSON format');
+    if (['--actionParams', '-a'].includes(arg)) {
+      const argsString = argsArray.shift();
+      if (!isValidJSON(argsString)) {
+        throw new Error('-a ARGS must be in JSON format');
       }
-
-      const contractCodes = JSON.parse(contractCodesString);
-      contractCodes.forEach(code => {
-        if (code.length !== 2) {
-          throw new Error(`Invalid contract code ${code}`);
-        }
-      });
-
-      opts.contractCodes = contractCodes;
-    }
-
-    if (['--addresses', '-a'].includes(arg)) {
-      const addressesString = argsArray.shift();
-      if (!isValidJSON(addressesString)) {
-        throw new Error('-a ADDRESSES must be in JSON format');
-      }
-      const addresses = JSON.parse(addressesString);
-      addresses.forEach(address => {
-        if (!address.match(ADDRESS_REGEX)) {
-          throw new Error(`Invalid address ${address}`);
-        }
-      });
-      opts.addresses = addresses;
+      const actionParams = JSON.parse(argsString);
+      opts.actionParams = actionParams;
     }
   }
 
-  if (!opts.category) {
-    throw new Error('Missing required argument: --category-id, -c');
+  if (!opts.categoryId) {
+    throw new Error('Missing required argument: --category-id, -i');
   }
 
-  if (opts.category === '29') {
-    if (!opts.contractCodes || !opts.addresses) {
-      throw new Error('Contract codes and addresses are required for category 29');
-    }
+  const { actionParamTypes, description } = PROPOSAL_CATEGORY[opts.categoryId];
+  const expectedArgsLength = actionParamTypes.length;
+  if (!opts.actionParams || opts.actionParams.length !== expectedArgsLength) {
+    const errorMessage =
+      `Invalid number of arguments for category ${opts.categoryId} (${description}). ` +
+      `Expected ${expectedArgsLength} params (${actionParamTypes.join(', ')}), got ${opts.actionParams?.length || 0}`;
+    throw new Error(errorMessage);
   }
 
   return opts;
 };
+
+/**
+ * Converts UTF-8 contract codes to bytes in hex format
+ */
+const getContractCodeHexBytes = code => `0x${Buffer.from(toUtf8Bytes(code)).toString('hex')}`;
+
+function validateAddress(address, index) {
+  if (!address.match(ADDRESS_REGEX)) {
+    throw new Error(`Invalid address format at index ${index}: ${address}`);
+  }
+}
+
+/**
+ * @dev Update this function to handle new types accordingly
+ */
+function processArg(arg, type, argsIndex) {
+  // Handle array types
+  if (type.endsWith('[]')) {
+    if (!Array.isArray(arg)) {
+      throw new Error(`Argument ${argsIndex} should be an array for type ${type}`);
+    }
+
+    // Validate array of addresses
+    if (type === 'address[]') {
+      arg.forEach((addr, arrayIndex) => {
+        validateAddress(addr, `${argsIndex}[${arrayIndex}]`);
+      });
+      return arg;
+    }
+
+    // Convert string array to bytes
+    if (type.includes('bytes')) {
+      return arg.map(getContractCodeHexBytes);
+    }
+    return arg;
+  }
+
+  if (type === 'address') {
+    validateAddress(arg, argsIndex);
+    return arg;
+  }
+
+  // Convert string to bytes
+  if (type.includes('bytes')) {
+    return getContractCodeHexBytes(arg);
+  }
+
+  return arg;
+}
+
+function getEncodedAction(categoryId, actionParams) {
+  const { actionParamTypes, description } = PROPOSAL_CATEGORY[categoryId];
+
+  if (actionParams.length !== actionParamTypes.length) {
+    const errorMessage =
+      'Invalid number of arguments. ' +
+      `Expected ${actionParamTypes.length} arguments for category ${categoryId}, got ${actionParams.length}`;
+    throw new Error(errorMessage);
+  }
+
+  const processedArgs = actionParams.map((arg, index) => processArg(arg, actionParamTypes[index], index));
+
+  const encodedAction = defaultAbiCoder.encode(actionParamTypes, processedArgs);
+  console.log(`Encoded ${description} (${categoryId}):\n${encodedAction}`);
+
+  return encodedAction;
+}
 
 async function main() {
   const opts = await parseArgs(process.argv).catch(err => {
@@ -111,21 +159,7 @@ async function main() {
     process.exit(1);
   });
 
-  CATEGORIES_HANDLERS[opts.category](opts);
-}
-
-/**
- * Converts UTF-8 contract codes to bytes in hex format
- */
-const getContractCodeHexBytes = code => `0x${Buffer.from(toUtf8Bytes(code)).toString('hex')}`;
-
-/* Category Handlers */
-
-function encodeReleaseNewContractCode(options) {
-  const contractCodeBytes = options.contractCodes.map(getContractCodeHexBytes);
-  const decodedAction = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodeBytes, options.addresses]);
-
-  console.log(`Encoded Release New Contract Code (29):\n${decodedAction}`);
+  getEncodedAction(opts.categoryId, opts.actionParams);
 }
 
 if (require.main === module) {
@@ -140,6 +174,5 @@ if (require.main === module) {
 }
 
 module.exports = {
-  getContractCodeHexBytes,
-  encodeReleaseNewContractCode,
+  getEncodedAction,
 };

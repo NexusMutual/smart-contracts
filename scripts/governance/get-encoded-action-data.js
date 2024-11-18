@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { PROPOSAL_CATEGORY } = require('./helpers').constants;
+const { PROPOSAL_CATEGORY } = require('./constants');
 
 const { defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;

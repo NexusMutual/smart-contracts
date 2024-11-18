@@ -1,7 +1,7 @@
 const util = require('node:util');
 const { ethers } = require('hardhat');
 
-const { PROPOSAL_CATEGORY } = require('./helpers').constants;
+const { PROPOSAL_CATEGORY } = require('./constants');
 const { defaultAbiCoder, toUtf8String } = ethers.utils;
 
 // Prefixed and non-prefixed hex are both valid

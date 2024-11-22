@@ -1,13 +1,18 @@
 const util = require('node:util');
 const { ethers } = require('hardhat');
 
+const { PROPOSAL_CATEGORY } = require('./constants');
 const { defaultAbiCoder, toUtf8String } = ethers.utils;
 
-const HEX_REGEX = /^0x[a-f0-9]+$/i;
-const CATEGORIES_HANDLERS = {
-  29: decodeReleaseNewContractCode,
-};
+// Prefixed and non-prefixed hex are both valid
+const HEX_REGEX = /^(?:0x)?[a-f0-9]+$/i;
 
+/**
+ * Decodes the given encoded hex action data according to the categoryId
+ *
+ * Execute command:
+ * node scripts/governance/get-decoded-action-data -i <CATEGORY_ID> -d '<HEX_ENCODED_ACTION_DATA>'
+ */
 const usage = () => {
   console.log(`
     Usage:
@@ -42,10 +47,10 @@ const parseArgs = async args => {
     }
 
     if (['--category-id', '-i'].includes(arg)) {
-      opts.category = argsArray.shift();
-      if (!CATEGORIES_HANDLERS[opts.category]) {
-        const supportedCategories = Object.keys(CATEGORIES_HANDLERS).join(', ');
-        throw new Error(`Category ${opts.category} not yet supported. Supported categories: ${supportedCategories}`);
+      opts.categoryId = argsArray.shift();
+      if (!PROPOSAL_CATEGORY[opts.categoryId]) {
+        const supportedCategories = Object.keys(PROPOSAL_CATEGORY).join(', ');
+        throw new Error(`Category ${opts.categoryId} not yet supported. Supported categories: ${supportedCategories}`);
       }
       continue;
     }
@@ -55,11 +60,12 @@ const parseArgs = async args => {
       if (!hexData.match(HEX_REGEX)) {
         throw new Error('Invalid hex data');
       }
-      opts.data = hexData;
+      // Add '0x' prefix if its missing
+      opts.data = opts.data.startsWith('0x') ? hexData : '0x' + hexData;
     }
   }
 
-  if (!opts.category) {
+  if (!opts.categoryId) {
     throw new Error('Missing required argument: --category-id');
   }
 
@@ -76,16 +82,38 @@ async function main() {
     process.exit(1);
   });
 
-  CATEGORIES_HANDLERS[opts.category](opts);
+  decodeParamData(opts);
 }
 
-/* Category Handlers */
+/**
+ * Function to decode action parameters from a governance proposal
+ * @param {Object} options - options object containing categoryId and data
+ * @returns an array of processed values, converting bytes to UTF8 where applicable
+ */
+function decodeParamData(options) {
+  const actionParamTypes = PROPOSAL_CATEGORY[options.categoryId].actionParamTypes;
 
-function decodeReleaseNewContractCode(options) {
-  const [codes, addresses] = defaultAbiCoder.decode(['bytes2[]', 'address[]'], options.data);
-  const contractCodesUtf8 = codes.map(code => toUtf8String(code));
+  const decodedValues = defaultAbiCoder.decode(actionParamTypes, options.data);
 
-  console.log(`Decoded Release New Contract Code (29):\n${util.inspect([contractCodesUtf8, addresses], { depth: 2 })}`);
+  // NOTE: we're assuming here that bytes needs to be converted to UTF8
+  const processedValues = decodedValues.map((value, index) => {
+    const paramType = actionParamTypes[index];
+
+    // Handle bytes[] array
+    if (paramType.startsWith('bytes') && paramType.endsWith('[]')) {
+      return value.map(bytes => toUtf8String(bytes));
+    }
+    // Handle single bytes
+    if (paramType.startsWith('bytes')) {
+      return toUtf8String(value);
+    }
+
+    return value;
+  });
+
+  console.log(`Decoded ${options.categoryId}:\n${util.inspect(processedValues, { depth: 2 })}`);
+
+  return processedValues;
 }
 
 if (require.main === module) {
@@ -100,5 +128,5 @@ if (require.main === module) {
 }
 
 module.exports = {
-  decodeReleaseNewContractCode,
+  decodeParamData,
 };

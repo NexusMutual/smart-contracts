@@ -1,12 +1,16 @@
-const { artifacts, ethers, run } = require('hardhat');
+const { artifacts, ethers, run, network } = require('hardhat');
 const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 const linker = require('solc/linker');
 
-const { getSigner, SIGNER_TYPE } = require('./get-signer');
+const { SIGNER_TYPE, getSigner } = require('./get-signer');
+const { parseEther } = require('ethers/lib/utils');
 
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 
+/**
+ * Supports both mainnet and tenderly networks
+ */
 const usage = () => {
   console.log(`
     Usage:
@@ -186,6 +190,21 @@ async function main() {
     process.exit(1);
   });
 
+  const signer = await getSigner(opts.kms ? SIGNER_TYPE.AWS_KMS : SIGNER_TYPE.LOCAL);
+
+  if (network.name === 'tenderly') {
+    const { TENDERLY_SNAPSHOT_ID } = process.env;
+    if (TENDERLY_SNAPSHOT_ID) {
+      await ethers.provider.send('evm_revert', [TENDERLY_SNAPSHOT_ID]);
+      console.info(`Reverted to snapshot ${TENDERLY_SNAPSHOT_ID}`);
+    } else {
+      const snapshotId = await ethers.provider.send('evm_snapshot', []);
+      console.info(`Snapshot ID: ${snapshotId}`);
+      process.env.TENDERLY_SNAPSHOT_ID = snapshotId;
+    }
+    await ethers.provider.send('tenderly_setBalance', [signer.address, ethers.utils.hexValue(parseEther('100'))]);
+  }
+
   // make sure the contracts are compiled and we're not deploying an outdated artifact
   await run('compile');
 
@@ -213,7 +232,6 @@ async function main() {
   const maxPriorityFeePerGas = ethers.utils.parseUnits(opts.priorityFee, 'gwei');
   const maxFeePerGas = baseFee.add(maxPriorityFeePerGas);
 
-  const signer = await getSigner(opts.kms ? SIGNER_TYPE.AWS_KMS : SIGNER_TYPE.LOCAL);
   const deployer = await ethers.getContractAt('Deployer', opts.factory, signer);
   const deployTx = await deployer.deployAt(bytecode, opts.salt, opts.address, {
     maxFeePerGas,

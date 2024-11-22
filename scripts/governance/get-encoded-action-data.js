@@ -4,6 +4,11 @@ const { PROPOSAL_CATEGORY } = require('./constants');
 const { defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 
+/**
+ * Encodes the given actions params according to the categoryId
+ *
+ * node scripts/governance/get-encoded-action-data -i <CATEGORY_ID> -a '<ACTION_PARAMS_JSON_ARRAY>'
+ */
 const usage = () => {
   console.log(`
     Usage:

@@ -3,7 +3,10 @@ const { ethers, network } = require('hardhat');
 const { sendTransaction, prepareProposalTransaction } = require('./helpers');
 
 /**
- * Generate and execute the tx data for the Governance.createProposalWithSolution transaction
+ * Generates and executes the tx data for the Governance.createProposalWithSolution transaction
+ *
+ * node execute-createProposalWithSolution-txdata.js <PATH_PROPOSAL_JSON> <CATEGORY_ID> <ENCODED_ACTION_DATA>
+ *
  * @param proposalFilePath path for file of proposal data containing title, shortDescription, and description
  * @param categoryId category id for the proposal
  * @param actionParamsRaw action params for the proposal as stringified JSON

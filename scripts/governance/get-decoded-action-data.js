@@ -7,6 +7,12 @@ const { defaultAbiCoder, toUtf8String } = ethers.utils;
 // Prefixed and non-prefixed hex are both valid
 const HEX_REGEX = /^(?:0x)?[a-f0-9]+$/i;
 
+/**
+ * Decodes the given encoded hex action data according to the categoryId
+ *
+ * Execute command:
+ * node scripts/governance/get-decoded-action-data -i <CATEGORY_ID> -d '<HEX_ENCODED_ACTION_DATA>'
+ */
 const usage = () => {
   console.log(`
     Usage:

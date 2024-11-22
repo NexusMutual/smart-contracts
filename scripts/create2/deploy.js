@@ -8,6 +8,9 @@ const { parseEther } = require('ethers/lib/utils');
 
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 
+/**
+ * Supports both mainnet and tenderly networks
+ */
 const usage = () => {
   console.log(`
     Usage:

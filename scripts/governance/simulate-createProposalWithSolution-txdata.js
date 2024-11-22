@@ -4,7 +4,10 @@ const { ethers, network } = require('hardhat');
 const { simulateTransaction, prepareProposalTransaction, verifyDecodedCreateProposalTxInputs } = require('./helpers');
 
 /**
- * Generate and simulate the tx data for the Governance.createProposalWithSolution transaction
+ * Generates and simulates the tx data for the Governance.createProposalWithSolution transaction
+ *
+ * node simulate-createProposalWithSolution-txdata.js <PATH_PROPOSAL_JSON> <CATEGORY_ID> <ENCODED_ACTION_DATA>
+ *
  * @param proposalFilePath path for file of proposal data containing title, shortDescription, and description
  * @param categoryId category id for the proposal
  * @param actionParamsRaw action params for the proposal as stringified JSON

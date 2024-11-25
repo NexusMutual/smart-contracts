@@ -19,8 +19,8 @@ contract SKMockStakingProducts is StakingProductsGeneric, MasterAwareV2, Multica
   uint public constant SURGE_THRESHOLD_RATIO = 90_00; // 90.00%
   uint public constant SURGE_THRESHOLD_DENOMINATOR = 100_00; // 100.00%
   // base price bump
-  // +0.2% for each 1% of capacity used, ie +20% for 100%
-  uint public constant PRICE_BUMP_RATIO = 20_00; // 20%
+  // +0.05% for each 1% of capacity used, ie +5% for 100%
+  uint public constant PRICE_BUMP_RATIO = 5_00; // 5%
   // bumped price smoothing
   // 0.5% per day
   uint public constant PRICE_CHANGE_PER_DAY = 50; // 0.5%

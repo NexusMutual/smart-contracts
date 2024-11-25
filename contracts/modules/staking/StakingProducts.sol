@@ -31,8 +31,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   uint public constant SURGE_THRESHOLD_DENOMINATOR = 100_00; // 100.00%
 
   // base price bump
-  // +0.2% for each 1% of capacity used, ie +20% for 100%
-  uint public constant PRICE_BUMP_RATIO = 20_00; // 20%
+  // +0.05% for each 1% of capacity used, ie +5% for 100%
+  uint public constant PRICE_BUMP_RATIO = 5_00; // 5%
 
   // bumped price smoothing
   // 0.5% per day

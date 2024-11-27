@@ -67,7 +67,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   uint public constant MAX_COMMISSION_RATIO = 3000; // 30%
 
-  uint public constant GLOBAL_MIN_PRICE_RATIO = 10; // 0.1%
+  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   uint private constant ONE_NXM = 1e18;
 

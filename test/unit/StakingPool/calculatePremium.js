@@ -1,12 +1,11 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { calculateBasePrice, calculateBasePremium, calculateSurgePremium, calculatePriceBump } = require('./helpers');
+const { calculateBasePrice, calculateBasePremium, calculatePriceBump } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 const { daysToSeconds } = require('../utils').helpers;
 const { divCeil } = require('../utils').bnMath;
-const { DIVIDE_BY_ZERO } = require('../utils').errors;
 
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
@@ -198,7 +197,7 @@ describe('calculatePremium', function () {
 
     const expectedBasePrice = calculateBasePrice(timestamp, stakedProduct, fixture.config.PRICE_CHANGE_PER_DAY);
     const expectedBasePremium = calculateBasePremium(coverAmount, expectedBasePrice, period, fixture.config);
-    
+
     expect(actualPremium).to.be.equal(expectedBasePremium);
   });
 

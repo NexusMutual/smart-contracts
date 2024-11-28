@@ -372,7 +372,6 @@ describe('requestAllocation', function () {
     const amount = stakedNxmAmount.mul(GLOBAL_CAPACITY_RATIO).div(GLOBAL_CAPACITY_DENOMINATOR);
     const buyCoverParams = { ...buyCoverParamsTemplate, amount };
 
-    const initialCapacityUsed = BigNumber.from(0);
     const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
       buyCoverParamsTemplate.productId,
       GLOBAL_CAPACITY_RATIO,

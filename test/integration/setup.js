@@ -414,6 +414,9 @@ async function setup() {
     owner.address,
   ]);
 
+  // deploy CoverOrder
+  const coverOrder = await ethers.deployContract('CoverOrder', [master.address, weth.address, owner.address]);
+
   // deploy viewer contracts
   const stakingViewer = await ethers.deployContract('StakingViewer', [master.address, stakingNFT.address, spf.address]);
   const assessmentViewer = await ethers.deployContract('AssessmentViewer', [master.address]);
@@ -501,7 +504,15 @@ async function setup() {
     cover: await ethers.getContractAt('Cover', cover.address),
   };
 
-  const nonInternal = { priceFeedOracle, swapOperator, coverBroker, stakingViewer, assessmentViewer, nexusViewer };
+  const nonInternal = {
+    priceFeedOracle,
+    swapOperator,
+    coverBroker,
+    stakingViewer,
+    assessmentViewer,
+    nexusViewer,
+    coverOrder,
+  };
 
   fixture.contracts = {
     ...external,
@@ -533,6 +544,13 @@ async function setup() {
   const coverBrokerSigner = await ethers.getSigner(coverBroker.address);
   accounts.coverBrokerSigner = coverBrokerSigner;
   await enrollMember(fixture.contracts, [coverBrokerSigner], owner, { initialTokens: parseEther('0') });
+
+  // enroll coverOrder as member
+  await impersonateAccount(coverOrder.address);
+  await setEtherBalance(coverOrder.address, parseEther('1000'));
+  const coverOrderSigner = await ethers.getSigner(coverOrder.address);
+  accounts.coverOrderSigner = coverOrderSigner;
+  await enrollMember(fixture.contracts, [coverOrderSigner], owner, { initialTokens: parseEther('0') });
 
   const product = {
     productId: 0,

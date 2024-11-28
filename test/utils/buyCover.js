@@ -109,4 +109,34 @@ async function buyCoverThroughGateway({ coverData, gateway, coverHolder, qt, dai
   throw new Error(`Unknown asset ${coverData.asset}`);
 }
 
-module.exports = { buyCover, coverToCoverDetailsArray, buyCoverWithDai, buyCoverThroughGateway };
+async function signCoverOrder(contractAddress, params, signer) {
+  const { chainId } = await ethers.provider.getNetwork();
+
+  const domain = {
+    name: 'NexusMutualCoverOrder',
+    version: '1',
+    chainId,
+    verifyingContract: contractAddress,
+  };
+
+  const types = {
+    ExecuteOrder: [
+      { name: 'productId', type: 'uint24' },
+      { name: 'amount', type: 'uint96' },
+      { name: 'period', type: 'uint32' },
+      { name: 'paymentAsset', type: 'uint8' },
+      { name: 'coverAsset', type: 'uint8' },
+      { name: 'owner', type: 'address' },
+      { name: 'executionDetails', type: 'ExecutionDetails' },
+    ],
+    ExecutionDetails: [
+      { name: 'notBefore', type: 'uint256' },
+      { name: 'deadline', type: 'uint256' },
+      { name: 'maxPremiumInAsset', type: 'uint256' },
+    ],
+  };
+
+  return signer._signTypedData(domain, types, params);
+}
+
+module.exports = { buyCover, signCoverOrder, coverToCoverDetailsArray, buyCoverWithDai, buyCoverThroughGateway };

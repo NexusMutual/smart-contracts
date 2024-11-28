@@ -6,6 +6,13 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 
 import "../interfaces/ICover.sol";
 
+
+
+struct ExecutionPeriod {
+  uint256 startDate; // seconds
+  uint256 endDate; // seconds
+}
+
 interface ICoverOrder {
 
   /* ==== FUNCTIONS ==== */
@@ -13,7 +20,7 @@ interface ICoverOrder {
   function executeOrder(
     BuyCoverParams calldata params,
     PoolAllocationRequest[] calldata poolAllocationRequests,
-    uint limitOrderId,
+    ExecutionPeriod calldata executionPeriod,
     bytes calldata signature
   ) external payable returns (uint coverId);
 
@@ -29,7 +36,9 @@ interface ICoverOrder {
 
   /* ==== ERRORS ==== */
 
-  error OrderAlreadyExecuted(uint limitOrderId);
+  error OrderAlreadyExecuted();
+  error OrderExpired();
+  error OrderCannotBeExecutedYet();
   error NotAMember();
   error InvalidSignature();
   error InvalidOwnerAddress();

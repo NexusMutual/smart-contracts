@@ -34,8 +34,18 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
   uint private constant ETH_ASSET_ID = 0;
   uint private constant NXM_ASSET_ID = type(uint8).max;
 
-  bytes32 private constant _EXECUTE_ORDER_TYPEHASH = keccak256(
-    "ExecuteOrder(uint24 productId,uint96 amount,uint32 period,uint8 paymentAsset,uint8 coverAsset,address owner,uint256 limitOrderId)"
+  bytes32 private constant EXECUTE_ORDER_TYPEHASH = keccak256(
+    abi.encodePacked(
+      "ExecuteOrder(",
+      "uint24 productId,",
+      "uint96 amount,",
+      "uint32 period,",
+      "uint8 paymentAsset,",
+      "uint8 coverAsset,",
+      "address owner,",
+      "ExecutionPeriod executionPeriod)",
+      "ExecutionPeriod(uint256 startDate,uint256 endDate)"
+    )
   );
 
   /* ========== CONSTRUCTOR ========== */
@@ -55,14 +65,22 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
   /// @notice Verifies and executes the order to buy cover on behalf of the creator of limit order
   /// @param params Cover buy parameters
   /// @param poolAllocationRequests Pool allocations for the cover
-  /// @param limitOrderId The ID of the limit order
+  /// @param executionPeriod Start and end date when the order can be executed
   /// @param signature The signature of the order
   function executeOrder(
     BuyCoverParams calldata params,
     PoolAllocationRequest[] calldata poolAllocationRequests,
-    uint256 limitOrderId,
+    ExecutionPeriod calldata executionPeriod,
     bytes calldata signature
   ) external payable returns (uint coverId) {
+
+    if (block.timestamp > executionPeriod.endDate) {
+      revert OrderExpired();
+    }
+
+    if (block.timestamp < executionPeriod.startDate) {
+      revert OrderCannotBeExecutedYet();
+    }
 
     if(!memberRoles.checkRole(msg.sender, uint(IMemberRoles.Role.Member))) {
       revert NotAMember();
@@ -72,7 +90,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
       revert InvalidOwnerAddress();
     }
 
-    address signer = _verifySignature(params, limitOrderId, signature);
+    address signer = _verifySignature(params, executionPeriod, signature);
 
     // Ensure the signer is the user who owns the order
     if (signer != params.owner) {
@@ -81,7 +99,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
 
     // Ensure the order has not already been executed
     if (executedOrders[signature]) {
-      revert OrderAlreadyExecuted(limitOrderId);
+      revert OrderAlreadyExecuted();
     }
 
     // Mark the order as executed
@@ -98,24 +116,34 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
 
   /// @notice Handles verification of the order signature
   /// @param params Cover buy parameters
-  /// @param limitOrderId The ID of the limit order
+  /// @param executionPeriod Start and end date when the order can be executed
   /// @param signature The signature of the order
   function _verifySignature(
     BuyCoverParams calldata params,
-    uint256 limitOrderId,
+    ExecutionPeriod calldata executionPeriod,
     bytes calldata signature
   ) internal view returns (address) {
+
+    // Hash the ExecutionPeriod struct
+    bytes32 executionPeriodHash = keccak256(
+      abi.encode(
+        keccak256("ExecutionPeriod(uint256 startDate,uint256 endDate)"),
+        executionPeriod.startDate,
+        executionPeriod.endDate
+      )
+    );
+
     // Hash the structured data
     bytes32 structHash = keccak256(
       abi.encode(
-        _EXECUTE_ORDER_TYPEHASH,
+        EXECUTE_ORDER_TYPEHASH,
         params.productId,
         params.amount,
         params.period,
         params.paymentAsset,
         params.coverAsset,
         params.owner,
-        limitOrderId
+        executionPeriodHash
       )
     );
 

@@ -109,7 +109,7 @@ async function signCoverOrder(contractAddress, params, signer) {
   const domain = {
     name: 'NexusMutualCoverOrder',
     version: '1',
-    chainId, // Replace with the actual chain ID
+    chainId,
     verifyingContract: contractAddress,
   };
 
@@ -121,7 +121,11 @@ async function signCoverOrder(contractAddress, params, signer) {
       { name: 'paymentAsset', type: 'uint8' },
       { name: 'coverAsset', type: 'uint8' },
       { name: 'owner', type: 'address' },
-      { name: 'limitOrderId', type: 'uint256' },
+      { name: 'executionPeriod', type: 'ExecutionPeriod' },
+    ],
+    ExecutionPeriod: [
+      { name: 'startDate', type: 'uint256' },
+      { name: 'endDate', type: 'uint256' },
     ],
   };
 
@@ -626,19 +630,23 @@ describe('CoverOrder - buyCover', function () {
     const amountOver = parseEther('1');
     const balanceBefore = await dai.balanceOf(coverBuyer.address);
     const nftBalanceBefore = await coverNFT.balanceOf(coverBuyer.address);
+    const executionPeriod = {
+      startDate: currentTimestamp,
+      endDate: currentTimestamp + 3600,
+    };
+
     await setNextBlockTime(nextBlockTimestamp);
 
-    const limitOrderId = 1;
     const signature = await signCoverOrder(
       coverOrder.address,
       {
         productId,
         amount,
         period,
-        limitOrderId,
         paymentAsset: 1,
         coverAsset: 1,
         owner: coverBuyer.address,
+        executionPeriod,
       },
       coverBuyer,
     );
@@ -653,7 +661,7 @@ describe('CoverOrder - buyCover', function () {
         paymentAsset: 1,
       },
       [{ poolId: 1, coverAmountInAsset: amount }],
-      limitOrderId,
+      executionPeriod,
       signature,
     );
 
@@ -723,17 +731,20 @@ describe('CoverOrder - buyCover', function () {
     const balanceBeforeWETH = await weth.balanceOf(coverBuyer.address);
     const nftBalanceBefore = await coverNFT.balanceOf(coverBuyer.address);
 
-    const limitOrderId = 1;
+    const executionPeriod = {
+      startDate: currentTimestamp,
+      endDate: currentTimestamp + 3600,
+    };
     const signature = await signCoverOrder(
       coverOrder.address,
       {
         productId,
         amount,
         period,
-        limitOrderId,
         paymentAsset: 0,
         coverAsset: 0,
         owner: coverBuyer.address,
+        executionPeriod,
       },
       coverBuyer,
     );
@@ -750,7 +761,7 @@ describe('CoverOrder - buyCover', function () {
         maxPremiumInAsset: premium,
       },
       [{ poolId: 1, coverAmountInAsset: amount }],
-      limitOrderId,
+      executionPeriod,
       signature,
     );
 
@@ -776,10 +787,16 @@ describe('CoverOrder - buyCover', function () {
       nonMembers: [coverBuyer],
     } = fixture.accounts;
 
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const executionPeriod = {
+      startDate: currentTimestamp,
+      endDate: currentTimestamp + 3600,
+    };
     const buyCoverParams = { ...buyCoverFixture, paymentAsset: 1, owner: coverBuyer.address };
+
     const buyCover = coverOrder
       .connect(coverBuyer)
-      .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], 1, '0x');
+      .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], executionPeriod, '0x');
 
     await expect(buyCover).to.revertedWithCustomError(coverOrder, 'NotAMember');
   });
@@ -789,10 +806,16 @@ describe('CoverOrder - buyCover', function () {
     const { coverOrder } = fixture.contracts;
     const [coverSettler] = fixture.accounts.members;
 
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const executionPeriod = {
+      startDate: currentTimestamp,
+      endDate: currentTimestamp + 3600,
+    };
     const buyCoverParams = { ...buyCoverFixture, paymentAsset: 1, owner: AddressZero };
+
     const buyCover = coverOrder
       .connect(coverSettler)
-      .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], 1, '0x');
+      .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], executionPeriod, '0x');
 
     await expect(buyCover).to.revertedWithCustomError(coverOrder, 'InvalidOwnerAddress');
   });
@@ -845,16 +868,20 @@ describe('CoverOrder - buyCover', function () {
     );
 
     const amountOver = parseEther('1');
+    const executionPeriod = {
+      startDate: currentTimestamp,
+      endDate: currentTimestamp + 3600,
+    };
+
     await setNextBlockTime(nextBlockTimestamp);
 
-    const limitOrderId = 1;
     const signature = await signCoverOrder(
       coverOrder.address,
       {
         productId,
         amount,
         period,
-        limitOrderId,
+        executionPeriod,
         paymentAsset: 1,
         coverAsset: 1,
         owner: coverBuyer.address,
@@ -872,7 +899,7 @@ describe('CoverOrder - buyCover', function () {
         paymentAsset: 1,
       },
       [{ poolId: 1, coverAmountInAsset: amount }],
-      limitOrderId,
+      executionPeriod,
       signature,
     );
 
@@ -886,7 +913,7 @@ describe('CoverOrder - buyCover', function () {
         paymentAsset: 1,
       },
       [{ poolId: 1, coverAmountInAsset: amount }],
-      limitOrderId,
+      executionPeriod,
       signature,
     );
 
@@ -899,19 +926,99 @@ describe('CoverOrder - buyCover', function () {
     const [coverSettler, coverBuyer, orderSigner] = fixture.accounts.members;
 
     const buyCoverParams = { ...buyCoverFixture, paymentAsset: 6, owner: coverSettler.address };
-    const limitOrderId = 1;
-    const orderHash = ethers.utils.solidityKeccak256(
-      ['uint24', 'uint96', 'uint32', 'uint8', 'uint8', 'address', 'uint256'],
-      [buyCoverParams.productId, buyCoverParams.amount, buyCoverParams.period, 6, 6, coverBuyer.address, limitOrderId],
-    );
 
-    const ethSignedOrderHash = ethers.utils.hashMessage(orderHash);
-    const signature = await orderSigner.signMessage(ethers.utils.arrayify(ethSignedOrderHash));
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const executionPeriod = {
+      startDate: currentTimestamp,
+      endDate: currentTimestamp + 3600,
+    };
+
+    const signature = await signCoverOrder(
+      coverOrder.address,
+      {
+        productId: buyCoverParams.productId,
+        amount: buyCoverParams.amount,
+        period: buyCoverParams.period,
+        paymentAsset: 1,
+        coverAsset: 1,
+        owner: coverBuyer.address,
+        executionPeriod,
+      },
+      orderSigner,
+    );
 
     const buyCover = coverOrder
       .connect(coverSettler)
-      .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], 1, signature);
+      .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], executionPeriod, signature);
 
     await expect(buyCover).to.revertedWithCustomError(coverOrder, 'InvalidSignature');
+  });
+
+  it('should revert if the order execution expired', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const { coverOrder } = fixture.contracts;
+    const [coverSettler, coverBuyer, orderSigner] = fixture.accounts.members;
+
+    const buyCoverParams = { ...buyCoverFixture, paymentAsset: 6, owner: coverSettler.address };
+
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const executionPeriod = {
+      startDate: currentTimestamp - 3600,
+      endDate: currentTimestamp - 1,
+    };
+
+    const signature = await signCoverOrder(
+      coverOrder.address,
+      {
+        productId: buyCoverParams.productId,
+        amount: buyCoverParams.amount,
+        period: buyCoverParams.period,
+        paymentAsset: 1,
+        coverAsset: 1,
+        owner: coverBuyer.address,
+        executionPeriod,
+      },
+      orderSigner,
+    );
+
+    const buyCover = coverOrder
+      .connect(coverSettler)
+      .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], executionPeriod, signature);
+
+    await expect(buyCover).to.revertedWithCustomError(coverOrder, 'OrderExpired');
+  });
+
+  it('should revert if the order not ready for execution', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const { coverOrder } = fixture.contracts;
+    const [coverSettler, coverBuyer, orderSigner] = fixture.accounts.members;
+
+    const buyCoverParams = { ...buyCoverFixture, paymentAsset: 6, owner: coverSettler.address };
+
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const executionPeriod = {
+      startDate: currentTimestamp + 3600,
+      endDate: currentTimestamp + 7200,
+    };
+
+    const signature = await signCoverOrder(
+      coverOrder.address,
+      {
+        productId: buyCoverParams.productId,
+        amount: buyCoverParams.amount,
+        period: buyCoverParams.period,
+        paymentAsset: 1,
+        coverAsset: 1,
+        owner: coverBuyer.address,
+        executionPeriod,
+      },
+      orderSigner,
+    );
+
+    const buyCover = coverOrder
+      .connect(coverSettler)
+      .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], executionPeriod, signature);
+
+    await expect(buyCover).to.revertedWithCustomError(coverOrder, 'OrderCannotBeExecutedYet');
   });
 });

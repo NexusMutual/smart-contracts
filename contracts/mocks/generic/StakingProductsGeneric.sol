@@ -48,10 +48,6 @@ contract StakingProductsGeneric is IStakingProducts {
     revert("Unsupported");
   }
 
-  function calculateSurgePremium(uint, uint, uint) public virtual pure returns (uint) {
-    revert("Unsupported");
-  }
-
   function stakingPool(uint) external virtual view returns (IStakingPool) {
     revert("Unsupported");
   }

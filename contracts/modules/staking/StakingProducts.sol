@@ -26,10 +26,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   address public immutable coverContract;
   address public immutable stakingPoolFactory;
 
-  uint public constant SURGE_PRICE_RATIO = 2 ether;
-  uint public constant SURGE_THRESHOLD_RATIO = 90_00; // 90.00%
-  uint public constant SURGE_THRESHOLD_DENOMINATOR = 100_00; // 100.00%
-
   // base price bump
   // +0.05% for each 1% of capacity used, ie +5% for 100%
   uint public constant PRICE_BUMP_RATIO = 5_00; // 5%
@@ -492,83 +488,16 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   function calculatePremiumPerYear(
     uint basePrice,
     uint coverAmount,
-    uint initialCapacityUsed,
-    uint totalCapacity,
+    uint /*initialCapacityUsed*/, // TODO: depricated
+    uint /*totalCapacity*/, // TODO: depricated
     uint nxmPerAllocationUnit,
-    uint allocationUnitsPerNxm,
+    uint /*allocationUnitsPerNxm*/, // TODO: depricated
     uint targetPriceDenominator
   ) public pure returns (uint) {
     // cover amount has 2 decimals (100 = 1 unit)
     // scale coverAmount to 18 decimals and apply price percentage
-    uint basePremium = coverAmount * nxmPerAllocationUnit * basePrice / targetPriceDenominator;
-    uint finalCapacityUsed = initialCapacityUsed + coverAmount;
-
-    // surge price is applied for the capacity used above SURGE_THRESHOLD_RATIO.
-    // the surge price starts at zero and increases linearly.
-    // to simplify things, we're working with fractions/ratios instead of percentages,
-    // ie 0 to 1 instead of 0% to 100%, 100% = 1 (a unit).
-    //
-    // surgeThreshold = SURGE_THRESHOLD_RATIO / SURGE_THRESHOLD_DENOMINATOR
-    //                = 90_00 / 100_00 = 0.9
-    uint surgeStartPoint = totalCapacity * SURGE_THRESHOLD_RATIO / SURGE_THRESHOLD_DENOMINATOR;
-
-    // Capacity and surge pricing
-    //
-    //        i        f                         s
-    //   ▓▓▓▓▓░░░░░░░░░                          ▒▒▒▒▒▒▒▒▒▒
-    //
-    //  i - initial capacity used
-    //  f - final capacity used
-    //  s - surge start point
-
-    // if surge does not apply just return base premium
-    // i < f <= s case
-    if (finalCapacityUsed <= surgeStartPoint) {
-      return basePremium;
-    }
-
-    // calculate the premium amount incurred due to surge pricing
-    uint amountOnSurge = finalCapacityUsed - surgeStartPoint;
-    uint surgePremium = calculateSurgePremium(amountOnSurge, totalCapacity, allocationUnitsPerNxm);
-
-    // if the capacity start point is before the surge start point
-    // the surge premium starts at zero, so we just return it
-    // i <= s < f case
-    if (initialCapacityUsed <= surgeStartPoint) {
-      return basePremium + surgePremium;
-    }
-
-    // otherwise we need to subtract the part that was already used by other covers
-    // s < i < f case
-    uint amountOnSurgeSkipped = initialCapacityUsed - surgeStartPoint;
-    uint surgePremiumSkipped = calculateSurgePremium(amountOnSurgeSkipped, totalCapacity, allocationUnitsPerNxm);
-
-    return basePremium + surgePremium - surgePremiumSkipped;
-  }
-
-  // Calculates the premium for a given cover amount starting with the surge point
-  function calculateSurgePremium(
-    uint amountOnSurge,
-    uint totalCapacity,
-    uint allocationUnitsPerNxm
-  ) public pure returns (uint) {
-
-    // for every percent of capacity used, the surge price has a +2% increase per annum
-    // meaning a +200% increase for 100%, ie x2 for a whole unit (100%) of capacity in ratio terms
-    //
-    // coverToCapacityRatio = amountOnSurge / totalCapacity
-    // surgePriceStart = 0
-    // surgePriceEnd = SURGE_PRICE_RATIO * coverToCapacityRatio
-    //
-    // surgePremium = amountOnSurge * surgePriceEnd / 2
-    //              = amountOnSurge * SURGE_PRICE_RATIO * coverToCapacityRatio / 2
-    //              = amountOnSurge * SURGE_PRICE_RATIO * amountOnSurge / totalCapacity / 2
-
-    uint surgePremium = amountOnSurge * SURGE_PRICE_RATIO * amountOnSurge / totalCapacity / 2;
-
-    // amountOnSurge has two decimals
-    // dividing by ALLOCATION_UNITS_PER_NXM (=100) to normalize the result
-    return surgePremium / allocationUnitsPerNxm;
+    uint premium = coverAmount * nxmPerAllocationUnit * basePrice / targetPriceDenominator;
+    return premium;
   }
 
   /* ========== STAKING POOL CREATION ========== */

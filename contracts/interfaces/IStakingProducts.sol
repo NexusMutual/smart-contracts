@@ -96,13 +96,6 @@ interface IStakingProducts {
     uint targetPriceDenominator
   ) external pure returns (uint);
 
-  // Calculates the premium for a given cover amount starting with the surge point
-  function calculateSurgePremium(
-    uint amountOnSurge,
-    uint totalCapacity,
-    uint allocationUnitsPerNxm
-  ) external pure returns (uint);
-
   /* ========== STAKING POOL CREATION ========== */
 
   function stakingPool(uint poolId) external view returns (IStakingPool);

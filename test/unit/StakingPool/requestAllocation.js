@@ -5,7 +5,6 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const {
   getCurrentTrancheId,
   calculateBasePrice,
-  calculateSurgePremium,
   calculatePriceBump,
   roundUpToNearestAllocationUnit,
   calculateBasePremium,
@@ -387,11 +386,6 @@ describe('requestAllocation', function () {
     const expectedBasePrice = calculateBasePrice(timestamp, product, PRICE_CHANGE_PER_DAY);
     const expectedBasePremium = calculateBasePremium(amount, expectedBasePrice, buyCoverParams.period, fixture.config);
 
-    const {
-      surgePremium: expectedSurgePremium, // should be 0
-      surgePremiumSkipped: expectedSurgePremiumSkipped,
-    } = calculateSurgePremium(amount, initialCapacityUsed, totalCapacity, buyCoverParams.period, fixture.config);
-
     const actualPremium = await stakingProducts.calculatePremium(
       product,
       buyCoverParams.period,
@@ -405,9 +399,8 @@ describe('requestAllocation', function () {
       TARGET_PRICE_DENOMINATOR,
     );
 
-    const expectedPremium = expectedBasePremium.add(expectedSurgePremium);
+    const expectedPremium = expectedBasePremium;
     expect(actualPremium.premium).to.be.equal(expectedPremium);
-    expect(expectedSurgePremiumSkipped).to.be.equal(0);
 
     await cover.connect(coverBuyer).allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address);
 

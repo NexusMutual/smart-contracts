@@ -219,21 +219,16 @@ async function setup() {
     coverNFTDescriptor.address,
   ]);
 
-  // 2. deploy Cover, StakingProducts, CoverProducts and TokenController proxies
+  // deploy Cover, StakingProducts, CoverProducts and TokenController proxies
   let cover = await deployProxy('Stub');
   let stakingProducts = await deployProxy('Stub');
   let tc = await deployProxy('Stub');
 
-  // 3. deploy StakingPool implementation
-  const stakingExtrasLib = await ethers.deployContract('StakingExtrasLib');
-  await stakingExtrasLib.deployed();
-
+  // deploy StakingPool implementation
   const spArgs = [stakingNFT, tk, cover, tc, master, stakingProducts].map(c => c.address);
-  const stakingPool = await ethers.deployContract('StakingPool', spArgs, {
-    libraries: { StakingExtrasLib: stakingExtrasLib.address },
-  });
+  const stakingPool = await ethers.deployContract('StakingPool', spArgs);
 
-  // 4. deploy implementations and upgrade Cover, StakingProducts and DisposableTokenController proxies
+  // deploy implementations and upgrade Cover, StakingProducts and DisposableTokenController proxies
   await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
   cover = await ethers.getContractAt('Cover', cover.address);
 
@@ -250,7 +245,7 @@ async function setup() {
   ]);
   tc = await ethers.getContractAt('DisposableTokenController', tc.address);
 
-  // 5. update operators
+  // update operators
   await spf.changeOperator(stakingProducts.address);
   await stakingNFT.changeOperator(cover.address);
   await coverNFT.changeOperator(cover.address);

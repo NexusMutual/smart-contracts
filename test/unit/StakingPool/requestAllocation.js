@@ -360,12 +360,8 @@ describe('requestAllocation', function () {
     const fixture = await loadFixture(requestAllocationSetup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
-    const {
-      GLOBAL_CAPACITY_RATIO,
-      PRICE_CHANGE_PER_DAY,
-      NXM_PER_ALLOCATION_UNIT,
-      TARGET_PRICE_DENOMINATOR,
-    } = fixture.config;
+    const { GLOBAL_CAPACITY_RATIO, PRICE_CHANGE_PER_DAY, NXM_PER_ALLOCATION_UNIT, TARGET_PRICE_DENOMINATOR } =
+      fixture.config;
     const GLOBAL_CAPACITY_DENOMINATOR = BigNumber.from(10000);
 
     const amount = stakedNxmAmount.mul(GLOBAL_CAPACITY_RATIO).div(GLOBAL_CAPACITY_DENOMINATOR);

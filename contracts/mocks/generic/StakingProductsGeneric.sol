@@ -32,7 +32,7 @@ contract StakingProductsGeneric is IStakingProducts {
     revert("Unsupported");
   }
 
-  function getPremium(uint, uint, uint, uint, uint, uint, uint, bool, uint, uint) public virtual returns (uint) {
+  function getPremium(uint, uint, uint, uint, uint, uint, bool, uint) public virtual returns (uint) {
     revert("Unsupported");
   }
 

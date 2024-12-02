@@ -612,12 +612,10 @@ contract StakingPool is IStakingPool, Multicall {
       request.productId,
       request.period,
       coverAllocationAmount,
-      initialCapacityUsed,
       totalCapacity,
       request.globalMinPrice,
       request.useFixedPrice,
-      NXM_PER_ALLOCATION_UNIT,
-      ALLOCATION_UNITS_PER_NXM
+      NXM_PER_ALLOCATION_UNIT
     );
 
     // add new rewards

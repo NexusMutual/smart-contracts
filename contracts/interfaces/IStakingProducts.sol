@@ -56,12 +56,10 @@ interface IStakingProducts {
     uint productId,
     uint period,
     uint coverAmount,
-    uint initialCapacityUsed,
     uint totalCapacity,
     uint globalMinPrice,
     bool useFixedPrice,
-    uint nxmPerAllocationUnit,
-    uint allocationUnitsPerNxm
+    uint nxmPerAllocationUnit
   ) external returns (uint premium);
 
   function calculateFixedPricePremium(

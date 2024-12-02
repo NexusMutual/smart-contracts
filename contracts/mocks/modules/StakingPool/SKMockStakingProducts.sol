@@ -319,12 +319,12 @@ contract SKMockStakingProducts is StakingProductsGeneric, MasterAwareV2, Multica
     uint productId,
     uint period,
     uint coverAmount,
-    uint initialCapacityUsed,
+    uint /*initialCapacityUsed*/,   // TODO: deprecated 
     uint totalCapacity,
     uint globalMinPrice,
     bool useFixedPrice,
     uint nxmPerAllocationUnit,
-    uint allocationUnitsPerNXM
+    uint /*allocationUnitsPerNXM*/  // TODO: deprecated
   ) public override returns (uint premium) {
 
     StakedProduct memory product = _products[poolId][productId];
@@ -338,12 +338,10 @@ contract SKMockStakingProducts is StakingProductsGeneric, MasterAwareV2, Multica
       product,
       period,
       coverAmount,
-      initialCapacityUsed,
       totalCapacity,
       targetPrice,
       block.timestamp,
       nxmPerAllocationUnit,
-      allocationUnitsPerNXM,
       TARGET_PRICE_DENOMINATOR
     );
 
@@ -374,12 +372,10 @@ contract SKMockStakingProducts is StakingProductsGeneric, MasterAwareV2, Multica
     StakedProduct memory product,
     uint period,
     uint coverAmount,
-    uint initialCapacityUsed,
     uint totalCapacity,
     uint targetPrice,
     uint currentBlockTimestamp,
     uint nxmPerAllocationUnit,
-    uint allocationUnitsPerNxm,
     uint targetPriceDenominator
   ) public override pure returns (uint premium, StakedProduct memory) {
 
@@ -401,34 +397,12 @@ contract SKMockStakingProducts is StakingProductsGeneric, MasterAwareV2, Multica
     product.bumpedPrice = (basePrice + priceBump).toUint96();
     product.bumpedPriceUpdateTime = uint32(currentBlockTimestamp);
 
-    // use calculated base price and apply surge pricing if applicable
-    uint premiumPerYear = calculatePremiumPerYear(
-      basePrice,
-      coverAmount,
-      initialCapacityUsed,
-      totalCapacity,
-      nxmPerAllocationUnit,
-      allocationUnitsPerNxm,
-      targetPriceDenominator
-    );
+    // cover amount has 2 decimals (100 = 1 unit)
+    // scale coverAmount to 18 decimals and apply price percentage
+    uint premiumPerYear = coverAmount * nxmPerAllocationUnit * basePrice / targetPriceDenominator;
 
     // calculate the premium for the requested period
     return (premiumPerYear * period / 365 days, product);
-  }
-
-  function calculatePremiumPerYear(
-    uint basePrice,
-    uint coverAmount,
-    uint /*initialCapacityUsed*/, //TODO: depricated
-    uint /*totalCapacity*/,  // TODO: depricated
-    uint nxmPerAllocationUnit,
-    uint /*allocationUnitsPerNxm*/, // TODO: depricated
-    uint targetPriceDenominator
-  ) public override pure returns (uint) {
-    // cover amount has 2 decimals (100 = 1 unit)
-    // scale coverAmount to 18 decimals and apply price percentage
-    uint premium = coverAmount * nxmPerAllocationUnit * basePrice / targetPriceDenominator;
-    return premium;
   }
 
   /* dependencies */

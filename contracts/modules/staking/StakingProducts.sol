@@ -369,12 +369,10 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint productId,
     uint period,
     uint coverAmount,
-    uint /*initialCapacityUsed*/,   // TODO: deprecated
     uint totalCapacity,
     uint globalMinPrice,
     bool useFixedPrice,
-    uint nxmPerAllocationUnit,
-    uint /*allocationUnitsPerNXM*/  // TODO: deprecated
+    uint nxmPerAllocationUnit
   ) public returns (uint premium) {
 
     if (msg.sender != StakingPoolLibrary.getAddress(stakingPoolFactory, poolId)) {

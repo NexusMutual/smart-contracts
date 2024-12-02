@@ -319,12 +319,10 @@ contract SKMockStakingProducts is StakingProductsGeneric, MasterAwareV2, Multica
     uint productId,
     uint period,
     uint coverAmount,
-    uint /*initialCapacityUsed*/,   // TODO: deprecated 
     uint totalCapacity,
     uint globalMinPrice,
     bool useFixedPrice,
-    uint nxmPerAllocationUnit,
-    uint /*allocationUnitsPerNXM*/  // TODO: deprecated
+    uint nxmPerAllocationUnit
   ) public override returns (uint premium) {
 
     StakedProduct memory product = _products[poolId][productId];

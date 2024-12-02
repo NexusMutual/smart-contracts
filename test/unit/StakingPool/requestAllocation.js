@@ -5,7 +5,6 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const {
   getCurrentTrancheId,
   calculateBasePrice,
-  calculateSurgePremium,
   calculatePriceBump,
   roundUpToNearestAllocationUnit,
   calculateBasePremium,
@@ -361,19 +360,13 @@ describe('requestAllocation', function () {
     const fixture = await loadFixture(requestAllocationSetup);
     const { stakingProducts, stakingPool, cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
-    const {
-      GLOBAL_CAPACITY_RATIO,
-      PRICE_CHANGE_PER_DAY,
-      NXM_PER_ALLOCATION_UNIT,
-      ALLOCATION_UNITS_PER_NXM,
-      TARGET_PRICE_DENOMINATOR,
-    } = fixture.config;
+    const { GLOBAL_CAPACITY_RATIO, PRICE_CHANGE_PER_DAY, NXM_PER_ALLOCATION_UNIT, TARGET_PRICE_DENOMINATOR } =
+      fixture.config;
     const GLOBAL_CAPACITY_DENOMINATOR = BigNumber.from(10000);
 
     const amount = stakedNxmAmount.mul(GLOBAL_CAPACITY_RATIO).div(GLOBAL_CAPACITY_DENOMINATOR);
     const buyCoverParams = { ...buyCoverParamsTemplate, amount };
 
-    const initialCapacityUsed = BigNumber.from(0);
     const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
       buyCoverParamsTemplate.productId,
       GLOBAL_CAPACITY_RATIO,
@@ -387,27 +380,19 @@ describe('requestAllocation', function () {
     const expectedBasePrice = calculateBasePrice(timestamp, product, PRICE_CHANGE_PER_DAY);
     const expectedBasePremium = calculateBasePremium(amount, expectedBasePrice, buyCoverParams.period, fixture.config);
 
-    const {
-      surgePremium: expectedSurgePremium, // should be 0
-      surgePremiumSkipped: expectedSurgePremiumSkipped,
-    } = calculateSurgePremium(amount, initialCapacityUsed, totalCapacity, buyCoverParams.period, fixture.config);
-
     const actualPremium = await stakingProducts.calculatePremium(
       product,
       buyCoverParams.period,
       divCeil(amount, NXM_PER_ALLOCATION_UNIT), // allocation amount
-      0, // initialCapacityUsed
       totalCapacity,
       product.targetPrice, // targetPrice
       timestamp, // current block timestamp
       NXM_PER_ALLOCATION_UNIT,
-      ALLOCATION_UNITS_PER_NXM,
       TARGET_PRICE_DENOMINATOR,
     );
 
-    const expectedPremium = expectedBasePremium.add(expectedSurgePremium);
+    const expectedPremium = expectedBasePremium;
     expect(actualPremium.premium).to.be.equal(expectedPremium);
-    expect(expectedSurgePremiumSkipped).to.be.equal(0);
 
     await cover.connect(coverBuyer).allocateCapacity(buyCoverParams, coverId, 0, stakingPool.address);
 

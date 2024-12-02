@@ -46,66 +46,6 @@ function calculateBasePremium(coverAmount, basePrice, period, config) {
   return basePremiumPerYear.mul(period).div(ONE_YEAR);
 }
 
-// config is from StakingPool/unit/setup.js
-function calculateSurgePremiumPerYear(coverAmount, initialCapacity, totalCapacity, config) {
-  // validate inputs
-  expect(BigNumber.isBigNumber(coverAmount)).to.be.equal(true);
-  expect(BigNumber.isBigNumber(initialCapacity)).to.be.equal(true);
-  expect(BigNumber.isBigNumber(totalCapacity)).to.be.equal(true);
-
-  const surgeStartPoint = totalCapacity.mul(config.SURGE_THRESHOLD_RATIO).div(config.SURGE_THRESHOLD_DENOMINATOR);
-  const allocationAmount = divCeil(coverAmount, config.NXM_PER_ALLOCATION_UNIT);
-  const finalCapacity = initialCapacity.add(allocationAmount);
-  expect(finalCapacity).to.be.lte(totalCapacity, 'Allocation exceeds available capacity');
-
-  if (finalCapacity.lte(surgeStartPoint)) {
-    return {
-      surgePremiumSkipped: BigNumber.from(0),
-      surgePremium: BigNumber.from(0),
-      amountOnSurge: BigNumber.from(0),
-    };
-  }
-
-  // total amount on surge sold for this product
-  const totalAmountOnSurge = finalCapacity.sub(surgeStartPoint);
-
-  // amount on surge sold before this cover
-  const amountOnSurgeSkipped = initialCapacity.gt(surgeStartPoint)
-    ? initialCapacity.sub(surgeStartPoint) // when initialCapacity is above surgeStartPoint
-    : BigNumber.from(0);
-
-  const surgePremiumTotal = totalAmountOnSurge
-    .mul(totalAmountOnSurge)
-    .mul(config.SURGE_PRICE_RATIO)
-    .div(totalCapacity)
-    .div(2);
-
-  const surgePremiumSkipped = amountOnSurgeSkipped
-    .mul(amountOnSurgeSkipped)
-    .mul(config.SURGE_PRICE_RATIO)
-    .div(totalCapacity)
-    .div(2);
-
-  const surgePremium = surgePremiumTotal.sub(surgePremiumSkipped);
-  const amountOnSurge = totalAmountOnSurge.sub(amountOnSurgeSkipped);
-
-  return {
-    surgePremiumSkipped: surgePremiumSkipped.div(config.ALLOCATION_UNITS_PER_NXM),
-    surgePremium: surgePremium.div(config.ALLOCATION_UNITS_PER_NXM),
-    amountOnSurge,
-  };
-}
-
-// config is from StakingPool/unit/setup.js
-function calculateSurgePremium(coverAmount, initialCapacity, totalCapacity, period, config) {
-  const surgePremiumPerYear = calculateSurgePremiumPerYear(coverAmount, initialCapacity, totalCapacity, config);
-  return {
-    surgePremiumSkipped: surgePremiumPerYear.surgePremiumSkipped.mul(period).div(ONE_YEAR),
-    surgePremium: surgePremiumPerYear.surgePremium.mul(period).div(ONE_YEAR),
-    amountOnSurge: surgePremiumPerYear.amountOnSurge,
-  };
-}
-
 function calculatePriceBump(coverAmount, priceBumpRatio, totalCapacity, NXM_PER_ALLOCATION_UNIT) {
   const allocationAmount = divCeil(coverAmount, NXM_PER_ALLOCATION_UNIT);
   return BigNumber.from(priceBumpRatio).mul(allocationAmount).div(totalCapacity);
@@ -206,8 +146,6 @@ module.exports = {
   calculateBasePremium,
   calculateBasePremiumPerYear,
   calculatePriceBump,
-  calculateSurgePremium,
-  calculateSurgePremiumPerYear,
   divCeil,
   roundUpToNearestAllocationUnit,
   getTranches,

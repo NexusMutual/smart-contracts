@@ -6,6 +6,7 @@ const setup = require('./setup');
 
 const { daysToSeconds } = require('../utils').helpers;
 const { divCeil } = require('../utils').bnMath;
+const { DIVIDE_BY_ZERO } = require('../utils').errors;
 
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
@@ -76,13 +77,8 @@ describe('calculatePremium', function () {
   it('should calculate premium on multiple cover buys over time, based on pre-defined numbers', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
-    const {
-      NXM_PER_ALLOCATION_UNIT,
-      PRICE_BUMP_RATIO,
-      PRICE_CHANGE_PER_DAY,
-      ALLOCATION_UNITS_PER_NXM,
-      TARGET_PRICE_DENOMINATOR,
-    } = fixture.config;
+    const { NXM_PER_ALLOCATION_UNIT, PRICE_BUMP_RATIO, PRICE_CHANGE_PER_DAY, TARGET_PRICE_DENOMINATOR } =
+      fixture.config;
 
     const period = daysToSeconds(365);
     const totalCapacity = divCeil(totalCapacityInNxm, NXM_PER_ALLOCATION_UNIT);
@@ -117,12 +113,10 @@ describe('calculatePremium', function () {
         product,
         period,
         allocationAmount,
-        initialCapacityUsed,
         totalCapacity,
         product.targetPrice,
         currentTime,
         NXM_PER_ALLOCATION_UNIT,
-        ALLOCATION_UNITS_PER_NXM,
         TARGET_PRICE_DENOMINATOR,
       );
 
@@ -142,25 +136,22 @@ describe('calculatePremium', function () {
     const { stakingProducts } = fixture;
     let { timestamp } = await ethers.provider.getBlock('latest');
     timestamp = BigNumber.from(timestamp);
-    const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = fixture.config;
+    const { NXM_PER_ALLOCATION_UNIT, TARGET_PRICE_DENOMINATOR } = fixture.config;
     const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
     const period = BigNumber.from(0);
     const coverAmountRaw = parseEther('100');
     const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
 
     const totalCapacity = parseEther('100');
-    const initialCapacityUsed = BigNumber.from(0);
 
     const { premium } = await stakingProducts.calculatePremium(
       stakedProduct,
       period,
       coverAmount,
-      initialCapacityUsed,
       totalCapacity,
       stakedProduct.targetPrice,
       timestamp,
       NXM_PER_ALLOCATION_UNIT,
-      ALLOCATION_UNITS_PER_NXM,
       TARGET_PRICE_DENOMINATOR,
     );
 
@@ -170,7 +161,7 @@ describe('calculatePremium', function () {
   it('should calculate the premium correctly when cover amount is equal to total capacity', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
-    const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = fixture.config;
+    const { NXM_PER_ALLOCATION_UNIT, TARGET_PRICE_DENOMINATOR } = fixture.config;
 
     const timestamp = 0;
     const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
@@ -179,19 +170,16 @@ describe('calculatePremium', function () {
     const coverAmount = BigNumber.from(2).pow(64);
     const allocationAmount = divCeil(coverAmount, NXM_PER_ALLOCATION_UNIT);
 
-    const initialCapacity = BigNumber.from(0);
     const totalCapacity = allocationAmount;
 
     const { premium: actualPremium } = await stakingProducts.calculatePremium(
       stakedProduct,
       period,
       allocationAmount,
-      initialCapacity,
       totalCapacity,
       stakedProduct.targetPrice,
       timestamp,
       NXM_PER_ALLOCATION_UNIT,
-      ALLOCATION_UNITS_PER_NXM,
       TARGET_PRICE_DENOMINATOR,
     );
 
@@ -204,25 +192,21 @@ describe('calculatePremium', function () {
   it('should calculate 0 premium for 0 cover amount', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
-    const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = fixture.config;
+    const { NXM_PER_ALLOCATION_UNIT, TARGET_PRICE_DENOMINATOR } = fixture.config;
     const timestamp = 0;
     const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
     const period = daysToSeconds(365);
     const coverAmount = 0;
-
-    const initialCapacityUsed = BigNumber.from(0);
     const totalCapacity = BigNumber.from(100);
 
     const { premium } = await stakingProducts.calculatePremium(
       stakedProduct,
       period,
       coverAmount,
-      initialCapacityUsed,
       totalCapacity,
       stakedProduct.targetPrice,
       timestamp,
       NXM_PER_ALLOCATION_UNIT,
-      ALLOCATION_UNITS_PER_NXM,
       TARGET_PRICE_DENOMINATOR,
     );
 
@@ -232,7 +216,7 @@ describe('calculatePremium', function () {
   it('should calculate the correct premium when the coverAmount is 1 wei', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
-    const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = fixture.config;
+    const { NXM_PER_ALLOCATION_UNIT, TARGET_PRICE_DENOMINATOR } = fixture.config;
     const timestamp = 0;
     const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
 
@@ -240,7 +224,6 @@ describe('calculatePremium', function () {
     const coverAmount = BigNumber.from(1);
     const allocationAmount = divCeil(coverAmount, NXM_PER_ALLOCATION_UNIT);
 
-    const initialCapacityUsed = BigNumber.from(0);
     const totalCapacity = allocationAmount.mul(100);
 
     const expectedBasePrice = calculateBasePrice(timestamp, stakedProduct, fixture.config.PRICE_CHANGE_PER_DAY);
@@ -250,12 +233,10 @@ describe('calculatePremium', function () {
       stakedProduct,
       period,
       allocationAmount,
-      initialCapacityUsed,
       totalCapacity,
       stakedProduct.targetPrice,
       timestamp,
       NXM_PER_ALLOCATION_UNIT,
-      ALLOCATION_UNITS_PER_NXM,
       TARGET_PRICE_DENOMINATOR,
     );
 
@@ -265,7 +246,7 @@ describe('calculatePremium', function () {
   it('should correctly calculate premium', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
-    const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = fixture.config;
+    const { NXM_PER_ALLOCATION_UNIT, TARGET_PRICE_DENOMINATOR } = fixture.config;
 
     const timestamp = 0;
     const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
@@ -274,7 +255,6 @@ describe('calculatePremium', function () {
     const coverAmount = parseEther('1');
     const allocationAmount = divCeil(coverAmount, NXM_PER_ALLOCATION_UNIT);
 
-    const initialCapacityUsed = BigNumber.from(0);
     const totalCapacity = coverAmount.mul(100);
 
     const expectedBasePrice = calculateBasePrice(timestamp, stakedProduct, fixture.config.PRICE_CHANGE_PER_DAY);
@@ -284,62 +264,43 @@ describe('calculatePremium', function () {
       stakedProduct,
       period,
       allocationAmount,
-      initialCapacityUsed,
       totalCapacity,
       stakedProduct.targetPrice,
       timestamp,
       NXM_PER_ALLOCATION_UNIT,
-      ALLOCATION_UNITS_PER_NXM,
       TARGET_PRICE_DENOMINATOR,
     );
 
     expect(actualPremium).to.be.equal(expectedBasePremium);
   });
 
-  // TODO: should it still revert?
-  // it.skip('should revert with divide by 0 panic, when totalCapacity is zero', async function () {
-  //   const fixture = await loadFixture(setup);
-  //   const { stakingProducts } = fixture;
-  //   const { NXM_PER_ALLOCATION_UNIT, ALLOCATION_UNITS_PER_NXM, TARGET_PRICE_DENOMINATOR } = fixture.config;
+  it('should revert with divide by 0 panic, when totalCapacity is zero', async function () {
+    const fixture = await loadFixture(setup);
+    const { stakingProducts } = fixture;
+    const { NXM_PER_ALLOCATION_UNIT, TARGET_PRICE_DENOMINATOR } = fixture.config;
 
-  //   const timestamp = 0;
-  //   const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
+    const timestamp = 0;
+    const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
 
-  //   const period = daysToSeconds(365);
-  //   const coverAmount = parseEther('4321');
-  //   const allocationAmount = divCeil(coverAmount, NXM_PER_ALLOCATION_UNIT);
+    const period = daysToSeconds(365);
+    const coverAmount = parseEther('4321');
+    const allocationAmount = divCeil(coverAmount, NXM_PER_ALLOCATION_UNIT);
 
-  //   const totalCapacity = BigNumber.from(0);
-  //   const initialCapacityUsed = BigNumber.from(0);
-  //   const basePrice = calculateBasePrice(timestamp, stakedProduct, fixture.config.PRICE_CHANGE_PER_DAY);
+    const totalCapacity = BigNumber.from(0);
 
-  //   await expect(
-  //     stakingProducts.calculatePremium(
-  //       stakedProduct,
-  //       period,
-  //       allocationAmount,
-  //       initialCapacityUsed,
-  //       totalCapacity,
-  //       stakedProduct.targetPrice,
-  //       timestamp,
-  //       NXM_PER_ALLOCATION_UNIT,
-  //       ALLOCATION_UNITS_PER_NXM,
-  //       TARGET_PRICE_DENOMINATOR,
-  //     ),
-  //   ).to.be.revertedWithPanic(DIVIDE_BY_ZERO);
-
-  //   await expect(
-  //     stakingProducts.calculatePremiumPerYear(
-  //       basePrice,
-  //       allocationAmount,
-  //       initialCapacityUsed,
-  //       totalCapacity,
-  //       NXM_PER_ALLOCATION_UNIT,
-  //       ALLOCATION_UNITS_PER_NXM,
-  //       TARGET_PRICE_DENOMINATOR,
-  //     ),
-  //   ).to.be.revertedWithPanic(DIVIDE_BY_ZERO);
-  // });
+    await expect(
+      stakingProducts.calculatePremium(
+        stakedProduct,
+        period,
+        allocationAmount,
+        totalCapacity,
+        stakedProduct.targetPrice,
+        timestamp,
+        NXM_PER_ALLOCATION_UNIT,
+        TARGET_PRICE_DENOMINATOR,
+      ),
+    ).to.be.revertedWithPanic(DIVIDE_BY_ZERO);
+  });
 
   it('should correctly calculate fixed price premium', async function () {
     const fixture = await loadFixture(setup);

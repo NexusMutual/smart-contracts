@@ -40,11 +40,7 @@ contract StakingProductsGeneric is IStakingProducts {
     revert("Unsupported");
   }
 
-  function calculatePremium(StakedProduct memory, uint, uint, uint, uint, uint, uint, uint, uint, uint) public virtual pure returns (uint, StakedProduct memory) {
-    revert("Unsupported");
-  }
-
-  function calculatePremiumPerYear(uint, uint, uint, uint, uint, uint, uint) public virtual pure returns (uint) {
+  function calculatePremium(StakedProduct memory, uint, uint, uint, uint, uint, uint, uint) public virtual pure returns (uint, StakedProduct memory) {
     revert("Unsupported");
   }
 

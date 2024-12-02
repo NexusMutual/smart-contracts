@@ -77,24 +77,12 @@ interface IStakingProducts {
     StakedProduct memory product,
     uint period,
     uint coverAmount,
-    uint initialCapacityUsed,
     uint totalCapacity,
     uint targetPrice,
     uint currentBlockTimestamp,
     uint nxmPerAllocationUnit,
-    uint allocationUnitsPerNxm,
     uint targetPriceDenominator
   ) external pure returns (uint premium, StakedProduct memory);
-
-  function calculatePremiumPerYear(
-    uint basePrice,
-    uint coverAmount,
-    uint initialCapacityUsed,
-    uint totalCapacity,
-    uint nxmPerAllocationUnit,
-    uint allocationUnitsPerNxm,
-    uint targetPriceDenominator
-  ) external pure returns (uint);
 
   /* ========== STAKING POOL CREATION ========== */
 

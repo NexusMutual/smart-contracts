@@ -364,7 +364,6 @@ describe('requestAllocation', function () {
       GLOBAL_CAPACITY_RATIO,
       PRICE_CHANGE_PER_DAY,
       NXM_PER_ALLOCATION_UNIT,
-      ALLOCATION_UNITS_PER_NXM,
       TARGET_PRICE_DENOMINATOR,
     } = fixture.config;
     const GLOBAL_CAPACITY_DENOMINATOR = BigNumber.from(10000);
@@ -389,12 +388,10 @@ describe('requestAllocation', function () {
       product,
       buyCoverParams.period,
       divCeil(amount, NXM_PER_ALLOCATION_UNIT), // allocation amount
-      0, // initialCapacityUsed
       totalCapacity,
       product.targetPrice, // targetPrice
       timestamp, // current block timestamp
       NXM_PER_ALLOCATION_UNIT,
-      ALLOCATION_UNITS_PER_NXM,
       TARGET_PRICE_DENOMINATOR,
     );
 

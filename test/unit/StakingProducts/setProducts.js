@@ -366,7 +366,7 @@ describe('setProducts unit tests', function () {
   it('should edit prices and skip weights', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
-    const { GLOBAL_MIN_PRICE_RATIO } = fixture.config;
+    const { DEFAULT_MIN_PRICE_RATIO } = fixture.config;
     const [manager] = fixture.accounts.members;
 
     const newProductParams = { ...newProductTemplate };
@@ -382,7 +382,7 @@ describe('setProducts unit tests', function () {
     await stakingProducts
       .connect(manager)
       .setProducts(poolId, [
-        { ...newProductParams, targetWeight: 1, setTargetWeight: false, targetPrice: GLOBAL_MIN_PRICE_RATIO },
+        { ...newProductParams, targetWeight: 1, setTargetWeight: false, targetPrice: DEFAULT_MIN_PRICE_RATIO },
       ]);
 
     const { timestamp: bumpedPriceUpdateTimeAfter } = await ethers.provider.getBlock('latest');
@@ -390,7 +390,7 @@ describe('setProducts unit tests', function () {
       product: await stakingProducts.getProduct(poolId, 0),
       productParams: {
         ...newProductTemplate,
-        targetPrice: GLOBAL_MIN_PRICE_RATIO,
+        targetPrice: DEFAULT_MIN_PRICE_RATIO,
         bumpedPriceUpdateTimeAfter,
       },
     });
@@ -411,10 +411,10 @@ describe('setProducts unit tests', function () {
   it('should fail with targetPrice below global min price ratio', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
-    const { GLOBAL_MIN_PRICE_RATIO } = fixture.config;
+    const { DEFAULT_MIN_PRICE_RATIO } = fixture.config;
     const [manager] = fixture.accounts.members;
 
-    const product = { ...newProductTemplate, targetPrice: GLOBAL_MIN_PRICE_RATIO - 1 };
+    const product = { ...newProductTemplate, targetPrice: DEFAULT_MIN_PRICE_RATIO - 1 };
     await expect(stakingProducts.connect(manager).setProducts(poolId, [product])).to.be.revertedWithCustomError(
       stakingProducts,
       'TargetPriceBelowMin',

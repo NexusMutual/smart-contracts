@@ -294,7 +294,6 @@ async function main() {
   await deployImmutable('StakingViewer', [master.address, stakingNFT.address, spf.address]);
 
   console.log('Deploying assessment contracts');
-  const cg = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
   const ci = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
   const assessment = await deployProxy('Assessment', [tk.address]);
   const coverMigrator = await deployProxy('CoverMigrator', [qd.address, productsV1.address]);
@@ -396,7 +395,7 @@ async function main() {
   const replaceableContractCodes = ['MC', 'P1', 'CL'];
   const replaceableContractAddresses = [mcr, pool, coverMigrator].map(x => x.address);
 
-  const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'CG', 'CI', 'AS', 'SP', 'RA'];
+  const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'CI', 'AS', 'SP', 'RA'];
   const proxyContractAddresses = [
     { address: owner }, // as governance
     mr,
@@ -405,7 +404,6 @@ async function main() {
     tc,
     gw,
     cover,
-    cg,
     ci,
     assessment,
     stakingProducts,
@@ -550,7 +548,6 @@ async function main() {
   await transferProxyOwnership(gv.address, master.address);
   await transferProxyOwnership(gw.address, master.address);
   await transferProxyOwnership(cover.address, master.address);
-  await transferProxyOwnership(cg.address, master.address);
   await transferProxyOwnership(ci.address, master.address);
   await transferProxyOwnership(assessment.address, master.address);
   await transferProxyOwnership(ramm.address, master.address);

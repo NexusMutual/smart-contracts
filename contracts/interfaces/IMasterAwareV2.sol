@@ -18,7 +18,7 @@ interface IMasterAwareV2 {
     CL, // CoverMigrator.sol - removed
     AS, // Assessment.sol
     CI, // IndividualClaims.sol - Claims for Individuals
-    CG, // YieldTokenIncidents.sol - Claims for Groups
+    // CG, // YieldTokenIncidents.sol - Claims for Groups
     RA, // Ramm.sol
     ST,  // SafeTracker.sol
     CP  // CoverProducts.sol

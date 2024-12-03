@@ -85,7 +85,6 @@ describe('usdc', function () {
     this.gateway = await ethers.getContractAt('LegacyGateway', addresses.LegacyGateway);
     this.proposalCategory = await ethers.getContractAt('ProposalCategory', addresses.ProposalCategory);
     this.stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', addresses.StakingPoolFactory);
-    this.yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', addresses.YieldTokenIncidents);
     this.ramm = await ethers.getContractAt('Ramm', addresses.Ramm);
     this.safeTracker = await ethers.getContractAt('SafeTracker', addresses.SafeTracker);
 

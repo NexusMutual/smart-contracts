@@ -41,7 +41,6 @@ describe('Storage layout', function () {
       'LegacyPooledStaking',
       'TokenController',
       'IndividualClaims',
-      'YieldTokenIncidents',
       'Assessment',
       'Cover',
       'StakingProducts',

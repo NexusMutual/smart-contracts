@@ -60,7 +60,6 @@ describe('migrateCoverProducts', function () {
 
     for (const i in products) {
       expect(products[i].productType).to.be.equal(productsList[i].productType);
-      expect(products[i].yieldTokenAddress).to.be.equal(productsList[i].yieldTokenAddress);
       expect(products[i].coverAssets).to.be.equal(productsList[i].coverAssets);
       expect(products[i].initialPriceRatio).to.be.equal(productsList[i].initialPriceRatio);
       expect(products[i].capacityReductionRatio).to.be.equal(productsList[i].capacityReductionRatio);

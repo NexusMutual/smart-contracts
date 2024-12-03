@@ -3,7 +3,7 @@ const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getTranches, moveTimeToNextBucket, moveTimeToNextTranche, BUCKET_DURATION, setTime } = require('./helpers');
-const { daysToSeconds } = require('../../../lib/helpers');
+const { daysToSeconds, emptyBytes } = require('../../../lib/helpers');
 
 const { AddressZero, Two, Zero } = ethers.constants;
 const { parseEther } = ethers.utils;
@@ -36,7 +36,8 @@ const productTypeFixture = {
 
 const coverProductTemplate = {
   productType: 1,
-  yieldTokenAddress: AddressZero,
+  minPrice: 0,
+  __gap: emptyBytes(18),
   coverAssets: 1111,
   initialPriceRatio: 500,
   capacityReductionRatio: 0,

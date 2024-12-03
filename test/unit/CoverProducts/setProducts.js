@@ -289,7 +289,7 @@ describe('setProducts', function () {
     const productParams = { ...productParamsTemplate, product };
     await expect(
       coverProducts.connect(advisoryBoardMember0).setProducts([productParams]),
-    ).to.be.revertedWithCustomError(coverProducts, 'InitialPriceRatioBelowGlobalMinPriceRatio');
+    ).to.be.revertedWithCustomError(coverProducts, 'InitialPriceRatioBelowDefaultMinPriceRatio');
   });
 
   it('should revert if initialPriceRatio is below DEFAULT_MIN_PRICE_RATIO when editing a product', async function () {
@@ -306,7 +306,7 @@ describe('setProducts', function () {
       const productParams = { ...productParamsTemplate, product, productId };
       await expect(
         coverProducts.connect(advisoryBoardMember0).setProducts([productParams]),
-      ).to.be.revertedWithCustomError(coverProducts, 'InitialPriceRatioBelowGlobalMinPriceRatio');
+      ).to.be.revertedWithCustomError(coverProducts, 'InitialPriceRatioBelowDefaultMinPriceRatio');
     }
   });
 

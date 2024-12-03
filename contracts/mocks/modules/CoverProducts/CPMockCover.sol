@@ -45,7 +45,7 @@ contract CPMockCover is CoverGeneric {
     }
   }
 
-  function getGlobalMinPriceRatio() public override pure returns (uint) {
+  function getDefaultMinPriceRatio() public override pure returns (uint) {
     return DEFAULT_MIN_PRICE_RATIO;
   }
 

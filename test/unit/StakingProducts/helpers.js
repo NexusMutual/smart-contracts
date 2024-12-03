@@ -120,7 +120,7 @@ async function allocateCapacity({ amount, productId }) {
     capacityReductionRatio: coverProductTemplate.capacityReductionRatio,
     useFixedPrice: coverProductTemplate.useFixedPrice,
     rewardRatio: GLOBAL_REWARDS_RATIO,
-    globalMinPrice: DEFAULT_MIN_PRICE_RATIO,
+    defaultMinPrice: DEFAULT_MIN_PRICE_RATIO,
   };
 
   await stakingPool.connect(coverSigner).requestAllocation(amount, 0, allocationRequest);

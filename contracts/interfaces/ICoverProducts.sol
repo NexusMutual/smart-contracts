@@ -129,7 +129,7 @@ interface ICoverProducts {
 
   // Misc
   error UnsupportedCoverAssets();
-  error InitialPriceRatioBelowGlobalMinPriceRatio();
+  error InitialPriceRatioBelowDefaultMinPriceRatio();
   error InitialPriceRatioAbove100Percent();
   error CapacityReductionRatioAbove100Percent();
 

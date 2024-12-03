@@ -191,7 +191,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
   function setProducts(ProductParam[] calldata productParams) external override onlyAdvisoryBoard {
 
     uint unsupportedCoverAssetsBitmap = type(uint).max;
-    uint globalMinPriceRatio = cover().getGlobalMinPriceRatio();
+    uint defaultMinPriceRatio = cover().getDefaultMinPriceRatio();
 
     uint poolCount = stakingProducts().getStakingPoolCount();
     Asset[] memory assets = pool().getAssets();
@@ -217,8 +217,8 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
         revert UnsupportedCoverAssets();
       }
 
-      if (product.initialPriceRatio < globalMinPriceRatio) {
-        revert InitialPriceRatioBelowGlobalMinPriceRatio();
+      if (product.initialPriceRatio < defaultMinPriceRatio) {
+        revert InitialPriceRatioBelowDefaultMinPriceRatio();
       }
 
       if (product.initialPriceRatio > PRICE_DENOMINATOR) {

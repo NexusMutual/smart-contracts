@@ -15,6 +15,12 @@ struct ExecutionPeriod {
 
 interface ICoverOrder {
 
+  enum OrderStatus {
+    Created,
+    Executed,
+    Cancelled
+  }
+
   /* ==== FUNCTIONS ==== */
 
   function executeOrder(

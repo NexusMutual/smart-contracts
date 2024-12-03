@@ -20,7 +20,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
   using SafeERC20 for IERC20;
 
   /* ========== STATE VARIABLES ========== */
-  mapping(bytes => bool) public executedOrders;
+  mapping(bytes => OrderStatus) public executedOrders;
 
   /* ========== IMMUTABLES ========== */
   ICover public immutable cover;
@@ -99,12 +99,12 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
     }
 
     // Ensure the order has not already been executed
-    if (executedOrders[signature]) {
+    if (executedOrders[signature] == OrderStatus.Executed) {
       revert OrderAlreadyExecuted();
     }
 
     // Mark the order as executed
-    executedOrders[signature] = true;
+    executedOrders[signature] = OrderStatus.Executed;
 
     // ETH payment
     if (params.paymentAsset == ETH_ASSET_ID) {

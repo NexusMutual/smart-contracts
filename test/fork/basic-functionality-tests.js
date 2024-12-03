@@ -17,7 +17,7 @@ const {
 } = require('./utils');
 
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-const { daysToSeconds, categoryParamsToValues } = require('../../lib/helpers');
+const { daysToSeconds, emptyBytes } = require('../../lib/helpers');
 const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
 const VariableDebtTokenAbi = require('./abi/aave/VariableDebtToken.json');
 const { InternalContractsIDs } = require('../utils').constants;
@@ -30,10 +30,8 @@ const ASSESSMENT_VOTER_COUNT = 3;
 const { USDC_ADDRESS } = Address;
 const { NXM_WHALE_1, NXM_WHALE_2, DAI_NXM_HOLDER, NXMHOLDER, DAI_HOLDER, HUGH } = UserAddress;
 
-let ybDAI, ybETH, ybUSDC;
-
-let ybDaiProductId, ybDaiCoverId, ybDaiIncidentId;
-let ybUSDCProductId, ybUSDCCoverId, ybUSDCIncidentId;
+let ybDaiProductId;
+let ybUSDCProductId;
 let ybEthProductId;
 let custodyProductId, custodyCoverId;
 let protocolProductId, protocolCoverId;
@@ -297,90 +295,6 @@ describe('basic functionality tests', function () {
     expect(productTypesCountAfter).to.be.equal(productTypesCountBefore.add(productTypes.length));
   });
 
-  it('Add ybDAI yield token cover', async function () {
-    ybDAI = await deployContract('ERC20MintableDetailed', ['yield bearing DAI', 'ybDAI', 18]);
-    const productsCountBefore = await this.coverProducts.getProductCount();
-
-    await this.coverProducts.connect(this.abMembers[0]).setProducts([
-      {
-        productName: 'ybDAI yield token',
-        productId: MaxUint256,
-        ipfsMetadata: '',
-        product: {
-          productType: 2,
-          yieldTokenAddress: ybDAI.address,
-          coverAssets: 2,
-          initialPriceRatio: 1000,
-          capacityReductionRatio: 1000,
-          useFixedPrice: false,
-          isDeprecated: false,
-        },
-        allowedPools: [],
-      },
-    ]);
-
-    const productsCountAfter = await this.coverProducts.getProductCount();
-    ybDaiProductId = productsCountAfter.toNumber() - 1;
-
-    expect(productsCountAfter).to.be.equal(productsCountBefore.add(1));
-  });
-
-  it('Add ybUSDC yield token cover', async function () {
-    ybUSDC = await deployContract('ERC20MintableDetailed', ['yield bearing USDC', 'ybUSDC', 6]);
-    const productsCountBefore = await this.coverProducts.getProductCount();
-
-    await this.coverProducts.connect(this.abMembers[0]).setProducts([
-      {
-        productName: 'ybUSDC yield token',
-        productId: MaxUint256,
-        ipfsMetadata: '',
-        product: {
-          productType: 2,
-          yieldTokenAddress: ybUSDC.address,
-          coverAssets: 64,
-          initialPriceRatio: 1000,
-          capacityReductionRatio: 1000,
-          useFixedPrice: false,
-          isDeprecated: false,
-        },
-        allowedPools: [],
-      },
-    ]);
-
-    const productsCountAfter = await this.coverProducts.getProductCount();
-    ybUSDCProductId = productsCountAfter.toNumber() - 1;
-
-    expect(productsCountAfter).to.be.equal(productsCountBefore.add(1));
-  });
-
-  it('Add ybETH yield token cover', async function () {
-    ybETH = await deployContract('ERC20MintableDetailed', ['yield bearing DAI', 'ybDAI', 18]);
-    const productsCountBefore = await this.coverProducts.getProductCount();
-
-    await this.coverProducts.connect(this.abMembers[0]).setProducts([
-      {
-        productName: 'ybETH yield token',
-        productId: MaxUint256,
-        ipfsMetadata: '',
-        product: {
-          productType: 2,
-          yieldTokenAddress: ybETH.address,
-          coverAssets: 1,
-          initialPriceRatio: 1000,
-          capacityReductionRatio: 1000,
-          useFixedPrice: false,
-          isDeprecated: false,
-        },
-        allowedPools: [],
-      },
-    ]);
-
-    const productsCountAfter = await this.coverProducts.getProductCount();
-    ybEthProductId = productsCountAfter.toNumber() - 1;
-
-    expect(productsCountAfter).to.be.equal(productsCountBefore.add(1));
-  });
-
   it('Add protocol product', async function () {
     const productsCountBefore = await this.coverProducts.getProductCount();
 
@@ -391,7 +305,8 @@ describe('basic functionality tests', function () {
         ipfsMetadata: '',
         product: {
           productType: 0,
-          yieldTokenAddress: AddressZero,
+          minPrice: 0,
+          __gap: emptyBytes(18),
           coverAssets: 0,
           initialPriceRatio: 100,
           capacityReductionRatio: 0,
@@ -417,7 +332,8 @@ describe('basic functionality tests', function () {
         ipfsMetadata: '',
         product: {
           productType: 1,
-          yieldTokenAddress: AddressZero,
+          minPrice: 0,
+          __gap: emptyBytes(18),
           coverAssets: 0,
           initialPriceRatio: 100,
           capacityReductionRatio: 0,
@@ -512,253 +428,6 @@ describe('basic functionality tests', function () {
 
     expect(managerBalanceAfter).to.equal(managerBalanceBefore.sub(amount));
     expect(tokenControllerBalanceAfter).to.equal(tokenControllerBalanceBefore.add(amount));
-  });
-
-  it('Buy ybDAI yield token cover with DAI', async function () {
-    await evm.impersonate(DAI_NXM_HOLDER);
-    const coverBuyer = await getSigner(DAI_NXM_HOLDER);
-    const coverBuyerAddress = await coverBuyer.getAddress();
-
-    const coverAsset = 1; // DAI
-    const amount = parseEther('1');
-    const commissionRatio = '500'; // 5%
-
-    await this.dai.connect(coverBuyer).approve(this.cover.address, amount);
-    const coverCountBefore = await this.cover.coverDataCount();
-
-    await this.cover.connect(coverBuyer).buyCover(
-      {
-        coverId: 0,
-        owner: coverBuyerAddress,
-        productId: ybDaiProductId,
-        coverAsset,
-        amount,
-        period: 3600 * 24 * 30, // 30 days
-        maxPremiumInAsset: parseEther('1').mul(260).div(10000),
-        paymentAsset: coverAsset,
-        payWithNXM: false,
-        commissionRatio,
-        commissionDestination: coverBuyerAddress,
-        ipfsData: '',
-      },
-      [{ poolId, coverAmountInAsset: amount }],
-      { value: '0' },
-    );
-
-    const coverCountAfter = await this.cover.coverDataCount();
-    ybDaiCoverId = coverCountAfter;
-
-    expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
-  });
-
-  it('Buy ybUSDC yield token cover with USDC', async function () {
-    await evm.impersonate(HUGH);
-    const coverBuyer = await getSigner(HUGH);
-    const coverBuyerAddress = await coverBuyer.getAddress();
-
-    const coverAsset = 6; // USDC
-    const amount = parseUnits('1000', 6);
-    const commissionRatio = '500'; // 5%
-
-    await this.usdc.connect(coverBuyer).approve(this.cover.address, amount);
-    const coverCountBefore = await this.cover.coverDataCount();
-
-    await this.cover.connect(coverBuyer).buyCover(
-      {
-        coverId: 0,
-        owner: coverBuyerAddress,
-        productId: ybUSDCProductId,
-        coverAsset,
-        amount,
-        period: 3600 * 24 * 30, // 30 days
-        maxPremiumInAsset: amount,
-        paymentAsset: coverAsset,
-        payWithNXM: false,
-        commissionRatio,
-        commissionDestination: coverBuyerAddress,
-        ipfsData: '',
-      },
-      [{ poolId, coverAmountInAsset: amount }],
-      { value: '0' },
-    );
-
-    const coverCountAfter = await this.cover.coverDataCount();
-    ybUSDCCoverId = coverCountAfter;
-
-    expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
-  });
-
-  it('Buy ybETH yield token cover with ETH', async function () {
-    await evm.impersonate(DAI_NXM_HOLDER);
-    const coverBuyer = await getSigner(DAI_NXM_HOLDER);
-    const coverBuyerAddress = await coverBuyer.getAddress();
-
-    const coverAsset = 0; // ETH
-    const amount = parseEther('1');
-    const commissionRatio = '500'; // 5%
-
-    const coverCountBefore = await this.cover.coverDataCount();
-
-    await this.cover.connect(coverBuyer).buyCover(
-      {
-        coverId: 0,
-        owner: coverBuyerAddress,
-        productId: ybEthProductId,
-        coverAsset,
-        amount,
-        period: 3600 * 24 * 30, // 30 days
-        maxPremiumInAsset: parseEther('1').mul(260).div(10000),
-        paymentAsset: coverAsset,
-        payWithNXM: false,
-        commissionRatio,
-        commissionDestination: coverBuyerAddress,
-        ipfsData: '',
-      },
-      [{ poolId, coverAmountInAsset: amount }],
-      { value: amount },
-    );
-
-    const coverCountAfter = await this.cover.coverDataCount();
-
-    expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
-  });
-
-  it('Add submit yield token incident proposal category', async function () {
-    const params = ['Add incident', 1, 60, 15, 60, '', 'CG', 'submitIncident(uint24,uint96,uint32,uint256,string)'];
-    const values = categoryParamsToValues(params);
-
-    await submitGovernanceProposal(
-      // addCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
-      PROPOSAL_CATEGORIES.addCategory,
-      defaultAbiCoder.encode(
-        [
-          'string',
-          'uint256',
-          'uint256',
-          'uint256',
-          'uint256[]',
-          'uint256',
-          'string',
-          'address',
-          'bytes2',
-          'uint256[]',
-          'string',
-        ],
-        values,
-      ),
-      this.abMembers,
-      this.governance,
-    );
-  });
-
-  it('Create Yield Token Incident for ybDAI cover', async function () {
-    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-
-    ybDaiIncidentId = (await this.yieldTokenIncidents.getIncidentsCount()).toNumber();
-
-    const assessmentCountBefore = await this.assessment.getAssessmentsCount();
-    assessmentId = assessmentCountBefore.toString();
-
-    const proposalCategoryCount = await this.proposalCategory.totalCategories();
-    const submitIncidentCategoryId = proposalCategoryCount.sub(1);
-
-    await submitGovernanceProposal(
-      submitIncidentCategoryId,
-      defaultAbiCoder.encode(
-        ['uint24', 'uint96', 'uint32', 'uint', 'string'],
-        [ybDaiProductId, parseEther('1.1'), currentTime, parseEther('20000'), 'hashedMetadata'],
-      ),
-      this.abMembers,
-      this.governance,
-    );
-
-    await castAssessmentVote.call(this);
-  });
-
-  it('Create Yield Token Incident for ybUSDC cover', async function () {
-    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-
-    ybUSDCIncidentId = (await this.yieldTokenIncidents.getIncidentsCount()).toNumber();
-
-    const assessmentCountBefore = await this.assessment.getAssessmentsCount();
-    assessmentId = assessmentCountBefore.toString();
-
-    const proposalCategoryCount = await this.proposalCategory.totalCategories();
-    const submitIncidentCategoryId = proposalCategoryCount.sub(1);
-
-    await submitGovernanceProposal(
-      submitIncidentCategoryId,
-      defaultAbiCoder.encode(
-        ['uint24', 'uint96', 'uint32', 'uint', 'string'],
-        [ybUSDCProductId, parseUnits('1.1', 6), currentTime, parseEther('20000'), 'hashedMetadata'],
-      ),
-      this.abMembers,
-      this.governance,
-    );
-
-    await castAssessmentVote.call(this);
-  });
-
-  it('redeem ybDAI cover', async function () {
-    const member = DAI_NXM_HOLDER;
-    const coverBuyer = await getSigner(member);
-
-    const claimedAmount = parseEther('1');
-
-    await ybDAI.mint(member, parseEther('10000000'));
-
-    await ybDAI.connect(coverBuyer).approve(this.yieldTokenIncidents.address, parseEther('10000000'));
-
-    const daiBalanceBefore = await this.dai.balanceOf(member);
-    await this.yieldTokenIncidents
-      .connect(coverBuyer)
-      .redeemPayout(ybDaiIncidentId, ybDaiCoverId, 0, claimedAmount, member, []);
-
-    const daiBalanceAfter = await this.dai.balanceOf(member);
-
-    const priceBefore = parseEther('1.1');
-    const coverAssetDecimals = ethers.BigNumber.from('10').pow(18);
-
-    const { payoutDeductibleRatio } = await this.yieldTokenIncidents.config();
-    const INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR = '10000';
-
-    const ratio = priceBefore.mul(payoutDeductibleRatio);
-
-    const payoutAmount = claimedAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals);
-    const expectedBalanceAfter = daiBalanceBefore.add(payoutAmount);
-
-    expect(daiBalanceAfter).to.be.equal(expectedBalanceAfter);
-  });
-
-  it('redeem ybUSDC cover', async function () {
-    const member = HUGH;
-    const coverBuyer = await getSigner(member);
-
-    const claimedAmount = parseUnits('1000', 6);
-
-    await ybUSDC.mint(member, parseEther('10000000'));
-
-    await ybUSDC.connect(coverBuyer).approve(this.yieldTokenIncidents.address, parseUnits('1000000', 6));
-
-    const usdcBalanceBefore = await this.usdc.balanceOf(member);
-    await this.yieldTokenIncidents
-      .connect(coverBuyer)
-      .redeemPayout(ybUSDCIncidentId, ybUSDCCoverId, 0, claimedAmount, member, []);
-
-    const usdcBalanceAfter = await this.usdc.balanceOf(member);
-
-    const priceBefore = parseEther('1.1');
-    const coverAssetDecimals = ethers.BigNumber.from('10').pow(18);
-
-    const { payoutDeductibleRatio } = await this.yieldTokenIncidents.config();
-    const INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR = '10000';
-
-    const ratio = priceBefore.mul(payoutDeductibleRatio);
-
-    const payoutAmount = claimedAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals);
-    const expectedBalanceAfter = usdcBalanceBefore.add(payoutAmount);
-
-    expect(usdcBalanceAfter).to.be.equal(expectedBalanceAfter);
   });
 
   it('Buy custody cover', async function () {
@@ -1204,9 +873,6 @@ describe('basic functionality tests', function () {
     // CI - IndividualClaims.sol
     const individualClaims = await deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
 
-    // CG - YieldTokenIncidents.sol
-    const yieldTokenIncidents = await deployContract('YieldTokenIncidents', [this.nxm.address, this.coverNFT.address]);
-
     // RA - Ramm.sol
     const ramm = await deployContract('Ramm', ['0']);
 
@@ -1215,19 +881,10 @@ describe('basic functionality tests', function () {
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]'],
         [
-          ['MR', 'MC', 'CO', 'TC', 'PS', 'P1', 'AS', 'CI', 'CG', 'RA'].map(code => toUtf8Bytes(code)),
-          [
-            memberRoles,
-            mcr,
-            cover,
-            tokenController,
-            pooledStaking,
-            pool,
-            assessment,
-            individualClaims,
-            yieldTokenIncidents,
-            ramm,
-          ].map(c => c.address),
+          ['MR', 'MC', 'CO', 'TC', 'PS', 'P1', 'AS', 'CI', 'RA'].map(code => toUtf8Bytes(code)),
+          [memberRoles, mcr, cover, tokenController, pooledStaking, pool, assessment, individualClaims, ramm].map(
+            c => c.address,
+          ),
         ],
       ),
       this.abMembers,
@@ -1240,7 +897,6 @@ describe('basic functionality tests', function () {
     await compareProxyImplementationAddress(this.tokenController.address, tokenController.address);
     await compareProxyImplementationAddress(this.individualClaims.address, individualClaims.address);
     await compareProxyImplementationAddress(this.assessment.address, assessment.address);
-    await compareProxyImplementationAddress(this.yieldTokenIncidents.address, yieldTokenIncidents.address);
     await compareProxyImplementationAddress(this.cover.address, cover.address);
     await compareProxyImplementationAddress(this.ramm.address, ramm.address);
 

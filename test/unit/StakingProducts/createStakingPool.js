@@ -7,7 +7,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
 
-const { AddressZero } = ethers.constants;
+const { emptyBytes } = require('../../utils').helpers;
 
 const product = {
   productId: 200,
@@ -28,7 +28,8 @@ async function createStakingPoolSetup() {
   const { coverProducts, initialProducts } = fixture;
   const coverProductTemplate = {
     productType: 1,
-    yieldTokenAddress: AddressZero,
+    minPrice: 0,
+    __gap: emptyBytes(18),
     coverAssets: 1111,
     initialPriceRatio: 500,
     capacityReductionRatio: 0,

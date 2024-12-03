@@ -5,7 +5,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { createStakingPool, assertCoverFields } = require('./helpers');
 const setup = require('./setup');
 const { setEtherBalance } = require('../utils').evm;
-const { daysToSeconds } = require('../utils').helpers;
+const { daysToSeconds, emptyBytes } = require('../utils').helpers;
 
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
@@ -81,7 +81,8 @@ describe('buyCover', function () {
   // Cover.Product
   const productTemplate = {
     productType: 0,
-    yieldTokenAddress: AddressZero,
+    minPrice: 0,
+    __gap: emptyBytes(18),
     coverAssets: parseInt('111', 2), // ETH/DAI/USDC
     initialPriceRatio: 1000, // 10%
     capacityReductionRatio: capacityFactor, // 100%

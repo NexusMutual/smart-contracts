@@ -18,7 +18,7 @@ const setup = require('./setup');
 
 const { divCeil } = require('../utils').bnMath;
 const { increaseTime } = require('../utils').evm;
-const { daysToSeconds } = require('../utils').helpers;
+const { daysToSeconds, emptyBytes } = require('../utils').helpers;
 
 const { AddressZero, Two, Zero } = ethers.constants;
 const { parseEther } = ethers.utils;
@@ -74,7 +74,8 @@ const buyCoverParamsTemplate = {
 
 const coverProductTemplate = {
   productType: 1,
-  yieldTokenAddress: AddressZero,
+  minPrice: 0,
+  __gap: emptyBytes(18),
   coverAssets: 1111,
   initialPriceRatio: 2000, // 20%
   capacityReductionRatio: 0,

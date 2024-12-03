@@ -2,7 +2,7 @@ const { ethers, accounts } = require('hardhat');
 const { BigNumber } = require('ethers');
 
 const { Role } = require('../utils').constants;
-const { hex } = require('../utils').helpers;
+const { hex, emptyBytes } = require('../utils').helpers;
 
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
@@ -109,7 +109,8 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       product: {
         productType: 0,
-        yieldTokenAddress: AddressZero,
+        minPrice: 0,
+        __gap: emptyBytes(18),
         coverAssets: 0, // use fallback
         initialPriceRatio: 1000, // 10%
         capacityReductionRatio: 0,
@@ -124,7 +125,8 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       product: {
         productType: 0,
-        yieldTokenAddress: '0x0000000000000000000000000000000000000001',
+        minPrice: 0,
+        __gap: emptyBytes(18),
         coverAssets: 0, // use fallback
         initialPriceRatio: 1000, // 10%
         capacityReductionRatio: 0,
@@ -139,7 +141,8 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       product: {
         productType: 0,
-        yieldTokenAddress: AddressZero,
+        minPrice: 0,
+        __gap: emptyBytes(18),
         coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
         initialPriceRatio: 1000, // 10%
         capacityReductionRatio: 0,
@@ -154,7 +157,8 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       product: {
         productType: 0,
-        yieldTokenAddress: AddressZero,
+        minPrice: 0,
+        __gap: emptyBytes(18),
         coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
         initialPriceRatio: 1000, // 10%
         capacityReductionRatio: 0,

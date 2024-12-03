@@ -17,7 +17,9 @@ struct ProductInitializationParams {
 
 struct Product {
   uint16 productType;
-  address yieldTokenAddress;
+  uint16 minPrice;
+  // leftover memory gap from the previously used address field yieldTokenAddress
+  bytes18 __gap;
   // cover assets bitmap. each bit represents whether the asset with
   // the index of that bit is enabled as a cover asset for this product
   uint32 coverAssets;

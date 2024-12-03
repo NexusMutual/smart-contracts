@@ -23,10 +23,6 @@ async function setup() {
   const ramm = await ASMockRamm.deploy();
   await ramm.deployed();
 
-  const ASMockYieldTokenIncidents = await ethers.getContractFactory('ASMockYieldTokenIncidents');
-  const yieldTokenIncidents = await ASMockYieldTokenIncidents.deploy();
-  await yieldTokenIncidents.deployed();
-
   await nxm.setOperator(tokenController.address);
 
   const Master = await ethers.getContractFactory('MasterMock');
@@ -49,22 +45,18 @@ async function setup() {
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setTokenAddress(nxm.address),
     master.setLatestAddress(hex('CI'), individualClaims.address),
-    master.setLatestAddress(hex('CG'), yieldTokenIncidents.address),
     master.setLatestAddress(hex('AS'), assessment.address),
     master.setLatestAddress(hex('MR'), memberRoles.address),
     master.setLatestAddress(hex('RA'), ramm.address),
     master.enrollInternal(individualClaims.address),
-    master.enrollInternal(yieldTokenIncidents.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
   await assessment.changeMasterAddress(master.address);
   await individualClaims.changeMasterAddress(master.address);
-  await yieldTokenIncidents.changeMasterAddress(master.address);
 
   await assessment.changeDependentContractAddress();
   await individualClaims.changeDependentContractAddress();
-  await yieldTokenIncidents.changeDependentContractAddress();
 
   await master.enrollGovernance(accounts.governanceContracts[0].address);
   for (const member of accounts.members) {
@@ -89,7 +81,6 @@ async function setup() {
       assessment,
       master,
       individualClaims,
-      yieldTokenIncidents,
       tokenController,
       memberRoles,
       ramm,

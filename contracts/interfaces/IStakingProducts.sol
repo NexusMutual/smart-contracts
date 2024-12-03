@@ -57,7 +57,7 @@ interface IStakingProducts {
     uint period,
     uint coverAmount,
     uint totalCapacity,
-    uint defaultMinPrice,
+    uint productMinPrice,
     bool useFixedPrice,
     uint nxmPerAllocationUnit
   ) external returns (uint premium);

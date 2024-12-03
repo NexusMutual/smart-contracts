@@ -132,6 +132,28 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     }
   }
 
+  function getMinPrices(
+    uint[] calldata productIds
+  ) external view returns (uint[] memory minPrices) {
+    uint productCount = _products.length;
+    minPrices = new uint[](productIds.length);
+    uint defaultMinPrice = cover().getDefaultMinPriceRatio();
+
+    for (uint i = 0; i < productIds.length; i++) {
+      uint productId = productIds[i];
+
+      if (productId >= productCount) {
+        revert ProductNotFound();
+      }
+
+      if (_products[productId].minPrice == 0) {
+        minPrices[i] = defaultMinPrice;
+      } else {
+        minPrices[i] = _products[productId].minPrice;
+      }
+    }
+  }
+
   function getCapacityReductionRatios(
     uint[] calldata productIds
   ) external view returns (uint[] memory capacityReductionRatios) {
@@ -217,8 +239,15 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
         revert UnsupportedCoverAssets();
       }
 
-      if (product.initialPriceRatio < defaultMinPriceRatio) {
-        revert InitialPriceRatioBelowDefaultMinPriceRatio();
+      if (product.minPrice == 0) {
+        if (product.initialPriceRatio < defaultMinPriceRatio) {
+          revert InitialPriceRatioBelowDefaultMinPriceRatio();
+        }
+      } else {
+        // TODO: define new error here?
+        if (product.initialPriceRatio < product.minPrice) {
+          revert InitialPriceRatioBelowDefaultMinPriceRatio();
+        }
       }
 
       if (product.initialPriceRatio > PRICE_DENOMINATOR) {

@@ -93,4 +93,15 @@ contract SPMockCoverProducts is CoverProductsGeneric {
       reductionRatios[i] = _products[productIds[i]].capacityReductionRatio;
     }
   }
+
+  function getMinPrices(uint[] calldata productIds) external override view returns (uint[] memory minPrices) {
+    minPrices = new uint[](productIds.length);
+    for (uint i = 0; i < productIds.length; i++) {
+      if (_products[productIds[i]].minPrice != 0) {
+        minPrices[i] = _products[productIds[i]].minPrice;
+      } else {
+        minPrices[i] = DEFAULT_MIN_PRICE_RATIO;
+      }
+    }
+  }
 }

@@ -101,6 +101,8 @@ interface ICoverProducts {
 
   function getInitialPrices(uint[] calldata productIds) external view returns (uint[] memory);
 
+  function getMinPrices(uint[] calldata productIds) external view returns (uint[] memory);
+
   function prepareStakingProductsParams(
     ProductInitializationParams[] calldata params
   ) external returns (

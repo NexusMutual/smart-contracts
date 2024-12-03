@@ -17,7 +17,7 @@ struct AllocationRequest {
   uint globalCapacityRatio;
   uint capacityReductionRatio;
   uint rewardRatio;
-  uint defaultMinPrice;
+  uint productMinPrice;
 }
 
 struct BurnStakeParams {

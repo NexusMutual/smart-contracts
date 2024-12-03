@@ -91,12 +91,8 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
       revert InvalidOwnerAddress();
     }
 
-    address signer = _verifySignature(params, executionPeriod, signature);
+    _verifySignature(params, expirationDetails, signature);
 
-    // Ensure the signer is the user who owns the order
-    if (signer != params.owner) {
-      revert InvalidSignature();
-    }
 
     // Ensure the order has not already been executed
     if (executedOrders[signature] == OrderStatus.Executed) {
@@ -123,7 +119,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
     BuyCoverParams calldata params,
     ExecutionPeriod calldata executionPeriod,
     bytes calldata signature
-  ) internal view returns (address) {
+  ) internal view {
 
     // Hash the ExecutionPeriod struct
     bytes32 executionPeriodHash = keccak256(
@@ -152,7 +148,12 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
     bytes32 digest = _hashTypedDataV4(structHash);
 
     // Recover the signer from the digest and the signature
-    return ECDSA.recover(digest, signature);
+    address signer = ECDSA.recover(digest, signature);
+
+    // Ensure the signer is the user who owns the order
+    if (signer != params.owner) {
+      revert InvalidSignature();
+    }
   }
 
   /// @notice Handles ETH/WETH payments for buying cover.

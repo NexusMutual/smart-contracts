@@ -324,14 +324,14 @@ contract SKMockStakingProducts is StakingProductsGeneric, MasterAwareV2, Multica
     uint coverAmount,
     uint initialCapacityUsed,
     uint totalCapacity,
-    uint defaultMinPrice,
+    uint productMinPrice,
     bool useFixedPrice,
     uint nxmPerAllocationUnit,
     uint allocationUnitsPerNXM
   ) public override returns (uint premium) {
 
     StakedProduct memory product = _products[poolId][productId];
-    uint targetPrice = Math.max(product.targetPrice, defaultMinPrice);
+    uint targetPrice = Math.max(product.targetPrice, productMinPrice);
 
     if (useFixedPrice) {
       return calculateFixedPricePremium(period, coverAmount, targetPrice, nxmPerAllocationUnit, TARGET_PRICE_DENOMINATOR);

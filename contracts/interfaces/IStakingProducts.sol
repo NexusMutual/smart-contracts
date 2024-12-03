@@ -58,7 +58,7 @@ interface IStakingProducts {
     uint coverAmount,
     uint initialCapacityUsed,
     uint totalCapacity,
-    uint defaultMinPrice,
+    uint productMinPrice,
     bool useFixedPrice,
     uint nxmPerAllocationUnit,
     uint allocationUnitsPerNxm

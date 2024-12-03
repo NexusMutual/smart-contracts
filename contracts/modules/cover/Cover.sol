@@ -164,7 +164,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
       allocationRequest.capacityReductionRatio = product.capacityReductionRatio;
       allocationRequest.rewardRatio = GLOBAL_REWARDS_RATIO;
-      allocationRequest.defaultMinPrice = DEFAULT_MIN_PRICE_RATIO;
+      if (product.minPrice != 0) {
+        allocationRequest.productMinPrice = product.minPrice;
+      } else {
+        allocationRequest.productMinPrice = DEFAULT_MIN_PRICE_RATIO;
+      }
     }
 
     uint previousSegmentAmount;

@@ -162,7 +162,7 @@ describe('requestAllocation', function () {
   it('should update allocation amount', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
     const { stakingPool, cover } = fixture;
-    const { GLOBAL_CAPACITY_RATIO, GLOBAL_MIN_PRICE_RATIO, GLOBAL_REWARDS_RATIO, NXM_PER_ALLOCATION_UNIT } =
+    const { GLOBAL_CAPACITY_RATIO, DEFAULT_MIN_PRICE_RATIO, GLOBAL_REWARDS_RATIO, NXM_PER_ALLOCATION_UNIT } =
       fixture.config;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const allocationId = await stakingPool.getNextAllocationId();
@@ -181,7 +181,7 @@ describe('requestAllocation', function () {
       globalCapacityRatio: GLOBAL_CAPACITY_RATIO,
       capacityReductionRatio: coverProductTemplate.capacityReductionRatio,
       rewardRatio: GLOBAL_REWARDS_RATIO,
-      globalMinPrice: GLOBAL_MIN_PRICE_RATIO,
+      globalMinPrice: DEFAULT_MIN_PRICE_RATIO,
     };
 
     await cover.requestAllocation(buyCoverParamsTemplate.amount, 0, request, stakingPool.address);

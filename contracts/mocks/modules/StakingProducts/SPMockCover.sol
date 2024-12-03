@@ -47,7 +47,7 @@ contract SPMockCover is CoverGeneric {
   }
 
   function getGlobalMinPriceRatio() public override pure returns (uint) {
-    return GLOBAL_MIN_PRICE_RATIO;
+    return DEFAULT_MIN_PRICE_RATIO;
   }
 
   function getGlobalCapacityRatio() public override pure returns (uint) {
@@ -55,7 +55,7 @@ contract SPMockCover is CoverGeneric {
   }
 
   function getGlobalCapacityAndPriceRatios() public override pure returns (uint, uint) {
-    return (GLOBAL_CAPACITY_RATIO, GLOBAL_MIN_PRICE_RATIO);
+    return (GLOBAL_CAPACITY_RATIO, DEFAULT_MIN_PRICE_RATIO);
   }
 
   // TODO: remove me. see https://github.com/NexusMutual/smart-contracts/issues/1161
@@ -87,7 +87,7 @@ contract SPMockCover is CoverGeneric {
         GLOBAL_CAPACITY_RATIO,
         product.capacityReductionRatio,
         GLOBAL_REWARDS_RATIO,
-        GLOBAL_MIN_PRICE_RATIO
+        DEFAULT_MIN_PRICE_RATIO
       )
     );
 

@@ -110,7 +110,7 @@ interface ICover {
     uint _globalMinPriceRatio
   );
 
-  function GLOBAL_MIN_PRICE_RATIO() external view returns (uint);
+  function DEFAULT_MIN_PRICE_RATIO() external view returns (uint);
 
   /* === MUTATIVE FUNCTIONS ==== */
 

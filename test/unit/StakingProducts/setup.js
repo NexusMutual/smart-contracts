@@ -152,7 +152,7 @@ async function setup() {
     TRANCHE_DURATION: await stakingProducts.TRANCHE_DURATION(),
     GLOBAL_CAPACITY_RATIO: await cover.GLOBAL_CAPACITY_RATIO(),
     GLOBAL_REWARDS_RATIO: await cover.GLOBAL_REWARDS_RATIO(),
-    GLOBAL_MIN_PRICE_RATIO: await cover.GLOBAL_MIN_PRICE_RATIO(),
+    DEFAULT_MIN_PRICE_RATIO: await cover.DEFAULT_MIN_PRICE_RATIO(),
   };
 
   const coverSigner = await ethers.getImpersonatedSigner(cover.address);

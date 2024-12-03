@@ -174,7 +174,7 @@ async function setup() {
   // add products
   await coverProducts.connect(accounts.advisoryBoardMembers[0]).setProducts(products);
 
-  const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
+  const DEFAULT_MIN_PRICE_RATIO = await cover.DEFAULT_MIN_PRICE_RATIO();
   const BUCKET_SIZE = BigNumber.from(7 * 24 * 3600); // 7 days
   const capacityFactor = '20000';
 
@@ -193,7 +193,7 @@ async function setup() {
     capacityFactor,
     stakingProducts,
     coverProducts,
-    config: { GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE },
+    config: { DEFAULT_MIN_PRICE_RATIO, BUCKET_SIZE },
     Assets,
     pooledStakingSigner,
     productTypes,

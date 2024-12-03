@@ -278,12 +278,12 @@ describe('setProducts', function () {
     ).to.be.revertedWithCustomError(coverProducts, 'InitialPriceRatioAbove100Percent');
   });
 
-  it('should revert if initialPriceRatio is below GLOBAL_MIN_PRICE_RATIO', async function () {
+  it('should revert if initialPriceRatio is below DEFAULT_MIN_PRICE_RATIO', async function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
-    const { GLOBAL_MIN_PRICE_RATIO } = fixture.config;
-    const initialPriceRatio = GLOBAL_MIN_PRICE_RATIO - 1;
+    const { DEFAULT_MIN_PRICE_RATIO } = fixture.config;
+    const initialPriceRatio = DEFAULT_MIN_PRICE_RATIO - 1;
     const product = { ...productTemplate, initialPriceRatio };
     const productParams = { ...productParamsTemplate, product };
     await expect(
@@ -291,16 +291,16 @@ describe('setProducts', function () {
     ).to.be.revertedWithCustomError(coverProducts, 'InitialPriceRatioBelowGlobalMinPriceRatio');
   });
 
-  it('should revert if initialPriceRatio is below GLOBAL_MIN_PRICE_RATIO when editing a product', async function () {
+  it('should revert if initialPriceRatio is below DEFAULT_MIN_PRICE_RATIO when editing a product', async function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = 1;
-    const { GLOBAL_MIN_PRICE_RATIO } = fixture.config;
+    const { DEFAULT_MIN_PRICE_RATIO } = fixture.config;
     const productParams = { ...productParamsTemplate };
     await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
     {
-      const initialPriceRatio = GLOBAL_MIN_PRICE_RATIO - 1;
+      const initialPriceRatio = DEFAULT_MIN_PRICE_RATIO - 1;
       const product = { ...productTemplate, initialPriceRatio };
       const productParams = { ...productParamsTemplate, product, productId };
       await expect(

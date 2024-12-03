@@ -111,7 +111,7 @@ async function depositTo(params) {
 async function allocateCapacity({ amount, productId }) {
   const { stakingPool, coverSigner, coverProductTemplate } = this;
 
-  const { GLOBAL_CAPACITY_RATIO, GLOBAL_REWARDS_RATIO, GLOBAL_MIN_PRICE_RATIO } = this.config;
+  const { GLOBAL_CAPACITY_RATIO, GLOBAL_REWARDS_RATIO, DEFAULT_MIN_PRICE_RATIO } = this.config;
 
   const allocationRequest = {
     ...allocationRequestTemplate,
@@ -120,7 +120,7 @@ async function allocateCapacity({ amount, productId }) {
     capacityReductionRatio: coverProductTemplate.capacityReductionRatio,
     useFixedPrice: coverProductTemplate.useFixedPrice,
     rewardRatio: GLOBAL_REWARDS_RATIO,
-    globalMinPrice: GLOBAL_MIN_PRICE_RATIO,
+    globalMinPrice: DEFAULT_MIN_PRICE_RATIO,
   };
 
   await stakingPool.connect(coverSigner).requestAllocation(amount, 0, allocationRequest);

@@ -188,7 +188,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     (
       uint globalCapacityRatio,
-      uint globalMinPriceRatio
+      uint defaultMinPriceRatio
     ) = ICover(coverContract).getGlobalCapacityAndPriceRatios();
 
     uint[] memory initialPriceRatios;
@@ -240,7 +240,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
           revert TargetPriceTooHigh();
         }
 
-        if (_param.targetPrice < globalMinPriceRatio) {
+        if (_param.targetPrice < defaultMinPriceRatio) {
           revert TargetPriceBelowMin();
         }
 
@@ -370,7 +370,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint period,
     uint coverAmount,
     uint totalCapacity,
-    uint globalMinPrice,
+    uint defaultMinPrice,
     bool useFixedPrice,
     uint nxmPerAllocationUnit
   ) public returns (uint premium) {
@@ -380,7 +380,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     }
 
     StakedProduct memory product = _products[poolId][productId];
-    uint targetPrice = Math.max(product.targetPrice, globalMinPrice);
+    uint targetPrice = Math.max(product.targetPrice, defaultMinPrice);
 
     if (useFixedPrice) {
       return calculateFixedPricePremium(coverAmount, period, targetPrice, nxmPerAllocationUnit, TARGET_PRICE_DENOMINATOR);
@@ -518,15 +518,15 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function _setInitialProducts(uint poolId, ProductInitializationParams[] memory params) internal {
 
-    uint globalMinPriceRatio = cover().getGlobalMinPriceRatio();
+    uint defaultMinPriceRatio = cover().getDefaultMinPriceRatio();
     uint totalTargetWeight;
 
     for (uint i = 0; i < params.length; i++) {
 
       ProductInitializationParams memory param = params[i];
 
-      if (params[i].targetPrice < globalMinPriceRatio) {
-        revert TargetPriceBelowGlobalMinPriceRatio();
+      if (params[i].targetPrice < defaultMinPriceRatio) {
+        revert TargetPriceBelowDefaultMinPriceRatio();
       }
 
       if (param.targetPrice > TARGET_PRICE_DENOMINATOR) {

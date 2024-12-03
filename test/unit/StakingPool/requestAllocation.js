@@ -54,7 +54,7 @@ const allocationRequestParams = {
   globalCapacityRatio: 20000,
   capacityReductionRatio: 0,
   rewardRatio: 5000,
-  globalMinPrice: 10000,
+  defaultMinPrice: 10000,
 };
 
 const buyCoverParamsTemplate = {
@@ -181,7 +181,7 @@ describe('requestAllocation', function () {
       globalCapacityRatio: GLOBAL_CAPACITY_RATIO,
       capacityReductionRatio: coverProductTemplate.capacityReductionRatio,
       rewardRatio: GLOBAL_REWARDS_RATIO,
-      globalMinPrice: DEFAULT_MIN_PRICE_RATIO,
+      defaultMinPrice: DEFAULT_MIN_PRICE_RATIO,
     };
 
     await cover.requestAllocation(buyCoverParamsTemplate.amount, 0, request, stakingPool.address);

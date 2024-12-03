@@ -103,11 +103,11 @@ interface ICover {
 
   function getGlobalRewardsRatio() external view returns (uint);
 
-  function getGlobalMinPriceRatio() external pure returns (uint);
+  function getDefaultMinPriceRatio() external pure returns (uint);
 
   function getGlobalCapacityAndPriceRatios() external view returns (
     uint _globalCapacityRatio,
-    uint _globalMinPriceRatio
+    uint _defaultMinPriceRatio
   );
 
   function DEFAULT_MIN_PRICE_RATIO() external view returns (uint);

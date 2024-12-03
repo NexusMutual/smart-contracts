@@ -110,7 +110,7 @@ async function generateRewards(
     globalCapacityRatio: 20000,
     capacityReductionRatio: 0,
     rewardRatio: 5000,
-    globalMinPrice: 10000,
+    defaultMinPrice: 10000,
   };
   await stakingPool.connect(signer).requestAllocation(amount, previousPremium, allocationRequest);
 }

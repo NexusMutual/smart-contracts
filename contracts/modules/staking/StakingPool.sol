@@ -613,7 +613,7 @@ contract StakingPool is IStakingPool, Multicall {
       request.period,
       coverAllocationAmount,
       totalCapacity,
-      request.globalMinPrice,
+      request.defaultMinPrice,
       request.useFixedPrice,
       NXM_PER_ALLOCATION_UNIT
     );

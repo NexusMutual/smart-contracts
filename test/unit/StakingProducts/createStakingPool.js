@@ -269,6 +269,6 @@ describe('createStakingPool', function () {
         products,
         ipfsDescriptionHash,
       ),
-    ).to.be.revertedWithCustomError(stakingProducts, 'TargetPriceBelowGlobalMinPriceRatio');
+    ).to.be.revertedWithCustomError(stakingProducts, 'TargetPriceBelowDefaultMinPriceRatio');
   });
 });

@@ -115,7 +115,7 @@ contract SKMockStakingProducts is StakingProductsGeneric, MasterAwareV2, Multica
     }
 
     uint globalCapacityRatio;
-    uint globalMinPriceRatio;
+    uint defaultMinPriceRatio;
 
     uint[] memory initialPriceRatios;
     uint[] memory capacityReductionRatios;
@@ -135,7 +135,7 @@ contract SKMockStakingProducts is StakingProductsGeneric, MasterAwareV2, Multica
       ICover _cover = ICover(coverContract);
 
       globalCapacityRatio = _cover.getGlobalCapacityRatio();
-      globalMinPriceRatio = _cover.getGlobalMinPriceRatio();
+      defaultMinPriceRatio = _cover.getDefaultMinPriceRatio();
 
       initialPriceRatios = _coverProducts.getInitialPrices(productIds);
       capacityReductionRatios = _coverProducts.getCapacityReductionRatios(productIds);
@@ -166,7 +166,7 @@ contract SKMockStakingProducts is StakingProductsGeneric, MasterAwareV2, Multica
         if (_param.targetPrice > TARGET_PRICE_DENOMINATOR) {
           revert TargetPriceTooHigh();
         }
-        if (_param.targetPrice < globalMinPriceRatio) {
+        if (_param.targetPrice < defaultMinPriceRatio) {
           revert TargetPriceBelowMin();
         }
         _product.targetPrice = _param.targetPrice;
@@ -320,13 +320,13 @@ contract SKMockStakingProducts is StakingProductsGeneric, MasterAwareV2, Multica
     uint period,
     uint coverAmount,
     uint totalCapacity,
-    uint globalMinPrice,
+    uint defaultMinPrice,
     bool useFixedPrice,
     uint nxmPerAllocationUnit
   ) public override returns (uint premium) {
 
     StakedProduct memory product = _products[poolId][productId];
-    uint targetPrice = Math.max(product.targetPrice, globalMinPrice);
+    uint targetPrice = Math.max(product.targetPrice, defaultMinPrice);
 
     if (useFixedPrice) {
       return calculateFixedPricePremium(period, coverAmount, targetPrice, nxmPerAllocationUnit, TARGET_PRICE_DENOMINATOR);

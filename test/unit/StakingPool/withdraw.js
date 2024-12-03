@@ -490,7 +490,7 @@ describe('withdraw', function () {
       globalCapacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 10000, // 1:1
-      globalMinPrice: 10000,
+      defaultMinPrice: 10000,
     };
 
     const poolId = initializeParams.poolId;

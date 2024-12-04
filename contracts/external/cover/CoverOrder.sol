@@ -43,8 +43,8 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
       "uint8 paymentAsset,",
       "uint8 coverAsset,",
       "address owner,",
-      "ExecutionPeriod executionPeriod)",
-      "ExecutionPeriod(uint256 startDate,uint256 endDate)"
+      "ExecutionDetails executionDetails)",
+      "ExecutionDetails(uint256 notBefore,uint256 deadline,uint256 maxPremiumInAsset)"
     )
   );
 
@@ -66,21 +66,25 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
   /// @notice Function only allows users to pay with coverAsset or NXM, this is being checked the Cover contract
   /// @param params Cover buy parameters
   /// @param poolAllocationRequests Pool allocations for the cover
-  /// @param executionPeriod Start and end date when the order can be executed
+  /// @param expirationDetails Start and end date when the order can be executed and max premium in asset
   /// @param signature The signature of the order
   function executeOrder(
     BuyCoverParams calldata params,
     PoolAllocationRequest[] calldata poolAllocationRequests,
-    ExecutionPeriod calldata executionPeriod,
+    ExecutionDetails calldata expirationDetails,
     bytes calldata signature
   ) external payable returns (uint coverId) {
 
-    if (block.timestamp > executionPeriod.endDate) {
+    if (block.timestamp > expirationDetails.deadline) {
       revert OrderExpired();
     }
 
-    if (block.timestamp < executionPeriod.startDate) {
+    if (block.timestamp < expirationDetails.notBefore) {
       revert OrderCannotBeExecutedYet();
+    }
+
+    if (params.maxPremiumInAsset > expirationDetails.maxPremiumInAsset) {
+      revert OrderPriceNotMet();
     }
 
     if(!memberRoles.checkRole(msg.sender, uint(IMemberRoles.Role.Member))) {
@@ -113,20 +117,21 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
 
   /// @notice Handles verification of the order signature
   /// @param params Cover buy parameters
-  /// @param executionPeriod Start and end date when the order can be executed
+  /// @param executionDetails Start and end date when the order can be executed and max premium in asset
   /// @param signature The signature of the order
   function _verifySignature(
     BuyCoverParams calldata params,
-    ExecutionPeriod calldata executionPeriod,
+    ExecutionDetails calldata executionDetails,
     bytes calldata signature
   ) internal view {
 
-    // Hash the ExecutionPeriod struct
-    bytes32 executionPeriodHash = keccak256(
+    // Hash the ExecutionDetails struct
+    bytes32 executionDetailsHash = keccak256(
       abi.encode(
-        keccak256("ExecutionPeriod(uint256 startDate,uint256 endDate)"),
-        executionPeriod.startDate,
-        executionPeriod.endDate
+        keccak256("ExecutionDetails(uint256 notBefore,uint256 deadline,uint256 maxPremiumInAsset)"),
+        executionDetails.notBefore,
+        executionDetails.deadline,
+        executionDetails.maxPremiumInAsset
       )
     );
 
@@ -140,7 +145,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
         params.paymentAsset,
         params.coverAsset,
         params.owner,
-        executionPeriodHash
+        executionDetailsHash
       )
     );
 

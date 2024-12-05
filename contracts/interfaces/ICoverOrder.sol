@@ -37,14 +37,17 @@ interface ICoverOrder {
 
   /* ==== EVENTS ==== */
 
-  event OrderExecuted(address owner, uint coverId);
+  event OrderExecuted(address owner, uint coverId, bytes signature);
+  event OrderCancelled(bytes signature);
 
   /* ==== ERRORS ==== */
 
   error OrderAlreadyExecuted();
+  error OrderAlreadyCancelled();
   error OrderExpired();
   error OrderCannotBeExecutedYet();
   error OrderPriceNotMet();
+  error NotOrderOwner();
   error NotAMember();
   error InvalidSignature();
   error InvalidOwnerAddress();

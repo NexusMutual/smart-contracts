@@ -20,7 +20,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
   using SafeERC20 for IERC20;
 
   /* ========== STATE VARIABLES ========== */
-  mapping(bytes => OrderStatus) public executedOrders;
+  mapping(bytes => OrderStatus) public orderStatus;
 
   /* ========== IMMUTABLES ========== */
   ICover public immutable cover;
@@ -97,22 +97,50 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
 
     _verifySignature(params, expirationDetails, signature);
 
-
     // Ensure the order has not already been executed
-    if (executedOrders[signature] == OrderStatus.Executed) {
+    if (orderStatus[signature] == OrderStatus.Executed) {
       revert OrderAlreadyExecuted();
     }
 
+    // Ensure the order is not cancelled
+    if (orderStatus[signature] == OrderStatus.Cancelled) {
+      revert OrderAlreadyCancelled();
+    }
+
     // Mark the order as executed
-    executedOrders[signature] = OrderStatus.Executed;
+    orderStatus[signature] = OrderStatus.Executed;
 
     // ETH payment
     if (params.paymentAsset == ETH_ASSET_ID) {
-      return _buyCoverEthPayment(params, poolAllocationRequests);
+      coverId = _buyCoverEthPayment(params, poolAllocationRequests);
+    } else {
+      // ERC20 payment
+      coverId = _buyCoverErc20Payment(params, poolAllocationRequests);
     }
 
-    // ERC20 payment
-    return _buyCoverErc20Payment(params, poolAllocationRequests);
+    // Emit event
+    emit OrderExecuted(params.owner, coverId, signature);
+
+  }
+
+  function cancelOrder(
+    BuyCoverParams calldata params,
+    ExecutionDetails calldata expirationDetails,
+    bytes calldata signature
+  ) external {
+
+    if (orderStatus[signature] == OrderStatus.Executed) {
+      revert OrderAlreadyExecuted();
+    }
+
+    if (params.owner != msg.sender) {
+      revert NotOrderOwner();
+    }
+
+    _verifySignature(params, expirationDetails, signature);
+
+    orderStatus[signature] = OrderStatus.Cancelled;
+    emit OrderCancelled(signature);
   }
 
   /// @notice Handles verification of the order signature
@@ -191,10 +219,9 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
       if (!sent) {
         revert TransferFailed(msg.sender, ethRefund, ETH);
       }
-    }
 
-    // Emit event
-    emit OrderExecuted(params.owner, coverId);
+      return coverId;
+    }
   }
 
   /// @notice Handles ERC20 payments for buying cover.
@@ -224,8 +251,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
       erc20.safeTransfer(params.owner, erc20Refund);
     }
 
-    // Emit event
-    emit OrderExecuted(params.owner, coverId);
+    return coverId;
   }
 
   /// @notice Allows the Cover contract to spend the maximum possible amount of a specified ERC20 token on behalf of the CoverOrder.

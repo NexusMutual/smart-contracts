@@ -190,13 +190,11 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       revert OnlyManager();
     }
 
-    (
-      uint globalCapacityRatio,
-      uint globalMinPriceRatio
-    ) = ICover(coverContract).getGlobalCapacityAndPriceRatios();
+    (uint globalCapacityRatio,) = ICover(coverContract).getGlobalCapacityAndPriceRatios();
 
     uint[] memory initialPriceRatios;
     uint[] memory capacityReductionRatios;
+    uint[] memory minPriceRatios;
 
     {
       uint numProducts = params.length;
@@ -213,6 +211,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
       initialPriceRatios = _coverProducts.getInitialPrices(productIds);
       capacityReductionRatios = _coverProducts.getCapacityReductionRatios(productIds);
+      minPriceRatios = _coverProducts.getMinPrices(productIds);
     }
 
     Weights memory _weights = weights[poolId];
@@ -244,7 +243,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
           revert TargetPriceTooHigh();
         }
 
-        if (_param.targetPrice < globalMinPriceRatio) {
+        if (_param.targetPrice < minPriceRatios[i]) {
           revert TargetPriceBelowMin();
         }
 
@@ -375,7 +374,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint coverAmount,
     uint initialCapacityUsed,
     uint totalCapacity,
-    uint globalMinPrice,
+    uint productMinPrice,
     bool useFixedPrice,
     uint nxmPerAllocationUnit,
     uint allocationUnitsPerNXM
@@ -386,7 +385,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     }
 
     StakedProduct memory product = _products[poolId][productId];
-    uint targetPrice = Math.max(product.targetPrice, globalMinPrice);
+    uint targetPrice = Math.max(product.targetPrice, productMinPrice);
 
     if (useFixedPrice) {
       return calculateFixedPricePremium(coverAmount, period, targetPrice, nxmPerAllocationUnit, TARGET_PRICE_DENOMINATOR);
@@ -617,15 +616,15 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function _setInitialProducts(uint poolId, ProductInitializationParams[] memory params) internal {
 
-    uint globalMinPriceRatio = cover().getGlobalMinPriceRatio();
+    uint defaultMinPriceRatio = cover().getDefaultMinPriceRatio();
     uint totalTargetWeight;
 
     for (uint i = 0; i < params.length; i++) {
 
       ProductInitializationParams memory param = params[i];
 
-      if (params[i].targetPrice < globalMinPriceRatio) {
-        revert TargetPriceBelowGlobalMinPriceRatio();
+      if (params[i].targetPrice < defaultMinPriceRatio) {
+        revert TargetPriceBelowDefaultMinPriceRatio();
       }
 
       if (param.targetPrice > TARGET_PRICE_DENOMINATOR) {

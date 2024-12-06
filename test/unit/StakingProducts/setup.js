@@ -5,6 +5,7 @@ const { getAccounts } = require('../utils').accounts;
 const { setEtherBalance } = require('../utils').evm;
 const { Role } = require('../utils').constants;
 const { hex, emptyBytes } = require('../utils').helpers;
+const { MaxUint256 } = ethers.constants;
 
 const { parseEther, getContractAddress } = ethers.utils;
 
@@ -23,6 +24,11 @@ const coverProductTemplate = {
   initialPriceRatio: 500,
   capacityReductionRatio: 0,
   useFixedPrice: false,
+};
+
+const productWithMinPrice = {
+  ...coverProductTemplate,
+  minPrice: 10, // 0.1%
 };
 
 const ProductTypeFixture = {
@@ -144,6 +150,12 @@ async function setup() {
     }),
   );
 
+  // set product with minPrice
+  const expectedProductId = await coverProducts.getProductCount();
+  await coverProducts.setProduct(productWithMinPrice, MaxUint256);
+  await coverProducts.setProductType(ProductTypeFixture, expectedProductId);
+  await coverProducts.setPoolAllowed(expectedProductId, poolId, true);
+
   const config = {
     PRICE_CHANGE_PER_DAY: await stakingProducts.PRICE_CHANGE_PER_DAY(),
     PRICE_BUMP_RATIO: await stakingProducts.PRICE_BUMP_RATIO(),
@@ -162,7 +174,7 @@ async function setup() {
     TRANCHE_DURATION: await stakingProducts.TRANCHE_DURATION(),
     GLOBAL_CAPACITY_RATIO: await cover.GLOBAL_CAPACITY_RATIO(),
     GLOBAL_REWARDS_RATIO: await cover.GLOBAL_REWARDS_RATIO(),
-    GLOBAL_MIN_PRICE_RATIO: await cover.GLOBAL_MIN_PRICE_RATIO(),
+    DEFAULT_MIN_PRICE_RATIO: await cover.DEFAULT_MIN_PRICE_RATIO(),
   };
 
   const coverSigner = await ethers.getImpersonatedSigner(cover.address);

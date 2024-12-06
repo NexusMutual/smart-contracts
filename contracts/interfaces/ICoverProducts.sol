@@ -101,6 +101,8 @@ interface ICoverProducts {
 
   function getInitialPrices(uint[] calldata productIds) external view returns (uint[] memory);
 
+  function getMinPrices(uint[] calldata productIds) external view returns (uint[] memory);
+
   function prepareStakingProductsParams(
     ProductInitializationParams[] calldata params
   ) external returns (
@@ -129,7 +131,7 @@ interface ICoverProducts {
 
   // Misc
   error UnsupportedCoverAssets();
-  error InitialPriceRatioBelowGlobalMinPriceRatio();
+  error InitialPriceRatioBelowDefaultMinPriceRatio();
   error InitialPriceRatioAbove100Percent();
   error CapacityReductionRatioAbove100Percent();
 

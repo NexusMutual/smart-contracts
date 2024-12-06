@@ -276,7 +276,7 @@ describe('depositTo', function () {
       globalCapacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 5000,
-      globalMinPrice: 10000,
+      productMinPrice: 10000,
     };
 
     const { firstActiveTrancheId } = await getTranches(allocationRequest.period, allocationRequest.gracePeriod);
@@ -342,7 +342,7 @@ describe('depositTo', function () {
       globalCapacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 5000,
-      globalMinPrice: 10000,
+      productMinPrice: 10000,
     };
 
     const { firstActiveTrancheId } = await getTranches(allocationRequest.period, allocationRequest.gracePeriod);
@@ -400,7 +400,7 @@ describe('depositTo', function () {
       globalCapacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 5000,
-      globalMinPrice: 10000,
+      productMinPrice: 10000,
     };
 
     const { firstActiveTrancheId } = await getTranches(allocationRequest.period, allocationRequest.gracePeriod);

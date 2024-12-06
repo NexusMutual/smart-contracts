@@ -6,6 +6,8 @@ import "../../interfaces/ICoverProducts.sol";
 
 contract CoverProductsGeneric is ICoverProducts {
 
+  uint public constant DEFAULT_MIN_PRICE_RATIO = 100; // 1%
+
   /* ========== VIEWS ========== */
 
   function getProductType(uint) external virtual view returns (ProductType memory) {
@@ -82,6 +84,10 @@ contract CoverProductsGeneric is ICoverProducts {
   }
 
   function getInitialPrices(uint[] calldata) external virtual view returns (uint[] memory) {
+    revert("Unsupported");
+  }
+
+  function getMinPrices(uint[] calldata) external view virtual returns (uint[] memory) {
     revert("Unsupported");
   }
 

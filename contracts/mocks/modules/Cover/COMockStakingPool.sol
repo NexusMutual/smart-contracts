@@ -27,7 +27,7 @@ contract COMockStakingPool is StakingPoolGeneric {
 
   uint public constant MAX_PRICE_RATIO = 10_000;
   uint constant REWARDS_DENOMINATOR = 10_000;
-  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+  uint public constant DEFAULT_MIN_PRICE_RATIO = 100; // 1%
   uint public constant ONE_NXM = 1 ether;
   uint public constant ALLOCATION_UNITS_PER_NXM = 100;
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;

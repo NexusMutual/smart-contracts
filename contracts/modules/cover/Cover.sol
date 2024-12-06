@@ -67,7 +67,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   uint public constant MAX_COMMISSION_RATIO = 3000; // 30%
 
-  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+  uint public constant DEFAULT_MIN_PRICE_RATIO = 100; // 1%
 
   uint private constant ONE_NXM = 1e18;
 
@@ -164,7 +164,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
       allocationRequest.capacityReductionRatio = product.capacityReductionRatio;
       allocationRequest.rewardRatio = GLOBAL_REWARDS_RATIO;
-      allocationRequest.globalMinPrice = GLOBAL_MIN_PRICE_RATIO;
+      if (product.minPrice != 0) {
+        allocationRequest.productMinPrice = product.minPrice;
+      } else {
+        allocationRequest.productMinPrice = DEFAULT_MIN_PRICE_RATIO;
+      }
     }
 
     uint previousSegmentAmount;
@@ -638,16 +642,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return GLOBAL_REWARDS_RATIO;
   }
 
-  function getGlobalMinPriceRatio() external pure returns (uint) {
-    return GLOBAL_MIN_PRICE_RATIO;
+  function getDefaultMinPriceRatio() external pure returns (uint) {
+    return DEFAULT_MIN_PRICE_RATIO;
   }
 
   function getGlobalCapacityAndPriceRatios() external pure returns (
     uint _globalCapacityRatio,
-    uint _globalMinPriceRatio
+    uint _defaultMinPriceRatio
   ) {
     _globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
-    _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
+    _defaultMinPriceRatio = DEFAULT_MIN_PRICE_RATIO;
   }
 
   function isCoverAssetSupported(uint assetId, uint productCoverAssetsBitmap) internal view returns (bool) {

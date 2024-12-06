@@ -58,7 +58,7 @@ interface IStakingProducts {
     uint coverAmount,
     uint initialCapacityUsed,
     uint totalCapacity,
-    uint globalMinPrice,
+    uint productMinPrice,
     bool useFixedPrice,
     uint nxmPerAllocationUnit,
     uint allocationUnitsPerNxm
@@ -149,7 +149,7 @@ interface IStakingProducts {
   // Staking Pool creation
   error ProductDoesntExistOrIsDeprecated();
   error InvalidProductType();
-  error TargetPriceBelowGlobalMinPriceRatio();
+  error TargetPriceBelowDefaultMinPriceRatio();
 
   // IPFS
   error IpfsHashRequired();

@@ -279,34 +279,34 @@ describe('setProducts', function () {
     ).to.be.revertedWithCustomError(coverProducts, 'InitialPriceRatioAbove100Percent');
   });
 
-  it('should revert if initialPriceRatio is below GLOBAL_MIN_PRICE_RATIO', async function () {
+  it('should revert if initialPriceRatio is below DEFAULT_MIN_PRICE_RATIO', async function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
-    const { GLOBAL_MIN_PRICE_RATIO } = fixture.config;
-    const initialPriceRatio = GLOBAL_MIN_PRICE_RATIO - 1;
+    const { DEFAULT_MIN_PRICE_RATIO } = fixture.config;
+    const initialPriceRatio = DEFAULT_MIN_PRICE_RATIO - 1;
     const product = { ...productTemplate, initialPriceRatio };
     const productParams = { ...productParamsTemplate, product };
     await expect(
       coverProducts.connect(advisoryBoardMember0).setProducts([productParams]),
-    ).to.be.revertedWithCustomError(coverProducts, 'InitialPriceRatioBelowGlobalMinPriceRatio');
+    ).to.be.revertedWithCustomError(coverProducts, 'InitialPriceRatioBelowDefaultMinPriceRatio');
   });
 
-  it('should revert if initialPriceRatio is below GLOBAL_MIN_PRICE_RATIO when editing a product', async function () {
+  it('should revert if initialPriceRatio is below DEFAULT_MIN_PRICE_RATIO when editing a product', async function () {
     const fixture = await loadFixture(setup);
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
     const productId = 1;
-    const { GLOBAL_MIN_PRICE_RATIO } = fixture.config;
+    const { DEFAULT_MIN_PRICE_RATIO } = fixture.config;
     const productParams = { ...productParamsTemplate };
     await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
     {
-      const initialPriceRatio = GLOBAL_MIN_PRICE_RATIO - 1;
+      const initialPriceRatio = DEFAULT_MIN_PRICE_RATIO - 1;
       const product = { ...productTemplate, initialPriceRatio };
       const productParams = { ...productParamsTemplate, product, productId };
       await expect(
         coverProducts.connect(advisoryBoardMember0).setProducts([productParams]),
-      ).to.be.revertedWithCustomError(coverProducts, 'InitialPriceRatioBelowGlobalMinPriceRatio');
+      ).to.be.revertedWithCustomError(coverProducts, 'InitialPriceRatioBelowDefaultMinPriceRatio');
     }
   });
 
@@ -413,5 +413,28 @@ describe('setProducts', function () {
     const productsCount = await coverProducts.getProductCount();
     const productName = await coverProducts.getProductName(productsCount.sub(1));
     expect(productName).to.be.equal(expectedProductName);
+  });
+
+  it('should set a product with minPrice', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+
+    const expectedProductMinPrice = 100;
+
+    const productParams = {
+      ...productParamsTemplate,
+      product: {
+        ...productTemplate,
+        minPrice: expectedProductMinPrice,
+      },
+    };
+
+    await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
+
+    const productsCount = await coverProducts.getProductCount();
+    const product = await coverProducts.getProduct(productsCount.sub(1));
+
+    expect(product.minPrice).to.be.equal(expectedProductMinPrice);
   });
 });

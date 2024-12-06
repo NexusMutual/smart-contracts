@@ -195,7 +195,7 @@ async function setup() {
     },
   ]);
 
-  const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
+  const DEFAULT_MIN_PRICE_RATIO = await cover.DEFAULT_MIN_PRICE_RATIO();
   const MAX_COMMISSION_RATIO = await cover.MAX_COMMISSION_RATIO();
   const BUCKET_SIZE = BigNumber.from(7 * 24 * 3600); // 7 days
   const capacityFactor = '20000';
@@ -216,7 +216,7 @@ async function setup() {
     stakingPoolFactory,
     stakingProducts,
     coverProducts,
-    config: { GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO },
+    config: { DEFAULT_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO },
     Assets,
     pooledStakingSigner,
   };

@@ -413,4 +413,27 @@ describe('setProducts', function () {
     const productName = await coverProducts.getProductName(productsCount.sub(1));
     expect(productName).to.be.equal(expectedProductName);
   });
+
+  it('should set a product with minPrice', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+
+    const expectedProductMinPrice = 100;
+
+    const productParams = {
+      ...productParamsTemplate,
+      product: {
+        ...productTemplate,
+        minPrice: expectedProductMinPrice,
+      },
+    };
+
+    await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
+
+    const productsCount = await coverProducts.getProductCount();
+    const product = await coverProducts.getProduct(productsCount.sub(1));
+
+    expect(product.minPrice).to.be.equal(expectedProductMinPrice);
+  });
 });

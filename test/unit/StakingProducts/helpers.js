@@ -50,6 +50,11 @@ const newProductTemplate = {
   targetPrice: 500,
 };
 
+const newProductWithMinPriceTemplate = {
+  ...newProductTemplate,
+  productId: 200,
+};
+
 const burnStakeParams = {
   allocationId: 1,
   productId: 1,
@@ -120,7 +125,7 @@ async function allocateCapacity({ amount, productId }) {
     capacityReductionRatio: coverProductTemplate.capacityReductionRatio,
     useFixedPrice: coverProductTemplate.useFixedPrice,
     rewardRatio: GLOBAL_REWARDS_RATIO,
-    defaultMinPrice: DEFAULT_MIN_PRICE_RATIO,
+    productMinPrice: DEFAULT_MIN_PRICE_RATIO,
   };
 
   await stakingPool.connect(coverSigner).requestAllocation(amount, 0, allocationRequest);
@@ -164,6 +169,7 @@ module.exports = {
   allocateCapacity,
   initialProductTemplate,
   newProductTemplate,
+  newProductWithMinPriceTemplate,
   buyCoverParamsTemplate,
   setStakedProducts,
   burnStake,

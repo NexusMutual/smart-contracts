@@ -2,7 +2,13 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { verifyProduct, depositTo, daysToSeconds, newProductTemplate } = require('./helpers');
+const {
+  verifyProduct,
+  depositTo,
+  daysToSeconds,
+  newProductTemplate,
+  newProductWithMinPriceTemplate,
+} = require('./helpers');
 const { increaseTime, setEtherBalance } = require('../utils').evm;
 const setup = require('./setup');
 
@@ -408,13 +414,27 @@ describe('setProducts unit tests', function () {
     );
   });
 
-  it('should fail with targetPrice below global min price ratio', async function () {
+  it('should fail with targetPrice below default min price ratio', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture;
     const { DEFAULT_MIN_PRICE_RATIO } = fixture.config;
     const [manager] = fixture.accounts.members;
 
     const product = { ...newProductTemplate, targetPrice: DEFAULT_MIN_PRICE_RATIO - 1 };
+    await expect(stakingProducts.connect(manager).setProducts(poolId, [product])).to.be.revertedWithCustomError(
+      stakingProducts,
+      'TargetPriceBelowMin',
+    );
+  });
+
+  it('reverts if product target price is too low for product with minPrice configured', async function () {
+    const fixture = await loadFixture(setup);
+    const { stakingProducts, coverProducts } = fixture;
+    const [manager] = fixture.accounts.members;
+
+    const [productMinPrice] = await coverProducts.getMinPrices([newProductWithMinPriceTemplate.productId]);
+    const product = { ...newProductWithMinPriceTemplate, targetPrice: productMinPrice - 1 };
+
     await expect(stakingProducts.connect(manager).setProducts(poolId, [product])).to.be.revertedWithCustomError(
       stakingProducts,
       'TargetPriceBelowMin',

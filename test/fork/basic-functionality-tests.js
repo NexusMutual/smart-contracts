@@ -30,9 +30,6 @@ const ASSESSMENT_VOTER_COUNT = 3;
 const { USDC_ADDRESS } = Address;
 const { NXM_WHALE_1, NXM_WHALE_2, DAI_NXM_HOLDER, NXMHOLDER, DAI_HOLDER, HUGH } = UserAddress;
 
-let ybDaiProductId;
-let ybUSDCProductId;
-let ybEthProductId;
 let custodyProductId, custodyCoverId;
 let protocolProductId, protocolCoverId;
 let assessmentId, requestedClaimAmount, claimDeposit;
@@ -352,24 +349,6 @@ describe('basic functionality tests', function () {
   it('Create StakingPool', async function () {
     const manager = this.manager;
     const products = [
-      {
-        productId: ybDaiProductId, // ybDAI
-        weight: 100,
-        initialPrice: 1000,
-        targetPrice: 1000,
-      },
-      {
-        productId: ybUSDCProductId, // ybUSDC
-        weight: 100,
-        initialPrice: 1000,
-        targetPrice: 1000,
-      },
-      {
-        productId: ybEthProductId, // ybETH
-        weight: 100,
-        initialPrice: 1000,
-        targetPrice: 1000,
-      },
       {
         productId: custodyProductId,
         weight: 100,

@@ -239,15 +239,9 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
         revert UnsupportedCoverAssets();
       }
 
-      if (product.minPrice == 0) {
-        if (product.initialPriceRatio < defaultMinPriceRatio) {
-          revert InitialPriceRatioBelowDefaultMinPriceRatio();
-        }
-      } else {
-        // TODO: define new error here?
-        if (product.initialPriceRatio < product.minPrice) {
-          revert InitialPriceRatioBelowDefaultMinPriceRatio();
-        }
+      uint256 minPrice = product.minPrice == 0 ? defaultMinPriceRatio : product.minPrice;
+      if (product.initialPriceRatio < minPrice) {
+        revert InitialPriceRatioBelowMinPriceRatio();
       }
 
       if (product.initialPriceRatio > PRICE_DENOMINATOR) {

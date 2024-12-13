@@ -4,7 +4,7 @@ const { expect } = require('chai');
 const { getAccounts } = require('../utils').accounts;
 const { setEtherBalance } = require('../utils').evm;
 const { Role } = require('../utils').constants;
-const { hex, emptyBytes } = require('../utils').helpers;
+const { hex } = require('../utils').helpers;
 
 const { parseEther, getContractAddress } = ethers.utils;
 
@@ -18,7 +18,7 @@ const initialProductTemplate = {
 const coverProductTemplate = {
   productType: 1,
   minPrice: 0,
-  __gap: emptyBytes(18),
+  __gap: 0,
   coverAssets: 1111,
   initialPriceRatio: 500,
   capacityReductionRatio: 0,

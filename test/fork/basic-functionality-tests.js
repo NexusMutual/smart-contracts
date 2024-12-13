@@ -17,7 +17,7 @@ const {
 } = require('./utils');
 
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-const { daysToSeconds, emptyBytes } = require('../../lib/helpers');
+const { daysToSeconds } = require('../../lib/helpers');
 const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
 const VariableDebtTokenAbi = require('./abi/aave/VariableDebtToken.json');
 const { InternalContractsIDs } = require('../utils').constants;
@@ -306,7 +306,7 @@ describe('basic functionality tests', function () {
         product: {
           productType: 0,
           minPrice: 0,
-          __gap: emptyBytes(18),
+          __gap: 0,
           coverAssets: 0,
           initialPriceRatio: 100,
           capacityReductionRatio: 0,
@@ -333,7 +333,7 @@ describe('basic functionality tests', function () {
         product: {
           productType: 1,
           minPrice: 0,
-          __gap: emptyBytes(18),
+          __gap: 0,
           coverAssets: 0,
           initialPriceRatio: 100,
           capacityReductionRatio: 0,

@@ -3,7 +3,6 @@ const { ethers } = require('hardhat');
 const { ASSET } = require('./helpers');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
-const { emptyBytes } = require('../../utils').helpers;
 
 const { parseEther } = ethers.utils;
 
@@ -81,7 +80,7 @@ async function setup() {
   const productTemplate = {
     productType: '0',
     minPrice: 0,
-    __gap: emptyBytes(18),
+    __gap: 0,
     coverAssets: '1',
     initialPriceRatio: '0',
     capacityReductionRatio: '0',

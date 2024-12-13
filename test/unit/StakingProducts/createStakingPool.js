@@ -7,8 +7,6 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
 
-const { emptyBytes } = require('../../utils').helpers;
-
 const product = {
   productId: 200,
   weight: 100,
@@ -29,7 +27,7 @@ async function createStakingPoolSetup() {
   const coverProductTemplate = {
     productType: 1,
     minPrice: 0,
-    __gap: emptyBytes(18),
+    __gap: 0,
     coverAssets: 1111,
     initialPriceRatio: 500,
     capacityReductionRatio: 0,

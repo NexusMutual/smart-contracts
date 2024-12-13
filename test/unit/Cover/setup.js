@@ -5,7 +5,7 @@ const { BigNumber } = require('ethers');
 const { getAccounts } = require('../../utils/accounts');
 
 const { Role } = require('../utils').constants;
-const { hex, emptyBytes } = require('../utils').helpers;
+const { hex } = require('../utils').helpers;
 
 const { MaxUint256 } = ethers.constants;
 const { getContractAddress, parseEther } = ethers.utils;
@@ -136,7 +136,7 @@ async function setup() {
       product: {
         productType: '0',
         minPrice: 0,
-        __gap: emptyBytes(18),
+        __gap: 0,
         coverAssets: 0, // use fallback
         initialPriceRatio: '1000', // 10%
         capacityReductionRatio: '0',
@@ -152,7 +152,7 @@ async function setup() {
       product: {
         productType: '0',
         minPrice: 0,
-        __gap: emptyBytes(18),
+        __gap: 0,
         coverAssets: 0, // use fallback
         initialPriceRatio: '1000', // 10%
         capacityReductionRatio: '0',
@@ -168,7 +168,7 @@ async function setup() {
       product: {
         productType: '0',
         minPrice: 0,
-        __gap: emptyBytes(18),
+        __gap: 0,
         coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
         initialPriceRatio: '1000', // 10%
         capacityReductionRatio: '0',
@@ -184,7 +184,7 @@ async function setup() {
       product: {
         productType: '0',
         minPrice: 0,
-        __gap: emptyBytes(18),
+        __gap: 0,
         coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
         initialPriceRatio: '1000', // 10%
         capacityReductionRatio: '0',

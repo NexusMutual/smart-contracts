@@ -5,7 +5,6 @@ const setup = require('./setup');
 
 const { resultAsObject } = require('../utils').results;
 const { MaxUint256 } = ethers.constants;
-const { emptyBytes } = require('../utils').helpers;
 
 describe('setProducts', function () {
   const priceDenominator = 10000;
@@ -16,7 +15,7 @@ describe('setProducts', function () {
   const productTemplate = {
     productType: 0,
     minPrice: 0,
-    __gap: emptyBytes(18),
+    __gap: 0,
     coverAssets: parseInt('111', 2), // ETH/DAI/USDC
     initialPriceRatio: 1000, // 10%
     capacityReductionRatio: capacityFactor, // 100%

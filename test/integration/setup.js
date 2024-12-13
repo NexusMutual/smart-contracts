@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 
 const { AggregatorType, Assets, ContractTypes } = require('../utils').constants;
-const { toBytes2, emptyBytes } = require('../utils').helpers;
+const { toBytes2 } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
 const { enrollMember, enrollABMember, getGovernanceSigner } = require('./utils/enroll');
 const { getAccounts } = require('../utils/accounts');
@@ -408,7 +408,7 @@ async function setup() {
     product: {
       productType: 0, // Protocol Cover
       minPrice: 0,
-      __gap: emptyBytes(18),
+      __gap: 0,
       coverAssets: 0, // Use fallback
       initialPriceRatio: 100,
       capacityReductionRatio: 0,
@@ -610,7 +610,7 @@ async function setup() {
       product: {
         productType: 1, // Custody Cover
         minPrice: 0,
-        __gap: emptyBytes(18),
+        __gap: 0,
         coverAssets: 0, // Use fallback
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
@@ -625,7 +625,7 @@ async function setup() {
       product: {
         productType: 2, // Yield Token Cover
         minPrice: 0,
-        __gap: emptyBytes(18),
+        __gap: 0,
         coverAssets: 0b01, // ETH
         initialPriceRatio: 500,
         capacityReductionRatio: 0,
@@ -640,7 +640,7 @@ async function setup() {
       product: {
         productType: 2, // Yield Token Cover
         minPrice: 0,
-        __gap: emptyBytes(18),
+        __gap: 0,
         coverAssets: 0b10, // DAI
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
@@ -655,7 +655,7 @@ async function setup() {
       product: {
         productType: 0, // Protocol Cover
         minPrice: 0,
-        __gap: emptyBytes(18),
+        __gap: 0,
         coverAssets: 0, // Use fallback
         initialPriceRatio: 500,
         capacityReductionRatio: 0,
@@ -670,7 +670,7 @@ async function setup() {
       product: {
         productType: 2, // Yield Token Cover
         minPrice: 0,
-        __gap: emptyBytes(18),
+        __gap: 0,
         coverAssets: 0b10000, // USDC
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
@@ -685,7 +685,7 @@ async function setup() {
       product: {
         productType: 0, // Protocol Cover
         minPrice: 0,
-        __gap: emptyBytes(18),
+        __gap: 0,
         coverAssets: 0b10000, // use usdc
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
@@ -700,7 +700,7 @@ async function setup() {
       product: {
         productType: 0, // Protocol Cover
         minPrice: 0,
-        __gap: emptyBytes(18),
+        __gap: 0,
         coverAssets: 0, // Use fallback
         initialPriceRatio: 100,
         capacityReductionRatio: 0,

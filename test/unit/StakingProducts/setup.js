@@ -46,7 +46,7 @@ async function setup() {
 
   const nonce = await accounts.defaultSender.getTransactionCount();
   const expectedStakingProductsAddress = getContractAddress({ from: accounts.defaultSender.address, nonce: nonce + 2 });
-  const expectedCoverAddress = getContractAddress({ from: accounts.defaultSender.address, nonce: nonce + 5 });
+  const expectedCoverAddress = getContractAddress({ from: accounts.defaultSender.address, nonce: nonce + 4 });
   const coverNFT = await ethers.deployContract('CoverNFT', [
     'CoverNFT',
     'CNFT',
@@ -61,21 +61,14 @@ async function setup() {
   ]);
   expect(stakingProducts.address).to.equal(expectedStakingProductsAddress);
 
-  const stakingExtrasLib = await ethers.deployContract('StakingExtrasLib');
-  await stakingExtrasLib.deployed();
-
-  const stakingPoolImplementation = await ethers.deployContract(
-    'StakingPool',
-    [
-      stakingNFT.address,
-      nxm.address,
-      expectedCoverAddress,
-      tokenController.address,
-      master.address,
-      stakingProducts.address,
-    ],
-    { libraries: { StakingExtrasLib: stakingExtrasLib.address } },
-  );
+  const stakingPoolImplementation = await ethers.deployContract('StakingPool', [
+    stakingNFT.address,
+    nxm.address,
+    expectedCoverAddress,
+    tokenController.address,
+    master.address,
+    stakingProducts.address,
+  ]);
 
   const cover = await ethers.deployContract('SPMockCover', [
     coverNFT.address,

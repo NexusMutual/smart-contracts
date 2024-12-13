@@ -90,6 +90,7 @@ describe('CoverBroker', function () {
     this.quotationData = await ethers.getContractAt('LegacyQuotationData', addresses.LegacyQuotationData);
     this.newClaimsReward = await ethers.getContractAt('LegacyClaimsReward', addresses.LegacyClaimsReward);
     this.proposalCategory = await ethers.getContractAt('ProposalCategory', addresses.ProposalCategory);
+    this.yieldTokenIncidents = await ethers.getContractAt('YieldTokenIncidents', addresses.YieldTokenIncidents);
     this.pooledStaking = await ethers.getContractAt('LegacyPooledStaking', addresses.LegacyPooledStaking);
     this.gateway = await ethers.getContractAt('LegacyGateway', addresses.LegacyGateway);
 

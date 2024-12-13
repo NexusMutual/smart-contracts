@@ -93,6 +93,7 @@ describe('add cbBTC asset to Pool', function () {
     this.proposalCategory = await ethers.getContractAt(abis.ProposalCategory, addresses.ProposalCategory);
     this.stakingPoolFactory = await ethers.getContractAt(abis.StakingPoolFactory, addresses.StakingPoolFactory);
     this.pooledStaking = await ethers.getContractAt(abis.LegacyPooledStaking, addresses.LegacyPooledStaking);
+    this.yieldTokenIncidents = await ethers.getContractAt(abis.YieldTokenIncidents, addresses.YieldTokenIncidents);
     this.ramm = await ethers.getContractAt(abis.Ramm, addresses.Ramm);
 
     this.governance = await getContractByContractCode(abis.Governance, ContractCode.Governance);

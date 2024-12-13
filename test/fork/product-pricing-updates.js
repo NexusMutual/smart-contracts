@@ -122,10 +122,13 @@ describe('product pricing updates', function () {
 
     const newCoverProducts = await deployContract('CoverProducts');
 
+    const newIndividualClaims = await deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
+
     const upgradeContracts = [
       { code: ContractCode.Cover, contract: newCover },
       { code: ContractCode.CoverProducts, contract: newCoverProducts },
       { code: ContractCode.StakingProducts, contract: newStakingProducts },
+      { code: ContractCode.IndividualClaims, contract: newIndividualClaims },
     ];
 
     await submitGovernanceProposal(
@@ -141,12 +144,13 @@ describe('product pricing updates', function () {
     this.cover = await getContractByContractCode('Cover', ContractCode.Cover);
     this.stakingProducts = await getContractByContractCode('StakingProducts', ContractCode.StakingProducts);
     this.coverProducts = await getContractByContractCode('CoverProducts', ContractCode.CoverProducts);
+    this.individualClaims = await getContractByContractCode('IndividualClaims', ContractCode.IndividualClaims);
     this.stakingPool = newStakingPool;
 
     await compareProxyImplementationAddress(this.cover.address, newCover.address);
     await compareProxyImplementationAddress(this.coverProducts.address, newCoverProducts.address);
     await compareProxyImplementationAddress(this.stakingProducts.address, newStakingProducts.address);
-    expect(this.stakingPool.address).to.be.equal(newStakingPool.address);
+    await compareProxyImplementationAddress(this.individualClaims.address, newIndividualClaims.address);
   });
 
   it('Price bump parameter should be changed', async function () {

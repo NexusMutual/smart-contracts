@@ -6,14 +6,18 @@ const SIGNER_TYPE = {
   AWS_KMS: 'aws-kms',
 };
 
-const getSigner = async (kind = SIGNER_TYPE.LOCAL) => {
-  if (kind === SIGNER_TYPE.LOCAL) {
-    const [signer] = await ethers.getSigners();
-    return signer;
-  }
+const CONTRACT_DEPLOYER = '0x46842a7d9372bb7dba08f0729393deda230a03b5';
 
+const getSigner = async (kind = SIGNER_TYPE.LOCAL) => {
   const provider = ethers.provider;
   const { AWS_KMS_KEY_ID, AWS_REGION } = process.env;
+
+  // Use contract deployer address to closely mimic main-net deployment
+  if (kind === SIGNER_TYPE.LOCAL) {
+    await provider.send('hardhat_impersonateAccount', [CONTRACT_DEPLOYER]);
+    const signer = await provider.getSigner(CONTRACT_DEPLOYER);
+    return signer;
+  }
 
   if (kind === SIGNER_TYPE.AWS_KMS) {
     return new AwsKmsSigner(AWS_KMS_KEY_ID, AWS_REGION, provider);

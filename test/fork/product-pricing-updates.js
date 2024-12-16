@@ -92,21 +92,14 @@ describe('product pricing updates', function () {
   });
 
   it('Upgrade contracts', async function () {
-    const extras = await deployContract('StakingExtrasLib');
-    await extras.deployed();
-
-    const newStakingPool = await deployContract(
-      'StakingPool',
-      [
-        this.stakingNFT.address,
-        this.nxm.address,
-        this.cover.address,
-        this.tokenController.address,
-        this.master.address,
-        this.stakingProducts.address,
-      ],
-      { libraries: { StakingExtrasLib: extras.address } },
-    );
+    const newStakingPool = await deployContract('StakingPool', [
+      this.stakingNFT.address,
+      this.nxm.address,
+      this.cover.address,
+      this.tokenController.address,
+      this.master.address,
+      this.stakingProducts.address,
+    ]);
 
     const newStakingProducts = await deployContract('StakingProducts', [
       this.cover.address,

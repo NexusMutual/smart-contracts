@@ -4,7 +4,6 @@ const { ethers, network } = require('hardhat');
 
 const { Address, EnzymeAdress, V2Addresses, getSigner, submitGovernanceProposal } = require('./utils');
 const { ContractCode, ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-const { emptyBytes } = require('../../lib/helpers');
 
 const evm = require('./evm')();
 
@@ -172,7 +171,7 @@ describe('product pricing updates', function () {
         product: {
           productType: 0,
           minPrice: minPriceToSet,
-          __gap: emptyBytes(18),
+          __gap: 0,
           coverAssets: 0,
           initialPriceRatio: 100,
           capacityReductionRatio: 0,
@@ -199,7 +198,7 @@ describe('product pricing updates', function () {
         product: {
           productType: 0,
           minPrice: 0,
-          __gap: emptyBytes(18),
+          __gap: 0,
           coverAssets: 0,
           initialPriceRatio: 100,
           capacityReductionRatio: 0,

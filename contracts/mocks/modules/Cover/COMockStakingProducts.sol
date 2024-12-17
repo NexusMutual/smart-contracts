@@ -79,7 +79,7 @@ contract COMockStakingProducts is StakingProductsGeneric {
     for (uint i = 0; i < numProducts; i++) {
 
       if (productInitParams[i].targetPrice < DEFAULT_MIN_PRICE_RATIO) {
-        revert TargetPriceBelowDefaultMinPriceRatio();
+        revert TargetPriceBelowMinPriceRatio();
       }
 
       uint productId = productInitParams[i].productId;

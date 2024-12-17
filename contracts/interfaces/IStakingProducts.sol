@@ -128,7 +128,7 @@ interface IStakingProducts {
   // Staking Pool creation
   error ProductDoesntExistOrIsDeprecated();
   error InvalidProductType();
-  error TargetPriceBelowDefaultMinPriceRatio();
+  error TargetPriceBelowMinPriceRatio();
 
   // IPFS
   error IpfsHashRequired();

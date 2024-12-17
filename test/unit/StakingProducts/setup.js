@@ -5,7 +5,6 @@ const { getAccounts } = require('../utils').accounts;
 const { setEtherBalance } = require('../utils').evm;
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
-const { MaxUint256 } = ethers.constants;
 
 const { parseEther, getContractAddress } = ethers.utils;
 
@@ -145,7 +144,7 @@ async function setup() {
 
   // set product with minPrice
   const expectedProductId = await coverProducts.getProductCount();
-  await coverProducts.setProduct(productWithMinPrice, MaxUint256);
+  await coverProducts.setProduct(productWithMinPrice, expectedProductId);
   await coverProducts.setProductType(ProductTypeFixture, expectedProductId);
   await coverProducts.setPoolAllowed(expectedProductId, poolId, true);
 

@@ -517,15 +517,19 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function _setInitialProducts(uint poolId, ProductInitializationParams[] memory params) internal {
 
-    uint defaultMinPriceRatio = cover().getDefaultMinPriceRatio();
+    uint numProducts = params.length;
+    uint[] memory productIds = new uint[](numProducts);
+    for (uint i = 0; i < numProducts; i++) {
+      productIds[i] = params[i].productId;
+    }
+    uint[] memory minPriceRatios = coverProducts().getMinPrices(productIds); 
     uint totalTargetWeight;
 
     for (uint i = 0; i < params.length; i++) {
 
       ProductInitializationParams memory param = params[i];
-
-      if (params[i].targetPrice < defaultMinPriceRatio) {
-        revert TargetPriceBelowDefaultMinPriceRatio();
+      if (params[i].targetPrice < minPriceRatios[i]) {
+        revert TargetPriceBelowMinPriceRatio();
       }
 
       if (param.targetPrice > TARGET_PRICE_DENOMINATOR) {

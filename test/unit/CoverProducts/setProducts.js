@@ -419,7 +419,7 @@ describe('setProducts', function () {
     const { coverProducts } = fixture;
     const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
 
-    const expectedProductMinPrice = 100;
+    const expectedProductMinPrice = 10;
 
     const productParams = {
       ...productParamsTemplate,
@@ -435,5 +435,24 @@ describe('setProducts', function () {
     const product = await coverProducts.getProduct(productsCount.sub(1));
 
     expect(product.minPrice).to.be.equal(expectedProductMinPrice);
+  });
+
+  it('should change minPrice of a product', async function () {
+    const fixture = await loadFixture(setup);
+    const { coverProducts } = fixture;
+    const [advisoryBoardMember0] = fixture.accounts.advisoryBoardMembers;
+    const productWithMinPrice = { ...productTemplate, minPrice: 10 };
+    const productParams = { ...productParamsTemplate, product: productWithMinPrice };
+    // add product with min price
+    await coverProducts.connect(advisoryBoardMember0).setProducts([productParams]);
+    // edit min price
+    const newMinPrice = 20;
+    const editProduct = { ...productTemplate, minPrice: newMinPrice };
+    const productId = (await coverProducts.getProductCount()).sub(1);
+    const editParams = { ...productParams, productId, product: editProduct };
+    await coverProducts.connect(advisoryBoardMember0).setProducts([editParams]);
+    const product = await coverProducts.getProduct(productId);
+
+    expect(product.minPrice).to.be.equal(newMinPrice);
   });
 });

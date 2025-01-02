@@ -287,6 +287,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       newProductValue.coverAssets = product.coverAssets;
       newProductValue.initialPriceRatio = product.initialPriceRatio;
       newProductValue.capacityReductionRatio = product.capacityReductionRatio;
+      newProductValue.minPrice = product.minPrice;
 
       allowedPools[param.productId] = param.allowedPools;
 

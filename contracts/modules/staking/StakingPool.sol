@@ -573,7 +573,7 @@ contract StakingPool is IStakingPool, Multicall {
 
     uint[] memory trancheAllocations = request.allocationId == 0
       ? getActiveAllocations(request.productId)
-      : getActiveAllocationsWithoutCover(
+      : _getActiveAllocationsWithoutCover(
           request.productId,
           request.allocationId,
           request.previousStart,
@@ -584,7 +584,7 @@ contract StakingPool is IStakingPool, Multicall {
     // rewards streaming is left as is
     if (amount == 0) {
       // store deallocated amount
-      updateStoredAllocations(
+      _updateStoredAllocations(
         request.productId,
         block.timestamp / TRANCHE_DURATION, // firstActiveTrancheId
         trancheAllocations
@@ -604,7 +604,7 @@ contract StakingPool is IStakingPool, Multicall {
       initialCapacityUsed,
       totalCapacity,
       allocationId
-    ) = allocate(amount, request, trancheAllocations);
+    ) = _allocate(amount, request, trancheAllocations);
 
     // the returned premium value has 18 decimals
     premium = stakingProducts.getPremium(
@@ -656,7 +656,7 @@ contract StakingPool is IStakingPool, Multicall {
     return (premium, allocationId);
   }
 
-  function getActiveAllocationsWithoutCover(
+  function _getActiveAllocationsWithoutCover(
     uint productId,
     uint allocationId,
     uint start,
@@ -681,7 +681,7 @@ contract StakingPool is IStakingPool, Multicall {
     }
 
     // remove expiring cover amounts from buckets
-    updateExpiringCoverAmounts(
+    _updateExpiringCoverAmounts(
       productId,
       currentFirstActiveTrancheId,
       Math.divCeil(expiration, BUCKET_DURATION), // targetBucketId
@@ -700,7 +700,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint currentBucket = block.timestamp / BUCKET_DURATION;
     uint lastBucketId;
 
-    (trancheAllocations, lastBucketId) = getStoredAllocations(productId, _firstActiveTrancheId);
+    (trancheAllocations, lastBucketId) = _getStoredAllocations(productId, _firstActiveTrancheId);
 
     if (lastBucketId == 0) {
       lastBucketId = currentBucket;
@@ -708,7 +708,7 @@ contract StakingPool is IStakingPool, Multicall {
 
     for (uint bucketId = lastBucketId + 1; bucketId <= currentBucket; bucketId++) {
 
-      uint[] memory expirations = getExpiringCoverAmounts(productId, bucketId, _firstActiveTrancheId);
+      uint[] memory expirations = _getExpiringCoverAmounts(productId, bucketId, _firstActiveTrancheId);
 
       for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
         trancheAllocations[i] -= expirations[i];
@@ -718,7 +718,7 @@ contract StakingPool is IStakingPool, Multicall {
     return trancheAllocations;
   }
 
-  function getStoredAllocations(
+  function _getStoredAllocations(
     uint productId,
     uint firstTrancheId
   ) internal view returns (
@@ -751,7 +751,7 @@ contract StakingPool is IStakingPool, Multicall {
     }
   }
 
-  function getExpiringCoverAmounts(
+  function _getExpiringCoverAmounts(
     uint productId,
     uint bucketId,
     uint firstTrancheId
@@ -844,7 +844,7 @@ contract StakingPool is IStakingPool, Multicall {
     return trancheCapacities;
   }
 
-  function allocate(
+  function _allocate(
     uint amount,
     AllocationRequest calldata request,
     uint[] memory trancheAllocations
@@ -942,7 +942,7 @@ contract StakingPool is IStakingPool, Multicall {
       }
     }
 
-    updateExpiringCoverAmounts(
+    _updateExpiringCoverAmounts(
       request.productId,
       _firstActiveTrancheId,
       Math.divCeil(block.timestamp + request.period, BUCKET_DURATION), // targetBucketId
@@ -950,7 +950,7 @@ contract StakingPool is IStakingPool, Multicall {
       true // isAllocation
     );
 
-    updateStoredAllocations(
+    _updateStoredAllocations(
       request.productId,
       _firstActiveTrancheId,
       trancheAllocations
@@ -959,7 +959,7 @@ contract StakingPool is IStakingPool, Multicall {
     return (coverAllocationAmount, initialCapacityUsed, totalCapacity, allocationId);
   }
 
-  function updateStoredAllocations(
+  function _updateStoredAllocations(
     uint productId,
     uint firstTrancheId,
     uint[] memory allocations
@@ -996,7 +996,7 @@ contract StakingPool is IStakingPool, Multicall {
     }
   }
 
-  function updateExpiringCoverAmounts(
+  function _updateExpiringCoverAmounts(
     uint productId,
     uint firstTrancheId,
     uint targetBucketId,
@@ -1261,7 +1261,7 @@ contract StakingPool is IStakingPool, Multicall {
 
     coverTrancheAllocations[params.allocationId] = newPackedCoverAllocations;
 
-    updateExpiringCoverAmounts(
+    _updateExpiringCoverAmounts(
       params.productId,
       currentFirstActiveTrancheId,
       Math.divCeil(params.start + params.period, BUCKET_DURATION), // targetBucketId
@@ -1269,7 +1269,7 @@ contract StakingPool is IStakingPool, Multicall {
       false // isAllocation
     );
 
-    updateStoredAllocations(
+    _updateStoredAllocations(
       params.productId,
       currentFirstActiveTrancheId,
       activeAllocations

@@ -152,7 +152,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         revert ProductDeprecated();
       }
 
-      if (!isCoverAssetSupported(params.coverAsset, product.coverAssets)) {
+      if (!_isCoverAssetSupported(params.coverAsset, product.coverAssets)) {
         revert CoverAssetNotSupported();
       }
 
@@ -221,7 +221,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint nxmPriceInCoverAsset = pool().getInternalTokenPriceInAssetAndUpdateTwap(params.coverAsset);
     allocationRequest.coverId = coverId;
 
-    (uint coverAmountInCoverAsset, uint amountDueInNXM) = requestAllocation(
+    (uint coverAmountInCoverAsset, uint amountDueInNXM) = _requestAllocation(
       allocationRequest,
       poolAllocationRequests,
       nxmPriceInCoverAsset,
@@ -245,7 +245,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     _updateTotalActiveCoverAmount(params.coverAsset, coverAmountInCoverAsset, params.period, previousSegmentAmount);
 
-    retrievePayment(
+    _retrievePayment(
       amountDueInNXM,
       params.paymentAsset,
       nxmPriceInCoverAsset,
@@ -299,7 +299,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     }
   }
 
-  function requestAllocation(
+  function _requestAllocation(
     AllocationRequest memory allocationRequest,
     PoolAllocationRequest[] memory poolAllocationRequests,
     uint nxmPriceInCoverAsset,
@@ -380,7 +380,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return (totalCoverAmountInCoverAsset, totalAmountDueInNXM);
   }
 
-  function retrievePayment(
+  function _retrievePayment(
     uint premiumInNxm,
     uint paymentAsset,
     uint nxmPriceInCoverAsset,
@@ -487,7 +487,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint totalActiveCover = _activeCover.totalActiveCoverInAsset;
 
     if (totalActiveCover != 0) {
-      totalActiveCover -= getExpiredCoverAmount(
+      totalActiveCover -= _getExpiredCoverAmount(
         coverAsset,
         _activeCover.lastBucketUpdateId,
         currentBucketId
@@ -509,7 +509,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   }
 
   // Gets the total amount of active cover that is currently expired for this asset
-  function getExpiredCoverAmount(
+  function _getExpiredCoverAmount(
     uint coverAsset,
     uint lastUpdateId,
     uint currentBucketId
@@ -541,7 +541,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       uint currentBucketId = block.timestamp / BUCKET_SIZE;
 
       uint burnedSegmentBucketId = Math.divCeil((segment.start + segment.period), BUCKET_SIZE);
-      uint activeCoverToExpire = getExpiredCoverAmount(coverAsset, lastUpdateBucketId, currentBucketId);
+      uint activeCoverToExpire = _getExpiredCoverAmount(coverAsset, lastUpdateBucketId, currentBucketId);
 
       // if the segment has not expired - it's still accounted for in total active cover
       if (burnedSegmentBucketId > currentBucketId) {
@@ -650,7 +650,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     _defaultMinPriceRatio = DEFAULT_MIN_PRICE_RATIO;
   }
 
-  function isCoverAssetSupported(uint assetId, uint productCoverAssetsBitmap) internal view returns (bool) {
+  function _isCoverAssetSupported(uint assetId, uint productCoverAssetsBitmap) internal view returns (bool) {
 
     if (
       // product does not use default cover assets

@@ -13,7 +13,7 @@ describe('rescueFunds', function () {
     const fixture = await loadFixture(setup);
     const {
       contracts: { coverOrder },
-      coverOrderOwner,
+      accounts: { coverOrderOwner },
     } = fixture;
 
     await setEtherBalance(coverOrder.address, parseEther('1'));
@@ -37,7 +37,7 @@ describe('rescueFunds', function () {
     const fixture = await loadFixture(setup);
     const {
       contracts: { coverOrder, dai },
-      coverOrderOwner,
+      accounts: { coverOrderOwner },
     } = fixture;
 
     await dai.mint(coverOrder.address, parseEther('100'));
@@ -57,12 +57,11 @@ describe('rescueFunds', function () {
   it('should fail to rescue funds if the caller is not the owner', async function () {
     const fixture = await loadFixture(setup);
     const { coverOrder } = fixture.contracts;
-    const nonOwner = await ethers.Wallet.createRandom().connect(ethers.provider);
-    await setEtherBalance(nonOwner.address, parseEther('1000000'));
+    const { notOwner } = fixture.accounts;
 
     const balanceBefore = await ethers.provider.getBalance(coverOrder.address);
 
-    await expect(coverOrder.connect(nonOwner).rescueFunds(ETH)).to.revertedWith('Ownable: caller is not the owner');
+    await expect(coverOrder.connect(notOwner).rescueFunds(ETH)).to.revertedWith('Ownable: caller is not the owner');
     const balanceAfter = await ethers.provider.getBalance(coverOrder.address);
     expect(balanceAfter).to.equal(balanceBefore);
   });

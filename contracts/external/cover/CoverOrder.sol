@@ -63,7 +63,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
   }
 
   /// @notice Verifies and executes the order to buy cover on behalf of the creator of limit order
-  /// @notice Function only allows users to pay with coverAsset or NXM, this is being checked the Cover contract
+  /// @notice Function only allows users to pay with coverAsset or NXM, this is being checked in the Cover contract
   /// @param params Cover buy parameters
   /// @param poolAllocationRequests Pool allocations for the cover
   /// @param expirationDetails Start and end date when the order can be executed and max premium in asset

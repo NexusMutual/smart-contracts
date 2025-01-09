@@ -66,24 +66,24 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
   /// @notice Function only allows users to pay with coverAsset or NXM, this is being checked in the Cover contract
   /// @param params Cover buy parameters
   /// @param poolAllocationRequests Pool allocations for the cover
-  /// @param expirationDetails Start and end date when the order can be executed and max premium in asset
+  /// @param executionDetails Start and end date when the order can be executed and max premium in asset
   /// @param signature The signature of the order
   function executeOrder(
     BuyCoverParams calldata params,
     PoolAllocationRequest[] calldata poolAllocationRequests,
-    ExecutionDetails calldata expirationDetails,
+    ExecutionDetails calldata executionDetails,
     bytes calldata signature
   ) external payable returns (uint coverId) {
 
-    if (block.timestamp > expirationDetails.deadline) {
+    if (block.timestamp > executionDetails.deadline) {
       revert OrderExpired();
     }
 
-    if (block.timestamp < expirationDetails.notBefore) {
+    if (block.timestamp < executionDetails.notBefore) {
       revert OrderCannotBeExecutedYet();
     }
 
-    if (params.maxPremiumInAsset > expirationDetails.maxPremiumInAsset) {
+    if (params.maxPremiumInAsset > executionDetails.maxPremiumInAsset) {
       revert OrderPriceNotMet();
     }
 
@@ -95,7 +95,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
       revert InvalidOwnerAddress();
     }
 
-    _verifySignature(params, expirationDetails, signature);
+    _verifySignature(params, executionDetails, signature);
 
     // Ensure the order has not already been executed
     if (orderStatus[signature] == OrderStatus.Executed) {

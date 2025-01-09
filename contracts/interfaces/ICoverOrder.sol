@@ -25,7 +25,7 @@ interface ICoverOrder {
   function executeOrder(
     BuyCoverParams calldata params,
     PoolAllocationRequest[] calldata poolAllocationRequests,
-    ExecutionDetails calldata executionPeriod,
+    ExecutionDetails calldata executionDetails,
     bytes calldata signature
   ) external payable returns (uint coverId);
 

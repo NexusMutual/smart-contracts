@@ -47,13 +47,13 @@ contract AssessmentViewer is IAssessmentViewer {
     IAssessment _assessment = assessment();
 
     uint voteCount = _assessment.getVoteCountOfAssessor(member);
-    if (voteCount == 0) return AssessmentStakeLockedState({
-      isStakeLocked: false,
-      stakeLockupExpiry: 0
-    });
 
-    (,, uint32 timestamp,) = _assessment.votesOf(member, voteCount - 1);
-    (, uint8 stakeLockupPeriodInDays,,) = _assessment.config();
+    if (voteCount == 0) {
+      return AssessmentStakeLockedState({ isStakeLocked: false, stakeLockupExpiry: 0 });
+    }
+
+    (,, uint timestamp,) = _assessment.votesOf(member, voteCount - 1);
+    (, uint stakeLockupPeriodInDays,,) = _assessment.config();
 
     uint stakeLockupExpiry = timestamp + stakeLockupPeriodInDays * 1 days;
     bool isStakeLocked = stakeLockupExpiry > block.timestamp;
@@ -62,6 +62,6 @@ contract AssessmentViewer is IAssessmentViewer {
       isStakeLocked: isStakeLocked,
       stakeLockupExpiry: stakeLockupExpiry
     });
-    
+
   }
 }

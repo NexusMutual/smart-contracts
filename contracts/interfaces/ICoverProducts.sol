@@ -17,7 +17,9 @@ struct ProductInitializationParams {
 
 struct Product {
   uint16 productType;
-  address yieldTokenAddress;
+  uint16 minPrice;
+  // leftover memory gap from the previously used address field yieldTokenAddress
+  uint144 __gap;
   // cover assets bitmap. each bit represents whether the asset with
   // the index of that bit is enabled as a cover asset for this product
   uint32 coverAssets;
@@ -99,6 +101,8 @@ interface ICoverProducts {
 
   function getInitialPrices(uint[] calldata productIds) external view returns (uint[] memory);
 
+  function getMinPrices(uint[] calldata productIds) external view returns (uint[] memory);
+
   function prepareStakingProductsParams(
     ProductInitializationParams[] calldata params
   ) external returns (
@@ -127,7 +131,7 @@ interface ICoverProducts {
 
   // Misc
   error UnsupportedCoverAssets();
-  error InitialPriceRatioBelowGlobalMinPriceRatio();
+  error InitialPriceRatioBelowMinPriceRatio();
   error InitialPriceRatioAbove100Percent();
   error CapacityReductionRatioAbove100Percent();
 

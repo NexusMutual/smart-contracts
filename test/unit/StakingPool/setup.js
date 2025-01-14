@@ -70,9 +70,6 @@ async function setup() {
   const config = {
     PRICE_CHANGE_PER_DAY: await stakingProducts.PRICE_CHANGE_PER_DAY(),
     PRICE_BUMP_RATIO: await stakingProducts.PRICE_BUMP_RATIO(),
-    SURGE_PRICE_RATIO: await stakingProducts.SURGE_PRICE_RATIO(),
-    SURGE_THRESHOLD_DENOMINATOR: await stakingProducts.SURGE_THRESHOLD_DENOMINATOR(),
-    SURGE_THRESHOLD_RATIO: await stakingProducts.SURGE_THRESHOLD_RATIO(),
     NXM_PER_ALLOCATION_UNIT: await stakingPool.NXM_PER_ALLOCATION_UNIT(),
     ALLOCATION_UNITS_PER_NXM: await stakingPool.ALLOCATION_UNITS_PER_NXM(),
     INITIAL_PRICE_DENOMINATOR: await stakingProducts.INITIAL_PRICE_DENOMINATOR(),
@@ -85,7 +82,7 @@ async function setup() {
     TRANCHE_DURATION: await stakingProducts.TRANCHE_DURATION(),
     GLOBAL_CAPACITY_RATIO: await cover.globalCapacityRatio(),
     GLOBAL_REWARDS_RATIO: await cover.getGlobalRewardsRatio(),
-    GLOBAL_MIN_PRICE_RATIO: await cover.GLOBAL_MIN_PRICE_RATIO(),
+    DEFAULT_MIN_PRICE_RATIO: await cover.DEFAULT_MIN_PRICE_RATIO(),
   };
 
   const coverSigner = await ethers.getImpersonatedSigner(cover.address);

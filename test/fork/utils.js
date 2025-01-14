@@ -259,9 +259,6 @@ async function getConfig() {
   const config = {
     PRICE_CHANGE_PER_DAY: stakingProducts.PRICE_CHANGE_PER_DAY(),
     PRICE_BUMP_RATIO: stakingProducts.PRICE_BUMP_RATIO(),
-    SURGE_PRICE_RATIO: stakingProducts.SURGE_PRICE_RATIO(),
-    SURGE_THRESHOLD_DENOMINATOR: stakingProducts.SURGE_THRESHOLD_DENOMINATOR(),
-    SURGE_THRESHOLD_RATIO: stakingProducts.SURGE_THRESHOLD_RATIO(),
     NXM_PER_ALLOCATION_UNIT: stakingPool.NXM_PER_ALLOCATION_UNIT(),
     ALLOCATION_UNITS_PER_NXM: stakingPool.ALLOCATION_UNITS_PER_NXM(),
     INITIAL_PRICE_DENOMINATOR: stakingProducts.INITIAL_PRICE_DENOMINATOR(),
@@ -274,7 +271,7 @@ async function getConfig() {
     TRANCHE_DURATION: stakingProducts.TRANCHE_DURATION(),
     GLOBAL_CAPACITY_RATIO: cover.globalCapacityRatio(),
     GLOBAL_REWARDS_RATIO: cover.getGlobalRewardsRatio(),
-    GLOBAL_MIN_PRICE_RATIO: cover.GLOBAL_MIN_PRICE_RATIO(),
+    DEFAULT_MIN_PRICE_RATIO: cover.DEFAULT_MIN_PRICE_RATIO(),
   };
   await Promise.all(Object.keys(config).map(async key => (config[key] = await config[key])));
   return config;

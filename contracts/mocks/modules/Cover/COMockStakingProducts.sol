@@ -13,7 +13,7 @@ contract COMockStakingProducts is StakingProductsGeneric {
 
   mapping(uint => mapping(uint => StakedProduct)) private _products;
 
-  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+  uint public constant DEFAULT_MIN_PRICE_RATIO = 100; // 1%
 
   address public immutable coverContract;
   address public immutable tokenControllerContract;
@@ -78,8 +78,8 @@ contract COMockStakingProducts is StakingProductsGeneric {
     // override with initial price and check if pool is allowed
     for (uint i = 0; i < numProducts; i++) {
 
-      if (productInitParams[i].targetPrice < GLOBAL_MIN_PRICE_RATIO) {
-        revert TargetPriceBelowGlobalMinPriceRatio();
+      if (productInitParams[i].targetPrice < DEFAULT_MIN_PRICE_RATIO) {
+        revert TargetPriceBelowMinPriceRatio();
       }
 
       uint productId = productInitParams[i].productId;

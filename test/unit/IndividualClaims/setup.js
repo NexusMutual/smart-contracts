@@ -79,7 +79,8 @@ async function setup() {
 
   const productTemplate = {
     productType: '0',
-    yieldTokenAddress: '0x1111111111111111111111111111111111111111',
+    minPrice: 0,
+    __gap: 0,
     coverAssets: '1',
     initialPriceRatio: '0',
     capacityReductionRatio: '0',
@@ -90,19 +91,16 @@ async function setup() {
   await coverProducts.addProduct({
     ...productTemplate,
     productType: '0',
-    yieldTokenAddress: '0x1111111111111111111111111111111111111111',
   });
 
   await coverProducts.addProduct({
     ...productTemplate,
     productType: '1',
-    yieldTokenAddress: '0x2222222222222222222222222222222222222222',
   });
 
   await coverProducts.addProduct({
     ...productTemplate,
     productType: '2',
-    yieldTokenAddress: '0x3333333333333333333333333333333333333333',
   });
 
   await individualClaims.changeMasterAddress(master.address);

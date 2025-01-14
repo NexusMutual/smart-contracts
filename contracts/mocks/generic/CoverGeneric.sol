@@ -7,10 +7,10 @@ import "../../interfaces/ICoverNFT.sol";
 
 contract CoverGeneric is ICover {
 
-  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+  uint public constant DEFAULT_MIN_PRICE_RATIO = 100; // 1%
   uint public constant MAX_COMMISSION_RATIO = 3000; // 30%
 
-  function getGlobalMinPriceRatio() public virtual pure returns (uint) {
+  function getDefaultMinPriceRatio() public virtual pure returns (uint) {
     revert("Unsupported");
   }
 

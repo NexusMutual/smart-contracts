@@ -81,7 +81,8 @@ describe('buyCover', function () {
   // Cover.Product
   const productTemplate = {
     productType: 0,
-    yieldTokenAddress: AddressZero,
+    minPrice: 0,
+    __gap: 0,
     coverAssets: parseInt('111', 2), // ETH/DAI/USDC
     initialPriceRatio: 1000, // 10%
     capacityReductionRatio: capacityFactor, // 100%

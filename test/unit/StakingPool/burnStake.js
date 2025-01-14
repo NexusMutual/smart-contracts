@@ -36,7 +36,8 @@ const productTypeFixture = {
 
 const coverProductTemplate = {
   productType: 1,
-  yieldTokenAddress: AddressZero,
+  minPrice: 0,
+  __gap: 0,
   coverAssets: 1111,
   initialPriceRatio: 500,
   capacityReductionRatio: 0,
@@ -65,7 +66,7 @@ const allocationRequestParams = {
   globalCapacityRatio: 20000,
   capacityReductionRatio: 0,
   rewardRatio: 5000,
-  globalMinPrice: 10000,
+  productMinPrice: 10000,
 };
 
 const stakedNxmAmount = parseEther('100');

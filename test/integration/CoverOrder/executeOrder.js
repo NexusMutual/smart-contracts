@@ -168,7 +168,7 @@ describe('CoverOrder - executeOrder', function () {
 
     await setNextBlockTime(nextBlockTimestamp);
 
-    const signature = await signCoverOrder(
+    const { signature, digest } = await signCoverOrder(
       coverOrder.address,
       {
         productId,
@@ -198,7 +198,7 @@ describe('CoverOrder - executeOrder', function () {
 
     const coverId = await coverNFT.totalSupply();
 
-    await expect(tx).to.emit(coverOrder, 'OrderExecuted').withArgs(coverBuyer.address, coverId, signature);
+    await expect(tx).to.emit(coverOrder, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const balanceAfter = await dai.balanceOf(coverBuyer.address);
@@ -271,7 +271,7 @@ describe('CoverOrder - executeOrder', function () {
       deadline: currentTimestamp + 3600,
       maxPremiumInAsset: premium,
     };
-    const signature = await signCoverOrder(
+    const { signature, digest } = await signCoverOrder(
       coverOrder.address,
       {
         productId,
@@ -303,7 +303,7 @@ describe('CoverOrder - executeOrder', function () {
 
     const coverId = await coverNFT.totalSupply();
 
-    await expect(tx).to.emit(coverOrder, 'OrderExecuted').withArgs(coverBuyer.address, coverId, signature);
+    await expect(tx).to.emit(coverOrder, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const balanceAfterWETH = await weth.balanceOf(coverBuyer.address);
@@ -418,7 +418,7 @@ describe('CoverOrder - executeOrder', function () {
 
     await setNextBlockTime(nextBlockTimestamp);
 
-    const signature = await signCoverOrder(
+    const { signature } = await signCoverOrder(
       coverOrder.address,
       {
         productId,
@@ -477,7 +477,7 @@ describe('CoverOrder - executeOrder', function () {
       maxPremiumInAsset: MaxUint256,
     };
 
-    const signature = await signCoverOrder(
+    const { signature } = await signCoverOrder(
       coverOrder.address,
       {
         productId: buyCoverParams.productId,
@@ -512,7 +512,7 @@ describe('CoverOrder - executeOrder', function () {
       maxPremiumInAsset: MaxUint256,
     };
 
-    const signature = await signCoverOrder(
+    const { signature } = await signCoverOrder(
       coverOrder.address,
       {
         productId: buyCoverParams.productId,
@@ -547,7 +547,7 @@ describe('CoverOrder - executeOrder', function () {
       maxPremiumInAsset: MaxUint256,
     };
 
-    const signature = await signCoverOrder(
+    const { signature } = await signCoverOrder(
       coverOrder.address,
       {
         productId: buyCoverParams.productId,
@@ -581,7 +581,7 @@ describe('CoverOrder - executeOrder', function () {
       deadline: currentTimestamp + 3600,
       maxPremiumInAsset: MaxUint256,
     };
-    const signature = await signCoverOrder(
+    const { signature } = await signCoverOrder(
       coverOrder.address,
       {
         productId,

@@ -38,7 +38,7 @@ describe('cancelOrder', function () {
       deadline: currentTimestamp + 3600,
       maxPremiumInAsset: MaxUint256,
     };
-    const signature = await signCoverOrder(
+    const { signature, digest } = await signCoverOrder(
       coverOrder.address,
       {
         productId,
@@ -64,7 +64,7 @@ describe('cancelOrder', function () {
       signature,
     );
 
-    await expect(tx).to.emit(coverOrder, 'OrderCancelled').withArgs(signature);
+    await expect(tx).to.emit(coverOrder, 'OrderCancelled').withArgs(digest);
   });
 
   it('should fail to cancel the order if caller is not the owner', async function () {
@@ -82,7 +82,7 @@ describe('cancelOrder', function () {
       maxPremiumInAsset: MaxUint256,
     };
 
-    const signature = await signCoverOrder(
+    const { signature } = await signCoverOrder(
       coverOrder.address,
       {
         productId,
@@ -126,7 +126,7 @@ describe('cancelOrder', function () {
       maxPremiumInAsset: amount,
     };
 
-    const signature = await signCoverOrder(
+    const { signature } = await signCoverOrder(
       coverOrder.address,
       {
         productId,
@@ -158,10 +158,11 @@ describe('cancelOrder', function () {
     const tx = coverOrder.connect(coverOrderOwner).cancelOrder(
       {
         ...buyCoverFixture,
-        paymentAsset: 0, // ETH
         productId,
         owner: coverOrderOwner.address,
         maxPremiumInAsset: amount,
+        paymentAsset: 1,
+        coverAsset: 1,
       },
       executionDetails,
       signature,

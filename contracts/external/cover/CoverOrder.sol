@@ -20,7 +20,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
   using SafeERC20 for IERC20;
 
   /* ========== STATE VARIABLES ========== */
-  mapping(bytes => OrderStatus) public orderStatus;
+  mapping(bytes32 => OrderStatus) public orderStatus;
 
   /* ========== IMMUTABLES ========== */
   ICover public immutable cover;
@@ -95,20 +95,21 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
       revert InvalidOwnerAddress();
     }
 
-    _verifySignature(params, executionDetails, signature);
+    // Verify the signature and get the digest to use it as the order id
+    bytes32 id = _verifySignature(params, executionDetails, signature);
 
     // Ensure the order has not already been executed
-    if (orderStatus[signature] == OrderStatus.Executed) {
+    if (orderStatus[id] == OrderStatus.Executed) {
       revert OrderAlreadyExecuted();
     }
 
     // Ensure the order is not cancelled
-    if (orderStatus[signature] == OrderStatus.Cancelled) {
+    if (orderStatus[id] == OrderStatus.Cancelled) {
       revert OrderAlreadyCancelled();
     }
 
     // Mark the order as executed
-    orderStatus[signature] = OrderStatus.Executed;
+    orderStatus[id] = OrderStatus.Executed;
 
     // ETH payment
     if (params.paymentAsset == ETH_ASSET_ID) {
@@ -119,7 +120,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
     }
 
     // Emit event
-    emit OrderExecuted(params.owner, coverId, signature);
+    emit OrderExecuted(params.owner, coverId, id);
 
   }
 
@@ -129,7 +130,9 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
     bytes calldata signature
   ) external {
 
-    if (orderStatus[signature] == OrderStatus.Executed) {
+    bytes32 id = _verifySignature(params, expirationDetails, signature);
+
+    if (orderStatus[id] == OrderStatus.Executed) {
       revert OrderAlreadyExecuted();
     }
 
@@ -137,10 +140,8 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
       revert NotOrderOwner();
     }
 
-    _verifySignature(params, expirationDetails, signature);
-
-    orderStatus[signature] = OrderStatus.Cancelled;
-    emit OrderCancelled(signature);
+    orderStatus[id] = OrderStatus.Cancelled;
+    emit OrderCancelled(id);
   }
 
   /// @notice Handles verification of the order signature
@@ -151,7 +152,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
     BuyCoverParams calldata params,
     ExecutionDetails calldata executionDetails,
     bytes calldata signature
-  ) internal view {
+  ) internal view returns (bytes32 digest) {
 
     // Hash the ExecutionDetails struct
     bytes32 executionDetailsHash = keccak256(
@@ -178,7 +179,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
     );
 
     // Generate the digest (domain separator + struct hash)
-    bytes32 digest = _hashTypedDataV4(structHash);
+    digest = _hashTypedDataV4(structHash);
 
     // Recover the signer from the digest and the signature
     address signer = ECDSA.recover(digest, signature);
@@ -187,6 +188,8 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
     if (signer != params.owner) {
       revert InvalidSignature();
     }
+
+    return digest;
   }
 
   /// @notice Handles ETH/WETH payments for buying cover.

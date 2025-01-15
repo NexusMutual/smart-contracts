@@ -2,6 +2,7 @@ const { ethers } = require('hardhat');
 const { getQuoteSignature } = require('./getQuote');
 const { parseEther, defaultAbiCoder } = ethers.utils;
 const { BigNumber } = ethers;
+const { _TypedDataEncoder } = ethers.utils;
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
@@ -135,8 +136,21 @@ async function signCoverOrder(contractAddress, params, signer) {
       { name: 'maxPremiumInAsset', type: 'uint256' },
     ],
   };
+  // Populate any ENS names
+  const populated = await _TypedDataEncoder.resolveNames(domain, types, params, name => {
+    return this.provider.resolveName(name);
+  });
 
-  return signer._signTypedData(domain, types, params);
+  const digest = _TypedDataEncoder.hash(populated.domain, types, populated.value);
+  const signature = signer._signTypedData(domain, types, params);
+
+  return { digest, signature };
 }
 
-module.exports = { buyCover, signCoverOrder, coverToCoverDetailsArray, buyCoverWithDai, buyCoverThroughGateway };
+module.exports = {
+  buyCover,
+  signCoverOrder,
+  coverToCoverDetailsArray,
+  buyCoverWithDai,
+  buyCoverThroughGateway,
+};

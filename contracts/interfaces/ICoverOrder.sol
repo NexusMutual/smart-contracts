@@ -37,8 +37,8 @@ interface ICoverOrder {
 
   /* ==== EVENTS ==== */
 
-  event OrderExecuted(address owner, uint coverId, bytes signature);
-  event OrderCancelled(bytes signature);
+  event OrderExecuted(address owner, uint coverId, bytes32 id);
+  event OrderCancelled(bytes32 id);
 
   /* ==== ERRORS ==== */
 

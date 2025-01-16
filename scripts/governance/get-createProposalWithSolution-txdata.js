@@ -10,32 +10,6 @@ const { GOVERNANCE_ADDRESS, IPFS_API_URL, CATEGORY_PARAM_TYPES } = constants;
 
 const ipfs = ipfsClient({ url: IPFS_API_URL });
 
-const verifyDecodedTxInputs = (inputs, decodedTxInputs) => {
-  if (decodedTxInputs[0] !== inputs[0]) {
-    throw new Error(`Title mismatch: ${decodedTxInputs[0]} !== ${inputs[0]}`);
-  }
-
-  if (decodedTxInputs[1] !== inputs[1]) {
-    throw new Error(`Short description mismatch: ${decodedTxInputs[1]} !== ${inputs[1]}`);
-  }
-
-  if (decodedTxInputs[2] !== inputs[2]) {
-    throw new Error(`Ipfs hash mismatch: ${decodedTxInputs[2]} !== ${inputs[2]}`);
-  }
-
-  if (decodedTxInputs[3] !== inputs[3]) {
-    throw new Error(`Category mismatch: ${decodedTxInputs[3]} !== ${inputs[3]}`);
-  }
-
-  if (decodedTxInputs[4] !== inputs[4]) {
-    throw new Error(`Solution Hash mismatch: ${decodedTxInputs[4]} !== ${inputs[4]}`);
-  }
-
-  if (decodedTxInputs[5] !== inputs[5]) {
-    throw new Error(`Action mismatch: ${decodedTxInputs[5]} !== ${inputs[5]}`);
-  }
-};
-
 /**
  *
  * Generate the tx data for the Governance.createProposalWithSolution transaction using the provided proposal data
@@ -96,10 +70,7 @@ const main = async (proposalFilePath, categoryId, actionParamsRaw, solutionHash 
   console.log(`Tx data:\n${createProposalTransaction.data}`);
 
   // simulate the transaction
-  const decodedTxInputs = await simulateTransaction(createProposalTransaction.data);
-
-  // verify the decoded inputs match the inputs
-  verifyDecodedTxInputs(inputs, decodedTxInputs);
+  await simulateTransaction(createProposalTransaction.data, proposal.title);
 
   return createProposalTransaction;
 };

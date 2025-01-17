@@ -3,7 +3,7 @@ const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 const linker = require('solc/linker');
 
-const { getSigner, SIGNER_TYPE } = require('./get-signer');
+const { SIGNER_TYPE, getSigner } = require('./get-signer');
 
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 
@@ -186,6 +186,8 @@ async function main() {
     process.exit(1);
   });
 
+  const signer = await getSigner(opts.kms ? SIGNER_TYPE.AWS_KMS : SIGNER_TYPE.LOCAL);
+
   // make sure the contracts are compiled and we're not deploying an outdated artifact
   await run('compile');
 
@@ -213,7 +215,6 @@ async function main() {
   const maxPriorityFeePerGas = ethers.utils.parseUnits(opts.priorityFee, 'gwei');
   const maxFeePerGas = baseFee.add(maxPriorityFeePerGas);
 
-  const signer = await getSigner(opts.kms ? SIGNER_TYPE.AWS_KMS : SIGNER_TYPE.LOCAL);
   const deployer = await ethers.getContractAt('Deployer', opts.factory, signer);
   const deployTx = await deployer.deployAt(bytecode, opts.salt, opts.address, {
     maxFeePerGas,

@@ -7,8 +7,6 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
 
-const { AddressZero } = ethers.constants;
-
 const product = {
   productId: 200,
   weight: 100,
@@ -28,7 +26,8 @@ async function createStakingPoolSetup() {
   const { coverProducts, initialProducts } = fixture;
   const coverProductTemplate = {
     productType: 1,
-    yieldTokenAddress: AddressZero,
+    minPrice: 0,
+    __gap: 0,
     coverAssets: 1111,
     initialPriceRatio: 500,
     capacityReductionRatio: 0,
@@ -40,6 +39,11 @@ async function createStakingPoolSetup() {
 
   await coverProducts.setProduct(productParam, productId);
   await coverProducts.setProductType({ claimMethod: 1, gracePeriod: 7 * 24 * 3600 /* = 7 days */ }, productId);
+
+  // set product with min price
+  const productParamMinPrice = { ...coverProductTemplate, minPrice: 10 };
+  await coverProducts.setProduct(productParamMinPrice, productId + 1);
+  fixture.productIdMinPrice = productId + 1;
 
   return fixture;
 }
@@ -254,14 +258,14 @@ describe('createStakingPool', function () {
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
   });
 
-  it('should fail to initialize products with targetPrice below global minimum', async function () {
+  it('should fail to initialize products with targetPrice below default minimum', async function () {
     const fixture = await loadFixture(createStakingPoolSetup);
     const { stakingProducts } = fixture;
-    const { GLOBAL_MIN_PRICE_RATIO } = fixture.config;
+    const { DEFAULT_MIN_PRICE_RATIO } = fixture.config;
     const [stakingPoolCreator] = fixture.accounts.members;
     const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
 
-    const products = [{ ...productInitializationParams[0], targetPrice: GLOBAL_MIN_PRICE_RATIO - 1 }];
+    const products = [{ ...productInitializationParams[0], targetPrice: DEFAULT_MIN_PRICE_RATIO - 1 }];
     await expect(
       stakingProducts.connect(stakingPoolCreator).createStakingPool(
         false, // isPrivatePool,
@@ -270,6 +274,26 @@ describe('createStakingPool', function () {
         products,
         ipfsDescriptionHash,
       ),
-    ).to.be.revertedWithCustomError(stakingProducts, 'TargetPriceBelowGlobalMinPriceRatio');
+    ).to.be.revertedWithCustomError(stakingProducts, 'TargetPriceBelowMinPriceRatio');
+  });
+
+  it('should fail to initialize products with targetPrice below configured minimum price', async function () {
+    const fixture = await loadFixture(createStakingPoolSetup);
+    const { stakingProducts, coverProducts, productIdMinPrice } = fixture;
+    const [stakingPoolCreator] = fixture.accounts.members;
+    const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
+    const [productMinPrice] = await coverProducts.getMinPrices([productIdMinPrice]);
+
+    const products = [{ ...productInitializationParams[0], productId: 201, targetPrice: productMinPrice - 1 }];
+
+    await expect(
+      stakingProducts.connect(stakingPoolCreator).createStakingPool(
+        false, // isPrivatePool,
+        initialPoolFee,
+        maxPoolFee,
+        products,
+        ipfsDescriptionHash,
+      ),
+    ).to.be.revertedWithCustomError(stakingProducts, 'TargetPriceBelowMinPriceRatio');
   });
 });

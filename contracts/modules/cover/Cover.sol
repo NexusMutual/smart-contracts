@@ -67,7 +67,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   uint public constant MAX_COMMISSION_RATIO = 3000; // 30%
 
-  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+  uint public constant DEFAULT_MIN_PRICE_RATIO = 100; // 1%
 
   uint private constant ONE_NXM = 1e18;
 
@@ -152,7 +152,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         revert ProductDeprecated();
       }
 
-      if (!isCoverAssetSupported(params.coverAsset, product.coverAssets)) {
+      if (!_isCoverAssetSupported(params.coverAsset, product.coverAssets)) {
         revert CoverAssetNotSupported();
       }
 
@@ -164,7 +164,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       allocationRequest.globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
       allocationRequest.capacityReductionRatio = product.capacityReductionRatio;
       allocationRequest.rewardRatio = GLOBAL_REWARDS_RATIO;
-      allocationRequest.globalMinPrice = GLOBAL_MIN_PRICE_RATIO;
+      allocationRequest.productMinPrice = product.minPrice != 0 ? product.minPrice : DEFAULT_MIN_PRICE_RATIO;
     }
 
     uint previousSegmentAmount;
@@ -221,7 +221,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint nxmPriceInCoverAsset = pool().getInternalTokenPriceInAssetAndUpdateTwap(params.coverAsset);
     allocationRequest.coverId = coverId;
 
-    (uint coverAmountInCoverAsset, uint amountDueInNXM) = requestAllocation(
+    (uint coverAmountInCoverAsset, uint amountDueInNXM) = _requestAllocation(
       allocationRequest,
       poolAllocationRequests,
       nxmPriceInCoverAsset,
@@ -245,7 +245,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     _updateTotalActiveCoverAmount(params.coverAsset, coverAmountInCoverAsset, params.period, previousSegmentAmount);
 
-    retrievePayment(
+    _retrievePayment(
       amountDueInNXM,
       params.paymentAsset,
       nxmPriceInCoverAsset,
@@ -299,7 +299,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     }
   }
 
-  function requestAllocation(
+  function _requestAllocation(
     AllocationRequest memory allocationRequest,
     PoolAllocationRequest[] memory poolAllocationRequests,
     uint nxmPriceInCoverAsset,
@@ -380,7 +380,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return (totalCoverAmountInCoverAsset, totalAmountDueInNXM);
   }
 
-  function retrievePayment(
+  function _retrievePayment(
     uint premiumInNxm,
     uint paymentAsset,
     uint nxmPriceInCoverAsset,
@@ -487,7 +487,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint totalActiveCover = _activeCover.totalActiveCoverInAsset;
 
     if (totalActiveCover != 0) {
-      totalActiveCover -= getExpiredCoverAmount(
+      totalActiveCover -= _getExpiredCoverAmount(
         coverAsset,
         _activeCover.lastBucketUpdateId,
         currentBucketId
@@ -509,7 +509,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   }
 
   // Gets the total amount of active cover that is currently expired for this asset
-  function getExpiredCoverAmount(
+  function _getExpiredCoverAmount(
     uint coverAsset,
     uint lastUpdateId,
     uint currentBucketId
@@ -541,7 +541,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       uint currentBucketId = block.timestamp / BUCKET_SIZE;
 
       uint burnedSegmentBucketId = Math.divCeil((segment.start + segment.period), BUCKET_SIZE);
-      uint activeCoverToExpire = getExpiredCoverAmount(coverAsset, lastUpdateBucketId, currentBucketId);
+      uint activeCoverToExpire = _getExpiredCoverAmount(coverAsset, lastUpdateBucketId, currentBucketId);
 
       // if the segment has not expired - it's still accounted for in total active cover
       if (burnedSegmentBucketId > currentBucketId) {
@@ -638,19 +638,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return GLOBAL_REWARDS_RATIO;
   }
 
-  function getGlobalMinPriceRatio() external pure returns (uint) {
-    return GLOBAL_MIN_PRICE_RATIO;
+  function getDefaultMinPriceRatio() external pure returns (uint) {
+    return DEFAULT_MIN_PRICE_RATIO;
   }
 
   function getGlobalCapacityAndPriceRatios() external pure returns (
     uint _globalCapacityRatio,
-    uint _globalMinPriceRatio
+    uint _defaultMinPriceRatio
   ) {
     _globalCapacityRatio = GLOBAL_CAPACITY_RATIO;
-    _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
+    _defaultMinPriceRatio = DEFAULT_MIN_PRICE_RATIO;
   }
 
-  function isCoverAssetSupported(uint assetId, uint productCoverAssetsBitmap) internal view returns (bool) {
+  function _isCoverAssetSupported(uint assetId, uint productCoverAssetsBitmap) internal view returns (bool) {
 
     if (
       // product does not use default cover assets
@@ -678,36 +678,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   function changeStakingNFTDescriptor(address _stakingNFTDescriptor) external onlyAdvisoryBoard {
     stakingNFT.changeNFTDescriptor(_stakingNFTDescriptor);
-  }
-
-  function changeStakingPoolFactoryOperator() external {
-    address _operator = master.getLatestAddress("SP");
-    stakingPoolFactory.changeOperator(_operator);
-  }
-
-  /* ========== Temporary utilities ========== */
-
-  function updateStakingPoolsRewardShares(
-    uint[][][] calldata tokenIds // tokenIds[ pool_id ][ tranche_idx ] => [token ids]
-  ) external {
-
-    ISwapOperator swapOperator = ISwapOperator(pool().swapOperator());
-
-    if (msg.sender != swapOperator.swapController()) {
-      revert OnlySwapOperator();
-    }
-
-    uint firstActiveTrancheId = block.timestamp / 91 days; // TRANCHE_DURATION = 91 days
-    uint stakingPoolCount = stakingPoolFactory.stakingPoolCount();
-
-    for (uint poolIndex = 0; poolIndex < stakingPoolCount; poolIndex++) {
-      IStakingPool sp = IStakingPool(StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolIndex + 1));
-      sp.processExpirations(true);
-
-      for (uint trancheIdx = 0; trancheIdx < MAX_ACTIVE_TRANCHES; trancheIdx++) {
-        sp.updateRewardsShares(firstActiveTrancheId + trancheIdx, tokenIds[poolIndex][trancheIdx]);
-      }
-    }
   }
 
   /* ========== DEPENDENCIES ========== */

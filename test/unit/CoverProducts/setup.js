@@ -109,7 +109,8 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       product: {
         productType: 0,
-        yieldTokenAddress: AddressZero,
+        minPrice: 0,
+        __gap: 0,
         coverAssets: 0, // use fallback
         initialPriceRatio: 1000, // 10%
         capacityReductionRatio: 0,
@@ -124,7 +125,8 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       product: {
         productType: 0,
-        yieldTokenAddress: '0x0000000000000000000000000000000000000001',
+        minPrice: 0,
+        __gap: 0,
         coverAssets: 0, // use fallback
         initialPriceRatio: 1000, // 10%
         capacityReductionRatio: 0,
@@ -139,7 +141,8 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       product: {
         productType: 0,
-        yieldTokenAddress: AddressZero,
+        minPrice: 0,
+        __gap: 0,
         coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
         initialPriceRatio: 1000, // 10%
         capacityReductionRatio: 0,
@@ -154,7 +157,8 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       product: {
         productType: 0,
-        yieldTokenAddress: AddressZero,
+        minPrice: 0,
+        __gap: 0,
         coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
         initialPriceRatio: 1000, // 10%
         capacityReductionRatio: 0,
@@ -170,7 +174,7 @@ async function setup() {
   // add products
   await coverProducts.connect(accounts.advisoryBoardMembers[0]).setProducts(products);
 
-  const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
+  const DEFAULT_MIN_PRICE_RATIO = await cover.DEFAULT_MIN_PRICE_RATIO();
   const BUCKET_SIZE = BigNumber.from(7 * 24 * 3600); // 7 days
   const capacityFactor = '20000';
 
@@ -189,7 +193,7 @@ async function setup() {
     capacityFactor,
     stakingProducts,
     coverProducts,
-    config: { GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE },
+    config: { DEFAULT_MIN_PRICE_RATIO, BUCKET_SIZE },
     Assets,
     pooledStakingSigner,
     productTypes,

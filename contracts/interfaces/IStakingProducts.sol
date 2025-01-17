@@ -56,12 +56,10 @@ interface IStakingProducts {
     uint productId,
     uint period,
     uint coverAmount,
-    uint initialCapacityUsed,
     uint totalCapacity,
-    uint globalMinPrice,
+    uint productMinPrice,
     bool useFixedPrice,
-    uint nxmPerAllocationUnit,
-    uint allocationUnitsPerNxm
+    uint nxmPerAllocationUnit
   ) external returns (uint premium);
 
   function calculateFixedPricePremium(
@@ -77,31 +75,12 @@ interface IStakingProducts {
     StakedProduct memory product,
     uint period,
     uint coverAmount,
-    uint initialCapacityUsed,
     uint totalCapacity,
     uint targetPrice,
     uint currentBlockTimestamp,
     uint nxmPerAllocationUnit,
-    uint allocationUnitsPerNxm,
     uint targetPriceDenominator
   ) external pure returns (uint premium, StakedProduct memory);
-
-  function calculatePremiumPerYear(
-    uint basePrice,
-    uint coverAmount,
-    uint initialCapacityUsed,
-    uint totalCapacity,
-    uint nxmPerAllocationUnit,
-    uint allocationUnitsPerNxm,
-    uint targetPriceDenominator
-  ) external pure returns (uint);
-
-  // Calculates the premium for a given cover amount starting with the surge point
-  function calculateSurgePremium(
-    uint amountOnSurge,
-    uint totalCapacity,
-    uint allocationUnitsPerNxm
-  ) external pure returns (uint);
 
   /* ========== STAKING POOL CREATION ========== */
 
@@ -149,7 +128,7 @@ interface IStakingProducts {
   // Staking Pool creation
   error ProductDoesntExistOrIsDeprecated();
   error InvalidProductType();
-  error TargetPriceBelowGlobalMinPriceRatio();
+  error TargetPriceBelowMinPriceRatio();
 
   // IPFS
   error IpfsHashRequired();

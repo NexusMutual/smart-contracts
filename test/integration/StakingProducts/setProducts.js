@@ -1,8 +1,6 @@
-const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
-const { AddressZero } = ethers.constants;
 
 const stakedProductParamTemplate = {
   productId: 1,
@@ -15,7 +13,8 @@ const stakedProductParamTemplate = {
 
 const coverProductTemplate = {
   productType: 0, // uint16
-  yieldTokenAddress: AddressZero,
+  minPrice: 0,
+  __gap: 0,
   coverAssets: 0, // uint32
   initialPriceRatio: 5000, // uint16
   capacityReductionRatio: 0, // uint16

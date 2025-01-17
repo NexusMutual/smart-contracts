@@ -26,13 +26,9 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   address public immutable coverContract;
   address public immutable stakingPoolFactory;
 
-  uint public constant SURGE_PRICE_RATIO = 2 ether;
-  uint public constant SURGE_THRESHOLD_RATIO = 90_00; // 90.00%
-  uint public constant SURGE_THRESHOLD_DENOMINATOR = 100_00; // 100.00%
-
   // base price bump
-  // +0.2% for each 1% of capacity used, ie +20% for 100%
-  uint public constant PRICE_BUMP_RATIO = 20_00; // 20%
+  // +0.05% for each 1% of capacity used, ie +5% for 100%
+  uint public constant PRICE_BUMP_RATIO = 5_00; // 5%
 
   // bumped price smoothing
   // 0.5% per day
@@ -190,13 +186,11 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       revert OnlyManager();
     }
 
-    (
-      uint globalCapacityRatio,
-      uint globalMinPriceRatio
-    ) = ICover(coverContract).getGlobalCapacityAndPriceRatios();
+    (uint globalCapacityRatio,) = ICover(coverContract).getGlobalCapacityAndPriceRatios();
 
     uint[] memory initialPriceRatios;
     uint[] memory capacityReductionRatios;
+    uint[] memory minPriceRatios;
 
     {
       uint numProducts = params.length;
@@ -213,6 +207,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
       initialPriceRatios = _coverProducts.getInitialPrices(productIds);
       capacityReductionRatios = _coverProducts.getCapacityReductionRatios(productIds);
+      minPriceRatios = _coverProducts.getMinPrices(productIds);
     }
 
     Weights memory _weights = weights[poolId];
@@ -244,7 +239,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
           revert TargetPriceTooHigh();
         }
 
-        if (_param.targetPrice < globalMinPriceRatio) {
+        if (_param.targetPrice < minPriceRatios[i]) {
           revert TargetPriceBelowMin();
         }
 
@@ -373,12 +368,10 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint productId,
     uint period,
     uint coverAmount,
-    uint initialCapacityUsed,
     uint totalCapacity,
-    uint globalMinPrice,
+    uint productMinPrice,
     bool useFixedPrice,
-    uint nxmPerAllocationUnit,
-    uint allocationUnitsPerNXM
+    uint nxmPerAllocationUnit
   ) public returns (uint premium) {
 
     if (msg.sender != StakingPoolLibrary.getAddress(stakingPoolFactory, poolId)) {
@@ -386,7 +379,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     }
 
     StakedProduct memory product = _products[poolId][productId];
-    uint targetPrice = Math.max(product.targetPrice, globalMinPrice);
+    uint targetPrice = Math.max(product.targetPrice, productMinPrice);
 
     if (useFixedPrice) {
       return calculateFixedPricePremium(coverAmount, period, targetPrice, nxmPerAllocationUnit, TARGET_PRICE_DENOMINATOR);
@@ -396,12 +389,10 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       product,
       period,
       coverAmount,
-      initialCapacityUsed,
       totalCapacity,
       targetPrice,
       block.timestamp,
       nxmPerAllocationUnit,
-      allocationUnitsPerNXM,
       TARGET_PRICE_DENOMINATOR
     );
 
@@ -450,12 +441,10 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     StakedProduct memory product,
     uint period,
     uint coverAmount,
-    uint initialCapacityUsed,
     uint totalCapacity,
     uint targetPrice,
     uint currentBlockTimestamp,
     uint nxmPerAllocationUnit,
-    uint allocationUnitsPerNxm,
     uint targetPriceDenominator
   ) public pure returns (uint premium, StakedProduct memory) {
 
@@ -474,101 +463,12 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     product.bumpedPrice = (basePrice + priceBump).toUint96();
     product.bumpedPriceUpdateTime = uint32(currentBlockTimestamp);
 
-    // use calculated base price and apply surge pricing if applicable
-    uint premiumPerYear = calculatePremiumPerYear(
-      basePrice,
-      coverAmount,
-      initialCapacityUsed,
-      totalCapacity,
-      nxmPerAllocationUnit,
-      allocationUnitsPerNxm,
-      targetPriceDenominator
-    );
+    // cover amount has 2 decimals (100 = 1 unit)
+    // scale coverAmount to 18 decimals and apply price percentage
+    uint premiumPerYear = coverAmount * nxmPerAllocationUnit * basePrice / targetPriceDenominator;
 
     // calculate the premium for the requested period
     return (premiumPerYear * period / 365 days, product);
-  }
-
-  function calculatePremiumPerYear(
-    uint basePrice,
-    uint coverAmount,
-    uint initialCapacityUsed,
-    uint totalCapacity,
-    uint nxmPerAllocationUnit,
-    uint allocationUnitsPerNxm,
-    uint targetPriceDenominator
-  ) public pure returns (uint) {
-    // cover amount has 2 decimals (100 = 1 unit)
-    // scale coverAmount to 18 decimals and apply price percentage
-    uint basePremium = coverAmount * nxmPerAllocationUnit * basePrice / targetPriceDenominator;
-    uint finalCapacityUsed = initialCapacityUsed + coverAmount;
-
-    // surge price is applied for the capacity used above SURGE_THRESHOLD_RATIO.
-    // the surge price starts at zero and increases linearly.
-    // to simplify things, we're working with fractions/ratios instead of percentages,
-    // ie 0 to 1 instead of 0% to 100%, 100% = 1 (a unit).
-    //
-    // surgeThreshold = SURGE_THRESHOLD_RATIO / SURGE_THRESHOLD_DENOMINATOR
-    //                = 90_00 / 100_00 = 0.9
-    uint surgeStartPoint = totalCapacity * SURGE_THRESHOLD_RATIO / SURGE_THRESHOLD_DENOMINATOR;
-
-    // Capacity and surge pricing
-    //
-    //        i        f                         s
-    //   ▓▓▓▓▓░░░░░░░░░                          ▒▒▒▒▒▒▒▒▒▒
-    //
-    //  i - initial capacity used
-    //  f - final capacity used
-    //  s - surge start point
-
-    // if surge does not apply just return base premium
-    // i < f <= s case
-    if (finalCapacityUsed <= surgeStartPoint) {
-      return basePremium;
-    }
-
-    // calculate the premium amount incurred due to surge pricing
-    uint amountOnSurge = finalCapacityUsed - surgeStartPoint;
-    uint surgePremium = calculateSurgePremium(amountOnSurge, totalCapacity, allocationUnitsPerNxm);
-
-    // if the capacity start point is before the surge start point
-    // the surge premium starts at zero, so we just return it
-    // i <= s < f case
-    if (initialCapacityUsed <= surgeStartPoint) {
-      return basePremium + surgePremium;
-    }
-
-    // otherwise we need to subtract the part that was already used by other covers
-    // s < i < f case
-    uint amountOnSurgeSkipped = initialCapacityUsed - surgeStartPoint;
-    uint surgePremiumSkipped = calculateSurgePremium(amountOnSurgeSkipped, totalCapacity, allocationUnitsPerNxm);
-
-    return basePremium + surgePremium - surgePremiumSkipped;
-  }
-
-  // Calculates the premium for a given cover amount starting with the surge point
-  function calculateSurgePremium(
-    uint amountOnSurge,
-    uint totalCapacity,
-    uint allocationUnitsPerNxm
-  ) public pure returns (uint) {
-
-    // for every percent of capacity used, the surge price has a +2% increase per annum
-    // meaning a +200% increase for 100%, ie x2 for a whole unit (100%) of capacity in ratio terms
-    //
-    // coverToCapacityRatio = amountOnSurge / totalCapacity
-    // surgePriceStart = 0
-    // surgePriceEnd = SURGE_PRICE_RATIO * coverToCapacityRatio
-    //
-    // surgePremium = amountOnSurge * surgePriceEnd / 2
-    //              = amountOnSurge * SURGE_PRICE_RATIO * coverToCapacityRatio / 2
-    //              = amountOnSurge * SURGE_PRICE_RATIO * amountOnSurge / totalCapacity / 2
-
-    uint surgePremium = amountOnSurge * SURGE_PRICE_RATIO * amountOnSurge / totalCapacity / 2;
-
-    // amountOnSurge has two decimals
-    // dividing by ALLOCATION_UNITS_PER_NXM (=100) to normalize the result
-    return surgePremium / allocationUnitsPerNxm;
   }
 
   /* ========== STAKING POOL CREATION ========== */
@@ -617,15 +517,19 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function _setInitialProducts(uint poolId, ProductInitializationParams[] memory params) internal {
 
-    uint globalMinPriceRatio = cover().getGlobalMinPriceRatio();
+    uint numProducts = params.length;
+    uint[] memory productIds = new uint[](numProducts);
+    for (uint i = 0; i < numProducts; i++) {
+      productIds[i] = params[i].productId;
+    }
+    uint[] memory minPriceRatios = coverProducts().getMinPrices(productIds); 
     uint totalTargetWeight;
 
     for (uint i = 0; i < params.length; i++) {
 
       ProductInitializationParams memory param = params[i];
-
-      if (params[i].targetPrice < globalMinPriceRatio) {
-        revert TargetPriceBelowGlobalMinPriceRatio();
+      if (params[i].targetPrice < minPriceRatios[i]) {
+        revert TargetPriceBelowMinPriceRatio();
       }
 
       if (param.targetPrice > TARGET_PRICE_DENOMINATOR) {

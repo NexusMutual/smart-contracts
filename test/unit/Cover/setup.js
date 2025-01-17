@@ -7,7 +7,7 @@ const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { MaxUint256 } = ethers.constants;
 const { getContractAddress, parseEther } = ethers.utils;
 
 const getDeployAddressAfter = async (account, txCount) => {
@@ -135,7 +135,8 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       product: {
         productType: '0',
-        yieldTokenAddress: AddressZero,
+        minPrice: 0,
+        __gap: 0,
         coverAssets: 0, // use fallback
         initialPriceRatio: '1000', // 10%
         capacityReductionRatio: '0',
@@ -150,7 +151,8 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       product: {
         productType: '0',
-        yieldTokenAddress: '0x0000000000000000000000000000000000000001',
+        minPrice: 0,
+        __gap: 0,
         coverAssets: 0, // use fallback
         initialPriceRatio: '1000', // 10%
         capacityReductionRatio: '0',
@@ -165,7 +167,8 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       product: {
         productType: '0',
-        yieldTokenAddress: AddressZero,
+        minPrice: 0,
+        __gap: 0,
         coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
         initialPriceRatio: '1000', // 10%
         capacityReductionRatio: '0',
@@ -180,7 +183,8 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       product: {
         productType: '0',
-        yieldTokenAddress: AddressZero,
+        minPrice: 0,
+        __gap: 0,
         coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
         initialPriceRatio: '1000', // 10%
         capacityReductionRatio: '0',
@@ -191,7 +195,7 @@ async function setup() {
     },
   ]);
 
-  const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
+  const DEFAULT_MIN_PRICE_RATIO = await cover.DEFAULT_MIN_PRICE_RATIO();
   const MAX_COMMISSION_RATIO = await cover.MAX_COMMISSION_RATIO();
   const BUCKET_SIZE = BigNumber.from(7 * 24 * 3600); // 7 days
   const capacityFactor = '20000';
@@ -212,7 +216,7 @@ async function setup() {
     stakingPoolFactory,
     stakingProducts,
     coverProducts,
-    config: { GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO },
+    config: { DEFAULT_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO },
     Assets,
     pooledStakingSigner,
   };

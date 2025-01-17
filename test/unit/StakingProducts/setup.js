@@ -7,7 +7,6 @@ const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
 const { parseEther, getContractAddress } = ethers.utils;
-const { AddressZero } = ethers.constants;
 
 const initialProductTemplate = {
   productId: 0,
@@ -18,11 +17,17 @@ const initialProductTemplate = {
 
 const coverProductTemplate = {
   productType: 1,
-  yieldTokenAddress: AddressZero,
+  minPrice: 0,
+  __gap: 0,
   coverAssets: 1111,
   initialPriceRatio: 500,
   capacityReductionRatio: 0,
   useFixedPrice: false,
+};
+
+const productWithMinPrice = {
+  ...coverProductTemplate,
+  minPrice: 10, // 0.1%
 };
 
 const ProductTypeFixture = {
@@ -46,7 +51,7 @@ async function setup() {
 
   const nonce = await accounts.defaultSender.getTransactionCount();
   const expectedStakingProductsAddress = getContractAddress({ from: accounts.defaultSender.address, nonce: nonce + 2 });
-  const expectedCoverAddress = getContractAddress({ from: accounts.defaultSender.address, nonce: nonce + 5 });
+  const expectedCoverAddress = getContractAddress({ from: accounts.defaultSender.address, nonce: nonce + 4 });
   const coverNFT = await ethers.deployContract('CoverNFT', [
     'CoverNFT',
     'CNFT',
@@ -61,21 +66,14 @@ async function setup() {
   ]);
   expect(stakingProducts.address).to.equal(expectedStakingProductsAddress);
 
-  const stakingExtrasLib = await ethers.deployContract('StakingExtrasLib');
-  await stakingExtrasLib.deployed();
-
-  const stakingPoolImplementation = await ethers.deployContract(
-    'StakingPool',
-    [
-      stakingNFT.address,
-      nxm.address,
-      expectedCoverAddress,
-      tokenController.address,
-      master.address,
-      stakingProducts.address,
-    ],
-    { libraries: { StakingExtrasLib: stakingExtrasLib.address } },
-  );
+  const stakingPoolImplementation = await ethers.deployContract('StakingPool', [
+    stakingNFT.address,
+    nxm.address,
+    expectedCoverAddress,
+    tokenController.address,
+    master.address,
+    stakingProducts.address,
+  ]);
 
   const cover = await ethers.deployContract('SPMockCover', [
     coverNFT.address,
@@ -144,12 +142,15 @@ async function setup() {
     }),
   );
 
+  // set product with minPrice
+  const expectedProductId = await coverProducts.getProductCount();
+  await coverProducts.setProduct(productWithMinPrice, expectedProductId);
+  await coverProducts.setProductType(ProductTypeFixture, expectedProductId);
+  await coverProducts.setPoolAllowed(expectedProductId, poolId, true);
+
   const config = {
     PRICE_CHANGE_PER_DAY: await stakingProducts.PRICE_CHANGE_PER_DAY(),
     PRICE_BUMP_RATIO: await stakingProducts.PRICE_BUMP_RATIO(),
-    SURGE_PRICE_RATIO: await stakingProducts.SURGE_PRICE_RATIO(),
-    SURGE_THRESHOLD_DENOMINATOR: await stakingProducts.SURGE_THRESHOLD_DENOMINATOR(),
-    SURGE_THRESHOLD_RATIO: await stakingProducts.SURGE_THRESHOLD_RATIO(),
     NXM_PER_ALLOCATION_UNIT: await stakingPool.NXM_PER_ALLOCATION_UNIT(),
     ALLOCATION_UNITS_PER_NXM: await stakingPool.ALLOCATION_UNITS_PER_NXM(),
     INITIAL_PRICE_DENOMINATOR: await stakingProducts.INITIAL_PRICE_DENOMINATOR(),
@@ -162,7 +163,7 @@ async function setup() {
     TRANCHE_DURATION: await stakingProducts.TRANCHE_DURATION(),
     GLOBAL_CAPACITY_RATIO: await cover.GLOBAL_CAPACITY_RATIO(),
     GLOBAL_REWARDS_RATIO: await cover.GLOBAL_REWARDS_RATIO(),
-    GLOBAL_MIN_PRICE_RATIO: await cover.GLOBAL_MIN_PRICE_RATIO(),
+    DEFAULT_MIN_PRICE_RATIO: await cover.DEFAULT_MIN_PRICE_RATIO(),
   };
 
   const coverSigner = await ethers.getImpersonatedSigner(cover.address);

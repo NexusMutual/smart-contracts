@@ -60,7 +60,7 @@ contract SKMockCover is CoverGeneric {
         _globalCapacityRatio,
         product.capacityReductionRatio,
         _globalRewardsRatio,
-        GLOBAL_MIN_PRICE_RATIO
+        DEFAULT_MIN_PRICE_RATIO
       )
     );
 

@@ -17,7 +17,7 @@ struct AllocationRequest {
   uint globalCapacityRatio;
   uint capacityReductionRatio;
   uint rewardRatio;
-  uint globalMinPrice;
+  uint productMinPrice;
 }
 
 struct BurnStakeParams {
@@ -156,11 +156,6 @@ interface IStakingPool {
     uint capacityRatio,
     uint reductionRatio
   ) external view returns (uint[] memory trancheCapacities);
-
-  function updateRewardsShares(
-    uint trancheId,
-    uint[] calldata tokenIds
-  ) external;
 
   /* ========== EVENTS ========== */
 

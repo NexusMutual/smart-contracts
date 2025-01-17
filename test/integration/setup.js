@@ -219,21 +219,16 @@ async function setup() {
     coverNFTDescriptor.address,
   ]);
 
-  // 2. deploy Cover, StakingProducts, CoverProducts and TokenController proxies
+  // deploy Cover, StakingProducts, CoverProducts and TokenController proxies
   let cover = await deployProxy('Stub');
   let stakingProducts = await deployProxy('Stub');
   let tc = await deployProxy('Stub');
 
-  // 3. deploy StakingPool implementation
-  const stakingExtrasLib = await ethers.deployContract('StakingExtrasLib');
-  await stakingExtrasLib.deployed();
-
+  // deploy StakingPool implementation
   const spArgs = [stakingNFT, tk, cover, tc, master, stakingProducts].map(c => c.address);
-  const stakingPool = await ethers.deployContract('StakingPool', spArgs, {
-    libraries: { StakingExtrasLib: stakingExtrasLib.address },
-  });
+  const stakingPool = await ethers.deployContract('StakingPool', spArgs);
 
-  // 4. deploy implementations and upgrade Cover, StakingProducts and DisposableTokenController proxies
+  // deploy implementations and upgrade Cover, StakingProducts and DisposableTokenController proxies
   await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
   cover = await ethers.getContractAt('Cover', cover.address);
 
@@ -250,7 +245,7 @@ async function setup() {
   ]);
   tc = await ethers.getContractAt('DisposableTokenController', tc.address);
 
-  // 5. update operators
+  // update operators
   await spf.changeOperator(stakingProducts.address);
   await stakingNFT.changeOperator(cover.address);
   await coverNFT.changeOperator(cover.address);
@@ -258,7 +253,6 @@ async function setup() {
   await stakingProducts.changeMasterAddress(master.address);
 
   const ci = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
-  const cg = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
   const as = await deployProxy('Assessment', [tk.address]);
   const coverProducts = await deployProxy('CoverProducts');
 
@@ -266,7 +260,7 @@ async function setup() {
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'CI', 'CG', 'AS', 'CO', 'SP', 'RA', 'ST', 'CP'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'CI', 'AS', 'CO', 'SP', 'RA', 'ST', 'CP'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -289,7 +283,6 @@ async function setup() {
     { address: mr.address, code: 'MR' },
     { address: ps.address, code: 'PS' },
     { address: ci.address, code: 'CI' },
-    { address: cg.address, code: 'CG' },
     { address: as.address, code: 'AS' },
     { address: cover.address, code: 'CO' },
     { address: lcr.address, code: 'CR' },
@@ -414,7 +407,8 @@ async function setup() {
     ipfsMetadata: 'product 0 metadata',
     product: {
       productType: 0, // Protocol Cover
-      yieldTokenAddress: AddressZero,
+      minPrice: 0,
+      __gap: 0,
       coverAssets: 0, // Use fallback
       initialPriceRatio: 100,
       capacityReductionRatio: 0,
@@ -474,7 +468,6 @@ async function setup() {
   await cover.changeDependentContractAddress();
   await ramm.changeDependentContractAddress();
   await ci.changeDependentContractAddress();
-  await cg.changeDependentContractAddress();
   await as.changeDependentContractAddress();
   await mc.changeDependentContractAddress();
   await mr.changeDependentContractAddress();
@@ -486,7 +479,6 @@ async function setup() {
   await transferProxyOwnership(pc.address, master.address);
   await transferProxyOwnership(gv.address, master.address);
   await transferProxyOwnership(ci.address, master.address);
-  await transferProxyOwnership(cg.address, master.address);
   await transferProxyOwnership(as.address, master.address);
   await transferProxyOwnership(cover.address, gv.address);
   await transferProxyOwnership(master.address, gv.address);
@@ -546,7 +538,6 @@ async function setup() {
     ra: await ethers.getContractAt('Ramm', ramm.address),
     st: await ethers.getContractAt('SafeTracker', st.address),
     ci: await ethers.getContractAt('IndividualClaims', ci.address),
-    cg: await ethers.getContractAt('YieldTokenIncidents', cg.address),
     as: await ethers.getContractAt('Assessment', as.address),
     cover: await ethers.getContractAt('Cover', cover.address),
   };
@@ -618,7 +609,8 @@ async function setup() {
       ipfsMetadata: 'product 1 metadata',
       product: {
         productType: 1, // Custody Cover
-        yieldTokenAddress: AddressZero,
+        minPrice: 0,
+        __gap: 0,
         coverAssets: 0, // Use fallback
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
@@ -632,7 +624,8 @@ async function setup() {
       ipfsMetadata: 'product 2 metadata',
       product: {
         productType: 2, // Yield Token Cover
-        yieldTokenAddress: ybETH.address,
+        minPrice: 0,
+        __gap: 0,
         coverAssets: 0b01, // ETH
         initialPriceRatio: 500,
         capacityReductionRatio: 0,
@@ -646,7 +639,8 @@ async function setup() {
       ipfsMetadata: 'product 3 metadata',
       product: {
         productType: 2, // Yield Token Cover
-        yieldTokenAddress: ybDAI.address,
+        minPrice: 0,
+        __gap: 0,
         coverAssets: 0b10, // DAI
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
@@ -660,7 +654,8 @@ async function setup() {
       ipfsMetadata: 'product 4 metadata',
       product: {
         productType: 0, // Protocol Cover
-        yieldTokenAddress: AddressZero,
+        minPrice: 0,
+        __gap: 0,
         coverAssets: 0, // Use fallback
         initialPriceRatio: 500,
         capacityReductionRatio: 0,
@@ -674,7 +669,8 @@ async function setup() {
       ipfsMetadata: 'product 5 metadata',
       product: {
         productType: 2, // Yield Token Cover
-        yieldTokenAddress: ybUSDC.address,
+        minPrice: 0,
+        __gap: 0,
         coverAssets: 0b10000, // USDC
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
@@ -688,7 +684,8 @@ async function setup() {
       ipfsMetadata: 'product 6 metadata',
       product: {
         productType: 0, // Protocol Cover
-        yieldTokenAddress: ybUSDC.address,
+        minPrice: 0,
+        __gap: 0,
         coverAssets: 0b10000, // use usdc
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
@@ -702,7 +699,8 @@ async function setup() {
       ipfsMetadata: 'product 7 metadata',
       product: {
         productType: 0, // Protocol Cover
-        yieldTokenAddress: AddressZero,
+        minPrice: 0,
+        __gap: 0,
         coverAssets: 0, // Use fallback
         initialPriceRatio: 100,
         capacityReductionRatio: 0,

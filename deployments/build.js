@@ -41,7 +41,6 @@ const contractList = [
   'SwapOperator',
   'TokenController',
   'wNXM',
-  'YieldTokenIncidents',
 ];
 
 const updateVersion = () => {

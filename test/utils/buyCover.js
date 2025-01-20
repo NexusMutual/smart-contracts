@@ -128,6 +128,7 @@ async function signCoverOrder(contractAddress, params, signer) {
       { name: 'paymentAsset', type: 'uint8' },
       { name: 'coverAsset', type: 'uint8' },
       { name: 'owner', type: 'address' },
+      { name: 'ipfsData', type: 'string' },
       { name: 'executionDetails', type: 'ExecutionDetails' },
     ],
     ExecutionDetails: [
@@ -136,6 +137,7 @@ async function signCoverOrder(contractAddress, params, signer) {
       { name: 'maxPremiumInAsset', type: 'uint256' },
     ],
   };
+
   // Populate any ENS names
   const populated = await _TypedDataEncoder.resolveNames(domain, types, params, name => {
     return this.provider.resolveName(name);

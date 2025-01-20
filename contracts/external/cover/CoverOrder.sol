@@ -43,6 +43,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
       "uint8 paymentAsset,",
       "uint8 coverAsset,",
       "address owner,",
+      "string ipfsData,",
       "ExecutionDetails executionDetails)",
       "ExecutionDetails(uint256 notBefore,uint256 deadline,uint256 maxPremiumInAsset)"
     )
@@ -174,6 +175,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
         params.paymentAsset,
         params.coverAsset,
         params.owner,
+        keccak256(abi.encodePacked(params.ipfsData)),
         executionDetailsHash
       )
     );

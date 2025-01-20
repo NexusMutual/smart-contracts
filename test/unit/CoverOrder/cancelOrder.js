@@ -30,7 +30,7 @@ describe('cancelOrder', function () {
       contracts: { coverOrder },
       accounts: { coverOrderOwner },
     } = fixture;
-    const { productId, amount, period } = buyCoverFixture;
+    const { productId, amount, period, ipfsData } = buyCoverFixture;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const executionDetails = {
@@ -47,6 +47,7 @@ describe('cancelOrder', function () {
         paymentAsset: 0,
         coverAsset: 0,
         owner: coverOrderOwner.address,
+        ipfsData,
         executionDetails,
       },
       coverOrderOwner,
@@ -73,7 +74,7 @@ describe('cancelOrder', function () {
       contracts: { coverOrder },
       accounts: { coverOrderOwner, notOwner },
     } = fixture;
-    const { productId, amount, period } = buyCoverFixture;
+    const { productId, amount, period, ipfsData } = buyCoverFixture;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const executionDetails = {
@@ -90,6 +91,7 @@ describe('cancelOrder', function () {
         period,
         paymentAsset: 0,
         coverAsset: 0,
+        ipfsData,
         owner: coverOrderOwner.address,
         executionDetails,
       },
@@ -101,6 +103,7 @@ describe('cancelOrder', function () {
         ...buyCoverFixture,
         paymentAsset: 0, // ETH
         productId,
+        ipfsData,
         owner: coverOrderOwner.address,
         maxPremiumInAsset: MaxUint256,
       },
@@ -117,7 +120,7 @@ describe('cancelOrder', function () {
       contracts: { coverOrder, dai },
       accounts: { coverOrderOwner, coverOrderSettler },
     } = fixture;
-    const { productId, amount, period } = buyCoverFixture;
+    const { productId, amount, period, ipfsData } = buyCoverFixture;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const executionDetails = {
@@ -132,6 +135,7 @@ describe('cancelOrder', function () {
         productId,
         amount,
         period,
+        ipfsData,
         paymentAsset: 1,
         coverAsset: 1,
         owner: coverOrderOwner.address,

@@ -124,7 +124,7 @@ describe('CoverOrder - executeOrder', function () {
       config: { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO },
       productList,
     } = fixture;
-    const { period, amount } = buyCoverFixture;
+    const { period, amount, ipfsData } = buyCoverFixture;
 
     await dai.mint(coverBuyer.address, parseEther('1000'));
     await dai.connect(coverBuyer).approve(coverOrder.address, parseEther('1000'));
@@ -174,6 +174,7 @@ describe('CoverOrder - executeOrder', function () {
         productId,
         amount,
         period,
+        ipfsData,
         paymentAsset: 1,
         coverAsset: 1,
         owner: coverBuyer.address,
@@ -186,6 +187,7 @@ describe('CoverOrder - executeOrder', function () {
       {
         ...buyCoverFixture,
         productId,
+        ipfsData,
         owner: coverBuyer.address,
         maxPremiumInAsset,
         coverAsset: 1,
@@ -236,7 +238,7 @@ describe('CoverOrder - executeOrder', function () {
       config: { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO },
       productList,
     } = fixture;
-    const { period, amount } = buyCoverFixture;
+    const { period, amount, ipfsData } = buyCoverFixture;
 
     await weth.connect(coverBuyer).deposit({ value: parseEther('100') });
     await weth.connect(coverBuyer).approve(coverOrder.address, parseEther('100'));
@@ -277,6 +279,7 @@ describe('CoverOrder - executeOrder', function () {
         productId,
         amount,
         period,
+        ipfsData,
         paymentAsset: 0,
         coverAsset: 0,
         owner: coverBuyer.address,
@@ -293,6 +296,7 @@ describe('CoverOrder - executeOrder', function () {
         ...buyCoverFixture,
         paymentAsset: 0, // ETH
         productId,
+        ipfsData,
         owner: coverBuyer.address,
         maxPremiumInAsset: premium,
       },
@@ -382,7 +386,7 @@ describe('CoverOrder - executeOrder', function () {
       config: { NXM_PER_ALLOCATION_UNIT },
       productList,
     } = fixture;
-    const { period, amount } = buyCoverFixture;
+    const { period, amount, ipfsData } = buyCoverFixture;
 
     await dai.mint(coverBuyer.address, parseEther('1000'));
     await dai.connect(coverBuyer).approve(coverOrder.address, parseEther('1000'));
@@ -424,6 +428,7 @@ describe('CoverOrder - executeOrder', function () {
         productId,
         amount,
         period,
+        ipfsData,
         executionDetails,
         paymentAsset: 1,
         coverAsset: 1,
@@ -487,6 +492,7 @@ describe('CoverOrder - executeOrder', function () {
         coverAsset: 1,
         owner: coverBuyer.address,
         executionDetails,
+        ipfsData: buyCoverParams.ipfsData,
       },
       orderSigner,
     );
@@ -518,6 +524,7 @@ describe('CoverOrder - executeOrder', function () {
         productId: buyCoverParams.productId,
         amount: buyCoverParams.amount,
         period: buyCoverParams.period,
+        ipfsData: buyCoverParams.ipfsData,
         paymentAsset: 1,
         coverAsset: 1,
         owner: coverBuyer.address,
@@ -553,6 +560,7 @@ describe('CoverOrder - executeOrder', function () {
         productId: buyCoverParams.productId,
         amount: buyCoverParams.amount,
         period: buyCoverParams.period,
+        ipfsData: buyCoverParams.ipfsData,
         paymentAsset: 1,
         coverAsset: 1,
         owner: coverBuyer.address,
@@ -572,7 +580,7 @@ describe('CoverOrder - executeOrder', function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { coverOrder } = fixture.contracts;
     const [orderSettler, coverBuyer] = fixture.accounts.members;
-    const { period, amount, productId } = buyCoverFixture;
+    const { period, amount, productId, ipfsData } = buyCoverFixture;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
 
@@ -587,6 +595,7 @@ describe('CoverOrder - executeOrder', function () {
         productId,
         amount,
         period,
+        ipfsData,
         paymentAsset: 0,
         coverAsset: 0,
         owner: coverBuyer.address,

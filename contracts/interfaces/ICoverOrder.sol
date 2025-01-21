@@ -4,7 +4,12 @@ pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 
-import "../interfaces/ICover.sol";
+import "./IMemberRoles.sol";
+import "./INXMMaster.sol";
+import "./INXMToken.sol";
+import "./ICover.sol";
+import "./IWeth.sol";
+import "./ICover.sol";
 
 struct ExecutionDetails {
   uint256 notBefore;
@@ -19,6 +24,20 @@ interface ICoverOrder {
     Executed,
     Cancelled
   }
+
+  /* ==== IMMUTABLES ==== */
+
+  function controller() external view returns (address);
+
+  function master() external view returns (INXMMaster);
+
+  function cover() external view returns (ICover);
+
+  function memberRoles() external view returns (IMemberRoles);
+
+  function nxmToken() external view returns (INXMToken);
+
+  function weth() external view returns (IWeth);
 
   /* ==== FUNCTIONS ==== */
 

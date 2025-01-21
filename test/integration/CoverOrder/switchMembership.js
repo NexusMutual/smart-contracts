@@ -35,8 +35,9 @@ describe('CoverOrder - switchMembership', function () {
       defaultSender.address,
     ]);
 
-    await expect(coverOrder.connect(members[0]).switchMembership(newCoverOrder.address)).to.revertedWith(
-      'Ownable: caller is not the owner',
+    await expect(coverOrder.connect(members[0]).switchMembership(newCoverOrder.address)).to.revertedWithCustomError(
+      coverOrder,
+      'OnlyController',
     );
   });
 });

@@ -61,7 +61,10 @@ describe('rescueFunds', function () {
 
     const balanceBefore = await ethers.provider.getBalance(coverOrder.address);
 
-    await expect(coverOrder.connect(notOwner).rescueFunds(ETH)).to.revertedWith('Ownable: caller is not the owner');
+    await expect(coverOrder.connect(notOwner).rescueFunds(ETH)).to.revertedWithCustomError(
+      coverOrder,
+      'OnlyController',
+    );
     const balanceAfter = await ethers.provider.getBalance(coverOrder.address);
     expect(balanceAfter).to.equal(balanceBefore);
   });

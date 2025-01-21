@@ -42,6 +42,7 @@ interface ICoverOrder {
 
   /* ==== ERRORS ==== */
 
+  error OnlyController();
   error OrderAlreadyExecuted();
   error OrderAlreadyCancelled();
   error OrderExpired();

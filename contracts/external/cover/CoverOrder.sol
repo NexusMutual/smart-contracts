@@ -15,7 +15,7 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IWeth.sol";
 import "../../interfaces/IPool.sol";
 
-contract CoverOrder is ICoverOrder, Ownable, EIP712 {
+contract CoverOrder is ICoverOrder, EIP712 {
   using ECDSA for bytes32;
   using SafeERC20 for IERC20;
 
@@ -28,6 +28,7 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
   INXMToken public immutable nxmToken;
   INXMMaster public immutable master;
   IWeth public immutable weth;
+  address public immutable controller;
 
   /* ========== CONSTANTS ========== */
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -49,18 +50,25 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
     )
   );
 
+  modifier onlyController() {
+    if (msg.sender != controller) {
+      revert OnlyController();
+    }
+    _;
+  }
+
   /* ========== CONSTRUCTOR ========== */
   constructor(
     address _master,
     address _weth,
-    address _owner
+    address _controller
   ) EIP712("NexusMutualCoverOrder", "1") {
     master = INXMMaster(_master);
     cover = ICover(master.getLatestAddress("CO"));
     memberRoles = IMemberRoles(master.getLatestAddress("MR"));
     nxmToken = INXMToken(master.tokenAddress());
     weth = IWeth(_weth);
-    transferOwnership(_owner);
+    controller = _controller;
   }
 
   /// @notice Verifies and executes the order to buy cover on behalf of the creator of limit order
@@ -261,21 +269,21 @@ contract CoverOrder is ICoverOrder, Ownable, EIP712 {
 
   /// @notice Allows the Cover contract to spend the maximum possible amount of a specified ERC20 token on behalf of the CoverOrder.
   /// @param erc20 The ERC20 token for which to approve spending.
-  function maxApproveCoverContract(IERC20 erc20) external onlyOwner {
+  function maxApproveCoverContract(IERC20 erc20) external onlyController {
     erc20.safeApprove(address(cover), type(uint256).max);
   }
 
   /// @notice Switches CoverOrder's membership to a new address.
   /// @dev MemberRoles contract needs to be approved to transfer NXM tokens to new membership address.
   /// @param newAddress The address to which the membership will be switched.
-  function switchMembership(address newAddress) external onlyOwner {
+  function switchMembership(address newAddress) external onlyController {
     nxmToken.approve(address(memberRoles), type(uint256).max);
     memberRoles.switchMembership(newAddress);
   }
 
   /// @notice Recovers all available funds of a specified asset (ETH or ERC20) to the contract owner.
   /// @param assetAddress The address of the asset to be rescued.
-  function rescueFunds(address assetAddress) external onlyOwner {
+  function rescueFunds(address assetAddress) external onlyController {
 
     if (assetAddress == ETH) {
       uint ethBalance = address(this).balance;

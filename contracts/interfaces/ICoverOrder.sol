@@ -27,14 +27,6 @@ interface ICoverOrder {
 
   /* ==== IMMUTABLES ==== */
 
-  function controller() external view returns (address);
-
-  function master() external view returns (INXMMaster);
-
-  function cover() external view returns (ICover);
-
-  function memberRoles() external view returns (IMemberRoles);
-
   function nxmToken() external view returns (INXMToken);
 
   function weth() external view returns (IWeth);
@@ -49,10 +41,6 @@ interface ICoverOrder {
   ) external payable returns (uint coverId);
 
   function maxApproveCoverContract(IERC20 token) external;
-
-  function switchMembership(address newAddress) external;
-
-  function rescueFunds(address assetAddress) external;
 
   /* ==== EVENTS ==== */
 

@@ -5,7 +5,7 @@ import "../../generic/CoverGeneric.sol";
 
 contract CoverOrderCoverMock is CoverGeneric {
 
-  function buyCover(
+  function buyCoverInternally(
     BuyCoverParams memory,
     PoolAllocationRequest[] memory
   ) external payable override returns (uint coverId) {

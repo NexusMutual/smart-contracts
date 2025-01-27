@@ -243,12 +243,14 @@ async function setup() {
   const ci = await deployProxy('IndividualClaims', [coverNFT.address]);
   const as = await deployProxy('Assessment', [tk.address]);
   const coverProducts = await deployProxy('CoverProducts');
+  const coverOrder = await deployProxy('CoverOrder', [tk.address, weth.address]);
 
   await coverProducts.changeMasterAddress(master.address);
+  await coverOrder.changeMasterAddress(master.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
-    const proxies = ['GV', 'MR', 'PC', 'TC', 'CI', 'AS', 'CO', 'SP', 'RA', 'ST', 'CP'];
+    const proxies = ['GV', 'MR', 'PC', 'TC', 'CI', 'AS', 'CO', 'SP', 'RA', 'ST', 'CP', 'LO'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -275,6 +277,7 @@ async function setup() {
     { address: ramm.address, code: 'RA' },
     { address: st.address, code: 'ST' },
     { address: coverProducts.address, code: 'CP' },
+    { address: coverOrder.address, code: 'LO' },
   ];
 
   await master.initialize(
@@ -414,9 +417,6 @@ async function setup() {
     owner.address,
   ]);
 
-  // deploy CoverOrder
-  const coverOrder = await ethers.deployContract('CoverOrder', [master.address, weth.address, owner.address]);
-
   // deploy viewer contracts
   const stakingViewer = await ethers.deployContract('StakingViewer', [master.address, stakingNFT.address, spf.address]);
   const assessmentViewer = await ethers.deployContract('AssessmentViewer', [master.address]);
@@ -502,6 +502,7 @@ async function setup() {
     ci: await ethers.getContractAt('IndividualClaims', ci.address),
     as: await ethers.getContractAt('Assessment', as.address),
     cover: await ethers.getContractAt('Cover', cover.address),
+    coverOrder: await ethers.getContractAt('CoverOrder', coverOrder.address),
   };
 
   const nonInternal = {
@@ -511,7 +512,6 @@ async function setup() {
     stakingViewer,
     assessmentViewer,
     nexusViewer,
-    coverOrder,
   };
 
   fixture.contracts = {
@@ -544,13 +544,6 @@ async function setup() {
   const coverBrokerSigner = await ethers.getSigner(coverBroker.address);
   accounts.coverBrokerSigner = coverBrokerSigner;
   await enrollMember(fixture.contracts, [coverBrokerSigner], owner, { initialTokens: parseEther('0') });
-
-  // enroll coverOrder as member
-  await impersonateAccount(coverOrder.address);
-  await setEtherBalance(coverOrder.address, parseEther('1000'));
-  const coverOrderSigner = await ethers.getSigner(coverOrder.address);
-  accounts.coverOrderSigner = coverOrderSigner;
-  await enrollMember(fixture.contracts, [coverOrderSigner], owner, { initialTokens: parseEther('0') });
 
   const product = {
     productId: 0,

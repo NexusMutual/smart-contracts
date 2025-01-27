@@ -8,10 +8,11 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/access/Ownable.sol";
 
+import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ICoverOrder.sol";
 import "../../interfaces/IPool.sol";
 
-contract CoverOrder is ICoverOrder, EIP712 {
+contract CoverOrder is ICoverOrder, MasterAwareV2, EIP712 {
   using ECDSA for bytes32;
   using SafeERC20 for IERC20;
 
@@ -19,12 +20,8 @@ contract CoverOrder is ICoverOrder, EIP712 {
   mapping(bytes32 => OrderStatus) public orderStatus;
 
   /* ========== IMMUTABLES ========== */
-  ICover public immutable cover;
-  IMemberRoles public immutable memberRoles;
   INXMToken public immutable nxmToken;
-  INXMMaster public immutable master;
   IWeth public immutable weth;
-  address public immutable controller;
 
   /* ========== CONSTANTS ========== */
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -46,25 +43,10 @@ contract CoverOrder is ICoverOrder, EIP712 {
     )
   );
 
-  modifier onlyController() {
-    if (msg.sender != controller) {
-      revert OnlyController();
-    }
-    _;
-  }
-
   /* ========== CONSTRUCTOR ========== */
-  constructor(
-    address _master,
-    address _weth,
-    address _controller
-  ) EIP712("NexusMutualCoverOrder", "1") {
-    master = INXMMaster(_master);
-    cover = ICover(master.getLatestAddress("CO"));
-    memberRoles = IMemberRoles(master.getLatestAddress("MR"));
-    nxmToken = INXMToken(master.tokenAddress());
-    weth = IWeth(_weth);
-    controller = _controller;
+  constructor(address _nxmTokenAddress, address _wethAddress) EIP712("NexusMutualCoverOrder", "1") {
+    nxmToken = INXMToken(_nxmTokenAddress);
+    weth = IWeth(_wethAddress);
   }
 
   /// @notice Verifies and executes the order to buy cover on behalf of the creator of limit order
@@ -78,7 +60,7 @@ contract CoverOrder is ICoverOrder, EIP712 {
     PoolAllocationRequest[] calldata poolAllocationRequests,
     ExecutionDetails calldata executionDetails,
     bytes calldata signature
-  ) external payable returns (uint coverId) {
+  ) external payable onlyMember returns (uint coverId) {
 
     if (block.timestamp > executionDetails.deadline) {
       revert OrderExpired();
@@ -90,10 +72,6 @@ contract CoverOrder is ICoverOrder, EIP712 {
 
     if (params.maxPremiumInAsset > executionDetails.maxPremiumInAsset) {
       revert OrderPriceNotMet();
-    }
-
-    if(!memberRoles.checkRole(msg.sender, uint(IMemberRoles.Role.Member))) {
-      revert NotAMember();
     }
 
     if (params.owner == address(0) || params.owner == address(this)) {
@@ -214,7 +192,7 @@ contract CoverOrder is ICoverOrder, EIP712 {
     weth.transferFrom(params.owner, address(this), params.maxPremiumInAsset);
     weth.withdraw(params.maxPremiumInAsset);
 
-    coverId = cover.buyCover{value: params.maxPremiumInAsset}(params, poolAllocationRequests);
+    coverId = cover().buyCoverInternally{value: params.maxPremiumInAsset}(params, poolAllocationRequests);
 
     uint ethBalanceAfter = address(this).balance;
 
@@ -244,13 +222,13 @@ contract CoverOrder is ICoverOrder, EIP712 {
     PoolAllocationRequest[] calldata poolAllocationRequests
   ) internal returns (uint coverId) {
 
-    address paymentAsset = _pool().getAsset(params.paymentAsset).assetAddress;
+    address paymentAsset = pool().getAsset(params.paymentAsset).assetAddress;
     IERC20 erc20 = IERC20(paymentAsset);
 
     uint erc20BalanceBefore = erc20.balanceOf(address(this));
 
     erc20.safeTransferFrom(params.owner, address(this), params.maxPremiumInAsset);
-    coverId = cover.buyCover(params, poolAllocationRequests);
+    coverId = cover().buyCoverInternally(params, poolAllocationRequests);
 
     uint erc20BalanceAfter = erc20.balanceOf(address(this));
 
@@ -265,51 +243,26 @@ contract CoverOrder is ICoverOrder, EIP712 {
 
   /// @notice Allows the Cover contract to spend the maximum possible amount of a specified ERC20 token on behalf of the CoverOrder.
   /// @param erc20 The ERC20 token for which to approve spending.
-  function maxApproveCoverContract(IERC20 erc20) external onlyController {
-    erc20.safeApprove(address(cover), type(uint256).max);
-  }
-
-  /// @notice Switches CoverOrder's membership to a new address.
-  /// @dev MemberRoles contract needs to be approved to transfer NXM tokens to new membership address.
-  /// @param newAddress The address to which the membership will be switched.
-  function switchMembership(address newAddress) external onlyController {
-    nxmToken.approve(address(memberRoles), type(uint256).max);
-    memberRoles.switchMembership(newAddress);
-  }
-
-  /// @notice Recovers all available funds of a specified asset (ETH or ERC20) to the contract owner.
-  /// @param assetAddress The address of the asset to be rescued.
-  function rescueFunds(address assetAddress) external onlyController {
-
-    if (assetAddress == ETH) {
-      uint ethBalance = address(this).balance;
-      if (ethBalance == 0) {
-        revert ZeroBalance(ETH);
-      }
-
-      (bool sent,) = payable(msg.sender).call{value: ethBalance}("");
-      if (!sent) {
-        revert TransferFailed(msg.sender, ethBalance, ETH);
-      }
-
-      return;
-    }
-
-    IERC20 asset = IERC20(assetAddress);
-    uint erc20Balance = asset.balanceOf(address(this));
-    if (erc20Balance == 0) {
-      revert ZeroBalance(assetAddress);
-    }
-
-    asset.safeTransfer(msg.sender, erc20Balance);
+  function maxApproveCoverContract(IERC20 erc20) external {
+    erc20.safeApprove(internalContracts[uint(ID.CO)], type(uint256).max);
   }
 
   /* ========== DEPENDENCIES ========== */
 
-  /// @dev Fetches the Pool's instance through master contract
   /// @return The Pool's instance
-  function _pool() internal view returns (IPool) {
-    return IPool(master.getLatestAddress("P1"));
+  function pool() internal view returns (IPool) {
+    return IPool(internalContracts[uint(ID.P1)]);
+  }
+
+  /// @return The Cover's instance
+  function cover() internal view returns (ICover) {
+    return ICover(internalContracts[uint(ID.CO)]);
+  }
+
+  function changeDependentContractAddress() external override {
+    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
+    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
   }
 
   receive() external payable {}

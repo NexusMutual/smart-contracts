@@ -343,7 +343,7 @@ describe('CoverOrder - executeOrder', function () {
       .connect(coverBuyer)
       .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], executionDetails, '0x');
 
-    await expect(buyCover).to.revertedWithCustomError(coverOrder, 'NotAMember');
+    await expect(buyCover).to.revertedWith('Caller is not a member');
   });
 
   it('should revert with InvalidOwnerAddress if params.owner is zero address', async function () {

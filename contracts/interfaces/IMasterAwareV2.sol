@@ -21,7 +21,8 @@ interface IMasterAwareV2 {
     UNUSED_CG, // YieldTokenIncidents.sol - Claims for Groups -- removed
     RA, // Ramm.sol
     ST,  // SafeTracker.sol
-    CP  // CoverProducts.sol
+    CP,  // CoverProducts.sol
+    LO  // CoverOrders.sol - Limit Orders
   }
 
   function changeMasterAddress(address masterAddress) external;

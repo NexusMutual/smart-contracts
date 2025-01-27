@@ -21,15 +21,19 @@ async function setup() {
   const pool = await ethers.deployContract('PoolMock');
   const master = await ethers.deployContract('MasterMock');
 
+  const coverOrder = await ethers.deployContract('CoverOrder', [AddressZero, AddressZero]);
+
   await master.setLatestAddress(toBytes2('CO'), cover.address);
   await master.setLatestAddress(toBytes2('MR'), memberRoles.address);
   await master.setLatestAddress(toBytes2('P1'), pool.address);
+  await master.setLatestAddress(toBytes2('LO'), coverOrder.address);
+
+  await coverOrder.changeMasterAddress(master.address);
+  await coverOrder.changeDependentContractAddress();
 
   await pool.addAsset({ assetAddress: dai.address, isCoverAsset: true, isAbandoned: false });
 
   await dai.mint(coverOrderOwner.address, parseEther('1000000'));
-
-  const coverOrder = await ethers.deployContract('CoverOrder', [master.address, AddressZero, coverOrderOwner.address]);
 
   await memberRoles.setRole(coverOrder.address, 2);
   await memberRoles.setRole(coverOrderSettler.address, 2);

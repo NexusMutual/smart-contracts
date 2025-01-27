@@ -2,8 +2,17 @@ const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
 const { addresses } = require('@nexusmutual/deployments');
 
-const { Address, EnzymeAdress, getSigner, UserAddress, calculateCurrentTrancheId } = require('./utils');
-const { ContractCode } = require('../../lib/constants');
+const {
+  Address,
+  EnzymeAdress,
+  getSigner,
+  UserAddress,
+  calculateCurrentTrancheId,
+  submitGovernanceProposal,
+  formatInternalContracts,
+  calculateProxyAddress,
+} = require('./utils');
+const { ContractCode, ContractTypes, ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const { enrollMember } = require('../integration/utils/enroll');
 const { daysToSeconds } = require('../../lib/helpers');
 const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
@@ -12,7 +21,8 @@ const { NXM_WHALE_1 } = UserAddress;
 const evm = require('./evm')();
 const ASSESSMENT_VOTER_COUNT = 3;
 
-const { parseEther, toUtf8Bytes } = ethers.utils;
+const { BigNumber } = ethers;
+const { parseEther, toUtf8Bytes, defaultAbiCoder } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 
 const setTime = async timestamp => {
@@ -199,34 +209,79 @@ describe('CoverOrder', function () {
     expect(owner).to.equal(managerAddress);
   });
 
-  it('Cover Order Owner becomes a member', async function () {
-    this.coverOrderOwner = ethers.Wallet.createRandom().connect(ethers.provider);
-    await evm.setBalance(this.coverOrderOwner.address, parseEther('1000'));
+  it('add new CoverOrder (LO) contract', async function () {
+    const contractsBefore = await this.master.getInternalContracts();
 
-    await enrollMember(
-      { mr: this.memberRoles, tk: this.nxm, tc: this.tokenController },
-      [this.coverOrderOwner],
-      this.kycAuthSigner,
-      { initialTokens: 0 },
+    // TODO: brute force salt for CoverOrder proxy address on change freeze
+    // node scripts/create2/find-salt.js -f '0x01BFd82675DBCc7762C84019cA518e701C0cD07e' \
+    //                                   -c '0xffffffffffffffffffffffffffffffffffffffff' \
+    //                                   -t cafea OwnedUpgradeabilityProxy
+    //
+    // tbd -> tbd
+    const coverOrderCreate2Salt = 203789506820;
+    this.coverOrder = await ethers.deployContract('CoverOrder', [this.nxm.address, Address.WETH_ADDRESS]);
+    const coverOrderTypeAndSalt = BigNumber.from(coverOrderCreate2Salt).shl(8).add(ContractTypes.Proxy);
+    console.log({
+      coverOrderCreate2Salt,
+      coverOrderTypeAndSalt: coverOrderTypeAndSalt.toString(),
+    });
+
+    await submitGovernanceProposal(
+      PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
+      defaultAbiCoder.encode(
+        ['bytes2[]', 'address[]', 'uint256[]'],
+        [[toUtf8Bytes(ContractCode.CoverOrder)], [this.coverOrder.address], [coverOrderTypeAndSalt]],
+      ),
+      this.abMembers,
+      this.governance,
     );
 
-    const isMember = await this.memberRoles.isMember(this.coverOrderOwner.address);
-    expect(isMember).to.be.equal(true);
+    const contractsAfter = await this.master.getInternalContracts();
+
+    console.info('CoverOrder Contracts before:', formatInternalContracts(contractsBefore));
+    console.info('CoverOrder Contracts after:', formatInternalContracts(contractsAfter));
+
+    const expectedCoverOrderProxyAddress = calculateProxyAddress(this.master.address, coverOrderCreate2Salt);
+    const actualCoverOrderProxyAddress = await this.master.getLatestAddress(toUtf8Bytes('LO'));
+    expect(actualCoverOrderProxyAddress).to.equal(expectedCoverOrderProxyAddress);
+
+    // set this.coverProducts to the coverProducts proxy contract
+    this.coverOrder = await ethers.getContractAt('CoverOrder', actualCoverOrderProxyAddress);
   });
 
-  it('Deploy CoverOrder contract and transfer membership', async function () {
-    const coverOrderImplementation = await ethers.deployContract('CoverOrder', [
-      this.master.address,
-      Address.WETH_ADDRESS,
-      this.coverOrderOwner.address,
+  it('Upgrade contracts', async function () {
+    const contractsBefore = await this.master.getInternalContracts();
+
+    const stakingPoolImplementationAddress = '0xcafea0A9d6Befca134763849C159FBdd1175C2a7';
+
+    const cover = await ethers.deployContract('Cover', [
+      this.coverNFT.address,
+      this.stakingNFT.address,
+      this.stakingPoolFactory.address,
+      stakingPoolImplementationAddress,
     ]);
 
-    const coverOrderProxy = await ethers.deployContract('OwnedUpgradeabilityProxy', [coverOrderImplementation.address]);
+    const contractCodeAddressMapping = {
+      [ContractCode.Cover]: cover.address,
+    };
 
-    this.coverOrder = await ethers.getContractAt('CoverOrder', coverOrderProxy.address);
-    await this.memberRoles.connect(this.coverOrderOwner).switchMembership(this.coverOrder.address);
-    const isMember = await this.memberRoles.isMember(this.coverOrder.address);
-    expect(isMember).to.be.equal(true);
+    // NOTE: Do not manipulate the map between Object.keys and Object.values otherwise the ordering could go wrong
+    const codes = Object.keys(contractCodeAddressMapping).map(code => toUtf8Bytes(code));
+    const addresses = Object.values(contractCodeAddressMapping);
+
+    await submitGovernanceProposal(
+      PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
+      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [codes, addresses]),
+      this.abMembers,
+      this.governance,
+    );
+
+    const contractsAfter = await this.master.getInternalContracts();
+
+    this.cover = await getContractByContractCode('Cover', ContractCode.Cover);
+
+    console.info('Upgrade Contracts before:', formatInternalContracts(contractsBefore));
+    console.info('Upgrade Contracts after:', formatInternalContracts(contractsAfter));
   });
 
   it('Buy cover using CoverOrder', async function () {
@@ -374,4 +429,6 @@ describe('CoverOrder', function () {
     const { payoutRedeemed } = await this.individualClaims.claims(claimId);
     expect(payoutRedeemed).to.be.equal(true);
   });
+
+  require('./basic-functionality-tests');
 });

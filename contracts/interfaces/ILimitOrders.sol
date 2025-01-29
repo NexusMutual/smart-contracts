@@ -4,12 +4,11 @@ pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 
+import "./ICover.sol";
 import "./IMemberRoles.sol";
 import "./INXMMaster.sol";
 import "./INXMToken.sol";
-import "./ICover.sol";
 import "./IWeth.sol";
-import "./ICover.sol";
 
 struct ExecutionDetails {
   uint256 notBefore;
@@ -39,8 +38,6 @@ interface ILimitOrders {
     ExecutionDetails calldata executionDetails,
     bytes calldata signature
   ) external payable returns (uint coverId);
-
-  function maxApproveCoverContract(IERC20 token) external;
 
   /* ==== EVENTS ==== */
 

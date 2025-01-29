@@ -128,7 +128,8 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint coverId);
 
-  function buyCoverInternally(
+  function buyCoverFor(
+    address buyer,
     BuyCoverParams calldata params,
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint coverId);

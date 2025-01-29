@@ -49,7 +49,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     weth = IWeth(_wethAddress);
   }
 
-  /// @notice Verifies and executes the order to buy cover on behalf of the creator of limit order
+  /// @notice Executes the order to buy cover on behalf of the creator of limit order
   /// @notice Function only allows users to pay with coverAsset or NXM, this is being checked in the Cover contract
   /// @param params Cover buy parameters
   /// @param poolAllocationRequests Pool allocations for the cover
@@ -78,8 +78,8 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       revert InvalidOwnerAddress();
     }
 
-    // Verify the signature and get the digest to use it as the order id
-    bytes32 id = _verifySignature(params, executionDetails, signature);
+    // Extracts signer address and digest from signature
+    (bytes32 id, address buyer) = _extractIdAndSigner(params, executionDetails, signature);
 
     // Ensure the order has not already been executed
     if (orderStatus[id] == OrderStatus.Executed) {
@@ -96,10 +96,10 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
 
     // ETH payment
     if (params.paymentAsset == ETH_ASSET_ID) {
-      coverId = _buyCoverEthPayment(params, poolAllocationRequests);
+      coverId = _buyCoverEthPayment(buyer, params, poolAllocationRequests);
     } else {
       // ERC20 payment
-      coverId = _buyCoverErc20Payment(params, poolAllocationRequests);
+      coverId = cover().buyCoverFor(buyer, params, poolAllocationRequests);
     }
 
     // Emit event
@@ -113,13 +113,13 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     bytes calldata signature
   ) external {
 
-    bytes32 id = _verifySignature(params, expirationDetails, signature);
+    (bytes32 id, address buyer)= _extractIdAndSigner(params, expirationDetails, signature);
 
     if (orderStatus[id] == OrderStatus.Executed) {
       revert OrderAlreadyExecuted();
     }
 
-    if (params.owner != msg.sender) {
+    if (buyer != msg.sender) {
       revert NotOrderOwner();
     }
 
@@ -131,11 +131,11 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   /// @param params Cover buy parameters
   /// @param executionDetails Start and end date when the order can be executed and max premium in asset
   /// @param signature The signature of the order
-  function _verifySignature(
+  function _extractIdAndSigner(
     BuyCoverParams calldata params,
     ExecutionDetails calldata executionDetails,
     bytes calldata signature
-  ) internal view returns (bytes32 digest) {
+  ) internal view returns (bytes32 digest, address signer) {
 
     // Hash the ExecutionDetails struct
     bytes32 executionDetailsHash = keccak256(
@@ -166,14 +166,9 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     digest = _hashTypedDataV4(structHash);
 
     // Recover the signer from the digest and the signature
-    address signer = ECDSA.recover(digest, signature);
+    signer = ECDSA.recover(digest, signature);
 
-    // Ensure the signer is the user who owns the order
-    if (signer != params.owner) {
-      revert InvalidSignature();
-    }
-
-    return digest;
+    return (digest, signer);
   }
 
   /// @notice Handles ETH/WETH payments for buying cover.
@@ -183,68 +178,33 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   /// @param poolAllocationRequests The allocation requests for the pool's liquidity.
   /// @return coverId The ID of the purchased cover.
   function _buyCoverEthPayment(
+    address buyer,
     BuyCoverParams calldata params,
     PoolAllocationRequest[] calldata poolAllocationRequests
   ) internal returns (uint coverId) {
 
     uint ethBalanceBefore = address(this).balance;
 
-    weth.transferFrom(params.owner, address(this), params.maxPremiumInAsset);
+    weth.transferFrom(buyer, address(this), params.maxPremiumInAsset);
     weth.withdraw(params.maxPremiumInAsset);
 
-    coverId = cover().buyCoverInternally{value: params.maxPremiumInAsset}(params, poolAllocationRequests);
+    coverId = cover().buyCoverFor{value: params.maxPremiumInAsset}(address(this), params, poolAllocationRequests);
 
     uint ethBalanceAfter = address(this).balance;
 
-    // transfer any ETH refund back to params.owner
+    // transfer any ETH refund back to signer
     if (ethBalanceAfter > ethBalanceBefore) {
       uint ethRefund = ethBalanceAfter - ethBalanceBefore;
       weth.deposit{ value: ethRefund }();
 
-      bool sent = weth.transferFrom(address(this), params.owner, ethRefund);
+      bool sent = weth.transferFrom(address(this), buyer, ethRefund);
 
       if (!sent) {
-        revert TransferFailed(msg.sender, ethRefund, ETH);
+        revert TransferFailed(buyer, ethRefund, ETH);
       }
 
       return coverId;
     }
-  }
-
-  /// @notice Handles ERC20 payments for buying cover.
-  /// @dev Transfers ERC20 tokens from the caller to the contract, then buys cover on behalf of the caller.
-  /// Calculates ERC20 refunds if any and sends back to params.owner.
-  /// @param params The parameters required to buy cover.
-  /// @param poolAllocationRequests The allocation requests for the pool's liquidity.
-  /// @return coverId The ID of the purchased cover.
-  function _buyCoverErc20Payment(
-    BuyCoverParams calldata params,
-    PoolAllocationRequest[] calldata poolAllocationRequests
-  ) internal returns (uint coverId) {
-
-    address paymentAsset = pool().getAsset(params.paymentAsset).assetAddress;
-    IERC20 erc20 = IERC20(paymentAsset);
-
-    uint erc20BalanceBefore = erc20.balanceOf(address(this));
-
-    erc20.safeTransferFrom(params.owner, address(this), params.maxPremiumInAsset);
-    coverId = cover().buyCoverInternally(params, poolAllocationRequests);
-
-    uint erc20BalanceAfter = erc20.balanceOf(address(this));
-
-    // send any ERC20 refund back to params.owner
-    if (erc20BalanceAfter > erc20BalanceBefore) {
-      uint erc20Refund = erc20BalanceAfter - erc20BalanceBefore;
-      erc20.safeTransfer(params.owner, erc20Refund);
-    }
-
-    return coverId;
-  }
-
-  /// @notice Allows the Cover contract to spend the maximum possible amount of a specified ERC20 token on behalf of the CoverOrder.
-  /// @param erc20 The ERC20 token for which to approve spending.
-  function maxApproveCoverContract(IERC20 erc20) external {
-    erc20.safeApprove(internalContracts[uint(ID.CO)], type(uint256).max);
   }
 
   /* ========== DEPENDENCIES ========== */

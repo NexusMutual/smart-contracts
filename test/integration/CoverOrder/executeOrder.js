@@ -115,6 +115,7 @@ describe('CoverOrder - executeOrder', function () {
       dai,
       priceFeedOracle,
       coverNFT,
+      cover,
     } = fixture.contracts;
     const {
       nonMembers: [coverBuyer],
@@ -127,8 +128,7 @@ describe('CoverOrder - executeOrder', function () {
     const { period, amount, ipfsData } = buyCoverFixture;
 
     await dai.mint(coverBuyer.address, parseEther('1000'));
-    await dai.connect(coverBuyer).approve(limitOrders.address, parseEther('1000'));
-    await limitOrders.maxApproveCoverContract(dai.address);
+    await dai.connect(coverBuyer).approve(cover.address, parseEther('1000'));
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = currentTimestamp + 1;
@@ -375,6 +375,7 @@ describe('CoverOrder - executeOrder', function () {
       ra: ramm,
       mcr,
       limitOrders,
+      cover,
       dai,
       priceFeedOracle,
     } = fixture.contracts;
@@ -389,8 +390,7 @@ describe('CoverOrder - executeOrder', function () {
     const { period, amount, ipfsData } = buyCoverFixture;
 
     await dai.mint(coverBuyer.address, parseEther('1000'));
-    await dai.connect(coverBuyer).approve(limitOrders.address, parseEther('1000'));
-    await limitOrders.maxApproveCoverContract(dai.address);
+    await dai.connect(coverBuyer).approve(cover.address, parseEther('1000'));
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = currentTimestamp + 1;
@@ -466,42 +466,6 @@ describe('CoverOrder - executeOrder', function () {
     );
 
     await expect(buyCover).to.revertedWithCustomError(limitOrders, 'OrderAlreadyExecuted');
-  });
-
-  it("should revert if the signature doesn't match the owner", async function () {
-    const fixture = await loadFixture(buyCoverSetup);
-    const { limitOrders } = fixture.contracts;
-    const [coverSettler, coverBuyer, orderSigner] = fixture.accounts.members;
-
-    const buyCoverParams = { ...buyCoverFixture, paymentAsset: 6, owner: coverSettler.address };
-
-    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
-    const executionDetails = {
-      notBefore: currentTimestamp,
-      deadline: currentTimestamp + 3600,
-      maxPremiumInAsset: MaxUint256,
-    };
-
-    const { signature } = await signCoverOrder(
-      limitOrders.address,
-      {
-        productId: buyCoverParams.productId,
-        amount: buyCoverParams.amount,
-        period: buyCoverParams.period,
-        paymentAsset: 1,
-        coverAsset: 1,
-        owner: coverBuyer.address,
-        executionDetails,
-        ipfsData: buyCoverParams.ipfsData,
-      },
-      orderSigner,
-    );
-
-    const buyCover = limitOrders
-      .connect(coverSettler)
-      .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], executionDetails, signature);
-
-    await expect(buyCover).to.revertedWithCustomError(limitOrders, 'InvalidSignature');
   });
 
   it('should revert if the order execution expired', async function () {

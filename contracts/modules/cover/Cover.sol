@@ -105,17 +105,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory poolAllocationRequests
   ) external payable onlyMember returns (uint coverId) {
-    return _buyCover(params, poolAllocationRequests);
+    return _buyCover(msg.sender, params, poolAllocationRequests);
   }
 
-  function buyCoverInternally(
+  function buyCoverFor(
+    address buyer,
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory poolAllocationRequests
   ) external payable onlyInternal returns (uint coverId) {
-    return _buyCover(params, poolAllocationRequests);
+    return _buyCover(buyer, params, poolAllocationRequests);
   }
 
   function _buyCover(
+    address buyer,
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory poolAllocationRequests
   ) internal nonReentrant whenNotPaused returns (uint coverId) {
@@ -237,6 +239,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     );
 
     _retrievePayment(
+      buyer,
       refundedPremium >= amountDueInNXM ? 0 : amountDueInNXM - refundedPremium,
       params.paymentAsset,
       nxmPriceInCoverAsset,
@@ -245,7 +248,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       params.commissionDestination
     );
 
-    emit CoverEdited(coverId, params.productId, 0 /*segmentId*/, msg.sender, params.ipfsData);
+    emit CoverEdited(coverId, params.productId, 0 /*segmentId*/, buyer, params.ipfsData);
   }
 
   function expireCover(uint coverId) external {
@@ -379,6 +382,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   }
 
   function _retrievePayment(
+    address buyer,
     uint premiumInNxm,
     uint paymentAsset,
     uint nxmPriceInCoverAsset,
@@ -404,11 +408,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       }
 
       ITokenController _tokenController = tokenController();
-      _tokenController.burnFrom(msg.sender, premiumInNxm);
+      _tokenController.burnFrom(buyer, premiumInNxm);
 
       if (commissionInNxm > 0) {
         // commission transfer reverts if the commissionDestination is not a member
-        _tokenController.operatorTransfer(msg.sender, commissionDestination, commissionInNxm);
+        _tokenController.operatorTransfer(buyer, commissionDestination, commissionInNxm);
       }
 
       return;
@@ -451,7 +455,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
       if (remainder > 0) {
         // solhint-disable-next-line avoid-low-level-calls
-        (bool ok, /* data */) = address(msg.sender).call{value: remainder}("");
+        (bool ok, /* data */) = address(buyer).call{value: remainder}("");
         if (!ok) {
           revert ReturningEthRemainderToSenderFailed();
         }
@@ -462,10 +466,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     address coverAsset = _pool.getAsset(paymentAsset).assetAddress;
     IERC20 token = IERC20(coverAsset);
-    token.safeTransferFrom(msg.sender, address(_pool), premiumInPaymentAsset);
+    token.safeTransferFrom(buyer, address(_pool), premiumInPaymentAsset);
 
     if (commission > 0) {
-      token.safeTransferFrom(msg.sender, commissionDestination, commission);
+      token.safeTransferFrom(buyer, commissionDestination, commission);
     }
   }
 

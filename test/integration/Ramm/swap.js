@@ -4,6 +4,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
 const { setNextBlockBaseFee, setNextBlockTime, setEtherBalance } = require('../../utils/evm');
+const { getEventsFromTxReceipt } = require('../../utils/events');
 
 const { parseEther } = ethers.utils;
 
@@ -92,12 +93,15 @@ describe('swap', function () {
 
     await setNextBlockBaseFee(0);
     await setNextBlockTime(nextBlockTimestamp + 3 * 60);
-    await ra.connect(member).swap(0, minNxmOutSuccess, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+    const tx = await ra.connect(member).swap(0, minNxmOutSuccess, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+    const swapTxReceipt = await tx.wait();
 
     const after = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
     const nxmReceived = after.nxmBalance.sub(before.nxmBalance);
-    const transferFilter = tk.filters.Transfer(ethers.constants.AddressZero, member.address);
-    const nxmTransferEvents = await tk.queryFilter(transferFilter, -1);
+    const nxmTransferEvents = getEventsFromTxReceipt(swapTxReceipt, tk, 'Transfer', {
+      from: ethers.constants.AddressZero,
+      to: member.address,
+    });
     const nxmTransferAmount = nxmTransferEvents[0]?.args?.value;
 
     expect(after.ethCapital).to.be.equal(before.ethCapital.add(ethIn)); // ETH goes into capital pool
@@ -181,12 +185,15 @@ describe('swap', function () {
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
     await setNextBlockBaseFee(0);
-    await ra.connect(member).swap(0, minNxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+    const tx = await ra.connect(member).swap(0, minNxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
+    const swapTxReceipt = await tx.wait();
 
     const after = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
     const nxmReceived = after.nxmBalance.sub(before.nxmBalance);
-    const nxmTransferFilter = tk.filters.Transfer(ethers.constants.AddressZero, member.address);
-    const nxmTransferEvents = await tk.queryFilter(nxmTransferFilter, -1);
+    const nxmTransferEvents = getEventsFromTxReceipt(swapTxReceipt, tk, 'Transfer', {
+      from: ethers.constants.AddressZero,
+      to: member.address,
+    });
     const nxmOut = nxmTransferEvents[0]?.args?.value;
 
     expect(after.ethCapital).to.be.equal(before.ethCapital.add(ethIn)); // ETH goes into capital pool
@@ -208,12 +215,15 @@ describe('swap', function () {
     const deadline = timestamp + 5 * 60; // add 5 minutes
 
     await setNextBlockBaseFee(0);
-    await ra.connect(member).swap(nxmIn, minEthOut, deadline, { maxPriorityFeePerGas: 0 });
+    const tx = await ra.connect(member).swap(nxmIn, minEthOut, deadline, { maxPriorityFeePerGas: 0 });
+    const swapTxReceipt = await tx.wait();
 
     const after = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
     const ethReceived = after.ethBalance.sub(before.ethBalance);
-    const nxmSwappedForEthFilter = ra.filters.NxmSwappedForEth(member.address);
-    const nxmSwappedForEthEvents = await ra.queryFilter(nxmSwappedForEthFilter, -1);
+
+    const nxmSwappedForEthEvents = getEventsFromTxReceipt(swapTxReceipt, ra, 'NxmSwappedForEth', {
+      member: member.address,
+    });
     const ethOut = nxmSwappedForEthEvents[0]?.args?.ethOut;
 
     expect(after.nxmBalance).to.be.equal(before.nxmBalance.sub(nxmIn)); // member sends NXM

@@ -13,6 +13,7 @@ const errors = require('./errors');
 const rammCalculations = require('./rammCalculations');
 const bnMath = require('./bnMath');
 const stakingPool = require('./stakingPool');
+const events = require('./events');
 
 module.exports = {
   addresses,
@@ -30,4 +31,5 @@ module.exports = {
   rammCalculations,
   bnMath,
   stakingPool,
+  events,
 };

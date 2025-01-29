@@ -27,8 +27,8 @@ describe('cancelOrder', function () {
   it('should cancel order', async function () {
     const fixture = await loadFixture(setup);
     const {
-      contracts: { coverOrder },
-      accounts: { coverOrderOwner },
+      contracts: { limitOrders },
+      accounts: { limitOrderOwner },
     } = fixture;
     const { productId, amount, period, ipfsData } = buyCoverFixture;
 
@@ -39,40 +39,40 @@ describe('cancelOrder', function () {
       maxPremiumInAsset: MaxUint256,
     };
     const { signature, digest } = await signCoverOrder(
-      coverOrder.address,
+      limitOrders.address,
       {
         productId,
         amount,
         period,
         paymentAsset: 0,
         coverAsset: 0,
-        owner: coverOrderOwner.address,
+        owner: limitOrderOwner.address,
         ipfsData,
         executionDetails,
       },
-      coverOrderOwner,
+      limitOrderOwner,
     );
 
-    const tx = await coverOrder.connect(coverOrderOwner).cancelOrder(
+    const tx = await limitOrders.connect(limitOrderOwner).cancelOrder(
       {
         ...buyCoverFixture,
         paymentAsset: 0, // ETH
         productId,
-        owner: coverOrderOwner.address,
+        owner: limitOrderOwner.address,
         maxPremiumInAsset: MaxUint256,
       },
       executionDetails,
       signature,
     );
 
-    await expect(tx).to.emit(coverOrder, 'OrderCancelled').withArgs(digest);
+    await expect(tx).to.emit(limitOrders, 'OrderCancelled').withArgs(digest);
   });
 
   it('should fail to cancel the order if caller is not the owner', async function () {
     const fixture = await loadFixture(setup);
     const {
-      contracts: { coverOrder },
-      accounts: { coverOrderOwner, notOwner },
+      contracts: { limitOrders },
+      accounts: { limitOrderOwner, notOwner },
     } = fixture;
     const { productId, amount, period, ipfsData } = buyCoverFixture;
 
@@ -84,7 +84,7 @@ describe('cancelOrder', function () {
     };
 
     const { signature } = await signCoverOrder(
-      coverOrder.address,
+      limitOrders.address,
       {
         productId,
         amount,
@@ -92,33 +92,33 @@ describe('cancelOrder', function () {
         paymentAsset: 0,
         coverAsset: 0,
         ipfsData,
-        owner: coverOrderOwner.address,
+        owner: limitOrderOwner.address,
         executionDetails,
       },
-      coverOrderOwner,
+      limitOrderOwner,
     );
 
-    const tx = coverOrder.connect(notOwner).cancelOrder(
+    const tx = limitOrders.connect(notOwner).cancelOrder(
       {
         ...buyCoverFixture,
         paymentAsset: 0, // ETH
         productId,
         ipfsData,
-        owner: coverOrderOwner.address,
+        owner: limitOrderOwner.address,
         maxPremiumInAsset: MaxUint256,
       },
       executionDetails,
       signature,
     );
 
-    await expect(tx).to.revertedWithCustomError(coverOrder, 'NotOrderOwner');
+    await expect(tx).to.revertedWithCustomError(limitOrders, 'NotOrderOwner');
   });
 
   it('should fail to cancel the order is already executed', async function () {
     const fixture = await loadFixture(setup);
     const {
-      contracts: { coverOrder, dai },
-      accounts: { coverOrderOwner, coverOrderSettler },
+      contracts: { limitOrders, dai },
+      accounts: { limitOrderOwner, limitOrdersSettler },
     } = fixture;
     const { productId, amount, period, ipfsData } = buyCoverFixture;
 
@@ -130,7 +130,7 @@ describe('cancelOrder', function () {
     };
 
     const { signature } = await signCoverOrder(
-      coverOrder.address,
+      limitOrders.address,
       {
         productId,
         amount,
@@ -138,18 +138,18 @@ describe('cancelOrder', function () {
         ipfsData,
         paymentAsset: 1,
         coverAsset: 1,
-        owner: coverOrderOwner.address,
+        owner: limitOrderOwner.address,
         executionDetails,
       },
-      coverOrderOwner,
+      limitOrderOwner,
     );
 
-    await dai.connect(coverOrderOwner).approve(coverOrder.address, amount);
-    await coverOrder.connect(coverOrderSettler).executeOrder(
+    await dai.connect(limitOrderOwner).approve(limitOrders.address, amount);
+    await limitOrders.connect(limitOrdersSettler).executeOrder(
       {
         ...buyCoverFixture,
         productId,
-        owner: coverOrderOwner.address,
+        owner: limitOrderOwner.address,
         maxPremiumInAsset: amount,
         paymentAsset: 1,
         coverAsset: 1,
@@ -159,11 +159,11 @@ describe('cancelOrder', function () {
       signature,
     );
 
-    const tx = coverOrder.connect(coverOrderOwner).cancelOrder(
+    const tx = limitOrders.connect(limitOrderOwner).cancelOrder(
       {
         ...buyCoverFixture,
         productId,
-        owner: coverOrderOwner.address,
+        owner: limitOrderOwner.address,
         maxPremiumInAsset: amount,
         paymentAsset: 1,
         coverAsset: 1,
@@ -172,6 +172,6 @@ describe('cancelOrder', function () {
       signature,
     );
 
-    await expect(tx).to.revertedWithCustomError(coverOrder, 'OrderAlreadyExecuted');
+    await expect(tx).to.revertedWithCustomError(limitOrders, 'OrderAlreadyExecuted');
   });
 });

@@ -9,10 +9,10 @@ import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/access/Ownable.sol";
 
 import "../../abstract/MasterAwareV2.sol";
-import "../../interfaces/ICoverOrder.sol";
+import "../../interfaces/ILimitOrders.sol";
 import "../../interfaces/IPool.sol";
 
-contract CoverOrder is ICoverOrder, MasterAwareV2, EIP712 {
+contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   using ECDSA for bytes32;
   using SafeERC20 for IERC20;
 

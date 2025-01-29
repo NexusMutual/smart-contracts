@@ -3,7 +3,7 @@
 pragma solidity ^0.8.18;
 import "../../generic/CoverGeneric.sol";
 
-contract CoverOrderCoverMock is CoverGeneric {
+contract LimitOrdersCoverMock is CoverGeneric {
 
   function buyCoverInternally(
     BuyCoverParams memory,

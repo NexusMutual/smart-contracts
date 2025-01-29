@@ -17,7 +17,7 @@ struct ExecutionDetails {
   uint256 maxPremiumInAsset;
 }
 
-interface ICoverOrder {
+interface ILimitOrders {
 
   enum OrderStatus {
     Created,

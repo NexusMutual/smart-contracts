@@ -243,10 +243,10 @@ async function setup() {
   const ci = await deployProxy('IndividualClaims', [coverNFT.address]);
   const as = await deployProxy('Assessment', [tk.address]);
   const coverProducts = await deployProxy('CoverProducts');
-  const coverOrder = await deployProxy('CoverOrder', [tk.address, weth.address]);
+  const limitOrders = await deployProxy('LimitOrders', [tk.address, weth.address]);
 
   await coverProducts.changeMasterAddress(master.address);
-  await coverOrder.changeMasterAddress(master.address);
+  await limitOrders.changeMasterAddress(master.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
@@ -277,7 +277,7 @@ async function setup() {
     { address: ramm.address, code: 'RA' },
     { address: st.address, code: 'ST' },
     { address: coverProducts.address, code: 'CP' },
-    { address: coverOrder.address, code: 'LO' },
+    { address: limitOrders.address, code: 'LO' },
   ];
 
   await master.initialize(
@@ -502,7 +502,7 @@ async function setup() {
     ci: await ethers.getContractAt('IndividualClaims', ci.address),
     as: await ethers.getContractAt('Assessment', as.address),
     cover: await ethers.getContractAt('Cover', cover.address),
-    coverOrder: await ethers.getContractAt('CoverOrder', coverOrder.address),
+    limitOrders: await ethers.getContractAt('LimitOrders', limitOrders.address),
   };
 
   const nonInternal = {

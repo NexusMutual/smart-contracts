@@ -111,14 +111,14 @@ describe('CoverOrder - executeOrder', function () {
       p1: pool,
       ra: ramm,
       mcr,
-      coverOrder,
+      limitOrders,
       dai,
       priceFeedOracle,
       coverNFT,
     } = fixture.contracts;
     const {
       nonMembers: [coverBuyer],
-      members: [coverOrderSettler],
+      members: [limitOrdersSettler],
     } = fixture.accounts;
     const {
       config: { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO },
@@ -127,8 +127,8 @@ describe('CoverOrder - executeOrder', function () {
     const { period, amount, ipfsData } = buyCoverFixture;
 
     await dai.mint(coverBuyer.address, parseEther('1000'));
-    await dai.connect(coverBuyer).approve(coverOrder.address, parseEther('1000'));
-    await coverOrder.maxApproveCoverContract(dai.address);
+    await dai.connect(coverBuyer).approve(limitOrders.address, parseEther('1000'));
+    await limitOrders.maxApproveCoverContract(dai.address);
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = currentTimestamp + 1;
@@ -169,7 +169,7 @@ describe('CoverOrder - executeOrder', function () {
     await setNextBlockTime(nextBlockTimestamp);
 
     const { signature, digest } = await signCoverOrder(
-      coverOrder.address,
+      limitOrders.address,
       {
         productId,
         amount,
@@ -183,7 +183,7 @@ describe('CoverOrder - executeOrder', function () {
       coverBuyer,
     );
 
-    const tx = await coverOrder.connect(coverOrderSettler).executeOrder(
+    const tx = await limitOrders.connect(limitOrdersSettler).executeOrder(
       {
         ...buyCoverFixture,
         productId,
@@ -200,7 +200,7 @@ describe('CoverOrder - executeOrder', function () {
 
     const coverId = await coverNFT.totalSupply();
 
-    await expect(tx).to.emit(coverOrder, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
+    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const balanceAfter = await dai.balanceOf(coverBuyer.address);
@@ -226,7 +226,7 @@ describe('CoverOrder - executeOrder', function () {
       p1: pool,
       ra: ramm,
       mcr,
-      coverOrder,
+      limitOrders,
       weth,
       coverNFT,
     } = fixture.contracts;
@@ -241,7 +241,7 @@ describe('CoverOrder - executeOrder', function () {
     const { period, amount, ipfsData } = buyCoverFixture;
 
     await weth.connect(coverBuyer).deposit({ value: parseEther('100') });
-    await weth.connect(coverBuyer).approve(coverOrder.address, parseEther('100'));
+    await weth.connect(coverBuyer).approve(limitOrders.address, parseEther('100'));
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = currentTimestamp + 1;
@@ -274,7 +274,7 @@ describe('CoverOrder - executeOrder', function () {
       maxPremiumInAsset: premium,
     };
     const { signature, digest } = await signCoverOrder(
-      coverOrder.address,
+      limitOrders.address,
       {
         productId,
         amount,
@@ -291,7 +291,7 @@ describe('CoverOrder - executeOrder', function () {
     await setNextBlockTime(nextBlockTimestamp);
     await setNextBlockBaseFee(0);
 
-    const tx = await coverOrder.connect(orderSettler).executeOrder(
+    const tx = await limitOrders.connect(orderSettler).executeOrder(
       {
         ...buyCoverFixture,
         paymentAsset: 0, // ETH
@@ -307,7 +307,7 @@ describe('CoverOrder - executeOrder', function () {
 
     const coverId = await coverNFT.totalSupply();
 
-    await expect(tx).to.emit(coverOrder, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
+    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const balanceAfterWETH = await weth.balanceOf(coverBuyer.address);
@@ -326,7 +326,7 @@ describe('CoverOrder - executeOrder', function () {
 
   it("should revert if the solver isn't a member", async function () {
     const fixture = await loadFixture(buyCoverSetup);
-    const { coverOrder } = fixture.contracts;
+    const { limitOrders } = fixture.contracts;
     const {
       nonMembers: [coverBuyer],
     } = fixture.accounts;
@@ -339,7 +339,7 @@ describe('CoverOrder - executeOrder', function () {
     };
     const buyCoverParams = { ...buyCoverFixture, paymentAsset: 1, owner: coverBuyer.address };
 
-    const buyCover = coverOrder
+    const buyCover = limitOrders
       .connect(coverBuyer)
       .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], executionDetails, '0x');
 
@@ -348,7 +348,7 @@ describe('CoverOrder - executeOrder', function () {
 
   it('should revert with InvalidOwnerAddress if params.owner is zero address', async function () {
     const fixture = await loadFixture(buyCoverSetup);
-    const { coverOrder } = fixture.contracts;
+    const { limitOrders } = fixture.contracts;
     const [coverSettler] = fixture.accounts.members;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
@@ -359,11 +359,11 @@ describe('CoverOrder - executeOrder', function () {
     };
     const buyCoverParams = { ...buyCoverFixture, paymentAsset: 1, owner: AddressZero };
 
-    const buyCover = coverOrder
+    const buyCover = limitOrders
       .connect(coverSettler)
       .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], executionDetails, '0x');
 
-    await expect(buyCover).to.revertedWithCustomError(coverOrder, 'InvalidOwnerAddress');
+    await expect(buyCover).to.revertedWithCustomError(limitOrders, 'InvalidOwnerAddress');
   });
 
   it('should revert if the order is already executed', async function () {
@@ -374,13 +374,13 @@ describe('CoverOrder - executeOrder', function () {
       p1: pool,
       ra: ramm,
       mcr,
-      coverOrder,
+      limitOrders,
       dai,
       priceFeedOracle,
     } = fixture.contracts;
     const {
       nonMembers: [coverBuyer],
-      members: [coverOrderSettler],
+      members: [limitOrdersSettler],
     } = fixture.accounts;
     const {
       config: { NXM_PER_ALLOCATION_UNIT },
@@ -389,8 +389,8 @@ describe('CoverOrder - executeOrder', function () {
     const { period, amount, ipfsData } = buyCoverFixture;
 
     await dai.mint(coverBuyer.address, parseEther('1000'));
-    await dai.connect(coverBuyer).approve(coverOrder.address, parseEther('1000'));
-    await coverOrder.maxApproveCoverContract(dai.address);
+    await dai.connect(coverBuyer).approve(limitOrders.address, parseEther('1000'));
+    await limitOrders.maxApproveCoverContract(dai.address);
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = currentTimestamp + 1;
@@ -423,7 +423,7 @@ describe('CoverOrder - executeOrder', function () {
     await setNextBlockTime(nextBlockTimestamp);
 
     const { signature } = await signCoverOrder(
-      coverOrder.address,
+      limitOrders.address,
       {
         productId,
         amount,
@@ -437,7 +437,7 @@ describe('CoverOrder - executeOrder', function () {
       coverBuyer,
     );
 
-    await coverOrder.connect(coverOrderSettler).executeOrder(
+    await limitOrders.connect(limitOrdersSettler).executeOrder(
       {
         ...buyCoverFixture,
         productId,
@@ -451,7 +451,7 @@ describe('CoverOrder - executeOrder', function () {
       signature,
     );
 
-    const buyCover = coverOrder.connect(coverOrderSettler).executeOrder(
+    const buyCover = limitOrders.connect(limitOrdersSettler).executeOrder(
       {
         ...buyCoverFixture,
         productId,
@@ -465,12 +465,12 @@ describe('CoverOrder - executeOrder', function () {
       signature,
     );
 
-    await expect(buyCover).to.revertedWithCustomError(coverOrder, 'OrderAlreadyExecuted');
+    await expect(buyCover).to.revertedWithCustomError(limitOrders, 'OrderAlreadyExecuted');
   });
 
   it("should revert if the signature doesn't match the owner", async function () {
     const fixture = await loadFixture(buyCoverSetup);
-    const { coverOrder } = fixture.contracts;
+    const { limitOrders } = fixture.contracts;
     const [coverSettler, coverBuyer, orderSigner] = fixture.accounts.members;
 
     const buyCoverParams = { ...buyCoverFixture, paymentAsset: 6, owner: coverSettler.address };
@@ -483,7 +483,7 @@ describe('CoverOrder - executeOrder', function () {
     };
 
     const { signature } = await signCoverOrder(
-      coverOrder.address,
+      limitOrders.address,
       {
         productId: buyCoverParams.productId,
         amount: buyCoverParams.amount,
@@ -497,16 +497,16 @@ describe('CoverOrder - executeOrder', function () {
       orderSigner,
     );
 
-    const buyCover = coverOrder
+    const buyCover = limitOrders
       .connect(coverSettler)
       .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], executionDetails, signature);
 
-    await expect(buyCover).to.revertedWithCustomError(coverOrder, 'InvalidSignature');
+    await expect(buyCover).to.revertedWithCustomError(limitOrders, 'InvalidSignature');
   });
 
   it('should revert if the order execution expired', async function () {
     const fixture = await loadFixture(buyCoverSetup);
-    const { coverOrder } = fixture.contracts;
+    const { limitOrders } = fixture.contracts;
     const [coverSettler, coverBuyer, orderSigner] = fixture.accounts.members;
 
     const buyCoverParams = { ...buyCoverFixture, paymentAsset: 6, owner: coverSettler.address };
@@ -519,7 +519,7 @@ describe('CoverOrder - executeOrder', function () {
     };
 
     const { signature } = await signCoverOrder(
-      coverOrder.address,
+      limitOrders.address,
       {
         productId: buyCoverParams.productId,
         amount: buyCoverParams.amount,
@@ -533,16 +533,16 @@ describe('CoverOrder - executeOrder', function () {
       orderSigner,
     );
 
-    const buyCover = coverOrder
+    const buyCover = limitOrders
       .connect(coverSettler)
       .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], executionDetails, signature);
 
-    await expect(buyCover).to.revertedWithCustomError(coverOrder, 'OrderExpired');
+    await expect(buyCover).to.revertedWithCustomError(limitOrders, 'OrderExpired');
   });
 
   it('should revert if the order not ready for execution', async function () {
     const fixture = await loadFixture(buyCoverSetup);
-    const { coverOrder } = fixture.contracts;
+    const { limitOrders } = fixture.contracts;
     const [coverSettler, coverBuyer, orderSigner] = fixture.accounts.members;
 
     const buyCoverParams = { ...buyCoverFixture, paymentAsset: 6, owner: coverSettler.address };
@@ -555,7 +555,7 @@ describe('CoverOrder - executeOrder', function () {
     };
 
     const { signature } = await signCoverOrder(
-      coverOrder.address,
+      limitOrders.address,
       {
         productId: buyCoverParams.productId,
         amount: buyCoverParams.amount,
@@ -569,16 +569,16 @@ describe('CoverOrder - executeOrder', function () {
       orderSigner,
     );
 
-    const buyCover = coverOrder
+    const buyCover = limitOrders
       .connect(coverSettler)
       .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], executionDetails, signature);
 
-    await expect(buyCover).to.revertedWithCustomError(coverOrder, 'OrderCannotBeExecutedYet');
+    await expect(buyCover).to.revertedWithCustomError(limitOrders, 'OrderCannotBeExecutedYet');
   });
 
   it('should revert if the order is canceled', async function () {
     const fixture = await loadFixture(buyCoverSetup);
-    const { coverOrder } = fixture.contracts;
+    const { limitOrders } = fixture.contracts;
     const [orderSettler, coverBuyer] = fixture.accounts.members;
     const { period, amount, productId, ipfsData } = buyCoverFixture;
 
@@ -590,7 +590,7 @@ describe('CoverOrder - executeOrder', function () {
       maxPremiumInAsset: MaxUint256,
     };
     const { signature } = await signCoverOrder(
-      coverOrder.address,
+      limitOrders.address,
       {
         productId,
         amount,
@@ -604,7 +604,7 @@ describe('CoverOrder - executeOrder', function () {
       coverBuyer,
     );
 
-    await coverOrder.connect(coverBuyer).cancelOrder(
+    await limitOrders.connect(coverBuyer).cancelOrder(
       {
         ...buyCoverFixture,
         paymentAsset: 0, // ETH
@@ -616,7 +616,7 @@ describe('CoverOrder - executeOrder', function () {
       signature,
     );
 
-    const tx = coverOrder.connect(orderSettler).executeOrder(
+    const tx = limitOrders.connect(orderSettler).executeOrder(
       {
         ...buyCoverFixture,
         paymentAsset: 0, // ETH
@@ -629,6 +629,6 @@ describe('CoverOrder - executeOrder', function () {
       signature,
     );
 
-    await expect(tx).to.revertedWithCustomError(coverOrder, 'OrderAlreadyCancelled');
+    await expect(tx).to.revertedWithCustomError(limitOrders, 'OrderAlreadyCancelled');
   });
 });

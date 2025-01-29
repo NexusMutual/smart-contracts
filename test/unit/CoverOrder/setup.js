@@ -6,48 +6,47 @@ const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 async function setup() {
-  const coverOrderOwner = ethers.Wallet.createRandom().connect(ethers.provider);
-  await setEtherBalance(coverOrderOwner.address, parseEther('1000000'));
+  const limitOrderOwner = ethers.Wallet.createRandom().connect(ethers.provider);
+  await setEtherBalance(limitOrderOwner.address, parseEther('1000000'));
 
   const notOwner = ethers.Wallet.createRandom().connect(ethers.provider);
   await setEtherBalance(notOwner.address, parseEther('1000000'));
 
-  const coverOrderSettler = ethers.Wallet.createRandom().connect(ethers.provider);
-  await setEtherBalance(coverOrderSettler.address, parseEther('1000000'));
+  const limitOrdersSettler = ethers.Wallet.createRandom().connect(ethers.provider);
+  await setEtherBalance(limitOrdersSettler.address, parseEther('1000000'));
 
   const dai = await ethers.deployContract('ERC20Mock');
   const memberRoles = await ethers.deployContract('MemberRolesMock');
-  const cover = await ethers.deployContract('CoverOrderCoverMock');
+  const cover = await ethers.deployContract('LimitOrdersCoverMock');
   const pool = await ethers.deployContract('PoolMock');
   const master = await ethers.deployContract('MasterMock');
 
-  const coverOrder = await ethers.deployContract('CoverOrder', [AddressZero, AddressZero]);
+  const limitOrders = await ethers.deployContract('LimitOrders', [AddressZero, AddressZero]);
 
   await master.setLatestAddress(toBytes2('CO'), cover.address);
   await master.setLatestAddress(toBytes2('MR'), memberRoles.address);
   await master.setLatestAddress(toBytes2('P1'), pool.address);
-  await master.setLatestAddress(toBytes2('LO'), coverOrder.address);
+  await master.setLatestAddress(toBytes2('LO'), limitOrders.address);
 
-  await coverOrder.changeMasterAddress(master.address);
-  await coverOrder.changeDependentContractAddress();
+  await limitOrders.changeMasterAddress(master.address);
+  await limitOrders.changeDependentContractAddress();
 
   await pool.addAsset({ assetAddress: dai.address, isCoverAsset: true, isAbandoned: false });
 
-  await dai.mint(coverOrderOwner.address, parseEther('1000000'));
+  await dai.mint(limitOrderOwner.address, parseEther('1000000'));
 
-  await memberRoles.setRole(coverOrder.address, 2);
-  await memberRoles.setRole(coverOrderSettler.address, 2);
-  await memberRoles.setRole(coverOrderOwner.address, 2);
+  await memberRoles.setRole(limitOrdersSettler.address, 2);
+  await memberRoles.setRole(limitOrderOwner.address, 2);
 
   return {
     accounts: {
-      coverOrderOwner,
-      coverOrderSettler,
+      limitOrderOwner,
+      limitOrdersSettler,
       notOwner,
     },
     contracts: {
       dai,
-      coverOrder,
+      limitOrders,
     },
   };
 }

@@ -30,7 +30,7 @@ describe('cancelOrder', function () {
       contracts: { limitOrders },
       accounts: { limitOrderOwner },
     } = fixture;
-    const { productId, amount, period, ipfsData } = buyCoverFixture;
+    const { productId, amount, period, ipfsData, commissionRatio, commissionDestination } = buyCoverFixture;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const executionDetails = {
@@ -48,6 +48,8 @@ describe('cancelOrder', function () {
         coverAsset: 0,
         owner: limitOrderOwner.address,
         ipfsData,
+        commissionRatio,
+        commissionDestination,
         executionDetails,
       },
       limitOrderOwner,
@@ -74,7 +76,7 @@ describe('cancelOrder', function () {
       contracts: { limitOrders },
       accounts: { limitOrderOwner, notOwner },
     } = fixture;
-    const { productId, amount, period, ipfsData } = buyCoverFixture;
+    const { productId, amount, period, ipfsData, commissionRatio, commissionDestination } = buyCoverFixture;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const executionDetails = {
@@ -93,6 +95,8 @@ describe('cancelOrder', function () {
         coverAsset: 0,
         ipfsData,
         owner: limitOrderOwner.address,
+        commissionRatio,
+        commissionDestination,
         executionDetails,
       },
       limitOrderOwner,
@@ -120,7 +124,7 @@ describe('cancelOrder', function () {
       contracts: { limitOrders, dai },
       accounts: { limitOrderOwner, limitOrdersSettler },
     } = fixture;
-    const { productId, amount, period, ipfsData } = buyCoverFixture;
+    const { productId, amount, period, ipfsData, commissionRatio, commissionDestination } = buyCoverFixture;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const executionDetails = {
@@ -139,6 +143,8 @@ describe('cancelOrder', function () {
         paymentAsset: 1,
         coverAsset: 1,
         owner: limitOrderOwner.address,
+        commissionRatio,
+        commissionDestination,
         executionDetails,
       },
       limitOrderOwner,

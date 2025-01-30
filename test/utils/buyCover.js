@@ -129,6 +129,8 @@ async function signCoverOrder(contractAddress, params, signer) {
       { name: 'coverAsset', type: 'uint8' },
       { name: 'owner', type: 'address' },
       { name: 'ipfsData', type: 'string' },
+      { name: 'commissionRatio', type: 'uint16' },
+      { name: 'commissionDestination', type: 'address' },
       { name: 'executionDetails', type: 'ExecutionDetails' },
     ],
     ExecutionDetails: [

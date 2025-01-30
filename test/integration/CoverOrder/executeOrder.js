@@ -125,7 +125,7 @@ describe('CoverOrder - executeOrder', function () {
       config: { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO },
       productList,
     } = fixture;
-    const { period, amount, ipfsData } = buyCoverFixture;
+    const { period, amount, ipfsData, commissionDestination, commissionRatio } = buyCoverFixture;
 
     await dai.mint(coverBuyer.address, parseEther('1000'));
     await dai.connect(coverBuyer).approve(cover.address, parseEther('1000'));
@@ -178,6 +178,8 @@ describe('CoverOrder - executeOrder', function () {
         paymentAsset: 1,
         coverAsset: 1,
         owner: coverBuyer.address,
+        commissionRatio,
+        commissionDestination,
         executionDetails,
       },
       coverBuyer,
@@ -238,7 +240,7 @@ describe('CoverOrder - executeOrder', function () {
       config: { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO },
       productList,
     } = fixture;
-    const { period, amount, ipfsData } = buyCoverFixture;
+    const { period, amount, ipfsData, commissionRatio, commissionDestination } = buyCoverFixture;
 
     await weth.connect(coverBuyer).deposit({ value: parseEther('100') });
     await weth.connect(coverBuyer).approve(limitOrders.address, parseEther('100'));
@@ -283,6 +285,8 @@ describe('CoverOrder - executeOrder', function () {
         paymentAsset: 0,
         coverAsset: 0,
         owner: coverBuyer.address,
+        commissionRatio,
+        commissionDestination,
         executionDetails,
       },
       coverBuyer,
@@ -387,7 +391,7 @@ describe('CoverOrder - executeOrder', function () {
       config: { NXM_PER_ALLOCATION_UNIT },
       productList,
     } = fixture;
-    const { period, amount, ipfsData } = buyCoverFixture;
+    const { period, amount, ipfsData, commissionRatio, commissionDestination } = buyCoverFixture;
 
     await dai.mint(coverBuyer.address, parseEther('1000'));
     await dai.connect(coverBuyer).approve(cover.address, parseEther('1000'));
@@ -433,6 +437,8 @@ describe('CoverOrder - executeOrder', function () {
         paymentAsset: 1,
         coverAsset: 1,
         owner: coverBuyer.address,
+        commissionRatio,
+        commissionDestination,
       },
       coverBuyer,
     );
@@ -492,6 +498,8 @@ describe('CoverOrder - executeOrder', function () {
         paymentAsset: 1,
         coverAsset: 1,
         owner: coverBuyer.address,
+        commissionRatio: buyCoverParams.commissionRatio,
+        commissionDestination: buyCoverParams.commissionDestination,
         executionDetails,
       },
       orderSigner,
@@ -528,6 +536,8 @@ describe('CoverOrder - executeOrder', function () {
         paymentAsset: 1,
         coverAsset: 1,
         owner: coverBuyer.address,
+        commissionRatio: buyCoverParams.commissionRatio,
+        commissionDestination: buyCoverParams.commissionDestination,
         executionDetails,
       },
       orderSigner,
@@ -544,7 +554,7 @@ describe('CoverOrder - executeOrder', function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { limitOrders } = fixture.contracts;
     const [orderSettler, coverBuyer] = fixture.accounts.members;
-    const { period, amount, productId, ipfsData } = buyCoverFixture;
+    const { period, amount, productId, ipfsData, commissionRatio, commissionDestination } = buyCoverFixture;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
 
@@ -563,6 +573,8 @@ describe('CoverOrder - executeOrder', function () {
         paymentAsset: 0,
         coverAsset: 0,
         owner: coverBuyer.address,
+        commissionRatio,
+        commissionDestination,
         executionDetails,
       },
       coverBuyer,

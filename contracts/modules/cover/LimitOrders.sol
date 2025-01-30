@@ -38,6 +38,8 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       "uint8 coverAsset,",
       "address owner,",
       "string ipfsData,",
+      "uint16 commissionRatio,",
+      "address commissionDestination,",
       "ExecutionDetails executionDetails)",
       "ExecutionDetails(uint256 notBefore,uint256 deadline,uint256 maxPremiumInAsset)"
     )
@@ -55,6 +57,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   /// @param poolAllocationRequests Pool allocations for the cover
   /// @param executionDetails Start and end date when the order can be executed and max premium in asset
   /// @param signature The signature of the order
+  /// @return coverId The ID of the purchased cover
   function executeOrder(
     BuyCoverParams calldata params,
     PoolAllocationRequest[] calldata poolAllocationRequests,
@@ -127,16 +130,14 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     emit OrderCancelled(id);
   }
 
-  /// @notice Handles verification of the order signature
+  /// @notice Returns the hash of the structured data of the order
   /// @param params Cover buy parameters
   /// @param executionDetails Start and end date when the order can be executed and max premium in asset
-  /// @param signature The signature of the order
-  function _extractIdAndSigner(
+  /// @return structHash The hash of the structured data
+  function _buildStructHash(
     BuyCoverParams calldata params,
-    ExecutionDetails calldata executionDetails,
-    bytes calldata signature
-  ) internal view returns (bytes32 digest, address signer) {
-
+    ExecutionDetails calldata executionDetails
+  ) internal pure returns (bytes32 structHash) {
     // Hash the ExecutionDetails struct
     bytes32 executionDetailsHash = keccak256(
       abi.encode(
@@ -148,7 +149,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     );
 
     // Hash the structured data
-    bytes32 structHash = keccak256(
+    structHash = keccak256(
       abi.encode(
         EXECUTE_ORDER_TYPEHASH,
         params.productId,
@@ -158,9 +159,28 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
         params.coverAsset,
         params.owner,
         keccak256(abi.encodePacked(params.ipfsData)),
+        params.commissionRatio,
+        params.commissionDestination,
         executionDetailsHash
       )
     );
+
+    return structHash;
+  }
+
+  /// @notice Extracts the order ID and the signer from the order parameters and signature
+  /// @param params Cover buy parameters
+  /// @param executionDetails Start and end date when the order can be executed and max premium in asset
+  /// @param signature The signature of the order
+  /// @return digest The hash of the structured data
+  function _extractIdAndSigner(
+    BuyCoverParams calldata params,
+    ExecutionDetails calldata executionDetails,
+    bytes calldata signature
+  ) internal view returns (bytes32 digest, address signer) {
+
+    // Generate the struct hash
+    bytes32 structHash = _buildStructHash(params, executionDetails);
 
     // Generate the digest (domain separator + struct hash)
     digest = _hashTypedDataV4(structHash);

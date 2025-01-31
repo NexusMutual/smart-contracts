@@ -64,7 +64,6 @@ contract COMockStakingPool is StakingPoolGeneric {
 
   function requestAllocation(
     uint amount,
-    uint /*previousPremium*/,
     AllocationRequest calldata request
   ) external override returns (uint premium, uint allocationId) {
 

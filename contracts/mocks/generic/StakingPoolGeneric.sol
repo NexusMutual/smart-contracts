@@ -14,7 +14,11 @@ contract StakingPoolGeneric is IStakingPool {
     revert("Unsupported");
   }
 
-  function requestAllocation(uint, uint, AllocationRequest calldata) external virtual returns (uint, uint) {
+  function requestAllocation(uint, AllocationRequest calldata) external virtual returns (uint, uint) {
+    revert("Unsupported");
+  }
+
+  function requestDeallocation(DeallocationRequest calldata) external virtual {
     revert("Unsupported");
   }
 

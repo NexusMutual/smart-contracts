@@ -4,6 +4,12 @@ pragma solidity >=0.5.0;
 
 import "./ICover.sol";
 
+/* enums */
+
+enum ClaimMethod {
+  IndividualClaims
+}
+
 /* io structs */
 
 struct ProductInitializationParams {
@@ -30,7 +36,7 @@ struct Product {
 }
 
 struct ProductType {
-  uint8 claimMethod;
+  ClaimMethod claimMethod;
   uint32 gracePeriod;
 }
 
@@ -80,6 +86,8 @@ interface ICoverProducts {
 
   // add grace period function?
   function getProductWithType(uint productId) external view returns (Product memory, ProductType memory);
+
+  function getProductTypeOf(uint productId) external view returns (ProductType memory);
 
   function getLatestProductMetadata(uint productId) external view returns (Metadata memory);
 

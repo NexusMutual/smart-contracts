@@ -18,18 +18,6 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
-  function coverSegmentsCount(uint /* coverId */ ) external virtual view returns (uint) {
-    revert("Unsupported");
-  }
-
-  function coverSegments(uint /* coverId */ ) external virtual view returns (CoverSegment[] memory) {
-    revert("Unsupported");
-  }
-
-  function coverSegmentWithRemainingAmount(uint, uint) external virtual view returns (CoverSegment memory) {
-    revert("Unsupported");
-  }
-
   function totalActiveCoverInAsset(uint) external virtual view returns (uint) {
     revert("Unsupported");
   }
@@ -77,7 +65,6 @@ contract CoverGeneric is ICover {
 
   function burnStake(
     uint /* coverId */,
-    uint /* segmentId */,
     uint /* amount */
   ) external virtual returns (address /* coverOwner */) {
     revert("Unsupported");

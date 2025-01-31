@@ -19,7 +19,7 @@ contract CLMockCoverProducts is CoverProductsGeneric {
   }
 
   function addProductType(
-    uint8 claimMethod,
+    ClaimMethod claimMethod,
     uint32 gracePeriod,
     uint16 /*burnRatio*/
   ) external {

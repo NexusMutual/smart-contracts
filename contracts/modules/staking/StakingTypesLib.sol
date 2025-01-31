@@ -6,9 +6,9 @@ pragma solidity ^0.8.18;
 // 5 * 48 + 16 = 256
 type TrancheAllocationGroup is uint;
 
-// group ids:   ________0_________|_________1_________|_________3__ ...
+// group ids:   ________0_________|_________1_________|_________2__ ...
 // tranche ids: 0   1   2   3   4 | 5   6   7   8   9 | 10  11  12  ...
-// active tranches:         \________________________________/
+// active tranches:         \____________________________/
 
 // 8 x (uint32 expiringAllocation)
 type TrancheGroupBucket is uint;

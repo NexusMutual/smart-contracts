@@ -70,12 +70,17 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     return _products;
   }
 
-  function getProductWithType(uint productId)  external override view returns (
+  function getProductWithType(uint productId) external override view returns (
     Product memory product,
     ProductType memory productType
   ) {
     product = _products[productId];
     productType = _productTypes[product.productType];
+  }
+
+  function getProductTypeOf(uint productId) external override view returns (ProductType memory) {
+    Product memory product = _products[productId];
+    return _productTypes[product.productType];
   }
 
   function getLatestProductMetadata(uint productId) external view returns (Metadata memory) {

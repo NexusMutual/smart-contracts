@@ -6,12 +6,12 @@ import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/IIndividualClaims.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IRamm.sol";
-import "../../interfaces/ICoverProducts.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
@@ -154,9 +154,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
     CoverData memory coverData = cover().coverData(claim.coverId);
 
-    CoverSegment memory segment = cover().coverSegmentWithRemainingAmount(claim.coverId, claim.segmentId);
-
-    uint segmentEnd = segment.start + segment.period;
+    uint expiration = coverData.start + coverData.period;
 
     string memory assetSymbol;
     if (claim.coverAsset == 0) {
@@ -179,8 +177,8 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       claim.amount,
       assetSymbol,
       claim.coverAsset,
-      segment.start,
-      segmentEnd,
+      coverData.start,
+      expiration,
       poll.start,
       poll.end,
       uint(claimStatus),
@@ -269,21 +267,18 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       lastClaimSubmissionOnCover[coverId] = ClaimSubmission(uint80(claims.length), true);
     }
 
-    ICoverProducts coverProductsContract = coverProducts();
     CoverData memory coverData = cover().coverData(coverId);
-    CoverSegment memory segment = cover().coverSegmentWithRemainingAmount(coverId, segmentId);
 
     {
-      (, ProductType memory productType) = coverProductsContract.getProductWithType(coverData.productId);
-
+      ProductType memory productType = coverProducts().getProductTypeOf(coverData.productId);
       require(
-        productType.claimMethod == uint8(ClaimMethod.IndividualClaims),
+        productType.claimMethod == ClaimMethod.IndividualClaims,
         "Invalid claim method for this product type"
       );
-      require(requestedAmount <= segment.amount, "Covered amount exceeded");
-      require(block.timestamp > segment.start, "Cannot buy cover and submit claim in the same block");
+      require(requestedAmount <= coverData.amount, "Covered amount exceeded");
+      require(block.timestamp > coverData.start, "Cannot buy cover and submit claim in the same block");
       require(
-        uint(segment.start) + uint(segment.period) + uint(segment.gracePeriod) > block.timestamp,
+        uint(coverData.start) + uint(coverData.period) + uint(coverData.gracePeriod) > block.timestamp,
         "Cover is outside the grace period"
       );
 
@@ -297,7 +292,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
     (uint assessmentDepositInETH, uint totalRewardInNXM) = getAssessmentDepositAndReward(
       requestedAmount,
-      segment.period,
+      coverData.period,
       coverData.coverAsset
     );
 
@@ -370,7 +365,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     ramm().updateTwap();
     address payable coverOwner = payable(cover().burnStake(
       claim.coverId,
-      claim.segmentId,
       claim.amount
     ));
 

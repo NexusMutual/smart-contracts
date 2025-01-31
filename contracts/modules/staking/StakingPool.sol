@@ -556,45 +556,13 @@ contract StakingPool is IStakingPool, Multicall {
 
   function requestAllocation(
     uint amount,
-    uint previousPremium,
     AllocationRequest calldata request
   ) external onlyCoverContract returns (uint premium, uint allocationId) {
 
     // passing true because we change the reward per second
     processExpirations(true);
 
-    // prevent allocation requests (edits and forced expirations) for expired covers
-    if (request.allocationId != 0) {
-      uint expirationBucketId = Math.divCeil(request.previousExpiration, BUCKET_DURATION);
-      if (coverTrancheAllocations[request.allocationId] == 0 || firstActiveBucketId >= expirationBucketId) {
-        revert AlreadyDeallocated(request.allocationId);
-      }
-    }
-
-    uint[] memory trancheAllocations = request.allocationId == 0
-      ? getActiveAllocations(request.productId)
-      : _getActiveAllocationsWithoutCover(
-          request.productId,
-          request.allocationId,
-          request.previousStart,
-          request.previousExpiration
-        );
-
-    // we are only deallocating
-    // rewards streaming is left as is
-    if (amount == 0) {
-      // store deallocated amount
-      _updateStoredAllocations(
-        request.productId,
-        block.timestamp / TRANCHE_DURATION, // firstActiveTrancheId
-        trancheAllocations
-      );
-
-      // update coverTrancheAllocations when deallocating so we can track deallocation
-      delete coverTrancheAllocations[request.allocationId];
-      emit Deallocated(request.allocationId);
-      return (0, 0);
-    }
+    uint[] memory trancheAllocations = getActiveAllocations(request.productId);
 
     uint coverAllocationAmount;
     uint initialCapacityUsed;
@@ -619,41 +587,77 @@ contract StakingPool is IStakingPool, Multicall {
     );
 
     // add new rewards
-    {
-      if (request.rewardRatio > REWARDS_DENOMINATOR) {
-        revert RewardRatioTooHigh();
-      }
-
-      uint expirationBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
-      uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
-      uint _rewardPerSecond = (premium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
-
-      // store
-      rewardPerSecondCut[expirationBucket] += _rewardPerSecond;
-      rewardPerSecond += _rewardPerSecond.toUint96();
-
-      uint rewardsToMint = _rewardPerSecond * rewardStreamPeriod;
-      tokenController.mintStakingPoolNXMRewards(rewardsToMint, poolId);
+    if (request.rewardRatio > REWARDS_DENOMINATOR) {
+      revert RewardRatioTooHigh();
     }
 
-    // remove previous rewards
-    if (previousPremium > 0) {
+    uint expirationBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
+    uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
+    uint _rewardPerSecond = (premium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
 
-      uint prevRewards = previousPremium * request.previousRewardsRatio / REWARDS_DENOMINATOR;
-      uint prevExpirationBucket = Math.divCeil(request.previousExpiration, BUCKET_DURATION);
-      uint rewardStreamPeriod = prevExpirationBucket * BUCKET_DURATION - request.previousStart;
-      uint prevRewardsPerSecond = prevRewards / rewardStreamPeriod;
+    // store
+    rewardPerSecondCut[expirationBucket] += _rewardPerSecond;
+    rewardPerSecond += _rewardPerSecond.toUint96();
+
+    uint rewardsToMint = _rewardPerSecond * rewardStreamPeriod;
+    tokenController.mintStakingPoolNXMRewards(rewardsToMint, poolId);
+
+    return (premium, allocationId);
+  }
+
+  function requestDeallocation(
+    DeallocationRequest memory request
+  ) external onlyCoverContract {
+
+    // passing true because we change the reward per second
+    processExpirations(true);
+
+    // shouldn't technically happen, considering to remove
+    if (request.allocationId != 0) {
+      revert InvalidAllocationId();
+    }
+
+    uint expiration = request.start + request.period;
+
+    // prevent allocation requests (edits and forced expirations) for expired covers
+    uint expirationBucketId = Math.divCeil(expiration, BUCKET_DURATION);
+
+    if (coverTrancheAllocations[request.allocationId] == 0 || firstActiveBucketId >= expirationBucketId) {
+      revert AlreadyDeallocated(request.allocationId);
+    }
+
+    uint[] memory trancheAllocations = _getActiveAllocationsWithoutCover(
+      request.productId,
+      request.allocationId,
+      request.start,
+      expiration
+    );
+
+    // store deallocated amount
+    _updateStoredAllocations(
+      request.productId,
+      block.timestamp / TRANCHE_DURATION, // firstActiveTrancheId
+      trancheAllocations
+    );
+
+    // stop reward streaming for this allocation
+    if (request.premium > 0) {
+
+      uint rewards = request.premium * request.rewardsRatio / REWARDS_DENOMINATOR;
+      uint rewardStreamPeriod = expirationBucketId * BUCKET_DURATION - request.start;
+      uint rewardsPerSecond = rewards / rewardStreamPeriod;
 
       // store
-      rewardPerSecondCut[prevExpirationBucket] -= prevRewardsPerSecond;
-      rewardPerSecond -= prevRewardsPerSecond.toUint96();
+      rewardPerSecondCut[expirationBucketId] -= rewardsPerSecond;
+      rewardPerSecond -= rewardsPerSecond.toUint96();
 
-      // prevRewardsPerSecond * rewardStreamPeriodLeft
-      uint rewardsToBurn = prevRewardsPerSecond * (prevExpirationBucket * BUCKET_DURATION - block.timestamp);
+      // rewardsPerSecond * rewardStreamPeriodLeft
+      uint rewardsToBurn = rewardsPerSecond * (expirationBucketId * BUCKET_DURATION - block.timestamp);
       tokenController.burnStakingPoolNXMRewards(rewardsToBurn, poolId);
     }
 
-    return (premium, allocationId);
+    delete coverTrancheAllocations[request.allocationId];
+    emit Deallocated(request.allocationId);
   }
 
   function _getActiveAllocationsWithoutCover(
@@ -855,11 +859,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint allocationId
   ) {
 
-    if (request.allocationId == 0) {
-      allocationId = ++lastAllocationId;
-    } else {
-      allocationId = request.allocationId;
-    }
+    allocationId = ++lastAllocationId;
 
     coverAllocationAmount = Math.divCeil(amount, NXM_PER_ALLOCATION_UNIT);
 
@@ -874,7 +874,7 @@ contract StakingPool is IStakingPool, Multicall {
         request.productId,
         _firstActiveTrancheId,
         MAX_ACTIVE_TRANCHES, // count
-        request.globalCapacityRatio,
+        request.capacityRatio,
         request.capacityReductionRatio
       );
 

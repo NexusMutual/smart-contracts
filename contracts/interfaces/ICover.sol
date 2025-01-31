@@ -9,17 +9,6 @@ import "./ICompleteStakingPoolFactory.sol";
 
 /* io structs */
 
-enum ClaimMethod {
-  IndividualClaims,
-  YieldTokenIncidents
-}
-
-struct PoolAllocationRequest {
-  uint40 poolId;
-  bool skip;
-  uint coverAmountInAsset;
-}
-
 struct BuyCoverParams {
   uint coverId;
   address owner;
@@ -34,6 +23,11 @@ struct BuyCoverParams {
   string ipfsData;
 }
 
+struct PoolAllocationRequest {
+  uint poolId;
+  uint coverAmountInAsset;
+}
+
 /* storage structs */
 
 struct PoolAllocation {
@@ -43,19 +37,30 @@ struct PoolAllocation {
   uint24 allocationId;
 }
 
-struct CoverData {
+struct LegacyCoverData {
   uint24 productId;
   uint8 coverAsset;
   uint96 amountPaidOut;
 }
 
-struct CoverSegment {
+struct LegacyCoverSegment {
   uint96 amount;
   uint32 start;
   uint32 period; // seconds
   uint32 gracePeriod; // seconds
   uint24 globalRewardsRatio;
   uint24 globalCapacityRatio;
+}
+
+struct CoverData {
+  uint24 productId;
+  uint8 coverAsset;
+  uint96 amount;
+  uint32 start;
+  uint32 period;
+  uint32 gracePeriod;
+  uint16 rewardsRatio;
+  uint16 capacityRatio;
 }
 
 interface ICover {
@@ -86,15 +91,6 @@ interface ICover {
 
   function coverDataCount() external view returns (uint);
 
-  function coverSegmentsCount(uint coverId) external view returns (uint);
-
-  function coverSegments(uint coverId) external view returns (CoverSegment[] memory);
-
-  function coverSegmentWithRemainingAmount(
-    uint coverId,
-    uint segmentId
-  ) external view returns (CoverSegment memory);
-
   function recalculateActiveCoverInAsset(uint coverAsset) external;
 
   function totalActiveCoverInAsset(uint coverAsset) external view returns (uint);
@@ -119,11 +115,7 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint coverId);
 
-  function burnStake(
-    uint coverId,
-    uint segmentId,
-    uint amount
-  ) external returns (address coverOwner);
+  function burnStake(uint coverId, uint amount) external returns (address coverOwner);
 
   function coverNFT() external returns (ICoverNFT);
 
@@ -133,7 +125,10 @@ interface ICover {
 
   /* ========== EVENTS ========== */
 
-  event CoverEdited(uint indexed coverId, uint indexed productId, uint indexed segmentId, address buyer, string ipfsMetadata);
+  event CoverEdited(uint indexed coverId, uint indexed productId, uint indexed unused, address buyer, string ipfsMetadata);
+
+  // TODO: what else do we need here?
+  event CoverBought(uint indexed coverId, uint indexed productId, uint amount, string ipfsMetadata);
 
   // Auth
   error OnlyOwnerOrApproved();
@@ -171,7 +166,4 @@ interface ICover {
   error CoverNotYetExpired(uint coverId);
   error InsufficientCoverAmountAllocated();
   error UnexpectedPoolId();
-
-  // TODO: remove me after the rewards update
-  error OnlySwapOperator();
 }

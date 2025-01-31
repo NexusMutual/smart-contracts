@@ -7,21 +7,14 @@ import "../../interfaces/INXMMaster.sol";
 
 contract CoverViewer {
 
-  struct Segment {
-    uint segmentId;
-    uint amount;
-    uint remainingAmount;
-    uint start;
-    uint period; // seconds
-    uint gracePeriod; // seconds
-  }
-
   struct Cover {
     uint coverId;
     uint productId;
     uint coverAsset;
-    uint amountPaidOut;
-    Segment[] segments;
+    uint amount;
+    uint start;
+    uint period; // seconds
+    uint gracePeriod; // seconds
   }
 
   INXMMaster internal immutable master;
@@ -45,49 +38,13 @@ contract CoverViewer {
       covers[i].coverId = coverId;
       covers[i].productId = coverData.productId;
       covers[i].coverAsset = coverData.coverAsset;
-      covers[i].amountPaidOut = coverData.amountPaidOut;
-
-      uint segmentsCount = _cover.coverSegmentsCount(coverId);
-      Segment[] memory segments = new Segment[](segmentsCount);
-
-      CoverSegment[] memory coverSegments = _cover.coverSegments(coverId);
-      for (uint segId = 0; segId < segmentsCount; segId++) {
-        CoverSegment memory coverSegment = coverSegments[segId];
-
-        segments[segId].segmentId = segId;
-        segments[segId].start = coverSegment.start;
-        segments[segId].period = coverSegment.period;
-        segments[segId].gracePeriod = coverSegment.gracePeriod;
-        segments[segId].amount = coverSegment.amount;
-        segments[segId].remainingAmount = coverSegment.amount > coverData.amountPaidOut
-          ? coverSegment.amount - coverData.amountPaidOut
-          : 0;
-      }
-      covers[i].segments = segments;
+      covers[i].start = coverData.start;
+      covers[i].period = coverData.period;
+      covers[i].gracePeriod = coverData.gracePeriod;
+      covers[i].amount = coverData.amount;
     }
+
     return covers;
   }
 
-  function getCoverSegments(uint coverId) external view returns (Segment[] memory) {
-    ICover _cover = cover();
-    CoverData memory coverData = _cover.coverData(coverId);
-    CoverSegment[] memory coverSegments = _cover.coverSegments(coverId);
-
-    uint segmentsCount = _cover.coverSegmentsCount(coverId);
-    Segment[] memory segments = new Segment[](segmentsCount);
-
-    for (uint segId = 0; segId < segmentsCount; segId++) {
-      CoverSegment memory coverSegment = coverSegments[segId];
-
-      segments[segId].start = coverSegment.start;
-      segments[segId].period = coverSegment.period;
-      segments[segId].gracePeriod = coverSegment.gracePeriod;
-      segments[segId].amount = coverSegment.amount;
-      segments[segId].remainingAmount = coverSegment.amount > coverData.amountPaidOut
-        ? coverSegment.amount - coverData.amountPaidOut
-        : 0;
-    }
-
-    return segments;
-  }
 }

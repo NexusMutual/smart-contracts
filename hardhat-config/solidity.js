@@ -3,7 +3,7 @@ const compilerSettings = process.env.ENABLE_OPTIMIZER ? { optimizer } : {};
 
 const compilers = [
   { settings: { ...compilerSettings }, version: '0.5.17' }, // nexus mutual v1
-  { settings: { ...compilerSettings }, version: '0.8.28' }, // nexus mutual v2
+  { settings: { ...compilerSettings, evmVersion: 'cancun' }, version: '0.8.28' }, // nexus mutual v2
 ];
 
 // override version AND optimizer for MinimalBeaconProxy and StakingPoolFactory to always get the same bytecode

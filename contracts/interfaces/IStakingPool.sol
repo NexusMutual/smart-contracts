@@ -7,17 +7,22 @@ pragma solidity >=0.5.0;
 struct AllocationRequest {
   uint productId;
   uint coverId;
-  uint allocationId;
   uint period;
   uint gracePeriod;
   bool useFixedPrice;
-  uint previousStart;
-  uint previousExpiration;
-  uint previousRewardsRatio;
-  uint globalCapacityRatio;
+  uint capacityRatio;
   uint capacityReductionRatio;
   uint rewardRatio;
   uint productMinPrice;
+}
+
+struct DeallocationRequest {
+  uint allocationId;
+  uint productId;
+  uint premium;
+  uint start;
+  uint period;
+  uint rewardsRatio;
 }
 
 struct BurnStakeParams {
@@ -73,9 +78,12 @@ interface IStakingPool {
 
   function requestAllocation(
     uint amount,
-    uint previousPremium,
     AllocationRequest calldata request
   ) external returns (uint premium, uint allocationId);
+
+  function requestDeallocation(
+    DeallocationRequest calldata request
+  ) external;
 
   function burnStake(uint amount, BurnStakeParams calldata params) external;
 
@@ -210,4 +218,5 @@ interface IStakingPool {
 
   // Allocation
   error AlreadyDeallocated(uint allocationId);
+  error InvalidAllocationId();
 }

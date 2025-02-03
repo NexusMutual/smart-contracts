@@ -1,5 +1,5 @@
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { ethers } = require('hardhat');
+const { ethers, tracer } = require('hardhat');
 
 const setup = require('../setup');
 const { setEtherBalance, setNextBlockTime, impersonateAccount } = require('../utils').evm;
@@ -10,6 +10,8 @@ const { getInternalPrice } = require('../../utils/rammCalculations');
 
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const stakedProductParamTemplate = {
   productId: 1,
@@ -82,7 +84,10 @@ async function generateStakeRewards(fixture) {
   const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
   const { productId, period, amount } = buyCoverFixture;
 
-  const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+  const initialBlock = await ethers.provider.getBlock('latest');
+  const { timestamp: currentTimestamp } = initialBlock;
+  console.log('initial block', initialBlock);
+
   const nextBlockTimestamp = currentTimestamp + 10;
   const ethRate = await getInternalPrice(ramm, pool, tokenController, mcr, nextBlockTimestamp);
 
@@ -96,16 +101,47 @@ async function generateStakeRewards(fixture) {
   );
   const coverAmountAllocationPerPool = amount.div(3);
 
+  console.log('Sleeping for 10 seconds...');
+  await sleep(10000);
+  console.log('woke up with an attitude');
+
   await setNextBlockTime(nextBlockTimestamp);
-  await cover.connect(coverBuyer).buyCover(
-    { ...buyCoverFixture, owner: coverReceiver.address, maxPremiumInAsset: premium },
-    [
-      { poolId: 1, coverAmountInAsset: coverAmountAllocationPerPool },
-      { poolId: 2, coverAmountInAsset: coverAmountAllocationPerPool },
-      { poolId: 3, coverAmountInAsset: coverAmountAllocationPerPool },
-    ],
-    { value: premium },
-  );
+  const midBlock = await ethers.provider.getBlock('latest');
+  console.log('mid block', midBlock);
+
+  console.log('BEFORE BUY');
+
+  tracer.printMode = 'console';
+  tracer.enableAllOpcodes = true;
+  tracer.enabled = true;
+  tracer.printNext = true;
+
+  await cover
+    .connect(coverBuyer)
+    .buyCover(
+      { ...buyCoverFixture, owner: coverReceiver.address, maxPremiumInAsset: premium },
+      [
+        { poolId: 1, coverAmountInAsset: coverAmountAllocationPerPool },
+        { poolId: 2, coverAmountInAsset: coverAmountAllocationPerPool },
+        { poolId: 3, coverAmountInAsset: coverAmountAllocationPerPool },
+      ],
+      { value: premium },
+    )
+    .catch(e => {
+      console.error(e);
+      ethers.provider
+        .getBlock('latest')
+        .then(finalBlock => {
+          console.log('err final block', finalBlock);
+          const [txHash] = finalBlock.transactions;
+          return ethers.provider.getTransactionReceipt(txHash);
+        })
+        .then(receipt => {
+          console.log('err receipt', receipt);
+          process.exit(1);
+        });
+    });
+  console.log('AFTER BUY');
 }
 
 async function generateAssessmentRewards(fixture) {

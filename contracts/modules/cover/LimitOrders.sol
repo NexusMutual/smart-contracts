@@ -81,8 +81,9 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       revert InvalidOwnerAddress();
     }
 
-    // Extracts signer address and digest from signature
-    (bytes32 id, address buyer) = _extractIdAndSigner(params, executionDetails, signature);
+    bytes32 id = getOrderId(params, executionDetails);
+
+    address buyer = ECDSA.recover(id, signature);
 
     // Ensure the order has not already been executed
     if (orderStatus[id] == OrderStatus.Executed) {
@@ -116,13 +117,16 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     bytes calldata signature
   ) external {
 
-    (bytes32 id, address buyer)= _extractIdAndSigner(params, expirationDetails, signature);
+    bytes32 id = getOrderId(params, expirationDetails);
+
+    // Recover the signer from the digest and the signature
+    address signer = ECDSA.recover(id, signature);
 
     if (orderStatus[id] == OrderStatus.Executed) {
       revert OrderAlreadyExecuted();
     }
 
-    if (buyer != msg.sender) {
+    if (signer != msg.sender) {
       revert NotOrderOwner();
     }
 
@@ -134,10 +138,10 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   /// @param params Cover buy parameters
   /// @param executionDetails Start and end date when the order can be executed and max premium in asset
   /// @return structHash The hash of the structured data
-  function _buildStructHash(
+  function getOrderId(
     BuyCoverParams calldata params,
     ExecutionDetails calldata executionDetails
-  ) internal pure returns (bytes32 structHash) {
+  ) public view returns (bytes32 structHash) {
     // Hash the ExecutionDetails struct
     bytes32 executionDetailsHash = keccak256(
       abi.encode(
@@ -165,30 +169,8 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       )
     );
 
-    return structHash;
-  }
-
-  /// @notice Extracts the order ID and the signer from the order parameters and signature
-  /// @param params Cover buy parameters
-  /// @param executionDetails Start and end date when the order can be executed and max premium in asset
-  /// @param signature The signature of the order
-  /// @return digest The hash of the structured data
-  function _extractIdAndSigner(
-    BuyCoverParams calldata params,
-    ExecutionDetails calldata executionDetails,
-    bytes calldata signature
-  ) internal view returns (bytes32 digest, address signer) {
-
-    // Generate the struct hash
-    bytes32 structHash = _buildStructHash(params, executionDetails);
-
     // Generate the digest (domain separator + struct hash)
-    digest = _hashTypedDataV4(structHash);
-
-    // Recover the signer from the digest and the signature
-    signer = ECDSA.recover(digest, signature);
-
-    return (digest, signer);
+    return _hashTypedDataV4(structHash);
   }
 
   /// @notice Handles ETH/WETH payments for buying cover.

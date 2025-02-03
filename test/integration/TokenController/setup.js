@@ -9,7 +9,7 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { getInternalPrice } = require('../../utils/rammCalculations');
 
 const { parseEther } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero, MaxUint256, Zero } = ethers.constants;
 
 const stakedProductParamTemplate = {
   productId: 1,
@@ -84,27 +84,31 @@ async function generateStakeRewards(fixture) {
 
   const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
   const nextBlockTimestamp = currentTimestamp + 10;
-  const ethRate = await getInternalPrice(ramm, pool, tokenController, mcr, nextBlockTimestamp);
+  const nxmPrice = await getInternalPrice(ramm, pool, tokenController, mcr, nextBlockTimestamp);
 
   const product = await stakingProducts.getProduct(1, productId);
-  const { premiumInAsset: premium } = calculatePremium(
-    amount,
-    ethRate,
-    period,
-    product.bumpedPrice,
-    NXM_PER_ALLOCATION_UNIT,
+  const coverAmountAllocationsPerPool = [
+    amount.div(3), // a third
+    amount.div(3), // second third
+    amount.sub(amount.div(3).mul(2)), // whatever's left
+  ];
+
+  const premiumInNxmPerPool = coverAmountAllocationsPerPool.map(
+    amount => calculatePremium(amount, nxmPrice, period, product.bumpedPrice, NXM_PER_ALLOCATION_UNIT).premiumInNxm,
   );
-  const coverAmountAllocationPerPool = amount.div(3);
+
+  const premiumInNxm = premiumInNxmPerPool.reduce((total, premiumInNxm) => total.add(premiumInNxm), Zero);
+  const premiumInAsset = premiumInNxm.mul(nxmPrice).div(parseEther('1'));
 
   await setNextBlockTime(nextBlockTimestamp);
   await cover.connect(coverBuyer).buyCover(
-    { ...buyCoverFixture, owner: coverReceiver.address, maxPremiumInAsset: premium },
+    { ...buyCoverFixture, owner: coverReceiver.address, maxPremiumInAsset: premiumInAsset },
     [
-      { poolId: 1, coverAmountInAsset: coverAmountAllocationPerPool },
-      { poolId: 2, coverAmountInAsset: coverAmountAllocationPerPool },
-      { poolId: 3, coverAmountInAsset: coverAmountAllocationPerPool },
+      { poolId: 1, coverAmountInAsset: coverAmountAllocationsPerPool[0] },
+      { poolId: 2, coverAmountInAsset: coverAmountAllocationsPerPool[1] },
+      { poolId: 3, coverAmountInAsset: coverAmountAllocationsPerPool[2] },
     ],
-    { value: premium },
+    { value: premiumInAsset },
   );
 }
 

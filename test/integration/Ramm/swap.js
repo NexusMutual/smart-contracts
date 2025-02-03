@@ -65,7 +65,7 @@ describe('swap', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     // +54 hours to reach above BV, this ensures price is stable between the 2 swaps below
     const nextBlockTimestamp = timestamp + 54 * 60 * 60;
-    const deadline = nextBlockTimestamp + 5 * 60; // add 5 minutes
+    const deadline = nextBlockTimestamp + 15 * 60; // add 15 minutes
 
     // Get expected book value
     const initState = await ra.loadState();
@@ -120,7 +120,7 @@ describe('swap', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     // +3 hours to reach below BV, this ensures price is stable between the 2 swaps below
     const nextBlockTimestamp = timestamp + 3 * 60 * 60;
-    const deadline = nextBlockTimestamp + 5 * 60; // add 5 minutes
+    const deadline = nextBlockTimestamp + 15 * 60; // add 15 minutes
 
     // Get expected book value
     const initState = await ra.loadState();
@@ -182,7 +182,7 @@ describe('swap', function () {
     const before = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const deadline = timestamp + 5 * 60; // add 5 minutes
+    const deadline = timestamp + 15 * 60; // add 15 minutes
 
     await setNextBlockBaseFee(0);
     const tx = await ra.connect(member).swap(0, minNxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
@@ -212,7 +212,7 @@ describe('swap', function () {
     const before = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const deadline = timestamp + 5 * 60; // add 5 minutes
+    const deadline = timestamp + 15 * 60; // add 15 minutes
 
     await setNextBlockBaseFee(0);
     const tx = await ra.connect(member).swap(nxmIn, minEthOut, deadline, { maxPriorityFeePerGas: 0 });

@@ -36,7 +36,8 @@ interface ILimitOrders {
     BuyCoverParams calldata params,
     PoolAllocationRequest[] calldata poolAllocationRequests,
     ExecutionDetails calldata executionDetails,
-    bytes calldata signature
+    bytes calldata signature,
+    uint solverFee
   ) external payable returns (uint coverId);
 
   /* ==== EVENTS ==== */

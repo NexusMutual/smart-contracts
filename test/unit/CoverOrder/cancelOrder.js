@@ -163,6 +163,7 @@ describe('cancelOrder', function () {
       [{ poolId: 1, coverAmountInAsset: amount }],
       executionDetails,
       signature,
+      0, // signerFee
     );
 
     const tx = limitOrders.connect(limitOrderOwner).cancelOrder(

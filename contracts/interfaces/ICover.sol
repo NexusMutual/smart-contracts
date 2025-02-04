@@ -155,6 +155,7 @@ interface ICover {
   error UnexpectedCoverAsset();
   error UnexpectedEthSent();
   error EditNotSupported();
+  error MustBeInitialCover();
 
   // Price & Commission
   error PriceExceedsMaxPremiumInAsset();

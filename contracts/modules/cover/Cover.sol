@@ -137,15 +137,21 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         revert OnlyOwnerOrApproved();
       }
 
+      CoverEditInfo memory editInfo = _coverEditInfo[params.coverId];
+
+      if (editInfo.initialCoverId != 0) {
+        revert MustBeInitialCover();
+      }
+
+      uint latestCoverId = (editInfo.latestCoverId != 0 ? editInfo.latestCoverId : params.coverId);
       (
         previousCoverAmount,
         previousCoverExpiration,
         refundedPremium
-      ) = _requestDeallocation(params.coverId);
+      ) = _requestDeallocation(latestCoverId);
 
-      uint initialCoverId = getInitialCoverId(params.coverId);
-      _coverEditInfo[coverId].initialCoverId = initialCoverId.toUint32();
-      _coverEditInfo[initialCoverId].latestCoverId = coverId.toUint32();
+      _coverEditInfo[coverId].initialCoverId = params.coverId.toUint32();
+      _coverEditInfo[params.coverId].latestCoverId = coverId.toUint32();
     }
 
     AllocationRequest memory allocationRequest;
@@ -552,12 +558,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return coverNFT.totalSupply();
   }
 
-  function getInitialCoverId(uint coverId) public view returns(uint) {
-    return _coverEditInfo[coverId].initialCoverId != 0 ? _coverEditInfo[coverId].initialCoverId : coverId;
+  function getInitialCoverId(uint coverId) public view returns (uint) {
+    uint32 initialCoverId = _coverEditInfo[coverId].initialCoverId;
+    return initialCoverId != 0 ? initialCoverId : coverId;
   }
 
-  function getLatestCoverId(uint initialCoverId) public view returns(uint) {
-    return _coverEditInfo[initialCoverId].latestCoverId != 0 ? _coverEditInfo[initialCoverId].latestCoverId : initialCoverId;
+  function getLatestCoverId(uint initialCoverId) public view returns (uint) {
+    uint32 latestCoverId = _coverEditInfo[initialCoverId].latestCoverId;
+    return latestCoverId != 0 ? latestCoverId : initialCoverId;
   }
 
   /* ========== COVER ASSETS HELPERS ========== */

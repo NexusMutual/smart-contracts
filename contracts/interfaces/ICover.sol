@@ -63,6 +63,11 @@ struct CoverData {
   uint16 capacityRatio;
 }
 
+struct CoverEditInfo {
+  uint32 initialCoverId; // set to 0 for the coverId which was never edited
+  uint32 latestCoverId; // used only in the initial cover (set to 0 if never edited)
+}
+
 interface ICover {
 
   /* ========== DATA STRUCTURES ========== */

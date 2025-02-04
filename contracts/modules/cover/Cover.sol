@@ -43,6 +43,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   mapping(uint coverId => CoverData) private _coverData;
   mapping(uint coverId => PoolAllocation[]) private _poolAllocations;
+  mapping(uint coverId => CoverEditInfo) private _coverEditInfo;
 
   /* ========== CONSTANTS ========== */
 
@@ -123,6 +124,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       revert InvalidPaymentAsset();
     }
 
+    // new cover
+    coverId = coverNFT.mint(params.owner);
+
     uint previousCoverAmount;
     uint previousCoverExpiration;
     uint refundedPremium;
@@ -138,10 +142,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         previousCoverExpiration,
         refundedPremium
       ) = _requestDeallocation(params.coverId);
+
+      uint initialCoverId = getInitialCoverId(params.coverId);
+      _coverEditInfo[coverId].initialCoverId = initialCoverId.toUint32();
+      _coverEditInfo[initialCoverId].latestCoverId = coverId.toUint32();
     }
 
-    // new cover
-    coverId = coverNFT.mint(params.owner);
     AllocationRequest memory allocationRequest;
 
     {
@@ -544,6 +550,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   function coverDataCount() external override view returns (uint) {
     return coverNFT.totalSupply();
+  }
+
+  function getInitialCoverId(uint coverId) public view returns(uint) {
+    return _coverEditInfo[coverId].initialCoverId != 0 ? _coverEditInfo[coverId].initialCoverId : coverId;
+  }
+
+  function getLatestCoverId(uint initialCoverId) public view returns(uint) {
+    return _coverEditInfo[initialCoverId].latestCoverId != 0 ? _coverEditInfo[initialCoverId].latestCoverId : initialCoverId;
   }
 
   /* ========== COVER ASSETS HELPERS ========== */

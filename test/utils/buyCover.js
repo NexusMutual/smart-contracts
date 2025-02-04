@@ -122,6 +122,7 @@ async function signCoverOrder(contractAddress, params, signer) {
 
   const types = {
     ExecuteOrder: [
+      { name: 'coverId', type: 'uint256' },
       { name: 'productId', type: 'uint24' },
       { name: 'amount', type: 'uint96' },
       { name: 'period', type: 'uint32' },
@@ -137,6 +138,8 @@ async function signCoverOrder(contractAddress, params, signer) {
       { name: 'notBefore', type: 'uint256' },
       { name: 'deadline', type: 'uint256' },
       { name: 'maxPremiumInAsset', type: 'uint256' },
+      { name: 'maxNumberOfRenewals', type: 'uint8' },
+      { name: 'renewWhenLeft', type: 'uint32' },
     ],
   };
 
@@ -146,6 +149,7 @@ async function signCoverOrder(contractAddress, params, signer) {
   });
 
   const digest = _TypedDataEncoder.hash(populated.domain, types, populated.value);
+
   const signature = signer._signTypedData(domain, types, params);
 
   return { digest, signature };

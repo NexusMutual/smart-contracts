@@ -23,6 +23,8 @@ const buyCoverFixture = {
   ipfsData: 'ipfs data',
 };
 
+const executionDetailsFixture = { maxPremiumInAsset: MaxUint256, maxNumberOfRenewals: 0, renewWhenLeft: 0 };
+
 describe('cancelOrder', function () {
   it('should cancel order', async function () {
     const fixture = await loadFixture(setup);
@@ -34,13 +36,14 @@ describe('cancelOrder', function () {
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const executionDetails = {
+      ...executionDetailsFixture,
       notBefore: currentTimestamp,
       deadline: currentTimestamp + 3600,
-      maxPremiumInAsset: MaxUint256,
     };
     const { signature, digest } = await signCoverOrder(
       limitOrders.address,
       {
+        coverId: 0,
         productId,
         amount,
         period,
@@ -80,21 +83,22 @@ describe('cancelOrder', function () {
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const executionDetails = {
+      ...executionDetailsFixture,
       notBefore: currentTimestamp,
       deadline: currentTimestamp + 3600,
-      maxPremiumInAsset: MaxUint256,
     };
 
     const { signature } = await signCoverOrder(
       limitOrders.address,
       {
+        coverId: 0,
         productId,
         amount,
         period,
         paymentAsset: 0,
         coverAsset: 0,
-        ipfsData,
         owner: limitOrderOwner.address,
+        ipfsData,
         commissionRatio,
         commissionDestination,
         executionDetails,
@@ -128,6 +132,7 @@ describe('cancelOrder', function () {
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const executionDetails = {
+      ...executionDetailsFixture,
       notBefore: currentTimestamp,
       deadline: currentTimestamp + 3600,
       maxPremiumInAsset: amount,
@@ -136,6 +141,7 @@ describe('cancelOrder', function () {
     const { signature } = await signCoverOrder(
       limitOrders.address,
       {
+        coverId: 0,
         productId,
         amount,
         period,

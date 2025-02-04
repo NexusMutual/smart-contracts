@@ -14,6 +14,16 @@ struct ExecutionDetails {
   uint256 notBefore;
   uint256 deadline;
   uint256 maxPremiumInAsset;
+  uint8 maxNumberOfRenewals;
+  uint32 renewWhenLeft;
+}
+
+struct OrderDetails {
+  uint192 coverId;
+  uint32 renewWhenLeft;
+  uint8 maxRenewals;
+  uint8 executionCounter;
+  bool isCancelled;
 }
 
 interface ILimitOrders {

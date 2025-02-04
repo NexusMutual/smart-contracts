@@ -17,7 +17,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   using SafeERC20 for IERC20;
 
   /* ========== STATE VARIABLES ========== */
-  mapping(bytes32 => OrderStatus) public orderStatus;
+  mapping(bytes32 => OrderDetails) public orderDetails;
 
   /* ========== IMMUTABLES ========== */
   INXMToken public immutable nxmToken;
@@ -31,6 +31,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   bytes32 private constant EXECUTE_ORDER_TYPEHASH = keccak256(
     abi.encodePacked(
       "ExecuteOrder(",
+      "uint256 coverId,",
       "uint24 productId,",
       "uint96 amount,",
       "uint32 period,",
@@ -41,7 +42,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       "uint16 commissionRatio,",
       "address commissionDestination,",
       "ExecutionDetails executionDetails)",
-      "ExecutionDetails(uint256 notBefore,uint256 deadline,uint256 maxPremiumInAsset)"
+      "ExecutionDetails(uint256 notBefore,uint256 deadline,uint256 maxPremiumInAsset,uint8 maxNumberOfRenewals,uint32 renewWhenLeft)"
     )
   );
 
@@ -66,38 +67,39 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     uint256 solverFee
   ) external payable onlyMember returns (uint coverId) {
 
-    if (block.timestamp > executionDetails.deadline) {
-      revert OrderExpired();
-    }
-
-    if (block.timestamp < executionDetails.notBefore) {
-      revert OrderCannotBeExecutedYet();
+    if (params.owner == address(0) || params.owner == address(this)) {
+      revert InvalidOwnerAddress();
     }
 
     if (params.maxPremiumInAsset > executionDetails.maxPremiumInAsset + solverFee) {
       revert OrderPriceNotMet();
     }
 
-    if (params.owner == address(0) || params.owner == address(this)) {
-      revert InvalidOwnerAddress();
+    bytes32 id = getOrderId(params, executionDetails);
+    address buyer = ECDSA.recover(id, signature);
+    OrderDetails memory _orderDetails = orderDetails[id];
+    bool isNewCover = _orderDetails.coverId == 0;
+
+    if (isNewCover && block.timestamp > executionDetails.deadline) {
+      revert OrderExpired();
     }
 
-    bytes32 id = getOrderId(params, executionDetails);
+    if (isNewCover && block.timestamp < executionDetails.notBefore) {
+      revert OrderCannotBeExecutedYet();
+    }
 
-    address buyer = ECDSA.recover(id, signature);
+    // TODO: Fetch latest cover and check if end of the cover is in the renewWhenLeft period
 
     // Ensure the order has not already been executed
-    if (orderStatus[id] == OrderStatus.Executed) {
+    if (_orderDetails.executionCounter > _orderDetails.maxRenewals) {
       revert OrderAlreadyExecuted();
     }
 
     // Ensure the order is not cancelled
-    if (orderStatus[id] == OrderStatus.Cancelled) {
+    if (_orderDetails.isCancelled) {
       revert OrderAlreadyCancelled();
     }
 
-    // Mark the order as executed
-    orderStatus[id] = OrderStatus.Executed;
 
     // ETH payment
     if (params.paymentAsset == ETH_ASSET_ID) {
@@ -106,6 +108,15 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       // ERC20 payment
       coverId = _buyCoverErc20Payment(buyer, params, poolAllocationRequests, solverFee);
     }
+
+    if (isNewCover) {
+      _orderDetails.executionCounter = 0;
+      _orderDetails.coverId = uint192(coverId);
+    }
+
+    _orderDetails.executionCounter++;
+
+    orderDetails[id] = _orderDetails;
 
     // Emit event
     emit OrderExecuted(params.owner, coverId, id);
@@ -123,15 +134,23 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     // Recover the signer from the digest and the signature
     address signer = ECDSA.recover(id, signature);
 
-    if (orderStatus[id] == OrderStatus.Executed) {
+    OrderDetails memory _orderDetails = orderDetails[id];
+
+    if (_orderDetails.executionCounter > _orderDetails.maxRenewals) {
       revert OrderAlreadyExecuted();
+    }
+
+    if (_orderDetails.isCancelled) {
+      revert OrderAlreadyCancelled();
     }
 
     if (signer != msg.sender) {
       revert NotOrderOwner();
     }
 
-    orderStatus[id] = OrderStatus.Cancelled;
+    _orderDetails.isCancelled = true;
+
+    orderDetails[id] = _orderDetails;
     emit OrderCancelled(id);
   }
 
@@ -146,10 +165,12 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     // Hash the ExecutionDetails struct
     bytes32 executionDetailsHash = keccak256(
       abi.encode(
-        keccak256("ExecutionDetails(uint256 notBefore,uint256 deadline,uint256 maxPremiumInAsset)"),
+        keccak256("ExecutionDetails(uint256 notBefore,uint256 deadline,uint256 maxPremiumInAsset,uint8 maxNumberOfRenewals,uint32 renewWhenLeft)"),
         executionDetails.notBefore,
         executionDetails.deadline,
-        executionDetails.maxPremiumInAsset
+        executionDetails.maxPremiumInAsset,
+        executionDetails.maxNumberOfRenewals,
+        executionDetails.renewWhenLeft
       )
     );
 
@@ -157,6 +178,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     structHash = keccak256(
       abi.encode(
         EXECUTE_ORDER_TYPEHASH,
+        params.coverId,
         params.productId,
         params.amount,
         params.period,

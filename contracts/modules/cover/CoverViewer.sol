@@ -15,6 +15,8 @@ contract CoverViewer {
     uint start;
     uint period; // seconds
     uint gracePeriod; // seconds
+    uint originalCoverId;
+    uint latestCoverId;
   }
 
   INXMMaster internal immutable master;
@@ -34,7 +36,7 @@ contract CoverViewer {
     for (uint i = 0; i < coverIds.length; i++) {
       uint coverId = coverIds[i];
 
-      CoverData memory coverData = _cover.coverData(coverId);
+      (CoverData memory coverData, CoverReference memory coverReference) = _cover.getCoverDataWithReference(coverId);
       covers[i].coverId = coverId;
       covers[i].productId = coverData.productId;
       covers[i].coverAsset = coverData.coverAsset;
@@ -42,6 +44,8 @@ contract CoverViewer {
       covers[i].period = coverData.period;
       covers[i].gracePeriod = coverData.gracePeriod;
       covers[i].amount = coverData.amount;
+      covers[i].originalCoverId = coverReference.originalCoverId;
+      covers[i].latestCoverId = coverReference.latestCoverId;
     }
 
     return covers;

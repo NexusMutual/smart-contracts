@@ -62,12 +62,12 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
     ICover cover = ICover(master.getLatestAddress("CO"));
     ICoverProducts coverProducts = ICoverProducts(master.getLatestAddress("CP"));
 
-    if (cover.coverDataCount() < tokenId) {
+    if (cover.getCoverDataCount() < tokenId) {
       return ("This NFT does not exist", CoverDescription("", "", "", 0, 0, 0));
     }
 
     // Get cover data
-    CoverData memory coverData = cover.coverData(tokenId);
+    CoverData memory coverData = cover.getCoverData(tokenId);
     string memory productName = coverProducts.getProductName(coverData.productId);
 
     // Check if cover has already expired

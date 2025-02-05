@@ -61,7 +61,7 @@ contract CLMockCover is CoverGeneric {
     _coverNFT = ICoverNFT(coverNFTAddress);
   }
 
-  function coverData(uint id) external override view returns (CoverData memory) {
+  function getCoverData(uint id) external override view returns (CoverData memory) {
     return _coverData[id];
   }
 

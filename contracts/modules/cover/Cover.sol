@@ -43,7 +43,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   mapping(uint coverId => CoverData) private _coverData;
   mapping(uint coverId => PoolAllocation[]) private _poolAllocations;
-  mapping(uint coverId => CoverEditInfo) private _coverEditInfo;
+  mapping(uint coverId => CoverReference) private _coverReference;
 
   /* ========== CONSTANTS ========== */
 
@@ -137,21 +137,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         revert OnlyOwnerOrApproved();
       }
 
-      CoverEditInfo memory editInfo = _coverEditInfo[params.coverId];
+      CoverReference memory coverRefernce = getCoverReference(params.coverId);
 
-      if (editInfo.initialCoverId != 0) {
-        revert MustBeInitialCover();
+      if (coverRefernce.originalCoverId != params.coverId) {
+        revert MustBeOriginalCoverId(coverRefernce.originalCoverId);
       }
 
-      uint latestCoverId = (editInfo.latestCoverId != 0 ? editInfo.latestCoverId : params.coverId);
       (
         previousCoverAmount,
         previousCoverExpiration,
         refundedPremium
-      ) = _requestDeallocation(latestCoverId);
+      ) = _requestDeallocation(coverRefernce.latestCoverId);
 
-      _coverEditInfo[coverId].initialCoverId = params.coverId.toUint32();
-      _coverEditInfo[params.coverId].latestCoverId = coverId.toUint32();
+      _coverReference[coverId].originalCoverId = params.coverId.toUint32();
+      _coverReference[params.coverId].latestCoverId = coverId.toUint32();
     }
 
     AllocationRequest memory allocationRequest;
@@ -550,22 +549,27 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   /* ========== VIEWS ========== */
 
-  function coverData(uint coverId) external override view returns (CoverData memory) {
+  function getCoverData(uint coverId) external override view returns (CoverData memory) {
     return _coverData[coverId];
   }
 
-  function coverDataCount() external override view returns (uint) {
+  function getCoverDataCount() external override view returns (uint) {
     return coverNFT.totalSupply();
   }
 
-  function getInitialCoverId(uint coverId) public view returns (uint) {
-    uint32 initialCoverId = _coverEditInfo[coverId].initialCoverId;
-    return initialCoverId != 0 ? initialCoverId : coverId;
+  function getCoverReference(uint coverId) public override view returns(CoverReference memory coverReference) {
+    coverReference = _coverReference[coverId];
+    coverReference.originalCoverId = coverReference.originalCoverId != 0 ? coverReference.originalCoverId : coverId.toUint32();
+    coverReference.latestCoverId = coverReference.latestCoverId != 0 ? coverReference.latestCoverId : coverId.toUint32();
   }
 
-  function getLatestCoverId(uint initialCoverId) public view returns (uint) {
-    uint32 latestCoverId = _coverEditInfo[initialCoverId].latestCoverId;
-    return latestCoverId != 0 ? latestCoverId : initialCoverId;
+  function getCoverDataWithReference(uint coverId) external override view returns (CoverData memory, CoverReference memory) {
+    return (_coverData[coverId], getCoverReference(coverId));
+  }
+
+  function getLatestEditCoverData(uint coverId) external override view returns (CoverData memory) {
+    CoverReference memory coverReference = getCoverReference(coverId);
+    return _coverData[coverReference.latestCoverId];
   }
 
   /* ========== COVER ASSETS HELPERS ========== */

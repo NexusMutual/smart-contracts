@@ -152,7 +152,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       }
     }
 
-    CoverData memory coverData = cover().coverData(claim.coverId);
+    CoverData memory coverData = cover().getCoverData(claim.coverId);
 
     uint expiration = coverData.start + coverData.period;
 
@@ -267,7 +267,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       lastClaimSubmissionOnCover[coverId] = ClaimSubmission(uint80(claims.length), true);
     }
 
-    CoverData memory coverData = cover().coverData(coverId);
+    CoverData memory coverData = cover().getCoverData(coverId);
 
     {
       ProductType memory productType = coverProducts().getProductTypeOf(coverData.productId);

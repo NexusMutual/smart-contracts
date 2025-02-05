@@ -12,7 +12,7 @@ contract CVMockCover is CoverGeneric {
     _coverData[coverId] = newCoverData;
   }
 
-  function coverData(uint coverId) external override view returns (CoverData memory) {
+  function getCoverData(uint coverId) external override view returns (CoverData memory) {
     return _coverData[coverId];
   }
 }

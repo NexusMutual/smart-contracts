@@ -1143,7 +1143,7 @@ describe('buyCover', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     const coverId = await cover.coverDataCount();
-    const storedCoverData = await cover.coverData(coverId);
+    const storedCoverData = await cover.getCoverData(coverId);
     expect(storedCoverData.productId).to.be.equal(productId);
     expect(storedCoverData.coverAsset).to.be.equal(coverAsset);
     expect(storedCoverData.amountPaidOut).to.be.equal(0);
@@ -1375,7 +1375,7 @@ describe('buyCover', function () {
 
     // Validate data for second cover
     const coverId = await cover.coverDataCount();
-    const storedCoverData = await cover.coverData(coverId);
+    const storedCoverData = await cover.getCoverData(coverId);
     expect(storedCoverData.productId).to.be.equal(productId);
     expect(storedCoverData.coverAsset).to.be.equal(coverAsset);
     expect(storedCoverData.amountPaidOut).to.be.equal(0);

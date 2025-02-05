@@ -63,9 +63,9 @@ struct CoverData {
   uint16 capacityRatio;
 }
 
-struct CoverEditInfo {
-  uint32 initialCoverId; // set to 0 for the coverId which was never edited
-  uint32 latestCoverId; // used only in the initial cover (set to 0 if never edited)
+struct CoverReference {
+  uint32 originalCoverId; // set to 0 in the original cover
+  uint32 latestCoverId; // used only in the original cover (set to 0 in original cover if never edited)
 }
 
 interface ICover {
@@ -92,9 +92,15 @@ interface ICover {
 
   /* ========== VIEWS ========== */
 
-  function coverData(uint coverId) external view returns (CoverData memory);
+  function getCoverData(uint coverId) external view returns (CoverData memory);
 
-  function coverDataCount() external view returns (uint);
+  function getCoverDataCount() external view returns (uint);
+
+  function getCoverReference(uint coverId) external view returns(CoverReference memory);
+
+  function getCoverDataWithReference(uint coverId) external view returns (CoverData memory, CoverReference memory);
+
+  function getLatestEditCoverData(uint coverId) external view returns (CoverData memory);
 
   function recalculateActiveCoverInAsset(uint coverAsset) external;
 
@@ -155,7 +161,7 @@ interface ICover {
   error UnexpectedCoverAsset();
   error UnexpectedEthSent();
   error EditNotSupported();
-  error MustBeInitialCover();
+  error MustBeOriginalCoverId(uint originalCoverId);
 
   // Price & Commission
   error PriceExceedsMaxPremiumInAsset();

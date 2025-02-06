@@ -10,7 +10,7 @@ describe('getPoll', function () {
     const { assessment, individualClaims } = fixture.contracts;
     const user = fixture.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
-    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, parseEther('100'), '');
     {
       const targetAssessment = await assessment.assessments(0);
       const poll = await assessment.getPoll(0);

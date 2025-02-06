@@ -4,7 +4,8 @@ const path = require('path');
 
 const { hex } = require('../../lib/helpers');
 const proposalCategories = require('../../lib/proposal-categories');
-const products = require('../v2-migration/output/migratableProducts.json');
+// const products = require('../v2-migration/output/migratableProducts.json');
+const products = [];
 const verifier = require('./verifier')();
 const { setEtherBalance } = require('../../test/utils').evm;
 

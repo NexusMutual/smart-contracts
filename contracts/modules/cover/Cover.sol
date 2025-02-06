@@ -668,4 +668,28 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
   }
+
+  /* ========== MIGRATION ========== */
+
+  function migrateCoverDataAndPoolAllocations(uint[] calldata coverIds) external {
+    uint length = coverIds.length;
+    for(uint i=0; i<length; i++) {
+      uint coverId = coverIds[i];
+      LegacyCoverData memory legacyCoverData = _legacyCoverData[coverId];
+      LegacyCoverSegment memory legacyCoverSegment = _legacyCoverSegments[coverId][0]; // todo: is it always 0?
+
+      _coverData[i] = CoverData({
+        productId: legacyCoverData.productId,
+        coverAsset: legacyCoverData.coverAsset,
+        amount: legacyCoverSegment.amount,
+        start: legacyCoverSegment.start,
+        period: legacyCoverSegment.period,
+        gracePeriod: legacyCoverSegment.gracePeriod,
+        rewardsRatio: uint(legacyCoverSegment.globalRewardsRatio).toUint16(),
+        capacityRatio: uint(legacyCoverSegment.globalCapacityRatio).toUint16()
+      });
+
+      _poolAllocations[coverId] = legacyCoverSegmentAllocations[coverId][0]; // todo: is it always 0?
+    }
+  }
 }

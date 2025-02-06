@@ -18,6 +18,6 @@ const overrides = {
 };
 
 module.exports = {
-  compilers: Object.values(compilers),
+  compilers,
   overrides,
 };

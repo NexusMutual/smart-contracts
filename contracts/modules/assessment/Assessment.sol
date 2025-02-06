@@ -17,12 +17,9 @@ import "../../libraries/SafeUintCast.sol";
 /// to payouts. Mints rewards for stakers that act benevolently and allows burning fraudulent ones.
 contract Assessment is IAssessment, MasterAwareV2 {
 
-  INXMToken public immutable nxm;
-
   /* ========== STATE VARIABLES ========== */
 
-  // Parameters configurable through governance.
-  Configuration public override config;
+  uint internal __unused_0; // was Configuration config
 
   // Stake states of users. (See Stake struct)
   mapping(address => Stake) public override stakeOf;
@@ -41,6 +38,15 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   Assessment[] public override assessments;
 
+  /* ========== CONSTANTS ========== */
+
+  uint constant internal MIN_VOTING_PERIOD = 3 days;
+  uint constant internal STAKE_LOCKUP_PERIOD = 14 days;
+  uint constant internal PAYOUT_COOLDOWN = 1 days;
+  uint constant internal SILENT_ENDING_PERIOD = 1 days;
+
+  INXMToken public immutable nxm;
+
   /* ========== MODIFIERS ========== */
 
   modifier onlyTokenController {
@@ -57,6 +63,22 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
   /* ========== VIEWS ========== */
+
+  function getMinVotingPeriod() external pure override returns (uint) {
+    return MIN_VOTING_PERIOD;
+  }
+
+  function getStakeLockupPeriod() external pure override returns (uint) {
+    return STAKE_LOCKUP_PERIOD;
+  }
+
+  function getPayoutCooldown() external pure override returns (uint) {
+    return PAYOUT_COOLDOWN;
+  }
+
+  function getSilentEndingPeriod() external pure override returns (uint) {
+    return SILENT_ENDING_PERIOD;
+  }
 
   /// @dev Returns the vote count of an assessor.
   ///
@@ -102,7 +124,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       // rewards.
       if (
         !hasReachedUnwithdrawableReward &&
-        uint(assessment.poll.end) + uint(config.payoutCooldownInDays) * 1 days >= block.timestamp
+        uint(assessment.poll.end) + PAYOUT_COOLDOWN >= block.timestamp
       ) {
         hasReachedUnwithdrawableReward = true;
         // Store the index of the vote until which rewards can be withdrawn.
@@ -119,6 +141,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
       withdrawableUntilIndex = voteCount;
       withdrawableAmountInNXM = totalPendingAmountInNXM;
     }
+
+    return (totalPendingAmountInNXM, withdrawableAmountInNXM, withdrawableUntilIndex);
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -171,7 +195,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint voteCount = votesOf[staker].length;
     if (voteCount > 0) {
       Vote memory latestVote = votesOf[staker][voteCount - 1];
-      uint assessmentLockupExpiry = latestVote.timestamp + uint(config.stakeLockupPeriodInDays) * 1 days;
+      uint assessmentLockupExpiry = latestVote.timestamp + STAKE_LOCKUP_PERIOD;
       if (block.timestamp <= assessmentLockupExpiry) {
         revert StakeLockedForAssessment(assessmentLockupExpiry);
       }
@@ -242,7 +266,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     for (uint i = rewardsWithdrawableFromIndex; i < withdrawnUntilIndex; i++) {
       vote = votesOf[staker][i];
       assessment = assessments[vote.assessmentId];
-      if (uint(assessment.poll.end) + uint(config.payoutCooldownInDays) * 1 days >= block.timestamp) {
+      if (uint(assessment.poll.end) + PAYOUT_COOLDOWN >= block.timestamp) {
         // Poll is not final
         withdrawnUntilIndex = i;
         break;
@@ -278,7 +302,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
         0, // accepted
         0, // denied
         uint32(block.timestamp), // start
-        uint32(block.timestamp + uint32(config.minVotingPeriodInDays) * 1 days) // end
+        uint32(block.timestamp + MIN_VOTING_PERIOD) // end
       ),
       uint128(totalAssessmentReward),
       uint128(assessmentDepositInETH)
@@ -350,23 +374,23 @@ contract Assessment is IAssessment, MasterAwareV2 {
     if (block.timestamp >= poll.end) {
       revert VotingClosed();
     }
+
     if (!(poll.accepted > 0 || isAcceptVote)) {
       revert AcceptVoteRequired();
     }
 
     if (poll.accepted == 0) {
       // Reset the poll end date on the first accept vote
-      poll.end = uint32(block.timestamp + uint(config.minVotingPeriodInDays) * 1 days);
+      poll.end = uint32(block.timestamp + MIN_VOTING_PERIOD);
     }
 
     // Check if poll ends in less than 24 hours
-    uint silentEndingPeriod = uint(config.silentEndingPeriodInDays) * 1 days;
-    if (poll.end - block.timestamp < silentEndingPeriod) {
+    if (poll.end - block.timestamp < SILENT_ENDING_PERIOD) {
       // Extend proportionally to the user's stake but up to 1 day maximum
       poll.end += uint32(
         Math.min(
-          silentEndingPeriod,
-          silentEndingPeriod * uint(stakeAmount) / (uint(poll.accepted + poll.denied))
+          SILENT_ENDING_PERIOD,
+          SILENT_ENDING_PERIOD * uint(stakeAmount) / (uint(poll.accepted + poll.denied))
         )
       );
     }
@@ -385,6 +409,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       uint32(block.timestamp),
       stakeAmount
     ));
+
     emit VoteCast(msg.sender, assessmentId, stakeAmount, isAcceptVote, ipfsAssessmentDataHash);
   }
 
@@ -450,7 +475,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       IAssessment.Poll memory poll = assessments[vote.assessmentId].poll;
 
       {
-        if (uint32(block.timestamp) >= uint(poll.end) + uint(config.payoutCooldownInDays) * 1 days) {
+        if (uint32(block.timestamp) >= uint(poll.end) + PAYOUT_COOLDOWN) {
           // Once the cooldown period ends the poll result is final, thus skip
           continue;
         }
@@ -496,43 +521,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
     stakeOf[assessor] = _stake;
   }
 
-  /// Updates configurable parameters through governance
-  ///
-  /// @param paramNames  An array of elements from UintParams enum
-  /// @param values      An array of the new values, each one corresponding to the parameter
-  ///                    from paramNames on the same position.
-  function updateUintParameters(
-    UintParams[] calldata paramNames,
-    uint[] calldata values
-  ) external override onlyGovernance {
-
-    Configuration memory newConfig = config;
-
-    for (uint i = 0; i < paramNames.length; i++) {
-
-      if (paramNames[i] == IAssessment.UintParams.minVotingPeriodInDays) {
-        newConfig.minVotingPeriodInDays = uint8(values[i]);
-        continue;
-      }
-
-      if (paramNames[i] == IAssessment.UintParams.stakeLockupPeriodInDays) {
-        newConfig.stakeLockupPeriodInDays = uint8(values[i]);
-        continue;
-      }
-
-      if (paramNames[i] == IAssessment.UintParams.payoutCooldownInDays) {
-        newConfig.payoutCooldownInDays = uint8(values[i]);
-        continue;
-      }
-
-      if (paramNames[i] == IAssessment.UintParams.silentEndingPeriodInDays) {
-        newConfig.silentEndingPeriodInDays = uint8(values[i]);
-        continue;
-      }
-    }
-    config = newConfig;
-  }
-
   /* ========== DEPENDENCIES ========== */
 
   function _tokenController() internal view returns (ITokenController) {
@@ -546,29 +534,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @dev Updates internal contract addresses to the ones stored in master. This function is
   /// automatically called by the master contract when a contract is added or upgraded.
   function changeDependentContractAddress() external override {
-
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
-
-    Configuration memory currentConfig = config;
-    bool notInitialized = bytes32(
-      abi.encodePacked(
-        currentConfig.minVotingPeriodInDays,
-        currentConfig.payoutCooldownInDays,
-        currentConfig.stakeLockupPeriodInDays,
-        currentConfig.silentEndingPeriodInDays
-      )
-    ) == bytes32(0);
-
-    if (notInitialized) {
-      // initialize config
-      config.minVotingPeriodInDays = 3; // days
-      config.payoutCooldownInDays = 1; // days
-      config.stakeLockupPeriodInDays = 14; // days
-      config.silentEndingPeriodInDays = 1; // days
-      // whitelist current contract
-      _tokenController().addToWhitelist(address(this));
-    }
   }
 }

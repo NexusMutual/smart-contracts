@@ -1,4 +1,8 @@
-require('dotenv').config();
+const path = require('node:path');
+
+// ensure .env is loaded even if cwd is not the project root
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+
 require('@typechain/hardhat');
 require('@nomiclabs/hardhat-etherscan');
 require('@nomicfoundation/hardhat-chai-matchers');

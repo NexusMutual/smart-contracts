@@ -41,6 +41,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   mapping(uint assetId => ActiveCover) public activeCover;
   mapping(uint assetId => mapping(uint bucketId => uint amount)) internal activeCoverExpirationBuckets;
 
+  uint private __unused_8; // was mapping(uint => string) _productNames
+  uint private __unused_9; // was mapping(uint => string) _productTypeNames
+
   mapping(uint coverId => CoverData) private _coverData;
   mapping(uint coverId => PoolAllocation[]) private _poolAllocations;
   mapping(uint coverId => CoverReference) private _coverReference;

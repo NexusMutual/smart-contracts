@@ -9,9 +9,9 @@ describe('getVoteCountOfAssessor', function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [assessor1, assessor2] = fixture.accounts.members;
-    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
-    await individualClaims.submitClaim(1, 0, parseEther('100'), '');
-    await individualClaims.submitClaim(2, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await individualClaims.submitClaim(1, parseEther('100'), '');
+    await individualClaims.submitClaim(2, parseEther('100'), '');
 
     await assessment.connect(assessor1).stake(parseEther('100'));
     await assessment.connect(assessor2).stake(parseEther('100'));

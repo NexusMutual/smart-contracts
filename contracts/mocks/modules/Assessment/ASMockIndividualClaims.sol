@@ -5,39 +5,43 @@ pragma solidity ^0.8.18;
 import "../../../interfaces/INXMToken.sol";
 import "../../../interfaces/IIndividualClaims.sol";
 import "../../../interfaces/IAssessment.sol";
-
 import "../../../abstract/MasterAwareV2.sol";
 import "../../generic/IndividualClaimsGeneric.sol";
 
 contract ASMockIndividualClaims is MasterAwareV2, IndividualClaimsGeneric {
 
-  INXMToken public token;
+  uint constant public MIN_ASSESSMENT_DEPOSIT_RATIO = 500; // bps
+  uint constant public MIN_ASSESSMENT_DEPOSIT_DENOMINATOR = 10000;
 
-  constructor(address tokenAddress) {
-    token = INXMToken(tokenAddress);
-  }
+  uint constant public REWARD_RATIO = 130; // bps
+  uint constant public REWARD_DENOMINATOR = 10000;
 
   function assessment() internal view returns (IAssessment) {
     return IAssessment(getInternalContractAddress(ID.AS));
   }
 
+  function getRewardRatio() external pure override returns (uint) {
+    return REWARD_RATIO;
+  }
+
   function submitClaim(
     uint32 coverId,
-    uint16 segmentId,
     uint96 requestedAmount,
     string calldata /*ipfsMetadata*/
   ) external payable override returns (Claim memory) {
+
+    uint totalReward = requestedAmount * REWARD_RATIO / REWARD_DENOMINATOR;
+    uint assessmentId = assessment().startAssessment(totalReward, 0);
+
     Claim memory claim = Claim(
-      0,
+      uint80(assessmentId),
       coverId,
-      segmentId,
+      0, // ex segment id
       requestedAmount,
       0,
       false // payoutRedeemed
     );
 
-    uint assessmentId = assessment().startAssessment(config.rewardRatio * requestedAmount / 10000, 0);
-    claim.assessmentId = uint80(assessmentId);
     claims.push(claim);
 
     return claim;
@@ -45,10 +49,6 @@ contract ASMockIndividualClaims is MasterAwareV2, IndividualClaimsGeneric {
 
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
-
-    // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
-    config.rewardRatio = 130; // 0.52%
-    config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH submission flat fee
   }
 
 }

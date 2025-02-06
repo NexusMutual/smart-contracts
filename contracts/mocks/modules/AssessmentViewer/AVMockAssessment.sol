@@ -6,23 +6,23 @@ import {AssessmentGeneric} from "../../generic/AssessmentGeneric.sol";
 
 contract AVMockAssessment is AssessmentGeneric {
 
-  uint totalPendingAmountInNXM;
-  uint withdrawableAmountInNXM;
-  uint withdrawableUntilIndex;
+  uint internal totalPendingAmountInNXM;
+  uint internal withdrawableAmountInNXM;
+  uint internal withdrawableUntilIndex;
 
-  constructor(
-    uint8 minVotingPeriodInDays,
-    uint8 stakeLockupPeriodInDays,
-    uint8 payoutCooldownInDays,
-    uint8 silentEndingPeriodInDays
-  ) {
-    config = Configuration({
-      minVotingPeriodInDays: minVotingPeriodInDays,
-      stakeLockupPeriodInDays: stakeLockupPeriodInDays,
-      payoutCooldownInDays: payoutCooldownInDays,
-      silentEndingPeriodInDays: silentEndingPeriodInDays
-    });
-  }
+//  constructor(
+//    uint8 minVotingPeriodInDays,
+//    uint8 stakeLockupPeriodInDays,
+//    uint8 payoutCooldownInDays,
+//    uint8 silentEndingPeriodInDays
+//  ) {
+//    config = Configuration({
+//      minVotingPeriodInDays: minVotingPeriodInDays,
+//      stakeLockupPeriodInDays: stakeLockupPeriodInDays,
+//      payoutCooldownInDays: payoutCooldownInDays,
+//      silentEndingPeriodInDays: silentEndingPeriodInDays
+//    });
+//  }
 
   /* ========== SETTERS ========== */
 

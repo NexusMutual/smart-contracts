@@ -5,26 +5,33 @@ pragma solidity ^0.8.18;
 import "../../interfaces/IIndividualClaims.sol";
 
 contract IndividualClaimsGeneric is IIndividualClaims {
-  Configuration public config;
   Claim[] public claims;
 
   function getClaimsCount() external pure returns (uint) {
     revert("Unsupported");
   }
 
-  function submitClaim(uint32, uint16, uint96, string calldata) external payable virtual returns (Claim memory) {
+  function getPayoutRedemptionPeriod() external pure override virtual returns (uint) {
     revert("Unsupported");
   }
 
-  function submitClaimFor(uint32, uint16, uint96, string calldata, address) external payable returns (Claim memory) {
+  function getMinAssessmentDepositRatio() external pure override virtual returns (uint) {
+    revert("Unsupported");
+  }
+
+  function getMaxRewardInNXM() external pure override virtual returns (uint) {
+    revert("Unsupported");
+  }
+
+  function getRewardRatio() external pure override virtual returns (uint) {
+    revert("Unsupported");
+  }
+
+  function submitClaim(uint32, uint96, string calldata) external payable virtual returns (Claim memory) {
     revert("Unsupported");
   }
 
   function redeemClaimPayout(uint104) external pure {
-    revert("Unsupported");
-  }
-
-  function updateUintParameters(UintParams[] calldata, uint[] calldata) external pure {
     revert("Unsupported");
   }
 }

@@ -16,17 +16,17 @@ contract CLMockAssessment is AssessmentGeneric {
 
   mapping(uint => IAssessment.Poll) internal fraudSnapshot;
 
-  /* ========== CONSTRUCTOR ========== */
-
-  constructor() {
-    config.minVotingPeriodInDays = 3; // days
-    config.payoutCooldownInDays = 1; //days
-  }
+  uint constant internal MIN_VOTING_PERIOD = 3 days;
+  uint constant internal PAYOUT_COOLDOWN = 1 days;
 
   /* ========== VIEWS ========== */
 
   function min(uint a, uint b) internal pure returns (uint) {
     return a <= b ? a : b;
+  }
+
+  function getPayoutCooldown() external override pure returns (uint) {
+    return PAYOUT_COOLDOWN;
   }
 
   function getVoteCountOfAssessor(address assessor) external override view returns (uint) {
@@ -46,7 +46,7 @@ contract CLMockAssessment is AssessmentGeneric {
         0, // accepted
         0, // denied
         uint32(block.timestamp), // start
-        uint32(block.timestamp + uint(config.minVotingPeriodInDays) * 1 days) // end
+        uint32(block.timestamp + MIN_VOTING_PERIOD) // end
       ),
       uint128(totalAssessmentReward),
       uint128(assessmentDeposit)
@@ -64,7 +64,7 @@ contract CLMockAssessment is AssessmentGeneric {
 
     if (isAcceptVote && poll.accepted == 0) {
       // Reset the poll end when the first accepted vote
-      poll.end = uint32(block.timestamp + uint(config.minVotingPeriodInDays) * 1 days);
+      poll.end = uint32(block.timestamp + MIN_VOTING_PERIOD);
     }
 
     // Check if poll ends in less than 24 hours

@@ -103,35 +103,15 @@ const getDurationByTokenWeight =
       .toNumber();
   };
 
-const getDurationByConsensus =
-  ({ config }) =>
-  ({ accepted, denied }) => {
-    const { minVotingPeriodInDays, maxVotingPeriodDays } = config;
-    if (accepted.isZero()) {
-      return daysToSeconds(maxVotingPeriodDays);
-    }
-    const consensusStrength = accepted.mul(parseEther('2')).div(accepted.add(denied)).sub(parseEther('1')).abs();
-    return parseEther(daysToSeconds(minVotingPeriodInDays).toString())
-      .add(
-        parseEther(daysToSeconds(maxVotingPeriodDays - minVotingPeriodInDays).toString())
-          .mul(parseEther('1').sub(consensusStrength))
-          .div(parseEther('1')),
-      )
-      .div(parseEther('1'))
-      .toNumber();
-  };
-
-const finalizePoll = async assessment => {
+const finalizePoll = async (assessment, config) => {
   const { timestamp } = await ethers.provider.getBlock('latest');
-  const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
-
-  await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays) + 1);
+  const { minVotingPeriod, payoutCooldown } = config;
+  await setTime(timestamp + minVotingPeriod + payoutCooldown + 1);
 };
 
 const generateRewards = async ({ assessment, individualClaims, staker }) => {
   await assessment.connect(staker).stake(parseEther('10'));
-
-  await individualClaims.connect(staker).submitClaim(0, 0, parseEther('100'), '');
+  await individualClaims.connect(staker).submitClaim(0, parseEther('100'), '');
   await assessment.connect(staker).castVotes([0], [true], ['Assessment data hash'], 0);
 };
 
@@ -143,7 +123,6 @@ module.exports = {
   burnFraud,
   getProof,
   getDurationByTokenWeight,
-  getDurationByConsensus,
   finalizePoll,
   generateRewards,
 };

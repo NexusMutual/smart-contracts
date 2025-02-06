@@ -48,7 +48,7 @@ describe('unstakeAllFor', function () {
     const amount = parseEther('100');
 
     await assessment.connect(user).stake(amount);
-    await individualClaims.submitClaim(0, 0, amount, '');
+    await individualClaims.submitClaim(0, amount, '');
 
     const { timestamp } = await ethers.provider.getBlock('latest'); // store the block.timestamp on time of vote
     await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], 0);
@@ -56,7 +56,7 @@ describe('unstakeAllFor', function () {
     const unstakeForBeforeExpiry = assessment.connect(tokenControllerSigner).unstakeAllFor(user.address);
     await expect(unstakeForBeforeExpiry).to.be.revertedWithCustomError(assessment, 'StakeLockedForAssessment');
 
-    const { stakeLockupPeriodInDays } = await assessment.config();
+    const { stakeLockupPeriodInDays } = fixture.config;
     for (let dayCount = 1; dayCount < stakeLockupPeriodInDays; dayCount++) {
       await setTime(timestamp + dayCount * ONE_DAY_SECONDS);
       const unstakeFor = assessment.connect(tokenControllerSigner).unstakeAllFor(user.address);

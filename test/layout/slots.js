@@ -58,7 +58,46 @@ describe('Storage layout', function () {
     //   },
     // }
     const exceptions = {
-      // comment left as an example, actual override list is currently empty
+      Cover: {
+        _unused_products: {
+          label: '__unused_0',
+          type: ['t_array(t_struct(Product)_storage)dyn_storage', 't_uint256'],
+        },
+        _unused_productTypes: {
+          label: '__unused_1',
+          type: ['t_array(t_struct(ProductType)_storage)dyn_storage', 't_uint256'],
+        },
+        _coverData: {
+          label: '_legacyCoverData',
+          type: [
+            't_mapping(t_uint256,t_struct(CoverData)_storage)',
+            't_mapping(t_uint256,t_struct(LegacyCoverData)_storage)',
+          ],
+        },
+        coverSegmentAllocations: {
+          label: 'legacyCoverSegmentAllocations',
+        },
+        _unused_allowedPools: {
+          label: '__unused_4',
+          type: ['t_mapping(t_uint256,t_array(t_uint256)dyn_storage)', 't_uint256'],
+        },
+        _coverSegments: {
+          label: '_legacyCoverSegments',
+          type: [
+            't_mapping(t_uint256,t_array(t_struct(CoverSegment)_storage)dyn_storage)',
+            't_mapping(t_uint256,t_array(t_struct(LegacyCoverSegment)_storage)dyn_storage)',
+          ],
+        },
+        _unused_productNames: {
+          label: '__unused_8',
+          type: ['t_mapping(t_uint256,t_string_storage)', 't_uint256'],
+        },
+        _unused_productTypeNames: {
+          label: '__unused_9',
+          type: ['t_mapping(t_uint256,t_string_storage)', 't_uint256'],
+        },
+      },
+      // Example overrides:
       // PooledStaking: {
       //   initialized: { deleted: true },
       //   token: {

@@ -4,7 +4,6 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
-const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('startAssessment', function () {
   it('returns the index of the newly created assessment', async function () {
@@ -13,19 +12,19 @@ describe('startAssessment', function () {
     const [member] = fixture.accounts.members;
 
     {
-      await individualClaims.connect(member).submitClaim(0, 0, parseEther('100'), '');
+      await individualClaims.connect(member).submitClaim(0, parseEther('100'), '');
       const { assessmentId } = await individualClaims.claims(0);
       expect(assessmentId).to.be.equal(0);
     }
 
     {
-      await individualClaims.connect(member).submitClaim(2, 0, parseEther('100'), '');
+      await individualClaims.connect(member).submitClaim(2, parseEther('100'), '');
       const { assessmentId } = await individualClaims.claims(1);
       expect(assessmentId).to.be.equal(1);
     }
 
     {
-      await individualClaims.connect(member).submitClaim(3, 0, parseEther('100'), '');
+      await individualClaims.connect(member).submitClaim(3, parseEther('100'), '');
       const { assessmentId } = await individualClaims.claims(2);
       expect(assessmentId).to.be.equal(2);
     }
@@ -37,11 +36,13 @@ describe('startAssessment', function () {
     const [member] = fixture.accounts.members;
 
     {
-      await individualClaims.connect(member).submitClaim(0, 0, parseEther('100'), '');
+      await individualClaims.connect(member).submitClaim(0, parseEther('100'), '');
       const { assessmentDepositInETH, totalRewardInNXM } = await assessment.assessments(0);
-      const { rewardRatio } = await individualClaims.config();
+      const rewardRatio = await individualClaims.getRewardRatio();
+      const expectedTotalRewardInNXM = parseEther('100').mul(rewardRatio).div('10000');
+
       expect(assessmentDepositInETH).to.be.equal(0);
-      expect(totalRewardInNXM).to.be.equal(parseEther('100').mul(rewardRatio).div('10000'));
+      expect(totalRewardInNXM).to.be.equal(expectedTotalRewardInNXM);
     }
   });
 
@@ -51,12 +52,12 @@ describe('startAssessment', function () {
     const [member] = fixture.accounts.members;
 
     {
-      await individualClaims.connect(member).submitClaim(0, 0, parseEther('100'), '');
+      await individualClaims.connect(member).submitClaim(0, parseEther('100'), '');
       const { timestamp } = await ethers.provider.getBlock('latest');
       const { poll } = await assessment.assessments(0);
-      const { minVotingPeriodInDays } = await assessment.config();
+      const { minVotingPeriod } = fixture.config;
       expect(poll.start).to.be.equal(timestamp);
-      expect(poll.end).to.be.equal(timestamp + daysToSeconds(minVotingPeriodInDays));
+      expect(poll.end).to.be.equal(timestamp + minVotingPeriod);
       expect(poll.accepted).to.be.equal(0);
       expect(poll.denied).to.be.equal(0);
     }
@@ -64,9 +65,9 @@ describe('startAssessment', function () {
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       const { poll } = await assessment.assessments(0);
-      const { minVotingPeriodInDays } = await assessment.config();
+      const { minVotingPeriod } = fixture.config;
       expect(poll.start).to.be.equal(timestamp);
-      expect(poll.end).to.be.equal(timestamp + daysToSeconds(minVotingPeriodInDays));
+      expect(poll.end).to.be.equal(timestamp + minVotingPeriod);
       expect(poll.accepted).to.be.equal(0);
       expect(poll.denied).to.be.equal(0);
     }

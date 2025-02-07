@@ -4,7 +4,6 @@ const { ethers, network } = require('hardhat');
 
 const { Address, EnzymeAdress, V2Addresses, getSigner, submitGovernanceProposal } = require('./utils');
 const { ContractCode, ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-const { sleep } = require('../../lib/helpers');
 const { BigNumber } = require('ethers');
 
 const evm = require('./evm')();
@@ -119,7 +118,7 @@ describe('cover data migration', function () {
 
   it.skip('estimate gas usage for cover data migration', async function () {
     const gasPriceWei = 1e9; // 1 gwei
-    const totalCovers = 1868;
+    const totalCovers = await this.cover.getCoverDataCount();
     const coversPerTx = 100;
 
     const coverIds = [];
@@ -128,7 +127,7 @@ describe('cover data migration', function () {
       coverIds.push(startId + i);
     }
 
-    const tx = await this.cover.migrateCoverDataAndPoolAllocations(coverIds);
+    const tx = await this.cover.migrateCoverDataAndPoolAllocations(coverIds, { gasLimit: 15000000 });
     const txReceipt = await tx.wait();
 
     const txsNeeded = Math.ceil(totalCovers / coversPerTx);
@@ -146,7 +145,7 @@ describe('cover data migration', function () {
 
   it('calculate total gas for cover data migration', async function () {
     const gasPriceWei = 1e9; // 1 gwei
-    const totalCovers = 1868;
+    const totalCovers = await this.cover.getCoverDataCount();
     const coversPerTx = 100;
 
     let totalWei = BigNumber.from(0);
@@ -158,10 +157,8 @@ describe('cover data migration', function () {
         coverIds.push(i);
       }
 
-      const tx = await this.cover.migrateCoverDataAndPoolAllocations(coverIds);
+      const tx = await this.cover.migrateCoverDataAndPoolAllocations(coverIds, { gasLimit: 15000000 });
       const txReceipt = await tx.wait();
-
-      await sleep(1000);
 
       const weiSpent = txReceipt.gasUsed.mul(gasPriceWei);
       console.log('eth spent for ids from %s to %s: %s', startId, endId, ethers.utils.formatEther(weiSpent));

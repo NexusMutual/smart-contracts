@@ -178,4 +178,5 @@ interface ICover {
   error CoverNotYetExpired(uint coverId);
   error InsufficientCoverAmountAllocated();
   error UnexpectedPoolId();
+  error AlreadyMigratedCoverData(uint coverId);
 }

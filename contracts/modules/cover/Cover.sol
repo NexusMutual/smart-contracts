@@ -675,10 +675,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint length = coverIds.length;
     for(uint i=0; i<length; i++) {
       uint coverId = coverIds[i];
-      LegacyCoverData memory legacyCoverData = _legacyCoverData[coverId];
-      LegacyCoverSegment memory legacyCoverSegment = _legacyCoverSegments[coverId][0]; // todo: is it always 0?
 
-      _coverData[i] = CoverData({
+      LegacyCoverSegment memory legacyCoverSegment = _legacyCoverSegments[coverId][0];
+
+      if (legacyCoverSegment.amount == 0) {
+        revert AlreadyMigratedCoverData(coverId);
+      }
+
+      LegacyCoverData memory legacyCoverData = _legacyCoverData[coverId];
+
+      _coverData[coverId] = CoverData({
         productId: legacyCoverData.productId,
         coverAsset: legacyCoverData.coverAsset,
         amount: legacyCoverSegment.amount,
@@ -689,7 +695,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         capacityRatio: uint(legacyCoverSegment.globalCapacityRatio).toUint16()
       });
 
-      _poolAllocations[coverId] = legacyCoverSegmentAllocations[coverId][0]; // todo: is it always 0?
+      _poolAllocations[coverId] = legacyCoverSegmentAllocations[coverId][0];
+
+      delete _legacyCoverSegments[coverId][0];
+      delete _legacyCoverData[coverId];
+      delete legacyCoverSegmentAllocations[coverId][0];
     }
   }
 }

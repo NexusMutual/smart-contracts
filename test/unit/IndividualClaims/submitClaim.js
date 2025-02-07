@@ -39,6 +39,7 @@ describe('submitClaim', function () {
     const fixture = await loadFixture(setup);
     const { cover, assessment } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
+
     const segment = await getCoverSegment();
     await cover.createMockCover(
       coverOwner.address,
@@ -46,11 +47,12 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [segment],
     );
+
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
-    const { payoutCooldownInDays } = await assessment.config();
-    await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
+
+    await setTime(poll.end + fixture.config.payoutCooldown);
     await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWith(
       'A payout can still be redeemed',
     );
@@ -123,7 +125,7 @@ describe('submitClaim', function () {
 
   it('allows claim submission if an accepted claim is not redeemed during the redemption period', async function () {
     const fixture = await loadFixture(setup);
-    const { individualClaims, cover, assessment } = fixture.contracts;
+    const { cover, assessment } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const segment = await getCoverSegment();
     await cover.createMockCover(
@@ -132,12 +134,14 @@ describe('submitClaim', function () {
       ASSET.ETH,
       [segment],
     );
+
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
+
     const { poll } = await assessment.assessments(0);
-    const { payoutCooldownInDays } = await assessment.config();
-    const { payoutRedemptionPeriodInDays } = await individualClaims.config();
-    await setTime(poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays));
+    const { payoutCooldown, payoutRedemptionPeriod } = fixture.config;
+
+    await setTime(poll.end + payoutCooldown + payoutRedemptionPeriod);
     await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
   });
 

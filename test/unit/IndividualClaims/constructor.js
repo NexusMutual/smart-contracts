@@ -6,15 +6,12 @@ const { setup } = require('./setup');
 describe('constructor', function () {
   it('should set nxm and coverNFT addresses correctly', async function () {
     const fixture = await loadFixture(setup);
-    const { nxm, coverNFT } = fixture.contracts;
+    const { coverNFT } = fixture.contracts;
 
-    const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
-    const individualClaims = await IndividualClaims.deploy(nxm.address, coverNFT.address);
+    const individualClaims = await ethers.deployContract('IndividualClaims', [coverNFT.address]);
+    await individualClaims.deployed();
 
-    const nxmAddress = await individualClaims.nxm();
     const coverNFTAddress = await individualClaims.coverNFT();
-
-    expect(nxmAddress).to.be.equal(nxm.address);
     expect(coverNFTAddress).to.be.equal(coverNFT.address);
   });
 });

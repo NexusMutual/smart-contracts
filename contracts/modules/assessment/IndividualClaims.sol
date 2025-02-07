@@ -84,7 +84,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     return MIN_ASSESSMENT_DEPOSIT_RATIO;
   }
 
-  function getMaxRewardInNXM() external pure override returns (uint) {
+  function getMaxRewardInNxm() external pure override returns (uint) {
     return MAX_REWARD_IN_NXM;
   }
 

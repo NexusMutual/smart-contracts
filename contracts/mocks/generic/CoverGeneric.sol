@@ -50,13 +50,20 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
-  function getCoverReference(uint coverId) external virtual view returns (CoverReference memory) {}
+  function getCoverReference(uint) external virtual view returns (CoverReference memory) {
+    revert("Unsupported");
+  }
 
-  function getCoverDataWithReference(
-    uint coverId
-  ) external virtual view returns (CoverData memory, CoverReference memory) {}
+  function getCoverDataWithReference(uint) external virtual view returns (
+    CoverData memory,
+    CoverReference memory
+  ) {
+    revert("Unsupported");
+  }
 
-  function getLatestEditCoverData(uint coverId) external virtual view returns (CoverData memory) {}
+  function getLatestEditCoverData(uint) external virtual view returns (CoverData memory) {
+    revert("Unsupported");
+  }
 
   /* === MUTATIVE FUNCTIONS ==== */
 

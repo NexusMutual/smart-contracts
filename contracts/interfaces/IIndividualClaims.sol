@@ -59,7 +59,7 @@ interface IIndividualClaims {
 
   function getMinAssessmentDepositRatio() external view returns (uint);
 
-  function getMaxRewardInNXM() external view returns (uint);
+  function getMaxRewardInNxm() external view returns (uint);
 
   function getRewardRatio() external view returns (uint);
 

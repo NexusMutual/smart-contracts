@@ -71,22 +71,25 @@ contract CLMockCover is CoverGeneric {
     address owner,
     uint24 productId,
     uint8 coverAsset,
-    LegacyCoverSegment[] memory segments
+    uint96 amount,
+    uint32 start,
+    uint32 period,
+    uint32 gracePeriod,
+    uint16 globalRewardsRatio,
+    uint16 globalCapacityRatio
   ) external payable returns (uint coverId) {
 
     coverId = _coverNFT.mint(owner);
 
-    // TODO: refactor not to use segments
     _coverData[coverId] = CoverData(
       productId,
       coverAsset,
-      // TODO: refactor not to use segments
-      segments[0].amount,
-      segments[0].start,
-      segments[0].period,
-      segments[0].gracePeriod,
-      uint16(segments[0].globalRewardsRatio),
-      uint16(segments[0].globalCapacityRatio)
+      amount,
+      start > 0 ? start : uint32(block.timestamp),
+      period,
+      gracePeriod,
+      globalRewardsRatio,
+      globalCapacityRatio
     );
   }
 

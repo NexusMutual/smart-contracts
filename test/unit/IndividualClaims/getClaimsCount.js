@@ -1,12 +1,11 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { submitClaim, ASSET } = require('./helpers');
+const { createMockCover, submitClaim } = require('./helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
-const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 const setTime = async timestamp => {
@@ -20,24 +19,11 @@ describe('getClaimsCount', function () {
     const { individualClaims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    await cover.createMockCover(
-      coverOwner.address,
-      0, // productId
-      ASSET.ETH,
-      [
-        {
-          amount: parseEther('100'),
-          start: timestamp + 1,
-          period: daysToSeconds(365),
-          gracePeriod: 30,
-          priceRatio: 0,
-          expired: false,
-          globalRewardsRatio: 0,
-          globalCapacityRatio: 20000,
-        },
-      ],
-    );
+    await createMockCover(cover, {
+      owner: coverOwner.address,
+      period: daysToSeconds(365),
+      gracePeriod: daysToSeconds(30),
+    });
 
     {
       const count = await individualClaims.getClaimsCount();

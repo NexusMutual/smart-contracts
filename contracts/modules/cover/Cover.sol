@@ -32,7 +32,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   uint private __unused_1; // was ProductType[] productTypes
 
   mapping(uint coverId => LegacyCoverData) private _legacyCoverData;
-  mapping(uint coverId => mapping(uint segmentId => PoolAllocation[])) private legacyCoverSegmentAllocations;
+  mapping(uint coverId => mapping(uint segmentId => PoolAllocation[])) private _legacyCoverSegmentAllocations;
 
   uint private __unused_4; // was mapping(uint => uint[]) allowedPools
 
@@ -695,11 +695,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         capacityRatio: uint(legacyCoverSegment.globalCapacityRatio).toUint16()
       });
 
-      _poolAllocations[coverId] = legacyCoverSegmentAllocations[coverId][0];
+      _poolAllocations[coverId] = _legacyCoverSegmentAllocations[coverId][0];
 
       delete _legacyCoverSegments[coverId][0];
       delete _legacyCoverData[coverId];
-      delete legacyCoverSegmentAllocations[coverId][0];
+      delete _legacyCoverSegmentAllocations[coverId][0];
     }
   }
 }

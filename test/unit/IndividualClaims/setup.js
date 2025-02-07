@@ -50,14 +50,14 @@ async function setup() {
   await coverNFT.deployed();
 
   const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
-  const individualClaims = await IndividualClaims.deploy(nxm.address, coverNFT.address);
+  const individualClaims = await IndividualClaims.deploy(coverNFT.address);
   await individualClaims.deployed();
 
   const Cover = await ethers.getContractFactory('CLMockCover');
   const cover = await Cover.deploy(coverNFT.address);
   await cover.deployed();
 
-  const CoverProducts = await ethers.getContractFactory('ICMockCoverProducts');
+  const CoverProducts = await ethers.getContractFactory('CLMockCoverProducts');
   const coverProducts = await CoverProducts.deploy();
   await coverProducts.deployed();
 
@@ -75,7 +75,7 @@ async function setup() {
   await Promise.all(masterInitTxs.map(x => x.wait()));
   await coverProducts.addProductType('0', '30', '5000');
   await coverProducts.addProductType('0', '90', '5000');
-  await coverProducts.addProductType('1', '30', '5000');
+  await coverProducts.addProductType('0', '30', '5000');
 
   const productTemplate = {
     productType: '0',
@@ -116,24 +116,27 @@ async function setup() {
   accounts.defaultSender.sendTransaction({ to: pool.address, value: parseEther('200') });
   await dai.mint(pool.address, parseEther('200'));
 
-  const config = await individualClaims.config();
-
-  return {
-    config,
-    accounts,
-    contracts: {
-      pool,
-      nxm,
-      dai,
-      individualClaims,
-      assessment,
-      cover,
-      coverProducts,
-      coverNFT,
-      master,
-      memberRoles,
-    },
+  const config = {
+    minAssessmentDepositRatio: await individualClaims.getMinAssessmentDepositRatio(),
+    maxRewardInNxm: await individualClaims.getMaxRewardInNxm(),
+    payoutCooldown: (await assessment.getPayoutCooldown()).toNumber(),
+    payoutRedemptionPeriod: (await individualClaims.getPayoutRedemptionPeriod()).toNumber(),
   };
+
+  const contracts = {
+    pool,
+    nxm,
+    dai,
+    individualClaims,
+    assessment,
+    cover,
+    coverProducts,
+    coverNFT,
+    master,
+    memberRoles,
+  };
+
+  return { config, accounts, contracts };
 }
 
 module.exports = {

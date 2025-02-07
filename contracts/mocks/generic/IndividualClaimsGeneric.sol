@@ -19,7 +19,7 @@ contract IndividualClaimsGeneric is IIndividualClaims {
     revert("Unsupported");
   }
 
-  function getMaxRewardInNXM() external pure override virtual returns (uint) {
+  function getMaxRewardInNxm() external pure override virtual returns (uint) {
     revert("Unsupported");
   }
 

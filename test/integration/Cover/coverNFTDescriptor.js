@@ -33,7 +33,7 @@ async function coverNFTDescriptorSetup() {
   const { TRANCHE_DURATION } = fixture.config;
 
   const stakingAmount = parseEther('500');
-  const usdcProductId = 6;
+  const usdcProductId = 3;
 
   // Move to beginning of next block
   const { timestamp } = await ethers.provider.getBlock('latest');
@@ -239,8 +239,8 @@ describe('CoverNFTDescriptor', function () {
     const { coverNFT, cover } = fixture.contracts;
 
     // expire cover
-    const coverSegment = await cover.coverSegmentWithRemainingAmount(1, 0);
-    const expiryTimestamp = coverSegment.start + coverSegment.period;
+    const coverData = await cover.getCoverData(1);
+    const expiryTimestamp = coverData.start + coverData.period;
     await setNextBlockTime(expiryTimestamp);
     await mineNextBlock();
 
@@ -266,9 +266,9 @@ describe('CoverNFTDescriptor', function () {
     const { coverNFT, cover } = fixture.contracts;
 
     // get cover segment
-    const coverSegment = await cover.coverSegmentWithRemainingAmount(1, 0);
+    const coverData = await cover.getCoverData(1);
 
-    const expiryTimestamp = coverSegment.start + coverSegment.period;
+    const expiryTimestamp = coverData.start + coverData.period;
     const timeAtQuery = expiryTimestamp + daysToSeconds(365 * 20);
     // expire cover
     await setNextBlockTime(timeAtQuery);

@@ -613,7 +613,7 @@ contract StakingPool is IStakingPool, Multicall {
     processExpirations(true);
 
     // shouldn't technically happen, considering to remove
-    if (request.allocationId != 0) {
+    if (request.allocationId == 0) {
       revert InvalidAllocationId();
     }
 

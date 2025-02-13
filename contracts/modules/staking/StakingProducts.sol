@@ -31,8 +31,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   uint public constant PRICE_BUMP_RATIO = 5_00; // 5%
 
   // bumped price smoothing
-  // 0.5% per day
-  uint public constant PRICE_CHANGE_PER_DAY = 200; // 2%
+  // 2% per day
+  uint public constant PRICE_CHANGE_PER_DAY = 2_00; // 2%
 
   uint public constant INITIAL_PRICE_DENOMINATOR = 100_00;
   uint public constant TARGET_PRICE_DENOMINATOR = 100_00;

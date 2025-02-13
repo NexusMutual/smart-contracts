@@ -50,6 +50,10 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
+  function getPoolAllocations(uint) external virtual view returns (PoolAllocation[] memory) {
+    revert("Unsupported");
+  }
+
   function getCoverReference(uint) external virtual view returns (CoverReference memory) {
     revert("Unsupported");
   }

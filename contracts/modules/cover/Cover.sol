@@ -216,7 +216,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     _updateTotalActiveCoverAmount(
       params.coverAsset,
-      coverAmountInCoverAsset,
+      params.amount, // TODO: check this change
       block.timestamp + params.period,
       previousCoverAmount,
       previousCoverExpiration
@@ -554,6 +554,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   function getCoverData(uint coverId) external override view returns (CoverData memory) {
     return _coverData[coverId];
+  }
+
+  function getPoolAllocations(uint coverId) external override view returns (PoolAllocation[] memory) {
+    return _poolAllocations[coverId];
   }
 
   function getCoverDataCount() external override view returns (uint) {

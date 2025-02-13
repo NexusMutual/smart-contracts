@@ -94,6 +94,8 @@ interface ICover {
 
   function getCoverData(uint coverId) external view returns (CoverData memory);
 
+  function getPoolAllocations(uint coverId) external view returns (PoolAllocation[] memory);
+
   function getCoverDataCount() external view returns (uint);
 
   function getCoverReference(uint coverId) external view returns(CoverReference memory);

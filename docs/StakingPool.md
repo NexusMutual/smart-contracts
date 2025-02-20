@@ -1,14 +1,47 @@
-
 # StakingPool Contract Developer Documentation
 
-## Overview
+## Table of Contents
 
-The `StakingPool` contract manages nxm staking and capacity allocations for purchased covers. When depositing an NFT is minted which is used to track stake ownership.
+- [Overview](#overview)
+- [Key Concepts](#key-concepts)
+  - [Tranches](#tranches)
+  - [Buckets](#buckets)
+  - [Allocations](#allocations)
+- [Functions](#functions)
+  - [Mutative Functions](#mutative-functions)
+  - [View Functions](#view-functions)
+- [Events](#events)
+- [FAQ](#faq)
+- [Contact and Support](#contact-and-support)
 
-## Key Concepts
+---
 
-### Tranches
-Time-based slices of staking periods, each with its own stake and reward shares.
+## **Overview**
+
+The `StakingPool` contract **manages NXM staking** and **allocates capacity** for purchased covers within the staking pool.
+
+Each StakingPool contract represents its own distinct pool that manages the staked NXM tokens and the allocations of those staked NXM to cover products. This allows for precise management of stakes and cover allocations specific to that pool
+
+When a user **stakes NXM**, the contract **mints an NFT**, which serves as a proof of stake ownership.
+
+This contract handles:
+
+- **NXM Staking & tracking:** Users deposit NXM, with stakes tracked over time.
+- **Tranches (91-day staking periods):** Stakes are locked per tranche, determining withdrawals and staking rewards.
+- **Cover Allocations:** When cover products are purchased, capacity is allocated across multiple tranches to ensure sustained coverage and balanced reward distribution.
+- **Stake Management:** Users can extend stakes to future tranches or withdraw after expiration.
+
+---
+
+## **Key Concepts**
+
+### **Tranches**
+
+- Fixed 91-day staking periods, each with its own stake & reward shares.
+- Staking early locks for 91 days; mid-tranche staking locks for the remaining duration.
+- Staked NXM in an **active tranche** contributes to cover capacity.
+- Once expired (after 91 days), stakes no longer provide capacity.
+- Users can withdraw rewards and either unstake or extend to a new tranche.
 
 ```solidity
 struct Tranche {
@@ -17,89 +50,115 @@ struct Tranche {
 }
 ```
 
-| Parameter        | Description                           |
-|------------------|---------------------------------------|
-| `stakeShares`    | Tranche's share of the pool's stake   |
-| `rewardsShares`  | Tranche's share of the pool's rewards |
+| Parameter       | Description                                                        |
+| --------------- | ------------------------------------------------------------------ |
+| `stakeShares`   | Proportional representation of stake ownership in the tranche.     |
+| `rewardsShares` | Proportional share of the pool's rewards allocated to the tranche. |
 
-```solidity
-uint public constant TRANCHE_DURATION = 91 days;
-uint public constant MAX_ACTIVE_TRANCHES = 8; // 7 whole quarters + 1 partial quarter
-```
+#### **Formula for current tranche ID:**
 
-Formula for current tranche id:
 ```solidity
 uint currentTrancheId = block.timestamp / TRANCHE_DURATION;
 ```
-### Buckets
-Groupings used to manage rewards and cover allocation expirations over time.
+
+---
+
+### **Buckets**
+
+- **Groupings used to track rewards & cover expirations.**
+- A bucket's duration lasts **28 days**.
+- Covers expire only at bucket intervals (28 days), enforcing a minimum cover period of 28 days.
+- Shorter than tranches to allow more frequent reward updates and allocation adjustments.
+
+#### **Formula for current bucket ID:**
 
 ```solidity
-uint public constant BUCKET_DURATION = 28 days;
+uint currentBucketId = block.timestamp / BUCKET_DURATION;
 ```
 
-Formula for current bucket id:
-```solidity
-    uint currentBucketId = block.timestamp / BUCKET_DURATION;
-```
+---
 
-### Allocations
-Amount of used capacity by individual covers
+### **Allocations**
 
-## Mutative Functions
+- **Tracks how much of a pool's capacity is used** for purchased cover.
+- Allocations are distributed **across multiple active tranches** to ensure sustained coverage
+- Balances capacity across tranches, maintaining sufficient capacity across all active tranches
 
-### `depositTo`
+---
+
+## **Functions**
+
+### **Mutative Functions**
+
+#### **`depositTo`**
+
 Allows users to deposit NXM into the pool, creating stake and rewards shares in return. Supports deposits to specific tranches and allows reusing the same nft for deposits in multiple tranches to an existing deposit.
 
 ```solidity
 function depositTo(uint amount, uint trancheId, uint requestTokenId, address destination) external;
 ```
+
 | Parameter        | Description                                                                                                 |
-|------------------|-------------------------------------------------------------------------------------------------------------|
+| ---------------- | ----------------------------------------------------------------------------------------------------------- |
 | `amount`         | The amount to deposit.                                                                                      |
 | `trancheId`      | The ID of the tranche to deposit into.                                                                      |
-| `requestTokenId` | The ID of the request token (0 for a new deposit, or use an existing token ID to add to a previous deposit. |
+| `requestTokenId` | The ID of the request token (0 for a new deposit, or use an existing token ID to add to a previous deposit) |
 | `destination`    | The address to send the Staking NFT token to.                                                               |
 
-### `withdraw`
-Allows users to withdraw their stake and/or rewards from specific tranches. Withdrawing the stakes can be done only on expired tranches, while rewards can be withdrawn at any time.
+- **Creates stake & reward shares.**
+- **Emits** `StakeDeposited`.
 
+---
+
+#### **`withdraw`**
+
+Allows users to withdraw their stake and/or rewards from specific tranches. Withdrawing the stakes can be done only on expired tranches, while rewards can be withdrawn at any time.
 
 ```solidity
 function withdraw(uint tokenId, bool withdrawStake, bool withdrawRewards, uint[] memory trancheIds) external;
 ```
 
 | Parameter         | Description                               |
-|-------------------|-------------------------------------------|
+| ----------------- | ----------------------------------------- |
 | `tokenId`         | The ID of the staking NFT token.          |
 | `withdrawStake`   | Whether to withdraw the stake.            |
 | `withdrawRewards` | Whether to withdraw the rewards.          |
 | `trancheIds`      | The IDs of the tranches to withdraw from. |
 
-### `extendDeposit`
-Extends the duration of a deposit by moving it from an tranche to a future tranche.
+- **Stake can only be withdrawn from expired tranches.**
+- **Rewards can be withdrawn at any time.**
+- **Emits** `Withdraw`.
 
+---
+
+#### **`extendDeposit`**
+
+Extends the duration of a deposit by moving it from an tranche to a future tranche.
 
 ```solidity
 function extendDeposit(uint tokenId, uint initialTrancheId, uint targetTrancheId, uint topUpAmount) external;
 ```
 
 | Parameter          | Description                          |
-|--------------------|--------------------------------------|
+| ------------------ | ------------------------------------ |
 | `tokenId`          | The ID of the staking NFT token.     |
 | `initialTrancheId` | The ID of the initial tranche.       |
 | `targetTrancheId`  | The ID of the target tranche.        |
 | `topUpAmount`      | The amount to top up the deposit by. |
 
+- **Tranche must be active to extend.**
+- **Emits** `DepositExtended`.
 
-## View Functions
+---
 
+### **View Functions**
 
-### `getDeposit`
-Returns deposit data by token id and trancheId.
+#### **`getDeposit`**
+
+**Get deposit details for a given NFT and tranche.**
 
 ```solidity
-function getDeposit(uint tokenId, uint trancheId) external override view returns (
+function getDeposit(uint tokenId, uint trancheId) external view returns (
   uint lastAccNxmPerRewardShare,
   uint pendingRewards,
   uint stakeShares,
@@ -107,52 +166,64 @@ function getDeposit(uint tokenId, uint trancheId) external override view returns
 );
 ```
 
-| Parameter        | Description            |
-|------------------|------------------------|
-| `tokenId`        | The ID of the product. |
-| `trancheId`      | The ID of the tranche. |
+| Parameter   | Description            |
+| ----------- | ---------------------- |
+| `tokenId`   | The ID of the product. |
+| `trancheId` | The ID of the tranche. |
 
-### `getTranche`
-Returns tranche data by tranche id.
+---
+
+#### **`getTranche`**
+
+**Get details of a specific tranche.**
 
 ```solidity
-function getTranche(uint trancheId) external override view returns (
+function getTranche(uint trancheId) external view returns (
   uint stakeShares,
   uint rewardsShares
 );
 ```
 
-| Parameter        | Description            |
-|------------------|------------------------|
-| `trancheId`      | The ID of the tranche. |
+| Parameter   | Description            |
+| ----------- | ---------------------- |
+| `trancheId` | The ID of the tranche. |
 
-### `getExpiredTranche`
-Returns expired tranche data by tranche id.
+---
+
+#### **`getExpiredTranche`**
+
+**Get data of an expired tranche.**
 
 ```solidity
-function getExpiredTranche(uint trancheId) external override view returns (
+function getExpiredTranche(uint trancheId) external view returns (
   uint accNxmPerRewardShareAtExpiry,
   uint stakeAmountAtExpiry,
   uint stakeSharesSupplyAtExpiry
 );
 ```
 
-| Parameter        | Description            |
-|------------------|------------------------|
-| `trancheId`      | The ID of the tranche. |
+| Parameter   | Description            |
+| ----------- | ---------------------- |
+| `trancheId` | The ID of the tranche. |
 
-### `getActiveAllocations`
+---
+
+#### **`getActiveAllocations`**
+
 Returns an array with the allocated amounts in the currently active tranches for a product.
 
 ```solidity
-function getActiveAllocations(uint productId)  public view returns (uint[] memory trancheAllocations);
+function getActiveAllocations(uint productId) external view returns (uint[] memory trancheAllocations);
 ```
 
-| Parameter          | Description                          |
-|--------------------|--------------------------------------|
-| `productId`        | The ID of the product.               |
+| Parameter   | Description            |
+| ----------- | ---------------------- |
+| `productId` | The ID of the product. |
+
+---
 
 ### `getActiveTrancheCapacities`
+
 Returns an array of the active tranche capacities and total capacity for a product.
 
 ```solidity
@@ -167,14 +238,15 @@ function getActiveTrancheCapacities(
 ```
 
 | Parameter                | Description               |
-|--------------------------|---------------------------|
+| ------------------------ | ------------------------- |
 | `productId`              | The ID of the product.    |
 | `globalCapacityRatio`    | Global Capacity Ratio     |
 | `capacityReductionRatio` | Capacity Reduction Ratio. |
 
+---
 
+#### **`getTrancheCapacities`**
 
-### `getTrancheCapacities`
 Returns an array with the total capacities for the currently active tranches for a product.
 
 ```solidity
@@ -184,103 +256,84 @@ function getTrancheCapacities(
   uint trancheCount,
   uint capacityRatio,
   uint reductionRatio
-) public view returns (uint[] memory trancheCapacities);
+) external view returns (uint[] memory trancheCapacities);
 ```
 
 | Parameter                | Description               |
-|--------------------------|---------------------------|
+| ------------------------ | ------------------------- |
 | `productId`              | The ID of the product.    |
 | `globalCapacityRatio`    | Global Capacity Ratio     |
 | `capacityReductionRatio` | Capacity Reduction Ratio. |
 
-### `getPoolId`
-Returns the pool id.
+---
 
-```solidity
-function getPoolId() external override view returns (uint);
-```
+#### **Miscellaneous View Functions**
 
-### `getPoolFee`
-Returns the pool fee.
+- **`getPoolId()`** – Returns the pool ID.
+- **`getPoolFee()`** – Returns the current pool fee.
+- **`getMaxPoolFee()`** – Returns the max pool fee.
+- **`getActiveStake()`** – Returns the active stake.
+- **`getStakeSharesSupply()`** – Returns total stake shares.
+- **`getRewardsSharesSupply()`** – Returns total reward shares.
+- **`getRewardPerSecond()`** – Returns reward emission rate.
+- **`getAccNxmPerRewardsShare()`** – Returns accumulated NXM per reward share.
 
-```solidity
-function getPoolFee() external override view returns (uint);
-```
+---
 
-### `getMaxPoolFee`
-Returns the max pool fee.
+## **Events**
 
-```solidity
-function getMaxPoolFee() external override view returns (uint);
-```
+- **`StakeDeposited(address indexed user, uint256 amount, uint256 trancheId, uint256 tokenId)`**
 
-### `getActiveStake`
-Returns the active stake.
+  - Emitted when a user deposits stake.
 
-```solidity
-function getActiveStake() external view returns (uint);
-```
+- **`Withdraw(address indexed user, uint indexed tokenId, uint tranche, uint amountStakeWithdrawn, uint amountRewardsWithdrawn)`**
 
-### `getStakeSharesSupply`
-Returns stake shares supply.
+  - Emitted when a user withdraws stake or rewards.
 
-```solidity
-function getStakeSharesSupply() external view returns (uint);
-```
+- **`PoolFeeChanged(address indexed manager, uint newFee)`**
 
-### `getRewardsSharesSupply`
-Returns stake shares supply.
+  - Emitted when the pool fee is updated.
 
-```solidity
-function getRewardsSharesSupply() external view returns (uint);
-```
+- **`PoolPrivacyChanged(address indexed manager, bool isPrivate)`**
+  - Emitted when the pool’s privacy setting is changed.
 
-### `getRewardPerSecond`
-Returns rewards per second.
+---
 
-```solidity
-function getRewardPerSecond() external view returns (uint);
-```
+## **FAQ**
 
-### `getAccNxmPerRewardsShare`
-Returns accumulated nxm per reward share.
+### **How is cover capacity allocated from tranches?**
 
-```solidity
-function getAccNxmPerRewardsShare() external view returns (uint);
-```
+Only tranches that remain active for the full duration of the cover plus a grace period are eligible for allocation. This ensures that covers are backed by active stakes for their entire lifespan, maintaining the security of the coverage.
 
+### **What happens when I deposit NXM?**
 
-### `getLastAccNxmUpdate`
-Returns timestamp of last nxm update.
+You receive an **NFT** representing your stake, which can be **used across multiple tranches**.
 
-```solidity
-function getLastAccNxmUpdate() external view returns (uint);
-```
+### **Can I withdraw my stake at any time?**
 
-### `getFirstActiveTrancheId`
-Returns first active tranche id.
+No, you can **only withdraw stake from expired tranches**. Rewards can be withdrawn **at any time**.
 
-```solidity
-function getFirstActiveTrancheId() external view returns (uint);
-```
+### **How are rewards distributed?**
 
-### `getFirstActiveBucketId`
-Returns first active bucket id.
+Rewards are **proportional to stake size** in a tranche.
 
-```solidity
-function getFirstActiveBucketId() external view returns (uint);
-```
+### **Can I move my stake to a different tranche?**
 
-### `getNextAllocationId`
-Returns next allocation id.
+Yes, use `extendDeposit()` to **move stake from one tranche to another**.
 
-```solidity
-function getNextAllocationId() external view returns (uint);
-```
+### **What happens if my allocation is used for cover?**
 
-## Events
+Once capacity is allocated for cover, your stake **remains locked until the cover expires**.
 
-- **`StakeDeposited(address indexed user, uint256 amount, uint256 trancheId, uint256 tokenId)`**: Emitted when a user deposits stake into the pool.
-- **`Withdraw(address indexed user, uint indexed tokenId, uint tranche, uint amountStakeWithdrawn, uint amountRewardsWithdrawn)`**: Emitted when a user withdraws stake and/or rewards.
-- **`PoolFeeChanged(address indexed manager, uint newFee)`**: Emitted when the pool fee is updated by the manager.
-- **`PoolPrivacyChanged(address indexed manager, bool isPrivate)`**: Emitted when the pool's privacy status is changed by manager.
+---
+
+## **Contact and Support**
+
+If you have questions or need assistance integrating with the `StakingPool` contract or other parts of the protocol, please reach out through the official support channels or developer forums.
+
+- **Developer Forums**: Join our community forums to discuss with other developers and seek help.
+- **Official Support Channels**: Contact us via our official support email or join our Discord server.
+- **Documentation Resources**: Access additional documentation, tutorials, and FAQs on our official website.
+- **GitHub Repository**: Report issues or contribute to the codebase through our GitHub repository.
+
+**Disclaimer:** This documentation provides a high-level overview of the `StakingPool` contract's functionality. It is intended for developers integrating with the protocol and may omit internal details not relevant to external interactions. Always refer to the latest contract code and official resources

@@ -1,37 +1,35 @@
 # Manager User Flow Documentation
 
-## Quick Summary
-
-Before diving into the details, here’s a **high-level overview** of what a staking pool manager does:
-
-1. **Create a Staking Pool** → Set fees, add products, define capacity.
-2. **Monitor Cover Purchases** → Capacity is allocated automatically from active tranches.
-3. **Adjust Pricing** → Set **target price, monitor price bumps & decay**.
-4. **Manage Tranches** → Ensure active tranches remain available for allocation.
-5. **Earn Rewards** → Pool fees + staking rewards are distributed every tranche cycle.
-6. **Handle Voting Impacts** → If a manager votes using **delegated NXM**, withdrawals may be delayed.
-
----
+## Table of Contents
 
 - [Manager User Flow Documentation](#manager-user-flow-documentation)
+  - [Table of Contents](#table-of-contents)
   - [Quick Summary](#quick-summary)
   - [Overview](#overview)
     - [Your Responsibilities](#your-responsibilities)
   - [Key Concepts](#key-concepts)
     - [Tranches \& Pool Mechanics](#tranches--pool-mechanics)
     - [Determining Which Tranches Are Active for Capacity Allocation](#determining-which-tranches-are-active-for-capacity-allocation)
-    - [**How Earnings Flow in a Staking Pool**](#how-earnings-flow-in-a-staking-pool)
+    - [Understanding Capacity \& Utilization in NXM Terms](#understanding-capacity--utilization-in-nxm-terms)
+      - [Why This Matters for Managers:](#why-this-matters-for-managers)
+    - [How the Multiplier Affects Underwriting Capacity](#how-the-multiplier-affects-underwriting-capacity)
+      - [How is the Multiplier Determined?](#how-is-the-multiplier-determined)
+      - [Key Formula for Effective Capacity:](#key-formula-for-effective-capacity)
+      - [**Checking a Pool's Underwriting Capacity**](#checking-a-pools-underwriting-capacity)
+      - [How to Check a Product’s Multiplier](#how-to-check-a-products-multiplier)
+      - [Why is This Important for Managers?](#why-is-this-important-for-managers)
     - [Cover Length and Grace Period Effects](#cover-length-and-grace-period-effects)
       - [Example: Cover Length + Grace Period Falling Outside a Tranche](#example-cover-length--grace-period-falling-outside-a-tranche)
     - [Managing NXM Delegation](#managing-nxm-delegation)
-    - [How Earnings Flow in a Staking Pool](#how-earnings-flow-in-a-staking-pool-1)
+    - [How Earnings Flow in a Staking Pool](#how-earnings-flow-in-a-staking-pool)
     - [NXM Burn Mechanics: What Happens When a Claim is Paid?](#nxm-burn-mechanics-what-happens-when-a-claim-is-paid)
-      - [How is the Burn Amount Calculated?](#how-is-the-burn-amount-calculated)
-      - [**Worked Example:**](#worked-example)
-        - [**Scenario:**](#scenario)
-      - [**Burn Calculation:**](#burn-calculation)
-    - [**How the Burn Process Works in the Contract**](#how-the-burn-process-works-in-the-contract)
-  - [**Key Considerations for Managers**](#key-considerations-for-managers)
+      - [How the Burn Amount is Calculated](#how-the-burn-amount-is-calculated)
+      - [How Much NXM Will Be Burned Per Staker?](#how-much-nxm-will-be-burned-per-staker)
+      - [Example Scenario:](#example-scenario)
+      - [Burn Calculation:](#burn-calculation)
+        - [How to Check Pool Burn Risk:](#how-to-check-pool-burn-risk)
+    - [How the Burn Process Works in the Contract](#how-the-burn-process-works-in-the-contract)
+  - [Key Considerations for Managers](#key-considerations-for-managers)
   - [Step-by-Step Process](#step-by-step-process)
     - [Create a New Staking Pool](#create-a-new-staking-pool)
     - [Allocate Capacity to Cover Products](#allocate-capacity-to-cover-products)
@@ -48,6 +46,19 @@ Before diving into the details, here’s a **high-level overview** of what a sta
     - [How are pool rewards calculated?](#how-are-pool-rewards-calculated)
     - [What is the Cover Router API and how does it affect pricing?](#what-is-the-cover-router-api-and-how-does-it-affect-pricing)
   - [Best Practices](#best-practices)
+
+## Quick Summary
+
+Before diving into the details, here’s a **high-level overview** of what a staking pool manager does:
+
+1. **Create a Staking Pool** → Set fees, add products, define capacity.
+2. **Monitor Cover Purchases** → Capacity is allocated automatically from active tranches.
+3. **Adjust Pricing** → Set **target price, monitor price bumps & decay**.
+4. **Manage Tranches** → Ensure active tranches remain available for allocation.
+5. **Earn Rewards** → Pool fees + staking rewards are distributed every tranche cycle.
+6. **Handle Voting Impacts** → If a manager votes using **delegated NXM**, withdrawals may be delayed.
+
+---
 
 ## Overview
 
@@ -96,18 +107,73 @@ $$
 
 ---
 
-### **How Earnings Flow in a Staking Pool**
+### Understanding Capacity & Utilization in NXM Terms
 
-1. **Buyer purchases cover** → Cover premium is paid.
-2. **Pool earns fees** → Cover fee is split between managers and stakers.
-3. **Manager Fees are deducted** → Taken before rewards are distributed.
-4. **Remaining rewards are distributed** → Stakers receive their proportional share.
-5. **Tranche expiration releases stake** → Stakers can withdraw their NXM.
+- **The protocol reserves and tracks capacity in NXM terms**—this is the **unit of account** within the system.
+- When a **cover is purchased**, NXM is **reserved from the pool’s active tranches**.
+- **Available capacity** is determined by the **NXM actively staked** in **valid tranches**.
+- **Utilized capacity** represents the **NXM currently backing active cover**.
+- **Once capacity is utilized, it remains locked** until the cover expires or is replaced.
+
+#### Why This Matters for Managers:
+
+- **Understanding how much capacity is actually available** helps managers **price their pool competitively**.
+- **Over-allocating** capacity can **increase the burn risk** in case of claims.
+- **Pools with insufficient available NXM** may **miss out on cover purchases**.
+
+---
+
+### How the Multiplier Affects Underwriting Capacity
+
+When a pool has **X amount of NXM staked**, it can **underwrite more than X NXM worth of cover**. This is due to the concept of **capacity multipliers**, which allow capital efficiency in staking.
+
+#### How is the Multiplier Determined?
+
+The **multiplier is set at the product level**, meaning different cover products can have different multipliers depending on risk factors.
+
+- The protocol assigns a **multiplication factor** to a product, which determines how much **effective underwriting capacity** a pool has.
+- This means a pool with **10,000 NXM staked** can **underwrite 30,000 NXM worth of cover** if the product has a **3x multiplier**.
+
+#### Key Formula for Effective Capacity:
+
+$$
+\text{Effective Underwriting Capacity} = \text{Staked NXM} \times \text{Multiplier}
+$$
+
+For example:
+
+- A pool stakes **20,000 NXM**.
+- The product has a **2.5x multiplier**.
+- **Total underwriting capacity = 20,000 × 2.5 = 50,000 NXM**.
+
+#### **Checking a Pool's Underwriting Capacity**
+
+To see how much cover a pool can underwrite versus its staked NXM:
 
 ```solidity
-uint currentFee = stakingPool.getPoolFee();
-uint maxFee = stakingPool.getMaxPoolFee();
+uint poolCapacity = StakingPool.getPoolCapacity(poolId);
 ```
+
+#### How to Check a Product’s Multiplier
+
+Managers can retrieve the multiplier for a product using:
+
+```solidity
+uint multiplier = CoverProducts.getProductMultiplier(productId);
+```
+
+#### Why is This Important for Managers?
+
+1. **Higher Multiplier = Higher Risk Exposure**
+
+   - If a claim is approved, the **NXM burn is based on the actual cover underwritten**.
+   - A pool **may have only 10,000 NXM staked**, but if it underwrites **30,000 NXM of cover**, the potential burn risk is much larger.
+
+2. **Utilization vs. Risk Management**
+   - Pools should **balance staking with risk exposure**.
+   - Higher multipliers **increase effective capacity**, but **also amplify potential losses in a claim scenario**.
+
+---
 
 ### Cover Length and Grace Period Effects
 
@@ -136,42 +202,56 @@ uint maxFee = stakingPool.getMaxPoolFee();
 
 ### How Earnings Flow in a Staking Pool
 
-1. **A buyer purchases cover** → Staked NXM is allocated from active tranches.
-2. **The pool earns fees** → A percentage of cover fees goes to the pool.
-3. **Manager Fees are deducted** → The manager's fee is deducted from rewards.
-4. **Stakers earn rewards** → Remaining rewards are distributed proportionally.
+1. **Buyer purchases cover** → Cover premium is paid, flowing into the Capital Pool.
+2. **50% of the cover premium is minted as NXM** → This amount is allocated as rewards to the staking pools.
+3. **Manager Fees are deducted** → The manager's fee is taken from the minted rewards before distribution.
+4. **Remaining rewards are streamed over the cover's lifetime** → Staking pools earn a share of these rewards, split proportionally among stakers based on their staking duration and share supply.
+5. **Tranche expiration releases stake** → Stakers can withdraw their NXM once the tranche expires.
+
+```solidity
+uint currentFee = stakingPool.getPoolFee();
+uint maxFee = stakingPool.getMaxPoolFee();
+```
+
+---
 
 ### NXM Burn Mechanics: What Happens When a Claim is Paid?
 
 When a **valid claim** is approved, a portion of the **staked NXM in the pool is burned** to cover the payout. This process ensures that pools backing cover products **bear the financial risk** associated with claims.
 
-#### How is the Burn Amount Calculated?
+#### How the Burn Amount is Calculated
 
-The NXM burn amount is proportional to the **pool’s share of the total risk exposure**.
+NXM burns are **proportional** to the **pool’s share of total risk exposure**:
 
-$$ \text{Burned NXM} = \frac{\text{Pool's Allocated Capacity for the Cover}}{\text{Total Allocated Capacity Across All Pools}} \times \text{Cover Payout} $$
+$$ \text{Pool Burned NXM} = \frac{\text{Pool's Allocated Capacity for the Cover}}{\text{Total Allocated Capacity Across All Pools}} \times \text{Cover Payout} $$
 
 This ensures that:
 
 - **Each pool contributes fairly** based on how much of the cover it supports.
-- **Pools that allocate more NXM to high-risk covers bear greater losses**.
-- **No pool absorbs more risk than it explicitly allocated**.
+- Pools that **allocate more NXM to high-risk** covers **bear greater losses**.
+- No pool absorbs more risk than it **explicitly allocated**.
 
-#### **Worked Example:**
+#### How Much NXM Will Be Burned Per Staker?
 
-##### **Scenario:**
+Each staker’s **NXM burn is proportional** to their **share of the total pool stake**:
+
+$$ \text{Staker Burned NXM} = \frac{\text{Staker's Share of Pool Stake}}{\text{Total Staked in Pool}} \times \text{Pool Burned NXM} $$
+
+#### Example Scenario:
 
 - A **100,000 NXM** cover payout is approved.
 - There are **three pools** backing the cover, with the following allocations:
 
-| **Pool**  | **Allocated Capacity** | **Percentage of Total Capacity** |
-| --------- | ---------------------- | -------------------------------- |
-| Pool A    | 200,000 NXM            | 40%                              |
-| Pool B    | 150,000 NXM            | 30%                              |
-| Pool C    | 150,000 NXM            | 30%                              |
-| **Total** | **500,000 NXM**        | **100%**                         |
+| **Pool**  | **Allocated Capacity** | **Percentage of Total Capacity** | **Pool Burned NXM** |
+| --------- | ---------------------- | -------------------------------- | ------------------- |
+| Pool A    | 200,000 NXM            | 40%                              | 40,000 NXM          |
+| Pool B    | 150,000 NXM            | 30%                              | 30,000 NXM          |
+| Pool C    | 150,000 NXM            | 30%                              | 30,000 NXM          |
+| **Total** | **500,000 NXM**        | **100%**                         | **100,000 NXM**     |
 
-#### **Burn Calculation:**
+#### Burn Calculation:
+
+Since **Pool A contributed 40%** of the total allocated capacity, it is responsible for **40% of the claim payout**, resulting in **40,000 NXM burned** from the pool.
 
 For **Pool A**:
 
@@ -193,7 +273,23 @@ $$
 
 ---
 
-### **How the Burn Process Works in the Contract**
+##### How to Check Pool Burn Risk:
+
+To check **total pool stake**:
+
+```solidity
+uint totalPoolStake = StakingPool.getPoolStake(poolId);
+```
+
+To check a pool’s allocated capacity for a specific cover:
+
+```solidity
+uint allocatedCapacity = StakingPool.getAllocatedCapacity(poolId, coverId);
+```
+
+---
+
+### How the Burn Process Works in the Contract
 
 1. **Identifies the staked NXM** allocated to the affected cover.
 2. **Calculates the required burn amount** based on the cover payout.
@@ -202,12 +298,12 @@ $$
 
 ---
 
-## **Key Considerations for Managers**
+## Key Considerations for Managers
 
-- **Monitor Exposure:** Track how much NXM is allocated to covers to avoid excessive risk.
-- **Diversify Allocations:** Spread NXM across multiple cover products to reduce single-cover exposure.
-- **Understand Tranche Expiry:** Expired tranches **do not contribute to new covers** but may still be burned if previously allocated.
-- **Review Claim History:** Stay updated on claim approvals, as they **directly impact the pool’s NXM balance**.
+- **Monitor Capacity Utilization** – Ensure your pool has enough available capacity to stay competitive while avoiding excessive risk.
+- **Track Expiring Tranches** – Expired tranches do not contribute new underwriting capacity, so plan ahead.
+- **Review Claim History** – Be aware of past claims, as they impact pool NXM balance and burn risk.
+- **Understand How Rewards Are Distributed** – Manager fees come from the 50% of premiums minted as NXM before rewards are streamed.
 
 ---
 

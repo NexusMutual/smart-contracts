@@ -2,21 +2,41 @@
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Key Concepts](#key-concepts)
-  - [Tranches](#tranches)
-  - [Buckets](#buckets)
-  - [Allocations](#allocations)
-- [Functions](#functions)
-  - [Mutative Functions](#mutative-functions)
-  - [View Functions](#view-functions)
-- [Events](#events)
-- [FAQ](#faq)
-- [Contact and Support](#contact-and-support)
+- [StakingPool Contract Developer Documentation](#stakingpool-contract-developer-documentation)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Key Concepts](#key-concepts)
+    - [Tranches](#tranches)
+      - [Formula for current tranche ID:](#formula-for-current-tranche-id)
+    - [Buckets](#buckets)
+      - [Formula for current bucket ID:](#formula-for-current-bucket-id)
+    - [Allocations](#allocations)
+  - [Functions](#functions)
+    - [Mutative Functions](#mutative-functions)
+      - [`depositTo`](#depositto)
+      - [`withdraw`](#withdraw)
+      - [`extendDeposit`](#extenddeposit)
+    - [View Functions](#view-functions)
+      - [`getDeposit`](#getdeposit)
+      - [`getTranche`](#gettranche)
+      - [`getExpiredTranche`](#getexpiredtranche)
+      - [`getActiveAllocations`](#getactiveallocations)
+    - [`getActiveTrancheCapacities`](#getactivetranchecapacities)
+      - [`getTrancheCapacities`](#gettranchecapacities)
+      - [Miscellaneous View Functions](#miscellaneous-view-functions)
+  - [Events](#events)
+  - [FAQ](#faq)
+    - [How is cover capacity allocated from tranches?](#how-is-cover-capacity-allocated-from-tranches)
+    - [What happens when I deposit NXM?](#what-happens-when-i-deposit-nxm)
+    - [Can I withdraw my stake at any time?](#can-i-withdraw-my-stake-at-any-time)
+    - [How are rewards distributed?](#how-are-rewards-distributed)
+    - [Can I move my stake to a different tranche?](#can-i-move-my-stake-to-a-different-tranche)
+    - [What happens if my allocation is used for cover?](#what-happens-if-my-allocation-is-used-for-cover)
+  - [Contact and Support](#contact-and-support)
 
 ---
 
-## **Overview**
+## Overview
 
 The `StakingPool` contract **manages NXM staking** and **allocates capacity** for purchased covers within the staking pool.
 
@@ -33,9 +53,9 @@ This contract handles:
 
 ---
 
-## **Key Concepts**
+## Key Concepts
 
-### **Tranches**
+### Tranches
 
 - Fixed 91-day staking periods, each with its own stake & reward shares.
 - Staking early locks for 91 days; mid-tranche staking locks for the remaining duration.
@@ -55,7 +75,7 @@ struct Tranche {
 | `stakeShares`   | Proportional representation of stake ownership in the tranche.     |
 | `rewardsShares` | Proportional share of the pool's rewards allocated to the tranche. |
 
-#### **Formula for current tranche ID:**
+#### Formula for current tranche ID:
 
 ```solidity
 uint currentTrancheId = block.timestamp / TRANCHE_DURATION;
@@ -63,14 +83,14 @@ uint currentTrancheId = block.timestamp / TRANCHE_DURATION;
 
 ---
 
-### **Buckets**
+### Buckets
 
 - **Groupings used to track rewards & cover expirations.**
 - A bucket's duration lasts **28 days**.
 - Covers expire only at bucket intervals (28 days), enforcing a minimum cover period of 28 days.
 - Shorter than tranches to allow more frequent reward updates and allocation adjustments.
 
-#### **Formula for current bucket ID:**
+#### Formula for current bucket ID:
 
 ```solidity
 uint currentBucketId = block.timestamp / BUCKET_DURATION;
@@ -78,7 +98,7 @@ uint currentBucketId = block.timestamp / BUCKET_DURATION;
 
 ---
 
-### **Allocations**
+### Allocations
 
 - **Tracks how much of a pool's capacity is used** for purchased cover.
 - Allocations are distributed **across multiple active tranches** to ensure sustained coverage
@@ -86,11 +106,11 @@ uint currentBucketId = block.timestamp / BUCKET_DURATION;
 
 ---
 
-## **Functions**
+## Functions
 
-### **Mutative Functions**
+### Mutative Functions
 
-#### **`depositTo`**
+#### `depositTo`
 
 Allows users to deposit NXM into the pool, creating stake and rewards shares in return. Supports deposits to specific tranches and allows reusing the same nft for deposits in multiple tranches to an existing deposit.
 
@@ -110,7 +130,7 @@ function depositTo(uint amount, uint trancheId, uint requestTokenId, address des
 
 ---
 
-#### **`withdraw`**
+#### `withdraw`
 
 Allows users to withdraw their stake and/or rewards from specific tranches. Withdrawing the stakes can be done only on expired tranches, while rewards can be withdrawn at any time.
 
@@ -131,7 +151,7 @@ function withdraw(uint tokenId, bool withdrawStake, bool withdrawRewards, uint[]
 
 ---
 
-#### **`extendDeposit`**
+#### `extendDeposit`
 
 Extends the duration of a deposit by moving it from an tranche to a future tranche.
 
@@ -151,9 +171,9 @@ function extendDeposit(uint tokenId, uint initialTrancheId, uint targetTrancheId
 
 ---
 
-### **View Functions**
+### View Functions
 
-#### **`getDeposit`**
+#### `getDeposit`
 
 **Get deposit details for a given NFT and tranche.**
 
@@ -173,7 +193,7 @@ function getDeposit(uint tokenId, uint trancheId) external view returns (
 
 ---
 
-#### **`getTranche`**
+#### `getTranche`
 
 **Get details of a specific tranche.**
 
@@ -190,7 +210,7 @@ function getTranche(uint trancheId) external view returns (
 
 ---
 
-#### **`getExpiredTranche`**
+#### `getExpiredTranche`
 
 **Get data of an expired tranche.**
 
@@ -208,7 +228,7 @@ function getExpiredTranche(uint trancheId) external view returns (
 
 ---
 
-#### **`getActiveAllocations`**
+#### `getActiveAllocations`
 
 Returns an array with the allocated amounts in the currently active tranches for a product.
 
@@ -245,7 +265,7 @@ function getActiveTrancheCapacities(
 
 ---
 
-#### **`getTrancheCapacities`**
+#### `getTrancheCapacities`
 
 Returns an array with the total capacities for the currently active tranches for a product.
 
@@ -267,7 +287,7 @@ function getTrancheCapacities(
 
 ---
 
-#### **Miscellaneous View Functions**
+#### Miscellaneous View Functions
 
 - **`getPoolId()`** – Returns the pool ID.
 - **`getPoolFee()`** – Returns the current pool fee.
@@ -280,7 +300,7 @@ function getTrancheCapacities(
 
 ---
 
-## **Events**
+## Events
 
 - **`StakeDeposited(address indexed user, uint256 amount, uint256 trancheId, uint256 tokenId)`**
 
@@ -295,45 +315,45 @@ function getTrancheCapacities(
   - Emitted when the pool fee is updated.
 
 - **`PoolPrivacyChanged(address indexed manager, bool isPrivate)`**
-  - Emitted when the pool’s privacy setting is changed.
+  - Emitted when the pool's privacy setting is changed.
 
 ---
 
-## **FAQ**
+## FAQ
 
-### **How is cover capacity allocated from tranches?**
+### How is cover capacity allocated from tranches?
 
 Only tranches that remain active for the full duration of the cover plus a grace period are eligible for allocation. This ensures that covers are backed by active stakes for their entire lifespan, maintaining the security of the coverage.
 
-### **What happens when I deposit NXM?**
+### What happens when I deposit NXM?
 
 You receive an **NFT** representing your stake, which can be **used across multiple tranches**.
 
-### **Can I withdraw my stake at any time?**
+### Can I withdraw my stake at any time?
 
 No, you can **only withdraw stake from expired tranches**. Rewards can be withdrawn **at any time**.
 
-### **How are rewards distributed?**
+### How are rewards distributed?
 
 Rewards are **proportional to stake size** in a tranche.
 
-### **Can I move my stake to a different tranche?**
+### Can I move my stake to a different tranche?
 
 Yes, use `extendDeposit()` to **move stake from one tranche to another**.
 
-### **What happens if my allocation is used for cover?**
+### What happens if my allocation is used for cover?
 
 Once capacity is allocated for cover, your stake **remains locked until the cover expires**.
 
 ---
 
-## **Contact and Support**
+## Contact and Support
 
-If you have questions or need assistance integrating with the `StakingPool` contract or other parts of the protocol, please reach out through the official support channels or developer forums.
+If you have questions or need assistance integrating with the `StakingPool` contract, please reach out through the official support channels or developer forums.
 
-- **Developer Forums**: Join our community forums to discuss with other developers and seek help.
-- **Official Support Channels**: Contact us via our official support email or join our Discord server.
-- **Documentation Resources**: Access additional documentation, tutorials, and FAQs on our official website.
-- **GitHub Repository**: Report issues or contribute to the codebase through our GitHub repository.
+- **Developer Forums**: Join our community forums to discuss and seek help.
+- **Official Support Channels**: Contact us via our official support email or join our Discord.
+- **Documentation Resources**: Access tutorials and FAQs on our official website.
+- **GitHub Repository**: Report issues or contribute to the codebase.
 
-**Disclaimer:** This documentation provides a high-level overview of the `StakingPool` contract's functionality. It is intended for developers integrating with the protocol and may omit internal details not relevant to external interactions. Always refer to the latest contract code and official resources
+**Disclaimer:** This documentation provides a high-level overview of the `StakingPool` contract. Always refer to the latest contract code and official resources when developing against the protocol.

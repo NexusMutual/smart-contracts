@@ -2,22 +2,40 @@
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Key Concepts](#key-concepts)
-  - [Product Weights](#product-weights)
-  - [Pricing Mechanism](#pricing-mechanism)
-  - [Staking Pool Management](#staking-pool-management)
-- [Functions](#functions)
-  - [Mutative Functions](#mutative-functions)
-  - [View Functions](#view-functions)
+- [StakingProducts Contract Developer Documentation](#stakingproducts-contract-developer-documentation)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Key Concepts](#key-concepts)
+    - [Product Weights](#product-weights)
+    - [Pricing Mechanism](#pricing-mechanism)
+    - [Staking Pool Creation and Management](#staking-pool-creation-and-management)
+  - [Functions](#functions)
+    - [Mutative Functions](#mutative-functions)
+      - [`setProducts`](#setproducts)
+      - [`recalculateEffectiveWeights`](#recalculateeffectiveweights)
+      - [`recalculateEffectiveWeightsForAllProducts`](#recalculateeffectiveweightsforallproducts)
+      - [`createStakingPool`](#createstakingpool)
+      - [`setPoolMetadata`](#setpoolmetadata)
+    - [View Functions](#view-functions)
+      - [`getProduct`](#getproduct)
+      - [`getPoolManager`](#getpoolmanager)
+      - [`getPoolMetadata`](#getpoolmetadata)
   - [Pricing Functions](#pricing-functions)
-- [Events](#events)
-- [FAQ](#faq)
-- [Contact and Support](#contact-and-support)
+    - [`getPremium`](#getpremium)
+  - [Events](#events)
+  - [FAQ](#faq)
+    - [How are product weights determined?](#how-are-product-weights-determined)
+    - [Can effective weight be higher than the target weight?](#can-effective-weight-be-higher-than-the-target-weight)
+    - [Can I create a private or public staking pool?](#can-i-create-a-private-or-public-staking-pool)
+    - [How often should effective weights be recalculated?](#how-often-should-effective-weights-be-recalculated)
+    - [How is the premium calculated?](#how-is-the-premium-calculated)
+    - [How does StakingProducts integrate with StakingPoolFactory to create a new staking pool?](#how-does-stakingproducts-integrate-with-stakingpoolfactory-to-create-a-new-staking-pool)
+    - [How can I update pool metadata?](#how-can-i-update-pool-metadata)
+  - [Contact and Support](#contact-and-support)
 
 ---
 
-### **Overview**
+## Overview
 
 The `StakingProducts` contract manages cover products and their integration into staking pools. It handles **dynamic pricing, capacity allocation, and staking pool management**. This contract enables:
 
@@ -28,9 +46,9 @@ The `StakingProducts` contract manages cover products and their integration into
 
 ---
 
-## **Key Concepts**
+## Key Concepts
 
-### **Product Weights**
+### Product Weights
 
 Each product within a staking pool has two weight metrics:
 
@@ -45,9 +63,7 @@ The contract **attempts to reach the target weight** but may assign a **lower ef
 
 The **effective weight never exceeds the target weight**.
 
----
-
-### **Pricing Mechanism**
+### Pricing Mechanism
 
 The pricing system adjusts dynamically based on usage and capacity, ensuring fair pricing and market-driven price discovery:
 
@@ -58,13 +74,17 @@ The pricing system adjusts dynamically based on usage and capacity, ensuring fai
 - **Pricing Decay** – After a price bump, the price **gradually decreases** over time (0.5% per day) to allow for **price discovery**.
 - **Dynamic Adjustments** – Pricing fluctuates based on demand, ensuring fairness while preventing extreme volatility.
 
+### Staking Pool Creation and Management
+
+The contract also manages the **creation and management of staking pools**.
+
 ---
 
-## **Functions**
+## Functions
 
-### **Mutative Functions**
+### Mutative Functions
 
-#### **`setProducts`**
+#### `setProducts`
 
 Configures products for a specific staking pool and updates their parameters.
 
@@ -85,7 +105,7 @@ function setProducts(uint poolId, StakedProductParam[] memory params) external;
 
 ---
 
-#### **`recalculateEffectiveWeights`**
+#### `recalculateEffectiveWeights`
 
 Dynamically adjusts effective weights for specified products based on current capacity and utilization.
 
@@ -103,7 +123,7 @@ function recalculateEffectiveWeights(uint poolId, uint[] calldata productIds) ex
 - Ensures **fair capacity allocation** by dynamically adjusting product weights.
 - **Recommended after significant changes** in usage or pricing.
 
-### `recalculateEffectiveWeightsForAllProducts`
+#### `recalculateEffectiveWeightsForAllProducts`
 
 Recalculates effective weights for all products within a staking pool.
 
@@ -122,7 +142,7 @@ function recalculateEffectiveWeightsForAllProducts(uint poolId) external;
 
 ---
 
-#### **`createStakingPool`**
+#### `createStakingPool`
 
 **Creates a new staking pool.**
 
@@ -151,7 +171,7 @@ function createStakingPool(
 
 ---
 
-#### **`setPoolMetadata`**
+#### `setPoolMetadata`
 
 **Updates the metadata for a staking pool.**
 
@@ -166,9 +186,9 @@ function setPoolMetadata(uint poolId, string calldata ipfsHash) external;
 
 ---
 
-### **View Functions**
+### View Functions
 
-#### **`getProduct`**
+#### `getProduct`
 
 **Retrieves product details.**
 
@@ -184,7 +204,7 @@ function getProduct(uint poolId, uint productId) external view returns (
 
 ---
 
-#### **`getPoolManager`**
+#### `getPoolManager`
 
 **Returns the pool manager address.**
 
@@ -198,7 +218,7 @@ function getPoolManager(uint poolId) public view returns (address);
 
 ---
 
-#### **`getPoolMetadata`**
+#### `getPoolMetadata`
 
 **Retrieves metadata IPFS hash.**
 
@@ -212,9 +232,9 @@ function getPoolMetadata(uint poolId) external view returns (string memory ipfsH
 
 ---
 
-### **Pricing Functions**
+## Pricing Functions
 
-#### **`getPremium`**
+### `getPremium`
 
 **Calculates the premium for a cover product.**
 
@@ -254,16 +274,16 @@ function getPremium(
 
 ---
 
-## **Events**
+## Events
 
 - **`ProductUpdated(uint indexed productId, uint targetWeight, uint targetPrice)`**
   - Emitted when a product is updated.
 
 ---
 
-## **FAQ**
+## FAQ
 
-### **How are product weights determined?**
+### How are product weights determined?
 
 Each product has two weight metrics:
 
@@ -272,18 +292,18 @@ Each product has two weight metrics:
 
 The contract **tries to meet the target weight** but may **assign a lower effective weight** if the pool lacks sufficient stake or if constraints (like global capacity limits) affect the allocation.
 
-### **Can effective weight be higher than the target weight?**
+### Can effective weight be higher than the target weight?
 
 No, the **effective weight is capped at the target weight**. If the available stake is low, the effective weight may be **lower** than the target weight, but it will **never exceed** the target.
 
-### **Can I create a private or public staking pool?**
+### Can I create a private or public staking pool?
 
 Yes:
 
 - **Private pools** (`isPrivatePool = true`) restrict who can interact.
 - **Public pools** (`isPrivatePool = false`) allow open participation.
 
-### **How often should effective weights be recalculated?**
+### How often should effective weights be recalculated?
 
 Effective weights must be manually **recalculated whenever staking pool conditions change**. This can be done by calling:
 
@@ -296,7 +316,7 @@ Recalculations should be triggered:
 - **Stake changes** (new stakes, stake withdrawals, or stake extensions).
 - **Periodically** (e.g., daily or weekly) to reflect evolving conditions.
 
-### **How is the premium calculated?**
+### How is the premium calculated?
 
 Premiums are calculated dynamically based on:
 
@@ -308,13 +328,13 @@ Premiums are calculated dynamically based on:
 
 This dynamic model ensures pricing reflects **demand and supply**, preventing underpricing while keeping costs fair for buyers.
 
-### **How does StakingProducts integrate with StakingPoolFactory to create a new staking pool?**
+### How does StakingProducts integrate with StakingPoolFactory to create a new staking pool?
 
 The **StakingProducts** contract uses the **StakingPoolFactory** to deploy and initialize new staking pools.
 
 **How is a new staking pool created?**
 
-1. The createStakingPool() function is called on StakingProducts.
+1. The `createStakingPool()` function is called on StakingProducts.
 1. This interacts with StakingPoolFactory, which deploys a new StakingPool contract.
 1. The caller becomes the staking pool manager, who can then:
 
@@ -324,19 +344,19 @@ The **StakingProducts** contract uses the **StakingPoolFactory** to deploy and i
 
 1. The staking pool is linked to StakingProducts, enabling capacity allocation for covers.
 
-### **How can I update pool metadata?**
+### How can I update pool metadata?
 
 Call `setPoolMetadata(poolId, ipfsHash)`, where `ipfsHash` contains **updated metadata**.
 
 ---
 
-## **Contact and Support**
+## Contact and Support
 
-If you have questions or need assistance integrating with the `StakingProducts` contract, reach out through:
+If you have questions or need assistance integrating with the `StakingProducts` contract, please reach out through the official support channels or developer forums.
 
-- **Developer Forums**: Discuss with other developers.
-- **Official Support Channels**: Contact us via email or Discord.
-- **Documentation Resources**: Access tutorials and FAQs.
+- **Developer Forums**: Join our community forums to discuss and seek help.
+- **Official Support Channels**: Contact us via our official support email or join our Discord.
+- **Documentation Resources**: Access tutorials and FAQs on our official website.
 - **GitHub Repository**: Report issues or contribute to the codebase.
 
-**Disclaimer:** This documentation provides an **overview of the `StakingProducts` contract**. It **does not cover internal logic**—always refer to the latest contract code and official resources.
+**Disclaimer:** This documentation provides a high-level overview of the `StakingProducts` contract. Always refer to the latest contract code and official resources when developing against the protocol.

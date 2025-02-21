@@ -1,6 +1,9 @@
 # Cover Contract Developer Documentation
 
+## Table of Contents
+
 - [Cover Contract Developer Documentation](#cover-contract-developer-documentation)
+  - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Key Concepts](#key-concepts)
     - [Cover Data Structures](#cover-data-structures)
@@ -192,7 +195,7 @@ struct BuyCoverParams {
 | `productId`             | The ID of the product to purchase cover for.                                 |
 | `coverId`               | The ID of an existing cover to extend or modify, or 0 to create a new cover. |
 | `owner`                 | The address that will own the cover NFT.                                     |
-| `coverAsset`            | The asset ID used for coverage. See `Pool.getAssets` (e.g., 0 ~ ETH).          |
+| `coverAsset`            | The asset ID used for coverage. See `Pool.getAssets` (e.g., 0 ~ ETH).        |
 | `period`                | The duration of the cover in seconds.                                        |
 | `amount`                | The amount of coverage in the cover asset.                                   |
 | `commissionRatio`       | The commission ratio (in basis points, where 10000 = 100%).                  |
@@ -433,6 +436,11 @@ When a claim is approved, the burnStake function is called internally to burn th
 
 ## Contact and Support
 
-If you have questions or need assistance integrating with the Cover contract or other parts of the protocol, please reach out through the official support channels or developer forums.
+If you have questions or need assistance integrating with the `Cover` contract, please reach out through the official support channels or developer forums.
 
-**Disclaimer:** This documentation provides a high-level overview of the Cover contract's functionality. It is intended for developers integrating with the protocol and may omit internal details not relevant to external interactions. Always refer to the latest contract code and official resources when developing against the protocol.
+- **Developer Forums**: Join our community forums to discuss and seek help.
+- **Official Support Channels**: Contact us via our official support email or join our Discord.
+- **Documentation Resources**: Access tutorials and FAQs on our official website.
+- **GitHub Repository**: Report issues or contribute to the codebase.
+
+**Disclaimer:** This documentation provides a high-level overview of the `Cover` contract. Always refer to the latest contract code and official resources when developing against the protocol.

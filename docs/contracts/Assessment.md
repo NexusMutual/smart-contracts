@@ -1,6 +1,9 @@
 # Assessment Contract Developer Documentation
 
+## Table of Contents
+
 - [Assessment Contract Developer Documentation](#assessment-contract-developer-documentation)
+  - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Key Concepts](#key-concepts)
     - [Stake \& Voting Power](#stake--voting-power)
@@ -12,22 +15,22 @@
     - [Fraud Resolution](#fraud-resolution)
     - [Configuration](#configuration)
   - [Mutative Functions](#mutative-functions)
-    - [`stake(uint96 amount)`](#stakeuint96-amount)
-    - [`unstake(uint96 amount, address to)`](#unstakeuint96-amount-address-to)
-    - [`unstakeAllFor(address staker)`](#unstakeallforaddress-staker)
-    - [`withdrawRewards(address staker, uint104 batchSize)`](#withdrawrewardsaddress-staker-uint104-batchsize)
-    - [`withdrawRewardsTo(address destination, uint104 batchSize)`](#withdrawrewardstoaddress-destination-uint104-batchsize)
-    - [`startAssessment(uint totalAssessmentReward, uint assessmentDepositInETH)`](#startassessmentuint-totalassessmentreward-uint-assessmentdepositineth)
-    - [`castVotes(uint[] calldata assessmentIds, bool[] calldata votes, string[] calldata ipfsAssessmentDataHashes, uint96 stakeIncrease)`](#castvotesuint-calldata-assessmentids-bool-calldata-votes-string-calldata-ipfsassessmentdatahashes-uint96-stakeincrease)
-    - [`_castVote(uint assessmentId, bool isAcceptVote, string memory ipfsAssessmentDataHash)`](#_castvoteuint-assessmentid-bool-isacceptvote-string-memory-ipfsassessmentdatahash)
-    - [`processFraud(...)`](#processfraud)
-    - [`updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)`](#updateuintparametersuintparams-calldata-paramnames-uint-calldata-values)
-    - [`changeDependentContractAddress()`](#changedependentcontractaddress)
+    - [`stake`](#stake)
+    - [`unstake`](#unstake)
+    - [`unstakeAllFor`](#unstakeallfor)
+    - [`withdrawRewards`](#withdrawrewards)
+    - [`withdrawRewardsTo`](#withdrawrewardsto)
+    - [`startAssessment`](#startassessment)
+    - [`castVotes`](#castvotes)
+    - [`_castVote`](#_castvote)
+    - [`processFraud`](#processfraud)
+    - [`updateUintParameters`](#updateuintparameters)
+    - [`changeDependentContractAddress`](#changedependentcontractaddress)
   - [View Functions](#view-functions)
-    - [`getVoteCountOfAssessor(address assessor)`](#getvotecountofassessoraddress-assessor)
-    - [`getAssessmentsCount()`](#getassessmentscount)
-    - [`getPoll(uint assessmentId)`](#getpolluint-assessmentid)
-    - [`getRewards(address staker)`](#getrewardsaddress-staker)
+    - [`getVoteCountOfAssessor`](#getvotecountofassessor)
+    - [`getAssessmentsCount`](#getassessmentscount)
+    - [`getPoll`](#getpoll)
+    - [`getRewards`](#getrewards)
   - [Dependencies and Libraries](#dependencies-and-libraries)
   - [Events](#events)
   - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
@@ -133,7 +136,7 @@ The **Configuration** struct contains parameters that govern the assessment proc
 
 ## Mutative Functions
 
-### `stake(uint96 amount)`
+### `stake`
 
 Allows a member to increase their stake by transferring NXM tokens to the contract.
 
@@ -152,7 +155,7 @@ function stake(uint96 amount) public whenNotPaused { ... }
 
 ---
 
-### `unstake(uint96 amount, address to)`
+### `unstake`
 
 Withdraws part or all of a member's stake, subject to lockup restrictions.
 
@@ -173,7 +176,7 @@ function unstake(uint96 amount, address to) external override whenNotPaused { ..
 
 ---
 
-### `unstakeAllFor(address staker)`
+### `unstakeAllFor`
 
 Withdraws the full staked amount for a given member. Can only be invoked by the Token Controller.
 
@@ -190,7 +193,7 @@ function unstakeAllFor(address staker) external override whenNotPaused onlyToken
 
 ---
 
-### `withdrawRewards(address staker, uint104 batchSize)`
+### `withdrawRewards`
 
 Allows a staker to withdraw accumulated rewards up to the last finalized poll.
 
@@ -214,7 +217,7 @@ function withdrawRewards(
 
 ---
 
-### `withdrawRewardsTo(address destination, uint104 batchSize)`
+### `withdrawRewardsTo`
 
 Enables a staker to withdraw rewards to a specified destination address.
 
@@ -238,7 +241,7 @@ function withdrawRewardsTo(
 
 ---
 
-### `startAssessment(uint totalAssessmentReward, uint assessmentDepositInETH)`
+### `startAssessment`
 
 Creates a new assessment poll for an event.
 
@@ -261,7 +264,7 @@ function startAssessment(
 
 ---
 
-### `castVotes(uint[] calldata assessmentIds, bool[] calldata votes, string[] calldata ipfsAssessmentDataHashes, uint96 stakeIncrease)`
+### `castVotes`
 
 Allows a member to cast votes on multiple assessments in a single transaction and optionally increase their stake.
 
@@ -290,7 +293,7 @@ function castVotes(
 
 ---
 
-### `_castVote(uint assessmentId, bool isAcceptVote, string memory ipfsAssessmentDataHash)`
+### `_castVote`
 
 Internal function that processes an individual vote on an assessment.
 
@@ -315,7 +318,7 @@ function _castVote(uint assessmentId, bool isAcceptVote, string memory ipfsAsses
 
 ---
 
-### `processFraud(...)`
+### `processFraud`
 
 Allows anyone to process fraudulent votes by verifying a Merkle proof and burning tokens from fraudulent assessors.
 
@@ -353,7 +356,7 @@ function processFraud(
 
 ---
 
-### `updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)`
+### `updateUintParameters`
 
 Allows governance to update configuration parameters related to the assessment process.
 
@@ -374,7 +377,7 @@ function updateUintParameters(
 
 ---
 
-### `changeDependentContractAddress()`
+### `changeDependentContractAddress`
 
 Updates the internal contract addresses from the master registry and initializes configuration if not yet set.
 
@@ -395,7 +398,7 @@ function changeDependentContractAddress() external override { ... }
 
 ## View Functions
 
-### `getVoteCountOfAssessor(address assessor)`
+### `getVoteCountOfAssessor`
 
 Returns the total number of votes cast by the specified assessor.
 
@@ -412,7 +415,7 @@ function getVoteCountOfAssessor(address assessor) external override view returns
 
 ---
 
-### `getAssessmentsCount()`
+### `getAssessmentsCount`
 
 Provides the total number of assessments created.
 
@@ -425,7 +428,7 @@ function getAssessmentsCount() external override view returns (uint);
 
 ---
 
-### `getPoll(uint assessmentId)`
+### `getPoll`
 
 Returns the poll details of a specific assessment.
 
@@ -446,7 +449,7 @@ function getPoll(uint assessmentId) external override view returns (Poll memory)
 
 ---
 
-### `getRewards(address staker)`
+### `getRewards`
 
 Returns details about a staker's rewards including pending rewards, withdrawable rewards, and the index until which rewards can be withdrawn.
 
@@ -671,11 +674,11 @@ An assessment is finalized when:
 
 ## Contact and Support
 
-For assistance, reach out via:
+If you have questions or need assistance integrating with the `Assessment` contract, please reach out through the official support channels or developer forums.
 
-- **Developer Forums** → Join discussions and seek help from the community.
-- **Official Support Channels** → Contact us via email or join our Discord.
-- **Documentation Resources** → Access tutorials and FAQs on our official website.
-- **GitHub Repository** → Report issues or contribute via GitHub.
+- **Developer Forums**: Join our community forums to discuss and seek help.
+- **Official Support Channels**: Contact us via our official support email or join our Discord.
+- **Documentation Resources**: Access tutorials and FAQs on our official website.
+- **GitHub Repository**: Report issues or contribute to the codebase.
 
-We are committed to supporting our developers and users. **Don't hesitate to reach out!**
+**Disclaimer:** This documentation provides a high-level overview of the `Assessment` contract. Always refer to the latest contract code and official resources when developing against the protocol.

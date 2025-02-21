@@ -1,6 +1,9 @@
 # TokenController Contract Developer Documentation
 
+## Table of Contents
+
 - [TokenController Contract Developer Documentation](#tokencontroller-contract-developer-documentation)
+  - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Key Concepts](#key-concepts)
     - [NXM Token Management](#nxm-token-management)
@@ -301,6 +304,7 @@ If you have questions or need assistance integrating with the `TokenController` 
 
 - **Developer Forums**: Join our community forums to discuss and seek help.
 - **Official Support Channels**: Contact us via our official support email or join our Discord.
+- **Documentation Resources**: Access tutorials and FAQs on our official website.
 - **GitHub Repository**: Report issues or contribute to the codebase.
 
-**Disclaimer:** This documentation provides a high-level overview of the `TokenController` contract. Always refer to the latest contract code and official resources.
+**Disclaimer:** This documentation provides a high-level overview of the `TokenController` contract. Always refer to the latest contract code and official resources when developing against the protocol.

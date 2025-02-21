@@ -1,6 +1,9 @@
 # StakingPoolFactory Contract Developer Documentation
 
+## Table of Contents
+
 - [StakingPoolFactory Contract Developer Documentation](#stakingpoolfactory-contract-developer-documentation)
+  - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Key Concepts](#key-concepts)
     - [Staking Pool Creation](#staking-pool-creation)
@@ -165,11 +168,11 @@ The operator role can be updated using the `changeOperator` function:
 
 ## Contact and Support
 
-If you have questions or need assistance integrating with the `StakingPoolFactory` contract or other parts of the protocol, please reach out through the official support channels or developer forums.
+If you have questions or need assistance integrating with the `StakingPoolFactory` contract, please reach out through the official support channels or developer forums.
 
-- **Developer Forums**: Join our community forums to discuss with other developers and seek help.
-- **Official Support Channels**: Contact us via our official support email or join our Discord server.
-- **Documentation Resources**: Access additional documentation, tutorials, and FAQs on our official website.
-- **GitHub Repository**: Report issues or contribute to the codebase through our GitHub repository.
+- **Developer Forums**: Join our community forums to discuss and seek help.
+- **Official Support Channels**: Contact us via our official support email or join our Discord.
+- **Documentation Resources**: Access tutorials and FAQs on our official website.
+- **GitHub Repository**: Report issues or contribute to the codebase.
 
-**Disclaimer:** This documentation provides a high-level overview of the `StakingPoolFactory` contract's functionality. It is intended for developers integrating with the protocol and may omit internal details not relevant to external interactions. Always refer to the latest contract code and official resources.
+**Disclaimer:** This documentation provides a high-level overview of the `StakingPoolFactory` contract. Always refer to the latest contract code and official resources when developing against the protocol.

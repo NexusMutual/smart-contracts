@@ -1,6 +1,9 @@
 # Pool Contract Developer Documentation
 
+## Table of Contents
+
 - [Pool Contract Developer Documentation](#pool-contract-developer-documentation)
+  - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Key Concepts](#key-concepts)
     - [Assets Management](#assets-management)
@@ -422,6 +425,11 @@ An abandoned asset is no longer used by the `Pool` for any operations, including
 
 ## Contact and Support
 
-If you have questions or need assistance integrating with the Pool contract or other parts of the protocol, please reach out through the official support channels or developer forums.
+If you have questions or need assistance integrating with the `Pool` contract, please reach out through the official support channels or developer forums.
 
-**Disclaimer:** This documentation provides a high-level overview of the Pool contract's functionality. It is intended for developers integrating with the protocol and may omit internal details not relevant to external interactions. Always refer to the latest contract code and official resources when developing against the protocol.
+- **Developer Forums**: Join our community forums to discuss and seek help.
+- **Official Support Channels**: Contact us via our official support email or join our Discord.
+- **Documentation Resources**: Access tutorials and FAQs on our official website.
+- **GitHub Repository**: Report issues or contribute to the codebase.
+
+**Disclaimer:** This documentation provides a high-level overview of the `Pool` contract. Always refer to the latest contract code and official resources when developing against the protocol.

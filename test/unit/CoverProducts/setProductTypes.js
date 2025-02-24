@@ -9,7 +9,7 @@ const ipfsMetadata = 'ipfs metadata';
 
 //  coverProducts.ProductType
 const ProductTypeTemplate = {
-  claimMethod: 1,
+  claimMethod: 0,
   gracePeriod: 30 * 24 * 3600, // 30 days
 };
 

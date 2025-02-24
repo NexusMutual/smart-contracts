@@ -96,7 +96,7 @@ async function setup() {
       productTypeId: MaxUint256,
       ipfsMetadata: 'ipfs metadata',
       productType: {
-        claimMethod: 1,
+        claimMethod: 0,
         gracePeriod: 120 * 24 * 3600, // 120 days
       },
     },

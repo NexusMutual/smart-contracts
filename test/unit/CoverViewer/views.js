@@ -5,36 +5,40 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('views', function () {
-  it('getCoverSegments returns segments', async function () {
+  it('getCovers returns correct coverData', async function () {
     const fixture = await loadFixture(setup);
     const { cover, coverViewer } = fixture;
-
-    const coverSegment = {
-      amount: parseEther('100'),
-      start: 1000,
-      period: 30 * 24 * 3600, // 30 days
-      gracePeriod: 7 * 24 * 3600, // 7 days
-      globalRewardsRatio: 5000,
-      globalCapacityRatio: 2000,
-    };
 
     const coverData = {
       productId: 1,
       coverAsset: 0, // ETH
-      amountPaidOut: 0,
+      amount: parseEther('100'),
+      start: 1000,
+      period: 30 * 24 * 3600, // 30 days
+      gracePeriod: 7 * 24 * 3600, // 7 days
+      rewardsRatio: 5000,
+      capacityRatio: 2000,
+    };
+
+    const coverReference = {
+      originalCoverId: 1,
+      latestCoverId: 2,
     };
 
     const coverId = 1;
 
-    await cover.addCoverData(coverId, coverData);
-    await cover.addSegments(coverId, [coverSegment]);
+    await cover.addCoverDataWithReference(coverId, coverData, coverReference);
 
-    const segments = await coverViewer.getCoverSegments(coverId);
-    expect(segments.length).to.be.equal(1);
-    expect(segments[0].amount.toString()).to.be.equal(coverSegment.amount.toString());
-    expect(segments[0].remainingAmount.toString()).to.be.equal(coverSegment.amount.toString());
-    expect(segments[0].start).to.be.equal(coverSegment.start);
-    expect(segments[0].period).to.be.equal(coverSegment.period);
-    expect(segments[0].gracePeriod).to.be.equal(coverSegment.gracePeriod);
+    const coverDataView = await coverViewer.getCovers([coverId]);
+
+    expect(coverDataView.length).to.be.equal(1);
+    expect(coverDataView[0].productId).to.be.equal(coverData.productId);
+    expect(coverDataView[0].coverAsset).to.be.equal(coverData.coverAsset);
+    expect(coverDataView[0].amount.toString()).to.be.equal(coverData.amount.toString());
+    expect(coverDataView[0].start).to.be.equal(coverData.start);
+    expect(coverDataView[0].period).to.be.equal(coverData.period);
+    expect(coverDataView[0].gracePeriod).to.be.equal(coverData.gracePeriod);
+    expect(coverDataView[0].originalCoverId).to.be.equal(coverReference.originalCoverId);
+    expect(coverDataView[0].latestCoverId).to.be.equal(coverReference.latestCoverId);
   });
 });

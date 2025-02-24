@@ -10,6 +10,7 @@ const { setNextBlockTime } = require('../utils').evm;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { BUCKET_DURATION } = require('../../unit/StakingPool/helpers');
 const { getInternalPrice } = require('../../utils/rammCalculations');
+const { max } = require('../../utils/bnMath');
 
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256, Zero } = ethers.constants;
@@ -235,10 +236,7 @@ describe('buyCover', function () {
     const product = await stakingProducts.getProduct(1, productId);
     const { bumpedPriceUpdateTime, bumpedPrice } = product;
 
-    let price = bumpedPrice.sub(BigNumber.from(daysElapsed).mul(PRICE_CHANGE_PER_DAY));
-    if (price.lt(targetPrice)) {
-      price = targetPrice;
-    }
+    const price = max(bumpedPrice.sub(BigNumber.from(daysElapsed).mul(PRICE_CHANGE_PER_DAY)), targetPrice);
 
     const nextTimestamp = bumpedPriceUpdateTime.add(daysToSeconds(daysElapsed)).toNumber();
     const ethRate = await getInternalPrice(ramm, pool, tokenController, mcr, nextTimestamp);

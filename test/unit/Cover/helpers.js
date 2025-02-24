@@ -45,19 +45,13 @@ async function createStakingPool(
   return stakingPool;
 }
 
-async function assertCoverFields(
-  cover,
-  coverId,
-  { productId, coverAsset, period, amount, gracePeriod, segmentId = 0, amountPaidOut = 0 },
-) {
+async function assertCoverFields(cover, coverId, { productId, coverAsset, period, amount, gracePeriod }) {
   const storedCoverData = await cover.getCoverData(coverId);
-  const segment = await cover.coverSegmentWithRemainingAmount(coverId, segmentId);
   expect(storedCoverData.productId).to.equal(productId);
   expect(storedCoverData.coverAsset).to.equal(coverAsset);
-  expect(storedCoverData.amountPaidOut).to.be.equal(amountPaidOut);
-  expect(segment.gracePeriod).to.equal(gracePeriod);
-  expect(segment.period).to.equal(period);
-  expect(segment.amount).to.equal(amount);
+  expect(storedCoverData.gracePeriod).to.equal(gracePeriod);
+  expect(storedCoverData.period).to.equal(period);
+  expect(storedCoverData.amount).to.equal(amount);
 }
 
 async function buyCoverOnOnePool(params) {
@@ -119,17 +113,16 @@ async function buyCoverOnMultiplePools({
   );
 
   const { events } = await tx.wait();
-  const { coverId, segmentId } = events.find(e => e.event === 'CoverEdited').args;
+  const { coverId } = events.find(e => e.event === 'CoverEdited').args;
 
   const storedCoverData = await cover.getCoverData(coverId);
-  const segment = await cover.coverSegmentWithRemainingAmount(coverId, segmentId);
+  const poolAllocations = await cover.getPoolAllocations(coverId);
 
   return {
     expectedPremium,
     storedCoverData,
-    segment,
+    poolAllocations,
     coverId,
-    segmentId,
   };
 }
 

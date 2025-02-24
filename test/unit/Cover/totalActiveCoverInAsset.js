@@ -84,7 +84,7 @@ describe('totalActiveCoverInAsset', function () {
     expect(totalActiveCoverInAsset).to.be.equal(amount);
   });
 
-  it.skip('should decrease active cover when an edited cover expires', async function () {
+  it('should decrease active cover when an edited cover expires', async function () {
     const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const { BUCKET_SIZE } = fixture.config;
@@ -92,13 +92,13 @@ describe('totalActiveCoverInAsset', function () {
 
     const { amount, period, coverAsset, productId } = daiCoverBuyFixture;
 
-    await buyCoverOnOnePool.call(this, daiCoverBuyFixture);
+    await buyCoverOnOnePool.call(fixture, daiCoverBuyFixture);
 
     // Move forward 1 bucket
     await increaseTime(BUCKET_SIZE.toNumber());
 
     // Edit cover
-    const coverId = await cover.coverDataCount();
+    const coverId = await cover.getCoverDataCount();
     await cover.connect(member).buyCover(
       {
         owner: member.address,
@@ -164,8 +164,8 @@ describe('totalActiveCoverInAsset', function () {
     const { coverAsset, amount } = daiCoverBuyFixture;
 
     await buyCoverOnOnePool.call(fixture, daiCoverBuyFixture);
-    const coverId = await cover.coverDataCount();
-    await cover.connect(internalContract).burnStake(coverId, 0, amount);
+    const coverId = await cover.getCoverDataCount();
+    await cover.connect(internalContract).burnStake(coverId, amount);
     expect(await cover.totalActiveCoverInAsset(coverAsset)).to.be.equal(0);
   });
 
@@ -177,8 +177,8 @@ describe('totalActiveCoverInAsset', function () {
     const { coverAsset, amount } = daiCoverBuyFixture;
 
     await buyCoverOnOnePool.call(fixture, daiCoverBuyFixture);
-    const coverId = await cover.coverDataCount();
-    await cover.connect(internalContract).burnStake(coverId, 0, 1);
+    const coverId = await cover.getCoverDataCount();
+    await cover.connect(internalContract).burnStake(coverId, 1);
     expect(await cover.totalActiveCoverInAsset(coverAsset)).to.be.equal(amount.sub(1));
   });
 
@@ -194,8 +194,8 @@ describe('totalActiveCoverInAsset', function () {
 
     // cover 0
     await buyCoverOnOnePool.call(fixture, daiCoverBuyFixture);
-    const coverId = await cover.coverDataCount();
-    await cover.connect(internalContract).burnStake(coverId, 0, amount);
+    const coverId = await cover.getCoverDataCount();
+    await cover.connect(internalContract).burnStake(coverId, amount);
 
     const timeBetweenPurchases = daysToSeconds(2);
     expect(members.length * timeBetweenPurchases < daiCoverBuyFixture.period);
@@ -223,7 +223,7 @@ describe('totalActiveCoverInAsset', function () {
         [{ poolId: 1, coverAmountInAsset: amount }],
       );
       // Burn first segment of coverId == i
-      await cover.connect(internalContract).burnStake(i + 1, 0, amount.div(2));
+      await cover.connect(internalContract).burnStake(i + 1, amount.div(2));
       expect(await cover.totalActiveCoverInAsset(coverAsset)).to.be.equal(expectedActiveCover);
     }
 

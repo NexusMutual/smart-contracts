@@ -7,7 +7,7 @@ async function setup() {
   const accounts = await getAccounts();
   const nxm = await ethers.deployContract('NXMTokenMock');
   const master = await ethers.deployContract('MasterMock');
-  const assessment = await ethers.deployContract('AVMockAssessment', [1, 2, 3, 4]);
+  const assessment = await ethers.deployContract('AVMockAssessment', [1]);
   const stakingViewer = await ethers.deployContract('NVMockStakingViewer');
 
   await master.setLatestAddress(hex('AS'), assessment.address);

@@ -61,7 +61,7 @@ async function updateTotalActiveCoverAmountSetup() {
     poolAllocationRequest,
     { value: expectedPremium },
   );
-  const coverId = await cover.coverDataCount();
+  const coverId = await cover.getCoverDataCount();
 
   await increaseTime(daysToSeconds(31));
 

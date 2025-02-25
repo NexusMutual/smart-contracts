@@ -1158,29 +1158,41 @@ contract StakingPool is IStakingPool, Multicall {
     uint initialFeeRewardShares = initialDeposit.rewardsShares * poolFee / (POOL_FEE_DENOMINATOR - poolFee);
     uint newFeeRewardShares = newShares * poolFee / (POOL_FEE_DENOMINATOR - poolFee);
 
-    // update manager's fee deposits
-    deposits[0][initialTrancheId].rewardsShares -= initialFeeRewardShares.toUint128();
-    deposits[0][targetTrancheId].rewardsShares += (initialFeeRewardShares + newFeeRewardShares).toUint128();
+    // initial tranche deposit fee
+    {
+      Deposit memory feeDeposit = deposits[0][initialTrancheId];
+      uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
+      feeDeposit.pendingRewards += (newEarningsPerShare * feeDeposit.rewardsShares / ONE_NXM).toUint96();
+      feeDeposit.rewardsShares -= initialFeeRewardShares.toUint128();
+      feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare.toUint96();
+      deposits[0][initialTrancheId] = feeDeposit;
+    }
+
+    // target tranche deposit fee
+    {
+      Deposit memory feeDeposit = deposits[0][targetTrancheId];
+      if (feeDeposit.rewardsShares != 0) {
+        uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
+        feeDeposit.pendingRewards += (newEarningsPerShare * feeDeposit.rewardsShares / ONE_NXM).toUint96();
+      }
+      feeDeposit.rewardsShares += initialFeeRewardShares.toUint128();
+      feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare.toUint96();
+      deposits[0][targetTrancheId] = feeDeposit;
+    }
 
     // update tranches
     {
       Tranche memory initialTranche = tranches[initialTrancheId]; // sload
-
-      // update
       initialTranche.stakeShares -= initialDeposit.stakeShares;
       initialTranche.rewardsShares -= (initialDeposit.rewardsShares + initialFeeRewardShares).toUint128();
-
       tranches[initialTrancheId] = initialTranche; // sstore
     }
 
     {
       Tranche memory targetTranche = tranches[targetTrancheId]; // sload
-
-      // update
       targetTranche.stakeShares += (initialDeposit.stakeShares + newShares).toUint128();
       targetTranche.rewardsShares += initialDeposit.rewardsShares;
       targetTranche.rewardsShares += (initialFeeRewardShares + newFeeRewardShares).toUint128();
-
       tranches[targetTrancheId] = targetTranche; // store
     }
 

@@ -191,17 +191,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       );
     }
 
-    _coverData[coverId] = CoverData(
-      params.productId,
-      params.coverAsset,
-      params.amount,
-      block.timestamp.toUint32(),
-      params.period,
-      allocationRequest.gracePeriod.toUint32(),
-      GLOBAL_REWARDS_RATIO.toUint16(),
-      GLOBAL_CAPACITY_RATIO.toUint16()
-    );
-
     uint nxmPriceInCoverAsset = pool().getInternalTokenPriceInAssetAndUpdateTwap(params.coverAsset);
 
     (uint coverAmountInCoverAsset, uint amountDueInNXM) = _requestAllocation(
@@ -214,9 +203,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       revert InsufficientCoverAmountAllocated();
     }
 
+    _coverData[coverId] = CoverData(
+      params.productId,
+      params.coverAsset,
+      coverAmountInCoverAsset.toUint96(),
+      block.timestamp.toUint32(),
+      params.period,
+      allocationRequest.gracePeriod.toUint32(),
+      GLOBAL_REWARDS_RATIO.toUint16(),
+      GLOBAL_CAPACITY_RATIO.toUint16()
+    );
+
     _updateTotalActiveCoverAmount(
       params.coverAsset,
-      params.amount, // TODO: check this change
+      coverAmountInCoverAsset,
       block.timestamp + params.period,
       previousCoverAmount,
       previousCoverExpiration

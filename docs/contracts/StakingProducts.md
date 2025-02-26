@@ -97,6 +97,26 @@ function setProducts(uint poolId, StakedProductParam[] memory params) external;
 | `poolId`  | ID of the staking pool.                                      |
 | `params`  | Array of `StakedProductParam` structs with product settings. |
 
+```solidity
+struct StakedProductParam {
+    uint productId;
+    bool recalculateEffectiveWeight;
+    bool setTargetWeight;
+    uint8 targetWeight;
+    bool setTargetPrice;
+    uint96 targetPrice;
+}
+```
+
+| Field                      | Type   | Description                                                           |
+| -------------------------- | ------ | --------------------------------------------------------------------- |
+| productId                  | uint   | The ID of the product to update.                                      |
+| recalculateEffectiveWeight | bool   | Whether to recalculate effective weight based on current utilization. |
+| setTargetWeight            | bool   | If true, the targetWeight will be updated.                            |
+| targetWeight               | uint8  | The desired target weight for this product.                           |
+| setTargetPrice             | bool   | If true, the targetPrice will be updated.                             |
+| targetPrice                | uint96 | The desired target price for this product.                            |
+
 **Purpose:**
 
 - **Creates, updates, or removes products** from the staking pool.

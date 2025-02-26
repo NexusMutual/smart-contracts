@@ -288,7 +288,7 @@ function updateAddressParameters(bytes8 code, address value) external onlyGovern
 
 | Parameter | Description                                                                                                                     |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `code`    | A code representing the parameter to update (`"SWP_OP"` for swapOperator, `"PRC_FEED"` for priceFeedOracle). TODO: link to page |
+| `code`    | A code representing the parameter to update (`"SWP_OP"` for swapOperator, `"PRC_FEED"` for priceFeedOracle) |
 | `value`   | The new address value.                                                                                                          |
 
 ## View Functions

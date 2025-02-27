@@ -25,8 +25,7 @@
     - [How to Buy Cover](#how-to-buy-cover)
       - [Structs Used in `Cover.buyCover()`](#structs-used-in-coverbuycover)
     - [How to Verify Cover Purchase Success](#how-to-verify-cover-purchase-success)
-    - [How to Check Cover Expiration \& Claim Eligibility](#how-to-check-cover-expiration--claim-eligibility)
-      - [What `getCoverDetails` Returns](#what-getcoverdetails-returns)
+    - [How to Check Cover Expiration](#how-to-check-cover-expiration)
     - [How to Submit a Claim](#how-to-submit-a-claim)
       - [Claim Review Process](#claim-review-process)
   - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
@@ -60,7 +59,8 @@ Before purchasing a cover, it is important to understand **how pricing works, me
 To check the **grace period** of a product:
 
 ```solidity
-uint gracePeriod = CoverProducts.getProductGracePeriod(productId);
+uint16 productType = CoverProducts.getProduct(productId).productType;
+uint32 gracePeriod = CoverProducts.getProductType(productType).gracePeriod;
 ```
 
 ---
@@ -89,13 +89,6 @@ Cover pricing follows a **dynamic adjustment mechanism**:
 
 - **When utilization increases**, the **cover price increases** per purchase.
 - **Bump Rate:** The price **increases by 2% per purchase**, **compounded** on the previous price.
-- **Upper Limit:** The price cannot exceed **the max allowed price per product**.
-
-To check the **max allowed price** of a product:
-
-```solidity
-uint maxPrice = CoverProducts.getProductMaxPrice(productId);
-```
 
 #### Price Decay
 
@@ -106,32 +99,39 @@ uint maxPrice = CoverProducts.getProductMaxPrice(productId);
   \text{New Price} = \text{Current Price} \times 0.999
   $$
 
-- **Lower Limit:** Price **cannot go below the product’s initial price ratio**.
+- **Lower Limit:** Price **cannot go below the product's initial price ratio**.
 
 To check the **minimum price** of a product:
 
 ```solidity
-uint minPrice = CoverProducts.getProductMinPrice(productId);
+uint16 minPrice = CoverProducts.getProduct(productId).minPrice;
 ```
 
 #### How to Check Current Cover Pricing:
 
-To check **the current price of a product in a pool**:
+To check **the current price of a product in a pool**, use the [capacity pool product API](https://api.nexusmutual.io/v2/api/docs/#/Capacity/get_v2_capacity_pools__poolId__products__productId_):
 
-```solidity
-uint currentPrice = CoverProducts.getProductPrice(poolId, productId);
+```
+GET /v2/capacity/pools/{poolId}/products/{productId}
 ```
 
-To check the **minimum price** of a product:
+This returns pricing information including other info:
 
-```solidity
-uint minPrice = CoverProducts.getProductMinPrice(productId);
+```json
+{
+  "minAnnualPrice": "0.02", // 2% minimum annual price
+  "maxAnnualPrice": "0.10", // 10% maximum annual price
+  "productId": 123,
+  ...
+}
 ```
 
-To calculate the **premium per annum**, use:
+The annual prices are percentage values between 0-1 (e.g., 0.05 = 5%).
+
+To calculate the **premium for a specific cover period**, use:
 
 $$
-\text{Annual Premium} = \text{Cover Price} \times \left(\frac{365}{\text{Cover Length (days)}}\right)
+\text{Premium} = \text{Cover Amount} \times \text{Annual Price} \times \left(\frac{\text{Cover Length (days)}}{365}\right)
 $$
 
 ---
@@ -277,6 +277,7 @@ A successful **cover purchase** results in a **Cover NFT**.
 
 To verify purchase success:
 
+- Buyer will receive a **Cover NFT** for their cover purchase.
 - **Monitor the `CoverEdited` event**:
 
 ```solidity
@@ -289,43 +290,22 @@ event CoverEdited(
 );
 ```
 
-- **Retrieve your Cover NFT ID**:
+- Retrieve **cover details** via:
 
 ```solidity
-uint coverId = CoverViewer.getLatestCoverId(buyerAddress);
-```
-
-You can check **cover details** via:
-
-```solidity
-Cover.getCover(coverId);
+CoverViewer.getCovers(coverIds);
 ```
 
 ---
 
-### How to Check Cover Expiration & Claim Eligibility
+### How to Check Cover Expiration
 
 - **Use the Cover NFT** to check the **cover expiration date**.
 - Retrieve cover details via:
 
 ```solidity
-CoverViewer.getCoverDetails(coverId);
+CoverViewer.getCovers(coverIds);
 ```
-
-#### What `getCoverDetails` Returns
-
-| Parameter     | Description                                  |
-| ------------- | -------------------------------------------- |
-| `coverId`     | Unique **ID** of the cover.                  |
-| `productId`   | **Product ID** this cover is protecting.     |
-| `owner`       | **Address** of the cover holder.             |
-| `amount`      | **Cover amount** in the selected asset.      |
-| `coverAsset`  | **Asset type** for the cover (USDC, ETH).    |
-| `period`      | **Cover duration** in days.                  |
-| `startTime`   | **Timestamp** when the cover started.        |
-| `expiryTime`  | **Timestamp** when the cover expires.        |
-| `premiumPaid` | **Total premium** paid for the cover.        |
-| `status`      | **Cover status** (Active, Expired, Claimed). |
 
 ---
 
@@ -357,10 +337,10 @@ IndividualClaims.submitClaim(uint coverId);
 ### How do I know when my cover expires?
 
 - Your **Cover NFT** includes the **expiry date**.
-- You can also call:
+- You can also retrieve cover details using:
 
 ```solidity
-uint expiryDate = CoverViewer.getCoverExpiration(coverId);
+CoverViewer.getCovers(coverIds);
 ```
 
 ---
@@ -371,7 +351,7 @@ uint expiryDate = CoverViewer.getCoverExpiration(coverId);
 - Check membership status:
 
 ```solidity
-bool isMember = MemberRoles.checkMembership(address buyer);
+bool isMember = MemberRoles.checkRole(memberAddress, uint8(Role.Member));
 ```
 
 ---
@@ -393,7 +373,8 @@ bool isMember = MemberRoles.checkMembership(address buyer);
 Retrieve the grace period for a product using:
 
 ```solidity
-uint gracePeriod = CoverProducsts.getGracePeriod(productId);
+uint16 productType = CoverProducts.getProduct(productId).productType;
+uint32 gracePeriod = CoverProducts.getProductType(productType).gracePeriod;
 ```
 
 ---

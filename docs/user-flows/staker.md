@@ -27,9 +27,10 @@
     - [Pre-Staking Checklist](#pre-staking-checklist)
       - [Verify the Pool's Fee Structure](#verify-the-pools-fee-structure)
       - [Check Pool Utilization \& Burn Risk](#check-pool-utilization--burn-risk)
+      - [Understand Withdrawal Rules](#understand-withdrawal-rules)
     - [How to Deposit](#how-to-deposit)
     - [How to Extend a Stake](#how-to-extend-a-stake)
-    - [How to Withdraw Stake](#how-to-withdraw-stake)
+    - [How to Withdraw Stake / Rewards](#how-to-withdraw-stake--rewards)
     - [How to Check Withdrawal Eligibility](#how-to-check-withdrawal-eligibility-1)
   - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
     - [What happens if a manager votes near the end of a tranche?](#what-happens-if-a-manager-votes-near-the-end-of-a-tranche)
@@ -47,17 +48,17 @@ Staking in **NXM Staking Pools** allows you to **earn rewards** by locking up NX
 
 ### What You Need to Know Before Staking
 
-- ✅ **You earn rewards over time** based on how long your NXM is staked.  
-- ⚠️ **Your NXM may be burned** if a claim is approved and your pool is liable for part of the payout.  
-- ✅ **Your stake is locked within a tranche, but if you deposit mid-tranche, your lock-up time may be shorter.**  
-- ⚠️ **Managers control voting power** over your staked NXM, which can delay withdrawals.  
+- ✅ **You earn rewards over time** based on how long your NXM is staked.
+- ⚠️ **Your NXM may be burned** if a claim is approved and your pool is liable for part of the payout.
+- ✅ **Your stake is locked within a tranche, but if you deposit mid-tranche, your lock-up time may be shorter.**
+- ⚠️ **Managers control voting power** over your staked NXM, which can delay withdrawals.
 - ✅ **You can extend your stake** to keep earning rewards after your tranche expires.
 
 ---
 
 ## Choosing a Staking Pool
 
-Before staking, **always check the pool’s conditions**:
+Before staking, **always check the pool's conditions**:
 
 ### 1. Manager Fees
 
@@ -81,10 +82,16 @@ Before staking, **always check the pool’s conditions**:
 ### 3. Pool Utilization & Risk Exposure
 
 - Higher utilization may mean more rewards but **also higher burn risk, depending on the risk profile of the products listed.**
-- Check current pool utilization:
+- Check pool utilization using the [capacity pools API](https://api.nexusmutual.io/v2/api/docs/#/Capacity/get_v2_capacity_pools__poolId_):
 
-  ```solidity
-  StakingPool.getPoolCapacity(poolId);
+  ```bash
+  GET https://api.nexusmutual.io/v2/capacity/pools/{poolId}
+
+  {
+    "poolId": 22,
+    "utilizationRate": 4926,  // 49.26% utilization
+    ...
+  }
   ```
 
 ---
@@ -138,7 +145,8 @@ When you stake in a pool:
 You can check when the tranche will expire using:
 
 ```solidity
-uint trancheEnd = StakingPool.getTrancheExpiration(trancheId);
+uint TRANCHE_DURATION = 91 days;
+uint trancheExpirationTime = (trancheId + 1) * TRANCHE_DURATION;
 ```
 
 To get the **first active tranche ID** (earliest tranche still providing capacity):
@@ -163,19 +171,24 @@ uint firstActiveTrancheId = StakingPool.getFirstActiveTrancheId();
 
 Your staked NXM can be locked for **two reasons**:
 
-1. **The tranche is not expired yet.**
+1.  **The tranche is not expired yet.**
 
-   - **Use this function to check when the tranche expires:**
-     ```solidity
-     uint trancheEnd = StakingPool.getTrancheExpiration(trancheId);
-     ```
+    - **Use this function to check when the tranche expires:**
 
-2. **Your NXM is locked due to voting.**
-   - If your manager voted, your withdrawal is **delayed until the vote concludes**.
-   - **Use this function to check if your stake is locked due to voting:**
-     ```solidity
-     bool isVotingLocked = StakingPool.isVotingLocked(tokenId);
-     ```
+      ```solidity
+      uint TRANCHE_DURATION = 91 days;
+      uint trancheExpirationTime = (trancheId + 1) * TRANCHE_DURATION;
+      ```
+
+2.  **Your NXM is locked due to voting.**
+
+    - If your manager voted, your withdrawal is **delayed until the vote concludes**.
+    - **Use this function to check if your stake is locked due to voting:**
+
+          ```solidity
+          address manager = StakingPool.manager();
+          uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager);
+          ```
 
 ---
 
@@ -185,15 +198,15 @@ When a **valid claim** is approved, a portion of the **staked NXM in the pool is
 
 #### How the Burn Amount is Calculated
 
-NXM burns are **proportional** to the **pool’s share of total risk exposure**:
+NXM burns are **proportional** to the **pool's share of total risk exposure**:
 
 $$ \text{Pool Burned NXM} = \frac{\text{Pool's Allocated Capacity for the Cover}}{\text{Total Allocated Capacity Across All Pools}} \times \text{Cover Payout} $$
 
-However, this **only determines the total burned amount for the pool**. The actual amount burned for each **individual staker** depends on **their share of the pool’s total stake**.
+However, this **only determines the total burned amount for the pool**. The actual amount burned for each **individual staker** depends on **their share of the pool's total stake**.
 
 #### How Much NXM Will Be Burned Per Staker?
 
-Each staker’s **NXM burn is proportional** to their **share of the total pool stake**.
+Each staker's **NXM burn is proportional** to their **share of the total pool stake**.
 
 $$ \text{Staker Burned NXM} = \frac{\text{Staker's Share of Pool Stake}}{\text{Total Staked in Pool}} \times \text{Pool Burned NXM} $$
 
@@ -249,23 +262,34 @@ uint totalPoolStake = StakingPool.getPoolStake(poolId);
 
 - Ensure you're comfortable with the **risk level** of the **products covered**.
 - ```solidity
-  StakingProducts.getPoolProducts(poolId);
+  StakingViewer.getPoolProducts(poolId);
   ```
 
 #### Check Pool Utilization & Burn Risk
 
 - **High utilization** means **higher risk of NXM burns**.
-- ```solidity
-  StakingPool.getPoolCapacity(poolId);
+- Check pool utilization using the [capacity pools API](https://api.nexusmutual.io/v2/api/docs/#/Capacity/get_v2_capacity_pools__poolId_):
+
+  ```bash
+  GET https://api.nexusmutual.io/v2/capacity/pools/{poolId}
+
+  {
+    "poolId": 22,
+    "utilizationRate": 4926,  // 49.26% utilization
+    ...
+  }
   ```
 
 #### Understand Withdrawal Rules
 
 - **Your stake may be locked for voting.**
 - **If you stake mid-tranche, your lock-up period may be shorter.**
-- ```solidity
-  StakingPool.getTrancheExpiration(trancheId);
-  StakingPool.isVotingLocked(tokenId);
+  ```solidity
+  // Tranche Expiration
+   uint trancheExpirationTime = (trancheId + 1) * TRANCHE_DURATION;
+   // NXM token locked for voting
+   address manager = StakingPool.manager();
+   uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager);
   ```
 
 ### How to Deposit
@@ -273,17 +297,21 @@ uint totalPoolStake = StakingPool.getPoolStake(poolId);
 Depositing NXM into a staking pool allows you to **earn rewards while underwriting risk**. Before depositing, consider:
 
 - **Manager Fee:** Verify the percentage taken from rewards.
-- **Risk Exposure:** Ensure the pool supports products you’re comfortable underwriting.
+- **Risk Exposure:** Ensure the pool supports products you're comfortable underwriting.
 - **Staking Period:** Longer staking periods lock funds for longer but yield proportional rewards.
 
 ```solidity
-StakingPool.deposit(uint amount, uint duration);
+StakingPool.depositTo(uint amount, uint trancheId, uint requestTokenId, address destination)
 ```
 
-| Parameter  | Description                       |
-| ---------- | --------------------------------- |
-| `amount`   | Amount of NXM to stake.           |
-| `duration` | Duration for which NXM is staked. |
+| Parameter        | Description                                              |
+| ---------------- | -------------------------------------------------------- |
+| `amount`         | Amount of NXM to stake                                   |
+| `trancheId`      | ID of the tranche to stake in                            |
+| `requestTokenId` | ID of the request token (0 if not using a request token) |
+| `destination`    | Address that will receive the staking position NFT       |
+
+Returns: `uint tokenId` - The ID of the newly minted staking position NFT
 
 ### How to Extend a Stake
 
@@ -298,17 +326,22 @@ StakingPool.extendDeposit(uint tokenId, uint newDuration);
 | `tokenId`     | ID of the staking position (NFT) to extend. |
 | `newDuration` | Additional duration for staking.            |
 
-### How to Withdraw Stake
+### How to Withdraw Stake / Rewards
 
 Once the staking period has ended, you can withdraw your stake. Be aware that if the manager recently voted, there might be a delay.
 
+Rewards can be withdrawn anytime.
+
 ```solidity
-StakingPool.withdraw(uint tokenId);
+function withdraw(uint tokenId, bool withdrawStake, bool withdrawRewards, uint[] memory trancheIds) external;
 ```
 
-| Parameter | Description                             |
-| --------- | --------------------------------------- |
-| `tokenId` | ID of the staking position to withdraw. |
+| Parameter         | Description                               |
+| ----------------- | ----------------------------------------- |
+| `tokenId`         | The ID of the staking NFT token.          |
+| `withdrawStake`   | Whether to withdraw the stake.            |
+| `withdrawRewards` | Whether to withdraw the rewards.          |
+| `trancheIds`      | The IDs of the tranches to withdraw from. |
 
 ### How to Check Withdrawal Eligibility
 
@@ -316,10 +349,11 @@ Your staked NXM can be locked for **two reasons**:
 
 1. **The tranche is not expired yet.**
 
-   - **Use this function to check when the tranche expires:**
+   - **To find when a trancheId will expire:**
 
      ```solidity
-     uint trancheEnd = StakingPool.getTrancheExpiration(trancheId);
+     uint TRANCHE_DURATION = 91 days;
+     uint trancheExpirationTime = (trancheId + 1) * TRANCHE_DURATION;
      ```
 
 2. **Your NXM is locked due to voting.**
@@ -328,7 +362,8 @@ Your staked NXM can be locked for **two reasons**:
    - **Use this function to check if your stake is locked due to voting:**
 
      ```solidity
-     bool isVotingLocked = StakingPool.isVotingLocked(tokenId);
+     address manager = StakingPool.manager();
+     uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager);
      ```
 
 ---
@@ -350,12 +385,21 @@ Your staked NXM can be locked for **two reasons**:
 ### How do I know if my stake is at risk of being burned?
 
 - The risk depends on:
+
   - **Utilization of the pool** (how much NXM is backing active cover).
   - **Risk level of the listed products** (higher risk = higher chance of claims).
 
-```solidity
-StakingPool.getPoolCapacity(poolId);
-```
+- Check pool utilization using the [capacity pools API](https://api.nexusmutual.io/v2/api/docs/#/Capacity/get_v2_capacity_pools__poolId_):
+
+  ```bash
+  GET https://api.nexusmutual.io/v2/capacity/pools/{poolId}
+
+  {
+    "poolId": 22,
+    "utilizationRate": 4926,  // 49.26% utilization
+    ...
+  }
+  ```
 
 ### What happens if a manager votes near the end of a tranche?
 
@@ -376,19 +420,41 @@ StakingPool.getPoolCapacity(poolId);
   - **Utilization of the pool** (how much NXM is backing active cover).
   - **Risk level of the listed products** (higher risk = higher chance of claims).
 
-- **Use the following function to monitor utilization**:
+- Check pool utilization using the [capacity pools API](https://api.nexusmutual.io/v2/api/docs/#/Capacity/get_v2_capacity_pools__poolId_):
 
-  ```solidity
-  StakingPool.getPoolCapacity(poolId);
+  ```bash
+  GET https://api.nexusmutual.io/v2/capacity/pools/{poolId}
+
+  {
+    "poolId": 22,
+    "utilizationRate": 4926,  // 49.26% utilization
+    ...
+  }
   ```
 
 ### How can I track when my stake will be unlocked?
 
-- Use:
+To check when your stake will be unlocked:
 
-  ```solidity
-  StakingPool.getStakeInfo(tokenId);
-  ```
+```solidity
+// Get full token info including all deposits and their tranche IDs
+Token token = StakingViewer.getToken(tokenId);
+
+// For each deposit, calculate when its tranche expires
+uint TRANCHE_DURATION = 91 days;
+uint trancheExpirationTime = (trancheId + 1) * TRANCHE_DURATION;
+
+// Check if withdrawals are blocked by governance voting
+address manager = StakingPool.manager();
+uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager);
+```
+
+Note: Even after a tranche expires, withdrawals may be blocked if the pool manager is participating in governance voting. The `Token` struct returned by `getToken()` includes:
+
+- `deposits`: Array of all deposits for this token, each containing its `trancheId`
+- `activeStake`: Currently active stake amount
+- `expiredStake`: Amount of stake in expired tranches
+- `rewards`: Total rewards earned
 
 ---
 

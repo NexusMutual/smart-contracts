@@ -163,9 +163,6 @@ describe('burnStake', function () {
     const { productId, coverAsset, period, amount } = coverBuyFixture;
     const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    // TODO: need to figure out a way to change the capacity ratio here
-    // ...   currently, this can can be done only in an integration test
-
     const payoutAmountInAsset = amount.div(2);
     const remainingAmount = amount.sub(payoutAmountInAsset);
 

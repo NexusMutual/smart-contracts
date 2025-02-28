@@ -1,36 +1,4 @@
-# TokenController Contract Developer Documentation
-
-## Table of Contents
-
-- [TokenController Contract Developer Documentation](#tokencontroller-contract-developer-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Key Concepts](#key-concepts)
-    - [NXM Token Management](#nxm-token-management)
-    - [Staking Pool Interactions](#staking-pool-interactions)
-    - [Governance and Assessment Integration](#governance-and-assessment-integration)
-    - [**Locking and Unlocking Tokens**](#locking-and-unlocking-tokens)
-    - [**Rewards and Incentives**](#rewards-and-incentives)
-  - [Mutative Functions](#mutative-functions)
-    - [`burnFrom`](#burnfrom)
-    - [`operatorTransfer`](#operatortransfer)
-    - [`mintRewards`](#mintrewards)
-    - [`depositStakedNXM`](#depositstakednxm)
-    - [`burnStakedNXM`](#burnstakednxm)
-    - [`withdrawNXMStakeAndRewards`](#withdrawnxmstakeandrewards)
-    - [`withdrawCoverNote (Deprecated)`](#withdrawcovernote-deprecated)
-  - [View Functions](#view-functions)
-    - [`getWithdrawableCoverNotes (Deprecated)`](#getwithdrawablecovernotes-deprecated)
-  - [Frequently Asked Questions](#frequently-asked-questions)
-    - [**Who can interact with `TokenController`?**](#who-can-interact-with-tokencontroller)
-    - [**How does `TokenController` prevent unauthorized transfers?**](#how-does-tokencontroller-prevent-unauthorized-transfers)
-    - [**What happens if my stake is burned due to a claim?**](#what-happens-if-my-stake-is-burned-due-to-a-claim)
-    - [**Can I withdraw my locked tokens at any time?**](#can-i-withdraw-my-locked-tokens-at-any-time)
-    - [**When can stakers withdraw their NXM?**](#when-can-stakers-withdraw-their-nxm)
-    - [**When can governance participants withdraw their NXM?**](#when-can-governance-participants-withdraw-their-nxm)
-    - [**When can claim assessors withdraw their NXM?**](#when-can-claim-assessors-withdraw-their-nxm)
-    - [**Why are `withdrawCoverNote` and `getWithdrawableCoverNotes` deprecated?**](#why-are-withdrawcovernote-and-getwithdrawablecovernotes-deprecated)
-  - [Contact and Support](#contact-and-support)
+# TokenController
 
 ## Overview
 

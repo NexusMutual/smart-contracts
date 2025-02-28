@@ -1,40 +1,4 @@
-# StakingPool Contract Developer Documentation
-
-## Table of Contents
-
-- [StakingPool Contract Developer Documentation](#stakingpool-contract-developer-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Key Concepts](#key-concepts)
-    - [Tranches](#tranches)
-      - [Formula for current tranche ID:](#formula-for-current-tranche-id)
-    - [Buckets](#buckets)
-      - [Formula for current bucket ID:](#formula-for-current-bucket-id)
-    - [Allocations](#allocations)
-  - [Functions](#functions)
-    - [Mutative Functions](#mutative-functions)
-      - [`depositTo`](#depositto)
-      - [`withdraw`](#withdraw)
-      - [`extendDeposit`](#extenddeposit)
-    - [View Functions](#view-functions)
-      - [`getDeposit`](#getdeposit)
-      - [`getTranche`](#gettranche)
-      - [`getExpiredTranche`](#getexpiredtranche)
-      - [`getActiveAllocations`](#getactiveallocations)
-    - [`getActiveTrancheCapacities`](#getactivetranchecapacities)
-      - [`getTrancheCapacities`](#gettranchecapacities)
-      - [Miscellaneous View Functions](#miscellaneous-view-functions)
-  - [Events](#events)
-  - [FAQ](#faq)
-    - [How is cover capacity allocated from tranches?](#how-is-cover-capacity-allocated-from-tranches)
-    - [What happens when I deposit NXM?](#what-happens-when-i-deposit-nxm)
-    - [Can I withdraw my stake at any time?](#can-i-withdraw-my-stake-at-any-time)
-    - [How are rewards distributed?](#how-are-rewards-distributed)
-    - [Can I move my stake to a different tranche?](#can-i-move-my-stake-to-a-different-tranche)
-    - [What happens if my allocation is used for cover?](#what-happens-if-my-allocation-is-used-for-cover)
-  - [Contact and Support](#contact-and-support)
-
----
+# StakingPool
 
 ## Overview
 

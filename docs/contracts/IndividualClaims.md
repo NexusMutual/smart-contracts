@@ -1,36 +1,4 @@
-# IndividualClaims Contract Developer Documentation
-
-## Table of Contents
-
-- [IndividualClaims Contract Developer Documentation](#individualclaims-contract-developer-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Key Concepts](#key-concepts)
-    - [The Mutual and Claim Assessment Process](#the-mutual-and-claim-assessment-process)
-    - [Cover Segments](#cover-segments)
-    - [Claim Lifecycle](#claim-lifecycle)
-    - [Assessment Deposit and Rewards](#assessment-deposit-and-rewards)
-    - [Claim Status and Payout](#claim-status-and-payout)
-  - [Mutative Functions](#mutative-functions)
-    - [`submitClaim`](#submitclaim)
-  - [Integration Best Practices](#integration-best-practices)
-    - [What to Track Off-Chain](#what-to-track-off-chain)
-    - [Which Functions Should Be Polled?](#which-functions-should-be-polled)
-    - [Gas Considerations](#gas-considerations)
-  - [Frequently Asked Questions](#frequently-asked-questions)
-    - [Who can submit a claim?](#who-can-submit-a-claim)
-    - [Can I submit a claim for a cover I just bought?](#can-i-submit-a-claim-for-a-cover-i-just-bought)
-    - [How do I know when my payout is ready to redeem?](#how-do-i-know-when-my-payout-is-ready-to-redeem)
-    - [What happens if my claim is accepted but I forget to redeem my payout?](#what-happens-if-my-claim-is-accepted-but-i-forget-to-redeem-my-payout)
-    - [Can someone else redeem my payout for me?](#can-someone-else-redeem-my-payout-for-me)
-    - [Do I get my assessment deposit back if my claim is accepted?](#do-i-get-my-assessment-deposit-back-if-my-claim-is-accepted)
-    - [Can I appeal a rejected claim?](#can-i-appeal-a-rejected-claim)
-    - [Why does my claim require an assessment deposit in ETH instead of the cover asset?](#why-does-my-claim-require-an-assessment-deposit-in-eth-instead-of-the-cover-asset)
-    - [What's the difference between an individual claim and other claim types?](#whats-the-difference-between-an-individual-claim-and-other-claim-types)
-  - [Integration Best Practices:](#integration-best-practices-1)
-  - [Contact and Support](#contact-and-support)
-
----
+# IndividualClaims
 
 ## Overview
 

@@ -1,29 +1,4 @@
-# Ramm Contract Developer Documentation
-
-## Table of Contents
-
-- [Ramm Contract Developer Documentation](#ramm-contract-developer-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Key Concepts](#key-concepts)
-    - [Slot0 and Slot1](#slot0-and-slot1)
-    - [Circuit Breakers](#circuit-breakers)
-    - [Observations](#observations)
-    - [Liquidity Management Parameters](#liquidity-management-parameters)
-  - [Mutative Functions](#mutative-functions)
-    - [`swap`](#swap)
-    - [`removeBudget`](#removebudget)
-    - [`setEmergencySwapPause`](#setemergencyswappause)
-    - [`setCircuitBreakerLimits`](#setcircuitbreakerlimits)
-  - [View Functions](#view-functions)
-    - [`getReserves`](#getreserves)
-    - [`getSpotPrices`](#getspotprices)
-    - [`getBookValue`](#getbookvalue)
-  - [TWAP and Price Calculation](#twap-and-price-calculation)
-    - [`updateTwap`](#updatetwap)
-    - [`getInternalPriceAndUpdateTwap`](#getinternalpriceandupdatetwap)
-  - [Events](#events)
-  - [Contact and Support](#contact-and-support)
+# RAMM
 
 ## Overview
 

@@ -1,45 +1,4 @@
-# Cover Contract Developer Documentation
-
-## Table of Contents
-
-- [Cover Contract Developer Documentation](#cover-contract-developer-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Key Concepts](#key-concepts)
-    - [Cover Data Structures](#cover-data-structures)
-      - [CoverData](#coverdata)
-      - [CoverSegment](#coversegment)
-      - [PoolAllocation](#poolallocation)
-    - [Active Cover and Expiration Buckets](#active-cover-and-expiration-buckets)
-    - [Constants](#constants)
-    - [Allocation Units](#allocation-units)
-    - [Asset IDs](#asset-ids)
-  - [Mutative Functions](#mutative-functions)
-    - [`buyCover`](#buycover)
-      - [`BuyCoverParams` Structure:](#buycoverparams-structure)
-      - [`PoolAllocationRequest` Structure:](#poolallocationrequest-structure)
-    - [`expireCover`](#expirecover)
-    - [`burnStake`](#burnstake)
-    - [`updateTotalActiveCoverAmount`](#updatetotalactivecoveramount)
-  - [View Functions](#view-functions)
-    - [`coverData`](#coverdata-1)
-    - [`coverSegmentWithRemainingAmount`](#coversegmentwithremainingamount)
-    - [`coverSegments`](#coversegments)
-    - [`coverSegmentsCount`](#coversegmentscount)
-    - [`coverDataCount`](#coverdatacount)
-    - [`totalActiveCoverInAsset`](#totalactivecoverinasset)
-    - [`getGlobalCapacityRatio`](#getglobalcapacityratio)
-    - [`getGlobalRewardsRatio`](#getglobalrewardsratio)
-    - [`getGlobalMinPriceRatio`](#getglobalminpriceratio)
-    - [`getGlobalCapacityAndPriceRatios`](#getglobalcapacityandpriceratios)
-  - [Integration Guidelines](#integration-guidelines)
-  - [Frequently Asked Questions](#frequently-asked-questions)
-    - [How do I purchase cover for a product?](#how-do-i-purchase-cover-for-a-product)
-    - [Can I extend or modify an existing cover?](#can-i-extend-or-modify-an-existing-cover)
-    - [How is the premium calculated?](#how-is-the-premium-calculated)
-    - [What happens when a cover expires?](#what-happens-when-a-cover-expires)
-    - [How are claims processed?](#how-are-claims-processed)
-  - [Contact and Support](#contact-and-support)
+# Cover
 
 ## Overview
 

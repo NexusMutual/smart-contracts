@@ -1,39 +1,4 @@
-# StakingProducts Contract Developer Documentation
-
-## Table of Contents
-
-- [StakingProducts Contract Developer Documentation](#stakingproducts-contract-developer-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Key Concepts](#key-concepts)
-    - [Product Weights](#product-weights)
-    - [Pricing Mechanism](#pricing-mechanism)
-    - [Staking Pool Creation and Management](#staking-pool-creation-and-management)
-  - [Functions](#functions)
-    - [Mutative Functions](#mutative-functions)
-      - [`setProducts`](#setproducts)
-      - [`recalculateEffectiveWeights`](#recalculateeffectiveweights)
-      - [`recalculateEffectiveWeightsForAllProducts`](#recalculateeffectiveweightsforallproducts)
-      - [`createStakingPool`](#createstakingpool)
-      - [`setPoolMetadata`](#setpoolmetadata)
-    - [View Functions](#view-functions)
-      - [`getProduct`](#getproduct)
-      - [`getPoolManager`](#getpoolmanager)
-      - [`getPoolMetadata`](#getpoolmetadata)
-  - [Pricing Functions](#pricing-functions)
-    - [`getPremium`](#getpremium)
-  - [Events](#events)
-  - [FAQ](#faq)
-    - [How are product weights determined?](#how-are-product-weights-determined)
-    - [Can effective weight be higher than the target weight?](#can-effective-weight-be-higher-than-the-target-weight)
-    - [Can I create a private or public staking pool?](#can-i-create-a-private-or-public-staking-pool)
-    - [How often should effective weights be recalculated?](#how-often-should-effective-weights-be-recalculated)
-    - [How is the premium calculated?](#how-is-the-premium-calculated)
-    - [How does StakingProducts integrate with StakingPoolFactory to create a new staking pool?](#how-does-stakingproducts-integrate-with-stakingpoolfactory-to-create-a-new-staking-pool)
-    - [How can I update pool metadata?](#how-can-i-update-pool-metadata)
-  - [Contact and Support](#contact-and-support)
-
----
+# StakingProducts
 
 ## Overview
 

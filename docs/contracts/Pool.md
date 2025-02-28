@@ -1,45 +1,4 @@
-# Pool Contract Developer Documentation
-
-## Table of Contents
-
-- [Pool Contract Developer Documentation](#pool-contract-developer-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Key Concepts](#key-concepts)
-    - [Assets Management](#assets-management)
-    - [Swap Details](#swap-details)
-    - [SwapOperator](#swapoperator)
-    - [Payouts and Claims](#payouts-and-claims)
-    - [Token Price Calculation](#token-price-calculation)
-  - [Mutative Functions](#mutative-functions)
-    - [`addAsset`](#addasset)
-    - [`setAssetDetails`](#setassetdetails)
-    - [`setSwapDetails`](#setswapdetails)
-    - [`transferAsset`](#transferasset)
-    - [`transferAssetToSwapOperator`](#transferassettoswapoperator)
-    - [`setSwapDetailsLastSwapTime`](#setswapdetailslastswaptime)
-    - [`setSwapValue`](#setswapvalue)
-    - [`sendPayout`](#sendpayout)
-    - [`sendEth`](#sendeth)
-    - [`upgradeCapitalPool`](#upgradecapitalpool)
-    - [`updateAddressParameters`](#updateaddressparameters)
-  - [View Functions](#view-functions)
-    - [`getPoolValueInEth`](#getpoolvalueineth)
-    - [`getAsset`](#getasset)
-    - [`getAssets`](#getassets)
-    - [`getAssetSwapDetails`](#getassetswapdetails)
-    - [`calculateMCRRatio`](#calculatemcrratio)
-    - [`getInternalTokenPriceInAsset`](#getinternaltokenpriceinasset)
-    - [`getInternalTokenPriceInAssetAndUpdateTwap`](#getinternaltokenpriceinassetandupdatetwap)
-    - [`getMCRRatio`](#getmcrratio)
-  - [Events](#events)
-  - [Integration Guidelines](#integration-guidelines)
-  - [Frequently Asked Questions](#frequently-asked-questions)
-      - [How can I get the price of the native token in a specific asset?](#how-can-i-get-the-price-of-the-native-token-in-a-specific-asset)
-      - [Can I add a new asset to the Pool?](#can-i-add-a-new-asset-to-the-pool)
-      - [How do I know which assets are available for claim payouts?](#how-do-i-know-which-assets-are-available-for-claim-payouts)
-      - [What happens when an asset is marked as abandoned?](#what-happens-when-an-asset-is-marked-as-abandoned)
-  - [Contact and Support](#contact-and-support)
+# Pool
 
 ## Overview
 

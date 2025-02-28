@@ -1,46 +1,4 @@
-# NXM Staker User Flow Documentation
-
-## Table of Contents
-
-- [NXM Staker User Flow Documentation](#nxm-staker-user-flow-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-    - [What You Need to Know Before Staking](#what-you-need-to-know-before-staking)
-  - [Choosing a Staking Pool](#choosing-a-staking-pool)
-    - [1. Manager Fees](#1-manager-fees)
-    - [2. Products Covered by the Pool](#2-products-covered-by-the-pool)
-    - [3. Pool Utilization \& Risk Exposure](#3-pool-utilization--risk-exposure)
-  - [Key Concepts](#key-concepts)
-    - [How Staking, Underwriting \& Rewards Work](#how-staking-underwriting--rewards-work)
-    - [Tranches \& What Happens When They Expire](#tranches--what-happens-when-they-expire)
-      - [Depositing Mid-Tranche \& Withdrawal Timing](#depositing-mid-tranche--withdrawal-timing)
-      - [Checking When a Tranche Will Expire](#checking-when-a-tranche-will-expire)
-    - [How Earnings Flow in a Staking Pool](#how-earnings-flow-in-a-staking-pool)
-    - [How to Check Withdrawal Eligibility](#how-to-check-withdrawal-eligibility)
-    - [How NXM Burns Are Calculated](#how-nxm-burns-are-calculated)
-      - [How the Burn Amount is Calculated](#how-the-burn-amount-is-calculated)
-      - [How Much NXM Will Be Burned Per Staker?](#how-much-nxm-will-be-burned-per-staker)
-      - [Example Scenario:](#example-scenario)
-      - [Individual Staker Burn Calculation:](#individual-staker-burn-calculation)
-        - [How to Check Your Staking Share:](#how-to-check-your-staking-share)
-  - [Step-by-Step Process](#step-by-step-process)
-    - [Pre-Staking Checklist](#pre-staking-checklist)
-      - [Verify the Pool's Fee Structure](#verify-the-pools-fee-structure)
-      - [Check Pool Utilization \& Burn Risk](#check-pool-utilization--burn-risk)
-      - [Understand Withdrawal Rules](#understand-withdrawal-rules)
-    - [How to Deposit](#how-to-deposit)
-    - [How to Extend a Stake](#how-to-extend-a-stake)
-    - [How to Withdraw Stake / Rewards](#how-to-withdraw-stake--rewards)
-    - [How to Check Withdrawal Eligibility](#how-to-check-withdrawal-eligibility-1)
-  - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
-    - [What happens if a manager votes near the end of a tranche?](#what-happens-if-a-manager-votes-near-the-end-of-a-tranche)
-    - [Can I prevent my NXM from being used in governance?](#can-i-prevent-my-nxm-from-being-used-in-governance)
-    - [How do I know if my stake is at risk of being burned?](#how-do-i-know-if-my-stake-is-at-risk-of-being-burned)
-    - [What happens if a manager votes near the end of a tranche?](#what-happens-if-a-manager-votes-near-the-end-of-a-tranche-1)
-    - [Can I prevent my NXM from being used in governance?](#can-i-prevent-my-nxm-from-being-used-in-governance-1)
-    - [How do I know if my stake is at risk of being burned?](#how-do-i-know-if-my-stake-is-at-risk-of-being-burned-1)
-    - [How can I track when my stake will be unlocked?](#how-can-i-track-when-my-stake-will-be-unlocked)
-  - [Best Practices](#best-practices)
+# NXM Staker User Flow
 
 ## Overview
 

@@ -1,25 +1,4 @@
-# StakingPoolFactory Contract Developer Documentation
-
-## Table of Contents
-
-- [StakingPoolFactory Contract Developer Documentation](#stakingpoolfactory-contract-developer-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Key Concepts](#key-concepts)
-    - [Staking Pool Creation](#staking-pool-creation)
-    - [Beacon Proxy](#beacon-proxy)
-    - [Operator Role](#operator-role)
-  - [Mutative Functions](#mutative-functions)
-    - [`changeOperator`](#changeoperator)
-    - [`create`](#create)
-  - [View Functions](#view-functions)
-    - [`stakingPoolCount`](#stakingpoolcount)
-  - [Events](#events)
-  - [Frequently Asked Questions](#frequently-asked-questions)
-    - [Who can create a staking pool?](#who-can-create-a-staking-pool)
-    - [What happens if the beacon address is incorrect?](#what-happens-if-the-beacon-address-is-incorrect)
-    - [How can the operator role be changed?](#how-can-the-operator-role-be-changed)
-  - [Contact and Support](#contact-and-support)
+# StakingPoolFactory
 
 ## Overview
 

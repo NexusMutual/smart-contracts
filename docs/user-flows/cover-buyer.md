@@ -1,43 +1,4 @@
-# Cover Buyer User Flow Documentation
-
-## Table of Contents
-
-- [Cover Buyer User Flow Documentation](#cover-buyer-user-flow-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Key Concepts](#key-concepts)
-    - [Cover Length \& Grace Period](#cover-length--grace-period)
-    - [Cover Pricing \& Dynamic Adjustments](#cover-pricing--dynamic-adjustments)
-      - [Initial Price Ratio](#initial-price-ratio)
-      - [Target Price](#target-price)
-      - [Price Bump](#price-bump)
-      - [Price Decay](#price-decay)
-      - [How to Check Current Cover Pricing:](#how-to-check-current-cover-pricing)
-    - [Cover Router API \& Cover Buy Process](#cover-router-api--cover-buy-process)
-      - [Why Use the Cover Router API?](#why-use-the-cover-router-api)
-    - [Accepted Payment Assets](#accepted-payment-assets)
-    - [Membership Requirement](#membership-requirement)
-  - [Step-by-Step Process](#step-by-step-process)
-    - [Cover Purchase Summary](#cover-purchase-summary)
-    - [How to Get a Quote](#how-to-get-a-quote)
-      - [Example curl Command:](#example-curl-command)
-      - [Expected API Response:](#expected-api-response)
-    - [How to Buy Cover](#how-to-buy-cover)
-      - [Structs Used in `Cover.buyCover()`](#structs-used-in-coverbuycover)
-    - [How to Verify Cover Purchase Success](#how-to-verify-cover-purchase-success)
-    - [How to Check Cover Expiration](#how-to-check-cover-expiration)
-    - [How to Submit a Claim](#how-to-submit-a-claim)
-      - [Claim Review Process](#claim-review-process)
-  - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
-    - [How do I know when my cover expires?](#how-do-i-know-when-my-cover-expires)
-    - [What happens if I am not a member?](#what-happens-if-i-am-not-a-member)
-    - [How much is the claim payout?](#how-much-is-the-claim-payout)
-      - [How Long is the Grace Period?](#how-long-is-the-grace-period)
-    - [What happens if my claim is rejected?](#what-happens-if-my-claim-is-rejected)
-    - [What happens if I try to buy cover without being a member?](#what-happens-if-i-try-to-buy-cover-without-being-a-member)
-  - [Best Practices](#best-practices)
-
----
+# Cover Buyer User Flow
 
 ## Overview
 

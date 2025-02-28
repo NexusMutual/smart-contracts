@@ -1,4 +1,4 @@
-# Governance Contracts
+# Governance & Membership Contracts
 
 ## 1. Member Flow
 

@@ -9,27 +9,8 @@ import "../../generic/CoverProductsGeneric.sol";
 
 contract CLMockCoverProducts is CoverProductsGeneric {
 
-//  mapping(uint => CoverData) public _coverData;
-//  mapping(uint => CoverSegment[]) private _coverSegments;
-//
-//  mapping(uint => PoolAllocation[]) private poolAllocations;
-//  mapping(uint => uint96) public activeCoverAmountInNXM;
-
   Product[] internal _products;
   ProductType[] internal _productTypes;
-
-//  mapping(uint => uint) private capacityFactors;
-//
-//
-///* === CONSTANTS ==== */
-//
-//  uint public REWARD_BPS = 5000;
-//  uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
-//  uint public constant BASIS_PRECISION = 10000;
-//  uint public constant STAKE_SPEED_UNIT = 100000e18;
-//  uint public constant PRICE_CURVE_EXPONENT = 7;
-//  uint public constant MAX_PRICE_PERCENTAGE = 1e20;
-//
 
   /* ========== VIEWS ========== */
 

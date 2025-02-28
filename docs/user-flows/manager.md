@@ -1,55 +1,4 @@
-# Manager User Flow Documentation
-
-## Table of Contents
-
-- [Manager User Flow Documentation](#manager-user-flow-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [Quick Summary](#quick-summary)
-  - [Overview](#overview)
-    - [Your Responsibilities](#your-responsibilities)
-  - [Key Concepts](#key-concepts)
-    - [Tranches \& Pool Mechanics](#tranches--pool-mechanics)
-    - [Determining Which Tranches Are Active for Capacity Allocation](#determining-which-tranches-are-active-for-capacity-allocation)
-    - [Understanding Capacity \& Utilization in NXM Terms](#understanding-capacity--utilization-in-nxm-terms)
-      - [Why This Matters for Managers:](#why-this-matters-for-managers)
-    - [How the Multiplier Affects Underwriting Capacity](#how-the-multiplier-affects-underwriting-capacity)
-      - [How is the Multiplier Determined?](#how-is-the-multiplier-determined)
-      - [How to Calculate a Product's Maximum Multiplier](#how-to-calculate-a-products-maximum-multiplier)
-      - [Example Calculation:](#example-calculation)
-      - [Key Formula for Effective Capacity:](#key-formula-for-effective-capacity)
-      - [Why is This Important for Managers?](#why-is-this-important-for-managers)
-    - [Cover Length and Grace Period Effects](#cover-length-and-grace-period-effects)
-      - [Example: Cover Length + Grace Period Falling Outside a Tranche](#example-cover-length--grace-period-falling-outside-a-tranche)
-    - [Managing NXM Delegation](#managing-nxm-delegation)
-    - [How Earnings Flow in a Staking Pool](#how-earnings-flow-in-a-staking-pool)
-    - [NXM Burn Mechanics: What Happens When a Claim is Paid?](#nxm-burn-mechanics-what-happens-when-a-claim-is-paid)
-      - [How the Burn Amount is Calculated](#how-the-burn-amount-is-calculated)
-      - [How Much NXM Will Be Burned Per Staker?](#how-much-nxm-will-be-burned-per-staker)
-      - [Example Scenario:](#example-scenario)
-      - [Burn Calculation:](#burn-calculation)
-        - [How to Check Pool Burn Risk:](#how-to-check-pool-burn-risk)
-    - [How the Burn Process Works in the Contract](#how-the-burn-process-works-in-the-contract)
-  - [Key Considerations for Managers](#key-considerations-for-managers)
-  - [Step-by-Step Process](#step-by-step-process)
-    - [Create a New Staking Pool](#create-a-new-staking-pool)
-    - [Allocate Capacity to Cover Products](#allocate-capacity-to-cover-products)
-      - [Add Products to the Pool](#add-products-to-the-pool)
-    - [How to Compare Your Pool Pricing](#how-to-compare-your-pool-pricing)
-    - [Set Target Weights and Pricing](#set-target-weights-and-pricing)
-    - [When Should a Manager Call These Functions?](#when-should-a-manager-call-these-functions)
-  - [3. Manager Fees \& Earnings](#3-manager-fees--earnings)
-  - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
-    - [Why does the cover quote not utilize my pool's full capacity?](#why-does-the-cover-quote-not-utilize-my-pools-full-capacity)
-    - [How does tranche expiration affect available capacity?](#how-does-tranche-expiration-affect-available-capacity)
-    - [What Happens if a staking pool manager uses a staker's staked NXM for voting?](#what-happens-if-a-staking-pool-manager-uses-a-stakers-staked-nxm-for-voting)
-    - [How do I as a staking pool manager adjust pricing?](#how-do-i-as-a-staking-pool-manager-adjust-pricing)
-      - [Struct: `StakedProductParam`](#struct-stakedproductparam)
-      - [Steps to Adjust Pricing](#steps-to-adjust-pricing)
-      - [Why Pricing Adjustments Matter](#why-pricing-adjustments-matter)
-      - [Why Pricing Adjustments Matter](#why-pricing-adjustments-matter-1)
-    - [How are pool rewards calculated?](#how-are-pool-rewards-calculated)
-    - [What is the Cover Router API and how does it affect pricing?](#what-is-the-cover-router-api-and-how-does-it-affect-pricing)
-  - [Best Practices](#best-practices)
+# Manager User Flow
 
 ## Quick Summary
 
@@ -129,68 +78,99 @@ $$
 
 ### How the Multiplier Affects Underwriting Capacity
 
-When a pool has **X amount of NXM staked**, it can **underwrite more than X NXM worth of cover**. This is due to the concept of **capacity multipliers**, which allow capital efficiency in staking.
+When a pool has **X amount of NXM staked**, it can **underwrite more than X NXM worth of cover**. This is due to the concept of **capacity multipliers** per product, which allow capital efficiency in staking.
 
-#### How is the Multiplier Determined?
+#### Two Types of Multipliers
 
-The **multiplier is determined by two key factors**:
+There are two distinct multipliers that affect a pool's underwriting capacity:
 
-1. The **global capacity ratio** set at the protocol level
-2. The **capacity reduction ratio** set at the product level
+1. **Product Capacity Multiplier (2x maximum)**: Applied to each product individually
+2. **Pool-Wide Weight Leverage (20x maximum)**: Applied to the total weight allocation across all products
 
-The maximum theoretical multiplier is capped at **20x** (`StakingProducts.MAX_TOTAL_WEIGHT`), but the actual maximum for a specific product may be lower based on its capacity reduction ratio.
+#### Maximum Capacity Multiplier per Product
 
-#### How to Calculate a Product's Maximum Multiplier
+Each product has a **maximum capacity multiplier of 2x**. The **capacity reduction ratio** (`capacityReductionRatio`) adjusts this maximum multiplier based on product-specific configurations. For example, a `capacityReductionRatio` of 2000 (representing a **20% reduction**) decreases the multiplier to 1.6x.
 
-To determine the maximum multiplier for a specific product:
+#### Retrieving the Capacity Reduction Ratio
 
-1. **Get the product's capacity reduction ratio**:
+To obtain the `capacityReductionRatio` for a specific product, use the following function calls:
+
 ```solidity
-// Get the product capacityReductionRatio
-uint capacityReductionRatio = CoverProducts.getProduct(productId).capacityReductionRatio;
+uint16 productType = CoverProducts.getProduct(productId).productType;
+uint32 capacityReductionRatio = CoverProducts.getProductType(productType).capacityReductionRatio;
 ```
 
-2. **Calculate the base multiplier**:
-```solidity
-uint GLOBAL_CAPACITY_DENOMINATOR = StakingProducts.GLOBAL_CAPACITY_DENOMINATOR();
-uint CAPACITY_REDUCTION_DENOMINATOR = StakingProducts.CAPACITY_REDUCTION_DENOMINATOR();
-uint globalCapacityRatio = cover().getGlobalCapacityRatio(); // Usually 10000 (100%)
+- Note `capacityReductionRatio` is in basis points (i.e. 2000 is 20%)
 
-uint baseMultiplier = globalCapacityRatio * (CAPACITY_REDUCTION_DENOMINATOR - capacityReductionRatio) / 
-                     (GLOBAL_CAPACITY_DENOMINATOR * CAPACITY_REDUCTION_DENOMINATOR);
-```
+#### Example Calculation
 
-3. **Calculate the maximum effective multiplier**:
-```solidity
-uint MAX_TOTAL_WEIGHT = StakingProducts.MAX_TOTAL_WEIGHT();
-uint maxEffectiveMultiplier = baseMultiplier * MAX_TOTAL_WEIGHT;
-```
+- **Maximum Capacity Multiplier per Product:** **2x**
+- **Capacity Reduction Ratio:** **20%** (`capacityReductionRatio = 2000`)
+- **Effective Capacity Multiplier:** **1.6x** (2x - 20%)
 
-#### Example Calculation:
+**Breakdown:**
 
-- If a product has a **capacity reduction ratio of 2000 (20%)**:
-  - Base multiplier = 10000 * (10000 - 2000) / (10000 * 10000) = 0.8
-  - Maximum effective multiplier = 0.8 * 20 = **16x**
+1. **Determine the Reduction:**
 
-This means that even though the system allows up to 20x multiplier, this specific product can only leverage staked NXM up to 16x due to its capacity reduction ratio.
+   $$
+   \text{Reduction} = \frac{\text{capacityReductionRatio}}{10000} = \frac{2000}{10000} = 20\%
+   $$
+
+2. **Apply the Reduction to the Maximum Multiplier:**
+   $$
+   \text{Effective Capacity Multiplier} = 2x \times (1 - 0.20) = 1.6x
+   $$
+
+#### Pool-Wide Maximum Weight Leverage
+
+Across all products within a pool, there is an additional **maximum weight leverage cap of 20x**. This means that the **sum of all weights** assigned to products in the pool **cannot exceed 20x** the staked NXM, ensuring risk management and capital efficiency.
+
+#### Visualization: How Multipliers Work Together
+
+For a pool with 100 NXM staked:
+
+| Product   | Weight  | Capacity Reduction Ratio | Capacity | Capacity Multiplier | Total Capacity |
+| --------- | ------- | ------------------------ | -------- | ------------------- | -------------- |
+| 1         | 0.2     | 0% (0)                   | 20 NXM   | 2x                  | 40 NXM         |
+| 2         | 0.5     | 0% (0)                   | 50 NXM   | 2x                  | 100 NXM        |
+| 3         | 1.0     | 30% (3000)               | 70 NXM   | 1.4x                | 98 NXM         |
+| 4         | 1.0     | 0% (0)                   | 100 NXM  | 2x                  | 200 NXM        |
+| 5         | 1.0     | 0% (0)                   | 100 NXM  | 2x                  | 200 NXM        |
+| **Total** | **3.7** |                          |          |                     | **638 NXM**    |
+
+**How to read this table:**
+
+- **Weight**: The portion of staked NXM allocated to each product (can sum up to 20x)
+- **Capacity**: The amount of NXM allocated based on weight (Weight × Staked NXM)
+- **Capacity Multiplier**: The product-specific multiplier (max 2x, reduced by capacity reduction ratio)
+- **Total Capacity**: The actual underwriting capacity (Capacity × Capacity Multiplier)
 
 #### Key Formula for Effective Capacity:
 
 $$
-\text{Effective Underwriting Capacity} = \text{Staked NXM} \times \text{Base Multiplier} \times \text{Target Weight}
+\text{Effective Underwriting Capacity} = \text{Staked NXM} \times \text{Weight} \times \text{Capacity Multiplier}
 $$
 
 Where:
-- **Base Multiplier** = globalCapacityRatio × (100% - capacityReductionRatio)
-- **Target Weight** can be set up to 20x (MAX_TOTAL_WEIGHT)
+
+- **Capacity Multiplier** = 2x × (100% - capacityReductionRatio)
+- **Total Weight** across all products can be set up to 20x (MAX_TOTAL_WEIGHT)
+
+#### Summary
+
+- **Maximum Capacity Multiplier per Product**: Each product can have a maximum of **2x** capacity multiplier.
+- **Capacity Reduction Ratio**: A `capacityReductionRatio` of **2000** (20%) reduces the per-product capacity multiplier to **1.6x**.
+- **Pool-Wide Maximum Weight Leverage**: The total weight across all products in a pool is capped at **20x**.
+- **Combined Effect**: These two multipliers work together to determine the total underwriting capacity of your pool.
 
 #### Why is This Important for Managers?
 
-Understanding the actual maximum multiplier for each product helps you:
+Understanding how these multipliers work together helps you:
 
-1. **Set realistic target weights** that don't exceed the product's maximum
-2. **Estimate actual underwriting capacity** more accurately
-3. **Balance risk exposure** across different products based on their capacity reduction ratios
+1. **Set optimal weights** for different products based on risk and return
+2. **Account for capacity reduction ratios** when planning your pool's capacity
+3. **Maximize capital efficiency** while staying within the protocol's risk parameters
+4. **Estimate actual underwriting capacity** more accurately across your product portfolio
 
 ---
 

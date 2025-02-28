@@ -72,7 +72,7 @@ uint16 minPrice = CoverProducts.getProduct(productId).minPrice;
 
 To check **the current price of a product in a pool**, use the [capacity pool product API](https://api.nexusmutual.io/v2/api/docs/#/Capacity/get_v2_capacity_pools__poolId__products__productId_):
 
-```
+```bash
 GET /v2/capacity/pools/{poolId}/products/{productId}
 ```
 

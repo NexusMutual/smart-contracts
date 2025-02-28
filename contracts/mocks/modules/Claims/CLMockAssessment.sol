@@ -16,8 +16,8 @@ contract CLMockAssessment is AssessmentGeneric {
 
   mapping(uint => IAssessment.Poll) internal fraudSnapshot;
 
-  uint constant internal MIN_VOTING_PERIOD = 3 days;
-  uint constant internal PAYOUT_COOLDOWN = 1 days;
+  uint internal constant MIN_VOTING_PERIOD = 3 days;
+  uint internal constant PAYOUT_COOLDOWN = 1 days;
 
   /* ========== VIEWS ========== */
 
@@ -25,7 +25,11 @@ contract CLMockAssessment is AssessmentGeneric {
     return a <= b ? a : b;
   }
 
-  function getPayoutCooldown() external override pure returns (uint) {
+  function getMinVotingPeriod() external pure override returns (uint) {
+    return MIN_VOTING_PERIOD;
+  }
+
+  function getPayoutCooldown() external pure override returns (uint) {
     return PAYOUT_COOLDOWN;
   }
 

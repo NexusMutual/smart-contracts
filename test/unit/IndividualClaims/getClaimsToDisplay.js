@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { ASSET, CLAIM_STATUS, PAYOUT_STATUS, getCoverSegment } = require('./helpers');
+const { ASSET, CLAIM_STATUS, PAYOUT_STATUS, createMockCover } = require('./helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
@@ -18,10 +18,10 @@ const daysToSeconds = days => days * 24 * 60 * 60;
 describe('getClaimsToDisplay', function () {
   it('aggregates and displays claims related data in a human-readable form', async function () {
     const fixture = await loadFixture(setup);
-    const { individualClaims, cover, assessment } = fixture.contracts;
+    const { assessment, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
-    const segment = await getCoverSegment();
-    segment.period = daysToSeconds('66');
+    const individualClaims = fixture.contracts.individualClaims.connect(coverOwner);
+
     const expectedProductIds = ['1', '0', '1', '0', '1'];
     const expectedClaimIds = ['0', '1', '2', '3', '4'];
     const expectedCoverIds = ['4', '2', '3', '1', '5'];
@@ -32,44 +32,42 @@ describe('getClaimsToDisplay', function () {
     const expectedCoverStarts = [];
     const expectedPollStarts = [];
 
+    const period = daysToSeconds('66');
+
     {
       // 1
       const { timestamp } = await ethers.provider.getBlock('latest');
-      segment.start = timestamp + 1;
-      await cover.createMockCover(
-        coverOwner.address,
-        0, // productId
-        ASSET.ETH,
-        [segment],
-      );
-      expectedCoverStarts[3] = timestamp + 1; // This will be the 4th calim
+      await createMockCover(cover, {
+        owner: coverOwner.address,
+        start: timestamp + 1,
+        period,
+      });
+      expectedCoverStarts[3] = timestamp + 1; // This will be the 4th claim
       await setTime(timestamp + daysToSeconds(1));
     }
 
     {
       // 2
       const { timestamp } = await ethers.provider.getBlock('latest');
-      segment.start = timestamp + 1;
-      await cover.createMockCover(
-        coverOwner.address,
-        0, // productId
-        ASSET.DAI,
-        [segment],
-      );
-      expectedCoverStarts[1] = timestamp + 1; // This will be the 2nd calim
+      await createMockCover(cover, {
+        owner: coverOwner.address,
+        coverAsset: ASSET.DAI,
+        start: timestamp + 1,
+        period,
+      });
+      expectedCoverStarts[1] = timestamp + 1; // This will be the 2nd claim
       await setTime(timestamp + daysToSeconds(2));
     }
 
     {
       // 3
       const { timestamp } = await ethers.provider.getBlock('latest');
-      segment.start = timestamp + 1;
-      await cover.createMockCover(
-        coverOwner.address,
-        1, // productId
-        ASSET.ETH,
-        [segment],
-      );
+      await createMockCover(cover, {
+        owner: coverOwner.address,
+        start: timestamp + 1,
+        period,
+        productId: 1,
+      });
       expectedCoverStarts[2] = timestamp + 1; // This will be the 3rd calim
       await setTime(timestamp + daysToSeconds(4));
     }
@@ -77,98 +75,68 @@ describe('getClaimsToDisplay', function () {
     {
       // 4
       const { timestamp } = await ethers.provider.getBlock('latest');
-      segment.start = timestamp + 1;
-      await cover.createMockCover(
-        coverOwner.address,
-        1, // productId
-        ASSET.DAI,
-        [segment],
-      );
-      expectedCoverStarts[0] = timestamp + 1; // This will be the 1st calim
+      await createMockCover(cover, {
+        owner: coverOwner.address,
+        coverAsset: ASSET.DAI,
+        start: timestamp + 1,
+        period,
+        productId: 1,
+      });
+      expectedCoverStarts[0] = timestamp + 1; // This will be the 1st claim
       await setTime(timestamp + daysToSeconds(1));
     }
 
     {
       // 5
       const { timestamp } = await ethers.provider.getBlock('latest');
-      segment.start = timestamp + 1;
-      await cover.createMockCover(
-        coverOwner.address,
-        1, // productId
-        ASSET.DAI,
-        [segment],
-      );
-      expectedCoverStarts[4] = timestamp + 1; // This will be the 5th calim
+      await createMockCover(cover, {
+        owner: coverOwner.address,
+        coverAsset: ASSET.DAI,
+        start: timestamp + 1,
+        period,
+        productId: 1,
+      });
+      expectedCoverStarts[4] = timestamp + 1; // This will be the 5th claim
     }
 
     {
-      const [deposit] = await individualClaims.getAssessmentDepositAndReward(
-        expectedAmounts[0],
-        segment.period,
-        ASSET.DAI,
-      );
-      await individualClaims.connect(coverOwner).submitClaim(4, 0, expectedAmounts[0], '', {
-        value: deposit,
-      });
+      const [deposit] = await individualClaims.getAssessmentDepositAndReward(expectedAmounts[0], period, ASSET.DAI);
+      await individualClaims.submitClaim(4, expectedAmounts[0], '', { value: deposit });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(1));
     }
     {
-      const [deposit] = await individualClaims.getAssessmentDepositAndReward(
-        expectedAmounts[1],
-        segment.period,
-        ASSET.DAI,
-      );
-      await individualClaims.connect(coverOwner).submitClaim(2, 0, expectedAmounts[1], '', {
-        value: deposit,
-      });
+      const [deposit] = await individualClaims.getAssessmentDepositAndReward(expectedAmounts[1], period, ASSET.DAI);
+      await individualClaims.submitClaim(2, expectedAmounts[1], '', { value: deposit });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(1));
     }
     {
-      const [deposit] = await individualClaims.getAssessmentDepositAndReward(
-        expectedAmounts[2],
-        segment.period,
-        ASSET.ETH,
-      );
-      await individualClaims.connect(coverOwner).submitClaim(3, 0, expectedAmounts[2], '', {
-        value: deposit,
-      });
+      const [deposit] = await individualClaims.getAssessmentDepositAndReward(expectedAmounts[2], period, ASSET.ETH);
+      await individualClaims.submitClaim(3, expectedAmounts[2], '', { value: deposit });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(1));
     }
     {
-      const [deposit] = await individualClaims.getAssessmentDepositAndReward(
-        expectedAmounts[3],
-        segment.period,
-        ASSET.ETH,
-      );
-      await individualClaims.connect(coverOwner).submitClaim(1, 0, expectedAmounts[3], '', {
-        value: deposit,
-      });
+      const [deposit] = await individualClaims.getAssessmentDepositAndReward(expectedAmounts[3], period, ASSET.ETH);
+      await individualClaims.submitClaim(1, expectedAmounts[3], '', { value: deposit });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(1));
     }
     {
-      const [deposit] = await individualClaims.getAssessmentDepositAndReward(
-        expectedAmounts[4],
-        segment.period,
-        ASSET.ETH,
-      );
-      await individualClaims.connect(coverOwner).submitClaim(5, 0, expectedAmounts[4], '', {
-        value: deposit,
-      });
+      const [deposit] = await individualClaims.getAssessmentDepositAndReward(expectedAmounts[4], period, ASSET.ETH);
+      await individualClaims.submitClaim(5, expectedAmounts[4], '', { value: deposit });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
     }
 
-    const { minVotingPeriodInDays } = await assessment.config();
-    const expectedPollEnds = expectedPollStarts.map(x => x + daysToSeconds(minVotingPeriodInDays));
-    const expectedCoverEnds = expectedCoverStarts.map(x => x + segment.period);
+    const minVotingPeriod = await assessment.getMinVotingPeriod();
+    const expectedPollEnds = expectedPollStarts.map(x => x + minVotingPeriod.toNumber());
+    const expectedCoverEnds = expectedCoverStarts.map(x => x + period);
 
     const res = await individualClaims.getClaimsToDisplay([0, 1, 2, 3, 4]);
     const actualClaimIds = res.map(x => x.id);

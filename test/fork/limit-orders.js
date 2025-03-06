@@ -46,9 +46,9 @@ async function castAssessmentVote(assessmentId) {
   await setTime(futureTime);
 }
 
-describe('CoverOrder', function () {
+describe('LimitOrders', function () {
   let coverId;
-  let coverOrderProductId;
+  let limitOrdersProductId;
   let poolId;
   let tokenId;
   let trancheId;
@@ -140,12 +140,12 @@ describe('CoverOrder', function () {
     await this.memberRoles.connect(governanceSigner).setKycAuthAddress(this.kycAuthSigner.address);
   });
 
-  it('Add product to be used for coverOrder', async function () {
+  it('Add product to be used for LimitOrders', async function () {
     const productsBefore = await this.coverProducts.getProducts();
 
     await this.coverProducts.connect(this.abMembers[0]).setProducts([
       {
-        productName: 'CoverOrder Product',
+        productName: 'LimitOrders Product',
         productId: MaxUint256,
         ipfsMetadata: '',
         product: {
@@ -163,7 +163,7 @@ describe('CoverOrder', function () {
     ]);
 
     const productsAfter = await this.coverProducts.getProducts();
-    coverOrderProductId = productsAfter.length - 1;
+    limitOrdersProductId = productsAfter.length - 1;
     expect(productsAfter.length).to.be.equal(productsBefore.length + 1);
   });
 
@@ -171,7 +171,7 @@ describe('CoverOrder', function () {
     const manager = this.manager;
     const products = [
       {
-        productId: coverOrderProductId,
+        productId: limitOrdersProductId,
         weight: 100,
         initialPrice: 1000,
         targetPrice: 1000,
@@ -209,28 +209,28 @@ describe('CoverOrder', function () {
     expect(owner).to.equal(managerAddress);
   });
 
-  it('add new CoverOrder (LO) contract', async function () {
+  it('add new LimitOrders (LO) contract', async function () {
     const contractsBefore = await this.master.getInternalContracts();
 
-    // TODO: brute force salt for CoverOrder proxy address on change freeze
+    // TODO: brute force salt for LimitOrders proxy address on change freeze
     // node scripts/create2/find-salt.js -f '0x01BFd82675DBCc7762C84019cA518e701C0cD07e' \
     //                                   -c '0xffffffffffffffffffffffffffffffffffffffff' \
     //                                   -t cafea OwnedUpgradeabilityProxy
     //
     // tbd -> tbd
-    const coverOrderCreate2Salt = 203789506820;
-    this.coverOrder = await ethers.deployContract('CoverOrder', [this.nxm.address, Address.WETH_ADDRESS]);
-    const coverOrderTypeAndSalt = BigNumber.from(coverOrderCreate2Salt).shl(8).add(ContractTypes.Proxy);
+    const limitOrdersCreate2Salt = 203789506820;
+    this.limitOrders = await ethers.deployContract('LimitOrders', [this.nxm.address, Address.WETH_ADDRESS]);
+    const limitOrdersTypeAndSalt = BigNumber.from(limitOrdersCreate2Salt).shl(8).add(ContractTypes.Proxy);
     console.log({
-      coverOrderCreate2Salt,
-      coverOrderTypeAndSalt: coverOrderTypeAndSalt.toString(),
+      limitOrdersCreate2Salt,
+      limitOrdersTypeAndSalt: limitOrdersTypeAndSalt.toString(),
     });
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]', 'uint256[]'],
-        [[toUtf8Bytes(ContractCode.CoverOrder)], [this.coverOrder.address], [coverOrderTypeAndSalt]],
+        [[toUtf8Bytes(ContractCode.LimitOrders)], [this.limitOrders.address], [limitOrdersTypeAndSalt]],
       ),
       this.abMembers,
       this.governance,
@@ -238,15 +238,15 @@ describe('CoverOrder', function () {
 
     const contractsAfter = await this.master.getInternalContracts();
 
-    console.info('CoverOrder Contracts before:', formatInternalContracts(contractsBefore));
-    console.info('CoverOrder Contracts after:', formatInternalContracts(contractsAfter));
+    console.info('LimitOrders Contracts before:', formatInternalContracts(contractsBefore));
+    console.info('LimitOrders Contracts after:', formatInternalContracts(contractsAfter));
 
-    const expectedCoverOrderProxyAddress = calculateProxyAddress(this.master.address, coverOrderCreate2Salt);
+    const expectedCoverOrderProxyAddress = calculateProxyAddress(this.master.address, limitOrdersCreate2Salt);
     const actualCoverOrderProxyAddress = await this.master.getLatestAddress(toUtf8Bytes('LO'));
     expect(actualCoverOrderProxyAddress).to.equal(expectedCoverOrderProxyAddress);
 
     // set this.coverProducts to the coverProducts proxy contract
-    this.coverOrder = await ethers.getContractAt('CoverOrder', actualCoverOrderProxyAddress);
+    this.limitOrders = await ethers.getContractAt('LimitOrders', actualCoverOrderProxyAddress);
   });
 
   it('Upgrade contracts', async function () {
@@ -284,11 +284,11 @@ describe('CoverOrder', function () {
     console.info('Upgrade Contracts after:', formatInternalContracts(contractsAfter));
   });
 
-  it('Buy cover using CoverOrder', async function () {
+  it('Buy cover using LimitOrders', async function () {
     this.coverBuyer = await ethers.Wallet.createRandom().connect(ethers.provider);
     await evm.setBalance(this.coverBuyer.address, parseEther('20000000000'));
     await this.weth.connect(this.coverBuyer).deposit({ value: parseEther('100') });
-    await this.weth.connect(this.coverBuyer).approve(this.coverOrder.address, parseEther('100'));
+    await this.weth.connect(this.coverBuyer).approve(this.limitOrders.address, parseEther('100'));
 
     const amount = parseEther('1');
     const commissionRatio = '500'; // 5%
@@ -304,19 +304,21 @@ describe('CoverOrder', function () {
     };
 
     const buyCoverFixture = {
-      productId: coverOrderProductId,
+      productId: limitOrdersProductId,
       amount,
       period: 3600 * 24 * 30, // 30 days
       ipfsData: '',
       paymentAsset: 0,
       coverAsset: 0,
       owner: this.coverBuyer.address,
+      commissionRatio: this.coverBuyer.address,
+      commissionDestination: this.coverBuyer.address,
       executionDetails,
     };
 
-    const { signature } = await signCoverOrder(this.coverOrder.address, buyCoverFixture, this.coverBuyer);
+    const { signature } = await signCoverOrder(this.limitOrders.address, buyCoverFixture, this.coverBuyer);
 
-    await this.coverOrder.connect(this.abMembers[0]).executeOrder(
+    await this.limitOrders.connect(this.abMembers[0]).executeOrder(
       {
         ...buyCoverFixture,
         coverId: 0,

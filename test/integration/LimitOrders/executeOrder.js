@@ -340,6 +340,228 @@ describe('CoverOrder - executeOrder', function () {
     expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premium));
   });
 
+  it.skip('should purchase new cover and renew it', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const {
+      tc: tokenController,
+      stakingProducts,
+      p1: pool,
+      ra: ramm,
+      mcr,
+      limitOrders,
+      weth,
+      coverNFT,
+    } = fixture.contracts;
+    const {
+      nonMembers: [coverBuyer],
+      members: [orderSettler],
+    } = fixture.accounts;
+    const {
+      config: { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO },
+      productList,
+    } = fixture;
+    const { period, amount, ipfsData, commissionRatio, commissionDestination } = buyCoverFixture;
+
+    await weth.connect(coverBuyer).deposit({ value: parseEther('100') });
+    await weth.connect(coverBuyer).approve(limitOrders.address, parseEther('100'));
+
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = currentTimestamp + 1;
+    const ethRate = await getInternalPrice(ramm, pool, tokenController, mcr, nextBlockTimestamp);
+
+    const { targetPrice } = stakedProductParamTemplate;
+
+    const productId = productList.findIndex(
+      ({ product: { initialPriceRatio, useFixedPrice } }) => targetPrice !== initialPriceRatio && useFixedPrice,
+    );
+
+    const product = await stakingProducts.getProduct(1, productId);
+    const { premiumInNxm, premiumInAsset: premium } = calculatePremium(
+      amount,
+      ethRate,
+      period,
+      product.targetPrice,
+      NXM_PER_ALLOCATION_UNIT,
+    );
+
+    const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
+    const poolBeforeETH = await ethers.provider.getBalance(pool.address);
+
+    const balanceBeforeWETH = await weth.balanceOf(coverBuyer.address);
+    const nftBalanceBefore = await coverNFT.balanceOf(coverBuyer.address);
+
+    const executionDetails = {
+      ...executionDetailsFixture,
+      notBefore: currentTimestamp,
+      deadline: currentTimestamp + 3600,
+      maxPremiumInAsset: premium,
+    };
+    const { signature, digest } = await signCoverOrder(
+      limitOrders.address,
+      {
+        coverId: 0,
+        productId,
+        amount,
+        period,
+        ipfsData,
+        paymentAsset: 0,
+        coverAsset: 0,
+        owner: coverBuyer.address,
+        commissionRatio,
+        commissionDestination,
+        executionDetails,
+      },
+      coverBuyer,
+    );
+
+    await setNextBlockTime(nextBlockTimestamp);
+    await setNextBlockBaseFee(0);
+
+    const tx = await limitOrders.connect(orderSettler).executeOrder(
+      {
+        ...buyCoverFixture,
+        paymentAsset: 0, // ETH
+        productId,
+        ipfsData,
+        owner: coverBuyer.address,
+        maxPremiumInAsset: premium,
+      },
+      [{ poolId: 1, coverAmountInAsset: amount }],
+      executionDetails,
+      signature,
+      0, // signerFee
+    );
+
+    const coverId = await coverNFT.totalSupply();
+
+    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const balanceAfterWETH = await weth.balanceOf(coverBuyer.address);
+    const nftBalanceAfter = await coverNFT.balanceOf(coverBuyer.address);
+
+    expect(nftBalanceAfter).to.be.equal(nftBalanceBefore.add(1));
+    // amountOver should have been refunded
+    expect(balanceAfterWETH).to.be.equal(balanceBeforeWETH.sub(premium));
+    const rewards = calculateRewards(premiumInNxm, timestamp, period, GLOBAL_REWARDS_RATIO);
+
+    const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);
+    const poolAfterETH = await ethers.provider.getBalance(pool.address);
+    expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBefore.rewards.add(rewards));
+    expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premium));
+  });
+
+  it('should purchase new cover and not renew it if the counter is over renewal limit', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const {
+      tc: tokenController,
+      stakingProducts,
+      p1: pool,
+      ra: ramm,
+      mcr,
+      limitOrders,
+      weth,
+      coverNFT,
+    } = fixture.contracts;
+    const {
+      nonMembers: [coverBuyer],
+      members: [orderSettler],
+    } = fixture.accounts;
+    const {
+      config: { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO },
+      productList,
+    } = fixture;
+    const { period, amount, ipfsData, commissionRatio, commissionDestination } = buyCoverFixture;
+
+    await weth.connect(coverBuyer).deposit({ value: parseEther('100') });
+    await weth.connect(coverBuyer).approve(limitOrders.address, parseEther('100'));
+
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = currentTimestamp + 1;
+    const ethRate = await getInternalPrice(ramm, pool, tokenController, mcr, nextBlockTimestamp);
+
+    const { targetPrice } = stakedProductParamTemplate;
+
+    const productId = productList.findIndex(
+      ({ product: { initialPriceRatio, useFixedPrice } }) => targetPrice !== initialPriceRatio && useFixedPrice,
+    );
+
+    const product = await stakingProducts.getProduct(1, productId);
+    const { premiumInNxm, premiumInAsset: premium } = calculatePremium(
+      amount,
+      ethRate,
+      period,
+      product.targetPrice,
+      NXM_PER_ALLOCATION_UNIT,
+    );
+
+    const stakingPoolBefore = await tokenController.stakingPoolNXMBalances(1);
+    const poolBeforeETH = await ethers.provider.getBalance(pool.address);
+
+    const balanceBeforeWETH = await weth.balanceOf(coverBuyer.address);
+    const nftBalanceBefore = await coverNFT.balanceOf(coverBuyer.address);
+
+    const executionDetails = {
+      ...executionDetailsFixture,
+      notBefore: currentTimestamp,
+      deadline: currentTimestamp + 3600,
+      maxPremiumInAsset: premium,
+    };
+    const { signature, digest } = await signCoverOrder(
+      limitOrders.address,
+      {
+        coverId: 0,
+        productId,
+        amount,
+        period,
+        ipfsData,
+        paymentAsset: 0,
+        coverAsset: 0,
+        owner: coverBuyer.address,
+        commissionRatio,
+        commissionDestination,
+        executionDetails,
+      },
+      coverBuyer,
+    );
+
+    await setNextBlockTime(nextBlockTimestamp);
+    await setNextBlockBaseFee(0);
+
+    const tx = await limitOrders.connect(orderSettler).executeOrder(
+      {
+        ...buyCoverFixture,
+        paymentAsset: 0, // ETH
+        productId,
+        ipfsData,
+        owner: coverBuyer.address,
+        maxPremiumInAsset: premium,
+      },
+      [{ poolId: 1, coverAmountInAsset: amount }],
+      executionDetails,
+      signature,
+      0, // signerFee
+    );
+
+    const coverId = await coverNFT.totalSupply();
+
+    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const balanceAfterWETH = await weth.balanceOf(coverBuyer.address);
+    const nftBalanceAfter = await coverNFT.balanceOf(coverBuyer.address);
+
+    expect(nftBalanceAfter).to.be.equal(nftBalanceBefore.add(1));
+    // amountOver should have been refunded
+    expect(balanceAfterWETH).to.be.equal(balanceBeforeWETH.sub(premium));
+    const rewards = calculateRewards(premiumInNxm, timestamp, period, GLOBAL_REWARDS_RATIO);
+
+    const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);
+    const poolAfterETH = await ethers.provider.getBalance(pool.address);
+    expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBefore.rewards.add(rewards));
+    expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premium));
+  });
+
   it("should revert if the solver isn't a member", async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { limitOrders } = fixture.contracts;

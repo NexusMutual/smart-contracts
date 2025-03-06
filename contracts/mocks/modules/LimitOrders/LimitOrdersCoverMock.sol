@@ -7,7 +7,6 @@ import "hardhat/console.sol";
 contract LimitOrdersCoverMock is CoverGeneric {
 
   function buyCoverFor(
-    address,
     BuyCoverParams memory,
     PoolAllocationRequest[] memory
   ) external payable override returns (uint coverId) {

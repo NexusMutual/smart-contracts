@@ -129,7 +129,6 @@ interface ICover {
   ) external payable returns (uint coverId);
 
   function buyCoverFor(
-    address buyer,
     BuyCoverParams calldata params,
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint coverId);

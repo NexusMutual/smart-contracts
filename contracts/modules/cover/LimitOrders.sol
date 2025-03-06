@@ -214,7 +214,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     weth.transferFrom(buyer, address(this), params.maxPremiumInAsset);
     weth.withdraw(params.maxPremiumInAsset);
 
-    coverId = cover().buyCoverFor{value: params.maxPremiumInAsset}(address(this), params, poolAllocationRequests);
+    coverId = cover().buyCoverFor{value: params.maxPremiumInAsset}(params, poolAllocationRequests);
 
     weth.transferFrom(address(this), msg.sender, solverFee);
 
@@ -255,7 +255,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     uint erc20BalanceBefore = erc20.balanceOf(address(this));
 
     erc20.safeTransferFrom(buyer, address(this), params.maxPremiumInAsset);
-    coverId = cover().buyCoverFor(address(this), params, poolAllocationRequests);
+    coverId = cover().buyCoverFor(params, poolAllocationRequests);
 
     erc20.safeTransfer(msg.sender, solverFee);
 

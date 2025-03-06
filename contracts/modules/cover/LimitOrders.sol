@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-v4/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/access/Ownable.sol";
+import "hardhat/console.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ILimitOrders.sol";
@@ -88,10 +89,16 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       revert OrderCannotBeExecutedYet();
     }
 
-    // TODO: Fetch latest cover and check if end of the cover is in the renewWhenLeft period
+    if (!isNewCover) {
+      CoverData memory coverData = cover().getLatestEditCoverData(_orderDetails.coverId);
+
+      if (coverData.start + coverData.period - _orderDetails.renewWhenLeft > block.timestamp ) {
+        revert OrderCannotBeRenewedYet();
+      }
+    }
 
     // Ensure the order has not already been executed
-    if (_orderDetails.executionCounter > _orderDetails.maxRenewals) {
+    if (_orderDetails.executionCounter > _orderDetails.maxNumberOfRenewals) {
       revert OrderAlreadyExecuted();
     }
 
@@ -111,6 +118,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
 
     if (isNewCover) {
       _orderDetails.executionCounter = 0;
+      _orderDetails.maxNumberOfRenewals = executionDetails.maxNumberOfRenewals;
       _orderDetails.coverId = uint192(coverId);
     }
 
@@ -136,7 +144,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
 
     OrderDetails memory _orderDetails = orderDetails[id];
 
-    if (_orderDetails.executionCounter > _orderDetails.maxRenewals) {
+    if (_orderDetails.executionCounter > _orderDetails.maxNumberOfRenewals) {
       revert OrderAlreadyExecuted();
     }
 

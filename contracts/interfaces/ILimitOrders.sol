@@ -21,7 +21,7 @@ struct ExecutionDetails {
 struct OrderDetails {
   uint192 coverId;
   uint32 renewWhenLeft;
-  uint8 maxRenewals;
+  uint8 maxNumberOfRenewals;
   uint8 executionCounter;
   bool isCancelled;
 }
@@ -62,6 +62,7 @@ interface ILimitOrders {
   error OrderAlreadyCancelled();
   error OrderExpired();
   error OrderCannotBeExecutedYet();
+  error OrderCannotBeRenewedYet();
   error OrderPriceNotMet();
   error NotOrderOwner();
   error NotAMember();

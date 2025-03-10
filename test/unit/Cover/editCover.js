@@ -1785,7 +1785,7 @@ describe('editCover', function () {
     expect(coverReferenceForLastEditId.originalCoverId).to.equal(originalCoverId);
   });
 
-  it('cover references should change after cover edit', async function () {
+  it('cover edit should revert if coverId is not original cover id', async function () {
     const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;

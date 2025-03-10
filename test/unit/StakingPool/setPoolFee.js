@@ -12,14 +12,10 @@ const setup = require('./setup');
 const allocationRequestTemplate = {
   productId: 0,
   coverId: 0,
-  allocationId: 0,
   period: daysToSeconds(30),
   gracePeriod: daysToSeconds(30),
-  previousStart: 0,
-  previousExpiration: 0,
-  previousRewardsRatio: 5000,
   useFixedPrice: false,
-  globalCapacityRatio: 20000,
+  capacityRatio: 20000,
   capacityReductionRatio: 0,
   rewardRatio: 5000,
   productMinPrice: 10000,
@@ -125,10 +121,9 @@ describe('setPoolFee', function () {
 
     // Generate rewards
     const coverAmount = parseEther('1');
-    const previousPremium = 0;
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
 
-    await stakingPool.connect(coverSigner).requestAllocation(coverAmount, previousPremium, allocationRequest);
+    await stakingPool.connect(coverSigner).requestAllocation(coverAmount, allocationRequest);
     await increaseTime(daysToSeconds(25));
 
     const rewardsSharesSupplyBefore = await stakingPool.getRewardsSharesSupply();

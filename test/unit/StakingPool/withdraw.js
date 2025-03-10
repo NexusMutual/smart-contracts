@@ -476,18 +476,13 @@ describe('withdraw', function () {
     const lastTrancheId = firstActiveTrancheId + 7;
 
     // allocation params
-    const previousPremium = 0;
     const allocationRequest = {
       productId: 0,
       coverId: 0,
-      allocationId: 0,
       period: rewardsPeriod,
       gracePeriod: 0,
-      previousStart: 0,
-      previousExpiration: 0,
-      previousRewardsRatio: 5000,
       useFixedPrice: true, // using fixed price to get the exact same premium
-      globalCapacityRatio: 20000,
+      capacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 10000, // 1:1
       productMinPrice: 10000,
@@ -527,13 +522,11 @@ describe('withdraw', function () {
     const rewardStreamPeriod = rewardExpirationTimestamp - rewardsTimestamp;
 
     // static call to simulate the call and get the function return data
-    const { premium } = await stakingPool
-      .connect(coverSigner)
-      .callStatic.requestAllocation(amount, previousPremium, allocationRequest);
+    const { premium } = await stakingPool.connect(coverSigner).callStatic.requestAllocation(amount, allocationRequest);
 
     // set the exact time and send the tx
     await setNextBlockTime(rewardsTimestamp);
-    await stakingPool.connect(coverSigner).requestAllocation(amount, previousPremium, allocationRequest);
+    await stakingPool.connect(coverSigner).requestAllocation(amount, allocationRequest);
 
     const { rewards: rewardsMintedAfter } = await tokenController.stakingPoolNXMBalances(poolId);
     const actualRewardsMinted = rewardsMintedAfter.sub(rewardsMintedBefore);

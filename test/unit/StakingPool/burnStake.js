@@ -30,7 +30,7 @@ const poolInitParams = {
 };
 
 const productTypeFixture = {
-  claimMethod: 1,
+  claimMethod: 0,
   gracePeriod: daysToSeconds(7), // 7 days
 };
 
@@ -56,14 +56,10 @@ const burnStakeParams = {
 const allocationRequestParams = {
   productId: 0,
   coverId: 0,
-  allocationId: 0,
   period: DEFAULT_PERIOD,
   gracePeriod: DEFAULT_GRACE_PERIOD,
-  previousStart: 0,
-  previousExpiration: 0,
-  previousRewardsRatio: 5000,
   useFixedPrice: false,
-  globalCapacityRatio: 20000,
+  capacityRatio: 20000,
   capacityReductionRatio: 0,
   rewardRatio: 5000,
   productMinPrice: 10000,
@@ -236,7 +232,7 @@ describe('burnStake', function () {
     const allocationAmount1 = stakedNxmAmount;
 
     // allocates 50% of first tranche
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount1, 0, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount1, allocationRequestParams);
     const firstAllocationBlock = await ethers.provider.getBlock('latest');
 
     {
@@ -250,7 +246,7 @@ describe('burnStake', function () {
     const allocationId2 = await stakingPool.getNextAllocationId();
 
     // allocates 50% of first tranche and 50% of second tranche
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount2, 0, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount2, allocationRequestParams);
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId2);
@@ -260,18 +256,24 @@ describe('burnStake', function () {
     }
 
     const allocationAmount3 = stakedNxmAmount.mul(3);
+    const allocationId3 = await stakingPool.getNextAllocationId();
 
-    // updates allocation to be 50% of first tranche, 50% of second tranche and 50% of third tranche
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount3, 0, {
-      ...allocationRequestParams,
+    // deallocate first allocation, and allocate new one to be 50% of first tranche,
+    // 50% of second tranche and 50% of third tranche
+    await stakingPool.connect(fixture.coverSigner).requestDeallocation({
       allocationId: allocationId1,
-      previousStart: firstAllocationBlock.timestamp,
-      previousExpiration: firstAllocationBlock.timestamp + allocationRequestParams.period,
+      productId: allocationRequestParams.productId,
+      premium: 0,
+      start: firstAllocationBlock.timestamp,
+      period: allocationRequestParams.period,
+      rewardsRatio: 0,
     });
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount3, allocationRequestParams);
+
     const editAllocationBlock = await ethers.provider.getBlock('latest');
 
     {
-      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId1);
+      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId3);
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
       expect(coverTrancheAllocations.shr(32).and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
       expect(coverTrancheAllocations.shr(64)).to.equal(coverTrancheAllocationAmount);
@@ -280,7 +282,7 @@ describe('burnStake', function () {
     // deallocates half of the last tranche
     const firstDeallocationAmount = stakedNxmAmount.div(2);
     const params = {
-      allocationId: allocationId1,
+      allocationId: allocationId3,
       productId: allocationRequestParams.productId,
       start: editAllocationBlock.timestamp,
       period: allocationRequestParams.period,
@@ -290,7 +292,7 @@ describe('burnStake', function () {
     await stakingPool.connect(fixture.coverSigner).burnStake(0, params);
 
     {
-      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId1);
+      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId3);
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
       expect(coverTrancheAllocations.shr(32).and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
       expect(coverTrancheAllocations.shr(64)).to.equal(stakedNxmAmount.div(2).div(NXM_PER_ALLOCATION_UNIT));
@@ -324,7 +326,7 @@ describe('burnStake', function () {
     }
 
     // allocates 50% of first tranche
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount1, 0, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount1, allocationRequestParams);
     const firstAllocationBlock = await ethers.provider.getBlock('latest');
 
     const allocationAmountInUnit = stakedNxmAmount.div(NXM_PER_ALLOCATION_UNIT);
@@ -339,7 +341,7 @@ describe('burnStake', function () {
     const allocationAmount2 = stakedNxmAmount.mul(2);
 
     // allocates 50% of first tranche and 50% of second tranche
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount2, 0, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount2, allocationRequestParams);
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -349,14 +351,19 @@ describe('burnStake', function () {
     }
 
     const allocationAmount3 = stakedNxmAmount.mul(3);
+    const allocationId3 = await stakingPool.getNextAllocationId();
 
-    // updates allocation to be 50% of first tranche, 50% of second tranche and 50% of third tranche
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount3, 0, {
-      ...allocationRequestParams,
+    // deallocate first allocation, and allocate new one to be 50% of first tranche,
+    // 50% of second tranche and 50% of third tranche
+    await stakingPool.connect(fixture.coverSigner).requestDeallocation({
       allocationId: allocationId1,
-      previousStart: firstAllocationBlock.timestamp,
-      previousExpiration: firstAllocationBlock.timestamp + allocationRequestParams.period,
+      productId: allocationRequestParams.productId,
+      premium: 0,
+      start: firstAllocationBlock.timestamp,
+      period: allocationRequestParams.period,
+      rewardsRatio: 0,
     });
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount3, allocationRequestParams);
     const editAllocationBlock = await ethers.provider.getBlock('latest');
 
     {
@@ -369,7 +376,7 @@ describe('burnStake', function () {
     // deallocates half of the last tranche
     const firstDeallocationAmount = stakedNxmAmount.div(2);
     const params = {
-      allocationId: allocationId1,
+      allocationId: allocationId3,
       productId,
       start: editAllocationBlock.timestamp,
       period: allocationRequestParams.period,
@@ -408,7 +415,7 @@ describe('burnStake', function () {
     const allocationId = await stakingPool.getNextAllocationId();
     const allocateTx = await stakingPool
       .connect(fixture.coverSigner)
-      .requestAllocation(stakedNxmAmount, 0, allocationRequestParams);
+      .requestAllocation(stakedNxmAmount, allocationRequestParams);
 
     const { blockNumber } = await allocateTx.wait();
     const { timestamp: allocationTimestamp } = await ethers.provider.getBlock(blockNumber);
@@ -449,7 +456,7 @@ describe('burnStake', function () {
     }
 
     // allocates 50% of first tranche
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount1, 0, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount1, allocationRequestParams);
     const firstAllocationBlock = await ethers.provider.getBlock('latest');
 
     const { firstActiveTrancheId: currentTrancheId } = await getTranches();
@@ -483,7 +490,7 @@ describe('burnStake', function () {
     const allocationAmount2 = stakedNxmAmount.mul(2);
 
     // allocates 50% of first tranche and 50% of second tranche
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount2, 0, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount2, allocationRequestParams);
 
     {
       const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
@@ -508,14 +515,19 @@ describe('burnStake', function () {
     }
 
     const allocationAmount3 = stakedNxmAmount.mul(3);
+    const allocationId3 = await stakingPool.getNextAllocationId();
 
-    // updates allocation to be 50% of first tranche, 50% of second tranche and 50% of third tranche
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount3, 0, {
-      ...allocationRequestParams,
+    // deallocate first allocation, and allocate new one to be 50% of first tranche,
+    // 50% of second tranche and 50% of third tranche
+    await stakingPool.connect(fixture.coverSigner).requestDeallocation({
       allocationId: allocationId1,
-      previousStart: firstAllocationBlock.timestamp,
-      previousExpiration: firstAllocationBlock.timestamp + allocationRequestParams.period,
+      productId: allocationRequestParams.productId,
+      premium: 0,
+      start: firstAllocationBlock.timestamp,
+      period: allocationRequestParams.period,
+      rewardsRatio: 0,
     });
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount3, allocationRequestParams);
     const editAllocationBlock = await ethers.provider.getBlock('latest');
 
     {
@@ -554,7 +566,7 @@ describe('burnStake', function () {
     // deallocates half of the last tranche
     const firstDeallocationAmount = stakedNxmAmount.div(2);
     const params = {
-      allocationId: allocationId1,
+      allocationId: allocationId3,
       productId,
       start: editAllocationBlock.timestamp,
       period: allocationRequestParams.period,

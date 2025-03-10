@@ -266,14 +266,10 @@ describe('depositTo', function () {
     const allocationRequest = {
       productId: 0,
       coverId: 0,
-      allocationId: 0,
       period: daysToSeconds(30),
       gracePeriod: daysToSeconds(30),
-      previousStart: 0,
-      previousExpiration: 0,
-      previousRewardsRatio: 5000,
       useFixedPrice: false,
-      globalCapacityRatio: 20000,
+      capacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 5000,
       productMinPrice: 10000,
@@ -290,8 +286,7 @@ describe('depositTo', function () {
     expect(depositData.pendingRewards).to.equal(0);
 
     const coverAmount = parseEther('1');
-    const previousPremium = 0;
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(coverAmount, previousPremium, allocationRequest);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(coverAmount, allocationRequest);
     await increaseTime(daysToSeconds(20));
 
     // Second deposit
@@ -332,14 +327,10 @@ describe('depositTo', function () {
     const allocationRequest = {
       productId: 0,
       coverId: 0,
-      allocationId: 0,
       period: daysToSeconds(30),
       gracePeriod: daysToSeconds(30),
-      previousStart: 0,
-      previousExpiration: 0,
-      previousRewardsRatio: 5000,
       useFixedPrice: false,
-      globalCapacityRatio: 20000,
+      capacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 5000,
       productMinPrice: 10000,
@@ -361,8 +352,7 @@ describe('depositTo', function () {
 
     // Generate rewards
     const coverAmount = parseEther('1');
-    const previousPremium = 0;
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(coverAmount, previousPremium, allocationRequest);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(coverAmount, allocationRequest);
     await increaseTime(daysToSeconds(20));
 
     // Second deposit
@@ -390,14 +380,10 @@ describe('depositTo', function () {
     const allocationRequest = {
       productId: 0,
       coverId: 0,
-      allocationId: 0,
       period: daysToSeconds(30),
       gracePeriod: daysToSeconds(30),
-      previousStart: 0,
-      previousExpiration: 0,
-      previousRewardsRatio: 5000,
       useFixedPrice: false,
-      globalCapacityRatio: 20000,
+      capacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 5000,
       productMinPrice: 10000,
@@ -408,8 +394,7 @@ describe('depositTo', function () {
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
 
     const coverAmount = parseEther('1');
-    const previousPremium = 0;
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(coverAmount, previousPremium, allocationRequest);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(coverAmount, allocationRequest);
 
     await increaseTime(daysToSeconds(150));
 

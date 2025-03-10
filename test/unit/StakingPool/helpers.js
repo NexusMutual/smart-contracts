@@ -96,23 +96,18 @@ async function generateRewards(
   gracePeriod = daysToSeconds(10),
   amount = parseEther('1'),
 ) {
-  const previousPremium = 0;
   const allocationRequest = {
     productId: 0,
     coverId: 0,
-    allocationId: 0,
     period,
     gracePeriod,
-    previousStart: 0,
-    previousExpiration: 0,
-    previousRewardsRatio: 5000,
     useFixedPrice: false,
-    globalCapacityRatio: 20000,
+    capacityRatio: 20000,
     capacityReductionRatio: 0,
     rewardRatio: 5000,
     productMinPrice: 10000,
   };
-  await stakingPool.connect(signer).requestAllocation(amount, previousPremium, allocationRequest);
+  await stakingPool.connect(signer).requestAllocation(amount, allocationRequest);
 }
 
 async function calculateStakeAndRewardsWithdrawAmounts(stakingPool, deposit, trancheId) {

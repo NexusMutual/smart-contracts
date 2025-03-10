@@ -1681,5 +1681,160 @@ describe('editCover', function () {
     expect(totalActiveCoverInAsset).to.equal(increasedAmount);
   });
 
-  // TODO: add cover reference tests
+  it('cover references should have same ids if cover is not edited', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const { coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
+
+    const coverReference = await cover.getCoverReference(originalCoverId);
+    expect(coverReference.originalCoverId).to.equal(originalCoverId);
+    expect(coverReference.latestCoverId).to.equal(originalCoverId);
+  });
+
+  it('cover references should change after cover edit', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [coverBuyer] = fixture.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+    const { coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
+
+    const reducedPeriod = period - daysToSeconds(1);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: originalCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount: 1,
+        period: reducedPeriod,
+        maxPremiumInAsset: 0,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
+    );
+
+    const editedCoverId = originalCoverId.add(1);
+    const coverReferenceForOriginalId = await cover.getCoverReference(originalCoverId);
+    const coverReferenceForEditedId = await cover.getCoverReference(editedCoverId);
+
+    expect(coverReferenceForOriginalId.originalCoverId).to.equal(originalCoverId);
+    expect(coverReferenceForOriginalId.latestCoverId).to.equal(editedCoverId);
+    expect(coverReferenceForEditedId.originalCoverId).to.equal(originalCoverId);
+  });
+
+  it('cover reference latestCoverId should be correct after 2 edits', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [coverBuyer] = fixture.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+    const { coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
+
+    const reducedPeriodFirstEdit = period - daysToSeconds(1);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: originalCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period: reducedPeriodFirstEdit,
+        maxPremiumInAsset: 0,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
+    );
+
+    const reducedPeriodSecondEdit = reducedPeriodFirstEdit - daysToSeconds(1);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: originalCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period: reducedPeriodSecondEdit,
+        maxPremiumInAsset: 0,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
+    );
+
+    const lastEditCoverId = originalCoverId.add(2);
+    const coverReferenceForOriginalId = await cover.getCoverReference(originalCoverId);
+    const coverReferenceForLastEditId = await cover.getCoverReference(lastEditCoverId);
+
+    expect(coverReferenceForOriginalId.originalCoverId).to.equal(originalCoverId);
+    expect(coverReferenceForOriginalId.latestCoverId).to.equal(lastEditCoverId);
+    expect(coverReferenceForLastEditId.originalCoverId).to.equal(originalCoverId);
+  });
+
+  it('cover references should change after cover edit', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [coverBuyer] = fixture.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+    const { coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
+
+    const reducedPeriodFirstEdit = period - daysToSeconds(1);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: originalCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period: reducedPeriodFirstEdit,
+        maxPremiumInAsset: 0,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
+    );
+
+    const editedCoverId = originalCoverId.add(1);
+
+    const reducedPeriodSecondEdit = reducedPeriodFirstEdit - daysToSeconds(1);
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: editedCoverId,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount,
+          period: reducedPeriodSecondEdit,
+          maxPremiumInAsset: 0,
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: 1, coverAmountInAsset: amount.toString() }],
+      ),
+    ).to.be.revertedWithCustomError(cover, 'MustBeOriginalCoverId');
+  });
 });

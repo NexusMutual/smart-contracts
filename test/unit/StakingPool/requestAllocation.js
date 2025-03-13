@@ -1261,7 +1261,7 @@ describe('requestAllocation', function () {
       expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
-    let lastBlock = await ethers.provider.getBlock('latest');
+    const { timestamp: firstAllocationTimestamp } = await ethers.provider.getBlock('latest');
 
     const secondAllocationAmount = amount.div(2);
     const secondAllocationId = await stakingPool.getNextAllocationId();
@@ -1270,7 +1270,7 @@ describe('requestAllocation', function () {
       allocationId,
       productId: allocationRequestParams.productId,
       premium: 0,
-      start: lastBlock.timestamp,
+      start: firstAllocationTimestamp,
       period,
       rewardsRatio: 0,
     });
@@ -1282,7 +1282,7 @@ describe('requestAllocation', function () {
       expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
-    lastBlock = await ethers.provider.getBlock('latest');
+    const { timestamp: secondAllocationTimestamp } = await ethers.provider.getBlock('latest');
     const thirdAllocationAmount = amount;
     const thirdAllocationId = await stakingPool.getNextAllocationId();
 
@@ -1291,7 +1291,7 @@ describe('requestAllocation', function () {
       allocationId: secondAllocationId,
       productId: allocationRequestParams.productId,
       premium: 0,
-      start: lastBlock.timestamp,
+      start: secondAllocationTimestamp,
       period,
       rewardsRatio: 0,
     });
@@ -1304,7 +1304,7 @@ describe('requestAllocation', function () {
       expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
-    lastBlock = await ethers.provider.getBlock('latest');
+    const { timestamp: thirdAllocationTimestamp } = await ethers.provider.getBlock('latest');
     const fourthAllocationIncreaseAmount = parseEther('180');
     const fourthAllocationId = await stakingPool.getNextAllocationId();
 
@@ -1312,7 +1312,7 @@ describe('requestAllocation', function () {
       allocationId: thirdAllocationId,
       productId: allocationRequestParams.productId,
       premium: 0,
-      start: lastBlock.timestamp,
+      start: thirdAllocationTimestamp,
       period,
       rewardsRatio: 0,
     });
@@ -1327,7 +1327,7 @@ describe('requestAllocation', function () {
       expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
-    lastBlock = await ethers.provider.getBlock('latest');
+    const { timestamp: fourthAllocationTimestamp } = await ethers.provider.getBlock('latest');
     const fifthAllocationIncreaseAmount = parseEther('40');
     const fifthAllocationId = await stakingPool.getNextAllocationId();
 
@@ -1335,7 +1335,7 @@ describe('requestAllocation', function () {
       allocationId: fourthAllocationId,
       productId: allocationRequestParams.productId,
       premium: 0,
-      start: lastBlock.timestamp,
+      start: fourthAllocationTimestamp,
       period,
       rewardsRatio: 0,
     });

@@ -75,10 +75,6 @@ contract SKMockCover is CoverGeneric {
     return (premium, allocationId);
   }
 
-  function requestDeallocation(DeallocationRequest calldata deallocationRequest, IStakingPool _stakingPool) public {
-    _stakingPool.requestDeallocation(deallocationRequest);
-  }
-
   function callAllocateCapacity(IStakingPool _stakingPool, bytes memory data) public {
     // low level call to avoid stack too deep
     (bool ok, bytes memory result) = address(_stakingPool).call(data);

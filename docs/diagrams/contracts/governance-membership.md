@@ -14,11 +14,11 @@ graph TD
     NXMaster["NXMaster Registry"]
 
     %% Member interactions
-    Member -->|"(1) submitProposal"| Governance
-    Member -->|"(2) vote"| Governance
-    Member -->|"(3) queryVotingPower"| VotePower
-    Member -->|"(4) withdrawMembership"| MemberRoles
-    Member -->|"(5) switchMembership"| MemberRoles
+    Member -->|"**(1)** submitProposal"| Governance
+    Member -->|"**(2)** vote"| Governance
+    Member -->|"**(3)** queryVotingPower"| VotePower
+    Member -->|"**(4)** withdrawMembership"| MemberRoles
+    Member -->|"**(5)** switchMembership"| MemberRoles
 
     %% Contract Registry interactions
     Governance -.->|"getLatestAddress"| NXMaster
@@ -39,9 +39,9 @@ graph TD
     NXMaster["NXMaster Registry"]
 
     %% AB Member interactions
-    ABMember -->|"(1) approveProposal"| Governance
-    ABMember -->|"(2) rejectAction"| Governance
-    ABMember -->|"(3) swapABMember"| MemberRoles
+    ABMember -->|"**(1)** approveProposal"| Governance
+    ABMember -->|"**(2)** rejectAction"| Governance
+    ABMember -->|"**(3)** swapABMember"| MemberRoles
 
     %% Contract Registry interactions
     Governance -.->|"getLatestAddress"| NXMaster

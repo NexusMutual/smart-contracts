@@ -15,11 +15,11 @@ graph TD
     NXMaster["NXMaster Registry"]
 
     %% Member interactions
-    Member -->|"(1a) buyCover"| Cover
-    Cover -->|"(1b) validate product"| CoverProducts
-    Cover -->|"(1c) mint"| CoverNFT
-    CoverNFT -.->|"(1c) issues Cover NFT"| Member
-    Cover -->|"(1d) payment"| Pool
+    Member -->|"**(1a)** buyCover"| Cover
+    Cover -->|"**(1b)** validate product"| CoverProducts
+    Cover -->|"**(1c)** mint"| CoverNFT
+    CoverNFT -.->|"**(1c)** issues Cover NFT"| Member
+    Cover -->|"**(1d)** payment"| Pool
 
     %% Contract Registry interactions
     CoverProducts -.->|"getLatestAddress"| NXMaster
@@ -40,9 +40,9 @@ graph TD
     Pool["Pool Contract"]
 
     %% AB Member interactions
-    ABMember -->|"(1) setProducts"| CoverProducts
-    ABMember -->|"(2) setProductTypes"| CoverProducts
-    ABMember -->|"(3) setProductsMetadata"| CoverProducts
+    ABMember -->|"**(1)** setProducts"| CoverProducts
+    ABMember -->|"**(2)** setProductTypes"| CoverProducts
+    ABMember -->|"**(3)** setProductsMetadata"| CoverProducts
 
     %% Internal validations
     CoverProducts -->|"validate assets"| Pool
@@ -59,21 +59,21 @@ graph TD
 ### 1. Member Actions
 
 1. **Buy Cover**
-   (1a) **Member** calls `buyCover` on Cover with:
+   **(1a)** `Member` calls `buyCover` on Cover with:
    - Product ID
    - Cover amount
    - Cover period
    - Payment asset
    - Cover asset
-     (1b) **Cover** validates product with CoverProducts
-     (1c) **Cover** mints NFT representing cover
+     **(1b)** `Cover` validates product with CoverProducts
+     **(1c)** `Cover` mints NFT representing cover
      - issues Cover NFT to buyer
-       (1d) **Cover** processes payment via Pool
+       **(1d)** `Cover` processes payment via Pool
 
 ### 2. Advisory Board Actions
 
 1. **Product Configuration**
-   (1) **AB Member** calls `setProducts` on CoverProducts to:
+   **(1)** `AB Member` calls `setProducts` on CoverProducts to:
 
    - Add new products (`productId = uint256.max`)
    - Update existing products
@@ -81,14 +81,14 @@ graph TD
    - Set capacity reduction ratios
    - Configure allowed staking pools
 
-   (2) **AB Member** calls `setProductTypes` on CoverProducts to:
+   **(2)** `AB Member` calls `setProductTypes` on CoverProducts to:
 
    - Define product types (`productTypeId = uint256.max`)
    - Set grace periods
    - Set product type names
    - Update product type metadata
 
-   (3) **AB Member** calls `setProductsMetadata` to:
+   **(3)** `AB Member` calls `setProductsMetadata` to:
 
    - Update product IPFS metadata
    - Update product type IPFS metadata

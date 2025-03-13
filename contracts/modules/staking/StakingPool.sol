@@ -88,12 +88,12 @@ contract StakingPool is IStakingPool, Multicall {
 
   /* immutables */
 
-  IStakingNFT internal immutable stakingNFT;
-  INXMToken internal immutable nxm;
-  ITokenController internal  immutable tokenController;
-  address internal immutable coverContract;
-  INXMMaster internal immutable masterContract;
-  IStakingProducts internal immutable stakingProducts;
+  IStakingNFT public immutable stakingNFT;
+  INXMToken public immutable nxm;
+  address public immutable coverContract;
+  ITokenController public  immutable tokenController;
+  INXMMaster public immutable masterContract;
+  IStakingProducts public immutable stakingProducts;
 
   /* constants */
 

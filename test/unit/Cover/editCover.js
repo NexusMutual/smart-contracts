@@ -1681,7 +1681,7 @@ describe('editCover', function () {
     expect(totalActiveCoverInAsset).to.equal(increasedAmount);
   });
 
-  it('cover references should have same ids if cover is not edited', async function () {
+  it('cover reference should be the same as the cover id if the cover was not edited', async function () {
     const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const { coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
@@ -1691,7 +1691,7 @@ describe('editCover', function () {
     expect(coverReference.latestCoverId).to.equal(originalCoverId);
   });
 
-  it('cover references should change after cover edit', async function () {
+  it('cover reference should change after a cover edit', async function () {
     const fixture = await loadFixture(setup);
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
@@ -1725,7 +1725,7 @@ describe('editCover', function () {
 
     expect(coverReferenceForOriginalId.originalCoverId).to.equal(originalCoverId);
     expect(coverReferenceForOriginalId.latestCoverId).to.equal(editedCoverId);
-    expect(coverReferenceForEditedId.originalCoverId).to.equal(originalCoverId);
+    expect(coverReferenceForEditedId).to.deep.equal(coverReferenceForOriginalId);
   });
 
   it('cover reference latestCoverId should be correct after 2 edits', async function () {
@@ -1782,7 +1782,7 @@ describe('editCover', function () {
 
     expect(coverReferenceForOriginalId.originalCoverId).to.equal(originalCoverId);
     expect(coverReferenceForOriginalId.latestCoverId).to.equal(lastEditCoverId);
-    expect(coverReferenceForLastEditId.originalCoverId).to.equal(originalCoverId);
+    expect(coverReferenceForLastEditId).to.deep.equal(coverReferenceForOriginalId);
   });
 
   it('cover edit should revert if coverId is not original cover id', async function () {

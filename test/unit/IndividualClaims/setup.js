@@ -106,7 +106,7 @@ async function setup() {
   await dai.mint(pool.address, parseEther('200'));
 
   const config = {
-    minAssessmentDepositRatio: await individualClaims.getMinAssessmentDepositRatio(),
+    minAssessmentDepositRatio: (await individualClaims.getMinAssessmentDepositRatio()).toNumber(),
     maxRewardInNxm: await individualClaims.getMaxRewardInNxm(),
     payoutCooldown: (await assessment.getPayoutCooldown()).toNumber(),
     payoutRedemptionPeriod: (await individualClaims.getPayoutRedemptionPeriod()).toNumber(),

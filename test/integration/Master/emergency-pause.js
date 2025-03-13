@@ -206,7 +206,7 @@ describe('emergency pause', function () {
     const coverId = 1;
     const claimAmount = amount;
     const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -273,7 +273,7 @@ describe('emergency pause', function () {
     const coverId = 1;
     const claimAmount = amount;
     const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
       value: deposit.mul('2'),
     });
 

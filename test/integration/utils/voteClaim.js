@@ -1,5 +1,4 @@
 const { ethers } = require('hardhat');
-const { daysToSeconds } = require('../../../lib/helpers');
 const { parseEther } = ethers.utils;
 const { setNextBlockTime, mineNextBlock, increaseTime } = require('../../utils/evm');
 const { BigNumber } = ethers;
@@ -24,13 +23,13 @@ async function voteClaim({ claimId, verdict, ic, cd, cr, voter }) {
 }
 
 async function acceptClaim({ staker, assessmentStakingAmount, as, assessmentId }) {
-  const { payoutCooldownInDays } = await as.config();
+  const payoutCooldown = (await as.getPayoutCooldown()).toNumber();
   await as.connect(staker).stake(assessmentStakingAmount);
 
   await as.connect(staker).castVotes([assessmentId], [true], ['Assessment data hash'], 0);
 
   const { poll } = await as.assessments(assessmentId);
-  const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
+  const futureTime = poll.end + payoutCooldown;
 
   await setTime(futureTime);
 }
@@ -38,7 +37,7 @@ async function acceptClaim({ staker, assessmentStakingAmount, as, assessmentId }
 async function rejectClaim({ approvingStaker, rejectingStaker, as, assessmentId }) {
   const assessmentStakingAmountForApproval = parseEther('1000');
   const assessmentStakingAmountForRejection = parseEther('2000');
-  const { payoutCooldownInDays } = await as.config();
+  const payoutCooldown = (await as.getPayoutCooldown()).toNumber();
   await as.connect(approvingStaker).stake(assessmentStakingAmountForApproval);
 
   await as.connect(approvingStaker).castVotes([assessmentId], [true], ['Assessment data hash'], 0);
@@ -47,7 +46,7 @@ async function rejectClaim({ approvingStaker, rejectingStaker, as, assessmentId 
   await as.connect(rejectingStaker).castVotes([assessmentId], [false], ['Assessment data hash'], 0);
 
   const { poll } = await as.assessments(assessmentId);
-  const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
+  const futureTime = poll.end + payoutCooldown;
 
   await setTime(futureTime);
 }

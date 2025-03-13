@@ -249,14 +249,14 @@ describe('updateMCR', function () {
       ...newCoverBuyParams,
     });
 
-    const coverId = await cover.coverDataCount();
-    const [segment] = await cover.coverSegments(coverId);
+    const coverId = await cover.getCoverDataCount();
+    const coverData = await cover.getCoverData(coverId);
 
     // Update MCR
     await increaseTime(await mcr.minUpdateTime());
     await mcr.updateMCR();
     // Claim for full amount and accept it
-    await claims.connect(coverHolder).submitClaim(expectedCoverId, 0, segment.amount, '', { value: parseEther('100') });
+    await claims.connect(coverHolder).submitClaim(expectedCoverId, coverData.amount, '', { value: parseEther('100') });
     const assessmentId = 0;
     const claimId = 0;
     const assessmentStakingAmount = parseEther('1000');
@@ -319,9 +319,9 @@ describe('updateMCR', function () {
 
     // advance past payout cooldown
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-    const { payoutCooldownInDays } = await as.config();
+    const payoutCooldown = (await as.getPayoutCooldown()).toNumber();
     const { end } = await as.getPoll(0);
-    await increaseTime(end - currentTime + daysToSeconds(payoutCooldownInDays));
+    await increaseTime(end - currentTime + payoutCooldown);
 
     const priceBefore = parseEther('2.5'); // ETH per ybETH
     const sumAssured = parseEther('1').mul(newCoverBuyParams.amount);

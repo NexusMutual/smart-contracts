@@ -320,6 +320,7 @@ async function setup() {
 
   await tc.initialize(master.address, ps.address, as.address);
   await tc.addToWhitelist(lcr.address);
+  await tc.addToWhitelist(as.address);
 
   await mr.initialize(
     owner.address,

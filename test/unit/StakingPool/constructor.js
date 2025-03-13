@@ -5,8 +5,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
 describe('constructor', function () {
-  // currently cannot be tested because the addresses have been set as internal
-  it.skip('should set nxm, cover and tokenController addresses correctly', async function () {
+  it('should set nxm, cover and tokenController addresses correctly', async function () {
     const fixture = await loadFixture(setup);
     const { stakingProducts, stakingNFT, nxm, cover, tokenController, master } = fixture;
 

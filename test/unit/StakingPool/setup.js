@@ -15,7 +15,6 @@ async function setup() {
   const mcr = await ethers.deployContract('COMockMCR');
   await mcr.setMCR(parseEther('600000'));
 
-  // TODO: move to separate folder
   const multicallMock = await ethers.deployContract('MulticallMock');
 
   const cover = await ethers.deployContract('SKMockCover');

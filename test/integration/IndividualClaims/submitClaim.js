@@ -80,7 +80,7 @@ describe('submitClaim', function () {
     const coverId = 1;
     const claimAmount = amount;
     const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -140,7 +140,7 @@ describe('submitClaim', function () {
     // Submit partial claim - 1/2 of total amount
     const claimAmount = amount.div(2);
     const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -199,7 +199,7 @@ describe('submitClaim', function () {
     const coverId = 1;
     const claimAmount = amount;
     const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -256,7 +256,7 @@ describe('submitClaim', function () {
     const coverId = 1;
     const claimAmount = amount.div(2);
     const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -321,7 +321,7 @@ describe('submitClaim', function () {
     const coverId = 1;
     const claimAmount = amount;
     const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -387,7 +387,7 @@ describe('submitClaim', function () {
     const coverId = 1;
     const claimAmount = amount.div(2);
     const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -453,7 +453,7 @@ describe('submitClaim', function () {
     const coverId = 1;
     const claimAmount = amount;
     const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -518,7 +518,7 @@ describe('submitClaim', function () {
     const coverId = 1;
     const claimAmount = amount.div(2);
     const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -545,7 +545,7 @@ describe('submitClaim', function () {
     const usdcDecimals = 6;
 
     // Cover inputs
-    const productId = 6;
+    const productId = 3;
     const coverAsset = USDC_ASSET_ID; // USDC
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
@@ -585,7 +585,7 @@ describe('submitClaim', function () {
     const coverId = 1;
     const claimAmount = amount;
     const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -613,7 +613,7 @@ describe('submitClaim', function () {
     const usdcDecimals = 6;
 
     // Cover inputs
-    const productId = 6;
+    const productId = 3;
     const coverAsset = USDC_ASSET_ID; // USDC
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
@@ -653,7 +653,7 @@ describe('submitClaim', function () {
     const coverId = 1;
     const claimAmount = amount.div(2);
     const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -681,7 +681,7 @@ describe('submitClaim', function () {
     const usdcDecimals = 6;
 
     // Cover inputs
-    const productId = 6;
+    const productId = 3;
     const coverAsset = USDC_ASSET_ID; // USDC
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
@@ -721,7 +721,7 @@ describe('submitClaim', function () {
     const coverId = 1;
     const claimAmount = amount.div(2);
     const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-    await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+    await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
@@ -780,7 +780,7 @@ describe('submitClaim', function () {
     {
       const claimAmount = amount.div(2);
       const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -800,10 +800,9 @@ describe('submitClaim', function () {
       expect(payoutRedeemed).to.be.equal(true);
 
       const { poll } = await as.assessments(assessmentId);
-      const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ci.config();
-      const endPayoutTime =
-        poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
+      const payoutCooldown = (await as.getPayoutCooldown()).toNumber();
+      const payoutRedemptionPeriod = (await ci.getPayoutRedemptionPeriod()).toNumber();
+      const endPayoutTime = poll.end + payoutCooldown + payoutRedemptionPeriod;
 
       await setTime(endPayoutTime);
     }
@@ -813,7 +812,7 @@ describe('submitClaim', function () {
       // Submit claim
       const claimAmount = amount.div(4);
       const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -833,10 +832,9 @@ describe('submitClaim', function () {
       expect(payoutRedeemed).to.be.equal(true);
 
       const { poll } = await as.assessments(assessmentId);
-      const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ci.config();
-      const endPayoutTime =
-        poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
+      const payoutCooldown = (await as.getPayoutCooldown()).toNumber();
+      const payoutRedemptionPeriod = (await ci.getPayoutRedemptionPeriod()).toNumber();
+      const endPayoutTime = poll.end + payoutCooldown + payoutRedemptionPeriod;
 
       await setTime(endPayoutTime);
     }
@@ -846,7 +844,7 @@ describe('submitClaim', function () {
       // Submit claim
       const claimAmount = amount.div(4);
       const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -915,7 +913,7 @@ describe('submitClaim', function () {
       const coverId = 1;
       const claimAmount = amount.div(2);
       const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -934,10 +932,9 @@ describe('submitClaim', function () {
       expect(payoutRedeemed).to.be.equal(true);
 
       const { poll } = await as.assessments(assessmentId);
-      const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ci.config();
-      const endPayoutTime =
-        poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
+      const payoutCooldown = (await as.getPayoutCooldown()).toNumber();
+      const payoutRedemptionPeriod = (await ci.getPayoutRedemptionPeriod()).toNumber();
+      const endPayoutTime = poll.end + payoutCooldown + payoutRedemptionPeriod;
 
       await setTime(endPayoutTime);
     }
@@ -947,7 +944,7 @@ describe('submitClaim', function () {
       const coverId = 1;
       const claimAmount = amount.div(4);
       const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -966,10 +963,9 @@ describe('submitClaim', function () {
       expect(payoutRedeemed).to.be.equal(true);
 
       const { poll } = await as.assessments(assessmentId);
-      const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ci.config();
-      const endPayoutTime =
-        poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
+      const payoutCooldown = (await as.getPayoutCooldown()).toNumber();
+      const payoutRedemptionPeriod = (await ci.getPayoutRedemptionPeriod()).toNumber();
+      const endPayoutTime = poll.end + payoutCooldown + payoutRedemptionPeriod;
 
       await setTime(endPayoutTime);
     }
@@ -979,7 +975,7 @@ describe('submitClaim', function () {
       const coverId = 1;
       const claimAmount = amount.div(4);
       const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -1008,7 +1004,7 @@ describe('submitClaim', function () {
     const usdcDecimals = 6;
 
     // Cover inputs
-    const productId = 6;
+    const productId = 3;
     const coverAsset = USDC_ASSET_ID; // USDC
     const period = 3600 * 24 * 90; // 90 days
     const gracePeriod = 3600 * 24 * 30;
@@ -1049,7 +1045,7 @@ describe('submitClaim', function () {
       const coverId = 1;
       const claimAmount = amount.div(2);
       const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -1068,10 +1064,9 @@ describe('submitClaim', function () {
       expect(payoutRedeemed).to.be.equal(true);
 
       const { poll } = await as.assessments(assessmentId);
-      const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ci.config();
-      const endPayoutTime =
-        poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
+      const payoutCooldown = (await as.getPayoutCooldown()).toNumber();
+      const payoutRedemptionPeriod = (await ci.getPayoutRedemptionPeriod()).toNumber();
+      const endPayoutTime = poll.end + payoutCooldown + payoutRedemptionPeriod;
 
       await setTime(endPayoutTime);
     }
@@ -1081,7 +1076,7 @@ describe('submitClaim', function () {
       const coverId = 1;
       const claimAmount = amount.div(4);
       const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -1100,10 +1095,9 @@ describe('submitClaim', function () {
       expect(payoutRedeemed).to.be.equal(true);
 
       const { poll } = await as.assessments(assessmentId);
-      const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ci.config();
-      const endPayoutTime =
-        poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
+      const payoutCooldown = (await as.getPayoutCooldown()).toNumber();
+      const payoutRedemptionPeriod = (await ci.getPayoutRedemptionPeriod()).toNumber();
+      const endPayoutTime = poll.end + payoutCooldown + payoutRedemptionPeriod;
 
       await setTime(endPayoutTime);
     }
@@ -1113,7 +1107,7 @@ describe('submitClaim', function () {
       const coverId = 1;
       const claimAmount = amount.div(4);
       const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -1174,7 +1168,7 @@ describe('submitClaim', function () {
     {
       const claimAmount = amount.div(2);
       const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -1194,10 +1188,9 @@ describe('submitClaim', function () {
       expect(payoutRedeemed).to.be.equal(true);
 
       const { poll } = await as.assessments(assessmentId);
-      const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ci.config();
-      const endPayoutTime =
-        poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
+      const payoutCooldown = (await as.getPayoutCooldown()).toNumber();
+      const payoutRedemptionPeriod = (await ci.getPayoutRedemptionPeriod()).toNumber();
+      const endPayoutTime = poll.end + payoutCooldown + payoutRedemptionPeriod;
 
       await setTime(endPayoutTime);
     }
@@ -1207,7 +1200,7 @@ describe('submitClaim', function () {
       // Submit claim
       const claimAmount = amount.div(2);
       const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -1226,10 +1219,9 @@ describe('submitClaim', function () {
       expect(payoutRedeemed).to.be.equal(false);
 
       const { poll } = await as.assessments(assessmentId);
-      const { payoutCooldownInDays } = await as.config();
-      const { payoutRedemptionPeriodInDays } = await ci.config();
-      const endPayoutTime =
-        poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays);
+      const payoutCooldown = (await as.getPayoutCooldown()).toNumber();
+      const payoutRedemptionPeriod = (await ci.getPayoutRedemptionPeriod()).toNumber();
+      const endPayoutTime = poll.end + payoutCooldown + payoutRedemptionPeriod;
 
       await setTime(endPayoutTime);
     }
@@ -1239,7 +1231,7 @@ describe('submitClaim', function () {
       // Submit claim
       const claimAmount = amount.div(2);
       const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -1305,7 +1297,7 @@ describe('submitClaim', function () {
 
     {
       const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
         value: deposit.mul('2'),
       });
 
@@ -1462,7 +1454,7 @@ describe('submitClaim', function () {
 
     {
       const [deposit] = await ci.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
-      await ci.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      await ci.connect(coverBuyer1).submitClaim(coverId, claimAmount, '', {
         value: deposit.mul('2'),
       });
 

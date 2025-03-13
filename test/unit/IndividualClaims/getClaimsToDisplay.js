@@ -134,8 +134,8 @@ describe('getClaimsToDisplay', function () {
       expectedPollStarts.push(latestBlock.timestamp);
     }
 
-    const minVotingPeriod = await assessment.getMinVotingPeriod();
-    const expectedPollEnds = expectedPollStarts.map(x => x + minVotingPeriod.toNumber());
+    const minVotingPeriod = (await assessment.getMinVotingPeriod()).toNumber();
+    const expectedPollEnds = expectedPollStarts.map(x => x + minVotingPeriod);
     const expectedCoverEnds = expectedCoverStarts.map(x => x + period);
 
     const res = await individualClaims.getClaimsToDisplay([0, 1, 2, 3, 4]);

@@ -6,13 +6,6 @@ interface IAssessment {
 
   /* ========== DATA STRUCTURES ========== */
 
-  enum UintParams {
-    minVotingPeriodInDays,
-    stakeLockupPeriodInDays,
-    payoutCooldownInDays,
-    silentEndingPeriodInDays
-  }
-
   struct Stake {
     uint96 amount;
     uint104 rewardsWithdrawableFromIndex;

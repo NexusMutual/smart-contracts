@@ -75,7 +75,7 @@ describe('Storage layout', function () {
           ],
         },
         coverSegmentAllocations: {
-          label: 'legacyCoverSegmentAllocations',
+          label: '_legacyCoverSegmentAllocations',
         },
         _unused_allowedPools: {
           label: '__unused_4',
@@ -95,6 +95,18 @@ describe('Storage layout', function () {
         _unused_productTypeNames: {
           label: '__unused_9',
           type: ['t_mapping(t_uint256,t_string_storage)', 't_uint256'],
+        },
+      },
+      IndividualClaims: {
+        config: {
+          label: '__unused_0',
+          type: ['t_struct(Configuration)_storage', 't_uint256'],
+        },
+      },
+      Assessment: {
+        config: {
+          label: '__unused_0',
+          type: ['t_struct(Configuration)_storage', 't_uint256'],
         },
       },
       // Example overrides:

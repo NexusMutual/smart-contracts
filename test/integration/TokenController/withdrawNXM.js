@@ -27,8 +27,8 @@ describe('withdrawNXM', function () {
 
     // adjust time so stake is no longer locked for assessment
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const { stakeLockupPeriodInDays } = await assessment.config();
-    await setTime(timestamp + stakeLockupPeriodInDays * ONE_DAY_SECONDS);
+    const stakeLockupPeriod = (await assessment.getStakeLockupPeriod()).toNumber();
+    await setTime(timestamp + stakeLockupPeriod);
 
     const withdrawAssessment = { stake: true, rewards: false };
 
@@ -54,8 +54,9 @@ describe('withdrawNXM', function () {
     // finalize assessment to release rewards
     const withdrawAssessment = { rewards: true, stake: false };
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
-    await setTime(timestamp + (minVotingPeriodInDays + payoutCooldownInDays) * ONE_DAY_SECONDS + 1);
+    const minVotingPeriod = (await assessment.getMinVotingPeriod()).toNumber();
+    const payoutCooldown = (await assessment.getPayoutCooldown()).toNumber();
+    await setTime(timestamp + minVotingPeriod + payoutCooldown + 1);
 
     const assessmentRewardsBefore = await assessment.getRewards(manager.address);
     expect(assessmentRewardsBefore.withdrawableAmountInNXM.toString()).to.not.equal('0');

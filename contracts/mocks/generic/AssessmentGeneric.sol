@@ -81,8 +81,4 @@ contract AssessmentGeneric is IAssessment {
   function processFraud(uint256, bytes32[] calldata, address, uint256, uint96, uint16, uint256) external pure {
     revert("processFraud unsupported");
   }
-
-  function updateUintParameters(UintParams[] calldata, uint[] calldata) external pure {
-    revert("updateUintParameters unsupported");
-  }
 }

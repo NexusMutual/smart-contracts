@@ -81,7 +81,7 @@ describe('processFraud', function () {
     await setEtherBalance(governance.address, parseEther('1000'));
 
     await assessment.connect(fraudulentMember).stake(fixture.amount.mul(100));
-    await individualClaims.submitClaim(1, 0, fixture.amount, '', { value: fixture.amount });
+    await individualClaims.submitClaim(1, fixture.amount, '', { value: fixture.amount });
     await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
     const merkleTree = await submitFraud({
       assessment,
@@ -111,10 +111,11 @@ describe('processFraud', function () {
     const [fraudulentMember] = fixture.accounts.members;
     await setEtherBalance(governance.address, parseEther('1000'));
     await assessment.connect(fraudulentMember).stake(fixture.amount.mul(100));
-    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
+    const minVotingPeriod = (await assessment.getMinVotingPeriod()).toNumber();
+    const payoutCooldown = (await assessment.getPayoutCooldown()).toNumber();
 
     // Fraudulent vote
-    await individualClaims.submitClaim(1, 0, fixture.amount, '', { value: fixture.amount });
+    await individualClaims.submitClaim(1, fixture.amount, '', { value: fixture.amount });
     await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
     const merkleTree = await submitFraud({
       assessment,
@@ -138,10 +139,10 @@ describe('processFraud', function () {
     expect(indexAfterFraudProcess).to.be.eq(1);
 
     // Good vote
-    await individualClaims.submitClaim(2, 0, fixture.amount, '', { value: fixture.amount });
+    await individualClaims.submitClaim(2, fixture.amount, '', { value: fixture.amount });
     await assessment.connect(fraudulentMember).castVotes([1], [true], ['Assessment data hash'], 0);
 
-    await increaseTime(daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays + 1));
+    await increaseTime(minVotingPeriod + payoutCooldown + 1);
     await assessment.withdrawRewards(fraudulentMember.address, 1);
     const { rewardsWithdrawableFromIndex: indexAfterGoodVote } = await assessment.stakeOf(fraudulentMember.address);
     expect(indexAfterGoodVote).to.be.eq(2);

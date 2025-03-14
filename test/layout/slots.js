@@ -38,13 +38,13 @@ describe('Storage layout', function () {
       'Governance',
       'MemberRoles',
       'ProposalCategory',
-      'LegacyPooledStaking',
       'TokenController',
       'IndividualClaims',
       'Assessment',
       'Cover',
       'StakingProducts',
       'Ramm',
+      'SafeTracker',
     ];
 
     // Exceptions / overrides
@@ -107,6 +107,12 @@ describe('Storage layout', function () {
         config: {
           label: '__unused_0',
           type: ['t_struct(Configuration)_storage', 't_uint256'],
+        },
+      },
+      TokenController: {
+        coverInfo: {
+          label: '_unused_coverInfo',
+          type: ['t_mapping(t_uint256,t_struct(CoverInfo)_storage)', 't_uint256'],
         },
       },
       // Example overrides:

@@ -43,12 +43,9 @@ contract NexusViewer is INexusViewer, Multicall {
     // Staking Pool
     IStakingViewer.AggregatedTokens memory aggregatedTokens = stakingViewer.getAggregatedTokens(tokenIds);
     uint managerTotalRewards = stakingViewer.getManagerTotalRewards(member);
-    
+
     // V1
-    uint legacyPooledStakeRewards = _legacyPooledStaking().stakerReward(member);
-    uint legacyPooledStakeDeposits = _legacyPooledStaking().stakerDeposit(member);
     uint legacyClaimAssessmentTokens = _tokenController().tokensLocked(member, "CLA");
-    (, , uint legacyCoverNoteDeposits) = _tokenController().getWithdrawableCoverNotes(member);
     
     return ClaimableNXM({
       governanceRewards: governanceRewards,
@@ -57,10 +54,7 @@ contract NexusViewer is INexusViewer, Multicall {
       stakingPoolTotalRewards: aggregatedTokens.totalRewards,
       stakingPoolTotalExpiredStake: aggregatedTokens.totalExpiredStake,
       managerTotalRewards: managerTotalRewards,
-      legacyPooledStakeRewards: legacyPooledStakeRewards,
-      legacyPooledStakeDeposits: legacyPooledStakeDeposits,
-      legacyClaimAssessmentTokens: legacyClaimAssessmentTokens,
-      legacyCoverNoteDeposits: legacyCoverNoteDeposits
+      legacyClaimAssessmentTokens: legacyClaimAssessmentTokens
     });
   }
 
@@ -93,10 +87,6 @@ contract NexusViewer is INexusViewer, Multicall {
 
   function _assessment() internal view returns (IAssessment) {
     return IAssessment(master.getLatestAddress("AS"));
-  }
-
-  function _legacyPooledStaking() internal view returns (IPooledStaking) {
-    return IPooledStaking(master.getLatestAddress("PS"));
   }
 
   function _governance() internal view returns (IGovernance) {

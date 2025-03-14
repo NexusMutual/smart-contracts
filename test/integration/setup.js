@@ -5,6 +5,7 @@ const { toBytes2 } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
 const { enrollMember, enrollABMember, getGovernanceSigner } = require('./utils/enroll');
 const { getAccounts } = require('../utils/accounts');
+const { setNextBlockBaseFee } = require('../utils/evm');
 const { impersonateAccount, setEtherBalance } = require('../utils').evm;
 
 const { BigNumber } = ethers;
@@ -39,10 +40,8 @@ async function setup() {
   const owner = accounts.defaultSender;
   const { stakingPoolManagers } = accounts;
 
-  const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
-  const INITIAL_SUPPLY = parseEther('6750000'); // https://etherscan.io/token/0xd7c49cee7e9188cca6ad8ff264c1da2e69d4cf3b
+  const INITIAL_SUPPLY = parseEther('6750000');
   const INITIAL_SPOT_PRICE_B = parseEther('0.0152');
-
   const INVESTMENT_LIMIT = parseUnits('25000000', 6);
 
   // deploy external contracts
@@ -112,12 +111,9 @@ async function setup() {
 
   const tk = await ethers.deployContract('NXMToken', [owner.address, INITIAL_SUPPLY]);
 
-  const qd = await ethers.deployContract('TestnetQuotationData', [QE, owner.address]);
-
   // proxy contracts
   const master = await deployProxy('DisposableNXMaster');
   const mr = await deployProxy('DisposableMemberRoles', [tk.address]);
-  const ps = await deployProxy('DisposablePooledStaking', [tk.address]);
   const ramm = await deployProxy('Ramm', [INITIAL_SPOT_PRICE_B]);
   const pc = await deployProxy('DisposableProposalCategory');
   const gv = await deployProxy('DisposableGovernance');
@@ -132,7 +128,6 @@ async function setup() {
   ]);
 
   // non-proxy contracts
-  const lcr = await ethers.deployContract('LegacyClaimsReward', [master.address, dai.address]);
 
   const mcrEth = parseEther('50000');
   const latestBlock = await ethers.provider.getBlock('latest');
@@ -228,22 +223,15 @@ async function setup() {
   const spArgs = [stakingNFT, tk, cover, tc, master, stakingProducts].map(c => c.address);
   const stakingPool = await ethers.deployContract('StakingPool', spArgs);
 
-  // deploy implementations and upgrade Cover, StakingProducts and DisposableTokenController proxies
+  // deploy implementations and upgrade Cover and StakingProducts proxies
   await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
   cover = await ethers.getContractAt('Cover', cover.address);
 
   await upgradeProxy(stakingProducts.address, 'StakingProducts', [cover.address, spf.address]);
   stakingProducts = await ethers.getContractAt('StakingProducts', stakingProducts.address);
 
-  // TODO: get rid of DisposableTokenController and use TokenController instead with owner as operator
-  await upgradeProxy(tc.address, 'DisposableTokenController', [
-    qd.address,
-    lcr.address,
-    spf.address,
-    tk.address,
-    stakingNFT.address,
-  ]);
-  tc = await ethers.getContractAt('DisposableTokenController', tc.address);
+  await upgradeProxy(tc.address, 'TokenController', [spf.address, tk.address, stakingNFT.address]);
+  tc = await ethers.getContractAt('TokenController', tc.address);
 
   // update operators
   await spf.changeOperator(stakingProducts.address);
@@ -260,7 +248,7 @@ async function setup() {
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'CI', 'AS', 'CO', 'SP', 'RA', 'ST', 'CP'];
+    const proxies = ['GV', 'MR', 'PC', 'TC', 'CI', 'AS', 'CO', 'SP', 'RA', 'ST', 'CP'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -274,18 +262,15 @@ async function setup() {
   };
 
   const addressCodes = [
-    { address: qd.address, code: 'QD' },
     { address: tc.address, code: 'TC' },
     { address: legacyPool.address, code: 'P1' },
     { address: mc.address, code: 'MC' },
     { address: owner.address, code: 'GV' },
     { address: pc.address, code: 'PC' },
     { address: mr.address, code: 'MR' },
-    { address: ps.address, code: 'PS' },
     { address: ci.address, code: 'CI' },
     { address: as.address, code: 'AS' },
     { address: cover.address, code: 'CO' },
-    { address: lcr.address, code: 'CR' },
     { address: stakingProducts.address, code: 'SP' },
     { address: ramm.address, code: 'RA' },
     { address: st.address, code: 'ST' },
@@ -318,9 +303,13 @@ async function setup() {
   await legacyPool.addAsset(rETH.address, false, parseEther('10000'), parseEther('20000'), 250);
   await legacyPool.addAsset(st.address, false, parseEther('10000'), parseEther('20000'), 250);
 
-  await tc.initialize(master.address, ps.address, as.address);
-  await tc.addToWhitelist(lcr.address);
-  await tc.addToWhitelist(as.address);
+  await tc.changeMasterAddress(master.address);
+  await tk.changeOperator(tc.address);
+
+  // whitelist Assessment contract
+  await impersonateAccount(mr.address);
+  await setNextBlockBaseFee(0);
+  await tc.connect(await ethers.getSigner(mr.address)).addToWhitelist(as.address, { gasPrice: 0 });
 
   await mr.initialize(
     owner.address,
@@ -347,14 +336,6 @@ async function setup() {
     40, // maxFollowers
     75, // specialResolutionMajPerc
     24 * 3600, // actionWaitingTime
-  );
-
-  await ps.initialize(
-    tc.address,
-    parseEther('20'), // min stake
-    parseEther('20'), // min unstake
-    10, // max exposure
-    90 * 24 * 3600, // unstake lock time
   );
 
   const CLAIM_METHOD = {
@@ -413,17 +394,9 @@ async function setup() {
   await master.switchGovernanceAddress(gv.address);
 
   await upgradeProxy(mr.address, 'MemberRoles', [tk.address]);
-  await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, stakingNFT.address, tk.address]);
   await upgradeProxy(pc.address, 'ProposalCategory');
   await upgradeProxy(master.address, 'NXMaster');
   await upgradeProxy(gv.address, 'Governance');
-  await upgradeProxy(tc.address, 'TokenController', [
-    qd.address,
-    lcr.address,
-    spf.address,
-    tk.address,
-    stakingNFT.address,
-  ]);
 
   // replace legacy pool after Ramm is initialized
   const governanceSigner = await getGovernanceSigner(gv);
@@ -463,7 +436,6 @@ async function setup() {
 
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
-  await transferProxyOwnership(ps.address, master.address);
   await transferProxyOwnership(pc.address, master.address);
   await transferProxyOwnership(gv.address, master.address);
   await transferProxyOwnership(ci.address, master.address);
@@ -512,8 +484,8 @@ async function setup() {
     ybETH,
     ybUSDC,
   };
-  const nonUpgradable = { qd, spf, coverNFT, stakingNFT };
-  const instances = { tk, p1, mcr: mc, lcr };
+  const nonUpgradable = { spf, coverNFT, stakingNFT };
+  const instances = { tk, p1, mcr: mc };
 
   // we upgraded them, get non-disposable instances because
   const proxies = {
@@ -522,7 +494,6 @@ async function setup() {
     gv: await ethers.getContractAt('Governance', gv.address),
     pc: await ethers.getContractAt('ProposalCategory', pc.address),
     mr: await ethers.getContractAt('MemberRoles', mr.address),
-    ps: await ethers.getContractAt('LegacyPooledStaking', ps.address),
     ra: await ethers.getContractAt('Ramm', ramm.address),
     st: await ethers.getContractAt('SafeTracker', st.address),
     ci: await ethers.getContractAt('IndividualClaims', ci.address),

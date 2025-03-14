@@ -73,37 +73,6 @@ async function processFraudSetup() {
 }
 
 describe('processFraud', function () {
-  it.skip('consumes less gas to process than the summed fees of the fraudulent voting transactions', async function () {
-    const fixture = await loadFixture(processFraudSetup);
-    const { as: assessment, ic: individualClaims, gv: governanceContact } = fixture.contracts;
-    const governance = await ethers.getImpersonatedSigner(governanceContact.address);
-    const [fraudulentMember] = fixture.accounts.members;
-    await setEtherBalance(governance.address, parseEther('1000'));
-
-    await assessment.connect(fraudulentMember).stake(fixture.amount.mul(100));
-    await individualClaims.submitClaim(1, fixture.amount, '', { value: fixture.amount });
-    await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
-    const merkleTree = await submitFraud({
-      assessment,
-      signer: governance,
-      addresses: [fraudulentMember.address],
-      amounts: [fixture.amount],
-    });
-
-    const proof = getProof({
-      address: fraudulentMember.address,
-      lastFraudulentVoteIndex: 0,
-      amount: fixture.amount,
-      fraudCount: 0,
-      merkleTree,
-    });
-
-    const tx = await assessment.processFraud(0, proof, fraudulentMember.address, 0, fixture.amount, 0, 100);
-    const receipt = await tx.wait();
-    // TODO: this is a temporary value..what fees should be summed?
-    expect(receipt.gasUsed).to.be.eq(92691);
-  });
-
   it('should not reset index when process fraud is called again after good vote', async function () {
     const fixture = await loadFixture(processFraudSetup);
     const { as: assessment, ci: individualClaims, gv: governanceContact } = fixture.contracts;

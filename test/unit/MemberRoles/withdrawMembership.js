@@ -29,32 +29,6 @@ describe('withdrawMembership', function () {
     await expect(memberRoles.connect(member).withdrawMembership()).to.be.reverted;
   });
 
-  it('reverts when member has LegacyPooledStaking deposit tokens', async function () {
-    const fixture = await loadFixture(setup);
-    const { memberRoles, pooledStaking } = fixture.contracts;
-    const {
-      members: [member],
-    } = fixture.accounts;
-
-    await pooledStaking.setStakerDeposit(member.address, 100);
-    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
-      'Member has NXM staked in Pooled Staking',
-    );
-  });
-
-  it('reverts when member has LegacyPooledStaking reward tokens', async function () {
-    const fixture = await loadFixture(setup);
-    const { memberRoles, pooledStaking } = fixture.contracts;
-    const {
-      members: [member],
-    } = fixture.accounts;
-
-    await pooledStaking.setStakerReward(member.address, 100);
-    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
-      'Member has NXM rewards in Pooled Staking',
-    );
-  });
-
   it('reverts when member has tokens locked for claim assessment', async function () {
     const fixture = await loadFixture(setup);
     const { memberRoles, tokenController } = fixture.contracts;
@@ -65,19 +39,6 @@ describe('withdrawMembership', function () {
     await tokenController.setTokensLocked(member.address, formatBytes32String('CLA'), 100);
     await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
       'Member has NXM staked in Claim Assessment V1',
-    );
-  });
-
-  it('reverts when member has withdrawable cover notes', async function () {
-    const fixture = await loadFixture(setup);
-    const { memberRoles, tokenController } = fixture.contracts;
-    const {
-      members: [member],
-    } = fixture.accounts;
-
-    await tokenController.setWithdrawableCoverNotes(member.address, 100);
-    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
-      'Member has withdrawable cover notes',
     );
   });
 

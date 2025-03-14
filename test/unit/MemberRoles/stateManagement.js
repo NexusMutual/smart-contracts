@@ -79,12 +79,6 @@ describe('state management', function () {
     expect(isActive).to.be.equal(true);
   });
 
-  it('should clear storage', async function () {
-    const fixture = await loadFixture(setup);
-    const { memberRoles } = fixture.contracts;
-    await expect(memberRoles.storageCleanup([])).to.not.be.reverted;
-  });
-
   it('should check the role of a member', async function () {
     const fixture = await loadFixture(setup);
     const { memberRoles } = fixture.contracts;

@@ -11,14 +11,6 @@ interface ITokenController {
     uint128 deposits;
   }
 
-  struct CoverInfo {
-    uint16 claimCount;
-    bool hasOpenClaim;
-    bool hasAcceptedClaim;
-    uint96 requestedPayoutAmount;
-    // note: still 128 bits available here, can be used later
-  }
-
   struct StakingPoolOwnershipOffer {
     address proposedManager;
     uint96 deadline;
@@ -51,13 +43,6 @@ interface ITokenController {
 
   function token() external view returns (INXMToken);
 
-  function coverInfo(uint id) external view returns (
-    uint16 claimCount,
-    bool hasOpenClaim,
-    bool hasAcceptedClaim,
-    uint96 requestedPayoutAmount
-  );
-
   function getLockReasons(address _of) external view returns (bytes32[] memory reasons);
 
   function totalSupply() external view returns (uint);
@@ -72,14 +57,6 @@ interface ITokenController {
 
   function tokensLocked(address _of, bytes32 _reason) external view returns (uint256 amount);
 
-  function getWithdrawableCoverNotes(
-    address coverOwner
-  ) external view returns (
-    uint[] memory coverIds,
-    bytes32[] memory lockReasons,
-    uint withdrawableAmount
-  );
-
   function getStakingPoolManager(uint poolId) external view returns (address manager);
 
   function getManagerStakingPools(address manager) external view returns (uint[] memory poolIds);
@@ -91,12 +68,6 @@ interface ITokenController {
   function stakingPoolNXMBalances(uint poolId) external view returns (uint128 rewards, uint128 deposits);
 
   /* ========== MUTATIVE FUNCTIONS ========== */
-
-  function withdrawCoverNote(
-    address _of,
-    uint[] calldata _coverIds,
-    uint[] calldata _indexes
-  ) external;
 
   function changeOperator(address _newOperator) external;
 

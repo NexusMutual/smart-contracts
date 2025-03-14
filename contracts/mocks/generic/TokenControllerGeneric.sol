@@ -8,16 +8,6 @@ contract TokenControllerGeneric is ITokenController {
 
   INXMToken public token;
 
-  mapping(uint => CoverInfo) public coverInfo;
-
-  function withdrawCoverNote(
-    address,
-    uint[] calldata,
-    uint[] calldata
-  ) external pure {
-    revert("withdrawCoverNote unsupported");
-  }
-
   function changeOperator(address) external pure {
     revert("changeOperator unsupported");
   }
@@ -132,14 +122,6 @@ contract TokenControllerGeneric is ITokenController {
 
   function tokensLocked(address, bytes32) external virtual view returns (uint256) {
     revert("tokensLocked unsupported");
-  }
-
-  function getWithdrawableCoverNotes(address) external virtual view returns (
-    uint[] memory,
-    bytes32[] memory,
-    uint
-  ) {
-    revert("getWithdrawableCoverNotes unsupported");
   }
 
   function getPendingRewards(address) external virtual view returns (uint) {

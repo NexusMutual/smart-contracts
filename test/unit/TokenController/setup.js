@@ -14,15 +14,11 @@ async function setup() {
   const stakingNFT = await ethers.deployContract('TCMockStakingNFT');
 
   const nxm = await ethers.deployContract('NXMTokenMock');
-  const tokenController = await ethers.deployContract('DisposableTokenController', [
-    '0x0000000000000000000000000000000000000000',
-    '0x0000000000000000000000000000000000000000',
+  const tokenController = await ethers.deployContract('TokenController', [
     stakingPoolFactory.address,
     nxm.address,
     stakingNFT.address,
   ]);
-
-  const pooledStaking = await ethers.deployContract('TCMockPooledStaking', [nxm.address]);
 
   await nxm.addToWhiteList(tokenController.address);
 
@@ -31,7 +27,6 @@ async function setup() {
   await master.enrollInternal(internal.address);
   await master.setTokenAddress(nxm.address);
   await master.setLatestAddress(hex('GV'), accounts.governanceContracts[0].address);
-  await master.setLatestAddress(hex('PS'), pooledStaking.address);
 
   const governance = await ethers.deployContract('TCMockGovernance');
   const assessment = await ethers.deployContract('TCMockAssessment');
@@ -72,7 +67,6 @@ async function setup() {
       tokenController,
       assessment,
       stakingPoolFactory,
-      pooledStaking,
     },
   };
 }

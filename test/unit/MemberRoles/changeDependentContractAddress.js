@@ -11,11 +11,7 @@ const { AddressZero } = ethers.constants;
 describe('changeDependentContractAddress', function () {
   it('should change authorized address for the role', async function () {
     const fixture = await loadFixture(setup);
-    const { quotationData, memberRoles, master } = fixture.contracts;
-    const { governanceContracts, defaultSender } = fixture.accounts;
-
-    await quotationData.connect(governanceContracts[0]).setKycAuthAddress(defaultSender.address);
-    await memberRoles.connect(governanceContracts[0]).setKycAuthAddress(quotationData.address);
+    const { memberRoles, master } = fixture.contracts;
 
     const tcAddressBefore = await memberRoles.internalContracts(InternalContractsIDs.TC);
     const p1AddressBefore = await memberRoles.internalContracts(InternalContractsIDs.P1);

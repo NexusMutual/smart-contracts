@@ -19,9 +19,6 @@ describe('getClaimableNxm', function () {
     expect(claimableNXM.stakingPoolTotalRewards.toString()).to.equal('0');
     expect(claimableNXM.stakingPoolTotalExpiredStake.toString()).to.equal('0');
     expect(claimableNXM.managerTotalRewards.toString()).to.equal('0');
-    expect(claimableNXM.legacyPooledStakeRewards.toString()).to.equal('0');
-    expect(claimableNXM.legacyPooledStakeDeposits.toString()).to.equal('0');
-    expect(claimableNXM.legacyCoverNoteDeposits.toString()).to.equal('0');
     expect(claimableNXM.legacyClaimAssessmentTokens.toString()).to.equal('0');
   });
 
@@ -44,9 +41,6 @@ describe('getClaimableNxm', function () {
     expect(claimableNXM.stakingPoolTotalRewards.gt('38157876700000000')).to.equal(true);
     expect(claimableNXM.stakingPoolTotalExpiredStake.toString()).to.equal(stakeAmount.mul(3));
     expect(claimableNXM.managerTotalRewards.gt('670145200000000')).to.equal(true);
-    expect(claimableNXM.legacyPooledStakeRewards.toString()).to.equal('0');
-    expect(claimableNXM.legacyPooledStakeDeposits.toString()).to.equal('0');
-    expect(claimableNXM.legacyCoverNoteDeposits.toString()).to.equal('0');
     expect(claimableNXM.legacyClaimAssessmentTokens.toString()).to.equal('0');
   });
 });

@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.18;
 
-import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts-v4/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts-v4/access/Ownable.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ILimitOrders.sol";
@@ -94,8 +92,6 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
 
     bytes32 orderId = getOrderId(params, executionDetails);
     address buyer = ECDSA.recover(orderId, signature);
-
-//    require(buyer == params.owner, "signature fail");
 
     OrderStatus memory _orderStatus = orderStatus[orderId];
     bool isNewCover = _orderStatus.coverId == 0;

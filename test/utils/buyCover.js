@@ -1,18 +1,22 @@
 const { ethers } = require('hardhat');
 const { _TypedDataEncoder } = ethers.utils;
 
-async function signCoverOrder(contractAddress, params, signer) {
+async function signLimitOrder(contractAddress, params, signer) {
   const { chainId } = await ethers.provider.getNetwork();
 
   const domain = {
-    name: 'NexusMutualCoverOrder',
-    version: '1',
+    name: 'NexusMutualLimitOrders',
+    version: '1.0.0',
     chainId,
     verifyingContract: contractAddress,
   };
 
   const types = {
     ExecuteOrder: [
+      { name: 'orderDetails', type: 'OrderDetails' },
+      { name: 'executionDetails', type: 'ExecutionDetails' },
+    ],
+    OrderDetails: [
       { name: 'coverId', type: 'uint256' },
       { name: 'productId', type: 'uint24' },
       { name: 'amount', type: 'uint96' },
@@ -23,14 +27,13 @@ async function signCoverOrder(contractAddress, params, signer) {
       { name: 'ipfsData', type: 'string' },
       { name: 'commissionRatio', type: 'uint16' },
       { name: 'commissionDestination', type: 'address' },
-      { name: 'executionDetails', type: 'ExecutionDetails' },
     ],
     ExecutionDetails: [
-      { name: 'notBefore', type: 'uint256' },
-      { name: 'deadline', type: 'uint256' },
+      { name: 'notExecutableBefore', type: 'uint256' },
+      { name: 'executableUntil', type: 'uint256' },
+      { name: 'renewableUntil', type: 'uint256' },
+      { name: 'renewablePeriodBeforeExpiration', type: 'uint256' },
       { name: 'maxPremiumInAsset', type: 'uint256' },
-      { name: 'maxNumberOfRenewals', type: 'uint8' },
-      { name: 'renewWhenLeft', type: 'uint32' },
     ],
   };
 
@@ -46,5 +49,5 @@ async function signCoverOrder(contractAddress, params, signer) {
 }
 
 module.exports = {
-  signCoverOrder,
+  signLimitOrder,
 };

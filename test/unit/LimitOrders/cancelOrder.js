@@ -4,26 +4,29 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
 const { daysToSeconds } = require('../../../lib/helpers');
-const { signCoverOrder } = require('../utils').buyCover;
+const { signLimitOrder } = require('../utils').buyCover;
 
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 
-const buyCoverFixture = {
+const orderDetailsFixture = {
   coverId: 0,
   owner: AddressZero,
   productId: 1,
-  coverAsset: 0b0,
+  coverAsset: 0,
+  paymentAsset: 0,
   amount: parseEther('1'),
   period: daysToSeconds(30),
-  maxPremiumInAsset: MaxUint256,
-  paymentAsset: 0b0,
   commissionRatio: 0,
   commissionDestination: AddressZero,
   ipfsData: 'ipfs data',
 };
 
-const executionDetailsFixture = { maxPremiumInAsset: MaxUint256, maxNumberOfRenewals: 0, renewWhenLeft: 0 };
+const executionDetailsFixture = {
+  maxPremiumInAsset: MaxUint256,
+  renewableUntil: 180 * 24 * 60 * 60,
+  renewablePeriodBeforeExpiration: 3 * 24 * 60 * 60,
+};
 
 describe('cancelOrder', function () {
   it('should cancel order', async function () {
@@ -32,27 +35,21 @@ describe('cancelOrder', function () {
       contracts: { limitOrders },
       accounts: { limitOrderOwner },
     } = fixture;
-    const { productId, amount, period, ipfsData, commissionRatio, commissionDestination } = buyCoverFixture;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const executionDetails = {
       ...executionDetailsFixture,
-      notBefore: currentTimestamp,
-      deadline: currentTimestamp + 3600,
+      notExecutableBefore: currentTimestamp,
+      executableUntil: currentTimestamp + 3600,
     };
-    const { signature, digest } = await signCoverOrder(
+    const orderDetails = {
+      ...orderDetailsFixture,
+      owner: limitOrderOwner.address,
+    };
+    const { signature, digest } = await signLimitOrder(
       limitOrders.address,
       {
-        coverId: 0,
-        productId,
-        amount,
-        period,
-        paymentAsset: 0,
-        coverAsset: 0,
-        owner: limitOrderOwner.address,
-        ipfsData,
-        commissionRatio,
-        commissionDestination,
+        orderDetails,
         executionDetails,
       },
       limitOrderOwner,
@@ -60,9 +57,7 @@ describe('cancelOrder', function () {
 
     const tx = await limitOrders.connect(limitOrderOwner).cancelOrder(
       {
-        ...buyCoverFixture,
-        paymentAsset: 0, // ETH
-        productId,
+        ...orderDetails,
         owner: limitOrderOwner.address,
         maxPremiumInAsset: MaxUint256,
       },
@@ -79,28 +74,23 @@ describe('cancelOrder', function () {
       contracts: { limitOrders },
       accounts: { limitOrderOwner, notOwner },
     } = fixture;
-    const { productId, amount, period, ipfsData, commissionRatio, commissionDestination } = buyCoverFixture;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const executionDetails = {
       ...executionDetailsFixture,
-      notBefore: currentTimestamp,
-      deadline: currentTimestamp + 3600,
+      notExecutableBefore: currentTimestamp,
+      executableUntil: currentTimestamp + 3600,
     };
 
-    const { signature } = await signCoverOrder(
+    const orderDetails = {
+      ...orderDetailsFixture,
+      owner: limitOrderOwner.address,
+    };
+
+    const { signature } = await signLimitOrder(
       limitOrders.address,
       {
-        coverId: 0,
-        productId,
-        amount,
-        period,
-        paymentAsset: 0,
-        coverAsset: 0,
-        owner: limitOrderOwner.address,
-        ipfsData,
-        commissionRatio,
-        commissionDestination,
+        orderDetails,
         executionDetails,
       },
       limitOrderOwner,
@@ -108,11 +98,7 @@ describe('cancelOrder', function () {
 
     const tx = limitOrders.connect(notOwner).cancelOrder(
       {
-        ...buyCoverFixture,
-        paymentAsset: 0, // ETH
-        productId,
-        ipfsData,
-        owner: limitOrderOwner.address,
+        ...orderDetails,
         maxPremiumInAsset: MaxUint256,
       },
       executionDetails,
@@ -122,69 +108,52 @@ describe('cancelOrder', function () {
     await expect(tx).to.revertedWithCustomError(limitOrders, 'NotOrderOwner');
   });
 
-  it('should fail to cancel the order is already executed', async function () {
+  it('should fail to cancel the order is already canceled', async function () {
     const fixture = await loadFixture(setup);
     const {
-      contracts: { limitOrders, dai },
-      accounts: { limitOrderOwner, limitOrdersSettler },
+      contracts: { limitOrders },
+      accounts: { limitOrderOwner },
     } = fixture;
-    const { productId, amount, period, ipfsData, commissionRatio, commissionDestination } = buyCoverFixture;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const executionDetails = {
       ...executionDetailsFixture,
-      notBefore: currentTimestamp,
-      deadline: currentTimestamp + 3600,
-      maxPremiumInAsset: amount,
+      notExecutableBefore: currentTimestamp,
+      executableUntil: currentTimestamp + 3600,
     };
-
-    const { signature } = await signCoverOrder(
+    const orderDetails = {
+      ...orderDetailsFixture,
+      owner: limitOrderOwner.address,
+    };
+    const { signature } = await signLimitOrder(
       limitOrders.address,
       {
-        coverId: 0,
-        productId,
-        amount,
-        period,
-        ipfsData,
-        paymentAsset: 1,
-        coverAsset: 1,
-        owner: limitOrderOwner.address,
-        commissionRatio,
-        commissionDestination,
+        orderDetails,
         executionDetails,
       },
       limitOrderOwner,
     );
 
-    await dai.connect(limitOrderOwner).approve(limitOrders.address, amount);
-    await limitOrders.connect(limitOrdersSettler).executeOrder(
+    await limitOrders.connect(limitOrderOwner).cancelOrder(
       {
-        ...buyCoverFixture,
-        productId,
+        ...orderDetails,
         owner: limitOrderOwner.address,
-        maxPremiumInAsset: amount,
-        paymentAsset: 1,
-        coverAsset: 1,
+        maxPremiumInAsset: MaxUint256,
       },
-      [{ poolId: 1, coverAmountInAsset: amount }],
       executionDetails,
       signature,
-      0, // signerFee
     );
 
     const tx = limitOrders.connect(limitOrderOwner).cancelOrder(
       {
-        ...buyCoverFixture,
-        productId,
+        ...orderDetails,
         owner: limitOrderOwner.address,
-        maxPremiumInAsset: amount,
-        paymentAsset: 1,
-        coverAsset: 1,
+        maxPremiumInAsset: MaxUint256,
       },
       executionDetails,
       signature,
     );
 
-    await expect(tx).to.revertedWithCustomError(limitOrders, 'OrderAlreadyExecuted');
+    await expect(tx).to.revertedWithCustomError(limitOrders, 'OrderAlreadyCancelled');
   });
 });

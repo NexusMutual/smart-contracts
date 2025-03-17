@@ -3,27 +3,10 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
-const { daysToSeconds } = require('../../../lib/helpers');
-const { signCoverOrder } = require('../utils').buyCover;
+const { signLimitOrder } = require('../utils').buyCover;
 
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
-
-const buyCoverFixture = {
-  coverId: 0,
-  owner: AddressZero,
-  productId: 1,
-  coverAsset: 0b0,
-  amount: parseEther('1'),
-  period: daysToSeconds(30),
-  maxPremiumInAsset: MaxUint256,
-  paymentAsset: 0b0,
-  commissionRatio: 0,
-  commissionDestination: AddressZero,
-  ipfsData: 'ipfs data',
-};
-
-const executionDetailsFixture = { maxPremiumInAsset: MaxUint256, maxNumberOfRenewals: 0, renewWhenLeft: 0 };
 
 describe('getOrderId', function () {
   it('should get order id', async function () {
@@ -32,27 +15,31 @@ describe('getOrderId', function () {
       contracts: { limitOrders },
       accounts: { limitOrderOwner },
     } = fixture;
-    const { productId, amount, period, ipfsData, commissionRatio, commissionDestination } = buyCoverFixture;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const executionDetails = {
-      ...executionDetailsFixture,
-      notBefore: currentTimestamp,
-      deadline: currentTimestamp + 3600,
+      notExecutableBefore: currentTimestamp,
+      executableUntil: currentTimestamp + 3600,
+      renewableUntil: currentTimestamp + 60 * 24 * 60 * 60,
+      renewablePeriodBeforeExpiration: 3 * 24 * 60 * 60,
+      maxPremiumInAsset: MaxUint256,
     };
-    const { digest } = await signCoverOrder(
+    const orderDetails = {
+      coverId: 0,
+      productId: 1,
+      amount: parseEther('1'),
+      period: 30 * 24 * 60 * 60,
+      paymentAsset: 0,
+      coverAsset: 0,
+      owner: limitOrderOwner.address,
+      ipfsData: 'ipfs data',
+      commissionRatio: 0,
+      commissionDestination: AddressZero,
+    };
+    const { digest } = await signLimitOrder(
       limitOrders.address,
       {
-        coverId: 0,
-        productId,
-        amount,
-        period,
-        paymentAsset: 0,
-        coverAsset: 0,
-        owner: limitOrderOwner.address,
-        ipfsData,
-        commissionRatio,
-        commissionDestination,
+        orderDetails,
         executionDetails,
       },
       limitOrderOwner,
@@ -60,10 +47,7 @@ describe('getOrderId', function () {
 
     const orderId = await limitOrders.getOrderId(
       {
-        ...buyCoverFixture,
-        paymentAsset: 0, // ETH
-        productId,
-        owner: limitOrderOwner.address,
+        ...orderDetails,
         maxPremiumInAsset: MaxUint256,
       },
       executionDetails,

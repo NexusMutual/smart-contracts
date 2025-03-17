@@ -27,7 +27,7 @@ const { parseEther, defaultAbiCoder, toUtf8Bytes, formatEther, parseUnits } = et
 
 const ASSESSMENT_VOTER_COUNT = 3;
 const { USDC_ADDRESS } = Address;
-const { NXM_WHALE_1, NXM_WHALE_2, DAI_NXM_HOLDER, NXMHOLDER, DAI_HOLDER, HUGH } = UserAddress;
+const { NXM_WHALE_1, NXM_WHALE_2, DAI_NXM_HOLDER, NXMHOLDER, DAI_HOLDER, USDC_HOLDER, HUGH } = UserAddress;
 
 let custodyProductId, custodyCoverId;
 let protocolProductId, protocolCoverId;
@@ -112,6 +112,7 @@ describe('basic functionality tests', function () {
 
     await evm.impersonate(DAI_HOLDER);
     this.daiHolder = await getSigner(DAI_HOLDER);
+    this.usdcHolder = await getSigner(USDC_HOLDER);
   });
 
   it('Verify dependencies for each contract', async function () {
@@ -273,16 +274,6 @@ describe('basic functionality tests', function () {
           gracePeriod: 90,
         },
       },
-      {
-        productTypeName: 'z',
-        productTypeId: MaxUint256,
-        ipfsMetadata: 'yieldTokenCoverIPFSHash',
-        productType: {
-          descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
-          claimMethod: 1,
-          gracePeriod: 14,
-        },
-      },
     ];
 
     const productTypesCountBefore = await this.coverProducts.getProductTypeCount();
@@ -417,7 +408,7 @@ describe('basic functionality tests', function () {
     const amount = parseEther('1');
     const commissionRatio = '500'; // 5%
 
-    const coverCountBefore = await this.cover.coverDataCount();
+    const coverCountBefore = await this.cover.getCoverDataCount();
 
     await this.cover.connect(coverBuyer).buyCover(
       {
@@ -438,7 +429,7 @@ describe('basic functionality tests', function () {
       { value: amount },
     );
 
-    const coverCountAfter = await this.cover.coverDataCount();
+    const coverCountAfter = await this.cover.getCoverDataCount();
     custodyCoverId = coverCountAfter;
 
     expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
@@ -453,17 +444,16 @@ describe('basic functionality tests', function () {
 
     const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
     const requestedAmount = parseEther('1');
-    const segmentId = (await this.cover.coverSegmentsCount(custodyCoverId)).sub(1);
-    const segment = await this.cover.coverSegmentWithRemainingAmount(custodyCoverId, segmentId);
+    const coverData = await this.cover.getCoverData(custodyCoverId);
 
     const [deposit] = await this.individualClaims.getAssessmentDepositAndReward(
       requestedAmount,
-      segment.period,
+      coverData.period,
       0, // ETH
     );
     await this.individualClaims
       .connect(coverBuyer)
-      .submitClaim(custodyCoverId, segmentId, requestedAmount, ipfsHash, { value: deposit });
+      .submitClaim(custodyCoverId, requestedAmount, ipfsHash, { value: deposit });
 
     const claimsCountAfter = await this.individualClaims.getClaimsCount();
     const assessmentCountAfter = await this.assessment.getAssessmentsCount();
@@ -513,7 +503,7 @@ describe('basic functionality tests', function () {
     const daiTopUpAmount = parseEther('1000000');
     await this.dai.connect(this.daiHolder).transfer(DAI_NXM_HOLDER, daiTopUpAmount);
 
-    const coverCountBefore = await this.cover.coverDataCount();
+    const coverCountBefore = await this.cover.getCoverDataCount();
 
     await this.dai.connect(coverBuyer).approve(this.cover.address, daiTopUpAmount);
 
@@ -539,7 +529,7 @@ describe('basic functionality tests', function () {
     );
 
     console.log('Bought..');
-    const coverCountAfter = await this.cover.coverDataCount();
+    const coverCountAfter = await this.cover.getCoverDataCount();
     protocolCoverId = coverCountAfter;
 
     expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
@@ -554,17 +544,16 @@ describe('basic functionality tests', function () {
 
     const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
     const requestedAmount = parseEther('1000');
-    const segmentId = (await this.cover.coverSegmentsCount(custodyCoverId)).sub(1);
-    const segment = await this.cover.coverSegmentWithRemainingAmount(custodyCoverId, segmentId);
+    const coverData = await this.cover.getCoverData(custodyCoverId);
 
     const [deposit] = await this.individualClaims.getAssessmentDepositAndReward(
       requestedAmount,
-      segment.period,
+      coverData.period,
       1, // DAI
     );
     await this.individualClaims
       .connect(coverBuyer)
-      .submitClaim(protocolCoverId, segmentId, requestedAmount, ipfsHash, { value: deposit });
+      .submitClaim(protocolCoverId, requestedAmount, ipfsHash, { value: deposit });
 
     const claimsCountAfter = await this.individualClaims.getClaimsCount();
     const assessmentCountAfter = await this.assessment.getAssessmentsCount();
@@ -608,8 +597,9 @@ describe('basic functionality tests', function () {
 
     const usdcTopUpAmount = parseUnits('1000000', 6);
 
-    const coverCountBefore = await this.cover.coverDataCount();
+    const coverCountBefore = await this.cover.getCoverDataCount();
 
+    await this.usdc.connect(this.usdcHolder).transfer(coverBuyerAddress, usdcTopUpAmount);
     await this.usdc.connect(coverBuyer).approve(this.cover.address, usdcTopUpAmount);
 
     const maxPremiumInAsset = amount.mul(260).div(10000);
@@ -634,7 +624,7 @@ describe('basic functionality tests', function () {
     );
 
     console.log('Bought..');
-    const coverCountAfter = await this.cover.coverDataCount();
+    const coverCountAfter = await this.cover.getCoverDataCount();
     protocolCoverId = coverCountAfter;
 
     expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
@@ -649,17 +639,16 @@ describe('basic functionality tests', function () {
 
     const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
     const requestedAmount = parseUnits('1000', 6);
-    const segmentId = (await this.cover.coverSegmentsCount(custodyCoverId)).sub(1);
-    const segment = await this.cover.coverSegmentWithRemainingAmount(custodyCoverId, segmentId);
+    const coverData = await this.cover.getCoverData(custodyCoverId);
 
     const [deposit] = await this.individualClaims.getAssessmentDepositAndReward(
       requestedAmount,
-      segment.period,
+      coverData.period,
       6, // USDC
     );
     await this.individualClaims
       .connect(coverBuyer)
-      .submitClaim(protocolCoverId, segmentId, requestedAmount, ipfsHash, { value: deposit });
+      .submitClaim(protocolCoverId, requestedAmount, ipfsHash, { value: deposit });
 
     const claimsCountAfter = await this.individualClaims.getClaimsCount();
     const assessmentCountAfter = await this.assessment.getAssessmentsCount();
@@ -747,13 +736,8 @@ describe('basic functionality tests', function () {
   });
 
   it('Performs hypothetical future upgrade of proxy and non-proxy', async function () {
-    // CR - ClaimRewards.sol
-    const newClaimsReward = await deployContract('LegacyClaimsReward', [this.master.address, Address.DAI_ADDRESS]);
-
     // TC - TokenController.sol
     const tokenController = await deployContract('TokenController', [
-      this.quotationData.address,
-      newClaimsReward.address,
       this.stakingPoolFactory.address,
       this.nxm.address,
       this.stakingNFT.address,
@@ -771,13 +755,6 @@ describe('basic functionality tests', function () {
       this.stakingNFT.address,
       this.stakingPoolFactory.address,
       this.stakingPool.address,
-    ]);
-
-    // PS - PooledStaking.sol
-    const pooledStaking = await deployContract('LegacyPooledStaking', [
-      this.cover.address,
-      this.stakingNFT.address,
-      this.nxm.address,
     ]);
 
     // PriceFeedOracle.sol
@@ -849,7 +826,7 @@ describe('basic functionality tests', function () {
     const assessment = await deployContract('Assessment', [this.nxm.address]);
 
     // CI - IndividualClaims.sol
-    const individualClaims = await deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
+    const individualClaims = await deployContract('IndividualClaims', [this.coverNFT.address]);
 
     // RA - Ramm.sol
     const ramm = await deployContract('Ramm', ['0']);
@@ -859,10 +836,8 @@ describe('basic functionality tests', function () {
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]'],
         [
-          ['MR', 'MC', 'CO', 'TC', 'PS', 'P1', 'AS', 'CI', 'RA'].map(code => toUtf8Bytes(code)),
-          [memberRoles, mcr, cover, tokenController, pooledStaking, pool, assessment, individualClaims, ramm].map(
-            c => c.address,
-          ),
+          ['MR', 'MC', 'CO', 'TC', 'P1', 'AS', 'CI', 'RA'].map(code => toUtf8Bytes(code)),
+          [memberRoles, mcr, cover, tokenController, pool, assessment, individualClaims, ramm].map(c => c.address),
         ],
       ),
       this.abMembers,
@@ -871,7 +846,6 @@ describe('basic functionality tests', function () {
 
     // Compare proxy implementation addresses
     await compareProxyImplementationAddress(this.memberRoles.address, memberRoles.address);
-    await compareProxyImplementationAddress(this.pooledStaking.address, pooledStaking.address);
     await compareProxyImplementationAddress(this.tokenController.address, tokenController.address);
     await compareProxyImplementationAddress(this.individualClaims.address, individualClaims.address);
     await compareProxyImplementationAddress(this.assessment.address, assessment.address);

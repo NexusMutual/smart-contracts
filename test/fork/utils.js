@@ -5,7 +5,7 @@ const assert = require('assert');
 const { setEtherBalance } = require('../utils/evm');
 const { calculateCurrentTrancheId } = require('../utils/stakingPool');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-const { parseEther, defaultAbiCoder, keccak256 } = ethers.utils;
+const { parseEther, defaultAbiCoder, keccak256, toUtf8Bytes } = ethers.utils;
 const { BigNumber } = ethers;
 
 const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
@@ -69,6 +69,7 @@ const UserAddress = {
   CBBTC_WHALE: '0x5c647cE0Ae10658ec44FA4E11A51c96e94efd1Dd',
   HUGH: '0x87b2a7559d85f4653f13e6546a14189cd5455d45',
   NXMHOLDER: '0xd7cba5b9a0240770cfd9671961dae064136fa240',
+  USDC_HOLDER: '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503',
 };
 
 const EnzymeAdress = {
@@ -318,6 +319,12 @@ function calculateProxyAddress(masterAddress, salt) {
   return ethers.utils.getCreate2Address(masterAddress, saltHex, initCodeHash);
 }
 
+async function getContractByContractCode(contractName, contractCode) {
+  this.master = this.master ?? (await ethers.getContractAt('NXMaster', V2Addresses.NXMaster));
+  const contractAddress = await this.master?.getLatestAddress(toUtf8Bytes(contractCode));
+  return ethers.getContractAt(contractName, contractAddress);
+}
+
 module.exports = {
   submitGovernanceProposal,
   submitMemberVoteGovernanceProposal,
@@ -341,4 +348,5 @@ module.exports = {
   upgradeMultipleContracts,
   formatInternalContracts,
   calculateProxyAddress,
+  getContractByContractCode,
 };

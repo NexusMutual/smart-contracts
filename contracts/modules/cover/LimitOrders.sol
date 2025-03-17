@@ -22,6 +22,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   /* ========== IMMUTABLES ========== */
   INXMToken public immutable nxmToken;
   IWeth public immutable weth;
+  address public immutable internalSolver;
 
   /* ========== CONSTANTS ========== */
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -55,10 +56,18 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     )
   );
 
+  modifier onlyInternalSolver() {
+    if (msg.sender != internalSolver) {
+      revert OnlyInternalSolver();
+    }
+    _;
+  }
+
   /* ========== CONSTRUCTOR ========== */
-  constructor(address _nxmTokenAddress, address _wethAddress) EIP712("NexusMutualLimitOrders", "1.0.0") {
+  constructor(address _nxmTokenAddress, address _wethAddress, address _internalSolver) EIP712("NexusMutualLimitOrders", "1.0.0") {
     nxmToken = INXMToken(_nxmTokenAddress);
     weth = IWeth(_wethAddress);
+    internalSolver = _internalSolver;
   }
 
   /// @notice Executes the order to buy cover on behalf of the creator of limit order
@@ -74,7 +83,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     ExecutionDetails calldata executionDetails,
     bytes calldata signature,
     SettlementDetails memory settlementDetails
-  ) external payable onlyMember returns (uint coverId) {
+  ) external payable onlyMember onlyInternalSolver returns (uint coverId) {
 
     if (params.owner == address(0) || params.owner == address(this)) {
       revert InvalidOwnerAddress();
@@ -230,8 +239,6 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     weth.withdraw(params.maxPremiumInAsset);
 
     coverId = cover().executeCoverBuy{value: params.maxPremiumInAsset}(params, poolAllocationRequests);
-
-    // todo: figure out a solution to limit max solver fee when notBefore > now
 
     weth.transferFrom(buyer, settlementDetails.feeDestination, settlementDetails.fee);
 

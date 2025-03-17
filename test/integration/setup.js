@@ -243,9 +243,9 @@ async function setup() {
   const ci = await deployProxy('IndividualClaims', [coverNFT.address]);
   const as = await deployProxy('Assessment', [tk.address]);
   const coverProducts = await deployProxy('CoverProducts');
-  const limitOrders = await deployProxy('LimitOrders', [tk.address, weth.address]);
-
   await coverProducts.changeMasterAddress(master.address);
+
+  const limitOrders = await deployProxy('LimitOrders', [tk.address, weth.address, accounts.defaultSender.address]);
   await limitOrders.changeMasterAddress(master.address);
 
   const contractType = code => {

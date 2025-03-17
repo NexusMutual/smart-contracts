@@ -66,6 +66,7 @@ interface ILimitOrders {
 
   /* ==== ERRORS ==== */
 
+  error OnlyInternalSolver();
   error OrderAlreadyCancelled();
   error OrderExpired();
   error RenewalExpired();

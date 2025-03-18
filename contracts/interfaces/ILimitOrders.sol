@@ -56,7 +56,7 @@ interface ILimitOrders {
     PoolAllocationRequest[] calldata poolAllocationRequests,
     ExecutionDetails calldata executionDetails,
     bytes calldata signature,
-    SettlementDetails memory solverDetails
+    SettlementDetails memory settlementDetails
   ) external payable returns (uint coverId);
 
   /* ==== EVENTS ==== */

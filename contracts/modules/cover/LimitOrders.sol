@@ -155,14 +155,14 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     // Recover the signer from the digest and the signature
     address signer = ECDSA.recover(orderId, signature);
 
+    if (signer != msg.sender) {
+      revert NotOrderOwner();
+    }
+
     OrderStatus memory _orderStatus = orderStatus[orderId];
 
     if (_orderStatus.isCancelled) {
       revert OrderAlreadyCancelled();
-    }
-
-    if (signer != msg.sender) {
-      revert NotOrderOwner();
     }
 
     _orderStatus.isCancelled = true;

@@ -21,7 +21,11 @@ async function setup() {
   const pool = await ethers.deployContract('PoolMock');
   const master = await ethers.deployContract('MasterMock');
 
-  const limitOrders = await ethers.deployContract('LimitOrders', [AddressZero, AddressZero]);
+  const limitOrders = await ethers.deployContract('LimitOrders', [
+    AddressZero,
+    AddressZero,
+    limitOrdersSettler.address,
+  ]);
 
   await master.setLatestAddress(toBytes2('CO'), cover.address);
   await master.setLatestAddress(toBytes2('MR'), memberRoles.address);

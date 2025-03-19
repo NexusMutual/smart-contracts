@@ -47,9 +47,7 @@ const orderDetailsFixture = {
 };
 
 const executionDetailsFixture = {
-  notExecutableBefore: Math.floor(Date.now() / 1000),
-  executableUntil: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
-  renewableUntil: Math.floor(Date.now() / 1000) + 180 * 24 * 60 * 60,
+  renewableUntil: 0,
   renewablePeriodBeforeExpiration: 3 * 24 * 60 * 60,
   maxPremiumInAsset: MaxUint256,
 };
@@ -394,6 +392,7 @@ describe('LimitOrders - executeOrder', function () {
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
       maxPremiumInAsset: premium,
+      renewableUntil: currentTimestamp + 180 * 24 * 60 * 60,
     };
     const orderDetails = {
       ...orderDetailsFixture,
@@ -636,7 +635,7 @@ describe('LimitOrders - executeOrder', function () {
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
       maxPremiumInAsset: premium,
-      renewablePeriodBeforeExpiration: 3 * 24 * 60 * 60,
+      renewableUntil: nextBlockTimestamp + 180 * 24 * 60 * 60,
     };
 
     const orderDetails = {

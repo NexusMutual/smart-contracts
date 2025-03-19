@@ -47,13 +47,33 @@ describe('cover edits', function () {
     this.abMembers = await Promise.all(impersonatePromises);
   });
 
-  it('Upgrade contracts', async function () {
-    // Assessment, AssessmentViewer, IndividualClaims
-    // Cover, CoverNFTDescriptor, CoverProducts, CoverViewer
-    // StakingPool, StakingProducts, StakingTypesLib
-    // TokenController
-    // NexusViewer
+  // Internal contracts that have changes:
+  // - Assessment
+  // - IndividualClaims
+  // - Cover
+  // - CoverProducts
+  // - MemberRoles !!!!!!
+  // - StakingPool
+  // - StakingProducts
+  // - TokenController
 
+  // Non-internal dependency:
+  // - CoverNFTDescriptor
+
+  // Viewer contracts:
+  // - CoverViewer !!!!!!
+  // - AssessmentViewer !!!!!!
+  // - NexusViewer !!!!!!
+
+  // New contracts:
+  // - LimitOrders
+
+  // Removed contracts:
+  // - LegacyClaimsReward ??????
+  // - LegacyPooledStaking ??????
+  // - LegacyQuotationData ??????
+
+  it('Upgrade contracts', async function () {
     const newStakingPool = await deployContract('StakingPool', [
       this.stakingNFT.address,
       this.nxm.address,

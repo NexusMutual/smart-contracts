@@ -7,7 +7,7 @@ const { defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 const CATEGORIES_HANDLERS = {
   29: encodeReleaseNewContractCode,
-  42: encodeAddAssetToPool,
+  // 42: encodeAddAssetToPool,
 };
 
 const usage = () => {

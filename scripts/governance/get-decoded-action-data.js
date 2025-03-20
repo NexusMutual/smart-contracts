@@ -8,6 +8,7 @@ const { defaultAbiCoder, toUtf8String } = ethers.utils;
 const HEX_REGEX = /^0x[a-f0-9]+$/i;
 const CATEGORIES_HANDLERS = {
   29: decodeReleaseNewContractCode,
+  41: setSwapDetails,
   42: decodeAddAssetToPool,
 };
 
@@ -83,7 +84,8 @@ async function main() {
 }
 
 /* Category Handlers */
-
+// TODO: make generic and use config to define the name of the params
+// use key values pairs or tuple to define? i.e. `name: type` or [name, type]
 function decodeReleaseNewContractCode(options) {
   const [codes, addresses] = defaultAbiCoder.decode(CATEGORY_PARAM_TYPES[options.category], options.data);
   const contractCodesUtf8 = codes.map(code => toUtf8String(code));
@@ -97,6 +99,16 @@ function decodeAddAssetToPool(options) {
     options.data,
   );
   console.log({ address, isCoverAsset, minAmount, maxAmount, maxSlippageRatio });
+  // TODO:
+  // console.log(`Decoded Ass Asset To Pool (43):\n${util.inspect([contractCodesUtf8, addresses], { depth: 2 })}`);
+}
+
+function setSwapDetails(options) {
+  const [assetAddress, min, max, maxSlippageRatio] = defaultAbiCoder.decode(
+    CATEGORY_PARAM_TYPES[options.category],
+    options.data,
+  );
+  console.log({ assetAddress, min, max, maxSlippageRatio });
   // TODO:
   // console.log(`Decoded Ass Asset To Pool (43):\n${util.inspect([contractCodesUtf8, addresses], { depth: 2 })}`);
 }

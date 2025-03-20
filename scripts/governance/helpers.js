@@ -12,6 +12,7 @@ const CATEGORY_PARAM_TYPES = {
   11: [], // Changes to Pricing Model
   18: [], // Any other Item
   29: ['bytes2[]', 'address[]'], // Release new smart contract code
+  41: ['address', 'uint104', 'uint104', 'uint16'], // Set Swap Details
   42: ['address', 'bool', 'uint256', 'uint256', 'uint256'], // Add Asset to Pool
   43: ['bytes2[]', 'address[]', 'uint256[]'], // Add new internal contracts
 };

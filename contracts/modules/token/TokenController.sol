@@ -6,7 +6,6 @@ import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ITokenController.sol";

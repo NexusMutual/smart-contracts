@@ -8,7 +8,6 @@ import {IAssessmentViewer} from "../../interfaces/IAssessmentViewer.sol";
 import {IGovernance} from "../../interfaces/IGovernance.sol";
 import {INexusViewer} from "../../interfaces/INexusViewer.sol";
 import {INXMMaster} from "../../interfaces/INXMMaster.sol";
-import {IPooledStaking} from "../../interfaces/IPooledStaking.sol";
 import {IStakingViewer} from "../../interfaces/IStakingViewer.sol";
 import {ITokenController} from "../../interfaces/ITokenController.sol";
 

@@ -245,7 +245,7 @@ async function setup() {
   const coverProducts = await deployProxy('CoverProducts');
   await coverProducts.changeMasterAddress(master.address);
 
-  const limitOrders = await deployProxy('LimitOrders', [tk.address, weth.address, accounts.defaultSender.address]);
+  const limitOrders = await deployProxy('LimitOrders', [weth.address, accounts.defaultSender.address]);
   await limitOrders.changeMasterAddress(master.address);
 
   const contractType = code => {

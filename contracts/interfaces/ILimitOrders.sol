@@ -45,8 +45,6 @@ interface ILimitOrders {
 
   /* ==== IMMUTABLES ==== */
 
-  function nxmToken() external view returns (INXMToken);
-
   function weth() external view returns (IWeth);
 
   /* ==== FUNCTIONS ==== */

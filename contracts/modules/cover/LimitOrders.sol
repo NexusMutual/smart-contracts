@@ -20,14 +20,11 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   mapping(bytes32 => OrderStatus) public orderStatus;
 
   /* ========== IMMUTABLES ========== */
-  INXMToken public immutable nxmToken;
   IWeth public immutable weth;
   address public immutable internalSolver;
 
   /* ========== CONSTANTS ========== */
-  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint private constant ETH_ASSET_ID = 0;
-  uint private constant NXM_ASSET_ID = type(uint8).max;
 
   bytes32 private constant EXECUTE_ORDER_TYPEHASH = keccak256(
     abi.encodePacked(
@@ -64,8 +61,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   }
 
   /* ========== CONSTRUCTOR ========== */
-  constructor(address _nxmTokenAddress, address _wethAddress, address _internalSolver) EIP712("NexusMutualLimitOrders", "1.0.0") {
-    nxmToken = INXMToken(_nxmTokenAddress);
+  constructor(address _wethAddress, address _internalSolver) EIP712("NexusMutualLimitOrders", "1.0.0") {
     weth = IWeth(_wethAddress);
     internalSolver = _internalSolver;
   }

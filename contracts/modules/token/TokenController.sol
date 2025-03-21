@@ -176,16 +176,6 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
     }
   }
 
-  /// @dev Updates Uint Parameters of a code.
-  /// @param code   The code whose details we want to update.
-  /// @param value  The value to set.
-  function updateUintParameters(bytes8 code, uint value) external view onlyGovernance {
-    // silence compiler warnings
-    code;
-    value;
-    revert("TokenController: invalid param code");
-  }
-
   /// @notice Retrieves the reasons why a user's tokens were locked.
   /// @param _of       The address of the user whose lock reasons are being retrieved.
   /// @return reasons  An array of reasons (as bytes32) for the token lock.

@@ -20,11 +20,13 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   mapping(bytes32 => OrderStatus) public orderStatus;
 
   /* ========== IMMUTABLES ========== */
+  INXMToken public immutable nxmToken;
   IWeth public immutable weth;
   address public immutable internalSolver;
 
   /* ========== CONSTANTS ========== */
   uint private constant ETH_ASSET_ID = 0;
+  uint private constant NXM_ASSET_ID = type(uint8).max;
 
   bytes32 private constant EXECUTE_ORDER_TYPEHASH = keccak256(
     abi.encodePacked(
@@ -61,7 +63,8 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   }
 
   /* ========== CONSTRUCTOR ========== */
-  constructor(address _wethAddress, address _internalSolver) EIP712("NexusMutualLimitOrders", "1.0.0") {
+  constructor(address _nxmTokenAddress, address _wethAddress, address _internalSolver) EIP712("NexusMutualLimitOrders", "1.0.0") {
+    nxmToken = INXMToken(_nxmTokenAddress);
     weth = IWeth(_wethAddress);
     internalSolver = _internalSolver;
   }
@@ -264,15 +267,19 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     SettlementDetails memory settlementDetails
   ) internal returns (uint coverId) {
 
-    address paymentAsset = pool().getAsset(params.paymentAsset).assetAddress;
-    IERC20 erc20 = IERC20(paymentAsset);
+    address paymentAsset = params.paymentAsset == NXM_ASSET_ID
+      ? address(nxmToken)
+      : pool().getAsset(params.paymentAsset).assetAddress;
 
+    IERC20 erc20 = IERC20(paymentAsset);
     uint erc20BalanceBefore = erc20.balanceOf(address(this));
 
     erc20.safeTransferFrom(buyer, address(this), params.maxPremiumInAsset);
     coverId = cover().executeCoverBuy(params, poolAllocationRequests);
 
-    erc20.safeTransferFrom(buyer, settlementDetails.feeDestination, settlementDetails.fee);
+    if (settlementDetails.fee > 0) {
+      erc20.safeTransferFrom(buyer, settlementDetails.feeDestination, settlementDetails.fee);
+    }
 
     uint erc20BalanceAfter = erc20.balanceOf(address(this));
 
@@ -285,10 +292,15 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     return coverId;
   }
 
-  /// @notice Allows the Cover contract to spend the maximum possible amount of a specified ERC20 token on behalf of the CoverOrder.
+  /// @notice Allows the Cover contract to spend the maximum possible amount of a specified ERC20 token on behalf of the LimitOrders.
   /// @param erc20 The ERC20 token for which to approve spending.
   function maxApproveCoverContract(IERC20 erc20) external {
     erc20.safeApprove(internalContracts[uint(ID.CO)], type(uint256).max);
+  }
+
+  /// @notice Allows the Token Controller contract to spend the maximum possible amount of a NXM token on behalf of the LimitOrders.
+  function maxApproveTokenControllerContract() external {
+    nxmToken.approve(internalContracts[uint(ID.TC)], type(uint256).max);
   }
 
   /* ========== DEPENDENCIES ========== */
@@ -307,6 +319,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
   }
 
   receive() external payable {}

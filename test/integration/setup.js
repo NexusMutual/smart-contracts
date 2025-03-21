@@ -313,8 +313,6 @@ async function setup() {
   await impersonateAccount(mr.address);
   await setNextBlockBaseFee(0);
   await tc.connect(await ethers.getSigner(mr.address)).addToWhitelist(as.address, { gasPrice: 0 });
-  await setNextBlockBaseFee(0);
-  await tc.connect(await ethers.getSigner(mr.address)).addToWhitelist(limitOrders.address, { gasPrice: 0 });
 
   await mr.initialize(
     owner.address,

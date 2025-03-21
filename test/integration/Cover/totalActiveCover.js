@@ -155,10 +155,10 @@ describe.skip('totalActiveCover', function () {
 
     {
       // advance past payout cooldown
-      const { payoutCooldownInDays } = await as.config();
+      const payoutCooldown = (await as.getPayoutCooldown()).toNumber();
 
       const { end } = await as.getPoll(assessmentId);
-      await setTime(end + daysToSeconds(payoutCooldownInDays));
+      await setTime(end + payoutCooldown);
     }
 
     // fully paid cover
@@ -225,10 +225,10 @@ describe.skip('totalActiveCover', function () {
 
     {
       // advance past payout cooldown
-      const { payoutCooldownInDays } = await as.config();
+      const payoutCooldown = (await as.getPayoutCooldown()).toNumber();
 
       const { end } = await as.getPoll(assessmentId);
-      await setTime(end + daysToSeconds(payoutCooldownInDays));
+      await setTime(end + payoutCooldown);
     }
 
     // partial paid cover
@@ -303,10 +303,10 @@ describe.skip('totalActiveCover', function () {
 
     {
       // advance past payout cooldown
-      const { payoutCooldownInDays } = await as.config();
+      const payoutCooldown = (await as.getPayoutCooldown()).toNumber();
 
       const { end } = await as.getPoll(assessmentId);
-      await setTime(end + daysToSeconds(payoutCooldownInDays));
+      await setTime(end + payoutCooldown);
     }
 
     await expect(

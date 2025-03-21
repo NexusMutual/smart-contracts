@@ -12,12 +12,12 @@ describe('getAssessmentsCount', function () {
       const count = await assessment.getAssessmentsCount();
       expect(count).to.be.equal(0);
     }
-    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, parseEther('100'), '');
     {
       const count = await assessment.getAssessmentsCount();
       expect(count).to.be.equal(1);
     }
-    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, parseEther('100'), '');
     {
       const count = await assessment.getAssessmentsCount();
       expect(count).to.be.equal(2);

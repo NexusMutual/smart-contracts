@@ -6,12 +6,12 @@ import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/IIndividualClaims.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IRamm.sol";
-import "../../interfaces/ICoverProducts.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
@@ -19,19 +19,9 @@ import "../../libraries/SafeUintCast.sol";
 /// the assessment process where the members of the mutual decide the outcome of claims.
 contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
-  // 0-10000 bps (i.e. double decimal precision percentage)
-  uint internal constant MIN_ASSESSMENT_DEPOSIT_DENOMINATOR = 10000;
-  uint internal constant REWARD_DENOMINATOR = 10000;
-
-  // Used in operations involving NXM tokens and divisions
-  uint internal constant PRECISION = 10 ** 18;
-
-  INXMToken public immutable nxm;
-  ICoverNFT public immutable coverNFT;
-
   /* ========== STATE VARIABLES ========== */
 
-  Configuration public override config;
+  uint internal __unused_0; // was Configuration config
 
   Claim[] public override claims;
 
@@ -39,10 +29,24 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   // cover as long as the last submitted claim reached a final state.
   mapping(uint => ClaimSubmission) public lastClaimSubmissionOnCover;
 
+  /* =========== CONSTANTS =========== */
+
+  uint constant public MIN_ASSESSMENT_DEPOSIT_RATIO = 500; // bps
+  uint constant public MIN_ASSESSMENT_DEPOSIT_DENOMINATOR = 10000;
+
+  uint constant public REWARD_RATIO = 130; // bps
+  uint constant public REWARD_DENOMINATOR = 10000;
+
+  uint constant public PAYOUT_REDEMPTION_PERIOD = 30 days;
+
+  uint constant public ONE_NXM = 1 ether;
+  uint constant public MAX_REWARD_IN_NXM = 50 * ONE_NXM;
+
+  ICoverNFT public immutable coverNFT;
+
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(address nxmAddress, address coverNFTAddress) {
-    nxm = INXMToken(nxmAddress);
+  constructor(address coverNFTAddress) {
     coverNFT = ICoverNFT(coverNFTAddress);
   }
 
@@ -72,19 +76,36 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     return claims.length;
   }
 
+  function getPayoutRedemptionPeriod() external pure override returns (uint) {
+    return PAYOUT_REDEMPTION_PERIOD;
+  }
+
+  function getMinAssessmentDepositRatio() external pure override returns (uint) {
+    return MIN_ASSESSMENT_DEPOSIT_RATIO;
+  }
+
+  function getMaxRewardInNxm() external pure override returns (uint) {
+    return MAX_REWARD_IN_NXM;
+  }
+
+  function getRewardRatio() external pure override returns (uint) {
+    return REWARD_RATIO;
+  }
+
   /// Returns the required assessment deposit and total reward for a new claim
   ///
   /// @dev This view is meant to be used either by users or user interfaces to determine the
   /// minimum assessment deposit value of the submitClaim tx.
   ///
-  /// @param requestedAmount  The amount that is claimed
-  /// @param segmentPeriod    The cover period of the segment in days
+  /// @param requestedAmount The amount that is claimed
+  /// @param coverPeriod     The cover period
   /// @param coverAsset      The asset in which the payout would be made
   function getAssessmentDepositAndReward(
     uint requestedAmount,
-    uint segmentPeriod,
+    uint coverPeriod,
     uint coverAsset
   ) public view returns (uint, uint) {
+
     IPool poolContract = pool();
 
     uint nxmPriceInETH = poolContract.getInternalTokenPriceInAsset(0);
@@ -92,20 +113,16 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       ? nxmPriceInETH
       : poolContract.getInternalTokenPriceInAsset(coverAsset);
 
-    // Calculate the expected payout in NXM using the NXM price at cover purchase time
-    uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceInCoverAsset;
+    uint expectedPayoutInNXM = requestedAmount * ONE_NXM / nxmPriceInCoverAsset;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
     uint totalRewardInNXM = Math.min(
-      uint(config.maxRewardInNXMWad) * PRECISION,
-      expectedPayoutInNXM * uint(config.rewardRatio) * segmentPeriod / 365 days / REWARD_DENOMINATOR
+      MAX_REWARD_IN_NXM,
+      expectedPayoutInNXM * REWARD_RATIO * coverPeriod / 365 days / REWARD_DENOMINATOR
     );
 
-    uint dynamicDeposit = totalRewardInNXM * nxmPriceInETH / PRECISION;
-    uint minDeposit = 1 ether * uint(config.minAssessmentDepositRatio) /
-      MIN_ASSESSMENT_DEPOSIT_DENOMINATOR;
-
-    // If dynamicDeposit falls below minDeposit use minDeposit instead
+    uint dynamicDeposit = totalRewardInNXM * nxmPriceInETH / ONE_NXM;
+    uint minDeposit = 1 ether * MIN_ASSESSMENT_DEPOSIT_RATIO / MIN_ASSESSMENT_DEPOSIT_DENOMINATOR;
     uint assessmentDepositInETH = Math.max(minDeposit, dynamicDeposit);
 
     return (assessmentDepositInETH, totalRewardInNXM);
@@ -138,11 +155,9 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
         if (claim.payoutRedeemed) {
           payoutStatus = PayoutStatus.COMPLETE;
         } else {
-          (,,uint8 payoutCooldownInDays,) = assessment().config();
+          uint payoutCooldown = assessment().getPayoutCooldown();
           if (
-            block.timestamp >= poll.end +
-            uint(payoutCooldownInDays) * 1 days +
-            uint(config.payoutRedemptionPeriodInDays) * 1 days
+            block.timestamp >= poll.end + payoutCooldown + PAYOUT_REDEMPTION_PERIOD
           ) {
             payoutStatus = PayoutStatus.UNCLAIMED;
           }
@@ -152,11 +167,9 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       }
     }
 
-    CoverData memory coverData = cover().coverData(claim.coverId);
+    CoverData memory coverData = cover().getCoverData(claim.coverId);
 
-    CoverSegment memory segment = cover().coverSegmentWithRemainingAmount(claim.coverId, claim.segmentId);
-
-    uint segmentEnd = segment.start + segment.period;
+    uint expiration = coverData.start + coverData.period;
 
     string memory assetSymbol;
     if (claim.coverAsset == 0) {
@@ -179,8 +192,8 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       claim.amount,
       assetSymbol,
       claim.coverAsset,
-      segment.start,
-      segmentEnd,
+      coverData.start,
+      expiration,
       poll.start,
       poll.end,
       uint(claimStatus),
@@ -218,7 +231,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   ///                         no event is emitted.
   function submitClaim(
     uint32 coverId,
-    uint16 segmentId,
     uint96 requestedAmount,
     string calldata ipfsMetadata
   ) external payable override onlyMember whenNotPaused returns (Claim memory claim) {
@@ -226,69 +238,54 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
       "Only the owner or approved addresses can submit a claim"
     );
-    return _submitClaim(coverId, segmentId, requestedAmount, ipfsMetadata, msg.sender);
-  }
-
-  function submitClaimFor(
-    uint32 coverId,
-    uint16 segmentId,
-    uint96 requestedAmount,
-    string calldata ipfsMetadata,
-    address owner
-  ) external payable override onlyInternal whenNotPaused returns (Claim memory claim){
-    return _submitClaim(coverId, segmentId, requestedAmount, ipfsMetadata, owner);
+    return _submitClaim(coverId, requestedAmount, ipfsMetadata, msg.sender);
   }
 
   function _submitClaim(
     uint32 coverId,
-    uint16 segmentId,
     uint96 requestedAmount,
     string calldata ipfsMetadata,
     address owner
   ) internal returns (Claim memory) {
+
     {
       ClaimSubmission memory previousSubmission = lastClaimSubmissionOnCover[coverId];
+
       if (previousSubmission.exists) {
+
         uint80 assessmentId = claims[previousSubmission.claimId].assessmentId;
         IAssessment.Poll memory poll = assessment().getPoll(assessmentId);
-        (,,uint8 payoutCooldownInDays,) = assessment().config();
-        uint payoutCooldown = uint(payoutCooldownInDays) * 1 days;
-        if (block.timestamp >= poll.end + payoutCooldown) {
-          if (
-            poll.accepted > poll.denied &&
-            block.timestamp < uint(poll.end) +
-            payoutCooldown +
-            uint(config.payoutRedemptionPeriodInDays) * 1 days
-          ) {
-            revert("A payout can still be redeemed");
-          }
-        } else {
+        uint payoutCooldown = assessment().getPayoutCooldown();
+
+        if (block.timestamp < poll.end + payoutCooldown) {
           revert("A claim is already being assessed");
         }
+
+        if (
+          poll.accepted > poll.denied &&
+          block.timestamp < uint(poll.end) + payoutCooldown + PAYOUT_REDEMPTION_PERIOD
+        ) {
+          revert("A payout can still be redeemed");
+        }
       }
+
       lastClaimSubmissionOnCover[coverId] = ClaimSubmission(uint80(claims.length), true);
     }
 
-    ICoverProducts coverProductsContract = coverProducts();
-    CoverData memory coverData = cover().coverData(coverId);
-    CoverSegment memory segment = cover().coverSegmentWithRemainingAmount(coverId, segmentId);
+    CoverData memory coverData = cover().getCoverData(coverId);
 
     {
-      (, ProductType memory productType) = coverProductsContract.getProductWithType(coverData.productId);
-
+      ProductType memory productType = coverProducts().getProductTypeOf(coverData.productId);
+      require(productType.claimMethod == ClaimMethod.IndividualClaims, "Invalid claim method for this product type");
+      require(requestedAmount <= coverData.amount, "Covered amount exceeded");
+      require(block.timestamp > coverData.start, "Cannot buy cover and submit claim in the same block");
       require(
-        productType.claimMethod == uint8(ClaimMethod.IndividualClaims),
-        "Invalid claim method for this product type"
-      );
-      require(requestedAmount <= segment.amount, "Covered amount exceeded");
-      require(block.timestamp > segment.start, "Cannot buy cover and submit claim in the same block");
-      require(
-        uint(segment.start) + uint(segment.period) + uint(segment.gracePeriod) > block.timestamp,
+        uint(coverData.start) + uint(coverData.period) + uint(coverData.gracePeriod) > block.timestamp,
         "Cover is outside the grace period"
       );
 
       emit ClaimSubmitted(
-        owner,         // user
+        owner,              // claim submitter
         claims.length,      // claimId
         coverId,            // coverId
         coverData.productId // user
@@ -297,7 +294,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
     (uint assessmentDepositInETH, uint totalRewardInNXM) = getAssessmentDepositAndReward(
       requestedAmount,
-      segment.period,
+      coverData.period,
       coverData.coverAsset
     );
 
@@ -306,11 +303,12 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     Claim memory claim = Claim({
       assessmentId: SafeUintCast.toUint80(newAssessmentId),
       coverId: coverId,
-      segmentId: segmentId,
+      segmentId: 0,
       amount: requestedAmount,
       coverAsset: coverData.coverAsset,
       payoutRedeemed: false
     });
+
     claims.push(claim);
 
     if (bytes(ipfsMetadata).length > 0) {
@@ -331,7 +329,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     (
       bool transferSucceeded,
       /* bytes data */
-    ) =  getInternalContractAddress(ID.P1).call{value: assessmentDepositInETH}("");
+    ) =  address(pool()).call{value: assessmentDepositInETH}("");
     require(transferSucceeded, "Assessment deposit transfer to pool failed");
 
     return claim;
@@ -354,13 +352,12 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     require(block.timestamp >= poll.end, "The claim is still being assessed");
     require(poll.accepted > poll.denied, "The claim needs to be accepted");
 
-    (,,uint8 payoutCooldownInDays,) = assessment().config();
-    uint payoutCooldown = uint(payoutCooldownInDays) * 1 days;
+    uint payoutCooldown = assessment().getPayoutCooldown();
 
     require(block.timestamp >= poll.end + payoutCooldown, "The claim is in cooldown period");
 
     require(
-      block.timestamp < uint(poll.end) + payoutCooldown + uint(config.payoutRedemptionPeriodInDays) * 1 days,
+      block.timestamp < uint(poll.end) + payoutCooldown + PAYOUT_REDEMPTION_PERIOD,
       "The redemption period has expired"
     );
 
@@ -370,7 +367,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     ramm().updateTwap();
     address payable coverOwner = payable(cover().burnStake(
       claim.coverId,
-      claim.segmentId,
       claim.amount
     ));
 
@@ -378,37 +374,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     pool().sendPayout(claim.coverAsset, coverOwner, claim.amount, assessmentDepositInETH);
 
     emit ClaimPayoutRedeemed(coverOwner, claim.amount, claimId, claim.coverId);
-  }
-
-  /// Updates configurable aprameters through governance
-  ///
-  /// @param paramNames  An array of elements from UintParams enum
-  /// @param values      An array of the new values, each one corresponding to the parameter
-  ///                    from paramNames on the same position.
-  function updateUintParameters(
-    UintParams[] calldata paramNames,
-    uint[] calldata values
-  ) external override onlyGovernance {
-    Configuration memory newConfig = config;
-    for (uint i = 0; i < paramNames.length; i++) {
-      if (paramNames[i] == UintParams.payoutRedemptionPeriodInDays) {
-        newConfig.payoutRedemptionPeriodInDays = uint8(values[i]);
-        continue;
-      }
-      if (paramNames[i] == UintParams.rewardRatio) {
-        newConfig.rewardRatio = uint16(values[i]);
-        continue;
-      }
-      if (paramNames[i] == UintParams.maxRewardInNXMWad) {
-        newConfig.maxRewardInNXMWad = uint16(values[i]);
-        continue;
-      }
-      if (paramNames[i] == UintParams.minAssessmentDepositRatio) {
-        newConfig.minAssessmentDepositRatio = uint16(values[i]);
-        continue;
-      }
-    }
-    config = newConfig;
   }
 
   /// @dev Updates internal contract addresses to the ones stored in master. This function is
@@ -421,23 +386,5 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
     internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
     internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
-
-    Configuration memory currentConfig = config;
-    bool notInitialized = bytes32(
-      abi.encodePacked(
-        currentConfig.rewardRatio,
-        currentConfig.maxRewardInNXMWad,
-        currentConfig.minAssessmentDepositRatio,
-        currentConfig.payoutRedemptionPeriodInDays
-      )
-    ) == bytes32(0);
-
-    if (notInitialized) {
-      // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
-      config.rewardRatio = 130; // 1.3%
-      config.maxRewardInNXMWad = 50; // 50 NXM
-      config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH assessment minimum flat fee
-      config.payoutRedemptionPeriodInDays = 30; // days to redeem the payout
-    }
   }
 }

@@ -62,25 +62,24 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
     ICover cover = ICover(master.getLatestAddress("CO"));
     ICoverProducts coverProducts = ICoverProducts(master.getLatestAddress("CP"));
 
-    if (cover.coverDataCount() < tokenId) {
+    if (cover.getCoverDataCount() < tokenId) {
       return ("This NFT does not exist", CoverDescription("", "", "", 0, 0, 0));
     }
 
     // Get cover data
-    CoverData memory coverData = cover.coverData(tokenId);
+    CoverData memory coverData = cover.getCoverData(tokenId);
     string memory productName = coverProducts.getProductName(coverData.productId);
-    CoverSegment memory lastSegment = cover.coverSegmentWithRemainingAmount(tokenId, cover.coverSegmentsCount(tokenId) - 1);
 
     // Check if cover has already expired
     string memory expiryMessage;
-    if ((lastSegment.start + lastSegment.period) <= block.timestamp) {
+    if ((coverData.start + coverData.period) <= block.timestamp) {
       expiryMessage = "This cover NFT has already expired";
     }
 
     string memory expiry;
     {
       // Format expiry date
-      (uint year, uint month, uint day) = uint(lastSegment.start + lastSegment.period).timestampToDate();
+      (uint year, uint month, uint day) = uint(coverData.start + coverData.period).timestampToDate();
       expiry = string(
         abi.encodePacked(
           month.getMonthString(), " ", addZeroPrefix(day), " ", year.toString()
@@ -92,7 +91,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
     descriptionString = string(
       abi.encodePacked(
         "This NFT represents a cover purchase made for: ", productName,
-        " \\nAmount Covered: ", FloatingPoint.toFloat(uint(lastSegment.amount), getAssetDecimals(coverData.coverAsset))," ", getAssetSymbol(coverData.coverAsset),
+        " \\nAmount Covered: ", FloatingPoint.toFloat(uint(coverData.amount), getAssetDecimals(coverData.coverAsset))," ", getAssetSymbol(coverData.coverAsset),
         " \\nExpiry Date: ", expiry,
         " \\n", expiryMessage
       )
@@ -102,7 +101,7 @@ contract CoverNFTDescriptor is ICoverNFTDescriptor {
       productName,
       getAssetSymbol(coverData.coverAsset),
       expiry,
-      lastSegment.amount,
+      coverData.amount,
       tokenId,
       getAssetDecimals(coverData.coverAsset)
     );

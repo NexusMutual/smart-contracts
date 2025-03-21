@@ -17,7 +17,6 @@ const {
 } = require('./utils');
 
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-const { daysToSeconds } = require('../../lib/helpers');
 const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
 const VariableDebtTokenAbi = require('./abi/aave/VariableDebtToken.json');
 const { InternalContractsIDs } = require('../utils').constants;
@@ -67,9 +66,9 @@ async function castAssessmentVote() {
   const { poll: pollResult } = await this.assessment.assessments(assessmentId);
   const poll = pollResult;
 
-  const { payoutCooldownInDays } = await this.assessment.config();
+  const payoutCooldown = (await this.assessment.getPayoutCooldown()).toNumber();
 
-  const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
+  const futureTime = poll.end + payoutCooldown;
 
   await setTime(futureTime);
 }

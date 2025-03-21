@@ -252,7 +252,7 @@ async function setup() {
   await cover.changeMasterAddress(master.address);
   await stakingProducts.changeMasterAddress(master.address);
 
-  const ci = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
+  const ci = await deployProxy('IndividualClaims', [coverNFT.address]);
   const as = await deployProxy('Assessment', [tk.address]);
   const coverProducts = await deployProxy('CoverProducts');
 
@@ -320,6 +320,7 @@ async function setup() {
 
   await tc.initialize(master.address, ps.address, as.address);
   await tc.addToWhitelist(lcr.address);
+  await tc.addToWhitelist(as.address);
 
   await mr.initialize(
     owner.address,
@@ -358,7 +359,6 @@ async function setup() {
 
   const CLAIM_METHOD = {
     INDIVIDUAL_CLAIMS: 0,
-    YIELD_TOKEN_INCIDENTS: 1,
   };
 
   await cover.changeDependentContractAddress();
@@ -372,7 +372,6 @@ async function setup() {
       productTypeId: MaxUint256,
       ipfsMetadata: 'protocolCoverIPFSHash',
       productType: {
-        descriptionIpfsHash: 'protocolCoverIPFSHash',
         claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
         gracePeriod: 30 * 24 * 3600, // 30 days
       },
@@ -386,17 +385,6 @@ async function setup() {
         descriptionIpfsHash: 'custodyCoverIPFSHash',
         claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
         gracePeriod: 90 * 24 * 3600, // 90 days
-      },
-    },
-    // Yield Token Cover
-    {
-      productTypeName: 'Yield Token',
-      productTypeId: MaxUint256,
-      ipfsMetadata: 'yieldTokenCoverIPFSHash',
-      productType: {
-        descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
-        claimMethod: CLAIM_METHOD.YIELD_TOKEN_INCIDENTS,
-        gracePeriod: 14 * 24 * 3600, // 14 days
       },
     },
   ]);
@@ -623,25 +611,25 @@ async function setup() {
       productId: MaxUint256,
       ipfsMetadata: 'product 2 metadata',
       product: {
-        productType: 2, // Yield Token Cover
+        productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0b01, // ETH
+        coverAssets: 0, // Use fallback
         initialPriceRatio: 500,
         capacityReductionRatio: 0,
-        useFixedPrice: false,
+        useFixedPrice: true,
       },
-      allowedPools: [],
+      allowedPools: [1, 7],
     },
     {
       productName: 'Product 3',
       productId: MaxUint256,
       ipfsMetadata: 'product 3 metadata',
       product: {
-        productType: 2, // Yield Token Cover
+        productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0b10, // DAI
+        coverAssets: 0b10000, // use usdc
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
         useFixedPrice: false,
@@ -657,55 +645,25 @@ async function setup() {
         minPrice: 0,
         __gap: 0,
         coverAssets: 0, // Use fallback
-        initialPriceRatio: 500,
+        initialPriceRatio: 100,
         capacityReductionRatio: 0,
         useFixedPrice: true,
+        isDeprecated: true,
       },
-      allowedPools: [1, 7],
+      allowedPools: [],
     },
     {
       productName: 'Product 5',
       productId: MaxUint256,
       ipfsMetadata: 'product 5 metadata',
       product: {
-        productType: 2, // Yield Token Cover
-        minPrice: 0,
-        __gap: 0,
-        coverAssets: 0b10000, // USDC
-        initialPriceRatio: 100,
-        capacityReductionRatio: 0,
-        useFixedPrice: false,
-      },
-      allowedPools: [],
-    },
-    {
-      productName: 'Product 6',
-      productId: MaxUint256,
-      ipfsMetadata: 'product 6 metadata',
-      product: {
-        productType: 0, // Protocol Cover
-        minPrice: 0,
-        __gap: 0,
-        coverAssets: 0b10000, // use usdc
-        initialPriceRatio: 100,
-        capacityReductionRatio: 0,
-        useFixedPrice: false,
-      },
-      allowedPools: [],
-    },
-    {
-      productName: 'Product 7',
-      productId: MaxUint256,
-      ipfsMetadata: 'product 7 metadata',
-      product: {
         productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
         coverAssets: 0, // Use fallback
-        initialPriceRatio: 100,
+        initialPriceRatio: 200,
         capacityReductionRatio: 0,
-        useFixedPrice: true,
-        isDeprecated: true,
+        useFixedPrice: false,
       },
       allowedPools: [],
     },

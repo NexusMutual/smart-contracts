@@ -80,7 +80,7 @@ describe('expireCover', function () {
         { value: amount },
       );
 
-    const coverId = await cover.coverDataCount();
+    const coverId = await cover.getCoverDataCount();
 
     await expect(cover.connect(coverBuyer).expireCover(coverId)).to.be.revertedWithCustomError(
       cover,
@@ -108,7 +108,7 @@ describe('expireCover', function () {
         { value: amount },
       );
 
-    const coverId = await cover.coverDataCount();
+    const coverId = await cover.getCoverDataCount();
 
     await increaseTime(period + 1);
     const allocationsWithCover = await stakingPool1.getActiveAllocations(productId);
@@ -143,7 +143,7 @@ describe('expireCover', function () {
         { value: amount },
       );
 
-    const coverId = await cover.coverDataCount();
+    const coverId = await cover.getCoverDataCount();
 
     await increaseTime(period + 1);
 
@@ -171,7 +171,7 @@ describe('expireCover', function () {
       { value: amount },
     );
 
-    const coverId = await cover.coverDataCount();
+    const coverId = await cover.getCoverDataCount();
 
     const allocationsPool1During = await stakingPool1.getActiveAllocations(productId);
     const allocationsPool2During = await stakingPool2.getActiveAllocations(productId);
@@ -207,7 +207,7 @@ describe('expireCover', function () {
         { value: amount },
       );
 
-    const coverId = await cover.coverDataCount();
+    const coverId = await cover.getCoverDataCount();
 
     await increaseTime(period + 1);
 
@@ -238,7 +238,7 @@ describe('expireCover', function () {
         { value: amount },
       );
 
-    const coverId = await cover.coverDataCount();
+    const coverId = await cover.getCoverDataCount();
 
     await increaseTime(coverBucketExpirationPeriod.toNumber());
     await cover

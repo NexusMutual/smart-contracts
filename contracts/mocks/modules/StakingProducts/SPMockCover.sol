@@ -71,19 +71,12 @@ contract SPMockCover is CoverGeneric {
 
     (premium, allocationId) = _stakingPool.requestAllocation(
       params.amount,
-      // TODO: figure out if these need to be populated
-      0, // previousPremium
       AllocationRequest(
         params.productId,
         coverId,
-        allocationId,
         params.period,
         gracePeriod,
         product.useFixedPrice,
-        // TODO: figure out if these need to be populated
-        0, // previous cover start
-        0,  // previous cover expiration
-        0,  // previous rewards ratio
         GLOBAL_CAPACITY_RATIO,
         product.capacityReductionRatio,
         GLOBAL_REWARDS_RATIO,
@@ -98,15 +91,11 @@ contract SPMockCover is CoverGeneric {
 
   function requestAllocation (
     uint amount,
-    uint previousPremium,
     AllocationRequest calldata allocationRequest,
     IStakingPool _stakingPool
   ) public returns (uint premium, uint allocationId)  {
-    (premium, allocationId) = _stakingPool.requestAllocation(
-      amount,
-      previousPremium,
-      allocationRequest
-    );
+
+    (premium, allocationId) = _stakingPool.requestAllocation(amount, allocationRequest);
 
     lastPremium = premium;
 

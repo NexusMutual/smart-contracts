@@ -16,12 +16,14 @@ contract COMockStakingPool is StakingPoolGeneric {
   uint internal accNxmPerRewardsShare;
   uint internal rewardsPerSecond;
   uint internal stakeSharesSupply;
+  uint internal lastAllocationId;
 
   mapping(uint => mapping(uint => Deposit)) internal deposits;
   mapping(uint => ExpiredTranche) internal expiredTranches;
 
   mapping (uint => uint) public usedCapacity;
   mapping (uint => uint) public stakedAmount;
+  mapping (uint => uint) public allocationAmounts;
 
   mapping (uint => uint) public mockPrices;
 
@@ -64,17 +66,22 @@ contract COMockStakingPool is StakingPoolGeneric {
 
   function requestAllocation(
     uint amount,
-    uint /*previousPremium*/,
     AllocationRequest calldata request
   ) external override returns (uint premium, uint allocationId) {
 
     usedCapacity[request.productId] += amount;
+    allocationId = ++lastAllocationId;
+    allocationAmounts[allocationId] = amount;
 
     premium = request.useFixedPrice
       ? calculateFixedPricePremium(amount, request.period, mockPrices[request.productId])
       : calculatePremium(mockPrices[request.productId], amount, request.period);
 
     return (premium, allocationId);
+  }
+
+  function requestDeallocation(DeallocationRequest calldata request) external override {
+    usedCapacity[request.productId] -= allocationAmounts[request.allocationId];
   }
 
   function calculateFixedPricePremium(

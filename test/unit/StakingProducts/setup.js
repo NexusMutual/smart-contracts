@@ -31,7 +31,7 @@ const productWithMinPrice = {
 };
 
 const ProductTypeFixture = {
-  claimMethod: 1,
+  claimMethod: 0,
   gracePeriod: 7 * 24 * 3600, // 7 days
 };
 

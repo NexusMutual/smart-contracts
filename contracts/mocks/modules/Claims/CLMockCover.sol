@@ -13,7 +13,6 @@ contract CLMockCover is CoverGeneric {
 
   struct BurnStakeCalledWith {
     uint coverId;
-    uint segmentId;
     uint amount;
   }
 
@@ -27,7 +26,7 @@ contract CLMockCover is CoverGeneric {
   MigrateCoverFromCalledWith public migrateCoverFromCalledWith;
 
   mapping(uint => CoverData) public _coverData;
-  mapping(uint => CoverSegment[]) _coverSegments;
+  mapping(uint => LegacyCoverSegment[]) _coverSegments;
   mapping(uint => PoolAllocation[]) stakingPoolsForCover;
 
   mapping(uint => uint96) public activeCoverAmountInNXM;
@@ -62,29 +61,22 @@ contract CLMockCover is CoverGeneric {
     _coverNFT = ICoverNFT(coverNFTAddress);
   }
 
-  function coverData(uint id) external override view returns (CoverData memory) {
+  function getCoverData(uint id) external override view returns (CoverData memory) {
     return _coverData[id];
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function coverSegmentWithRemainingAmount(
-    uint coverId,
-    uint segmentId
-  ) external override view returns (CoverSegment memory) {
-    CoverSegment memory segment = _coverSegments[coverId][segmentId];
-    uint96 amountPaidOut = _coverData[coverId].amountPaidOut;
-    segment.amount = segment.amount >= amountPaidOut
-      ? segment.amount - amountPaidOut
-      : 0;
-    return segment;
-  }
-
   function createMockCover(
     address owner,
     uint24 productId,
     uint8 coverAsset,
-    CoverSegment[] memory segments
+    uint96 amount,
+    uint32 start,
+    uint32 period,
+    uint32 gracePeriod,
+    uint16 globalRewardsRatio,
+    uint16 globalCapacityRatio
   ) external payable returns (uint coverId) {
 
     coverId = _coverNFT.mint(owner);
@@ -92,16 +84,17 @@ contract CLMockCover is CoverGeneric {
     _coverData[coverId] = CoverData(
       productId,
       coverAsset,
-      0
+      amount,
+      start > 0 ? start : uint32(block.timestamp),
+      period,
+      gracePeriod,
+      globalRewardsRatio,
+      globalCapacityRatio
     );
-
-    for (uint i = 0; i < segments.length; i++) {
-      _coverSegments[coverId].push(segments[i]);
-    }
   }
 
-  function burnStake(uint coverId, uint segmentId, uint amount) external override returns (address) {
-    burnStakeCalledWith = BurnStakeCalledWith(coverId, segmentId, amount);
+  function burnStake(uint coverId, uint amount) external override returns (address) {
+    burnStakeCalledWith = BurnStakeCalledWith(coverId, amount);
     return _coverNFT.ownerOf(coverId);
   }
 

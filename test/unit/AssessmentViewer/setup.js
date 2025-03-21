@@ -3,11 +3,13 @@ const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../utils').accounts;
 
+const daysToSeconds = days => days * 24 * 60 * 60;
+
 async function setup() {
   const accounts = await getAccounts();
   const master = await ethers.deployContract('MasterMock');
-  const stakeLockupPeriodInDays = 2;
-  const assessment = await ethers.deployContract('AVMockAssessment', [1, stakeLockupPeriodInDays, 3, 4]);
+  const stakeLockupPeriod = daysToSeconds(2);
+  const assessment = await ethers.deployContract('AVMockAssessment', [stakeLockupPeriod]);
 
   await master.setLatestAddress(hex('AS'), assessment.address);
 
@@ -15,13 +17,8 @@ async function setup() {
 
   return {
     accounts,
-    contracts: {
-      assessment,
-      assessmentViewer,
-    },
-    config: {
-      stakeLockupPeriodInDays,
-    },
+    contracts: { assessment, assessmentViewer },
+    config: { stakeLockupPeriod },
   };
 }
 

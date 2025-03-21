@@ -13,7 +13,7 @@ const { AddressZero } = ethers.constants;
 
 const gracePeriod = daysToSeconds(120);
 
-describe.skip('editCover', function () {
+describe('editCover', function () {
   const coverBuyFixture = {
     productId: 0,
     coverAsset: 0, // ETH
@@ -34,11 +34,10 @@ describe.skip('editCover', function () {
     const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
-    const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
+    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
     const increasedAmount = amount.mul(2);
@@ -51,9 +50,9 @@ describe.skip('editCover', function () {
       .div(3600 * 24 * 365);
 
     // refund for the unused period
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
+      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -79,13 +78,14 @@ describe.skip('editCover', function () {
       { value: extraPremium },
     );
 
-    await assertCoverFields(cover, expectedCoverId, {
+    const editedCoverId = expectedCoverId.add(1);
+
+    await assertCoverFields(cover, editedCoverId, {
       productId,
       coverAsset,
       period,
       amount: increasedAmount,
       gracePeriod,
-      segmentId: 1,
     });
   });
 
@@ -97,7 +97,7 @@ describe.skip('editCover', function () {
 
     const { productId, coverAsset, period, amount } = coverBuyFixture;
 
-    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const reducedAmount = amount.div(2);
 
@@ -124,7 +124,9 @@ describe.skip('editCover', function () {
       },
     );
 
-    await assertCoverFields(cover, expectedCoverId, {
+    const editedCoverId = expectedCoverId.add(1);
+
+    await assertCoverFields(cover, editedCoverId, {
       productId,
       coverAsset,
       period,
@@ -136,14 +138,14 @@ describe.skip('editCover', function () {
 
   it('should edit purchased cover and add coverage from a new staking pool', async function () {
     const fixture = await loadFixture(setup);
-    const { cover } = fixture;
+    const { cover, stakingProducts } = fixture;
     const [coverBuyer, manager] = fixture.accounts.members;
-    const { productId, coverAsset, period, amount } = coverBuyFixture;
+    const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
-    const { expectedPremium, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     await createStakingPool(
-      cover,
+      stakingProducts,
       productId,
       parseEther('10000'), // capacity
       coverBuyFixture.targetPriceRatio, // targetPrice
@@ -154,7 +156,28 @@ describe.skip('editCover', function () {
 
     const buyerBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
 
+    const passedPeriod = BigNumber.from(10);
+    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
+    await setNextBlockTime(editTimestamp.toNumber());
+
     const increasedAmount = amount.mul(2);
+
+    // premium for the new amount, without refunds
+    const expectedNewPremium = increasedAmount
+      .mul(targetPriceRatio)
+      .mul(period)
+      .div(priceDenominator)
+      .div(3600 * 24 * 365);
+
+    // refund for the unused period
+    const expectedRefund = storedCoverData.amount
+      .mul(targetPriceRatio)
+      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+
+    // difference to pay
+    const extraPremium = expectedNewPremium.sub(expectedRefund);
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -164,7 +187,7 @@ describe.skip('editCover', function () {
         coverAsset,
         amount: increasedAmount,
         period,
-        maxPremiumInAsset: expectedPremium.add(1),
+        maxPremiumInAsset: extraPremium,
         paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
@@ -172,32 +195,30 @@ describe.skip('editCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: 1, skip: true, coverAmountInAsset: 0 },
-        { poolId: 2, skip: false, coverAmountInAsset: amount },
+        { poolId: 1, coverAmountInAsset: 0 },
+        { poolId: 2, coverAmountInAsset: increasedAmount },
       ],
       {
-        value: expectedPremium.add(1),
+        value: extraPremium,
       },
     );
 
+    const editedCoverId = expectedCoverId.add(1);
+
     const buyerBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
-    expect(buyerBalanceAfter).to.be.lt(buyerBalanceBefore.sub(expectedPremium));
+    expect(buyerBalanceAfter).to.be.lt(buyerBalanceBefore.sub(extraPremium));
 
-    const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, 1, 0);
-    expect(pool1Allocation.poolId).to.be.equal(1);
-    const pool2Allocation = await cover.coverSegmentAllocations(expectedCoverId, 1, 1);
-    expect(pool2Allocation.poolId).to.be.equal(2);
+    const poolAllocations = await cover.getPoolAllocations(editedCoverId);
+    expect(poolAllocations.length).to.be.equal(2);
+    expect(poolAllocations[0].coverAmountInNXM).to.be.equal(0);
+    expect(poolAllocations[1].coverAmountInNXM).to.be.equal(increasedAmount);
 
-    expect(pool1Allocation.coverAmountInNXM).to.be.equal(amount);
-    expect(pool2Allocation.coverAmountInNXM).to.be.equal(amount);
-
-    await assertCoverFields(cover, expectedCoverId, {
+    await assertCoverFields(cover, editedCoverId, {
       productId,
       coverAsset,
       period,
       amount: increasedAmount,
       gracePeriod,
-      segmentId: 1,
     });
   });
 
@@ -209,16 +230,15 @@ describe.skip('editCover', function () {
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
 
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
-    const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
+    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
+      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -248,19 +268,20 @@ describe.skip('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: 1, skip: false, coverAmountInAsset: amount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
       {
         value: extraPremium,
       },
     );
 
-    await assertCoverFields(cover, expectedCoverId, {
+    const editedCoverId = expectedCoverId.add(1);
+
+    await assertCoverFields(cover, editedCoverId, {
       productId,
       coverAsset,
       period: increasedPeriod,
       amount,
       gracePeriod,
-      segmentId: 1,
     });
   });
 
@@ -272,7 +293,7 @@ describe.skip('editCover', function () {
 
     const { productId, coverAsset, period, amount } = coverBuyFixture;
 
-    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const reducedPeriod = period - daysToSeconds(1);
 
@@ -291,19 +312,20 @@ describe.skip('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: 1, skip: false, coverAmountInAsset: amount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
       {
         value: 0,
       },
     );
 
-    await assertCoverFields(cover, expectedCoverId, {
+    const editedCoverId = expectedCoverId.add(1);
+
+    await assertCoverFields(cover, editedCoverId, {
       productId,
       coverAsset,
       period: reducedPeriod,
       amount,
       gracePeriod,
-      segmentId: 1,
     });
   });
 
@@ -315,18 +337,17 @@ describe.skip('editCover', function () {
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
 
-    await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
-    const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
+    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
+      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -357,19 +378,20 @@ describe.skip('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: increasedAmount.toString() }],
       {
         value: extraPremium,
       },
     );
 
-    await assertCoverFields(cover, expectedCoverId, {
+    const editedCoverId = expectedCoverId.add(1);
+
+    await assertCoverFields(cover, editedCoverId, {
       productId,
       coverAsset,
       period: increasedPeriod,
       amount: increasedAmount,
       gracePeriod,
-      segmentId: 1,
     });
   });
 
@@ -381,18 +403,17 @@ describe.skip('editCover', function () {
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
 
-    await buyCoverOnOnePool.call(this, coverBuyFixture);
+    await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
-    const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
+    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
+      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -423,13 +444,15 @@ describe.skip('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: 1, skip: false, coverAmountInAsset: decreasedAmount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: decreasedAmount.toString() }],
       {
         value: extraPremium,
       },
     );
 
-    await assertCoverFields(cover, expectedCoverId, {
+    const editedCoverId = expectedCoverId.add(1);
+
+    await assertCoverFields(cover, editedCoverId, {
       productId,
       coverAsset,
       period: increasedPeriod,
@@ -455,17 +478,17 @@ describe.skip('editCover', function () {
 
     const period = BigNumber.from(reducedPeriod).mul(2);
 
-    await buyCoverOnOnePool.call(this, coverBuyFixture);
+    await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, { ...coverBuyFixture, period });
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, { ...coverBuyFixture, period });
 
-    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
+    const coverData = await cover.getCoverData(expectedCoverId);
     const passedPeriod = BigNumber.from(10);
-    const editTimestamp = BigNumber.from(startTimestamp).add(10);
+    const editTimestamp = BigNumber.from(coverData.start).add(10);
 
-    const expectedRefund = segment.amount
+    const expectedRefund = coverData.amount
       .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
+      .mul(BigNumber.from(coverData.period).sub(passedPeriod))
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -497,19 +520,20 @@ describe.skip('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: increasedAmount.toString() }],
       {
         value: extraPremium,
       },
     );
 
-    await assertCoverFields(cover, expectedCoverId, {
+    const editedCoverId = expectedCoverId.add(1);
+
+    await assertCoverFields(cover, editedCoverId, {
       productId,
       coverAsset,
       period: reducedPeriod,
       amount: increasedAmount,
       gracePeriod,
-      segmentId: 1,
     });
   });
 
@@ -521,9 +545,9 @@ describe.skip('editCover', function () {
 
     const { productId, coverAsset, period, amount } = coverBuyFixture;
 
-    await buyCoverOnOnePool.call(this, coverBuyFixture);
+    await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, {
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, {
       ...coverBuyFixture,
       period: period * 2,
     });
@@ -546,19 +570,20 @@ describe.skip('editCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: 1, skip: false, coverAmountInAsset: reducedAmount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: reducedAmount.toString() }],
       {
         value: 0,
       },
     );
 
-    await assertCoverFields(cover, expectedCoverId, {
+    const editedCoverId = expectedCoverId.add(1);
+
+    await assertCoverFields(cover, editedCoverId, {
       productId,
       coverAsset,
       period: reducedPeriod,
       amount: reducedAmount,
       gracePeriod,
-      segmentId: 1,
     });
   });
 
@@ -569,11 +594,11 @@ describe.skip('editCover', function () {
     const [coverBuyer] = fixture.accounts.members;
 
     const { productId, targetPriceRatio, priceDenominator, coverAsset, period, amount } = coverBuyFixture;
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(storedCoverData.period)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -607,7 +632,7 @@ describe.skip('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 1, skip: true, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, coverAmountInAsset: increasedAmount }],
         { value: extraPremium },
       ),
     ).to.be.revertedWithCustomError(cover, 'ExpiredCoversCannotBeEdited');
@@ -621,11 +646,11 @@ describe.skip('editCover', function () {
 
     const { productId, coverAsset, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(storedCoverData.period)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
     const increasedAmount = amount.mul(2);
@@ -633,7 +658,7 @@ describe.skip('editCover', function () {
     // premium for the new amount, without refunds
     const expectedEditPremium = increasedAmount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(storedCoverData.period)
       .div(priceDenominator)
       .div(3600 * 24 * 365);
     const extraPremium = expectedEditPremium.sub(expectedRefund);
@@ -656,7 +681,7 @@ describe.skip('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount.toString() }],
+        [{ poolId: 1, coverAmountInAsset: increasedAmount.toString() }],
         {
           value: extraPremium,
         },
@@ -673,13 +698,13 @@ describe.skip('editCover', function () {
 
     const { productId, coverAsset, amount, period, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
-    await buyCoverOnOnePool.call(this, coverBuyFixture);
+    // await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(storedCoverData.period)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
     const increasedAmount = amount.mul(2);
@@ -709,7 +734,7 @@ describe.skip('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount.toString() }],
+        [{ poolId: 1, coverAmountInAsset: increasedAmount.toString() }],
         {
           value: extraPremium,
         },
@@ -719,28 +744,30 @@ describe.skip('editCover', function () {
 
   it('should store new grace period when editing cover', async function () {
     const fixture = await loadFixture(setup);
-    const { cover } = fixture;
+    const { cover, coverProducts } = fixture;
     const [boardMember] = fixture.accounts.advisoryBoardMembers;
     const [coverBuyer] = fixture.accounts.members;
 
     const { productId, targetPriceRatio, priceDenominator, coverAsset, amount, period } = coverBuyFixture;
 
     // Buy cover
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     // Edit product gracePeriod
-    const productTypeBefore = await cover.productTypes(productId);
+    const productTypeBefore = await coverProducts.getProductType(productId);
     const newGracePeriod = daysToSeconds(1000);
 
-    await cover.connect(boardMember).setProductTypes([['Product A', productId, 'ipfs hash', [1, newGracePeriod]]]);
-    const productType = await cover.productTypes(productId);
+    await coverProducts
+      .connect(boardMember)
+      .setProductTypes([['Product A', productId, 'ipfs hash', [1, newGracePeriod]]]);
+    const productType = await coverProducts.getProductType(productId);
     expect(newGracePeriod).to.be.equal(productType.gracePeriod);
 
     const passedPeriod = BigNumber.from(10);
 
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
+      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
     // const increasedAmount = amount.mul(2);
@@ -754,8 +781,8 @@ describe.skip('editCover', function () {
 
     const extraPremium = expectedEditPremium.sub(expectedRefund);
 
-    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
-    const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
+    // const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
+    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
     await cover.connect(coverBuyer).buyCover(
@@ -777,9 +804,12 @@ describe.skip('editCover', function () {
       { value: extraPremium },
     );
 
-    const secondSegment = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 1);
-    expect(secondSegment.gracePeriod).to.be.equal(newGracePeriod);
-    expect(productTypeBefore.gracePeriod).to.be.equal(segment.gracePeriod);
+    const editedCoverId = expectedCoverId.add(1);
+    const editedCoverData = await cover.getCoverData(editedCoverId);
+
+    // const secondSegment = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 1);
+    expect(editedCoverData.gracePeriod).to.be.equal(newGracePeriod);
+    expect(productTypeBefore.gracePeriod).to.be.equal(storedCoverData.gracePeriod);
   });
 
   it('reverts if caller is not NFT owner or approved', async function () {
@@ -789,7 +819,7 @@ describe.skip('editCover', function () {
     const [coverBuyer, otherUser] = fixture.accounts.members;
 
     const { productId, targetPriceRatio, priceDenominator, coverAsset, period, amount } = coverBuyFixture;
-    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const increasedAmount = amount.mul(2);
 
@@ -817,7 +847,7 @@ describe.skip('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, coverAmountInAsset: increasedAmount }],
         { value: extraPremium.add(10) },
       ),
     ).to.be.revertedWithCustomError(cover, 'OnlyOwnerOrApproved');
@@ -830,7 +860,7 @@ describe.skip('editCover', function () {
     const [coverBuyer] = fixture.accounts.members;
 
     const { productId, targetPriceRatio, priceDenominator, coverAsset, period, amount } = coverBuyFixture;
-    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const increasedAmount = amount.mul(2);
 
@@ -859,7 +889,7 @@ describe.skip('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, coverAmountInAsset: increasedAmount }],
         { value: extraPremium },
       ),
     ).to.be.revertedWith('NOT_MINTED');
@@ -873,11 +903,11 @@ describe.skip('editCover', function () {
 
     const { productId, coverAsset, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(storedCoverData.period)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
     const increasedAmount = amount.mul(2);
@@ -885,7 +915,7 @@ describe.skip('editCover', function () {
     // premium for the new amount, without refunds
     const expectedEditPremium = increasedAmount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(storedCoverData.period)
       .div(priceDenominator)
       .div(3600 * 24 * 365);
     const extraPremium = expectedEditPremium.sub(expectedRefund);
@@ -908,7 +938,7 @@ describe.skip('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount.toString() }],
+        [{ poolId: 1, coverAmountInAsset: increasedAmount.toString() }],
         {
           value: extraPremium,
         },
@@ -924,11 +954,11 @@ describe.skip('editCover', function () {
 
     const { productId, coverAsset, amount, period, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(storedCoverData.period)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -960,7 +990,7 @@ describe.skip('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount.toString() }],
+        [{ poolId: 1, coverAmountInAsset: increasedAmount.toString() }],
         {
           value: extraPremium,
         },
@@ -975,17 +1005,16 @@ describe.skip('editCover', function () {
     const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
-    const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
+    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
     const increasedAmount = amount.mul(2);
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
+      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -1017,7 +1046,7 @@ describe.skip('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, coverAmountInAsset: increasedAmount }],
         { value: extraPremium },
       ),
     ).to.not.be.reverted;
@@ -1030,7 +1059,7 @@ describe.skip('editCover', function () {
     const [coverBuyer, otherUser] = fixture.accounts.members;
 
     const { productId, targetPriceRatio, priceDenominator, coverAsset, period, amount } = coverBuyFixture;
-    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const increasedAmount = amount.mul(2);
 
@@ -1063,7 +1092,7 @@ describe.skip('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, coverAmountInAsset: increasedAmount }],
         { value: extraPremium },
       ),
     ).to.not.be.reverted;
@@ -1076,12 +1105,12 @@ describe.skip('editCover', function () {
     const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const increasedAmount = amount.mul(2);
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(storedCoverData.period)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -1111,10 +1140,10 @@ describe.skip('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, coverAmountInAsset: increasedAmount }],
         { value: extraPremium },
       ),
-    ).to.be.revertedWithCustomError(cover, 'UnexpectedCoverAsset');
+    ).to.be.revertedWithCustomError(cover, 'InvalidPaymentAsset');
   });
 
   it('reverts if incorrect productId', async function () {
@@ -1124,12 +1153,12 @@ describe.skip('editCover', function () {
     const [coverBuyer] = fixture.accounts.members;
 
     const { coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const increasedAmount = amount.mul(2);
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(storedCoverData.period)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -1142,7 +1171,7 @@ describe.skip('editCover', function () {
 
     const extraPremium = expectedEditPremium.sub(expectedRefund);
 
-    const incorrectProductId = 1;
+    const incorrectProductId = 10;
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -1160,10 +1189,10 @@ describe.skip('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, coverAmountInAsset: increasedAmount }],
         { value: extraPremium },
       ),
-    ).to.be.revertedWithCustomError(cover, 'UnexpectedProductId');
+    ).to.be.revertedWithCustomError(cover, 'ProductNotFound');
   });
 
   it('reverts if empty array of allocationRequests', async function () {
@@ -1173,12 +1202,12 @@ describe.skip('editCover', function () {
     const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const increasedAmount = amount.mul(2);
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(storedCoverData.period)
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -1220,17 +1249,16 @@ describe.skip('editCover', function () {
     const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
-    const { segment, coverId: expectedCoverId, segmentId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
-    const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
+    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
     const increasedAmount = amount.mul(2);
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
+      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -1246,7 +1274,7 @@ describe.skip('editCover', function () {
     expect(coverOwner).to.be.equal(coverBuyer.address);
 
     const ipfsData = 'test data';
-    const newSegmentId = segmentId.add(1);
+    const editedCoverId = expectedCoverId.add(1);
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -1264,12 +1292,12 @@ describe.skip('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData,
         },
-        [{ poolId: 1, skip: false, coverAmountInAsset: increasedAmount }],
+        [{ poolId: 1, coverAmountInAsset: increasedAmount }],
         { value: extraPremium },
       ),
     )
       .to.emit(cover, 'CoverEdited')
-      .withArgs(expectedCoverId, productId, newSegmentId, coverBuyer.address, ipfsData);
+      .withArgs(editedCoverId, productId, 0, coverBuyer.address, ipfsData);
   });
 
   it('retrieves the premium difference from the user in ETH', async function () {
@@ -1280,18 +1308,17 @@ describe.skip('editCover', function () {
 
     const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
-    const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
+    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
     const increasedAmount = amount.mul(2);
 
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
+      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -1326,16 +1353,17 @@ describe.skip('editCover', function () {
       },
     );
 
+    const editedCoverId = expectedCoverId.add(1);
+
     const poolEthBalanceAfter = await ethers.provider.getBalance(pool.address);
     expect(poolEthBalanceAfter).to.equal(poolEthBalanceBefore.add(extraPremium));
 
-    await assertCoverFields(cover, expectedCoverId, {
+    await assertCoverFields(cover, editedCoverId, {
       productId,
       coverAsset,
       period,
       amount: increasedAmount,
       gracePeriod,
-      segmentId: 1,
     });
   });
 
@@ -1352,18 +1380,17 @@ describe.skip('editCover', function () {
     await nxm.mint(coverBuyer.address, parseEther('1000'));
     await nxm.connect(coverBuyer).approve(tokenController.address, parseEther('1000'));
 
-    const { segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
-    const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
+    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
     const increasedAmount = amount.mul(2);
 
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
+      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -1398,32 +1425,35 @@ describe.skip('editCover', function () {
       },
     );
 
+    const editedCoverId = expectedCoverId.add(1);
     const userBalanceAfter = await nxm.balanceOf(coverBuyer.address);
-
     expect(userBalanceAfter).to.equal(userBalanceBefore.sub(extraPremium));
 
-    await assertCoverFields(cover, expectedCoverId, {
+    await assertCoverFields(cover, editedCoverId, {
       productId,
       coverAsset,
       period,
       amount: increasedAmount,
       gracePeriod,
-      segmentId: 1,
     });
   });
 
   it('allows editing the cover multiple times against multiple staking pools', async function () {
     const fixture = await loadFixture(setup);
-    const { cover } = fixture;
+    const { cover, stakingProducts } = fixture;
 
     const [coverBuyer, manager] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
 
-    const { expectedPremium, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const {
+      storedCoverData,
+      expectedPremium,
+      coverId: expectedCoverId,
+    } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     await createStakingPool(
-      cover,
+      stakingProducts,
       productId,
       parseEther('10000'), // capacity
       coverBuyFixture.targetPriceRatio, // targetPrice
@@ -1432,17 +1462,13 @@ describe.skip('editCover', function () {
       coverBuyFixture.targetPriceRatio, // currentPrice
     );
 
-    const buyerBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
-
-    const increasedCoverAmount = amount.mul(2);
-
     await cover.connect(coverBuyer).buyCover(
       {
         coverId: expectedCoverId,
         owner: coverBuyer.address,
         productId,
         coverAsset,
-        amount: increasedCoverAmount,
+        amount,
         period,
         maxPremiumInAsset: expectedPremium.add(1),
         paymentAsset: coverAsset,
@@ -1452,49 +1478,41 @@ describe.skip('editCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: 1, skip: true, coverAmountInAsset: 0 },
-        { poolId: 2, skip: false, coverAmountInAsset: amount },
+        { poolId: 1, coverAmountInAsset: 0 },
+        { poolId: 2, coverAmountInAsset: amount },
       ],
       {
         value: expectedPremium.add(1),
       },
     );
 
-    const buyerBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
-    expect(buyerBalanceAfter).to.be.lt(buyerBalanceBefore.sub(expectedPremium));
-
-    const firstEditSegment = 1;
-    const segment = await cover.coverSegmentWithRemainingAmount(expectedCoverId, firstEditSegment);
+    const firstEditId = expectedCoverId.add(1);
 
     {
-      const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, firstEditSegment, 0);
-      expect(pool1Allocation.poolId).to.be.equal(1);
-      expect(pool1Allocation.coverAmountInNXM).to.be.equal(amount);
+      const poolAllocations = await cover.getPoolAllocations(firstEditId);
+      expect(poolAllocations[0].poolId).to.be.equal(1);
+      expect(poolAllocations[0].coverAmountInNXM).to.be.equal(0);
+      expect(poolAllocations[1].poolId).to.be.equal(2);
+      expect(poolAllocations[1].coverAmountInNXM).to.be.equal(amount);
 
-      const pool2Allocation = await cover.coverSegmentAllocations(expectedCoverId, firstEditSegment, 1);
-      expect(pool2Allocation.poolId).to.be.equal(2);
-      expect(pool2Allocation.coverAmountInNXM).to.be.equal(amount);
-
-      await assertCoverFields(cover, expectedCoverId, {
+      await assertCoverFields(cover, firstEditId, {
         productId,
         coverAsset,
         period,
-        amount: increasedCoverAmount,
+        amount,
         gracePeriod,
-        segmentId: firstEditSegment,
       });
     }
 
     const passedPeriod = BigNumber.from(10);
-    const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
-    const editTimestamp = BigNumber.from(startTimestamp).add(passedPeriod);
+    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
     await setNextBlockTime(editTimestamp.toNumber());
 
     const increasedPoolAmount = amount.mul(2);
 
-    const expectedRefund = segment.amount
+    const expectedRefund = storedCoverData.amount
       .mul(targetPriceRatio)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
+      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
@@ -1524,90 +1542,29 @@ describe.skip('editCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: 1, skip: false, coverAmountInAsset: increasedPoolAmount },
-        { poolId: 2, skip: false, coverAmountInAsset: increasedPoolAmount },
+        { poolId: 1, coverAmountInAsset: increasedPoolAmount },
+        { poolId: 2, coverAmountInAsset: increasedPoolAmount },
       ],
       {
         value: extraPremium,
       },
     );
 
-    const secondEditSegment = 2;
+    const secondEditId = firstEditId.add(1);
 
     {
-      const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, secondEditSegment, 0);
-      expect(pool1Allocation.poolId).to.be.equal(1);
-      expect(pool1Allocation.coverAmountInNXM).to.be.equal(increasedPoolAmount);
+      const poolAllocations = await cover.getPoolAllocations(secondEditId);
+      expect(poolAllocations[0].poolId).to.be.equal(1);
+      expect(poolAllocations[0].coverAmountInNXM).to.be.equal(increasedPoolAmount);
+      expect(poolAllocations[1].poolId).to.be.equal(2);
+      expect(poolAllocations[1].coverAmountInNXM).to.be.equal(increasedPoolAmount);
 
-      const pool2Allocation = await cover.coverSegmentAllocations(expectedCoverId, secondEditSegment, 1);
-      expect(pool2Allocation.poolId).to.be.equal(2);
-      expect(pool2Allocation.coverAmountInNXM).to.be.equal(increasedPoolAmount);
-
-      await assertCoverFields(cover, expectedCoverId, {
+      await assertCoverFields(cover, secondEditId, {
         productId,
         coverAsset,
         period,
         amount: increasedPoolAmount.mul(2),
         gracePeriod,
-        segmentId: secondEditSegment,
-      });
-    }
-  });
-
-  it('creates a segment and does not affect other state all pools are skipped', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover } = fixture;
-
-    const [coverBuyer, manager] = fixture.accounts.members;
-
-    const { productId, coverAsset, period, amount } = coverBuyFixture;
-
-    const { expectedPremium, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
-
-    await createStakingPool(
-      cover,
-      productId,
-      parseEther('10000'), // capacity
-      coverBuyFixture.targetPriceRatio, // targetPrice
-      0, // activeCover
-      manager, // manager
-      coverBuyFixture.targetPriceRatio, // currentPrice
-    );
-
-    await cover.connect(coverBuyer).buyCover(
-      {
-        coverId: expectedCoverId,
-        owner: coverBuyer.address,
-        productId,
-        coverAsset,
-        amount,
-        period,
-        maxPremiumInAsset: expectedPremium.mul(2),
-        paymentAsset: coverAsset,
-        payWitNXM: false,
-        commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
-        ipfsData: '',
-      },
-      [{ poolId: 1, skip: true, coverAmountInAsset: amount.mul(2) }],
-      {
-        value: expectedPremium.mul(2),
-      },
-    );
-
-    const firstEditSegment = 1;
-    {
-      const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, firstEditSegment, 0);
-      expect(pool1Allocation.poolId).to.be.equal(1);
-      expect(pool1Allocation.coverAmountInNXM).to.be.equal(amount);
-
-      await assertCoverFields(cover, expectedCoverId, {
-        productId,
-        coverAsset,
-        period,
-        amount,
-        gracePeriod,
-        segmentId: firstEditSegment,
       });
     }
   });
@@ -1616,21 +1573,11 @@ describe.skip('editCover', function () {
     const fixture = await loadFixture(setup);
     const { cover } = fixture;
 
-    const [coverBuyer, manager] = fixture.accounts.members;
+    const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount } = coverBuyFixture;
 
-    const { expectedPremium, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
-
-    await createStakingPool(
-      cover,
-      productId,
-      parseEther('10000'), // capacity
-      coverBuyFixture.targetPriceRatio, // targetPrice
-      0, // activeCover
-      manager, // manager
-      coverBuyFixture.targetPriceRatio, // currentPrice
-    );
+    const { expectedPremium, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -1648,16 +1595,15 @@ describe.skip('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: 2, skip: false, coverAmountInAsset: amount }],
+        [{ poolId: 2, coverAmountInAsset: amount }],
         {
           value: expectedPremium,
         },
       ),
-    ).to.be.revertedWithCustomError(cover, 'UnexpectedPoolId');
+    ).to.be.reverted;
   });
 
-  // TODO: update test after totalActiveCoverInAsset is implemented in buckets
-  it.skip('correctly updates totalActiveCoverInAsset', async function () {
+  it('correctly updates totalActiveCoverInAsset', async function () {
     const fixture = await loadFixture(setup);
     const { cover } = fixture;
 
@@ -1670,23 +1616,35 @@ describe.skip('editCover', function () {
       expect(totalActiveCoverInAsset).to.equal(0);
     }
 
-    const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     {
       const totalActiveCoverInAsset = await cover.totalActiveCoverInAsset(coverAsset);
       expect(totalActiveCoverInAsset).to.equal(amount);
     }
 
+    const passedPeriod = BigNumber.from(10);
+    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
+    await setNextBlockTime(editTimestamp.toNumber());
+
     const increasedAmount = amount.mul(2);
 
-    const expectedRefund = segment.amount
+    // premium for the new amount, without refunds
+    const expectedNewPremium = increasedAmount
       .mul(targetPriceRatio)
-      .mul(segment.period)
+      .mul(period)
+      .div(priceDenominator)
+      .div(3600 * 24 * 365);
+
+    // refund for the unused period
+    const expectedRefund = storedCoverData.amount
+      .mul(targetPriceRatio)
+      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
       .div(MAX_COVER_PERIOD)
       .div(priceDenominator);
 
-    const expectedEditPremium = expectedPremium.mul(2);
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    // difference to pay
+    const extraPremium = expectedNewPremium.sub(expectedRefund);
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -1696,32 +1654,187 @@ describe.skip('editCover', function () {
         coverAsset,
         amount: increasedAmount,
         period,
-        maxPremiumInAsset: expectedEditPremium.add(1),
+        maxPremiumInAsset: extraPremium.add(1),
         paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: 1, coverAmountInAsset: increasedAmount.toString() }],
+      [{ poolId: 1, coverAmountInAsset: increasedAmount }],
       {
         value: extraPremium.add(1),
       },
     );
 
-    await assertCoverFields(cover, expectedCoverId, {
+    const editedCoverId = expectedCoverId.add(1);
+
+    await assertCoverFields(cover, editedCoverId, {
       productId,
       coverAsset,
       period,
       amount: increasedAmount,
       gracePeriod,
-      segmentId: 1,
     });
 
-    {
-      const totalActiveCoverInAsset = await cover.totalActiveCoverInAsset(coverAsset);
-      // This currently fails
-      expect(totalActiveCoverInAsset).to.equal(increasedAmount);
-    }
+    const totalActiveCoverInAsset = await cover.totalActiveCoverInAsset(coverAsset);
+    expect(totalActiveCoverInAsset).to.equal(increasedAmount);
+  });
+
+  it('cover reference should be the same as the cover id if the cover was not edited', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const { coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
+
+    const coverReference = await cover.getCoverReference(originalCoverId);
+    expect(coverReference.originalCoverId).to.equal(originalCoverId);
+    expect(coverReference.latestCoverId).to.equal(originalCoverId);
+  });
+
+  it('cover reference should change after a cover edit', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [coverBuyer] = fixture.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+    const { coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
+
+    const reducedPeriod = period - daysToSeconds(1);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: originalCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount: 1,
+        period: reducedPeriod,
+        maxPremiumInAsset: 0,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
+    );
+
+    const editedCoverId = originalCoverId.add(1);
+    const coverReferenceForOriginalId = await cover.getCoverReference(originalCoverId);
+    const coverReferenceForEditedId = await cover.getCoverReference(editedCoverId);
+
+    expect(coverReferenceForOriginalId.originalCoverId).to.equal(originalCoverId);
+    expect(coverReferenceForOriginalId.latestCoverId).to.equal(editedCoverId);
+    expect(coverReferenceForEditedId).to.deep.equal(coverReferenceForOriginalId);
+  });
+
+  it('cover reference latestCoverId should be correct after 2 edits', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [coverBuyer] = fixture.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+    const { coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
+
+    const reducedPeriodFirstEdit = period - daysToSeconds(1);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: originalCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period: reducedPeriodFirstEdit,
+        maxPremiumInAsset: 0,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
+    );
+
+    const reducedPeriodSecondEdit = reducedPeriodFirstEdit - daysToSeconds(1);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: originalCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period: reducedPeriodSecondEdit,
+        maxPremiumInAsset: 0,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
+    );
+
+    const lastEditCoverId = originalCoverId.add(2);
+    const coverReferenceForOriginalId = await cover.getCoverReference(originalCoverId);
+    const coverReferenceForLastEditId = await cover.getCoverReference(lastEditCoverId);
+
+    expect(coverReferenceForOriginalId.originalCoverId).to.equal(originalCoverId);
+    expect(coverReferenceForOriginalId.latestCoverId).to.equal(lastEditCoverId);
+    expect(coverReferenceForLastEditId).to.deep.equal(coverReferenceForOriginalId);
+  });
+
+  it('cover edit should revert if coverId is not original cover id', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [coverBuyer] = fixture.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+    const { coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
+
+    const reducedPeriodFirstEdit = period - daysToSeconds(1);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: originalCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period: reducedPeriodFirstEdit,
+        maxPremiumInAsset: 0,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
+    );
+
+    const editedCoverId = originalCoverId.add(1);
+
+    const reducedPeriodSecondEdit = reducedPeriodFirstEdit - daysToSeconds(1);
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: editedCoverId,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount,
+          period: reducedPeriodSecondEdit,
+          maxPremiumInAsset: 0,
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: 1, coverAmountInAsset: amount.toString() }],
+      ),
+    ).to.be.revertedWithCustomError(cover, 'MustBeOriginalCoverId');
   });
 });

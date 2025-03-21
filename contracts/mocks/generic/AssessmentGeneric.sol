@@ -6,8 +6,6 @@ import "../../interfaces/IAssessment.sol";
 
 contract AssessmentGeneric is IAssessment {
 
-  Configuration public config;
-
   mapping(address => Stake) public stakeOf;
 
   mapping(address => Vote[]) public votesOf;
@@ -15,6 +13,22 @@ contract AssessmentGeneric is IAssessment {
   Assessment[] public assessments;
 
   mapping(address => mapping(uint => bool)) public hasAlreadyVotedOn;
+
+  function getMinVotingPeriod() external virtual view returns (uint) {
+    revert("getMinVotingPeriod unsupported");
+  }
+
+  function getStakeLockupPeriod() external virtual view returns (uint) {
+    revert("getStakeLockupPeriod unsupported");
+  }
+
+  function getPayoutCooldown() external virtual view returns (uint) {
+    revert("getPayoutCooldown unsupported");
+  }
+
+  function getSilentEndingPeriod() external virtual view returns (uint) {
+    revert("getSilentEndingPeriod unsupported");
+  }
 
   function getAssessmentsCount() external virtual view returns (uint) {
     revert("getAssessmentsCount unsupported");
@@ -66,9 +80,5 @@ contract AssessmentGeneric is IAssessment {
 
   function processFraud(uint256, bytes32[] calldata, address, uint256, uint96, uint16, uint256) external pure {
     revert("processFraud unsupported");
-  }
-
-  function updateUintParameters(UintParams[] calldata, uint[] calldata) external pure {
-    revert("updateUintParameters unsupported");
   }
 }

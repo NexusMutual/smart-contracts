@@ -266,7 +266,7 @@ describe('master', function () {
       await ProposalCategoryContract.deploy(),
       await MemberRoles.deploy(tk.address),
       await LegacyPooledStaking.deploy(cover.address, AddressZero, tk.address),
-      await IndividualClaims.deploy(tk.address, coverNFT.address),
+      await IndividualClaims.deploy(coverNFT.address),
     ].map(c => {
       return c.address;
     });

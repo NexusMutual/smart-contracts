@@ -119,7 +119,7 @@ async function assessmentStakeSetup(fixture) {
   await assessment.connect(manager2).stake(fixture.stakeAmount);
 
   // claim
-  await individualClaims.connect(coverReceiver).submitClaim(1, 0, parseEther('1'), '', { value: parseEther('1') });
+  await individualClaims.connect(coverReceiver).submitClaim(1, parseEther('1'), '', { value: parseEther('1') });
 
   // vote
   await assessment.connect(manager1).castVotes([0], [true], ['Assessment data hash'], 0);

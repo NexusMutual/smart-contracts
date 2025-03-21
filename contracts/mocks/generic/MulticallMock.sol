@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import "../../../abstract/Multicall.sol";
+import "../../abstract/Multicall.sol";
 
 contract MulticallMock is Multicall {
 

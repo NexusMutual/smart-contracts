@@ -8,57 +8,46 @@ const { parseEther } = ethers.utils;
 
 async function setup() {
   const accounts = await getAccounts();
-  const NXM = await ethers.getContractFactory('NXMTokenMock');
-  const nxm = await NXM.deploy();
+  const nxm = await ethers.deployContract('NXMTokenMock');
   await nxm.deployed();
 
-  const MemberRoles = await ethers.getContractFactory('MemberRolesMock');
-  const memberRoles = await MemberRoles.deploy();
+  const memberRoles = await ethers.deployContract('MemberRolesMock');
   await memberRoles.deployed();
 
-  const Ramm = await ethers.getContractFactory('RammMock');
-  const ramm = await Ramm.deploy();
+  const ramm = await ethers.deployContract('RammMock');
   await ramm.deployed();
 
-  const CLMockTokenController = await ethers.getContractFactory('CLMockTokenController');
-  const tokenController = await CLMockTokenController.deploy(nxm.address);
+  const tokenController = await ethers.deployContract('CLMockTokenController', [nxm.address]);
   await tokenController.deployed();
 
   await nxm.setOperator(tokenController.address);
 
-  const Master = await ethers.getContractFactory('MasterMock');
-  const master = await Master.deploy();
+  const master = await ethers.deployContract('MasterMock');
   await master.deployed();
 
-  const DAI = await ethers.getContractFactory('ERC20BlacklistableMock');
-  const dai = await DAI.deploy();
+  const dai = await ethers.deployContract('ERC20BlacklistableMock');
   await dai.deployed();
 
-  const PoolMock = await ethers.getContractFactory('PoolMock');
-  const pool = await PoolMock.deploy();
+  const pool = await ethers.deployContract('PoolMock');
   await pool.deployed();
+
   await pool.addAsset({ assetAddress: dai.address, isCoverAsset: true, isAbandonedAsset: false });
   await pool.setTokenPrice(ASSET.ETH, parseEther('0.0382')); // 1 NXM ~ 0.0382 ETH
   await pool.setTokenPrice(ASSET.DAI, parseEther('3.82')); // 1 NXM ~ 3.82 DAI)
 
-  const Assessment = await ethers.getContractFactory('CLMockAssessment');
-  const assessment = await Assessment.deploy();
+  const assessment = await ethers.deployContract('CLMockAssessment');
   await assessment.deployed();
 
-  const CoverNFT = await ethers.getContractFactory('CLMockCoverNFT');
-  const coverNFT = await CoverNFT.deploy();
+  const coverNFT = await ethers.deployContract('CLMockCoverNFT');
   await coverNFT.deployed();
 
-  const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
-  const individualClaims = await IndividualClaims.deploy(nxm.address, coverNFT.address);
+  const individualClaims = await ethers.deployContract('IndividualClaims', [coverNFT.address]);
   await individualClaims.deployed();
 
-  const Cover = await ethers.getContractFactory('CLMockCover');
-  const cover = await Cover.deploy(coverNFT.address);
+  const cover = await ethers.deployContract('CLMockCover', [coverNFT.address]);
   await cover.deployed();
 
-  const CoverProducts = await ethers.getContractFactory('ICMockCoverProducts');
-  const coverProducts = await CoverProducts.deploy();
+  const coverProducts = await ethers.deployContract('CLMockCoverProducts');
   await coverProducts.deployed();
 
   const masterInitTxs = await Promise.all([
@@ -75,7 +64,7 @@ async function setup() {
   await Promise.all(masterInitTxs.map(x => x.wait()));
   await coverProducts.addProductType('0', '30', '5000');
   await coverProducts.addProductType('0', '90', '5000');
-  await coverProducts.addProductType('1', '30', '5000');
+  await coverProducts.addProductType('0', '30', '5000');
 
   const productTemplate = {
     productType: '0',
@@ -116,26 +105,27 @@ async function setup() {
   accounts.defaultSender.sendTransaction({ to: pool.address, value: parseEther('200') });
   await dai.mint(pool.address, parseEther('200'));
 
-  const config = await individualClaims.config();
-
-  return {
-    config,
-    accounts,
-    contracts: {
-      pool,
-      nxm,
-      dai,
-      individualClaims,
-      assessment,
-      cover,
-      coverProducts,
-      coverNFT,
-      master,
-      memberRoles,
-    },
+  const config = {
+    minAssessmentDepositRatio: (await individualClaims.getMinAssessmentDepositRatio()).toNumber(),
+    maxRewardInNxm: await individualClaims.getMaxRewardInNxm(),
+    payoutCooldown: (await assessment.getPayoutCooldown()).toNumber(),
+    payoutRedemptionPeriod: (await individualClaims.getPayoutRedemptionPeriod()).toNumber(),
   };
+
+  const contracts = {
+    pool,
+    nxm,
+    dai,
+    individualClaims,
+    assessment,
+    cover,
+    coverProducts,
+    coverNFT,
+    master,
+    memberRoles,
+  };
+
+  return { config, accounts, contracts };
 }
 
-module.exports = {
-  setup,
-};
+module.exports = { setup };

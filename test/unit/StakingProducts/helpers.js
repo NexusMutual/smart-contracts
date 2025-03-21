@@ -26,12 +26,8 @@ const buyCoverParamsTemplate = {
 
 const allocationRequestTemplate = {
   coverId: 0,
-  allocationId: 0,
   period: daysToSeconds('30'),
   gracePeriod: daysToSeconds('7'),
-  previousStart: 0,
-  previousExpiration: 0,
-  previousRewardsRatio: 0,
 };
 
 const initialProductTemplate = {
@@ -121,14 +117,14 @@ async function allocateCapacity({ amount, productId }) {
   const allocationRequest = {
     ...allocationRequestTemplate,
     productId,
-    globalCapacityRatio: GLOBAL_CAPACITY_RATIO,
+    capacityRatio: GLOBAL_CAPACITY_RATIO,
     capacityReductionRatio: coverProductTemplate.capacityReductionRatio,
     useFixedPrice: coverProductTemplate.useFixedPrice,
     rewardRatio: GLOBAL_REWARDS_RATIO,
     productMinPrice: DEFAULT_MIN_PRICE_RATIO,
   };
 
-  await stakingPool.connect(coverSigner).requestAllocation(amount, 0, allocationRequest);
+  await stakingPool.connect(coverSigner).requestAllocation(amount, allocationRequest);
 }
 
 async function setStakedProducts(params) {

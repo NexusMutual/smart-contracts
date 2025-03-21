@@ -14,19 +14,7 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
-  function coverDataCount() external virtual pure returns (uint) {
-    revert("Unsupported");
-  }
-
-  function coverSegmentsCount(uint /* coverId */ ) external virtual view returns (uint) {
-    revert("Unsupported");
-  }
-
-  function coverSegments(uint /* coverId */ ) external virtual view returns (CoverSegment[] memory) {
-    revert("Unsupported");
-  }
-
-  function coverSegmentWithRemainingAmount(uint, uint) external virtual view returns (CoverSegment memory) {
+  function getCoverDataCount() external virtual pure returns (uint) {
     revert("Unsupported");
   }
 
@@ -58,7 +46,26 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
-  function coverData(uint) external virtual view returns (CoverData memory) {
+  function getCoverData(uint) external virtual view returns (CoverData memory) {
+    revert("Unsupported");
+  }
+
+  function getPoolAllocations(uint) external virtual view returns (PoolAllocation[] memory) {
+    revert("Unsupported");
+  }
+
+  function getCoverReference(uint) external virtual view returns (CoverReference memory) {
+    revert("Unsupported");
+  }
+
+  function getCoverDataWithReference(uint) external virtual view returns (
+    CoverData memory,
+    CoverReference memory
+  ) {
+    revert("Unsupported");
+  }
+
+  function getLatestEditCoverData(uint) external virtual view returns (CoverData memory) {
     revert("Unsupported");
   }
 
@@ -77,7 +84,6 @@ contract CoverGeneric is ICover {
 
   function burnStake(
     uint /* coverId */,
-    uint /* segmentId */,
     uint /* amount */
   ) external virtual returns (address /* coverOwner */) {
     revert("Unsupported");

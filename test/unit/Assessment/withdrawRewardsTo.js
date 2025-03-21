@@ -27,7 +27,7 @@ describe('withdrawRewardsTo', function () {
 
     await generateRewards({ assessment, individualClaims, staker });
 
-    await finalizePoll(assessment);
+    await finalizePoll(assessment, fixture.config);
 
     const [nonMember] = fixture.accounts.nonMembers;
     const { totalRewardInNXM } = await assessment.assessments(0);
@@ -52,7 +52,7 @@ describe('withdrawRewardsTo', function () {
 
     await generateRewards({ assessment, individualClaims, staker });
 
-    await finalizePoll(assessment);
+    await finalizePoll(assessment, fixture.config);
 
     const { totalRewardInNXM } = await assessment.assessments(0);
     const nonMemberBalanceBefore = await nxm.balanceOf(staker.address);
@@ -73,15 +73,15 @@ describe('withdrawRewardsTo', function () {
 
     await assessment.connect(user).stake(parseEther('10'));
 
-    await individualClaims.connect(user).submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.connect(user).submitClaim(0, parseEther('100'), '');
     await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], 0);
 
-    await finalizePoll(assessment);
+    await finalizePoll(assessment, fixture.config);
 
-    await individualClaims.connect(user).submitClaim(1, 0, parseEther('100'), '');
+    await individualClaims.connect(user).submitClaim(1, parseEther('100'), '');
     await assessment.connect(user).castVotes([1], [true], ['Assessment data hash'], 0);
 
-    await individualClaims.connect(user).submitClaim(2, 0, parseEther('100'), '');
+    await individualClaims.connect(user).submitClaim(2, parseEther('100'), '');
     await assessment.connect(user).castVotes([2], [true], ['Assessment data hash'], 0);
 
     const balanceBefore = await nxm.balanceOf(user.address);
@@ -101,7 +101,7 @@ describe('withdrawRewardsTo', function () {
     const [user1, user2, user3] = fixture.accounts.members;
 
     {
-      await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
+      await individualClaims.connect(user1).submitClaim(0, parseEther('100'), '');
       await assessment.connect(user1).stake(parseEther('10'));
       await assessment.connect(user2).stake(parseEther('10'));
       await assessment.connect(user3).stake(parseEther('10'));
@@ -111,7 +111,7 @@ describe('withdrawRewardsTo', function () {
       await assessment.connect(user3).castVotes([0], [true], ['Assessment data hash'], 0);
       const { totalRewardInNXM } = await assessment.assessments(0);
 
-      await finalizePoll(assessment);
+      await finalizePoll(assessment, fixture.config);
 
       {
         const balanceBefore = await nxm.balanceOf(user1.address);
@@ -136,13 +136,13 @@ describe('withdrawRewardsTo', function () {
     }
 
     {
-      await individualClaims.connect(user1).submitClaim(1, 0, parseEther('100'), '');
+      await individualClaims.connect(user1).submitClaim(1, parseEther('100'), '');
 
       await assessment.connect(user1).castVotes([1], [true], ['Assessment data hash'], 0);
       await assessment.connect(user2).castVotes([1], [true], ['Assessment data hash'], 0);
       const { totalRewardInNXM } = await assessment.assessments(1);
 
-      await finalizePoll(assessment);
+      await finalizePoll(assessment, fixture.config);
 
       {
         const balanceBefore = await nxm.balanceOf(user1.address);
@@ -160,7 +160,7 @@ describe('withdrawRewardsTo', function () {
     }
 
     {
-      await individualClaims.connect(user1).submitClaim(2, 0, parseEther('100'), '');
+      await individualClaims.connect(user1).submitClaim(2, parseEther('100'), '');
       await assessment.connect(user1).stake(parseEther('10'));
       await assessment.connect(user2).stake(parseEther('27'));
       await assessment.connect(user3).stake(parseEther('33'));
@@ -170,7 +170,7 @@ describe('withdrawRewardsTo', function () {
       await assessment.connect(user3).castVotes([2], [true], ['Assessment data hash'], 0);
       const { totalRewardInNXM } = await assessment.assessments(2);
 
-      await finalizePoll(assessment);
+      await finalizePoll(assessment, fixture.config);
 
       {
         const balanceBefore = await nxm.balanceOf(user1.address);
@@ -201,9 +201,9 @@ describe('withdrawRewardsTo', function () {
     const [user1] = fixture.accounts.members;
 
     {
-      await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
-      await individualClaims.connect(user1).submitClaim(1, 0, parseEther('100'), '');
-      await individualClaims.connect(user1).submitClaim(2, 0, parseEther('100'), '');
+      await individualClaims.connect(user1).submitClaim(0, parseEther('100'), '');
+      await individualClaims.connect(user1).submitClaim(1, parseEther('100'), '');
+      await individualClaims.connect(user1).submitClaim(2, parseEther('100'), '');
       await assessment.connect(user1).stake(parseEther('10'));
       await assessment
         .connect(user1)
@@ -216,7 +216,7 @@ describe('withdrawRewardsTo', function () {
 
       const { totalRewardInNXM } = await assessment.assessments(0);
 
-      await finalizePoll(assessment);
+      await finalizePoll(assessment, fixture.config);
 
       {
         const balanceBefore = await nxm.balanceOf(user1.address);
@@ -245,9 +245,9 @@ describe('withdrawRewardsTo', function () {
     const [user1] = fixture.accounts.members;
 
     {
-      await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
-      await individualClaims.connect(user1).submitClaim(1, 0, parseEther('100'), '');
-      await individualClaims.connect(user1).submitClaim(2, 0, parseEther('100'), '');
+      await individualClaims.connect(user1).submitClaim(0, parseEther('100'), '');
+      await individualClaims.connect(user1).submitClaim(1, parseEther('100'), '');
+      await individualClaims.connect(user1).submitClaim(2, parseEther('100'), '');
       await assessment.connect(user1).stake(parseEther('10'));
       await assessment
         .connect(user1)
@@ -260,7 +260,7 @@ describe('withdrawRewardsTo', function () {
 
       const { totalRewardInNXM } = await assessment.assessments(0);
 
-      await finalizePoll(assessment);
+      await finalizePoll(assessment, fixture.config);
 
       {
         const balanceBefore = await nxm.balanceOf(user1.address);
@@ -279,7 +279,7 @@ describe('withdrawRewardsTo', function () {
     await generateRewards({ assessment, individualClaims, staker });
     const { totalRewardInNXM } = await assessment.assessments(0);
 
-    await finalizePoll(assessment);
+    await finalizePoll(assessment, fixture.config);
 
     await expect(assessment.connect(staker).withdrawRewardsTo(user1.address, 0))
       .to.emit(assessment, 'RewardWithdrawn')
@@ -307,7 +307,7 @@ describe('withdrawRewardsTo', function () {
 
     await generateRewards({ assessment, individualClaims, staker });
 
-    await finalizePoll(assessment);
+    await finalizePoll(assessment, fixture.config);
 
     const { totalRewardInNXM } = await assessment.assessments(0);
 
@@ -331,11 +331,11 @@ describe('withdrawRewardsTo', function () {
     const { assessment, individualClaims, nxm } = fixture.contracts;
     const [staker] = fixture.accounts.members;
 
-    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
+    const { minVotingPeriod, payoutCooldown } = fixture.config;
     await generateRewards({ assessment, individualClaims, staker });
 
     const { timestamp } = await ethers.provider.getBlock('latest');
-    await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays - 1));
+    await setTime(timestamp + minVotingPeriod + payoutCooldown - daysToSeconds(1));
 
     const stakerBalanceBefore = await nxm.balanceOf(staker.address);
     const stakeOfBefore = await assessment.stakeOf(staker.address);

@@ -53,9 +53,9 @@ contract AssessmentViewer is IAssessmentViewer {
     }
 
     (,, uint timestamp,) = _assessment.votesOf(member, voteCount - 1);
-    (, uint stakeLockupPeriodInDays,,) = _assessment.config();
+    uint stakeLockupPeriod = _assessment.getStakeLockupPeriod();
 
-    uint stakeLockupExpiry = timestamp + stakeLockupPeriodInDays * 1 days;
+    uint stakeLockupExpiry = timestamp + stakeLockupPeriod;
     bool isStakeLocked = stakeLockupExpiry > block.timestamp;
 
     return AssessmentStakeLockedState({

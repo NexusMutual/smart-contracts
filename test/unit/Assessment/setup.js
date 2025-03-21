@@ -16,7 +16,7 @@ async function setup() {
   await tokenController.deployed();
 
   const ASMockIndividualClaims = await ethers.getContractFactory('ASMockIndividualClaims');
-  const individualClaims = await ASMockIndividualClaims.deploy(nxm.address);
+  const individualClaims = await ASMockIndividualClaims.deploy();
   await individualClaims.deployed();
 
   const ASMockRamm = await ethers.getContractFactory('RammMock');
@@ -66,7 +66,12 @@ async function setup() {
     await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
   }
 
-  const config = await assessment.config();
+  const config = {
+    minVotingPeriod: Number(await assessment.getMinVotingPeriod()),
+    payoutCooldown: Number(await assessment.getPayoutCooldown()),
+    silentEndingPeriod: Number(await assessment.getSilentEndingPeriod()),
+    stakeLockupPeriod: Number(await assessment.getStakeLockupPeriod()),
+  };
 
   await impersonateAccount(tokenController.address);
   await setEtherBalance(tokenController.address, parseEther('100'));

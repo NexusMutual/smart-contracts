@@ -10,9 +10,10 @@ const { setNextBlockTime } = require('../utils').evm;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { BUCKET_DURATION } = require('../../unit/StakingPool/helpers');
 const { getInternalPrice } = require('../../utils/rammCalculations');
+const { max } = require('../../utils/bnMath');
 
 const { parseEther } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero, MaxUint256, Zero } = ethers.constants;
 
 const REWARD_DENOMINATOR = 10000;
 const PRICE_CHANGE_PER_DAY = 200;
@@ -103,7 +104,7 @@ async function buyCoverSetup() {
 }
 
 describe('buyCover', function () {
-  it.skip('allows to buy against multiple staking pools', async function () {
+  it('allows to buy against multiple staking pools', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { cover, tc: tokenController, stakingProducts, ra: ramm, p1: pool, mcr } = fixture.contracts;
     const {
@@ -116,15 +117,24 @@ describe('buyCover', function () {
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = currentTimestamp + 10;
-    const ethRate = await getInternalPrice(ramm, pool, tokenController, mcr, nextBlockTimestamp);
+    const nxmPrice = await getInternalPrice(ramm, pool, tokenController, mcr, nextBlockTimestamp);
 
-    const {
-      premiumInNxm,
-      premiumInAsset: premium,
-      coverNXMAmount,
-    } = calculatePremium(amount, ethRate, period, product.bumpedPrice, NXM_PER_ALLOCATION_UNIT);
-    const rewards = calculateRewards(premiumInNxm.div(3), nextBlockTimestamp, period, GLOBAL_REWARDS_RATIO);
-    const coverAmountAllocationPerPool = amount.div(3);
+    const coverAmountAllocationsPerPool = [
+      amount.div(3), // a third
+      amount.div(3), // second third
+      amount.sub(amount.div(3).mul(2)), // whatever's left
+    ];
+
+    const premiums = coverAmountAllocationsPerPool.map(amount =>
+      calculatePremium(amount, nxmPrice, period, product.bumpedPrice, NXM_PER_ALLOCATION_UNIT),
+    );
+
+    const premiumInNxm = premiums.reduce((total, premium) => total.add(premium.premiumInNxm), Zero);
+    const premiumInAsset = premiumInNxm.mul(nxmPrice).div(parseEther('1'));
+
+    const rewards = premiums.map(premium =>
+      calculateRewards(premium.premiumInNxm, nextBlockTimestamp, period, GLOBAL_REWARDS_RATIO),
+    );
 
     const stakingPool1Before = await tokenController.stakingPoolNXMBalances(1);
     const stakingPool2Before = await tokenController.stakingPoolNXMBalances(2);
@@ -132,13 +142,13 @@ describe('buyCover', function () {
 
     await setNextBlockTime(nextBlockTimestamp);
     await cover.connect(coverBuyer).buyCover(
-      { ...buyCoverFixture, owner: coverReceiver.address, maxPremiumInAsset: premium },
+      { ...buyCoverFixture, owner: coverReceiver.address, maxPremiumInAsset: premiumInAsset },
       [
-        { poolId: 1, coverAmountInAsset: coverAmountAllocationPerPool },
-        { poolId: 2, coverAmountInAsset: coverAmountAllocationPerPool },
-        { poolId: 3, coverAmountInAsset: coverAmountAllocationPerPool },
+        { poolId: 1, coverAmountInAsset: coverAmountAllocationsPerPool[0] },
+        { poolId: 2, coverAmountInAsset: coverAmountAllocationsPerPool[1] },
+        { poolId: 3, coverAmountInAsset: coverAmountAllocationsPerPool[2] },
       ],
-      { value: premium },
+      { value: premiumInAsset },
     );
 
     const stakingPool1After = await tokenController.stakingPoolNXMBalances(1);
@@ -146,18 +156,17 @@ describe('buyCover', function () {
     const stakingPool3After = await tokenController.stakingPoolNXMBalances(3);
 
     // validate that rewards increased
-    expect(stakingPool1After.rewards).to.be.equal(stakingPool1Before.rewards.add(rewards));
-    expect(stakingPool2After.rewards).to.be.equal(stakingPool2Before.rewards.add(rewards));
-    expect(stakingPool3After.rewards).to.be.equal(stakingPool3Before.rewards.add(rewards));
+    expect(stakingPool1After.rewards).to.be.equal(stakingPool1Before.rewards.add(rewards[0]));
+    expect(stakingPool2After.rewards).to.be.equal(stakingPool2Before.rewards.add(rewards[1]));
+    expect(stakingPool3After.rewards).to.be.equal(stakingPool3Before.rewards.add(rewards[2]));
 
-    const coverId = await cover.coverDataCount();
-    const segments = await cover.coverSegments(coverId);
+    const coverId = await cover.getCoverDataCount();
+    const poolAllocations = await cover.getPoolAllocations(coverId);
 
     for (let i = 0; i < 3; i++) {
-      const segmentAllocation = await cover.coverSegmentAllocations(coverId, segments.length - 1, i);
-      expect(segmentAllocation.poolId).to.be.equal(i + 1);
-      expect(segmentAllocation.coverAmountInNXM).to.be.equal(coverNXMAmount.div(3));
-      expect(segmentAllocation.premiumInNXM).to.be.equal(premiumInNxm.div(3));
+      expect(poolAllocations[i].poolId).to.be.equal(i + 1);
+      expect(poolAllocations[i].coverAmountInNXM).to.be.equal(premiums[i].coverNXMAmount);
+      expect(poolAllocations[i].premiumInNXM).to.be.equal(premiums[i].premiumInNxm);
     }
   });
 
@@ -226,7 +235,8 @@ describe('buyCover', function () {
 
     const product = await stakingProducts.getProduct(1, productId);
     const { bumpedPriceUpdateTime, bumpedPrice } = product;
-    const price = bumpedPrice.sub(BigNumber.from(daysElapsed).mul(PRICE_CHANGE_PER_DAY));
+
+    const price = max(bumpedPrice.sub(BigNumber.from(daysElapsed).mul(PRICE_CHANGE_PER_DAY)), targetPrice);
 
     const nextTimestamp = bumpedPriceUpdateTime.add(daysToSeconds(daysElapsed)).toNumber();
     const ethRate = await getInternalPrice(ramm, pool, tokenController, mcr, nextTimestamp);

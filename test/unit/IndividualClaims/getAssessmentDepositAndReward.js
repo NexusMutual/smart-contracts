@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { assert } = require('chai');
+const { expect } = require('chai');
 
 const { ASSET } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
@@ -9,67 +9,66 @@ const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('getAssessmentDepositAndReward', function () {
-  it('returns a total reward in NXM no greater than config.maxRewardInNXMWad', async function () {
+  it('returns a total reward in NXM no greater than maxRewardInNXM', async function () {
     const fixture = await loadFixture(setup);
     const { individualClaims } = fixture.contracts;
-    const { maxRewardInNXMWad } = await individualClaims.config();
-    const max = parseEther(maxRewardInNXMWad.toString());
+    const { maxRewardInNxm } = fixture.config;
 
     {
-      const [, /* deposit */ totalReward] = await individualClaims.getAssessmentDepositAndReward(
+      const [, totalReward] = await individualClaims.getAssessmentDepositAndReward(
         parseEther('1'),
         daysToSeconds(30),
         ASSET.ETH,
       );
-      assert(totalReward.lte(max));
+      expect(totalReward).to.be.lte(maxRewardInNxm);
     }
     {
-      const [, /* deposit */ totalReward] = await individualClaims.getAssessmentDepositAndReward(
+      const [, totalReward] = await individualClaims.getAssessmentDepositAndReward(
         parseEther('79228162514.26433759354395033600'), // Max uint96
         daysToSeconds(365),
         ASSET.ETH,
       );
-      assert(totalReward.lte(max));
+      expect(totalReward).to.be.lte(maxRewardInNxm);
     }
     {
-      const [, /* deposit */ totalReward] = await individualClaims.getAssessmentDepositAndReward(
+      const [, totalReward] = await individualClaims.getAssessmentDepositAndReward(
         parseEther('1'),
         daysToSeconds(30),
         ASSET.DAI,
       );
-      assert(totalReward.lte(max));
+      expect(totalReward).to.be.lte(maxRewardInNxm);
     }
     {
-      const [, /* deposit */ totalReward] = await individualClaims.getAssessmentDepositAndReward(
+      const [, totalReward] = await individualClaims.getAssessmentDepositAndReward(
         parseEther('79228162514.26433759354395033600'), // Max uint96
         daysToSeconds(365),
         ASSET.DAI,
       );
-      assert(totalReward.lte(max));
+      expect(totalReward).to.be.lte(maxRewardInNxm);
     }
   });
 
   it('returns a deposit of at least config.minAssessmentDepositRatio * 1 ETH', async function () {
     const fixture = await loadFixture(setup);
     const { individualClaims } = fixture.contracts;
-    const { minAssessmentDepositRatio } = await individualClaims.config();
+    const { minAssessmentDepositRatio } = fixture.config;
     const minDeposit = parseEther('1').mul(minAssessmentDepositRatio).div('10000');
 
     {
       const [deposit] = await individualClaims.getAssessmentDepositAndReward(1, daysToSeconds(30), ASSET.ETH);
-      assert(deposit.gte(minDeposit));
+      expect(deposit).to.be.gte(minDeposit);
     }
     {
       const [deposit] = await individualClaims.getAssessmentDepositAndReward(1, daysToSeconds(30), ASSET.DAI);
-      assert(deposit.gte(minDeposit));
+      expect(deposit).to.be.gte(minDeposit);
     }
     {
       const [deposit] = await individualClaims.getAssessmentDepositAndReward(100, daysToSeconds(30), ASSET.ETH);
-      assert(deposit.gte(minDeposit));
+      expect(deposit).to.be.gte(minDeposit);
     }
     {
       const [deposit] = await individualClaims.getAssessmentDepositAndReward(10000, daysToSeconds(30), ASSET.ETH);
-      assert(deposit.gte(minDeposit));
+      expect(deposit).to.be.gte(minDeposit);
     }
     {
       const [deposit] = await individualClaims.getAssessmentDepositAndReward(
@@ -77,7 +76,7 @@ describe('getAssessmentDepositAndReward', function () {
         daysToSeconds(365),
         ASSET.ETH,
       );
-      assert(deposit.gte(minDeposit));
+      expect(deposit).to.be.gte(minDeposit);
     }
   });
 
@@ -86,29 +85,25 @@ describe('getAssessmentDepositAndReward', function () {
     const { individualClaims } = fixture.contracts;
 
     {
-      const [, /* deposit */ totalReward1] = await individualClaims.getAssessmentDepositAndReward(
-        1,
-        daysToSeconds(30),
-        ASSET.ETH,
-      );
-      const [, /* deposit */ totalReward2] = await individualClaims.getAssessmentDepositAndReward(
+      const [, totalReward1] = await individualClaims.getAssessmentDepositAndReward(1, daysToSeconds(30), ASSET.ETH);
+      const [, totalReward2] = await individualClaims.getAssessmentDepositAndReward(
         100000,
         daysToSeconds(30),
         ASSET.ETH,
       );
-      assert(totalReward2.gt(totalReward1));
-      const [, /* deposit */ totalReward3] = await individualClaims.getAssessmentDepositAndReward(
+      expect(totalReward2).to.be.gt(totalReward1);
+      const [, totalReward3] = await individualClaims.getAssessmentDepositAndReward(
         100000000,
         daysToSeconds(30),
         ASSET.ETH,
       );
-      assert(totalReward3.gt(totalReward2));
-      const [, /* deposit */ totalReward4] = await individualClaims.getAssessmentDepositAndReward(
+      expect(totalReward3).to.be.gt(totalReward2);
+      const [, totalReward4] = await individualClaims.getAssessmentDepositAndReward(
         parseEther('1'),
         daysToSeconds(30),
         ASSET.ETH,
       );
-      assert(totalReward4.gt(totalReward3));
+      expect(totalReward4).to.be.gt(totalReward3);
     }
   });
 
@@ -117,29 +112,29 @@ describe('getAssessmentDepositAndReward', function () {
     const { individualClaims } = fixture.contracts;
 
     {
-      const [, /* deposit */ totalReward1] = await individualClaims.getAssessmentDepositAndReward(
+      const [, totalReward1] = await individualClaims.getAssessmentDepositAndReward(
         parseEther('10'),
         daysToSeconds(30),
         ASSET.ETH,
       );
-      const [, /* deposit */ totalReward2] = await individualClaims.getAssessmentDepositAndReward(
+      const [, totalReward2] = await individualClaims.getAssessmentDepositAndReward(
         parseEther('10'),
         daysToSeconds(60),
         ASSET.ETH,
       );
-      assert(totalReward2.gt(totalReward1));
-      const [, /* deposit */ totalReward3] = await individualClaims.getAssessmentDepositAndReward(
+      expect(totalReward2).to.be.gt(totalReward1);
+      const [, totalReward3] = await individualClaims.getAssessmentDepositAndReward(
         parseEther('10'),
         daysToSeconds(90),
         ASSET.ETH,
       );
-      assert(totalReward3.gt(totalReward2));
-      const [, /* deposit */ totalReward4] = await individualClaims.getAssessmentDepositAndReward(
+      expect(totalReward3).to.be.gt(totalReward2);
+      const [, totalReward4] = await individualClaims.getAssessmentDepositAndReward(
         parseEther('10'),
         daysToSeconds(365),
         ASSET.ETH,
       );
-      assert(totalReward4.gt(totalReward3));
+      expect(totalReward4).to.be.gt(totalReward3);
     }
   });
 
@@ -153,7 +148,7 @@ describe('getAssessmentDepositAndReward', function () {
         daysToSeconds(30),
         ASSET.ETH,
       );
-      assert(deposit.mul(nxmPriceInETH).gte(totalReward1));
+      expect(deposit.mul(nxmPriceInETH)).to.be.gte(totalReward1);
     }
     {
       const [deposit, totalReward1] = await individualClaims.getAssessmentDepositAndReward(
@@ -161,7 +156,7 @@ describe('getAssessmentDepositAndReward', function () {
         daysToSeconds(30),
         ASSET.DAI,
       );
-      assert(deposit.mul(nxmPriceInETH).gte(totalReward1));
+      expect(deposit.mul(nxmPriceInETH)).to.be.gte(totalReward1);
     }
     {
       const [deposit, totalReward1] = await individualClaims.getAssessmentDepositAndReward(
@@ -169,7 +164,7 @@ describe('getAssessmentDepositAndReward', function () {
         daysToSeconds(30),
         ASSET.ETH,
       );
-      assert(deposit.mul(nxmPriceInETH).gte(totalReward1));
+      expect(deposit.mul(nxmPriceInETH)).to.be.gte(totalReward1);
     }
     {
       const [deposit, totalReward1] = await individualClaims.getAssessmentDepositAndReward(
@@ -177,7 +172,7 @@ describe('getAssessmentDepositAndReward', function () {
         daysToSeconds(30),
         ASSET.DAI,
       );
-      assert(deposit.mul(nxmPriceInETH).gte(totalReward1));
+      expect(deposit.mul(nxmPriceInETH)).to.be.gte(totalReward1);
     }
     {
       const [deposit, totalReward1] = await individualClaims.getAssessmentDepositAndReward(
@@ -185,7 +180,7 @@ describe('getAssessmentDepositAndReward', function () {
         daysToSeconds(365),
         ASSET.ETH,
       );
-      assert(deposit.mul(nxmPriceInETH).gte(totalReward1));
+      expect(deposit.mul(nxmPriceInETH)).to.be.gte(totalReward1);
     }
     {
       const [deposit, totalReward1] = await individualClaims.getAssessmentDepositAndReward(
@@ -193,7 +188,7 @@ describe('getAssessmentDepositAndReward', function () {
         daysToSeconds(365),
         ASSET.DAI,
       );
-      assert(deposit.mul(nxmPriceInETH).gte(totalReward1));
+      expect(deposit.mul(nxmPriceInETH)).to.be.gte(totalReward1);
     }
     {
       const [deposit, totalReward1] = await individualClaims.getAssessmentDepositAndReward(
@@ -201,7 +196,7 @@ describe('getAssessmentDepositAndReward', function () {
         daysToSeconds(365),
         ASSET.DAI,
       );
-      assert(deposit.mul(nxmPriceInETH).gte(totalReward1));
+      expect(deposit.mul(nxmPriceInETH)).to.be.gte(totalReward1);
     }
   });
 });

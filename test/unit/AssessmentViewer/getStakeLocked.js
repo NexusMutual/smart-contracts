@@ -11,8 +11,6 @@ const setTime = async timestamp => {
 };
 
 describe('getStakeLocked', function () {
-  const ONE_DAY_SECONDS = 24 * 60 * 60;
-
   it('should return false if user has 0 vote count in assessment', async function () {
     const fixture = await loadFixture(setup);
     const [member] = fixture.accounts.members;
@@ -28,7 +26,7 @@ describe('getStakeLocked', function () {
     const fixture = await loadFixture(setup);
     const [member] = fixture.accounts.members;
     const { assessmentViewer, assessment } = fixture.contracts;
-    const { stakeLockupPeriodInDays } = fixture.config;
+    const { stakeLockupPeriod } = fixture.config;
 
     await assessment.setVotesOf(member.address, '10', 0, true);
 
@@ -38,16 +36,16 @@ describe('getStakeLocked', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     expect(isStakeLockedBefore).to.equal(true);
-    expect(stakeLockupExpiryBefore).to.equal(timestamp + stakeLockupPeriodInDays * ONE_DAY_SECONDS);
+    expect(stakeLockupExpiryBefore).to.equal(timestamp + stakeLockupPeriod);
 
     // advance time so that assessment lockup expires
-    await setTime(timestamp + stakeLockupPeriodInDays * ONE_DAY_SECONDS + 1);
+    await setTime(timestamp + stakeLockupPeriod + 1);
 
     const { isStakeLocked: isStakeLockedAfter, stakeLockupExpiry: stakeLockupExpiryAfter } =
       await assessmentViewer.getStakeLocked(member.address);
 
     expect(isStakeLockedAfter).to.equal(false);
-    expect(stakeLockupExpiryAfter).to.equal(timestamp + stakeLockupPeriodInDays * ONE_DAY_SECONDS);
+    expect(stakeLockupExpiryAfter).to.equal(timestamp + stakeLockupPeriod);
   });
 
   it('should return true if assessment lockup expiry has not passed', async function () {

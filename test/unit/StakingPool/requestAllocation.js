@@ -44,14 +44,10 @@ const LAST_BUCKET_ID_MASK = MaxUint16;
 const allocationRequestParams = {
   productId: 0,
   coverId: 0,
-  allocationId: 0,
   period: daysToSeconds(10),
   gracePeriod: daysToSeconds(10),
-  previousStart: 0,
-  previousExpiration: 0,
-  previousRewardsRatio: 5000,
   useFixedPrice: false,
-  globalCapacityRatio: 20000,
+  capacityRatio: 20000,
   capacityReductionRatio: 0,
   rewardRatio: 5000,
   productMinPrice: 10000,
@@ -115,7 +111,7 @@ async function requestAllocationSetup() {
 
   // Set global product and product type
   await coverProducts.setProduct(coverProductTemplate, productId);
-  await coverProducts.setProductType({ claimMethod: 1, gracePeriod: daysToSeconds(7) }, productId);
+  await coverProducts.setProductType({ claimMethod: 0, gracePeriod: daysToSeconds(7) }, productId);
 
   // Initialize staking pool
   const poolId = 1;
@@ -161,38 +157,31 @@ describe('requestAllocation', function () {
 
   it('should update allocation amount', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
-    const { stakingPool, cover } = fixture;
-    const { GLOBAL_CAPACITY_RATIO, DEFAULT_MIN_PRICE_RATIO, GLOBAL_REWARDS_RATIO, NXM_PER_ALLOCATION_UNIT } =
-      fixture.config;
+    const { stakingPool } = fixture;
+    const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
     const { timestamp } = await ethers.provider.getBlock('latest');
+
     const allocationId = await stakingPool.getNextAllocationId();
+    const amount = parseEther('4800');
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, allocationRequestParams);
 
-    const request = {
-      // AllocationRequest struct
-      productId: buyCoverParamsTemplate.productId,
-      coverId: buyCoverParamsTemplate.coverId,
-      allocationId: 0,
-      period: buyCoverParamsTemplate.period,
-      gracePeriod: daysToSeconds(7),
-      useFixedPrice: coverProductTemplate.useFixedPrice,
-      previousStart: timestamp,
-      previousExpiration: timestamp + daysToSeconds(periodInDays),
-      previousRewardsRatio: 1,
-      globalCapacityRatio: GLOBAL_CAPACITY_RATIO,
-      capacityReductionRatio: coverProductTemplate.capacityReductionRatio,
-      rewardRatio: GLOBAL_REWARDS_RATIO,
-      productMinPrice: DEFAULT_MIN_PRICE_RATIO,
-    };
-
-    await cover.requestAllocation(buyCoverParamsTemplate.amount, 0, request, stakingPool.address);
     const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
     expect(coverTrancheAllocations).to.not.be.equal(0);
 
     const activeTrancheCapacitiesBefore = await stakingPool.getActiveAllocations(buyCoverParamsTemplate.productId);
-    request.allocationId = allocationId;
     const newAmount = parseEther('5000');
     const coverAmount = Math.ceil(newAmount / NXM_PER_ALLOCATION_UNIT);
-    await cover.requestAllocation(newAmount, 0, request, stakingPool.address);
+
+    await stakingPool.connect(fixture.coverSigner).requestDeallocation({
+      allocationId,
+      productId: allocationRequestParams.productId,
+      premium: 0,
+      start: timestamp,
+      period: allocationRequestParams.period,
+      rewardsRatio: 0,
+    });
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(newAmount, allocationRequestParams);
+
     const activeTrancheCapacitiesAfter = await stakingPool.getActiveAllocations(buyCoverParamsTemplate.productId);
 
     expect(activeTrancheCapacitiesBefore[trancheOffset]).not.to.be.equal(activeTrancheCapacitiesAfter[trancheOffset]);
@@ -433,10 +422,9 @@ describe('requestAllocation', function () {
     const [user] = fixture.accounts.members;
 
     const amount = parseEther('1');
-    const previousPremium = 0;
 
     await expect(
-      stakingPool.connect(user).requestAllocation(amount, previousPremium, allocationRequestParams),
+      stakingPool.connect(user).requestAllocation(amount, allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'OnlyCoverContract');
   });
 
@@ -451,7 +439,6 @@ describe('requestAllocation', function () {
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('100');
-    const previousPremium = 0;
     const { productId } = allocationRequestParams;
 
     const groupId = Math.floor(currentTrancheId / COVER_TRANCHE_GROUP_SIZE);
@@ -462,7 +449,7 @@ describe('requestAllocation', function () {
       expect(trancheAllocationGroup).to.equal(0);
     }
 
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, allocationRequestParams);
 
     {
       const trancheAllocationGroup = await stakingPool.trancheAllocationGroups(productId, groupId);
@@ -483,7 +470,6 @@ describe('requestAllocation', function () {
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('100');
-    const previousPremium = 0;
     const { productId } = allocationRequestParams;
 
     const currentBucketId = await getCurrentBucket();
@@ -497,7 +483,7 @@ describe('requestAllocation', function () {
       expect(trancheAllocationGroup).to.equal(0);
     }
 
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, allocationRequestParams);
 
     for (let i = 0; i < groupCount; i++) {
       const trancheAllocationGroup = await stakingPool.trancheAllocationGroups(productId, firstGroupId + i);
@@ -516,7 +502,6 @@ describe('requestAllocation', function () {
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('100');
-    const previousPremium = 0;
     const { productId, period } = allocationRequestParams;
 
     const lastBlock = await ethers.provider.getBlock('latest');
@@ -530,7 +515,7 @@ describe('requestAllocation', function () {
       expect(expiringCoverBuckets).to.equal(0);
     }
 
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, allocationRequestParams);
 
     {
       const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(productId, targetBucketId, groupId);
@@ -551,7 +536,6 @@ describe('requestAllocation', function () {
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('100');
-    const previousPremium = 0;
     const { productId, period } = allocationRequestParams;
 
     const currentBucketId = await getCurrentBucket();
@@ -578,7 +562,7 @@ describe('requestAllocation', function () {
     }
 
     // Allocate
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, allocationRequestParams);
 
     {
       const trancheAllocationGroup = await stakingPool.trancheAllocationGroups(productId, trancheGroupId);
@@ -597,13 +581,14 @@ describe('requestAllocation', function () {
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(amount.div(NXM_PER_ALLOCATION_UNIT));
     }
 
-    // Deallocate only:
-    // set amount = 0 to only deallocate
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(0, previousPremium, {
-      ...allocationRequestParams,
+    // Deallocate
+    await stakingPool.connect(fixture.coverSigner).requestDeallocation({
       allocationId,
-      previousStart: lastBlock.timestamp,
-      previousExpiration: lastBlock.timestamp + period,
+      productId: allocationRequestParams.productId,
+      premium: 0,
+      start: lastBlock.timestamp,
+      period,
+      rewardsRatio: 0,
     });
 
     {
@@ -643,7 +628,6 @@ describe('requestAllocation', function () {
 
     const allocationAmount = depositPerTranche.mul(6); // should fully allocate 3 tranches
 
-    const previousPremium = 0;
     const { productId } = allocationRequestParams;
 
     for (let i = 0; i < tranches.length; i++) {
@@ -656,9 +640,7 @@ describe('requestAllocation', function () {
       expect(previousActiveAllocations[i]).to.equal(0);
     }
 
-    await stakingPool
-      .connect(fixture.coverSigner)
-      .requestAllocation(allocationAmount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount, allocationRequestParams);
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -674,9 +656,7 @@ describe('requestAllocation', function () {
     }
 
     // double allocation
-    await stakingPool
-      .connect(fixture.coverSigner)
-      .requestAllocation(allocationAmount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount, allocationRequestParams);
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -705,8 +685,6 @@ describe('requestAllocation', function () {
 
     const allocationAmount = depositAmount.mul(3);
     const allocationAmountInNXMUnit = allocationAmount.div(NXM_PER_ALLOCATION_UNIT);
-
-    const previousPremium = 0;
     const { productId } = allocationRequestParams;
 
     const allocationId1 = await stakingPool.getNextAllocationId();
@@ -720,9 +698,7 @@ describe('requestAllocation', function () {
     }
 
     // allocation will allocate 2/3 of amount to first tranche + 1/3 amount other second tranche
-    await stakingPool
-      .connect(fixture.coverSigner)
-      .requestAllocation(allocationAmount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount, allocationRequestParams);
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -744,9 +720,7 @@ describe('requestAllocation', function () {
     }
 
     // allocation will allocate 1/3 amount to the second tranche + 2/3 amount to the third tranche
-    await stakingPool
-      .connect(fixture.coverSigner)
-      .requestAllocation(allocationAmount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount, allocationRequestParams);
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -778,7 +752,6 @@ describe('requestAllocation', function () {
 
     const amountProduct1 = parseEther('10');
     const amountProduct2 = parseEther('20');
-    const previousPremium = 0;
     const { productId: productId1, period } = allocationRequestParams;
     const { productId: productId2 } = product2;
 
@@ -803,12 +776,10 @@ describe('requestAllocation', function () {
     }
 
     // allocate to product 1
-    await stakingPool
-      .connect(fixture.coverSigner)
-      .requestAllocation(amountProduct1, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amountProduct1, allocationRequestParams);
 
     // allocate to product 2
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(amountProduct2, previousPremium, {
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amountProduct2, {
       ...allocationRequestParams,
       productId: productId2,
     });
@@ -843,14 +814,13 @@ describe('requestAllocation', function () {
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('100');
-    const previousPremium = 0;
 
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, allocationRequestParams);
 
     const accNxmPerRewardsShareBefore = await stakingPool.getAccNxmPerRewardsShare();
     const lastAccNxmUpdateBefore = await stakingPool.getLastAccNxmUpdate();
 
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, allocationRequestParams);
 
     const accNxmPerRewardsShareAfter = await stakingPool.getAccNxmPerRewardsShare();
     const lastAccNxmUpdateAfter = await stakingPool.getLastAccNxmUpdate();
@@ -871,7 +841,6 @@ describe('requestAllocation', function () {
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('100');
-    const previousPremium = 0;
 
     const currentBlock = await ethers.provider.getBlock('latest');
     const expirationBucket = Math.ceil((currentBlock.timestamp + allocationRequestParams.period) / BUCKET_DURATION);
@@ -886,7 +855,7 @@ describe('requestAllocation', function () {
 
     let tcBalanceBefore = await nxm.balanceOf(tokenController.address);
 
-    await cover.requestAllocation(amount, previousPremium, allocationRequestParams, stakingPool.address);
+    await cover.requestAllocation(amount, allocationRequestParams, stakingPool.address);
 
     let previousRewardPerSecond;
     let previousRewardBuckets;
@@ -914,7 +883,7 @@ describe('requestAllocation', function () {
       previousRewardBuckets = rewardPerSecondCut;
     }
 
-    await cover.requestAllocation(amount, previousPremium, allocationRequestParams, stakingPool.address);
+    await cover.requestAllocation(amount, allocationRequestParams, stakingPool.address);
 
     {
       const premium = await cover.lastPremium();
@@ -939,17 +908,16 @@ describe('requestAllocation', function () {
 
   it('removes and burns previous NXM premium in case of update', async function () {
     const fixture = await loadFixture(requestAllocationSetup);
-    const { stakingPool, cover, tokenController, nxm } = fixture;
+    const { stakingPool, tokenController, nxm } = fixture;
     const [user] = fixture.accounts.members;
 
-    const { REWARDS_DENOMINATOR } = fixture.config;
+    const { GLOBAL_REWARDS_RATIO, REWARDS_DENOMINATOR } = fixture.config;
     const { rewardRatio } = allocationRequestParams;
 
     const currentTrancheId = await moveTimeToNextTranche(1);
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('100');
-    const previousPremium = 0;
 
     const currentBlock = await ethers.provider.getBlock('latest');
     const expirationBucket = Math.ceil((currentBlock.timestamp + allocationRequestParams.period) / BUCKET_DURATION);
@@ -964,9 +932,13 @@ describe('requestAllocation', function () {
 
     const tcBalanceBefore = await nxm.balanceOf(tokenController.address);
 
-    await cover.requestAllocation(amount, previousPremium, allocationRequestParams, stakingPool.address);
+    const requestAllocationResult = await stakingPool
+      .connect(fixture.coverSigner)
+      .callStatic.requestAllocation(amount, allocationRequestParams);
 
-    const premium = await cover.lastPremium();
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, allocationRequestParams);
+
+    const premium = requestAllocationResult.premium;
 
     const firstAllocationBlock = await ethers.provider.getBlock('latest');
     const rewardStreamPeriod = expirationBucket * BUCKET_DURATION - firstAllocationBlock.timestamp;
@@ -986,19 +958,14 @@ describe('requestAllocation', function () {
       expect(rewardPerSecondCut).to.equal(expectedRewardPerSecond);
     }
 
-    const previousExpiration = firstAllocationBlock.timestamp + allocationRequestParams.period;
-
-    await cover.requestAllocation(
-      amount,
-      premium,
-      {
-        ...allocationRequestParams,
-        previousStart: firstAllocationBlock.timestamp,
-        previousExpiration,
-        period: 0, // set period to 0 so premium is 0
-      },
-      stakingPool.address,
-    );
+    await stakingPool.connect(fixture.coverSigner).requestDeallocation({
+      allocationId: requestAllocationResult.allocationId,
+      productId: allocationRequestParams.productId,
+      premium: requestAllocationResult.premium,
+      start: firstAllocationBlock.timestamp,
+      period: allocationRequestParams.period,
+      rewardsRatio: GLOBAL_REWARDS_RATIO,
+    });
 
     const secondAllocationBlock = await ethers.provider.getBlock('latest');
     const expectedBurnedRewards = expectedRewardPerSecond.mul(
@@ -1032,62 +999,49 @@ describe('requestAllocation', function () {
     await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId + 2, 0, AddressZero);
 
     let maxAllocationAmount = depositAmount.mul(6);
-    const previousPremium = 0;
 
     // exceed max allocation
     await expect(
-      stakingPool
-        .connect(fixture.coverSigner)
-        .requestAllocation(maxAllocationAmount.add(1), previousPremium, allocationRequestParams),
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     {
       const allocationAmount = parseEther('10');
 
-      await stakingPool
-        .connect(fixture.coverSigner)
-        .requestAllocation(allocationAmount, previousPremium, allocationRequestParams);
+      await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount, allocationRequestParams);
 
       maxAllocationAmount = maxAllocationAmount.sub(allocationAmount);
     }
 
     // exceed max allocation
     await expect(
-      stakingPool
-        .connect(fixture.coverSigner)
-        .requestAllocation(maxAllocationAmount.add(1), previousPremium, allocationRequestParams),
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     {
       const allocationAmount = parseEther('20');
 
-      await stakingPool
-        .connect(fixture.coverSigner)
-        .requestAllocation(allocationAmount, previousPremium, allocationRequestParams);
+      await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount, allocationRequestParams);
 
       maxAllocationAmount = maxAllocationAmount.sub(allocationAmount);
     }
 
     // exceed max allocation
     await expect(
-      stakingPool
-        .connect(fixture.coverSigner)
-        .requestAllocation(maxAllocationAmount.add(1), previousPremium, allocationRequestParams),
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     {
       const allocationAmount = parseEther('30');
 
-      await stakingPool
-        .connect(fixture.coverSigner)
-        .requestAllocation(allocationAmount, previousPremium, allocationRequestParams);
+      await stakingPool.connect(fixture.coverSigner).requestAllocation(allocationAmount, allocationRequestParams);
 
       maxAllocationAmount = maxAllocationAmount.sub(allocationAmount);
     }
 
     // exceed max allocation
     await expect(
-      stakingPool.connect(fixture.coverSigner).requestAllocation(1, previousPremium, allocationRequestParams),
+      stakingPool.connect(fixture.coverSigner).requestAllocation(1, allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
   });
 
@@ -1102,7 +1056,6 @@ describe('requestAllocation', function () {
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, 0, AddressZero);
 
     const amount = parseEther('10');
-    const previousPremium = 0;
     const nextAllocationId = await stakingPool.getNextAllocationId();
     const { productId, period } = allocationRequestParams;
 
@@ -1117,7 +1070,7 @@ describe('requestAllocation', function () {
       expect(expiringCoverBuckets).to.equal(0);
     }
 
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, allocationRequestParams);
 
     {
       const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(productId, targetBucketId, groupId);
@@ -1128,11 +1081,16 @@ describe('requestAllocation', function () {
 
     const newPeriod = daysToSeconds(35);
     const secondAllocationAmount = parseEther('20');
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(secondAllocationAmount, previousPremium, {
-      ...allocationRequestParams,
+    await stakingPool.connect(fixture.coverSigner).requestDeallocation({
       allocationId: nextAllocationId,
-      previousStart: lastBlock.timestamp,
-      previousExpiration: lastBlock.timestamp + period,
+      productId: allocationRequestParams.productId,
+      premium: 0,
+      start: lastBlock.timestamp,
+      period,
+      rewardsRatio: 0,
+    });
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(secondAllocationAmount, {
+      ...allocationRequestParams,
       period: newPeriod,
     });
 
@@ -1151,14 +1109,12 @@ describe('requestAllocation', function () {
     }
 
     const thirdAllocationAmount = parseEther('5');
-    await stakingPool
-      .connect(fixture.coverSigner)
-      .requestAllocation(thirdAllocationAmount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(thirdAllocationAmount, allocationRequestParams);
 
     const fourthAllocationAmount = parseEther('15');
     await stakingPool
       .connect(fixture.coverSigner)
-      .requestAllocation(fourthAllocationAmount, previousPremium, { ...allocationRequestParams, period: newPeriod });
+      .requestAllocation(fourthAllocationAmount, { ...allocationRequestParams, period: newPeriod });
 
     {
       const firstExpiringCoverBuckets = await stakingPool.expiringCoverBuckets(productId, targetBucketId, groupId);
@@ -1191,7 +1147,6 @@ describe('requestAllocation', function () {
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 2, 0, AddressZero);
 
     const amount = parseEther('200');
-    const previousPremium = 0;
     const nextAllocationId = await stakingPool.getNextAllocationId();
     const { productId, period } = allocationRequestParams;
 
@@ -1200,7 +1155,7 @@ describe('requestAllocation', function () {
       expect(activeAllocations[0]).to.equal(0);
     }
 
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, allocationRequestParams);
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -1210,13 +1165,16 @@ describe('requestAllocation', function () {
     const secondAllocationBlock = await ethers.provider.getBlock('latest');
 
     const secondAllocationAmount = amount.div(2);
-    // edit previous allocation, decrease amount to half
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(secondAllocationAmount, previousPremium, {
-      ...allocationRequestParams,
+    // decrease amount to half
+    await stakingPool.connect(fixture.coverSigner).requestDeallocation({
       allocationId: nextAllocationId,
-      previousStart: secondAllocationBlock.timestamp,
-      previousExpiration: secondAllocationBlock.timestamp + period,
+      productId: allocationRequestParams.productId,
+      premium: 0,
+      start: secondAllocationBlock.timestamp,
+      period,
+      rewardsRatio: 0,
     });
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(secondAllocationAmount, allocationRequestParams);
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -1226,9 +1184,7 @@ describe('requestAllocation', function () {
     const thirdAllocationAmount = secondAllocationAmount;
 
     // should fully allocate tranche again
-    await stakingPool
-      .connect(fixture.coverSigner)
-      .requestAllocation(thirdAllocationAmount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(thirdAllocationAmount, allocationRequestParams);
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -1238,9 +1194,7 @@ describe('requestAllocation', function () {
     }
 
     const fourthAllocationAmount = parseEther('180');
-    await stakingPool
-      .connect(fixture.coverSigner)
-      .requestAllocation(fourthAllocationAmount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(fourthAllocationAmount, allocationRequestParams);
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -1252,9 +1206,7 @@ describe('requestAllocation', function () {
     }
 
     const fifthAllocationAmount = parseEther('40');
-    await stakingPool
-      .connect(fixture.coverSigner)
-      .requestAllocation(fifthAllocationAmount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(fifthAllocationAmount, allocationRequestParams);
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -1281,7 +1233,6 @@ describe('requestAllocation', function () {
     // add a previous unrelated allocation in order to generate an allocation id > 0
     await stakingPool.connect(fixture.coverSigner).requestAllocation(
       parseEther('100'), // amount
-      '0', // previousPremium
       allocationRequestParams,
     );
 
@@ -1294,7 +1245,6 @@ describe('requestAllocation', function () {
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 2, 0, AddressZero);
 
     const amount = parseEther('200');
-    const previousPremium = 0;
     const allocationId = await stakingPool.getNextAllocationId();
     const { period } = allocationRequestParams;
 
@@ -1303,7 +1253,7 @@ describe('requestAllocation', function () {
       expect(coverTrancheAllocations).to.equal(0);
     }
 
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, allocationRequestParams);
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
@@ -1311,72 +1261,94 @@ describe('requestAllocation', function () {
       expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
-    const lastBlock = await ethers.provider.getBlock('latest');
+    const { timestamp: firstAllocationTimestamp } = await ethers.provider.getBlock('latest');
 
     const secondAllocationAmount = amount.div(2);
-    // edit previous allocation, decrease amount to half
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(secondAllocationAmount, previousPremium, {
-      ...allocationRequestParams,
+    const secondAllocationId = await stakingPool.getNextAllocationId();
+    // decrease amount to half
+    await stakingPool.connect(fixture.coverSigner).requestDeallocation({
       allocationId,
-      previousStart: lastBlock.timestamp,
-      previousExpiration: lastBlock.timestamp + period,
+      productId: allocationRequestParams.productId,
+      premium: 0,
+      start: firstAllocationTimestamp,
+      period,
+      rewardsRatio: 0,
     });
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(secondAllocationAmount, allocationRequestParams);
 
     {
-      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
+      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(secondAllocationId);
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(secondAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
       expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
+    const { timestamp: secondAllocationTimestamp } = await ethers.provider.getBlock('latest');
     const thirdAllocationAmount = amount;
+    const thirdAllocationId = await stakingPool.getNextAllocationId();
 
     // should fully allocate tranche again
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(thirdAllocationAmount, previousPremium, {
-      ...allocationRequestParams,
-      allocationId,
-      previousStart: lastBlock.timestamp,
-      previousExpiration: lastBlock.timestamp + period,
+    await stakingPool.connect(fixture.coverSigner).requestDeallocation({
+      allocationId: secondAllocationId,
+      productId: allocationRequestParams.productId,
+      premium: 0,
+      start: secondAllocationTimestamp,
+      period,
+      rewardsRatio: 0,
     });
 
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(thirdAllocationAmount, allocationRequestParams);
+
     {
-      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
+      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(thirdAllocationId);
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(thirdAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
       expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
+    const { timestamp: thirdAllocationTimestamp } = await ethers.provider.getBlock('latest');
     const fourthAllocationIncreaseAmount = parseEther('180');
+    const fourthAllocationId = await stakingPool.getNextAllocationId();
+
+    await stakingPool.connect(fixture.coverSigner).requestDeallocation({
+      allocationId: thirdAllocationId,
+      productId: allocationRequestParams.productId,
+      premium: 0,
+      start: thirdAllocationTimestamp,
+      period,
+      rewardsRatio: 0,
+    });
     await stakingPool
       .connect(fixture.coverSigner)
-      .requestAllocation(thirdAllocationAmount.add(fourthAllocationIncreaseAmount), previousPremium, {
-        ...allocationRequestParams,
-        allocationId,
-        previousStart: lastBlock.timestamp,
-        previousExpiration: lastBlock.timestamp + period,
-      });
+      .requestAllocation(thirdAllocationAmount.add(fourthAllocationIncreaseAmount), allocationRequestParams);
 
     {
-      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
+      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(fourthAllocationId);
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(thirdAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
       expect(coverTrancheAllocations.shr(32)).to.equal(fourthAllocationIncreaseAmount.div(NXM_PER_ALLOCATION_UNIT));
       expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
+    const { timestamp: fourthAllocationTimestamp } = await ethers.provider.getBlock('latest');
     const fifthAllocationIncreaseAmount = parseEther('40');
+    const fifthAllocationId = await stakingPool.getNextAllocationId();
+
+    await stakingPool.connect(fixture.coverSigner).requestDeallocation({
+      allocationId: fourthAllocationId,
+      productId: allocationRequestParams.productId,
+      premium: 0,
+      start: fourthAllocationTimestamp,
+      period,
+      rewardsRatio: 0,
+    });
+
     await stakingPool
       .connect(fixture.coverSigner)
       .requestAllocation(
         thirdAllocationAmount.add(fourthAllocationIncreaseAmount).add(fifthAllocationIncreaseAmount),
-        previousPremium,
-        {
-          ...allocationRequestParams,
-          allocationId,
-          previousStart: lastBlock.timestamp,
-          previousExpiration: lastBlock.timestamp + period,
-        },
+        allocationRequestParams,
       );
 
     {
-      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
+      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(fifthAllocationId);
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(thirdAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
       expect(coverTrancheAllocations.shr(32).and(MaxUint32)).to.equal(
         fourthAllocationIncreaseAmount.add(fifthAllocationIncreaseAmount.div(2)).div(NXM_PER_ALLOCATION_UNIT),
@@ -1403,29 +1375,26 @@ describe('requestAllocation', function () {
     await stakingPool.connect(user).depositTo(depositAmount, currentTrancheId, 0, AddressZero);
 
     let maxAllocationAmount = depositAmount.mul(GLOBAL_CAPACITY_RATIO).div(GLOBAL_CAPACITY_DENOMINATOR);
-    const previousPremium = 0;
 
     // exceed max allocation
     await expect(
-      stakingPool
-        .connect(fixture.coverSigner)
-        .requestAllocation(maxAllocationAmount.add(1), previousPremium, allocationRequestParams),
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), allocationRequestParams),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     const newGlobalCapacityRatio = 30000;
     maxAllocationAmount = depositAmount.mul(newGlobalCapacityRatio).div(GLOBAL_CAPACITY_DENOMINATOR);
 
     await expect(
-      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), previousPremium, {
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), {
         ...allocationRequestParams,
-        globalCapacityRatio: newGlobalCapacityRatio,
+        capacityRatio: newGlobalCapacityRatio,
       }),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     await expect(
-      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount, previousPremium, {
+      await stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount, {
         ...allocationRequestParams,
-        globalCapacityRatio: newGlobalCapacityRatio,
+        capacityRatio: newGlobalCapacityRatio,
       }),
     ).to.not.be.reverted;
   });
@@ -1459,18 +1428,16 @@ describe('requestAllocation', function () {
       .div(WEIGHT_DENOMINATOR)
       .div(GLOBAL_CAPACITY_DENOMINATOR);
 
-    const previousPremium = 0;
-
     // exceed max allocation given product1 weight is bigger than product 3
     await expect(
-      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmountProduct1, previousPremium, {
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmountProduct1, {
         ...allocationRequestParams,
         productId: productId3,
       }),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     await expect(
-      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmountProduct3, previousPremium, {
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmountProduct3, {
         ...allocationRequestParams,
         productId: productId3,
       }),
@@ -1498,18 +1465,16 @@ describe('requestAllocation', function () {
       .div(CAPACITY_REDUCTION_DENOMINATOR)
       .div(GLOBAL_CAPACITY_DENOMINATOR);
 
-    const previousPremium = 0;
-
     // exceed max allocation
     await expect(
-      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), previousPremium, {
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), {
         ...allocationRequestParams,
         capacityReductionRatio,
       }),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     await expect(
-      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), previousPremium, {
+      stakingPool.connect(fixture.coverSigner).requestAllocation(maxAllocationAmount.add(1), {
         ...allocationRequestParams,
         capacityReductionRatio: 0,
       }),
@@ -1534,7 +1499,7 @@ describe('requestAllocation', function () {
     const expirationBucket = Math.ceil((currentTimestamp + allocationRequestParams.period) / BUCKET_DURATION);
 
     // request allocation
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, 0 /* previousPremium */, {
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, {
       ...allocationRequestParams,
     });
 
@@ -1566,7 +1531,6 @@ describe('requestAllocation', function () {
 
     const { productId } = allocationRequestParams;
     const amount = parseEther('100000');
-    const previousPremium = 0;
 
     const allocationRequest = {
       ...allocationRequestParams,
@@ -1589,7 +1553,7 @@ describe('requestAllocation', function () {
     });
 
     // allocate all available capacity
-    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, previousPremium, allocationRequest);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(amount, allocationRequest);
 
     // expect all available capacity to be used
     const midAllocations = await stakingPool.getActiveAllocations(productId);
@@ -1608,7 +1572,6 @@ describe('requestAllocation', function () {
     await expect(
       stakingPool.connect(fixture.coverSigner).requestAllocation(
         NXM_PER_ALLOCATION_UNIT, // smallest amount
-        previousPremium,
         unfullfillableRequest,
       ),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
@@ -1623,7 +1586,6 @@ describe('requestAllocation', function () {
     const { productId } = allocationRequestParams;
     const firstCoverAmount = parseEther('80000');
     const maxCoverAmount = parseEther('20000');
-    const previousPremium = 0;
 
     const firstAllocationRequest = {
       ...allocationRequestParams,
@@ -1640,9 +1602,7 @@ describe('requestAllocation', function () {
     });
 
     // allocate all available capacity
-    await stakingPool
-      .connect(fixture.coverSigner)
-      .requestAllocation(firstCoverAmount, previousPremium, firstAllocationRequest);
+    await stakingPool.connect(fixture.coverSigner).requestAllocation(firstCoverAmount, firstAllocationRequest);
 
     // expect all available capacity to be used
     const midAllocations = await stakingPool.getActiveAllocations(productId);
@@ -1663,14 +1623,12 @@ describe('requestAllocation', function () {
     await expect(
       stakingPool.connect(fixture.coverSigner).requestAllocation(
         maxCoverAmount.add(1), // slightly over the limit
-        previousPremium,
         secondAllocationRequest,
       ),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     await stakingPool.connect(fixture.coverSigner).requestAllocation(
       maxCoverAmount, // exact available amount
-      previousPremium,
       secondAllocationRequest,
     );
   });
@@ -1682,7 +1640,6 @@ describe('requestAllocation', function () {
 
     const { productId } = allocationRequestParams;
     const amount = parseEther('100');
-    const previousPremium = 0;
 
     const allocationRequest = {
       ...allocationRequestParams,
@@ -1692,7 +1649,7 @@ describe('requestAllocation', function () {
 
     await moveTimeToNextBucket(1);
     const allocationId = await stakingPool.getNextAllocationId();
-    const allocationTx = await stakingPool.requestAllocation(amount, previousPremium, allocationRequest);
+    const allocationTx = await stakingPool.requestAllocation(amount, allocationRequest);
     const allocationReceipt = await allocationTx.wait();
     const { blockNumber: allocationBlockNumber } = allocationReceipt;
     const { timestamp: allocationTimestamp } = await ethers.provider.getBlock(allocationBlockNumber);
@@ -1712,14 +1669,16 @@ describe('requestAllocation', function () {
       expect(allocatedAmount).to.be.equal(Zero);
     }
 
-    const expireAllocationRequest = {
-      ...allocationRequest,
-      allocationId,
-      previousStart: allocationTimestamp,
-      previousExpiration: allocationTimestamp + allocationRequest.period,
-    };
-
-    await expect(stakingPool.requestAllocation(0, 0, expireAllocationRequest))
+    await expect(
+      stakingPool.requestDeallocation({
+        allocationId,
+        productId: allocationRequest.productId,
+        premium: 0,
+        start: allocationTimestamp,
+        period: allocationRequest.period,
+        rewardsRatio: 0,
+      }),
+    )
       .to.be.revertedWithCustomError(stakingPool, 'AlreadyDeallocated')
       .withArgs(allocationId);
   });

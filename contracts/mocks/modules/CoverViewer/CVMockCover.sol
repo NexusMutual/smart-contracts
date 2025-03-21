@@ -6,35 +6,23 @@ import "../../generic/CoverGeneric.sol";
 
 contract CVMockCover is CoverGeneric {
 
-  mapping(uint => CoverSegment[]) public _coverSegments;
   mapping(uint => CoverData) public _coverData;
+  mapping(uint => CoverReference) public _coverReference;
 
   function addCoverData(uint coverId, CoverData memory newCoverData) public {
     _coverData[coverId] = newCoverData;
   }
 
-  function addSegments(uint coverId, CoverSegment[] memory segments) public {
-    for (uint i = 0; i < segments.length; i++) {
-      _coverSegments[coverId].push(segments[i]);
-    }
+  function addCoverDataWithReference(uint coverId, CoverData memory newCoverData, CoverReference memory newCoverReference) public {
+    _coverData[coverId] = newCoverData;
+    _coverReference[coverId] = newCoverReference;
   }
 
-  function coverData(uint coverId) external override view returns (CoverData memory) {
+  function getCoverData(uint coverId) external override view returns (CoverData memory) {
     return _coverData[coverId];
   }
 
-  function coverSegmentsCount(uint coverId) external override view returns (uint) {
-    return _coverSegments[coverId].length;
-  }
-
-  function coverSegments(uint coverId) external override view returns (CoverSegment[] memory)  {
-    return _coverSegments[coverId];
-  }
-
-  function coverSegmentWithRemainingAmount(
-    uint coverId,
-    uint segmentId
-  ) external override view returns (CoverSegment memory) {
-    return _coverSegments[coverId][segmentId];
+  function getCoverDataWithReference(uint coverId) external override view returns (CoverData memory, CoverReference memory) {
+    return (_coverData[coverId], _coverReference[coverId]);
   }
 }

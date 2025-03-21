@@ -5,20 +5,19 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
 const { parseEther } = ethers.utils;
-const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('getRewards', function () {
   it("returns the pending rewards pro-rated to the user's stake", async function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user1, user2] = fixture.accounts.members;
-    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
+    const { minVotingPeriod, payoutCooldown } = fixture.config;
 
     await assessment.connect(user1).stake(parseEther('10'));
     await assessment.connect(user2).stake(parseEther('90'));
-    await individualClaims.submitClaim(0, 0, parseEther('10'), '');
-    await individualClaims.submitClaim(1, 0, parseEther('100'), '');
-    await individualClaims.submitClaim(2, 0, parseEther('1000'), '');
+    await individualClaims.submitClaim(0, parseEther('10'), '');
+    await individualClaims.submitClaim(1, parseEther('100'), '');
+    await individualClaims.submitClaim(2, parseEther('1000'), '');
 
     await assessment.connect(user1).castVotes([0], [true], ['Assessment data hash'], 0);
     await assessment.connect(user2).castVotes([0], [true], ['Assessment data hash'], 0);
@@ -53,7 +52,7 @@ describe('getRewards', function () {
     }
 
     const { end } = await assessment.getPoll(2);
-    await setTime(end + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+    await setTime(end + minVotingPeriod + payoutCooldown);
     await assessment.withdrawRewards(user1.address, 1);
 
     {
@@ -90,11 +89,11 @@ describe('getRewards', function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user] = fixture.accounts.members;
-    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
+    const { minVotingPeriod, payoutCooldown } = fixture.config;
 
     await assessment.connect(user).stake(parseEther('10'));
-    await individualClaims.submitClaim(0, 0, parseEther('10'), '');
-    await individualClaims.submitClaim(1, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, parseEther('10'), '');
+    await individualClaims.submitClaim(1, parseEther('100'), '');
 
     await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], 0);
     await assessment.connect(user).castVotes([1], [true], ['Assessment data hash'], 0);
@@ -118,7 +117,7 @@ describe('getRewards', function () {
 
     {
       const { end } = await assessment.getPoll(1);
-      await setTime(end + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+      await setTime(end + minVotingPeriod + payoutCooldown);
       const { withdrawableAmountInNXM } = await assessment.getRewards(user.address);
       expect(withdrawableAmountInNXM).to.be.equal(expectedReward);
     }
@@ -138,7 +137,7 @@ describe('getRewards', function () {
     }
 
     {
-      await individualClaims.submitClaim(0, 0, parseEther('1000'), '');
+      await individualClaims.submitClaim(0, parseEther('1000'), '');
       await assessment.connect(user).castVotes([2], [true], ['Assessment data hash'], 0);
       const { withdrawableAmountInNXM } = await assessment.getRewards(user.address);
       expect(withdrawableAmountInNXM).to.be.equal(0);
@@ -146,7 +145,7 @@ describe('getRewards', function () {
 
     {
       const { end } = await assessment.getPoll(2);
-      await setTime(end + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+      await setTime(end + minVotingPeriod + payoutCooldown);
       const { totalRewardInNXM } = await assessment.assessments(2);
       const { withdrawableAmountInNXM } = await assessment.getRewards(user.address);
       expect(withdrawableAmountInNXM).to.be.equal(totalRewardInNXM);
@@ -157,11 +156,11 @@ describe('getRewards', function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user] = fixture.accounts.members;
-    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
+    const { minVotingPeriod, payoutCooldown } = fixture.config;
 
     await assessment.connect(user).stake(parseEther('10'));
-    await individualClaims.submitClaim(0, 0, parseEther('10'), '');
-    await individualClaims.submitClaim(0, 1, parseEther('100'), '');
+    await individualClaims.submitClaim(0, parseEther('10'), '');
+    await individualClaims.submitClaim(0, parseEther('100'), '');
 
     await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], 0);
     await assessment.connect(user).castVotes([1], [true], ['Assessment data hash'], 0);
@@ -173,20 +172,21 @@ describe('getRewards', function () {
 
     {
       const { end } = await assessment.getPoll(1);
-      await setTime(end + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+      await setTime(end + minVotingPeriod + payoutCooldown);
       const { withdrawableUntilIndex } = await assessment.getRewards(user.address);
       expect(withdrawableUntilIndex).to.be.equal(2);
     }
 
     {
-      await individualClaims.submitClaim(0, 0, parseEther('1000'), '');
+      await individualClaims.submitClaim(0, parseEther('1000'), '');
       await assessment.connect(user).castVotes([2], [true], ['Assessment data hash'], 0);
       const { withdrawableUntilIndex } = await assessment.getRewards(user.address);
       expect(withdrawableUntilIndex).to.be.equal(2);
     }
+
     {
       const { end } = await assessment.getPoll(2);
-      await setTime(end + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+      await setTime(end + minVotingPeriod + payoutCooldown);
       const { withdrawableUntilIndex } = await assessment.getRewards(user.address);
       expect(withdrawableUntilIndex).to.be.equal(3);
     }

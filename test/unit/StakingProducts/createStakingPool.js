@@ -38,7 +38,7 @@ async function createStakingPoolSetup() {
   const productParam = { ...coverProductTemplate, initialPriceRatio: coverProductTemplate.initialPriceRatio };
 
   await coverProducts.setProduct(productParam, productId);
-  await coverProducts.setProductType({ claimMethod: 1, gracePeriod: 7 * 24 * 3600 /* = 7 days */ }, productId);
+  await coverProducts.setProductType({ claimMethod: 0, gracePeriod: 7 * 24 * 3600 /* = 7 days */ }, productId);
 
   // set product with min price
   const productParamMinPrice = { ...coverProductTemplate, minPrice: 10 };

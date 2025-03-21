@@ -128,6 +128,11 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint coverId);
 
+  function executeCoverBuy(
+    BuyCoverParams calldata params,
+    PoolAllocationRequest[] calldata coverChunkRequests
+  ) external payable returns (uint coverId);
+
   function burnStake(uint coverId, uint amount) external returns (address coverOwner);
 
   function coverNFT() external returns (ICoverNFT);

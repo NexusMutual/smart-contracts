@@ -243,12 +243,14 @@ async function setup() {
   const ci = await deployProxy('IndividualClaims', [coverNFT.address]);
   const as = await deployProxy('Assessment', [tk.address]);
   const coverProducts = await deployProxy('CoverProducts');
-
   await coverProducts.changeMasterAddress(master.address);
+
+  const limitOrders = await deployProxy('LimitOrders', [tk.address, weth.address, accounts.defaultSender.address]);
+  await limitOrders.changeMasterAddress(master.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
-    const proxies = ['GV', 'MR', 'PC', 'TC', 'CI', 'AS', 'CO', 'SP', 'RA', 'ST', 'CP'];
+    const proxies = ['GV', 'MR', 'PC', 'TC', 'CI', 'AS', 'CO', 'SP', 'RA', 'ST', 'CP', 'LO'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -275,6 +277,7 @@ async function setup() {
     { address: ramm.address, code: 'RA' },
     { address: st.address, code: 'ST' },
     { address: coverProducts.address, code: 'CP' },
+    { address: limitOrders.address, code: 'LO' },
   ];
 
   await master.initialize(
@@ -310,6 +313,8 @@ async function setup() {
   await impersonateAccount(mr.address);
   await setNextBlockBaseFee(0);
   await tc.connect(await ethers.getSigner(mr.address)).addToWhitelist(as.address, { gasPrice: 0 });
+  await setNextBlockBaseFee(0);
+  await tc.connect(await ethers.getSigner(mr.address)).addToWhitelist(limitOrders.address, { gasPrice: 0 });
 
   await mr.initialize(
     owner.address,
@@ -499,9 +504,17 @@ async function setup() {
     ci: await ethers.getContractAt('IndividualClaims', ci.address),
     as: await ethers.getContractAt('Assessment', as.address),
     cover: await ethers.getContractAt('Cover', cover.address),
+    limitOrders: await ethers.getContractAt('LimitOrders', limitOrders.address),
   };
 
-  const nonInternal = { priceFeedOracle, swapOperator, coverBroker, stakingViewer, assessmentViewer, nexusViewer };
+  const nonInternal = {
+    priceFeedOracle,
+    swapOperator,
+    coverBroker,
+    stakingViewer,
+    assessmentViewer,
+    nexusViewer,
+  };
 
   fixture.contracts = {
     ...external,

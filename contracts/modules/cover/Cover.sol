@@ -104,7 +104,21 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   function buyCover(
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory poolAllocationRequests
-  ) external payable onlyMember nonReentrant whenNotPaused returns (uint coverId) {
+  ) external payable onlyMember returns (uint coverId) {
+    return _buyCover(params, poolAllocationRequests);
+  }
+
+  function executeCoverBuy(
+    BuyCoverParams memory params,
+    PoolAllocationRequest[] memory poolAllocationRequests
+  ) external payable onlyInternal returns (uint coverId) {
+    return _buyCover(params, poolAllocationRequests);
+  }
+
+  function _buyCover(
+    BuyCoverParams memory params,
+    PoolAllocationRequest[] memory poolAllocationRequests
+  ) internal nonReentrant whenNotPaused returns (uint coverId) {
 
     if (params.period < MIN_COVER_PERIOD) {
       revert CoverPeriodTooShort();

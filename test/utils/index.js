@@ -5,7 +5,6 @@ const addresses = require('./addresses');
 const accounts = require('./accounts');
 const evm = require('./evm');
 const buyCover = require('./buyCover');
-const getQuote = require('./getQuote');
 const governance = require('./governance');
 const membership = require('./membership');
 const results = require('./results');
@@ -23,7 +22,6 @@ module.exports = {
   helpers,
   proposalCategories,
   buyCover,
-  getQuote,
   governance,
   membership,
   results,

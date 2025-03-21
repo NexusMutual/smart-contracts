@@ -8,12 +8,10 @@ import "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IMemberRoles.sol";
-import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IStakingPool.sol";
-import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IAssessment.sol";
 import "./external/Governed.sol";
 
@@ -110,10 +108,6 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     return ICover(internalContracts[uint(ID.CO)]);
   }
 
-  function legacyPooledStaking() internal view returns (IPooledStaking) {
-    return IPooledStaking(internalContracts[uint(ID.PS)]);
-  }
-
   function assessment() internal view returns (IAssessment) {
     return IAssessment(internalContracts[uint(ID.AS)]);
   }
@@ -122,17 +116,9 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
   ///
   /// @dev Iupgradable Interface to update dependent contract address
   function changeDependentContractAddress() public override {
-    // qd storage variable was renamed to kycAuthAddress hence this check handles the migration
-    // 0x1776651F58a17a50098d31ba3C3cD259C1903f7A is the address of QuotationData
-
-    if (kycAuthAddress == 0x1776651F58a17a50098d31ba3C3cD259C1903f7A) {
-      kycAuthAddress = IQuotationData(0x1776651F58a17a50098d31ba3C3cD259C1903f7A).kycAuthAddress();
-    }
-
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
-    internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
   }
 
@@ -235,15 +221,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
       "MemberRoles: Member is a staking pool manager"
     );
 
-    IPooledStaking _legacyPooledStaking = legacyPooledStaking();
-
-    // check that there are no tokens left to withdraw
-    require(_legacyPooledStaking.stakerDeposit(msg.sender) == 0, "Member has NXM staked in Pooled Staking");
-    require(_legacyPooledStaking.stakerReward(msg.sender) == 0, "Member has NXM rewards in Pooled Staking");
-
     require(_tokenController.tokensLocked(msg.sender, "CLA") == 0, "Member has NXM staked in Claim Assessment V1");
-    (, , uint coverNotesAmount) = _tokenController.getWithdrawableCoverNotes(msg.sender);
-    require(coverNotesAmount == 0, "Member has withdrawable cover notes");
     // _tokenController.getPendingRewards includes both assessment and governance rewards
     require(_tokenController.getPendingRewards(msg.sender) == 0, "Member has pending rewards in Token Controller");
 
@@ -305,21 +283,6 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     _switchMembership(member, newAddress);
   }
 
-  function storageCleanup(address[] memory payoutAddresses) external {
-    _unused0 = 0x0000000000000000000000000000000000000000;
-    _unused1 = 0x0000000000000000000000000000000000000000;
-    _unused2 = false;
-    _unused3[0x181Aea6936B407514ebFC0754A37704eB8d98F91] = payable(0x0000000000000000000000000000000000000000);
-    _unused5 = 0x0000000000000000000000000000000000000000;
-    _unused6 = 0x0000000000000000000000000000000000000000;
-    _unused7 = 0x0000000000000000000000000000000000000000;
-    _unused8 = 0x0000000000000000000000000000000000000000;
-
-    for (uint i = 0; i < payoutAddresses.length; i++) {
-      delete _unused3[payoutAddresses[i]];
-    }
-  }
-
   function isMember(address member) public view returns (bool) {
     return checkRole(member, uint(IMemberRoles.Role.Member));
   }
@@ -332,21 +295,13 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     require(block.timestamp > token.isLockedForMV(currentAddress), "Locked for governance voting");
 
     ITokenController _tokenController = tokenController();
-    IPooledStaking _legacyPooledStaking = legacyPooledStaking();
-
-    // check that there are no tokens left to withdraw
-    require(_legacyPooledStaking.stakerDeposit(currentAddress) == 0, "Member has NXM staked in Pooled Staking");
-    require(_legacyPooledStaking.stakerReward(currentAddress) == 0, "Member has NXM rewards in Pooled Staking");
 
     require(_tokenController.tokensLocked(currentAddress, "CLA") == 0, "Member has NXM staked in Claim Assessment V1");
-    (, , uint coverNotesAmount) = _tokenController.getWithdrawableCoverNotes(currentAddress);
-    require(coverNotesAmount == 0, "Member has withdrawable cover notes");
     // _tokenController.getPendingRewards includes both assessment and governance rewards
     require(_tokenController.getPendingRewards(currentAddress) == 0, "Member has pending rewards in Token Controller");
 
     (uint96 stakeAmount, ,) = assessment().stakeOf(currentAddress);
     require(stakeAmount == 0, "Member has Assessment stake");
-
 
     _tokenController.addToWhitelist(newAddress);
     _updateRole(currentAddress, uint(Role.Member), false);

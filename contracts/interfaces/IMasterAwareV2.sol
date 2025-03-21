@@ -12,7 +12,7 @@ interface IMasterAwareV2 {
     MC, // MCR.sol
     CO, // Cover.sol
     SP, // StakingProducts.sol
-    PS, // LegacyPooledStaking.sol
+    UNUSED_PS, // LegacyPooledStaking.sol - removed
     GV, // Governance.sol
     UNUSED_GW, // LegacyGateway.sol - removed
     UNUSED_CL, // CoverMigrator.sol - removed

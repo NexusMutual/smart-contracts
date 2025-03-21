@@ -23,8 +23,6 @@ contract TokenControllerMock is TokenControllerGeneric, MasterAwareV2 {
 
   mapping(address => mapping (bytes32 => uint)) public _tokensLocked;
 
-  mapping(address => uint) public _withdrawableCoverNotes;
-
   mapping(address => uint) public _pendingRewards;
 
   constructor(address _tokenAddress) {
@@ -124,26 +122,12 @@ contract TokenControllerMock is TokenControllerGeneric, MasterAwareV2 {
     _tokensLocked[member][reason] = amount;
   }
 
-  function setWithdrawableCoverNotes(address member, uint amount) external {
-    _withdrawableCoverNotes[member] = amount;
-  }
-
   function setPendingRewards(address member, uint amount) external {
     _pendingRewards[member] = amount;
   }
 
   function tokensLocked(address member, bytes32 reason) external override view returns (uint) {
     return _tokensLocked[member][reason];
-  }
-
-  function getWithdrawableCoverNotes(address member) external override view returns (
-    uint[] memory /* coverIds */,
-    bytes32[] memory /* lockReasons */,
-    uint amount
-  ) {
-    uint[] memory coverIds;
-    bytes32[] memory lockReasons;
-    return (coverIds, lockReasons, _withdrawableCoverNotes[member]);
   }
 
   function getPendingRewards(address member) external override view returns (uint) {

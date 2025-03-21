@@ -57,7 +57,7 @@ describe('emergency pause', function () {
 
   it('should be able to perform proxy and replaceable upgrades during emergency pause', async function () {
     const fixture = await loadFixture(emergencyPauseSetup);
-    const { master, gv, qd, lcr, spf, tk, stakingNFT } = fixture.contracts;
+    const { master, gv, spf, tk, stakingNFT } = fixture.contracts;
     const emergencyAdmin = fixture.accounts.emergencyAdmin;
     const owner = fixture.accounts.defaultSender;
 
@@ -72,13 +72,7 @@ describe('emergency pause', function () {
     const MCR = await ethers.getContractFactory('MCR');
     const newMCR = await MCR.deploy(master.address, 0);
     const TokenController = await ethers.getContractFactory('TokenController');
-    const newTokenControllerImplementation = await TokenController.deploy(
-      qd.address,
-      lcr.address,
-      spf.address,
-      tk.address,
-      stakingNFT.address,
-    );
+    const newTokenControllerImplementation = await TokenController.deploy(spf.address, tk.address, stakingNFT.address);
 
     const contractCodes = [mcrCode, tcCode];
     const newAddresses = [newMCR.address, newTokenControllerImplementation.address];

@@ -6,13 +6,14 @@ const proxyContracts = [
   'Governance',
   'MemberRoles',
   'ProposalCategory',
-  'LegacyPooledStaking',
   'TokenController',
   'IndividualClaims',
   'Assessment',
   'Cover',
+  'CoverProducts',
   'StakingProducts',
   'Ramm',
+  'SafeTracker',
 ];
 
 describe('Selector collisions', function () {

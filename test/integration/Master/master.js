@@ -154,17 +154,11 @@ describe('master', function () {
 
   it('upgrade proxy contract', async function () {
     const fixture = await loadFixture(setup);
-    const { master, gv, qd, lcr, spf, tk, stakingNFT } = fixture.contracts;
+    const { master, gv, spf, tk, stakingNFT } = fixture.contracts;
 
     const code = hex('TC');
     const TokenController = await ethers.getContractFactory('TokenController');
-    const newTokenControllerImplementation = await TokenController.deploy(
-      qd.address,
-      lcr.address,
-      spf.address,
-      tk.address,
-      stakingNFT.address,
-    );
+    const newTokenControllerImplementation = await TokenController.deploy(spf.address, tk.address, stakingNFT.address);
 
     const contractCodes = [code];
     const newAddresses = [newTokenControllerImplementation.address];
@@ -185,7 +179,7 @@ describe('master', function () {
 
   it('upgrade proxies and replaceables', async function () {
     const fixture = await loadFixture(setup);
-    const { master, gv, qd, lcr, spf, stakingNFT, tk } = fixture.contracts;
+    const { master, gv, spf, stakingNFT, tk } = fixture.contracts;
 
     const mcrCode = hex('MC');
     const tcCode = hex('TC');
@@ -193,13 +187,7 @@ describe('master', function () {
     const MCR = await ethers.getContractFactory('MCR');
     const newMCR = await MCR.deploy(master.address, 0);
     const TokenController = await ethers.getContractFactory('TokenController');
-    const newTokenControllerImplementation = await TokenController.deploy(
-      qd.address,
-      lcr.address,
-      spf.address,
-      tk.address,
-      stakingNFT.address,
-    );
+    const newTokenControllerImplementation = await TokenController.deploy(spf.address, tk.address, stakingNFT.address);
 
     const contractCodes = [mcrCode, tcCode];
     const newAddresses = [newMCR.address, newTokenControllerImplementation.address];
@@ -241,31 +229,26 @@ describe('master', function () {
 
   it('upgrades all contracts', async function () {
     const fixture = await loadFixture(setup);
-    const { master, gv, dai, priceFeedOracle, p1, tk, qd, lcr, spf, stakingNFT, cover, coverNFT } = fixture.contracts;
-    const owner = fixture.accounts.defaultSender;
+    const { master, gv, dai, priceFeedOracle, p1, tk, spf, stakingNFT, coverNFT } = fixture.contracts;
 
     const TokenController = await ethers.getContractFactory('TokenController');
-    const LegacyClaimsReward = await ethers.getContractFactory('LegacyClaimsReward');
     const MCR = await ethers.getContractFactory('MCR');
     const Pool = await ethers.getContractFactory('Pool');
     const Governance = await ethers.getContractFactory('Governance');
     const ProposalCategoryContract = await ethers.getContractFactory('ProposalCategory');
     const MemberRoles = await ethers.getContractFactory('MemberRoles');
     const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
-    const LegacyPooledStaking = await ethers.getContractFactory('LegacyPooledStaking');
 
     const pool = await Pool.deploy(master.address, priceFeedOracle.address, AddressZero, tk.address, p1.address);
 
-    const contractCodes = ['TC', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'CI'];
+    const contractCodes = ['TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'CI'];
     const newAddresses = [
-      await TokenController.deploy(qd.address, lcr.address, spf.address, tk.address, stakingNFT.address),
-      await LegacyClaimsReward.deploy(master.address, dai.address),
+      await TokenController.deploy(spf.address, tk.address, stakingNFT.address),
       pool,
       await MCR.deploy(master.address, 0),
       await Governance.deploy(),
       await ProposalCategoryContract.deploy(),
       await MemberRoles.deploy(tk.address),
-      await LegacyPooledStaking.deploy(cover.address, AddressZero, tk.address),
       await IndividualClaims.deploy(coverNFT.address),
     ].map(c => {
       return c.address;
@@ -278,11 +261,6 @@ describe('master', function () {
 
     const poolEthBalanceBefore = await ethers.provider.getBalance(p1.address);
     const poolDaiBalanceBefore = await dai.balanceOf(p1.address);
-
-    // store tokens in ClaimsReward
-    await tk.connect(owner).transfer(lcr.address, parseEther('10'));
-
-    const claimsRewardNXMBalanceBefore = await tk.balanceOf(lcr.address);
 
     await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [
       fixture.accounts.defaultSender,
@@ -298,14 +276,11 @@ describe('master', function () {
 
     expect(poolEthBalanceBefore).to.be.equal(poolEthBalanceAfter);
     expect(poolDaiBalanceBefore).to.be.equal(poolDaiBalanceAfter);
-
-    const claimsRewardNXMBalanceAfter = await tk.balanceOf(await master.getLatestAddress(hex('CR')));
-    expect(claimsRewardNXMBalanceAfter).to.be.equal(claimsRewardNXMBalanceBefore);
   });
 
   it('upgrades Governance, TokenController and MemberRoles 2 times in a row', async function () {
     const fixture = await loadFixture(setup);
-    const { master, gv, qd, lcr, spf, stakingNFT, tk } = fixture.contracts;
+    const { master, gv, spf, stakingNFT, tk } = fixture.contracts;
 
     const TokenController = await ethers.getContractFactory('TokenController');
     const MemberRoles = await ethers.getContractFactory('MemberRoles');
@@ -314,7 +289,7 @@ describe('master', function () {
     {
       const contractCodes = ['TC', 'GV', 'MR'];
       const newAddresses = [
-        await TokenController.deploy(qd.address, lcr.address, spf.address, tk.address, stakingNFT.address),
+        await TokenController.deploy(spf.address, tk.address, stakingNFT.address),
         await Governance.deploy(),
         await MemberRoles.deploy(tk.address),
       ].map(c => c.address);
@@ -334,7 +309,7 @@ describe('master', function () {
     {
       const contractCodes = ['TC', 'GV', 'MR'];
       const newAddresses = [
-        await TokenController.deploy(qd.address, lcr.address, spf.address, tk.address, stakingNFT.address),
+        await TokenController.deploy(spf.address, tk.address, stakingNFT.address),
         await Governance.deploy(),
         await MemberRoles.deploy(tk.address),
       ].map(c => c.address);

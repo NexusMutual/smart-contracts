@@ -1,8 +1,7 @@
-const { ethers, artifacts } = require('hardhat');
+const { ethers } = require('hardhat');
 const { getAccounts } = require('../utils').accounts;
 
 const { hex } = require('../utils').helpers;
-const { setCode } = require('../utils').evm;
 const { Role } = require('../utils').constants;
 
 const { AddressZero } = ethers.constants;
@@ -34,9 +33,6 @@ async function setup() {
   const stakingNFT = await StakingNFT.deploy('', '');
   await stakingNFT.deployed();
 
-  const PooledStaking = await ethers.getContractFactory('MRMockPooledStaking');
-  const pooledStaking = await PooledStaking.deploy();
-
   const Cover = await ethers.getContractFactory('MRMockCover');
   const cover = await Cover.deploy(coverNFT.address, memberRoles.address, stakingNFT.address);
 
@@ -46,27 +42,18 @@ async function setup() {
   const Assessment = await ethers.getContractFactory('MRMockAssessment');
   const assessment = await Assessment.deploy();
 
-  // quotation data is currently hardcoded in the MemberRoles contract
-  // using setCode to deploy the QD mock at that specific address
-  const quotationDataAddress = '0x1776651F58a17a50098d31ba3C3cD259C1903f7A';
-  const quotationDataArtifact = await artifacts.readArtifact('MRMockQuotationData');
-  await setCode(quotationDataAddress, quotationDataArtifact.deployedBytecode);
-  const quotationData = await ethers.getContractAt('MRMockQuotationData', quotationDataAddress);
-
   await master.setLatestAddress(hex('CO'), cover.address);
   await master.setTokenAddress(nxm.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('MR'), memberRoles.address);
   await master.setLatestAddress(hex('GV'), governance.address);
-  await master.setLatestAddress(hex('PS'), pooledStaking.address);
   await master.setLatestAddress(hex('AS'), assessment.address);
   await master.enrollInternal(tokenController.address);
   await master.enrollInternal(pool.address);
   await master.enrollInternal(nxm.address);
   await master.enrollInternal(cover.address);
   await master.enrollInternal(memberRoles.address);
-  await master.enrollInternal(pooledStaking.address);
   await master.enrollInternal(assessment.address);
 
   await master.enrollGovernance(accounts.governanceContracts[0].address);
@@ -119,8 +106,6 @@ async function setup() {
       coverNFT,
       stakingNFT,
       tokenController,
-      quotationData,
-      pooledStaking,
       assessment,
     },
   };

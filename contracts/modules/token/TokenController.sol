@@ -6,8 +6,6 @@ import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IPooledStaking.sol";
-import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ITokenController.sol";
@@ -19,13 +17,11 @@ import "./external/LockHandler.sol";
 contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   using SafeUintCast for uint;
 
-  address public _unused_token;
-  address public _unused_pooledStaking;
-  uint public _unused_minCALockTime;
-  uint public _unused_claimSubmissionGracePeriod;
-
-  // coverId => CoverInfo
-  mapping(uint => CoverInfo) public override coverInfo;
+  address internal _unused_token;
+  address internal _unused_pooledStaking;
+  uint internal _unused_minCALockTime;
+  uint internal _unused_claimSubmissionGracePeriod;
+  uint internal _unused_coverInfo; // was mapping(uint coverId => uint CoverInfo)
 
   // pool id => { rewards, deposits }
   mapping(uint => StakingPoolNXMBalances) public override stakingPoolNXMBalances;
@@ -40,30 +36,20 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   mapping(address => uint[]) internal managerStakingPools;
 
   INXMToken public immutable token;
-  IQuotationData public immutable quotationData;
-  address public immutable claimsReward;
   address public immutable stakingPoolFactory;
   IStakingNFT public immutable stakingNFT;
 
   constructor(
-    address quotationDataAddress,
-    address claimsRewardAddress,
     address stakingPoolFactoryAddress,
     address tokenAddress,
     address stakingNFTAddress
   ) {
-    quotationData = IQuotationData(quotationDataAddress);
-    claimsReward = claimsRewardAddress;
     stakingPoolFactory = stakingPoolFactoryAddress;
     token = INXMToken(tokenAddress);
     stakingNFT = IStakingNFT(stakingNFTAddress);
   }
 
   /* ========== DEPENDENCIES ========== */
-
-  function pooledStaking() internal view returns (IPooledStaking) {
-    return IPooledStaking(internalContracts[uint(ID.PS)]);
-  }
 
   function assessment() internal view returns (IAssessment) {
     return IAssessment(internalContracts[uint(ID.AS)]);
@@ -86,8 +72,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   function changeDependentContractAddress() public override {
-
-    internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
     internalContracts[uint(ID.GV)] = master.getLatestAddress("GV");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
@@ -233,10 +217,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
       amount = amount + tokensLocked(_of, lockReason[_of][i]);
     }
 
-    // TODO: can be removed after PooledStaking is decommissioned
-    amount += pooledStaking().stakerReward(_of);
-    amount += pooledStaking().stakerDeposit(_of);
-
     (uint assessmentStake,,) = assessment().stakeOf(_of);
     amount += assessmentStake;
 
@@ -359,83 +339,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     if (!locked[_of][_reason].claimed) {
       amount = locked[_of][_reason].amount;
     }
-  }
-
-  /// @dev Can be removed once all cover notes are withdrawn
-  function getWithdrawableCoverNotes(
-    address coverOwner
-  ) public view returns (
-    uint[] memory coverIds,
-    bytes32[] memory lockReasons,
-    uint withdrawableAmount
-  ) {
-
-    uint[] memory allCoverIds = quotationData.getAllCoversOfUser(coverOwner);
-    uint[] memory idsQueue = new uint[](allCoverIds.length);
-    bytes32[] memory lockReasonsQueue = new bytes32[](allCoverIds.length);
-    uint idsQueueLength = 0;
-
-    for (uint i = 0; i < allCoverIds.length; i++) {
-      uint coverId = allCoverIds[i];
-      bytes32 lockReason = keccak256(abi.encodePacked("CN", coverOwner, coverId));
-      uint coverNoteAmount = tokensLocked(coverOwner, lockReason);
-
-      if (coverNoteAmount > 0) {
-        idsQueue[idsQueueLength] = coverId;
-        lockReasonsQueue[idsQueueLength] = lockReason;
-        withdrawableAmount += coverNoteAmount;
-        idsQueueLength++;
-      }
-    }
-    coverIds = new uint[](idsQueueLength);
-    lockReasons = new bytes32[](idsQueueLength);
-
-    for (uint i = 0; i < idsQueueLength; i++) {
-      coverIds[i] = idsQueue[i];
-      lockReasons[i] = lockReasonsQueue[i];
-    }
-  }
-
-  /// @dev Can be removed once all cover notes are withdrawn
-  function withdrawCoverNote(
-    address user,
-    uint[] calldata coverIds,
-    uint[] calldata indexes
-  ) public whenNotPaused override {
-
-    uint reasonCount = lockReason[user].length;
-    require(reasonCount > 0, "TokenController: No locked cover notes found");
-    uint lastReasonIndex = reasonCount - 1;
-    uint totalAmount = 0;
-
-    // The iteration is done from the last to first to prevent reason indexes from
-    // changing due to the way we delete the items (copy last to current and pop last).
-    // The provided indexes array must be ordered, otherwise reason index checks will fail.
-
-    for (uint i = coverIds.length; i > 0; i--) {
-
-      // note: cover owner is implicitly checked using the reason hash
-      bytes32 _reason = keccak256(abi.encodePacked("CN", user, coverIds[i - 1]));
-      uint _reasonIndex = indexes[i - 1];
-      require(lockReason[user][_reasonIndex] == _reason, "TokenController: Bad reason index");
-
-      uint amount = locked[user][_reason].amount;
-      totalAmount = totalAmount + amount;
-      delete locked[user][_reason];
-
-      if (lastReasonIndex != _reasonIndex) {
-        lockReason[user][_reasonIndex] = lockReason[user][lastReasonIndex];
-      }
-
-      lockReason[user].pop();
-      emit Unlocked(user, _reason, amount);
-
-      if (lastReasonIndex > 0) {
-        lastReasonIndex = lastReasonIndex - 1;
-      }
-    }
-
-    token.transfer(user, totalAmount);
   }
 
   /// @notice Retrieves the manager of a specific staking pool.

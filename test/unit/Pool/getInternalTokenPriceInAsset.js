@@ -40,6 +40,7 @@ describe('getInternalTokenPriceInAsset', function () {
     const daiToEthRate = BigNumber.from(10).pow(36).div(ethToDaiRate);
     await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
-    await expect(pool.getInternalTokenPriceInAsset(PoolAsset.unknown)).to.be.revertedWith('Pool: Unknown cover asset');
+    const inexistentAsset = 2 ** 16;
+    await expect(pool.getInternalTokenPriceInAsset(inexistentAsset)).to.be.revertedWith('Pool: Unknown cover asset');
   });
 });

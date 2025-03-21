@@ -700,7 +700,7 @@ describe('withdraw', function () {
     await generateRewards(stakingPool, coverSigner, undefined, undefined, allocationAmount);
 
     const tcBalanceAfterRewards = await nxm.balanceOf(tokenController.address);
-    const rewardedAmount = tcBalanceAfterRewards.sub(tcBalanceBeforeRewards);
+    const rewardsMinted = tcBalanceAfterRewards.sub(tcBalanceBeforeRewards);
 
     await increaseTime(TRANCHE_DURATION * TRANCHE_COUNT);
     await mineNextBlock();
@@ -791,9 +791,10 @@ describe('withdraw', function () {
     expect(managerBalanceAfter).to.be.eq(managerBalanceBefore.add(rewardsWithdrawn).add(stakeWithdrawn));
     expect(tcBalanceAfter).to.be.eq(tcBalanceBefore.sub(rewardsWithdrawn).sub(stakeWithdrawn));
 
-    // TODO: Find out why this changes
-    // Consider 12 wei of accumulated round error
-    expect(totalRewardsWithdrawn).to.be.gte(rewardedAmount.sub(12));
-    expect(totalRewardsWithdrawn).to.be.lte(rewardedAmount);
+    // allow 20 wei of accumulated round error in protocol's favor the error is normal given
+    // the distribution of the rewards across 4 users (3 stakers + manager) and 5 tranches
+    // 4 users * 5 tranches = 20 wei max to remain undistributed
+    expect(totalRewardsWithdrawn).to.be.gte(rewardsMinted.sub(20));
+    expect(totalRewardsWithdrawn).to.be.lte(rewardsMinted);
   });
 });

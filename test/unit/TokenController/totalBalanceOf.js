@@ -46,39 +46,6 @@ describe('totalBalanceOf', function () {
     expect(await tokenController.totalBalanceOfWithoutDelegations(member.address)).to.equal(expectedAmount);
   });
 
-  it('should correctly calculate staker rewards', async function () {
-    const fixture = await loadFixture(totalBalanceOfSetup);
-    const { tokenController, pooledStaking, nxm } = fixture.contracts;
-    const [member] = fixture.accounts.members;
-
-    // mock staker rewards
-    const amount = Two;
-    await pooledStaking.setStakerReward(member.address, amount);
-
-    const expectedAmount = amount.add(fixture.nxmBalanceBefore);
-    expect(expectedAmount).to.be.gt(await nxm.balanceOf(member.address));
-    expect(await tokenController.totalBalanceOf(member.address)).to.equal(expectedAmount);
-    expect(await tokenController.totalBalanceOfWithoutDelegations(member.address)).to.equal(expectedAmount);
-  });
-
-  it('should correctly calculate staker deposits', async function () {
-    const fixture = await loadFixture(totalBalanceOfSetup);
-    const { tokenController, pooledStaking, nxm } = fixture.contracts;
-    const [member] = fixture.accounts.members;
-
-    // mock staker deposits
-    const amount = Two;
-    await pooledStaking.setStakerDeposit(member.address, amount);
-
-    const expectedAmount = amount.add(fixture.nxmBalanceBefore);
-
-    expect(expectedAmount).to.be.gt(await nxm.balanceOf(member.address));
-    expect(await tokenController.totalBalanceOf(member.address)).to.equal(expectedAmount);
-    expect(await tokenController.totalBalanceOfWithoutDelegations(member.address)).to.equal(
-      await tokenController.totalBalanceOf(member.address),
-    );
-  });
-
   it('should correctly calculate assessment stake', async function () {
     const fixture = await loadFixture(totalBalanceOfSetup);
     const { assessment, tokenController, nxm } = fixture.contracts;
@@ -128,7 +95,7 @@ describe('totalBalanceOf', function () {
 
   it('should correctly calculate all balances', async function () {
     const fixture = await loadFixture(totalBalanceOfSetup);
-    const { tokenController, stakingPoolFactory, pooledStaking, nxm } = fixture.contracts;
+    const { tokenController, stakingPoolFactory, nxm } = fixture.contracts;
     const {
       members: [member],
       internalContracts: [internalContract],
@@ -148,20 +115,12 @@ describe('totalBalanceOf', function () {
     await tokenController.connect(stakingPoolSigner).depositStakedNXM(member.address, delegateAmount, poolId);
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, member.address);
 
-    // mock legacy deposit amount
-    const stakerDepositAmount = delegateAmount.div(2);
-    await pooledStaking.setStakerDeposit(member.address, stakerDepositAmount);
-
-    // mock legacy reward amount
-    const stakerRewardAmount = delegateAmount.div(2);
-    await pooledStaking.setStakerReward(member.address, stakerDepositAmount);
-
     // minted amount
     const mintedAmount = delegateAmount.div(3);
     await tokenController.connect(internalContract).mint(member.address, mintedAmount);
 
     expect(await tokenController.totalBalanceOf(member.address)).to.equal(
-      delegateAmount.add(stakerDepositAmount).add(stakerRewardAmount).add(mintedAmount).add(fixture.nxmBalanceBefore),
+      delegateAmount.add(mintedAmount).add(fixture.nxmBalanceBefore),
     );
     expect(await tokenController.totalBalanceOfWithoutDelegations(member.address)).to.equal(
       (await tokenController.totalBalanceOf(member.address)).sub(delegateAmount),

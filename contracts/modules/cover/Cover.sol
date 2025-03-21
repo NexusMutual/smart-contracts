@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.27;
 
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
@@ -120,26 +120,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     PoolAllocationRequest[] memory poolAllocationRequests
   ) internal nonReentrant whenNotPaused returns (uint coverId) {
 
-    if (params.period < MIN_COVER_PERIOD) {
-      revert CoverPeriodTooShort();
-    }
-
-    if (params.period > MAX_COVER_PERIOD) {
-      revert CoverPeriodTooLong();
-    }
-
-    if (params.commissionRatio > MAX_COMMISSION_RATIO) {
-      revert CommissionRateTooHigh();
-    }
-
-    if (params.amount == 0) {
-      revert CoverAmountIsZero();
-    }
-
+    require(params.period >= MIN_COVER_PERIOD, CoverPeriodTooShort());
+    require(params.period <= MAX_COVER_PERIOD, CoverPeriodTooLong());
+    require(params.commissionRatio <= MAX_COMMISSION_RATIO, CommissionRateTooHigh());
+    require(params.amount != 0, CoverAmountIsZero());
     // can pay with cover asset or nxm only
-    if (params.paymentAsset != params.coverAsset && params.paymentAsset != NXM_ASSET_ID) {
-      revert InvalidPaymentAsset();
-    }
+    require(params.paymentAsset == params.coverAsset || params.paymentAsset == NXM_ASSET_ID, InvalidPaymentAsset());
 
     // new cover
     coverId = coverNFT.mint(params.owner);
@@ -150,15 +136,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     if (params.coverId != 0) {
 
-      if (!coverNFT.isApprovedOrOwner(msg.sender, params.coverId)) {
-        revert OnlyOwnerOrApproved();
-      }
+      require(coverNFT.isApprovedOrOwner(msg.sender, params.coverId), OnlyOwnerOrApproved());
 
       CoverReference memory coverRefernce = getCoverReference(params.coverId);
 
-      if (coverRefernce.originalCoverId != params.coverId) {
-        revert MustBeOriginalCoverId(coverRefernce.originalCoverId);
-      }
+      require(coverRefernce.originalCoverId == params.coverId, MustBeOriginalCoverId(coverRefernce.originalCoverId));
 
       (
         previousCoverAmount,
@@ -173,24 +155,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     AllocationRequest memory allocationRequest;
 
     {
-      ICoverProducts _coverProducts = coverProducts();
+      ICoverProducts coverProducts = _coverProducts();
 
-      if (_coverProducts.getProductCount() <= params.productId) {
-        revert ProductNotFound();
-      }
+      require(params.productId < coverProducts.getProductCount(), ProductNotFound());
 
       (
         Product memory product,
         ProductType memory productType
-      ) = _coverProducts.getProductWithType(params.productId);
+      ) = coverProducts.getProductWithType(params.productId);
 
-      if (product.isDeprecated) {
-        revert ProductDeprecated();
-      }
-
-      if (!_isCoverAssetSupported(params.coverAsset, product.coverAssets)) {
-        revert CoverAssetNotSupported();
-      }
+      require(!product.isDeprecated, ProductDeprecated());
+      require(_isCoverAssetSupported(params.coverAsset, product.coverAssets), CoverAssetNotSupported());
 
       allocationRequest = AllocationRequest(
         params.productId,
@@ -205,7 +180,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       );
     }
 
-    uint nxmPriceInCoverAsset = pool().getInternalTokenPriceInAssetAndUpdateTwap(params.coverAsset);
+    uint nxmPriceInCoverAsset = _pool().getInternalTokenPriceInAssetAndUpdateTwap(params.coverAsset);
 
     (uint coverAmountInCoverAsset, uint amountDueInNXM) = _requestAllocation(
       allocationRequest,
@@ -213,9 +188,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       nxmPriceInCoverAsset
     );
 
-    if (coverAmountInCoverAsset < params.amount) {
-      revert InsufficientCoverAmountAllocated();
-    }
+    require(coverAmountInCoverAsset >= params.amount, InsufficientCoverAmountAllocated());
 
     _coverData[coverId] = CoverData(
       params.productId,
@@ -254,9 +227,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint expiration = cover.start + cover.period;
     uint allocationsLength = _poolAllocations[coverId].length;
 
-    if (expiration > block.timestamp) {
-      revert CoverNotYetExpired(coverId);
-    }
+    require(block.timestamp >= expiration, CoverNotYetExpired(coverId));
 
     for (uint allocationIndex = 0; allocationIndex < allocationsLength; allocationIndex++) {
       // fetch allocation
@@ -337,9 +308,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     uint expiration = cover.start + cover.period;
 
     // require the previous cover not to be expired
-    if (expiration <= block.timestamp) {
-      revert ExpiredCoversCannotBeEdited();
-    }
+    require(block.timestamp < expiration, ExpiredCoversCannotBeEdited());
 
     uint allocationsLength = _poolAllocations[coverId].length;
 
@@ -387,9 +356,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     address commissionDestination
   ) internal {
 
-    if (paymentAsset != ETH_ASSET_ID && msg.value > 0) {
-      revert UnexpectedEthSent();
-    }
+    require(msg.value == 0 || paymentAsset == ETH_ASSET_ID, UnexpectedEthSent());
 
     // NXM payment
     if (paymentAsset == NXM_ASSET_ID) {
@@ -399,70 +366,57 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
         commissionInNxm = (premiumInNxm * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio)) - premiumInNxm;
       }
 
-      if (premiumInNxm + commissionInNxm > maxPremiumInAsset) {
-        revert PriceExceedsMaxPremiumInAsset();
-      }
+      require(premiumInNxm + commissionInNxm <= maxPremiumInAsset, PriceExceedsMaxPremiumInAsset());
 
-      ITokenController _tokenController = tokenController();
-      _tokenController.burnFrom(msg.sender, premiumInNxm);
+      ITokenController tokenController = _tokenController();
+      tokenController.burnFrom(msg.sender, premiumInNxm);
 
       if (commissionInNxm > 0) {
         // commission transfer reverts if the commissionDestination is not a member
-        _tokenController.operatorTransfer(msg.sender, commissionDestination, commissionInNxm);
+        tokenController.operatorTransfer(msg.sender, commissionDestination, commissionInNxm);
       }
 
       return;
     }
 
-    IPool _pool = pool();
+    IPool pool = _pool();
     uint premiumInPaymentAsset = nxmPriceInCoverAsset * premiumInNxm / ONE_NXM;
     uint commission = (premiumInPaymentAsset * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio)) - premiumInPaymentAsset;
     uint premiumWithCommission = premiumInPaymentAsset + commission;
 
-    if (premiumWithCommission > maxPremiumInAsset) {
-      revert PriceExceedsMaxPremiumInAsset();
-    }
+    require(premiumWithCommission <= maxPremiumInAsset, PriceExceedsMaxPremiumInAsset());
 
     // ETH payment
     if (paymentAsset == ETH_ASSET_ID) {
-
-      if (msg.value < premiumWithCommission) {
-        revert InsufficientEthSent();
-      }
+      require(msg.value >= premiumWithCommission, InsufficientEthSent());
 
       uint remainder = msg.value - premiumWithCommission;
 
       {
         // send premium in eth to the pool
         // solhint-disable-next-line avoid-low-level-calls
-        (bool ok, /* data */) = address(_pool).call{value: premiumInPaymentAsset}("");
-        if (!ok) {
-          revert SendingEthToPoolFailed();
-        }
+        (bool ok, /* data */) = address(pool).call{value: premiumInPaymentAsset}("");
+        require(ok, SendingEthToPoolFailed());
       }
 
       // send commission
       if (commission > 0) {
         (bool ok, /* data */) = address(commissionDestination).call{value: commission}("");
-        if (!ok) {
-          revert SendingEthToCommissionDestinationFailed();
-        }
+        require(ok, SendingEthToCommissionDestinationFailed());
       }
 
       if (remainder > 0) {
         // solhint-disable-next-line avoid-low-level-calls
         (bool ok, /* data */) = address(msg.sender).call{value: remainder}("");
-        if (!ok) {
-          revert ReturningEthRemainderToSenderFailed();
-        }
+        require(ok, ReturningEthRemainderToSenderFailed());
       }
 
       return;
     }
 
-    address coverAsset = _pool.getAsset(paymentAsset).assetAddress;
+    address coverAsset = pool.getAsset(paymentAsset).assetAddress;
     IERC20 token = IERC20(coverAsset);
-    token.safeTransferFrom(msg.sender, address(_pool), premiumInPaymentAsset);
+    token.safeTransferFrom(msg.sender, address(pool), premiumInPaymentAsset);
 
     if (commission > 0) {
       token.safeTransferFrom(msg.sender, commissionDestination, commission);
@@ -643,7 +597,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       return false;
     }
 
-    Asset memory asset = pool().getAsset(assetId);
+    Asset memory asset = _pool().getAsset(assetId);
 
     return asset.isCoverAsset && !asset.isAbandoned;
   }
@@ -664,19 +618,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   /* ========== DEPENDENCIES ========== */
 
-  function pool() internal view returns (IPool) {
+  function _pool() internal view returns (IPool) {
     return IPool(internalContracts[uint(ID.P1)]);
   }
 
-  function tokenController() internal view returns (ITokenController) {
+  function _tokenController() internal view returns (ITokenController) {
     return ITokenController(internalContracts[uint(ID.TC)]);
   }
 
-  function memberRoles() internal view returns (IMemberRoles) {
+  function _memberRoles() internal view returns (IMemberRoles) {
     return IMemberRoles(internalContracts[uint(ID.MR)]);
   }
 
-  function coverProducts() internal view returns (ICoverProducts) {
+  function _coverProducts() internal view returns (ICoverProducts) {
     return ICoverProducts(internalContracts[uint(ID.CP)]);
   }
 
@@ -696,9 +650,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
       LegacyCoverSegment memory legacyCoverSegment = _legacyCoverSegments[coverId][0];
 
-      if (legacyCoverSegment.amount == 0) {
-        revert AlreadyMigratedCoverData(coverId);
-      }
+      require(legacyCoverSegment.amount > 0, AlreadyMigratedCoverData(coverId));
 
       LegacyCoverData memory legacyCoverData = _legacyCoverData[coverId];
 

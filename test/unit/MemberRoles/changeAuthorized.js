@@ -35,6 +35,6 @@ describe('changeAuthorized', function () {
 
     await expect(
       memberRoles.connect(defaultSender).changeAuthorized(Role.AdvisoryBoard, defaultSender.address),
-    ).to.be.revertedWith('Not Authorized');
+    ).to.be.revertedWithCustomError(memberRoles, 'NotAuthorized');
   });
 });

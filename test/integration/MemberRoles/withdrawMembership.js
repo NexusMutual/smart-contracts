@@ -54,8 +54,9 @@ describe('withdrawMembership', function () {
     const fixture = await loadFixture(setup);
     const { mr: memberRoles } = fixture.contracts;
     const [stakingPoolManager] = fixture.accounts.stakingPoolManagers;
-    await expect(memberRoles.connect(stakingPoolManager).withdrawMembership()).to.be.revertedWith(
-      'MemberRoles: Member is a staking pool manager',
+    await expect(memberRoles.connect(stakingPoolManager).withdrawMembership()).to.be.revertedWithCustomError(
+      memberRoles,
+      'CantBeStakingPoolManager',
     );
   });
 });

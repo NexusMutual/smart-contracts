@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.27;
 
 import "../../abstract/Multicall.sol";
 import "../../interfaces/INXMMaster.sol";
@@ -125,30 +125,22 @@ contract StakingPool is IStakingPool, Multicall {
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
   modifier onlyCoverContract {
-    if (msg.sender != coverContract) {
-      revert OnlyCoverContract();
-    }
+    require(msg.sender == coverContract, OnlyCoverContract());
     _;
   }
 
   modifier onlyManager {
-    if (msg.sender != manager()) {
-      revert OnlyManager();
-    }
+    require(msg.sender == manager(), OnlyManager());
     _;
   }
 
   modifier whenNotPaused {
-    if (masterContract.isPause()) {
-      revert SystemPaused();
-    }
+    require(!masterContract.isPause(), SystemPaused());
     _;
   }
 
   modifier whenNotHalted {
-    if (isHalted) {
-      revert PoolHalted();
-    }
+    require(!isHalted, PoolHalted());
     _;
   }
 
@@ -174,18 +166,10 @@ contract StakingPool is IStakingPool, Multicall {
     uint _maxPoolFee,
     uint _poolId
   ) external {
-
-    if (msg.sender != address(stakingProducts)) {
-      revert OnlyStakingProductsContract();
-    }
-
-    if (_initialPoolFee > _maxPoolFee) {
-      revert PoolFeeExceedsMax();
-    }
-
-    if (_maxPoolFee >= 100) {
-      revert MaxPoolFeeAbove100();
-    }
+    
+    require(msg.sender == address(stakingProducts), OnlyStakingProductsContract());
+    require(_initialPoolFee <= _maxPoolFee, PoolFeeExceedsMax());
+    require(_maxPoolFee < 100, MaxPoolFeeAbove100());
 
     isPrivatePool = _isPrivatePool;
     poolFee = uint8(_initialPoolFee);
@@ -333,30 +317,19 @@ contract StakingPool is IStakingPool, Multicall {
     uint requestTokenId,
     address destination
   ) public whenNotPaused whenNotHalted returns (uint tokenId) {
-
-    if (isPrivatePool && msg.sender != manager()) {
-      revert PrivatePool();
-    }
-
-    if (block.timestamp <= nxm.isLockedForMV(msg.sender) && msg.sender != manager()) {
-      revert NxmIsLockedForGovernanceVote();
+    
+    if (msg.sender != manager()) {
+      require(!isPrivatePool, PrivatePool());
+      require(block.timestamp > nxm.isLockedForMV(msg.sender), NxmIsLockedForGovernanceVote());
     }
 
     {
       uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
       uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;
 
-      if (amount == 0) {
-        revert InsufficientDepositAmount();
-      }
-
-      if (trancheId > maxTranche) {
-        revert RequestedTrancheIsNotYetActive();
-      }
-
-      if (trancheId < _firstActiveTrancheId) {
-        revert RequestedTrancheIsExpired();
-      }
+      require(amount != 0, InsufficientDepositAmount());
+      require(trancheId <= maxTranche, RequestedTrancheIsNotYetActive());
+      require(trancheId >= _firstActiveTrancheId, RequestedTrancheIsExpired());
 
       // if the pool has no previous deposits
       if (firstActiveTrancheId == 0) {
@@ -382,13 +355,10 @@ contract StakingPool is IStakingPool, Multicall {
     } else {
       // validate token id exists and belongs to this pool
       // stakingPoolOf() reverts for non-existent tokens
-      if (stakingNFT.stakingPoolOf(requestTokenId) != poolId) {
-        revert InvalidStakingPoolForToken();
-      }
+      require(stakingNFT.stakingPoolOf(requestTokenId) == poolId, InvalidStakingPoolForToken());
+
       // validate only the token owner or an approved address can deposit
-      if (!stakingNFT.isApprovedOrOwner(msg.sender, requestTokenId)) {
-        revert NotTokenOwnerOrApproved();
-      }
+      require(stakingNFT.isApprovedOrOwner(msg.sender, requestTokenId), NotTokenOwnerOrApproved());
 
       tokenId = requestTokenId;
     }
@@ -527,9 +497,7 @@ contract StakingPool is IStakingPool, Multicall {
     Deposit memory deposit = deposits[tokenId][trancheId];
 
     if (context.withdrawStake && trancheId < context._firstActiveTrancheId) {
-      if (context.managerLockedInGovernanceUntil > block.timestamp) {
-        revert ManagerNxmIsLockedForGovernanceVote();
-      }
+      require(context.managerLockedInGovernanceUntil <= block.timestamp, ManagerNxmIsLockedForGovernanceVote());
 
       uint stake = expiredTranches[trancheId].stakeAmountAtExpiry;
       uint _stakeSharesSupply = expiredTranches[trancheId].stakeSharesSupplyAtExpiry;
@@ -587,9 +555,7 @@ contract StakingPool is IStakingPool, Multicall {
     );
 
     // add new rewards
-    if (request.rewardRatio > REWARDS_DENOMINATOR) {
-      revert RewardRatioTooHigh();
-    }
+    require(request.rewardRatio <= REWARDS_DENOMINATOR, RewardRatioTooHigh());
 
     uint expirationBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
     uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
@@ -613,18 +579,14 @@ contract StakingPool is IStakingPool, Multicall {
     processExpirations(true);
 
     // shouldn't technically happen, considering to remove
-    if (request.allocationId == 0) {
-      revert InvalidAllocationId();
-    }
+    require(request.allocationId != 0, InvalidAllocationId());
 
     uint expiration = request.start + request.period;
 
     // prevent allocation requests (edits and forced expirations) for expired covers
     uint expirationBucketId = Math.divCeil(expiration, BUCKET_DURATION);
 
-    if (coverTrancheAllocations[request.allocationId] == 0 || firstActiveBucketId >= expirationBucketId) {
-      revert AlreadyDeallocated(request.allocationId);
-    }
+    require(coverTrancheAllocations[request.allocationId] != 0 && firstActiveBucketId < expirationBucketId, AlreadyDeallocated(request.allocationId));
 
     uint[] memory trancheAllocations = _getActiveAllocationsWithoutCover(
       request.productId,
@@ -817,9 +779,7 @@ contract StakingPool is IStakingPool, Multicall {
   ) public view returns (uint[] memory trancheCapacities) {
 
     // will revert if with unprocessed expirations
-    if (firstTrancheId < block.timestamp / TRANCHE_DURATION) {
-      revert RequestedTrancheIsExpired();
-    }
+    require(firstTrancheId >= block.timestamp / TRANCHE_DURATION, RequestedTrancheIsExpired());
 
     uint _activeStake = activeStake;
     uint _stakeSharesSupply = stakeSharesSupply;
@@ -937,9 +897,7 @@ contract StakingPool is IStakingPool, Multicall {
 
       coverTrancheAllocations[allocationId] = packedCoverAllocations;
 
-      if (remainingAmount != 0) {
-        revert InsufficientCapacity();
-      }
+      require(remainingAmount == 0, InsufficientCapacity());
     }
 
     _updateExpiringCoverAmounts(
@@ -1056,43 +1014,23 @@ contract StakingPool is IStakingPool, Multicall {
   ) external whenNotPaused whenNotHalted {
 
     // token id 0 is only used for pool manager fee tracking, no deposits allowed
-    if (tokenId == 0) {
-      revert InvalidTokenId();
-    }
+    require(tokenId != 0, InvalidTokenId());
 
     // validate token id exists and belongs to this pool
     // stakingPoolOf() reverts for non-existent tokens
-    if (stakingNFT.stakingPoolOf(tokenId) != poolId) {
-      revert InvalidStakingPoolForToken();
-    }
+    require(stakingNFT.stakingPoolOf(tokenId) == poolId, InvalidStakingPoolForToken());
 
-    if (isPrivatePool && msg.sender != manager()) {
-      revert PrivatePool();
-    }
-
-    if (!stakingNFT.isApprovedOrOwner(msg.sender, tokenId)) {
-      revert NotTokenOwnerOrApproved();
-    }
-
-    if (topUpAmount > 0 && block.timestamp <= nxm.isLockedForMV(msg.sender)) {
-      revert NxmIsLockedForGovernanceVote();
-    }
-
-    if (initialTrancheId >= targetTrancheId) {
-      revert NewTrancheEndsBeforeInitialTranche();
-    }
+    require(!isPrivatePool || msg.sender == manager(), PrivatePool());
+    require(stakingNFT.isApprovedOrOwner(msg.sender, tokenId), NotTokenOwnerOrApproved());
+    require(topUpAmount == 0 || block.timestamp > nxm.isLockedForMV(msg.sender), NxmIsLockedForGovernanceVote());
+    require(initialTrancheId < targetTrancheId, NewTrancheEndsBeforeInitialTranche());
 
     {
       uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
       uint maxTrancheId = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;
 
-      if (targetTrancheId > maxTrancheId) {
-        revert RequestedTrancheIsNotYetActive();
-      }
-
-      if (targetTrancheId < firstActiveTrancheId) {
-        revert RequestedTrancheIsExpired();
-      }
+      require(targetTrancheId <= maxTrancheId, RequestedTrancheIsNotYetActive());
+      require(targetTrancheId >= firstActiveTrancheId, RequestedTrancheIsExpired());
 
       // if the initial tranche is expired, withdraw everything and make a new deposit
       // this requires the user to have grante sufficient allowance
@@ -1291,10 +1229,8 @@ contract StakingPool is IStakingPool, Multicall {
   /* pool management */
 
   function setPoolFee(uint newFee) external onlyManager {
-
-    if (newFee > maxPoolFee) {
-      revert PoolFeeExceedsMax();
-    }
+    
+    require(newFee <= maxPoolFee, PoolFeeExceedsMax());
 
     // passing true because the amount of rewards shares changes
     processExpirations(true);

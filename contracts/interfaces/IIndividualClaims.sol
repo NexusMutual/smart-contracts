@@ -81,4 +81,8 @@ interface IIndividualClaims {
   event MetadataSubmitted(uint indexed claimId, string ipfsMetadata);
   event ClaimPayoutRedeemed(address indexed user, uint amount, uint claimId, uint coverId);
 
+  /* ========== ERRORS ========== */
+  
+  error ClaimIsBeingAssessed();
+  error PayoutCanStillBeRedeemed();
 }

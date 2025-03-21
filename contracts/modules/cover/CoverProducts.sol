@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.27;
 
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
@@ -128,10 +128,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
     for (uint i = 0; i < productIds.length; i++) {
       uint productId = productIds[i];
-
-      if (productId >= productCount) {
-        revert ProductNotFound();
-      }
+      require(productId < productCount, ProductNotFound());
 
       initialPrices[i] = _products[productId].initialPriceRatio;
     }
@@ -142,14 +139,11 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
   ) external view returns (uint[] memory minPrices) {
     uint productCount = _products.length;
     minPrices = new uint[](productIds.length);
-    uint defaultMinPrice = cover().getDefaultMinPriceRatio();
+    uint defaultMinPrice = _cover().getDefaultMinPriceRatio();
 
     for (uint i = 0; i < productIds.length; i++) {
       uint productId = productIds[i];
-
-      if (productId >= productCount) {
-        revert ProductNotFound();
-      }
+      require(productId < productCount, ProductNotFound());
 
       if (_products[productId].minPrice == 0) {
         minPrices[i] = defaultMinPrice;
@@ -168,10 +162,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
     for (uint i = 0; i < productIds.length; i++) {
       uint productId = productIds[i];
-
-      if (productId >= productCount) {
-        revert ProductNotFound();
-      }
+      require(productId < productCount, ProductNotFound());
 
       capacityReductionRatios[i] = _products[productId].capacityReductionRatio;
     }
@@ -191,22 +182,14 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     for (uint i = 0; i < inputLength; i++) {
 
       uint productId = params[i].productId;
-
-      if (productId >= productCount) {
-        revert ProductNotFound();
-      }
+      require(productId < productCount, ProductNotFound());
 
       // if there is a list of allowed pools for this product - the new pool didn't exist yet
       // so the product can't be in it
-      if (allowedPools[productId].length > 0) {
-        revert PoolNotAllowedForThisProduct(productId);
-      }
+      require(allowedPools[productId].length == 0, PoolNotAllowedForThisProduct(productId));
 
       Product memory product = _products[productId];
-
-      if (product.isDeprecated) {
-        revert ProductDeprecated();
-      }
+      require(!product.isDeprecated, ProductDeprecated());
 
       validatedParams[i] = params[i];
       validatedParams[i].initialPrice = product.initialPriceRatio;
@@ -218,10 +201,10 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
   function setProducts(ProductParam[] calldata productParams) external override onlyAdvisoryBoard {
 
     uint unsupportedCoverAssetsBitmap = type(uint).max;
-    uint defaultMinPriceRatio = cover().getDefaultMinPriceRatio();
+    uint defaultMinPriceRatio = _cover().getDefaultMinPriceRatio();
 
-    uint poolCount = stakingProducts().getStakingPoolCount();
-    Asset[] memory assets = pool().getAssets();
+    uint poolCount = _stakingProducts().getStakingPoolCount();
+    Asset[] memory assets = _pool().getAssets();
     uint assetsLength = assets.length;
 
     for (uint i = 0; i < assetsLength; i++) {
@@ -236,32 +219,17 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       ProductParam calldata param = productParams[i];
       Product calldata product = param.product;
 
-      if (product.productType >= _productTypes.length) {
-        revert ProductTypeNotFound();
-      }
-
-      if (unsupportedCoverAssetsBitmap & product.coverAssets != 0) {
-        revert UnsupportedCoverAssets();
-      }
+      require(product.productType < _productTypes.length, ProductTypeNotFound());
+      require(unsupportedCoverAssetsBitmap & product.coverAssets == 0, UnsupportedCoverAssets());
 
       uint256 minPrice = product.minPrice == 0 ? defaultMinPriceRatio : product.minPrice;
-      if (product.initialPriceRatio < minPrice) {
-        revert InitialPriceRatioBelowMinPriceRatio();
-      }
-
-      if (product.initialPriceRatio > PRICE_DENOMINATOR) {
-        revert InitialPriceRatioAbove100Percent();
-      }
-
-      if (product.capacityReductionRatio > CAPACITY_REDUCTION_DENOMINATOR) {
-        revert CapacityReductionRatioAbove100Percent();
-      }
+      require(product.initialPriceRatio >= minPrice, InitialPriceRatioBelowMinPriceRatio());
+      require(product.initialPriceRatio <= PRICE_DENOMINATOR, InitialPriceRatioAbove100Percent());
+      require(product.capacityReductionRatio <= CAPACITY_REDUCTION_DENOMINATOR, CapacityReductionRatioAbove100Percent());
 
       if (param.allowedPools.length > 0) {
         for (uint j = 0; j < param.allowedPools.length; j++) {
-          if (param.allowedPools[j] > poolCount || param.allowedPools[j] == 0) {
-            revert StakingPoolDoesNotExist();
-          }
+          require(param.allowedPools[j] <= poolCount && param.allowedPools[j] != 0, StakingPoolDoesNotExist());
         }
       }
 
@@ -283,9 +251,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       }
 
       // Existing product
-      if (param.productId >= _products.length) {
-        revert ProductNotFound();
-      }
+      require(param.productId < _products.length, ProductNotFound());
 
       Product storage newProductValue = _products[param.productId];
       newProductValue.isDeprecated = product.isDeprecated;
@@ -318,9 +284,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
         uint productTypeId = _productTypes.length;
 
         // the product type metadata is mandatory
-        if (bytes(param.ipfsMetadata).length == 0) {
-          revert MetadataRequired();
-        }
+        require(bytes(param.ipfsMetadata).length > 0, MetadataRequired());
 
         productTypeMetadata[productTypeId].push(Metadata(param.ipfsMetadata, block.timestamp));
         productTypeNames[productTypeId] = param.productTypeName;
@@ -330,9 +294,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
         continue;
       }
 
-      if (param.productTypeId >= _productTypes.length) {
-        revert ProductTypeNotFound();
-      }
+      require(param.productTypeId < _productTypes.length, ProductTypeNotFound());
 
       _productTypes[param.productTypeId].gracePeriod = param.productType.gracePeriod;
 
@@ -353,18 +315,13 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     string[] calldata ipfsMetadata
   ) external onlyAdvisoryBoard {
 
-    if (productIds.length != ipfsMetadata.length) {
-      revert MismatchedArrayLengths();
-    }
+    require(productIds.length == ipfsMetadata.length, MismatchedArrayLengths());
 
     uint productCount = _products.length;
 
     for (uint i = 0; i < productIds.length; i++) {
       uint productId = productIds[i];
-
-      if (productId >= productCount) {
-        revert ProductNotFound();
-      }
+      require(productId < productCount, ProductNotFound());
 
       productMetadata[productId].push(Metadata(ipfsMetadata[i], block.timestamp));
     }
@@ -375,22 +332,14 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     string[] calldata ipfsMetadata
   ) external onlyAdvisoryBoard {
 
-    if (productTypeIds.length != ipfsMetadata.length) {
-      revert MismatchedArrayLengths();
-    }
+    require(productTypeIds.length == ipfsMetadata.length, MismatchedArrayLengths());
 
     uint productTypeCount = _productTypes.length;
 
     for (uint i = 0; i < productTypeIds.length; i++) {
       uint productTypeId = productTypeIds[i];
-
-      if (productTypeId >= productTypeCount) {
-        revert ProductTypeNotFound();
-      }
-
-      if (bytes(ipfsMetadata[i]).length == 0) {
-        revert MetadataRequired();
-      }
+      require(productTypeId < productTypeCount, ProductTypeNotFound());
+      require(bytes(ipfsMetadata[i]).length > 0, MetadataRequired());
 
       productTypeMetadata[productTypeId].push(Metadata(ipfsMetadata[i], block.timestamp));
     }
@@ -420,9 +369,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
   function requirePoolIsAllowed(uint[] calldata productIds, uint poolId) external view {
     for (uint i = 0; i < productIds.length; i++) {
-      if (!isPoolAllowed(productIds[i], poolId) ) {
-        revert PoolNotAllowedForThisProduct(productIds[i]);
-      }
+      require(isPoolAllowed(productIds[i], poolId), PoolNotAllowedForThisProduct(productIds[i]));
     }
   }
 
@@ -432,16 +379,16 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     require(_products.length == 0, "CoverProducts: _products already migrated");
     require(_productTypes.length == 0, "CoverProducts: _productTypes already migrated");
 
-    ILegacyCover _cover = ILegacyCover(address(cover()));
-    IStakingPoolFactory _stakingPoolFactory = IStakingPoolFactory(_cover.stakingPoolFactory());
+    ILegacyCover cover = ILegacyCover(address(_cover()));
+    IStakingPoolFactory _stakingPoolFactory = IStakingPoolFactory(cover.stakingPoolFactory());
 
-    Product[] memory _productsToMigrate = _cover.getProducts();
-    uint _productTypeCount = _cover.productTypesCount();
+    Product[] memory _productsToMigrate = cover.getProducts();
+    uint _productTypeCount = cover.productTypesCount();
     uint stakingPoolCount = _stakingPoolFactory.stakingPoolCount();
 
     for (uint i = 0; i < _productsToMigrate.length; i++) {
       _products.push(_productsToMigrate[i]);
-      productNames[i] = _cover.productNames(i);
+      productNames[i] = cover.productNames(i);
       uint[] storage _allowedPools = allowedPools[i];
 
       if (!_productsToMigrate[i].useFixedPrice || _productsToMigrate[i].isDeprecated) {
@@ -449,7 +396,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
       }
 
       for (uint j = 0; j < stakingPoolCount; j++) {
-        try _cover.allowedPools(i, j) returns (uint poolId) {
+        try cover.allowedPools(i, j) returns (uint poolId) {
           _allowedPools.push(poolId);
         } catch {
           break;
@@ -458,23 +405,23 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
     }
 
     for (uint i = 0; i < _productTypeCount; i++) {
-      ProductType memory _productTypeToMigrate = _cover.productTypes(i);
+      ProductType memory _productTypeToMigrate = cover.productTypes(i);
       _productTypes.push(_productTypeToMigrate);
-      productTypeNames[i] = _cover.productTypeNames(i);
+      productTypeNames[i] = cover.productTypeNames(i);
     }
   }
 
   /* ========== DEPENDENCIES ========== */
 
-  function pool() internal view returns (IPool) {
+  function _pool() internal view returns (IPool) {
     return IPool(internalContracts[uint(ID.P1)]);
   }
 
-  function cover() internal view returns (ICover) {
+  function _cover() internal view returns (ICover) {
     return ICover(internalContracts[uint(ID.CO)]);
   }
 
-  function stakingProducts() internal view returns (IStakingProducts) {
+  function _stakingProducts() internal view returns (IStakingProducts) {
     return IStakingProducts(internalContracts[uint(ID.SP)]);
   }
 

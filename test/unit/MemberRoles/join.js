@@ -26,7 +26,7 @@ describe('join', function () {
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
-    ).to.be.revertedWith('MemberRoles: Signature is invalid');
+    ).to.be.revertedWithCustomError(memberRoles, 'InvalidSignature');
 
     const membershipApprovalData1 = await signMembershipApproval({
       nonce: 0,
@@ -38,7 +38,7 @@ describe('join', function () {
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData1), {
         value: JOINING_FEE,
       }),
-    ).to.be.revertedWith('MemberRoles: Signature is invalid');
+    ).to.be.revertedWithCustomError(memberRoles, 'InvalidSignature');
 
     const membershipApprovalData2 = await signMembershipApproval({
       nonce: 0,
@@ -50,7 +50,7 @@ describe('join', function () {
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData2), {
         value: JOINING_FEE,
       }),
-    ).not.to.be.revertedWith('MemberRoles: Signature is invalid');
+    ).not.to.be.revertedWithCustomError(memberRoles, 'InvalidSignature');
   });
 
   it('reverts when reusing the same nonce', async function () {
@@ -72,7 +72,7 @@ describe('join', function () {
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
-    ).to.be.revertedWith('MemberRoles: Signature already used');
+    ).to.be.revertedWithCustomError(memberRoles, 'SignatureAlreadyUsed');
 
     const membershipApprovalData1 = await signMembershipApproval({
       nonce: 1,
@@ -83,7 +83,7 @@ describe('join', function () {
       memberRoles.join(nonMembers[0].address, 1, arrayify(membershipApprovalData1), {
         value: JOINING_FEE,
       }),
-    ).not.to.be.revertedWith('MemberRoles: Signature already used');
+    ).not.to.be.revertedWithCustomError(memberRoles, 'SignatureAlreadyUsed');
   });
 
   it('reverts when using the signature of another address', async function () {
@@ -101,13 +101,13 @@ describe('join', function () {
       memberRoles.join(nonMembers[1].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
-    ).to.be.revertedWith('MemberRoles: Signature is invalid');
+    ).to.be.revertedWithCustomError(memberRoles, 'InvalidSignature');
 
     await expect(
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
-    ).not.to.be.revertedWith('MemberRoles: Signature is invalid');
+    ).not.to.be.revertedWithCustomError(memberRoles, 'InvalidSignature');
   });
 
   it('reverts when trying to sign up the 0 address', async function () {
@@ -125,13 +125,13 @@ describe('join', function () {
       memberRoles.join('0x0000000000000000000000000000000000000000', 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
-    ).to.be.revertedWith('MemberRoles: Address 0 cannot be used');
+    ).to.be.revertedWithCustomError(memberRoles, 'UserAddressCantBeZero');
 
     await expect(
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
-    ).not.to.be.revertedWith('MemberRoles: Address 0 cannot be used');
+    ).not.to.be.revertedWithCustomError(memberRoles, 'UserAddressCantBeZero');
   });
 
   it('reverts when the address is already a member', async function () {
@@ -152,7 +152,7 @@ describe('join', function () {
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
-    ).to.be.revertedWith('MemberRoles: This address is already a member');
+    ).to.be.revertedWithCustomError(memberRoles, 'AddressIsAlreadyMember');
   });
 
   it('reverts when the system is paused', async function () {
@@ -172,7 +172,7 @@ describe('join', function () {
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
-    ).to.be.revertedWith('MemberRoles: Emergency pause applied');
+    ).to.be.revertedWithCustomError(memberRoles, 'Paused');
   });
 
   it('reverts when the value sent is different than the joining fee', async function () {
@@ -190,20 +190,20 @@ describe('join', function () {
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE.sub('1'),
       }),
-    ).to.be.revertedWith('MemberRoles: The transaction value should equal to the joining fee');
+    ).to.be.revertedWithCustomError(memberRoles, 'TransactionValueDifferentFromJoiningFee');
     await expect(
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE.add('1'),
       }),
-    ).to.be.revertedWith('MemberRoles: The transaction value should equal to the joining fee');
-    await expect(memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0))).to.be.revertedWith(
-      'MemberRoles: The transaction value should equal to the joining fee',
-    );
+    ).to.be.revertedWithCustomError(memberRoles, 'TransactionValueDifferentFromJoiningFee');
+    await expect(
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0)),
+    ).to.be.revertedWithCustomError(memberRoles, 'TransactionValueDifferentFromJoiningFee');
     await expect(
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
-    ).not.to.be.revertedWith('MemberRoles: The transaction value should equal to the joining fee');
+    ).not.to.be.revertedWithCustomError(memberRoles, 'TransactionValueDifferentFromJoiningFee');
   });
 
   it('reverts when the signature is invalid', async function () {
@@ -258,7 +258,7 @@ describe('join', function () {
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
-    ).to.be.revertedWith('MemberRoles: The joining fee transfer to the pool failed');
+    ).to.be.revertedWithCustomError(memberRoles, 'TransferToPoolFailed');
 
     const { deployedBytecode: poolMockBytecode } = await artifacts.readArtifact('PoolMock');
     await setCode(pool.address, poolMockBytecode);
@@ -266,7 +266,7 @@ describe('join', function () {
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
-    ).not.to.be.revertedWith('MemberRoles: The joining fee transfer to the pool failed');
+    ).not.to.be.revertedWithCustomError(memberRoles, 'TransferToPoolFailed');
   });
 
   it('transfers the joining fee to the pool', async function () {

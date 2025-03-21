@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.27;
 
 import "@openzeppelin/contracts-v4/utils/cryptography/MerkleProof.sol";
 
@@ -50,9 +50,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /* ========== MODIFIERS ========== */
 
   modifier onlyTokenController {
-    if (msg.sender != getInternalContractAddress(ID.TC)) {
-      revert OnlyTokenController();
-    }
+    require(msg.sender == getInternalContractAddress(ID.TC), OnlyTokenController());
     _;
   }
 
@@ -169,14 +167,10 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function unstake(uint96 amount, address to) external override whenNotPaused {
 
     uint stakeAmount = stakeOf[msg.sender].amount;
-    if (amount > stakeAmount) {
-      revert InvalidAmount(stakeAmount);
-    }
+    require(amount <= stakeAmount, InvalidAmount(stakeAmount));
 
     uint govLockupExpiry = nxm.isLockedForMV(msg.sender);
-    if (block.timestamp < govLockupExpiry && to != msg.sender) {
-      revert StakeLockedForGovernance(govLockupExpiry);
-    }
+    require(block.timestamp >= govLockupExpiry || to == msg.sender, StakeLockedForGovernance(govLockupExpiry));
 
     _unstake(msg.sender, amount, to);
   }
@@ -196,9 +190,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     if (voteCount > 0) {
       Vote memory latestVote = votesOf[staker][voteCount - 1];
       uint assessmentLockupExpiry = latestVote.timestamp + STAKE_LOCKUP_PERIOD;
-      if (block.timestamp <= assessmentLockupExpiry) {
-        revert StakeLockedForAssessment(assessmentLockupExpiry);
-      }
+      require(block.timestamp > assessmentLockupExpiry, StakeLockedForAssessment(assessmentLockupExpiry));
     }
 
     stakeOf[staker].amount -= amount;
@@ -253,9 +245,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint104 rewardsWithdrawableFromIndex = stakeOf[staker].rewardsWithdrawableFromIndex;
     {
       uint voteCount = votesOf[staker].length;
-      if (rewardsWithdrawableFromIndex >= voteCount) {
-        revert NoWithdrawableRewards();
-      }
+      require(rewardsWithdrawableFromIndex < voteCount, NoWithdrawableRewards());
       // If batchSize is a non-zero value, it means the withdrawal is going to be batched in
       // multiple transactions.
       withdrawnUntilIndex = batchSize > 0 ? rewardsWithdrawableFromIndex + batchSize : voteCount;
@@ -328,13 +318,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
     string[] calldata ipfsAssessmentDataHashes,
     uint96 stakeIncrease
   ) external override onlyMember whenNotPaused {
-
-    if (assessmentIds.length != votes.length) {
-      revert AssessmentIdsVotesLengthMismatch();
-    }
-    if (assessmentIds.length != ipfsAssessmentDataHashes.length) {
-      revert AssessmentIdsIpfsLengthMismatch();
-    }
+    require(assessmentIds.length == votes.length, AssessmentIdsVotesLengthMismatch());
+    require(assessmentIds.length == ipfsAssessmentDataHashes.length, AssessmentIdsIpfsLengthMismatch());
 
     if (stakeIncrease > 0) {
       stake(stakeIncrease);
@@ -359,25 +344,16 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function _castVote(uint assessmentId, bool isAcceptVote, string memory ipfsAssessmentDataHash) internal {
 
     {
-      if (hasAlreadyVotedOn[msg.sender][assessmentId]) {
-        revert AlreadyVoted();
-      }
+      require(!hasAlreadyVotedOn[msg.sender][assessmentId], AlreadyVoted());
       hasAlreadyVotedOn[msg.sender][assessmentId] = true;
     }
 
     uint96 stakeAmount = stakeOf[msg.sender].amount;
-    if (stakeAmount <= 0) {
-      revert StakeRequired();
-    }
+    require(stakeAmount > 0, StakeRequired());
 
     Poll memory poll = assessments[assessmentId].poll;
-    if (block.timestamp >= poll.end) {
-      revert VotingClosed();
-    }
-
-    if (!(poll.accepted > 0 || isAcceptVote)) {
-      revert AcceptVoteRequired();
-    }
+    require(block.timestamp < poll.end, VotingClosed());
+    require(poll.accepted > 0 || isAcceptVote, AcceptVoteRequired());
 
     if (poll.accepted == 0) {
       // Reset the poll end date on the first accept vote
@@ -451,15 +427,14 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint256 voteBatchSize
   ) external override whenNotPaused {
 
-    if (
-      !MerkleProof.verify(
+    require(
+      MerkleProof.verify(
         proof,
         fraudResolution[rootIndex],
         keccak256(abi.encodePacked(assessor, lastFraudulentVoteIndex, burnAmount, fraudCount))
-      )
-    ) {
-      revert InvalidMerkleProof();
-    }
+      ),
+      InvalidMerkleProof()
+    );
 
     Stake memory _stake = stakeOf[assessor];
 

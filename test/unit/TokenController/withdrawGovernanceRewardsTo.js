@@ -45,12 +45,12 @@ describe('withdrawGovernanceRewardsTo', function () {
 
     await expect(
       tokenController.connect(members[0]).withdrawGovernanceRewardsTo(members[1].address, 1),
-    ).to.be.revertedWith('TokenController: No withdrawable governance rewards');
+    ).to.be.revertedWithCustomError(tokenController, 'NoWithdrawableGovernanceRewards');
 
     await governance.setUnclaimedGovernanceRewards(members[0].address, ethers.utils.parseUnits('1'));
     await expect(
       tokenController.connect(members[0]).withdrawGovernanceRewardsTo(members[1].address, 0),
-    ).not.to.be.revertedWith('TokenController: No withdrawable governance rewards');
+    ).not.to.be.revertedWithCustomError(tokenController, 'NoWithdrawableGovernanceRewards');
   });
 
   it('tranfers the rewards to the destination address', async function () {

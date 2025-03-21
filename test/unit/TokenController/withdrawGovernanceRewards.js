@@ -43,13 +43,15 @@ describe('withdrawGovernanceRewards', function () {
     const { tokenController, governance } = fixture.contracts;
     const { members } = fixture.accounts;
 
-    await expect(tokenController.withdrawGovernanceRewards(members[0].address, 1)).to.be.revertedWith(
-      'TokenController: No withdrawable governance rewards',
+    await expect(tokenController.withdrawGovernanceRewards(members[0].address, 1)).to.be.revertedWithCustomError(
+      tokenController,
+      'NoWithdrawableGovernanceRewards',
     );
 
     await governance.setUnclaimedGovernanceRewards(members[0].address, ethers.utils.parseUnits('1'));
-    await expect(tokenController.withdrawGovernanceRewards(members[0].address, 0)).not.to.be.revertedWith(
-      'TokenController: No withdrawable governance rewards',
+    await expect(tokenController.withdrawGovernanceRewards(members[0].address, 0)).not.to.be.revertedWithCustomError(
+      tokenController,
+      'NoWithdrawableGovernanceRewards',
     );
   });
 

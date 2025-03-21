@@ -32,9 +32,9 @@ describe('depositStakedNXM', function () {
     const [member] = fixture.accounts.members;
 
     const amount = parseEther('10');
-    await expect(tokenController.depositStakedNXM(member.address, amount, fixture.poolId)).to.be.revertedWith(
-      'TokenController: Caller not a staking pool',
-    );
+    await expect(
+      tokenController.depositStakedNXM(member.address, amount, fixture.poolId),
+    ).to.be.revertedWithCustomError(tokenController, 'OnlyStakingPool');
   });
 
   it('increases staking pool deposits', async function () {

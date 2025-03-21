@@ -42,7 +42,7 @@ describe('withdrawNXMStakeAndRewards', function () {
     const rewardsAmount = parseEther('10');
     await expect(
       tokenController.withdrawNXMStakeAndRewards(member.address, depositAmount, rewardsAmount, fixture.poolId),
-    ).to.be.revertedWith('TokenController: Caller not a staking pool');
+    ).to.be.revertedWithCustomError(tokenController, 'OnlyStakingPool');
   });
 
   it('reduces staking pool deposits', async function () {

@@ -30,7 +30,7 @@ describe('submitClaim', function () {
 
   it('reverts if a payout on the same cover can be redeemed ', async function () {
     const fixture = await loadFixture(setup);
-    const { cover, assessment } = fixture.contracts;
+    const { cover, assessment, individualClaims } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
 
     await createMockCover(cover, { owner: coverOwner.address });
@@ -40,28 +40,33 @@ describe('submitClaim', function () {
     const { poll } = await assessment.assessments(0);
 
     await setTime(poll.end + fixture.config.payoutCooldown);
-    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWith(
-      'A payout can still be redeemed',
+    // await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+
+    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWithCustomError(
+      individualClaims,
+      'PayoutCanStillBeRedeemed',
     );
   });
 
   it('reverts if a claim on the same cover is already being assessed', async function () {
     const fixture = await loadFixture(setup);
-    const { cover, assessment } = fixture.contracts;
+    const { cover, assessment, individualClaims } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
 
     await createMockCover(cover, { owner: coverOwner.address });
 
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWith(
-      'A claim is already being assessed',
+    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWithCustomError(
+      individualClaims,
+      'ClaimIsBeingAssessed',
     );
 
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     await setTime(poll.end + daysToSeconds(poll.end));
-    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.revertedWith(
-      'A claim is already being assessed',
+    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.revertedWithCustomError(
+      individualClaims,
+      'ClaimIsBeingAssessed',
     );
   });
 

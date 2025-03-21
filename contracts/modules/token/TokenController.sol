@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.27;
 
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IGovernance.sol";
@@ -9,12 +9,13 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../interfaces/ITokenControllerErrors.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "./external/LockHandler.sol";
 
-contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
+contract TokenController is ITokenController, ITokenControllerErrors, LockHandler, MasterAwareV2 {
   using SafeUintCast for uint;
 
   address internal _unused_token;
@@ -38,6 +39,11 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   INXMToken public immutable token;
   address public immutable stakingPoolFactory;
   IStakingNFT public immutable stakingNFT;
+
+  modifier onlyStakingPool(uint poolId) {
+    require(msg.sender == _stakingPool(poolId), OnlyStakingPool());
+    _;
+  }
 
   constructor(
     address stakingPoolFactoryAddress,
@@ -135,7 +141,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
     require(
       _member == address(this) || token.whiteListed(_member),
-      "TokenController: Address is not a member"
+      CantMintToNonMemberAddress()
     );
     token.mint(_member, _amount);
   }
@@ -248,7 +254,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   ) public whenNotPaused {
 
     uint governanceRewards = governance().claimReward(memberAddress, batchSize);
-    require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
+    require(governanceRewards > 0, NoWithdrawableGovernanceRewards());
 
     token.transfer(memberAddress, governanceRewards);
   }
@@ -264,7 +270,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   ) public whenNotPaused {
 
     uint governanceRewards = governance().claimReward(msg.sender, batchSize);
-    require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
+    require(governanceRewards > 0, NoWithdrawableGovernanceRewards());
 
     token.transfer(destination, governanceRewards);
   }
@@ -443,8 +449,8 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     uint deadline
   ) external override {
 
-    require(msg.sender == stakingPoolManagers[poolId], "TokenController: Caller is not staking pool manager");
-    require(block.timestamp < deadline, "TokenController: Deadline cannot be in the past");
+    require(msg.sender == stakingPoolManagers[poolId], OnlyStakingPoolManager());
+    require(block.timestamp < deadline, DeadlinePassed());
 
     stakingPoolOwnershipOffers[poolId] = StakingPoolOwnershipOffer(proposedManager, deadline.toUint96());
   }
@@ -455,20 +461,9 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
     address oldManager = stakingPoolManagers[poolId];
 
-    require(
-      block.timestamp > token.isLockedForMV(oldManager),
-      "TokenController: Current manager is locked for voting in governance"
-    );
-
-    require(
-      msg.sender == stakingPoolOwnershipOffers[poolId].proposedManager,
-      "TokenController: Caller is not the proposed manager"
-    );
-
-    require(
-      stakingPoolOwnershipOffers[poolId].deadline > block.timestamp,
-      "TokenController: Ownership offer has expired"
-    );
+    require(block.timestamp > token.isLockedForMV(oldManager), ManagerIsLockedForVoting());
+    require(msg.sender == stakingPoolOwnershipOffers[poolId].proposedManager, OnlyProposedManager());
+    require(stakingPoolOwnershipOffers[poolId].deadline > block.timestamp, OwnershipOfferHasExpired());
 
     _assignStakingPoolManager(poolId, msg.sender);
 
@@ -479,7 +474,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @param poolId  id of the staking pool
   function cancelStakingPoolOwnershipOffer(uint poolId) external override {
 
-    require(msg.sender == stakingPoolManagers[poolId], "TokenController: Caller is not staking pool manager");
+    require(msg.sender == stakingPoolManagers[poolId], OnlyStakingPoolManager());
 
     delete stakingPoolOwnershipOffers[poolId];
   }
@@ -488,12 +483,8 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @dev    Only callable by the staking pool associated with the given poolId
   /// @param amount  The amount of NXM to mint.
   /// @param poolId  The ID of the staking pool.
-  function mintStakingPoolNXMRewards(uint amount, uint poolId) external override {
-
-    require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
-
+  function mintStakingPoolNXMRewards(uint amount, uint poolId) external override onlyStakingPool(poolId) {
     _mint(address(this), amount);
-
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 
@@ -501,12 +492,8 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @dev    Only callable by the staking pool associated with the given poolId
   /// @param amount  The amount of NXM to burn.
   /// @param poolId  The ID of the staking pool.
-  function burnStakingPoolNXMRewards(uint amount, uint poolId) external override {
-
-    require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
-
+  function burnStakingPoolNXMRewards(uint amount, uint poolId) external override onlyStakingPool(poolId) {
     stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
-
     token.burn(amount);
   }
 
@@ -515,12 +502,8 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @param from    The member address from which the NXM is transferred.
   /// @param amount  The amount of NXM to deposit.
   /// @param poolId  The ID of the staking pool.
-  function depositStakedNXM(address from, uint amount, uint poolId) external override {
-
-    require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
-
+  function depositStakedNXM(address from, uint amount, uint poolId) external override onlyStakingPool(poolId) {
     stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
-
     token.operatorTransfer(from, amount);
   }
 
@@ -535,9 +518,8 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     uint stakeToWithdraw,
     uint rewardsToWithdraw,
     uint poolId
-  ) external override {
+  ) external override onlyStakingPool(poolId) {
 
-    require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
     StakingPoolNXMBalances memory poolBalances = stakingPoolNXMBalances[poolId];
 
     poolBalances.deposits -= stakeToWithdraw.toUint128();
@@ -551,12 +533,8 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @dev    Only callable by the staking pool associated with the given poolId
   /// @param amount  The amount of staked NXM to burn.
   /// @param poolId  The ID of the staking pool.
-  function burnStakedNXM(uint amount, uint poolId) external override {
-
-    require(msg.sender == _stakingPool(poolId), "TokenController: Caller not a staking pool");
-
+  function burnStakedNXM(uint amount, uint poolId) external override onlyStakingPool(poolId) {
     stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
-
     token.burn(amount);
   }
 }

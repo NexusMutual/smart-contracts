@@ -85,4 +85,17 @@ interface IIndividualClaims {
   
   error ClaimIsBeingAssessed();
   error PayoutCanStillBeRedeemed();
+  error OnlyOwnerOrApprovedCanSubmitClaim(); // "Only the owner or approved addresses can submit a claim"
+  error InvalidClaimMethod(); // "Invalid claim method for this product type"
+  error CoveredAmountExceeded(); // "Covered amount exceeded");
+  error CantBuyCoverAndClaimInTheSameBlock(); // "Cannot buy cover and submit claim in the same block
+  error GracePeriodPassed(); // "Cover is outside the grace period"
+  error AssessmentDepositInsufficient(); //  "Assessment deposit is insufficient");
+  error AssessmentDepositTrasnferRefundFailed(); // "Assessment deposit excess refund failed"
+  error AssessmentDepositTransferToPoolFailed(); // "Assessment deposit transfer to pool failed"
+  error ClaimAssessmentNotFinished(); // "The claim is still being assessed"
+  error ClaimNotAccepted(); //  "The claim needs to be accepted"
+  error CooldownPeriodNotPassed(); // "The claim is in cooldown period"
+  error RedemptionPeriodExpired(); // "The redemption period has expired"
+  error PayoutAlreadyRedeemed(); // "Payout has already been redeemed"
 }

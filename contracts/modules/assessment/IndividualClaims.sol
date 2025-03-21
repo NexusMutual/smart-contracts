@@ -234,10 +234,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint96 requestedAmount,
     string calldata ipfsMetadata
   ) external payable override onlyMember whenNotPaused returns (Claim memory claim) {
-    require(
-      coverNFT.isApprovedOrOwner(msg.sender, coverId),
-      "Only the owner or approved addresses can submit a claim"
-    );
+    require(coverNFT.isApprovedOrOwner(msg.sender, coverId), OnlyOwnerOrApprovedCanSubmitClaim());
     return _submitClaim(coverId, requestedAmount, ipfsMetadata, msg.sender);
   }
 
@@ -272,13 +269,10 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
     {
       ProductType memory productType = _coverProducts().getProductTypeOf(coverData.productId);
-      require(productType.claimMethod == ClaimMethod.IndividualClaims, "Invalid claim method for this product type");
-      require(requestedAmount <= coverData.amount, "Covered amount exceeded");
-      require(block.timestamp > coverData.start, "Cannot buy cover and submit claim in the same block");
-      require(
-        uint(coverData.start) + uint(coverData.period) + uint(coverData.gracePeriod) > block.timestamp,
-        "Cover is outside the grace period"
-      );
+      require(productType.claimMethod == ClaimMethod.IndividualClaims, InvalidClaimMethod());
+      require(requestedAmount <= coverData.amount, CoveredAmountExceeded()); 
+      require(block.timestamp > coverData.start, CantBuyCoverAndClaimInTheSameBlock());
+      require(uint(coverData.start) + uint(coverData.period) + uint(coverData.gracePeriod) > block.timestamp, GracePeriodPassed());
 
       emit ClaimSubmitted(
         owner,              // claim submitter
@@ -311,14 +305,14 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       emit MetadataSubmitted(claims.length - 1, ipfsMetadata);
     }
 
-    require(msg.value >= assessmentDepositInETH, "Assessment deposit is insufficient");
+    require(msg.value >= assessmentDepositInETH, AssessmentDepositInsufficient());
     if (msg.value > assessmentDepositInETH) {
       // Refund ETH excess back to the sender
       (
         bool refunded,
         /* bytes data */
       ) = owner.call{value: msg.value - assessmentDepositInETH}("");
-      require(refunded, "Assessment deposit excess refund failed");
+      require(refunded, AssessmentDepositTrasnferRefundFailed());
     }
 
     // Transfer the assessment deposit to the pool
@@ -326,8 +320,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       bool transferSucceeded,
       /* bytes data */
     ) =  address(_pool()).call{value: assessmentDepositInETH}("");
-    require(transferSucceeded, "Assessment deposit transfer to pool failed");
-
+    require(transferSucceeded, AssessmentDepositTransferToPoolFailed());
     return claim;
   }
 
@@ -345,19 +338,16 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       uint assessmentDepositInETH
     ) = _assessment().assessments(claim.assessmentId);
 
-    require(block.timestamp >= poll.end, "The claim is still being assessed");
-    require(poll.accepted > poll.denied, "The claim needs to be accepted");
+    require(block.timestamp >= poll.end, ClaimAssessmentNotFinished());
+    require(poll.accepted > poll.denied, ClaimNotAccepted());
 
     uint payoutCooldown = _assessment().getPayoutCooldown();
 
-    require(block.timestamp >= poll.end + payoutCooldown, "The claim is in cooldown period");
+    require(block.timestamp >= poll.end + payoutCooldown, CooldownPeriodNotPassed());
 
-    require(
-      block.timestamp < uint(poll.end) + payoutCooldown + PAYOUT_REDEMPTION_PERIOD,
-      "The redemption period has expired"
-    );
+    require(block.timestamp < uint(poll.end) + payoutCooldown + PAYOUT_REDEMPTION_PERIOD, RedemptionPeriodExpired());
 
-    require(!claim.payoutRedeemed, "Payout has already been redeemed");
+    require(!claim.payoutRedeemed, PayoutAlreadyRedeemed());
     claims[claimId].payoutRedeemed = true;
 
     _ramm().updateTwap();

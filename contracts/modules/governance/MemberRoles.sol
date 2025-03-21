@@ -419,12 +419,12 @@ contract MemberRoles is IMemberRoles, IMemberRolesErrors, Governed, MasterAwareV
     bool _active) internal {
     // require(_roleId != uint(Role.TokenHolder), "Membership to Token holder is detected automatically");
     if (_active) {
-      require(!memberRoleData[_roleId].memberActive[_memberAddress]);
+      require(!memberRoleData[_roleId].memberActive[_memberAddress], MemberAlreadyHasRole());
       memberRoleData[_roleId].memberCounter = memberRoleData[_roleId].memberCounter + 1;
       memberRoleData[_roleId].memberActive[_memberAddress] = true;
       memberRoleData[_roleId].memberAddress.push(_memberAddress);
     } else {
-      require(memberRoleData[_roleId].memberActive[_memberAddress]);
+      require(memberRoleData[_roleId].memberActive[_memberAddress], MemberDoesntHaveRole());
       memberRoleData[_roleId].memberCounter = memberRoleData[_roleId].memberCounter - 1;
       delete memberRoleData[_roleId].memberActive[_memberAddress];
     }

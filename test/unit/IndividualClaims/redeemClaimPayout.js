@@ -30,7 +30,10 @@ describe('redeemClaimPayout', function () {
       await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
       const { poll } = await assessment.assessments(0);
       await setTime(poll.end + payoutCooldown);
-      await expect(individualClaims.redeemClaimPayout(0)).to.be.revertedWith('The claim needs to be accepted');
+      await expect(individualClaims.redeemClaimPayout(0)).to.be.revertedWithCustomError(
+        individualClaims,
+        'ClaimNotAccepted',
+      );
     }
 
     {
@@ -39,7 +42,10 @@ describe('redeemClaimPayout', function () {
       await assessment.castVote(1, true, parseEther('1'));
       await assessment.castVote(1, false, parseEther('2'));
       await setTime(poll.end + payoutCooldown);
-      await expect(individualClaims.redeemClaimPayout(1)).to.be.revertedWith('The claim needs to be accepted');
+      await expect(individualClaims.redeemClaimPayout(1)).to.be.revertedWithCustomError(
+        individualClaims,
+        'ClaimNotAccepted',
+      );
     }
 
     {
@@ -47,7 +53,10 @@ describe('redeemClaimPayout', function () {
       const { poll } = await assessment.assessments(2);
       await assessment.castVote(2, true, parseEther('1'));
       await setTime(poll.end + payoutCooldown);
-      await expect(individualClaims.redeemClaimPayout(2)).not.to.be.revertedWith('The claim needs to be accepted');
+      await expect(individualClaims.redeemClaimPayout(2)).not.to.be.revertedWithCustomError(
+        individualClaims,
+        'ClaimNotAccepted',
+      );
     }
   });
 
@@ -63,7 +72,10 @@ describe('redeemClaimPayout', function () {
     {
       const { poll } = await assessment.assessments(0);
       await setTime(poll.end);
-      await expect(individualClaims.redeemClaimPayout(0)).not.to.be.revertedWith('The claim is still being assessed');
+      await expect(individualClaims.redeemClaimPayout(0)).not.to.be.revertedWithCustomError(
+        individualClaims,
+        'ClaimAssessmentNotFinished',
+      );
     }
 
     {
@@ -71,14 +83,20 @@ describe('redeemClaimPayout', function () {
       const { poll } = await assessment.assessments(0);
       const latestBlock = await ethers.provider.getBlock('latest');
       await setTime(poll.end - (poll.end - latestBlock.timestamp) / 2);
-      await expect(individualClaims.redeemClaimPayout(0)).to.be.revertedWith('The claim is still being assessed');
+      await expect(individualClaims.redeemClaimPayout(0)).to.be.revertedWithCustomError(
+        individualClaims,
+        'ClaimAssessmentNotFinished',
+      );
     }
 
     {
       const { poll } = await assessment.assessments(0);
       const latestBlock = await ethers.provider.getBlock('latest');
       await setTime(poll.end - Math.floor((poll.end - latestBlock.timestamp) / 3));
-      await expect(individualClaims.redeemClaimPayout(0)).to.be.revertedWith('The claim is still being assessed');
+      await expect(individualClaims.redeemClaimPayout(0)).to.be.revertedWithCustomError(
+        individualClaims,
+        'ClaimAssessmentNotFinished',
+      );
     }
   });
 
@@ -95,10 +113,16 @@ describe('redeemClaimPayout', function () {
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     await setTime(poll.end);
-    await expect(individualClaims.redeemClaimPayout(0)).to.be.revertedWith('The claim is in cooldown period');
+    await expect(individualClaims.redeemClaimPayout(0)).to.be.revertedWithCustomError(
+      individualClaims,
+      'CooldownPeriodNotPassed',
+    );
 
     await setTime(poll.end + payoutCooldown);
-    await expect(individualClaims.redeemClaimPayout(0)).not.to.be.revertedWith('The claim is in cooldown period');
+    await expect(individualClaims.redeemClaimPayout(0)).not.to.be.revertedWithCustomError(
+      individualClaims,
+      'CooldownPeriodNotPassed',
+    );
   });
 
   it('reverts if the redemption period expired', async function () {
@@ -115,7 +139,10 @@ describe('redeemClaimPayout', function () {
     await setTime(poll.end + payoutCooldown);
     await expect(individualClaims.redeemClaimPayout(0)).not.to.be.reverted;
     await setTime(poll.end + payoutCooldown + payoutRedemptionPeriod);
-    await expect(individualClaims.redeemClaimPayout(0)).to.be.revertedWith('The redemption period has expired');
+    await expect(individualClaims.redeemClaimPayout(0)).to.be.revertedWithCustomError(
+      individualClaims,
+      'RedemptionPeriodExpired',
+    );
   });
 
   it('reverts if a payout has already been redeemed', async function () {
@@ -131,8 +158,9 @@ describe('redeemClaimPayout', function () {
     const { poll } = await assessment.assessments(0);
     await setTime(poll.end + payoutCooldown);
     await expect(individualClaims.redeemClaimPayout(0)).not.to.be.reverted;
-    await expect(individualClaims.connect(coverOwner).redeemClaimPayout(0)).to.be.revertedWith(
-      'Payout has already been redeemed',
+    await expect(individualClaims.connect(coverOwner).redeemClaimPayout(0)).to.be.revertedWithCustomError(
+      individualClaims,
+      'PayoutAlreadyRedeemed',
     );
   });
 

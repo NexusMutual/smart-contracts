@@ -20,4 +20,6 @@ interface IMemberRolesErrors {
   error MemberHasPendingRewardsInTokenController();
   error MemberHasAssessmentStake();
   error NewAddressIsAlreadyMember();
+  error MemberAlreadyHasRole();
+  error MemberDoesntHaveRole();
 }

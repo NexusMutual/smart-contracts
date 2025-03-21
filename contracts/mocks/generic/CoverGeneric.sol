@@ -82,7 +82,7 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
-  function buyCoverFor(
+  function executeCoverBuy(
     BuyCoverParams calldata /* params */,
     PoolAllocationRequest[] calldata /* coverChunkRequests */
   ) external virtual payable returns (uint) {

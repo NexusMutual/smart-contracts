@@ -108,7 +108,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return _buyCover(params, poolAllocationRequests);
   }
 
-  function buyCoverFor(
+  function executeCoverBuy(
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory poolAllocationRequests
   ) external payable onlyInternal returns (uint coverId) {

@@ -11,28 +11,37 @@ import "./INXMToken.sol";
 import "./IWeth.sol";
 
 struct ExecutionDetails {
-  uint256 notBefore;
-  uint256 deadline;
+  uint256 notExecutableBefore;
+  uint256 executableUntil;
+  uint256 renewableUntil;
+  uint256 renewablePeriodBeforeExpiration;
   uint256 maxPremiumInAsset;
-  uint8 maxNumberOfRenewals;
-  uint32 renewWhenLeft;
 }
 
 struct OrderDetails {
-  uint192 coverId;
-  uint32 renewWhenLeft;
-  uint8 maxNumberOfRenewals;
-  uint8 executionCounter;
+  uint256 coverId;
+  uint24 productId;
+  uint96 amount;
+  uint32 period;
+  uint8 paymentAsset;
+  uint8 coverAsset;
+  address owner;
+  string ipfsData;
+  uint16 commissionRatio;
+  address commissionDestination;
+}
+
+struct SettlementDetails {
+  uint256 fee;
+  address feeDestination;
+}
+
+struct OrderStatus {
+  uint32 coverId;
   bool isCancelled;
 }
 
 interface ILimitOrders {
-
-  enum OrderStatus {
-    Created,
-    Executed,
-    Cancelled
-  }
 
   /* ==== IMMUTABLES ==== */
 
@@ -47,7 +56,7 @@ interface ILimitOrders {
     PoolAllocationRequest[] calldata poolAllocationRequests,
     ExecutionDetails calldata executionDetails,
     bytes calldata signature,
-    uint solverFee
+    SettlementDetails memory solverDetails
   ) external payable returns (uint coverId);
 
   /* ==== EVENTS ==== */
@@ -57,18 +66,12 @@ interface ILimitOrders {
 
   /* ==== ERRORS ==== */
 
-  error OnlyController();
-  error OrderAlreadyExecuted();
   error OrderAlreadyCancelled();
   error OrderExpired();
+  error RenewalExpired();
   error OrderCannotBeExecutedYet();
   error OrderCannotBeRenewedYet();
   error OrderPriceNotMet();
   error NotOrderOwner();
-  error NotAMember();
-  error InvalidSignature();
   error InvalidOwnerAddress();
-  error InvalidPaymentAsset();
-  error TransferFailed(address to, uint value, address token);
-  error ZeroBalance(address token);
 }

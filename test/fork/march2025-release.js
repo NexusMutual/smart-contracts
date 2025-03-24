@@ -17,7 +17,7 @@ const compareProxyImplementationAddress = async (proxyAddress, addressToCompare)
   expect(implementationAddress).to.be.equal(addressToCompare);
 };
 
-describe('cover edits', function () {
+describe('march 2025 release fork tests', function () {
   before(async function () {
     // Initialize evm helper
     await evm.connect(ethers.provider);
@@ -52,7 +52,7 @@ describe('cover edits', function () {
   // - IndividualClaims
   // - Cover
   // - CoverProducts
-  // - MemberRoles !!!!!!
+  // - MemberRoles
   // - StakingPool
   // - StakingProducts
   // - TokenController
@@ -61,9 +61,9 @@ describe('cover edits', function () {
   // - CoverNFTDescriptor
 
   // Viewer contracts:
-  // - CoverViewer !!!!!!
-  // - AssessmentViewer !!!!!!
-  // - NexusViewer !!!!!!
+  // - CoverViewer
+  // - AssessmentViewer
+  // - NexusViewer
 
   // New contracts:
   // - LimitOrders
@@ -109,6 +109,8 @@ describe('cover edits', function () {
       this.stakingNFT.address,
     ]);
 
+    const newMemberRoles = await deployContract('MemberRoles', [this.nxm.address]);
+
     const upgradeContracts = [
       { code: ContractCode.Cover, contract: newCover },
       { code: ContractCode.CoverProducts, contract: newCoverProducts },
@@ -116,6 +118,7 @@ describe('cover edits', function () {
       { code: ContractCode.IndividualClaims, contract: newIndividualClaims },
       { code: ContractCode.Assessment, contract: newAssessment },
       { code: ContractCode.TokenController, contract: newTokenController },
+      { code: ContractCode.MemberRoles, contract: newMemberRoles },
     ];
 
     await submitGovernanceProposal(
@@ -134,7 +137,17 @@ describe('cover edits', function () {
     this.individualClaims = await getContractByContractCode('IndividualClaims', ContractCode.IndividualClaims);
     this.assessment = await getContractByContractCode('Assessment', ContractCode.Assessment);
     this.tokenController = await getContractByContractCode('TokenController', ContractCode.TokenController);
+    this.memberRoles = await getContractByContractCode('MemberRoles', ContractCode.MemberRoles);
     this.stakingPool = newStakingPool;
+    this.coverNFTDescriptor = newCoverNFTDescriptor;
+
+    this.assessmentViewer = await deployContract('AssessmentViewer', [this.master.address]);
+    this.coverViewer = await deployContract('CoverViewer', [this.master.address]);
+    this.nexusViewer = await deployContract('NexusViewer', [
+      this.master.address,
+      this.stakingViewer.address,
+      this.assessmentViewer.address,
+    ]);
 
     await compareProxyImplementationAddress(this.cover.address, newCover.address);
     await compareProxyImplementationAddress(this.coverProducts.address, newCoverProducts.address);
@@ -142,6 +155,7 @@ describe('cover edits', function () {
     await compareProxyImplementationAddress(this.individualClaims.address, newIndividualClaims.address);
     await compareProxyImplementationAddress(this.assessment.address, newAssessment.address);
     await compareProxyImplementationAddress(this.tokenController.address, newTokenController.address);
+    await compareProxyImplementationAddress(this.memberRoles.address, newMemberRoles.address);
     expect(await this.coverNFT.nftDescriptor()).to.equal(newCoverNFTDescriptor.address);
   });
 

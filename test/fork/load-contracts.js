@@ -17,7 +17,6 @@ it('load contracts', async function () {
   this.stakingNFT = await ethers.getContractAt(abis.StakingNFT, addresses.StakingNFT);
   this.stakingProducts = await ethers.getContractAt(abis.StakingProducts, addresses.StakingProducts);
   this.swapOperator = await ethers.getContractAt(abis.SwapOperator, addresses.SwapOperator);
-  this.stakingPool = await ethers.getContractAt(abis.StakingPool, V2Addresses.StakingPoolImpl);
   this.priceFeedOracle = await ethers.getContractAt(abis.PriceFeedOracle, addresses.PriceFeedOracle);
   this.tokenController = await ethers.getContractAt(abis.TokenController, addresses.TokenController);
   this.individualClaims = await ethers.getContractAt(abis.IndividualClaims, addresses.IndividualClaims);
@@ -27,6 +26,14 @@ it('load contracts', async function () {
 
   this.governance = await getContractByContractCode(abis.Governance, ContractCode.Governance);
   this.memberRoles = await getContractByContractCode(abis.MemberRoles, ContractCode.MemberRoles);
+
+  this.assessmentViewer = await ethers.getContractAt(abis.AssessmentViewer, addresses.AssessmentViewer);
+  this.coverViewer = await ethers.getContractAt(abis.CoverViewer, addresses.CoverViewer);
+  this.nexusViewer = await ethers.getContractAt(abis.NexusViewer, addresses.NexusViewer);
+  this.stakingViewer = await ethers.getContractAt(abis.StakingViewer, addresses.StakingViewer);
+
+  this.coverNFTDescriptor = await ethers.getContractAt(abis.CoverNFTDescriptor, await this.coverNFT.nftDescriptor());
+  this.stakingPool = await ethers.getContractAt(abis.StakingPool, await this.cover.stakingPoolImplementation());
 
   // Token Mocks
   this.cbBTC = await ethers.getContractAt('ERC20Mock', Address.CBBTC_ADDRESS);

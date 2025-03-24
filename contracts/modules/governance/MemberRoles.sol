@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IMemberRolesErrors.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/INXMToken.sol";
@@ -15,7 +16,7 @@ import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IAssessment.sol";
 import "./external/Governed.sol";
 
-contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
+contract MemberRoles is IMemberRoles, IMemberRolesErrors, Governed, MasterAwareV2 {
 
   struct MemberRoleDetails {
     uint memberCounter;
@@ -59,7 +60,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     if (memberRoleData[_memberRoleId].authorized != address(0)) {
       require(msg.sender == memberRoleData[_memberRoleId].authorized);
     } else {
-      require(master.checkIsAuthToGoverned(msg.sender), "Not Authorized");
+      require(master.checkIsAuthToGoverned(msg.sender), NotAuthorized());
     }
     _;
   }
@@ -162,13 +163,10 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     uint nonce,
     bytes calldata signature
   ) public override payable {
-    require(_userAddress != address(0), "MemberRoles: Address 0 cannot be used");
-    require(!master.isPause(), "MemberRoles: Emergency pause applied");
-    require(!isMember(_userAddress), "MemberRoles: This address is already a member");
-    require(
-      msg.value == joiningFee,
-      "MemberRoles: The transaction value should equal to the joining fee"
-    );
+    require(_userAddress != address(0), UserAddressCantBeZero());
+    require(!master.isPause(), Paused());
+    require(!isMember(_userAddress), AddressIsAlreadyMember());
+    require(msg.value == joiningFee, TransactionValueDifferentFromJoiningFee());
 
     // Reconstruct the original message hash.
     bytes32 messageHash = keccak256(abi.encode(MEMBERSHIP_APPROVAL, nonce, _userAddress, block.chainid));
@@ -176,10 +174,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     // Verify if the message hash hasn't been used before. If it has, it means that the nonce for
     // the given _userAddress needs to be higher and the signature should use the first available
     // one.
-    require(
-      usedMessageHashes[messageHash] == false,
-      "MemberRoles: Signature already used"
-    );
+    require(usedMessageHashes[messageHash] == false, SignatureAlreadyUsed());
 
     // Mark it as used to avoid whitelisting an unbounded number of addresses when combining this
     // function with the switchMembership function.
@@ -191,7 +186,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
 
     // Verify the signature to see if membership has been approved.
     address recoveredAddress = ECDSA.recover(ethSignedMessageHash, signature);
-    require(recoveredAddress == kycAuthAddress, "MemberRoles: Signature is invalid");
+    require(recoveredAddress == kycAuthAddress, InvalidSignature());
 
     // Whitelist the address.
     tokenController().addToWhitelist(_userAddress);
@@ -199,7 +194,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
 
     // Transfer the joining fee to the pool.
     (bool ok, /* data */) = address(pool()).call{value: joiningFee}("");
-    require(ok, "MemberRoles: The joining fee transfer to the pool failed");
+    require(ok, TransferToPoolFailed());
 
     emit MemberJoined(_userAddress, nonce);
   }
@@ -209,24 +204,17 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
 
     ITokenController _tokenController = tokenController();
 
-    require(isMember(msg.sender), "MemberRoles: Caller is not a member");
+    require(isMember(msg.sender), OnlyMember());
+    require(block.timestamp > token.isLockedForMV(msg.sender), LockedForVoting());
+    require(tokenController().isStakingPoolManager(msg.sender) == false, CantBeStakingPoolManager());
 
-    require(
-      block.timestamp > token.isLockedForMV(msg.sender),
-      "MemberRoles: Locked for voting in governance"
-    );
+    require(_tokenController.tokensLocked(msg.sender, "CLA") == 0, HasNXMStakedInClaimAssessmentV1());
 
-    require(
-      tokenController().isStakingPoolManager(msg.sender) == false,
-      "MemberRoles: Member is a staking pool manager"
-    );
-
-    require(_tokenController.tokensLocked(msg.sender, "CLA") == 0, "Member has NXM staked in Claim Assessment V1");
     // _tokenController.getPendingRewards includes both assessment and governance rewards
-    require(_tokenController.getPendingRewards(msg.sender) == 0, "Member has pending rewards in Token Controller");
+    require(_tokenController.getPendingRewards(msg.sender) == 0, MemberHasPendingRewardsInTokenController());
 
     (uint96 stakeAmount, ,) = assessment().stakeOf(msg.sender);
-    require(stakeAmount == 0, "Member has Assessment stake");
+    require(stakeAmount == 0, MemberHasAssessmentStake());
 
     _tokenController.burnFrom(msg.sender, token.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
@@ -288,20 +276,20 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
   }
 
   function _switchMembership(address currentAddress, address newAddress) internal {
-    require(!master.isPause(), "System is paused");
-    require(isMember(currentAddress), "The current address is not a member");
-    require(!isMember(newAddress), "The new address is already a member");
+    require(!master.isPause(), Paused());
+    require(isMember(currentAddress), OnlyMember());
+    require(!isMember(newAddress), NewAddressIsAlreadyMember());
     // No locked tokens for Governance voting
-    require(block.timestamp > token.isLockedForMV(currentAddress), "Locked for governance voting");
+    require(block.timestamp > token.isLockedForMV(currentAddress), LockedForVoting());
 
     ITokenController _tokenController = tokenController();
 
-    require(_tokenController.tokensLocked(currentAddress, "CLA") == 0, "Member has NXM staked in Claim Assessment V1");
+    require(_tokenController.tokensLocked(currentAddress, "CLA") == 0, HasNXMStakedInClaimAssessmentV1());
     // _tokenController.getPendingRewards includes both assessment and governance rewards
-    require(_tokenController.getPendingRewards(currentAddress) == 0, "Member has pending rewards in Token Controller");
+    require(_tokenController.getPendingRewards(currentAddress) == 0, MemberHasPendingRewardsInTokenController());
 
     (uint96 stakeAmount, ,) = assessment().stakeOf(currentAddress);
-    require(stakeAmount == 0, "Member has Assessment stake");
+    require(stakeAmount == 0, MemberHasAssessmentStake());
 
     _tokenController.addToWhitelist(newAddress);
     _updateRole(currentAddress, uint(Role.Member), false);
@@ -431,12 +419,12 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     bool _active) internal {
     // require(_roleId != uint(Role.TokenHolder), "Membership to Token holder is detected automatically");
     if (_active) {
-      require(!memberRoleData[_roleId].memberActive[_memberAddress]);
+      require(!memberRoleData[_roleId].memberActive[_memberAddress], MemberAlreadyHasRole());
       memberRoleData[_roleId].memberCounter = memberRoleData[_roleId].memberCounter + 1;
       memberRoleData[_roleId].memberActive[_memberAddress] = true;
       memberRoleData[_roleId].memberAddress.push(_memberAddress);
     } else {
-      require(memberRoleData[_roleId].memberActive[_memberAddress]);
+      require(memberRoleData[_roleId].memberActive[_memberAddress], MemberDoesntHaveRole());
       memberRoleData[_roleId].memberCounter = memberRoleData[_roleId].memberCounter - 1;
       delete memberRoleData[_roleId].memberActive[_memberAddress];
     }

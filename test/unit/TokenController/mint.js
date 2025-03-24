@@ -38,8 +38,8 @@ describe('mint', function () {
     const [nonMember] = fixture.accounts.nonMembers;
 
     const amount = parseEther('10');
-    await expect(tokenController.connect(internalContract).mint(nonMember.address, amount)).to.be.revertedWith(
-      'TokenController: Address is not a member',
-    );
+    await expect(
+      tokenController.connect(internalContract).mint(nonMember.address, amount),
+    ).to.be.revertedWithCustomError(tokenController, 'CantMintToNonMemberAddress');
   });
 });

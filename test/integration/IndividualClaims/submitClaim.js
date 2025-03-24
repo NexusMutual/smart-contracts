@@ -212,7 +212,7 @@ describe('submitClaim', function () {
     });
 
     // attempt redemption
-    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
+    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWithCustomError(ci, 'ClaimNotAccepted');
     const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(false);
   });
@@ -269,7 +269,7 @@ describe('submitClaim', function () {
     });
 
     // attempt redemption
-    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
+    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWithCustomError(ci, 'ClaimNotAccepted');
     const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(false);
   });
@@ -466,7 +466,7 @@ describe('submitClaim', function () {
     });
 
     // attempt redemption
-    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
+    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWithCustomError(ci, 'ClaimNotAccepted');
     const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(false);
   });
@@ -531,7 +531,7 @@ describe('submitClaim', function () {
     });
 
     // attempt redemption
-    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
+    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWithCustomError(ci, 'ClaimNotAccepted');
     const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(false);
   });
@@ -734,7 +734,7 @@ describe('submitClaim', function () {
     });
 
     // attempt redemption
-    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
+    await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWithCustomError(ci, 'ClaimNotAccepted');
     const { payoutRedeemed } = await ci.claims(assessmentId);
     expect(payoutRedeemed).to.be.equal(false);
   });
@@ -1214,7 +1214,7 @@ describe('submitClaim', function () {
       });
 
       // attempt redemption
-      await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWith('The claim needs to be accepted');
+      await expect(ci.redeemClaimPayout(assessmentId)).to.be.revertedWithCustomError(ci, 'ClaimNotAccepted');
       const { payoutRedeemed } = await ci.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(false);
 

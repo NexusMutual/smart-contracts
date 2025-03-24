@@ -74,7 +74,7 @@ describe('switchMembershipAndAssets', function () {
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await expect(
       memberRoles.connect(members[0]).switchMembershipAndAssets(members[1].address, [], []),
-    ).to.be.revertedWith('The new address is already a member');
+    ).to.be.revertedWithCustomError(memberRoles, 'NewAddressIsAlreadyMember');
   });
 
   it('reverts when switching membership of non-member address', async function () {
@@ -85,7 +85,7 @@ describe('switchMembershipAndAssets', function () {
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await expect(
       memberRoles.connect(nonMembers[0]).switchMembershipAndAssets(nonMembers[1].address, [], []),
-    ).to.be.revertedWith('The current address is not a member');
+    ).to.be.revertedWithCustomError(memberRoles, 'OnlyMember');
   });
 
   it('transfers the NXM balance amount to the new address', async function () {

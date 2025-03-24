@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts-v4/utils/cryptography/draft-EIP712.sol";
@@ -54,9 +54,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   );
 
   modifier onlyInternalSolver() {
-    if (msg.sender != internalSolver) {
-      revert OnlyInternalSolver();
-    }
+    require(msg.sender == internalSolver, OnlyInternalSolver());
     _;
   }
 
@@ -82,13 +80,9 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     SettlementDetails memory settlementDetails
   ) external payable onlyMember onlyInternalSolver returns (uint coverId) {
 
-    if (params.owner == address(0) || params.owner == address(this)) {
-      revert InvalidOwnerAddress();
-    }
+    require(params.owner != address(0) && params.owner != address(this), InvalidOwnerAddress());
+    require(executionDetails.maxPremiumInAsset >= settlementDetails.fee + params.maxPremiumInAsset, OrderPriceNotMet());
 
-    if (executionDetails.maxPremiumInAsset < settlementDetails.fee + params.maxPremiumInAsset) {
-      revert OrderPriceNotMet();
-    }
 
     bytes32 orderId = getOrderId(params, executionDetails);
     address buyer = ECDSA.recover(orderId, signature);
@@ -96,30 +90,24 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     OrderStatus memory _orderStatus = orderStatus[orderId];
     bool isNewCover = _orderStatus.coverId == 0;
 
-    if (!isNewCover && block.timestamp > executionDetails.renewableUntil) {
-      revert RenewalExpired();
-    }
-
-    if (isNewCover && block.timestamp > executionDetails.executableUntil) {
-      revert OrderExpired();
-    }
-
-    if (isNewCover && block.timestamp < executionDetails.notExecutableBefore) {
-      revert OrderCannotBeExecutedYet();
+    if (isNewCover) {
+      require(block.timestamp < executionDetails.executableUntil, OrderExpired());
+      require(block.timestamp > executionDetails.notExecutableBefore, OrderCannotBeExecutedYet());
+    } else {
+      require(block.timestamp < executionDetails.renewableUntil, RenewalExpired());
     }
 
     if (!isNewCover) {
       CoverData memory coverData = cover().getLatestEditCoverData(_orderStatus.coverId);
 
-      if (coverData.start + coverData.period - executionDetails.renewablePeriodBeforeExpiration > block.timestamp ) {
-        revert OrderCannotBeRenewedYet();
-      }
+      require(
+        coverData.start + coverData.period - executionDetails.renewablePeriodBeforeExpiration < block.timestamp,
+        OrderCannotBeRenewedYet()
+      );
     }
 
     // Ensure the order is not cancelled
-    if (_orderStatus.isCancelled) {
-      revert OrderAlreadyCancelled();
-    }
+    require(!_orderStatus.isCancelled, OrderAlreadyCancelled());
 
     // ETH payment
     if (params.paymentAsset == ETH_ASSET_ID) {
@@ -150,15 +138,11 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     // Recover the signer from the digest and the signature
     address signer = ECDSA.recover(orderId, signature);
 
-    if (signer != msg.sender) {
-      revert NotOrderOwner();
-    }
+    require(signer == msg.sender, NotOrderOwner());
 
     OrderStatus memory _orderStatus = orderStatus[orderId];
 
-    if (_orderStatus.isCancelled) {
-      revert OrderAlreadyCancelled();
-    }
+    require(!_orderStatus.isCancelled, OrderAlreadyCancelled());
 
     _orderStatus.isCancelled = true;
 

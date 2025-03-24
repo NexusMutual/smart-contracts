@@ -26,6 +26,6 @@ describe('swapABMember', function () {
 
     await expect(
       memberRoles.connect(newABMember).swapABMember(newABMember.address, oldABMember.address),
-    ).to.be.revertedWith('Not Authorized');
+    ).to.be.revertedWithCustomError(memberRoles, 'NotAuthorized');
   });
 });

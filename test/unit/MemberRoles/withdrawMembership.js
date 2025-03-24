@@ -37,8 +37,9 @@ describe('withdrawMembership', function () {
     } = fixture.accounts;
 
     await tokenController.setTokensLocked(member.address, formatBytes32String('CLA'), 100);
-    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
-      'Member has NXM staked in Claim Assessment V1',
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWithCustomError(
+      memberRoles,
+      'HasNXMStakedInClaimAssessmentV1',
     );
   });
 
@@ -50,7 +51,10 @@ describe('withdrawMembership', function () {
     } = fixture.accounts;
 
     await assessment.setStakeOf(member.address, 100);
-    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith('Member has Assessment stake');
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWithCustomError(
+      memberRoles,
+      'MemberHasAssessmentStake',
+    );
   });
 
   it('reverts when member has pending rewards in TokenController', async function () {
@@ -61,8 +65,9 @@ describe('withdrawMembership', function () {
     } = fixture.accounts;
 
     await tokenController.setPendingRewards(member.address, 100);
-    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWith(
-      'Member has pending rewards in Token Controller',
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.revertedWithCustomError(
+      memberRoles,
+      'MemberHasPendingRewardsInTokenController',
     );
   });
 
@@ -89,8 +94,9 @@ describe('withdrawMembership', function () {
 
     await tokenController.setIsStakingPoolManager(member1.address, true);
 
-    await expect(memberRoles.connect(member1).withdrawMembership()).to.be.revertedWith(
-      'MemberRoles: Member is a staking pool manager',
+    await expect(memberRoles.connect(member1).withdrawMembership()).to.be.revertedWithCustomError(
+      memberRoles,
+      'CantBeStakingPoolManager',
     );
   });
 

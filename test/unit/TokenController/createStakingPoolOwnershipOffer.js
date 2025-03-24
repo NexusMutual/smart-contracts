@@ -13,7 +13,7 @@ describe('createStakingPoolOwnershipOffer', function () {
 
     await expect(
       tokenController.connect(caller).createStakingPoolOwnershipOffer(poolId, caller.address, 1000000),
-    ).to.be.revertedWith('TokenController: Caller is not staking pool manager');
+    ).to.be.revertedWithCustomError(tokenController, 'OnlyStakingPoolManager');
   });
 
   it('should revert if the deadline is not in the future', async function () {
@@ -31,7 +31,7 @@ describe('createStakingPoolOwnershipOffer', function () {
     const { timestamp: deadline } = await ethers.provider.getBlock('latest');
     await expect(
       tokenController.connect(oldManager).createStakingPoolOwnershipOffer(poolId, newManager.address, deadline),
-    ).to.be.revertedWith('TokenController: Deadline cannot be in the past');
+    ).to.be.revertedWithCustomError(tokenController, 'DeadlinePassed');
   });
 
   it('should successfully create a new pool ownership offer', async function () {

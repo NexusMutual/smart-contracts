@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.28;
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IAssessment.sol";
@@ -52,23 +52,23 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
   /* ========== VIEWS ========== */
 
-  function cover() internal view returns (ICover) {
+  function _cover() internal view returns (ICover) {
     return ICover(internalContracts[uint(ID.CO)]);
   }
 
-  function coverProducts() internal view returns (ICoverProducts) {
+  function _coverProducts() internal view returns (ICoverProducts) {
     return ICoverProducts(internalContracts[uint(ID.CP)]);
   }
 
-  function assessment() internal view returns (IAssessment) {
+  function _assessment() internal view returns (IAssessment) {
     return IAssessment(internalContracts[uint(ID.AS)]);
   }
 
-  function pool() internal view returns (IPool) {
+  function _pool() internal view returns (IPool) {
     return IPool(internalContracts[uint(ID.P1)]);
   }
 
-  function ramm() internal view returns (IRamm) {
+  function _ramm() internal view returns (IRamm) {
     return IRamm(internalContracts[uint(ID.RA)]);
   }
 
@@ -106,7 +106,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint coverAsset
   ) public view returns (uint, uint) {
 
-    IPool poolContract = pool();
+    IPool poolContract = _pool();
 
     uint nxmPriceInETH = poolContract.getInternalTokenPriceInAsset(0);
     uint nxmPriceInCoverAsset = coverAsset == 0
@@ -136,7 +136,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   /// @param id    Claim identifier for which the ClaimDisplay is returned
   function getClaimDisplay(uint id) internal view returns (ClaimDisplay memory) {
     Claim memory claim = claims[id];
-    (IAssessment.Poll memory poll,,) = assessment().assessments(claim.assessmentId);
+    (IAssessment.Poll memory poll,,) = _assessment().assessments(claim.assessmentId);
 
     ClaimStatus claimStatus = ClaimStatus.PENDING;
     PayoutStatus payoutStatus = PayoutStatus.PENDING;
@@ -155,7 +155,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
         if (claim.payoutRedeemed) {
           payoutStatus = PayoutStatus.COMPLETE;
         } else {
-          uint payoutCooldown = assessment().getPayoutCooldown();
+          uint payoutCooldown = _assessment().getPayoutCooldown();
           if (
             block.timestamp >= poll.end + payoutCooldown + PAYOUT_REDEMPTION_PERIOD
           ) {
@@ -167,7 +167,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       }
     }
 
-    CoverData memory coverData = cover().getCoverData(claim.coverId);
+    CoverData memory coverData = _cover().getCoverData(claim.coverId);
 
     uint expiration = coverData.start + coverData.period;
 
@@ -176,7 +176,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       assetSymbol = "ETH";
     } else {
 
-      address assetAddress = pool().getAsset(claim.coverAsset).assetAddress;
+      address assetAddress = _pool().getAsset(claim.coverAsset).assetAddress;
       try IERC20Detailed(assetAddress).symbol() returns (string memory v) {
         assetSymbol = v;
       } catch {
@@ -234,10 +234,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint96 requestedAmount,
     string calldata ipfsMetadata
   ) external payable override onlyMember whenNotPaused returns (Claim memory claim) {
-    require(
-      coverNFT.isApprovedOrOwner(msg.sender, coverId),
-      "Only the owner or approved addresses can submit a claim"
-    );
+    require(coverNFT.isApprovedOrOwner(msg.sender, coverId), OnlyOwnerOrApprovedCanSubmitClaim());
     return _submitClaim(coverId, requestedAmount, ipfsMetadata, msg.sender);
   }
 
@@ -254,35 +251,28 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       if (previousSubmission.exists) {
 
         uint80 assessmentId = claims[previousSubmission.claimId].assessmentId;
-        IAssessment.Poll memory poll = assessment().getPoll(assessmentId);
-        uint payoutCooldown = assessment().getPayoutCooldown();
+        IAssessment.Poll memory poll = _assessment().getPoll(assessmentId);
+        uint payoutCooldown = _assessment().getPayoutCooldown();
 
-        if (block.timestamp < poll.end + payoutCooldown) {
-          revert("A claim is already being assessed");
-        }
-
-        if (
-          poll.accepted > poll.denied &&
-          block.timestamp < uint(poll.end) + payoutCooldown + PAYOUT_REDEMPTION_PERIOD
-        ) {
-          revert("A payout can still be redeemed");
-        }
+        require(block.timestamp >= poll.end + payoutCooldown, ClaimIsBeingAssessed());
+        require(
+          poll.accepted <= poll.denied ||
+          block.timestamp >= uint(poll.end) + payoutCooldown + PAYOUT_REDEMPTION_PERIOD,
+          PayoutCanStillBeRedeemed()
+        );
       }
 
       lastClaimSubmissionOnCover[coverId] = ClaimSubmission(uint80(claims.length), true);
     }
 
-    CoverData memory coverData = cover().getCoverData(coverId);
+    CoverData memory coverData = _cover().getCoverData(coverId);
 
     {
-      ProductType memory productType = coverProducts().getProductTypeOf(coverData.productId);
-      require(productType.claimMethod == ClaimMethod.IndividualClaims, "Invalid claim method for this product type");
-      require(requestedAmount <= coverData.amount, "Covered amount exceeded");
-      require(block.timestamp > coverData.start, "Cannot buy cover and submit claim in the same block");
-      require(
-        uint(coverData.start) + uint(coverData.period) + uint(coverData.gracePeriod) > block.timestamp,
-        "Cover is outside the grace period"
-      );
+      ProductType memory productType = _coverProducts().getProductTypeOf(coverData.productId);
+      require(productType.claimMethod == ClaimMethod.IndividualClaims, InvalidClaimMethod());
+      require(requestedAmount <= coverData.amount, CoveredAmountExceeded()); 
+      require(block.timestamp > coverData.start, CantBuyCoverAndClaimInTheSameBlock());
+      require(uint(coverData.start) + uint(coverData.period) + uint(coverData.gracePeriod) > block.timestamp, GracePeriodPassed());
 
       emit ClaimSubmitted(
         owner,              // claim submitter
@@ -298,7 +288,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       coverData.coverAsset
     );
 
-    uint newAssessmentId = assessment().startAssessment(totalRewardInNXM, assessmentDepositInETH);
+    uint newAssessmentId = _assessment().startAssessment(totalRewardInNXM, assessmentDepositInETH);
 
     Claim memory claim = Claim({
       assessmentId: SafeUintCast.toUint80(newAssessmentId),
@@ -315,23 +305,22 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       emit MetadataSubmitted(claims.length - 1, ipfsMetadata);
     }
 
-    require(msg.value >= assessmentDepositInETH, "Assessment deposit is insufficient");
+    require(msg.value >= assessmentDepositInETH, AssessmentDepositInsufficient());
     if (msg.value > assessmentDepositInETH) {
       // Refund ETH excess back to the sender
       (
         bool refunded,
         /* bytes data */
       ) = owner.call{value: msg.value - assessmentDepositInETH}("");
-      require(refunded, "Assessment deposit excess refund failed");
+      require(refunded, AssessmentDepositTrasnferRefundFailed());
     }
 
     // Transfer the assessment deposit to the pool
     (
       bool transferSucceeded,
       /* bytes data */
-    ) =  address(pool()).call{value: assessmentDepositInETH}("");
-    require(transferSucceeded, "Assessment deposit transfer to pool failed");
-
+    ) =  address(_pool()).call{value: assessmentDepositInETH}("");
+    require(transferSucceeded, AssessmentDepositTransferToPoolFailed());
     return claim;
   }
 
@@ -347,31 +336,28 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       IAssessment.Poll memory poll,
       /*uint128 totalAssessmentReward*/,
       uint assessmentDepositInETH
-    ) = assessment().assessments(claim.assessmentId);
+    ) = _assessment().assessments(claim.assessmentId);
 
-    require(block.timestamp >= poll.end, "The claim is still being assessed");
-    require(poll.accepted > poll.denied, "The claim needs to be accepted");
+    require(block.timestamp >= poll.end, ClaimAssessmentNotFinished());
+    require(poll.accepted > poll.denied, ClaimNotAccepted());
 
-    uint payoutCooldown = assessment().getPayoutCooldown();
+    uint payoutCooldown = _assessment().getPayoutCooldown();
 
-    require(block.timestamp >= poll.end + payoutCooldown, "The claim is in cooldown period");
+    require(block.timestamp >= poll.end + payoutCooldown, CooldownPeriodNotPassed());
 
-    require(
-      block.timestamp < uint(poll.end) + payoutCooldown + PAYOUT_REDEMPTION_PERIOD,
-      "The redemption period has expired"
-    );
+    require(block.timestamp < uint(poll.end) + payoutCooldown + PAYOUT_REDEMPTION_PERIOD, RedemptionPeriodExpired());
 
-    require(!claim.payoutRedeemed, "Payout has already been redeemed");
+    require(!claim.payoutRedeemed, PayoutAlreadyRedeemed());
     claims[claimId].payoutRedeemed = true;
 
-    ramm().updateTwap();
-    address payable coverOwner = payable(cover().burnStake(
+    _ramm().updateTwap();
+    address payable coverOwner = payable(_cover().burnStake(
       claim.coverId,
       claim.amount
     ));
 
     // Send payout in cover asset
-    pool().sendPayout(claim.coverAsset, coverOwner, claim.amount, assessmentDepositInETH);
+    _pool().sendPayout(claim.coverAsset, coverOwner, claim.amount, assessmentDepositInETH);
 
     emit ClaimPayoutRedeemed(coverOwner, claim.amount, claimId, claim.coverId);
   }

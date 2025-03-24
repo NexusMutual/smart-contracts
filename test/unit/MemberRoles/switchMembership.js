@@ -85,8 +85,9 @@ describe('switchMembership', function () {
     const { members } = fixture.accounts;
 
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
-    await expect(memberRoles.connect(members[0]).switchMembership(members[1].address)).to.be.revertedWith(
-      'The new address is already a member',
+    await expect(memberRoles.connect(members[0]).switchMembership(members[1].address)).to.be.revertedWithCustomError(
+      memberRoles,
+      'NewAddressIsAlreadyMember',
     );
   });
 
@@ -96,9 +97,9 @@ describe('switchMembership', function () {
     const { nonMembers, members } = fixture.accounts;
 
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
-    await expect(memberRoles.connect(nonMembers[0]).switchMembership(nonMembers[1].address)).to.be.revertedWith(
-      'The current address is not a member',
-    );
+    await expect(
+      memberRoles.connect(nonMembers[0]).switchMembership(nonMembers[1].address),
+    ).to.be.revertedWithCustomError(memberRoles, 'OnlyMember');
   });
 
   it('reverts when member tokens are locked', async function () {
@@ -110,8 +111,9 @@ describe('switchMembership', function () {
     } = fixture.accounts;
 
     await nxm.setLock(member.address, 1000);
-    await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
-      'Locked for governance voting',
+    await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWithCustomError(
+      memberRoles,
+      'LockedForVoting',
     );
   });
 
@@ -124,8 +126,9 @@ describe('switchMembership', function () {
     } = fixture.accounts;
 
     await tokenController.setTokensLocked(member.address, formatBytes32String('CLA'), 100);
-    await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
-      'Member has NXM staked in Claim Assessment V1',
+    await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWithCustomError(
+      memberRoles,
+      'HasNXMStakedInClaimAssessmentV1',
     );
   });
 
@@ -138,8 +141,9 @@ describe('switchMembership', function () {
     } = fixture.accounts;
 
     await assessment.setStakeOf(member.address, 100);
-    await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
-      'Member has Assessment stake',
+    await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWithCustomError(
+      memberRoles,
+      'MemberHasAssessmentStake',
     );
   });
 
@@ -152,8 +156,9 @@ describe('switchMembership', function () {
     } = fixture.accounts;
 
     await tokenController.setPendingRewards(member.address, 100);
-    await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
-      'Member has pending rewards in Token Controller',
+    await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWithCustomError(
+      memberRoles,
+      'MemberHasPendingRewardsInTokenController',
     );
   });
 
@@ -167,8 +172,9 @@ describe('switchMembership', function () {
 
     await master.pause();
 
-    await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
-      'System is paused',
+    await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWithCustomError(
+      memberRoles,
+      'Paused',
     );
   });
 

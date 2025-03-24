@@ -23,14 +23,14 @@ describe('submitClaim', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
     const coverId = 1;
-    await expect(individualClaims.connect(coverOwner).submitClaim(coverId, parseEther('100'), '')).to.be.revertedWith(
-      'Assessment deposit is insufficient',
-    );
+    await expect(
+      individualClaims.connect(coverOwner).submitClaim(coverId, parseEther('100'), ''),
+    ).to.be.revertedWithCustomError(individualClaims, 'AssessmentDepositInsufficient');
   });
 
   it('reverts if a payout on the same cover can be redeemed ', async function () {
     const fixture = await loadFixture(setup);
-    const { cover, assessment } = fixture.contracts;
+    const { cover, assessment, individualClaims } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
 
     await createMockCover(cover, { owner: coverOwner.address });
@@ -40,48 +40,55 @@ describe('submitClaim', function () {
     const { poll } = await assessment.assessments(0);
 
     await setTime(poll.end + fixture.config.payoutCooldown);
-    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWith(
-      'A payout can still be redeemed',
+    // await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+
+    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWithCustomError(
+      individualClaims,
+      'PayoutCanStillBeRedeemed',
     );
   });
 
   it('reverts if a claim on the same cover is already being assessed', async function () {
     const fixture = await loadFixture(setup);
-    const { cover, assessment } = fixture.contracts;
+    const { cover, assessment, individualClaims } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
 
     await createMockCover(cover, { owner: coverOwner.address });
 
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWith(
-      'A claim is already being assessed',
+    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWithCustomError(
+      individualClaims,
+      'ClaimIsBeingAssessed',
     );
 
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     await setTime(poll.end + daysToSeconds(poll.end));
-    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.revertedWith(
-      'A claim is already being assessed',
+    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.revertedWithCustomError(
+      individualClaims,
+      'ClaimIsBeingAssessed',
     );
   });
 
   // TODO: unable to currently test this with only one claim method existing, figure out if there's a workaround
   it.skip('reverts if covered product uses a claimMethod other than individual claims', async function () {
     const fixture = await loadFixture(setup);
-    const { cover } = fixture.contracts;
+    const { cover, individualClaims } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
 
     await createMockCover(cover, { owner: coverOwner.address, productId: 2 });
 
-    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWith(
-      'Invalid claim method for this product type',
+    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWithCustomError(
+      individualClaims,
+      'InvalidClaimMethod',
     );
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     await createMockCover(cover, { owner: coverOwner.address, productId: 1, start: timestamp + 1 });
 
-    await expect(submitClaim(fixture)({ coverId: 2, sender: coverOwner })).not.to.be.revertedWith(
-      'Invalid claim method for this product type',
+    await expect(submitClaim(fixture)({ coverId: 2, sender: coverOwner })).not.to.be.revertedWithCustomError(
+      individualClaims,
+      'InvalidClaimMethod',
     );
 
     const latestTimestamp = await ethers.provider.getBlock('latest');
@@ -129,7 +136,7 @@ describe('submitClaim', function () {
       individualClaims.connect(coverOwner).submitClaim(coverId, coverData.amount, '', {
         value: deposit.div('2'),
       }),
-    ).to.be.revertedWith('Assessment deposit is insufficient');
+    ).to.be.revertedWithCustomError(individualClaims, 'AssessmentDepositInsufficient');
   });
 
   it('refunds any excess ETH sent as a submission deposit', async function () {
@@ -205,7 +212,7 @@ describe('submitClaim', function () {
 
     await expect(
       individualClaims.connect(coverOwner).submitClaim(coverId, coverData.amount.add(1), '', { value: deposit }),
-    ).to.be.revertedWith('Covered amount exceeded');
+    ).to.be.revertedWithCustomError(individualClaims, 'CoveredAmountExceeded');
   });
 
   it('reverts if the claim submission is made in the same block as the cover purchase', async function () {
@@ -231,7 +238,7 @@ describe('submitClaim', function () {
     await setNextBlockTime(start);
     await expect(
       individualClaims.connect(coverOwner).submitClaim(coverId, coverData.amount, '', { value: deposit }),
-    ).to.be.revertedWith('Cannot buy cover and submit claim in the same block');
+    ).to.be.revertedWithCustomError(individualClaims, 'CantBuyCoverAndClaimInTheSameBlock');
   });
 
   it('reverts if the cover is outside the grace period', async function () {
@@ -257,14 +264,14 @@ describe('submitClaim', function () {
 
     await expect(
       individualClaims.connect(coverOwner).submitClaim(coverId, coverData.amount, '', { value: deposit }),
-    ).not.to.be.revertedWith('Cover is outside the grace period');
+    ).not.to.be.revertedWithCustomError(individualClaims, 'GracePeriodPassed');
 
     // advance time past grace period
     await setTime(coverData.start + coverData.period + gracePeriod + 1);
 
     await expect(
       individualClaims.connect(coverOwner).submitClaim(coverId, coverData.amount, '', { value: deposit }),
-    ).to.be.revertedWith('Cover is outside the grace period');
+    ).to.be.revertedWithCustomError(individualClaims, 'GracePeriodPassed');
   });
 
   it('Assessment should use cover grace period and not product.gracePeriod', async function () {
@@ -296,7 +303,7 @@ describe('submitClaim', function () {
 
     await expect(
       individualClaims.connect(coverOwner).submitClaim(coverId, coverData.amount, '', { value: deposit }),
-    ).to.be.revertedWith('Cover is outside the grace period');
+    ).to.be.revertedWithCustomError(individualClaims, 'GracePeriodPassed');
   });
 
   it('calls startAssessment and stores the returned assessmentId in the claim', async function () {
@@ -345,17 +352,19 @@ describe('submitClaim', function () {
 
   it('reverts if it is not called by cover owner or an approved address', async function () {
     const fixture = await loadFixture(setup);
-    const { cover, coverNFT } = fixture.contracts;
+    const { cover, coverNFT, individualClaims } = fixture.contracts;
     const [coverOwner, otherMember] = fixture.accounts.members;
 
     await createMockCover(cover, { owner: coverOwner.address });
 
     const coverId = 1;
-    await expect(submitClaim(fixture)({ coverId, sender: otherMember })).to.be.revertedWith(
-      'Only the owner or approved addresses can submit a claim',
+    await expect(submitClaim(fixture)({ coverId, sender: otherMember })).to.be.revertedWithCustomError(
+      individualClaims,
+      'OnlyOwnerOrApprovedCanSubmitClaim',
     );
-    await expect(submitClaim(fixture)({ coverId, sender: coverOwner })).not.to.be.revertedWith(
-      'Only the owner or approved addresses can submit a claim',
+    await expect(submitClaim(fixture)({ coverId, sender: coverOwner })).not.to.be.revertedWithCustomError(
+      individualClaims,
+      'OnlyOwnerOrApprovedCanSubmitClaim',
     );
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -363,8 +372,9 @@ describe('submitClaim', function () {
 
     const coverId2 = 2;
     await coverNFT.connect(coverOwner).approve(otherMember.address, coverId2);
-    await expect(submitClaim(fixture)({ coverId: coverId2, sender: otherMember })).not.to.be.revertedWith(
-      'Only the owner or approved addresses can submit a claim',
+    await expect(submitClaim(fixture)({ coverId: coverId2, sender: otherMember })).not.to.be.revertedWithCustomError(
+      individualClaims,
+      'OnlyOwnerOrApprovedCanSubmitClaim',
     );
   });
 
@@ -473,7 +483,7 @@ describe('submitClaim', function () {
     );
     await expect(
       individualClaims.connect(coverNonOwner).submitClaim(coverId, coverData.amount, '', { value: deposit }),
-    ).to.be.revertedWith('Only the owner or approved addresses can submit a claim');
+    ).to.be.revertedWithCustomError(individualClaims, 'OnlyOwnerOrApprovedCanSubmitClaim');
   });
 
   it('Should transfer assessment deposit to pool', async function () {
@@ -540,7 +550,7 @@ describe('submitClaim', function () {
       individualClaims
         .connect(fallbackWillFailSigner)
         .submitClaim(coverId, coverData.amount, '', { value: deposit.mul('2') }),
-    ).to.be.revertedWith('Assessment deposit excess refund failed');
+    ).to.be.revertedWithCustomError(individualClaims, 'AssessmentDepositTrasnferRefundFailed');
   });
 
   it('should revert if assessment deposit to pool fails', async function () {
@@ -568,6 +578,6 @@ describe('submitClaim', function () {
 
     await expect(
       individualClaims.connect(coverOwner).submitClaim(coverId, coverData.amount, '', { value: deposit }),
-    ).to.be.revertedWith('Assessment deposit transfer to pool failed');
+    ).to.be.revertedWithCustomError(individualClaims, 'AssessmentDepositTransferToPoolFailed');
   });
 });

@@ -12,8 +12,9 @@ describe('acceptStakingPoolOwnershipOffer', function () {
     const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
 
-    await expect(tokenController.acceptStakingPoolOwnershipOffer(poolId)).to.be.revertedWith(
-      'TokenController: Caller is not the proposed manager',
+    await expect(tokenController.acceptStakingPoolOwnershipOffer(poolId)).to.be.revertedWithCustomError(
+      tokenController,
+      'OnlyProposedManager',
     );
   });
 
@@ -34,9 +35,9 @@ describe('acceptStakingPoolOwnershipOffer', function () {
     // Cancel offer
     await tokenController.connect(oldManager).cancelStakingPoolOwnershipOffer(poolId);
 
-    await expect(tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId)).to.be.revertedWith(
-      'TokenController: Caller is not the proposed manager',
-    );
+    await expect(
+      tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId),
+    ).to.be.revertedWithCustomError(tokenController, 'OnlyProposedManager');
   });
 
   it('should revert if the ownership offer has expired', async function () {
@@ -56,9 +57,9 @@ describe('acceptStakingPoolOwnershipOffer', function () {
 
     await setNextBlockTime(deadline + 3);
 
-    await expect(tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId)).to.be.revertedWith(
-      'TokenController: Ownership offer has expired',
-    );
+    await expect(
+      tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId),
+    ).to.be.revertedWithCustomError(tokenController, 'OwnershipOfferHasExpired');
   });
 
   it('should successfully remove pools from last manager and add them to new managers list', async function () {
@@ -113,8 +114,8 @@ describe('acceptStakingPoolOwnershipOffer', function () {
     // Lock old manager
     await nxm.setLock(oldManager.address, Two.pow(30));
 
-    await expect(tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId)).to.be.revertedWith(
-      'TokenController: Current manager is locked for voting in governance',
-    );
+    await expect(
+      tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId),
+    ).to.be.revertedWithCustomError(tokenController, 'ManagerIsLockedForVoting');
   });
 });

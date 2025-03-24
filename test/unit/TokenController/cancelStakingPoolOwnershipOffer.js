@@ -15,9 +15,9 @@ describe('cancelStakingPoolOwnershipOffer', function () {
       members: [newManager],
     } = fixture.accounts;
 
-    await expect(tokenController.connect(newManager).cancelStakingPoolOwnershipOffer(poolId)).to.be.revertedWith(
-      'TokenController: Caller is not staking pool manager',
-    );
+    await expect(
+      tokenController.connect(newManager).cancelStakingPoolOwnershipOffer(poolId),
+    ).to.be.revertedWithCustomError(tokenController, 'OnlyStakingPoolManager');
   });
 
   it('should successfully remove ownership offer', async function () {
@@ -43,9 +43,9 @@ describe('cancelStakingPoolOwnershipOffer', function () {
     expect(deadline).to.equal(0);
 
     // Check that new manager is no longer able to accept offer
-    await expect(tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId)).to.be.revertedWith(
-      'TokenController: Caller is not the proposed manager',
-    );
+    await expect(
+      tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId),
+    ).to.be.revertedWithCustomError(tokenController, 'OnlyProposedManager');
   });
 
   it('should be able to cancel the same pool twice - noop', async function () {

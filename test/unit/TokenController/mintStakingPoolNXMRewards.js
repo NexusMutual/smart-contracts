@@ -31,8 +31,9 @@ describe('mintStakingPoolNXMRewards', function () {
     const { tokenController } = fixture.contracts;
 
     const amount = parseEther('10');
-    await expect(tokenController.mintStakingPoolNXMRewards(amount, fixture.poolId)).to.be.revertedWith(
-      'TokenController: Caller not a staking pool',
+    await expect(tokenController.mintStakingPoolNXMRewards(amount, fixture.poolId)).to.be.revertedWithCustomError(
+      tokenController,
+      'OnlyStakingPool',
     );
   });
 

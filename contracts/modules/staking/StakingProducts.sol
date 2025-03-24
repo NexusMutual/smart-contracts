@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.28;
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
@@ -52,9 +52,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
   modifier onlyManager(uint poolId) {
-    if (msg.sender != getPoolManager(poolId)) {
-      revert OnlyManager();
-    }
+    require(msg.sender == getPoolManager(poolId), OnlyManager());
     _;
   }
 
@@ -93,7 +91,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   }
 
   function getPoolManager(uint poolId) public view override returns (address) {
-    return tokenController().getStakingPoolManager(poolId);
+    return _tokenController().getStakingPoolManager(poolId);
   }
 
   function getPoolMetadata(uint poolId) external view override returns (string memory ipfsHash) {
@@ -104,8 +102,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     IStakingPool _stakingPool = stakingPool(poolId);
 
-    uint[] memory capacityReductionRatios = coverProducts().getCapacityReductionRatios(productIds);
-    uint globalCapacityRatio = cover().getGlobalCapacityRatio();
+    uint[] memory capacityReductionRatios = _coverProducts().getCapacityReductionRatios(productIds);
+    uint globalCapacityRatio = _cover().getGlobalCapacityRatio();
 
     uint _totalEffectiveWeight = weights[poolId].totalEffectiveWeight;
 
@@ -130,10 +128,10 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   function recalculateEffectiveWeightsForAllProducts(uint poolId) external {
 
-    ICoverProducts _coverProducts = coverProducts();
+    ICoverProducts coverProducts = _coverProducts();
     IStakingPool _stakingPool = stakingPool(poolId);
 
-    uint productsCount = _coverProducts.getProductCount();
+    uint productsCount = coverProducts.getProductCount();
 
     // initialize array for all possible products
     uint[] memory productIdsRaw = new uint[](productsCount);
@@ -154,8 +152,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       productIds[i] = productIdsRaw[i];
     }
 
-    uint globalCapacityRatio = cover().getGlobalCapacityRatio();
-    uint[] memory capacityReductionRatios = _coverProducts.getCapacityReductionRatios(productIds);
+    uint globalCapacityRatio = _cover().getGlobalCapacityRatio();
+    uint[] memory capacityReductionRatios = coverProducts.getCapacityReductionRatios(productIds);
 
     uint _totalEffectiveWeight;
 
@@ -182,9 +180,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     IStakingPool _stakingPool = stakingPool(poolId);
 
-    if (msg.sender != tokenController().getStakingPoolManager(poolId)) {
-      revert OnlyManager();
-    }
+    require(msg.sender == _tokenController().getStakingPoolManager(poolId), OnlyManager());
 
     (uint globalCapacityRatio,) = ICover(coverContract).getGlobalCapacityAndPriceRatios();
 
@@ -200,14 +196,14 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
         productIds[i] = params[i].productId;
       }
 
-      ICoverProducts _coverProducts = coverProducts();
+      ICoverProducts coverProducts = _coverProducts();
 
       // reverts if poolId is not allowed for any of these products
-      _coverProducts.requirePoolIsAllowed(productIds, poolId);
+      coverProducts.requirePoolIsAllowed(productIds, poolId);
 
-      initialPriceRatios = _coverProducts.getInitialPrices(productIds);
-      capacityReductionRatios = _coverProducts.getCapacityReductionRatios(productIds);
-      minPriceRatios = _coverProducts.getMinPrices(productIds);
+      initialPriceRatios = coverProducts.getInitialPrices(productIds);
+      capacityReductionRatios = coverProducts.getCapacityReductionRatios(productIds);
+      minPriceRatios = coverProducts.getMinPrices(productIds);
     }
 
     Weights memory _weights = weights[poolId];
@@ -225,23 +221,13 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
         _product.bumpedPrice = initialPriceRatios[i].toUint96();
         _product.bumpedPriceUpdateTime = uint32(block.timestamp);
         // and make sure we set the price and the target weight
-        if (!_param.setTargetPrice) {
-          revert MustSetPriceForNewProducts();
-        }
-        if (!_param.setTargetWeight) {
-          revert MustSetWeightForNewProducts();
-        }
+        require(_param.setTargetPrice, MustSetPriceForNewProducts());
+        require(_param.setTargetWeight, MustSetWeightForNewProducts());
       }
 
       if (_param.setTargetPrice) {
-
-        if (_param.targetPrice > TARGET_PRICE_DENOMINATOR) {
-          revert TargetPriceTooHigh();
-        }
-
-        if (_param.targetPrice < minPriceRatios[i]) {
-          revert TargetPriceBelowMin();
-        }
+        require(_param.targetPrice <= TARGET_PRICE_DENOMINATOR, TargetPriceTooHigh());
+        require(_param.targetPrice >= minPriceRatios[i], TargetPriceBelowMin());
 
         // if this is an existing product, when the target price is updated we need to calculate the
         // current base price using the old target price and update the bumped price to that value
@@ -265,17 +251,13 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       }
 
       // if setTargetWeight is set - effective weight must be recalculated
-      if (_param.setTargetWeight && !_param.recalculateEffectiveWeight) {
-        revert MustRecalculateEffectiveWeight();
-      }
+      require(!_param.setTargetWeight || _param.recalculateEffectiveWeight, MustRecalculateEffectiveWeight());
 
       // Must recalculate effectiveWeight to adjust targetWeight
       if (_param.recalculateEffectiveWeight) {
 
         if (_param.setTargetWeight) {
-          if (_param.targetWeight > WEIGHT_DENOMINATOR) {
-            revert TargetWeightTooHigh();
-          }
+          require(_param.targetWeight  <= WEIGHT_DENOMINATOR, TargetWeightTooHigh());
 
           // totalEffectiveWeight cannot be above the max unless target  weight is not increased
           if (!targetWeightIncreased) {
@@ -306,15 +288,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       emit ProductUpdated(_param.productId, _param.targetWeight, _param.targetPrice);
     }
 
-    if (_weights.totalTargetWeight > MAX_TOTAL_WEIGHT) {
-      revert TotalTargetWeightExceeded();
-    }
-
-    if (targetWeightIncreased) {
-      if (_weights.totalEffectiveWeight > MAX_TOTAL_WEIGHT) {
-        revert TotalEffectiveWeightExceeded();
-      }
-    }
+    require(_weights.totalTargetWeight <= MAX_TOTAL_WEIGHT, TotalTargetWeightExceeded());
+    require(!targetWeightIncreased || _weights.totalEffectiveWeight <= MAX_TOTAL_WEIGHT, TotalEffectiveWeightExceeded());
 
     weights[poolId] = _weights;
   }
@@ -373,10 +348,8 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     bool useFixedPrice,
     uint nxmPerAllocationUnit
   ) public returns (uint premium) {
-
-    if (msg.sender != StakingPoolLibrary.getAddress(stakingPoolFactory, poolId)) {
-      revert OnlyStakingPool();
-    }
+    
+    require(msg.sender == StakingPoolLibrary.getAddress(stakingPoolFactory, poolId), OnlyStakingPool());
 
     StakedProduct memory product = _products[poolId][productId];
     uint targetPrice = Math.max(product.targetPrice, productMinPrice);
@@ -490,21 +463,20 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     ProductInitializationParams[] memory productInitParams,
     string calldata ipfsHash
   ) external override whenNotPaused onlyMember returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
-    if (bytes(ipfsHash).length == 0) {
-      revert IpfsHashRequired();
-    }
 
-    ICoverProducts _coverProducts = coverProducts();
+    require(bytes(ipfsHash).length > 0, IpfsHashRequired());
+
+    ICoverProducts coverProducts = _coverProducts();
 
     // create and initialize staking pool
     (uint poolId, address stakingPoolAddress) = ICompleteStakingPoolFactory(stakingPoolFactory).create(coverContract);
     IStakingPool(stakingPoolAddress).initialize(isPrivatePool, initialPoolFee, maxPoolFee, poolId);
 
     // assign pool manager
-    tokenController().assignStakingPoolManager(poolId, msg.sender);
+    _tokenController().assignStakingPoolManager(poolId, msg.sender);
 
     // set products
-    ProductInitializationParams[] memory initializedProducts = _coverProducts.prepareStakingProductsParams(
+    ProductInitializationParams[] memory initializedProducts = coverProducts.prepareStakingProductsParams(
       productInitParams
     );
     _setInitialProducts(poolId, initializedProducts);
@@ -522,23 +494,15 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     for (uint i = 0; i < numProducts; i++) {
       productIds[i] = params[i].productId;
     }
-    uint[] memory minPriceRatios = coverProducts().getMinPrices(productIds); 
+    uint[] memory minPriceRatios = _coverProducts().getMinPrices(productIds); 
     uint totalTargetWeight;
 
     for (uint i = 0; i < params.length; i++) {
 
       ProductInitializationParams memory param = params[i];
-      if (params[i].targetPrice < minPriceRatios[i]) {
-        revert TargetPriceBelowMinPriceRatio();
-      }
-
-      if (param.targetPrice > TARGET_PRICE_DENOMINATOR) {
-        revert TargetPriceTooHigh();
-      }
-
-      if (param.weight > WEIGHT_DENOMINATOR) {
-        revert TargetWeightTooHigh();
-      }
+      require(params[i].targetPrice >= minPriceRatios[i], TargetPriceBelowMinPriceRatio());
+      require(param.targetPrice <= TARGET_PRICE_DENOMINATOR, TargetPriceTooHigh());
+      require(param.weight <= WEIGHT_DENOMINATOR, TargetWeightTooHigh());
 
       StakedProduct memory product;
       product.bumpedPrice = param.initialPrice;
@@ -553,9 +517,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
       totalTargetWeight += param.weight;
     }
 
-    if (totalTargetWeight > MAX_TOTAL_WEIGHT) {
-      revert TotalTargetWeightExceeded();
-    }
+    require(totalTargetWeight <= MAX_TOTAL_WEIGHT, TotalTargetWeightExceeded());
 
     weights[poolId] = Weights({
       totalTargetWeight: totalTargetWeight.toUint32(),
@@ -572,9 +534,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint poolId,
     string calldata ipfsHash
   ) external override onlyManager(poolId) {
-    if (bytes(ipfsHash).length == 0) {
-      revert IpfsHashRequired();
-    }
+    require(bytes(ipfsHash).length > 0, IpfsHashRequired());
     poolMetadata[poolId] = ipfsHash;
   }
 
@@ -594,15 +554,15 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
   /* dependencies */
 
-  function tokenController() internal view returns (ITokenController) {
+  function _tokenController() internal view returns (ITokenController) {
     return ITokenController(internalContracts[uint(ID.TC)]);
   }
 
-  function coverProducts() internal view returns (ICoverProducts) {
+  function _coverProducts() internal view returns (ICoverProducts) {
     return ICoverProducts(internalContracts[uint(ID.CP)]);
   }
 
-  function cover() internal view returns (ICover) {
+  function _cover() internal view returns (ICover) {
     return ICover(coverContract);
   }
 

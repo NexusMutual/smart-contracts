@@ -1,7 +1,7 @@
 const { abis, addresses } = require('@nexusmutual/deployments');
 const { ethers } = require('hardhat');
 
-const { Address, EnzymeAdress, V2Addresses, getContractByContractCode } = require('./utils');
+const { Address, EnzymeAdress, getContractByContractCode } = require('./utils');
 const { ContractCode } = require('../../lib/constants');
 
 it('load contracts', async function () {

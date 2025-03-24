@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ILimitOrders.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/ITokenController.sol";
 
 contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   using ECDSA for bytes32;
@@ -272,6 +273,11 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     return coverId;
   }
 
+
+  function whitelistSelf() external {
+    tokenController().addToWhitelist(address(this));
+  }
+
   /// @notice Allows the Cover contract to spend the maximum possible amount of a specified ERC20 token on behalf of the LimitOrders.
   /// @param erc20 The ERC20 token for which to approve spending.
   function maxApproveCoverContract(IERC20 erc20) external {
@@ -293,6 +299,11 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   /// @return The Cover's instance
   function cover() internal view returns (ICover) {
     return ICover(internalContracts[uint(ID.CO)]);
+  }
+
+  /// @return The TokenController's instance
+  function tokenController() internal view returns (ITokenController) {
+    return ITokenController(internalContracts[uint(ID.TC)]);
   }
 
   function changeDependentContractAddress() external override {

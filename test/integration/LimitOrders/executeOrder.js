@@ -69,6 +69,7 @@ async function buyCoverSetup() {
   const { productList } = fixture;
   const { targetPrice } = stakedProductParamTemplate;
 
+  await limitOrders.whitelistSelf({ gasPrice: 0 });
   await limitOrders.maxApproveTokenControllerContract();
 
   const stakeAmount = parseEther('900000');

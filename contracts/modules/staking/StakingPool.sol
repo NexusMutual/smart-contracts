@@ -309,6 +309,8 @@ contract StakingPool is IStakingPool, Multicall {
     lastAccNxmUpdate = _lastAccNxmUpdate.toUint32();
     stakeSharesSupply = _stakeSharesSupply.toUint128();
     rewardsSharesSupply = _rewardsSharesSupply.toUint128();
+
+    emit ActiveStakeUpdated(_activeStake, _stakeSharesSupply);
   }
 
   function depositTo(
@@ -367,6 +369,7 @@ contract StakingPool is IStakingPool, Multicall {
       ? Math.sqrt(amount)
       : _stakeSharesSupply * amount / _activeStake;
 
+    _stakeSharesSupply += newStakeShares;
     uint newRewardsShares = newStakeShares;
 
     // update deposit and pending reward
@@ -388,6 +391,7 @@ contract StakingPool is IStakingPool, Multicall {
 
       // store
       deposits[tokenId][trancheId] = deposit;
+      emit DepositUpdated(tokenId, trancheId, deposit.stakeShares, _stakeSharesSupply);
     }
 
     // update pool manager's reward shares
@@ -415,10 +419,10 @@ contract StakingPool is IStakingPool, Multicall {
       tranche.stakeShares += newStakeShares.toUint128();
       tranche.rewardsShares += newRewardsShares.toUint128();
       tranches[trancheId] = tranche;
+      emit TrancheUpdated(trancheId, tranche.stakeShares, _stakeSharesSupply);
     }
 
     _activeStake += amount;
-    _stakeSharesSupply += newStakeShares;
     _rewardsSharesSupply += newRewardsShares;
 
     // transfer nxm from the staker and update the pool deposit balance
@@ -430,6 +434,7 @@ contract StakingPool is IStakingPool, Multicall {
     rewardsSharesSupply = _rewardsSharesSupply.toUint128();
 
     emit StakeDeposited(msg.sender, amount, trancheId, tokenId);
+    emit ActiveStakeUpdated(_activeStake, _stakeSharesSupply);
   }
 
   /// @notice Withdraws stake and rewards for a given token and specified tranches.
@@ -1072,6 +1077,7 @@ contract StakingPool is IStakingPool, Multicall {
     if (topUpAmount > 0) {
       uint _activeStake = activeStake;
       newShares = _stakeSharesSupply * topUpAmount / _activeStake;
+      _stakeSharesSupply += newShares;
       activeStake = (_activeStake + topUpAmount).toUint96();
     }
 
@@ -1124,6 +1130,7 @@ contract StakingPool is IStakingPool, Multicall {
       initialTranche.stakeShares -= initialDeposit.stakeShares;
       initialTranche.rewardsShares -= (initialDeposit.rewardsShares + initialFeeRewardShares).toUint128();
       tranches[initialTrancheId] = initialTranche; // sstore
+      emit TrancheUpdated(initialTrancheId, initialTranche.stakeShares, _stakeSharesSupply);
     }
 
     {
@@ -1132,6 +1139,7 @@ contract StakingPool is IStakingPool, Multicall {
       targetTranche.rewardsShares += initialDeposit.rewardsShares;
       targetTranche.rewardsShares += (initialFeeRewardShares + newFeeRewardShares).toUint128();
       tranches[targetTrancheId] = targetTranche; // store
+      emit TrancheUpdated(targetTrancheId, targetTranche.stakeShares, _stakeSharesSupply);
     }
 
     // delete the initial deposit and store the new deposit
@@ -1139,13 +1147,16 @@ contract StakingPool is IStakingPool, Multicall {
     deposits[tokenId][targetTrancheId] = targetDeposit;
 
     // update global shares supply
-    stakeSharesSupply = (_stakeSharesSupply + newShares).toUint128();
+    stakeSharesSupply = _stakeSharesSupply.toUint128();
     rewardsSharesSupply = (_rewardsSharesSupply + newShares + newFeeRewardShares).toUint128();
 
     // transfer nxm from the staker and update the pool deposit balance
     tokenController.depositStakedNXM(msg.sender, topUpAmount, poolId);
 
     emit DepositExtended(msg.sender, tokenId, initialTrancheId, targetTrancheId, topUpAmount);
+    emit ActiveStakeUpdated(activeStake, _stakeSharesSupply);
+    emit DepositUpdated(tokenId, initialTrancheId, 0, _stakeSharesSupply);
+    emit DepositUpdated(tokenId, targetTrancheId, targetDeposit.stakeShares, _stakeSharesSupply);
   }
 
   function burnStake(uint amount, BurnStakeParams calldata params) external onlyCoverContract {
@@ -1168,6 +1179,7 @@ contract StakingPool is IStakingPool, Multicall {
       // sstore & log event
       activeStake = (_activeStake - amount).toUint96();
       emit StakeBurned(amount);
+      emit ActiveStakeUpdated(_activeStake - amount, stakeSharesSupply);
     }
 
     // do not deallocate if the cover has expired (grace period)

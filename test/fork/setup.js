@@ -1,8 +1,10 @@
 const { abis, addresses } = require('@nexusmutual/deployments');
 const { ethers } = require('hardhat');
 
-const { Address, EnzymeAdress, getContractByContractCode } = require('./utils');
+const { Address, EnzymeAdress, getContractByContractCode, getSigner } = require('./utils');
 const { ContractCode } = require('../../lib/constants');
+
+const { parseEther } = ethers.utils;
 
 it('load contracts', async function () {
   this.mcr = await ethers.getContractAt(abis.MCR, addresses.MCR);
@@ -36,6 +38,7 @@ it('load contracts', async function () {
   this.stakingPool = await ethers.getContractAt(abis.StakingPool, await this.cover.stakingPoolImplementation());
 
   // Token Mocks
+  this.weth = await ethers.getContractAt('WETH9', Address.WETH_ADDRESS);
   this.cbBTC = await ethers.getContractAt('ERC20Mock', Address.CBBTC_ADDRESS);
   this.dai = await ethers.getContractAt('ERC20Mock', Address.DAI_ADDRESS);
   this.usdc = await ethers.getContractAt('ERC20Mock', Address.USDC_ADDRESS);
@@ -43,4 +46,13 @@ it('load contracts', async function () {
   this.stEth = await ethers.getContractAt('ERC20Mock', Address.STETH_ADDRESS);
   this.awEth = await ethers.getContractAt('ERC20Mock', Address.AWETH_ADDRESS);
   this.enzymeShares = await ethers.getContractAt('ERC20Mock', EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS);
+});
+
+it('Impersonate AB members', async function () {
+  const { memberArray: abMembers } = await this.memberRoles.members(1);
+  const impersonatePromises = abMembers.map(async address => {
+    await Promise.all([this.evm.impersonate(address), this.evm.setBalance(address, parseEther('1000'))]);
+    return getSigner(address);
+  });
+  this.abMembers = await Promise.all(impersonatePromises);
 });

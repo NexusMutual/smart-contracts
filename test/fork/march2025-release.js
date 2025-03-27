@@ -1,15 +1,21 @@
 const chai = require('chai');
 const { ethers, network } = require('hardhat');
-
-const { getSigner, submitGovernanceProposal, getContractByContractCode } = require('./utils');
-const { ContractCode, ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
+const { ContractCode, ProposalCategory: PROPOSAL_CATEGORIES, ContractTypes } = require('../../lib/constants');
+const {
+  submitGovernanceProposal,
+  getContractByContractCode,
+  Address,
+  formatInternalContracts,
+  calculateProxyAddress,
+  UserAddress,
+} = require('./utils');
 
 const evm = require('./evm')();
 
 const { expect } = chai;
-const { deployContract } = ethers;
-
+const { deployContract, BigNumber } = ethers;
 const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { NXM_WHALE_1 } = UserAddress;
 
 const compareProxyImplementationAddress = async (proxyAddress, addressToCompare) => {
   const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
@@ -34,18 +40,10 @@ describe('march 2025 release fork tests', function () {
     }
     const [deployer] = await ethers.getSigners();
     await evm.setBalance(deployer.address, parseEther('1000'));
+    this.evm = evm;
   });
 
-  require('./load-contracts');
-
-  it('Impersonate AB members', async function () {
-    const { memberArray: abMembers } = await this.memberRoles.members(1);
-    const impersonatePromises = abMembers.map(async address => {
-      await Promise.all([evm.impersonate(address), evm.setBalance(address, parseEther('1000'))]);
-      return getSigner(address);
-    });
-    this.abMembers = await Promise.all(impersonatePromises);
-  });
+  require('./setup');
 
   // Internal contracts that have changes:
   // - Assessment
@@ -159,6 +157,52 @@ describe('march 2025 release fork tests', function () {
     expect(await this.coverNFT.nftDescriptor()).to.equal(newCoverNFTDescriptor.address);
   });
 
-  require('./cover-data-migration');
+  it('add new LimitOrders (LO) contract', async function () {
+    this.managerAddress = NXM_WHALE_1;
+    const contractsBefore = await this.master.getInternalContracts();
+
+    // TODO: brute force salt for LimitOrders proxy address on change freeze
+    // node scripts/create2/find-salt.js -f '0x01BFd82675DBCc7762C84019cA518e701C0cD07e' \
+    //                                   -c '0xffffffffffffffffffffffffffffffffffffffff' \
+    //                                   -t cafea OwnedUpgradeabilityProxy
+    //
+    // tbd -> tbd
+    const limitOrdersCreate2Salt = 203789506880;
+    this.limitOrders = await ethers.deployContract('LimitOrders', [
+      this.nxm.address,
+      Address.WETH_ADDRESS,
+      this.managerAddress,
+    ]);
+    const limitOrdersTypeAndSalt = BigNumber.from(limitOrdersCreate2Salt).shl(8).add(ContractTypes.Proxy);
+    console.log({
+      limitOrdersCreate2Salt,
+      limitOrdersTypeAndSalt: limitOrdersTypeAndSalt.toString(),
+    });
+
+    await submitGovernanceProposal(
+      PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
+      defaultAbiCoder.encode(
+        ['bytes2[]', 'address[]', 'uint256[]'],
+        [[toUtf8Bytes(ContractCode.LimitOrders)], [this.limitOrders.address], [limitOrdersTypeAndSalt]],
+      ),
+      this.abMembers,
+      this.governance,
+    );
+
+    const contractsAfter = await this.master.getInternalContracts();
+
+    console.info('LimitOrders Contracts before:', formatInternalContracts(contractsBefore));
+    console.info('LimitOrders Contracts after:', formatInternalContracts(contractsAfter));
+
+    const expectedLimitOrdersProxyAddress = calculateProxyAddress(this.master.address, limitOrdersCreate2Salt);
+    const actualLimitOrdersProxyAddress = await this.master.getLatestAddress(toUtf8Bytes('LO'));
+    expect(actualLimitOrdersProxyAddress).to.equal(expectedLimitOrdersProxyAddress);
+
+    // set this.coverProducts to the coverProducts proxy contract
+    this.limitOrders = await ethers.getContractAt('LimitOrders', actualLimitOrdersProxyAddress);
+  });
+
+  require('./cover-edits');
+  require('./limit-orders');
   require('./basic-functionality-tests');
 });

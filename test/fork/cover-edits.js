@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 
-describe('cover data migration', function () {
+describe('cover-edits', function () {
   it('estimate gas usage for cover data migration', async function () {
     const gasPriceWei = 1e9; // 1 gwei
     const totalCovers = await this.cover.getCoverDataCount();

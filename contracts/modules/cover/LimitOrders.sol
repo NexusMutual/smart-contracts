@@ -236,9 +236,9 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       weth.deposit{ value: ethRefund }();
 
       weth.transferFrom(address(this), buyer, ethRefund);
-
-      return coverId;
     }
+
+    return coverId;
   }
 
   /// @notice Handles ERC20 payments for buying cover.

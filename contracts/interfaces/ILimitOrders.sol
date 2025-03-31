@@ -58,7 +58,7 @@ interface ILimitOrders {
     ExecutionDetails calldata executionDetails,
     bytes calldata signature,
     SettlementDetails memory settlementDetails
-  ) external payable returns (uint coverId);
+  ) external returns (uint coverId);
 
   /* ==== EVENTS ==== */
 

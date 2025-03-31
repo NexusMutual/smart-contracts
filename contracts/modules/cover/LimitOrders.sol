@@ -26,6 +26,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   /* ========== CONSTANTS ========== */
   uint private constant ETH_ASSET_ID = 0;
   uint private constant NXM_ASSET_ID = type(uint8).max;
+  uint public constant MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION = 10 days;
 
   bytes32 private constant EXECUTE_ORDER_TYPEHASH = keccak256(
     abi.encodePacked(
@@ -90,6 +91,10 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     address buyer = ECDSA.recover(orderId, signature);
 
     require(executionDetails.buyer == buyer, InvalidBuyerAddress());
+    require(
+      executionDetails.renewablePeriodBeforeExpiration <= MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION,
+      RenewablePeriodBeforeExpirationExceedsMaximum()
+    );
 
     OrderStatus memory _orderStatus = orderStatus[orderId];
 
@@ -109,6 +114,11 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       require(
         coverData.start + coverData.period < block.timestamp + executionDetails.renewablePeriodBeforeExpiration,
         OrderCannotBeRenewedYet()
+      );
+
+      require(
+        coverData.start + coverData.period > block.timestamp,
+        ExpiredCoverCannotBeRenewed()
       );
     }
 

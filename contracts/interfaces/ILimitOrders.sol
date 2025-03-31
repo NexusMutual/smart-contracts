@@ -73,6 +73,8 @@ interface ILimitOrders {
   error RenewalExpired();
   error OrderCannotBeExecutedYet();
   error OrderCannotBeRenewedYet();
+  error RenewablePeriodBeforeExpirationExceedsMaximum();
+  error ExpiredCoverCannotBeRenewed();
   error OrderPriceNotMet();
   error NotOrderOwner();
   error InvalidOwnerAddress();

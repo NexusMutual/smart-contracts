@@ -655,6 +655,8 @@ async function setup() {
 
   const config = {
     TRANCHE_DURATION: await fixture.contracts.stakingPool1.TRANCHE_DURATION(),
+    MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION:
+      await fixture.contracts.limitOrders.MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION(),
     BUCKET_SIZE: BigNumber.from(7 * 24 * 3600), // 7 days
     BUCKET_DURATION: BigNumber.from(28 * 24 * 3600), // 28 days
     GLOBAL_REWARDS_RATIO: BigNumber.from(5000), // 50%

@@ -99,9 +99,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       require(block.timestamp > executionDetails.notExecutableBefore, OrderCannotBeExecutedYet());
     } else {
       require(block.timestamp < executionDetails.renewableUntil, RenewalExpired());
-    }
 
-    if (!isNewCover) {
       CoverData memory coverData = cover().getLatestEditCoverData(_orderStatus.coverId);
 
       require(

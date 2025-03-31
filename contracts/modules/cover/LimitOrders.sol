@@ -34,6 +34,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       "ExecutionDetails executionDetails)",
       // ExecutionDetails
       "ExecutionDetails(",
+      "address buyer,",
       "uint256 notExecutableBefore,",
       "uint256 executableUntil,",
       "uint256 renewableUntil,",
@@ -88,6 +89,8 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     bytes32 orderId = getOrderId(params, executionDetails);
     address buyer = ECDSA.recover(orderId, signature);
 
+    require(executionDetails.buyer == buyer, InvalidBuyerAddress());
+
     OrderStatus memory _orderStatus = orderStatus[orderId];
     bool isNewCover = _orderStatus.coverId == 0;
 
@@ -130,16 +133,18 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
 
   function cancelOrder(
     BuyCoverParams calldata params,
-    ExecutionDetails calldata expirationDetails,
+    ExecutionDetails calldata executionDetails,
     bytes calldata signature
   ) external {
 
-    bytes32 orderId = getOrderId(params, expirationDetails);
+    bytes32 orderId = getOrderId(params, executionDetails);
 
     // Recover the signer from the digest and the signature
     address signer = ECDSA.recover(orderId, signature);
 
     require(signer == msg.sender, NotOrderOwner());
+
+    require(executionDetails.buyer == msg.sender, InvalidBuyerAddress());
 
     OrderStatus memory _orderStatus = orderStatus[orderId];
 
@@ -162,7 +167,8 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     // Hash the ExecutionDetails struct
     bytes32 executionDetailsHash = keccak256(
       abi.encode(
-        keccak256("ExecutionDetails(uint256 notExecutableBefore,uint256 executableUntil,uint256 renewableUntil,uint256 renewablePeriodBeforeExpiration,uint256 maxPremiumInAsset)"),
+        keccak256("ExecutionDetails(address buyer,uint256 notExecutableBefore,uint256 executableUntil,uint256 renewableUntil,uint256 renewablePeriodBeforeExpiration,uint256 maxPremiumInAsset)"),
+        executionDetails.buyer,
         executionDetails.notExecutableBefore,
         executionDetails.executableUntil,
         executionDetails.renewableUntil,

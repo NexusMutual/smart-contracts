@@ -29,6 +29,7 @@ async function signLimitOrder(contractAddress, params, signer) {
       { name: 'commissionDestination', type: 'address' },
     ],
     ExecutionDetails: [
+      { name: 'buyer', type: 'address' },
       { name: 'notExecutableBefore', type: 'uint256' },
       { name: 'executableUntil', type: 'uint256' },
       { name: 'renewableUntil', type: 'uint256' },
@@ -38,7 +39,7 @@ async function signLimitOrder(contractAddress, params, signer) {
   };
 
   // Populate any ENS names
-  const resolveName = async name => this.provider.resolveName(name);
+  const resolveName = async name => ethers.provider.resolveName(name);
   const populated = await _TypedDataEncoder.resolveNames(domain, types, params, resolveName);
 
   const digest = _TypedDataEncoder.hash(populated.domain, types, populated.value);

@@ -175,6 +175,7 @@ describe('LimitOrders - executeOrder', function () {
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
       maxPremiumInAsset,
+      buyer: coverBuyer.address,
     };
     const orderDetails = {
       ...orderDetailsFixture,
@@ -288,6 +289,7 @@ describe('LimitOrders - executeOrder', function () {
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
       maxPremiumInAsset: premium,
+      buyer: coverBuyer.address,
     };
 
     const orderDetails = {
@@ -395,6 +397,7 @@ describe('LimitOrders - executeOrder', function () {
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
       maxPremiumInAsset: premium,
+      buyer: coverBuyer.address,
     };
 
     const orderDetails = {
@@ -508,6 +511,7 @@ describe('LimitOrders - executeOrder', function () {
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
       maxPremiumInAsset: premiumWithCommission,
+      buyer: coverBuyer.address,
     };
 
     const orderDetails = {
@@ -620,6 +624,7 @@ describe('LimitOrders - executeOrder', function () {
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
       maxPremiumInAsset: premiumWithFee,
+      buyer: coverBuyer.address,
     };
 
     const orderDetails = {
@@ -729,6 +734,7 @@ describe('LimitOrders - executeOrder', function () {
       executableUntil: currentTimestamp + 3600,
       maxPremiumInAsset: premium,
       renewableUntil: currentTimestamp + 180 * 24 * 60 * 60,
+      buyer: coverBuyer.address,
     };
     const orderDetails = {
       ...orderDetailsFixture,
@@ -865,6 +871,7 @@ describe('LimitOrders - executeOrder', function () {
       maxPremiumInAsset: premium,
       renewableUntil: nextBlockTimestamp + orderDetailsFixture.period - 1,
       renewablePeriodBeforeExpiration: 0,
+      buyer: coverBuyer.address,
     };
     const orderDetails = {
       ...orderDetailsFixture,
@@ -972,6 +979,7 @@ describe('LimitOrders - executeOrder', function () {
       executableUntil: currentTimestamp + 3600,
       maxPremiumInAsset: premium,
       renewableUntil: nextBlockTimestamp + 180 * 24 * 60 * 60,
+      buyer: coverBuyer.address,
     };
 
     const orderDetails = {
@@ -1066,6 +1074,7 @@ describe('LimitOrders - executeOrder', function () {
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
       maxPremiumInAsset: premium,
+      buyer: coverBuyer.address,
     };
 
     const { signature } = await signLimitOrder(
@@ -1119,6 +1128,7 @@ describe('LimitOrders - executeOrder', function () {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
+      buyer: coverBuyer.address,
     };
     const buyCoverParams = {
       ...orderDetailsFixture,
@@ -1148,6 +1158,7 @@ describe('LimitOrders - executeOrder', function () {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
+      buyer: coverBuyer.address,
     };
     const buyCoverParams = {
       ...orderDetailsFixture,
@@ -1174,6 +1185,7 @@ describe('LimitOrders - executeOrder', function () {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
+      buyer: AddressZero,
     };
     const buyCoverParams = {
       ...orderDetailsFixture,
@@ -1195,6 +1207,55 @@ describe('LimitOrders - executeOrder', function () {
     await expect(buyCover).to.revertedWithCustomError(limitOrders, 'InvalidOwnerAddress');
   });
 
+  it('should revert with InvalidBuyerAddress if buyer does not match signer address', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const { limitOrders } = fixture.contracts;
+    const {
+      members: [coverBuyer, otherMember],
+    } = fixture.accounts;
+
+    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const executionDetails = {
+      ...executionDetailsFixture,
+      notExecutableBefore: currentTimestamp,
+      executableUntil: currentTimestamp + 3600,
+      buyer: coverBuyer.address,
+    };
+
+    const orderDetails = {
+      ...orderDetailsFixture,
+      productId: 1,
+      owner: coverBuyer.address,
+    };
+
+    const { signature } = await signLimitOrder(
+      limitOrders.address,
+      {
+        orderDetails,
+        executionDetails,
+      },
+      otherMember,
+    );
+
+    const buyCoverParams = {
+      ...orderDetails,
+      maxPremiumInAsset: parseEther('1'),
+    };
+
+    const buyCover = limitOrders.executeOrder(
+      buyCoverParams,
+      [{ poolId: 1, coverAmountInAsset: parseEther('1') }],
+      executionDetails,
+      signature,
+      {
+        fee: 0,
+        feeDestination: AddressZero,
+      },
+    );
+
+    await expect(buyCover).to.revertedWithCustomError(limitOrders, 'InvalidBuyerAddress');
+  });
+
   it('should revert with InvalidOwnerAddress if params.owner is LimitOrders address', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { limitOrders } = fixture.contracts;
@@ -1204,6 +1265,7 @@ describe('LimitOrders - executeOrder', function () {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
+      buyer: AddressZero,
     };
     const buyCoverParams = {
       ...orderDetailsFixture,
@@ -1236,6 +1298,7 @@ describe('LimitOrders - executeOrder', function () {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp - 3600,
       executableUntil: currentTimestamp - 1,
+      buyer: coverBuyer.address,
     };
 
     const orderDetails = {
@@ -1282,6 +1345,7 @@ describe('LimitOrders - executeOrder', function () {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp + 3600,
       executableUntil: currentTimestamp + 7200,
+      buyer: orderSigner.address,
     };
 
     const orderDetails = {
@@ -1330,6 +1394,7 @@ describe('LimitOrders - executeOrder', function () {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
+      buyer: coverBuyer.address,
     };
 
     const orderDetails = {

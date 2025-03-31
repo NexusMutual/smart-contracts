@@ -11,6 +11,7 @@ import "./INXMToken.sol";
 import "./IWeth.sol";
 
 struct ExecutionDetails {
+  address buyer;
   uint256 notExecutableBefore;
   uint256 executableUntil;
   uint256 renewableUntil;
@@ -75,4 +76,5 @@ interface ILimitOrders {
   error OrderPriceNotMet();
   error NotOrderOwner();
   error InvalidOwnerAddress();
+  error InvalidBuyerAddress();
 }

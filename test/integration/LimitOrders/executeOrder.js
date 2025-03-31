@@ -282,13 +282,15 @@ describe('LimitOrders - executeOrder', function () {
     const poolBeforeETH = await ethers.provider.getBalance(pool.address);
 
     const balanceBeforeWETH = await weth.balanceOf(coverBuyer.address);
+    const balanceSettlerBeforeWETH = await weth.balanceOf(orderSettler.address);
     const nftBalanceBefore = await coverNFT.balanceOf(coverBuyer.address);
 
+    const fee = parseEther('0.001');
     const executionDetails = {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
-      maxPremiumInAsset: premium,
+      maxPremiumInAsset: premium.add(fee),
       buyer: coverBuyer.address,
     };
 
@@ -319,7 +321,7 @@ describe('LimitOrders - executeOrder', function () {
       executionDetails,
       signature,
       {
-        fee: 0,
+        fee,
         feeDestination: orderSettler.address,
       },
     );
@@ -330,11 +332,13 @@ describe('LimitOrders - executeOrder', function () {
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const balanceAfterWETH = await weth.balanceOf(coverBuyer.address);
+    const balanceSettlerAfterWETH = await weth.balanceOf(orderSettler.address);
     const nftBalanceAfter = await coverNFT.balanceOf(coverBuyer.address);
 
     expect(nftBalanceAfter).to.be.equal(nftBalanceBefore.add(1));
     // amountOver should have been refunded
-    expect(balanceAfterWETH).to.be.equal(balanceBeforeWETH.sub(premium));
+    expect(balanceAfterWETH).to.be.equal(balanceBeforeWETH.sub(premium).sub(fee));
+    expect(balanceSettlerAfterWETH).to.be.equal(balanceSettlerBeforeWETH.add(fee));
     const rewards = calculateRewards(premiumInNxm, timestamp, period, GLOBAL_REWARDS_RATIO);
 
     const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);

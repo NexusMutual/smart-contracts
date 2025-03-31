@@ -225,7 +225,9 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
 
     coverId = cover().executeCoverBuy{value: params.maxPremiumInAsset}(params, poolAllocationRequests);
 
-    weth.transferFrom(buyer, settlementDetails.feeDestination, settlementDetails.fee);
+    if (settlementDetails.fee > 0) {
+      weth.transferFrom(buyer, settlementDetails.feeDestination, settlementDetails.fee);
+    }
 
     uint ethBalanceAfter = address(this).balance;
 

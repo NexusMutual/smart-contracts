@@ -92,6 +92,10 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     require(executionDetails.buyer == buyer, InvalidBuyerAddress());
 
     OrderStatus memory _orderStatus = orderStatus[orderId];
+
+    // Ensure the order is not cancelled
+    require(!_orderStatus.isCancelled, OrderAlreadyCancelled());
+
     bool isNewCover = _orderStatus.coverId == 0;
 
     if (isNewCover) {
@@ -107,9 +111,6 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
         OrderCannotBeRenewedYet()
       );
     }
-
-    // Ensure the order is not cancelled
-    require(!_orderStatus.isCancelled, OrderAlreadyCancelled());
 
     // ETH payment
     if (params.paymentAsset == ETH_ASSET_ID) {

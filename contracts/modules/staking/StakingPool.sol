@@ -1113,7 +1113,7 @@ contract StakingPool is IStakingPool, Multicall {
         uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
         feeDeposit.pendingRewards += (newEarningsPerShare * feeDeposit.rewardsShares / ONE_NXM).toUint96();
       }
-      feeDeposit.rewardsShares += initialFeeRewardShares.toUint128();
+      feeDeposit.rewardsShares += (initialFeeRewardShares + newFeeRewardShares).toUint128();
       feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare.toUint96();
       deposits[0][targetTrancheId] = feeDeposit;
     }

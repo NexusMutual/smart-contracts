@@ -353,7 +353,7 @@ describe('extendDeposit', function () {
     );
   });
 
-  it('updates the initial and new tranche manager deposit', async function () {
+  it('updates the initial and new tranche manager deposit when extending without a top-up', async function () {
     const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
@@ -363,7 +363,7 @@ describe('extendDeposit', function () {
 
     const initialManagerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
 
-    const topUpAmount = parseEther('50');
+    const topUpAmount = parseEther('0');
     await stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount);
 
     const updatedInitialManagerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
@@ -385,9 +385,51 @@ describe('extendDeposit', function () {
     expect(updatedTargetManagerDeposit.lastAccNxmPerRewardShare).to.equal(accNxmPerRewardsShareAfter);
   });
 
+  it('updates the initial and new tranche manager deposit when extending with a top-up', async function () {
+    const fixture = await loadFixture(extendDepositSetup);
+    const { config, stakingPool } = fixture;
+    const { POOL_FEE_DENOMINATOR } = config;
+    const [user] = fixture.accounts.members;
+
+    const { firstActiveTrancheId, maxTranche } = await getTranches();
+    await generateRewards(stakingPool, fixture.coverSigner);
+
+    const initialShareSupply = await stakingPool.getStakeSharesSupply();
+    const initialActiveStake = await stakingPool.getActiveStake();
+    const poolFee = await stakingPool.getPoolFee();
+    const initialManagerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
+
+    const topUpAmount = parseEther('50');
+    await stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount);
+
+    const updatedInitialManagerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
+    const updatedTargetManagerDeposit = await stakingPool.deposits(managerDepositId, maxTranche);
+    const accNxmPerRewardsShareAfter = await stakingPool.getAccNxmPerRewardsShare();
+
+    const newStakeShares = topUpAmount.mul(initialShareSupply).div(initialActiveStake);
+    const newRewardsShares = newStakeShares; // they're identical, but copied for consistency
+    const newManagerFeeShares = newRewardsShares.mul(poolFee).div(POOL_FEE_DENOMINATOR.sub(poolFee));
+    const expectedTargetManagerDepositRewardsShares = initialManagerDeposit.rewardsShares.add(newManagerFeeShares);
+
+    const earningsPerShare = accNxmPerRewardsShareAfter.sub(initialManagerDeposit.lastAccNxmPerRewardShare);
+    const expectedPendingRewards = initialManagerDeposit.rewardsShares
+      .mul(earningsPerShare)
+      .div(parseEther('1'))
+      .add(initialManagerDeposit.pendingRewards);
+
+    expect(updatedInitialManagerDeposit.rewardsShares).to.equal(0);
+    expect(updatedInitialManagerDeposit.pendingRewards).to.equal(expectedPendingRewards);
+    expect(updatedInitialManagerDeposit.lastAccNxmPerRewardShare).to.equal(accNxmPerRewardsShareAfter);
+
+    expect(updatedTargetManagerDeposit.rewardsShares).to.equal(expectedTargetManagerDepositRewardsShares);
+    expect(updatedTargetManagerDeposit.pendingRewards).to.equal(0);
+    expect(updatedTargetManagerDeposit.lastAccNxmPerRewardShare).to.equal(accNxmPerRewardsShareAfter);
+  });
+
   it('updates the initial and new tranche manager deposit with multiple users', async function () {
     const fixture = await loadFixture(extendDepositSetup);
-    const { stakingPool, stakingNFT } = fixture;
+    const { config, stakingPool, stakingNFT } = fixture;
+    const { POOL_FEE_DENOMINATOR } = config;
     const [alice, bob] = fixture.accounts.members;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
@@ -402,9 +444,16 @@ describe('extendDeposit', function () {
     const initialAliceDeposit = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
     const initialBobDeposit = await stakingPool.deposits(secondDepositNftId, firstActiveTrancheId);
     const initialManagerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
+    const initialActiveStake = await stakingPool.getActiveStake();
+    const initialSupplyShares = await stakingPool.getStakeSharesSupply();
+    const poolFee = await stakingPool.getPoolFee();
 
     const topUpAmount = parseEther('50');
     await stakingPool.connect(alice).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount);
+
+    const newStakeShares = topUpAmount.mul(initialSupplyShares).div(initialActiveStake);
+    const newRewardsShares = newStakeShares; // copied for consistency
+    const newManagerFeeShares = newRewardsShares.mul(poolFee).div(POOL_FEE_DENOMINATOR.sub(poolFee));
 
     const updatedInitialManagerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
     const updatedTargetManagerDeposit = await stakingPool.deposits(managerDepositId, maxTranche);
@@ -425,7 +474,7 @@ describe('extendDeposit', function () {
     expect(updatedInitialManagerDeposit.lastAccNxmPerRewardShare).to.equal(accNxmPerRewardsShareAfter);
     expect(updatedInitialManagerDeposit.pendingRewards).to.equal(managerRewardsBeforeExtend);
 
-    expect(updatedTargetManagerDeposit.rewardsShares).to.equal(aliceManagerSharesPortion);
+    expect(updatedTargetManagerDeposit.rewardsShares).to.equal(aliceManagerSharesPortion.add(newManagerFeeShares));
     expect(updatedTargetManagerDeposit.lastAccNxmPerRewardShare).to.equal(accNxmPerRewardsShareAfter);
     expect(updatedTargetManagerDeposit.pendingRewards).to.equal(0);
   });

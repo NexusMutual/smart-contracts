@@ -138,15 +138,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
       require(coverNFT.isApprovedOrOwner(msg.sender, params.coverId), OnlyOwnerOrApproved());
 
-      CoverReference memory coverRefernce = getCoverReference(params.coverId);
+      CoverReference memory coverReference = getCoverReference(params.coverId);
 
-      require(coverRefernce.originalCoverId == params.coverId, MustBeOriginalCoverId(coverRefernce.originalCoverId));
+      require(coverReference.originalCoverId == params.coverId, MustBeOriginalCoverId(coverReference.originalCoverId));
 
       (
         previousCoverAmount,
         previousCoverExpiration,
         refundedPremium
-      ) = _requestDeallocation(coverRefernce.latestCoverId);
+      ) = _requestDeallocation(coverReference.latestCoverId);
 
       _coverReference[coverId].originalCoverId = params.coverId.toUint32();
       _coverReference[params.coverId].latestCoverId = coverId.toUint32();

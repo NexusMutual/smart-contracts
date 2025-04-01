@@ -179,7 +179,7 @@ interface IStakingPool {
 
   event StakeBurned(uint amount);
 
-  event Deallocated(uint productId);
+  event Deallocated(uint allocationId);
 
   event BucketExpired(uint bucketId);
 

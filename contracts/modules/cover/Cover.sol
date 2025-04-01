@@ -138,15 +138,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
       require(coverNFT.isApprovedOrOwner(msg.sender, params.coverId), OnlyOwnerOrApproved());
 
-      CoverReference memory coverRefernce = getCoverReference(params.coverId);
+      CoverReference memory coverReference = getCoverReference(params.coverId);
 
-      require(coverRefernce.originalCoverId == params.coverId, MustBeOriginalCoverId(coverRefernce.originalCoverId));
+      require(coverReference.originalCoverId == params.coverId, MustBeOriginalCoverId(coverReference.originalCoverId));
 
       (
         previousCoverAmount,
         previousCoverExpiration,
         refundedPremium
-      ) = _requestDeallocation(coverRefernce.latestCoverId);
+      ) = _requestDeallocation(coverReference.latestCoverId);
 
       _coverReference[coverId].originalCoverId = params.coverId.toUint32();
       _coverReference[params.coverId].latestCoverId = coverId.toUint32();
@@ -305,10 +305,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   ) {
 
     CoverData memory cover = _coverData[coverId];
-    uint expiration = cover.start + cover.period;
+
+    // get previous expiration timestamp
+    previousCoverExpiration = cover.start + cover.period;
 
     // require the previous cover not to be expired
-    require(block.timestamp < expiration, ExpiredCoversCannotBeEdited());
+    require(block.timestamp < previousCoverExpiration, ExpiredCoversCannotBeEdited());
 
     uint allocationsLength = _poolAllocations[coverId].length;
 
@@ -317,7 +319,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       PoolAllocation memory allocation = _poolAllocations[coverId][allocationIndex];
 
       // refund = premium * remaining_period / cover_period
-      refundedPremium += allocation.premiumInNXM * (expiration - block.timestamp) / cover.period;
+      refundedPremium += allocation.premiumInNXM * (previousCoverExpiration - block.timestamp) / cover.period;
 
       // construct deallocation request
       DeallocationRequest memory deallocationRequest = DeallocationRequest(
@@ -332,9 +334,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       // request deallocation
       stakingPool(allocation.poolId).requestDeallocation(deallocationRequest);
     }
-
-    // get previous expiration timestamp
-    previousCoverExpiration = cover.start + cover.period;
 
     // mark previous cover as ending now
     cover.period = (block.timestamp - cover.start).toUint32();

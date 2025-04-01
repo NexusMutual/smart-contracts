@@ -1214,36 +1214,6 @@ describe('LimitOrders - executeOrder', function () {
     await expect(tx).to.revertedWithCustomError(limitOrders, 'OrderPriceNotMet');
   });
 
-  it("should revert if the solver isn't a member", async function () {
-    const fixture = await loadFixture(buyCoverSetup);
-    const { limitOrders } = fixture.contracts;
-    const {
-      nonMembers: [coverBuyer],
-    } = fixture.accounts;
-
-    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
-    const executionDetails = {
-      ...executionDetailsFixture,
-      notExecutableBefore: currentTimestamp,
-      executableUntil: currentTimestamp + 3600,
-      buyer: coverBuyer.address,
-    };
-    const buyCoverParams = {
-      ...orderDetailsFixture,
-      owner: coverBuyer.address,
-      maxPremiumInAsset: parseEther('1'),
-    };
-
-    const buyCover = limitOrders
-      .connect(coverBuyer)
-      .executeOrder(buyCoverParams, [{ poolId: 1, coverAmountInAsset: parseEther('1') }], executionDetails, '0x', {
-        fee: 0,
-        feeDestination: coverBuyer.address,
-      });
-
-    await expect(buyCover).to.revertedWith('Caller is not a member');
-  });
-
   it("should revert if the solver isn't a internal solver", async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { limitOrders } = fixture.contracts;

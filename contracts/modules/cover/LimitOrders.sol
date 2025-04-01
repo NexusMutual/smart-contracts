@@ -81,7 +81,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     ExecutionDetails calldata executionDetails,
     bytes calldata signature,
     SettlementDetails memory settlementDetails
-  ) external onlyMember onlyInternalSolver returns (uint coverId) {
+  ) external onlyInternalSolver returns (uint coverId) {
 
     require(params.owner != address(0) && params.owner != address(this), InvalidOwnerAddress());
     require(executionDetails.maxPremiumInAsset >= settlementDetails.fee + params.maxPremiumInAsset, OrderPriceNotMet());

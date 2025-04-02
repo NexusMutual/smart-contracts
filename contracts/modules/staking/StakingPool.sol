@@ -1177,9 +1177,11 @@ contract StakingPool is IStakingPool, Multicall {
       tokenController.burnStakedNXM(amount, poolId);
 
       // sstore & log event
-      activeStake = (_activeStake - amount).toUint96();
+      _activeStake -= amount;
+      activeStake = _activeStake.toUint96();
+
       emit StakeBurned(amount);
-      emit ActiveStakeUpdated(_activeStake - amount, stakeSharesSupply);
+      emit ActiveStakeUpdated(_activeStake, stakeSharesSupply);
     }
 
     // do not deallocate if the cover has expired (grace period)

@@ -167,13 +167,21 @@ describe('burnStake', function () {
     expect(activeStakeAfter).to.equal(activeStakeBefore.sub(burnAmount));
   });
 
-  it('emits StakeBurned event', async function () {
+  it('emits StakeBurned and ActiveStakeUpdated events', async function () {
     const fixture = await loadFixture(burnStakeSetup);
     const { stakingPool } = fixture;
 
-    await expect(stakingPool.connect(fixture.coverSigner).burnStake(burnAmount, burnStakeParams))
-      .to.emit(stakingPool, 'StakeBurned')
-      .withArgs(burnAmount);
+    const expectedStakeSharesSupply = await stakingPool.getStakeSharesSupply(); // shouldn't change
+
+    const activeStakeBefore = await stakingPool.getActiveStake();
+    const expectedActiveStake = activeStakeBefore.sub(burnAmount);
+
+    const tx = stakingPool.connect(fixture.coverSigner).burnStake(burnAmount, burnStakeParams);
+
+    await expect(tx).to.emit(stakingPool, 'StakeBurned').withArgs(burnAmount);
+    await expect(tx)
+      .to.emit(stakingPool, 'ActiveStakeUpdated')
+      .withArgs(expectedActiveStake, expectedStakeSharesSupply);
   });
 
   it('burns staked NXM in token controller', async function () {

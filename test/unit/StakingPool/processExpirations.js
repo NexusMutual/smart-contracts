@@ -496,4 +496,26 @@ describe('processExpirations', function () {
     );
     expect(lastAccNxmUpdateAfter).to.equal(lastBlock.timestamp);
   });
+
+  it('emits ActiveStakeUpdated event when a tranche is expired', async function () {
+    const fixture = await loadFixture(proccessExpirationSetup);
+    const { stakingPool } = fixture;
+    const [user] = fixture.accounts.members;
+
+    const { amount, tokenId, destination } = depositToFixture;
+    const { firstActiveTrancheId } = await getTranches();
+
+    await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
+    const activeStakeAfter = await stakingPool.getActiveStake();
+    const stakeSharesSupplyAfter = await stakingPool.getStakeSharesSupply();
+
+    const expectedActiveStakeAfter = amount;
+    const expectedStakeSharesSupplyAfter = Math.sqrt(amount);
+
+    expect(activeStakeAfter).to.equal(expectedActiveStakeAfter);
+    expect(stakeSharesSupplyAfter).to.equal(expectedStakeSharesSupplyAfter);
+
+    await increaseTime(TRANCHE_DURATION * 2);
+    await expect(stakingPool.processExpirations(true)).to.emit(stakingPool, 'ActiveStakeUpdated').withArgs(0, 0);
+  });
 });

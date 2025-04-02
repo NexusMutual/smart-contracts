@@ -154,6 +154,7 @@ describe('LimitOrders', function () {
     };
 
     const executionDetails = {
+      buyer: this.coverBuyer.address,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
       renewableUntil: 0,
@@ -205,7 +206,7 @@ describe('LimitOrders', function () {
     await expect(
       this.individualClaims
         .connect(this.coverBuyer)
-        .submitClaim(coverId, requestedAmount, ipfsHash, { value: deposit, gasLimit: requestedAmount }),
+        .submitClaim(coverId, requestedAmount, ipfsHash, { value: deposit }),
     ).to.revertedWith('Caller is not a member');
   });
 

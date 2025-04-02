@@ -6,7 +6,6 @@ const {
   getContractByContractCode,
   Address,
   formatInternalContracts,
-  calculateProxyAddress,
   UserAddress,
 } = require('./utils');
 
@@ -166,8 +165,8 @@ describe('march 2025 release fork tests', function () {
     //                                   -c '0xffffffffffffffffffffffffffffffffffffffff' \
     //                                   -t cafea OwnedUpgradeabilityProxy
     //
-    // tbd -> tbd
-    const limitOrdersCreate2Salt = 203789506880;
+    // 13944964 -> 0xcafea2F232514865321861eED29B128622179150
+    const limitOrdersCreate2Salt = 13944964;
     this.limitOrders = await ethers.deployContract('LimitOrders', [
       this.nxm.address,
       Address.WETH_ADDRESS,
@@ -194,9 +193,9 @@ describe('march 2025 release fork tests', function () {
     console.info('LimitOrders Contracts before:', formatInternalContracts(contractsBefore));
     console.info('LimitOrders Contracts after:', formatInternalContracts(contractsAfter));
 
-    const expectedLimitOrdersProxyAddress = calculateProxyAddress(this.master.address, limitOrdersCreate2Salt);
+    // const expectedLimitOrdersProxyAddress = calculateProxyAddress(this.master.address, limitOrdersCreate2Salt);
     const actualLimitOrdersProxyAddress = await this.master.getLatestAddress(toUtf8Bytes('LO'));
-    expect(actualLimitOrdersProxyAddress).to.equal(expectedLimitOrdersProxyAddress);
+    expect(actualLimitOrdersProxyAddress).to.equal('0xcafea2F232514865321861eED29B128622179150');
 
     // set this.coverProducts to the coverProducts proxy contract
     this.limitOrders = await ethers.getContractAt('LimitOrders', actualLimitOrdersProxyAddress);

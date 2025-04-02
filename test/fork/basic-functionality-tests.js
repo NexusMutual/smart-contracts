@@ -681,6 +681,92 @@ describe('basic functionality tests', function () {
     expect(payoutRedeemed).to.be.equal(true);
   });
 
+  it('Edit cover', async function () {
+    // buying cover with USDC
+    await evm.impersonate(HUGH);
+    const coverBuyer = await getSigner(HUGH);
+    const coverBuyerAddress = await coverBuyer.getAddress();
+
+    const coverAsset = 6; // USDC
+    const amount = parseUnits('1000', 6);
+    const commissionRatio = '0'; // 0%
+
+    const usdcTopUpAmount = parseUnits('1000000', 6);
+
+    const coverCountBefore = await this.cover.getCoverDataCount();
+
+    await this.usdc.connect(this.usdcHolder).transfer(coverBuyerAddress, usdcTopUpAmount);
+    await this.usdc.connect(coverBuyer).approve(this.cover.address, usdcTopUpAmount);
+
+    const maxPremiumInAsset = amount.mul(260).div(10000);
+    const period = BigNumber.from(3600 * 24 * 30); // 30 days
+
+    await this.cover.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyerAddress,
+        productId: protocolProductId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset,
+        paymentAsset: coverAsset,
+        payWithNXM: false,
+        commissionRatio,
+        commissionDestination: coverBuyerAddress,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+    );
+    const originalCoverId = await this.cover.getCoverDataCount();
+
+    // editing cover to 2x amount and 2x period
+    const currentTimestamp = (await ethers.provider.getBlock('latest')).timestamp;
+    const passedPeriod = BigNumber.from(10);
+    const editTimestamp = BigNumber.from(currentTimestamp).add(passedPeriod);
+    await setTime(editTimestamp.toNumber());
+
+    const increasedAmount = amount.mul(2);
+    const increasedPeriod = period.mul(2);
+
+    const maxCoverPeriod = 3600 * 24 * 365;
+
+    const expectedRefund = amount.mul(260).mul(period.sub(passedPeriod)).div(maxCoverPeriod);
+    const expectedEditPremium = increasedAmount.mul(260).mul(increasedPeriod).div(maxCoverPeriod);
+    const extraPremium = expectedEditPremium.sub(expectedRefund);
+
+    await this.cover.connect(coverBuyer).buyCover(
+      {
+        coverId: originalCoverId,
+        owner: coverBuyerAddress,
+        productId: protocolProductId,
+        coverAsset,
+        amount: increasedAmount,
+        period: increasedPeriod,
+        maxPremiumInAsset: extraPremium,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio,
+        commissionDestination: coverBuyerAddress,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: increasedAmount.toString() }],
+    );
+    const editedCoverId = originalCoverId.add(1);
+
+    const coverCountAfter = await this.cover.getCoverDataCount();
+    expect(coverCountAfter).to.equal(coverCountBefore.add(2));
+    expect(editedCoverId).to.equal(coverCountAfter);
+
+    const [coverData, coverReference] = await this.cover.getCoverDataWithReference(editedCoverId);
+    expect(coverData.period).to.equal(increasedPeriod);
+    expect(coverData.amount).to.gte(increasedAmount);
+    expect(coverReference.originalCoverId).to.equal(originalCoverId);
+
+    const originalCoverReference = await this.cover.getCoverReference(originalCoverId);
+    expect(originalCoverReference.latestCoverId).to.equal(editedCoverId);
+  });
+
   it('Update MCR GEAR parameter', async function () {
     const GEAR = toBytes('GEAR', 8);
     const currentGearValue = BigNumber.from(48000);

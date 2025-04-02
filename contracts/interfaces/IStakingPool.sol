@@ -185,6 +185,12 @@ interface IStakingPool {
 
   event TrancheExpired(uint trancheId);
 
+  event ActiveStakeUpdated(uint activeStake, uint stakeSharesSupply);
+
+  event TrancheUpdated(uint trancheId, uint stakeShares, uint stakeSharesSupply);
+
+  event DepositUpdated(uint tokenId, uint trancheId, uint stakeShares, uint stakeSharesSupply);
+
   // Auth
   error OnlyCoverContract();
   error OnlyStakingProductsContract();

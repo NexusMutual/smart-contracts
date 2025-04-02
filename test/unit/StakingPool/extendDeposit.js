@@ -557,17 +557,38 @@ describe('extendDeposit', function () {
     expect(tokenControllerBalanceAfter).to.equal(tokenControllerBalanceBefore.add(topUpAmount));
   });
 
-  it('emits DepositExtended event', async function () {
+  it('emits DepositExtended, ActiveStakeUpdated and DepositUpdated events', async function () {
     const fixture = await loadFixture(extendDepositSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
+    const initialActiveStake = await stakingPool.getActiveStake();
+    const initialStakeSharesSupply = await stakingPool.getStakeSharesSupply();
+
     const topUpAmount = parseEther('50');
-    await expect(stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount))
+    const tx = stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount);
+
+    const expectedActiveStake = initialActiveStake.add(topUpAmount);
+    const expectedNewStakeShares = topUpAmount.mul(initialStakeSharesSupply).div(initialActiveStake);
+    const expectedStakeSharesSupply = initialStakeSharesSupply.add(expectedNewStakeShares);
+
+    await expect(tx)
       .to.emit(stakingPool, 'DepositExtended')
       .withArgs(user.address, depositNftId, firstActiveTrancheId, maxTranche, topUpAmount);
+
+    await expect(tx)
+      .to.emit(stakingPool, 'ActiveStakeUpdated')
+      .withArgs(expectedActiveStake, expectedStakeSharesSupply);
+
+    await expect(tx)
+      .to.emit(stakingPool, 'DepositUpdated')
+      .withArgs(depositNftId, firstActiveTrancheId, 0, expectedStakeSharesSupply);
+
+    await expect(tx)
+      .to.emit(stakingPool, 'DepositUpdated')
+      .withArgs(depositNftId, maxTranche, expectedStakeSharesSupply, expectedStakeSharesSupply);
   });
 
   it('does not emit DepositExtended if initial tranche is expired', async function () {

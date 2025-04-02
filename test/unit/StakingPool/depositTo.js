@@ -574,7 +574,7 @@ describe('depositTo', function () {
     }
   });
 
-  it('emits StakeDeposited event', async function () {
+  it('emits StakeDeposited, DepositUpdated, TrancheUpdated and ActiveStakeUpdated events', async function () {
     const fixture = await loadFixture(depositToSetup);
     const { stakingPool } = fixture;
     const [user] = fixture.accounts.members;
@@ -582,10 +582,27 @@ describe('depositTo', function () {
 
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
 
+    const expectedActiveStake = amount;
+    const expectedStakeSharesSupply = Math.sqrt(amount);
+
     const expectedTokenId = 1;
-    await expect(stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination))
+    const tx = stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
+
+    await expect(tx)
       .to.emit(stakingPool, 'StakeDeposited')
       .withArgs(user.address, amount, firstActiveTrancheId, expectedTokenId);
+
+    await expect(tx)
+      .to.emit(stakingPool, 'ActiveStakeUpdated')
+      .withArgs(expectedActiveStake, expectedStakeSharesSupply);
+
+    await expect(tx)
+      .to.emit(stakingPool, 'DepositUpdated')
+      .withArgs(expectedTokenId, firstActiveTrancheId, expectedStakeSharesSupply, expectedStakeSharesSupply);
+
+    await expect(tx)
+      .to.emit(stakingPool, 'TrancheUpdated')
+      .withArgs(firstActiveTrancheId, expectedStakeSharesSupply, expectedStakeSharesSupply);
   });
 
   it('reverts if provided tokenId is not valid', async function () {

@@ -26,6 +26,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   /* ========== CONSTANTS ========== */
   uint private constant ETH_ASSET_ID = 0;
   uint private constant NXM_ASSET_ID = type(uint8).max;
+  uint public constant MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION = 10 days;
 
   bytes32 private constant EXECUTE_ORDER_TYPEHASH = keccak256(
     abi.encodePacked(
@@ -34,6 +35,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       "ExecutionDetails executionDetails)",
       // ExecutionDetails
       "ExecutionDetails(",
+      "address buyer,",
       "uint256 notExecutableBefore,",
       "uint256 executableUntil,",
       "uint256 renewableUntil,",
@@ -79,7 +81,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     ExecutionDetails calldata executionDetails,
     bytes calldata signature,
     SettlementDetails memory settlementDetails
-  ) external payable onlyMember onlyInternalSolver returns (uint coverId) {
+  ) external onlyInternalSolver returns (uint coverId) {
 
     require(params.owner != address(0) && params.owner != address(this), InvalidOwnerAddress());
     require(executionDetails.maxPremiumInAsset >= settlementDetails.fee + params.maxPremiumInAsset, OrderPriceNotMet());
@@ -88,7 +90,17 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     bytes32 orderId = getOrderId(params, executionDetails);
     address buyer = ECDSA.recover(orderId, signature);
 
+    require(executionDetails.buyer == buyer, InvalidBuyerAddress());
+    require(
+      executionDetails.renewablePeriodBeforeExpiration <= MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION,
+      RenewablePeriodBeforeExpirationExceedsMaximum()
+    );
+
     OrderStatus memory _orderStatus = orderStatus[orderId];
+
+    // Ensure the order is not cancelled
+    require(!_orderStatus.isCancelled, OrderAlreadyCancelled());
+
     bool isNewCover = _orderStatus.coverId == 0;
 
     if (isNewCover) {
@@ -96,19 +108,19 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       require(block.timestamp > executionDetails.notExecutableBefore, OrderCannotBeExecutedYet());
     } else {
       require(block.timestamp < executionDetails.renewableUntil, RenewalExpired());
-    }
 
-    if (!isNewCover) {
       CoverData memory coverData = cover().getLatestEditCoverData(_orderStatus.coverId);
 
       require(
-        coverData.start + coverData.period - executionDetails.renewablePeriodBeforeExpiration < block.timestamp,
+        coverData.start + coverData.period < block.timestamp + executionDetails.renewablePeriodBeforeExpiration,
         OrderCannotBeRenewedYet()
       );
-    }
 
-    // Ensure the order is not cancelled
-    require(!_orderStatus.isCancelled, OrderAlreadyCancelled());
+      require(
+        coverData.start + coverData.period > block.timestamp,
+        ExpiredCoverCannotBeRenewed()
+      );
+    }
 
     // ETH payment
     if (params.paymentAsset == ETH_ASSET_ID) {
@@ -130,16 +142,18 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
 
   function cancelOrder(
     BuyCoverParams calldata params,
-    ExecutionDetails calldata expirationDetails,
+    ExecutionDetails calldata executionDetails,
     bytes calldata signature
   ) external {
 
-    bytes32 orderId = getOrderId(params, expirationDetails);
+    bytes32 orderId = getOrderId(params, executionDetails);
 
     // Recover the signer from the digest and the signature
     address signer = ECDSA.recover(orderId, signature);
 
     require(signer == msg.sender, NotOrderOwner());
+
+    require(executionDetails.buyer == msg.sender, InvalidBuyerAddress());
 
     OrderStatus memory _orderStatus = orderStatus[orderId];
 
@@ -162,7 +176,8 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     // Hash the ExecutionDetails struct
     bytes32 executionDetailsHash = keccak256(
       abi.encode(
-        keccak256("ExecutionDetails(uint256 notExecutableBefore,uint256 executableUntil,uint256 renewableUntil,uint256 renewablePeriodBeforeExpiration,uint256 maxPremiumInAsset)"),
+        keccak256("ExecutionDetails(address buyer,uint256 notExecutableBefore,uint256 executableUntil,uint256 renewableUntil,uint256 renewablePeriodBeforeExpiration,uint256 maxPremiumInAsset)"),
+        executionDetails.buyer,
         executionDetails.notExecutableBefore,
         executionDetails.executableUntil,
         executionDetails.renewableUntil,
@@ -220,7 +235,9 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
 
     coverId = cover().executeCoverBuy{value: params.maxPremiumInAsset}(params, poolAllocationRequests);
 
-    weth.transferFrom(buyer, settlementDetails.feeDestination, settlementDetails.fee);
+    if (settlementDetails.fee > 0) {
+      weth.transferFrom(buyer, settlementDetails.feeDestination, settlementDetails.fee);
+    }
 
     uint ethBalanceAfter = address(this).balance;
 
@@ -230,9 +247,9 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       weth.deposit{ value: ethRefund }();
 
       weth.transferFrom(address(this), buyer, ethRefund);
-
-      return coverId;
     }
+
+    return coverId;
   }
 
   /// @notice Handles ERC20 payments for buying cover.

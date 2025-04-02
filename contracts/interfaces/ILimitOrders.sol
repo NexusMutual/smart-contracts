@@ -11,6 +11,7 @@ import "./INXMToken.sol";
 import "./IWeth.sol";
 
 struct ExecutionDetails {
+  address buyer;
   uint256 notExecutableBefore;
   uint256 executableUntil;
   uint256 renewableUntil;
@@ -57,7 +58,7 @@ interface ILimitOrders {
     ExecutionDetails calldata executionDetails,
     bytes calldata signature,
     SettlementDetails memory settlementDetails
-  ) external payable returns (uint coverId);
+  ) external returns (uint coverId);
 
   /* ==== EVENTS ==== */
 
@@ -72,7 +73,10 @@ interface ILimitOrders {
   error RenewalExpired();
   error OrderCannotBeExecutedYet();
   error OrderCannotBeRenewedYet();
+  error RenewablePeriodBeforeExpirationExceedsMaximum();
+  error ExpiredCoverCannotBeRenewed();
   error OrderPriceNotMet();
   error NotOrderOwner();
   error InvalidOwnerAddress();
+  error InvalidBuyerAddress();
 }

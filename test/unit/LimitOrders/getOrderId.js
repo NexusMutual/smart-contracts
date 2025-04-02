@@ -23,6 +23,7 @@ describe('getOrderId', function () {
       renewableUntil: currentTimestamp + 60 * 24 * 60 * 60,
       renewablePeriodBeforeExpiration: 3 * 24 * 60 * 60,
       maxPremiumInAsset: MaxUint256,
+      buyer: limitOrderOwner.address,
     };
     const orderDetails = {
       coverId: 0,

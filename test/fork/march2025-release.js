@@ -2,11 +2,12 @@ const chai = require('chai');
 const { ethers, network } = require('hardhat');
 const { ContractCode, ProposalCategory: PROPOSAL_CATEGORIES, ContractTypes } = require('../../lib/constants');
 const {
-  submitGovernanceProposal,
-  getContractByContractCode,
   Address,
-  formatInternalContracts,
   UserAddress,
+  calculateProxyAddress,
+  formatInternalContracts,
+  getContractByContractCode,
+  submitGovernanceProposal,
 } = require('./utils');
 
 const evm = require('./evm')();
@@ -167,7 +168,7 @@ describe('march 2025 release fork tests', function () {
     //
     // 13944964 -> 0xcafea2F232514865321861eED29B128622179150
     const limitOrdersCreate2Salt = 13944964;
-    this.limitOrders = await ethers.deployContract('LimitOrders', [
+    const limitOrders = await ethers.deployContract('LimitOrders', [
       this.nxm.address,
       Address.WETH_ADDRESS,
       this.managerAddress,
@@ -182,7 +183,7 @@ describe('march 2025 release fork tests', function () {
       PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]', 'uint256[]'],
-        [[toUtf8Bytes(ContractCode.LimitOrders)], [this.limitOrders.address], [limitOrdersTypeAndSalt]],
+        [[toUtf8Bytes(ContractCode.LimitOrders)], [limitOrders.address], [limitOrdersTypeAndSalt]],
       ),
       this.abMembers,
       this.governance,
@@ -193,9 +194,9 @@ describe('march 2025 release fork tests', function () {
     console.info('LimitOrders Contracts before:', formatInternalContracts(contractsBefore));
     console.info('LimitOrders Contracts after:', formatInternalContracts(contractsAfter));
 
-    // const expectedLimitOrdersProxyAddress = calculateProxyAddress(this.master.address, limitOrdersCreate2Salt);
+    const expectedLimitOrdersProxyAddress = calculateProxyAddress(this.master.address, limitOrdersCreate2Salt);
     const actualLimitOrdersProxyAddress = await this.master.getLatestAddress(toUtf8Bytes('LO'));
-    expect(actualLimitOrdersProxyAddress).to.equal('0xcafea2F232514865321861eED29B128622179150');
+    expect(actualLimitOrdersProxyAddress).to.equal(expectedLimitOrdersProxyAddress);
 
     // set this.coverProducts to the coverProducts proxy contract
     this.limitOrders = await ethers.getContractAt('LimitOrders', actualLimitOrdersProxyAddress);

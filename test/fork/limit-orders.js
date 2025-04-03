@@ -237,7 +237,7 @@ describe('LimitOrders', function () {
     );
     await this.individualClaims
       .connect(this.coverBuyer)
-      .submitClaim(coverId, requestedAmount, ipfsHash, { value: deposit, gasLimit: requestedAmount });
+      .submitClaim(coverId, requestedAmount, ipfsHash, { value: deposit });
 
     const claimsCountAfter = await this.individualClaims.getClaimsCount();
     const assessmentCountAfter = await this.assessment.getAssessmentsCount();
@@ -270,7 +270,8 @@ describe('LimitOrders', function () {
     const balanceBefore = await ethers.provider.getBalance(this.coverBuyer.address);
 
     // redeem payout
-    await this.individualClaims.connect(this.coverBuyer).redeemClaimPayout(claimId, { gasLimit: parseEther('0.1') });
+    await this.evm.setNextBlockBaseFee(0);
+    await this.individualClaims.connect(this.coverBuyer).redeemClaimPayout(claimId, { gasPrice: 0 });
 
     const balanceAfter = await ethers.provider.getBalance(this.coverBuyer.address);
     expect(balanceAfter).to.be.equal(balanceBefore.add(requestedClaimAmount).add(claimDeposit));

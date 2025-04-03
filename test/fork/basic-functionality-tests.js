@@ -34,7 +34,7 @@ let protocolProductId, protocolCoverId;
 let assessmentId, requestedClaimAmount, claimDeposit;
 let poolId, trancheId, tokenId;
 
-const NEW_POOL_MANAGER = NXM_WHALE_1;
+const NEW_POOL_MANAGER = NXMHOLDER;
 const GNOSIS_SAFE_ADDRESS = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';
 
 const compareProxyImplementationAddress = async (proxyAddress, addressToCompare) => {
@@ -185,7 +185,7 @@ describe('basic functionality tests', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
 
-    await evm.setNextBlockBaseFee(0);
+    await this.evm.setNextBlockBaseFee(0);
     const tx = await this.ramm.connect(member).swap(nxmIn, minEthOut, deadline, { maxPriorityFeePerGas: 0 });
     const receipt = await tx.wait();
 
@@ -224,7 +224,7 @@ describe('basic functionality tests', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
 
-    await evm.setNextBlockBaseFee(0);
+    await this.evm.setNextBlockBaseFee(0);
     const tx = await this.ramm.connect(member).swap(0, minNxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
     const receipt = await tx.wait();
 

@@ -120,13 +120,10 @@ describe('basic functionality tests', function () {
     const dependenciesToVerify = {
       AS: ['TC', 'MR', 'RA'],
       CI: ['TC', 'MR', 'P1', 'CO', 'AS', 'RA'],
-      CG: ['TC', 'MR', 'P1', 'CO', 'AS', 'RA'],
       MC: ['P1', 'MR', 'CO'],
       P1: ['MC', 'MR', 'RA'],
       CO: ['P1', 'TC', 'MR', 'SP'],
-      CL: ['CO', 'TC', 'CI'],
       MR: ['TC', 'P1', 'CO', 'AS'],
-      PS: ['TC', 'MR'],
       SP: [], // none
       TC: ['AS', 'GV', 'P1'],
       RA: ['P1', 'MC', 'TC'],

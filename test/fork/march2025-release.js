@@ -157,6 +157,22 @@ describe('march 2025 release fork tests', function () {
     expect(await this.coverNFT.nftDescriptor()).to.equal(newCoverNFTDescriptor.address);
   });
 
+  it('Remove old internal contracts that are not used anymore', async function () {
+    const contractsBefore = await this.master.getInternalContracts();
+
+    await submitGovernanceProposal(
+      PROPOSAL_CATEGORIES.removeContracts,
+      defaultAbiCoder.encode(['bytes2[]'], [['PS', 'GW', 'CL', 'CG'].map(c => toUtf8Bytes(c))]),
+      this.abMembers,
+      this.governance,
+    );
+
+    const contractsAfter = await this.master.getInternalContracts();
+
+    console.info('LimitOrders Contracts before:', formatInternalContracts(contractsBefore));
+    console.info('LimitOrders Contracts after:', formatInternalContracts(contractsAfter));
+  });
+
   it('add new LimitOrders (LO) contract', async function () {
     this.managerAddress = NXM_WHALE_1;
     const contractsBefore = await this.master.getInternalContracts();

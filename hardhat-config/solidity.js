@@ -13,6 +13,7 @@ const customConfig = {
 };
 
 const overrides = {
+  'contracts/modules/governance/NXMaster.sol': customConfig,
   'contracts/modules/governance/external/OwnedUpgradeabilityProxy.sol': customConfig,
   'contracts/modules/staking/MinimalBeaconProxy.sol': customConfig,
   'contracts/modules/staking/StakingPoolFactory.sol': customConfig,

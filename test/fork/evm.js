@@ -40,6 +40,8 @@ const methods = {
     setCode: () => notImplemented(),
     setNonce: () => notImplemented(),
     setStorageAt: async (address, slot, value) => send('tenderly_setStorageAt', [address, slot, hex(value)]),
+    // the cheatcode doesn't exist on tenderly but we can just set `gasPrice: 0` and it works
+    setNextBlockBaseFee: () => {},
   }),
 };
 

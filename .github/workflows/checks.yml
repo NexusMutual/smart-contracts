@@ -30,7 +30,7 @@ jobs:
         id: cache
         with:
           path: node_modules
-          key: node-modules-cache-node-${{ env.NODE_VERSION }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: node-modules-cache-node-${{ env.NODE_VERSION }}-${{ env.CACHE_KEY }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: npm ci --ignore-scripts
@@ -50,7 +50,7 @@ jobs:
         id: cache
         with:
           path: node_modules
-          key: node-modules-cache-node-${{ env.NODE_VERSION }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: node-modules-cache-node-${{ env.NODE_VERSION }}-${{ env.CACHE_KEY }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Lint
         run: npm run lint
@@ -70,7 +70,7 @@ jobs:
         id: cache
         with:
           path: node_modules
-          key: node-modules-cache-node-${{ env.NODE_VERSION }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: node-modules-cache-node-${{ env.NODE_VERSION }}-${{ env.CACHE_KEY }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Test
         run: npm test
@@ -92,7 +92,7 @@ jobs:
         id: cache
         with:
           path: node_modules
-          key: node-modules-cache-node-${{ env.NODE_VERSION }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: node-modules-cache-node-${{ env.NODE_VERSION }}-${{ env.CACHE_KEY }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Coverage
         run: npm run coverage && cat coverage/lcov.info | npx coveralls

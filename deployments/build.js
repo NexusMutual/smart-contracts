@@ -17,6 +17,8 @@ const contractList = [
   ['@openzeppelin/contracts-v4/token/ERC20/ERC20.sol:ERC20', 'ERC20'],
   'Governance',
   'IndividualClaims',
+  'LegacyClaimsData',
+  'LegacyQuotationData',
   'LimitOrders',
   'MCR',
   'MemberRoles',

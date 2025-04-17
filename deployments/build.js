@@ -18,7 +18,7 @@ const contractList = [
   'Governance',
   'IndividualClaims',
   'LegacyClaimsData',
-  'LegacyQuotationData',
+  ['IQuotationData', 'LegacyQuotationData'],
   'LimitOrders',
   'MCR',
   'MemberRoles',

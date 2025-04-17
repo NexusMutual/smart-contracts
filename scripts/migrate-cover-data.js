@@ -4,30 +4,32 @@ const { addresses, Cover } = require('@nexusmutual/deployments');
 // set/change env MAINNET_ACCOUNT_KEY and MAINNET_GAS_PRICE
 // run command: HARDHAT_NETWORK=mainnet node scripts/migrate-cover-data.js
 
+const { MAX_FEE_GWEI = '10' } = process.env;
+
 async function main() {
-  const cover = await ethers.getContractAt(Cover, addresses.Cover);
   const signer = await ethers.getSigner();
+  const cover = await ethers.getContractAt(Cover, addresses.Cover, signer);
 
   const totalCovers = await cover.getCoverDataCount();
+  const allCoverIds = new Array(totalCovers).fill(0).map((_, i) => i + 1);
+
   const coversPerTx = 100;
   const gasLimit = 15000000;
+  const maxFeePerGas = ethers.utils.parseUnits(MAX_FEE_GWEI, 'gwei');
+  const maxPriorityFeePerGas = ethers.utils.parseUnits('0.5', 'gwei');
 
-  for (let startId = 1; startId < totalCovers; startId += coversPerTx) {
-    const endId = Math.min(startId + coversPerTx - 1, totalCovers);
-    const coverIds = [];
-    for (let i = startId; i <= endId; i++) {
-      coverIds.push(i);
-    }
-
+  while (allCoverIds.length > 0) {
+    const coverIds = allCoverIds.splice(0, coversPerTx);
     console.log(`Migrating cover ids: ${coverIds}`);
 
-    const tx = await cover.connect(signer).migrateCoverDataAndPoolAllocations(coverIds, { gasLimit });
-    console.log(`tx hash: ${tx.hash}`);
+    const overrides = { gasLimit, maxFeePerGas, maxPriorityFeePerGas };
+    const tx = await cover.migrateCoverDataAndPoolAllocations(coverIds, overrides);
 
-    const txReceipt = await tx.wait();
-
-    console.log(`tx receipt: ${txReceipt}`);
+    console.log(`Sent tx: ${tx.hash}`);
+    await tx.wait();
   }
+
+  console.log('All covers migrated');
 }
 
 main()

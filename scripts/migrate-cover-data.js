@@ -16,7 +16,7 @@ async function main() {
   console.log('signer:', await signer.getAddress());
   const cover = await ethers.getContractAt(Cover, addresses.Cover, signer);
 
-  const totalCovers = await cover.getCoverDataCount();
+  const totalCovers = (await cover.getCoverDataCount()).toNumber();
   const allCoverIds = new Array(totalCovers).fill(0).map((_, i) => i + 1);
 
   console.log('totalCovers', totalCovers);

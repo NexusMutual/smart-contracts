@@ -1,5 +1,11 @@
+/* eslint-disable */
 const { ethers } = require('hardhat');
+const { AwsKmsSigner } = require('@nexusmutual/ethers-v5-aws-kms-signer');
 const { addresses, Cover } = require('@nexusmutual/deployments');
+
+const { waitForInput } = require('../lib/helpers');
+
+const { AWS_REGION, AWS_KMS_KEY_ID } = process.env;
 
 // set/change env MAINNET_ACCOUNT_KEY and MAINNET_GAS_PRICE
 // run command: HARDHAT_NETWORK=mainnet node scripts/migrate-cover-data.js
@@ -7,29 +13,36 @@ const { addresses, Cover } = require('@nexusmutual/deployments');
 const { MAX_FEE_GWEI = '10' } = process.env;
 
 async function main() {
-  const signer = await ethers.getSigner();
+  const signer = new AwsKmsSigner(AWS_KMS_KEY_ID, AWS_REGION, ethers.provider);
+  console.log('signer:', await signer.getAddress());
   const cover = await ethers.getContractAt(Cover, addresses.Cover, signer);
+
+  await waitForInput('Press enter key to continue...');
+  console.log(process.env.MAINNET_GAS_PRICE);
 
   const totalCovers = await cover.getCoverDataCount();
   const allCoverIds = new Array(totalCovers).fill(0).map((_, i) => i + 1);
 
-  const coversPerTx = 100;
-  const gasLimit = 15000000;
-  const maxFeePerGas = ethers.utils.parseUnits(MAX_FEE_GWEI, 'gwei');
-  const maxPriorityFeePerGas = ethers.utils.parseUnits('0.5', 'gwei');
+  console.log('totalCovers', totalCovers);
 
-  while (allCoverIds.length > 0) {
-    const coverIds = allCoverIds.splice(0, coversPerTx);
-    console.log(`Migrating cover ids: ${coverIds}`);
+  // const coversPerTx = 100;
+  // const gasLimit = 15000000;
+  // const maxFeePerGas = ethers.utils.parseUnits(MAX_FEE_GWEI, 'gwei');
+  // const maxPriorityFeePerGas = ethers.utils.parseUnits('0.5', 'gwei');
 
-    const overrides = { gasLimit, maxFeePerGas, maxPriorityFeePerGas };
-    const tx = await cover.migrateCoverDataAndPoolAllocations(coverIds, overrides);
+  // while (allCoverIds.length > 0) {
+  //   const coverIds = allCoverIds.splice(0, coversPerTx);
+  //   console.log(`Migrating cover ids: ${coverIds}`);
+  //   await waitForInput('Press enter key to continue...');
 
-    console.log(`Sent tx: ${tx.hash}`);
-    await tx.wait();
-  }
+  //   const overrides = { gasLimit, maxFeePerGas, maxPriorityFeePerGas };
+  //   const tx = await cover.migrateCoverDataAndPoolAllocations(coverIds, overrides);
 
-  console.log('All covers migrated');
+  //   console.log(`Sent tx: ${tx.hash}`);
+  //   await tx.wait();
+  // }
+
+  // console.log('All covers migrated');
 }
 
 main()

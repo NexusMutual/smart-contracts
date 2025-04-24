@@ -1,6 +1,6 @@
 {
   "name": "nexusmutual",
-  "version": "2.12.0-rc3",
+  "version": "2.12.0",
   "description": "NexusMutual smart contracts",
   "repository": {
     "type": "git",

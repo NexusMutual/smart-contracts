@@ -1,4 +1,3 @@
-/* eslint-disable */
 const { ethers } = require('hardhat');
 const { AwsKmsSigner } = require('@nexusmutual/ethers-v5-aws-kms-signer');
 const { addresses, Cover } = require('@nexusmutual/deployments');
@@ -17,32 +16,29 @@ async function main() {
   console.log('signer:', await signer.getAddress());
   const cover = await ethers.getContractAt(Cover, addresses.Cover, signer);
 
-  await waitForInput('Press enter key to continue...');
-  console.log(process.env.MAINNET_GAS_PRICE);
-
   const totalCovers = await cover.getCoverDataCount();
   const allCoverIds = new Array(totalCovers).fill(0).map((_, i) => i + 1);
 
   console.log('totalCovers', totalCovers);
 
-  // const coversPerTx = 100;
-  // const gasLimit = 15000000;
-  // const maxFeePerGas = ethers.utils.parseUnits(MAX_FEE_GWEI, 'gwei');
-  // const maxPriorityFeePerGas = ethers.utils.parseUnits('0.5', 'gwei');
+  const coversPerTx = 100;
+  const gasLimit = 15000000;
+  const maxFeePerGas = ethers.utils.parseUnits(MAX_FEE_GWEI, 'gwei');
+  const maxPriorityFeePerGas = ethers.utils.parseUnits('0.5', 'gwei');
 
-  // while (allCoverIds.length > 0) {
-  //   const coverIds = allCoverIds.splice(0, coversPerTx);
-  //   console.log(`Migrating cover ids: ${coverIds}`);
-  //   await waitForInput('Press enter key to continue...');
+  while (allCoverIds.length > 0) {
+    const coverIds = allCoverIds.splice(0, coversPerTx);
+    console.log(`Migrating cover ids: ${coverIds}`);
+    await waitForInput('Press enter key to continue...');
 
-  //   const overrides = { gasLimit, maxFeePerGas, maxPriorityFeePerGas };
-  //   const tx = await cover.migrateCoverDataAndPoolAllocations(coverIds, overrides);
+    const overrides = { gasLimit, maxFeePerGas, maxPriorityFeePerGas };
+    const tx = await cover.migrateCoverDataAndPoolAllocations(coverIds, overrides);
 
-  //   console.log(`Sent tx: ${tx.hash}`);
-  //   await tx.wait();
-  // }
+    console.log(`Sent tx: ${tx.hash}`);
+    await tx.wait();
+  }
 
-  // console.log('All covers migrated');
+  console.log('All covers migrated');
 }
 
 main()

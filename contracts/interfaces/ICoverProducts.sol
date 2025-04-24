@@ -7,7 +7,8 @@ import "./ICover.sol";
 /* enums */
 
 enum ClaimMethod {
-  IndividualClaims
+  IndividualClaims,
+  DeprecatedYieldTokenIncidents
 }
 
 /* io structs */

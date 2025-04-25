@@ -101,7 +101,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     require(!_orderStatus.isCancelled, OrderAlreadyCancelled());
 
     uint originalCoverId = _orderStatus.coverId;
-    bool isNewCover = _orderStatus.coverId == 0;
+    bool isNewCover = _orderStatus.coverId == 0 && params.coverId == 0;
     BuyCoverParams memory _params = params;
 
     if (isNewCover) {

@@ -82,7 +82,6 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     bytes calldata signature,
     SettlementDetails memory settlementDetails
   ) external onlyInternalSolver returns (uint coverId) {
-
     require(params.owner != address(0) && params.owner != address(this), InvalidOwnerAddress());
     require(executionDetails.maxPremiumInAsset >= settlementDetails.fee + params.maxPremiumInAsset, OrderPriceNotMet());
 
@@ -101,16 +100,19 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     // Ensure the order is not cancelled
     require(!_orderStatus.isCancelled, OrderAlreadyCancelled());
 
+    uint originalCoverId = _orderStatus.coverId;
     bool isNewCover = _orderStatus.coverId == 0;
+    BuyCoverParams memory _params = params;
 
     if (isNewCover) {
-      require(block.timestamp < executionDetails.executableUntil, OrderExpired());
-      require(block.timestamp > executionDetails.notExecutableBefore, OrderCannotBeExecutedYet());
+      require(block.timestamp < executionDetails.executableUntil, OrderExpired()); // end_date
+      require(block.timestamp > executionDetails.notExecutableBefore, OrderCannotBeExecutedYet()); // end_date - renewablePeriodBeforeExpiration
     } else {
       require(block.timestamp < executionDetails.renewableUntil, RenewalExpired());
 
       CoverData memory coverData = cover().getLatestEditCoverData(_orderStatus.coverId);
 
+      _params.coverId = _orderStatus.coverId;
       require(
         coverData.start + coverData.period < block.timestamp + executionDetails.renewablePeriodBeforeExpiration,
         OrderCannotBeRenewedYet()
@@ -124,20 +126,21 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
 
     // ETH payment
     if (params.paymentAsset == ETH_ASSET_ID) {
-      coverId = _buyCoverEthPayment(buyer, params, poolAllocationRequests, settlementDetails);
+      coverId = _buyCoverEthPayment(buyer, _params, poolAllocationRequests, settlementDetails);
     } else {
       // ERC20 payment
-      coverId = _buyCoverErc20Payment(buyer, params, poolAllocationRequests, settlementDetails);
+      coverId = _buyCoverErc20Payment(buyer, _params, poolAllocationRequests, settlementDetails);
     }
 
     if (isNewCover) {
-      _orderStatus.coverId = uint32(coverId);
+      originalCoverId = params.coverId != 0 ? params.coverId : coverId;
+      _orderStatus.coverId = uint32(originalCoverId);
     }
 
     orderStatus[orderId] = _orderStatus;
 
     // Emit event
-    emit OrderExecuted(params.owner, coverId, orderId);
+    emit OrderExecuted(params.owner, originalCoverId, coverId, orderId);
   }
 
   function cancelOrder(
@@ -223,7 +226,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   /// @return coverId The ID of the purchased cover.
   function _buyCoverEthPayment(
     address buyer,
-    BuyCoverParams calldata params,
+    BuyCoverParams memory params,
     PoolAllocationRequest[] calldata poolAllocationRequests,
     SettlementDetails memory settlementDetails
   ) internal returns (uint coverId) {
@@ -233,7 +236,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     weth.transferFrom(buyer, address(this), params.maxPremiumInAsset);
     weth.withdraw(params.maxPremiumInAsset);
 
-    coverId = cover().executeCoverBuy{value: params.maxPremiumInAsset}(params, poolAllocationRequests);
+    coverId = cover().executeCoverBuy{value: params.maxPremiumInAsset}(params, poolAllocationRequests, buyer);
 
     if (settlementDetails.fee > 0) {
       weth.transferFrom(buyer, settlementDetails.feeDestination, settlementDetails.fee);
@@ -260,7 +263,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   /// @return coverId The ID of the purchased cover.
   function _buyCoverErc20Payment(
     address buyer,
-    BuyCoverParams calldata params,
+    BuyCoverParams memory params,
     PoolAllocationRequest[] calldata poolAllocationRequests,
     SettlementDetails memory settlementDetails
   ) internal returns (uint coverId) {
@@ -273,7 +276,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     uint erc20BalanceBefore = erc20.balanceOf(address(this));
 
     erc20.safeTransferFrom(buyer, address(this), params.maxPremiumInAsset);
-    coverId = cover().executeCoverBuy(params, poolAllocationRequests);
+    coverId = cover().executeCoverBuy(params, poolAllocationRequests, buyer);
 
     if (settlementDetails.fee > 0) {
       erc20.safeTransferFrom(buyer, settlementDetails.feeDestination, settlementDetails.fee);

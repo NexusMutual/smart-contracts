@@ -7,7 +7,8 @@ contract LimitOrdersCoverMock is CoverGeneric {
 
   function executeCoverBuy(
     BuyCoverParams memory,
-    PoolAllocationRequest[] memory
+    PoolAllocationRequest[] memory,
+    address
   ) external payable override returns (uint coverId) {
     return 1;
   }

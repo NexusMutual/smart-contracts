@@ -375,44 +375,6 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
   /* ========== DEPENDENCIES ========== */
 
-  function migrateCoverProducts() external {
-    require(_products.length == 0, "CoverProducts: _products already migrated");
-    require(_productTypes.length == 0, "CoverProducts: _productTypes already migrated");
-
-    ILegacyCover cover = ILegacyCover(address(_cover()));
-    IStakingPoolFactory _stakingPoolFactory = IStakingPoolFactory(cover.stakingPoolFactory());
-
-    Product[] memory _productsToMigrate = cover.getProducts();
-    uint _productTypeCount = cover.productTypesCount();
-    uint stakingPoolCount = _stakingPoolFactory.stakingPoolCount();
-
-    for (uint i = 0; i < _productsToMigrate.length; i++) {
-      _products.push(_productsToMigrate[i]);
-      productNames[i] = cover.productNames(i);
-      uint[] storage _allowedPools = allowedPools[i];
-
-      if (!_productsToMigrate[i].useFixedPrice || _productsToMigrate[i].isDeprecated) {
-        continue;
-      }
-
-      for (uint j = 0; j < stakingPoolCount; j++) {
-        try cover.allowedPools(i, j) returns (uint poolId) {
-          _allowedPools.push(poolId);
-        } catch {
-          break;
-        }
-      }
-    }
-
-    for (uint i = 0; i < _productTypeCount; i++) {
-      ProductType memory _productTypeToMigrate = cover.productTypes(i);
-      _productTypes.push(_productTypeToMigrate);
-      productTypeNames[i] = cover.productTypeNames(i);
-    }
-  }
-
-  /* ========== DEPENDENCIES ========== */
-
   function _pool() internal view returns (IPool) {
     return IPool(internalContracts[uint(ID.P1)]);
   }

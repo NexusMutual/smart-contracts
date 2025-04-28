@@ -214,7 +214,7 @@ describe('LimitOrders - executeOrder', function () {
 
     const coverId = await coverNFT.totalSupply();
 
-    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
+    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, coverId, digest);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const buyerBalanceAfter = await dai.balanceOf(coverBuyer.address);
@@ -328,7 +328,7 @@ describe('LimitOrders - executeOrder', function () {
 
     const coverId = await coverNFT.totalSupply();
 
-    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
+    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, coverId, digest);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const balanceAfterWETH = await weth.balanceOf(coverBuyer.address);
@@ -439,7 +439,7 @@ describe('LimitOrders - executeOrder', function () {
 
     const coverId = await coverNFT.totalSupply();
 
-    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
+    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, coverId, digest);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const balanceAfterNXM = await nxm.balanceOf(coverBuyer.address);
@@ -555,7 +555,7 @@ describe('LimitOrders - executeOrder', function () {
 
     const coverId = await coverNFT.totalSupply();
 
-    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
+    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, coverId, digest);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const balanceAfterNXM = await nxm.balanceOf(coverBuyer.address);
@@ -666,7 +666,7 @@ describe('LimitOrders - executeOrder', function () {
 
     const coverId = await coverNFT.totalSupply();
 
-    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
+    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, coverId, digest);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const balanceAfterNXM = await nxm.balanceOf(coverBuyer.address);
@@ -682,13 +682,14 @@ describe('LimitOrders - executeOrder', function () {
     expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBefore.rewards.add(rewards));
   });
 
-  it('should purchase new cover and renew it', async function () {
+  it('should purchase new cover and renew it multiple times', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const {
       tc: tokenController,
       stakingProducts,
       p1: pool,
       ra: ramm,
+      cover,
       mcr,
       limitOrders,
       weth,
@@ -755,6 +756,7 @@ describe('LimitOrders - executeOrder', function () {
       coverBuyer,
     );
 
+    // INITIAL EXECUTE ORDER
     await setNextBlockTime(nextBlockTimestamp);
     await setNextBlockBaseFee(0);
 
@@ -773,7 +775,7 @@ describe('LimitOrders - executeOrder', function () {
 
     const coverId = await coverNFT.totalSupply();
 
-    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
+    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, coverId, digest);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const balanceAfterWETH = await weth.balanceOf(coverBuyer.address);
@@ -789,10 +791,11 @@ describe('LimitOrders - executeOrder', function () {
     expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBefore.rewards.add(rewards));
     expect(poolAfterETH).to.be.equal(poolBeforeETH.add(premium));
 
+    // FIRST RENEWAL
     await setNextBlockTime(nextBlockTimestamp + orderDetailsFixture.period - 1);
     await setNextBlockBaseFee(0);
 
-    const renewalTx = await limitOrders.connect(orderSettler).executeOrder(
+    const firstRenewalTx = await limitOrders.connect(orderSettler).executeOrder(
       {
         ...orderDetailsFixture,
         productId,
@@ -804,14 +807,53 @@ describe('LimitOrders - executeOrder', function () {
       signature,
       { fee: 0, feeDestination: orderSettler.address },
     );
-    const renewalCoverId = await coverNFT.totalSupply();
 
-    await expect(renewalTx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, renewalCoverId, digest);
-    const balanceAfterRenewalWETH = await weth.balanceOf(coverBuyer.address);
-    const nftBalanceAfterRenewal = await coverNFT.balanceOf(coverBuyer.address);
+    const firstRenewalCoverId = await coverNFT.totalSupply();
+    await expect(firstRenewalTx)
+      .to.emit(limitOrders, 'OrderExecuted')
+      .withArgs(coverBuyer.address, coverId, firstRenewalCoverId, digest);
 
-    expect(nftBalanceAfterRenewal).to.be.equal(nftBalanceAfter.add(1));
-    expect(balanceAfterRenewalWETH).to.be.gt(balanceAfterWETH.sub(premium));
+    const { originalCoverId: originalCoverIdFirstRenewal } = await cover.getCoverReference(firstRenewalCoverId);
+    await expect(originalCoverIdFirstRenewal).to.be.equal(coverId);
+
+    const balanceAfterFirstRenewalWETH = await weth.balanceOf(coverBuyer.address);
+    const nftBalanceAfterFirstRenewal = await coverNFT.balanceOf(coverBuyer.address);
+
+    expect(nftBalanceAfterFirstRenewal).to.be.equal(nftBalanceAfter.add(1));
+    expect(balanceAfterFirstRenewalWETH).to.be.gt(balanceAfterWETH.sub(premium));
+
+    // SECOND RENEWAL
+    await setNextBlockTime(
+      nextBlockTimestamp + 2 * orderDetailsFixture.period - executionDetails.renewablePeriodBeforeExpiration,
+    );
+    await setNextBlockBaseFee(0);
+
+    const secondRenewalTx = await limitOrders.connect(orderSettler).executeOrder(
+      {
+        ...orderDetailsFixture,
+        productId,
+        owner: coverBuyer.address,
+        maxPremiumInAsset: premium,
+      },
+      [{ poolId: 1, coverAmountInAsset: amount }],
+      executionDetails,
+      signature,
+      { fee: 0, feeDestination: orderSettler.address },
+    );
+
+    const secondRenewalCoverId = await coverNFT.totalSupply();
+    await expect(secondRenewalTx)
+      .to.emit(limitOrders, 'OrderExecuted')
+      .withArgs(coverBuyer.address, coverId, secondRenewalCoverId, digest);
+
+    const { originalCoverId: originalCoverIdSecondRenewal } = await cover.getCoverReference(secondRenewalCoverId);
+    await expect(originalCoverIdSecondRenewal).to.be.equal(coverId);
+
+    const balanceAfterSecondRenewalWETH = await weth.balanceOf(coverBuyer.address);
+    const nftBalanceSecondAfterRenewal = await coverNFT.balanceOf(coverBuyer.address);
+
+    expect(nftBalanceSecondAfterRenewal).to.be.equal(nftBalanceAfterFirstRenewal.add(1));
+    expect(balanceAfterSecondRenewalWETH).to.be.gt(balanceAfterFirstRenewalWETH.sub(premium));
   });
 
   it('should purchase new cover and not renew it if the counter is over renewal limit', async function () {
@@ -909,7 +951,7 @@ describe('LimitOrders - executeOrder', function () {
 
     const coverId = await coverNFT.totalSupply();
 
-    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, digest);
+    await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, coverId, digest);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const balanceAfterWETH = await dai.balanceOf(coverBuyer.address);

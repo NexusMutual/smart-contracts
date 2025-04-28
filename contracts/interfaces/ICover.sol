@@ -130,7 +130,8 @@ interface ICover {
 
   function executeCoverBuy(
     BuyCoverParams calldata params,
-    PoolAllocationRequest[] calldata coverChunkRequests
+    PoolAllocationRequest[] calldata coverChunkRequests,
+    address buyer
   ) external payable returns (uint coverId);
 
   function burnStake(uint coverId, uint amount) external returns (address coverOwner);

@@ -62,7 +62,7 @@ interface ILimitOrders {
 
   /* ==== EVENTS ==== */
 
-  event OrderExecuted(address owner, uint coverId, bytes32 id);
+  event OrderExecuted(address owner, uint originalCoverId, uint coverId, bytes32 id);
   event OrderCancelled(bytes32 id);
 
   /* ==== ERRORS ==== */

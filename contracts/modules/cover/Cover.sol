@@ -105,13 +105,24 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory poolAllocationRequests
   ) external payable onlyMember returns (uint coverId) {
+
+    if (params.coverId != 0) {
+      require(coverNFT.isApprovedOrOwner(msg.sender, params.coverId), OnlyOwnerOrApproved());
+    }
+
     return _buyCover(params, poolAllocationRequests);
   }
 
   function executeCoverBuy(
     BuyCoverParams memory params,
-    PoolAllocationRequest[] memory poolAllocationRequests
+    PoolAllocationRequest[] memory poolAllocationRequests,
+    address buyer
   ) external payable onlyInternal returns (uint coverId) {
+
+    if (params.coverId != 0) {
+      require(coverNFT.isApprovedOrOwner(buyer, params.coverId), OnlyOwnerOrApproved());
+    }
+
     return _buyCover(params, poolAllocationRequests);
   }
 
@@ -136,7 +147,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     if (params.coverId != 0) {
 
-      require(coverNFT.isApprovedOrOwner(msg.sender, params.coverId), OnlyOwnerOrApproved());
 
       CoverReference memory coverReference = getCoverReference(params.coverId);
 

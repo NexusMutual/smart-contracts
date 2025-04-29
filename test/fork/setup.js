@@ -37,6 +37,9 @@ it('load contracts', async function () {
   this.coverNFTDescriptor = await ethers.getContractAt(abis.CoverNFTDescriptor, await this.coverNFT.nftDescriptor());
   this.stakingPool = await ethers.getContractAt(abis.StakingPool, await this.cover.stakingPoolImplementation());
 
+  // External contracts
+  this.coverBroker = await ethers.getContractAt(abis.CoverBroker, addresses.CoverBroker);
+
   // Token Mocks
   this.weth = await ethers.getContractAt('WETH9', Address.WETH_ADDRESS);
   this.cbBTC = await ethers.getContractAt('ERC20Mock', Address.CBBTC_ADDRESS);

@@ -161,13 +161,15 @@ describe('basic functionality tests', function () {
   it('Stake for assessment', async function () {
     // stake
     const amount = parseEther('200');
-    for (const abMember of this.abMembers.slice(0, ASSESSMENT_VOTER_COUNT)) {
-      const memberAddress = await abMember.getAddress();
-      const { amount: stakeAmountBefore } = await this.assessment.stakeOf(memberAddress);
-      await this.assessment.connect(abMember).stake(amount);
-      const { amount: stakeAmountAfter } = await this.assessment.stakeOf(memberAddress);
-      expect(stakeAmountAfter).to.be.equal(stakeAmountBefore.add(amount));
-    }
+    await Promise.all(
+      this.abMembers.slice(0, ASSESSMENT_VOTER_COUNT).map(async abMember => {
+        const memberAddress = await abMember.getAddress();
+        const { amount: stakeAmountBefore } = await this.assessment.stakeOf(memberAddress);
+        await this.assessment.connect(abMember).stake(amount);
+        const { amount: stakeAmountAfter } = await this.assessment.stakeOf(memberAddress);
+        expect(stakeAmountAfter).to.be.equal(stakeAmountBefore.add(amount));
+      }),
+    );
   });
 
   it('Swap NXM for ETH', async function () {
@@ -676,6 +678,80 @@ describe('basic functionality tests', function () {
 
     const { payoutRedeemed } = await this.individualClaims.claims(claimId);
     expect(payoutRedeemed).to.be.equal(true);
+  });
+
+  it('buy cover through CoverBroker using ETH', async function () {
+    const coverBuyer = await ethers.Wallet.createRandom().connect(ethers.provider);
+
+    await evm.setBalance(coverBuyer.address, parseEther('1000000'));
+    await evm.impersonate(coverBuyer.address);
+
+    const amount = parseEther('1');
+    const coverCountBefore = await this.cover.getCoverDataCount();
+
+    await this.coverBroker.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyer.address,
+        productId: protocolProductId,
+        coverAsset: 0, // ETH
+        amount,
+        period: 3600 * 24 * 30, // 30 days
+        maxPremiumInAsset: parseEther('1').mul(260).div(10000),
+        paymentAsset: 0, // ETH
+        payWithNXM: false,
+        commissionRatio: '500', // 5%,
+        commissionDestination: coverBuyer.address,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+      { value: amount },
+    );
+
+    const coverCountAfter = await this.cover.getCoverDataCount();
+    const coverId = coverCountAfter;
+    const isCoverBuyerOwner = await this.coverNFT.isApprovedOrOwner(coverBuyer.address, coverId);
+
+    expect(isCoverBuyerOwner).to.be.equal(true);
+    expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
+  });
+
+  it('buy cover through CoverBroker using ERC20 (USDC)', async function () {
+    await evm.impersonate(USDC_HOLDER);
+    await evm.setBalance(USDC_HOLDER, parseEther('1000000'));
+
+    const coverBuyer = await getSigner(USDC_HOLDER);
+    const coverBuyerAddress = await coverBuyer.getAddress();
+
+    const amount = parseUnits('1000', 6);
+    console.log('amount', amount.toString());
+    const coverCountBefore = await this.cover.getCoverDataCount();
+
+    await this.usdc.connect(coverBuyer).approve(this.coverBroker.address, MaxUint256);
+    await this.coverBroker.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyerAddress,
+        productId: protocolProductId,
+        coverAsset: 6, // USDC
+        amount,
+        period: 3600 * 24 * 30, // 30 days
+        maxPremiumInAsset: amount.mul(260).div(10000),
+        paymentAsset: 6, // USDC
+        payWithNXM: false,
+        commissionRatio: '500', // 5%,
+        commissionDestination: coverBuyerAddress,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+    );
+
+    const coverCountAfter = await this.cover.getCoverDataCount();
+    const coverId = coverCountAfter;
+    const isCoverBuyerOwner = await this.coverNFT.isApprovedOrOwner(coverBuyerAddress, coverId);
+
+    expect(isCoverBuyerOwner).to.be.equal(true);
+    expect(coverCountAfter).to.be.equal(coverCountBefore.add(1));
   });
 
   it('Edit cover', async function () {

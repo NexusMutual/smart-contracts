@@ -27,7 +27,7 @@ const { parseEther, defaultAbiCoder, toUtf8Bytes, formatEther, parseUnits } = et
 
 const ASSESSMENT_VOTER_COUNT = 3;
 const { USDC_ADDRESS } = Address;
-const { NXM_WHALE_1, NXM_WHALE_2, DAI_NXM_HOLDER, NXMHOLDER, DAI_HOLDER, USDC_HOLDER, HUGH } = UserAddress;
+const { NXM_WHALE_1, NXM_WHALE_2, DAI_NXM_HOLDER, NXMHOLDER, DAI_HOLDER, USDC_HOLDER, NXM_AB_MEMBER } = UserAddress;
 
 let custodyProductId, custodyCoverId;
 let protocolProductId, protocolCoverId;
@@ -584,8 +584,8 @@ describe('basic functionality tests', function () {
   });
 
   it('Buy protocol USDC cover', async function () {
-    await evm.impersonate(HUGH);
-    const coverBuyer = await getSigner(HUGH);
+    await evm.impersonate(NXM_AB_MEMBER);
+    const coverBuyer = await getSigner(NXM_AB_MEMBER);
     const coverBuyerAddress = await coverBuyer.getAddress();
 
     const coverAsset = 6; // USDC
@@ -628,8 +628,8 @@ describe('basic functionality tests', function () {
   });
 
   it('Submit claim for protocol cover in USDC', async function () {
-    await evm.impersonate(HUGH);
-    const coverBuyer = await getSigner(HUGH);
+    await evm.impersonate(NXM_AB_MEMBER);
+    const coverBuyer = await getSigner(NXM_AB_MEMBER);
 
     const claimsCountBefore = await this.individualClaims.getClaimsCount();
     const assessmentCountBefore = await this.assessment.getAssessmentsCount();
@@ -679,9 +679,8 @@ describe('basic functionality tests', function () {
   });
 
   it('Edit cover', async function () {
-    // buying cover with USDC
-    await evm.impersonate(HUGH);
-    const coverBuyer = await getSigner(HUGH);
+    await evm.impersonate(NXM_AB_MEMBER);
+    const coverBuyer = await getSigner(NXM_AB_MEMBER);
     const coverBuyerAddress = await coverBuyer.getAddress();
 
     const coverAsset = 6; // USDC

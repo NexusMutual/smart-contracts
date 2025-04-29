@@ -688,7 +688,6 @@ describe('basic functionality tests', function () {
     const coverBuyer = await ethers.Wallet.createRandom().connect(ethers.provider);
 
     await evm.setBalance(coverBuyer.address, parseEther('1000000'));
-    await evm.impersonate(coverBuyer.address);
 
     const amount = parseEther('1');
     const coverCountBefore = await this.cover.getCoverDataCount();

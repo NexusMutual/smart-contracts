@@ -65,8 +65,7 @@ async function castAssessmentVote() {
       .map(abMember => this.assessment.connect(abMember).castVotes([assessmentId], [true], [''], 0)),
   );
 
-  const { poll: pollResult } = await this.assessment.assessments(assessmentId);
-  const poll = pollResult;
+  const { poll } = await this.assessment.assessments(assessmentId);
 
   const payoutCooldown = (await this.assessment.getPayoutCooldown()).toNumber();
 

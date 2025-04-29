@@ -59,9 +59,11 @@ const setTime = async timestamp => {
 
 async function castAssessmentVote() {
   // vote
-  for (const abMember of this.abMembers.slice(0, ASSESSMENT_VOTER_COUNT)) {
-    await this.assessment.connect(abMember).castVotes([assessmentId], [true], [''], 0);
-  }
+  await Promise.all(
+    this.abMembers
+      .slice(0, ASSESSMENT_VOTER_COUNT)
+      .map(abMember => this.assessment.connect(abMember).castVotes([assessmentId], [true], [''], 0)),
+  );
 
   const { poll: pollResult } = await this.assessment.assessments(assessmentId);
   const poll = pollResult;
@@ -92,25 +94,24 @@ describe('basic functionality tests', function () {
   });
 
   it('Impersonate addresses', async function () {
-    await evm.impersonate(NXM_WHALE_1);
-    await evm.impersonate(NXM_WHALE_2);
-    await evm.impersonate(NXMHOLDER);
-    await evm.impersonate(NEW_POOL_MANAGER);
-    await evm.setBalance(NXM_WHALE_1, parseEther('100000'));
-    await evm.setBalance(NXM_WHALE_2, parseEther('100000'));
-    await evm.setBalance(NXMHOLDER, parseEther('100000'));
-    await evm.setBalance(NEW_POOL_MANAGER, parseEther('100000'));
-    await evm.setBalance(DAI_HOLDER, parseEther('100000'));
-    await evm.setBalance(DAI_NXM_HOLDER, parseEther('100000'));
+    await Promise.all([
+      // Impersonate addresses
+      evm.impersonate(NXM_WHALE_1),
+      evm.impersonate(NXM_WHALE_2),
+      evm.impersonate(NXMHOLDER),
+      evm.impersonate(DAI_HOLDER),
+      evm.impersonate(NEW_POOL_MANAGER),
+      // Set balances
+      evm.setBalance(NXM_WHALE_1, parseEther('100000')),
+      evm.setBalance(NXM_WHALE_2, parseEther('100000')),
+      evm.setBalance(NXMHOLDER, parseEther('100000')),
+      evm.setBalance(NEW_POOL_MANAGER, parseEther('100000')),
+      evm.setBalance(DAI_HOLDER, parseEther('100000')),
+      evm.setBalance(DAI_NXM_HOLDER, parseEther('100000')),
+    ]);
 
-    this.members = [];
-    this.members.push(await getSigner(NXM_WHALE_1));
-    this.members.push(await getSigner(NXM_WHALE_2));
-    this.members.push(await getSigner(NXMHOLDER));
-
+    this.members = await Promise.all([NXM_WHALE_1, NXM_WHALE_2, NXMHOLDER].map(address => getSigner(address)));
     this.manager = await getSigner(NEW_POOL_MANAGER);
-
-    await evm.impersonate(DAI_HOLDER);
     this.daiHolder = await getSigner(DAI_HOLDER);
     this.usdcHolder = await getSigner(USDC_HOLDER);
   });
@@ -139,23 +140,27 @@ describe('basic functionality tests', function () {
       return latestAddresses[contractCode];
     }
 
-    for (const contractCode of Object.keys(dependenciesToVerify)) {
-      const dependencies = dependenciesToVerify[contractCode];
+    await Promise.all(
+      Object.keys(dependenciesToVerify).map(async contractCode => {
+        const dependencies = dependenciesToVerify[contractCode];
 
-      const masterAwareV2 = await ethers.getContractAt('IMasterAwareV2', await getLatestAddress(contractCode));
+        const masterAwareV2 = await ethers.getContractAt('IMasterAwareV2', await getLatestAddress(contractCode));
 
-      for (const dependency of dependencies) {
-        const dependencyAddress = await getLatestAddress(dependency);
+        await Promise.all(
+          dependencies.map(async dependency => {
+            const dependencyAddress = await getLatestAddress(dependency);
 
-        const contractId = InternalContractsIDs[dependency];
-        const storedDependencyAddress = await masterAwareV2.internalContracts(contractId);
-        expect(storedDependencyAddress).to.be.equal(
-          dependencyAddress,
-          `Dependency ${dependency} for ${contractCode} is not set correctly ` +
-            `(expected ${dependencyAddress}, got ${storedDependencyAddress})`,
+            const contractId = InternalContractsIDs[dependency];
+            const storedDependencyAddress = await masterAwareV2.internalContracts(contractId);
+            expect(storedDependencyAddress).to.be.equal(
+              dependencyAddress,
+              `Dependency ${dependency} for ${contractCode} is not set correctly ` +
+                `(expected ${dependencyAddress}, got ${storedDependencyAddress})`,
+            );
+          }),
         );
-      }
-    }
+      }),
+    );
   });
 
   it('Stake for assessment', async function () {
@@ -724,7 +729,6 @@ describe('basic functionality tests', function () {
     const coverBuyerAddress = await coverBuyer.getAddress();
 
     const amount = parseUnits('1000', 6);
-    console.log('amount', amount.toString());
     const coverCountBefore = await this.cover.getCoverDataCount();
 
     await this.usdc.connect(coverBuyer).approve(this.coverBroker.address, MaxUint256);

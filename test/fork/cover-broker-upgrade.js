@@ -18,9 +18,11 @@ const setTime = async timestamp => {
 
 async function castAssessmentVote(assessmentId) {
   // vote
-  for (const abMember of this.abMembers.slice(0, ASSESSMENT_VOTER_COUNT)) {
-    await this.assessment.connect(abMember).castVotes([assessmentId], [true], [''], 0);
-  }
+  await Promise.all(
+    this.abMembers
+      .slice(0, ASSESSMENT_VOTER_COUNT)
+      .map(abMember => this.assessment.connect(abMember).castVotes([assessmentId], [true], [''], 0)),
+  );
 
   const { poll: pollResult } = await this.assessment.assessments(assessmentId);
   const poll = pollResult;

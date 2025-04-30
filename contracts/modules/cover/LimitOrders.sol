@@ -100,8 +100,10 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     // Ensure the order is not cancelled
     require(!_orderStatus.isCancelled, OrderAlreadyCancelled());
 
-    uint originalCoverId = _orderStatus.coverId;
-    bool isNewCover = _orderStatus.coverId == 0 && params.coverId == 0;
+    uint originalCoverId = _orderStatus.coverId != 0
+      ? _orderStatus.coverId
+      : params.coverId;
+    bool isNewCover = originalCoverId == 0;
     BuyCoverParams memory _params = params;
 
     if (isNewCover) {
@@ -110,9 +112,9 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     } else {
       require(block.timestamp < executionDetails.renewableUntil, RenewalExpired());
 
-      CoverData memory coverData = cover().getLatestEditCoverData(_orderStatus.coverId);
+      CoverData memory coverData = cover().getLatestEditCoverData(originalCoverId);
 
-      _params.coverId = _orderStatus.coverId;
+      _params.coverId = originalCoverId;
       require(
         coverData.start + coverData.period < block.timestamp + executionDetails.renewablePeriodBeforeExpiration,
         OrderCannotBeRenewedYet()
@@ -132,7 +134,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
       coverId = _buyCoverErc20Payment(buyer, _params, poolAllocationRequests, settlementDetails);
     }
 
-    if (isNewCover) {
+    if (_orderStatus.coverId == 0) {
       originalCoverId = params.coverId != 0 ? params.coverId : coverId;
       _orderStatus.coverId = uint32(originalCoverId);
     }

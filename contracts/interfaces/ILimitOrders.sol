@@ -5,8 +5,6 @@ pragma solidity >=0.5.0;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 
 import "./ICover.sol";
-import "./IMemberRoles.sol";
-import "./INXMMaster.sol";
 import "./INXMToken.sol";
 import "./IWeth.sol";
 

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
@@ -74,17 +75,18 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   /// @param poolAllocationRequests Pool allocations for the cover
   /// @param executionDetails Start and end date when the order can be executed and max premium in asset
   /// @param signature The signature of the order
+  /// @param settlementDetails Fee related details
   /// @return coverId The ID of the purchased cover
   function executeOrder(
-    BuyCoverParams calldata params,
+    BuyCoverParams memory params,
     PoolAllocationRequest[] calldata poolAllocationRequests,
     ExecutionDetails calldata executionDetails,
     bytes calldata signature,
-    SettlementDetails memory settlementDetails
+    SettlementDetails calldata settlementDetails
   ) external onlyInternalSolver returns (uint coverId) {
+
     require(params.owner != address(0) && params.owner != address(this), InvalidOwnerAddress());
     require(executionDetails.maxPremiumInAsset >= settlementDetails.fee + params.maxPremiumInAsset, OrderPriceNotMet());
-
 
     bytes32 orderId = getOrderId(params, executionDetails);
     address buyer = ECDSA.recover(orderId, signature);
@@ -103,35 +105,31 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     uint originalCoverId = _orderStatus.coverId != 0
       ? _orderStatus.coverId
       : params.coverId;
+
     bool isNewCover = originalCoverId == 0;
-    BuyCoverParams memory _params = params;
 
     if (isNewCover) {
       require(block.timestamp < executionDetails.executableUntil, OrderExpired()); // end_date
       require(block.timestamp > executionDetails.notExecutableBefore, OrderCannotBeExecutedYet()); // end_date - renewablePeriodBeforeExpiration
     } else {
-      require(block.timestamp < executionDetails.renewableUntil, RenewalExpired());
+
+      params.coverId = originalCoverId;
 
       CoverData memory coverData = cover().getLatestEditCoverData(originalCoverId);
+      uint expiresAt = coverData.start + coverData.period;
+      uint renewableAfter = expiresAt - executionDetails.renewablePeriodBeforeExpiration;
 
-      _params.coverId = originalCoverId;
-      require(
-        coverData.start + coverData.period < block.timestamp + executionDetails.renewablePeriodBeforeExpiration,
-        OrderCannotBeRenewedYet()
-      );
-
-      require(
-        coverData.start + coverData.period > block.timestamp,
-        ExpiredCoverCannotBeRenewed()
-      );
+      require(block.timestamp < executionDetails.renewableUntil, RenewalExpired());
+      require(block.timestamp > renewableAfter, OrderCannotBeRenewedYet());
+      require(expiresAt > block.timestamp, ExpiredCoverCannotBeRenewed());
     }
 
     // ETH payment
     if (params.paymentAsset == ETH_ASSET_ID) {
-      coverId = _buyCoverEthPayment(buyer, _params, poolAllocationRequests, settlementDetails);
+      coverId = _buyCoverEthPayment(buyer, params, poolAllocationRequests, settlementDetails);
     } else {
       // ERC20 payment
-      coverId = _buyCoverErc20Payment(buyer, _params, poolAllocationRequests, settlementDetails);
+      coverId = _buyCoverErc20Payment(buyer, params, poolAllocationRequests, settlementDetails);
     }
 
     if (_orderStatus.coverId == 0) {
@@ -175,7 +173,7 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   /// @param executionDetails Start and end date when the order can be executed and max premium in asset
   /// @return structHash The hash of the structured data
   function getOrderId(
-    BuyCoverParams calldata params,
+    BuyCoverParams memory params,
     ExecutionDetails calldata executionDetails
   ) public view returns (bytes32 structHash) {
     // Hash the ExecutionDetails struct
@@ -222,15 +220,16 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
 
   /// @notice Handles ETH/WETH payments for buying cover.
   /// @dev Transfers WETH tokens from the order creator to the contract, then unwraps it,  then buys cover on behalf of the creator.
-  //       Calculates ETH refunds if any and sends back to param.owner.
+  ///      Calculates ETH refunds if any and sends back to param.owner.
   /// @param params The parameters required to buy cover.
   /// @param poolAllocationRequests The allocation requests for the pool's liquidity.
+  /// @param settlementDetails Fee related details.
   /// @return coverId The ID of the purchased cover.
   function _buyCoverEthPayment(
     address buyer,
     BuyCoverParams memory params,
     PoolAllocationRequest[] calldata poolAllocationRequests,
-    SettlementDetails memory settlementDetails
+    SettlementDetails calldata settlementDetails
   ) internal returns (uint coverId) {
 
     uint ethBalanceBefore = address(this).balance;
@@ -262,12 +261,13 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
   /// Calculates ERC20 refunds if any and sends back to params.owner.
   /// @param params The parameters required to buy cover.
   /// @param poolAllocationRequests The allocation requests for the pool's liquidity.
+  /// @param settlementDetails Fee related details.
   /// @return coverId The ID of the purchased cover.
   function _buyCoverErc20Payment(
     address buyer,
     BuyCoverParams memory params,
     PoolAllocationRequest[] calldata poolAllocationRequests,
-    SettlementDetails memory settlementDetails
+    SettlementDetails calldata settlementDetails
   ) internal returns (uint coverId) {
 
     address paymentAsset = params.paymentAsset == NXM_ASSET_ID
@@ -294,7 +294,6 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
 
     return coverId;
   }
-
 
   function whitelistSelf() external {
     tokenController().addToWhitelist(address(this));

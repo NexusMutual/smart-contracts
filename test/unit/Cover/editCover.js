@@ -1242,14 +1242,14 @@ describe('editCover', function () {
     ).to.be.revertedWithCustomError(cover, 'InsufficientCoverAmountAllocated');
   });
 
-  it('emits CoverEdited event', async function () {
+  it('emits CoverBought event', async function () {
     const fixture = await loadFixture(setup);
     const { cover, coverNFT } = fixture;
 
     const [coverBuyer] = fixture.accounts.members;
 
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
-    const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
+    const { storedCoverData, coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const passedPeriod = BigNumber.from(10);
     const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
@@ -1270,16 +1270,16 @@ describe('editCover', function () {
       .div(3600 * 24 * 365);
     const extraPremium = expectedEditPremium.sub(expectedRefund);
 
-    const coverOwner = await coverNFT.ownerOf(expectedCoverId);
+    const coverOwner = await coverNFT.ownerOf(originalCoverId);
     expect(coverOwner).to.be.equal(coverBuyer.address);
 
     const ipfsData = 'test data';
-    const editedCoverId = expectedCoverId.add(1);
+    const editedCoverId = originalCoverId.add(1);
 
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
-          coverId: expectedCoverId,
+          coverId: originalCoverId,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -1296,8 +1296,8 @@ describe('editCover', function () {
         { value: extraPremium },
       ),
     )
-      .to.emit(cover, 'CoverEdited')
-      .withArgs(editedCoverId, productId, 0, coverBuyer.address, ipfsData);
+      .to.emit(cover, 'CoverBought')
+      .withArgs(editedCoverId, originalCoverId, productId, coverBuyer.address, ipfsData);
   });
 
   it('retrieves the premium difference from the user in ETH', async function () {

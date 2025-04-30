@@ -144,10 +144,13 @@ interface ICover {
 
   /* ========== EVENTS ========== */
 
-  event CoverEdited(uint indexed coverId, uint indexed productId, uint indexed unused, address buyer, string ipfsMetadata);
-
-  // TODO: what else do we need here?
-  event CoverBought(uint indexed coverId, uint indexed productId, uint amount, string ipfsMetadata);
+  event CoverBought(
+    uint indexed coverId,
+    uint indexed originalCoverId,
+    uint productId,
+    address indexed buyer,
+    string ipfsMetadata
+  );
 
   // Auth
   error OnlyOwnerOrApproved();

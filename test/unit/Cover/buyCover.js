@@ -140,6 +140,34 @@ describe('buyCover', function () {
     });
   });
 
+  it('emits CoverBought event', async function () {
+    const fixture = await loadFixture(buyCoverSetup);
+    const { cover } = fixture;
+    const [coverBuyer] = fixture.accounts.members;
+    const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
+
+    const tx = await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      poolAllocationRequest,
+      { value: expectedPremium },
+    );
+
+    const coverId = await cover.getCoverDataCount();
+    await expect(tx).to.emit(cover, 'CoverBought').withArgs(coverId, coverId, productId, coverBuyer.address, '');
+  });
+
   it('should purchase new cover with fixed price using 1 staking pool', async function () {
     const fixture = await loadFixture(buyCoverSetup);
     const { cover, pool, stakingProducts } = fixture;

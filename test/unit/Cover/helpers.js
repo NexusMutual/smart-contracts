@@ -113,7 +113,7 @@ async function buyCoverOnMultiplePools({
   );
 
   const { events } = await tx.wait();
-  const { coverId } = events.find(e => e.event === 'CoverEdited').args;
+  const { coverId } = events.find(e => e.event === 'CoverBought').args;
 
   const storedCoverData = await cover.getCoverData(coverId);
   const poolAllocations = await cover.getPoolAllocations(coverId);

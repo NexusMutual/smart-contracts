@@ -110,7 +110,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       require(coverNFT.isApprovedOrOwner(msg.sender, params.coverId), OnlyOwnerOrApproved());
     }
 
-    return _buyCover(params, poolAllocationRequests);
+    coverId = _buyCover(params, poolAllocationRequests);
+
+    emit CoverBought(
+      coverId,
+      params.coverId != 0 ? params.coverId : coverId,
+      params.productId,
+      msg.sender,
+      params.ipfsData
+    );
+
+    return coverId;
   }
 
   function executeCoverBuy(
@@ -123,7 +133,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       require(coverNFT.isApprovedOrOwner(buyer, params.coverId), OnlyOwnerOrApproved());
     }
 
-    return _buyCover(params, poolAllocationRequests);
+    coverId = _buyCover(params, poolAllocationRequests);
+
+    emit CoverBought(
+      coverId,
+      params.coverId != 0 ? params.coverId : coverId,
+      params.productId,
+      buyer,
+      params.ipfsData
+    );
+
+    return coverId;
   }
 
   function _buyCover(
@@ -227,8 +247,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       params.commissionRatio,
       params.commissionDestination
     );
-
-    emit CoverEdited(coverId, params.productId, 0 /*segmentId*/, msg.sender, params.ipfsData);
   }
 
   function expireCover(uint coverId) external {

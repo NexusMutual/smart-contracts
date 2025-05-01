@@ -1,0 +1,153 @@
+# Release Workflow
+#
+# This workflow is responsible for creating and publishing stable releases to npm
+# with the '@latest' tag when changes are pushed to the master branch.
+#
+# Workflow Behavior:
+# - Triggered on push to master branch
+# - Checks if commits since the last tag triggers a version bump using conventional commits
+# - If a version bump is triggered:
+#   - creates a version bump commit on both root package.json and deployments/package.json
+#   - creates a git tag
+# - Publishes the package to npm with the '@latest' tag
+# - Creates a git tag and GitHub release with release notes
+# - Rebases the release-candidate branch to ensure it stays in sync with master
+#
+# Scenarios:
+# 1. Release candidate merged to master with commits that trigger a version bump:
+#    - Workflow determines the next semantic version (e.g., 0.2.0 from 0.1.0)
+#    - Creates a version bump commit in package.json files
+#    - Publishes the new version to npm with '@latest' tag
+#    - Creates a git tag and GitHub release with release notes
+#    - Rebases release-candidate branch to sync with master
+#
+# 2. Push to master with commits that don't trigger a version bump:
+#    - Workflow fails with an error message
+#    - No version is published, no tag is created
+#    - Ensures only meaningful changes result in new releases
+#    - Still rebases release-candidate branch to ensure it stays in sync with master
+# 
+# Note: The rebase-release-candidate job always runs (if: always()) to ensure
+# release-candidate branch is always in sync with master, regardless of whether
+# the release process succeeds or fails.
+
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  NODE_VERSION: 22
+  PROVIDER_URL: ${{ secrets.PROVIDER_URL }}
+
+jobs:
+  # First step: Determines if the commits since last tag trigger a version bump
+  # Outputs:
+  # - bump_type: The type of semantic version bump (major, minor, patch)
+  # - triggers_bump: 'true' if a version bump is needed, 'false' otherwise
+  check-version-bump:
+    uses: NexusMutual/workflows/.github/workflows/check-version-bump.yml@master
+    with:
+      ref: release-candidate
+      environment: production
+      bump-command: |
+        timeout 5s npx conventional-recommended-bump --config .github/config/conventional-bump-setup.js
+    secrets:
+      DEPLOYER_APP_ID: ${{ secrets.DEPLOYER_APP_ID }}
+      DEPLOYER_APP_PK: ${{ secrets.DEPLOYER_APP_PK }}
+
+  # Second step: Fails the workflow if the commits since last tag does not trigger a version bump
+  # This ensures we don't create releases without meaningful changes
+  validate-version-bump:
+    needs: check-version-bump
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Verify version bump is triggered
+        if: needs.check-version-bump.outputs.triggers_bump != 'true'
+        run: |
+          echo "::error::Forbidden to release a version without a version bump"
+          echo "::warning::Commit messages on the dev branch must include changes beyond 'docs', 'style', 'test', or 'ci'"
+          echo "Please ensure your commits reflect meaningful changes to trigger an automatic version bump."
+          exit 1
+      - name: Confirm version bump
+        run: |
+          echo "Version bump of type '${{ needs.check-version-bump.outputs.bump_type }}' will be applied"
+          
+  # Third step: Updates the package version in root and deployments directories
+  # Creates a commit with the version bump
+  bump-version:
+    needs: [check-version-bump, validate-version-bump]
+    uses: NexusMutual/workflows/.github/workflows/bump.yml@feat/add-determine-rc-version-workflow
+    with:
+      environment: production
+      ref: master
+      bump-command: |
+        echo 'Executing npm version bump: ${{ needs.check-version-bump.outputs.bump_type }} on root and deployments package.json'
+        # Bump package version in root
+        npm version "${{ needs.check-version-bump.outputs.bump_type }}" --no-git-tag-version
+        # Bump package version in deployments with the same version
+        cd deployments
+        npm version $(jq -r '.version' ../package.json) --no-git-tag-version
+    secrets:
+      DEPLOYER_APP_ID: ${{ secrets.DEPLOYER_APP_ID }}
+      DEPLOYER_APP_PK: ${{ secrets.DEPLOYER_APP_PK }}
+
+  # Fourth step: Builds and publishes the deployments package to npm with the @latest tag
+  publish-deployments:
+    needs: bump-version
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: master
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+          
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --prefer-offline --no-audit --no-fund
+        
+      - name: Build deployments
+        run: npm run deployments:build
+        
+      - name: Publish to npm with @latest tag
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm run deployments:publish:latest
+    
+  # Fifth step: Creates a git tag and GitHub release with release notes
+  git-tag-release:
+    needs: bump-version
+    uses: NexusMutual/workflows/.github/workflows/git-tag-github-release.yml@master
+    with:
+      environment: production
+      ref: master
+    secrets:
+      DEPLOYER_APP_ID: ${{ secrets.DEPLOYER_APP_ID }}
+      DEPLOYER_APP_PK: ${{ secrets.DEPLOYER_APP_PK }}
+  
+  # Final step: Rebase the version bump commit back to release-candidate
+  # This always executes whether the workflow passes or not to ensure release-candidate branch is always synced with master
+  # The version bump commit includes [skip ci] so release-next.yml won't run on this commit
+  rebase-release-candidate:
+    needs: bump-version
+    if: always()
+    uses: NexusMutual/workflows/.github/workflows/rebase.yml@master
+    
+    with:
+      environment: production
+      source-ref: master
+      target-ref: release-candidate
+    secrets:
+      DEPLOYER_APP_ID: ${{ secrets.DEPLOYER_APP_ID }}
+      DEPLOYER_APP_PK: ${{ secrets.DEPLOYER_APP_PK }}

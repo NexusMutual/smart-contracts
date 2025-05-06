@@ -1,11 +1,11 @@
 # Release Next Workflow
 #
 # This workflow is responsible for creating and publishing release candidate (RC) versions
-# to npm with the '@next' tag when changes are pushed to the release-candidate branch.
+# to npm with the '@next' tag when manually triggered via workflow_dispatch.
 #
 # Workflow Behavior:
-# - Triggered on push to release-candidate branch
-# - Checks if commits since the last tag trigger a version bump using conventional commits
+# - Manually triggered via workflow_dispatch
+# - Checks if commits since the last tag on the release-candidate branch trigger a version bump using conventional commits
 # - If a version bump is triggered, determines the appropriate RC version number
 # - Publishes an RC version to npm with the '@next' tag
 # - RC versions follow the pattern: {new_version}-rc{number} (e.g., 1.2.0-rc1, 1.2.0-rc2)
@@ -21,8 +21,8 @@
 #    - Workflow exits early with no action
 #    - No RC version is published
 #
-# 3. Multiple pushes to release-candidate for the same base version:
-#    - RC number increments with each push (rc1, rc2, rc3, etc.) and publishes to npm
+# 3. Multiple manual triggers for the same base version:
+#    - RC number increments with each trigger (rc1, rc2, rc3, etc.) and publishes to npm
 #    - No commits are made to the repository, only published to npm
 #
 # 4. Version bump commit from master rebased to release-candidate:
@@ -35,9 +35,7 @@
 name: Release Next
 
 on:
-  push:
-    branches:
-      - release-candidate
+  workflow_dispatch:
 
 env:
   NODE_VERSION: 22
@@ -66,7 +64,7 @@ jobs:
   rc-version:
     needs: check-version-bump
     if: needs.check-version-bump.outputs.triggers_bump == 'true'
-    uses: NexusMutual/workflows/.github/workflows/determine-rc-version.yml@feat/add-determine-rc-version-workflow
+    uses: NexusMutual/workflows/.github/workflows/determine-rc-version.yml@master
     with:
       package-name: "@nexusmutual/deployments"
       bump-type: ${{ needs.check-version-bump.outputs.bump_type }}
@@ -80,7 +78,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -88,7 +86,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: "npm"
           cache-dependency-path: package-lock.json
-          
+
       - name: Install dependencies
         run: npm ci --ignore-scripts --prefer-offline --no-audit --no-fund
 
@@ -98,11 +96,11 @@ jobs:
         run: |
           cd deployments
           npm version ${{ needs.rc-version.outputs.rc_version }} --no-git-tag-version
-      
+
       # Build the deployments package
       - name: Build deployments
         run: npm run deployments:build
-      
+
       # Publish the deployments package to npm with the '@next' tag
       - name: Publish to npm with @next tag
         env:

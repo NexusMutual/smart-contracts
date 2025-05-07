@@ -130,7 +130,8 @@ interface ICover {
 
   function executeCoverBuy(
     BuyCoverParams calldata params,
-    PoolAllocationRequest[] calldata coverChunkRequests
+    PoolAllocationRequest[] calldata coverChunkRequests,
+    address buyer
   ) external payable returns (uint coverId);
 
   function burnStake(uint coverId, uint amount) external returns (address coverOwner);
@@ -143,10 +144,13 @@ interface ICover {
 
   /* ========== EVENTS ========== */
 
-  event CoverEdited(uint indexed coverId, uint indexed productId, uint indexed unused, address buyer, string ipfsMetadata);
-
-  // TODO: what else do we need here?
-  event CoverBought(uint indexed coverId, uint indexed productId, uint amount, string ipfsMetadata);
+  event CoverBought(
+    uint indexed coverId,
+    uint indexed originalCoverId,
+    uint productId,
+    address indexed buyer,
+    string ipfsMetadata
+  );
 
   // Auth
   error OnlyOwnerOrApproved();

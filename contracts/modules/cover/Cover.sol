@@ -105,14 +105,45 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory poolAllocationRequests
   ) external payable onlyMember returns (uint coverId) {
-    return _buyCover(params, poolAllocationRequests);
+
+    if (params.coverId != 0) {
+      require(coverNFT.isApprovedOrOwner(msg.sender, params.coverId), OnlyOwnerOrApproved());
+    }
+
+    coverId = _buyCover(params, poolAllocationRequests);
+
+    emit CoverBought(
+      coverId,
+      params.coverId != 0 ? params.coverId : coverId,
+      params.productId,
+      msg.sender,
+      params.ipfsData
+    );
+
+    return coverId;
   }
 
   function executeCoverBuy(
     BuyCoverParams memory params,
-    PoolAllocationRequest[] memory poolAllocationRequests
+    PoolAllocationRequest[] memory poolAllocationRequests,
+    address buyer
   ) external payable onlyInternal returns (uint coverId) {
-    return _buyCover(params, poolAllocationRequests);
+
+    if (params.coverId != 0) {
+      require(coverNFT.isApprovedOrOwner(buyer, params.coverId), OnlyOwnerOrApproved());
+    }
+
+    coverId = _buyCover(params, poolAllocationRequests);
+
+    emit CoverBought(
+      coverId,
+      params.coverId != 0 ? params.coverId : coverId,
+      params.productId,
+      buyer,
+      params.ipfsData
+    );
+
+    return coverId;
   }
 
   function _buyCover(
@@ -136,7 +167,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     if (params.coverId != 0) {
 
-      require(coverNFT.isApprovedOrOwner(msg.sender, params.coverId), OnlyOwnerOrApproved());
 
       CoverReference memory coverReference = getCoverReference(params.coverId);
 
@@ -217,8 +247,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       params.commissionRatio,
       params.commissionDestination
     );
-
-    emit CoverEdited(coverId, params.productId, 0 /*segmentId*/, msg.sender, params.ipfsData);
   }
 
   function expireCover(uint coverId) external {

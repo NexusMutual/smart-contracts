@@ -5,8 +5,6 @@ pragma solidity >=0.5.0;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 
 import "./ICover.sol";
-import "./IMemberRoles.sol";
-import "./INXMMaster.sol";
 import "./INXMToken.sol";
 import "./IWeth.sol";
 
@@ -62,7 +60,7 @@ interface ILimitOrders {
 
   /* ==== EVENTS ==== */
 
-  event OrderExecuted(address owner, uint coverId, bytes32 id);
+  event OrderExecuted(address owner, uint originalCoverId, uint coverId, bytes32 id);
   event OrderCancelled(bytes32 id);
 
   /* ==== ERRORS ==== */

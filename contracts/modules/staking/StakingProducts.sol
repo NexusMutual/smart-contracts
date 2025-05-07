@@ -348,7 +348,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     bool useFixedPrice,
     uint nxmPerAllocationUnit
   ) public returns (uint premium) {
-    
+
     require(msg.sender == StakingPoolLibrary.getAddress(stakingPoolFactory, poolId), OnlyStakingPool());
 
     StakedProduct memory product = _products[poolId][productId];
@@ -494,7 +494,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     for (uint i = 0; i < numProducts; i++) {
       productIds[i] = params[i].productId;
     }
-    uint[] memory minPriceRatios = _coverProducts().getMinPrices(productIds); 
+    uint[] memory minPriceRatios = _coverProducts().getMinPrices(productIds);
     uint totalTargetWeight;
 
     for (uint i = 0; i < params.length; i++) {
@@ -536,20 +536,6 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   ) external override onlyManager(poolId) {
     require(bytes(ipfsHash).length > 0, IpfsHashRequired());
     poolMetadata[poolId] = ipfsHash;
-  }
-
-  // temporary migration function
-
-  function setInitialMetadata(string[] calldata ipfsHashes) external onlyAdvisoryBoard {
-
-    uint poolCount = IStakingPoolFactory(stakingPoolFactory).stakingPoolCount();
-    require(ipfsHashes.length == poolCount, "StakingProducts: Metadata length mismatch");
-    require(bytes(poolMetadata[1]).length == 0, "StakingProducts: Metadata already set");
-
-    for (uint i = 0; i < poolCount; i++) {
-      if (bytes(poolMetadata[i + 1]).length != 0) continue;
-      poolMetadata[i + 1] = ipfsHashes[i];
-    }
   }
 
   /* dependencies */

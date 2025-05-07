@@ -382,19 +382,26 @@ contract MemberRoles is IMemberRoles, IMemberRolesErrors, Governed, MasterAwareV
 
   /// Returns true if the given role id is assigned to a member.
   ///
-  /// @param _memberAddress  Address of member.
-  /// @param _roleId         The role id for which member address is checked against.
+  /// @param memberAddress  Address of member.
+  /// @param roleId         The role id for which member address is checked against.
   function checkRole(
-    address _memberAddress,
-    uint _roleId
-  ) public override view returns (bool) {//solhint-disable-line
-    if (_roleId == uint(Role.Unassigned))
+    address memberAddress,
+    uint roleId
+  ) public override view returns (bool) {
+
+    if (roleId == uint(Role.Unassigned)) {
       return true;
-    else
-      if (memberRoleData[_roleId].memberActive[_memberAddress]) //solhint-disable-line
-        return true;
-      else
-        return false;
+    }
+
+    if (roleId == uint(Role.Member)) {
+      return Registry.isMember(memberAddress);
+    }
+
+    if (roleId == uint(Role.AdvisoryBoard)) {
+      return Registry.isAdvisoryBoard(memberAddress);
+    }
+
+    return false;
   }
 
   /// Returns the total number of members assigned against each role id.

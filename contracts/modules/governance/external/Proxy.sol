@@ -8,42 +8,7 @@ pragma solidity ^0.8.18;
  */
 abstract contract Proxy {
 
-  /**
-   * @dev Delegates the current call to `implementation`.
-   */
-  function _delegate() internal {
-    address _impl = implementation();
-    require(_impl != address(0));
 
-    // solhint-disable-next-line no-inline-assembly
-    assembly {
-      let ptr := mload(0x40)
-      calldatacopy(ptr, 0, calldatasize())
-      let result := delegatecall(gas(), _impl, ptr, calldatasize(), 0, 0)
-      let size := returndatasize()
-      returndatacopy(ptr, 0, size)
-
-      switch result
-      case 0 {revert(ptr, size)}
-      default {return (ptr, size)}
-    }
-  }
-
-  /**
-  * @dev Fallback function allowing to perform a delegatecall to the given implementation.
-  * This function will return whatever the implementation call returns
-  */
-  fallback() external payable {
-    _delegate();
-  }
-
-  /**
-  * @dev Receive function allowing to perform a delegatecall to the given implementation.
-  * This function will return whatever the implementation call returns
-  */
-  receive() external payable {
-    _delegate();
-  }
 
   /**
   * @dev Tells the address of the implementation where every call will be delegated.

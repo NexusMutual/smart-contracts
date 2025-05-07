@@ -5,7 +5,6 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import "../../abstract/MasterAwareV2.sol";
-import "../../interfaces/IMCR.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
@@ -134,6 +133,10 @@ contract PoolMock is PoolGeneric {
 
   function getTokenPrice() public override virtual view returns (uint) {
     return prices[0];
+  }
+
+  function setSwapOperator(address _swapOperator) public {
+    swapOperator = _swapOperator;
   }
 
   receive() external payable virtual {}

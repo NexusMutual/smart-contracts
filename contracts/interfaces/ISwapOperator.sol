@@ -5,8 +5,6 @@ pragma solidity >=0.5.0;
 import "../external/cow/GPv2Order.sol";
 import "../external/enzyme/IEnzymeFundValueCalculatorRouter.sol";
 import "./ICowSettlement.sol";
-import "./INXMMaster.sol";
-import "./IPool.sol";
 import "./IWeth.sol";
 
 interface ISwapOperator {
@@ -15,6 +13,18 @@ interface ISwapOperator {
     EthToAsset,
     AssetToEth,
     AssetToAsset
+  }
+
+  struct SafeTransferRequest {
+    address asset;
+    uint amount;
+  }
+
+  struct SwapRequest {
+    address fromAsset;
+    address toAsset;
+    uint fromAmount;
+    uint toAmountMin;
   }
 
   /* ========== VIEWS ========== */
@@ -33,8 +43,6 @@ interface ISwapOperator {
 
   function cowVaultRelayer() external view returns (address);
 
-  function master() external view returns (INXMMaster);
-
   function swapController() external view returns (address);
 
   function weth() external view returns (IWeth);
@@ -44,8 +52,6 @@ interface ISwapOperator {
   function enzymeV4VaultProxyAddress() external view returns (address);
 
   function enzymeFundValueCalculatorRouter() external view returns (IEnzymeFundValueCalculatorRouter);
-
-  function minPoolEth() external view returns (uint);
 
   /* ==== MUTATIVE FUNCTIONS ==== */
 
@@ -59,9 +65,13 @@ interface ISwapOperator {
 
   function recoverAsset(address assetAddress, address receiver) external;
 
-  function requestAsset(address asset, uint amount) external;
+  function setSafeTransferAssetAllowed(address asset, bool allowed) external;
+
+  function requestAssetTransfer(address asset, uint amount) external;
 
   function transferRequestedAsset(address requestedAsset, uint requestedAmount) external;
+
+  function requestAssetSwap(address assetIn, address assetOut, uint amountIn, uint amountOutMin) external;
 
   /* ========== EVENTS AND ERRORS ========== */
 
@@ -72,18 +82,26 @@ interface ISwapOperator {
 
   // Swap Order
   error OrderInProgress(bytes currentOrderUID);
-  error NoOrderInPlace();
+  error NoOrderToClose();
   error OrderUidMismatch(bytes providedOrderUID, bytes expectedOrderUID);
   error UnsupportedTokenBalance(string kind);
   error InvalidReceiver(address validReceiver);
   error TokenDisabled(address token);
+  error AmountInTooHigh(uint expectedAmountIn, uint actualAmountIn);
   error AmountOutTooLow(uint amountOut, uint minAmount);
+  error AmountOutMinLowerThanSlippage(uint amountOutMin, uint amountOutOnMaxSlippage);
   error InvalidTokenAddress(string token);
-  error InvalidDenominationAsset(address invalidAsset, address validAsset);
+  error InvalidDenominationAsset(address expectedAsset, address actualAsset);
+
+  // Safe Transfer
+  error SafeAssetNotAllowed(address asset);
+  error SafeAssetAmountIsZero();
+  error SafeAssetMismatch(address requestedAsset, address asset);
+  error SafeAssetAmountMismatch(uint requestedAmount, uint amount);
 
   // Valid To
-  error BelowMinValidTo(uint minValidTo);
-  error AboveMaxValidTo(uint maxValidTo);
+  error BelowMinValidTo();
+  error AboveMaxValidTo();
 
   // Balance
   error InvalidBalance(uint tokenBalance, uint limit);
@@ -91,6 +109,7 @@ interface ISwapOperator {
 
   // Access Controls
   error OnlyController();
+  error OnlySafe();
 
   // Transfer
   error TransferFailed(address to, uint value, address token);

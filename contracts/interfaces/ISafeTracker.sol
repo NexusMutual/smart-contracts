@@ -2,13 +2,9 @@
 
 pragma solidity >=0.5.0;
 
-import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/extensions/IERC20Metadata.sol";
 
-interface ISafeTracker is IERC20 {
-
-  function symbol() external view returns (string memory);
-
-  function decimals() external view returns (uint8);
+interface ISafeTracker is IERC20Metadata {
 
   function safe() external view returns (address);
 
@@ -16,4 +12,5 @@ interface ISafeTracker is IERC20 {
 
   error OnlySafe();
   error InvestmentSurpassesLimit();
+  error AmountExceedsBalance();
 }

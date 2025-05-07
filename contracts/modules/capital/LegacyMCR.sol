@@ -2,29 +2,21 @@
 
 pragma solidity ^0.8.18;
 
-import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ICover.sol";
-import "../../interfaces/IMCR.sol";
+import "../../interfaces/ILegacyMCR.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IPriceFeedOracle.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
-contract MCR is IMCR, MasterAwareV2 {
+contract LegacyMCR is ILegacyMCR, MasterAwareV2 {
   using SafeUintCast for uint;
-
-  // the following values are expressed in basis points
-  uint16 public maxMCRIncrement = 500;
-  uint24 public gearingFactor = 48000;
-  // min update between MCR updates in seconds
-  uint16 public minUpdateTime = 3600;
 
   uint80 public mcr;
   uint80 public desiredMCR;
   uint32 public lastUpdateTime;
 
-  IMCR public previousMCR;
+  ILegacyMCR public previousMCR;
 
   event MCRUpdated(
     uint mcr,
@@ -34,28 +26,32 @@ contract MCR is IMCR, MasterAwareV2 {
     uint totalSumAssured
   );
 
-  uint public constant MAX_MCR_ADJUSTMENT = 100;
-  uint public constant BASIS_PRECISION = 10000;
+  // MCR related constants expressed in basis points
+  uint internal constant MAX_MCR_ADJUSTMENT = 100;
+  uint internal constant MAX_MCR_INCREMENT = 500;
+  uint internal constant BASIS_PRECISION = 10000;
+  uint internal constant GEARING_FACTOR = 48000;
 
-  uint public immutable MCR_UPDATE_DEADLINE;
+  // min update between MCR updates in seconds
+  uint internal constant MIN_UPDATE_TIME = 3600;
 
-  constructor (address masterAddress, uint mcrUpdateDeadline) {
-    changeMasterAddress(masterAddress);
-    MCR_UPDATE_DEADLINE = mcrUpdateDeadline;
+  // Implement the missing functions from ILegacyMCR interface
+  function maxMCRIncrement() external pure override returns (uint16) {
+    return uint16(MAX_MCR_INCREMENT);
+  }
 
-    if (masterAddress != address(0)) {
-      previousMCR = IMCR(master.getLatestAddress("MC"));
-    }
+  function gearingFactor() external pure override returns (uint24) {
+    return uint24(GEARING_FACTOR);
+  }
+
+  function minUpdateTime() external pure override returns (uint16) {
+    return uint16(MIN_UPDATE_TIME);
   }
 
   /* ========== DEPENDENCIES ========== */
 
   function pool() internal view returns (IPool) {
     return IPool(internalContracts[uint(ID.P1)]);
-  }
-
-  function memberRoles() internal view returns (IMemberRoles) {
-    return IMemberRoles(internalContracts[uint(ID.MR)]);
   }
 
   function cover() internal view returns (ICover) {
@@ -83,38 +79,16 @@ contract MCR is IMCR, MasterAwareV2 {
     desiredMCR = previousMCR.desiredMCR();
     lastUpdateTime = previousMCR.lastUpdateTime();
 
-    // copy over parameters
-    maxMCRIncrement = previousMCR.maxMCRIncrement();
-    gearingFactor = previousMCR.gearingFactor();
-    minUpdateTime = previousMCR.minUpdateTime();
-
-    previousMCR = IMCR(address(0));
+    previousMCR = ILegacyMCR(address(0));
   }
 
   /**
-   * @dev We need to move the mcr way below the current value otherwise swaps
-   *      won't work for a while until mcr moves down by itself
-   * @dev Remove this code after the tokenomics upgrade.
-   */
-  function teleportMCR() external {
-
-    require(address(previousMCR) == address(0), "MCR: not yet initialized");
-    require(mcr > 10_000 ether, "MCR: already updated");
-    require(block.timestamp < MCR_UPDATE_DEADLINE, "MCR: Deadline has passed");
-
-    mcr = 10_000 ether;
-    desiredMCR = 10_000 ether;
-    lastUpdateTime = block.timestamp.toUint32();
-  }
-
-  /**
-   * @dev Gets total sum assured (in ETH).
-   * @return amount of sum assured
+   * @dev Gets total covered amount in ETH terms
+   * @return amount in ETH
    */
   function getTotalActiveCoverAmount() public view returns (uint) {
 
     IPool _pool = pool();
-    IPriceFeedOracle priceFeed = _pool.priceFeedOracle();
     ICover _cover = cover();
 
     uint totalActiveCoverAmountInEth = _cover.totalActiveCoverInAsset(0);
@@ -124,7 +98,7 @@ contract MCR is IMCR, MasterAwareV2 {
     // the first asset is ETH. skip it, it's already counted
     for (uint i = 1; i < assets.length; i++) {
       uint activeCoverAmount = _cover.totalActiveCoverInAsset(i);
-      uint assetAmountInEth = priceFeed.getEthForAsset(assets[i].assetAddress, activeCoverAmount);
+      uint assetAmountInEth = _pool.getEthForAsset(assets[i].assetAddress, activeCoverAmount);
       totalActiveCoverAmountInEth += assetAmountInEth;
     }
 
@@ -146,8 +120,8 @@ contract MCR is IMCR, MasterAwareV2 {
 
   function _updateMCR(bool forceUpdate) internal {
 
-    uint _gearingFactor = gearingFactor;
-    uint _minUpdateTime = minUpdateTime;
+    uint _gearingFactor = GEARING_FACTOR;
+    uint _minUpdateTime = MIN_UPDATE_TIME;
 
     // read with 1 SLOAD
     uint112 _mcr = mcr;
@@ -194,7 +168,7 @@ contract MCR is IMCR, MasterAwareV2 {
     uint _mcr = mcr;
     uint _desiredMCR = desiredMCR;
     uint _lastUpdateTime = lastUpdateTime;
-    uint _maxMCRIncrement = maxMCRIncrement;
+    uint _maxMCRIncrement = MAX_MCR_INCREMENT;
 
     if (block.timestamp == _lastUpdateTime) {
       return _mcr;
@@ -212,30 +186,7 @@ contract MCR is IMCR, MasterAwareV2 {
   }
 
   function getGearedMCR() external view returns (uint) {
-    return getTotalActiveCoverAmount() * BASIS_PRECISION / gearingFactor;
+    return getTotalActiveCoverAmount() * BASIS_PRECISION / GEARING_FACTOR;
   }
 
-  /**
-   * @dev Updates Uint Parameters
-   * @param code parameter code
-   * @param value new value
-   */
-  function updateUintParameters(bytes8 code, uint value) public onlyGovernance {
-
-    if (code == "MMIC") {
-
-      maxMCRIncrement = value.toUint16();
-
-    } else if (code == "GEAR") {
-
-      gearingFactor = value.toUint24();
-
-    } else if (code == "MUTI") {
-
-      minUpdateTime = value.toUint16();
-
-    } else {
-      revert("Invalid param code");
-    }
-  }
 }

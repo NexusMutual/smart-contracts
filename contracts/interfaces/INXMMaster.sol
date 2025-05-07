@@ -6,11 +6,7 @@ interface INXMMaster {
 
   function tokenAddress() external view returns (address);
 
-  function owner() external view returns (address);
-
   function emergencyAdmin() external view returns (address);
-
-  function masterInitialized() external view returns (bool);
 
   function isInternal(address _add) external view returns (bool);
 
@@ -24,18 +20,4 @@ interface INXMMaster {
 
   function contractAddresses(bytes2 code) external view returns (address payable);
 
-  function upgradeMultipleContracts(
-    bytes2[] calldata _contractCodes,
-    address payable[] calldata newAddresses
-  ) external;
-
-  function removeContracts(bytes2[] calldata contractCodesToRemove) external;
-
-  function addNewInternalContracts(
-    bytes2[] calldata _contractCodes,
-    address payable[] calldata newAddresses,
-    uint[] calldata _types
-  ) external;
-
-  function updateOwnerParameters(bytes8 code, address payable val) external;
 }

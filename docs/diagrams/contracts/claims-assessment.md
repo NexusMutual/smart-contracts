@@ -14,10 +14,10 @@ graph TD
     CoverNFT["CoverNFT Contract"]
 
     %% Submit Claim
-    Member -->|"(1a) submitClaim"| IndividualClaims
-    IndividualClaims -->|"(1b) validate cover"| CoverNFT
-    IndividualClaims -->|"(1c) validate amount"| Cover
-    IndividualClaims -->|"(1d) startAssessment"| Assessment
+    Member -->|"**(1a)** submitClaim"| IndividualClaims
+    IndividualClaims -->|"**(1b)** validate cover"| CoverNFT
+    IndividualClaims -->|"**(1c)** validate amount"| Cover
+    IndividualClaims -->|"**(1d)** startAssessment"| Assessment
 ```
 
 ## 2. Assessment & Redemption Flow
@@ -36,15 +36,15 @@ graph TD
     Pool["Pool"]
 
     %% Assessment Process
-    Assessor -->|"(2a) castVotes"| Assessment
-    Assessment -->|"(2b) lock staked NXM"| TokenController
+    Assessor -->|"**(2a)** castVotes"| Assessment
+    Assessment -->|"**(2b)** lock staked NXM"| TokenController
 
     %% Claim Payout
-    Member -->|"(3a) redeemClaimPayout"| IndividualClaims
-    IndividualClaims -->|"(3b) validate claim status"| Assessment
-    IndividualClaims -->|"(3c) burnStake"| Cover
-    IndividualClaims -->|"(3d) sendPayout"| Pool
-    Pool -.->|"(3e) transfer claim amount + deposit"| Member
+    Member -->|"**(3a)** redeemClaimPayout"| IndividualClaims
+    IndividualClaims -->|"**(3b)** validate claim status"| Assessment
+    IndividualClaims -->|"**(3c)** burnStake"| Cover
+    IndividualClaims -->|"**(3d)** sendPayout"| Pool
+    Pool -.->|"**(3e)** transfer claim amount + deposit"| Member
 ```
 
 ## Actions
@@ -89,26 +89,26 @@ graph TD
 ## Claim Submission & Processing
 
 1. **Submit Claim**
-   (1a) **Cover Buyer** calls `submitClaim` on IndividualClaims
-   (1b) **IndividualClaims** validates cover ownership via CoverNFT
-   (1c) **IndividualClaims** validates claim amount via Cover
-   (1d) **IndividualClaims** starts assessment process
+   **(1a)** `Cover Buyer` calls `submitClaim` on IndividualClaims
+   **(1b)** `IndividualClaims` validates cover ownership via CoverNFT
+   **(1c)** `IndividualClaims` validates claim amount via Cover
+   **(1d)** `IndividualClaims` starts assessment process
 
 2. **Assessment Process**
-   (2a) **Assessors** call `castVotes` on Assessment
-   (2b) **Assessment** locks staked NXM via TokenController for voting period
+   **(2a)** `Assessors` call `castVotes` on Assessment
+   **(2b)** `Assessment` locks staked NXM via TokenController for voting period
 
 3. **Claim Payout**
-   (3a) **Cover Buyer** calls `redeemClaimPayout` on IndividualClaims
-   (3b) **IndividualClaims** validates with Assessment:
+   **(3a)** `Cover Buyer` calls `redeemClaimPayout` on IndividualClaims
+   **(3b)** `IndividualClaims` validates with Assessment:
 
    - Assessment period has ended
    - More accept votes than deny votes
    - Cooldown period has passed
 
-   (3c) **IndividualClaims** calls Cover to burn stake from affected pools
-   (3d) **IndividualClaims** sends payout via Pool
-   (3e) **Pool** transfers:
+   **(3c)** `IndividualClaims` calls Cover to burn stake from affected pools
+   **(3d)** `IndividualClaims` sends payout via Pool
+   **(3e)** `Pool` transfers:
 
    - Claim amount in cover asset
    - Returns assessment deposit in ETH

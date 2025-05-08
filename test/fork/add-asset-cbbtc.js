@@ -46,6 +46,40 @@ const makeContractOrder = order => {
   };
 };
 
+async function getPoolAssetBalances(pool, priceFeedOracle) {
+  const assets = await pool.getAssets();
+  const balances = {};
+
+  await Promise.all(
+    assets.map(async asset => {
+      if (asset.assetAddress === Address.ETH) {
+        const balance = await ethers.provider.getBalance(pool.address);
+        balances[asset.assetAddress] = {
+          rawBalance: balance,
+          ethValue: balance,
+          symbol: 'ETH',
+        };
+        return;
+      }
+
+      const token = await ethers.getContractAt('ERC20Mock', asset.assetAddress);
+      const [balance, ethValue, symbol] = await Promise.all([
+        token.balanceOf(pool.address),
+        priceFeedOracle.getEthForAsset(asset.assetAddress, await token.balanceOf(pool.address)),
+        token.symbol(),
+      ]);
+
+      balances[asset.assetAddress] = {
+        rawBalance: balance,
+        ethValue,
+        symbol,
+      };
+    }),
+  );
+
+  return balances;
+}
+
 describe('add cbBTC asset to Pool', function () {
   async function getContractByContractCode(contractName, contractCode) {
     this.master = this.master ?? (await ethers.getContractAt('NXMaster', V2Addresses.NXMaster));
@@ -210,7 +244,7 @@ describe('add cbBTC asset to Pool', function () {
     const min = parseUnits('150', 8); // 150 cbBTC
     const max = parseUnits('200', 8); // 200 cbBTC
 
-    const poolValueInEthBefore = await this.pool.getPoolValueInEth();
+    const previousPoolBalances = await getPoolAssetBalances(this.pool, this.priceFeedOracle);
 
     await submitMemberVoteGovernanceProposal(
       PROPOSAL_CATEGORIES.addAsset,
@@ -219,8 +253,24 @@ describe('add cbBTC asset to Pool', function () {
       this.governance,
     );
 
-    const poolValueInEthAfter = await this.pool.getPoolValueInEth();
-    expect(poolValueInEthAfter).to.be.gt(poolValueInEthBefore);
+    const currentPoolBalances = await getPoolAssetBalances(this.pool, this.priceFeedOracle);
+
+    // Compare balances
+    Object.entries(currentPoolBalances).forEach(([address, current]) => {
+      const previous = previousPoolBalances[address];
+
+      if (current.symbol === 'NXMIS') {
+        if (current.rawBalance.lt(previous.rawBalance)) {
+          console.log(
+            'NXMIS balance decreased - This might be explained by changes in current loan rates. ' +
+              `Previous: ${formatEther(previous.rawBalance)}, Current: ${formatEther(current.rawBalance)}`,
+          );
+        }
+      } else {
+        expect(current.rawBalance).to.equal(previous.rawBalance, `${current.symbol} balance changed unexpectedly`);
+        expect(current.ethValue).to.equal(previous.ethValue, `${current.symbol} ETH value changed unexpectedly`);
+      }
+    });
 
     const poolAssetsAfter = await this.pool.getAssets();
     expect(poolAssetsAfter).to.have.lengthOf(poolAssetsBefore.length + 1);

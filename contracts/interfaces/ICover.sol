@@ -152,6 +152,15 @@ interface ICover {
     string ipfsMetadata
   );
 
+  // left here for legacy support (frontend needs it to scan past events)
+  event CoverEdited(
+    uint indexed coverId,
+    uint indexed productId,
+    uint indexed unused,
+    address buyer,
+    string ipfsMetadata
+  );
+
   // Auth
   error OnlyOwnerOrApproved();
 

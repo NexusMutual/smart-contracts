@@ -94,7 +94,6 @@ jobs:
       # This is an ephemeral change only for publishing and not committed to the repository
       - name: RC version bump
         run: |
-          cd deployments
           npm version ${{ needs.rc-version.outputs.rc_version }} --no-git-tag-version
 
       # Build the deployments package

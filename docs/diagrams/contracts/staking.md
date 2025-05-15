@@ -18,17 +18,17 @@ graph TD
     end
 
     %% Staker interactions
-    Staker -->|"(1a) depositTo()"| StakingPool
-    StakingPool -->|"(1b) mint()"| StakingNFT
-    StakingNFT -.->|"(1c) issues NFT"| Staker
+    Staker -->|"**(1a)** depositTo()"| StakingPool
+    StakingPool -->|"**(1b)** mint()"| StakingNFT
+    StakingNFT -.->|"**(1c)** issues NFT"| Staker
 
-    Staker -->|"(2a) withdraw()"| StakingPool
-    StakingPool -->|"(2b) burn()"| StakingNFT
-    StakingPool -->|"(2c) withdrawNXMStakeAndRewards()"| TCO
-    TCO -->|"(2d) transfer()"| NXM
-    NXM -.->|"(2e) returns NXM + rewards"| Staker
+    Staker -->|"**(2a)** withdraw()"| StakingPool
+    StakingPool -->|"**(2b)** burn()"| StakingNFT
+    StakingPool -->|"**(2c)** withdrawNXMStakeAndRewards()"| TCO
+    TCO -->|"**(2d)** transfer()"| NXM
+    NXM -.->|"**(2e)** returns NXM + rewards"| Staker
 
-    Staker -->|"(3) extendDeposit()"| StakingPool
+    Staker -->|"**(3)** extendDeposit()"| StakingPool
 
     %% Contract Registry interactions
     StakingPool -.->|"getLatestAddress"| NXMaster
@@ -48,12 +48,12 @@ graph TD
     NXMaster["NXMaster Registry"]
 
     %% Manager interactions
-    Manager -->|"(1a) createStakingPool()"| StakingProducts
-    Manager -->|"(2) setProducts()"| StakingProducts
-    Manager -->|"(3) setPoolMetadata()"| StakingProducts
+    Manager -->|"**(1a)** createStakingPool()"| StakingProducts
+    Manager -->|"**(2)** setProducts()"| StakingProducts
+    Manager -->|"**(3)** setPoolMetadata()"| StakingProducts
 
     %% Internal interactions
-    StakingProducts -->|"(1b) create"| StakingPoolFactory
+    StakingProducts -->|"**(1b)** create"| StakingPoolFactory
 
     %% Contract Registry interactions
     StakingProducts -.->|"getLatestAddress"| NXMaster
@@ -71,27 +71,27 @@ graph TD
 ### 1. Staker Actions
 
 1. **Deposit Stake**
-   (1a) **Staker** calls `depositTo()` on StakingPool with:
+   **(1a)** `Staker` calls `depositTo()` on StakingPool with:
 
    - Amount of NXM to stake
    - Target tranche ID
    - Optional existing NFT ID
-     (1b) **StakingPool** calls `mint()` on StakingNFT
-     (1c) **StakingNFT** issues NFT to staker
+     **(1b)** `StakingPool` calls `mint()` on StakingNFT
+     **(1c)** `StakingNFT` issues NFT to staker
 
 2. **Withdraw Stake**
-   (2a) **Staker** calls `withdraw()` on StakingPool with:
+   **(2a)** `Staker` calls `withdraw()` on StakingPool with:
 
    - NFT ID
    - Tranche IDs
    - Amount to withdraw
-     (2b) **StakingPool** calls `burn()` on StakingNFT
-     (2c) **StakingPool** calls `withdrawNXMStakeAndRewards()` on TokenController
-     (2d) **TokenController** calls `transfer()` on NXMToken
-     (2e) **NXMToken** returns NXM + rewards to staker
+     **(2b)** `StakingPool` calls `burn()` on StakingNFT
+     **(2c)** `StakingPool` calls `withdrawNXMStakeAndRewards()` on TokenController
+     **(2d)** `TokenController` calls `transfer()` on NXMToken
+     **(2e)** `NXMToken` returns NXM + rewards to staker
 
 3. **Extend Deposit**
-   (3) **Staker** calls `extendDeposit()` on StakingPool with:
+   **(3)** `Staker` calls `extendDeposit()` on StakingPool with:
    - NFT ID
    - Source tranche ID
    - Target tranche ID
@@ -100,23 +100,23 @@ graph TD
 ### 2. Staking Pool Manager Actions
 
 1. **Create Pool**
-   (1a) **Manager** calls `createStakingPool()` on StakingProducts with:
+   **(1a)** `Manager` calls `createStakingPool()` on StakingProducts with:
 
    - Pool privacy setting
    - Initial and max pool fees
    - Product initialization parameters
    - IPFS metadata hash
-     (1b) **StakingProducts** calls `create()` on StakingPoolFactory
+     **(1b)** `StakingProducts` calls `create()` on StakingPoolFactory
 
 2. **Configure Products**
-   (2) **Manager** calls `setProducts()` on StakingProducts with:
+   **(2)** `Manager` calls `setProducts()` on StakingProducts with:
 
    - Product IDs
    - Target weights
    - Target price
 
 3. **Update Metadata**
-   (3) **Manager** calls `setPoolMetadata()` on StakingProducts with:
+   **(3)** `Manager` calls `setPoolMetadata()` on StakingProducts with:
    - Pool ID
    - New IPFS metadata hash
 

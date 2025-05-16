@@ -128,9 +128,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
     State memory initialState = loadState();
 
-    if (master.isPause()) {
-      revert SystemPaused();
-    }
+    uint mask = PAUSE_GLOBAL + PAUSE_RAMM;
+    require(Registry.isPaused(mask) == false, "SystemPaused");
 
     if (slot1.swapPaused) {
       revert SwapPaused();

@@ -68,7 +68,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
     require(assessorGroup.length() > 0, EmptyAssessorGroup());
 
-    (accepts, denies) = _getVoteTally(claimId, assessorGroup);
+    (accepts, denies) = _getVoteTally(assessment, assessorGroup);
 
     return (assessment.start, assessment.end, accepts, denies);
   }
@@ -101,7 +101,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
     require(assessorGroup.length() > 0, EmptyAssessorGroup());
 
-    (uint256 acceptCount, uint256 denyCount) = _getVoteTally(claimId, assessorGroup);
+    (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup);
     require(_isAssessmentDecided(acceptCount, denyCount, assessment), ClaimAssessmentNotFinished());
 
     return acceptCount > denyCount;
@@ -120,7 +120,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
     require(assessorGroup.length() > 0, EmptyAssessorGroup());
 
-    (uint256 acceptCount, uint256 denyCount) = _getVoteTally(claimId, assessorGroup);
+    (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup);
 
     return _isAssessmentDecided(acceptCount, denyCount, assessment);
   }
@@ -137,7 +137,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
     require(assessorGroup.length() > 0, EmptyAssessorGroup());
 
-    return _getVoteTally(claimId, assessorGroup);
+    return _getVoteTally(assessment, assessorGroup);
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -179,7 +179,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     require(assessorGroup.length() > 0, EmptyAssessorGroup());
 
     // Only allow voting if the poll is not yet decided (no votes, a draw or voting period hasn't ended)
-    (uint256 acceptCount, uint256 denyCount) = _getVoteTally(claimId, assessorGroup);
+    (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup);
     require(!_isAssessmentDecided(acceptCount, denyCount, assessment), ClaimAssessmentAlreadyClosed());
 
     // Update ballot
@@ -190,10 +190,10 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     });
 
     // Get the tally again after the vote
-    (acceptCount, denyCount) = _getVoteTally(claimId, assessorGroup);
+    (acceptCount, denyCount) = _getVoteTally(assessment, assessorGroup);
 
     // Check if we can close the poll early
-    // NOTE: the check against assessorGroup being empty is done by _validateAssessory
+    // NOTE: the check against assessorGroup being empty is done by _validateAssessor
     bool allVoted = acceptCount + denyCount == assessorGroup.length();
     bool notADraw = acceptCount != denyCount;
     bool canCloseEarly = allVoted && notADraw;
@@ -230,18 +230,15 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     return block.timestamp >= assessment.end;
   }
 
-  /// @dev Internal function to count votes that accepts a pre-loaded assessor group
-  /// @param claimId The unique identifier of the claim to tally
+  /// @dev Internal function to count votes that accepts a pre-loaded assessor group and assessment
+  /// @param assessment The pre-loaded assessment data
   /// @param assessorGroup The pre-loaded assessor group to iterate through
   /// @return acceptCount Number of assessors who voted to accept the claim
   /// @return denyCount Number of assessors who voted to deny the claim
   function _getVoteTally(
-    bytes32 claimId,
+    Assessment storage assessment,
     EnumerableSet.UintSet storage assessorGroup
   ) internal view returns (uint256 acceptCount, uint256 denyCount) {
-
-    Assessment storage assessment = _assessments[claimId];
-    require(assessment.start != 0, InvalidClaimId());
 
     acceptCount = 0;
     denyCount = 0;
@@ -250,8 +247,10 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
 
     for (uint i = 0; i < length;) {
         uint256 assessorMemberId = assessorGroup.at(i);
-        if (assessment.ballot[assessorMemberId].vote == Vote.ACCEPT) acceptCount++;
-        else if (assessment.ballot[assessorMemberId].vote == Vote.DENY) denyCount++;
+        Vote vote = assessment.ballot[assessorMemberId].vote;
+
+        if (vote == Vote.ACCEPT) acceptCount++;
+        else if (vote == Vote.DENY) denyCount++;
 
         // Unchecked increment to save gas - cannot overflow as assessor group size is a relatively small number
         unchecked { ++i; }

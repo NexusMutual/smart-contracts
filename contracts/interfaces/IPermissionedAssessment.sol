@@ -132,6 +132,8 @@ interface IPermissionedAssessment {
   error ClaimIdsCidsLengthMismatch();
   error ClaimAssessmentNotFinished();
   error EmptyAssessorGroup();
-  error InvalidVote();
   error InvalidAssessor();
+  error InvalidClaimId();
+  error InvalidVote();
+  error InvalidProductType();
 }

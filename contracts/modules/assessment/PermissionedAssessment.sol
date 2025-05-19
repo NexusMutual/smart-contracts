@@ -79,11 +79,6 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     return assessment.ballot[assessorMemberId];
   }
 
-  function hasVoted(bytes32 claimId, address assessor) external view returns (bool) {
-    (uint256 assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, assessor);
-    return assessment.ballot[assessorMemberId].vote != Vote.NONE;
-  }
-
   function claimsOpenForVoting(address assessor) external view returns (bytes32[] memory) {
     // TODO: should we add another data struct for this? or can be reconstructed via events?
     // PollStarted + poll.end > block.timestamp && hasCurrentBallot(claimId) && not a draw
@@ -103,7 +98,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     require(assessorGroupLength > 0, EmptyAssessorGroup());
 
     (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
-    require(_isAssessmentDecided(acceptCount, denyCount, assessment), ClaimAssessmentNotFinished());
+    require(_isAssessmentDecided(acceptCount, denyCount, assessment.end), ClaimAssessmentNotFinished());
 
     return acceptCount > denyCount;
   }
@@ -124,7 +119,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
 
     (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
 
-    return _isAssessmentDecided(acceptCount, denyCount, assessment);
+    return _isAssessmentDecided(acceptCount, denyCount, assessment.end);
   }
 
   /// @notice Counts the current votes for and against a claim
@@ -181,12 +176,13 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     // Validate assessor and get assessment data
     (uint256 assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
+
     uint256 assessorGroupLength = assessorGroup.length();
     require(assessorGroupLength > 0, EmptyAssessorGroup());
 
     // Only allow voting if the poll is not yet decided (no votes, a draw or voting period hasn't ended)
     (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
-    require(!_isAssessmentDecided(acceptCount, denyCount, assessment), ClaimAssessmentAlreadyClosed());
+    require(!_isAssessmentDecided(acceptCount, denyCount, assessment.end), ClaimAssessmentAlreadyClosed());
 
     // Update ballot
     assessment.ballot[assessorMemberId] = Ballot({
@@ -225,15 +221,14 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   /// @dev Internal helper to determine if an assessment has been decided based on vote counts
   /// @param acceptCount Number of accept votes
   /// @param denyCount Number of deny votes
-  /// @param assessment The assessment data for the claim
+  /// @param assessmentEnd Timestamp when the assessment voting period ends
   /// @return true if the assessment is decided, false otherwise
-  function _isAssessmentDecided(uint256 acceptCount, uint256 denyCount, Assessment storage assessment) internal view returns (bool) {
-
+  function _isAssessmentDecided(uint256 acceptCount, uint256 denyCount, uint32 assessmentEnd) internal view returns (bool) {
     // The assessment is considered still open if it's a draw, or no votes (0 == 0)
     if (acceptCount == denyCount) return false;
 
     // The assessment is considered decided if there is at least 1 vote and its not a draw and the voting period has ended
-    return block.timestamp >= assessment.end;
+    return block.timestamp >= assessmentEnd;
   }
 
   /// @dev Internal function to count votes that accepts a pre-loaded assessor group and assessment

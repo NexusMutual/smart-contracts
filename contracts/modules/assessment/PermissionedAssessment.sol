@@ -48,17 +48,26 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   }
 
   function payoutCooldown(uint256 productTypeId) external view returns (uint256) {
-    return _assessmentData[productTypeId].cooldownPeriod;
+    // TODO: call CoverProduct to validate productTypeId?\
+    AssessmentData storage assessmentData = _assessmentData[productTypeId];
+    require(assessmentData.assessingGroupId != 0, InvalidProductType());
+    return assessmentData.cooldownPeriod;
   }
 
   function assessorGroupOf(bytes32 claimId) external view returns (uint32) {
-    return _assessments[claimId].assessorGroupId;
+    Assessment storage assessment = _assessments[claimId];
+    require(assessment.start != 0, InvalidClaimId());
+    return assessment.assessorGroupId;
   }
 
   function getAssessmentInfo(bytes32 claimId) external view returns (uint32 start, uint32 end, uint256 accepts, uint256 denies) {
 
     Assessment storage assessment = _assessments[claimId];
+    require(assessment.start != 0, InvalidClaimId());
+
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
+    require(assessorGroup.length() > 0, EmptyAssessorGroup());
+
     (accepts, denies) = _getVoteTally(claimId, assessorGroup);
 
     return (assessment.start, assessment.end, accepts, denies);
@@ -86,9 +95,12 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   function getOutcome(bytes32 claimId) external view returns (bool accepted) {
 
     Assessment storage assessment = _assessments[claimId];
-    EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
+    require(assessment.start != 0, InvalidClaimId());
 
     // Check if the assessment has been decided (has votes, not a draw and voting period has ended)
+    EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
+    require(assessorGroup.length() > 0, EmptyAssessorGroup());
+
     (uint256 acceptCount, uint256 denyCount) = _getVoteTally(claimId, assessorGroup);
     require(_isAssessmentDecided(acceptCount, denyCount, assessment), ClaimAssessmentNotFinished());
 
@@ -103,7 +115,11 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   function isAssessmentDecided(bytes32 claimId) external view returns (bool) {
 
     Assessment storage assessment = _assessments[claimId];
+    require(assessment.start != 0, InvalidClaimId());
+
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
+    require(assessorGroup.length() > 0, EmptyAssessorGroup());
+
     (uint256 acceptCount, uint256 denyCount) = _getVoteTally(claimId, assessorGroup);
 
     return _isAssessmentDecided(acceptCount, denyCount, assessment);
@@ -116,7 +132,11 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   /// @dev This function considers only votes from current assessors in the group
   function getVoteTally(bytes32 claimId) external view returns (uint256 acceptCount, uint256 denyCount) {
     Assessment storage assessment = _assessments[claimId];
+    require(assessment.start != 0, InvalidClaimId());
+
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
+    require(assessorGroup.length() > 0, EmptyAssessorGroup());
+
     return _getVoteTally(claimId, assessorGroup);
   }
 
@@ -128,9 +148,13 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   /// @dev Only callable by internal contracts
   /// @dev Reverts if an assessment already exists for the given claimId
   function startAssessment(bytes32 claimId, uint16 productTypeId) external onlyInternal {
+    // TODO: call CoverProduct to validate productTypeId?
 
     Assessment storage assessment = _assessments[claimId];
     require(assessment.start == 0, AssessmentAlreadyExists());
+
+    AssessmentData storage assessmentData = _assessmentData[productTypeId];
+    require(assessmentData.assessingGroupId != 0, InvalidProductType());
 
     assessment.start = uint32(block.timestamp);
     assessment.end = uint32(block.timestamp + MIN_VOTING_PERIOD);
@@ -152,6 +176,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     // Validate assessor and get assessment data
     (uint256 assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
+    require(assessorGroup.length() > 0, EmptyAssessorGroup());
 
     // Only allow voting if the poll is not yet decided (no votes, a draw or voting period hasn't ended)
     (uint256 acceptCount, uint256 denyCount) = _getVoteTally(claimId, assessorGroup);
@@ -168,6 +193,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     (acceptCount, denyCount) = _getVoteTally(claimId, assessorGroup);
 
     // Check if we can close the poll early
+    // NOTE: the check against assessorGroup being empty is done by _validateAssessory
     bool allVoted = acceptCount + denyCount == assessorGroup.length();
     bool notADraw = acceptCount != denyCount;
     bool canCloseEarly = allVoted && notADraw;
@@ -197,10 +223,10 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   /// @param assessment The assessment data for the claim
   /// @return true if the assessment is decided, false otherwise
   function _isAssessmentDecided(uint256 acceptCount, uint256 denyCount, Assessment storage assessment) internal view returns (bool) {
-    // The assessment is considered still open if it's a draw (includes case of no votes where 0 == 0)
+    // The assessment is considered still open if it's a draw, or no votes (0 == 0)
     if (acceptCount == denyCount) return false;
 
-    // The assessment is considered decided if there is at least 1 vote and the voting period has ended
+    // The assessment is considered decided if there is at least 1 vote and its not a draw and the voting period has ended
     return block.timestamp >= assessment.end;
   }
 
@@ -215,11 +241,12 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   ) internal view returns (uint256 acceptCount, uint256 denyCount) {
 
     Assessment storage assessment = _assessments[claimId];
+    require(assessment.start != 0, InvalidClaimId());
+
     acceptCount = 0;
     denyCount = 0;
 
     uint256 length = assessorGroup.length();
-    require(length > 0, EmptyAssessorGroup());
 
     for (uint i = 0; i < length;) {
         uint256 assessorMemberId = assessorGroup.at(i);
@@ -239,10 +266,14 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   /// @return assessorMemberId The member ID of the assessor
   /// @return assessment The assessment data for the claim
   function _validateAssessor(bytes32 claimId, address assessor) internal view returns (uint256 assessorMemberId, Assessment storage assessment) {
+
     // TODO: implement memberRoles.getMemberId - can be memberId be 0?
     assessorMemberId = _memberRoles().getMemberId(assessor);
     assessment = _assessments[claimId];
+
+    require(assessment.start != 0, InvalidClaimId());
     require(_assessorGroups[assessment.assessorGroupId].contains(assessorMemberId), InvalidAssessor());
+
     return (assessorMemberId, assessment);
   }
 
@@ -277,12 +308,14 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
 // should revert if assessment already exists
 
 // getOutcome
-// should throw if called before poll.end
-// should still throw after poll.end, only if Assessment has no votes yet
-// should throw if there is a draw
-// should return true if acceptCount > denyCount
-// should return false if denyCount > acceptCount
-// should return false if acceptCount == denyCount
+// - should revert if called with a non-existent claim
+// - should revert if empty assessor group
+// - should throw if called before poll.end
+// - should still throw after poll.end, only if Assessment has no votes yet
+// - should throw if there is a draw
+// - should return true if acceptCount > denyCount
+// - should return false if denyCount > acceptCount
+// - should return false if acceptCount == denyCount
 
 
 // Validation Tests
@@ -291,6 +324,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
 // - should work correctly for a valid assessor
 
 // castVote
+// - should revert if called with a non-existent claim
 // - should revert when called by non-assessor / or empty assessor group
 // - should revert when called after poll has closed (and at least one vote exists)
 // - should revert with invalid vote choice (something other than ACCEPT or DENY)
@@ -311,7 +345,16 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
 // - zero votes (poll should stay open indefinitely)
 // - non-zero draw votes (poll should stay open indefinitely)
 
-// getVoteTally Tests
+// isAssessmentDecided
+// - should revert if called with a non-existent claim
+// - should return false if there are no votes
+// - should return false if there is a draw
+// - should return true if there is at least one vote and its not a draw and the voting period has ended
+// - test when an assessor is removed from the group
+// - test when an assessor is added to the group
+
+// getVoteTally
+// - should revert if called with a non-existent claim
 // - should count votes correctly with various combinations
 // - should handle empty votes properly
 // - should return correct counts when some assessors haven't voted
@@ -327,3 +370,26 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
 // - try to re-open a decided poll
 // - try to manipulate timestamps through mining
 // - check if malicious assessor can influence voting periods
+
+// getAssessmentInfo
+// - should revert if called with a non-existent claim
+// - should return correct start, end, accepts, denies
+// - should return correct start, end, accepts, denies when an assessor is removed from the group
+// - should return correct start, end, accepts, denies when an assessor is added to the group
+
+// assessorGroupOf
+// - should revert if called with a non-existent claim
+// - should return the correct assessor group
+
+// ballotOf
+// - should revert if called with a non-existent claim
+// - should revert if called with an assessor not in the assessor group
+// - should return the correct ballot
+
+// hasVoted
+// - should revert if called with a non-existent claim
+// - should revert if called with an assessor not in the assessor group
+  // - add assessor to group should not revert and return false
+// - should return true if the assessor has voted
+// - should return false if the assessor has not voted
+// - remove from assessor group after a vote has been cast, should revert

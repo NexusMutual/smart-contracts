@@ -14,12 +14,6 @@ import "../../libraries/SafeUintCast.sol";
 contract MCR is IMCR, MasterAwareV2 {
   using SafeUintCast for uint;
 
-  // the following values are expressed in basis points
-  uint16 public maxMCRIncrement = 500;
-  uint24 public gearingFactor = 48000;
-  // min update between MCR updates in seconds
-  uint16 public minUpdateTime = 3600;
-
   uint80 public mcr;
   uint80 public desiredMCR;
   uint32 public lastUpdateTime;
@@ -34,28 +28,19 @@ contract MCR is IMCR, MasterAwareV2 {
     uint totalSumAssured
   );
 
+  // MCR related constants expressed in basis points
   uint public constant MAX_MCR_ADJUSTMENT = 100;
+  uint public constant MAX_MCR_INCREMENT = 500;
   uint public constant BASIS_PRECISION = 10000;
+  uint public constant GEARING_FACTOR = 48000;
 
-  uint public immutable MCR_UPDATE_DEADLINE;
-
-  constructor (address masterAddress, uint mcrUpdateDeadline) {
-    changeMasterAddress(masterAddress);
-    MCR_UPDATE_DEADLINE = mcrUpdateDeadline;
-
-    if (masterAddress != address(0)) {
-      previousMCR = IMCR(master.getLatestAddress("MC"));
-    }
-  }
+  // min update between MCR updates in seconds
+  uint public constant MIN_UPDATE_TIME = 3600;
 
   /* ========== DEPENDENCIES ========== */
 
   function pool() internal view returns (IPool) {
     return IPool(internalContracts[uint(ID.P1)]);
-  }
-
-  function memberRoles() internal view returns (IMemberRoles) {
-    return IMemberRoles(internalContracts[uint(ID.MR)]);
   }
 
   function cover() internal view returns (ICover) {
@@ -84,32 +69,16 @@ contract MCR is IMCR, MasterAwareV2 {
     lastUpdateTime = previousMCR.lastUpdateTime();
 
     // copy over parameters
-    maxMCRIncrement = previousMCR.maxMCRIncrement();
-    gearingFactor = previousMCR.gearingFactor();
-    minUpdateTime = previousMCR.minUpdateTime();
+    MAX_MCR_INCREMENT = previousMCR.MAX_MCR_INCREMENT();
+    GEARING_FACTOR = previousMCR.GEARING_FACTOR();
+    MIN_UPDATE_TIME = previousMCR.MIN_UPDATE_TIME();
 
     previousMCR = IMCR(address(0));
   }
 
   /**
-   * @dev We need to move the mcr way below the current value otherwise swaps
-   *      won't work for a while until mcr moves down by itself
-   * @dev Remove this code after the tokenomics upgrade.
-   */
-  function teleportMCR() external {
-
-    require(address(previousMCR) == address(0), "MCR: not yet initialized");
-    require(mcr > 10_000 ether, "MCR: already updated");
-    require(block.timestamp < MCR_UPDATE_DEADLINE, "MCR: Deadline has passed");
-
-    mcr = 10_000 ether;
-    desiredMCR = 10_000 ether;
-    lastUpdateTime = block.timestamp.toUint32();
-  }
-
-  /**
-   * @dev Gets total sum assured (in ETH).
-   * @return amount of sum assured
+   * @dev Gets total covered amount in ETH terms
+   * @return amount in ETH
    */
   function getTotalActiveCoverAmount() public view returns (uint) {
 
@@ -146,8 +115,8 @@ contract MCR is IMCR, MasterAwareV2 {
 
   function _updateMCR(bool forceUpdate) internal {
 
-    uint _gearingFactor = gearingFactor;
-    uint _minUpdateTime = minUpdateTime;
+    uint _gearingFactor = GEARING_FACTOR;
+    uint _minUpdateTime = MIN_UPDATE_TIME;
 
     // read with 1 SLOAD
     uint112 _mcr = mcr;
@@ -194,7 +163,7 @@ contract MCR is IMCR, MasterAwareV2 {
     uint _mcr = mcr;
     uint _desiredMCR = desiredMCR;
     uint _lastUpdateTime = lastUpdateTime;
-    uint _maxMCRIncrement = maxMCRIncrement;
+    uint _maxMCRIncrement = MAX_MCR_INCREMENT;
 
     if (block.timestamp == _lastUpdateTime) {
       return _mcr;
@@ -212,30 +181,7 @@ contract MCR is IMCR, MasterAwareV2 {
   }
 
   function getGearedMCR() external view returns (uint) {
-    return getTotalActiveCoverAmount() * BASIS_PRECISION / gearingFactor;
+    return getTotalActiveCoverAmount() * BASIS_PRECISION / GEARING_FACTOR;
   }
 
-  /**
-   * @dev Updates Uint Parameters
-   * @param code parameter code
-   * @param value new value
-   */
-  function updateUintParameters(bytes8 code, uint value) public onlyGovernance {
-
-    if (code == "MMIC") {
-
-      maxMCRIncrement = value.toUint16();
-
-    } else if (code == "GEAR") {
-
-      gearingFactor = value.toUint24();
-
-    } else if (code == "MUTI") {
-
-      minUpdateTime = value.toUint16();
-
-    } else {
-      revert("Invalid param code");
-    }
-  }
 }

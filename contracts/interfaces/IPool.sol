@@ -2,28 +2,37 @@
 
 pragma solidity >=0.5.0;
 
-import "./IPriceFeedOracle.sol";
-
-struct SwapDetails {
-  uint104 minAmount;
-  uint104 maxAmount;
-  uint32 lastSwapTime;
-  // 2 decimals of precision. 0.01% -> 0.0001 -> 1e14
-  uint16 maxSlippageRatio;
+interface Aggregator {
+  function decimals() external view returns (uint8);
+  function latestAnswer() external view returns (int);
 }
 
 struct Asset {
   address assetAddress;
   bool isCoverAsset;
   bool isAbandoned;
+  // 80 bits left
+}
+
+enum AggregatorType { ETH, USD }
+
+struct Oracle {
+  Aggregator aggregator;
+  AggregatorType aggregatorType;
+  uint8 decimals;
+  // 80 bits left
+}
+
+struct OrderIntent {
+  uint8 sellAsset;
+  uint8 buyAsset;
+  uint96 sellAmount;
+  uint96 buyAmount;
+  uint16 slippage; // bps
+  uint32 deadline;
 }
 
 interface IPool {
-
-  error RevertedWithoutReason(uint index);
-  error AssetNotFound();
-  error UnknownParameter();
-  error OrderInProgress();
 
   function swapOperator() external view returns (address);
 
@@ -41,10 +50,6 @@ interface IPool {
 
   function sendEth(address payoutAddress, uint amount) external;
 
-  function upgradeCapitalPool(address payable newPoolAddress) external;
-
-  function priceFeedOracle() external view returns (IPriceFeedOracle);
-
   function getPoolValueInEth() external view returns (uint);
 
   function calculateMCRRatio(uint totalAssetValue, uint mcrEth) external pure returns (uint);
@@ -58,4 +63,19 @@ interface IPool {
   function getMCRRatio() external view returns (uint);
 
   function setSwapAssetAmount(address assetAddress, uint value) external;
+
+  event MCRUpdated(
+    uint mcr,
+    uint desiredMCR,
+    uint mcrFloor,  // unused
+    uint mcrETHWithGear,
+    uint totalSumAssured
+  );
+
+  event Payout(address indexed to, address indexed assetAddress, uint amount);
+
+  error RevertedWithoutReason(uint index);
+  error AssetNotFound();
+  error UnknownParameter();
+  error OrderInProgress();
 }

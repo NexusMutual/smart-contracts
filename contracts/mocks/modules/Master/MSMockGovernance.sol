@@ -2,15 +2,21 @@
 
 pragma solidity ^0.8.18;
 
-import "../../../abstract/MasterAware.sol";
 import "../../../interfaces/ITokenController.sol";
+import "../../../interfaces/INXMMaster.sol";
 import "../../generic/GovernanceGeneric.sol";
 
-contract MSMockGovernance is GovernanceGeneric, MasterAware {
+contract MSMockGovernance is GovernanceGeneric {
 
   ITokenController tc;
+  INXMMaster master;
 
   constructor() { }
+
+  function changeMasterAddress(address masterAddress) public {
+    require(address(master) == address(0) || address(master) == msg.sender, "Master address already set");
+    master = INXMMaster(masterAddress);
+  }
 
   function changeDependentContractAddress() external {
     tc = ITokenController(master.getLatestAddress("TC"));

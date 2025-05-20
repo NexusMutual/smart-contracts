@@ -2,7 +2,7 @@
 
 pragma solidity >=0.5.0;
 
-interface Aggregator {
+interface OracleAggregator {
   function decimals() external view returns (uint8);
   function latestAnswer() external view returns (int);
 }
@@ -12,14 +12,14 @@ interface IPriceFeedOracle {
   enum AggregatorType { ETH, USD }
 
   struct AssetInfo {
-    Aggregator aggregator;
+    OracleAggregator aggregator;
     AggregatorType aggregatorType;
     uint8 decimals;
   }
 
   function ETH() external view returns (address);
-  function assets(address) external view returns (Aggregator, uint8);
-  function assetsMap(address) external view returns (Aggregator, AggregatorType, uint8);
+  function assets(address) external view returns (OracleAggregator, uint8);
+  function assetsMap(address) external view returns (OracleAggregator, AggregatorType, uint8);
 
   function getAssetToEthRate(address asset) external view returns (uint);
   function getAssetForEth(address asset, uint ethIn) external view returns (uint);

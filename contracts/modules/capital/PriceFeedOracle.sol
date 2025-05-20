@@ -18,9 +18,11 @@ contract PriceFeedOracle is IPriceFeedOracle {
     uint8[] memory _assetDecimals,
     address _safeTracker
   ) {
+
     if (_assetAddresses.length == 0) {
       revert EmptyAssetAddresses();
     }
+
     if (
       _assetAddresses.length != _assetAggregators.length ||
       _assetAggregators.length != _aggregatorTypes.length ||
@@ -33,6 +35,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
         _assetDecimals.length
       );
     }
+
     if (_safeTracker == address(0)) {
       revert ZeroAddress("safeTracker");
     }
@@ -66,9 +69,11 @@ contract PriceFeedOracle is IPriceFeedOracle {
 
     // Require ETH-USD asset
     AssetInfo memory ethAsset = assetsMap[ETH];
+
     if (address(ethAsset.aggregator) == address(0)) {
       revert EthUsdAggregatorNotSet();
     }
+
     if (ethAsset.aggregatorType != AggregatorType.USD) {
       revert InvalidEthAggregatorType(ethAsset.aggregatorType, AggregatorType.USD);
     }

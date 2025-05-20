@@ -6,7 +6,6 @@ import "../../interfaces/IMasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
-import "./external/OwnedUpgradeabilityProxy.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ILegacyClaimsReward.sol";
 
@@ -182,49 +181,6 @@ contract NXMaster is INXMMaster {
     up.changeMasterAddress(address(this));
   }
 
-  function removeContracts(bytes2[] calldata contractCodesToRemove) external onlyAuthorizedToGovern {
-
-    for (uint i = 0; i < contractCodesToRemove.length; i++) {
-      bytes2 code = contractCodesToRemove[i];
-      address contractAddress = contractAddresses[code];
-      require(contractAddress != address(0), "NXMaster: Address is 0");
-      require(isInternal(contractAddress), "NXMaster: Contract not internal");
-      contractsActive[contractAddress] = false;
-      contractAddresses[code] = payable(0);
-
-      if (isProxy[code]) {
-        isProxy[code] = false;
-      }
-
-      if (isReplaceable[code]) {
-        isReplaceable[code] = false;
-      }
-      emit ContractRemoved(code, contractAddress);
-    }
-
-    // delete elements from contractCodes
-    for (uint i = 0; i < contractCodes.length;) {
-      for (uint j = 0; j < contractCodesToRemove.length; j++) {
-        if (contractCodes[i] == contractCodesToRemove[j]) {
-          contractCodes[i] = contractCodes[contractCodes.length - 1];
-          contractCodes.pop();
-          unchecked { i--; }
-          break;
-        }
-      }
-      unchecked { i++; }
-    }
-
-    updateAllDependencies();
-  }
-
-  function updateAllDependencies() internal {
-    for (uint i = 0; i < contractCodes.length; i++) {
-      IMasterAwareV2 up = IMasterAwareV2(contractAddresses[contractCodes[i]]);
-      up.changeDependentContractAddress();
-    }
-  }
-
   /**
    * @dev set Emergency pause
    * @param _paused to toggle emergency pause ON/OFF
@@ -265,14 +221,6 @@ contract NXMaster is INXMMaster {
     }
   }
 
-  /**
- * @dev returns the address of token controller
-   * @return address is returned
-   */
-  function dAppLocker() public view returns (address) {
-    return getLatestAddress("TC");
-  }
-
   /// @dev Gets latest contract address
   /// @param _contractName Contract name to fetch
   function getLatestAddress(bytes2 _contractName) public view returns (address payable contractAddress) {
@@ -288,16 +236,4 @@ contract NXMaster is INXMMaster {
     return getLatestAddress("GV") == _add;
   }
 
-  /**
-   * @dev to update the owner parameters
-   * @param code is the associated code
-   * @param val is value to be set
-   */
-  function updateOwnerParameters(bytes8 code, address payable val) public onlyAuthorizedToGovern {
-    if (code == "EMADMIN") {
-      emergencyAdmin = val;
-    } else {
-      revert("Invalid param code");
-    }
-  }
 }

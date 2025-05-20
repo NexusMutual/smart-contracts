@@ -1,52 +1,59 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
 import "../../abstract/MasterAwareV2.sol";
-import "../../interfaces/IMCR.sol";
+import "../../abstract/ReentrancyGuard.sol";
 import "../../interfaces/IRamm.sol";
-import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ILegacyPool.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/ISwapOperator.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
+import "../../libraries/RegistryLibrary.sol";
 
-contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
+contract Pool is IPool, ReentrancyGuard {
   using SafeERC20 for IERC20;
   using SafeUintCast for uint;
 
   /* storage */
 
   Asset[] public assets;
+
+  // todo: consider removing
   mapping(address => SwapDetails) public swapDetails;
 
-  // parameters
-  IPriceFeedOracle public override priceFeedOracle;
-  address public swapOperator;
+  // 1 slot
+  uint104 public assetInSwapOperator;
+  uint8 public assetsInSwapOperatorBitmap;
+  // 144 bits left
 
-  // SwapOperator assets
-  uint32 public assetsInSwapOperatorBitmap;
-  uint public assetInSwapOperator;
+  /* immutables */
+
+  address public immutable swapOperator;
+  address public immutable safeTracker;
 
   /* constants */
 
-  address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
-  uint internal constant MAX_SLIPPAGE_DENOMINATOR = 10000;
+  uint public constant MAX_MCR_ADJUSTMENT = 100;
+  uint public constant MAX_MCR_INCREMENT = 500;
+  uint public constant BASIS_PRECISION = 10000;
+  uint public constant GEARING_FACTOR = 48000;
+  uint public constant MIN_UPDATE_TIME = 3600; // min time between MCR updates in seconds
+  uint public constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
-  INXMToken public immutable nxmToken;
+  modifier nonReentrant {
+    require(!reentrancyLocked, "ReentrancyGuard: reentrant call");
+    reentrancyLocked = true;
+    _;
+    reentrancyLocked = false;
+  }
 
-  /* events */
-  event Payout(address indexed to, address indexed assetAddress, uint amount);
-  event DepositReturned(address indexed to, uint amount);
-
-  /* logic */
   modifier onlySwapOperator {
     require(msg.sender == swapOperator, "Pool: Not swapOperator");
     _;
@@ -63,11 +70,9 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     address _master,
     address _priceOracle,
     address _swapOperator,
-    address _nxmTokenAddress,
     address _previousPool
   ) {
     master = INXMMaster(_master);
-    nxmToken = INXMToken(_nxmTokenAddress);
     swapOperator = _swapOperator;
 
     ILegacyPool previousPool = ILegacyPool(_previousPool);
@@ -183,18 +188,9 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     revert AssetNotFound();
   }
 
-  function isAssetInSwapOperator(uint _assetId, uint _assetsInSwapOperatorBitmap) internal pure returns (bool) {
-
-    if (
-      // there are assets in the swap operator
-      _assetsInSwapOperatorBitmap != 0 &&
-      // asset id is not in the swap operator assets
-      ((1 << _assetId) & _assetsInSwapOperatorBitmap == 0)
-    ) {
-      return false;
-    }
-
-    return true;
+  function isAssetInSwapOperator(uint _assetId, uint _assetsBitmap) internal pure returns (bool) {
+    // there are assets in the swap operator and the asset id is in the swap operator assets
+    return _assetsBitmap != 0 && ((1 << _assetId) & _assetsBitmap != 0);
   }
 
   /* ========== ASSET RELATED MUTATIVE FUNCTIONS ========== */
@@ -321,15 +317,13 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     uint assetId = getAssetId(assetAddress);
     assetInSwapOperator = value;
 
-    if (value > 0) {
-      if (assetsInSwapOperatorBitmap != 0) {
-        revert OrderInProgress();
-      }
-
-      assetsInSwapOperatorBitmap = uint32(1 << assetId);
-    } else {
+    if (value == 0) {
       assetsInSwapOperatorBitmap = 0;
+      return;
     }
+
+    require(assetsInSwapOperatorBitmap == 0, OrderInProgress());
+    assetsInSwapOperatorBitmap = uint8(1 << assetId);
   }
 
   /* ========== CLAIMS RELATED MUTATIVE FUNCTIONS ========== */
@@ -343,8 +337,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   function sendPayout(
     uint assetId,
     address payable payoutAddress,
-    uint amount,
-    uint ethDepositAmount
+    uint amount
   ) external override onlyInternal nonReentrant {
 
     Asset memory asset = assets[assetId];
@@ -355,13 +348,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       require(transferSucceeded, "Pool: ETH transfer failed");
     } else {
       IERC20(asset.assetAddress).safeTransfer(payoutAddress, amount);
-    }
-
-    if (ethDepositAmount > 0) {
-      // solhint-disable-next-line avoid-low-level-calls
-      (bool transferSucceeded, /* data */) = payoutAddress.call{value: ethDepositAmount}("");
-      require(transferSucceeded, "Pool: ETH transfer failed");
-      emit DepositReturned(payoutAddress, ethDepositAmount);
     }
 
     emit Payout(payoutAddress, asset.assetAddress, amount);
@@ -443,32 +429,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     return calculateMCRRatio(totalAssetValue, mcrEth);
   }
 
-  /* ========== POOL UPGRADE RELATED MUTATIVE FUNCTIONS ========== */
-
-  // Revert if any of the asset functions revert while not being marked for getting abandoned.
-  // Otherwise, continue without reverting while the marked asset will remain stuck in the
-  // previous pool contract.
-  function upgradeCapitalPool(address payable newPoolAddress) external override onlyMaster nonReentrant {
-
-    // transfer ETH
-    (bool ok, /* data */) = newPoolAddress.call{value: address(this).balance}("");
-    require(ok, "Pool: Transfer failed");
-
-    uint assetCount = assets.length;
-
-    // start from 1 (0 is ETH)
-    for (uint i = 1; i < assetCount; i++) {
-
-      if (assets[i].isAbandoned) {
-        continue;
-      }
-
-      IERC20 asset = IERC20(assets[i].assetAddress);
-      uint balance = asset.balanceOf(address(this));
-      asset.safeTransfer(newPoolAddress, balance);
-    }
-  }
-
   function _setPriceFeedOracle(IPriceFeedOracle _priceFeedOracle) internal {
     uint assetCount = assets.length;
 
@@ -481,46 +441,135 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     priceFeedOracle = _priceFeedOracle;
   }
 
-  function updateUintParameters(bytes8 /* code */, uint /* value */) external view onlyGovernance {
-    revert UnknownParameter();
+  /// MCR ///
+
+  function getTotalActiveCoverAmount() public view returns (uint) {
+
+    IPriceFeedOracle priceFeed = _pool.priceFeedOracle();
+    ICover _cover = cover();
+
+    uint totalActiveCoverAmountInEth = _cover.totalActiveCoverInAsset(0);
+
+    Asset[] memory assets = getAssets();
+
+    // skip the first asset - it's ETH, it's already accounted for above
+    for (uint i = 1; i < assets.length; i++) {
+      uint activeCoverAmount = _cover.totalActiveCoverInAsset(i);
+      uint assetAmountInEth = priceFeed.getEthForAsset(assets[i].assetAddress, activeCoverAmount);
+      totalActiveCoverAmountInEth += assetAmountInEth;
+    }
+
+    return totalActiveCoverAmountInEth;
   }
 
-  function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
+  function updateMCR() whenNotPaused public {
+    _updateMCR(false);
+  }
 
-    if (code == "SWP_OP") {
-      if (swapOperator != address(0)) {
-        require(!ISwapOperator(swapOperator).orderInProgress(), 'Pool: Cancel all swaps before changing swapOperator');
-      }
-      swapOperator = value;
+  function updateMCRInternal(bool forceUpdate) public onlyInternal {
+    _updateMCR(forceUpdate);
+  }
+
+  function _updateMCR(bool forceUpdate) internal {
+
+    // read with 1 SLOAD
+    uint112 _mcr = mcr;
+    uint112 _desiredMCR = desiredMCR;
+    uint32 _lastUpdateTime = lastUpdateTime;
+
+    if (!forceUpdate && _lastUpdateTime + MIN_UPDATE_TIME > block.timestamp) {
       return;
     }
 
-    if (code == "PRC_FEED") {
-      _setPriceFeedOracle(IPriceFeedOracle(value));
-      return;
+    // sync the current virtual MCR value to storage
+    uint80 newMCR = getMCR().toUint80();
+    if (newMCR != _mcr) {
+      mcr = newMCR;
     }
 
-    revert UnknownParameter();
+    uint totalSumAssured = getTotalActiveCoverAmount();
+    uint gearedMCR = totalSumAssured * BASIS_PRECISION / GEARING_FACTOR;
+
+    uint80 newDesiredMCR = gearedMCR.toUint80();
+    if (newDesiredMCR != _desiredMCR) {
+      desiredMCR = newDesiredMCR;
+    }
+
+    lastUpdateTime = uint32(block.timestamp);
+
+    emit MCRUpdated(mcr, desiredMCR, 0, gearedMCR, totalSumAssured);
   }
 
-  /* ========== DEPENDENCIES ========== */
+  // ORACLES
 
-  function mcr() internal view returns (IMCR) {
-    return IMCR(internalContracts[uint(ID.MC)]);
+  /// @notice Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
+  /// @param assetAddress address of asset
+  /// @return price in ether
+  function getAssetToEthRate(address assetAddress) public view returns (uint) {
+
+    if (assetAddress == ETH || assetAddress == safeTracker) {
+      return 1 ether;
+    }
+
+    AssetInfo memory asset = assetsMap[assetAddress];
+    return _getAssetToEthRate(asset.aggregator, asset.aggregatorType);
   }
 
-  function ramm() internal view returns (IRamm) {
-    return IRamm(internalContracts[uint(ID.RA)]);
+  /// @notice Returns the amount of currency that is equivalent to ethIn amount of ether.
+  /// @param assetAddress address of asset
+  /// @param ethIn amount of ether to be converted to the asset
+  /// @return asset amount
+  function getAssetForEth(address assetAddress, uint ethIn) external view returns (uint) {
+    if (assetAddress == ETH || assetAddress == safeTracker) {
+      return ethIn;
+    }
+
+    AssetInfo memory asset = assetsMap[assetAddress];
+    uint price = _getAssetToEthRate(asset.aggregator, asset.aggregatorType);
+
+    return ethIn * (10 ** uint(asset.decimals)) / price;
   }
 
-  /**
-   * @dev Update dependent contract address
-   * @dev Implements MasterAware interface function
-   */
-  function changeDependentContractAddress() public {
-    internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
-    internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
-    // needed for onlyMember modifier
-    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+  /// @notice Returns the amount of eth that is equivalent to a given asset and amount
+  /// @param assetAddress address of asset
+  /// @param amount amount of asset
+  /// @return amount of ether
+  function getEthForAsset(address assetAddress, uint amount) external view returns (uint) {
+    if (assetAddress == ETH || assetAddress == safeTracker) {
+      return amount;
+    }
+
+    AssetInfo memory asset = assetsMap[assetAddress];
+    uint price = _getAssetToEthRate(asset.aggregator, asset.aggregatorType);
+
+    return amount * (price) / 10 ** uint(asset.decimals);
   }
+
+  /// @notice Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
+  /// @param aggregator The asset aggregator
+  /// @param aggregatorType The asset aggregator type (i.e ETH, USD)
+  /// @return price in ether
+  function _getAssetToEthRate(Aggregator aggregator, AggregatorType aggregatorType) internal view returns (uint) {
+    // NOTE: Current implementation relies on off-chain staleness checks, consider adding on-chain staleness check?
+    int rate = aggregator.latestAnswer();
+    if (rate <= 0) {
+      revert NonPositiveRate(address(aggregator), rate);
+    }
+
+    if (aggregatorType == AggregatorType.ETH) {
+      return uint(rate);
+    }
+
+    // AggregatorType.USD - convert the USD rate to its equivalent ETH rate using the ETH-USD exchange rate
+    AssetInfo memory ethAsset = assetsMap[ETH];
+
+    int ethUsdRate = ethAsset.aggregator.latestAnswer();
+
+    if (ethUsdRate <= 0) {
+      revert NonPositiveRate(ETH, ethUsdRate);
+    }
+
+    return (uint(rate) * 1e18) / uint(ethUsdRate);
+  }
+
 }

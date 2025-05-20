@@ -2,8 +2,6 @@
 
 pragma solidity >=0.5.0;
 
-import "./IPriceFeedOracle.sol";
-
 interface ILegacyPool {
 
   struct SwapDetails {
@@ -20,15 +18,16 @@ interface ILegacyPool {
     bool isAbandoned;
   }
 
+  error RevertedWithoutReason(uint index);
+  error AssetNotFound();
+  error UnknownParameter();
+  error OrderInProgress();
+
+  function swapOperator() external view returns (address);
+
   function getAsset(uint assetId) external view returns (Asset memory);
 
   function getAssets() external view returns (Asset[] memory);
-
-  function buyNXM(uint minTokensOut) external payable;
-
-  function sellNXM(uint tokenAmount, uint minEthOut) external;
-
-  function sellNXMTokens(uint tokenAmount) external returns (bool);
 
   function transferAssetToSwapOperator(address asset, uint amount) external;
 
@@ -36,29 +35,23 @@ interface ILegacyPool {
 
   function getAssetSwapDetails(address assetAddress) external view returns (SwapDetails memory);
 
-  function getNXMForEth(uint ethAmount) external view returns (uint);
+  function sendPayout(uint assetIndex, address payable payoutAddress, uint amount, uint ethDepositAmount) external;
 
-  function sendPayout(uint assetIndex, address payable payoutAddress, uint amount) external;
+  function sendEth(address payoutAddress, uint amount) external;
 
   function upgradeCapitalPool(address payable newPoolAddress) external;
 
-  function priceFeedOracle() external view returns (IPriceFeedOracle);
-
   function getPoolValueInEth() external view returns (uint);
-
-  function getEthForNXM(uint nxmAmount) external view returns (uint ethAmount);
-
-  function calculateEthForNXM(uint nxmAmount, uint currentTotalAssetValue, uint mcrEth) external pure returns (uint);
 
   function calculateMCRRatio(uint totalAssetValue, uint mcrEth) external pure returns (uint);
 
-  function calculateTokenSpotPrice(uint totalAssetValue, uint mcrEth) external pure returns (uint tokenPrice);
+  function getInternalTokenPriceInAsset(uint assetId) external view returns (uint tokenPrice);
 
-  function getTokenPriceInAsset(uint assetId) external view returns (uint tokenPrice);
+  function getInternalTokenPriceInAssetAndUpdateTwap(uint assetId) external returns (uint tokenPrice);
 
   function getTokenPrice() external view returns (uint tokenPrice);
 
   function getMCRRatio() external view returns (uint);
 
-  function setSwapValue(uint value) external;
+  function setSwapAssetAmount(address assetAddress, uint value) external;
 }

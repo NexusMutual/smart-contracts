@@ -7,53 +7,54 @@ import "./UpgradeableProxy.sol";
 
 contract Registry is IRegistry {
 
-  struct SystemPause {
-    // could consider switching to uint48
-    uint config;
-    uint proposedConfig;
-    address proposer;
-  }
-
-  // index = 1 << code
-  mapping(uint index => address contractAddress) internal contractAddresses;
+  // contracts
+  mapping(uint index => Contract) internal contracts;
   mapping(address contractAddress => uint index) internal contractIndexes;
 
-  // consider changing to uint32 or similar
-  // could shove into a struct
-  uint public memberCount;
-  uint public lastMemberId;
-
+  // membership
+  MembersMeta internal membersMeta; // 1 slot
   mapping(uint memberId => address member) internal members;
   mapping(address member => uint memberId) internal memberIds;
   mapping(bytes32 signature => bool used) internal usedSignatures;
   mapping(uint memberId => bool isAdvisoryBoardMember) public isAdvisoryBoardMember;
 
-  mapping(address => bool) isEmergencyAdmin; // 1 slot
+  // emergency pause
+  mapping(address => bool) isEmergencyAdmin;
   SystemPause internal systemPause; // 3 slots
 
-  uint constant PAUSE_GLOBAL = 1; // 0b0000000000000001
-  uint constant PAUSE_RAMM = 2;   // 0b0000000000000010
-  uint constant PAUSE_X = 4;      // 0b0000000000000100
-  uint constant PAUSE_Y = 8;      // 0b0000000000001000
-
-  function proposePauseConfig(uint config) external {
-    require(isEmergencyAdmin[msg.sender], NotEmergencyAdmin());
-    systemPause.proposedConfig = config;
-    systemPause.proposer = msg.sender;
+  modifier onlyMember() {
+    require(memberIds[msg.sender] != 0, NotMember());
+    _;
   }
 
-  function confirmPauseConfig(uint config) external {
-    require(isEmergencyAdmin[msg.sender], NotEmergencyAdmin());
-    require(systemPause.proposer != msg.sender, ProposerCannotEnablePause());
-    require(systemPause.proposedConfig == config, PauseConfigMismatch());
-    systemPause.config = config;
-    delete systemPause.proposedConfig;
-    delete systemPause.proposer;
+  modifier onlyGovernance() {
+    // todo: check msg.sender is Governor contract
+    _;
   }
+
+  modifier onlyEmergencyAdmin() {
+    require(isEmergencyAdmin[msg.sender], NotEmergencyAdmin());
+    _;
+  }
+
+  /* == EMERGENCY PAUSE == */
 
   function setEmergencyAdmin(address _emergencyAdmin, bool enabled) external onlyGovernance {
     isEmergencyAdmin[_emergencyAdmin] = enabled;
     // emit event
+  }
+
+  function proposePauseConfig(uint config) external onlyEmergencyAdmin {
+    systemPause.proposedConfig = uint48(config);
+    systemPause.proposer = msg.sender;
+  }
+
+  function confirmPauseConfig(uint config) external onlyEmergencyAdmin {
+    require(systemPause.proposer != msg.sender, ProposerCannotEnablePause());
+    require(systemPause.proposedConfig == uint48(config), PauseConfigMismatch());
+    systemPause.config = uint48(config);
+    delete systemPause.proposedConfig;
+    delete systemPause.proposer;
   }
 
   function getSystemPause() external view returns (SystemPause memory) {
@@ -66,8 +67,11 @@ contract Registry is IRegistry {
 
   function isPaused(uint mask) external view returns (bool) {
     uint config = systemPause.config;
-    return (PAUSE_GLOBAL & config) != 0 || (config & mask) != 0;
+    // also checks for global pause
+    return (config & 1) != 0 || (config & mask) != 0;
   }
+
+  /* == MEMBERSHIP MANAGEMENT == */
 
   function isMember(address member) external view returns (bool) {
     return memberIds[member] != 0;
@@ -75,6 +79,10 @@ contract Registry is IRegistry {
 
   function getMemberId(address member) external view returns (uint) {
     return memberIds[member];
+  }
+
+  function getMemberCount() external view returns (uint) {
+    return membersMeta.memberCount;
   }
 
   function swapAdvisoryBoardMember(uint from, uint to) external onlyGovernance {
@@ -89,9 +97,14 @@ contract Registry is IRegistry {
 
   function join(address member, bytes32 signature) external {
     require(memberIds[member] == 0, AlreadyMember());
-    uint memberId = ++lastMemberId;
+
+    uint memberId = ++membersMeta.lastMemberId;
+    ++membersMeta.memberCount;
     memberIds[member] = memberId;
     members[memberId] = member;
+
+    emit MembershipChanged(memberId, address(0), member);
+
     // todo:
     // validate signature
     // mark signature as used
@@ -107,6 +120,8 @@ contract Registry is IRegistry {
     memberIds[to] = memberId;
     members[memberId] = to;
 
+    emit MembershipChanged(memberId, msg.sender, to);
+
     // todo:
     // TC.removeFromWhitelist(msg.sender)
     // TC.addToWhitelist(to)
@@ -119,12 +134,15 @@ contract Registry is IRegistry {
     require(memberId != 0, NotMember());
     require(!isAdvisoryBoardMember[memberId], AdvisoryBoardMemberCannotLeave());
 
+    emit MembershipChanged(memberId, msg.sender, address(0));
+
     // todo:
     // address[] memory pools = TC.getManagerStakingPools(memberId)
     // require(pools.length == 0, StakingPoolManagersCannotLeave());
 
     delete members[memberId];
     delete memberIds[msg.sender];
+    --membersMeta.memberCount;
 
     // todo:
     // TC.removeFromWhitelist(msg.sender)
@@ -134,46 +152,62 @@ contract Registry is IRegistry {
 
   /* == CONTRACT MANAGEMENT == */
 
-  function addContract(uint code, bytes32 salt, address implementation) external {
-    require(code <= type(uint8).max, InvalidContractCode());
-    require(contractAddresses[1 << code] == address(0), ContractAlreadyExists());
+  function isValidContractIndex(uint index) public pure returns (bool) {
+    // cheap validation that only one bit is set (i.e. it's a power of two)
+    unchecked { return index & (index - 1) == 0 && index > 0; }
+  }
+
+  function deployContract(uint index, bytes32 salt, address implementation) external {
+    require(isValidContractIndex(index), InvalidContractIndex());
+    require(contracts[index].addr == address(0), ContractAlreadyExists());
     UpgradeableProxy proxy = new UpgradeableProxy{salt: bytes32(salt)}();
     proxy.upgradeTo(implementation);
-    contractAddresses[1 << code] = address(proxy);
-    contractIndexes[address(proxy)] = 1 << code;
+    contracts[index] = Contract({ addr: address(proxy), isProxy: true });
+    contractIndexes[address(proxy)] = index;
   }
 
-  function upgradeContract(uint code, address implementation) external {
-    require(code <= type(uint8).max, InvalidContractCode());
-    address contractAddress = contractAddresses[1 << code];
-    require(contractAddress != address(0), ContractDoesNotExist());
-    UpgradeableProxy proxy = UpgradeableProxy(payable(contractAddress));
+  function addContract(uint index, address contractAddress, bool isProxy) external {
+    require(isValidContractIndex(index), InvalidContractIndex());
+    require(contracts[index].addr == address(0), ContractAlreadyExists());
+    contracts[index] = Contract({addr: contractAddress, isProxy: isProxy});
+    contractIndexes[contractAddress] = index;
+  }
+
+  function upgradeContract(uint index, address implementation) external {
+    Contract memory _contract = contracts[index];
+    require(_contract.addr != address(0), ContractDoesNotExist());
+    require(_contract.isProxy, ContractIsNotProxy());
+    UpgradeableProxy proxy = UpgradeableProxy(payable(_contract.addr));
     proxy.upgradeTo(implementation);
   }
 
-  function deprecateContract(uint code) external {
-    require(code <= type(uint8).max, InvalidContractCode());
-    address contractAddress = contractAddresses[1 << code];
+  function removeContract(uint index) external {
+    address contractAddress = contracts[index].addr;
     require(contractAddress != address(0), ContractDoesNotExist());
     contractIndexes[contractAddress] = 0;
-    contractAddresses[1 << code] = address(0);
+    delete contracts[index];
   }
 
-  function getContractByCode(uint code) external view returns (address) {
-    require(code <= type(uint8).max, InvalidContractCode());
-    return contractAddresses[1 << code];
+  function getContractAddressByIndex(uint index) external view returns (address) {
+    require(isValidContractIndex(index), InvalidContractIndex());
+    return contracts[index].addr;
   }
 
-  function getContractsByCode(uint[] memory codes) external view returns (address[] memory addresses) {
-    addresses = new address[](codes.length);
-    for (uint i = 0; i < codes.length; i++) {
-      require(codes[i] <= type(uint8).max, InvalidContractCode());
-      addresses[i] = contractAddresses[1 << codes[i]];
+  function getContractTypeByIndex(uint index) external view returns (bool isProxy) {
+    require(isValidContractIndex(index), InvalidContractIndex());
+    return contracts[index].isProxy;
+  }
+
+  function getContractIndexByAddress(address contractAddress) external view returns (uint) {
+    return contractIndexes[contractAddress];
+  }
+
+  function getContracts(uint[] memory indexes) external view returns (Contract[] memory _contracts) {
+    _contracts = new Contract[](indexes.length);
+    for (uint i = 0; i < indexes.length; i++) {
+      require(isValidContractIndex(indexes[i]), InvalidContractIndex());
+      _contracts[i] = contracts[indexes[i]];
     }
-  }
-
-  function isInternalContract(address contractAddress) external view returns (bool) {
-    return contractIndexes[contractAddress] != 0;
   }
 
 }

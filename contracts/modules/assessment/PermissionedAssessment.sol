@@ -63,15 +63,13 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   function getAssessmentInfo(bytes32 claimId) external view returns (uint32 start, uint32 end, uint256 accepts, uint256 denies) {
 
     Assessment storage assessment = _assessments[claimId];
-    require(assessment.start != 0, InvalidClaimId());
+    uint32 assessmentStart = assessment.start;
+    require(assessmentStart != 0, InvalidClaimId());
 
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
-    uint256 assessorGroupLength = assessorGroup.length();
-    require(assessorGroupLength > 0, EmptyAssessorGroup());
+    (accepts, denies) = _getVoteTally(assessment, assessorGroup, assessorGroup.length());
 
-    (accepts, denies) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
-
-    return (assessment.start, assessment.end, accepts, denies);
+    return (assessmentStart, assessment.end, accepts, denies);
   }
 
   function ballotOf(bytes32 claimId, address assessor) external view returns (Ballot memory) {
@@ -81,7 +79,8 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
 
   function claimsOpenForVoting(address assessor) external view returns (bytes32[] memory) {
     // TODO: should we add another data struct for this? or can be reconstructed via events?
-    // PollStarted + poll.end > block.timestamp && hasCurrentBallot(claimId) && not a draw
+    // is a draw OR no votes (0-0) OR poll has not ended
+    // accept === deny || poll.end > block.timestamp
   }
 
   /// @notice Gets the final outcome of an assessment after voting has completed
@@ -94,10 +93,8 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     require(assessment.start != 0, InvalidClaimId());
 
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
-    uint256 assessorGroupLength = assessorGroup.length();
-    require(assessorGroupLength > 0, EmptyAssessorGroup());
 
-    (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
+    (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup, assessorGroup.length());
     require(_isAssessmentDecided(acceptCount, denyCount, assessment.end), ClaimAssessmentNotFinished());
 
     return acceptCount > denyCount;
@@ -115,7 +112,8 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
 
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
     uint256 assessorGroupLength = assessorGroup.length();
-    require(assessorGroupLength > 0, EmptyAssessorGroup());
+
+    if (assessorGroupLength == 0) return false;
 
     (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
 
@@ -133,10 +131,8 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     require(assessment.start != 0, InvalidClaimId());
 
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
-    uint256 assessorGroupLength = assessorGroup.length();
-    require(assessorGroupLength > 0, EmptyAssessorGroup());
 
-    return _getVoteTally(assessment, assessorGroup, assessorGroupLength);
+    return _getVoteTally(assessment, assessorGroup, assessorGroup.length());
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -152,16 +148,18 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     require(assessment.start == 0, AssessmentAlreadyExists());
 
     // TODO: call CoverProduct to validate productTypeId?
-    AssessmentData storage assessmentData = _assessmentData[productTypeId];
-    require(assessmentData.assessingGroupId != 0, InvalidProductType());
+    uint32 assessingGroupId = _assessmentData[productTypeId].assessingGroupId;
+    require(assessingGroupId != 0, InvalidProductType());
 
-    uint32 currentTime = block.timestamp.toUint32();
-    assessment.start = currentTime;
-    assessment.end = (currentTime + MIN_VOTING_PERIOD).toUint32();
-    assessment.assessorGroupId = assessmentData.assessingGroupId;
+    uint32 start = block.timestamp.toUint32();
+    uint32 end = (start + MIN_VOTING_PERIOD).toUint32();
+
+    assessment.start = start;
+    assessment.end = end;
+    assessment.assessorGroupId = assessingGroupId;
     // all votes in assessment.ballot are initialized to NONE (0) by default
 
-    emit AssessmentStarted(claimId, assessment.assessorGroupId, assessment.start, assessment.end);
+    emit AssessmentStarted(claimId, assessingGroupId, start, end);
   }
 
   /// @notice Cast a single vote on a claim
@@ -176,9 +174,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     // Validate assessor and get assessment data
     (uint256 assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
-
     uint256 assessorGroupLength = assessorGroup.length();
-    require(assessorGroupLength > 0, EmptyAssessorGroup());
 
     // Only allow voting if the poll is not yet decided (no votes, a draw or voting period hasn't ended)
     (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
@@ -195,6 +191,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     (acceptCount, denyCount) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
 
     // Check if we can close the poll early
+    // NOTE: the validation for empty assessor group is done by _validateAssessor (reverts with InvalidAssessor())
     bool allVoted = acceptCount + denyCount == assessorGroupLength;
     bool notADraw = acceptCount != denyCount;
     bool canCloseEarly = allVoted && notADraw;

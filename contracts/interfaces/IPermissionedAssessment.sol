@@ -112,6 +112,7 @@ interface IPermissionedAssessment {
 
   event VoteCast(
     bytes32 indexed claimId,
+    address indexed assessor,
     uint256 indexed assessorMemberId,
     Vote vote,
     bytes32 ipfsHash

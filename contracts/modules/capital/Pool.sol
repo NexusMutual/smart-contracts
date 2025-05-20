@@ -21,14 +21,10 @@ contract Pool is IPool, ReentrancyGuard {
   /* storage */
 
   Asset[] public assets;
-
-  // todo: consider removing
-  mapping(address => SwapDetails) public swapDetails;
+  Oracle[] public oracles;
 
   // 1 slot
-  uint104 public assetInSwapOperator;
-  uint8 public assetsInSwapOperatorBitmap;
-  // 144 bits left
+  AssetInSwapOperator public assetInSwapOperator;
 
   /* immutables */
 
@@ -108,27 +104,7 @@ contract Pool is IPool, ReentrancyGuard {
 
   receive() external payable {}
 
-  /* ========== ASSET RELATED VIEW FUNCTIONS ========== */
-
-  function getAssetValueInEth(address assetAddress, uint assetAmountInSwapOperator) internal view returns (uint) {
-
-    uint assetBalance = assetAmountInSwapOperator;
-
-    if (assetAddress.code.length != 0) {
-      try IERC20(assetAddress).balanceOf(address(this)) returns (uint balance) {
-        assetBalance += balance;
-      } catch {
-        // If balanceOf reverts consider it 0
-      }
-    }
-
-    // If the assetBalance is 0 skip the oracle call to save gas
-    if (assetBalance == 0) {
-      return 0;
-    }
-
-    return priceFeedOracle.getEthForAsset(assetAddress, assetBalance);
-  }
+  /* ========== ASSETS ========== */
 
   ///
   /// @dev Calculates total value of all pool assets in ether
@@ -138,42 +114,52 @@ contract Pool is IPool, ReentrancyGuard {
     uint total = address(this).balance;
 
     uint assetCount = assets.length;
-    uint _assetsInSwapOperatorBitmap = assetsInSwapOperatorBitmap;
+    uint assetIdInSwapOperator = assetInSwapOperator.assetId;
+    uint assetAmountInSwapOperator = assetInSwapOperator.amount;
 
     for (uint i = 0; i < assetCount; i++) {
+
+      // check if the asset is ETH and exit the loop early
+      // it's assumed we don't abandon ETH
+      if (i == 0) {
+        total += assetBalance;
+        continue;
+      }
+
       Asset memory asset = assets[i];
 
       if (asset.isAbandoned) {
         continue;
       }
 
-      uint assetAmountInSwapOperator = isAssetInSwapOperator(i, _assetsInSwapOperatorBitmap)
-        ? assetInSwapOperator
-        : 0;
+      uint assetBalance = assetIdInSwapOperator == i ? assetAmountInSwapOperator : 0;
+      address assetAddress = asset.assetAddress;
 
-      // check if the asset is ETH and skip the oracle call
-      if (i == 0) {
-        total += assetAmountInSwapOperator;
+      if (assetAddress.code.length != 0) {
+        try IERC20(assetAddress).balanceOf(address(this)) returns (uint balance) {
+          assetBalance += balance;
+        } catch {
+          // If balanceOf reverts consider it 0
+        }
+      }
+
+      if (assetBalance == 0) {
         continue;
       }
 
-      total += getAssetValueInEth(asset.assetAddress, assetAmountInSwapOperator);
+      total += getEthForAsset(assetAddress, assetBalance);
     }
 
     return total;
   }
 
   function getAsset(uint assetId) external override view returns (Asset memory) {
-    require(assetId < assets.length, "Pool: Invalid asset id");
+    require(assetId < assets.length, InvalidAssetId());
     return assets[assetId];
   }
 
   function getAssets() external override view returns (Asset[] memory) {
     return assets;
-  }
-
-  function getAssetSwapDetails(address assetAddress) external view returns (SwapDetails memory) {
-    return swapDetails[assetAddress];
   }
 
   function getAssetId(address assetAddress) public view returns (uint) {
@@ -188,50 +174,45 @@ contract Pool is IPool, ReentrancyGuard {
     revert AssetNotFound();
   }
 
-  function isAssetInSwapOperator(uint _assetId, uint _assetsBitmap) internal pure returns (bool) {
-    // there are assets in the swap operator and the asset id is in the swap operator assets
-    return _assetsBitmap != 0 && ((1 << _assetId) & _assetsBitmap != 0);
-  }
-
-  /* ========== ASSET RELATED MUTATIVE FUNCTIONS ========== */
-
   function addAsset(
     address assetAddress,
     bool isCoverAsset,
-    uint _min,
-    uint _max,
-    uint _maxSlippageRatio
+    Aggregator aggregator,
+    AggregatorType aggregatorType
   ) external onlyGovernance {
 
-    require(assetAddress != address(0), "Pool: Asset is zero address");
-    require(_max >= _min, "Pool: max < min");
-    require(_maxSlippageRatio <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
+    require(assetAddress != address(0), AssetMustNotBeZeroAddress());
+    require(address(aggregator) != address(0), AggregatorMustNotBeZeroAddress());
 
-    (Aggregator aggregator,) = priceFeedOracle.assets(assetAddress);
-    require(address(aggregator) != address(0), "Pool: PriceFeedOracle lacks aggregator for asset");
-
-    // Check whether the new asset already exists as a cover asset
+    // check if it already exists
     uint assetCount = assets.length;
 
     for (uint i = 0; i < assetCount; i++) {
-      require(assetAddress != assets[i].assetAddress, "Pool: Asset exists");
+      require(assetAddress != assets[i].assetAddress, AssetAlreadyExists());
     }
 
-    assets.push(
-      Asset(
-        assetAddress,
-        isCoverAsset,
-        false  // is abandoned
-      )
-    );
+    uint assetDecimals = IERC20(assetAddress).decimals();
+    uint aggregatorDecimals = aggregator.decimals();
 
-    // Set the swap details
-    swapDetails[assetAddress] = SwapDetails(
-      _min.toUint104(),
-      _max.toUint104(),
-      0, // last swap time
-      _maxSlippageRatio.toUint16()
-    );
+    if (aggregatorType == AggregatorType.ETH && aggregatorDecimals != 18) {
+        revert IncompatibleAggregatorDecimals(aggregator, aggregatorDecimals, 18);
+    }
+
+    if (aggregatorType == AggregatorType.USD && aggregatorDecimals != 8) {
+        revert IncompatibleAggregatorDecimals(aggregator, aggregatorDecimals, 8);
+    }
+
+    Asset memory asset = Asset({
+      assetAddress: assetAddress,
+      decimals: assetDecimals.toUint8(),
+      isCoverAsset: isCoverAsset,
+      isAbandoned: false
+    });
+
+    Oracle memory oracle = Oracle({ aggregator: aggregator, aggregatorType: aggregatorType });
+
+    assets.push(asset);
+    oracles.push(oracle);
   }
 
   function setAssetDetails(
@@ -244,51 +225,7 @@ contract Pool is IPool, ReentrancyGuard {
     assets[assetId].isAbandoned = isAbandoned;
   }
 
-  function setSwapDetails(
-    address assetAddress,
-    uint _min,
-    uint _max,
-    uint _maxSlippageRatio
-  ) external onlyGovernance {
-
-    require(_min <= _max, "Pool: min > max");
-    require(_maxSlippageRatio <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
-
-    uint assetCount = assets.length;
-
-    for (uint i = 0; i < assetCount; i++) {
-
-      if (assetAddress != assets[i].assetAddress) {
-        continue;
-      }
-
-      swapDetails[assetAddress].minAmount = _min.toUint104();
-      swapDetails[assetAddress].maxAmount = _max.toUint104();
-      swapDetails[assetAddress].maxSlippageRatio = _maxSlippageRatio.toUint16();
-
-      return;
-    }
-
-    revert AssetNotFound();
-  }
-
-  function transferAsset(
-    address assetAddress,
-    address payable destination,
-    uint amount
-  ) external onlyGovernance nonReentrant {
-
-    require(swapDetails[assetAddress].maxAmount == 0, "Pool: Max not zero");
-    require(destination != address(0), "Pool: Dest zero");
-
-    IERC20 token = IERC20(assetAddress);
-    uint balance = token.balanceOf(address(this));
-    uint transferableAmount = amount > balance ? balance : amount;
-
-    token.safeTransfer(destination, transferableAmount);
-  }
-
-  /* ========== SWAPOPERATOR RELATED MUTATIVE FUNCTIONS ========== */
+  /* ========== SWAP OPERATOR ========== */
 
   function transferAssetToSwapOperator(
     address assetAddress,
@@ -305,34 +242,28 @@ contract Pool is IPool, ReentrancyGuard {
     token.safeTransfer(swapOperator, amount);
   }
 
-  function setSwapDetailsLastSwapTime(
-    address assetAddress,
-    uint32 lastSwapTime
-  ) public override onlySwapOperator whenNotPaused {
-    swapDetails[assetAddress].lastSwapTime = lastSwapTime;
-  }
+  function setSwapAssetAmount(uint assetId, uint value) external onlySwapOperator whenNotPaused {
 
-  function setSwapAssetAmount(address assetAddress, uint value) external onlySwapOperator whenNotPaused {
-
-    uint assetId = getAssetId(assetAddress);
-    assetInSwapOperator = value;
+    require(assetInSwapOperator.amount == 0, OrderInProgress());
 
     if (value == 0) {
-      assetsInSwapOperatorBitmap = 0;
+      require(assetInSwapOperator.assetId == assetId, InvalidAssetId());
+      delete assetInSwapOperator;
       return;
     }
 
-    require(assetsInSwapOperatorBitmap == 0, OrderInProgress());
-    assetsInSwapOperatorBitmap = uint8(1 << assetId);
+    assetInSwapOperator = AssetInSwapOperator({
+      assetId: assetId.toUint8(),
+      amount: value.toUint96()
+    });
   }
 
-  /* ========== CLAIMS RELATED MUTATIVE FUNCTIONS ========== */
+  /* ========== CLAIMS ========== */
 
   /// @dev Executes a payout
   /// @param assetId        Index of the cover asset
   /// @param payoutAddress  Send funds to this address
   /// @param amount         Amount to send
-  /// @param ethDepositAmount  Deposit amount to send
   ///
   function sendPayout(
     uint assetId,
@@ -355,7 +286,7 @@ contract Pool is IPool, ReentrancyGuard {
     mcr().updateMCRInternal(true);
   }
 
-  /* ========== TOKEN RELATED MUTATIVE FUNCTIONS ========== */
+  /* ========== TOKEN AND RAMM ========== */
 
   /// @dev Sends ETH to a member in exchange for NXM tokens.
   /// @param member  Member address
@@ -365,15 +296,6 @@ contract Pool is IPool, ReentrancyGuard {
     (bool transferSucceeded, /* data */) = member.call{value: amount}("");
     require(transferSucceeded, "Pool: ETH transfer failed");
   }
-
-  function calculateMCRRatio(
-    uint totalAssetValue,
-    uint mcrEth
-  ) public override pure returns (uint) {
-    return totalAssetValue * (10 ** MCR_RATIO_DECIMALS) / mcrEth;
-  }
-
-  /* ========== TOKEN RELATED VIEW FUNCTIONS ========== */
 
   /// Uses internal price for calculating the token price in ETH
   /// It's being used in Cover and IndividualClaims
@@ -441,21 +363,20 @@ contract Pool is IPool, ReentrancyGuard {
     priceFeedOracle = _priceFeedOracle;
   }
 
-  /// MCR ///
+  /* ========== MCR ========== */
 
   function getTotalActiveCoverAmount() public view returns (uint) {
 
-    IPriceFeedOracle priceFeed = _pool.priceFeedOracle();
     ICover _cover = cover();
 
     uint totalActiveCoverAmountInEth = _cover.totalActiveCoverInAsset(0);
 
-    Asset[] memory assets = getAssets();
+    Asset[] memory _assets = getAssets();
 
     // skip the first asset - it's ETH, it's already accounted for above
-    for (uint i = 1; i < assets.length; i++) {
+    for (uint i = 1; i < _assets.length; i++) {
       uint activeCoverAmount = _cover.totalActiveCoverInAsset(i);
-      uint assetAmountInEth = priceFeed.getEthForAsset(assets[i].assetAddress, activeCoverAmount);
+      uint assetAmountInEth = getEthForAsset(_assets[i].assetAddress, activeCoverAmount);
       totalActiveCoverAmountInEth += assetAmountInEth;
     }
 
@@ -483,6 +404,7 @@ contract Pool is IPool, ReentrancyGuard {
 
     // sync the current virtual MCR value to storage
     uint80 newMCR = getMCR().toUint80();
+
     if (newMCR != _mcr) {
       mcr = newMCR;
     }
@@ -500,76 +422,75 @@ contract Pool is IPool, ReentrancyGuard {
     emit MCRUpdated(mcr, desiredMCR, 0, gearedMCR, totalSumAssured);
   }
 
-  // ORACLES
+  function calculateMCRRatio(uint totalAssetValue, uint mcrEth) public override pure returns (uint) {
+    return totalAssetValue * (10 ** MCR_RATIO_DECIMALS) / mcrEth;
+  }
 
-  /// @notice Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
-  /// @param assetAddress address of asset
-  /// @return price in ether
+  /* ========== ORACLES ========== */
+
   function getAssetToEthRate(address assetAddress) public view returns (uint) {
 
     if (assetAddress == ETH || assetAddress == safeTracker) {
       return 1 ether;
     }
 
-    AssetInfo memory asset = assetsMap[assetAddress];
-    return _getAssetToEthRate(asset.aggregator, asset.aggregatorType);
+    uint assetId = getAssetId(assetAddress);
+    uint rate = _getAssetToEthRate(oracles[assetId]);
+
+    return rate;
   }
 
-  /// @notice Returns the amount of currency that is equivalent to ethIn amount of ether.
-  /// @param assetAddress address of asset
-  /// @param ethIn amount of ether to be converted to the asset
-  /// @return asset amount
   function getAssetForEth(address assetAddress, uint ethIn) external view returns (uint) {
+
     if (assetAddress == ETH || assetAddress == safeTracker) {
       return ethIn;
     }
 
-    AssetInfo memory asset = assetsMap[assetAddress];
-    uint price = _getAssetToEthRate(asset.aggregator, asset.aggregatorType);
+    // TODO: this is inefficient, we need to pass the id to this function
+    uint assetId = getAssetId(assetAddress);
+    uint decimals = assets[assetId].decimals;
+    uint rate = _getAssetToEthRate(oracles[assetId]);
 
-    return ethIn * (10 ** uint(asset.decimals)) / price;
+    return ethIn * (10 ** decimals) / rate;
   }
 
-  /// @notice Returns the amount of eth that is equivalent to a given asset and amount
-  /// @param assetAddress address of asset
-  /// @param amount amount of asset
-  /// @return amount of ether
   function getEthForAsset(address assetAddress, uint amount) external view returns (uint) {
+
     if (assetAddress == ETH || assetAddress == safeTracker) {
       return amount;
     }
 
-    AssetInfo memory asset = assetsMap[assetAddress];
-    uint price = _getAssetToEthRate(asset.aggregator, asset.aggregatorType);
+    uint assetId = getAssetId(assetAddress);
+    uint decimals = assets[assetId].decimals;
+    uint rate = _getAssetToEthRate(oracles[assetId]);
 
-    return amount * (price) / 10 ** uint(asset.decimals);
+    return amount * rate / 10 ** decimals;
   }
 
-  /// @notice Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
-  /// @param aggregator The asset aggregator
-  /// @param aggregatorType The asset aggregator type (i.e ETH, USD)
-  /// @return price in ether
-  function _getAssetToEthRate(Aggregator aggregator, AggregatorType aggregatorType) internal view returns (uint) {
-    // NOTE: Current implementation relies on off-chain staleness checks, consider adding on-chain staleness check?
-    int rate = aggregator.latestAnswer();
+  function _getAssetToEthRate(Oracle memory oracle) internal view returns (uint) {
+
+    // note: the current implementation relies on off-chain staleness checks
+    int rate = oracle.aggregator.latestAnswer();
+
     if (rate <= 0) {
-      revert NonPositiveRate(address(aggregator), rate);
+      revert NonPositiveRate(address(oracle.aggregator), rate);
     }
 
-    if (aggregatorType == AggregatorType.ETH) {
+    // for ETH type oracles, return the rate directly
+    if (oracle.aggregatorType == AggregatorType.ETH) {
       return uint(rate);
     }
 
-    // AggregatorType.USD - convert the USD rate to its equivalent ETH rate using the ETH-USD exchange rate
-    AssetInfo memory ethAsset = assetsMap[ETH];
-
-    int ethUsdRate = ethAsset.aggregator.latestAnswer();
+    // for USD type oracles, convert the USD rate to its equivalent ETH rate using the ETH-USD oracle
+    Oracle memory ethOracle = oracles[0];
+    int ethUsdRate = ethOracle.aggregator.latestAnswer();
 
     if (ethUsdRate <= 0) {
-      revert NonPositiveRate(ETH, ethUsdRate);
+      revert NonPositiveRate(address(ethOracle.aggregator), ethUsdRate);
     }
 
-    return (uint(rate) * 1e18) / uint(ethUsdRate);
+    // todo: this may lead to precision loss
+    return uint(rate) * 1 ether / uint(ethUsdRate);
   }
 
 }

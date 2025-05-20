@@ -9,9 +9,10 @@ interface Aggregator {
 
 struct Asset {
   address assetAddress;
+  uint8 decimals;
   bool isCoverAsset;
   bool isAbandoned;
-  // 80 bits left
+  // 72 bits left
 }
 
 enum AggregatorType { ETH, USD }
@@ -19,8 +20,7 @@ enum AggregatorType { ETH, USD }
 struct Oracle {
   Aggregator aggregator;
   AggregatorType aggregatorType;
-  uint8 decimals;
-  // 80 bits left
+  // 88 bits left
 }
 
 struct OrderIntent {
@@ -30,6 +30,11 @@ struct OrderIntent {
   uint96 buyAmount;
   uint16 slippage; // bps
   uint32 deadline;
+}
+
+struct AssetInSwapOperator {
+  uint8 assetId;
+  uint96 amount;
 }
 
 interface IPool {
@@ -78,4 +83,6 @@ interface IPool {
   error AssetNotFound();
   error UnknownParameter();
   error OrderInProgress();
+  error AssetAlreadyExists();
+  error AssetMustNotBeZeroAddress();
 }

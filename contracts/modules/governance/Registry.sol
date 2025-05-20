@@ -2,10 +2,11 @@
 
 pragma solidity ^0.8.28;
 
+import "../../abstract/EIP712.sol";
 import "../../interfaces/IRegistry.sol";
 import "./UpgradeableProxy.sol";
 
-contract Registry is IRegistry {
+contract Registry is IRegistry, EIP712 {
 
   // contracts
   mapping(uint index => Contract) internal contracts;
@@ -15,8 +16,10 @@ contract Registry is IRegistry {
   MembersMeta internal membersMeta; // 1 slot
   mapping(uint memberId => address member) internal members;
   mapping(address member => uint memberId) internal memberIds;
-  mapping(bytes32 signature => bool used) internal usedSignatures;
+  mapping(address member => bool used) internal wasAddressUsedForJoining;
   mapping(uint memberId => bool isAdvisoryBoardMember) public isAdvisoryBoardMember;
+
+  bytes32 private constant JOIN_TYPEHASH = keccak256("Join(address member)");
 
   // emergency pause
   mapping(address => bool) public isEmergencyAdmin;
@@ -36,6 +39,8 @@ contract Registry is IRegistry {
     require(isEmergencyAdmin[msg.sender], NotEmergencyAdmin());
     _;
   }
+
+  constructor(address _verifyingAddress) EIP712("NexusMutualRegistry", "1.0.0", _verifyingAddress) {}
 
   /* == EMERGENCY PAUSE == */
 
@@ -98,6 +103,11 @@ contract Registry is IRegistry {
   function join(address member, bytes32 signature) external {
     require(memberIds[member] == 0, AlreadyMember());
 
+    bytes32 structHash = abi.encode(JOIN_TYPEHASH, member);
+    address recoveredSigner = recoverSigner(structHash, signature);
+    require(membersMeta.kycAuthAddress == recoveredSigner, InvalidSignature());
+    wasAddressUsedForJoining[member] = true;
+
     uint memberId = ++membersMeta.lastMemberId;
     ++membersMeta.memberCount;
     memberIds[member] = memberId;
@@ -106,8 +116,6 @@ contract Registry is IRegistry {
     emit MembershipChanged(memberId, address(0), member);
 
     // todo:
-    // validate signature
-    // mark signature as used
     // TC.addToWhitelist(member)
   }
 
@@ -148,6 +156,11 @@ contract Registry is IRegistry {
     // TC.removeFromWhitelist(msg.sender)
     // uint balance = TK.balanceOf(msg.sender)
     // TK.burnFrom(msg.sender, balance) // or revert?
+  }
+
+  // TODO: add only governance
+  function setKycAuthAddress(address _kycAuthAddress) external {
+    membersMeta.kycAuthAddress = _kycAuthAddress;
   }
 
   /* == CONTRACT MANAGEMENT == */

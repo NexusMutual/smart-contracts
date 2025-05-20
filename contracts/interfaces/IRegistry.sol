@@ -18,6 +18,7 @@ interface IRegistry {
   struct MembersMeta {
     uint48 memberCount;
     uint48 lastMemberId;
+    address kycAuthAddress;
   }
 
   // joined: MembershipChanged(memberId, address(0), current)
@@ -32,6 +33,7 @@ interface IRegistry {
   error NotEmergencyAdmin();
   error ProposerCannotEnablePause();
   error PauseConfigMismatch();
+  error InvalidSignature();
   error NotMember();
   error AlreadyMember();
   error NotAdvisoryBoardMember();

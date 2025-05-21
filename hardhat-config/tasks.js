@@ -52,3 +52,22 @@ task('coverage').setAction(async function (args, hre, runSuper) {
   };
   return runSuper();
 });
+
+// npx hardhat verify-tenderly <CONTRACT_NAME> <CONTRACT_ADDRESS> --network tenderly
+task('verify-tenderly', 'Verifies a contract on Tenderly')
+  .addPositionalParam('contractName', 'The contract name to verify')
+  .addPositionalParam('address', 'The contract address to verify')
+  .setAction(async (taskArgs, hre) => {
+    console.log('Verifying contract at address:', taskArgs.address);
+
+    if (!process.env.TENDERLY_ACCESS_KEY) {
+      throw new Error('TENDERLY_ACCESS_KEY environment variable is required');
+    }
+
+    await hre.tenderly.verify({
+      name: taskArgs.contractName,
+      address: taskArgs.address,
+    });
+
+    console.log('Contract verified successfully');
+  });

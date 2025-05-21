@@ -7,7 +7,13 @@ import "../../modules/governance/MemberRoles.sol";
 
 contract DisposableMemberRoles is MemberRoles {
 
-  constructor(address tokenAddress) MemberRoles(tokenAddress) {}
+  function _updateRole(address member, uint role, bool active) internal {
+    memberRoleData[role].memberActive[member] = active;
+  }
+
+  function updateRole(address member, uint role, bool active) external {
+    _updateRole(member, role, active);
+  }
 
   function initialize(
     address _owner,
@@ -45,11 +51,17 @@ contract DisposableMemberRoles is MemberRoles {
     }
   }
 
-  /**
-   * @dev to add initial member roles
-   * @param _firstAB is the member address to be added
-   * @param memberAuthority is the member authority(role) to be added for
-   */
+  function _addRole(
+    bytes32 _roleName,
+    string memory _roleDescription,
+    address _authorized
+  ) internal {
+    MemberRoleDetails storage newMemberRoleData = memberRoleData.push();
+    newMemberRoleData.memberCounter = 0;
+    newMemberRoleData.memberAddress = new address[](0);
+    newMemberRoleData.authorized = _authorized;
+  }
+
   function _addInitialMemberRoles(address _firstAB, address memberAuthority) internal {
     maxABCount = 5;
     _addRole("Unassigned", "Unassigned", address(0));

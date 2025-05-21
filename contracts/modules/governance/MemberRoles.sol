@@ -5,19 +5,22 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
 
-import "../../abstract/MasterAwareV2.sol";
+import "../../abstract/RegistryAware.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IMemberRolesErrors.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IRegistry.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IAssessment.sol";
 import "./external/Governed.sol";
 
-contract MemberRoles is IMemberRoles, IMemberRolesErrors, Governed, MasterAwareV2 {
+contract MemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
+
+  address internal _unusedMGV; // was Master from GoVerned
+  address internal _unusedMMA; // was Master from MasterAwareV2
+  uint internal _unusedCMA; // was Contract mapping from MasterAwareV2
 
   struct MemberRoleDetails {
     uint memberCounter;
@@ -26,18 +29,13 @@ contract MemberRoles is IMemberRoles, IMemberRolesErrors, Governed, MasterAwareV
     address authorized;
   }
 
-  // used to be ITokenController public tc;
-  address internal _unused5;
-  // used to be address payable public poolAddress;
-  address internal _unused6;
-
-  address public kycAuthAddress;
-  // used to be ICover internal cover;
-  address internal _unused7;
+  address internal _unused5; // was ITokenController public tc;
+  address internal _unused6; // was address payable public poolAddress;
+  address internal _unused6_5; // was kycAuthAddress
+  address internal _unused7; // was ICover internal cover;
   address internal _unused0;
   address internal _unused1;
-  // used to be INXMToken public nxm;
-  address internal _unused8;
+  address internal _unused8; // was INXMToken public nxm;
 
   MemberRoleDetails[] internal memberRoleData;
   bool internal _unused2;
@@ -55,36 +53,8 @@ contract MemberRoles is IMemberRoles, IMemberRolesErrors, Governed, MasterAwareV
   bytes32 public constant MEMBERSHIP_APPROVAL = bytes32('MEMBERSHIP_APPROVAL');
   uint public constant joiningFee = 0.002 ether;
 
-  INXMToken public immutable token;
-  IRegistry public immutable registry;
-
-  modifier checkRoleAuthority(uint _memberRoleId) {
-    if (memberRoleData[_memberRoleId].authorized != address(0)) {
-      require(msg.sender == memberRoleData[_memberRoleId].authorized);
-    } else {
-      require(master.checkIsAuthToGoverned(msg.sender), NotAuthorized());
-    }
-    _;
-  }
-
-  constructor(address tokenAddress, address registryAddress) {
-    token = INXMToken(tokenAddress);
-    registry = IRegistry(registryAddress);
-  }
-
-  /* ========== DEPENDENCIES ========== */
-
-  function pool() internal view returns (IPool) {
-    return IPool(internalContracts[uint(ID.P1)]);
-  }
-
-  function tokenController() internal view returns (ITokenController) {
-    return ITokenController(internalContracts[uint(ID.TC)]);
-  }
-
-  function changeDependentContractAddress() public override {
-    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
-    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
+  constructor(address registryAddress) RegistryAware(registryAddress) {
+    // empty
   }
 
   function isMember(address member) public view returns (bool) {

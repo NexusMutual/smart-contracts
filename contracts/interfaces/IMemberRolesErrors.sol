@@ -2,12 +2,11 @@
 
 pragma solidity >=0.5.0;
 
-/// @dev this interface is needed because IMemberRoles interface is imported in contracts that must be compiled with 
+/// @dev this interface is needed because IMemberRoles interface is imported in contracts that must be compiled with
 /// lower solidity version, which does not support custom errors
 interface IMemberRolesErrors {
   error NotAuthorized();
   error UserAddressCantBeZero();
-  error Paused();
   error AddressIsAlreadyMember();
   error TransactionValueDifferentFromJoiningFee();
   error SignatureAlreadyUsed();

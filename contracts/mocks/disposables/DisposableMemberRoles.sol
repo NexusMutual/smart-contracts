@@ -7,6 +7,10 @@ import "../../modules/governance/MemberRoles.sol";
 
 contract DisposableMemberRoles is MemberRoles {
 
+  constructor(address _registryAddress) MemberRoles(_registryAddress) {
+    // empty
+  }
+
   function _updateRole(address member, uint role, bool active) internal {
     memberRoleData[role].memberActive[member] = active;
   }
@@ -33,9 +37,6 @@ contract DisposableMemberRoles is MemberRoles {
     );
 
     ITokenController _tokenController = ITokenController(_tokenControllerAddress);
-    internalContracts[uint(ID.TC)] = payable(_tokenControllerAddress);
-    changeMasterAddress(_masterAddress);
-
     _addInitialMemberRoles(_owner, _owner);
 
     for (uint i = 0; i < _initialMembers.length; i++) {

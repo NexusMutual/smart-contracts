@@ -6,15 +6,17 @@ import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/ReentrancyGuard.sol";
-import "../../interfaces/IRamm.sol";
+import "../../abstract/RegistryAware.sol";
+import "../../interfaces/ICover.sol";
 import "../../interfaces/ILegacyPool.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/IRamm.sol";
 import "../../interfaces/ISwapOperator.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/RegistryLibrary.sol";
 
-contract Pool is IPool, ReentrancyGuard {
+contract Pool is IPool, ReentrancyGuard, RegistryAware {
   using SafeERC20 for IERC20;
   using SafeUintCast for uint;
 
@@ -25,10 +27,13 @@ contract Pool is IPool, ReentrancyGuard {
 
   // 1 slot
   AssetInSwapOperator public assetInSwapOperator;
+  MCR public mcr;
 
   /* immutables */
 
-  address public immutable swapOperator;
+  ICover public immutable cover;
+  IRamm public immutable ramm;
+  ISwapOperator public immutable swapOperator;
   address public immutable safeTracker;
 
   /* constants */
@@ -43,63 +48,42 @@ contract Pool is IPool, ReentrancyGuard {
   uint public constant MIN_UPDATE_TIME = 3600; // min time between MCR updates in seconds
   uint public constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
-  modifier nonReentrant {
-    require(!reentrancyLocked, "ReentrancyGuard: reentrant call");
-    reentrancyLocked = true;
-    _;
-    reentrancyLocked = false;
-  }
-
-  modifier onlySwapOperator {
-    require(msg.sender == swapOperator, "Pool: Not swapOperator");
-    _;
-  }
-
-  modifier onlyRamm {
-    require(msg.sender == internalContracts[uint(ID.RA)], "Pool: Not Ramm");
-    _;
-  }
-
   /* ========== CONSTRUCTOR ========== */
 
-  constructor (
-    address _master,
-    address _priceOracle,
-    address _swapOperator,
-    address _previousPool
-  ) {
-    master = INXMMaster(_master);
-    swapOperator = _swapOperator;
+  constructor (address _registry) RegistryAware(_registry) {
 
-    ILegacyPool previousPool = ILegacyPool(_previousPool);
+    cover = ICover(fetch(C_COVER));
+    ramm = IRamm(fetch(C_RAMM));
+    swapOperator = ISwapOperator(fetch(C_SWAP_OPERATOR));
+    safeTracker = fetch(C_SAFE_TRACKER);
 
-    // copy over assets and swap details
-    ILegacyPool.Asset[] memory previousAssets = previousPool.getAssets();
+    // ILegacyPool previousPool = ILegacyPool(_previousPool);
 
-    for (uint i = 0; i < previousAssets.length; i++) {
+    // // copy over assets and swap details
+    // ILegacyPool.Asset[] memory previousAssets = previousPool.getAssets();
 
-      address assetAddress = previousAssets[i].assetAddress;
+    // for (uint i = 0; i < previousAssets.length; i++) {
 
-      assets.push(
-        Asset(
-          previousAssets[i].assetAddress,
-          previousAssets[i].isCoverAsset,
-          previousAssets[i].isAbandoned
-        )
-      );
+    //   address assetAddress = previousAssets[i].assetAddress;
 
-      if (assetAddress != ETH) {
-        ILegacyPool.SwapDetails memory previousSwapDetails = previousPool.getAssetSwapDetails(assetAddress);
-        swapDetails[assetAddress] = SwapDetails(
-          previousSwapDetails.minAmount,
-          previousSwapDetails.maxAmount,
-          previousSwapDetails.lastSwapTime,
-          previousSwapDetails.maxSlippageRatio
-        );
-      }
-    }
+    //   assets.push(
+    //     Asset(
+    //       previousAssets[i].assetAddress,
+    //       previousAssets[i].isCoverAsset,
+    //       previousAssets[i].isAbandoned
+    //     )
+    //   );
 
-    _setPriceFeedOracle(IPriceFeedOracle(_priceOracle));
+    //   if (assetAddress != ETH) {
+    //     ILegacyPool.SwapDetails memory previousSwapDetails = previousPool.getAssetSwapDetails(assetAddress);
+    //     swapDetails[assetAddress] = SwapDetails(
+    //       previousSwapDetails.minAmount,
+    //       previousSwapDetails.maxAmount,
+    //       previousSwapDetails.lastSwapTime,
+    //       previousSwapDetails.maxSlippageRatio
+    //     );
+    //   }
+    // }
   }
 
   receive() external payable {}
@@ -119,6 +103,8 @@ contract Pool is IPool, ReentrancyGuard {
 
     for (uint i = 0; i < assetCount; i++) {
 
+      uint assetBalance = assetIdInSwapOperator == i ? assetAmountInSwapOperator : 0;
+
       // check if the asset is ETH and exit the loop early
       // it's assumed we don't abandon ETH
       if (i == 0) {
@@ -132,7 +118,6 @@ contract Pool is IPool, ReentrancyGuard {
         continue;
       }
 
-      uint assetBalance = assetIdInSwapOperator == i ? assetAmountInSwapOperator : 0;
       address assetAddress = asset.assetAddress;
 
       if (assetAddress.code.length != 0) {
@@ -179,7 +164,7 @@ contract Pool is IPool, ReentrancyGuard {
     bool isCoverAsset,
     Aggregator aggregator,
     AggregatorType aggregatorType
-  ) external onlyGovernance {
+  ) external onlyContracts(C_GOVERNOR) {
 
     require(assetAddress != address(0), AssetMustNotBeZeroAddress());
     require(address(aggregator) != address(0), AggregatorMustNotBeZeroAddress());
@@ -219,7 +204,7 @@ contract Pool is IPool, ReentrancyGuard {
     uint assetId,
     bool isCoverAsset,
     bool isAbandoned
-  ) external onlyGovernance {
+  ) external onlyContracts(C_GOVERNOR) {
     require(assets.length > assetId, "Pool: Asset does not exist");
     assets[assetId].isCoverAsset = isCoverAsset;
     assets[assetId].isAbandoned = isAbandoned;
@@ -230,7 +215,7 @@ contract Pool is IPool, ReentrancyGuard {
   function transferAssetToSwapOperator(
     address assetAddress,
     uint amount
-  ) public override onlySwapOperator nonReentrant whenNotPaused {
+  ) public override onlyContracts(C_SWAP_OPERATOR) nonReentrant whenNotPaused {
 
     if (assetAddress == ETH) {
       (bool ok, /* data */) = swapOperator.call{value: amount}("");
@@ -242,7 +227,7 @@ contract Pool is IPool, ReentrancyGuard {
     token.safeTransfer(swapOperator, amount);
   }
 
-  function setSwapAssetAmount(uint assetId, uint value) external onlySwapOperator whenNotPaused {
+  function setSwapAssetAmount(uint assetId, uint value) external onlyContracts(C_SWAP_OPERATOR) whenNotPaused {
 
     require(assetInSwapOperator.amount == 0, OrderInProgress());
 
@@ -269,7 +254,7 @@ contract Pool is IPool, ReentrancyGuard {
     uint assetId,
     address payable payoutAddress,
     uint amount
-  ) external override onlyInternal nonReentrant {
+  ) external override onlyContracts(C_ASSESSMENT) nonReentrant {
 
     Asset memory asset = assets[assetId];
 
@@ -292,7 +277,7 @@ contract Pool is IPool, ReentrancyGuard {
   /// @param member  Member address
   /// @param amount  Amount of ETH to send
   ///
-  function sendEth(address member, uint amount) external override onlyRamm nonReentrant {
+  function sendEth(address member, uint amount) external override onlyContracts(C_RAMM) nonReentrant {
     (bool transferSucceeded, /* data */) = member.call{value: amount}("");
     require(transferSucceeded, "Pool: ETH transfer failed");
   }
@@ -313,7 +298,7 @@ contract Pool is IPool, ReentrancyGuard {
 
     uint tokenInternalPrice = ramm().getInternalPrice();
 
-    return priceFeedOracle.getAssetForEth(assetAddress, tokenInternalPrice);
+    return getAssetForEth(assetAddress, tokenInternalPrice);
   }
 
   /// Uses internal price for calculating the token price in ETH and updates TWAP
@@ -332,7 +317,7 @@ contract Pool is IPool, ReentrancyGuard {
 
     uint tokenInternalPrice = ramm().getInternalPriceAndUpdateTwap();
 
-    return priceFeedOracle.getAssetForEth(assetAddress, tokenInternalPrice);
+    return getAssetForEth(assetAddress, tokenInternalPrice);
   }
 
   /// [deprecated] Returns spot NXM price in ETH from ramm contract.
@@ -351,18 +336,6 @@ contract Pool is IPool, ReentrancyGuard {
     return calculateMCRRatio(totalAssetValue, mcrEth);
   }
 
-  function _setPriceFeedOracle(IPriceFeedOracle _priceFeedOracle) internal {
-    uint assetCount = assets.length;
-
-    // start from 1 (0 is ETH and doesn't need an oracle)
-    for (uint i = 1; i < assetCount; i++) {
-      (Aggregator aggregator,) = _priceFeedOracle.assets(assets[i].assetAddress);
-      require(address(aggregator) != address(0), "Pool: PriceFeedOracle lacks aggregator for asset");
-    }
-
-    priceFeedOracle = _priceFeedOracle;
-  }
-
   /* ========== MCR ========== */
 
   function getTotalActiveCoverAmount() public view returns (uint) {
@@ -371,7 +344,7 @@ contract Pool is IPool, ReentrancyGuard {
 
     uint totalActiveCoverAmountInEth = _cover.totalActiveCoverInAsset(0);
 
-    Asset[] memory _assets = getAssets();
+    Asset[] memory _assets = assets;
 
     // skip the first asset - it's ETH, it's already accounted for above
     for (uint i = 1; i < _assets.length; i++) {
@@ -387,16 +360,15 @@ contract Pool is IPool, ReentrancyGuard {
     _updateMCR(false);
   }
 
-  function updateMCRInternal(bool forceUpdate) public onlyInternal {
+  function updateMCRInternal(bool forceUpdate) public onlyContracts(C_RAMM) {
     _updateMCR(forceUpdate);
   }
 
   function _updateMCR(bool forceUpdate) internal {
 
-    // read with 1 SLOAD
-    uint112 _mcr = mcr;
-    uint112 _desiredMCR = desiredMCR;
-    uint32 _lastUpdateTime = lastUpdateTime;
+    uint112 _mcr = mcr.mcr;
+    uint112 _desiredMCR = mcr.desiredMCR;
+    uint32 _lastUpdateTime = mcr.lastUpdateTime;
 
     if (!forceUpdate && _lastUpdateTime + MIN_UPDATE_TIME > block.timestamp) {
       return;
@@ -406,21 +378,43 @@ contract Pool is IPool, ReentrancyGuard {
     uint80 newMCR = getMCR().toUint80();
 
     if (newMCR != _mcr) {
-      mcr = newMCR;
+      mcr.mcr = newMCR;
     }
 
-    uint totalSumAssured = getTotalActiveCoverAmount();
-    uint gearedMCR = totalSumAssured * BASIS_PRECISION / GEARING_FACTOR;
+    uint totalActiveCoverAmount = getTotalActiveCoverAmount();
+    uint gearedMCR = totalActiveCoverAmount * BASIS_PRECISION / GEARING_FACTOR;
 
     uint80 newDesiredMCR = gearedMCR.toUint80();
     if (newDesiredMCR != _desiredMCR) {
-      desiredMCR = newDesiredMCR;
+      mcr.desiredMCR = newDesiredMCR;
     }
 
-    lastUpdateTime = uint32(block.timestamp);
+    mcr.lastUpdateTime = uint32(block.timestamp);
 
-    emit MCRUpdated(mcr, desiredMCR, 0, gearedMCR, totalSumAssured);
+    emit MCRUpdated(_mcr, _desiredMCR, 0, gearedMCR, totalActiveCoverAmount);
   }
+
+  function getMCR() public view returns (uint) {
+
+    uint _mcr = mcr.mcr;
+    uint _desiredMCR = mcr.desiredMCR;
+    uint _lastUpdateTime = mcr.lastUpdateTime;
+
+    if (block.timestamp == _lastUpdateTime) {
+      return _mcr;
+    }
+
+    uint basisPointsAdjustment = MAX_MCR_INCREMENT * (block.timestamp - _lastUpdateTime) / 1 days;
+    basisPointsAdjustment = Math.min(basisPointsAdjustment, MAX_MCR_ADJUSTMENT);
+
+    if (_desiredMCR > _mcr) {
+      return Math.min(_mcr * (basisPointsAdjustment + BASIS_PRECISION) / BASIS_PRECISION, _desiredMCR);
+    }
+
+    // in case desiredMCR <= mcr
+    return Math.max(_mcr * (BASIS_PRECISION - basisPointsAdjustment) / (BASIS_PRECISION), _desiredMCR);
+  }
+
 
   function calculateMCRRatio(uint totalAssetValue, uint mcrEth) public override pure returns (uint) {
     return totalAssetValue * (10 ** MCR_RATIO_DECIMALS) / mcrEth;
@@ -440,7 +434,7 @@ contract Pool is IPool, ReentrancyGuard {
     return rate;
   }
 
-  function getAssetForEth(address assetAddress, uint ethIn) external view returns (uint) {
+  function getAssetForEth(address assetAddress, uint ethIn) public view returns (uint) {
 
     if (assetAddress == ETH || assetAddress == safeTracker) {
       return ethIn;
@@ -454,7 +448,7 @@ contract Pool is IPool, ReentrancyGuard {
     return ethIn * (10 ** decimals) / rate;
   }
 
-  function getEthForAsset(address assetAddress, uint amount) external view returns (uint) {
+  function getEthForAsset(address assetAddress, uint amount) public view returns (uint) {
 
     if (assetAddress == ETH || assetAddress == safeTracker) {
       return amount;

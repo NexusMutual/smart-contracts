@@ -38,4 +38,34 @@ interface IRegistry {
   error AlreadyAdvisoryBoardMember();
   error AdvisoryBoardMemberCannotLeave();
 
+  /* == EMERGENCY PAUSE FUNCTIONS == */
+  function setEmergencyAdmin(address _emergencyAdmin, bool enabled) external;
+  function proposePauseConfig(uint config) external;
+  function confirmPauseConfig(uint config) external;
+  function getSystemPause() external view returns (SystemPause memory);
+  function getPauseConfig() external view returns (uint config);
+  function isPaused(uint mask) external view returns (bool);
+  function isEmergencyAdmin(address member) external view returns (bool);
+
+  /* == MEMBERSHIP MANAGEMENT FUNCTIONS == */
+  function isAdvisoryBoardMember(uint memberId) external view returns (bool);
+  function isMember(address member) external view returns (bool);
+  function getMemberId(address member) external view returns (uint);
+  function getMemberCount() external view returns (uint);
+  function swapAdvisoryBoardMember(uint from, uint to) external;
+  function join(address member, bytes32 signature) external;
+  function swap(address to) external;
+  function leave() external;
+
+  /* == CONTRACT MANAGEMENT FUNCTIONS == */
+  function isValidContractIndex(uint index) external pure returns (bool);
+  function deployContract(uint index, bytes32 salt, address implementation) external;
+  function addContract(uint index, address contractAddress, bool isProxy) external;
+  function upgradeContract(uint index, address implementation) external;
+  function removeContract(uint index) external;
+  function getContractAddressByIndex(uint index) external view returns (address);
+  function getContractTypeByIndex(uint index) external view returns (bool isProxy);
+  function getContractIndexByAddress(address contractAddress) external view returns (uint);
+  function getContracts(uint[] memory indexes) external view returns (Contract[] memory);
+
 }

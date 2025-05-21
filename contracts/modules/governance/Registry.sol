@@ -19,7 +19,7 @@ contract Registry is IRegistry {
   mapping(uint memberId => bool isAdvisoryBoardMember) public isAdvisoryBoardMember;
 
   // emergency pause
-  mapping(address => bool) isEmergencyAdmin;
+  mapping(address => bool) public isEmergencyAdmin;
   SystemPause internal systemPause; // 3 slots
 
   modifier onlyMember() {
@@ -181,6 +181,7 @@ contract Registry is IRegistry {
     proxy.upgradeTo(implementation);
   }
 
+  // consider marking as deprecated instead
   function removeContract(uint index) external {
     address contractAddress = contracts[index].addr;
     require(contractAddress != address(0), ContractDoesNotExist());

@@ -24,18 +24,4 @@ interface INXMMaster {
 
   function contractAddresses(bytes2 code) external view returns (address payable);
 
-  function upgradeMultipleContracts(
-    bytes2[] calldata _contractCodes,
-    address payable[] calldata newAddresses
-  ) external;
-
-  function removeContracts(bytes2[] calldata contractCodesToRemove) external;
-
-  function addNewInternalContracts(
-    bytes2[] calldata _contractCodes,
-    address payable[] calldata newAddresses,
-    uint[] calldata _types
-  ) external;
-
-  function updateOwnerParameters(bytes8 code, address payable val) external;
 }

@@ -11,7 +11,7 @@ import "../../interfaces/IPriceFeedOracle.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
-contract MCR is IMCR, MasterAwareV2 {
+contract LegacyMCR is IMCR, MasterAwareV2 {
   using SafeUintCast for uint;
 
   uint80 public mcr;

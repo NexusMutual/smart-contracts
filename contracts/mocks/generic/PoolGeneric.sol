@@ -3,9 +3,8 @@
 pragma solidity >=0.5.0;
 
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IPriceFeedOracle.sol";
 
-contract PoolGeneric is IPool {
+contract PoolGeneric /* is IPool */ {
 
   address public swapOperator;
 
@@ -25,10 +24,6 @@ contract PoolGeneric is IPool {
     revert("Unsupported");
   }
 
-  function getAssetSwapDetails(address) external virtual pure returns (SwapDetails memory) {
-    revert("Unsupported");
-  }
-
   function sendPayout(uint, address payable, uint, uint) external virtual {
     revert("Unsupported");
   }
@@ -38,10 +33,6 @@ contract PoolGeneric is IPool {
   }
 
   function upgradeCapitalPool(address payable) external virtual pure {
-    revert("Unsupported");
-  }
-
-  function priceFeedOracle() external virtual view returns (IPriceFeedOracle) {
     revert("Unsupported");
   }
 

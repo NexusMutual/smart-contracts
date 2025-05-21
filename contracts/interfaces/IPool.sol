@@ -37,19 +37,19 @@ struct AssetInSwapOperator {
   uint96 amount;
 }
 
-interface IPool {
+struct MCR {
+  uint80 mcr;
+  uint80 desiredMCR;
+  uint32 lastUpdateTime;
+}
 
-  function swapOperator() external view returns (address);
+interface IPool {
 
   function getAsset(uint assetId) external view returns (Asset memory);
 
   function getAssets() external view returns (Asset[] memory);
 
   function transferAssetToSwapOperator(address asset, uint amount) external;
-
-  function setSwapDetailsLastSwapTime(address asset, uint32 lastSwapTime) external;
-
-  function getAssetSwapDetails(address assetAddress) external view returns (SwapDetails memory);
 
   function sendPayout(uint assetIndex, address payable payoutAddress, uint amount, uint ethDepositAmount) external;
 
@@ -72,7 +72,7 @@ interface IPool {
   event MCRUpdated(
     uint mcr,
     uint desiredMCR,
-    uint mcrFloor,  // unused
+    uint mcrFloor,
     uint mcrETHWithGear,
     uint totalSumAssured
   );
@@ -81,8 +81,23 @@ interface IPool {
 
   error RevertedWithoutReason(uint index);
   error AssetNotFound();
+  error InvalidAssetId();
   error UnknownParameter();
   error OrderInProgress();
   error AssetAlreadyExists();
   error AssetMustNotBeZeroAddress();
+  error EmptyAssetAddresses();
+  error OnlySwapOperator();
+
+  error ArgumentLengthMismatch(uint assetAddressesLength, uint aggregatorsLength, uint typesLength, uint decimalsLength);
+  error AggregatorMustNotBeZeroAddress();
+  error ZeroAddress(string parameter);
+  error ZeroDecimals(address asset);
+  error IncompatibleAggregatorDecimals(address aggregator, uint8 aggregatorDecimals, uint8 expectedDecimals);
+  error UnknownAggregatorType(uint8 aggregatorType);
+  error EthUsdAggregatorNotSet();
+  error InvalidEthAggregatorType(AggregatorType actual, AggregatorType expected);
+  error UnknownAsset(address asset);
+  error NonPositiveRate(address aggregator, int rate);
+
 }

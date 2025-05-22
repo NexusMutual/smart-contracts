@@ -48,6 +48,7 @@ contract MemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
   mapping(address => bool) internal _unused4;
 
   mapping(bytes32 => bool) public usedMessageHashes;
+  uint internal nextMemberForMigration;
 
   // Prefixes for ECDSA signatures' scope
   bytes32 public constant MEMBERSHIP_APPROVAL = bytes32('MEMBERSHIP_APPROVAL');
@@ -89,6 +90,27 @@ contract MemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
 
   function numberOfMembers(uint _memberRoleId) external view returns (uint) {
     return memberRoleData[_memberRoleId].memberCounter;
+  }
+
+  function migrateMembers(uint numberOfMembersToMigrate) external {
+    address[] memory membersToMigrate = new address[](numberOfMembersToMigrate);
+    uint migrationDataCounter;
+    uint _nextMemberForMigration = nextMemberForMigration;
+    MemberRoleDetails memory memberRoleDetails = memberRoleData[Role.Member];
+
+    require(_nextMemberForMigration < memberRoleDetails.memberCounter, MembersAlreadyMigrated());
+
+    while(migrationDataCounter < numberOfMembersToMigrate && _nextMemberForMigration < memberRoleDetails.memberCounter) {
+      address member =  memberRoleDetails[_nextMemberForMigration];
+
+      if (MemberRoleDetails[address] == true) {
+        membersToMigrate.push(member);
+      }
+      migrationDataCounter++;
+    }
+
+    registry.migrateMembers(membersToMigrate);
+    nextMemberForMigration = _nextMemberForMigration + 1;
   }
 
 }

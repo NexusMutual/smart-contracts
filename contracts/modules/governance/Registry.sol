@@ -158,6 +158,20 @@ contract Registry is IRegistry, EIP712 {
     // TK.burnFrom(msg.sender, balance) // or revert?
   }
 
+  function migrateMembers (address[] membersToMigrate) external {
+    uint count = membersToMigrate.length;
+    for (uint i = 0; i < count; i++) {
+      address member = membersToMigrate[i];
+
+      if (memberIds[member] != 0) {
+        uint memberId = ++membersMeta.lastMemberId;
+        ++membersMeta.memberCount;
+        memberIds[member] = memberId;
+        members[memberId] = member;
+      }
+    }
+  }
+
   // TODO: add only governance
   function setKycAuthAddress(address _kycAuthAddress) external {
     membersMeta.kycAuthAddress = _kycAuthAddress;

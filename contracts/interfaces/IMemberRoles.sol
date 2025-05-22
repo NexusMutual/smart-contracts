@@ -12,4 +12,5 @@ interface IMemberRoles {
 
   function numberOfMembers(uint _memberRoleId) external view returns (uint);
 
+  error MembersAlreadyMigrated();
 }

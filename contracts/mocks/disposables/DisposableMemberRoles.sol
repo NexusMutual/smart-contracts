@@ -21,7 +21,7 @@ contract DisposableMemberRoles is MemberRoles {
 
   function initialize(
     address _owner,
-    address _masterAddress,
+    address /* _masterAddress */,
     address _tokenControllerAddress,
     address[] calldata _initialMembers,
     uint[] calldata _initialMemberTokens,
@@ -53,8 +53,8 @@ contract DisposableMemberRoles is MemberRoles {
   }
 
   function _addRole(
-    bytes32 _roleName,
-    string memory _roleDescription,
+    bytes32 /* _roleName */,
+    string memory /* _roleDescription */,
     address _authorized
   ) internal {
     MemberRoleDetails storage newMemberRoleData = memberRoleData.push();

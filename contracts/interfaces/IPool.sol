@@ -9,10 +9,9 @@ interface Aggregator {
 
 struct Asset {
   address assetAddress;
-  uint8 decimals;
   bool isCoverAsset;
   bool isAbandoned;
-  // 72 bits left
+  // 80 bits left
 }
 
 enum AggregatorType { ETH, USD }
@@ -20,7 +19,8 @@ enum AggregatorType { ETH, USD }
 struct Oracle {
   Aggregator aggregator;
   AggregatorType aggregatorType;
-  // 88 bits left
+  uint8 assetDecimals;
+  // 80 bits left
 }
 
 struct OrderIntent {
@@ -33,13 +33,13 @@ struct OrderIntent {
 }
 
 struct AssetInSwapOperator {
-  uint8 assetId;
+  address assetAddress;
   uint96 amount;
 }
 
 struct MCR {
-  uint80 mcr;
-  uint80 desiredMCR;
+  uint80 stored;
+  uint80 desired;
   uint32 lastUpdateTime;
 }
 
@@ -49,9 +49,9 @@ interface IPool {
 
   function getAssets() external view returns (Asset[] memory);
 
-  function transferAssetToSwapOperator(address asset, uint amount) external;
+  function transferAssetToSwapOperator(address assetAddress, uint amount) external;
 
-  function sendPayout(uint assetIndex, address payable payoutAddress, uint amount, uint ethDepositAmount) external;
+  function sendPayout(uint assetIndex, address payable payoutAddress, uint amount) external;
 
   function sendEth(address payoutAddress, uint amount) external;
 
@@ -67,7 +67,11 @@ interface IPool {
 
   function getMCRRatio() external view returns (uint);
 
-  function setSwapAssetAmount(address assetAddress, uint value) external;
+  function clearSwapAssetAmount(address assetAddress) external;
+
+  function getAssetForEth(address assetAddress, uint amount) external view returns (uint);
+
+  function getEthForAsset(address assetAddress, uint amount) external view returns (uint);
 
   event MCRUpdated(
     uint mcr,
@@ -88,13 +92,13 @@ interface IPool {
   error AssetMustNotBeZeroAddress();
   error EmptyAssetAddresses();
   error OnlySwapOperator();
+  error NoSwapAssetAmountFound();
 
   error ArgumentLengthMismatch(uint assetAddressesLength, uint aggregatorsLength, uint typesLength, uint decimalsLength);
   error AggregatorMustNotBeZeroAddress();
   error ZeroAddress(string parameter);
   error ZeroDecimals(address asset);
-  error IncompatibleAggregatorDecimals(address aggregator, uint8 aggregatorDecimals, uint8 expectedDecimals);
-  error UnknownAggregatorType(uint8 aggregatorType);
+  error IncompatibleAggregatorDecimals(address aggregator, uint expectedDecimals, uint aggregatorDecimals);
   error EthUsdAggregatorNotSet();
   error InvalidEthAggregatorType(AggregatorType actual, AggregatorType expected);
   error UnknownAsset(address asset);

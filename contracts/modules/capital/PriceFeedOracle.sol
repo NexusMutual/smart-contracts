@@ -41,7 +41,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
     }
 
     safeTracker = _safeTracker;
-    assetsMap[_safeTracker] = AssetInfo(Aggregator(_safeTracker), AggregatorType.ETH, 18);
+    assetsMap[_safeTracker] = AssetInfo(OracleAggregator(_safeTracker), AggregatorType.ETH, 18);
 
     for (uint i = 0; i < _assetAddresses.length; i++) {
       if (_assetAddresses[i] == address(0)) {
@@ -54,7 +54,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
         revert ZeroDecimals(_assetAddresses[i]);
       }
 
-      Aggregator aggregator = Aggregator(_assetAggregators[i]);
+      OracleAggregator aggregator = OracleAggregator(_assetAggregators[i]);
       uint8 aggregatorDecimals = aggregator.decimals();
 
       if (_aggregatorTypes[i] == AggregatorType.ETH && aggregatorDecimals != 18) {
@@ -125,7 +125,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
   /// @param aggregator The asset aggregator
   /// @param aggregatorType The asset aggregator type (i.e ETH, USD)
   /// @return price in ether
-  function _getAssetToEthRate(Aggregator aggregator, AggregatorType aggregatorType) internal view returns (uint) {
+  function _getAssetToEthRate(OracleAggregator aggregator, AggregatorType aggregatorType) internal view returns (uint) {
     // NOTE: Current implementation relies on off-chain staleness checks, consider adding on-chain staleness check?
     int rate = aggregator.latestAnswer();
     if (rate <= 0) {
@@ -149,8 +149,8 @@ contract PriceFeedOracle is IPriceFeedOracle {
 
   /// @notice Retrieves the aggregator and decimals for a specific asset
   /// @param assetAddress address of the asset
-  /// @return Aggregator instance and decimals of the asset
-  function assets(address assetAddress) external view returns (Aggregator, uint8) {
+  /// @return OracleAggregator instance and decimals of the asset
+  function assets(address assetAddress) external view returns (OracleAggregator, uint8) {
     AssetInfo memory asset = assetsMap[assetAddress];
     return (asset.aggregator, asset.decimals);
   }

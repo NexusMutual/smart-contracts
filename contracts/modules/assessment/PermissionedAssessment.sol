@@ -24,7 +24,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   mapping(uint256 assessor => EnumerableSet.UintSet) private _assessorGroupsForAssessor;
   mapping(uint256 productTypeId => AssessmentData) private _assessmentData;
 
-  mapping(bytes32 claimId => Assessment assessment) internal _assessments;
+  mapping(uint256 claimId => Assessment assessment) internal _assessments;
 
   /* ========== CONSTANTS ========== */
 
@@ -49,14 +49,14 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
 
   function payoutCooldown(uint256 productTypeId) external view returns (uint256) {
 
-    // TODO: call CoverProduct to validate productTypeId?\
+    // TODO: call CoverProduct to validate productTypeId?
     AssessmentData memory assessmentData = _assessmentData[productTypeId];
     require(assessmentData.assessingGroupId != 0, InvalidProductType());
 
     return assessmentData.cooldownPeriod;
   }
 
-  function assessorGroupOf(bytes32 claimId) external view returns (uint32) {
+  function assessorGroupOf(uint256 claimId) external view returns (uint32) {
 
     Assessment storage assessment = _assessments[claimId];
     require(assessment.start != 0, InvalidClaimId());
@@ -76,7 +76,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     return (assessmentStart, assessment.end, accepts, denies);
   }
 
-  function ballotOf(bytes32 claimId, address assessor) external view returns (Ballot memory) {
+  function ballotOf(uint256 claimId, address assessor) external view returns (Ballot memory) {
     (uint256 assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, assessor);
     return assessment.ballot[assessorMemberId];
   }
@@ -87,49 +87,12 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     // accept === deny || poll.end > block.timestamp
   }
 
-  /// @notice Gets the final outcome of an assessment after voting has completed
-  /// @param claimId Identifier of the claim to check
-  /// @return accepted True if the claim was accepted, false if denied
-  /// @dev Can only be called after a poll has concluded
-  function getOutcome(bytes32 claimId) external view returns (bool accepted) {
-
-    Assessment storage assessment = _assessments[claimId];
-    require(assessment.start != 0, InvalidClaimId());
-
-    EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
-
-    (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup, assessorGroup.length());
-    require(_isAssessmentDecided(acceptCount, denyCount, assessment.end), ClaimAssessmentNotFinished());
-
-    return acceptCount > denyCount;
-  }
-
-  /// @notice Determines if a poll has completed and a decision can be made
-  /// @param claimId The claimId to check
-  /// @return true if the assessment has ended, false if still open
-  /// @dev A poll is considered decided when:
-  /// @dev 1) voting period has ended, 2) at least one vote exists, and 3) it is not a draw
-  function isAssessmentDecided(bytes32 claimId) external view returns (bool) {
-
-    Assessment storage assessment = _assessments[claimId];
-    require(assessment.start != 0, InvalidClaimId());
-
-    EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
-    uint256 assessorGroupLength = assessorGroup.length();
-
-    if (assessorGroupLength == 0) return false;
-
-    (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
-
-    return _isAssessmentDecided(acceptCount, denyCount, assessment.end);
-  }
-
   /// @notice Counts the current votes for and against a claim
   /// @param claimId The unique identifier of the claim to tally
   /// @return acceptCount Number of assessors who voted to accept the claim
   /// @return denyCount Number of assessors who voted to deny the claim
   /// @dev This function considers only votes from current assessors in the group
-  function getVoteTally(bytes32 claimId) external view returns (uint256 acceptCount, uint256 denyCount) {
+  function getVoteTally(uint256 claimId) external view returns (uint256 acceptCount, uint256 denyCount) {
 
     Assessment storage assessment = _assessments[claimId];
     require(assessment.start != 0, InvalidClaimId());
@@ -146,7 +109,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   /// @param productTypeId Type of product the claim is for
   /// @dev Only callable by internal contracts
   /// @dev Reverts if an assessment already exists for the given claimId
-  function startAssessment(bytes32 claimId, uint16 productTypeId) external onlyInternal {
+  function startAssessment(uint256 claimId, uint16 productTypeId) external onlyInternal {
 
     Assessment storage assessment = _assessments[claimId];
     require(assessment.start == 0, AssessmentAlreadyExists());
@@ -266,7 +229,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   /// @param assessor The address to validate
   /// @return assessorMemberId The member ID of the assessor
   /// @return assessment The assessment data for the claim
-  function _validateAssessor(bytes32 claimId, address assessor) internal view returns (uint256 assessorMemberId, Assessment storage assessment) {
+  function _validateAssessor(uint256 claimId, address assessor) internal view returns (uint256 assessorMemberId, Assessment storage assessment) {
 
     // TODO: implement memberRoles.getMemberId - can be memberId be 0?
     assessorMemberId = _memberRoles().getMemberId(assessor);

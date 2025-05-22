@@ -143,66 +143,46 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   /// @param vote The vote choice (ACCEPT or DENY)
   /// @param ipfsHash IPFS hash containing vote rationale
   /// @dev Only valid assessors can vote, and polls must be open for voting
-  function castVote(bytes32 claimId, Vote vote, bytes32 ipfsHash) external whenNotPaused {
+  function castVote(uint256 claimId, Vote vote, bytes32 ipfsHash) external whenNotPaused {
 
     require(vote == Vote.ACCEPT || vote == Vote.DENY, InvalidVote());
 
     // Validate assessor and get assessment data
     (uint256 assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
-    EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
-    uint256 assessorGroupLength = assessorGroup.length();
-
-    // Only allow voting if the poll is not yet decided (no votes, a draw or voting period hasn't ended)
-    (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
-    require(!_isAssessmentDecided(acceptCount, denyCount, assessment.end), ClaimAssessmentAlreadyClosed());
+    require(assessment.finalizedAt == 0, ClaimAssessmentAlreadyClosed());
 
     // Update ballot
-    assessment.ballot[assessorMemberId] = Ballot({
-      vote: vote,
-      ipfsHash: ipfsHash,
-      timestamp: uint32(block.timestamp)
-    });
+    Ballot storage ballot = assessment.ballot[assessorMemberId];
 
-    // Get the tally again after the vote
-    (acceptCount, denyCount) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
-
-    // Check if we can close the poll early
-    // NOTE: the validation for empty assessor group is done by _validateAssessor (reverts with InvalidAssessor())
-    bool allVoted = acceptCount + denyCount == assessorGroupLength;
-    bool notADraw = acceptCount != denyCount;
-    bool canCloseEarly = allVoted && notADraw;
-
-    if (canCloseEarly) {
-      // All assessors have voted and it's not a draw, close the assessment early
-      assessment.end = uint32(block.timestamp);
-      emit AssessmentClosedEarly(claimId);
-    } else {
-      // Otherwise, check if we need to extend the voting period
-      uint32 nextDay = uint32(block.timestamp + SILENT_ENDING_PERIOD);
-      // If the poll ends in less than 24h from the latest vote, extend it to 24h
-      if (assessment.end < nextDay) {
-        assessment.end = nextDay;
-        emit AssessmentExtended(claimId, nextDay);
-      }
-    }
+    ballot.vote = vote;
+    ballot.ipfsHash = ipfsHash;
+    ballot.timestamp = uint32(block.timestamp);
 
     emit VoteCast(claimId, msg.sender, assessorMemberId, vote, ipfsHash);
   }
 
-  /* ========== INTERNAL FUNCTIONS ========== */
+  function closeAssessment(uint256 claimId) external {
+    Assessment storage assessment = _assessments[claimId];
+    if (assessment.finalizedAt != 0) return;
 
-  /// @dev Internal helper to determine if an assessment has been decided based on vote counts
-  /// @param acceptCount Number of accept votes
-  /// @param denyCount Number of deny votes
-  /// @param assessmentEnd Timestamp when the assessment voting period ends
-  /// @return true if the assessment is decided, false otherwise
-  function _isAssessmentDecided(uint256 acceptCount, uint256 denyCount, uint32 assessmentEnd) internal view returns (bool) {
-    // The assessment is considered still open if it's a draw, or no votes (0 == 0)
-    if (acceptCount == denyCount) return false;
+    require(assessment.start != 0, InvalidClaimId());
 
-    // The assessment is considered decided if there is at least 1 vote and its not a draw and the voting period has ended
-    return block.timestamp >= assessmentEnd;
+    EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
+    uint256 assessorGroupLength = assessorGroup.length();
+    (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
+
+    bool endPassed = block.timestamp >= assessment.end;
+    bool allVoted = acceptCount + denyCount == assessorGroupLength;
+    bool hasVotesAndNotADraw = acceptCount != denyCount; // has votes (i.e. not 0-0) and not a draw
+
+    if (hasVotesAndNotADraw && (endPassed || allVoted)) {
+      assessment.finalizedAt = endPassed ? assessment.end : uint32(block.timestamp);
+      assessment.result = acceptCount > denyCount ? AssessmentResult.ACCEPTED : AssessmentResult.DENIED;
+      emit AssessmentClosed(claimId);
+    }
   }
+
+  /* ========== INTERNAL FUNCTIONS ========== */
 
   /// @dev Internal function to count votes that accepts a pre-loaded assessor group and assessment
   /// @param assessment The pre-loaded assessment data
@@ -216,11 +196,13 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     uint256 assessorGroupLength
   ) internal view returns (uint256 acceptCount, uint256 denyCount) {
 
+    uint256[] memory assessorMembers = assessorGroup.values();
+
     acceptCount = 0;
     denyCount = 0;
 
     for (uint i = 0; i < assessorGroupLength;) {
-        uint256 assessorMemberId = assessorGroup.at(i);
+        uint256 assessorMemberId = assessorMembers[i];
         Vote vote = assessment.ballot[assessorMemberId].vote;
 
         if (vote == Vote.ACCEPT) acceptCount++;

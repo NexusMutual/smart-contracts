@@ -64,7 +64,16 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     return assessment.assessorGroupId;
   }
 
-  function getAssessmentInfo(bytes32 claimId) external view returns (uint32 start, uint32 end, uint256 accepts, uint256 denies) {
+  function getAssessmentInfo(
+    uint256 claimId
+  ) external view returns (
+    uint256 accepts,
+    uint256 denies,
+    uint256 groupSize,
+    uint32 end,
+    uint32 finalizedAt,
+    AssessmentResult result
+  ) {
 
     Assessment storage assessment = _assessments[claimId];
     uint32 assessmentStart = assessment.start;
@@ -73,7 +82,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
     (accepts, denies) = _getVoteTally(assessment, assessorGroup, assessorGroup.length());
 
-    return (assessmentStart, assessment.end, accepts, denies);
+    return (accepts, denies, assessorGroup.length(), assessment.end, assessment.finalizedAt, assessment.result);
   }
 
   function ballotOf(uint256 claimId, address assessor) external view returns (Ballot memory) {

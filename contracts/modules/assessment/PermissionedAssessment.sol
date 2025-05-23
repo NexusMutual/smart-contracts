@@ -157,6 +157,13 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
 
     // Validate assessor and get assessment data
     (uint256 assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
+
+    // If assessment period has passed, see if assessment can be closed
+    if (block.timestamp >= assessment.start + MIN_VOTING_PERIOD) {
+      _closeAssessment(claimId, assessment);
+    }
+
+    // Do not allow new votes to be cast if assessment has been closed
     require(assessment.finalizedAt == 0, ClaimAssessmentAlreadyClosed());
 
     // Update ballot
@@ -169,25 +176,10 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     emit VoteCast(claimId, msg.sender, assessorMemberId, vote, ipfsHash);
   }
 
+  /// @notice Closes the assessment for a given claim if conditions are met
+  /// @param claimId The claim identifier
   function closeAssessment(uint256 claimId) external {
-    Assessment storage assessment = _assessments[claimId];
-    if (assessment.finalizedAt != 0) return;
-
-    require(assessment.start != 0, InvalidClaimId());
-
-    EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
-    uint256 assessorGroupLength = assessorGroup.length();
-    (uint256 acceptCount, uint256 denyCount) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
-
-    bool endPassed = block.timestamp >= assessment.end;
-    bool allVoted = acceptCount + denyCount == assessorGroupLength;
-    bool hasVotesAndNotADraw = acceptCount != denyCount; // has votes (i.e. not 0-0) and not a draw
-
-    if (hasVotesAndNotADraw && (endPassed || allVoted)) {
-      assessment.finalizedAt = endPassed ? assessment.end : uint32(block.timestamp);
-      assessment.result = acceptCount > denyCount ? AssessmentResult.ACCEPTED : AssessmentResult.DENIED;
-      emit AssessmentClosed(claimId);
-    }
+    _closeAssessment(claimId, _assessments[claimId]);
   }
 
   /* ========== INTERNAL FUNCTIONS ========== */
@@ -235,9 +227,37 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     assessment = _assessments[claimId];
 
     require(assessment.start != 0, InvalidClaimId());
-    require(_assessorGroups[assessment.assessorGroupId].contains(assessorMemberId), InvalidAssessor());
+    require(_groups[assessment.groupId].contains(assessorMemberId), InvalidAssessor());
 
     return (assessorMemberId, assessment);
+  }
+
+  /// @notice Internal: closes the assessment if finalized conditions are met
+  /// @param claimId The claim identifier
+  /// @param assessment The assessment storage reference
+  function _closeAssessment(uint256 claimId, Assessment storage assessment) internal {
+    if (assessment.finalizedAt != 0) return;
+
+    uint32 assessmentStart = assessment.start;
+    require(assessmentStart != 0, InvalidClaimId());
+
+    EnumerableSet.UintSet storage assessorGroup = _groups[assessment.groupId];
+    uint256 assessorGroupLength = assessorGroup.length();
+
+    (uint256 acceptVotes, uint256 denyVotes) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
+
+    bool hasVotesAndNotADraw = acceptVotes != denyVotes; // has votes (i.e. not 0-0) and not a draw
+    bool allVoted = acceptVotes + denyVotes == assessorGroupLength;
+
+    uint32 assessmentEnd = assessmentStart + MIN_VOTING_PERIOD;
+    bool endPassed = block.timestamp >= assessmentEnd;
+
+    if (hasVotesAndNotADraw && (endPassed || allVoted)) {
+      assessment.finalizedAt = endPassed ? assessmentEnd : uint32(block.timestamp);
+      assessment.acceptVotes = acceptVotes;
+      assessment.denyVotes = denyVotes;
+      emit AssessmentClosed(claimId);
+    }
   }
 
   /* ========== DEPENDENCIES ========== */

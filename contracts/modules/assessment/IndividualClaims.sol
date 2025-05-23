@@ -270,7 +270,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     {
       ProductType memory productType = _coverProducts().getProductTypeOf(coverData.productId);
       require(productType.claimMethod == ClaimMethod.IndividualClaims, InvalidClaimMethod());
-      require(requestedAmount <= coverData.amount, CoveredAmountExceeded()); 
+      require(requestedAmount <= coverData.amount, CoveredAmountExceeded());
       require(block.timestamp > coverData.start, CantBuyCoverAndClaimInTheSameBlock());
       require(uint(coverData.start) + uint(coverData.period) + uint(coverData.gracePeriod) > block.timestamp, GracePeriodPassed());
 

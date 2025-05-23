@@ -136,5 +136,9 @@ contract PoolMock is PoolGeneric {
     return prices[0];
   }
 
+  function setSwapOperator(address _swapOperator) public {
+    swapOperator = _swapOperator;
+  }
+
   receive() external payable virtual {}
 }

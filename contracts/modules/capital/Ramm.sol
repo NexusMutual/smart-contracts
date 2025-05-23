@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
-import "../../abstract/MasterAwareV2.sol";
+import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IRamm.sol";
@@ -12,11 +12,14 @@ import "../../interfaces/ITokenController.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
-contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
+contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
   using SafeUintCast for uint;
   using Math for uint;
 
   /* ========== STATE VARIABLES ========== */
+
+  address internal _unused0; // was master address
+  uint internal _unused1; // was internalContracts mapping
 
   Slot0 public slot0;
   Slot1 public slot1;
@@ -29,6 +32,12 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   uint32 public ethLimit;
   uint96 public nxmReleased;
   uint32 public nxmLimit;
+
+  /* ========== IMMUTABLES ========== */
+
+  uint internal immutable SPOT_PRICE_B;
+  IPool public immutable pool;
+  ITokenController public immutable tokenController;
 
   /* ========== CONSTANTS ========== */
 
@@ -54,14 +63,12 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   uint internal constant INITIAL_ETH_LIMIT = 22_000;
   uint internal constant INITIAL_NXM_LIMIT = 250_000;
 
-  /* ========== IMMUTABLES ========== */
-
-  uint internal immutable SPOT_PRICE_B;
-
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(uint spotPriceB) {
-    SPOT_PRICE_B = spotPriceB;
+  constructor(address _registry, uint initialSpotPriceB) RegistryAware(_registry) {
+    SPOT_PRICE_B = initialSpotPriceB;
+    pool = IPool(fetch(C_POOL));
+    tokenController = ITokenController(fetch(C_TOKEN_CONTROLLER));
   }
 
   function loadState() public view returns (State memory) {
@@ -91,10 +98,6 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     return slot1.budget == 0 ? NORMAL_RATCHET_SPEED : FAST_RATCHET_SPEED;
   }
 
-  function swapPaused() external view returns (bool) {
-    return slot1.swapPaused;
-  }
-
   /**
    * @notice Swaps nxmIn tokens for ETH or ETH sent for NXM tokens
    * @param nxmIn The amount of NXM tokens to swap (set to 0 when swapping ETH for NXM)
@@ -106,7 +109,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     uint nxmIn,
     uint minAmountOut,
     uint deadline
-  ) external payable nonReentrant returns (uint) {
+  ) external payable nonReentrant whenNotPaused(PAUSE_RAMM) returns (uint) {
 
     if (msg.value > 0 && nxmIn > 0) {
       revert OneInputOnly();
@@ -121,20 +124,12 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     }
 
     Context memory context = Context(
-      pool().getPoolValueInEth(), // capital
-      tokenController().totalSupply(), // supply
-      mcr().getMCR() // mcr
+      pool.getPoolValueInEth(), // capital
+      tokenController.totalSupply(), // supply
+      pool.getMCR() // mcr
     );
 
     State memory initialState = loadState();
-
-    if (master.isPause()) {
-      revert SystemPaused();
-    }
-
-    if (slot1.swapPaused) {
-      revert SwapPaused();
-    }
 
     uint amountOut = msg.value > 0
       ? swapEthForNxm(msg.value, minAmountOut, context, initialState)
@@ -152,7 +147,7 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       }
     }
 
-    mcr().updateMCRInternal(false);
+    pool.updateMCRInternal(false);
 
     return amountOut;
   }
@@ -212,12 +207,12 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     }
 
     // transfer assets
-    (bool ok,) = address(pool()).call{value: msg.value}("");
+    (bool ok,) = address(pool).call{value: msg.value}("");
     if (ok != true) {
       revert EthTransferFailed();
     }
 
-    tokenController().mint(msg.sender, nxmOut);
+    tokenController.mint(msg.sender, nxmOut);
 
     emit EthSwappedForNxm(msg.sender, ethIn, nxmOut);
 
@@ -281,8 +276,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
       observations[i] = _observations[i];
     }
 
-    tokenController().burnFrom(msg.sender, nxmIn);
-    pool().sendEth(msg.sender, ethOut);
+    tokenController.burnFrom(msg.sender, nxmIn);
+    pool.sendEth(msg.sender, ethOut);
 
     emit NxmSwappedForEth(msg.sender, nxmIn, ethOut);
 
@@ -293,25 +288,15 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
    * @notice Sets the budget to 0
    * @dev Can only be called by governance
    */
-  function removeBudget() external onlyGovernance {
+  function removeBudget() external onlyContracts(C_GOVERNOR) {
     slot1.budget = 0;
     emit BudgetRemoved();
-  }
-
-  /**
-   * @notice Sets swap emergency pause
-   * @dev Can only be called by the emergency admin
-   * @param _swapPaused to toggle swap emergency pause ON/OFF
-   */
-  function setEmergencySwapPause(bool _swapPaused) external onlyEmergencyAdmin {
-    slot1.swapPaused = _swapPaused;
-    emit SwapPauseConfigured(_swapPaused);
   }
 
   function setCircuitBreakerLimits(
     uint _ethLimit,
     uint _nxmLimit
-  ) external onlyEmergencyAdmin {
+  ) external onlyContracts(C_GOVERNOR) {
     ethLimit = _ethLimit.toUint32();
     nxmLimit = _nxmLimit.toUint32();
   }
@@ -327,9 +312,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
    */
   function getReserves() external view returns (uint _ethReserve, uint nxmA, uint nxmB, uint _budget) {
     Context memory context = Context(
-      pool().getPoolValueInEth(), // capital
-      tokenController().totalSupply(), // supply
-      mcr().getMCR() // mcr
+      pool.getPoolValueInEth(), // capital
+      tokenController.totalSupply(), // supply
+      pool.getMCR() // mcr
     );
     (
       State memory state,
@@ -451,9 +436,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   function getSpotPrices() external view returns (uint spotPriceA, uint spotPriceB) {
 
     Context memory context = Context(
-      pool().getPoolValueInEth(), // capital
-      tokenController().totalSupply(), // supply
-      mcr().getMCR() // mcr
+      pool.getPoolValueInEth(), // capital
+      tokenController.totalSupply(), // supply
+      pool.getMCR() // mcr
     );
 
     (
@@ -473,8 +458,8 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
    * @return bookValue the current NXM book value
    */
   function getBookValue() external view returns (uint bookValue) {
-    uint capital = pool().getPoolValueInEth();
-    uint supply = tokenController().totalSupply();
+    uint capital = pool.getPoolValueInEth();
+    uint supply = tokenController.totalSupply();
     return 1 ether * capital / supply;
   }
 
@@ -655,9 +640,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     }
 
     Context memory context = Context(
-      pool().getPoolValueInEth(), // capital
-      tokenController().totalSupply(), // supply
-      mcr().getMCR() // mcr
+      pool.getPoolValueInEth(), // capital
+      tokenController.totalSupply(), // supply
+      pool.getMCR() // mcr
     );
 
     Observation[3] memory _observations = observations;
@@ -738,9 +723,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   function getInternalPriceAndUpdateTwap() external returns (uint internalPrice) {
 
     Context memory context = Context(
-      pool().getPoolValueInEth(), // capital
-      tokenController().totalSupply(), // supply
-      mcr().getMCR() // mcr
+      pool.getPoolValueInEth(), // capital
+      tokenController.totalSupply(), // supply
+      pool.getMCR() // mcr
     );
 
     State memory initialState = loadState();
@@ -816,9 +801,9 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
   function getInternalPrice() external view returns (uint internalPrice) {
 
     Context memory context = Context(
-      pool().getPoolValueInEth(), // capital
-      tokenController().totalSupply(), // supply
-      mcr().getMCR() // mcr
+      pool.getPoolValueInEth(), // capital
+      tokenController.totalSupply(), // supply
+      pool.getMCR() // mcr
     );
 
     State memory initialState = loadState();
@@ -837,36 +822,21 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
   /* ========== DEPENDENCIES ========== */
 
-  function pool() internal view returns (IPool) {
-    return IPool(internalContracts[uint(ID.P1)]);
+  function initialize() external onlyContracts(C_GOVERNOR) {
+    _initialize();
   }
 
-  function mcr() internal view returns (IMCR) {
-    return IMCR(internalContracts[uint(ID.MC)]);
-  }
-
-  function tokenController() internal view returns (ITokenController) {
-    return ITokenController(internalContracts[uint(ID.TC)]);
-  }
-
-  function changeDependentContractAddress() external override {
-    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
-    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
-    internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
-    initialize();
-  }
-
-  function initialize() internal {
+  function _initialize() internal {
 
     if (slot1.updatedAt != 0) {
       // already initialized
       return;
     }
 
-    uint capital = pool().getPoolValueInEth();
-    uint supply = tokenController().totalSupply();
+    uint capital = pool.getPoolValueInEth();
+    uint supply = tokenController.totalSupply();
 
-    uint bondingCurvePrice = pool().getTokenPrice();
+    uint bondingCurvePrice = pool.getTokenPrice();
     uint initialPriceA = bondingCurvePrice + 1 ether * capital * PRICE_BUFFER / PRICE_BUFFER_DENOMINATOR / supply;
     uint initialPriceB = 1 ether * capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) / PRICE_BUFFER_DENOMINATOR / supply;
 
@@ -879,9 +849,6 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
 
     ethLimit = INITIAL_ETH_LIMIT.toUint32();
     nxmLimit = INITIAL_NXM_LIMIT.toUint32();
-
-    // start paused
-    slot1.swapPaused = true;
 
     State memory state = State(
       nxmReserveA,

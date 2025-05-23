@@ -7,11 +7,21 @@ import "../../modules/governance/MemberRoles.sol";
 
 contract DisposableMemberRoles is MemberRoles {
 
-  constructor(address tokenAddress) MemberRoles(tokenAddress) {}
+  constructor(address _registryAddress) MemberRoles(_registryAddress) {
+    // empty
+  }
+
+  function _updateRole(address member, uint role, bool active) internal {
+    memberRoleData[role].memberActive[member] = active;
+  }
+
+  function updateRole(address member, uint role, bool active) external {
+    _updateRole(member, role, active);
+  }
 
   function initialize(
     address _owner,
-    address _masterAddress,
+    address /* _masterAddress */,
     address _tokenControllerAddress,
     address[] calldata _initialMembers,
     uint[] calldata _initialMemberTokens,
@@ -27,9 +37,6 @@ contract DisposableMemberRoles is MemberRoles {
     );
 
     ITokenController _tokenController = ITokenController(_tokenControllerAddress);
-    internalContracts[uint(ID.TC)] = payable(_tokenControllerAddress);
-    changeMasterAddress(_masterAddress);
-
     _addInitialMemberRoles(_owner, _owner);
 
     for (uint i = 0; i < _initialMembers.length; i++) {
@@ -45,11 +52,17 @@ contract DisposableMemberRoles is MemberRoles {
     }
   }
 
-  /**
-   * @dev to add initial member roles
-   * @param _firstAB is the member address to be added
-   * @param memberAuthority is the member authority(role) to be added for
-   */
+  function _addRole(
+    bytes32 /* _roleName */,
+    string memory /* _roleDescription */,
+    address _authorized
+  ) internal {
+    MemberRoleDetails storage newMemberRoleData = memberRoleData.push();
+    newMemberRoleData.memberCounter = 0;
+    newMemberRoleData.memberAddress = new address[](0);
+    newMemberRoleData.authorized = _authorized;
+  }
+
   function _addInitialMemberRoles(address _firstAB, address memberAuthority) internal {
     maxABCount = 5;
     _addRole("Unassigned", "Unassigned", address(0));

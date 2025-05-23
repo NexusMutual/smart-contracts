@@ -6,17 +6,12 @@ import "../../modules/governance/MemberRoles.sol";
 
 contract TestnetMemberRoles is MemberRoles {
 
-  constructor(address tokenAddress) MemberRoles(tokenAddress) {
+  constructor(address _registryAddress) MemberRoles(_registryAddress) {
+    // empty
   }
 
-  function joinOnTestnet(address _userAddress) public {
-
-    require(!isMember(_userAddress), "MemberRoles: This address is already a member");
-
-    tokenController().addToWhitelist(_userAddress);
-    _updateRole(_userAddress, uint(Role.Member), true);
-
-    emit MemberJoined(_userAddress, 0);
+  function joinOnTestnet(address /* _userAddress */) external pure {
+    revert("Not implemented");
   }
 
 }

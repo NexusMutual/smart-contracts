@@ -2,15 +2,10 @@
 
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
-
 import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverProducts.sol";
-import "../../interfaces/ILegacyCover.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingProducts.sol";
 

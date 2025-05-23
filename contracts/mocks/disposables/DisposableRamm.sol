@@ -10,7 +10,7 @@ contract DisposableRamm is Ramm {
   uint internal supply;
   uint internal bondingCurveTokenPrice;
 
-  constructor(uint spotPriceB) Ramm(spotPriceB) {
+  constructor(address _registry, uint spotPriceB) Ramm(_registry, spotPriceB) {
     //
   }
 
@@ -27,14 +27,14 @@ contract DisposableRamm is Ramm {
     supply = _totalSupply;
     bondingCurveTokenPrice = _bondingCurveTokenPrice;
 
-    // set dependencies to point to self
-    internalContracts[uint(ID.P1)] = payable(address(this));
-    internalContracts[uint(ID.TC)] = payable(address(this));
-    internalContracts[uint(ID.MC)] = payable(address(this));
+    // TODO: this is likely broken now, will have to get back and figure out a fix:
 
-    super.initialize();
+    // // set dependencies to point to self
+    // internalContracts[uint(ID.P1)] = payable(address(this));
+    // internalContracts[uint(ID.TC)] = payable(address(this));
+    // internalContracts[uint(ID.MC)] = payable(address(this));
 
-    slot1.swapPaused = false;
+    super._initialize();
   }
 
   // fake pool functions

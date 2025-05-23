@@ -9,7 +9,7 @@ const { hex } = require('../utils').helpers;
 async function setup() {
   const accounts = await getAccounts();
   const MasterMock = await ethers.getContractFactory('MasterMock');
-  const Pool = await ethers.getContractFactory('MCRMockPool');
+  const Pool = await ethers.getContractFactory('PoolMock');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');

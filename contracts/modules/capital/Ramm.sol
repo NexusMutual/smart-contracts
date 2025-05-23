@@ -98,10 +98,6 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
     return slot1.budget == 0 ? NORMAL_RATCHET_SPEED : FAST_RATCHET_SPEED;
   }
 
-  function swapPaused() external view returns (bool) {
-    return slot1.swapPaused;
-  }
-
   /**
    * @notice Swaps nxmIn tokens for ETH or ETH sent for NXM tokens
    * @param nxmIn The amount of NXM tokens to swap (set to 0 when swapping ETH for NXM)
@@ -129,7 +125,7 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
 
     Context memory context = Context(
       pool.getPoolValueInEth(), // capital
-      tokenController().totalSupply(), // supply
+      tokenController.totalSupply(), // supply
       pool.getMCR() // mcr
     );
 
@@ -216,7 +212,7 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
       revert EthTransferFailed();
     }
 
-    tokenController().mint(msg.sender, nxmOut);
+    tokenController.mint(msg.sender, nxmOut);
 
     emit EthSwappedForNxm(msg.sender, ethIn, nxmOut);
 
@@ -280,7 +276,7 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
       observations[i] = _observations[i];
     }
 
-    tokenController().burnFrom(msg.sender, nxmIn);
+    tokenController.burnFrom(msg.sender, nxmIn);
     pool.sendEth(msg.sender, ethOut);
 
     emit NxmSwappedForEth(msg.sender, nxmIn, ethOut);
@@ -317,7 +313,7 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
   function getReserves() external view returns (uint _ethReserve, uint nxmA, uint nxmB, uint _budget) {
     Context memory context = Context(
       pool.getPoolValueInEth(), // capital
-      tokenController().totalSupply(), // supply
+      tokenController.totalSupply(), // supply
       pool.getMCR() // mcr
     );
     (
@@ -441,7 +437,7 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
 
     Context memory context = Context(
       pool.getPoolValueInEth(), // capital
-      tokenController().totalSupply(), // supply
+      tokenController.totalSupply(), // supply
       pool.getMCR() // mcr
     );
 
@@ -463,7 +459,7 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
    */
   function getBookValue() external view returns (uint bookValue) {
     uint capital = pool.getPoolValueInEth();
-    uint supply = tokenController().totalSupply();
+    uint supply = tokenController.totalSupply();
     return 1 ether * capital / supply;
   }
 
@@ -645,7 +641,7 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
 
     Context memory context = Context(
       pool.getPoolValueInEth(), // capital
-      tokenController().totalSupply(), // supply
+      tokenController.totalSupply(), // supply
       pool.getMCR() // mcr
     );
 
@@ -728,7 +724,7 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
 
     Context memory context = Context(
       pool.getPoolValueInEth(), // capital
-      tokenController().totalSupply(), // supply
+      tokenController.totalSupply(), // supply
       pool.getMCR() // mcr
     );
 
@@ -806,7 +802,7 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
 
     Context memory context = Context(
       pool.getPoolValueInEth(), // capital
-      tokenController().totalSupply(), // supply
+      tokenController.totalSupply(), // supply
       pool.getMCR() // mcr
     );
 
@@ -827,6 +823,10 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
   /* ========== DEPENDENCIES ========== */
 
   function initialize() external onlyContracts(C_GOVERNOR) {
+    _initialize();
+  }
+
+  function _initialize() internal {
 
     if (slot1.updatedAt != 0) {
       // already initialized
@@ -834,7 +834,7 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
     }
 
     uint capital = pool.getPoolValueInEth();
-    uint supply = tokenController().totalSupply();
+    uint supply = tokenController.totalSupply();
 
     uint bondingCurvePrice = pool.getTokenPrice();
     uint initialPriceA = bondingCurvePrice + 1 ether * capital * PRICE_BUFFER / PRICE_BUFFER_DENOMINATOR / supply;
@@ -849,9 +849,6 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
 
     ethLimit = INITIAL_ETH_LIMIT.toUint32();
     nxmLimit = INITIAL_NXM_LIMIT.toUint32();
-
-    // start paused
-    slot1.swapPaused = true;
 
     State memory state = State(
       nxmReserveA,

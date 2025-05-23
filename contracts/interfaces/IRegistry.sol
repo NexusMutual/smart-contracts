@@ -30,7 +30,7 @@ interface IRegistry {
   error InvalidContractIndex();
   error ContractDoesNotExist();
   error ContractIsNotProxy();
-  error NotEmergencyAdmin();
+  error OnlyEmergencyAdmin();
   error ProposerCannotEnablePause();
   error PauseConfigMismatch();
   error InvalidSignature();
@@ -39,6 +39,7 @@ interface IRegistry {
   error NotAdvisoryBoardMember();
   error AlreadyAdvisoryBoardMember();
   error AdvisoryBoardMemberCannotLeave();
+  error OnlyGovernance();
 
   /* == EMERGENCY PAUSE FUNCTIONS == */
   function setEmergencyAdmin(address _emergencyAdmin, bool enabled) external;

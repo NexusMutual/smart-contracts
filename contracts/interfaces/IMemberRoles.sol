@@ -12,4 +12,6 @@ interface IMemberRoles {
 
   function numberOfMembers(uint _memberRoleId) external view returns (uint);
 
+  function switchMembership(address newAddress) external;
+
 }

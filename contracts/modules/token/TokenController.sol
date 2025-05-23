@@ -157,7 +157,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   /// @param users The addresses of users for whom the tokens are unlocked.
   function withdrawClaimAssessmentTokens(address[] calldata users) external override whenNotPaused {
 
-    for (uint256 i = 0; i < users.length; i++) {
+    for (uint i = 0; i < users.length; i++) {
       _withdrawClaimAssessmentTokensForUser(users[i]);
     }
   }
@@ -167,7 +167,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   function _withdrawClaimAssessmentTokensForUser(address user) internal whenNotPaused {
 
     if (!locked[user]["CLA"].claimed) {
-      uint256 amount = locked[user]["CLA"].amount;
+      uint amount = locked[user]["CLA"].amount;
       if (amount > 0) {
         locked[user]["CLA"].claimed = true;
         emit Unlocked(user, "CLA", amount);
@@ -185,7 +185,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
 
   /// @notice Returns the total supply of the NXM token.
   /// @return The total supply of the NXM token.
-  function totalSupply() public override view returns (uint256) {
+  function totalSupply() public override view returns (uint) {
     return token.totalSupply();
   }
 
@@ -209,7 +209,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
     uint amount = token.balanceOf(_of);
 
     // This loop can be removed once all cover notes are withdrawn
-    for (uint256 i = 0; i < lockReason[_of].length; i++) {
+    for (uint i = 0; i < lockReason[_of].length; i++) {
       amount = amount + tokensLocked(_of, lockReason[_of][i]);
     }
 
@@ -321,7 +321,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   function tokensLocked(
     address _of,
     bytes32 _reason
-  ) public view returns (uint256 amount) {
+  ) public view returns (uint amount) {
 
     if (!locked[_of][_reason].claimed) {
       amount = locked[_of][_reason].amount;

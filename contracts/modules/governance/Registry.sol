@@ -3,6 +3,7 @@
 pragma solidity ^0.8.28;
 
 import "../../abstract/EIP712.sol";
+import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IRegistry.sol";
 import "./UpgradeableProxy.sol";
 
@@ -31,12 +32,13 @@ contract Registry is IRegistry, EIP712 {
   }
 
   modifier onlyGovernance() {
-    // todo: check msg.sender is Governor contract
+    address governor = contracts[C_GOVERNOR].addr;
+    require(msg.sender == governor, OnlyGovernance());
     _;
   }
 
   modifier onlyEmergencyAdmin() {
-    require(isEmergencyAdmin[msg.sender], NotEmergencyAdmin());
+    require(isEmergencyAdmin[msg.sender], OnlyEmergencyAdmin());
     _;
   }
 
@@ -158,8 +160,7 @@ contract Registry is IRegistry, EIP712 {
     // TK.burnFrom(msg.sender, balance) // or revert?
   }
 
-  // TODO: add only governance
-  function setKycAuthAddress(address _kycAuthAddress) external {
+  function setKycAuthAddress(address _kycAuthAddress) external onlyGovernance {
     membersMeta.kycAuthAddress = _kycAuthAddress;
   }
 
@@ -170,7 +171,7 @@ contract Registry is IRegistry, EIP712 {
     unchecked { return index & (index - 1) == 0 && index > 0; }
   }
 
-  function deployContract(uint index, bytes32 salt, address implementation) external {
+  function deployContract(uint index, bytes32 salt, address implementation) external onlyGovernance {
     require(isValidContractIndex(index), InvalidContractIndex());
     require(contracts[index].addr == address(0), ContractAlreadyExists());
     UpgradeableProxy proxy = new UpgradeableProxy{salt: bytes32(salt)}();
@@ -179,14 +180,14 @@ contract Registry is IRegistry, EIP712 {
     contractIndexes[address(proxy)] = index;
   }
 
-  function addContract(uint index, address contractAddress, bool isProxy) external {
+  function addContract(uint index, address contractAddress, bool isProxy) external onlyGovernance {
     require(isValidContractIndex(index), InvalidContractIndex());
     require(contracts[index].addr == address(0), ContractAlreadyExists());
     contracts[index] = Contract({addr: contractAddress, isProxy: isProxy});
     contractIndexes[contractAddress] = index;
   }
 
-  function upgradeContract(uint index, address implementation) external {
+  function upgradeContract(uint index, address implementation) external onlyGovernance {
     Contract memory _contract = contracts[index];
     require(_contract.addr != address(0), ContractDoesNotExist());
     require(_contract.isProxy, ContractIsNotProxy());
@@ -195,7 +196,7 @@ contract Registry is IRegistry, EIP712 {
   }
 
   // consider marking as deprecated instead
-  function removeContract(uint index) external {
+  function removeContract(uint index) external onlyGovernance {
     address contractAddress = contracts[index].addr;
     require(contractAddress != address(0), ContractDoesNotExist());
     contractIndexes[contractAddress] = 0;

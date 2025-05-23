@@ -2,12 +2,13 @@
 
 pragma solidity ^0.8.28;
 
+import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IGovernor.sol";
+import "../../interfaces/IRegistry.sol";
 import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IMemberRoles.sol";
 import "../../libraries/SafeUintCast.sol";
 
-contract Governor is IGovernor {
+contract Governor is IGovernor, RegistryAware {
   using SafeUintCast for uint;
 
   /* ========== storage ========== */
@@ -22,12 +23,11 @@ contract Governor is IGovernor {
 
   mapping(uint proposalId => Tally) internal tallies;
 
-  mapping(address voter => mapping(uint proposalId => uint weight)) internal votes;
+  mapping(uint memberId => mapping(uint proposalId => uint weight)) internal votes;
 
   /* ========== immutables and constants ========== */
 
   ITokenController public immutable tokenController;
-  IMemberRoles public immutable memberRoles;
 
   uint public constant TIMELOCK_PERIOD = 12 hours;
   uint public constant VOTING_PERIOD = 3 days;
@@ -36,24 +36,8 @@ contract Governor is IGovernor {
 
   /* ========== logic ========== */
 
-  modifier onlyGovernor() {
-    require(msg.sender == address(this), OnlyGovernor());
-    _;
-  }
-
-  modifier onlyAdvisoryBoard() {
-    require(memberRoles.isAdvisoryBoardMember(msg.sender), OnlyAdvisoryBoardMember());
-    _;
-  }
-
-  modifier onlyMember() {
-    require(memberRoles.isMember(msg.sender), OnlyMember());
-    _;
-  }
-
-  constructor(address _memberRoles, address _tokenController) {
-    tokenController = ITokenController(_tokenController);
-    memberRoles = _memberRoles;
+  constructor(address _registry) RegistryAware(_registry) {
+    tokenController = ITokenController(fetch(C_TOKEN_CONTROLLER));
   }
 
   function _getVoteWeight(address voter) internal view returns (uint) {
@@ -70,14 +54,22 @@ contract Governor is IGovernor {
   function propose(
     Transaction[] calldata txs,
     string calldata description
-  ) external onlyAdvisoryBoard {
+  ) external {
+
+    uint memberId = registry.getMemberId(msg.sender);
+    require(memberId > 0, NotMember());
+    require(registry.isAdvisoryBoardMember(memberId), OnlyAdvisoryBoardMember());
+
     _propose(VoteKind.AdvisoryBoard, txs, description);
   }
 
   function proposeAdvisoryBoardSwap(
     AdvisoryBoardSwap[] memory swaps,
     string calldata description
-  ) external onlyMember {
+  ) external {
+
+    uint memberId = registry.getMemberId(msg.sender);
+    require(memberId > 0, NotMember());
 
     // prevent spam
     uint weight = _getVoteWeight(msg.sender);
@@ -91,9 +83,9 @@ contract Governor is IGovernor {
       require(swaps[i].remove != address(0) && swaps[i].add != address(0), InvalidAdvisoryBoardSwap());
 
       txs[i] = Transaction({
-        target: address(memberRoles),
+        target: address(registry),
         value: 0,
-        data: abi.encodeWithSelector(memberRoles.replaceAdvisoryBoardMember.selector, swaps[i].remove, swaps[i].add)
+        data: abi.encodeWithSelector(registry.swapAdvisoryBoardMember.selector, swaps[i].remove, swaps[i].add)
       });
     }
 
@@ -109,20 +101,27 @@ contract Governor is IGovernor {
     Proposal memory proposal = Proposal({
       kind: kind,
       proposedAt: block.timestamp.toUint32(),
-      voteStartsAt: (block.timestamp + TIMELOCK_PERIOD).toUint32(),
-      voteEndsAt: (block.timestamp + TIMELOCK_PERIOD + VOTING_PERIOD).toUint32(),
+      voteBefore: (block.timestamp + VOTING_PERIOD).toUint32(),
+      executeAfter: (block.timestamp + VOTING_PERIOD + TIMELOCK_PERIOD).toUint32(),
       status: ProposalStatus.Proposed
     });
 
     uint proposalId = ++proposalCount;
     proposals[proposalId] = proposal;
-    transactions[proposalId] = txs;
     descriptions[proposalId] = description;
+
+    for (uint i = 0; i < txs.length; i++) {
+      transactions[proposalId].push(txs[i]);
+    }
 
     emit ProposalCreated(proposalId, kind, description);
   }
 
-  function cancel(uint proposalId) external onlyAdvisoryBoard {
+  function cancel(uint proposalId) external {
+
+    uint memberId = registry.getMemberId(msg.sender);
+    require(memberId > 0, NotMember());
+    require(registry.isAdvisoryBoardMember(memberId), OnlyAdvisoryBoardMember());
 
     Proposal memory proposal = proposals[proposalId];
     require(proposal.proposedAt > 0, ProposalNotFound());
@@ -141,27 +140,28 @@ contract Governor is IGovernor {
 
     Proposal memory proposal = proposals[proposalId];
     require(proposal.proposedAt > 0, ProposalNotFound());
-    require(block.timestamp >= proposal.voteStartsAt, ProposalNotStarted());
-    require(block.timestamp < proposal.voteEndsAt, ProposalExpired());
+    require(block.timestamp < proposal.voteBefore, VotePeriodHasEnded());
     require(proposal.status != ProposalStatus.Executed, ProposalAlreadyExecuted());
     require(proposal.status != ProposalStatus.Canceled, ProposalIsCanceled());
 
-    require(votes[msg.sender][proposalId] == 0, AlreadyVoted());
+    uint memberId = registry.getMemberId(msg.sender);
+    require(memberId > 0, NotMember());
+    require(votes[memberId][proposalId] == 0, AlreadyVoted());
 
-    // bug: make sure it's AB if vote kind is AB
-    // todo: remember to let ABs vote as members on full mmeber vote proposals
-    bool isAbVote = proposal.kind == VoteKind.AdvisoryBoard && memberRoles.isAdvisoryBoardMember(msg.sender);
-    uint weight = isAbVote ? 1 :_getVoteWeight(msg.sender);
+    bool isAbProposal = proposal.kind == VoteKind.AdvisoryBoard;
+    require(!isAbProposal || registry.isAdvisoryBoardMember(memberId), OnlyAdvisoryBoardMember());
 
-    votes[msg.sender][proposalId] = weight;
+    uint weight = isAbProposal ? 1 :_getVoteWeight(msg.sender);
+    votes[memberId][proposalId] = weight;
 
+    // todo: consider adding an abstain vote
     if (support) {
       tallies[proposalId].forVotes += weight.toUint128();
     } else {
       tallies[proposalId].againstVotes += weight.toUint128();
     }
 
-    emit VoteCast(proposalId, msg.sender, support, weight);
+    emit VoteCast(proposalId, memberId, support, weight);
   }
 
   function _performCall(uint value, address target, bytes memory data, uint txIndex) internal {
@@ -194,18 +194,20 @@ contract Governor is IGovernor {
     require(proposal.status != ProposalStatus.Executed, ProposalAlreadyExecuted());
     require(proposal.status != ProposalStatus.Canceled, ProposalIsCanceled());
 
+    uint memberId = registry.getMemberId(msg.sender);
+    require(memberId > 0, NotMember());
+
+    bool isAbProposal = proposal.kind == VoteKind.AdvisoryBoard;
+    require(!isAbProposal || registry.isAdvisoryBoardMember(memberId), OnlyAdvisoryBoardMember());
+
     Tally memory tally = tallies[proposalId];
     require(tally.forVotes > tally.againstVotes, VoteTalliedAgainst());
 
-    if (proposal.kind == VoteKind.Member) {
-      require(block.timestamp > proposal.voteEndsAt, VotePeriodNotEnded());
-      // todo: quorum check
-    }
-
-    if (proposal.kind == VoteKind.AdvisoryBoard) {
-      require(memberRoles.isAdvisoryBoardMember(msg.sender), OnlyAdvisoryBoardMember());
-      require(block.timestamp > proposal.voteEndsAt, VotePeriodNotEnded());
+    if (isAbProposal) {
       require(tally.forVotes >= ADVISORY_BOARD_QUORUM, VoteQuorumNotMet());
+    } else {
+      require(block.timestamp > proposal.executeAfter, ExecutionPeriodHasEnded());
+      // todo: quorum check
     }
 
     Transaction[] memory txs = transactions[proposalId];

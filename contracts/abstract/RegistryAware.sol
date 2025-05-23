@@ -21,13 +21,12 @@ uint constant C_STAKING_NFT      = 4096;
 uint constant C_COVER_NFT        = 8192;
 uint constant C_ASSESSMENT       = 16384;
 uint constant C_SWAP_OPERATOR    = 32768;
-// todo: add more constants
+// todo: check which other contracts we'd want here
 
 // pause types constants
-uint constant PAUSE_GLOBAL = 1;
-uint constant PAUSE_RAMM   = 2;
-// uint constant PAUSE_X      = 4;
-// uint constant PAUSE_Y      = 8;
+uint constant PAUSE_GLOBAL       = 1;
+uint constant PAUSE_RAMM         = 2;
+uint constant PAUSE_SWAPS        = 4;
 
 contract RegistryAware {
 
@@ -35,7 +34,6 @@ contract RegistryAware {
 
   error Paused(uint currentState, uint checks);
   error Unauthorized(address caller, uint callerIndex, uint authorizedBitmap);
-  error NotEmergencyAdmin();
 
   modifier whenNotPaused(uint mask) {
     uint config = registry.getPauseConfig();

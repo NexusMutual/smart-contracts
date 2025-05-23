@@ -19,8 +19,8 @@ interface IGovernor {
     VoteKind kind;
     ProposalStatus status;
     uint32 proposedAt;
-    uint32 voteStartsAt;
-    uint32 voteEndsAt;
+    uint32 voteBefore;
+    uint32 executeAfter;
   }
 
   struct Transaction {
@@ -50,7 +50,7 @@ interface IGovernor {
   // function getTallies(uint start, uint end) external view returns (Tally[] memory);
 
   event ProposalExecuted(uint proposalId);
-  event VoteCast(uint proposalId, address account, bool support, uint weight);
+  event VoteCast(uint proposalId, uint memberId, bool support, uint weight);
   event AdvisoryBoardMemberReplaced(address oldAddress, address newAddress);
   event ProposalCanceled(uint proposalId);
   event ProposalCreated(uint proposalId, VoteKind kind, string description);
@@ -60,15 +60,14 @@ interface IGovernor {
   error OnlyAdvisoryBoardMember();
   error OnlyGovernor();
   error OnlyMember();
+  error NotMember();
 
   error ProposalNotFound();
-  error ProposalExpired();
   error ProposalAlreadyExecuted();
-  error ProposalNotStarted();
   error ProposalIsCanceled();
 
   // voting
-  error VotePeriodNotEnded();
+  error VotePeriodHasEnded();
   error VoteTalliedAgainst();
   error VoteQuorumNotMet();
   error ThresholdNotMet();
@@ -78,6 +77,7 @@ interface IGovernor {
   error CannotCancelMemberProposal();
 
   // execution
+  error ExecutionPeriodHasEnded();
   error OnlyFirstProposal();
   error RevertedWithoutReason(uint index);
   error TargetIsNotAContract();

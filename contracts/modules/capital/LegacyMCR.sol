@@ -2,12 +2,10 @@
 
 pragma solidity ^0.8.18;
 
-import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IPriceFeedOracle.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
@@ -29,13 +27,26 @@ contract LegacyMCR is IMCR, MasterAwareV2 {
   );
 
   // MCR related constants expressed in basis points
-  uint public constant MAX_MCR_ADJUSTMENT = 100;
-  uint public constant MAX_MCR_INCREMENT = 500;
-  uint public constant BASIS_PRECISION = 10000;
-  uint public constant GEARING_FACTOR = 48000;
+  uint internal constant MAX_MCR_ADJUSTMENT = 100;
+  uint internal constant MAX_MCR_INCREMENT = 500;
+  uint internal constant BASIS_PRECISION = 10000;
+  uint internal constant GEARING_FACTOR = 48000;
 
   // min update between MCR updates in seconds
-  uint public constant MIN_UPDATE_TIME = 3600;
+  uint internal constant MIN_UPDATE_TIME = 3600;
+
+  // Implement the missing functions from IMCR interface
+  function maxMCRIncrement() external pure override returns (uint16) {
+    return uint16(MAX_MCR_INCREMENT);
+  }
+
+  function gearingFactor() external pure override returns (uint24) {
+    return uint24(GEARING_FACTOR);
+  }
+
+  function minUpdateTime() external pure override returns (uint16) {
+    return uint16(MIN_UPDATE_TIME);
+  }
 
   /* ========== DEPENDENCIES ========== */
 
@@ -68,11 +79,6 @@ contract LegacyMCR is IMCR, MasterAwareV2 {
     desiredMCR = previousMCR.desiredMCR();
     lastUpdateTime = previousMCR.lastUpdateTime();
 
-    // copy over parameters
-    MAX_MCR_INCREMENT = previousMCR.MAX_MCR_INCREMENT();
-    GEARING_FACTOR = previousMCR.GEARING_FACTOR();
-    MIN_UPDATE_TIME = previousMCR.MIN_UPDATE_TIME();
-
     previousMCR = IMCR(address(0));
   }
 
@@ -83,7 +89,6 @@ contract LegacyMCR is IMCR, MasterAwareV2 {
   function getTotalActiveCoverAmount() public view returns (uint) {
 
     IPool _pool = pool();
-    IPriceFeedOracle priceFeed = _pool.priceFeedOracle();
     ICover _cover = cover();
 
     uint totalActiveCoverAmountInEth = _cover.totalActiveCoverInAsset(0);
@@ -93,7 +98,7 @@ contract LegacyMCR is IMCR, MasterAwareV2 {
     // the first asset is ETH. skip it, it's already counted
     for (uint i = 1; i < assets.length; i++) {
       uint activeCoverAmount = _cover.totalActiveCoverInAsset(i);
-      uint assetAmountInEth = priceFeed.getEthForAsset(assets[i].assetAddress, activeCoverAmount);
+      uint assetAmountInEth = _pool.getEthForAsset(assets[i].assetAddress, activeCoverAmount);
       totalActiveCoverAmountInEth += assetAmountInEth;
     }
 

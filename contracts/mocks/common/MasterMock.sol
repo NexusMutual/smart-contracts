@@ -68,10 +68,6 @@ contract MasterMock {
     paused = false;
   }
 
-  function upgradeCapitalPool(address payable currentPoolAddress, address payable newPoolAddress) external {
-    Pool(currentPoolAddress).upgradeCapitalPool(newPoolAddress);
-  }
-
   /* mocked implementations */
 
   function checkIsAuthToGoverned(address caller) public view returns (bool) {

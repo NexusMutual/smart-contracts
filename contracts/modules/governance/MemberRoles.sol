@@ -91,4 +91,10 @@ contract MemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
     return memberRoleData[_memberRoleId].memberCounter;
   }
 
+  // TODO: CoverBroker and other contracts need this function
+  function switchMembership(address /* newAddress */) external {
+    launched = launched;
+    revert("oopsie daisy");
+  }
+
 }

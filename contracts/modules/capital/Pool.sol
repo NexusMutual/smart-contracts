@@ -188,15 +188,19 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
       revert IncompatibleAggregatorDecimals(address(aggregator), 8, aggregatorDecimals);
     }
 
-    Asset memory asset = Asset({
+    // store asset
+    assets.push(Asset({
       assetAddress: assetAddress,
-      decimals: assetDecimals.toUint8(),
       isCoverAsset: isCoverAsset,
       isAbandoned: false
-    });
+    }));
 
-    assets.push(asset);
-    oracles[assetAddress] = Oracle({ aggregator: aggregator, aggregatorType: aggregatorType });
+    // store oracle
+    oracles[assetAddress] = Oracle({
+      aggregator: aggregator,
+      aggregatorType: aggregatorType,
+      assetDecimals: assetDecimals.toUint8()
+    });
   }
 
   function setAssetDetails(
@@ -244,26 +248,33 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
   /// @param assetId        Index of the cover asset
   /// @param payoutAddress  Send funds to this address
   /// @param amount         Amount to send
+  /// @param depositInETH   Deposit in ETH
   ///
   function sendPayout(
     uint assetId,
     address payable payoutAddress,
-    uint amount
+    uint amount,
+    uint depositInETH
   ) external override onlyContracts(C_ASSESSMENT) nonReentrant {
 
     Asset memory asset = assets[assetId];
 
+    if (depositInETH > 0) {
+      (bool ok, /* data */) = payoutAddress.call{value: depositInETH}("");
+      require(ok, EthTransferFailed(payoutAddress, depositInETH));
+    }
+
     if (asset.assetAddress == ETH) {
       // solhint-disable-next-line avoid-low-level-calls
-      (bool transferSucceeded, /* data */) = payoutAddress.call{value: amount}("");
-      require(transferSucceeded, "Pool: ETH transfer failed");
+      (bool ok, /* data */) = payoutAddress.call{value: amount}("");
+      require(ok, EthTransferFailed(payoutAddress, amount));
     } else {
       IERC20(asset.assetAddress).safeTransfer(payoutAddress, amount);
     }
 
     emit Payout(payoutAddress, asset.assetAddress, amount);
 
-    mcr().updateMCRInternal(true);
+    _updateMCR(true);
   }
 
   /* ========== TOKEN AND RAMM ========== */
@@ -291,7 +302,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     require(assetId < assets.length, "Pool: Unknown cover asset");
     address assetAddress = assets[assetId].assetAddress;
 
-    uint internalTokenPrice = ramm().getInternalPrice();
+    uint internalTokenPrice = ramm.getInternalPrice();
 
     return getAssetForEth(assetAddress, internalTokenPrice);
   }
@@ -310,7 +321,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     require(assetId < assets.length, "Pool: Unknown cover asset");
     address assetAddress = assets[assetId].assetAddress;
 
-    uint internalTokenPrice = ramm().getInternalPriceAndUpdateTwap();
+    uint internalTokenPrice = ramm.getInternalPriceAndUpdateTwap();
 
     return getAssetForEth(assetAddress, internalTokenPrice);
   }
@@ -321,33 +332,21 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
   /// @dev You may want TokenController.getTokenPrice() for a stable address since it's a proxy.
   ///
   function getTokenPrice() public override view returns (uint tokenPrice) {
-    (, tokenPrice) = ramm().getSpotPrices();
+    (, tokenPrice) = ramm.getSpotPrices();
     return tokenPrice;
-  }
-
-  function getMCRRatio() public override view returns (uint) {
-    uint totalAssetValue = getPoolValueInEth();
-    uint mcrEth = getMCR();
-    return calculateMCRRatio(totalAssetValue, mcrEth);
-  }
-
-  function calculateMCRRatio(uint totalAssetValue, uint mcrEth) public override pure returns (uint) {
-    return totalAssetValue * (10 ** MCR_RATIO_DECIMALS) / mcrEth;
   }
 
   /* ========== MCR ========== */
 
   function getTotalActiveCoverAmount() public view returns (uint) {
 
-    ICover _cover = cover();
-
-    uint totalActiveCoverAmountInEth = _cover.totalActiveCoverInAsset(0);
+    uint totalActiveCoverAmountInEth = cover.totalActiveCoverInAsset(0);
 
     Asset[] memory _assets = assets;
 
     // skip the first asset - it's ETH, it's already accounted for above
     for (uint i = 1; i < _assets.length; i++) {
-      uint activeCoverAmount = _cover.totalActiveCoverInAsset(i);
+      uint activeCoverAmount = cover.totalActiveCoverInAsset(i);
       uint assetAmountInEth = getEthForAsset(_assets[i].assetAddress, activeCoverAmount);
       totalActiveCoverAmountInEth += assetAmountInEth;
     }
@@ -355,63 +354,77 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     return totalActiveCoverAmountInEth;
   }
 
-  function updateMCR() whenNotPaused public {
-    _updateMCR(false);
-  }
-
-  function updateMCRInternal(bool forceUpdate) public onlyContracts(C_RAMM) {
-    _updateMCR(forceUpdate);
-  }
-
   function _updateMCR(bool forceUpdate) internal {
 
-    uint112 _mcr = mcr.mcr;
-    uint112 _desiredMCR = mcr.desiredMCR;
-    uint32 _lastUpdateTime = mcr.lastUpdateTime;
+    uint stored = mcr.stored;
+    uint desired = mcr.desired;
+    uint updatedAt = mcr.updatedAt;
 
-    if (!forceUpdate && _lastUpdateTime + MIN_UPDATE_TIME > block.timestamp) {
+    if (!forceUpdate && block.timestamp < updatedAt + MIN_UPDATE_TIME) {
       return;
     }
 
-    // sync the current virtual MCR value to storage
-    uint80 newMCR = getMCR().toUint80();
+    // store the current mcr value
+    uint current = calculateCurrentMCR(stored, desired, updatedAt, block.timestamp);
 
-    if (newMCR != _mcr) {
-      mcr.mcr = newMCR;
+    if (current != stored) {
+      stored = current;
     }
 
     uint totalActiveCoverAmount = getTotalActiveCoverAmount();
-    uint gearedMCR = totalActiveCoverAmount * BASIS_PRECISION / GEARING_FACTOR;
+    uint geared = totalActiveCoverAmount * BASIS_PRECISION / GEARING_FACTOR;
 
-    uint80 newDesiredMCR = gearedMCR.toUint80();
-    if (newDesiredMCR != _desiredMCR) {
-      mcr.desiredMCR = newDesiredMCR;
+    if (geared != desired) {
+      desired = geared;
     }
 
-    mcr.lastUpdateTime = uint32(block.timestamp);
+    mcr.stored = stored.toUint80();
+    mcr.desired = desired.toUint80();
+    mcr.updatedAt = block.timestamp.toUint32();
 
-    emit MCRUpdated(_mcr, _desiredMCR, 0, gearedMCR, totalActiveCoverAmount);
+    // sstore
+    emit MCRUpdated(mcr.stored, mcr.desired, 0, geared, totalActiveCoverAmount);
+  }
+
+  function calculateCurrentMCR(
+    uint stored,
+    uint desired,
+    uint updatedAt,
+    uint _now
+  ) public pure returns (uint) {
+
+    if (_now == updatedAt) {
+      return stored;
+    }
+
+    uint changeBps = Math.min(
+      MAX_MCR_INCREMENT * (_now - updatedAt) / 1 days,
+      MAX_MCR_ADJUSTMENT
+    );
+
+    return desired > stored
+      ? Math.min(stored * (changeBps + BASIS_PRECISION) / BASIS_PRECISION, desired)
+      : Math.max(stored * (BASIS_PRECISION - changeBps) / BASIS_PRECISION, desired);
+  }
+
+  function getMCRRatio() public override view returns (uint) {
+    uint totalAssetValue = getPoolValueInEth();
+    uint mcrEth = getMCR();
+    return totalAssetValue * (10 ** MCR_RATIO_DECIMALS) / mcrEth;
   }
 
   function getMCR() public view returns (uint) {
+    return calculateCurrentMCR(mcr.stored, mcr.desired, mcr.updatedAt, block.timestamp);
+  }
 
-    uint storedMCR = mcr.stored;
-    uint desiredMCR = mcr.desired;
-    uint lastUpdateTime = mcr.lastUpdateTime;
+  function updateMCR() public whenNotPaused(PAUSE_GLOBAL) {
+    _updateMCR(false);
+  }
 
-    if (block.timestamp == lastUpdateTime) {
-      return storedMCR;
-    }
-
-    uint bpsDiff = MAX_MCR_INCREMENT * (block.timestamp - lastUpdateTime) / 1 days;
-    bpsDiff = Math.min(bpsDiff, MAX_MCR_ADJUSTMENT);
-
-    if (desiredMCR > storedMCR) {
-      return Math.min(storedMCR * (bpsDiff + BASIS_PRECISION) / BASIS_PRECISION, desiredMCR);
-    }
-
-    // in case desiredMCR <= storedMCR
-    return Math.max(storedMCR * (BASIS_PRECISION - bpsDiff) / (BASIS_PRECISION), desiredMCR);
+  function updateMCRInternal(
+    bool forceUpdate
+  ) public onlyContracts(C_RAMM) whenNotPaused(PAUSE_GLOBAL) {
+    _updateMCR(forceUpdate);
   }
 
   /* ========== ORACLES ========== */

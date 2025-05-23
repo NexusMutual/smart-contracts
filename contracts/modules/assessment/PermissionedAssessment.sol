@@ -17,19 +17,18 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
 
   /* ========== STATE VARIABLES ========== */
 
-  mapping(uint32 assessorGroupId => EnumerableSet.UintSet assessorGroup) private _assessorGroups;
-  mapping(uint32 assessorGroupId => bytes32 assessorGroupMetadata) internal _assessorGroupsMetadata;
-  uint32 private _assessorGroupCount;
+  mapping(uint32 groupId => EnumerableSet.UintSet) private _groups;
+  mapping(uint32 groupId => bytes32) internal _groupsMetadata;
+  uint32 private _groupCount;
 
-  mapping(uint256 assessor => EnumerableSet.UintSet) private _assessorGroupsForAssessor;
+  mapping(uint256 assessorMemberId => EnumerableSet.UintSet) private _groupsForAssessor;
   mapping(uint256 productTypeId => AssessmentData) private _assessmentData;
 
-  mapping(uint256 claimId => Assessment assessment) internal _assessments;
+  mapping(uint256 claimId => Assessment) internal _assessments;
 
   /* ========== CONSTANTS ========== */
 
   uint constant internal MIN_VOTING_PERIOD = 3 days;
-  uint constant internal SILENT_ENDING_PERIOD = 1 days;
 
   /* ========== MODIFIERS ========== */
 
@@ -39,14 +38,15 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
 
   /* ========== VIEWS ========== */
 
+  /// @notice Returns the minimum voting period for assessments
+  /// @return The minimum voting period in seconds
   function minVotingPeriod() external pure returns (uint256) {
     return MIN_VOTING_PERIOD;
   }
 
-  function silentEndingPeriod() external pure returns (uint256) {
-    return SILENT_ENDING_PERIOD;
-  }
-
+  /// @notice Returns the payout cooldown period for a given product type
+  /// @param productTypeId The product type identifier
+  /// @return The cooldown period in seconds
   function payoutCooldown(uint256 productTypeId) external view returns (uint256) {
 
     // TODO: call CoverProduct to validate productTypeId?
@@ -56,6 +56,9 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     return assessmentData.cooldownPeriod;
   }
 
+  /// @notice Returns the assessor group ID for a given claim
+  /// @param claimId The claim identifier
+  /// @return The group ID of the assessors for the claim
   function assessorGroupOf(uint256 claimId) external view returns (uint32) {
 
     Assessment storage assessment = _assessments[claimId];
@@ -64,6 +67,13 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     return assessment.assessorGroupId;
   }
 
+  /// @notice Returns assessment voting info for a claim
+  /// @param claimId The claim identifier
+  /// @return acceptVotes Number of accept votes (snapshot if finalized, live tally otherwise)
+  /// @return denyVotes Number of deny votes (snapshot if finalized, live tally otherwise)
+  /// @return groupSize Number of assessors in the group
+  /// @return end Voting period end timestamp
+  /// @return finalizedAt Timestamp when assessment was finalized (0 if not finalized)
   function getAssessmentInfo(
     uint256 claimId
   ) external view returns (
@@ -93,6 +103,49 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     return (acceptVotes, denyVotes, groupSize, end, finalizedAt);
   }
 
+  /// @notice Helper to determine if an assessment can be closed after casting a vote
+  /// @dev Checks if the assessment is ready to be closed based on the current vote and voting state
+  /// @param claimId The claim identifier
+  /// @param vote The vote choice (ACCEPT or DENY) to be cast
+  /// @return ready True if the assessment can be closed after this vote, false otherwise
+  function isReadyToCloseAfterVote(uint256 claimId, Vote vote) external view returns (bool) {
+
+    require(vote == Vote.ACCEPT || vote == Vote.DENY, InvalidVote());
+
+    (uint256 assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
+
+    // Already finalized
+    if (assessment.finalizedAt != 0) return false;
+
+    EnumerableSet.UintSet storage group = _groups[assessment.assessorGroupId];
+    uint256 groupSize = group.length();
+
+    // Get current vote tally
+    (uint acceptVotes, uint denyVotes) = _getVoteTally(assessment, group, groupSize);
+
+    // If has previous vote, remove old vote from tally
+    Vote oldVote = assessment.ballot[assessorMemberId].vote;
+    if (oldVote == Vote.ACCEPT) acceptVotes--;
+    else if (oldVote == Vote.DENY) denyVotes--;
+
+    // Increment the tally with the new vote
+    if (vote == Vote.ACCEPT) acceptVotes++;
+    else if (vote == Vote.DENY) denyVotes++;
+
+    if (block.timestamp < assessment.start + MIN_VOTING_PERIOD) {
+      // can close early if all voted & not draw
+      return acceptVotes + denyVotes == groupSize && acceptVotes != denyVotes;
+    } else {
+      // can close if voting period ended, has votes i.e. not (0-0) and not a draw
+      return acceptVotes != denyVotes;
+    }
+  }
+
+
+  /// @notice Returns the ballot for a given claim and assessor
+  /// @param claimId The claim identifier
+  /// @param assessor The address of the assessor
+  /// @return The Ballot struct for the assessor on the claim
   function ballotOf(uint256 claimId, address assessor) external view returns (Ballot memory) {
     (uint256 assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, assessor);
     return assessment.ballot[assessorMemberId];
@@ -102,21 +155,6 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     // TODO: should we add another data struct for this? or can be reconstructed via events?
     // is a draw OR no votes (0-0) OR poll has not ended
     // accept === deny || poll.end > block.timestamp
-  }
-
-  /// @notice Counts the current votes for and against a claim
-  /// @param claimId The unique identifier of the claim to tally
-  /// @return acceptCount Number of assessors who voted to accept the claim
-  /// @return denyCount Number of assessors who voted to deny the claim
-  /// @dev This function considers only votes from current assessors in the group
-  function getVoteTally(uint256 claimId) external view returns (uint256 acceptCount, uint256 denyCount) {
-
-    Assessment storage assessment = _assessments[claimId];
-    require(assessment.start != 0, InvalidClaimId());
-
-    EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
-
-    return _getVoteTally(assessment, assessorGroup, assessorGroup.length());
   }
 
   /* === MUTATIVE FUNCTIONS ==== */

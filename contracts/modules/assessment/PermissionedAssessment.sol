@@ -67,22 +67,30 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   function getAssessmentInfo(
     uint256 claimId
   ) external view returns (
-    uint256 accepts,
-    uint256 denies,
+    uint256 acceptVotes,
+    uint256 denyVotes,
     uint256 groupSize,
     uint32 end,
-    uint32 finalizedAt,
-    AssessmentResult result
+    uint32 finalizedAt
   ) {
 
     Assessment storage assessment = _assessments[claimId];
     uint32 assessmentStart = assessment.start;
     require(assessmentStart != 0, InvalidClaimId());
 
-    EnumerableSet.UintSet storage assessorGroup = _assessorGroups[assessment.assessorGroupId];
-    (accepts, denies) = _getVoteTally(assessment, assessorGroup, assessorGroup.length());
+    EnumerableSet.UintSet storage assessorGroup = _groups[assessment.assessorGroupId];
+    groupSize = assessorGroup.length();
+    end = (assessment.start + MIN_VOTING_PERIOD).toUint32();
+    finalizedAt = assessment.finalizedAt;
 
-    return (accepts, denies, assessorGroup.length(), assessment.end, assessment.finalizedAt, assessment.result);
+    if (finalizedAt != 0) {
+      acceptVotes = assessment.acceptVotes;
+      denyVotes = assessment.denyVotes;
+    } else {
+      (acceptVotes, denyVotes) = _getVoteTally(assessment, assessorGroup, groupSize);
+    }
+
+    return (acceptVotes, denyVotes, groupSize, end, finalizedAt);
   }
 
   function ballotOf(uint256 claimId, address assessor) external view returns (Ballot memory) {
@@ -131,9 +139,9 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
     uint32 end = (start + MIN_VOTING_PERIOD).toUint32();
 
     assessment.start = start;
-    assessment.end = end;
     assessment.assessorGroupId = assessingGroupId;
-    // all votes in assessment.ballot are initialized to NONE (0) by default
+    // finalizedAt, acceptVotes, denyVotes are initialized to 0 by default
+    // ballot are initialized to NONE (0) by default
 
     emit AssessmentStarted(claimId, assessingGroupId, start, end);
   }

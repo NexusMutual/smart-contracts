@@ -35,8 +35,8 @@ interface IGovernor {
   }
 
   struct AdvisoryBoardSwap {
-    address remove;
-    address add;
+    uint from; // memberId
+    uint to; // memberId
   }
 
   function propose(Transaction[] calldata transactions, string calldata description) external;

@@ -79,13 +79,13 @@ contract Governor is IGovernor, RegistryAware {
 
     for (uint i = 0; i < swaps.length; i++) {
 
-      require(swaps[i].remove != swaps[i].add, InvalidAdvisoryBoardSwap());
-      require(swaps[i].remove != address(0) && swaps[i].add != address(0), InvalidAdvisoryBoardSwap());
+      require(swaps[i].from != swaps[i].to, InvalidAdvisoryBoardSwap());
+      require(swaps[i].from != 0 && swaps[i].to != 0, InvalidAdvisoryBoardSwap());
 
       txs[i] = Transaction({
         target: address(registry),
         value: 0,
-        data: abi.encodeWithSelector(registry.swapAdvisoryBoardMember.selector, swaps[i].remove, swaps[i].add)
+        data: abi.encodeWithSelector(registry.swapAdvisoryBoardMember.selector, swaps[i].from, swaps[i].to)
       });
     }
 

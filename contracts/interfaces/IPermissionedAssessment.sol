@@ -66,23 +66,17 @@ interface IPermissionedAssessment {
 
   function minVotingPeriod() external pure returns (uint256);
 
-  function silentEndingPeriod() external pure returns (uint256);
-
   function payoutCooldown(uint256 productTypeId) external view returns (uint256);
 
   function assessorGroupOf(uint256 claimId) external view returns (uint32);
 
-  function getAssessmentInfo(uint256 claimId) external view returns (uint256 accepts, uint256 denies, uint256 groupSize, uint32 end, uint32 finalizedAt, AssessmentResult result);
+  function getAssessmentInfo(uint256 claimId) external view returns (uint256 acceptVotes, uint256 denyVotes, uint256 groupSize, uint32 end, uint32 finalizedAt);
 
-  function isAssessmentDecided(uint256 claimId) external view returns (bool);
-
-  function getVoteTally(uint256 claimId) external view returns (uint256 acceptCount, uint256 denyCount);
+  function isReadyToCloseAfterVote(uint256 claimId, Vote vote) external view returns (bool);
 
   function ballotOf(uint256 claimId, address assessor) external view returns (Ballot memory);
 
   function claimsOpenForVoting(address assessor) external view returns (bytes32[] memory);
-
-  function getOutcome(uint256 claimId) external view returns (bool accepted);
 
   /* === MUTATIVE FUNCTIONS ==== */
 
@@ -106,7 +100,7 @@ interface IPermissionedAssessment {
 
   /* ========= EVENTS ========== */
 
-  event SetAssessmentDataForProductTypesa(uint[] productTypeIds, uint cooldownPeriod, uint groupId);
+  event SetAssessmentDataForProductTypes(uint[] productTypeIds, uint cooldownPeriod, uint groupId);
   event AddAssessorsToGroup(uint indexed groupId, address[] assessors);
   event RemoveAssessorsFromGroup(uint indexed groupId, address[] assessors);
   event RemoveAssessorsFromAllGroups(address[] assessors);

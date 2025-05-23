@@ -100,12 +100,12 @@ contract Registry is IRegistry, EIP712 {
     isAdvisoryBoardMember[to] = true;
   }
 
-  function join(address member, bytes32 signature) external {
+  function join(address member, bytes memory signature) external {
     require(memberIds[member] == 0, AlreadyMember());
 
-    bytes32 structHash = abi.encode(JOIN_TYPEHASH, member);
-    address recoveredSigner = recoverSigner(structHash, signature);
-    require(membersMeta.kycAuthAddress == recoveredSigner, InvalidSignature());
+    bytes memory message = abi.encode(JOIN_TYPEHASH, member);
+    address signer = recoverSigner(message, signature);
+    require(membersMeta.kycAuthAddress == signer, InvalidSignature());
     wasAddressUsedForJoining[member] = true;
 
     uint memberId = ++membersMeta.lastMemberId;

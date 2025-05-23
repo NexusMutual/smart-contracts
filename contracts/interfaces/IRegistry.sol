@@ -55,7 +55,7 @@ interface IRegistry {
   function getMemberId(address member) external view returns (uint);
   function getMemberCount() external view returns (uint);
   function swapAdvisoryBoardMember(uint from, uint to) external;
-  function join(address member, bytes32 signature) external;
+  function join(address member, bytes memory signature) external;
   function swap(address to) external;
   function leave() external;
 

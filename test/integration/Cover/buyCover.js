@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { BigNumber } = require('ethers');
+const { BigNumber } = require('hardhat').ethers;
 
 const setup = require('../setup');
 const { calculateFirstTrancheId } = require('../utils/staking');

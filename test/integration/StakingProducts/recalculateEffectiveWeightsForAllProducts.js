@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { BigNumber } = require('ethers');
+const { BigNumber } = require('hardhat').ethers;
 
 const { calculateFirstTrancheId } = require('../utils/staking');
 const { daysToSeconds } = require('../../../lib/helpers');

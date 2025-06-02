@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 
 const { Role } = require('../../../lib/constants');
 const { hex } = require('../../../lib/helpers');
-const { BigNumber } = require('ethers');
+const { BigNumber } = require('hardhat').ethers;
 const { setEtherBalance } = require('../utils').evm;
 const { getAccounts } = require('../utils').accounts;
 

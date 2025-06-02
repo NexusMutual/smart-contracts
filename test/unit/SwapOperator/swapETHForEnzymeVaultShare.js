@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { BigNumber } = require('ethers');
+const { BigNumber } = require('hardhat').ethers;
 const { ETH } = require('../../../lib/constants').Assets;
 const { mineNextBlock, increaseTime } = require('../../utils/evm');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');

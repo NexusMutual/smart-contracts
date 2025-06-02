@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { setNextBlockTime, mineNextBlock, setEtherBalance } = require('../../utils/evm');
-const { BigNumber } = require('ethers');
+const { BigNumber } = require('hardhat').ethers;
 const { parseEther } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 const { daysToSeconds } = require('../../../lib/helpers');

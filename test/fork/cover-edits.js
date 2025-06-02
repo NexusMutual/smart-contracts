@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { BigNumber } = require('ethers');
+const { BigNumber } = require('hardhat').ethers;
 
 describe('cover-edits', function () {
   it('estimate gas usage for cover data migration', async function () {

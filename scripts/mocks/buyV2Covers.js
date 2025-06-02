@@ -1,5 +1,6 @@
 const { network, ethers } = require('hardhat');
-const { BigNumber } = require('ethers');
+
+const { BigNumber } = ethers;
 const { AddressZero } = ethers.constants;
 const { formatEther, parseEther, formatUnits } = ethers.utils;
 

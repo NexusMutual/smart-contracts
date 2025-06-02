@@ -1,5 +1,5 @@
 const { ethers, accounts } = require('hardhat');
-const { BigNumber } = require('ethers');
+const { BigNumber } = require('hardhat').ethers;
 
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;

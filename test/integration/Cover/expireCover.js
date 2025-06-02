@@ -5,7 +5,7 @@ const { AddressZero, MaxUint256 } = ethers.constants;
 const { increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 const { calculateFirstTrancheId } = require('../utils/staking');
-const { BigNumber } = require('ethers');
+const { BigNumber } = require('hardhat').ethers;
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 

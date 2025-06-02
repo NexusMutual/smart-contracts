@@ -1,7 +1,7 @@
 const hre = require('hardhat');
 const { ethers } = hre;
 const { expect } = require('chai');
-const { BigNumber } = require('ethers');
+const { BigNumber } = require('hardhat').ethers;
 const { getAccounts } = require('../../utils/accounts');
 
 const { Role } = require('../utils').constants;

@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 
 const { BigNumber } = ethers;
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers.utils || ethers;
 
 const { divCeil, min, max } = require('./bnMath');
 

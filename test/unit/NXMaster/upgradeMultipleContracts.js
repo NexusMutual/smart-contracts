@@ -1,6 +1,6 @@
 const {
   constants: { AddressZero },
-} = require('ethers');
+} = require('hardhat').ethers;
 const { hex } = require('../utils').helpers;
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');

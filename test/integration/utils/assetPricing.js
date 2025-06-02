@@ -1,4 +1,4 @@
-const { BigNumber } = require('ethers');
+const { BigNumber } = require('hardhat').ethers;
 const { divCeil } = require('../utils').bnMath;
 const { roundUpToNearestAllocationUnit } = require('../../unit/StakingPool/helpers');
 

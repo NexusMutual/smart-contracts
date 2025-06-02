@@ -2,12 +2,13 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const setup = require('./setup');
+// const { getAccounts } = require('../../utils/accounts');
+const setup = require('./setup-ethers-v6');
 
 console.log('ethers:', require('hardhat').ethers.version);
 console.log('chai:', require('chai').version);
 
-const { AddressZero } = ethers.constants;
+const { ZeroAddress } = ethers;
 
 describe('CoverNFT', function () {
   it('should verify that constructor variables were set correctly', async function () {
@@ -28,7 +29,7 @@ describe('CoverNFT', function () {
   it('should fail to mint - onlyOperator()', async function () {
     const fixture = await loadFixture(setup);
     const { coverNFT } = fixture;
-    await expect(coverNFT.mint(coverNFT.address)).to.be.revertedWithCustomError(coverNFT, 'NotOperator');
+    await expect(coverNFT.mint(coverNFT)).to.be.revertedWithCustomError(coverNFT, 'NotOperator');
   });
 
   it('should successfully mint', async function () {
@@ -91,7 +92,7 @@ describe('CoverNFT', function () {
     const fixture = await loadFixture(setup);
     const { coverNFT } = fixture;
     const [operator] = fixture.accounts.members;
-    await expect(coverNFT.connect(operator).changeOperator(AddressZero)).to.be.revertedWithCustomError(
+    await expect(coverNFT.connect(operator).changeOperator(ZeroAddress)).to.be.revertedWithCustomError(
       coverNFT,
       'InvalidNewOperatorAddress',
     );
@@ -120,7 +121,7 @@ describe('CoverNFT', function () {
     const fixture = await loadFixture(setup);
     const { coverNFT } = fixture;
     const [operator] = fixture.accounts.members;
-    await expect(coverNFT.connect(operator).changeNFTDescriptor(AddressZero)).to.be.revertedWithCustomError(
+    await expect(coverNFT.connect(operator).changeNFTDescriptor(ZeroAddress)).to.be.revertedWithCustomError(
       coverNFT,
       'InvalidNewNFTDescriptorAddress',
     );
@@ -144,7 +145,7 @@ describe('CoverNFT', function () {
     expect(await coverNFT.totalSupply()).to.be.equal(0);
     await expect(coverNFT.connect(operator).mint(nftOwner.address))
       .to.emit(coverNFT, 'Transfer')
-      .withArgs(AddressZero, nftOwner.address, tokenId);
+      .withArgs(ZeroAddress, nftOwner.address, tokenId);
 
     expect(await coverNFT.totalSupply()).to.be.equal(1);
   });

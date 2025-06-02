@@ -3,9 +3,15 @@ const path = require('node:path');
 // ensure .env is loaded even if cwd is not the project root
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
-require('@typechain/hardhat');
+if (process.env.USE_ETHERS_V6) {
+  require('hardhat-ethers-v6');
+} else {
+  require('@nomiclabs/hardhat-ethers');
+  require('@nomicfoundation/hardhat-chai-matchers');
+  require('@typechain/hardhat');
+}
+
 require('@nomiclabs/hardhat-etherscan');
-require('@nomicfoundation/hardhat-chai-matchers');
 require('solidity-coverage');
 require('hardhat-contract-sizer');
 require('hardhat-tracer');

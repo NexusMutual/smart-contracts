@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
-const { _TypedDataEncoder } = ethers.utils;
 
 async function signLimitOrder(contractAddress, params, signer) {
+  const { _TypedDataEncoder } = ethers.utils;
   const { chainId } = await ethers.provider.getNetwork();
 
   const domain = {

@@ -1,12 +1,9 @@
-const { ethers } = require('hardhat');
-
-const { BigNumber, provider } = ethers;
-const { hexValue } = ethers.utils;
+const { provider } = require('hardhat').ethers;
 
 // this hex function produces evm-compatible hex strings:
 // - strips leading zeroes (0x01 -> 0x1)
 // - keeps one zero if the value is zero (0x00 -> 0x0)
-const hex = n => hexValue(BigNumber.from(n));
+const hex = n => ('0x' + BigInt(n.toString()).toString(16)).replace(/^0x0\B/, '0x');
 
 const setNextBlockTime = async time => provider.send('evm_setNextBlockTimestamp', [time]);
 const mineNextBlock = async () => provider.send('evm_mine', []);

@@ -1,9 +1,9 @@
 const { ethers, network } = require('hardhat');
-const { arrayify, formatBytes32String, defaultAbiCoder, keccak256 } = ethers.utils;
-
-const MEMBERSHIP_APPROVAL = formatBytes32String('MEMBERSHIP_APPROVAL');
 
 const signMembershipApproval = async ({ address, nonce, chainId, kycAuthSigner }) => {
+  const { arrayify, formatBytes32String, defaultAbiCoder, keccak256 } = ethers.utils;
+  const MEMBERSHIP_APPROVAL = formatBytes32String('MEMBERSHIP_APPROVAL');
+
   const message = defaultAbiCoder.encode(
     ['bytes32', 'uint256', 'address', 'uint256'],
     [MEMBERSHIP_APPROVAL, nonce, address, chainId || network.config.chainId || 1],

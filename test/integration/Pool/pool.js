@@ -10,8 +10,8 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { PoolAsset } = require('../../../lib/constants');
 const setup = require('../setup');
 
-const { parseEther, parseUnits } = ethers.utils;
-const { MaxUint256 } = ethers.constants;
+const { parseEther, parseUnits } = ethers;
+const { MaxUint256 } = ethers;
 const { BigNumber } = ethers;
 
 const ETH_ASSET = { address: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' };
@@ -35,8 +35,10 @@ async function tokenPriceSetup() {
   const [member1] = fixture.accounts.members;
 
   const operator = await tk.operator();
-  await setEtherBalance(operator, parseEther('10000000'));
-  await tk.connect(await ethers.getImpersonatedSigner(operator)).mint(member1.address, parseEther('1000000000000'));
+  await setEtherBalance(operator, ethers.parseEther('10000000'));
+  await tk
+    .connect(await ethers.getImpersonatedSigner(operator))
+    .mint(member1.address, ethers.parseEther('1000000000000'));
 
   await tk.connect(member1).approve(tc.address, MaxUint256);
   await stake({
@@ -46,7 +48,7 @@ async function tokenPriceSetup() {
     productId: ethCoverTemplate.productId,
     period: daysToSeconds(60),
     gracePeriod: daysToSeconds(30),
-    amount: parseEther('1000000'),
+    amount: ethers.parseEther('1000000'),
   });
 
   return fixture;
@@ -87,9 +89,9 @@ describe('Pool functions', function () {
     const balancePromises = allAssets.map(asset => asset.balanceOf(pool.address));
     const [daiBal, stEthBal, nxmtyBal, usdcBal, rEthBal, stBal] = await Promise.all(balancePromises);
 
-    const expectedDaiValueInEth = daiToEthRate.mul(daiBal).div(parseEther('1'));
+    const expectedDaiValueInEth = daiToEthRate.mul(daiBal).div(ethers.parseEther('1'));
     const expectedUsdcValueInEth = usdcToEthRate.mul(usdcBal).div(parseUnits('1', USDC_DECIMALS));
-    const expectedNxmtyValueInEth = nxmtyToEthRate.mul(nxmtyBal).div(parseEther('1'));
+    const expectedNxmtyValueInEth = nxmtyToEthRate.mul(nxmtyBal).div(ethers.parseEther('1'));
 
     const expectedTotalAssetValue = poolBalance
       .add(expectedDaiValueInEth)

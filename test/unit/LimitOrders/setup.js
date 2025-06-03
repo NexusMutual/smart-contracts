@@ -1,9 +1,11 @@
 const { ethers } = require('hardhat');
+const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { toBytes2 } = require('../../../lib/helpers');
 
 const { setEtherBalance } = require('../utils').evm;
-const { AddressZero } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { ZeroAddress } = ethers;
+const { parseEther } = ethers;
 
 async function setup() {
   const limitOrderOwner = ethers.Wallet.createRandom().connect(ethers.provider);
@@ -22,8 +24,8 @@ async function setup() {
   const master = await ethers.deployContract('MasterMock');
 
   const limitOrders = await ethers.deployContract('LimitOrders', [
-    AddressZero,
-    AddressZero,
+    ZeroAddress,
+    ZeroAddress,
     limitOrdersSettler.address,
   ]);
 

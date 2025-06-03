@@ -4,7 +4,7 @@ const setup = require('./setup');
 const { assertCoverFields, buyCoverOnOnePool, buyCoverOnMultiplePools, createStakingPool } = require('./helpers');
 const { expect } = require('chai');
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 const gracePeriod = 120 * 24 * 3600; // 120 days
 const GLOBAL_CAPACITY_DENOMINATOR = 10000;

@@ -1,10 +1,11 @@
-const {
-  constants: { AddressZero },
-} = require('ethers');
-const { hex } = require('../utils').helpers;
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const setup = require('./setup');
+
+const { Role } = require('../utils').constants;
+const { hex } = require('../utils').helpers;
+
+const { ZeroAddress } = ethers;
 
 describe('upgradeMultipleContracts', function () {
   it('reverts when not called by governance', async function () {
@@ -26,7 +27,7 @@ describe('upgradeMultipleContracts', function () {
     const fixture = await loadFixture(setup);
     const { governance } = fixture;
 
-    await expect(governance.upgradeMultipleContracts([hex('GV')], [AddressZero])).to.be.revertedWith(
+    await expect(governance.upgradeMultipleContracts([hex('GV')], [ZeroAddress])).to.be.revertedWith(
       'NXMaster: Contract address is 0',
     );
   });

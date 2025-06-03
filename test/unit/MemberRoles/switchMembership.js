@@ -1,9 +1,12 @@
 const { ethers } = require('hardhat');
-const { Role } = require('../utils').constants;
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const { setup } = require('./setup');
-const { formatBytes32String } = ethers.utils;
+const { Role } = require('../utils').constants;
+const { hex } = require('../utils').helpers;
+
+const { ZeroAddress, formatBytes32String } = ethers;
 
 describe('switchMembership', function () {
   it('grants the member role to the new address', async function () {
@@ -11,7 +14,7 @@ describe('switchMembership', function () {
     const { memberRoles, nxm } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await memberRoles.connect(members[0]).switchMembership(nonMembers[0].address);
     const hasMemberRole = await memberRoles.checkRole(nonMembers[0].address, Role.Member);
 
@@ -23,7 +26,7 @@ describe('switchMembership', function () {
     const { memberRoles, nxm } = fixture.contracts;
     const { nonMembers, advisoryBoardMembers } = fixture.accounts;
 
-    await nxm.connect(advisoryBoardMembers[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(advisoryBoardMembers[0]).approve(memberRoles.address, ethers.MaxUint256);
     await memberRoles.connect(advisoryBoardMembers[0]).switchMembership(nonMembers[0].address);
     const hasABMemberRole = await memberRoles.checkRole(nonMembers[0].address, Role.AdvisoryBoard);
 
@@ -35,7 +38,7 @@ describe('switchMembership', function () {
     const { memberRoles, nxm } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await memberRoles.connect(members[0]).switchMembership(nonMembers[0].address);
     const hasMemberRole = await memberRoles.checkRole(members[0].address, Role.Member);
 
@@ -47,7 +50,7 @@ describe('switchMembership', function () {
     const { memberRoles, nxm, tokenController } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await memberRoles.connect(members[0]).switchMembership(nonMembers[0].address);
     const addToWhitelistLastCalledWtih = await tokenController.addToWhitelistLastCalledWtih();
 
@@ -59,7 +62,7 @@ describe('switchMembership', function () {
     const { memberRoles, nxm, tokenController } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await memberRoles.connect(members[0]).switchMembership(nonMembers[0].address);
     const removeFromWhitelistLastCalledWtih = await tokenController.removeFromWhitelistLastCalledWtih();
 
@@ -72,7 +75,7 @@ describe('switchMembership', function () {
     const { members, nonMembers } = fixture.accounts;
 
     const membersBefore = await memberRoles.numberOfMembers(Role.Member);
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await memberRoles.connect(members[0]).switchMembership(nonMembers[0].address);
     const membersAfter = await memberRoles.numberOfMembers(Role.Member);
 
@@ -84,7 +87,7 @@ describe('switchMembership', function () {
     const { memberRoles, nxm } = fixture.contracts;
     const { members } = fixture.accounts;
 
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await expect(memberRoles.connect(members[0]).switchMembership(members[1].address)).to.be.revertedWithCustomError(
       memberRoles,
       'NewAddressIsAlreadyMember',
@@ -96,7 +99,7 @@ describe('switchMembership', function () {
     const { memberRoles, nxm } = fixture.contracts;
     const { nonMembers, members } = fixture.accounts;
 
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await expect(
       memberRoles.connect(nonMembers[0]).switchMembership(nonMembers[1].address),
     ).to.be.revertedWithCustomError(memberRoles, 'OnlyMember');
@@ -184,7 +187,7 @@ describe('switchMembership', function () {
     const { members, nonMembers } = fixture.accounts;
 
     const initialAddressBalance = await nxm.balanceOf(members[0].address);
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await memberRoles.connect(members[0]).switchMembership(nonMembers[0].address);
     const newAddressBalance = await nxm.balanceOf(nonMembers[0].address);
 

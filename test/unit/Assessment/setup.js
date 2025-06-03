@@ -3,7 +3,6 @@ const { hex } = require('../../../lib/helpers');
 const { Role } = require('../../../lib/constants');
 const { getAccounts } = require('../../utils/accounts');
 const { impersonateAccount, setEtherBalance } = require('../utils').evm;
-const { parseEther } = ethers.utils;
 
 async function setup() {
   const accounts = await getAccounts();
@@ -62,8 +61,8 @@ async function setup() {
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);
     await memberRoles.enrollMember(member.address, Role.Member);
-    await nxm.mint(member.address, parseEther('10000'));
-    await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
+    await nxm.mint(member.address, ethers.parseEther('10000'));
+    await nxm.connect(member).approve(tokenController.address, ethers.parseEther('10000'));
   }
 
   const config = {
@@ -74,7 +73,7 @@ async function setup() {
   };
 
   await impersonateAccount(tokenController.address);
-  await setEtherBalance(tokenController.address, parseEther('100'));
+  await setEtherBalance(tokenController.address, ethers.parseEther('100'));
   accounts.tokenControllerSigner = await ethers.getSigner(tokenController.address);
 
   return {

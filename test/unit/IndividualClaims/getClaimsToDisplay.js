@@ -6,7 +6,7 @@ const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);

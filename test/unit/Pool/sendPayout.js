@@ -6,7 +6,7 @@ const { PoolAsset } = require('../../../lib/constants');
 const { setEtherBalance } = require('../utils').evm;
 const setup = require('./setup');
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 describe('sendPayout', function () {
   it('transfers ERC20 payout to destination', async function () {

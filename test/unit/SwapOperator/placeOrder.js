@@ -18,7 +18,7 @@ const utils = require('../utils');
 const { setEtherBalance, setNextBlockTime } = utils.evm;
 const { ETH: ETH_ADDRESS } = utils.constants.Assets;
 
-const { parseEther, hexZeroPad, hexlify, randomBytes } = ethers.utils;
+const { parseEther, hexZeroPad, hexlify, randomBytes } = ethers;
 
 function createContractOrder(domain, order, overrides = {}) {
   order = { ...order, ...overrides };

@@ -1,8 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const base64 = require('base64-js');
-const { parseEther, formatEther } = ethers.utils;
-const { AddressZero, MaxUint256, One } = ethers.constants;
+const { parseEther, formatEther } = ethers;
+const { ZeroAddress, MaxUint256, One } = ethers;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/').evm;
 const { assetWithPrecisionLoss } = require('../utils/assetPricing');
@@ -32,7 +32,7 @@ async function coverNFTDescriptorSetup() {
 
   const { TRANCHE_DURATION } = fixture.config;
 
-  const stakingAmount = parseEther('500');
+  const stakingAmount = ethers.parseEther('500');
   const usdcProductId = 3;
 
   // Move to beginning of next block
@@ -44,12 +44,12 @@ async function coverNFTDescriptorSetup() {
     stakingAmount,
     depositTrancheId,
     0, // new position
-    AddressZero,
+    ZeroAddress,
   );
 
   // Cover details
   const poolId = await stakingPool1.getPoolId();
-  const amount = parseEther('4.20');
+  const amount = ethers.parseEther('4.20');
   const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
   const priceDenominator = 10000;
   const coverAsset = ETH_ASSET_ID; // ETH
@@ -68,7 +68,7 @@ async function coverNFTDescriptorSetup() {
       paymentAsset: coverAsset,
       payWitNXM: false,
       commissionRatio: parseEther('0'),
-      commissionDestination: AddressZero,
+      commissionDestination: ZeroAddress,
       ipfsData: '',
     },
     [{ poolId, coverAmountInAsset: amount.toString() }],
@@ -93,7 +93,7 @@ async function coverNFTDescriptorSetup() {
       paymentAsset: DAI_ASSET_ID,
       payWitNXM: false,
       commissionRatio: parseEther('0'),
-      commissionDestination: AddressZero,
+      commissionDestination: ZeroAddress,
       ipfsData: '',
     },
     [{ poolId, coverAmountInAsset: amount.toString() }],
@@ -101,7 +101,7 @@ async function coverNFTDescriptorSetup() {
 
   // buy usdc cover (tokenId = 3)
   const usdcCoverAmount = One.mul(12311e4); // 123.11 USDC
-  const usdcStakingAmount = parseEther('100');
+  const usdcStakingAmount = ethers.parseEther('100');
   {
     const poolId = await stakingPool3.getPoolId();
     // Add usdc product to pool
@@ -122,7 +122,7 @@ async function coverNFTDescriptorSetup() {
       usdcStakingAmount,
       depositTrancheId,
       0, // new position
-      AddressZero,
+      ZeroAddress,
     );
 
     await usdc.mint(coverBuyer.address, usdcCoverAmount);
@@ -139,7 +139,7 @@ async function coverNFTDescriptorSetup() {
         paymentAsset: USDC_ASSET_ID,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       [{ poolId, coverAmountInAsset: usdcCoverAmount }],
@@ -211,7 +211,7 @@ describe('CoverNFTDescriptor', function () {
     // let expectedAmountRaw = await assetWithPrecisionLoss(pool, fixture.usdcAmount, USDC_ASSET_ID, fixture.config);
     // placeholder line to calm the linter
     await assetWithPrecisionLoss(pool, fixture.usdcAmount, USDC_ASSET_ID, fixture.config);
-    // expectedAmountRaw = ethers.utils.formatUnits(expectedAmountRaw, 6);
+    // expectedAmountRaw = ethers.formatUnits(expectedAmountRaw, 6);
     // const expectedAmount = Number(expectedAmountRaw).toFixed(2);
 
     // name/description

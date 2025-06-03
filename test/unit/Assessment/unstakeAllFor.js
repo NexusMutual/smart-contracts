@@ -4,7 +4,6 @@ const { setTime } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
-const { parseEther } = ethers.utils;
 const ONE_DAY_SECONDS = 24 * 60 * 60;
 
 describe('unstakeAllFor', function () {
@@ -13,11 +12,11 @@ describe('unstakeAllFor', function () {
     const { assessment } = fixture.contracts;
     const { tokenControllerSigner } = fixture.accounts;
     const [user] = fixture.accounts.members;
-    await assessment.connect(user).stake(parseEther('100'));
+    await assessment.connect(user).stake(ethers.parseEther('100'));
 
     await assessment.connect(tokenControllerSigner).unstakeAllFor(user.address);
     const { amount } = await assessment.stakeOf(user.address);
-    expect(amount).to.be.equal(parseEther('0'));
+    expect(amount).to.be.equal(ethers.parseEther('0'));
   });
 
   it('transfers all the staked NXM to the provided address', async function () {
@@ -25,7 +24,7 @@ describe('unstakeAllFor', function () {
     const { assessment, nxm } = fixture.contracts;
     const { tokenControllerSigner } = fixture.accounts;
     const [user, otherUser] = fixture.accounts.members;
-    const stakeAmount = parseEther('100');
+    const stakeAmount = ethers.parseEther('100');
     await assessment.connect(user).stake(stakeAmount);
 
     const user1BalanceBefore = await nxm.balanceOf(user.address);
@@ -45,7 +44,7 @@ describe('unstakeAllFor', function () {
     const { assessment, individualClaims } = fixture.contracts;
     const { tokenControllerSigner } = fixture.accounts;
     const [user] = fixture.accounts.members;
-    const amount = parseEther('100');
+    const amount = ethers.parseEther('100');
 
     await assessment.connect(user).stake(amount);
     await individualClaims.submitClaim(0, amount, '');
@@ -108,7 +107,7 @@ describe('unstakeAllFor', function () {
     const { tokenControllerSigner } = fixture.accounts;
     const [user] = fixture.accounts.members;
 
-    const stakeAmount = parseEther('100');
+    const stakeAmount = ethers.parseEther('100');
     await assessment.connect(user).stake(stakeAmount);
 
     await expect(assessment.connect(tokenControllerSigner).unstakeAllFor(user.address))
@@ -121,7 +120,7 @@ describe('unstakeAllFor', function () {
     const { nxm, assessment } = fixture.contracts;
     const { tokenControllerSigner } = fixture.accounts;
     const [user] = fixture.accounts.members;
-    const amount = parseEther('100');
+    const amount = ethers.parseEther('100');
 
     await assessment.connect(user).stake(amount);
     const balanceBefore = await nxm.balanceOf(user.address);

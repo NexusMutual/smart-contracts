@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 describe('transferAsset', function () {
   it('transfers added ERC20 asset to destination', async function () {

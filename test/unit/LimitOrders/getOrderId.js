@@ -4,9 +4,11 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
 const { signLimitOrder } = require('../utils').buyCover;
+const { Role } = require('../utils').constants;
+const { hex } = require('../utils').helpers;
 
-const { parseEther } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { parseEther } = ethers;
+const { ZeroAddress, MaxUint256 } = ethers;
 
 describe('getOrderId', function () {
   it('should get order id', async function () {
@@ -35,7 +37,7 @@ describe('getOrderId', function () {
       owner: limitOrderOwner.address,
       ipfsData: 'ipfs data',
       commissionRatio: 0,
-      commissionDestination: AddressZero,
+      commissionDestination: ZeroAddress,
     };
     const { digest } = await signLimitOrder(
       limitOrders.address,

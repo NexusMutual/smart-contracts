@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { Two } = ethers.constants;
+const { Two } = ethers;
 
 const poolId = 150;
 describe('createStakingPoolOwnershipOffer', function () {

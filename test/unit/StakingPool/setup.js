@@ -1,9 +1,11 @@
 const { ethers } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 const { setEtherBalance } = require('../utils').evm;
 const { Role } = require('../utils').constants;
-const { AddressZero } = ethers.constants;
+const { AddressZero, ZeroAddress } = ethers;
+const { expect } = require('chai');
+const { hex } = require('../../../lib/helpers');
 
 async function setup() {
   const accounts = await getAccounts();
@@ -45,7 +47,7 @@ async function setup() {
   await master.enrollInternal(stakingProducts.address);
 
   for (const member of accounts.members) {
-    const amount = ethers.constants.MaxUint256.div(100);
+    const amount = ethers;
     await master.enrollMember(member.address, Role.Member);
     await memberRoles.setRole(member.address, Role.Member);
     await nxm.mint(member.address, amount);
@@ -85,10 +87,21 @@ async function setup() {
   };
 
   const coverSigner = await ethers.getImpersonatedSigner(cover.address);
-  await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
+  await setEtherBalance(coverSigner.address, parseEther('1'));
 
   const stakingProductsSigner = await ethers.getImpersonatedSigner(stakingProducts.address);
-  await setEtherBalance(stakingProductsSigner.address, ethers.utils.parseEther('100'));
+  await setEtherBalance(stakingProductsSigner.address, parseEther('100'));
+
+  await Promise.all([
+    master.setLatestAddress(hex('P1'), stakingPool.address),
+    master.setLatestAddress(hex('TC'), tokenController.address),
+    master.setLatestAddress(hex('ST'), stakingPool.address),
+    master.setTokenAddress(nxm.address),
+    master.enrollInternal(stakingPool.address),
+    master.enrollInternal(stakingProducts.address),
+    master.enrollGovernance(accounts.governanceContracts[0].address),
+    master.setEmergencyAdmin(ZeroAddress),
+  ]);
 
   return {
     accounts,

@@ -8,8 +8,9 @@ const { ETH_ASSET_ID } = require('../utils/cover');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 const { BigNumber } = ethers;
-const { parseEther, formatEther } = ethers.utils;
-const { AddressZero } = ethers.constants;
+const { formatEther } = ethers.utils;
+const { AddressZero } = ethers;
+const { parseEther } = ethers;
 
 const svgHeader = 'data:image/svg+xml;base64,';
 const jsonHeader = 'data:application/json;base64,';
@@ -147,7 +148,7 @@ describe('StakingNFTDescriptor', function () {
     const promises = [];
     for (let i = 0; i < 100; i++) {
       const random = Math.random().toFixed(18);
-      const randomWei = ethers.utils.parseEther(random.toString());
+      const randomWei = parseEther(random.toString());
 
       const expected = formatEther(randomWei.toString());
       promises.push(

@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { MerkleTree } = require('merkletreejs');
 const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
-const { parseEther, arrayify, hexZeroPad, hexValue, keccak256 } = ethers.utils;
+const { arrayify, hexZeroPad, hexValue, keccak256 } = ethers;
 const { BigNumber } = ethers;
 
 const STATUS = {
@@ -57,7 +57,7 @@ const submitFraud = async ({ assessment, signer, addresses, amounts, lastFraudul
 };
 
 const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAddress, merkleTree) => {
-  let gasUsed = ethers.constants.Zero;
+  let gasUsed = ethers.Zero;
   const voteCounts = await getVoteCountOfAddresses(assessment)(addresses);
   const fraudCounts = await getFraudCountOfAddresses(assessment)(addresses);
   for (let i = 0; i < addresses.length; i++) {
@@ -92,14 +92,14 @@ const getDurationByTokenWeight =
   (tokens, payoutImpact) => {
     const { minVotingPeriodInDays, maxVotingPeriodDays } = config;
     const MULTIPLIER = '10'; // 10x the cover amount
-    let tokenDrivenStrength = tokens.mul(parseEther('1')).div(payoutImpact.mul(MULTIPLIER));
+    let tokenDrivenStrength = tokens.mul(ethers.parseEther('1')).div(payoutImpact.mul(MULTIPLIER));
     // tokenDrivenStrength is capped at 1 i.e. 100%
-    tokenDrivenStrength = tokenDrivenStrength.gt(parseEther('1')) ? parseEther('1') : tokenDrivenStrength;
+    tokenDrivenStrength = tokenDrivenStrength.gt(ethers.parseEther('1')) ? ethers.parseEther('1') : tokenDrivenStrength;
     return BigNumber.from(daysToSeconds(minVotingPeriodInDays).toString())
       .add(
         BigNumber.from(daysToSeconds(maxVotingPeriodDays - minVotingPeriodInDays).toString())
-          .mul(parseEther('1').sub(tokenDrivenStrength))
-          .div(parseEther('1')),
+          .mul(ethers.parseEther('1').sub(tokenDrivenStrength))
+          .div(ethers.parseEther('1')),
       )
       .toNumber();
   };
@@ -111,8 +111,8 @@ const finalizePoll = async (assessment, config) => {
 };
 
 const generateRewards = async ({ assessment, individualClaims, staker }) => {
-  await assessment.connect(staker).stake(parseEther('10'));
-  await individualClaims.connect(staker).submitClaim(0, parseEther('100'), '');
+  await assessment.connect(staker).stake(ethers.parseEther('10'));
+  await individualClaims.connect(staker).submitClaim(0, ethers.parseEther('100'), '');
   await assessment.connect(staker).castVotes([0], [true], ['Assessment data hash'], 0);
 };
 

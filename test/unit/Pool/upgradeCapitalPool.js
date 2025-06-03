@@ -3,11 +3,11 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
-const { AggregatorType, Assets } = require('../utils').constants;
-const { toBytes8 } = require('../utils').helpers;
+const { AggregatorType, Assets, Role } = require('../utils').constants;
+const { toBytes8, hex } = require('../utils').helpers;
 
-const { parseEther } = ethers.utils;
-const { AddressZero } = ethers.constants;
+const { parseEther } = ethers;
+const { ZeroAddress } = ethers;
 
 describe('upgradeCapitalPool', function () {
   it('moves pool funds to new pool', async function () {
@@ -54,7 +54,7 @@ describe('upgradeCapitalPool', function () {
     const newPool = await Pool.deploy(
       defaultSender.address,
       priceFeedOracle.address,
-      AddressZero, // we do not test swaps here
+      ZeroAddress, // we do not test swaps here
       token.address,
       pool.address,
     );
@@ -132,7 +132,7 @@ describe('upgradeCapitalPool', function () {
     const newPool = await Pool.deploy(
       defaultSender.address,
       priceFeedOracle.address,
-      AddressZero, // we do not test swaps here
+      ZeroAddress, // we do not test swaps here
       token.address,
       pool.address,
     );

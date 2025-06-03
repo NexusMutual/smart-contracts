@@ -4,7 +4,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { setEtherBalance } = require('../../utils/').evm;
 const { stakingPoolAddressAt } = require('../../utils/').addresses;
-const { Two, MaxUint256 } = ethers.constants;
+const { Two, MaxUint256 } = ethers
 
 const poolId = 234;
 

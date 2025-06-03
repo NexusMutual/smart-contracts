@@ -17,7 +17,7 @@ const evm = require('./evm')();
 
 const { BigNumber } = ethers;
 const { formatEther, parseEther, defaultAbiCoder, toUtf8Bytes, parseUnits, formatUnits } = ethers.utils;
-const { MaxUint256, AddressZero } = ethers.constants;
+const { MaxUint256, AddressZero } = ethers;
 
 const AavePoolAbi = require('./abi/aave/AavePool.json');
 const AaveProtocolDataProviderAbi = require('./abi/aave/AaveProtocolDataProvider.json');

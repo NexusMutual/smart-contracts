@@ -4,7 +4,7 @@ const { expect } = require('chai');
 
 const { setup } = require('./setup');
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 describe('getRewards', function () {
   it('getRewards return assessmentRewards', async function () {

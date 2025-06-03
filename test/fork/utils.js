@@ -230,11 +230,11 @@ async function getActiveProductsInPool(params) {
     const { targetWeight, lastEffectiveWeight, bumpedPrice, bumpedPriceUpdateTime, targetPrice } =
       await stakingProducts.getProduct(poolId, i);
 
-    if (ethers.constants.One.mul(bumpedPrice).isZero()) {
+    if (ethers.One.mul(bumpedPrice).isZero()) {
       continue;
     }
 
-    if (ethers.constants.One.mul(targetWeight).eq(0)) {
+    if (ethers.One.mul(targetWeight).eq(0)) {
       continue;
     }
     productsInThisPool.push({

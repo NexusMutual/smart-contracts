@@ -3,9 +3,11 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
-const { ETH } = require('../utils').constants.Assets;
+const { AggregatorType, Assets } = require('../utils').constants;
 
-const { parseEther, parseUnits } = ethers.utils;
+const { parseEther, parseUnits } = ethers;
+
+const { ETH } = require('../utils').constants.Assets;
 
 describe('getEthForAsset', function () {
   it('returns asset amount if asset is ETH', async function () {

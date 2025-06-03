@@ -4,10 +4,12 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
 const { PoolAsset } = require('../utils').constants;
+const { Role } = require('../utils').constants;
+const { hex } = require('../utils').helpers;
 
 const { BigNumber } = ethers;
-const { parseEther } = ethers.utils;
-const { WeiPerEther } = ethers.constants;
+const { parseEther } = ethers;
+const WeiPerEther = 10n ** 18n;
 
 describe('getInternalTokenPriceInAsset', function () {
   it('calculates token price correctly in ETH', async function () {

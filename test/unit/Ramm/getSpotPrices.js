@@ -6,7 +6,7 @@ const { setup } = require('./setup');
 const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 
 const { provider } = ethers;
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 describe('getSpotPrices', function () {
   it('should return current buy / sell spot prices', async function () {
@@ -14,7 +14,7 @@ describe('getSpotPrices', function () {
     const { ramm, pool, tokenController, mcr } = fixture.contracts;
 
     const { timestamp } = await provider.getBlock('latest');
-    const elapsed = 1 * 60 * 60; // 1 hour elapsed
+    const elapsed = 1n * 60n * 60n; // 1 hour elapsed
     const nextBlockTimestamp = timestamp + elapsed;
     await setNextBlockTime(nextBlockTimestamp);
     await mineNextBlock();
@@ -31,10 +31,10 @@ describe('getSpotPrices', function () {
     const [{ eth, nxmA, nxmB }] = await ramm._getReserves(initialState, context, nextBlockTimestamp);
 
     // buy price
-    const expectedSpotPriceA = parseEther('1').mul(eth).div(nxmA);
+    const expectedSpotPriceA = (parseEther('1') * eth) / nxmA;
     expect(spotPriceA).to.be.equal(expectedSpotPriceA);
     // sell price
-    const expectedSpotPriceB = parseEther('1').mul(eth).div(nxmB);
+    const expectedSpotPriceB = (parseEther('1') * eth) / nxmB;
     expect(spotPriceB).to.be.equal(expectedSpotPriceB);
   });
 });

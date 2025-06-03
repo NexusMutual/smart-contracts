@@ -1,12 +1,14 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getAccounts } = require('../utils').accounts;
 const { setEtherBalance } = require('../utils').evm;
 const { Role } = require('../utils').constants;
-const { hex } = require('../utils').helpers;
+const { hex } = require('../../../lib/helpers');
 
-const { parseEther, getContractAddress } = ethers.utils;
+const { parseEther, getContractAddress } = ethers;
+const { ZeroAddress } = ethers;
 
 const initialProductTemplate = {
   productId: 0,
@@ -167,7 +169,7 @@ async function setup() {
   };
 
   const coverSigner = await ethers.getImpersonatedSigner(cover.address);
-  await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
+  await setEtherBalance(coverSigner.address, parseEther('1'));
 
   return {
     accounts,

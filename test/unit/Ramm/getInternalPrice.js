@@ -7,9 +7,9 @@ const { calculateInternalPrice, getObservationIndex } = require('../utils').ramm
 const { getAccounts } = require('../utils').accounts;
 const { setEtherBalance, setNextBlockTime, mineNextBlock } = require('../utils').evm;
 const { divCeil } = require('../utils').bnMath;
-const { hex } = require('../../../lib/helpers');
+const { hex } = require('../utils').helpers;
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 describe('getInternalPrice', function () {
   it('should return the internal price', async function () {

@@ -3,7 +3,7 @@ const { Role } = require('../../../lib/constants');
 const { getAccounts } = require('../../utils/accounts');
 const { hex } = require('../utils').helpers;
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 async function setup() {
   const accounts = await getAccounts();

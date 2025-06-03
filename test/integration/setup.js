@@ -8,15 +8,14 @@ const { getAccounts } = require('../utils/accounts');
 const { setNextBlockBaseFee } = require('../utils/evm');
 const { impersonateAccount, setEtherBalance } = require('../utils').evm;
 
-const { BigNumber } = ethers;
-const { parseEther, parseUnits } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { parseEther, parseUnits } = ethers;
+const { ZeroAddress, MaxUint256 } = ethers;
 
 const deployProxy = async (contract, deployParams = [], options = {}) => {
   const contractFactory = await ethers.getContractFactory(contract, options);
   const implementation = await contractFactory.deploy(...deployParams);
-  const proxy = await ethers.deployContract('OwnedUpgradeabilityProxy', [implementation.address]);
-  return await ethers.getContractAt(contract, proxy.address);
+  const proxy = await ethers.deployContract('OwnedUpgradeabilityProxy', [implementation.target]);
+  return await ethers.getContractAt(contract, proxy.target);
 };
 
 const upgradeProxy = async (proxyAddress, contract, constructorArgs = [], options = {}) => {
@@ -182,11 +181,11 @@ async function setup() {
     owner.address, // _swapController,
     master.address,
     weth.address,
-    AddressZero, // _enzymeV4VaultProxyAddress
-    AddressZero, // _safe
+    ZeroAddress, // _enzymeV4VaultProxyAddress
+    ZeroAddress, // _safe
     dai.address, // _dai
     usdc.address, // _usdc
-    AddressZero, // _enzymeFundValueCalculatorRouter
+    ZeroAddress, // _enzymeFundValueCalculatorRouter
     '0',
   ]);
 
@@ -459,7 +458,7 @@ async function setup() {
   await Promise.all(poolAssets.map(pa => pa.asset.transfer(p1.address, pa.poolValue)));
 
   // Rates
-  const assetToEthRate = (rate, powValue = 36) => BigNumber.from(10).pow(BigNumber.from(powValue)).div(rate);
+  const assetToEthRate = (rate, powValue = 36) => ethers.BigNumber.from(10).pow(ethers.BigNumber.from(powValue)).div(rate);
 
   const ethToDaiRate = 20000;
   const ethToNxmtyRate = 1000;
@@ -657,10 +656,10 @@ async function setup() {
     TRANCHE_DURATION: await fixture.contracts.stakingPool1.TRANCHE_DURATION(),
     MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION:
       await fixture.contracts.limitOrders.MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION(),
-    BUCKET_SIZE: BigNumber.from(7 * 24 * 3600), // 7 days
-    BUCKET_DURATION: BigNumber.from(28 * 24 * 3600), // 28 days
-    GLOBAL_REWARDS_RATIO: BigNumber.from(5000), // 50%
-    COMMISSION_DENOMINATOR: BigNumber.from(10000),
+    BUCKET_SIZE: ethers.BigNumber.from(7 * 24 * 3600), // 7 days
+    BUCKET_DURATION: ethers.BigNumber.from(28 * 24 * 3600), // 28 days
+    GLOBAL_REWARDS_RATIO: ethers.BigNumber.from(5000), // 50%
+    COMMISSION_DENOMINATOR: ethers.BigNumber.from(10000),
     TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
     ONE_NXM: parseEther('1'),
     NXM_PER_ALLOCATION_UNIT: await stakingPool.NXM_PER_ALLOCATION_UNIT(),

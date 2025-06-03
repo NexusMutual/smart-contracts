@@ -7,9 +7,8 @@ const setup = require('./setup');
 const { increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
-const { BigNumber } = ethers;
-const { parseEther } = ethers.utils;
-const { AddressZero } = ethers.constants;
+const { ZeroAddress } = ethers;
+const { parseEther } = ethers;
 
 const buyCoverFixture = {
   productId: 0,
@@ -19,10 +18,10 @@ const buyCoverFixture = {
   period: 3600 * 24 * 30, // 30 days
   amount: parseEther('1000'),
   targetPriceRatio: 260,
-  priceDenominator: BigNumber.from(10000),
+  priceDenominator: BigInt('10000'),
   activeCover: parseEther('8000'),
   capacity: parseEther('10000'),
-  expectedPremium: parseEther('1000').mul(260).div(10000), // amount * targetPriceRatio / priceDenominator
+  expectedPremium: (parseEther('1000') * BigInt(260)) / BigInt(10000),
 };
 
 const poolAllocationRequest = [{ poolId: 1, coverAmountInAsset: buyCoverFixture.amount }];
@@ -55,7 +54,7 @@ async function updateTotalActiveCoverAmountSetup() {
       maxPremiumInAsset: expectedPremium,
       paymentAsset: coverAsset,
       commissionRatio: parseEther('0'),
-      commissionDestination: AddressZero,
+      commissionDestination: ZeroAddress,
       ipfsData: '',
     },
     poolAllocationRequest,

@@ -1,8 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 const { BigNumber } = ethers;
-const { MaxUint256 } = ethers.constants;
+const { MaxUint256 } = ethers;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { acceptClaim } = require('../utils/voteClaim');
 const { setNextBlockTime, mineNextBlock, setEtherBalance } = require('../../utils/evm');
@@ -17,7 +17,7 @@ const newEthCoverTemplate = {
   coverAsset: ETH_ASSET_ID, // ETH
   period: daysToSeconds(30), // 30 days
   gracePeriod: daysToSeconds(90),
-  amount: parseEther('100'),
+  amount: ethers.parseEther('100'),
   priceDenominator: 10000,
   coverId: 0,
   segmentId: 0,
@@ -231,8 +231,8 @@ describe('updateMCR', function () {
     const gearingFactor = BigNumber.from(await mcr.gearingFactor());
     const currentMCR = await mcr.getMCR();
     const coverAmount = gearingFactor
-      .mul(currentMCR.add(parseEther('300')))
-      .div(parseEther('1'))
+      .mul(currentMCR.add(ethers.parseEther('300')))
+      .div(ethers.parseEther('1'))
       .div(ratioScale);
 
     // buy cover
@@ -242,7 +242,7 @@ describe('updateMCR', function () {
       cover,
       coverBuyer: coverHolder,
       targetPrice: 100,
-      expectedPremium: parseEther('1'),
+      expectedPremium: ethers.parseEther('1'),
     };
     const expectedCoverId = 1;
     await buyCover({
@@ -256,10 +256,12 @@ describe('updateMCR', function () {
     await increaseTime(await mcr.minUpdateTime());
     await mcr.updateMCR();
     // Claim for full amount and accept it
-    await claims.connect(coverHolder).submitClaim(expectedCoverId, coverData.amount, '', { value: parseEther('100') });
+    await claims
+      .connect(coverHolder)
+      .submitClaim(expectedCoverId, coverData.amount, '', { value: ethers.parseEther('100') });
     const assessmentId = 0;
     const claimId = 0;
-    const assessmentStakingAmount = parseEther('1000');
+    const assessmentStakingAmount = ethers.parseEther('1000');
 
     await acceptClaim({ staker: member1, assessmentStakingAmount, as, assessmentId });
 
@@ -302,7 +304,7 @@ describe('updateMCR', function () {
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       const gvSigner = await ethers.getImpersonatedSigner(gv.address);
-      await setEtherBalance(gvSigner.address, ethers.utils.parseEther('1'));
+      await setEtherBalance(gvSigner.address, parseEther('1'));
       await cg
         .connect(gvSigner)
         .submitIncident(

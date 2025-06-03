@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const evm = require('./evm')();
 const {
@@ -22,7 +23,7 @@ const VariableDebtTokenAbi = require('./abi/aave/VariableDebtToken.json');
 const { InternalContractsIDs } = require('../utils').constants;
 
 const { BigNumber, deployContract } = ethers;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero, MaxUint256, ZeroAddress } = ethers;
 const { parseEther, defaultAbiCoder, toUtf8Bytes, formatEther, parseUnits } = ethers.utils;
 
 const ASSESSMENT_VOTER_COUNT = 3;
@@ -241,7 +242,7 @@ describe('basic functionality tests', function () {
     const awEthRewards = awEthAfter.sub(awEthBefore);
 
     const nxmReceived = after.nxmBalance.sub(before.nxmBalance);
-    const nxmTransferFilter = this.nxm.filters.Transfer(ethers.constants.AddressZero, member._address);
+    const nxmTransferFilter = this.nxm.filters.Transfer(ZeroAddress, member._address);
     const nxmTransferEvents = await this.nxm.queryFilter(nxmTransferFilter, receipt.blockNumber);
     const nxmOut = nxmTransferEvents[0]?.args?.value;
 

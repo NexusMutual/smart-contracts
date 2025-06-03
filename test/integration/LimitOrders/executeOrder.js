@@ -11,8 +11,8 @@ const { getInternalPrice } = require('../../utils/rammCalculations');
 const { setNextBlockBaseFee } = require('../../utils/evm');
 const { signLimitOrder } = require('../../utils/buyCover');
 
-const { parseEther } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { parseEther } = ethers;
+const { AddressZero, MaxUint256 } = ethers;
 
 const REWARD_DENOMINATOR = 10000;
 
@@ -1019,7 +1019,7 @@ describe('LimitOrders - executeOrder', function () {
       NXM_PER_ALLOCATION_UNIT,
     );
 
-    const executionDetails = {
+    executionDetails = {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
@@ -1115,7 +1115,7 @@ describe('LimitOrders - executeOrder', function () {
       NXM_PER_ALLOCATION_UNIT,
     );
 
-    const executionDetails = {
+    executionDetails = {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
@@ -1209,7 +1209,7 @@ describe('LimitOrders - executeOrder', function () {
       NXM_PER_ALLOCATION_UNIT,
     );
 
-    const executionDetails = {
+    executionDetails = {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
@@ -1264,7 +1264,7 @@ describe('LimitOrders - executeOrder', function () {
     } = fixture.accounts;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
-    const executionDetails = {
+    executionDetails = {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,
@@ -1291,7 +1291,7 @@ describe('LimitOrders - executeOrder', function () {
     const { limitOrders } = fixture.contracts;
 
     const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
-    const executionDetails = {
+    executionDetails = {
       ...executionDetailsFixture,
       notExecutableBefore: currentTimestamp,
       executableUntil: currentTimestamp + 3600,

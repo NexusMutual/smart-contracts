@@ -3,10 +3,10 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
-const { InternalContractsIDs } = require('../utils').constants;
+const { InternalContractsIDs, Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
-const { AddressZero } = ethers.constants;
+const { ZeroAddress } = ethers;
 
 describe('changeDependentContractAddress', function () {
   it('should change authorized address for the role', async function () {
@@ -17,10 +17,10 @@ describe('changeDependentContractAddress', function () {
     const p1AddressBefore = await memberRoles.internalContracts(InternalContractsIDs.P1);
     const coAddressBefore = await memberRoles.internalContracts(InternalContractsIDs.CO);
 
-    await master.setLatestAddress(hex('CO'), AddressZero);
-    await master.setTokenAddress(AddressZero);
-    await master.setLatestAddress(hex('TC'), AddressZero);
-    await master.setLatestAddress(hex('P1'), AddressZero);
+    await master.setLatestAddress(hex('CO'), ZeroAddress);
+    await master.setTokenAddress(ZeroAddress);
+    await master.setLatestAddress(hex('TC'), ZeroAddress);
+    await master.setLatestAddress(hex('P1'), ZeroAddress);
 
     await memberRoles.changeDependentContractAddress();
     const tcAddressAfter = await memberRoles.internalContracts(InternalContractsIDs.TC);
@@ -31,8 +31,8 @@ describe('changeDependentContractAddress', function () {
     expect(tcAddressAfter).not.to.be.equal(p1AddressBefore);
     expect(coAddressAfter).not.to.be.equal(coAddressBefore);
 
-    expect(tcAddressAfter).to.be.equal(AddressZero);
-    expect(p1AddressAfter).to.be.equal(AddressZero);
-    expect(coAddressAfter).to.be.equal(AddressZero);
+    expect(tcAddressAfter).to.be.equal(ZeroAddress);
+    expect(p1AddressAfter).to.be.equal(ZeroAddress);
+    expect(coAddressAfter).to.be.equal(ZeroAddress);
   });
 });

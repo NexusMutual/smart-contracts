@@ -9,8 +9,8 @@ const { evm, rammCalculations } = require('../../utils');
 const { daysToSeconds } = require('../../../lib/helpers');
 const setup = require('../setup');
 
-const { MaxUint256 } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { MaxUint256 } = ethers;
+
 const { setEtherBalance, setNextBlockTime } = evm;
 const { getInternalPrice } = rammCalculations;
 

@@ -18,7 +18,7 @@ describe('CoverBroker - switchMembership', function () {
     ]);
 
     // Add NXM balance to CoverBroker
-    const nxmBalance = ethers.utils.parseEther('10');
+    const nxmBalance = ethers.parseEther('10');
     await tk.connect(fixture.accounts.defaultSender).transfer(coverBroker.address, nxmBalance);
     await coverBroker.switchMembership(newCoverBroker.address);
 

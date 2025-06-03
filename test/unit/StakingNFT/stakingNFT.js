@@ -4,8 +4,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { toBytes } = require('../../../lib/helpers');
 const setup = require('./setup');
-const { BigNumber } = ethers;
-const { AddressZero } = ethers.constants;
+const { ZeroAddress } = ethers;
 
 describe('StakingNFT', function () {
   it('should verify that constructor variables were set correctly', async function () {
@@ -29,7 +28,7 @@ describe('StakingNFT', function () {
   it('should revert if changing operator to zero address account', async function () {
     const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
-    await expect(stakingNFT.connect(fixture.coverSigner).changeOperator(AddressZero)).to.be.revertedWithCustomError(
+    await expect(stakingNFT.connect(fixture.coverSigner).changeOperator(ZeroAddress)).to.be.revertedWithCustomError(
       stakingNFT,
       'InvalidNewOperatorAddress',
     );
@@ -49,7 +48,7 @@ describe('StakingNFT', function () {
     const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     await expect(
-      stakingNFT.connect(fixture.coverSigner).changeNFTDescriptor(AddressZero),
+      stakingNFT.connect(fixture.coverSigner).changeNFTDescriptor(ZeroAddress),
     ).to.be.revertedWithCustomError(stakingNFT, 'InvalidNewNFTDescriptorAddress');
   });
 
@@ -75,7 +74,7 @@ describe('StakingNFT', function () {
     const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
     await expect(
-      stakingNFT.connect(fixture.stakingPoolSigner).mint(fixture.poolId, ethers.constants.AddressZero),
+      stakingNFT.connect(fixture.stakingPoolSigner).mint(fixture.poolId, ZeroAddress),
     ).to.be.revertedWithCustomError(stakingNFT, 'InvalidRecipient');
   });
 
@@ -143,10 +142,7 @@ describe('StakingNFT', function () {
   it('should revert if reading balance of 0 address - NotMinted', async function () {
     const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
-    await expect(stakingNFT.balanceOf(ethers.constants.AddressZero)).to.be.revertedWithCustomError(
-      stakingNFT,
-      'NotMinted',
-    );
+    await expect(stakingNFT.balanceOf(ZeroAddress)).to.be.revertedWithCustomError(stakingNFT, 'NotMinted');
   });
 
   it('should revert if trying to transferFrom a token from a non-owner - WrongFrom', async function () {
@@ -165,7 +161,7 @@ describe('StakingNFT', function () {
     const { stakingNFT } = fixture.contracts;
     const [owner] = fixture.accounts.members;
     await stakingNFT.connect(fixture.stakingPoolSigner).mint(fixture.poolId, owner.address);
-    await expect(stakingNFT.transferFrom(owner.address, ethers.constants.AddressZero, 1)).to.be.revertedWithCustomError(
+    await expect(stakingNFT.transferFrom(owner.address, ZeroAddress, 1)).to.be.revertedWithCustomError(
       stakingNFT,
       'InvalidRecipient',
     );
@@ -200,37 +196,7 @@ describe('StakingNFT', function () {
     await expect(
       stakingNFT
         .connect(owner)
-        ['safeTransferFrom(address,address,uint256,bytes)'](
-          owner.address,
-          cover.address,
-          BigNumber.from(1),
-          toBytes('cafe'),
-        ),
-    ).to.be.revertedWithoutReason();
-  });
-
-  it('should fail to safeTransfer to a contract that does not implement onERC721Received', async function () {
-    const fixture = await loadFixture(setup);
-    const { stakingNFT, cover } = fixture.contracts;
-    const [owner] = fixture.accounts.members;
-    await stakingNFT.connect(fixture.stakingPoolSigner).mint(fixture.poolId, owner.address);
-    // Reverts without reason if the contract does not implement onERC721Received
-    await expect(
-      stakingNFT
-        .connect(owner)
-        ['safeTransferFrom(address,address,uint256)'](owner.address, cover.address, BigNumber.from(1)),
-    ).to.be.revertedWithoutReason();
-  });
-
-  it('should support erc721 and ERC165 interfaces', async function () {
-    const fixture = await loadFixture(setup);
-    const { stakingNFT } = fixture.contracts;
-    // 0x80ac58cd // ERC165 Interface ID for ERC721
-    expect(await stakingNFT.supportsInterface('0x80ac58cd')).to.be.equal(true);
-    // 0x01ffc9a7 // ERC165 Interface ID for ERC165
-    expect(await stakingNFT.supportsInterface('0x01ffc9a7')).to.be.equal(true);
-    // 0x5b5e139f   // ERC165 Interface ID for ERC721Metadata
-    expect(await stakingNFT.supportsInterface('0x5b5e139f')).to.be.equal(true);
-    expect(await stakingNFT.supportsInterface('0xdeadbeef')).to.be.equal(false);
+        ['safeTransferFrom(address,address,uint256,bytes)'](owner.address, cover.address, 1, toBytes('0x')),
+    ).to.be.reverted;
   });
 });

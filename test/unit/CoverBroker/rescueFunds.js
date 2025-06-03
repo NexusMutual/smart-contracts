@@ -6,7 +6,7 @@ const { setup } = require('./setup');
 const { setEtherBalance } = require('../utils').evm;
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 describe('rescueFunds', function () {
   it('should rescue funds (ETH) to owner', async function () {

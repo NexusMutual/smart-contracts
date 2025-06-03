@@ -12,7 +12,7 @@ const main = async () => {
   ];
 
   const cover = await ethers.getContractAt(LegacyCover, addresses.Cover);
-  const coverProducts = await ethers.getContractAt('CoverProducts', ethers.constants.AddressZero);
+  const coverProducts = await ethers.getContractAt('CoverProducts', ethers.AddressZero);
 
   const productSetFilter = cover.filters.ProductSet();
   const productTypesFilter = cover.filters.ProductTypeSet();

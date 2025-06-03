@@ -5,7 +5,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 const { setNextBlockTime } = require('../../utils/evm');
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 describe('storeState', function () {
   it('should store state correctly', async function () {
@@ -16,8 +16,8 @@ describe('storeState', function () {
     const ethIn = parseEther('1');
     const minAmountOut = parseEther('28');
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const nextBlockTimestamp = timestamp + 6 * 60 * 60;
-    const deadline = timestamp + 7 * 60 * 60;
+    const nextBlockTimestamp = timestamp + 6n * 60n * 60n;
+    const deadline = timestamp + 7n * 60n * 60n;
 
     const initialState = await ramm.loadState();
     const context = {
@@ -34,12 +34,12 @@ describe('storeState', function () {
     await tx.wait();
     const after = await ramm.loadState();
 
-    const k = before.eth.mul(before.nxmA);
-    const newEth = before.eth.add(ethIn);
+    const k = before.eth * before.nxmA;
+    const newEth = before.eth + ethIn;
 
     // check storeState correctly stored new values
-    expect(after.nxmA).to.be.equal(k.div(newEth));
-    expect(after.nxmB).to.be.equal(before.nxmB.mul(newEth).div(before.eth));
+    expect(after.nxmA).to.be.equal(k / newEth);
+    expect(after.nxmB).to.be.equal((before.nxmB * newEth) / before.eth);
     expect(after.eth).to.be.equal(newEth);
     expect(after.timestamp).to.be.equal(nextBlockTimestamp);
   });

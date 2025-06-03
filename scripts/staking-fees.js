@@ -3,7 +3,7 @@ const { addresses, Cover, StakingPool, StakingPoolFactory } = require('@nexusmut
 
 const { formatEther, formatUnits } = ethers.utils;
 const TRANCHE_DURATION = 91 * 24 * 3600; // 91 days
-const sum = arr => arr.reduce((a, b) => a.add(b), ethers.constants.Zero);
+const sum = arr => arr.reduce((a, b) => a.add(b), ethers.Zero);
 
 async function main() {
   const now = (await ethers.provider.getBlock('latest')).timestamp;
@@ -49,7 +49,7 @@ async function main() {
     console.log(`Reward Share Supply  : ${formatEther(rewardShareSupply)}`);
 
     const actualFee = poolTrancheRewardShares.isZero()
-      ? ethers.constants.Zero
+      ? ethers.Zero
       : poolManagerRewardShares.mul(10000).div(poolTrancheRewardShares);
 
     console.log(`Actual Fee  : ${formatUnits(actualFee, 2)}%`);

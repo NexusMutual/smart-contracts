@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { AddressZero } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { AddressZero } = ethers
+const { parseEther } = ethers;
 
 const { daysToSeconds } = require('../utils').helpers;
 const { increaseTime } = require('../utils').evm;

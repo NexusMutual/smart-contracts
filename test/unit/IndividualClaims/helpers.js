@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
+const { expect } = require('chai');
 
 const CLAIM_STATUS = {
   PENDING: 0,

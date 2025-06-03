@@ -1,6 +1,7 @@
 const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
 const { addresses } = require('@nexusmutual/deployments');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const {
   Address,
@@ -16,13 +17,13 @@ const { SigningScheme, domain: makeDomain, SettlementEncoder } = require('@cowpr
 const evm = require('./evm')();
 
 const { parseEther, defaultAbiCoder, toUtf8Bytes, parseUnits, keccak256, hexZeroPad } = ethers.utils;
-const { MaxUint256 } = ethers.constants;
+const { MaxUint256 } = ethers;
 
 const addOrder = async (trader, order, executedAmount, encoder) => {
   const sellToken = await ethers.getContractAt('ERC20Mock', order.sellToken);
 
   console.log(`Approve sell token`);
-  await sellToken.connect(trader).approve(Address.COWSWAP_RELAYER, ethers.constants.MaxUint256);
+  await sellToken.connect(trader).approve(Address.COWSWAP_RELAYER, ethers.MaxUint256);
 
   console.log('Sing Encode Trade');
 
@@ -256,7 +257,7 @@ describe('usdc', function () {
       buyAmount,
       validTo: timestamp + 3600,
       appData: hexZeroPad(0, 32),
-      feeAmount: 0,
+      feeAmount: parseEther('1.0'),
       partiallyFillable: false,
       kind: 'buy',
       sellTokenBalance: 'erc20',
@@ -283,7 +284,7 @@ describe('usdc', function () {
       this.trader,
       {
         validTo: 0xffffffff,
-        feeAmount: ethers.utils.parseEther('1.0'),
+        feeAmount: parseEther('1.0'),
         kind: 'sell',
         partiallyFillable: false,
         sellToken: Address.USDC_ADDRESS,

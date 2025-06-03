@@ -1,12 +1,13 @@
-const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
 const { Role } = require('../utils').constants;
 const { setNextBlockTime } = require('../utils').evm;
+const { hex } = require('../utils').helpers;
 
-const { formatBytes32String } = ethers.utils;
+const { ZeroAddress, formatBytes32String } = ethers;
 
 describe('withdrawMembership', function () {
   it('reverts when withdrawing membership for non-member', async function () {

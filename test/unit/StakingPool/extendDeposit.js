@@ -4,15 +4,15 @@ const { getTranches, TRANCHE_DURATION, generateRewards, setTime } = require('./h
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { increaseTime } = require('../utils').evm;
+const { ZeroAddress } = ethers;
 
-const { AddressZero } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 const depositToFixture = {
   amount: parseEther('100'),
   trancheId: 0,
   tokenId: 0,
-  destination: AddressZero,
+  destination: ZeroAddress,
 };
 
 const productParams = {
@@ -51,8 +51,8 @@ async function extendDepositSetup() {
   expect(await stakingNFT.totalSupply()).to.equal(0);
 
   const { amount, tokenId } = depositToFixture;
-  const tx = await stakingPool.connect(user).depositTo(amount, trancheId + 1, tokenId, AddressZero);
-  await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user.address, depositNftId);
+  const tx = await stakingPool.connect(user).depositTo(amount, trancheId + 1, tokenId, ZeroAddress);
+  await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(ZeroAddress, user.address, depositNftId);
 
   expect(await stakingNFT.totalSupply()).to.equal(1);
 
@@ -438,8 +438,8 @@ describe('extendDeposit', function () {
 
     const secondDeposit = parseEther('75');
     const secondDepositNftId = 2;
-    const tx = await stakingPool.connect(bob).depositTo(secondDeposit, firstActiveTrancheId, 0, AddressZero);
-    await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, bob.address, secondDepositNftId);
+    const tx = await stakingPool.connect(bob).depositTo(secondDeposit, firstActiveTrancheId, 0, ZeroAddress);
+    await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(ZeroAddress, bob.address, secondDepositNftId);
 
     const initialAliceDeposit = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
     const initialBobDeposit = await stakingPool.deposits(secondDepositNftId, firstActiveTrancheId);
@@ -541,7 +541,7 @@ describe('extendDeposit', function () {
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
     // add deposit to new tranche
-    await stakingPool.connect(user).depositTo(amount, maxTranche, depositNftId, AddressZero);
+    await stakingPool.connect(user).depositTo(amount, maxTranche, depositNftId, ZeroAddress);
 
     await generateRewards(stakingPool, fixture.coverSigner);
 

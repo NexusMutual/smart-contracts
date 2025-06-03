@@ -1,12 +1,11 @@
 const { ethers } = require('hardhat');
-const {
-  constants: { AddressZero },
-} = require('ethers');
-const { assert, expect } = require('chai');
+const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { hex } = require('../utils').helpers;
-const { ContractTypes } = require('../utils').constants;
+const { ContractTypes, Role } = require('../utils').constants;
+
+const { ZeroAddress } = ethers;
 
 describe('addNewInternalContracts', function () {
   it('reverts when not called by governance', async function () {
@@ -34,7 +33,7 @@ describe('addNewInternalContracts', function () {
     const { governance } = fixture;
 
     await expect(
-      governance.addNewInternalContracts([hex('XX')], [AddressZero], [ContractTypes.Replaceable]),
+      governance.addNewInternalContracts([hex('XX')], [ZeroAddress], [ContractTypes.Replaceable]),
     ).to.be.revertedWith('NXMaster: Contract address is 0');
   });
 

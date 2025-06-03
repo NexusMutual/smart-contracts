@@ -6,7 +6,7 @@ const { setup } = require('./setup');
 const { signMembershipApproval } = require('../utils').membership;
 const { setCode } = require('../utils').evm;
 
-const { arrayify, parseUnits, splitSignature } = ethers.utils;
+const { arrayify, parseUnits, splitSignature } = ethers;
 const JOINING_FEE = parseUnits('0.002');
 
 describe('join', function () {

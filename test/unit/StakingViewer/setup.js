@@ -1,13 +1,13 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../utils').accounts;
 const { Role } = require('../utils').constants;
 const { setEtherBalance } = require('../utils').evm;
 const { calculateCurrentTrancheId } = require('../utils').stakingPool;
-
-const { parseEther, getContractAddress } = ethers.utils;
+const { parseEther, getContractAddress } = ethers;
 
 const stakedNxmAmount = parseEther('50000');
 
@@ -89,7 +89,7 @@ async function setup() {
 
   // nxm mint and allowance
   await nxm.mint(manager.address, parseEther('100000'));
-  await nxm.connect(manager).approve(tokenController.address, ethers.constants.MaxUint256);
+  await nxm.connect(manager).approve(tokenController.address, ethers.MaxUint256);
 
   const params = [false, 5, 5, [], 'ipfs hash'];
 
@@ -113,7 +113,7 @@ async function setup() {
   ]);
 
   // set ETH balance
-  await setEtherBalance(manager.address, ethers.utils.parseEther('10000'));
+  await setEtherBalance(manager.address, parseEther('10000'));
 
   return {
     accounts,

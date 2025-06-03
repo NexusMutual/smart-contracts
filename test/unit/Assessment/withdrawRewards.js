@@ -7,7 +7,6 @@ const { Role } = require('../../../lib/constants');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
-const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('withdrawRewards', function () {
@@ -16,7 +15,7 @@ describe('withdrawRewards', function () {
     const { assessment } = fixture.contracts;
     const [user] = fixture.accounts.members;
 
-    await assessment.connect(user).stake(parseEther('10'));
+    await assessment.connect(user).stake(ethers.parseEther('10'));
 
     const withdrawRewards = assessment.connect(user).withdrawRewards(user.address, 0);
     await expect(withdrawRewards).to.be.revertedWithCustomError(assessment, 'NoWithdrawableRewards');
@@ -48,17 +47,17 @@ describe('withdrawRewards', function () {
     const { nxm, assessment, individualClaims } = fixture.contracts;
     const [user] = fixture.accounts.members;
 
-    await assessment.connect(user).stake(parseEther('10'));
+    await assessment.connect(user).stake(ethers.parseEther('10'));
 
-    await individualClaims.connect(user).submitClaim(0, parseEther('100'), '');
+    await individualClaims.connect(user).submitClaim(0, ethers.parseEther('100'), '');
     await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], 0);
 
     await finalizePoll(assessment, fixture.config);
 
-    await individualClaims.connect(user).submitClaim(1, parseEther('100'), '');
+    await individualClaims.connect(user).submitClaim(1, ethers.parseEther('100'), '');
     await assessment.connect(user).castVotes([1], [true], ['Assessment data hash'], 0);
 
-    await individualClaims.connect(user).submitClaim(2, parseEther('100'), '');
+    await individualClaims.connect(user).submitClaim(2, ethers.parseEther('100'), '');
     await assessment.connect(user).castVotes([2], [true], ['Assessment data hash'], 0);
 
     const balanceBefore = await nxm.balanceOf(user.address);
@@ -78,10 +77,10 @@ describe('withdrawRewards', function () {
     const [user1, user2, user3] = fixture.accounts.members;
 
     {
-      await individualClaims.connect(user1).submitClaim(0, parseEther('100'), '');
-      await assessment.connect(user1).stake(parseEther('10'));
-      await assessment.connect(user2).stake(parseEther('10'));
-      await assessment.connect(user3).stake(parseEther('10'));
+      await individualClaims.connect(user1).submitClaim(0, ethers.parseEther('100'), '');
+      await assessment.connect(user1).stake(ethers.parseEther('10'));
+      await assessment.connect(user2).stake(ethers.parseEther('10'));
+      await assessment.connect(user3).stake(ethers.parseEther('10'));
 
       await assessment.connect(user1).castVotes([0], [true], ['Assessment data hash'], 0);
       await assessment.connect(user2).castVotes([0], [true], ['Assessment data hash'], 0);
@@ -113,7 +112,7 @@ describe('withdrawRewards', function () {
     }
 
     {
-      await individualClaims.connect(user1).submitClaim(1, parseEther('100'), '');
+      await individualClaims.connect(user1).submitClaim(1, ethers.parseEther('100'), '');
 
       await assessment.connect(user1).castVotes([1], [true], ['Assessment data hash'], 0);
       await assessment.connect(user2).castVotes([1], [true], ['Assessment data hash'], 0);
@@ -137,10 +136,10 @@ describe('withdrawRewards', function () {
     }
 
     {
-      await individualClaims.connect(user1).submitClaim(2, parseEther('100'), '');
-      await assessment.connect(user1).stake(parseEther('10'));
-      await assessment.connect(user2).stake(parseEther('27'));
-      await assessment.connect(user3).stake(parseEther('33'));
+      await individualClaims.connect(user1).submitClaim(2, ethers.parseEther('100'), '');
+      await assessment.connect(user1).stake(ethers.parseEther('10'));
+      await assessment.connect(user2).stake(ethers.parseEther('27'));
+      await assessment.connect(user3).stake(ethers.parseEther('33'));
 
       await assessment.connect(user1).castVotes([2], [true], ['Assessment data hash'], 0);
       await assessment.connect(user2).castVotes([2], [true], ['Assessment data hash'], 0);
@@ -254,10 +253,10 @@ describe('withdrawRewards', function () {
     const [staker] = fixture.accounts.members;
 
     {
-      await individualClaims.connect(staker).submitClaim(0, parseEther('100'), '');
-      await individualClaims.connect(staker).submitClaim(1, parseEther('100'), '');
-      await individualClaims.connect(staker).submitClaim(2, parseEther('100'), '');
-      await assessment.connect(staker).stake(parseEther('10'));
+      await individualClaims.connect(staker).submitClaim(0, ethers.parseEther('100'), '');
+      await individualClaims.connect(staker).submitClaim(1, ethers.parseEther('100'), '');
+      await individualClaims.connect(staker).submitClaim(2, ethers.parseEther('100'), '');
+      await assessment.connect(staker).stake(ethers.parseEther('10'));
       await assessment
         .connect(staker)
         .castVotes(
@@ -288,13 +287,13 @@ describe('withdrawRewards', function () {
     // Add AB accounts as new members
     for (const member of fixture.accounts.advisoryBoardMembers) {
       await memberRoles.enrollMember(member.address, Role.Member);
-      await nxm.mint(member.address, parseEther('10000'));
-      await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
+      await nxm.mint(member.address, ethers.parseEther('10000'));
+      await nxm.connect(member).approve(tokenController.address, ethers.parseEther('10000'));
     }
 
-    const stakeAmount = parseEther('10');
+    const stakeAmount = ethers.parseEther('10');
 
-    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
 
     for (const user of voters) {
       await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], stakeAmount);

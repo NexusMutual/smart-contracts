@@ -5,8 +5,7 @@ const { setNextBlockTime, mineNextBlock } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 const { divCeil } = require('../utils').bnMath;
 
-const { parseEther } = ethers.utils;
-const { BigNumber } = ethers;
+const { parseEther } = ethers;
 
 const TRANCHE_DURATION = daysToSeconds(91);
 const BUCKET_DURATION = daysToSeconds(28);
@@ -19,42 +18,41 @@ const setTime = async timestamp => {
 };
 
 function calculateBasePrice(timestamp, product, priceChangePerDay) {
-  const timeSinceLastUpdate = BigNumber.from(timestamp).sub(product.bumpedPriceUpdateTime);
-  const priceDrop = timeSinceLastUpdate.mul(priceChangePerDay).div(daysToSeconds(1));
-  const basePrice = product.bumpedPrice.sub(priceDrop);
-  return BigNumber.from(Math.max(basePrice, product.targetPrice));
+  const timeSinceLastUpdate = BigInt(timestamp) - BigInt(product.bumpedPriceUpdateTime);
+  const priceDrop = (timeSinceLastUpdate * BigInt(priceChangePerDay)) / BigInt(daysToSeconds(1));
+  const basePrice = BigInt(product.bumpedPrice) - priceDrop;
+  return BigInt(Math.max(Number(basePrice), Number(product.targetPrice)));
 }
 
 function calculateBasePremiumPerYear(coverAmount, basePrice, config) {
-  expect(BigNumber.isBigNumber(coverAmount)).to.be.equal(true);
-  expect(BigNumber.isBigNumber(basePrice)).to.be.equal(true);
+  expect(typeof coverAmount === 'bigint' || typeof coverAmount.toBigInt === 'function').to.be.equal(true);
+  expect(typeof basePrice === 'bigint' || typeof basePrice.toBigInt === 'function').to.be.equal(true);
   const allocationAmount = divCeil(coverAmount, config.NXM_PER_ALLOCATION_UNIT);
-  return basePrice.mul(allocationAmount).mul(config.NXM_PER_ALLOCATION_UNIT).div(config.INITIAL_PRICE_DENOMINATOR);
+  const numerator = basePrice * allocationAmount * config.NXM_PER_ALLOCATION_UNIT;
+  return numerator / config.INITIAL_PRICE_DENOMINATOR;
 }
 
 function calculateBasePremium(coverAmount, basePrice, period, config) {
   // validate inputs
-  expect(BigNumber.isBigNumber(coverAmount)).to.be.equal(true);
-  expect(BigNumber.isBigNumber(basePrice)).to.be.equal(true);
+  expect(typeof coverAmount === 'bigint' || typeof coverAmount.toBigInt === 'function').to.be.equal(true);
+  expect(typeof basePrice === 'bigint' || typeof basePrice.toBigInt === 'function').to.be.equal(true);
 
   const allocationAmount = divCeil(coverAmount, config.NXM_PER_ALLOCATION_UNIT);
-  const basePremiumPerYear = basePrice
-    .mul(allocationAmount)
-    .mul(config.NXM_PER_ALLOCATION_UNIT)
-    .div(config.INITIAL_PRICE_DENOMINATOR);
+  const numerator = basePrice * allocationAmount * config.NXM_PER_ALLOCATION_UNIT;
+  const basePremiumPerYear = numerator / config.INITIAL_PRICE_DENOMINATOR;
 
-  return basePremiumPerYear.mul(period).div(ONE_YEAR);
+  return (basePremiumPerYear * BigInt(period)) / BigInt(ONE_YEAR);
 }
 
 function calculatePriceBump(coverAmount, priceBumpRatio, totalCapacity, NXM_PER_ALLOCATION_UNIT) {
   const allocationAmount = divCeil(coverAmount, NXM_PER_ALLOCATION_UNIT);
-  return BigNumber.from(priceBumpRatio).mul(allocationAmount).div(totalCapacity);
+  return (BigInt(priceBumpRatio) * allocationAmount) / totalCapacity;
 }
 
 // Rounds an integer up to the nearest multiple of NXM_PER_ALLOCATION_UNIT
 function roundUpToNearestAllocationUnit(amount, nxmPerAllocationUnit) {
-  amount = BigNumber.from(amount);
-  return divCeil(amount, nxmPerAllocationUnit).mul(nxmPerAllocationUnit);
+  amount = BigInt(amount);
+  return divCeil(amount, nxmPerAllocationUnit) * nxmPerAllocationUnit;
 }
 
 function calculateFirstTrancheId(timestamp, period, gracePeriod) {
@@ -81,12 +79,12 @@ async function getCurrentBucket() {
 async function calculateStakeShares(stakingPool, depositAmount) {
   const stakeShareSupply = await stakingPool.getStakeSharesSupply();
 
-  if (stakeShareSupply.isZero()) {
-    return Math.sqrt(depositAmount);
+  if (stakeShareSupply === 0n) {
+    return BigInt(Math.floor(Math.sqrt(Number(depositAmount))));
   }
 
   const activeStake = await stakingPool.getActiveStake();
-  return depositAmount.mul(stakeShareSupply).div(activeStake);
+  return (depositAmount * stakeShareSupply) / activeStake;
 }
 
 async function generateRewards(
@@ -114,12 +112,11 @@ async function calculateStakeAndRewardsWithdrawAmounts(stakingPool, deposit, tra
   const { accNxmPerRewardShareAtExpiry, stakeAmountAtExpiry, stakeSharesSupplyAtExpiry } =
     await stakingPool.getExpiredTranche(trancheId);
 
+  const numerator = deposit.rewardsShares * (accNxmPerRewardShareAtExpiry - deposit.lastAccNxmPerRewardShare);
+  const rewardsCalc = numerator / parseEther('1');
   return {
-    rewards: deposit.rewardsShares
-      .mul(accNxmPerRewardShareAtExpiry.sub(deposit.lastAccNxmPerRewardShare))
-      .div(parseEther('1'))
-      .add(deposit.pendingRewards),
-    stake: stakeAmountAtExpiry.mul(deposit.stakeShares).div(stakeSharesSupplyAtExpiry),
+    rewards: rewardsCalc + deposit.pendingRewards,
+    stake: (stakeAmountAtExpiry * deposit.stakeShares) / stakeSharesSupplyAtExpiry,
   };
 }
 

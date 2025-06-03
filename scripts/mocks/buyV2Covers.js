@@ -1,7 +1,7 @@
 const { network, ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
-const { AddressZero } = ethers.constants;
-const { formatEther, parseEther, formatUnits } = ethers.utils;
+const { AddressZero } = ethers;
+const { formatEther, parseEther, formatUnits } = ethers;
 
 const { CONTRACTS_ADDRESSES: Addresses } = require(process.env.CONFIG_FILE);
 const { BUYER } = process.env;
@@ -9,7 +9,7 @@ const { BUYER } = process.env;
 const getSigner = async address => {
   const provider =
     network.name !== 'hardhat' // ethers errors out when using non-local accounts
-      ? new ethers.providers.JsonRpcProvider(network.config.url)
+      ? new ethers.JsonRpcProvider(network.config.url)
       : ethers.provider;
   return provider.getSigner(address);
 };
@@ -131,7 +131,7 @@ async function main() {
   // Buy cover generic inputs
   const paymentAsset = 0; // ETH
   const period = 30 * 24 * 3600; // 30 days
-  const amount = parseEther('0.1'); // 0.1 ETH
+  const amount = ethers.parseEther('0.1'); // 0.1 ETH
 
   console.log('========= ProductId 0 on PoolId 1 ==========');
   await buyCover(0, poolId, cover, buyer, amount, period, paymentAsset);

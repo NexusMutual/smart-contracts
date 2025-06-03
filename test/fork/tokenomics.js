@@ -1,5 +1,6 @@
 const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const {
   Address,
@@ -15,6 +16,7 @@ const evm = require('./evm')();
 
 const { BigNumber } = ethers;
 const { formatEther, parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { ZeroAddress } = ethers;
 
 /* ========== CONSTRUCTOR PARAMS ========== */
 
@@ -614,7 +616,7 @@ describe('tokenomics', function () {
 
     const after = await getCapitalSupplyAndBalances(this.pool, this.tokenController, this.nxm, member._address);
     const nxmReceived = after.nxmBalance.sub(before.nxmBalance);
-    const nxmTransferFilter = this.nxm.filters.Transfer(ethers.constants.AddressZero, member._address);
+    const nxmTransferFilter = this.nxm.filters.Transfer(ZeroAddress, member._address);
     const nxmTransferEvents = await this.nxm.queryFilter(nxmTransferFilter, receipt.blockNumber);
     const nxmOut = nxmTransferEvents[0]?.args?.value;
 

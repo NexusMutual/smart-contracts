@@ -7,7 +7,7 @@ const { initMCR } = require('./common');
 const { increaseTime, mineNextBlock } = require('../utils').evm;
 const { hoursToSeconds } = require('../utils').helpers;
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 const DEFAULT_MCR_PARAMS = {
   mcrValue: parseEther('150000'),

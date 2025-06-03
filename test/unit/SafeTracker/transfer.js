@@ -4,7 +4,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { impersonateAccount, setEtherBalance } = require('../utils').evm;
 const { setup } = require('./setup');
 const { ethers } = require('hardhat');
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 describe('transfer', function () {
   it("should revert if amount is not 0 and the caller aren't pool and swapOperator", async function () {

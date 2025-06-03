@@ -5,8 +5,8 @@ const { mineNextBlock, setNextBlockTime, setEtherBalance } = require('../../util
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
-const { parseEther } = ethers.utils;
-const { AddressZero } = ethers.constants;
+const { parseEther } = ethers;
+const { ZeroAddress } = ethers;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -66,8 +66,8 @@ describe.skip('totalActiveCover', function () {
     const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
 
     // Stake to open up capacity
-    await stakingPool.connect(staker).depositTo(stakingAmount, firstTrancheId, 0, AddressZero);
-    await stakingPool.connect(staker).depositTo(stakingAmount, firstTrancheId + 1, 0, AddressZero);
+    await stakingPool.connect(staker).depositTo(stakingAmount, firstTrancheId, 0, ZeroAddress);
+    await stakingPool.connect(staker).depositTo(stakingAmount, firstTrancheId + 1, 0, ZeroAddress);
   }
 
   async function transferYieldToken({ tokenOwner, coverBuyer1, ybETH, cg }) {
@@ -98,8 +98,8 @@ describe.skip('totalActiveCover', function () {
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
         payWitNXM: false,
-        commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
+        commissionRatio: 0,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       [{ poolId: 1, coverAmountInAsset: amount.toString() }],
@@ -113,7 +113,7 @@ describe.skip('totalActiveCover', function () {
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
 
     const gvSigner = await ethers.getImpersonatedSigner(gv.address);
-    await setEtherBalance(gvSigner.address, ethers.utils.parseEther('1'));
+    await setEtherBalance(gvSigner.address, parseEther('1'));
 
     await cg
       .connect(gvSigner)

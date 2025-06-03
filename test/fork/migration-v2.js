@@ -9,7 +9,7 @@ const { Address, calculateProxyAddress, formatInternalContracts, submitGovernanc
 
 const { ETH } = Address;
 const { BigNumber } = ethers;
-const { AddressZero, Zero, Two } = ethers.constants;
+const { AddressZero, Zero, Two } = ethers;
 const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
 
 const SCRIPTS_USE_CACHE = !process.env.NO_CACHE;

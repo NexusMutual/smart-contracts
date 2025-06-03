@@ -6,7 +6,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { setNextBlockTime } = require('../utils').evm;
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 const DEFAULT_MCR_PARAMS = {
   mcrValue: parseEther('150000'),

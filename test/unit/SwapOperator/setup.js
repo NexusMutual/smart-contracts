@@ -1,12 +1,16 @@
 const { ethers } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
-const { parseUnits } = require('ethers/lib/utils');
+const { parseUnits } = ethers;
 const { hex } = require('../utils').helpers;
 const { AggregatorType, Assets } = require('../utils').constants;
+const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const {
-  utils: { parseEther },
-} = ethers;
+const { setEtherBalance } = require('../utils').evm;
+const { Role } = require('../utils').constants;
+
+const { parseEther } = ethers;
+const { ZeroAddress } = ethers;
 
 async function setup() {
   const accounts = await getAccounts();

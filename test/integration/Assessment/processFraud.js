@@ -7,8 +7,8 @@ const { getProof, submitFraud } = require('../../unit/Assessment/helpers');
 const { calculateFirstTrancheId } = require('../utils/staking');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { setEtherBalance, increaseTime } = require('../../utils/evm');
-const { parseEther } = ethers.utils;
-const { MaxUint256 } = ethers.constants;
+
+const { MaxUint256 } = ethers;
 
 async function processFraudSetup() {
   const fixture = await loadFixture(setup);

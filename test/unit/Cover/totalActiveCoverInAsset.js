@@ -7,9 +7,8 @@ const { daysToSeconds } = require('../utils').helpers;
 const { buyCoverOnOnePool } = require('./helpers');
 const setup = require('./setup');
 
-const { BigNumber } = ethers;
-const { parseEther } = ethers.utils;
-const { AddressZero } = ethers.constants;
+const { ZeroAddress } = ethers;
+const { parseEther } = ethers;
 
 const ETH_ASSET_ID = 0b00;
 const DAI_ASSET_ID = 0b01;
@@ -110,7 +109,7 @@ describe('totalActiveCoverInAsset', function () {
         maxPremiumInAsset: amount,
         paymentAsset: coverAsset,
         commissionRatio: 0,
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       [{ poolId: 1, coverAmountInAsset: amount }],
@@ -139,7 +138,7 @@ describe('totalActiveCoverInAsset', function () {
           maxPremiumInAsset: amount,
           paymentAsset: coverAsset,
           commissionRatio: 0,
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         [{ poolId: 1, coverAmountInAsset: amount }],
@@ -217,7 +216,7 @@ describe('totalActiveCoverInAsset', function () {
           maxPremiumInAsset: amount,
           paymentAsset: coverAsset,
           commissionRatio: 0,
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         [{ poolId: 1, coverAmountInAsset: amount }],
@@ -228,7 +227,7 @@ describe('totalActiveCoverInAsset', function () {
     }
 
     // Move forward cover period + 1 bucket to expire all covers
-    await increaseTime(BigNumber.from(daiCoverBuyFixture.period).add(BUCKET_SIZE).toNumber());
+    await increaseTime(BigInt(daiCoverBuyFixture.period) + BigInt(BUCKET_SIZE));
 
     // New  purchase should be the only active cover
     await buyCoverOnOnePool.call(fixture, daiCoverBuyFixture);

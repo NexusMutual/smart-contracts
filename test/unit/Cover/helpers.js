@@ -1,8 +1,9 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { ZeroAddress } = ethers;
 
-const { parseEther } = ethers.utils;
-const { AddressZero } = ethers.constants;
+const { parseEther } = ethers;
+const { AddressZero } = ethers;
 
 const DEFAULT_POOL_FEE = '5';
 const DEFAULT_PRODUCTS = [{ productId: 0, weight: 100 }];

@@ -3,15 +3,15 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
-const { ETH } = require('../utils').constants.Assets;
+const { AggregatorType, Assets } = require('../utils').constants;
 
-const { parseEther, parseUnits } = ethers.utils;
+const { parseEther, parseUnits } = ethers;
 
 describe('getAssetToEthRate', function () {
   it('returns 1 ether if asset is ETH', async function () {
     const fixture = await loadFixture(setup);
     const { priceFeedOracle } = fixture;
-    const ethRate = await priceFeedOracle.getAssetToEthRate(ETH);
+    const ethRate = await priceFeedOracle.getAssetToEthRate(Assets.ETH);
     expect(ethRate).to.eq(parseEther('1'));
   });
 

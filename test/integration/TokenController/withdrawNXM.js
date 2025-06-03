@@ -1,6 +1,7 @@
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { parseEther } = ethers;
 
 const { withdrawNXMSetup } = require('./setup');
 const { increaseTime, setNextBlockTime, mineNextBlock } = require('../utils').evm;
@@ -86,7 +87,7 @@ describe('withdrawNXM', function () {
 
     const [tokenBefore] = await stakingViewer.getTokens([tokenId]);
     expect(tokenBefore.expiredStake).to.equal(fixture.stakeAmount);
-    expect(tokenBefore.rewards.toString()).to.be.greaterThan(ethers.utils.parseEther('0.01'));
+    expect(tokenBefore.rewards.toString()).to.be.greaterThan(parseEther('0.01'));
 
     const withdrawAssessment = { stake: false, rewards: false };
     const stakingPoolDeposits = [{ tokenId, trancheIds: [fixture.trancheId] }]; // StakingPool1 deposits

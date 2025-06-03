@@ -3,14 +3,12 @@ const { parseUnits } = require('ethers/lib/utils');
 const { Role } = require('../../../lib/constants');
 const { signMembershipApproval } = require('../utils').membership;
 const { impersonateAccount, setEtherBalance } = require('../utils').evm;
-const {
-  utils: { parseEther },
-} = ethers;
+const { parseEther } = ethers;
 
 const JOINING_FEE = parseUnits('0.002');
 
 async function enrollMember({ mr, tk, tc }, members, kycAuthSigner, options = {}) {
-  const { initialTokens = ethers.utils.parseEther('2500') } = options;
+  const { initialTokens = parseEther('2500') } = options;
 
   for (const member of members) {
     const membershipApprovalData0 = await signMembershipApproval({
@@ -25,7 +23,7 @@ async function enrollMember({ mr, tk, tc }, members, kycAuthSigner, options = {}
     });
 
     if (initialTokens && initialTokens.gt(0)) {
-      await tk.connect(member).approve(tc.address, ethers.constants.MaxUint256);
+      await tk.connect(member).approve(tc.address, ethers.MaxUint256);
       await tk.transfer(member.address, initialTokens);
     }
   }

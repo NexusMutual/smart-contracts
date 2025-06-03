@@ -19,7 +19,7 @@ describe('switchMembership', function () {
       const nxmBalanceBefore = await token.balanceOf(member1.address);
 
       const newMemberAddress = nonMember1.address;
-      await token.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
+      await token.connect(member1).approve(memberRoles.address, ethers.MaxUint256);
       await memberRoles.connect(member1).switchMembership(newMemberAddress);
       const oldAddressHasRole = await memberRoles.checkRole(member1.address, Role.Member);
       expect(oldAddressHasRole).to.be.equal(false);
@@ -54,7 +54,7 @@ describe('switchMembership', function () {
       const newMemberAddress = newMember.address;
       const poolIds = await tokenController.getManagerStakingPools(stakingPoolManager.address);
 
-      await token.connect(stakingPoolManager).approve(memberRoles.address, ethers.constants.MaxUint256);
+      await token.connect(stakingPoolManager).approve(memberRoles.address, ethers.MaxUint256);
       await memberRoles.connect(stakingPoolManager).switchMembership(newMemberAddress);
 
       // check old manager address is removed

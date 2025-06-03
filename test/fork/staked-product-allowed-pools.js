@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { setEtherBalance } = require('../utils/evm');
-const { parseEther } = ethers.utils;
+
 const { V2Addresses, upgradeMultipleContracts, getConfig, getActiveProductsInPool } = require('./utils');
 
 const evm = require('./evm')();

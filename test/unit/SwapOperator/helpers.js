@@ -1,10 +1,8 @@
 const { ethers } = require('hardhat');
 const { pick: lodashPick, values: lodashValues } = require('lodash');
+const { expect } = require('chai');
 
-const {
-  BigNumber,
-  utils: { parseEther, hexlify, randomBytes, isHexString, hexDataLength, keccak256, toUtf8Bytes },
-} = ethers;
+const { BigNumber, parseEther, hexlify, randomBytes, isHexString, hexDataLength, keccak256, toUtf8Bytes } = ethers;
 
 const daiMinAmount = parseEther('3000');
 const daiMaxAmount = parseEther('20000');

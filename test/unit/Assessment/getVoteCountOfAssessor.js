@@ -2,19 +2,18 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
-const { parseEther } = ethers.utils;
 
 describe('getVoteCountOfAssessor', function () {
   it('returns the total number of votes of an assessor', async function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [assessor1, assessor2] = fixture.accounts.members;
-    await individualClaims.submitClaim(0, parseEther('100'), '');
-    await individualClaims.submitClaim(1, parseEther('100'), '');
-    await individualClaims.submitClaim(2, parseEther('100'), '');
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
+    await individualClaims.submitClaim(1, ethers.parseEther('100'), '');
+    await individualClaims.submitClaim(2, ethers.parseEther('100'), '');
 
-    await assessment.connect(assessor1).stake(parseEther('100'));
-    await assessment.connect(assessor2).stake(parseEther('100'));
+    await assessment.connect(assessor1).stake(ethers.parseEther('100'));
+    await assessment.connect(assessor2).stake(ethers.parseEther('100'));
 
     {
       const count = await assessment.getVoteCountOfAssessor(assessor1.address);

@@ -4,7 +4,7 @@ const { hex } = require('../../../lib/helpers');
 const { setEtherBalance } = require('../utils').evm;
 const { getAccounts } = require('../utils').accounts;
 
-const { parseEther, parseUnits } = ethers.utils;
+const { parseEther, parseUnits } = ethers;
 
 const ETH_RATE = 1;
 

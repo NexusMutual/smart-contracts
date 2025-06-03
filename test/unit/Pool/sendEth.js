@@ -6,7 +6,7 @@ const { impersonateAccount, setEtherBalance } = require('../utils').evm;
 const { toBytes2 } = require('../utils').helpers;
 const setup = require('./setup');
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 describe('sendEth', function () {
   it('should only be callable by the RAMM contract', async function () {

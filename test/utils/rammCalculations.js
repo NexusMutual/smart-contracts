@@ -1,371 +1,174 @@
 const { ethers } = require('hardhat');
 
-const { BigNumber } = ethers;
-const { parseEther } = ethers.utils;
-
-const { divCeil, min, max } = require('./bnMath');
-
-function getObservationIndex(timestamp, { PERIOD_SIZE, GRANULARITY }) {
-  return divCeil(timestamp, PERIOD_SIZE).mod(GRANULARITY);
+function getObservationIndex(currentTimestamp, constants) {
+  return Number(currentTimestamp) % constants.GRANULARITY;
 }
 
-/**
- * Calculates the internal NXM token price in ETH for given states
- */
-function calculateInternalPrice(currentState, observations, capital, supply, currentTimestamp, constants) {
+function getObservationAge(currentTimestamp, firstObservation) {
+  return Number(currentTimestamp) - Number(firstObservation.timestamp);
+}
+
+function getObservationAgeAdjusted(currentTimestamp, firstObservation, constants) {
+  const currentIdx = getObservationIndex(currentTimestamp, constants);
+  const firstIdx = getObservationIndex(firstObservation.timestamp, constants);
+
+  if (currentIdx < firstIdx) {
+    return getObservationAge(currentTimestamp, firstObservation) - constants.GRANULARITY;
+  }
+
+  const elapsed = BigInt(currentTimestamp) - BigInt(firstObservation.timestamp);
+  return Number(elapsed);
+}
+
+function getObservationTimestamp(currentTimestamp, i, constants) {
+  return Number(currentTimestamp) - i * constants.OBSERVATION_FREQUENCY;
+}
+
+function getObservationTimestampAdjusted(currentTimestamp, i, constants) {
+  return Number(currentTimestamp) - (i % constants.GRANULARITY) * constants.OBSERVATION_FREQUENCY;
+}
+
+function calculateRatchetSpeedB(state, currentTimestamp, constants) {
+  const { observations } = state;
+  const firstObservation = observations[0];
+
+  const age = getObservationAgeAdjusted(currentTimestamp, firstObservation, constants);
+  if (age < constants.OBSERVATION_FREQUENCY) {
+    return state.ratchetSpeedB;
+  }
+
+  const innerLeftB = BigInt(firstObservation.nxmB) * BigInt(constants.RATCHET_SPEED_DENOMINATOR);
+  const innerRightB = BigInt(state.nxmB) * BigInt(constants.RATCHET_SPEED_DENOMINATOR);
+  const innerB = innerLeftB > innerRightB ? innerLeftB - innerRightB : 0n;
+
+  const ratchetSpeedB = innerB / BigInt(age);
+  return ratchetSpeedB > 0n ? Number(ratchetSpeedB) : 0;
+}
+
+function calculateRatchetSpeedA(state, currentTimestamp, constants) {
+  const { observations } = state;
+  const firstObservation = observations[0];
+
+  const age = getObservationAgeAdjusted(currentTimestamp, firstObservation, constants);
+  if (age < constants.OBSERVATION_FREQUENCY) {
+    return state.ratchetSpeedA;
+  }
+
+  const innerLeftA = BigInt(firstObservation.nxmA) * BigInt(constants.RATCHET_SPEED_DENOMINATOR);
+  const innerRightA = BigInt(state.nxmA) * BigInt(constants.RATCHET_SPEED_DENOMINATOR);
+  const innerA = innerLeftA > innerRightA ? innerLeftA - innerRightA : 0n;
+
+  const ratchetSpeedA = innerA / BigInt(age);
+  return ratchetSpeedA > 0n ? Number(ratchetSpeedA) : 0;
+}
+
+function calculateRatchetedNxmB(state, currentTimestamp, constants) {
+  const { nxmB, ratchetSpeedB } = state;
+  const timeSinceLastUpdate = BigInt(currentTimestamp) - BigInt(state.timestamp);
+  const ratchetDrop = (timeSinceLastUpdate * BigInt(ratchetSpeedB)) / BigInt(constants.RATCHET_SPEED_DENOMINATOR);
+  return BigInt(nxmB) - ratchetDrop;
+}
+
+function calculateRatchetedNxmA(state, currentTimestamp, constants) {
+  const { nxmA, ratchetSpeedA } = state;
+  const timeSinceLastUpdate = BigInt(currentTimestamp) - BigInt(state.timestamp);
+  const ratchetDrop = (timeSinceLastUpdate * BigInt(ratchetSpeedA)) / BigInt(constants.RATCHET_SPEED_DENOMINATOR);
+  return BigInt(nxmA) - ratchetDrop;
+}
+
+function calculateEthToInject(state, currentTimestamp, constants) {
+  const { eth } = state;
+  const timeSinceLastUpdate = BigInt(currentTimestamp) - BigInt(state.timestamp);
+  const ethToInject = (timeSinceLastUpdate * BigInt(constants.INJECTION_RATE)) / BigInt(constants.INJECTION_RATE_DENOMINATOR);
+  const ethDiff = BigInt(constants.TARGET_LIQUIDITY) - BigInt(eth);
+  return ethDiff > 0n ? (ethToInject > ethDiff ? ethDiff : ethToInject) : 0n;
+}
+
+function calculateEthToExtract(state, currentTimestamp, constants) {
+  const { eth } = state;
+  const timeSinceLastUpdate = BigInt(currentTimestamp) - BigInt(state.timestamp);
+  const ethToExtract = (timeSinceLastUpdate * BigInt(constants.EXTRACTION_RATE)) / BigInt(constants.EXTRACTION_RATE_DENOMINATOR);
+  const ethDiff = BigInt(eth) - BigInt(constants.TARGET_LIQUIDITY);
+  return ethDiff > 0n ? (ethToExtract > ethDiff ? ethDiff : ethToExtract) : 0n;
+}
+
+function calculateNewObservation(state, currentTimestamp, constants) {
+  const { observations } = state;
   const { GRANULARITY } = constants;
-  const currentIdx = getObservationIndex(BigNumber.from(currentTimestamp), constants);
-  const previousIdx = currentIdx.add(1).mod(GRANULARITY);
 
-  const firstObservation = observations[previousIdx.toNumber()];
-  const currentObservation = observations[currentIdx.toNumber()];
-
-  const elapsed = BigNumber.from(currentTimestamp).sub(firstObservation.timestamp);
-
-  const spotPriceA = parseEther('1').mul(currentState.eth).div(currentState.nxmA);
-  const spotPriceB = parseEther('1').mul(currentState.eth).div(currentState.nxmB);
-
-  const averagePriceA = currentObservation.priceCumulativeAbove.sub(firstObservation.priceCumulativeAbove).div(elapsed);
-
-  const averagePriceB = currentObservation.priceCumulativeBelow.sub(firstObservation.priceCumulativeBelow).div(elapsed);
-
-  const priceA = averagePriceA.gt(spotPriceA) ? spotPriceA : averagePriceA;
-  const priceB = averagePriceB.gt(spotPriceB) ? averagePriceB : spotPriceB;
-
-  const internalPrice = priceA.add(priceB).sub(parseEther('1').mul(capital).div(supply));
-  const maxPrice = parseEther('1').mul(3).mul(capital).div(supply); // 300% BV
-  const minPrice = parseEther('1').mul(35).mul(capital).div(supply).div(100); // 35% BV
-
-  return max(min(internalPrice, maxPrice), minPrice);
-}
-
-function timeTillBv(
-  previousState,
-  supply,
-  capital,
-  { PRICE_BUFFER_DENOMINATOR, PRICE_BUFFER, RATCHET_DENOMINATOR, RATCHET_PERIOD, NORMAL_RATCHET_SPEED },
-) {
-  // below
-  const innerRightB = previousState.eth.mul(supply);
-  const innerLeftB = PRICE_BUFFER_DENOMINATOR.sub(PRICE_BUFFER)
-    .mul(capital)
-    .mul(previousState.nxmB)
-    .div(PRICE_BUFFER_DENOMINATOR);
-  const innerB = innerLeftB.gt(innerRightB) ? innerLeftB.sub(innerRightB) : BigNumber.from(0);
-  const maxTimeOnRatchetB = innerB.eq(0)
-    ? BigNumber.from(0)
-    : innerB
-        .mul(RATCHET_DENOMINATOR)
-        .mul(RATCHET_PERIOD)
-        .div(capital)
-        .div(previousState.nxmB)
-        .div(previousState.ratchetSpeedB);
-
-  // above
-  const innerLeftA = previousState.eth.mul(supply);
-  const innerRightA = PRICE_BUFFER_DENOMINATOR.add(PRICE_BUFFER)
-    .mul(capital)
-    .mul(previousState.nxmA)
-    .div(PRICE_BUFFER_DENOMINATOR);
-  const innerA = innerLeftA.gt(innerRightA) ? innerLeftA.sub(innerRightA) : BigNumber.from(0);
-  const maxTimeOnRatchetA = innerA.eq(0)
-    ? BigNumber.from(0)
-    : innerA
-        .mul(RATCHET_DENOMINATOR)
-        .mul(RATCHET_PERIOD)
-        .div(capital)
-        .div(previousState.nxmA)
-        .div(NORMAL_RATCHET_SPEED);
-
-  return { maxTimeOnRatchetA, maxTimeOnRatchetB };
-}
-
-function calculateTwapAboveForPeriod(
-  previousState,
-  state,
-  timeElapsed,
-  timeTillBV,
-  capital,
-  supply,
-  { PRICE_BUFFER_DENOMINATOR, PRICE_BUFFER },
-) {
-  const timeOnRatchet = timeTillBV.gt(timeElapsed) ? timeElapsed : timeTillBV;
-  const timeOnBV = timeElapsed.sub(timeOnRatchet);
-
-  const twapOnRatchet = parseEther('1')
-    .mul(previousState.eth.mul(state.nxmA).add(state.eth.mul(previousState.nxmA)))
-    .mul(timeOnRatchet)
-    .div(previousState.nxmA)
-    .div(state.nxmA)
-    .div(2);
-
-  const twapOnBV = parseEther('1')
-    .mul(timeOnBV)
-    .mul(capital)
-    .mul(PRICE_BUFFER_DENOMINATOR.add(PRICE_BUFFER))
-    .div(supply)
-    .div(PRICE_BUFFER_DENOMINATOR);
-
-  return twapOnRatchet.add(twapOnBV);
-}
-
-function calculateTwapBelowForPeriod(
-  previousState,
-  state,
-  timeElapsed,
-  timeTillBV,
-  capital,
-  supply,
-  { PRICE_BUFFER_DENOMINATOR, PRICE_BUFFER },
-) {
-  const timeOnRatchet = timeTillBV.gt(timeElapsed) ? timeElapsed : timeTillBV;
-  const timeOnBV = timeElapsed.sub(timeOnRatchet);
-
-  const twapOnRatchet = parseEther('1')
-    .mul(previousState.eth.mul(state.nxmB).add(state.eth.mul(previousState.nxmB)))
-    .mul(timeOnRatchet)
-    .div(previousState.nxmB)
-    .div(state.nxmB)
-    .div(2);
-
-  const twapOnBV = parseEther('1')
-    .mul(timeOnBV)
-    .mul(capital)
-    .mul(PRICE_BUFFER_DENOMINATOR.sub(PRICE_BUFFER))
-    .div(supply)
-    .div(PRICE_BUFFER_DENOMINATOR);
-
-  return twapOnRatchet.add(twapOnBV);
-}
-
-function calculateObservation(state, previousState, previousObservation, capital, supply, timeElapsed, parameters) {
-  const { maxTimeOnRatchetA, maxTimeOnRatchetB } = timeTillBv(previousState, supply, capital, parameters);
-
-  const priceCumulativeAbove = calculateTwapAboveForPeriod(
-    previousState,
-    state,
-    timeElapsed,
-    maxTimeOnRatchetA,
-    capital,
-    supply,
-    parameters,
-  );
-
-  const priceCumulativeBelow = calculateTwapBelowForPeriod(
-    previousState,
-    state,
-    timeElapsed,
-    maxTimeOnRatchetB,
-    capital,
-    supply,
-    parameters,
-  );
-
-  return {
-    timestamp: timeElapsed.add(previousObservation.timestamp),
-    priceCumulativeAbove: previousObservation.priceCumulativeAbove
-      .add(priceCumulativeAbove)
-      .mod(BigNumber.from(2).pow(112)),
-    priceCumulativeBelow: previousObservation.priceCumulativeBelow
-      .add(priceCumulativeBelow)
-      .mod(BigNumber.from(2).pow(112)),
-  };
-}
-
-/**
- * Calculates the expected internal NXM price in ETH
- */
-async function getInternalPrice(ramm, pool, tokenController, mcr, timestamp) {
-  const capital = await pool.getPoolValueInEth();
-  const supply = await tokenController.totalSupply();
-  const mcrValue = await mcr.getMCR();
-  const context = {
-    capital,
-    supply,
-    mcr: mcrValue,
+  const newObservation = {
+    timestamp: currentTimestamp,
+    nxmA: state.nxmA,
+    nxmB: state.nxmB,
   };
 
-  const GRANULARITY = await ramm.GRANULARITY();
-  const PERIOD_SIZE = await ramm.PERIOD_SIZE();
+  const newObservations = [...observations];
+  const observationIndex = Number(currentTimestamp) % GRANULARITY;
+  newObservations[observationIndex] = newObservation;
 
-  const previousState = await ramm.loadState();
-  const previousObservations = [];
-
-  for (let i = 0; i < 3; i++) {
-    previousObservations[i] = await ramm.observations(i);
-  }
-
-  const [currentState] = await ramm._getReserves(previousState, context, timestamp);
-
-  const observations = await ramm._updateTwap(previousState, previousObservations, context, timestamp);
-
-  return calculateInternalPrice(currentState, observations, capital, supply, timestamp, { GRANULARITY, PERIOD_SIZE });
+  return newObservations;
 }
 
-/**
- * Retrieves the expected observations for the given timestamp
- *
- * @param {Object} previousState - The previous state of the Ramm contract
- * @param {Contract} ramm - The RAMM contract
- * @param {Contract} pool - The pool contract
- * @param {Contract} tokenController - The token controller contract
- * @param {Contract} mcr - The MCR contract
- * @param {Object} constants - The fixture constants object
- * @param {number} currentTimestamp - The current timestamp
- * @return {Promise<Array>} Array of observations containing timestamp, priceCumulativeBelow, and priceCumulativeAbove
- */
-const getExpectedObservations = async (
-  previousState,
-  ramm,
-  pool,
-  tokenController,
-  mcr,
-  constants,
-  currentTimestamp,
-) => {
-  const { PERIOD_SIZE, GRANULARITY } = constants;
-  const context = {
-    capital: await pool.getPoolValueInEth(),
-    supply: await tokenController.totalSupply(),
-    mcr: await mcr.getMCR(),
-  };
+function calculateNewObservations(state, currentTimestamp, constants) {
+  const { observations } = state;
+  const { GRANULARITY, OBSERVATION_FREQUENCY } = constants;
 
-  const observationsAfterExpected = [];
-  const endIdx = divCeil(currentTimestamp, PERIOD_SIZE).toNumber();
+  const newObservations = [...observations];
+  const firstObservation = observations[0];
 
-  for (let i = endIdx - 2; endIdx >= i; i++) {
-    const previousObservationIndex = BigNumber.from(i - 1).mod(GRANULARITY);
-    const previousObservation =
-      observationsAfterExpected[previousObservationIndex] || (await ramm.observations(previousObservationIndex));
-
-    const observationIndex = BigNumber.from(i).mod(GRANULARITY);
-    const timestamp = Math.min(currentTimestamp.toNumber(), PERIOD_SIZE.mul(i).toNumber());
-
-    const [state] = await ramm._getReserves(previousState, context, timestamp);
-
-    const observationData = calculateObservation(
-      state,
-      previousState,
-      previousObservation,
-      context.capital,
-      context.supply,
-      BigNumber.from(timestamp - previousState.timestamp),
-      constants,
-    );
-
-    observationsAfterExpected[observationIndex] = {
-      timestamp,
-      priceCumulativeBelow: observationData.priceCumulativeBelow,
-      priceCumulativeAbove: observationData.priceCumulativeAbove,
-    };
-
-    previousState = state;
+  const age = getObservationAge(currentTimestamp, firstObservation);
+  if (age < OBSERVATION_FREQUENCY) {
+    return observations;
   }
 
-  return observationsAfterExpected;
-};
+  for (let i = 0; i < GRANULARITY; i++) {
+    const timestamp = getObservationTimestampAdjusted(currentTimestamp, i, constants);
+    const previousObservationIndex = (i - 1 + GRANULARITY) % GRANULARITY;
+    const previousObservation = newObservations[previousObservationIndex];
 
-/**
- * Calculates the expected ETH to be extracted
- *
- * @param {Object} state - The current state object
- * @param {number} timestamp - The timestamp of the next block
- * @param {Object} constants - The RAMM constants
- * @return {number} The expected amount of ETH to be extracted
- */
-function calculateEthToExtract(state, timestamp, { LIQ_SPEED_A, LIQ_SPEED_PERIOD, TARGET_LIQUIDITY }) {
-  const elapsedLiquidity = LIQ_SPEED_A.mul(timestamp - state.timestamp).div(LIQ_SPEED_PERIOD);
-  const ethToTargetLiquidity = state.eth.sub(TARGET_LIQUIDITY);
+    if (previousObservation && timestamp < previousObservation.timestamp) {
+      continue;
+    }
 
-  return elapsedLiquidity.lt(ethToTargetLiquidity) ? elapsedLiquidity : ethToTargetLiquidity;
-}
+    const observationIndex = i % GRANULARITY;
+    const observation = newObservations[observationIndex];
 
-/**
- * Calculates the expected ETH to be injected
- *
- * @param {Object} state - The current state object
- * @param {number} timestamp - The timestamp of the next block
- * @param {Object} constants - The RAMM constants
- * @return {BigNumber} The amount of Ethereum to inject.
- */
-function calculateEthToInject(
-  state,
-  timestamp,
-  { LIQ_SPEED_B, LIQ_SPEED_PERIOD, FAST_LIQUIDITY_SPEED, TARGET_LIQUIDITY },
-) {
-  const elapsed = timestamp - state.timestamp;
-  const timeLeftOnBudget = state.budget.mul(LIQ_SPEED_PERIOD).div(FAST_LIQUIDITY_SPEED);
-  const maxToInject = TARGET_LIQUIDITY.sub(state.eth);
+    if (!observation || timestamp > observation.timestamp) {
+      const timeSinceLastUpdate = BigInt(timestamp - previousObservation.timestamp);
+      const ratchetDropB = (timeSinceLastUpdate * BigInt(state.ratchetSpeedB)) / BigInt(constants.RATCHET_SPEED_DENOMINATOR);
+      const ratchetDropA = (timeSinceLastUpdate * BigInt(state.ratchetSpeedA)) / BigInt(constants.RATCHET_SPEED_DENOMINATOR);
 
-  if (elapsed <= timeLeftOnBudget) {
-    const injectedFast = FAST_LIQUIDITY_SPEED.mul(timestamp - state.timestamp).div(LIQ_SPEED_PERIOD);
-    return injectedFast.lt(maxToInject) ? injectedFast : maxToInject;
-  } else {
-    const injectedFast = timeLeftOnBudget.mul(FAST_LIQUIDITY_SPEED).div(LIQ_SPEED_PERIOD);
-    const injectedSlow = LIQ_SPEED_B.mul(elapsed - timeLeftOnBudget).div(LIQ_SPEED_PERIOD);
-    const injectedTotal = injectedFast.add(injectedSlow);
-    return maxToInject.lt(injectedTotal) ? maxToInject : injectedTotal;
+      newObservations[observationIndex] = {
+        timestamp,
+        nxmB: Number(BigInt(previousObservation.nxmB) - ratchetDropB),
+        nxmA: Number(BigInt(previousObservation.nxmA) - ratchetDropA),
+      };
+    }
   }
+
+  return newObservations;
 }
 
-/**
- * Removes the '0x' prefix from a hexadecimal string if it exists.
- *
- * @param {string} hex - The hexadecimal string from which the prefix needs to be removed
- * @returns {string} - The modified hexadecimal string without the '0x' prefix
- */
-const removeHexPrefix = hex => (hex.startsWith('0x') ? hex.slice(2) : hex);
-
-/**
- * Replaces a bit value in a hexadecimal string with a new value at a specific bit position.
- *
- * @param {string} origHex - The original hexadecimal string (must be 256 bits / 64 hex characters)
- * @param {string} newHexValue - The new hexadecimal value to replace with
- * @param {number} bitPosition - The position of the bit in the original string to replace
- * @return {string} The modified hexadecimal string
- */
-const replaceHexValueInBitPos = (origHex, newHexValue, bitPosition) => {
-  // Convert hex to buffers
-  const bufferOrig = Buffer.from(removeHexPrefix(origHex), 'hex');
-  const bufferNewVal = Buffer.from(removeHexPrefix(newHexValue), 'hex');
-
-  // Calculate the correct byte start position and copy the new value into the original buffer
-  const byteStart = removeHexPrefix(origHex).length / 2 - bitPosition / 8;
-  bufferNewVal.copy(bufferOrig, byteStart);
-
-  return '0x' + bufferOrig.toString('hex');
-};
-
-/**
- * Sets the value of the Ether reserve in the RAMM contract.
- *
- * @async
- * @param {string} rammAddress - The address of the RAMM contract
- * @param {number} valueInEther - The value of the Ether reserve in Ether
- * @return {Promise<void>}
- */
-async function setEthReserveValue(rammAddress, valueInEther) {
-  const SLOT_1_POSITION = '0x4';
-  // Convert valueInEther to 128 bits wei hex value
-  const hexValueInWei = parseEther(valueInEther.toString()).toHexString();
-  const newEtherReserve = '0x' + removeHexPrefix(hexValueInWei).padStart(32, '0'); // 32 hex chars in 128 bits
-  // Get current Slot1 value
-  const slot1Value = await ethers.provider.send('eth_getStorageAt', [rammAddress, SLOT_1_POSITION]);
-  // Update Slot1 to have new ethReserve value
-  const newSlot1Value = await replaceHexValueInBitPos(slot1Value, newEtherReserve, 128);
-
-  await ethers.provider.send('hardhat_setStorageAt', [rammAddress, SLOT_1_POSITION, newSlot1Value]);
+async function setEthReserveValue(rammAddress, value) {
+  const ramm = await ethers.getContractAt('RAMM', rammAddress);
+  const state = await ramm.loadState();
+  const newState = { ...state, eth: value };
+  await ramm.storeState(newState);
 }
 
 module.exports = {
-  getInternalPrice,
-  getExpectedObservations,
-  timeTillBv,
-  calculateTwapAboveForPeriod,
-  calculateTwapBelowForPeriod,
-  calculateInternalPrice,
   getObservationIndex,
-  calculateEthToExtract,
+  getObservationAge,
+  getObservationAgeAdjusted,
+  getObservationTimestamp,
+  getObservationTimestampAdjusted,
+  calculateRatchetSpeedB,
+  calculateRatchetSpeedA,
+  calculateRatchetedNxmB,
+  calculateRatchetedNxmA,
   calculateEthToInject,
+  calculateEthToExtract,
+  calculateNewObservation,
+  calculateNewObservations,
   setEthReserveValue,
 };

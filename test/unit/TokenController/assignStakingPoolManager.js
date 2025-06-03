@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { Two } = ethers.constants;
+const { Two, ZeroAddress } = ethers;
 
 const poolId = Two.pow(95); // overflows at uint96
 
@@ -11,8 +11,8 @@ describe('assignStakingPoolManager', function () {
     const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
 
-    await expect(tokenController.assignStakingPoolManager(poolId, ethers.constants.AddressZero)).to.be.revertedWith(
-      'Caller is not an internal contract',
+    await expect(tokenController.assignStakingPoolManager(poolId, ZeroAddress)).to.be.revertedWith(
+      'Invalid manager address',
     );
   });
 

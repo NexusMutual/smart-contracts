@@ -13,8 +13,8 @@ const {
 const setup = require('./setup');
 const { increaseTime, setEtherBalance } = require('../utils').evm;
 
-const { parseEther } = ethers.utils;
-const { Zero, One } = ethers.constants;
+const { parseEther } = ethers;
+const { Zero, One } = ethers;
 
 const DEFAULT_PRODUCTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 const MAX_TARGET_WEIGHT = 100;

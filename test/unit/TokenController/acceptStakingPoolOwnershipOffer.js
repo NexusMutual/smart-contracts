@@ -3,7 +3,7 @@ const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { setNextBlockTime } = require('../../utils').evm;
-const { Two } = ethers.constants;
+const { Two, ZeroAddress } = ethers;
 
 const poolId = Two.pow(95); // overflows at uint96
 const maxDeadline = Two.pow(31);
@@ -12,9 +12,8 @@ describe('acceptStakingPoolOwnershipOffer', function () {
     const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
 
-    await expect(tokenController.acceptStakingPoolOwnershipOffer(poolId)).to.be.revertedWithCustomError(
-      tokenController,
-      'OnlyProposedManager',
+    await expect(tokenController.acceptStakingPoolOwnershipOffer(poolId, ZeroAddress)).to.be.revertedWith(
+      'Invalid manager address',
     );
   });
 
@@ -36,7 +35,7 @@ describe('acceptStakingPoolOwnershipOffer', function () {
     await tokenController.connect(oldManager).cancelStakingPoolOwnershipOffer(poolId);
 
     await expect(
-      tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId),
+      tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId, ZeroAddress),
     ).to.be.revertedWithCustomError(tokenController, 'OnlyProposedManager');
   });
 
@@ -58,7 +57,7 @@ describe('acceptStakingPoolOwnershipOffer', function () {
     await setNextBlockTime(deadline + 3);
 
     await expect(
-      tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId),
+      tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId, ZeroAddress),
     ).to.be.revertedWithCustomError(tokenController, 'OwnershipOfferHasExpired');
   });
 
@@ -77,7 +76,7 @@ describe('acceptStakingPoolOwnershipOffer', function () {
     await tokenController.connect(oldManager).createStakingPoolOwnershipOffer(poolId, newManager.address, maxDeadline);
 
     // Accept offer
-    await tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId);
+    await tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId, ZeroAddress);
 
     // Check that new manager is assigned
     const stakingPools = await tokenController.getManagerStakingPools(newManager.address);
@@ -92,7 +91,7 @@ describe('acceptStakingPoolOwnershipOffer', function () {
 
     // Make sure the offer is removed
     expect(await tokenController.getStakingPoolOwnershipOffer(poolId)).to.be.deep.equal([
-      ethers.constants.AddressZero,
+      ethers.AddressZero,
       0,
     ]);
   });
@@ -115,7 +114,7 @@ describe('acceptStakingPoolOwnershipOffer', function () {
     await nxm.setLock(oldManager.address, Two.pow(30));
 
     await expect(
-      tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId),
+      tokenController.connect(newManager).acceptStakingPoolOwnershipOffer(poolId, ZeroAddress),
     ).to.be.revertedWithCustomError(tokenController, 'ManagerIsLockedForVoting');
   });
 });

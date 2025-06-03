@@ -1,10 +1,7 @@
 const { ethers } = require('hardhat');
 const { divCeil } = require('../utils').bnMath;
 
-const {
-  BigNumber,
-  utils: { parseEther },
-} = ethers;
+const { parseEther } = ethers;
 
 function getObservationIndex(timestamp, { PERIOD_SIZE, GRANULARITY }) {
   return divCeil(timestamp, PERIOD_SIZE).mod(GRANULARITY);
@@ -17,36 +14,26 @@ function timeTillBv(
   { PRICE_BUFFER_DENOMINATOR, PRICE_BUFFER, RATCHET_DENOMINATOR, RATCHET_PERIOD, NORMAL_RATCHET_SPEED },
 ) {
   // below
-  const innerRightB = previousState.eth.mul(supply);
-  const innerLeftB = PRICE_BUFFER_DENOMINATOR.sub(PRICE_BUFFER)
-    .mul(capital)
-    .mul(previousState.nxmB)
-    .div(PRICE_BUFFER_DENOMINATOR);
-  const innerB = innerLeftB.gt(innerRightB) ? innerLeftB.sub(innerRightB) : BigNumber.from(0);
-  const maxTimeOnRatchetB = innerB.eq(0)
-    ? BigNumber.from(0)
-    : innerB
-        .mul(RATCHET_DENOMINATOR)
-        .mul(RATCHET_PERIOD)
-        .div(capital)
-        .div(previousState.nxmB)
-        .div(previousState.ratchetSpeedB);
+  const innerRightB = previousState.eth * supply;
+  const innerLeftB =
+    ((PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER) * capital * previousState.nxmB) /
+    PRICE_BUFFER_DENOMINATOR;
+  const innerB = innerLeftB > innerRightB ? innerLeftB - innerRightB : 0n;
+
+  const maxTimeOnRatchetB = innerB === 0n
+    ? 0n
+    : (innerB * RATCHET_DENOMINATOR * RATCHET_PERIOD) / capital / previousState.nxmB / previousState.ratchetSpeedB;
 
   // above
-  const innerLeftA = previousState.eth.mul(supply);
-  const innerRightA = PRICE_BUFFER_DENOMINATOR.add(PRICE_BUFFER)
-    .mul(capital)
-    .mul(previousState.nxmA)
-    .div(PRICE_BUFFER_DENOMINATOR);
-  const innerA = innerLeftA.gt(innerRightA) ? innerLeftA.sub(innerRightA) : BigNumber.from(0);
-  const maxTimeOnRatchetA = innerA.eq(0)
-    ? BigNumber.from(0)
-    : innerA
-        .mul(RATCHET_DENOMINATOR)
-        .mul(RATCHET_PERIOD)
-        .div(capital)
-        .div(previousState.nxmA)
-        .div(NORMAL_RATCHET_SPEED);
+  const innerLeftA = previousState.eth * supply;
+  const innerRightA =
+    ((PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER) * capital * previousState.nxmA) /
+    PRICE_BUFFER_DENOMINATOR;
+  const innerA = innerLeftA > innerRightA ? innerLeftA - innerRightA : 0n;
+
+  const maxTimeOnRatchetA = innerA === 0n
+    ? 0n
+    : (innerA * RATCHET_DENOMINATOR * RATCHET_PERIOD) / capital / previousState.nxmA / NORMAL_RATCHET_SPEED;
 
   return { maxTimeOnRatchetA, maxTimeOnRatchetB };
 }
@@ -60,24 +47,21 @@ function calculateTwapAboveForPeriod(
   supply,
   { PRICE_BUFFER_DENOMINATOR, PRICE_BUFFER },
 ) {
-  const timeOnRatchet = timeTillBV.gt(timeElapsed) ? timeElapsed : timeTillBV;
-  const timeOnBV = timeElapsed.sub(timeOnRatchet);
+  const timeOnRatchet = timeTillBV > timeElapsed ? timeElapsed : timeTillBV;
+  const timeOnBV = timeElapsed - timeOnRatchet;
 
-  const twapOnRatchet = parseEther('1')
-    .mul(previousState.eth.mul(state.nxmA).add(state.eth.mul(previousState.nxmA)))
-    .mul(timeOnRatchet)
-    .div(previousState.nxmA)
-    .div(state.nxmA)
-    .div(2);
+  const twapOnRatchet =
+    (parseEther('1') * (previousState.eth * state.nxmA + state.eth * previousState.nxmA) * timeOnRatchet) /
+    previousState.nxmA /
+    state.nxmA /
+    2n;
 
-  const twapOnBV = parseEther('1')
-    .mul(timeOnBV)
-    .mul(capital)
-    .mul(PRICE_BUFFER_DENOMINATOR.add(PRICE_BUFFER))
-    .div(supply)
-    .div(PRICE_BUFFER_DENOMINATOR);
+  const twapOnBV =
+    (parseEther('1') * timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR + PRICE_BUFFER)) /
+    supply /
+    PRICE_BUFFER_DENOMINATOR;
 
-  return twapOnRatchet.add(twapOnBV);
+  return twapOnRatchet + twapOnBV;
 }
 
 function calculateTwapBelowForPeriod(
@@ -89,24 +73,21 @@ function calculateTwapBelowForPeriod(
   supply,
   { PRICE_BUFFER_DENOMINATOR, PRICE_BUFFER },
 ) {
-  const timeOnRatchet = timeTillBV.gt(timeElapsed) ? timeElapsed : timeTillBV;
-  const timeOnBV = timeElapsed.sub(timeOnRatchet);
+  const timeOnRatchet = timeTillBV > timeElapsed ? timeElapsed : timeTillBV;
+  const timeOnBV = timeElapsed - timeOnRatchet;
 
-  const twapOnRatchet = parseEther('1')
-    .mul(previousState.eth.mul(state.nxmB).add(state.eth.mul(previousState.nxmB)))
-    .mul(timeOnRatchet)
-    .div(previousState.nxmB)
-    .div(state.nxmB)
-    .div(2);
+  const twapOnRatchet =
+    (parseEther('1') * (previousState.eth * state.nxmB + state.eth * previousState.nxmB) * timeOnRatchet) /
+    previousState.nxmB /
+    state.nxmB /
+    2n;
 
-  const twapOnBV = parseEther('1')
-    .mul(timeOnBV)
-    .mul(capital)
-    .mul(PRICE_BUFFER_DENOMINATOR.sub(PRICE_BUFFER))
-    .div(supply)
-    .div(PRICE_BUFFER_DENOMINATOR);
+  const twapOnBV =
+    (parseEther('1') * timeOnBV * capital * (PRICE_BUFFER_DENOMINATOR - PRICE_BUFFER)) /
+    supply /
+    PRICE_BUFFER_DENOMINATOR;
 
-  return twapOnRatchet.add(twapOnBV);
+  return twapOnRatchet + twapOnBV;
 }
 
 function calculateObservation(state, previousState, previousObservation, capital, supply, timeElapsed, parameters) {
@@ -133,36 +114,36 @@ function calculateObservation(state, previousState, previousObservation, capital
   );
 
   return {
-    timestamp: timeElapsed.add(previousObservation.timestamp),
-    priceCumulativeAbove: previousObservation.priceCumulativeAbove
-      .add(priceCumulativeAbove)
-      .mod(BigNumber.from(2).pow(112)),
-    priceCumulativeBelow: previousObservation.priceCumulativeBelow
-      .add(priceCumulativeBelow)
-      .mod(BigNumber.from(2).pow(112)),
+    timestamp: timeElapsed + previousObservation.timestamp,
+    priceCumulativeAbove: (previousObservation.priceCumulativeAbove +
+      priceCumulativeAbove) %
+      (2n ** 112n),
+    priceCumulativeBelow: (previousObservation.priceCumulativeBelow +
+      priceCumulativeBelow) %
+      (2n ** 112n),
   };
 }
 
 function calculateInternalPrice(currentState, observations, capital, supply, currentTimestamp, constants) {
   const { GRANULARITY } = constants;
   const currentIdx = getObservationIndex(BigNumber.from(currentTimestamp), constants);
-  const previousIdx = currentIdx.add(1).mod(GRANULARITY);
+  const previousIdx = (currentIdx + 1n) % GRANULARITY;
 
-  const firstObservation = observations[previousIdx.toNumber()];
-  const currentObservation = observations[currentIdx.toNumber()];
+  const firstObservation = observations[Number(previousIdx)];
+  const currentObservation = observations[Number(currentIdx)];
 
-  const elapsed = BigNumber.from(currentTimestamp).sub(firstObservation.timestamp);
+  const elapsed = BigNumber.from(currentTimestamp) - firstObservation.timestamp;
 
-  const spotPriceA = parseEther('1').mul(currentState.eth).div(currentState.nxmA);
-  const spotPriceB = parseEther('1').mul(currentState.eth).div(currentState.nxmB);
+  const spotPriceA = (parseEther('1') * currentState.eth) / currentState.nxmA;
+  const spotPriceB = (parseEther('1') * currentState.eth) / currentState.nxmB;
 
-  const averagePriceA = currentObservation.priceCumulativeAbove.sub(firstObservation.priceCumulativeAbove).div(elapsed);
+  const averagePriceA = (currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) / elapsed;
 
-  const averagePriceB = currentObservation.priceCumulativeBelow.sub(firstObservation.priceCumulativeBelow).div(elapsed);
+  const averagePriceB = (currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) / elapsed;
 
-  const priceA = averagePriceA.gt(spotPriceA) ? spotPriceA : averagePriceA;
-  const priceB = averagePriceB.gt(spotPriceB) ? averagePriceB : spotPriceB;
-  return priceA.add(priceB).sub(parseEther('1').mul(capital).div(supply));
+  const priceA = averagePriceA > spotPriceA ? spotPriceA : averagePriceA;
+  const priceB = averagePriceB > spotPriceB ? averagePriceB : spotPriceB;
+  return priceA + priceB - (parseEther('1') * capital) / supply;
 }
 
 /**
@@ -194,15 +175,15 @@ async function getExpectedObservations(
   };
 
   const observationsAfterExpected = [];
-  const endIdx = divCeil(currentTimestamp, PERIOD_SIZE).toNumber();
+  const endIdx = Number(divCeil(currentTimestamp, PERIOD_SIZE));
 
   for (let i = endIdx - 2; endIdx >= i; i++) {
-    const previousObservationIndex = BigNumber.from(i - 1).mod(GRANULARITY);
+    const previousObservationIndex = BigInt(i - 1) % GRANULARITY;
     const previousObservation =
-      observationsAfterExpected[previousObservationIndex] || (await ramm.observations(previousObservationIndex));
+      observationsAfterExpected[Number(previousObservationIndex)] || (await ramm.observations(Number(previousObservationIndex)));
 
-    const observationIndex = BigNumber.from(i).mod(GRANULARITY);
-    const timestamp = Math.min(currentTimestamp.toNumber(), PERIOD_SIZE.mul(i).toNumber());
+    const observationIndex = BigInt(i) % GRANULARITY;
+    const timestamp = Math.min(currentTimestamp, PERIOD_SIZE.mul(i).toNumber());
 
     const [state] = await ramm._getReserves(previousState, context, timestamp);
 
@@ -216,7 +197,7 @@ async function getExpectedObservations(
       fixtureConstants,
     );
 
-    observationsAfterExpected[observationIndex] = {
+    observationsAfterExpected[Number(observationIndex)] = {
       timestamp,
       priceCumulativeBelow: observationData.priceCumulativeBelow,
       priceCumulativeAbove: observationData.priceCumulativeAbove,

@@ -8,8 +8,8 @@ const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
 const evm = require('./evm')();
 const ASSESSMENT_VOTER_COUNT = 3;
 
-const { parseEther } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+
+const { AddressZero, MaxUint256 } = ethers;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);

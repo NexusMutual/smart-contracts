@@ -1,8 +1,7 @@
 const { ethers } = require('hardhat');
-const { BigNumber } = ethers;
 const { hex } = require('../utils').helpers;
 
-const MAX_PERCENTAGE_ADJUSTMENT = BigNumber.from('100');
+const MAX_PERCENTAGE_ADJUSTMENT = BigInt('100');
 
 async function initMCR(params) {
   const { mcrValue, desiredMCR, lastUpdateTime, maxMCRIncrement, gearingFactor, minUpdateTime, master } = params;

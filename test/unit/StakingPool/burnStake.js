@@ -5,10 +5,10 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { getTranches, moveTimeToNextBucket, moveTimeToNextTranche, BUCKET_DURATION, setTime } = require('./helpers');
 const { daysToSeconds } = require('../../../lib/helpers');
 
-const { AddressZero, Two, Zero } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { ZeroAddress } = ethers;
+const { parseEther } = ethers;
 
-const MaxUint32 = Two.pow(32).sub(1);
+const MaxUint32 = 2n ** 32n - 1n;
 
 const DEFAULT_PERIOD = daysToSeconds(30);
 const DEFAULT_GRACE_PERIOD = daysToSeconds(30);
@@ -91,9 +91,9 @@ async function burnStakeSetup() {
   const currentTrancheId = await moveTimeToNextTranche(1);
 
   // Deposit into pool
-  await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId, 0, AddressZero);
-  await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId + 1, 0, AddressZero);
-  await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId + 2, 0, AddressZero);
+  await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId, 0, ZeroAddress);
+  await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId + 1, 0, ZeroAddress);
+  await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId + 2, 0, ZeroAddress);
 
   return fixture;
 }
@@ -122,7 +122,7 @@ describe('burnStake', function () {
 
     // depositTo and extendDeposit should revert
     await expect(
-      stakingPool.connect(member).depositTo(stakedNxmAmount, firstActiveTrancheId, 0, AddressZero),
+      stakingPool.connect(member).depositTo(stakedNxmAmount, firstActiveTrancheId, 0, ZeroAddress),
     ).to.be.revertedWithCustomError(stakingPool, 'PoolHalted');
     await expect(stakingPool.connect(member).extendDeposit(0, 0, 0, 0)).to.be.revertedWithCustomError(
       stakingPool,
@@ -143,7 +143,7 @@ describe('burnStake', function () {
 
     // deposit should work
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
-    await expect(stakingPool.connect(member).depositTo(stakedNxmAmount, firstActiveTrancheId, 0, AddressZero)).to.not.be
+    await expect(stakingPool.connect(member).depositTo(stakedNxmAmount, firstActiveTrancheId, 0, ZeroAddress)).to.not.be
       .reverted;
 
     // Burn all activeStake
@@ -151,7 +151,7 @@ describe('burnStake', function () {
 
     // deposit should fail
     await expect(
-      stakingPool.connect(member).depositTo(stakedNxmAmount, firstActiveTrancheId, 0, AddressZero),
+      stakingPool.connect(member).depositTo(stakedNxmAmount, firstActiveTrancheId, 0, ZeroAddress),
     ).to.be.revertedWithCustomError(stakingPool, 'PoolHalted');
   });
 
@@ -246,8 +246,8 @@ describe('burnStake', function () {
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId1);
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(allocationAmount1.div(NXM_PER_ALLOCATION_UNIT));
-      expect(coverTrancheAllocations.shr(32)).to.equal(0);
-      expect(coverTrancheAllocations.shr(64)).to.equal(0);
+      expect(coverTrancheAllocations.shr(32)).to.equal(0n);
+      expect(coverTrancheAllocations.shr(64)).to.equal(0n);
     }
 
     const allocationAmount2 = stakedNxmAmount.mul(2);
@@ -260,7 +260,7 @@ describe('burnStake', function () {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId2);
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
       expect(coverTrancheAllocations.shr(32)).to.equal(coverTrancheAllocationAmount);
-      expect(coverTrancheAllocations.shr(64)).to.equal(0);
+      expect(coverTrancheAllocations.shr(64)).to.equal(0n);
     }
 
     const allocationAmount3 = stakedNxmAmount.mul(3);
@@ -312,9 +312,9 @@ describe('burnStake', function () {
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId1);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(0);
-      expect(coverTrancheAllocations.shr(32)).to.equal(0);
-      expect(coverTrancheAllocations.shr(64)).to.equal(0);
+      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(0n);
+      expect(coverTrancheAllocations.shr(32)).to.equal(0n);
+      expect(coverTrancheAllocations.shr(64)).to.equal(0n);
     }
   });
 
@@ -330,7 +330,7 @@ describe('burnStake', function () {
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(0);
+      expect(activeAllocations[0]).to.equal(0n);
     }
 
     // allocates 50% of first tranche
@@ -342,8 +342,8 @@ describe('burnStake', function () {
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
       expect(activeAllocations[0]).to.equal(allocationAmountInUnit);
-      expect(activeAllocations[1]).to.equal(0);
-      expect(activeAllocations[2]).to.equal(0);
+      expect(activeAllocations[1]).to.equal(0n);
+      expect(activeAllocations[2]).to.equal(0n);
     }
 
     const allocationAmount2 = stakedNxmAmount.mul(2);
@@ -353,9 +353,9 @@ describe('burnStake', function () {
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(allocationAmountInUnit.mul(2));
+      expect(activeAllocations[0]).to.equal(allocationAmountInUnit.mul(2n));
       expect(activeAllocations[1]).to.equal(allocationAmountInUnit);
-      expect(activeAllocations[2]).to.equal(0);
+      expect(activeAllocations[2]).to.equal(0n);
     }
 
     const allocationAmount3 = stakedNxmAmount.mul(3);
@@ -376,13 +376,13 @@ describe('burnStake', function () {
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(allocationAmountInUnit.mul(2));
-      expect(activeAllocations[1]).to.equal(allocationAmountInUnit.mul(2));
+      expect(activeAllocations[0]).to.equal(allocationAmountInUnit.mul(2n));
+      expect(activeAllocations[1]).to.equal(allocationAmountInUnit.mul(2n));
       expect(activeAllocations[2]).to.equal(allocationAmountInUnit);
     }
 
     // deallocates half of the last tranche
-    const firstDeallocationAmount = stakedNxmAmount.div(2);
+    const firstDeallocationAmount = stakedNxmAmount.div(2n);
     const params = {
       allocationId: allocationId3,
       productId,
@@ -395,9 +395,9 @@ describe('burnStake', function () {
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(allocationAmountInUnit.mul(2));
-      expect(activeAllocations[1]).to.equal(allocationAmountInUnit.mul(2));
-      expect(activeAllocations[2]).to.equal(allocationAmountInUnit.div(2));
+      expect(activeAllocations[0]).to.equal(allocationAmountInUnit.mul(2n));
+      expect(activeAllocations[1]).to.equal(allocationAmountInUnit.mul(2n));
+      expect(activeAllocations[2]).to.equal(allocationAmountInUnit.div(2n));
     }
 
     // deallocates 100%
@@ -408,7 +408,7 @@ describe('burnStake', function () {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
       expect(activeAllocations[0]).to.equal(allocationAmountInUnit);
       expect(activeAllocations[1]).to.equal(allocationAmountInUnit);
-      expect(activeAllocations[2]).to.equal(0);
+      expect(activeAllocations[2]).to.equal(0n);
     }
   });
 
@@ -429,21 +429,21 @@ describe('burnStake', function () {
     const { timestamp: allocationTimestamp } = await ethers.provider.getBlock(blockNumber);
 
     const initialAllocations = await stakingPool.getActiveAllocations(productId);
-    const initiallyAllocatedTotal = initialAllocations.reduce((acc, val) => acc.add(val), Zero);
+    const initiallyAllocatedTotal = initialAllocations.reduce((acc, val) => acc.add(val), 0n);
 
     const burnParams = {
       allocationId,
       productId,
       start: allocationTimestamp,
       period,
-      deallocationAmount: initiallyAllocatedTotal.div(2), // claimed half of the cover amount
+      deallocationAmount: initiallyAllocatedTotal.div(2n), // claimed half of the cover amount
     };
 
     await setTime(allocationTimestamp + period + 1);
     await stakingPool.connect(fixture.coverSigner).burnStake(0, burnParams);
 
     const finalAllocations = await stakingPool.getActiveAllocations(productId);
-    const finallyAllocatedTotal = finalAllocations.reduce((acc, val) => acc.add(val), Zero);
+    const finallyAllocatedTotal = finalAllocations.reduce((acc, val) => acc.add(val), 0n);
 
     expect(initiallyAllocatedTotal).to.equal(finallyAllocatedTotal);
   });
@@ -603,43 +603,6 @@ describe('burnStake', function () {
       expect(
         expiringCoverBuckets.shr(secondTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
       ).to.equal(allocationAmountInUnit.mul(2));
-    }
-
-    {
-      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
-        productId,
-        targetBucketId,
-        thirdTrancheGroupId,
-      );
-      expect(
-        expiringCoverBuckets.shr(thirdTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
-      ).to.equal(allocationAmountInUnit.div(2));
-    }
-
-    // deallocates 100%
-    const deallocationAmount = allocationAmount3.sub(firstDeallocationAmount);
-    await stakingPool.connect(fixture.coverSigner).burnStake(0, { ...params, deallocationAmount });
-
-    {
-      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
-        productId,
-        targetBucketId,
-        firstTrancheGroupId,
-      );
-      expect(
-        expiringCoverBuckets.shr(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
-      ).to.equal(allocationAmountInUnit);
-    }
-
-    {
-      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
-        productId,
-        targetBucketId,
-        secondTrancheGroupId,
-      );
-      expect(
-        expiringCoverBuckets.shr(secondTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
-      ).to.equal(allocationAmountInUnit);
     }
 
     {

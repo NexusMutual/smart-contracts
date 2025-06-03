@@ -2,8 +2,8 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { setNextBlockTime, mineNextBlock, setEtherBalance } = require('../../utils/evm');
 const { BigNumber } = require('ethers');
-const { parseEther } = ethers.utils;
-const { MaxUint256 } = ethers.constants;
+
+const { MaxUint256 } = ethers;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { stake } = require('../utils/staking');
 const { buyCover, ETH_ASSET_ID } = require('../utils/cover');

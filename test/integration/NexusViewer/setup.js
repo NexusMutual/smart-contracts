@@ -8,8 +8,8 @@ const { calculateFirstTrancheId } = require('../utils/staking');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { getInternalPrice } = require('../../utils/rammCalculations');
 
-const { parseEther } = ethers.utils;
-const { AddressZero, MaxUint256, Zero } = ethers.constants;
+
+const { AddressZero, MaxUint256, Zero } = ethers;
 
 const stakedProductParamTemplate = {
   productId: 1,
@@ -47,7 +47,7 @@ async function stakingPoolSetup(fixture) {
   // mint and set allowance
   await nxm.connect(operator).mint(manager1.address, parseEther('10000000'));
   await nxm.connect(operator).mint(manager2.address, parseEther('10000000'));
-  await nxm.connect(manager1).approve(tokenController.address, ethers.constants.MaxUint256);
+  await nxm.connect(manager1).approve(tokenController.address, ethers.MaxUint256);
 
   // set products
   await stakingProducts.connect(manager1).setProducts(1, [stakedProductParamTemplate]);

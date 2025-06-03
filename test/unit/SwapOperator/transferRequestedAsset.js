@@ -2,11 +2,11 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { setEtherBalance } = require('../utils').evm;
 const setup = require('./setup');
+const { setEtherBalance } = require('../utils').evm;
+const { ZeroAddress } = ethers;
 
-const { parseEther } = ethers.utils;
-const { AddressZero } = ethers.constants;
+const { parseEther } = ethers;
 
 async function transferRequestedAssetSetup() {
   const fixture = await loadFixture(setup);
@@ -35,7 +35,7 @@ describe('transferRequestedAsset', function () {
     await swapOperator.connect(controller).transferRequestedAsset(requestedAsset, requestedAmount);
 
     const request = await swapOperator.transferRequest();
-    expect(request.asset).to.equal(AddressZero);
+    expect(request.asset).to.equal(ZeroAddress);
     expect(request.amount).to.equal(0);
   });
 

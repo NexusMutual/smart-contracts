@@ -4,8 +4,6 @@ const { setTime } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
-const { parseEther } = ethers.utils;
-
 describe('getRewards', function () {
   it("returns the pending rewards pro-rated to the user's stake", async function () {
     const fixture = await loadFixture(setup);
@@ -13,11 +11,11 @@ describe('getRewards', function () {
     const [user1, user2] = fixture.accounts.members;
     const { minVotingPeriod, payoutCooldown } = fixture.config;
 
-    await assessment.connect(user1).stake(parseEther('10'));
-    await assessment.connect(user2).stake(parseEther('90'));
-    await individualClaims.submitClaim(0, parseEther('10'), '');
-    await individualClaims.submitClaim(1, parseEther('100'), '');
-    await individualClaims.submitClaim(2, parseEther('1000'), '');
+    await assessment.connect(user1).stake(ethers.parseEther('10'));
+    await assessment.connect(user2).stake(ethers.parseEther('90'));
+    await individualClaims.submitClaim(0, ethers.parseEther('10'), '');
+    await individualClaims.submitClaim(1, ethers.parseEther('100'), '');
+    await individualClaims.submitClaim(2, ethers.parseEther('1000'), '');
 
     await assessment.connect(user1).castVotes([0], [true], ['Assessment data hash'], 0);
     await assessment.connect(user2).castVotes([0], [true], ['Assessment data hash'], 0);
@@ -26,8 +24,8 @@ describe('getRewards', function () {
     await assessment.connect(user1).castVotes([2], [true], ['Assessment data hash'], 0);
     await assessment.connect(user2).castVotes([2], [true], ['Assessment data hash'], 0);
 
-    let expectedUser1Reward = ethers.constants.Zero;
-    let expectedUser2Reward = ethers.constants.Zero;
+    let expectedUser1Reward = ethers.Zero;
+    let expectedUser2Reward = ethers.Zero;
     {
       const { totalRewardInNXM } = await assessment.assessments(0);
       expectedUser1Reward = expectedUser1Reward.add(totalRewardInNXM.mul(1).div(10));
@@ -91,14 +89,14 @@ describe('getRewards', function () {
     const [user] = fixture.accounts.members;
     const { minVotingPeriod, payoutCooldown } = fixture.config;
 
-    await assessment.connect(user).stake(parseEther('10'));
-    await individualClaims.submitClaim(0, parseEther('10'), '');
-    await individualClaims.submitClaim(1, parseEther('100'), '');
+    await assessment.connect(user).stake(ethers.parseEther('10'));
+    await individualClaims.submitClaim(0, ethers.parseEther('10'), '');
+    await individualClaims.submitClaim(1, ethers.parseEther('100'), '');
 
     await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], 0);
     await assessment.connect(user).castVotes([1], [true], ['Assessment data hash'], 0);
 
-    let expectedReward = ethers.constants.Zero;
+    let expectedReward = ethers.Zero;
 
     {
       const { totalRewardInNXM } = await assessment.assessments(0);
@@ -137,7 +135,7 @@ describe('getRewards', function () {
     }
 
     {
-      await individualClaims.submitClaim(0, parseEther('1000'), '');
+      await individualClaims.submitClaim(0, ethers.parseEther('1000'), '');
       await assessment.connect(user).castVotes([2], [true], ['Assessment data hash'], 0);
       const { withdrawableAmountInNXM } = await assessment.getRewards(user.address);
       expect(withdrawableAmountInNXM).to.be.equal(0);
@@ -158,9 +156,9 @@ describe('getRewards', function () {
     const [user] = fixture.accounts.members;
     const { minVotingPeriod, payoutCooldown } = fixture.config;
 
-    await assessment.connect(user).stake(parseEther('10'));
-    await individualClaims.submitClaim(0, parseEther('10'), '');
-    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await assessment.connect(user).stake(ethers.parseEther('10'));
+    await individualClaims.submitClaim(0, ethers.parseEther('10'), '');
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
 
     await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], 0);
     await assessment.connect(user).castVotes([1], [true], ['Assessment data hash'], 0);
@@ -178,7 +176,7 @@ describe('getRewards', function () {
     }
 
     {
-      await individualClaims.submitClaim(0, parseEther('1000'), '');
+      await individualClaims.submitClaim(0, ethers.parseEther('1000'), '');
       await assessment.connect(user).castVotes([2], [true], ['Assessment data hash'], 0);
       const { withdrawableUntilIndex } = await assessment.getRewards(user.address);
       expect(withdrawableUntilIndex).to.be.equal(2);

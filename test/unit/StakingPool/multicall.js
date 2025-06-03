@@ -4,8 +4,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { DIVIDE_BY_ZERO } = require('../utils').errors;
 
-const { MaxUint256 } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { MaxUint256, parseEther } = ethers;
 
 describe('Multicall unit tests', function () {
   it('should bubble up empty custom error signatures', async function () {

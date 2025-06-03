@@ -2,9 +2,9 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
+const { resultAsObject } = require('../../utils/').results;
 
-const { resultAsObject } = require('../utils').results;
-const { MaxUint256 } = ethers.constants;
+const { MaxUint256 } = ethers;
 
 describe('setProducts', function () {
   const priceDenominator = 10000;

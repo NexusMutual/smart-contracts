@@ -12,7 +12,7 @@ const evm = require('./evm')();
 const ASSESSMENT_VOTER_COUNT = 3;
 
 const { parseEther, toUtf8Bytes } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);

@@ -7,7 +7,7 @@ const { hex } = require('../../../lib/helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 const setTime = async timestamp => {
@@ -418,14 +418,14 @@ describe('submitClaim', function () {
     {
       const [claimId, exists] = await individualClaims.lastClaimSubmissionOnCover(firstCoverId);
       assert.equal(exists, false);
-      expect(claimId).to.be.equal(ethers.constants.Zero);
+      expect(claimId).to.be.equal(ethers.Zero);
     }
 
     {
       await submitClaim(fixture)({ coverId: firstCoverId, sender: coverOwner });
       const [claimId, exists] = await individualClaims.lastClaimSubmissionOnCover(firstCoverId);
       assert.equal(exists, true);
-      expect(claimId).to.be.equal(ethers.constants.Zero);
+      expect(claimId).to.be.equal(ethers.Zero);
     }
 
     await createMockCover(cover, { owner: coverOwner.address });
@@ -435,14 +435,14 @@ describe('submitClaim', function () {
     {
       const [claimId, exists] = await individualClaims.lastClaimSubmissionOnCover(secondCoverId);
       assert.equal(exists, false);
-      expect(claimId).to.be.equal(ethers.constants.Zero);
+      expect(claimId).to.be.equal(ethers.Zero);
     }
 
     {
       await submitClaim(fixture)({ coverId: secondCoverId, sender: coverOwner });
       const [claimId, exists] = await individualClaims.lastClaimSubmissionOnCover(secondCoverId);
       assert.equal(exists, true);
-      expect(claimId).to.be.equal(ethers.constants.One);
+      expect(claimId).to.be.equal(ethers.One);
     }
   });
 
@@ -544,7 +544,7 @@ describe('submitClaim', function () {
 
     await memberRoles.setRole(fallbackWillFailSigner.address, 2);
 
-    await setEtherBalance(fallbackWillFailSigner.address, ethers.utils.parseEther('1'));
+    await setEtherBalance(fallbackWillFailSigner.address, parseEther('1'));
 
     await expect(
       individualClaims

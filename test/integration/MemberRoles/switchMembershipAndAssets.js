@@ -3,8 +3,8 @@ const { expect, assert } = require('chai');
 const { stake } = require('../utils/staking');
 const { Role } = require('../utils').constants;
 const { daysToSeconds } = require('../../../lib/helpers');
-const { parseEther } = ethers.utils;
-const { AddressZero } = ethers.constants;
+
+const { AddressZero, ZeroAddress } = ethers;
 const { calculateFirstTrancheId } = require('../utils/staking');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
@@ -37,7 +37,7 @@ describe('switchMembershipAndAssets', function () {
 
       const newMemberAddress = nonMember1.address;
 
-      await token.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
+      await token.connect(member1).approve(memberRoles.address, ethers.MaxUint256);
       await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [], [], []);
       const oldAddressHasRole = await memberRoles.checkRole(member1.address, Role.Member);
       assert(!oldAddressHasRole);
@@ -72,7 +72,7 @@ describe('switchMembershipAndAssets', function () {
       const newMemberAddress = newMember.address;
       const poolIds = await tokenController.getManagerStakingPools(stakingPoolManager.address);
 
-      await token.connect(stakingPoolManager).approve(memberRoles.address, ethers.constants.MaxUint256);
+      await token.connect(stakingPoolManager).approve(memberRoles.address, ethers.MaxUint256);
       await memberRoles.connect(stakingPoolManager).switchMembershipAndAssets(newMemberAddress, [], [], []);
 
       // check old manager address is removed
@@ -137,7 +137,7 @@ describe('switchMembershipAndAssets', function () {
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: ethers.constants.AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         [{ poolId: 1, coverAmountInAsset: amount }],
@@ -145,7 +145,7 @@ describe('switchMembershipAndAssets', function () {
       );
     }
 
-    await token.connect(member).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await token.connect(member).approve(memberRoles.address, ethers.MaxUint256);
     await coverNFT.connect(member).setApprovalForAll(memberRoles.address, true);
 
     {
@@ -185,7 +185,7 @@ describe('switchMembershipAndAssets', function () {
     await token.connect(staker).transfer(member1.address, parseEther('10000'));
 
     // Stake to open up capacity
-    await token.connect(member1).approve(fixture.contracts.tc.address, ethers.constants.MaxUint256);
+    await token.connect(member1).approve(fixture.contracts.tc.address, ethers.MaxUint256);
     for (const [stakingPool, stakingAmount] of stakingPoolsAndAmounts) {
       await stakingPool
         .connect(member1)
@@ -193,7 +193,7 @@ describe('switchMembershipAndAssets', function () {
     }
 
     // approve tokens
-    await token.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await token.connect(member1).approve(memberRoles.address, ethers.MaxUint256);
     await stakingNFT.connect(member1).setApprovalForAll(memberRoles.address, true);
 
     // switch membership

@@ -24,13 +24,13 @@ const { BigNumber } = ethers;
 const { formatUnits, formatEther } = ethers.utils;
 
 const { parseEther, defaultAbiCoder, toUtf8Bytes, parseUnits, keccak256, hexZeroPad } = ethers.utils;
-const { MaxUint256 } = ethers.constants;
+const { MaxUint256 } = ethers
 
 const addOrder = async (trader, order, executedAmount, encoder) => {
   const sellToken = await ethers.getContractAt('ERC20Mock', order.sellToken);
 
   console.log(`Approve sell token`);
-  await sellToken.connect(trader).approve(Address.COWSWAP_RELAYER, ethers.constants.MaxUint256);
+  await sellToken.connect(trader).approve(Address.COWSWAP_RELAYER, ethers
 
   console.log('Sign Encode Trade');
 

@@ -1,8 +1,8 @@
 const { ethers } = require('hardhat');
 
 const { setEtherBalance } = require('../utils').evm;
-const { AddressZero } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { AddressZero, ZeroAddress } = ethers;
+const { parseEther } = ethers;
 
 async function setup() {
   const coverBrokerOwner = ethers.Wallet.createRandom().connect(ethers.provider);

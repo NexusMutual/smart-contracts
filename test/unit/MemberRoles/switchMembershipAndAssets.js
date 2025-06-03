@@ -10,7 +10,7 @@ describe('switchMembershipAndAssets', function () {
     const { memberRoles, nxm } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await memberRoles.connect(members[0]).switchMembershipAndAssets(nonMembers[0].address, [], []);
     const hasMemberRole = await memberRoles.checkRole(nonMembers[0].address, Role.Member);
 
@@ -22,7 +22,7 @@ describe('switchMembershipAndAssets', function () {
     const { memberRoles, nxm } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await memberRoles.connect(members[0]).switchMembershipAndAssets(nonMembers[0].address, [], []);
     const hasMemberRole = await memberRoles.checkRole(members[0].address, Role.Member);
 
@@ -34,7 +34,7 @@ describe('switchMembershipAndAssets', function () {
     const { memberRoles, nxm, tokenController } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await memberRoles.connect(members[0]).switchMembershipAndAssets(nonMembers[0].address, [], []);
     const addToWhitelistLastCalledWtih = await tokenController.addToWhitelistLastCalledWtih();
 
@@ -46,7 +46,7 @@ describe('switchMembershipAndAssets', function () {
     const { memberRoles, nxm, tokenController } = fixture.contracts;
     const { members, nonMembers } = fixture.accounts;
 
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await memberRoles.connect(members[0]).switchMembershipAndAssets(nonMembers[0].address, [], []);
     const removeFromWhitelistLastCalledWtih = await tokenController.removeFromWhitelistLastCalledWtih();
 
@@ -59,7 +59,7 @@ describe('switchMembershipAndAssets', function () {
     const { members, nonMembers } = fixture.accounts;
 
     const membersBefore = await memberRoles.numberOfMembers(Role.Member);
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await memberRoles.connect(members[0]).switchMembershipAndAssets(nonMembers[0].address, [], []);
     const membersAfter = await memberRoles.numberOfMembers(Role.Member);
 
@@ -71,7 +71,7 @@ describe('switchMembershipAndAssets', function () {
     const { memberRoles, nxm } = fixture.contracts;
     const { members } = fixture.accounts;
 
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await expect(
       memberRoles.connect(members[0]).switchMembershipAndAssets(members[1].address, [], []),
     ).to.be.revertedWithCustomError(memberRoles, 'NewAddressIsAlreadyMember');
@@ -82,7 +82,7 @@ describe('switchMembershipAndAssets', function () {
     const { memberRoles, nxm } = fixture.contracts;
     const { nonMembers, members } = fixture.accounts;
 
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await expect(
       memberRoles.connect(nonMembers[0]).switchMembershipAndAssets(nonMembers[1].address, [], []),
     ).to.be.revertedWithCustomError(memberRoles, 'OnlyMember');
@@ -94,7 +94,7 @@ describe('switchMembershipAndAssets', function () {
     const { members, nonMembers } = fixture.accounts;
 
     const initialAddressBalance = await nxm.balanceOf(members[0].address);
-    await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(members[0]).approve(memberRoles.address, ethers.MaxUint256);
     await memberRoles.connect(members[0]).switchMembershipAndAssets(nonMembers[0].address, [], []);
     const newAddressBalance = await nxm.balanceOf(nonMembers[0].address);
 
@@ -111,7 +111,7 @@ describe('switchMembershipAndAssets', function () {
       await cover.createMockCover(member.address);
     }
 
-    await nxm.connect(member).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(member).approve(memberRoles.address, ethers.MaxUint256);
     await coverNFT.connect(member).setApprovalForAll(memberRoles.address, true);
 
     {
@@ -141,7 +141,7 @@ describe('switchMembershipAndAssets', function () {
     await stakingNFT.mint(otherMember.address);
     await stakingNFT.mint(member.address);
 
-    await nxm.connect(member).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(member).approve(memberRoles.address, ethers.MaxUint256);
     await stakingNFT.connect(member).setApprovalForAll(memberRoles.address, true);
 
     const coverIds = [];
@@ -163,7 +163,7 @@ describe('switchMembershipAndAssets', function () {
     await stakingNFT.mint(member.address);
     await stakingNFT.mint(otherMember.address);
 
-    await nxm.connect(member).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(member).approve(memberRoles.address, ethers.MaxUint256);
     await stakingNFT.connect(member).setApprovalForAll(memberRoles.address, true);
 
     const newMemberAddress = nonMember.address;
@@ -186,7 +186,7 @@ describe('switchMembershipAndAssets', function () {
     }
 
     const newMemberAddress = nonMember.address;
-    await nxm.connect(member).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await nxm.connect(member).approve(memberRoles.address, ethers.MaxUint256);
     await expect(
       memberRoles.connect(member).switchMembershipAndAssets(newMemberAddress, [1, 3], []),
     ).to.be.revertedWith('WRONG_FROM');

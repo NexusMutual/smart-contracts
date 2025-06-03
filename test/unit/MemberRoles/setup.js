@@ -1,11 +1,12 @@
 const { ethers } = require('hardhat');
 const { getAccounts } = require('../utils').accounts;
+const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { hex } = require('../utils').helpers;
 const { Role } = require('../utils').constants;
 
-const { AddressZero } = ethers.constants;
-const { parseEther, formatBytes32String } = ethers.utils;
+const { ZeroAddress, parseEther, formatBytes32String } = ethers;
 
 async function setup() {
   const accounts = await getAccounts();
@@ -67,19 +68,19 @@ async function setup() {
 
   await memberRoles
     .connect(accounts.governanceContracts[0])
-    .addRole(formatBytes32String('Unassigned'), 'Unassigned', AddressZero);
+    .addRole(formatBytes32String('Unassigned'), 'Unassigned', ZeroAddress);
 
   await memberRoles
     .connect(accounts.governanceContracts[0])
     .addRole(
       formatBytes32String('Advisory Board'),
       'Selected few members that are deeply entrusted by the dApp',
-      AddressZero,
+      ZeroAddress,
     );
 
   await memberRoles
     .connect(accounts.governanceContracts[0])
-    .addRole(formatBytes32String('Member'), 'Represents all users of Mutual', AddressZero);
+    .addRole(formatBytes32String('Member'), 'Represents all users of Mutual', ZeroAddress);
 
   // Setting Members
   for (const member of accounts.members) {

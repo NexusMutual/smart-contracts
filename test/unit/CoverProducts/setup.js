@@ -1,11 +1,13 @@
 const { ethers, accounts } = require('hardhat');
-const { BigNumber } = require('ethers');
+const { BigNumber } = ethers;
+const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
-const { AddressZero, MaxUint256 } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { MaxUint256, ZeroAddress } = ethers;
+const { parseEther } = ethers;
 
 const Assets = {
   ETH: 1,
@@ -29,10 +31,10 @@ async function setup() {
   const cover = await ethers.deployContract('CPMockCover', [stakingPoolFactory.address]);
 
   const stakingProducts = await ethers.deployContract('COMockStakingProducts', [
-    AddressZero,
-    AddressZero,
-    AddressZero,
-    AddressZero,
+    ZeroAddress,
+    ZeroAddress,
+    ZeroAddress,
+    ZeroAddress,
   ]);
 
   const coverNFT = await ethers.deployContract('COMockCoverNFT');

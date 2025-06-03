@@ -9,7 +9,7 @@ const { ContractCode, ProposalCategory } = require('../../lib/constants');
 const addresses = require(join(config.paths.root, 'deployments/src/addresses.json'));
 
 const TRANCHE_DURATION = 91 * 24 * 3600; // 91 days
-const sum = arr => arr.reduce((a, b) => a.add(b), ethers.constants.Zero);
+const sum = arr => arr.reduce((a, b) => a.add(b), ethers.Zero);
 
 const { formatEther, formatUnits, parseEther, toUtf8Bytes } = ethers.utils;
 
@@ -201,7 +201,7 @@ describe('StakingPool rewards update', function () {
       console.log(`Tranche Reward Shares in tranches: ${trancheRewardShares.map(formatEther).join(', ')}`);
 
       const actualFee = poolTrancheRewardShares.isZero()
-        ? ethers.constants.Zero
+        ? ethers.Zero
         : poolManagerRewardShares.mul(10000).div(poolTrancheRewardShares);
 
       console.log(`Expected Fee: ${formatUnits(fee.mul(100), 2)}%`);

@@ -1,11 +1,12 @@
-const {
-  constants: { AddressZero },
-} = require('ethers');
+const { ethers } = require('hardhat');
 const { assert, expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
-const { NXMasterOwnerParamType } = require('../utils').constants;
+const { NXMasterOwnerParamType, Role } = require('../utils').constants;
+const { hex } = require('../utils').helpers;
+
+const { ZeroAddress } = ethers;
 
 describe('updateOwnerParameters', function () {
   it('should revert when called by non governance addresses', async function () {
@@ -14,7 +15,7 @@ describe('updateOwnerParameters', function () {
     const param = NXMasterOwnerParamType.kycAuthority;
     const [nonMember] = accounts.nonMembers;
 
-    await expect(master.connect(nonMember).updateOwnerParameters(param, AddressZero)).to.be.revertedWith(
+    await expect(master.connect(nonMember).updateOwnerParameters(param, ZeroAddress)).to.be.revertedWith(
       'Not authorized',
     );
   });

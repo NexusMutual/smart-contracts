@@ -1,14 +1,15 @@
 const hre = require('hardhat');
 const { ethers } = hre;
 const { expect } = require('chai');
-const { BigNumber } = require('ethers');
+const { BigNumber } = ethers;
 const { getAccounts } = require('../../utils/accounts');
 
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
-const { MaxUint256 } = ethers.constants;
-const { getContractAddress, parseEther } = ethers.utils;
+const { getContractAddress, parseEther } = ethers;
+
+const { MaxUint256 } = ethers;
 
 const getDeployAddressAfter = async (account, txCount) => {
   const from = account.address;

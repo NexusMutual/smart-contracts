@@ -5,9 +5,7 @@ const setup = require('./setup');
 
 const { hex } = require('../utils').helpers;
 const { ContractTypes } = require('../utils').constants;
-const {
-  constants: { AddressZero },
-} = ethers;
+const { ZeroAddress } = ethers;
 
 describe('removeContracts', function () {
   it('reverts when not called by governance', async function () {
@@ -50,14 +48,14 @@ describe('removeContracts', function () {
 
     {
       const addressAfterDeletion = await master.getLatestAddress(replaceableCode);
-      assert.equal(addressAfterDeletion, AddressZero);
+      assert.equal(addressAfterDeletion, ZeroAddress);
       const isInternal = await master.isInternal(newReplaceableContract.address);
       assert.equal(isInternal, false);
     }
 
     {
       const addressAfterDeletion = await master.getLatestAddress(proxyCode);
-      assert.equal(addressAfterDeletion, AddressZero);
+      assert.equal(addressAfterDeletion, ZeroAddress);
       const isInternal = await master.isInternal(proxyAddress);
       assert.equal(isInternal, false);
     }

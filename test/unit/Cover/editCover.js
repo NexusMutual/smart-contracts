@@ -7,9 +7,9 @@ const { assertCoverFields, buyCoverOnOnePool, MAX_COVER_PERIOD, createStakingPoo
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
-const { BigNumber } = ethers;
-const { parseEther } = ethers.utils;
-const { AddressZero } = ethers.constants;
+const { ZeroAddress } = ethers;
+const { parseEther } = ethers;
+const { AddressZero } = ethers;
 
 const gracePeriod = daysToSeconds(120);
 
@@ -36,28 +36,20 @@ describe('editCover', function () {
     const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
     const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const passedPeriod = BigNumber.from(10);
-    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
+    const passedPeriod = BigInt(10);
+    const editTimestamp = BigInt(storedCoverData.start) + passedPeriod;
     await setNextBlockTime(editTimestamp.toNumber());
 
-    const increasedAmount = amount.mul(2);
+    const increasedAmount = amount * BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedNewPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedNewPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
 
     // refund for the unused period
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * (BigInt(storedCoverData.period) - passedPeriod) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
     // difference to pay
-    const extraPremium = expectedNewPremium.sub(expectedRefund);
+    const extraPremium = expectedNewPremium - expectedRefund;
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -99,7 +91,7 @@ describe('editCover', function () {
 
     const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const reducedAmount = amount.div(2);
+    const reducedAmount = amount / BigInt(2);
 
     const expectedEditPremium = 0;
 
@@ -156,28 +148,20 @@ describe('editCover', function () {
 
     const buyerBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
 
-    const passedPeriod = BigNumber.from(10);
-    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
+    const passedPeriod = BigInt(10);
+    const editTimestamp = BigInt(storedCoverData.start) + passedPeriod;
     await setNextBlockTime(editTimestamp.toNumber());
 
-    const increasedAmount = amount.mul(2);
+    const increasedAmount = amount * BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedNewPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedNewPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
 
     // refund for the unused period
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * (BigInt(storedCoverData.period) - passedPeriod) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
     // difference to pay
-    const extraPremium = expectedNewPremium.sub(expectedRefund);
+    const extraPremium = expectedNewPremium - expectedRefund;
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -232,26 +216,18 @@ describe('editCover', function () {
 
     const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const passedPeriod = BigNumber.from(10);
-    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
+    const passedPeriod = BigInt(10);
+    const editTimestamp = BigInt(storedCoverData.start) + passedPeriod;
     await setNextBlockTime(editTimestamp.toNumber());
 
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * (BigInt(storedCoverData.period) - passedPeriod) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
-    const increasedPeriod = period * 2;
+    const increasedPeriod = period * BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = amount
-      .mul(targetPriceRatio)
-      .mul(increasedPeriod)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedEditPremium = amount * BigInt(targetPriceRatio) * increasedPeriod / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
 
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -295,7 +271,7 @@ describe('editCover', function () {
 
     const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const reducedPeriod = period - daysToSeconds(1);
+    const reducedPeriod = period - BigInt(daysToSeconds(1));
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -341,27 +317,19 @@ describe('editCover', function () {
 
     const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const passedPeriod = BigNumber.from(10);
-    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
+    const passedPeriod = BigInt(10);
+    const editTimestamp = BigInt(storedCoverData.start) + passedPeriod;
     await setNextBlockTime(editTimestamp.toNumber());
 
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * (BigInt(storedCoverData.period) - passedPeriod) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
-    const increasedAmount = amount.mul(2);
-    const increasedPeriod = period * 2;
+    const increasedAmount = amount * BigInt(2);
+    const increasedPeriod = period * BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(increasedPeriod)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * increasedPeriod / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
 
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -407,27 +375,19 @@ describe('editCover', function () {
 
     const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const passedPeriod = BigNumber.from(10);
-    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
+    const passedPeriod = BigInt(10);
+    const editTimestamp = BigInt(storedCoverData.start) + passedPeriod;
     await setNextBlockTime(editTimestamp.toNumber());
 
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * (BigInt(storedCoverData.period) - passedPeriod) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
-    const decreasedAmount = amount.div(2);
-    const increasedPeriod = period * 2;
+    const decreasedAmount = amount / BigInt(2);
+    const increasedPeriod = period * BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = decreasedAmount
-      .mul(targetPriceRatio)
-      .mul(increasedPeriod)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedEditPremium = decreasedAmount * BigInt(targetPriceRatio) * increasedPeriod / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
 
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -476,33 +436,25 @@ describe('editCover', function () {
       priceDenominator,
     } = coverBuyFixture;
 
-    const period = BigNumber.from(reducedPeriod).mul(2);
+    const period = BigInt(reducedPeriod) * BigInt(2);
 
     await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
     const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, { ...coverBuyFixture, period });
 
     const coverData = await cover.getCoverData(expectedCoverId);
-    const passedPeriod = BigNumber.from(10);
-    const editTimestamp = BigNumber.from(coverData.start).add(10);
+    const passedPeriod = BigInt(10);
+    const editTimestamp = BigInt(coverData.start) + BigInt(10);
 
-    const expectedRefund = coverData.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(coverData.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const expectedRefund = coverData.amount * BigInt(targetPriceRatio) * (BigInt(coverData.period) - passedPeriod) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
-    const increasedAmount = amount.mul(2);
-    const decreasedPeriod = period.div(2);
+    const increasedAmount = amount * BigInt(2);
+    const decreasedPeriod = period / BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(decreasedPeriod)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * decreasedPeriod / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
 
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
     await setNextBlockTime(editTimestamp.toNumber());
     await cover.connect(coverBuyer).buyCover(
@@ -549,10 +501,10 @@ describe('editCover', function () {
 
     const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, {
       ...coverBuyFixture,
-      period: period * 2,
+      period: period * BigInt(2),
     });
 
-    const reducedAmount = amount.div(2);
+    const reducedAmount = amount / BigInt(2);
     const reducedPeriod = period;
 
     await cover.connect(coverBuyer).buyCover(
@@ -596,22 +548,14 @@ describe('editCover', function () {
     const { productId, targetPriceRatio, priceDenominator, coverAsset, period, amount } = coverBuyFixture;
     const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(storedCoverData.period)
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * BigInt(storedCoverData.period) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
-    const increasedAmount = amount.mul(2);
+    const increasedAmount = amount * BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
 
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
     const now = await ethers.provider.getBlock('latest').then(block => block.timestamp);
     await setNextBlockTime(now + period + 3600);
@@ -648,22 +592,14 @@ describe('editCover', function () {
 
     const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(storedCoverData.period)
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
-    const increasedAmount = amount.mul(2);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * BigInt(storedCoverData.period) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
+    const increasedAmount = amount * BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(storedCoverData.period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(storedCoverData.period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
-    const periodTooLong = daysToSeconds(366);
+    const periodTooLong = BigInt(daysToSeconds(366));
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -702,21 +638,13 @@ describe('editCover', function () {
 
     const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(storedCoverData.period)
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
-    const increasedAmount = amount.mul(2);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * BigInt(storedCoverData.period) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
+    const increasedAmount = amount * BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
 
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -755,7 +683,7 @@ describe('editCover', function () {
 
     // Edit product gracePeriod
     const productTypeBefore = await coverProducts.getProductType(productId);
-    const newGracePeriod = daysToSeconds(1000);
+    const newGracePeriod = BigInt(daysToSeconds(1000));
 
     await coverProducts
       .connect(boardMember)
@@ -763,26 +691,18 @@ describe('editCover', function () {
     const productType = await coverProducts.getProductType(productId);
     expect(newGracePeriod).to.be.equal(productType.gracePeriod);
 
-    const passedPeriod = BigNumber.from(10);
+    const passedPeriod = BigInt(10);
 
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * (BigInt(storedCoverData.period) - passedPeriod) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
     // const increasedAmount = amount.mul(2);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = amount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedEditPremium = amount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
 
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
     // const { start: startTimestamp } = await cover.coverSegmentWithRemainingAmount(expectedCoverId, 0);
-    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
+    const editTimestamp = BigInt(storedCoverData.start) + passedPeriod;
     await setNextBlockTime(editTimestamp.toNumber());
 
     await cover.connect(coverBuyer).buyCover(
@@ -821,14 +741,10 @@ describe('editCover', function () {
     const { productId, targetPriceRatio, priceDenominator, coverAsset, period, amount } = coverBuyFixture;
     const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const increasedAmount = amount.mul(2);
+    const increasedAmount = amount * BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
     const extraPremium = expectedEditPremium;
 
     await expect(
@@ -862,17 +778,13 @@ describe('editCover', function () {
     const { productId, targetPriceRatio, priceDenominator, coverAsset, period, amount } = coverBuyFixture;
     const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const increasedAmount = amount.mul(2);
+    const increasedAmount = amount * BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
     const extraPremium = expectedEditPremium;
 
-    const invalidCoverId = expectedCoverId.add(100);
+    const invalidCoverId = expectedCoverId + BigInt(100);
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
@@ -905,22 +817,14 @@ describe('editCover', function () {
 
     const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(storedCoverData.period)
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
-    const increasedAmount = amount.mul(2);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * BigInt(storedCoverData.period) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
+    const increasedAmount = amount * BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(storedCoverData.period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(storedCoverData.period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
-    const periodTooShort = daysToSeconds(10);
+    const periodTooShort = BigInt(daysToSeconds(10));
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -956,23 +860,15 @@ describe('editCover', function () {
 
     const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(storedCoverData.period)
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * BigInt(storedCoverData.period) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
-    const increasedAmount = amount.mul(2);
+    const increasedAmount = amount * BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
-    const smallExpectedEditPremium = expectedEditPremium.div(10);
+    const smallExpectedEditPremium = expectedEditPremium / BigInt(10);
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -1007,25 +903,17 @@ describe('editCover', function () {
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
     const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const passedPeriod = BigNumber.from(10);
-    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
+    const passedPeriod = BigInt(10);
+    const editTimestamp = BigInt(storedCoverData.start) + passedPeriod;
     await setNextBlockTime(editTimestamp.toNumber());
 
-    const increasedAmount = amount.mul(2);
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const increasedAmount = amount * BigInt(2);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * (BigInt(storedCoverData.period) - passedPeriod) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
 
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
     const coverOwner = await coverNFT.ownerOf(expectedCoverId);
     expect(coverOwner).to.be.equal(coverBuyer.address);
@@ -1061,14 +949,10 @@ describe('editCover', function () {
     const { productId, targetPriceRatio, priceDenominator, coverAsset, period, amount } = coverBuyFixture;
     const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const increasedAmount = amount.mul(2);
+    const increasedAmount = amount * BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
     const extraPremium = expectedEditPremium;
 
     const coverOwner = await coverNFT.ownerOf(expectedCoverId);
@@ -1107,22 +991,14 @@ describe('editCover', function () {
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
     const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const increasedAmount = amount.mul(2);
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(storedCoverData.period)
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const increasedAmount = amount * BigInt(2);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * BigInt(storedCoverData.period) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
-    const incorrectCoverAsset = 1;
+    const incorrectCoverAsset = BigInt(1);
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -1155,23 +1031,15 @@ describe('editCover', function () {
     const { coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
     const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const increasedAmount = amount.mul(2);
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(storedCoverData.period)
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const increasedAmount = amount * BigInt(2);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * BigInt(storedCoverData.period) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
 
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
-    const incorrectProductId = 10;
+    const incorrectProductId = BigInt(10);
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -1204,21 +1072,13 @@ describe('editCover', function () {
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
     const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const increasedAmount = amount.mul(2);
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(storedCoverData.period)
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const increasedAmount = amount * BigInt(2);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * BigInt(storedCoverData.period) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
 
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -1251,30 +1111,22 @@ describe('editCover', function () {
     const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
     const { storedCoverData, coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const passedPeriod = BigNumber.from(10);
-    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
+    const passedPeriod = BigInt(10);
+    const editTimestamp = BigInt(storedCoverData.start) + passedPeriod;
     await setNextBlockTime(editTimestamp.toNumber());
 
-    const increasedAmount = amount.mul(2);
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const increasedAmount = amount * BigInt(2);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * (BigInt(storedCoverData.period) - passedPeriod) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
     const coverOwner = await coverNFT.ownerOf(originalCoverId);
     expect(coverOwner).to.be.equal(coverBuyer.address);
 
     const ipfsData = 'test data';
-    const editedCoverId = originalCoverId.add(1);
+    const editedCoverId = originalCoverId + BigInt(1);
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -1310,25 +1162,17 @@ describe('editCover', function () {
 
     const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const passedPeriod = BigNumber.from(10);
-    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
+    const passedPeriod = BigInt(10);
+    const editTimestamp = BigInt(storedCoverData.start) + passedPeriod;
     await setNextBlockTime(editTimestamp.toNumber());
 
-    const increasedAmount = amount.mul(2);
+    const increasedAmount = amount * BigInt(2);
 
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * (BigInt(storedCoverData.period) - passedPeriod) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
     const poolEthBalanceBefore = await ethers.provider.getBalance(pool.address);
 
@@ -1353,10 +1197,10 @@ describe('editCover', function () {
       },
     );
 
-    const editedCoverId = expectedCoverId.add(1);
+    const editedCoverId = expectedCoverId + BigInt(1);
 
     const poolEthBalanceAfter = await ethers.provider.getBalance(pool.address);
-    expect(poolEthBalanceAfter).to.equal(poolEthBalanceBefore.add(extraPremium));
+    expect(poolEthBalanceAfter).to.equal(poolEthBalanceBefore + extraPremium);
 
     await assertCoverFields(cover, editedCoverId, {
       productId,
@@ -1375,32 +1219,24 @@ describe('editCover', function () {
 
     const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
 
-    const NXM_ASSET_ID = 255;
+    const NXM_ASSET_ID = BigInt(255);
 
     await nxm.mint(coverBuyer.address, parseEther('1000'));
     await nxm.connect(coverBuyer).approve(tokenController.address, parseEther('1000'));
 
     const { storedCoverData, coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const passedPeriod = BigNumber.from(10);
-    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
+    const passedPeriod = BigInt(10);
+    const editTimestamp = BigInt(storedCoverData.start) + passedPeriod;
     await setNextBlockTime(editTimestamp.toNumber());
 
-    const increasedAmount = amount.mul(2);
+    const increasedAmount = amount * BigInt(2);
 
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * (BigInt(storedCoverData.period) - passedPeriod) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const expectedEditPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
     const userBalanceBefore = await nxm.balanceOf(coverBuyer.address);
 
@@ -1425,9 +1261,9 @@ describe('editCover', function () {
       },
     );
 
-    const editedCoverId = expectedCoverId.add(1);
+    const editedCoverId = expectedCoverId + BigInt(1);
     const userBalanceAfter = await nxm.balanceOf(coverBuyer.address);
-    expect(userBalanceAfter).to.equal(userBalanceBefore.sub(extraPremium));
+    expect(userBalanceAfter).to.equal(userBalanceBefore - extraPremium);
 
     await assertCoverFields(cover, editedCoverId, {
       productId,
@@ -1486,7 +1322,7 @@ describe('editCover', function () {
       },
     );
 
-    const firstEditId = expectedCoverId.add(1);
+    const firstEditId = expectedCoverId + BigInt(1);
 
     {
       const poolAllocations = await cover.getPoolAllocations(firstEditId);
@@ -1504,27 +1340,18 @@ describe('editCover', function () {
       });
     }
 
-    const passedPeriod = BigNumber.from(10);
-    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
+    const passedPeriod = BigInt(10);
+    const editTimestamp = BigInt(storedCoverData.start) + passedPeriod;
     await setNextBlockTime(editTimestamp.toNumber());
 
-    const increasedPoolAmount = amount.mul(2);
+    const increasedPoolAmount = amount * BigInt(2);
 
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * (BigInt(storedCoverData.period) - passedPeriod) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
     // premium for the new amount, without refunds
-    const expectedEditPremium = increasedPoolAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365)
-      .mul(2); // for 2 pools
+    const expectedEditPremium = increasedPoolAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365) * BigInt(2); // for 2 pools
 
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const extraPremium = expectedEditPremium - expectedRefund;
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -1532,7 +1359,7 @@ describe('editCover', function () {
         owner: coverBuyer.address,
         productId,
         coverAsset,
-        amount: increasedPoolAmount.mul(2),
+        amount: increasedPoolAmount * BigInt(2),
         period,
         maxPremiumInAsset: extraPremium,
         paymentAsset: coverAsset,
@@ -1550,7 +1377,7 @@ describe('editCover', function () {
       },
     );
 
-    const secondEditId = firstEditId.add(1);
+    const secondEditId = firstEditId + BigInt(1);
 
     {
       const poolAllocations = await cover.getPoolAllocations(secondEditId);
@@ -1563,7 +1390,7 @@ describe('editCover', function () {
         productId,
         coverAsset,
         period,
-        amount: increasedPoolAmount.mul(2),
+        amount: increasedPoolAmount * BigInt(2),
         gracePeriod,
       });
     }
@@ -1623,28 +1450,20 @@ describe('editCover', function () {
       expect(totalActiveCoverInAsset).to.equal(amount);
     }
 
-    const passedPeriod = BigNumber.from(10);
-    const editTimestamp = BigNumber.from(storedCoverData.start).add(passedPeriod);
+    const passedPeriod = BigInt(10);
+    const editTimestamp = BigInt(storedCoverData.start) + passedPeriod;
     await setNextBlockTime(editTimestamp.toNumber());
 
-    const increasedAmount = amount.mul(2);
+    const increasedAmount = amount * BigInt(2);
 
     // premium for the new amount, without refunds
-    const expectedNewPremium = increasedAmount
-      .mul(targetPriceRatio)
-      .mul(period)
-      .div(priceDenominator)
-      .div(3600 * 24 * 365);
+    const expectedNewPremium = increasedAmount * BigInt(targetPriceRatio) * BigInt(period) / BigInt(priceDenominator) / BigInt(3600 * 24 * 365);
 
     // refund for the unused period
-    const expectedRefund = storedCoverData.amount
-      .mul(targetPriceRatio)
-      .mul(BigNumber.from(storedCoverData.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
+    const expectedRefund = storedCoverData.amount * BigInt(targetPriceRatio) * (BigInt(storedCoverData.period) - passedPeriod) / BigInt(MAX_COVER_PERIOD) / BigInt(priceDenominator);
 
     // difference to pay
-    const extraPremium = expectedNewPremium.sub(expectedRefund);
+    const extraPremium = expectedNewPremium - expectedRefund;
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -1667,7 +1486,7 @@ describe('editCover', function () {
       },
     );
 
-    const editedCoverId = expectedCoverId.add(1);
+    const editedCoverId = expectedCoverId + BigInt(1);
 
     await assertCoverFields(cover, editedCoverId, {
       productId,
@@ -1699,7 +1518,7 @@ describe('editCover', function () {
     const { productId, coverAsset, period, amount } = coverBuyFixture;
     const { coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const reducedPeriod = period - daysToSeconds(1);
+    const reducedPeriod = period - BigInt(daysToSeconds(1));
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -1719,7 +1538,7 @@ describe('editCover', function () {
       [{ poolId: 1, coverAmountInAsset: amount.toString() }],
     );
 
-    const editedCoverId = originalCoverId.add(1);
+    const editedCoverId = originalCoverId + BigInt(1);
     const coverReferenceForOriginalId = await cover.getCoverReference(originalCoverId);
     const coverReferenceForEditedId = await cover.getCoverReference(editedCoverId);
 
@@ -1736,7 +1555,7 @@ describe('editCover', function () {
     const { productId, coverAsset, period, amount } = coverBuyFixture;
     const { coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const reducedPeriodFirstEdit = period - daysToSeconds(1);
+    const reducedPeriodFirstEdit = period - BigInt(daysToSeconds(1));
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -1756,7 +1575,7 @@ describe('editCover', function () {
       [{ poolId: 1, coverAmountInAsset: amount.toString() }],
     );
 
-    const reducedPeriodSecondEdit = reducedPeriodFirstEdit - daysToSeconds(1);
+    const reducedPeriodSecondEdit = reducedPeriodFirstEdit - BigInt(daysToSeconds(1));
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -1776,7 +1595,7 @@ describe('editCover', function () {
       [{ poolId: 1, coverAmountInAsset: amount.toString() }],
     );
 
-    const lastEditCoverId = originalCoverId.add(2);
+    const lastEditCoverId = originalCoverId + BigInt(2);
     const coverReferenceForOriginalId = await cover.getCoverReference(originalCoverId);
     const coverReferenceForLastEditId = await cover.getCoverReference(lastEditCoverId);
 
@@ -1793,7 +1612,7 @@ describe('editCover', function () {
     const { productId, coverAsset, period, amount } = coverBuyFixture;
     const { coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
 
-    const reducedPeriodFirstEdit = period - daysToSeconds(1);
+    const reducedPeriodFirstEdit = period - BigInt(daysToSeconds(1));
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -1813,9 +1632,9 @@ describe('editCover', function () {
       [{ poolId: 1, coverAmountInAsset: amount.toString() }],
     );
 
-    const editedCoverId = originalCoverId.add(1);
+    const editedCoverId = originalCoverId + BigInt(1);
 
-    const reducedPeriodSecondEdit = reducedPeriodFirstEdit - daysToSeconds(1);
+    const reducedPeriodSecondEdit = reducedPeriodFirstEdit - BigInt(daysToSeconds(1));
 
     await expect(
       cover.connect(coverBuyer).buyCover(

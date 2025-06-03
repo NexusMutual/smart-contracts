@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { parseEther, parseUnits } = ethers.utils;
+const { parseEther, parseUnits } = ethers;
 
 const { initMCR } = require('./common');
 const { getAccounts } = require('../../utils/accounts');

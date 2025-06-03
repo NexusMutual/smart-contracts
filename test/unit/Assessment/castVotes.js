@@ -5,7 +5,6 @@ const { Role } = require('../../../lib/constants');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
-const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 const ASSESSMENT_DATA_HASH = 'Assessment data ipfs hash';
@@ -15,8 +14,8 @@ describe('castVotes', function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const user = fixture.accounts.members[0];
-    await assessment.connect(user).stake(parseEther('100'));
-    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await assessment.connect(user).stake(ethers.parseEther('100'));
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
     await assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
 
     const castVotesTrue = assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
@@ -30,7 +29,7 @@ describe('castVotes', function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const user = fixture.accounts.members[0];
-    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
 
     const castVotesTrue = assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
     await expect(castVotesTrue).to.be.revertedWithCustomError(assessment, 'StakeRequired');
@@ -43,9 +42,9 @@ describe('castVotes', function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user1, user2] = fixture.accounts.members;
-    await assessment.connect(user1).stake(parseEther('100'));
-    await assessment.connect(user2).stake(parseEther('100'));
-    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await assessment.connect(user1).stake(ethers.parseEther('100'));
+    await assessment.connect(user2).stake(ethers.parseEther('100'));
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
     {
       const { poll } = await assessment.assessments(0);
       await setTime(poll.end);
@@ -57,7 +56,7 @@ describe('castVotes', function () {
     const castVotesFalse0 = assessment.connect(user1).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0);
     await expect(castVotesFalse0).to.be.revertedWithCustomError(assessment, 'VotingClosed');
 
-    await individualClaims.submitClaim(1, parseEther('100'), '');
+    await individualClaims.submitClaim(1, ethers.parseEther('100'), '');
     const { timestamp } = await ethers.provider.getBlock('latest');
     await setTime(timestamp + daysToSeconds(1));
     await assessment.connect(user1).castVotes([1], [true], [ASSESSMENT_DATA_HASH], 0);
@@ -78,8 +77,8 @@ describe('castVotes', function () {
     const { assessment, individualClaims } = fixture.contracts;
     const user = fixture.accounts.members[0];
 
-    await assessment.connect(user).stake(parseEther('100'));
-    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await assessment.connect(user).stake(ethers.parseEther('100'));
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
 
     const castVotesDeny = assessment.connect(user).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0);
     await expect(castVotesDeny).to.be.revertedWithCustomError(assessment, 'AcceptVoteRequired');
@@ -89,8 +88,8 @@ describe('castVotes', function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const user = fixture.accounts.members[0];
-    await assessment.connect(user).stake(parseEther('100'));
-    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await assessment.connect(user).stake(ethers.parseEther('100'));
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       await setTime(timestamp + daysToSeconds(1));
@@ -114,13 +113,13 @@ describe('castVotes', function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user1, user2, user3, user4, user5] = fixture.accounts.members;
-    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
 
-    await assessment.connect(user1).stake(parseEther('100'));
-    await assessment.connect(user2).stake(parseEther('100'));
-    await assessment.connect(user3).stake(parseEther('200'));
-    await assessment.connect(user4).stake(parseEther('800'));
-    await assessment.connect(user5).stake(parseEther('300'));
+    await assessment.connect(user1).stake(ethers.parseEther('100'));
+    await assessment.connect(user2).stake(ethers.parseEther('100'));
+    await assessment.connect(user3).stake(ethers.parseEther('200'));
+    await assessment.connect(user4).stake(ethers.parseEther('800'));
+    await assessment.connect(user5).stake(ethers.parseEther('300'));
 
     await assessment.connect(user1).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
 
@@ -171,28 +170,28 @@ describe('castVotes', function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user1, user2, user3] = fixture.accounts.members;
-    await assessment.connect(user1).stake(parseEther('100'));
-    await assessment.connect(user2).stake(parseEther('100'));
-    await assessment.connect(user3).stake(parseEther('100'));
+    await assessment.connect(user1).stake(ethers.parseEther('100'));
+    await assessment.connect(user2).stake(ethers.parseEther('100'));
+    await assessment.connect(user3).stake(ethers.parseEther('100'));
 
-    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
 
     {
       await assessment.connect(user1).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
       const { poll } = await assessment.assessments(0);
-      expect(poll.accepted).to.be.equal(parseEther('100'));
+      expect(poll.accepted).to.be.equal(ethers.parseEther('100'));
     }
 
     {
       await assessment.connect(user2).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0);
       const { poll } = await assessment.assessments(0);
-      expect(poll.accepted).to.be.equal(parseEther('100'));
+      expect(poll.accepted).to.be.equal(ethers.parseEther('100'));
     }
 
     {
       await assessment.connect(user3).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
       const { poll } = await assessment.assessments(0);
-      expect(poll.accepted).to.be.equal(parseEther('200'));
+      expect(poll.accepted).to.be.equal(ethers.parseEther('200'));
     }
   });
 
@@ -200,35 +199,35 @@ describe('castVotes', function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user1, user2, user3, user4] = fixture.accounts.members;
-    await assessment.connect(user1).stake(parseEther('100'));
-    await assessment.connect(user2).stake(parseEther('100'));
-    await assessment.connect(user3).stake(parseEther('100'));
-    await assessment.connect(user4).stake(parseEther('100'));
+    await assessment.connect(user1).stake(ethers.parseEther('100'));
+    await assessment.connect(user2).stake(ethers.parseEther('100'));
+    await assessment.connect(user3).stake(ethers.parseEther('100'));
+    await assessment.connect(user4).stake(ethers.parseEther('100'));
 
-    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
 
     {
       await assessment.connect(user1).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
       const { poll } = await assessment.assessments(0);
-      expect(poll.denied).to.be.equal(parseEther('0'));
+      expect(poll.denied).to.be.equal(ethers.parseEther('0'));
     }
 
     {
       await assessment.connect(user2).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0);
       const { poll } = await assessment.assessments(0);
-      expect(poll.denied).to.be.equal(parseEther('100'));
+      expect(poll.denied).to.be.equal(ethers.parseEther('100'));
     }
 
     {
       await assessment.connect(user3).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
       const { poll } = await assessment.assessments(0);
-      expect(poll.denied).to.be.equal(parseEther('100'));
+      expect(poll.denied).to.be.equal(ethers.parseEther('100'));
     }
 
     {
       await assessment.connect(user4).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0);
       const { poll } = await assessment.assessments(0);
-      expect(poll.denied).to.be.equal(parseEther('200'));
+      expect(poll.denied).to.be.equal(ethers.parseEther('200'));
     }
   });
 
@@ -236,11 +235,11 @@ describe('castVotes', function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user1, user2] = fixture.accounts.members;
-    await assessment.connect(user1).stake(parseEther('100'));
-    await assessment.connect(user2).stake(parseEther('1000'));
+    await assessment.connect(user1).stake(ethers.parseEther('100'));
+    await assessment.connect(user2).stake(ethers.parseEther('1000'));
 
-    await individualClaims.submitClaim(0, parseEther('100'), '');
-    await individualClaims.submitClaim(1, parseEther('100'), '');
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
+    await individualClaims.submitClaim(1, ethers.parseEther('100'), '');
 
     {
       await assessment.connect(user1).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
@@ -249,7 +248,7 @@ describe('castVotes', function () {
       expect(assessmentId).to.be.equal(0);
       expect(accepted).to.be.equal(true);
       expect(timestamp).to.be.equal(timestampAtVoteTime);
-      expect(stakedAmount).to.be.equal(parseEther('100'));
+      expect(stakedAmount).to.be.equal(ethers.parseEther('100'));
     }
 
     {
@@ -259,7 +258,7 @@ describe('castVotes', function () {
       expect(assessmentId).to.be.equal(1);
       expect(accepted).to.be.equal(true);
       expect(timestamp).to.be.equal(timestampAtVoteTime);
-      expect(stakedAmount).to.be.equal(parseEther('100'));
+      expect(stakedAmount).to.be.equal(ethers.parseEther('100'));
     }
 
     {
@@ -269,7 +268,7 @@ describe('castVotes', function () {
       expect(assessmentId).to.be.equal(0);
       expect(accepted).to.be.equal(false);
       expect(timestamp).to.be.equal(timestampAtVoteTime);
-      expect(stakedAmount).to.be.equal(parseEther('1000'));
+      expect(stakedAmount).to.be.equal(ethers.parseEther('1000'));
     }
 
     {
@@ -279,7 +278,7 @@ describe('castVotes', function () {
       expect(assessmentId).to.be.equal(1);
       expect(accepted).to.be.equal(false);
       expect(timestamp).to.be.equal(timestampAtVoteTime);
-      expect(stakedAmount).to.be.equal(parseEther('1000'));
+      expect(stakedAmount).to.be.equal(ethers.parseEther('1000'));
     }
   });
 
@@ -287,10 +286,10 @@ describe('castVotes', function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user1] = fixture.accounts.members;
-    await assessment.connect(user1).stake(parseEther('100'));
+    await assessment.connect(user1).stake(ethers.parseEther('100'));
 
-    await individualClaims.submitClaim(0, parseEther('100'), '');
-    await individualClaims.submitClaim(1, parseEther('100'), '');
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
+    await individualClaims.submitClaim(1, ethers.parseEther('100'), '');
 
     {
       await assessment.connect(user1).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
@@ -299,17 +298,17 @@ describe('castVotes', function () {
       expect(assessmentId).to.be.equal(0);
       expect(accepted).to.be.equal(true);
       expect(timestamp).to.be.equal(timestampAtVoteTime);
-      expect(stakedAmount).to.be.equal(parseEther('100'));
+      expect(stakedAmount).to.be.equal(ethers.parseEther('100'));
     }
 
     {
-      await assessment.connect(user1).castVotes([1], [true], [ASSESSMENT_DATA_HASH], parseEther('33'));
+      await assessment.connect(user1).castVotes([1], [true], [ASSESSMENT_DATA_HASH], ethers.parseEther('33'));
       const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user1.address, 1);
       expect(assessmentId).to.be.equal(1);
       expect(accepted).to.be.equal(true);
       expect(timestamp).to.be.equal(timestampAtVoteTime);
-      expect(stakedAmount).to.be.equal(parseEther('133'));
+      expect(stakedAmount).to.be.equal(ethers.parseEther('133'));
     }
 
     // Also make sure the previous vote was not affected by the stake increase just in case
@@ -317,7 +316,7 @@ describe('castVotes', function () {
       const { assessmentId, accepted, stakedAmount } = await assessment.votesOf(user1.address, 0);
       expect(assessmentId).to.be.equal(0);
       expect(accepted).to.be.equal(true);
-      expect(stakedAmount).not.to.be.equal(parseEther('133'));
+      expect(stakedAmount).not.to.be.equal(ethers.parseEther('133'));
     }
   });
 
@@ -325,30 +324,30 @@ describe('castVotes', function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user1, user2] = fixture.accounts.members;
-    await assessment.connect(user1).stake(parseEther('100'));
-    await assessment.connect(user2).stake(parseEther('1000'));
+    await assessment.connect(user1).stake(ethers.parseEther('100'));
+    await assessment.connect(user2).stake(ethers.parseEther('1000'));
 
-    await individualClaims.submitClaim(0, parseEther('100'), '');
-    await individualClaims.submitClaim(1, parseEther('100'), '');
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
+    await individualClaims.submitClaim(1, ethers.parseEther('100'), '');
     const assessmentDataIpfsHashes = ['1st Assessment data ipfs hash', '2nd Assessment data ipfs hash'];
     {
       const tx = await assessment.connect(user1).castVotes([0, 1], [true, true], assessmentDataIpfsHashes, 0);
       await expect(tx)
         .to.emit(assessment, 'VoteCast')
-        .withArgs(user1.address, 0, parseEther('100'), true, assessmentDataIpfsHashes[0]);
+        .withArgs(user1.address, 0, ethers.parseEther('100'), true, assessmentDataIpfsHashes[0]);
       await expect(tx)
         .to.emit(assessment, 'VoteCast')
-        .withArgs(user1.address, 1, parseEther('100'), true, assessmentDataIpfsHashes[1]);
+        .withArgs(user1.address, 1, ethers.parseEther('100'), true, assessmentDataIpfsHashes[1]);
     }
 
     {
       const tx = await assessment.connect(user2).castVotes([0, 1], [true, false], assessmentDataIpfsHashes, 0);
       await expect(tx)
         .to.emit(assessment, 'VoteCast')
-        .withArgs(user2.address, 0, parseEther('1000'), true, assessmentDataIpfsHashes[0]);
+        .withArgs(user2.address, 0, ethers.parseEther('1000'), true, assessmentDataIpfsHashes[0]);
       await expect(tx)
         .to.emit(assessment, 'VoteCast')
-        .withArgs(user2.address, 1, parseEther('1000'), false, assessmentDataIpfsHashes[1]);
+        .withArgs(user2.address, 1, ethers.parseEther('1000'), false, assessmentDataIpfsHashes[1]);
     }
   });
 
@@ -408,9 +407,9 @@ describe('castVotes', function () {
     const { assessment, individualClaims } = fixture.contracts;
     const [user] = fixture.accounts.members;
 
-    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
 
-    const stakeAmount = parseEther('100');
+    const stakeAmount = ethers.parseEther('100');
 
     {
       const { amount } = await assessment.stakeOf(user.address);
@@ -429,10 +428,10 @@ describe('castVotes', function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const [user] = fixture.accounts.members;
-    await assessment.connect(user).stake(parseEther('100'));
+    await assessment.connect(user).stake(ethers.parseEther('100'));
 
-    await individualClaims.submitClaim(0, parseEther('100'), '');
-    await individualClaims.submitClaim(1, parseEther('100'), '');
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
+    await individualClaims.submitClaim(1, ethers.parseEther('100'), '');
 
     await assessment.connect(user).castVotes([0, 1], [true, true], [ASSESSMENT_DATA_HASH, ASSESSMENT_DATA_HASH], 0);
     const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
@@ -443,10 +442,10 @@ describe('castVotes', function () {
       expect(assessmentId).to.be.equal(0);
       expect(accepted).to.be.equal(true);
       expect(timestamp).to.be.equal(timestampAtVoteTime);
-      expect(stakedAmount).to.be.equal(parseEther('100'));
+      expect(stakedAmount).to.be.equal(ethers.parseEther('100'));
 
       const { poll } = await assessment.assessments(assessmentId);
-      expect(poll.accepted).to.be.equal(parseEther('100'));
+      expect(poll.accepted).to.be.equal(ethers.parseEther('100'));
     }
 
     {
@@ -455,10 +454,10 @@ describe('castVotes', function () {
       expect(assessmentId).to.be.equal(1);
       expect(accepted).to.be.equal(true);
       expect(timestamp).to.be.equal(timestampAtVoteTime);
-      expect(stakedAmount).to.be.equal(parseEther('100'));
+      expect(stakedAmount).to.be.equal(ethers.parseEther('100'));
 
       const { poll } = await assessment.assessments(assessmentId);
-      expect(poll.accepted).to.be.equal(parseEther('100'));
+      expect(poll.accepted).to.be.equal(ethers.parseEther('100'));
     }
   });
 
@@ -467,9 +466,9 @@ describe('castVotes', function () {
     const { assessment, individualClaims } = fixture.contracts;
     const [user] = fixture.accounts.members;
 
-    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
 
-    const stakeAmount = parseEther('100');
+    const stakeAmount = ethers.parseEther('100');
 
     {
       const { amount } = await assessment.stakeOf(user.address);
@@ -500,17 +499,17 @@ describe('castVotes', function () {
     // Add AB and nonMember accounts as new members
     for (const member of fixture.accounts.advisoryBoardMembers) {
       await memberRoles.enrollMember(member.address, Role.Member);
-      await nxm.mint(member.address, parseEther('10000'));
-      await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
+      await nxm.mint(member.address, ethers.parseEther('10000'));
+      await nxm.connect(member).approve(tokenController.address, ethers.parseEther('10000'));
     }
 
-    const stakeAmount = parseEther('100');
+    const stakeAmount = ethers.parseEther('100');
 
     for (const user of voters) {
       await assessment.connect(user).stake(stakeAmount);
     }
 
-    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
     const assessmentId = 0;
 
     // 8 true - 6 false
@@ -521,7 +520,7 @@ describe('castVotes', function () {
     }
 
     const { poll } = await assessment.assessments(assessmentId);
-    expect(poll.accepted).to.be.equal(stakeAmount.mul(6));
-    expect(poll.denied).to.be.equal(stakeAmount.mul(4));
+    expect(poll.accepted).to.be.equal(ethers.parseEther('600'));
+    expect(poll.denied).to.be.equal(ethers.parseEther('400'));
   });
 });

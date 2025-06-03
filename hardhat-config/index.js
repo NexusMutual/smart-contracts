@@ -4,7 +4,7 @@ const path = require('node:path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 require('@typechain/hardhat');
-require('@nomiclabs/hardhat-etherscan');
+require('@nomicfoundation/hardhat-verify');
 require('@nomicfoundation/hardhat-chai-matchers');
 require('solidity-coverage');
 require('hardhat-contract-sizer');
@@ -26,7 +26,7 @@ const config = {
   },
 
   typechain: {
-    target: 'ethers-v5',
+    target: 'ethers-v6',
     outDir: 'types',
     alwaysGenerateOverloads: false,
     dontOverrideCompile: true, // defaults to false

@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { AddressZero, Two } = ethers.constants;
+const { AddressZero, Two } = ethers;
 
 const poolId = Two.pow(95); // overflows at uint96
 

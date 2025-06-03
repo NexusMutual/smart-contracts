@@ -4,8 +4,9 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
 const { Role } = require('../utils').constants;
+const { hex } = require('../utils').helpers;
 
-const { AddressZero } = ethers.constants;
+const { ZeroAddress } = ethers;
 
 describe('state management', function () {
   it('should return all members', async function () {
@@ -42,7 +43,7 @@ describe('state management', function () {
     const { memberRoles } = fixture.contracts;
 
     const authorizedAddress = await memberRoles.authorized(Role.Member);
-    expect(authorizedAddress).to.be.equal(AddressZero);
+    expect(authorizedAddress).to.be.equal(ZeroAddress);
   });
 
   it('should return length of all roles', async function () {

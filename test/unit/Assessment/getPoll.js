@@ -2,15 +2,14 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
-const { parseEther } = ethers.utils;
 
 describe('getPoll', function () {
   it('returns the poll of a given assessment', async function () {
     const fixture = await loadFixture(setup);
     const { assessment, individualClaims } = fixture.contracts;
     const user = fixture.accounts.members[0];
-    await assessment.connect(user).stake(parseEther('100'));
-    await individualClaims.submitClaim(0, parseEther('100'), '');
+    await assessment.connect(user).stake(ethers.parseEther('100'));
+    await individualClaims.submitClaim(0, ethers.parseEther('100'), '');
     {
       const targetAssessment = await assessment.assessments(0);
       const poll = await assessment.getPoll(0);

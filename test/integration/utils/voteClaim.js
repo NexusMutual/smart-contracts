@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 const { setNextBlockTime, mineNextBlock, increaseTime } = require('../../utils/evm');
 const { BigNumber } = ethers;
 

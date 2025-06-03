@@ -5,20 +5,22 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { signLimitOrder } = require('../utils').buyCover;
+const { Role } = require('../utils').constants;
+const { hex } = require('../utils').helpers;
 
-const { parseEther } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { parseEther } = ethers;
+const { ZeroAddress, MaxUint256 } = ethers;
 
 const orderDetailsFixture = {
   coverId: 0,
-  owner: AddressZero,
+  owner: ZeroAddress,
   productId: 1,
   coverAsset: 0,
   paymentAsset: 0,
   amount: parseEther('1'),
   period: daysToSeconds(30),
   commissionRatio: 0,
-  commissionDestination: AddressZero,
+  commissionDestination: ZeroAddress,
   ipfsData: 'ipfs data',
 };
 

@@ -2,6 +2,7 @@ const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
 const crypto = require('crypto');
 const { parseEther, hexZeroPad, toUtf8Bytes } = ethers.utils;
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const evm = require('./evm')();
 const { makeContractOrder, lastBlockTimestamp } = require('../unit/SwapOperator/helpers');
@@ -32,7 +33,7 @@ const addOrder = async (trader, order, executedAmount, encoder) => {
   const sellToken = await ethers.getContractAt('ERC20Mock', order.sellToken);
 
   console.log(`Approve sell token`);
-  await sellToken.connect(trader).approve(COWSWAP_RELAYER, ethers.constants.MaxUint256);
+  await sellToken.connect(trader).approve(COWSWAP_RELAYER, ethers.MaxUint256);
 
   console.log('Sing Encode Trade');
 
@@ -149,7 +150,7 @@ describe('CowSwap swaps', function () {
       this.trader,
       {
         validTo: 0xffffffff,
-        feeAmount: ethers.utils.parseEther('1.0'),
+        feeAmount: parseEther('1.0'),
         kind: 'buy',
         partiallyFillable: false,
         sellToken: DAI_ADDRESS,
@@ -246,7 +247,7 @@ describe('CowSwap swaps', function () {
       this.trader,
       {
         validTo: 0xffffffff,
-        feeAmount: ethers.utils.parseEther('1.0'),
+        feeAmount: parseEther('1.0'),
         kind: 'buy',
         partiallyFillable: false,
         sellToken: WETH_ADDRESS,

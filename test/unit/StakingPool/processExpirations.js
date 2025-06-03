@@ -15,8 +15,8 @@ const {
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
-const { AddressZero } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { AddressZero } = ethers;
+const { parseEther } = ethers;
 const { BigNumber } = ethers;
 
 const depositToFixture = {

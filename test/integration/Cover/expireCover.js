@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { ZeroAddress, MaxUint256 } = ethers;
 const { increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 const { calculateFirstTrancheId } = require('../utils/staking');
@@ -9,7 +9,7 @@ const { BigNumber } = require('ethers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 const stakedProductParamTemplate = {
   productId: 1,
@@ -22,7 +22,7 @@ const stakedProductParamTemplate = {
 
 const buyCoverFixture = {
   coverId: 0,
-  owner: AddressZero,
+  owner: ZeroAddress,
   productId: 1,
   coverAsset: 0,
   amount: parseEther('1'),
@@ -30,7 +30,7 @@ const buyCoverFixture = {
   maxPremiumInAsset: MaxUint256,
   paymentAsset: 0,
   commissionRatio: 0,
-  commissionDestination: AddressZero,
+  commissionDestination: ZeroAddress,
   ipfsData: 'ipfs data',
 };
 

@@ -4,11 +4,10 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
 const { initMCR, MAX_PERCENTAGE_ADJUSTMENT } = require('./common');
-const { increaseTime, mineNextBlock } = require('../utils').evm;
+const { increaseTime, mineNextBlock, setNextBlockTime } = require('../utils').evm;
 const { daysToSeconds, hoursToSeconds } = require('../utils').helpers;
 
-const { BigNumber } = ethers;
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 const DEFAULT_MCR_PARAMS = {
   mcrValue: parseEther('150000'),
@@ -22,6 +21,106 @@ const DEFAULT_MCR_PARAMS = {
 };
 
 describe('getMCR', function () {
+  it('should return the current MCR value', async function () {
+    const fixture = await loadFixture(setup);
+    const { mcr } = fixture.contracts;
+
+    const mcrValue = await mcr.getMCR();
+    expect(mcrValue).to.be.equal(parseEther('7000'));
+  });
+
+  it('should return the current MCR value after an update', async function () {
+    const fixture = await loadFixture(setup);
+    const { mcr } = fixture.contracts;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + daysToSeconds(1);
+    await setNextBlockTime(nextBlockTimestamp);
+
+    const mcrValue = await mcr.getMCR();
+    expect(mcrValue).to.be.equal(parseEther('7000'));
+  });
+
+  it('should return the current MCR value after an update with a price increase', async function () {
+    const fixture = await loadFixture(setup);
+    const { mcr, pool } = fixture.contracts;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + daysToSeconds(1);
+
+    await pool.setTokenPrice(0, parseEther('0.0347'));
+    await setNextBlockTime(nextBlockTimestamp);
+
+    const mcrValue = await mcr.getMCR();
+    const MAX_PERCENTAGE_ADJUSTMENT = 100n;
+    const expectedMCR = (parseEther('7000') * (10000n + MAX_PERCENTAGE_ADJUSTMENT)) / 10000n;
+    expect(mcrValue).to.be.equal(expectedMCR);
+  });
+
+  it('should return the current MCR value after an update with a price decrease', async function () {
+    const fixture = await loadFixture(setup);
+    const { mcr, pool } = fixture.contracts;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + daysToSeconds(1);
+
+    await pool.setTokenPrice(0, parseEther('0.0347'));
+    await setNextBlockTime(nextBlockTimestamp);
+
+    const mcrValue = await mcr.getMCR();
+    const maxMCRIncrement = BigInt(await mcr.maxMCRIncrement());
+    const expectedMCR = parseEther('7000') + maxMCRIncrement;
+    expect(mcrValue).to.be.equal(expectedMCR);
+  });
+
+  it('should return the current MCR value after multiple updates with price increases', async function () {
+    const fixture = await loadFixture(setup);
+    const { mcr, pool } = fixture.contracts;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + daysToSeconds(1);
+
+    await pool.setTokenPrice(0, parseEther('0.0347'));
+    await setNextBlockTime(nextBlockTimestamp);
+
+    const mcrValue = await mcr.getMCR();
+    const maxMCRIncrement = BigInt(await mcr.maxMCRIncrement());
+    const expectedMCR = parseEther('7000') + maxMCRIncrement;
+    expect(mcrValue).to.be.equal(expectedMCR);
+  });
+
+  it('should return the current MCR value after multiple updates with price decreases', async function () {
+    const fixture = await loadFixture(setup);
+    const { mcr, pool } = fixture.contracts;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + daysToSeconds(1);
+
+    await pool.setTokenPrice(0, parseEther('0.0347'));
+    await setNextBlockTime(nextBlockTimestamp);
+
+    const mcrValue = await mcr.getMCR();
+    const maxMCRIncrement = BigInt(await mcr.maxMCRIncrement());
+    const expectedMCR = parseEther('7000') + maxMCRIncrement;
+    expect(mcrValue).to.be.equal(expectedMCR);
+  });
+
+  it('should return the current MCR value after multiple updates with mixed price changes', async function () {
+    const fixture = await loadFixture(setup);
+    const { mcr, pool } = fixture.contracts;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const nextBlockTimestamp = timestamp + daysToSeconds(1);
+
+    await pool.setTokenPrice(0, parseEther('0.0347'));
+    await setNextBlockTime(nextBlockTimestamp);
+
+    const mcrValue = await mcr.getMCR();
+    const maxMCRIncrement = BigInt(await mcr.maxMCRIncrement());
+    const expectedMCR = parseEther('7000') + maxMCRIncrement;
+    expect(mcrValue).to.be.equal(expectedMCR);
+  });
+
   it('should return the stored MCR value if MCR == desiredMCR', async function () {
     const fixture = await loadFixture(setup);
     const { master } = fixture;
@@ -47,10 +146,7 @@ describe('getMCR', function () {
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
 
-    const expectedMCR = storedMCR
-      .mul(BigNumber.from('10000').add(MAX_PERCENTAGE_ADJUSTMENT))
-      .div(BigNumber.from('10000'));
-
+    const expectedMCR = (BigInt(storedMCR) * (10000n + BigInt(MAX_PERCENTAGE_ADJUSTMENT))) / 10000n;
     expect(newestMCR).to.be.equal(expectedMCR);
   });
 
@@ -65,7 +161,7 @@ describe('getMCR', function () {
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
 
-    const expectedMCR = storedMCR.mul(10000 - MAX_PERCENTAGE_ADJUSTMENT.toNumber()).div(10000);
+    const expectedMCR = (BigInt(storedMCR) * BigInt(10000 - Number(MAX_PERCENTAGE_ADJUSTMENT))) / 10000n;
     expect(newestMCR).to.be.equal(expectedMCR);
   });
 
@@ -81,10 +177,10 @@ describe('getMCR', function () {
 
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
-    const maxMCRIncrement = BigNumber.from(await mcr.maxMCRIncrement());
+    const maxMCRIncrement = BigInt(await mcr.maxMCRIncrement());
 
-    const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
-    const expectedMCR = storedMCR.mul(expectedPercentageIncrease).div(10000).add(storedMCR);
+    const expectedPercentageIncrease = (maxMCRIncrement * BigInt(passedTime)) / BigInt(daysToSeconds(1));
+    const expectedMCR = (BigInt(storedMCR) * expectedPercentageIncrease) / 10000n + BigInt(storedMCR);
     expect(newestMCR).to.be.equal(expectedMCR);
   });
 
@@ -101,9 +197,9 @@ describe('getMCR', function () {
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
 
-    const maxMCRIncrement = BigNumber.from(await mcr.maxMCRIncrement());
-    const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
-    const expectedMCR = storedMCR.mul(expectedPercentageIncrease).div(10000).add(storedMCR);
+    const maxMCRIncrement = BigInt(await mcr.maxMCRIncrement());
+    const expectedPercentageIncrease = (maxMCRIncrement * BigInt(passedTime)) / BigInt(daysToSeconds(1));
+    const expectedMCR = (BigInt(storedMCR) * expectedPercentageIncrease) / 10000n + BigInt(storedMCR);
     expect(newestMCR).to.be.equal(expectedMCR);
   });
 
@@ -125,9 +221,9 @@ describe('getMCR', function () {
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
 
-    const maxMCRIncrement = BigNumber.from(await mcr.maxMCRIncrement());
-    const expectedPercentageDecrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
-    const expectedMCR = storedMCR.sub(storedMCR.mul(expectedPercentageDecrease).div(10000));
+    const maxMCRIncrement = BigInt(await mcr.maxMCRIncrement());
+    const expectedPercentageDecrease = (maxMCRIncrement * BigInt(passedTime)) / BigInt(daysToSeconds(1));
+    const expectedMCR = BigInt(storedMCR) - (BigInt(storedMCR) * expectedPercentageDecrease) / 10000n;
     expect(newestMCR).to.be.equal(expectedMCR);
   });
 
@@ -149,9 +245,9 @@ describe('getMCR', function () {
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
 
-    const maxMCRIncrement = BigNumber.from(await mcr.maxMCRIncrement());
-    const expectedPercentageDecrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
-    const expectedMCR = storedMCR.sub(storedMCR.mul(expectedPercentageDecrease).div(10000));
+    const maxMCRIncrement = BigInt(await mcr.maxMCRIncrement());
+    const expectedPercentageDecrease = (maxMCRIncrement * BigInt(passedTime)) / BigInt(daysToSeconds(1));
+    const expectedMCR = BigInt(storedMCR) - (BigInt(storedMCR) * expectedPercentageDecrease) / 10000n;
     expect(newestMCR).to.be.equal(expectedMCR);
   });
 
@@ -159,7 +255,7 @@ describe('getMCR', function () {
     const fixture = await loadFixture(setup);
     const { master } = fixture;
 
-    const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.mul(1008).div(1000);
+    const desiredMCR = (BigInt(DEFAULT_MCR_PARAMS.mcrValue) * 1008n) / 1000n;
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR, master });
 
     await increaseTime(hoursToSeconds(24));
@@ -173,7 +269,7 @@ describe('getMCR', function () {
     const fixture = await loadFixture(setup);
     const { master } = fixture;
 
-    const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.mul(992).div(1000);
+    const desiredMCR = (BigInt(DEFAULT_MCR_PARAMS.mcrValue) * 992n) / 1000n;
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR, master });
 
     await increaseTime(hoursToSeconds(24));
@@ -187,7 +283,7 @@ describe('getMCR', function () {
     const fixture = await loadFixture(setup);
     const { master } = fixture;
 
-    const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.mul(101).div(100);
+    const desiredMCR = (BigInt(DEFAULT_MCR_PARAMS.mcrValue) * 101n) / 100n;
     const mcrFloor = desiredMCR;
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR, mcrFloor, master });
 
@@ -202,9 +298,9 @@ describe('getMCR', function () {
     const fixture = await loadFixture(setup);
     const { master } = fixture;
 
-    const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.mul(102).div(100);
+    const desiredMCR = (BigInt(DEFAULT_MCR_PARAMS.mcrValue) * 102n) / 100n;
     const mcrFloor = desiredMCR;
-    const expectedMCR = DEFAULT_MCR_PARAMS.mcrValue.mul(101).div(100);
+    const expectedMCR = (BigInt(DEFAULT_MCR_PARAMS.mcrValue) * 101n) / 100n;
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR, mcrFloor, master });
 
     await increaseTime(hoursToSeconds(24));

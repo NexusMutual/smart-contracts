@@ -98,7 +98,7 @@ describe('updateTwap', function () {
     const state = await ramm.loadState();
     await setNextBlockTime(nextBlockTimestamp);
 
-    const expectedExtracted = calculateEthToExtract(state, nextBlockTimestamp, fixture.constants);
+    const expectedExtracted = calculateEthToExtract(state, BigInt(nextBlockTimestamp), fixture.constants);
     await expect(ramm.updateTwap()).to.emit(ramm, 'EthExtracted').withArgs(expectedExtracted);
   });
 

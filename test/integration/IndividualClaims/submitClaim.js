@@ -14,7 +14,7 @@ const setup = require('../setup');
 
 const { BigNumber } = ethers;
 const { parseEther, parseUnits } = ethers.utils;
-const { AddressZero, Two } = ethers.constants;
+const { AddressZero, Two } = ethers;
 
 const MaxUint32 = Two.pow(32).sub(1);
 const BUCKET_TRANCHE_GROUP_SIZE = 8;

@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
-const { AddressZero } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { AddressZero } = ethers;
+const { parseEther } = ethers;
 const { BigNumber } = ethers;
 
 function calculateFirstTrancheId(lastBlock, period, gracePeriod) {

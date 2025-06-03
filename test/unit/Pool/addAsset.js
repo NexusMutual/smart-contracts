@@ -3,21 +3,21 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
-const { AggregatorType, Assets } = require('../utils').constants;
-const { toBytes8 } = require('../utils').helpers;
+const { AggregatorType, Assets, Role } = require('../utils').constants;
+const { toBytes8, hex } = require('../utils').helpers;
 
-const { AddressZero, WeiPerEther } = ethers.constants;
+const { ZeroAddress } = ethers;
 
 describe('addAsset', function () {
   it('reverts when not called by goverance', async function () {
     const fixture = await loadFixture(setup);
     const { pool } = fixture;
 
-    await expect(pool.addAsset(AddressZero, true, '0', '1', '0')).to.be.revertedWith(
+    await expect(pool.addAsset(ZeroAddress, true, '0', '1', '0')).to.be.revertedWith(
       'Caller is not authorized to govern',
     );
 
-    await expect(pool.addAsset(AddressZero, false, '0', '1', '0')).to.be.revertedWith(
+    await expect(pool.addAsset(ZeroAddress, false, '0', '1', '0')).to.be.revertedWith(
       'Caller is not authorized to govern',
     );
   });
@@ -27,7 +27,7 @@ describe('addAsset', function () {
     const { pool } = fixture;
     const [governance] = fixture.accounts.governanceContracts;
 
-    await expect(pool.connect(governance).addAsset(AddressZero, false, '0', '1', '0')).to.be.revertedWith(
+    await expect(pool.connect(governance).addAsset(ZeroAddress, false, '0', '1', '0')).to.be.revertedWith(
       'Pool: Asset is zero address',
     );
   });
@@ -84,11 +84,11 @@ describe('addAsset', function () {
 
     const coverToken = await ethers.deployContract('ERC20Mock');
     const clCoverToken = await ethers.deployContract('ChainlinkAggregatorMock');
-    await clCoverToken.setLatestAnswer(WeiPerEther);
+    await clCoverToken.setLatestAnswer(ethers.WeiPerEther);
 
     const investmentToken = await ethers.deployContract('ERC20Mock');
     const clInvestmentToken = await ethers.deployContract('ChainlinkAggregatorMock');
-    await clInvestmentToken.setLatestAnswer(WeiPerEther);
+    await clInvestmentToken.setLatestAnswer(ethers.WeiPerEther);
 
     const priceFeedOracle = await ethers.deployContract('PriceFeedOracle', [
       [dai, stETH, enzymeVault, coverToken, investmentToken, { address: Assets.ETH }].map(c => c.address),

@@ -7,9 +7,10 @@ const setup = require('./setup');
 const { setEtherBalance } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
-const { BigNumber } = ethers;
-const { parseEther } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { BigInt } = globalThis;
+const { ZeroAddress, MaxUint256 } = ethers;
+const { parseEther } = ethers;
+const { encodeBytes32String, decodeBytes32String } = ethers;
 
 const gracePeriod = 120 * 24 * 3600; // 120 days
 const NXM_ASSET_ID = 255;
@@ -22,10 +23,10 @@ const buyCoverFixture = {
   period: 3600 * 24 * 30, // 30 days
   amount: parseEther('1000'),
   targetPriceRatio: 260,
-  priceDenominator: BigNumber.from(10000),
+  priceDenominator: BigInt('10000'),
   activeCover: parseEther('8000'),
   capacity: parseEther('10000'),
-  expectedPremium: parseEther('1000').mul(260).div(10000), // amount * targetPriceRatio / priceDenominator
+  expectedPremium: (parseEther('1000') * BigInt(260)) / BigInt(10000),
 };
 
 const poolAllocationRequest = [{ poolId: 1, coverAmountInAsset: buyCoverFixture.amount }];
@@ -53,7 +54,7 @@ describe('buyCover', function () {
   const targetPriceRatio = '260';
   const activeCover = parseEther('8000');
   const capacity = parseEther('10000');
-  const priceDenominator = 10000;
+  const priceDenominator = BigInt('10000');
   const capacityFactor = 10000;
   const defaultIpfsData = 'QmRmkky7qQBjCAU3gFUqfy3NXD6CPq8YVLPM7GHXBz7b5P';
 
@@ -65,7 +66,7 @@ describe('buyCover', function () {
 
   // Cover.BuyCoverParams
   const buyCoverTemplate = {
-    owner: AddressZero,
+    owner: ZeroAddress,
     coverId: 0,
     productId: 0,
     coverAsset: 0,
@@ -74,7 +75,7 @@ describe('buyCover', function () {
     maxPremiumInAsset: parseEther('100'),
     paymentAsset: 0,
     commissionRatio: parseEther('0'),
-    commissionDestination: AddressZero,
+    commissionDestination: ZeroAddress,
     ipfsData: defaultIpfsData,
   };
 
@@ -118,7 +119,7 @@ describe('buyCover', function () {
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
         commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       poolAllocationRequest,
@@ -127,8 +128,8 @@ describe('buyCover', function () {
 
     // no eth should be left in the cover contract
     expect(await ethers.provider.getBalance(cover.address)).to.be.equal(0);
-    const premium = expectedPremium.mul(period).div(daysToSeconds(365));
-    expect(await ethers.provider.getBalance(pool.address)).to.equal(poolEthBalanceBefore.add(premium));
+    const premium = (expectedPremium * BigInt(period)) / BigInt(3600 * 24 * 365);
+    expect(await ethers.provider.getBalance(pool.address)).to.equal(poolEthBalanceBefore + premium);
     const coverId = await cover.getCoverDataCount();
 
     await assertCoverFields(cover, coverId, {
@@ -157,7 +158,7 @@ describe('buyCover', function () {
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
         commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       poolAllocationRequest,
@@ -196,7 +197,7 @@ describe('buyCover', function () {
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
         commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       poolAllocationRequest,
@@ -205,7 +206,7 @@ describe('buyCover', function () {
 
     // no eth should be left in the cover contract
     expect(await ethers.provider.getBalance(cover.address)).to.be.equal(0);
-    const premium = expectedPremium.mul(period).div(daysToSeconds(365));
+    const premium = (expectedPremium * BigInt(period)) / BigInt(3600 * 24 * 365);
     expect(await ethers.provider.getBalance(pool.address)).to.equal(poolEthBalanceBefore.add(premium));
     const coverId = await cover.getCoverDataCount();
 
@@ -248,7 +249,7 @@ describe('buyCover', function () {
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
         commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       [
@@ -316,7 +317,7 @@ describe('buyCover', function () {
       ),
     )
       .to.emit(nxm, 'Transfer')
-      .withArgs(coverBuyer.address, AddressZero, expectedPremium);
+      .withArgs(coverBuyer.address, ZeroAddress, expectedPremium);
 
     const nxmBalanceAfter = await nxm.balanceOf(coverBuyer.address);
     const commissionNxmBalanceAfter = await nxm.balanceOf(stakingPoolManager.address);
@@ -504,7 +505,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -532,7 +533,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -560,7 +561,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -589,7 +590,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -617,7 +618,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -644,7 +645,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
           commissionRatio: '3001',
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -673,7 +674,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -702,7 +703,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -733,7 +734,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -752,7 +753,7 @@ describe('buyCover', function () {
       cover.connect(coverBuyer).buyCover(
         {
           coverId: 0,
-          owner: AddressZero,
+          owner: ZeroAddress,
           productId,
           coverAsset,
           amount,
@@ -760,7 +761,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -790,7 +791,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: '0',
           paymentAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -822,7 +823,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -854,7 +855,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -886,7 +887,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -924,7 +925,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: expectedPremiumWithCommission.sub(1),
           paymentAsset: coverAsset,
           commissionRatio,
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -945,7 +946,7 @@ describe('buyCover', function () {
         maxPremiumInAsset: expectedPremiumWithCommission,
         paymentAsset: coverAsset,
         commissionRatio,
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       poolAllocationRequest,
@@ -990,7 +991,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: expectedPremiumWithCommission.sub(1),
           paymentAsset: NXM_ASSET_ID,
           commissionRatio,
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         poolAllocationRequest,
@@ -1021,7 +1022,7 @@ describe('buyCover', function () {
       ),
     )
       .to.emit(nxm, 'Transfer')
-      .withArgs(coverBuyer.address, AddressZero, expectedPremium);
+      .withArgs(coverBuyer.address, ZeroAddress, expectedPremium);
 
     const nxmBalanceAfter = await nxm.balanceOf(coverBuyer.address);
 
@@ -1047,7 +1048,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         [],
@@ -1074,7 +1075,7 @@ describe('buyCover', function () {
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
-          commissionDestination: AddressZero,
+          commissionDestination: ZeroAddress,
           ipfsData: '',
         },
         [{ poolId: 1, coverAmountInAsset: 0 }],
@@ -1118,7 +1119,7 @@ describe('buyCover', function () {
         paymentAsset: coverAsset,
         payWithNXM: false,
         commissionRatio: 0,
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       poolAllocationRequest,
@@ -1154,7 +1155,7 @@ describe('buyCover', function () {
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
         commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       poolAllocationRequest,
@@ -1209,7 +1210,7 @@ describe('buyCover', function () {
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
         commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       poolAllocationRequest,
@@ -1249,7 +1250,7 @@ describe('buyCover', function () {
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
         commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       poolAllocationRequest,
@@ -1300,7 +1301,7 @@ describe('buyCover', function () {
         maxPremiumInAsset: expectedPremiumWithCommission,
         paymentAsset: coverAsset,
         commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       poolAllocationRequest,
@@ -1365,7 +1366,7 @@ describe('buyCover', function () {
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
         commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       poolAllocationRequest,
@@ -1383,7 +1384,7 @@ describe('buyCover', function () {
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
         commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       poolAllocationRequest,

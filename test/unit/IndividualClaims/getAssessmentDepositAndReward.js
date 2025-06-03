@@ -5,7 +5,7 @@ const { ASSET } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('getAssessmentDepositAndReward', function () {

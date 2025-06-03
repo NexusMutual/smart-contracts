@@ -4,8 +4,8 @@ const { setEtherBalance } = require('../../utils/evm');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
-const { AddressZero } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { AddressZero } = ethers;
+const { parseEther } = ethers;
 
 async function withdrawNXMStakeAndRewardsSetup() {
   const fixture = await loadFixture(setup);

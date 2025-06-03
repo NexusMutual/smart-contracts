@@ -6,7 +6,7 @@ const { ProposalCategory, ContractTypes } = require('../utils').constants;
 const { submitProposal } = require('../utils').governance;
 const { hex } = require('../utils').helpers;
 const { parseEther, defaultAbiCoder } = ethers.utils;
-const { AddressZero } = ethers.constants;
+const { AddressZero } = ethers;
 const { BigNumber } = ethers;
 
 const MAX_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff';

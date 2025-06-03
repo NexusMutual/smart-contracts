@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
-const { parseUnits } = ethers.utils;
+const { parseUnits } = ethers;
 
 describe('updateCoverReInvestmentUSDC', function () {
   it('should update CoverRe investment USDC', async function () {
@@ -17,7 +17,7 @@ describe('updateCoverReInvestmentUSDC', function () {
     const coverReInvestmentUSDCAfter = await safeTracker.coverReInvestmentUSDC();
 
     expect(coverReInvestmentUSDCBefore).to.be.equal(0);
-    expect(coverReInvestmentUSDCAfter).to.be.equal(coverReInvestmentUSDCBefore.add(investedAmount));
+    expect(coverReInvestmentUSDCAfter).to.be.equal(coverReInvestmentUSDCBefore + investedAmount);
   });
 
   it('should emit event CoverReInvestmentUSDCUpdated', async function () {

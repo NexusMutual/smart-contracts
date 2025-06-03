@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { _TypedDataEncoder } = ethers.utils;
+const { TypedDataEncoder } = ethers;
 
 async function signLimitOrder(contractAddress, params, signer) {
   const { chainId } = await ethers.provider.getNetwork();
@@ -40,9 +40,9 @@ async function signLimitOrder(contractAddress, params, signer) {
 
   // Populate any ENS names
   const resolveName = async name => ethers.provider.resolveName(name);
-  const populated = await _TypedDataEncoder.resolveNames(domain, types, params, resolveName);
+  const populated = await TypedDataEncoder.resolveNames(domain, types, params, resolveName);
 
-  const digest = _TypedDataEncoder.hash(populated.domain, types, populated.value);
+  const digest = TypedDataEncoder.hash(populated.domain, types, populated.value);
 
   const signature = signer._signTypedData(domain, types, params);
 

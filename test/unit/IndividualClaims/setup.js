@@ -1,10 +1,11 @@
 const { ethers } = require('hardhat');
+const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { parseEther } = ethers;
 
 const { ASSET } = require('./helpers');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
-
-const { parseEther } = ethers.utils;
 
 async function setup() {
   const accounts = await getAccounts();

@@ -1,7 +1,7 @@
-const { ethers } = require('ethers');
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const setup = require('./setup');
-const { AddressZero } = ethers.constants;
+const { ZeroAddress } = ethers;
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 describe('CoverNFT', function () {
@@ -86,7 +86,7 @@ describe('CoverNFT', function () {
     const fixture = await loadFixture(setup);
     const { coverNFT } = fixture;
     const [operator] = fixture.accounts.members;
-    await expect(coverNFT.connect(operator).changeOperator(AddressZero)).to.be.revertedWithCustomError(
+    await expect(coverNFT.connect(operator).changeOperator(ZeroAddress)).to.be.revertedWithCustomError(
       coverNFT,
       'InvalidNewOperatorAddress',
     );
@@ -115,7 +115,7 @@ describe('CoverNFT', function () {
     const fixture = await loadFixture(setup);
     const { coverNFT } = fixture;
     const [operator] = fixture.accounts.members;
-    await expect(coverNFT.connect(operator).changeNFTDescriptor(AddressZero)).to.be.revertedWithCustomError(
+    await expect(coverNFT.connect(operator).changeNFTDescriptor(ZeroAddress)).to.be.revertedWithCustomError(
       coverNFT,
       'InvalidNewNFTDescriptorAddress',
     );
@@ -139,7 +139,7 @@ describe('CoverNFT', function () {
     expect(await coverNFT.totalSupply()).to.be.equal(0);
     await expect(coverNFT.connect(operator).mint(nftOwner.address))
       .to.emit(coverNFT, 'Transfer')
-      .withArgs(AddressZero, nftOwner.address, tokenId);
+      .withArgs(ZeroAddress, nftOwner.address, tokenId);
 
     expect(await coverNFT.totalSupply()).to.be.equal(1);
   });

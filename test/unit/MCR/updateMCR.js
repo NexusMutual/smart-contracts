@@ -7,7 +7,7 @@ const setup = require('./setup');
 const { increaseTime, mineNextBlock, setEtherBalance } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 const DEFAULT_MCR_PARAMS = {
   mcrValue: parseEther('150000'),

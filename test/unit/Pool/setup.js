@@ -1,12 +1,13 @@
 const { ethers } = require('hardhat');
+const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getAccounts } = require('../utils').accounts;
 const { Role, Assets, AggregatorType } = require('../utils').constants;
-const { toBytes2 } = require('../utils').helpers;
+const { toBytes2, hex } = require('../utils').helpers;
 
-const { BigNumber } = ethers;
-const { parseEther, parseUnits } = ethers.utils;
-const { AddressZero, WeiPerEther } = ethers.constants;
+const { parseEther, parseUnits } = ethers;
+const { ZeroAddress, WeiPerEther } = ethers;
 
 async function setup() {
   const accounts = await getAccounts();
@@ -36,7 +37,7 @@ async function setup() {
 
   const ethToUsdRate = parseUnits('2500', 8);
   const ethToDaiRate = parseEther('394.59');
-  const daiToEthRate = BigNumber.from(10).pow(36).div(ethToDaiRate);
+  const daiToEthRate = ethers.parseUnits('1', 36) / ethToDaiRate;
 
   const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
@@ -72,7 +73,7 @@ async function setup() {
   await token.mint(accounts.defaultSender.address, parseEther('10000'));
 
   const legacyPool = await LegacyPool.deploy(
-    AddressZero, // master: it is changed a few lines below
+    ZeroAddress, // master: it is changed a few lines below
     priceFeedOracle.address,
     swapOperator.address,
     dai.address,
@@ -82,7 +83,7 @@ async function setup() {
   );
 
   const pool = await Pool.deploy(
-    AddressZero, // master: it is changed a few lines below
+    ZeroAddress, // master: it is changed a few lines below
     priceFeedOracle.address,
     swapOperator.address,
     token.address,

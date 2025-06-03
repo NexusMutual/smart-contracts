@@ -4,7 +4,7 @@ const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 const { keccak256 } = require('ethereum-cryptography/keccak');
 
 const { BigNumber } = ethers;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers;
 const { getCreate2Address, formatEther, parseEther, hexValue } = ethers.utils;
 
 const { STAKER } = process.env;
@@ -36,7 +36,7 @@ const getSigner = async address => {
 
   if (['localhost', 'hardhat'].includes(network.name)) {
     await ethers.provider.send('hardhat_impersonateAccount', [address]);
-    await ethers.provider.send('hardhat_setBalance', [address, hex(parseEther('1'))]);
+    await ethers.provider.send('hardhat_setBalance', [address, hex(ethers.parseEther('1'))]);
   }
 
   return provider.getSigner(address);
@@ -74,7 +74,7 @@ async function main() {
   const tokenControllerSigner = await getSigner(Addresses.TokenController);
   const token = await ethers.getContractAt('NXMToken', Addresses.NXMToken, tokenControllerSigner);
 
-  const oneMillionNXM = parseEther('1000000'); // https://youtu.be/EJR1H5tf5wE
+  const oneMillionNXM = ethers.parseEther('1000000'); // https://youtu.be/EJR1H5tf5wE
   await token.mint(owner.address, oneMillionNXM);
   await token.mint(STAKER, oneMillionNXM);
 
@@ -91,7 +91,7 @@ async function main() {
   const stakingPoolOne = await getStakingPool(1, owner);
 
   const firstDepositTx = await stakingPoolOne.depositTo(
-    parseEther('123'),
+    ethers.parseEther('123'),
     lastActiveTrancheId,
     0, // new position
     AddressZero, // destination
@@ -103,7 +103,7 @@ async function main() {
   const stakingPoolTwo = await getStakingPool(2, staker);
 
   const secondDepositTx = await stakingPoolTwo.depositTo(
-    parseEther('456'),
+    ethers.parseEther('456'),
     lastActiveTrancheId,
     0, // new position
     AddressZero, // destination

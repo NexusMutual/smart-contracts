@@ -166,7 +166,7 @@ describe('product pricing updates', function () {
     await this.coverProducts.connect(this.abMembers[0]).setProducts([
       {
         productName: 'Protocol Product',
-        productId: ethers.constants.MaxUint256,
+        productId: ethers.MaxUint256,
         ipfsMetadata: '',
         product: {
           productType: 0,
@@ -193,7 +193,7 @@ describe('product pricing updates', function () {
     await this.coverProducts.connect(this.abMembers[0]).setProducts([
       {
         productName: 'Protocol Product',
-        productId: ethers.constants.MaxUint256,
+        productId: ethers.MaxUint256,
         ipfsMetadata: '',
         product: {
           productType: 0,

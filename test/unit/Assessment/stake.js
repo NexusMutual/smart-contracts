@@ -3,25 +3,22 @@ const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
-const { parseEther } = ethers.utils;
-const { Zero } = ethers.constants;
-
 describe('stake', function () {
   it("increases the sender's stake", async function () {
     const fixture = await loadFixture(setup);
     const { assessment } = fixture.contracts;
     const user = fixture.accounts.members[0];
-    let stake = { amount: Zero };
+    let stake = { amount: 0n };
 
     {
-      await assessment.connect(user).stake(parseEther('100'));
+      await assessment.connect(user).stake(ethers.parseEther('100'));
       const prevStake = stake;
       stake = await assessment.stakeOf(user.address);
       assert(stake.amount.gt(prevStake.amount), 'Expected stake increase');
     }
 
     {
-      await assessment.connect(user).stake(parseEther('100'));
+      await assessment.connect(user).stake(ethers.parseEther('100'));
       const prevStake = stake;
       stake = await assessment.stakeOf(user.address);
       assert(stake.amount.gt(prevStake.amount), 'Expected stake increase');
@@ -33,15 +30,15 @@ describe('stake', function () {
     const { assessment, nxm } = fixture.contracts;
     const user = fixture.accounts.members[0];
     {
-      await assessment.connect(user).stake(parseEther('100'));
+      await assessment.connect(user).stake(ethers.parseEther('100'));
       const balance = await nxm.balanceOf(assessment.address);
-      assert(balance.eq(parseEther('100')));
+      assert(balance.eq(ethers.parseEther('100')));
     }
 
     {
-      await assessment.connect(user).stake(parseEther('100'));
+      await assessment.connect(user).stake(ethers.parseEther('100'));
       const balance = await nxm.balanceOf(assessment.address);
-      assert(balance.eq(parseEther('200')));
+      assert(balance.eq(ethers.parseEther('200')));
     }
   });
 
@@ -50,7 +47,7 @@ describe('stake', function () {
     const { assessment, master } = fixture.contracts;
     await master.setEmergencyPause(true);
 
-    await expect(assessment.stake(parseEther('100'))).to.revertedWith('System is paused');
+    await expect(assessment.stake(ethers.parseEther('100'))).to.revertedWith('System is paused');
   });
 
   it('emits StakeDeposited event with staker and amount', async function () {
@@ -58,7 +55,7 @@ describe('stake', function () {
     const { assessment } = fixture.contracts;
     const [user] = fixture.accounts.members;
 
-    const amount = parseEther('100');
+    const amount = ethers.parseEther('100');
     await expect(assessment.connect(user).stake(amount))
       .to.emit(assessment, 'StakeDeposited')
       .withArgs(user.address, amount);

@@ -12,7 +12,7 @@ const { roundUpToNearestAllocationUnit } = require('../../unit/StakingPool/helpe
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
-const { MaxUint256 } = ethers.constants;
+const { MaxUint256 } = ethers;
 const { parseEther } = ethers.utils;
 
 const stakedProductParamTemplate = {

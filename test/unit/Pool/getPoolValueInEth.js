@@ -3,18 +3,11 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
-const utils = require('../utils');
+const { PoolAsset } = require('../utils').constants;
+const { Role } = require('../utils').constants;
+const { hex } = require('../utils').helpers;
 
-const {
-  helpers: { toBytes8 },
-  constants: {
-    Assets: { ETH: ETH_ADDRESS },
-    AggregatorType,
-  },
-} = utils;
-
-const { BigNumber } = ethers;
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 describe('getPoolValueInEth', function () {
   it('gets total value of ETH and DAI assets in the pool', async function () {
@@ -54,7 +47,7 @@ describe('getPoolValueInEth', function () {
     await chainlinkForRevertingERC20.setLatestAnswer(parseEther('1'));
 
     const priceFeedOracle = await PriceFeedOracle.deploy(
-      [dai, stETH, enzymeVault, revertingERC20, { address: ETH_ADDRESS }].map(c => c.address),
+      [dai, stETH, enzymeVault, revertingERC20, { address: PoolAsset.ETH }].map(c => c.address),
       [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkForRevertingERC20, chainlinkEthUsdAsset].map(
         c => c.address,
       ),
@@ -63,7 +56,7 @@ describe('getPoolValueInEth', function () {
       st.address,
     );
 
-    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
+    await pool.connect(governance).updateAddressParameters(hex(Role.PRICE_FEED), priceFeedOracle.address);
     await pool.connect(governance).addAsset(revertingERC20.address, true, '0', parseEther('100'), '1000');
 
     // 1 token = 1 eth
@@ -86,8 +79,8 @@ describe('getPoolValueInEth', function () {
 
     const oldPoolValue = await pool.getPoolValueInEth();
 
-    await pool.connect(governance).updateAddressParameters(toBytes8('SWP_OP'), defaultSender.address);
-    await pool.setSwapAssetAmount(ETH_ADDRESS, parseEther('1'));
+    await pool.connect(governance).updateAddressParameters(hex(Role.SWAP_OPERATOR), defaultSender.address);
+    await pool.setSwapAssetAmount(PoolAsset.ETH, parseEther('1'));
 
     const swapValue = await pool.assetInSwapOperator();
     expect(swapValue.toString()).to.eq(parseEther('1').toString());

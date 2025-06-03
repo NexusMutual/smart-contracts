@@ -1,10 +1,10 @@
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
 
-const { parseEther } = ethers.utils;
+const { parseEther, formatBytes32String } = ethers;
 
 describe('getStakedNXM', function () {
   const tokenIds = [2, 31, 38, 86];

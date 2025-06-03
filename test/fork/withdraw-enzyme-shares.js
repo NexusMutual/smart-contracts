@@ -5,7 +5,7 @@ const { enableAsEnzymeReceiver } = require('./utils');
 const { toBytes8 } = require('../../lib/helpers');
 
 const { formatEther, parseEther, toUtf8Bytes } = ethers.utils;
-const { WeiPerEther } = ethers.constants;
+const { WeiPerEther } = ethers;
 
 const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const ENZYMEV4_VAULT_PROXY_ADDRESS = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';

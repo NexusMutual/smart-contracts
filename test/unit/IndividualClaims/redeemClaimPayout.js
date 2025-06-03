@@ -6,7 +6,7 @@ const { submitClaim, ASSET, createMockCover } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 const setTime = async timestamp => {

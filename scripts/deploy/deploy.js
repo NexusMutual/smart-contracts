@@ -9,8 +9,8 @@ const products = [];
 const verifier = require('./verifier')();
 const { setEtherBalance } = require('../../test/utils').evm;
 
-const { AddressZero, MaxUint256, WeiPerEther } = ethers.constants;
-const { parseEther, parseUnits } = ethers.utils;
+const { AddressZero, MaxUint256, WeiPerEther } = ethers;
+const { parseEther, parseUnits } = ethers;
 const { ABI_DIR, ADDRESSES_FILE, INITIAL_MEMBERS = '' } = process.env;
 
 if (!ABI_DIR || !ADDRESSES_FILE) {
@@ -23,14 +23,14 @@ if (network.name === 'tenderly' && typeof tenderly === 'undefined') {
   process.exit(1);
 }
 
-const CAPITAL_POOL_VALUE = parseEther('146000');
-const DAI_ETH_RATE = parseEther('0.00050');
-const POOL_BALANCE_DAI = parseEther('5040000');
+const CAPITAL_POOL_VALUE = ethers.parseEther('146000');
+const DAI_ETH_RATE = ethers.parseEther('0.00050');
+const POOL_BALANCE_DAI = ethers.parseEther('5040000');
 const POOL_BALANCE_ETH = CAPITAL_POOL_VALUE.sub(DAI_ETH_RATE.mul(POOL_BALANCE_DAI).div(WeiPerEther));
 
-const BONDING_CURVE_PRICE = parseEther('0.0286');
-const SPOT_PRICE_B = parseEther('0.01');
-const TOKEN_SUPPLY = parseEther('6760000');
+const BONDING_CURVE_PRICE = ethers.parseEther('0.0286');
+const SPOT_PRICE_B = ethers.parseEther('0.01');
+const TOKEN_SUPPLY = ethers.parseEther('6760000');
 
 const PROXY_CONTRACT = 'contracts/modules/governance/external/OwnedUpgradeabilityProxy.sol:OwnedUpgradeabilityProxy';
 
@@ -125,7 +125,7 @@ async function main() {
   console.log(`Using network: ${network.name}`);
   console.log(`Using deployer address: ${owner}`);
 
-  await setEtherBalance(owner, parseEther('100'));
+  await setEtherBalance(owner, ethers.parseEther('100'));
 
   const OwnedUpgradeabilityProxy = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
 
@@ -333,7 +333,7 @@ async function main() {
       alias: 'Chainlink-STETH-ETH',
       abiFilename: 'EACAggregatorProxy',
     });
-    await chainlinkStEthMock.setLatestAnswer(parseEther('1.003')); // almost 1:1
+    await chainlinkStEthMock.setLatestAnswer(ethers.parseEther('1.003')); // almost 1:1
     await chainlinkStEthMock.setDecimals(18);
     CHAINLINK_STETH_ETH[network.name] = chainlinkStEthMock.address;
   }
@@ -344,7 +344,7 @@ async function main() {
       alias: 'Chainlink-ENZYME-VAULT',
       abiFilename: 'EACAggregatorProxy',
     });
-    await chainlinkEnzymeVaultMock.setLatestAnswer(parseEther('1.003')); // almost 1:1
+    await chainlinkEnzymeVaultMock.setLatestAnswer(ethers.parseEther('1.003')); // almost 1:1
     await chainlinkEnzymeVaultMock.setDecimals(18);
     CHAINLINK_ENZYME_VAULT[network.name] = chainlinkEnzymeVaultMock.address;
   }
@@ -370,8 +370,8 @@ async function main() {
 
   console.log('Deploying disposable MCR');
   const disposableMCR = await deployImmutable('DisposableMCR', [
-    parseEther('10000'), // mcrEth
-    parseEther('10000'), // desiredMCR
+    ethers.parseEther('10000'), // mcrEth
+    ethers.parseEther('10000'), // desiredMCR
     (await ethers.provider.getBlock('latest')).timestamp - 60, // lastUpdateTime
     500, // maxMCRIncrement
     48000, // gearingFactor
@@ -463,8 +463,8 @@ async function main() {
   console.log('Initializing PooledStaking');
   await ps.initialize(
     tc.address,
-    parseEther('2'), // min stake
-    parseEther('2'), // min unstake
+    ethers.parseEther('2'), // min stake
+    ethers.parseEther('2'), // min unstake
     10, // max exposure
     600, // unstake lock time
   );

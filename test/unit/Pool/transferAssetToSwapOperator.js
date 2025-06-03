@@ -3,7 +3,7 @@ const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 const { toBytes8 } = require('../utils').helpers;
 
 describe('transferAssetToSwapOperator', function () {

@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
-const { arrayify } = ethers.utils;
+const { arrayify } = ethers;
 
 describe('submitFraud', function () {
   it('can only be called by governance contract', async function () {

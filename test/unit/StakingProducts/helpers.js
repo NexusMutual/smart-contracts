@@ -1,13 +1,14 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setEtherBalance } = require('../utils').evm;
+const { setNextBlockTime } = require('../utils').evm;
+const { daysToSeconds } = require('../utils').helpers;
 
 const { BigNumber } = ethers;
-const { parseEther } = ethers.utils;
-const { AddressZero } = ethers.constants;
-
-const daysToSeconds = days => days * 24 * 60 * 60;
+const { parseEther } = ethers;
+const { AddressZero, ZeroAddress } = ethers;
 
 const buyCoverParamsTemplate = {
   owner: AddressZero,
@@ -60,6 +61,21 @@ const burnStakeParams = {
 };
 
 const TRANCHE_DURATION = daysToSeconds(91);
+
+const DEFAULT_PRODUCT = {
+  productId: 0,
+  weight: 100,
+  initialPrice: ethers.parseEther('0.01'),
+  targetPrice: ethers.parseEther('0.01'),
+  capacity: ethers.parseEther('1000'),
+  capacityReductionRatio: 5000,
+  useFixedPrice: false,
+  owner: ZeroAddress,
+  ipfsMetadata: '',
+  rewardRatio: 5000,
+  commissionRatio: 1000,
+  commissionDestination: ZeroAddress,
+};
 
 async function getCurrentTrancheId() {
   const { timestamp } = await ethers.provider.getBlock('latest');

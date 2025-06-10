@@ -1,7 +1,9 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { increaseTime, mineNextBlock, setNextBlockTime } = require('../utils').evm;
+const { daysToSeconds } = require('../utils').helpers;
+const { setEtherBalance, increaseTime, setNextBlockTime } = require('../utils').evm;
 const {
   getTranches,
   calculateStakeShares,
@@ -11,12 +13,9 @@ const {
   TRANCHE_DURATION,
   BUCKET_DURATION,
 } = require('./helpers');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 
-const { BigNumber } = ethers;
-const { AddressZero, WeiPerEther } = ethers;
-const { parseEther } = ethers;
+const { parseEther, ZeroAddress } = ethers;
 
 const product0 = {
   productId: 0,
@@ -38,7 +37,7 @@ const withdrawFixture = {
   amount: parseEther('100'),
   trancheId: 0,
   tokenId: 1,
-  destination: AddressZero,
+  destination: ZeroAddress,
 };
 
 async function withdrawSetup() {
@@ -565,11 +564,11 @@ describe('withdraw', function () {
     const rewardShareSupply = await stakingPool.getRewardsSharesSupply();
     const expectedManagerRewards = expectedRewardsMinted.mul(managerDeposit.rewardsShares).div(rewardShareSupply);
 
-    const aliceFirstWithdraw = firstAccNxmPerRewardShare.mul(aliceDeposit.rewardsShares).div(WeiPerEther);
+    const aliceFirstWithdraw = firstAccNxmPerRewardShare.mul(aliceDeposit.rewardsShares).div(ethers.parseEther('1'));
     const aliceSecondWithdraw = secondAccNxmPerRewardShare
       .sub(firstAccNxmPerRewardShare)
       .mul(aliceDeposit.rewardsShares)
-      .div(WeiPerEther);
+      .div(ethers.parseEther('1'));
     const expectedAliceRewards = aliceFirstWithdraw.add(aliceSecondWithdraw);
 
     const expectedBobRewards = expectedRewardsMinted.mul(aliceDeposit.rewardsShares).div(rewardShareSupply);

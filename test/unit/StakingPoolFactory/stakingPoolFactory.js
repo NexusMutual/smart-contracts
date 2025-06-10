@@ -6,7 +6,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
 
-const { AddressZero } = ethers;
+const { AddressZero, getCreate2Address } = ethers;
 
 describe('StakingPoolFactory', function () {
   it('should verify that constructor variables were set correctly', async function () {
@@ -64,7 +64,7 @@ describe('StakingPoolFactory', function () {
     for (let i = 1; i <= 10; i++) {
       const poolId = i;
       const salt = Buffer.from(poolId.toString(16).padStart(64, '0'), 'hex');
-      const expectedAddress = ethers.utils.getCreate2Address(stakingPoolFactory.address, salt, initCodeHash);
+      const expectedAddress = getCreate2Address(stakingPoolFactory.address, salt, initCodeHash);
 
       await expect(stakingPoolFactory.connect(operator).create(beacon.address))
         .to.emit(stakingPoolFactory, 'StakingPoolCreated')

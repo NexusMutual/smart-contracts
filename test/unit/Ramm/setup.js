@@ -4,7 +4,6 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
-const { BigNumber } = require('ethers');
 const { setEtherBalance } = require('../utils').evm;
 const { getAccounts } = require('../utils').accounts;
 
@@ -53,11 +52,11 @@ async function setup() {
   await ramm.connect(accounts.emergencyAdmin).setEmergencySwapPause(false);
 
   const internalConstants = {
-    FAST_RATCHET_SPEED: BigNumber.from(5000),
+    FAST_RATCHET_SPEED: 5000n,
     INITIAL_LIQUIDITY: parseEther('5000'),
     INITIAL_BUDGET: parseEther('43835'),
-    INITIAL_ETH_LIMIT: BigNumber.from(22000),
-    INITIAL_NXM_LIMIT: BigNumber.from(250000),
+    INITIAL_ETH_LIMIT: 22000n,
+    INITIAL_NXM_LIMIT: 250000n,
   };
 
   return {

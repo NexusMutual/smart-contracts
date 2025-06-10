@@ -9,7 +9,7 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { getInternalPrice } = require('../../utils/rammCalculations');
 
 
-const { AddressZero, MaxUint256, Zero } = ethers;
+const { ZeroAddress, MaxUint256, parseEther } = ethers;
 
 const stakedProductParamTemplate = {
   productId: 1,
@@ -21,7 +21,7 @@ const stakedProductParamTemplate = {
 };
 const buyCoverFixture = {
   coverId: 0,
-  owner: AddressZero,
+  owner: ZeroAddress,
   productId: stakedProductParamTemplate.productId,
   coverAsset: 0b0,
   amount: parseEther('1'),
@@ -29,7 +29,7 @@ const buyCoverFixture = {
   maxPremiumInAsset: MaxUint256,
   paymentAsset: 0b0,
   commissionRatio: 0,
-  commissionDestination: AddressZero,
+  commissionDestination: ZeroAddress,
   ipfsData: 'ipfs data',
 };
 
@@ -94,8 +94,8 @@ async function buyCoverSetup(fixture) {
     amount => calculatePremium(amount, nxmPrice, period, product.bumpedPrice, NXM_PER_ALLOCATION_UNIT).premiumInNxm,
   );
 
-  const premiumInNxm = premiumInNxmPerPool.reduce((total, premiumInNxm) => total.add(premiumInNxm), Zero);
-  const premiumInAsset = premiumInNxm.mul(nxmPrice).div(parseEther('1'));
+  const premiumInNxm = premiumInNxmPerPool.reduce((total, premiumInNxm) => total + premiumInNxm, 0n);
+  const premiumInAsset = premiumInNxm * nxmPrice / parseEther('1');
 
   await setNextBlockTime(nextBlockTimestamp);
   await cover.connect(coverBuyer).buyCover(

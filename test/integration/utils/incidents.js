@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { defaultAbiCoder } = ethers.utils;
+const { defaultAbiCoder } = ethers;
 
 const {
   constants: { ProposalCategory },

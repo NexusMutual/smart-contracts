@@ -14,8 +14,7 @@ const {
 const { ContractTypes, ContractCode, ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const evm = require('./evm')();
 
-const { BigNumber } = ethers;
-const { formatEther, parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { formatEther, parseEther, defaultAbiCoder, toUtf8Bytes } = ethers;
 const { ZeroAddress } = ethers;
 
 /* ========== CONSTRUCTOR PARAMS ========== */
@@ -111,7 +110,10 @@ describe('tokenomics', function () {
     // 125759550 -> 0xcafea54f03E1Cc036653444e581A10a43B2487CD
     const rammCreate2Salt = 125759550;
     this.ramm = await ethers.deployContract('Ramm', [SPOT_PRICE_B]);
-    const rammTypeAndSalt = BigNumber.from(rammCreate2Salt).shl(8).add(ContractTypes.Proxy);
+    const rammTypeAndSalt = defaultAbiCoder.encode(
+      ['bytes2[]', 'address[]', 'uint256[]'],
+      [[toUtf8Bytes(ContractCode.Ramm)], [this.ramm.address], [rammTypeAndSalt]],
+    );
     console.log({
       rammCreate2Salt,
       rammTypeAndSalt: rammTypeAndSalt.toString(),
@@ -119,10 +121,7 @@ describe('tokenomics', function () {
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
-      defaultAbiCoder.encode(
-        ['bytes2[]', 'address[]', 'uint256[]'],
-        [[toUtf8Bytes(ContractCode.Ramm)], [this.ramm.address], [rammTypeAndSalt]],
-      ),
+      rammTypeAndSalt,
       this.abMembers,
       this.governance,
     );

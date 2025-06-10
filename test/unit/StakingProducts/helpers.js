@@ -6,7 +6,6 @@ const { setEtherBalance } = require('../utils').evm;
 const { setNextBlockTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
-const { BigNumber } = ethers;
 const { parseEther } = ethers;
 const { AddressZero, ZeroAddress } = ethers;
 
@@ -119,7 +118,7 @@ async function depositTo(params) {
   const { staker, amount } = params;
 
   // Get capacity in staking pool
-  await nxm.mint(staker.address, BigNumber.from(2).pow(128));
+  await nxm.mint(staker.address, 2n ** 128n);
   await nxm.connect(staker).approve(tokenController.address, amount);
   const trancheId = (await getCurrentTrancheId()) + 2;
   await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ 0, staker.address);

@@ -12,7 +12,7 @@ const { formatBytes32String } = ethers.utils;
 
 const { NXM_WHALE_1, NXM_WHALE_2 } = UserAddress;
 
-const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers;
 
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
 

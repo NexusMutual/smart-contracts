@@ -1,23 +1,22 @@
-const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-
 const setup = require('./setup');
-const { BigNumber } = ethers;
 
 describe('getMCRRatio', function () {
-  it('gets MCR ratio value', async function () {
+  it('should return the correct MCR ratio', async function () {
     const fixture = await loadFixture(setup);
-    const { pool, mcr } = fixture;
-    const [member] = fixture.accounts.members;
+    const { pool } = fixture.contracts;
 
-    const initialAssetValue = BigNumber.from('210959924071154460525457');
-    const mcrEth = BigNumber.from('162424730681679380000000');
+    const initialAssetValue = 210959924071154460525457n;
+    const mcrEth = 162424730681679380000000n;
+    const { mcr } = fixture;
+    const [member] = fixture.accounts.members;
 
     await mcr.setMCR(mcrEth);
     await member.sendTransaction({ to: pool.address, value: initialAssetValue });
 
-    const expectedMCRRatio = initialAssetValue.mul(10000).div(mcrEth);
+    const expectedMCRRatio = initialAssetValue * 10000n / mcrEth;
     const calculatedMCRRatio = await pool.getMCRRatio();
 
     expect(calculatedMCRRatio).to.be.equal(expectedMCRRatio);

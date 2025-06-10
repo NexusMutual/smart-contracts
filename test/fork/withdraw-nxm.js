@@ -14,7 +14,7 @@ const {
 const { ContractCode, ProposalCategory: PROPOSAL_CATEGORIES, Role } = require('../../lib/constants');
 const evm = require('./evm')();
 
-const { defaultAbiCoder, parseEther, toUtf8Bytes } = ethers.utils;
+const { defaultAbiCoder, parseEther, toUtf8Bytes } = ethers;
 
 describe('withdrawNXM', function () {
   async function getContractByContractCode(contractName, contractCode) {

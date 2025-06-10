@@ -2,7 +2,6 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { Two } = ethers;
 
 const poolId = 150;
 describe('createStakingPoolOwnershipOffer', function () {
@@ -96,7 +95,7 @@ describe('createStakingPoolOwnershipOffer', function () {
     // Set manager
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, manager.address);
     let { timestamp: expectedDeadline } = await ethers.provider.getBlock('latest');
-    expectedDeadline += Two.pow(31);
+    expectedDeadline += Number(2n ** 31n);
 
     await tokenController.connect(manager).createStakingPoolOwnershipOffer(poolId, manager.address, expectedDeadline);
 

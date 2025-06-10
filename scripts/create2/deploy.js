@@ -2,6 +2,7 @@ const { artifacts, ethers, run } = require('hardhat');
 const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 const linker = require('solc/linker');
+const { defaultAbiCoder, parseUnits } = ethers;
 
 const { getSigner, SIGNER_TYPE } = require('./get-signer');
 
@@ -175,7 +176,7 @@ const getDeploymentBytecode = async options => {
     );
   }
 
-  const constructorArgs = ethers.utils.defaultAbiCoder.encode(constructorAbi.inputs, options.constructorArgs);
+  const constructorArgs = defaultAbiCoder.encode(constructorAbi.inputs, options.constructorArgs);
 
   return `${bytecode}${constructorArgs.replace(/^0x/i, '')}`;
 };
@@ -209,8 +210,8 @@ async function main() {
     throw new Error(`Expected address to be ${opts.address} but got ${address}`);
   }
 
-  const baseFee = ethers.utils.parseUnits(opts.baseFee, 'gwei');
-  const maxPriorityFeePerGas = ethers.utils.parseUnits(opts.priorityFee, 'gwei');
+  const baseFee = parseUnits(opts.baseFee, 'gwei');
+  const maxPriorityFeePerGas = parseUnits(opts.priorityFee, 'gwei');
   const maxFeePerGas = baseFee.add(maxPriorityFeePerGas);
 
   const signer = await getSigner(opts.kms ? SIGNER_TYPE.AWS_KMS : SIGNER_TYPE.LOCAL);

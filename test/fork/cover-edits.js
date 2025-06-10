@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { BigNumber } = require('ethers');
+const { formatEther } = ethers;
 
 describe('cover-edits', function () {
   it('estimate gas usage for cover data migration', async function () {
@@ -24,9 +24,9 @@ describe('cover-edits', function () {
     console.log('gas price: %s gwei', gasPriceWei / 1e9);
     console.log('num covers per tx: %s', coversPerTx);
     console.log('gas used per tx: %s', txReceipt.gasUsed.toString());
-    console.log('ETH per tx: %s', ethers.utils.formatEther(weiPerTx));
+    console.log('ETH per tx: %s', formatEther(weiPerTx));
     console.log('txs num for %s covers: %s', totalCovers, txsNeeded);
-    console.log('total ETH needed: %s', ethers.utils.formatEther(totalWei));
+    console.log('total ETH needed: %s', formatEther(totalWei));
   });
 
   it.skip('calculate total gas for cover data migration', async function () {
@@ -34,7 +34,7 @@ describe('cover-edits', function () {
     const totalCovers = await this.cover.getCoverDataCount();
     const coversPerTx = 100;
 
-    let totalWei = BigNumber.from(0);
+    let totalWei = BigInt(0);
 
     for (let startId = 1; startId < totalCovers; startId += coversPerTx) {
       const endId = Math.min(startId + coversPerTx - 1, totalCovers);
@@ -47,10 +47,10 @@ describe('cover-edits', function () {
       const txReceipt = await tx.wait();
 
       const weiSpent = txReceipt.gasUsed.mul(gasPriceWei);
-      console.log('eth spent for ids from %s to %s: %s', startId, endId, ethers.utils.formatEther(weiSpent));
-      totalWei = totalWei.add(weiSpent);
+      console.log('eth spent for ids from %s to %s: %s', startId, endId, formatEther(weiSpent));
+      totalWei = totalWei + BigInt(weiSpent.toString());
     }
 
-    console.log('total ETH needed: %s', ethers.utils.formatEther(totalWei));
+    console.log('total ETH needed: %s', formatEther(totalWei));
   });
 });

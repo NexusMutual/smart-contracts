@@ -15,10 +15,10 @@ describe('getPoolValueInEth', function () {
     const { pool, mcr, chainlinkDAI, dai } = fixture;
     const [nonMember] = fixture.accounts.nonMembers;
 
-    const initialAssetValue = BigNumber.from('210959924071154460525457');
-    const mcrEth = BigNumber.from('162424730681679380000000');
+    const initialAssetValue = 210959924071154460525457n;
+    const mcrEth = 162424730681679380000000n;
     const ethToDaiRate = parseEther('394.59');
-    const daiToEthRate = BigNumber.from(10).pow(36).div(ethToDaiRate);
+    const daiToEthRate = 10n ** 36n / BigInt(ethToDaiRate);
     await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
     await mcr.setMCR(mcrEth);
@@ -27,7 +27,7 @@ describe('getPoolValueInEth', function () {
     const daiAmount = parseEther('10000');
     await dai.mint(pool.address, daiAmount);
 
-    const expectedPoolValue = initialAssetValue.add(daiAmount.mul(daiToEthRate).div(parseEther('1')));
+    const expectedPoolValue = initialAssetValue + BigInt(daiAmount) * BigInt(daiToEthRate) / BigInt(parseEther('1'));
     const poolValue = await pool.getPoolValueInEth();
     expect(poolValue).to.equal(expectedPoolValue);
   });
@@ -68,7 +68,7 @@ describe('getPoolValueInEth', function () {
     await revertingERC20.setIsReverting(true);
     const valueWithoutToken = await pool.getPoolValueInEth();
 
-    expect(valueWithToken).to.equal(valueWithoutToken.add(tokenValue));
+    expect(valueWithToken).to.equal(BigInt(valueWithoutToken) + BigInt(tokenValue));
   });
 
   it('includes swapValue in the calculation', async function () {
@@ -87,6 +87,6 @@ describe('getPoolValueInEth', function () {
 
     const newPoolValue = await pool.getPoolValueInEth();
 
-    expect(newPoolValue).to.eq(oldPoolValue.add(swapValue));
+    expect(newPoolValue).to.eq(BigInt(oldPoolValue) + BigInt(swapValue));
   });
 });

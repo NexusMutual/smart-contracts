@@ -5,6 +5,7 @@ const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 const linker = require('solc/linker');
 const workerpool = require('workerpool');
+const { defaultAbiCoder } = ethers;
 
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 const Position = {
@@ -169,7 +170,7 @@ const getDeploymentBytecode = async options => {
     );
   }
 
-  const constructorArgs = ethers.utils.defaultAbiCoder.encode(constructorAbi.inputs, options.constructorArgs);
+  const constructorArgs = defaultAbiCoder.encode(constructorAbi.inputs, options.constructorArgs);
 
   return `${bytecode}${constructorArgs.replace(/^0x/i, '')}`;
 };

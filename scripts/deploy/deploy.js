@@ -12,6 +12,7 @@ const { setEtherBalance } = require('../../test/utils').evm;
 const { AddressZero, MaxUint256, WeiPerEther } = ethers;
 const { parseEther, parseUnits } = ethers;
 const { ABI_DIR, ADDRESSES_FILE, INITIAL_MEMBERS = '' } = process.env;
+const { isAddress } = ethers;
 
 if (!ABI_DIR || !ADDRESSES_FILE) {
   console.log('ABI_DIR and ADDRESSES_FILE env vars are required');
@@ -133,7 +134,6 @@ async function main() {
     const { alias, abiFilename, overrides = {}, libraries } = options;
     const Contract = await ethers.getContractFactory(contract, { libraries });
     const instance = await Contract.deploy(...constructorArgs, overrides);
-    await instance.deployed();
     verifier.add(instance.address, contract, { constructorArgs, libraries, alias, abiFilename });
     return instance;
   };
@@ -142,7 +142,6 @@ async function main() {
     const { alias, abiFilename, overrides = {}, libraries } = options;
     const impl = await deployImmutable(contract, constructorArgs, { overrides, libraries });
     const proxy = await OwnedUpgradeabilityProxy.deploy(impl.address);
-    await proxy.deployed();
     const implFqName = contract;
     const opts = { constructorArgs: [impl.address], abiFilename, alias, isProxy: true, libraries, implFqName };
     verifier.add(proxy.address, PROXY_CONTRACT, opts);
@@ -436,7 +435,7 @@ async function main() {
     owner,
     ...INITIAL_MEMBERS.split(',')
       .map(x => x.trim())
-      .filter(a => ethers.utils.isAddress(a)),
+      .filter(a => isAddress(a)),
   ];
 
   const initialTokens = initialMembers.map(() => '0');

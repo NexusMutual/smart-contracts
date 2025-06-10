@@ -458,7 +458,7 @@ async function setup() {
   await Promise.all(poolAssets.map(pa => pa.asset.transfer(p1.address, pa.poolValue)));
 
   // Rates
-  const assetToEthRate = (rate, powValue = 36) => ethers.BigNumber.from(10).pow(ethers.BigNumber.from(powValue)).div(rate);
+  const assetToEthRate = (rate, powValue = 36) => 10n ** BigInt(powValue) / BigInt(rate);
 
   const ethToDaiRate = 20000;
   const ethToNxmtyRate = 1000;
@@ -656,10 +656,10 @@ async function setup() {
     TRANCHE_DURATION: await fixture.contracts.stakingPool1.TRANCHE_DURATION(),
     MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION:
       await fixture.contracts.limitOrders.MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION(),
-    BUCKET_SIZE: ethers.BigNumber.from(7 * 24 * 3600), // 7 days
-    BUCKET_DURATION: ethers.BigNumber.from(28 * 24 * 3600), // 28 days
-    GLOBAL_REWARDS_RATIO: ethers.BigNumber.from(5000), // 50%
-    COMMISSION_DENOMINATOR: ethers.BigNumber.from(10000),
+    BUCKET_SIZE: BigInt(7 * 24 * 3600), // 7 days
+    BUCKET_DURATION: BigInt(28 * 24 * 3600), // 28 days
+    GLOBAL_REWARDS_RATIO: BigInt(5000), // 50%
+    COMMISSION_DENOMINATOR: BigInt(10000),
     TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
     ONE_NXM: parseEther('1'),
     NXM_PER_ALLOCATION_UNIT: await stakingPool.NXM_PER_ALLOCATION_UNIT(),

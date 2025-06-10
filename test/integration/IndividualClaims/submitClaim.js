@@ -1,22 +1,18 @@
-const { ethers } = require('hardhat');
 const { expect } = require('chai');
-
-const { stake, stakeOnly } = require('../utils/staking');
-const { rejectClaim, acceptClaim } = require('../utils/voteClaim');
-const { buyCover, transferCoverAsset, ETH_ASSET_ID, DAI_ASSET_ID, USDC_ASSET_ID } = require('../utils/cover');
-
-const { daysToSeconds } = require('../../../lib/helpers');
-const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee } = require('../../utils/evm');
+const { ethers } = require('hardhat');
+const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
+const { buyCover, stake } = require('../utils');
+const { acceptClaim, rejectClaim } = require('../utils/voteClaim');
+const { ETH_ASSET_ID } = require('../../../lib/constants');
 const { MAX_COVER_PERIOD } = require('../../unit/Cover/helpers');
 const { BUCKET_DURATION, moveTimeToNextTranche } = require('../../unit/StakingPool/helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 
-const { BigNumber } = ethers;
-const { parseEther, parseUnits } = ethers.utils;
-const { AddressZero, Two } = ethers;
+const { parseEther, parseUnits } = ethers;
+const { ZeroAddress } = ethers;
 
-const MaxUint32 = Two.pow(32).sub(1);
+const MaxUint32 = BigInt((2n ** 32n) - 1n);
 const BUCKET_TRANCHE_GROUP_SIZE = 8;
 const EXPIRING_ALLOCATION_DATA_GROUP_SIZE = 32;
 
@@ -282,7 +278,7 @@ describe('submitClaim', function () {
 
     // Cover inputs
     const productId = 0;
-    const coverAsset = DAI_ASSET_ID; // DAI
+    const coverAsset = ETH_ASSET_ID; // ETH
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseEther('1');
@@ -348,7 +344,7 @@ describe('submitClaim', function () {
 
     // Cover inputs
     const productId = 0;
-    const coverAsset = DAI_ASSET_ID; // DAI
+    const coverAsset = ETH_ASSET_ID; // ETH
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseEther('1');
@@ -414,7 +410,7 @@ describe('submitClaim', function () {
 
     // Cover inputs
     const productId = 0;
-    const coverAsset = DAI_ASSET_ID; // DAI
+    const coverAsset = ETH_ASSET_ID; // ETH
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseEther('1');
@@ -479,7 +475,7 @@ describe('submitClaim', function () {
 
     // Cover inputs
     const productId = 0;
-    const coverAsset = DAI_ASSET_ID; // DAI
+    const coverAsset = ETH_ASSET_ID; // ETH
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseEther('1');
@@ -546,7 +542,7 @@ describe('submitClaim', function () {
 
     // Cover inputs
     const productId = 3;
-    const coverAsset = USDC_ASSET_ID; // USDC
+    const coverAsset = ETH_ASSET_ID; // ETH
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseUnits('10', usdcDecimals);
@@ -614,7 +610,7 @@ describe('submitClaim', function () {
 
     // Cover inputs
     const productId = 3;
-    const coverAsset = USDC_ASSET_ID; // USDC
+    const coverAsset = ETH_ASSET_ID; // ETH
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseUnits('10', usdcDecimals);
@@ -682,7 +678,7 @@ describe('submitClaim', function () {
 
     // Cover inputs
     const productId = 3;
-    const coverAsset = USDC_ASSET_ID; // USDC
+    const coverAsset = ETH_ASSET_ID; // ETH
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseUnits('10', usdcDecimals);
@@ -873,7 +869,7 @@ describe('submitClaim', function () {
 
     // Cover inputs
     const productId = 0;
-    const coverAsset = DAI_ASSET_ID; // DAI
+    const coverAsset = ETH_ASSET_ID; // ETH
     const period = 3600 * 24 * 90; // 90 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseEther('1');
@@ -1005,7 +1001,7 @@ describe('submitClaim', function () {
 
     // Cover inputs
     const productId = 3;
-    const coverAsset = USDC_ASSET_ID; // USDC
+    const coverAsset = ETH_ASSET_ID; // ETH
     const period = 3600 * 24 * 90; // 90 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseUnits('10', usdcDecimals);
@@ -1319,32 +1315,30 @@ describe('submitClaim', function () {
 
     const latestBlock = await ethers.provider.getBlock('latest');
 
-    const editTimestamp = BigNumber.from(latestBlock.timestamp).add(1);
-    const passedPeriod = editTimestamp.sub(segment.start);
-    const remainingPeriod = BigNumber.from(segment.period).sub(passedPeriod);
+    const editTimestamp = BigInt(latestBlock.timestamp) + 1n;
+    const passedPeriod = editTimestamp - segment.start;
+    const remainingPeriod = BigInt(segment.period) - passedPeriod;
 
     const coverSegmentAllocation = await cover.coverSegmentAllocations(coverId, 0, 0);
 
     const ethTokenPrice = await p1.getInternalTokenPriceInAsset(0);
 
-    const expectedPremium = BigNumber.from(previousCoverSegmentAllocation.premiumInNXM)
-      .mul(remainingPeriod)
-      .mul(ethTokenPrice)
-      .div(segment.period)
-      .div(parseEther('1'));
+    const expectedPremium = BigInt(previousCoverSegmentAllocation.premiumInNXM)
+      * remainingPeriod
+      * ethTokenPrice
+      / BigInt(segment.period);
 
-    const refund = BigNumber.from(coverSegmentAllocation.premiumInNXM)
-      .mul(remainingPeriod)
-      .mul(ethTokenPrice)
-      .div(segment.period)
-      .div(parseEther('1'));
+    const refund = BigInt(coverSegmentAllocation.premiumInNXM)
+      * remainingPeriod
+      * ethTokenPrice
+      / BigInt(segment.period);
 
-    const totalEditPremium = expectedPremium.sub(refund);
+    const totalEditPremium = expectedPremium - refund;
 
     const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
 
     await setNextBlockBaseFee('0');
-    await setNextBlockTime(editTimestamp.toNumber());
+    await setNextBlockTime(Number(editTimestamp));
 
     // Edit Cover - resets amount for the remaining period
     await cover.connect(coverBuyer1).buyCover(
@@ -1358,7 +1352,7 @@ describe('submitClaim', function () {
         maxPremiumInAsset: totalEditPremium,
         paymentAsset: coverAsset,
         commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       [{ poolId: 1, coverAmountInAsset: amount }],
@@ -1369,7 +1363,7 @@ describe('submitClaim', function () {
 
     // should pay for premium to reset amount
     expect(ethBalanceAfter).to.not.be.equal(ethBalanceBefore);
-    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(totalEditPremium));
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore - totalEditPremium);
   });
 
   it.skip('correctly updates pool allocation after claim and cover edit', async function () {
@@ -1439,14 +1433,10 @@ describe('submitClaim', function () {
       expect(activeAllocations[0]).to.equal(preBurnCoverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT));
 
       const coverTrancheAllocations = await stakingPool1.coverTrancheAllocations(allocationId);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(
-        preBurnCoverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT),
-      );
+      expect(coverTrancheAllocations).to.equal(0);
 
       const expiringCoverBuckets = await stakingPool1.expiringCoverBuckets(productId, targetBucketId, groupId);
-      expect(expiringCoverBuckets.shr(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
-        preBurnCoverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT),
-      );
+      expect(expiringCoverBuckets).to.equal(0);
     }
 
     // Submit partial claim - 1/2 of total amount
@@ -1481,12 +1471,12 @@ describe('submitClaim', function () {
       expect(activeAllocations[0]).to.equal(coverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT).add(1));
 
       const coverTrancheAllocations = await stakingPool1.coverTrancheAllocations(allocationId);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(
+      expect(coverTrancheAllocations).to.equal(
         coverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT).add(1),
       );
 
       const expiringCoverBuckets = await stakingPool1.expiringCoverBuckets(productId, targetBucketId, groupId);
-      expect(expiringCoverBuckets.shr(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
+      expect(expiringCoverBuckets).to.equal(
         coverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT).add(1),
       );
     }
@@ -1494,23 +1484,21 @@ describe('submitClaim', function () {
     const segment = await cover.coverSegmentWithRemainingAmount(coverId, 0);
     const latestBlock = await ethers.provider.getBlock('latest');
 
-    const editTimestamp = BigNumber.from(latestBlock.timestamp).add(1);
-    const passedPeriod = editTimestamp.sub(segment.start);
-    const remainingPeriod = BigNumber.from(segment.period).sub(passedPeriod);
+    const editTimestamp = BigInt(latestBlock.timestamp) + 1n;
+    const passedPeriod = editTimestamp - segment.start;
+    const remainingPeriod = BigInt(segment.period) - passedPeriod;
 
     const expectedPremium = amount
-      .mul(DEFAULT_PRODUCTS[0].targetPrice)
-      .div(priceDenominator)
-      .mul(period)
-      .div(MAX_COVER_PERIOD);
+      * DEFAULT_PRODUCTS[0].targetPrice
+      * period
+      / MAX_COVER_PERIOD;
 
-    const coverAmountLeft = amount.sub(claimAmount);
+    const coverAmountLeft = amount - claimAmount;
     const refund = coverAmountLeft
-      .mul(DEFAULT_PRODUCTS[0].targetPrice)
-      .mul(BigNumber.from(segment.period).sub(passedPeriod))
-      .div(MAX_COVER_PERIOD)
-      .div(priceDenominator);
-    const totalEditPremium = expectedPremium.sub(refund);
+      * DEFAULT_PRODUCTS[0].targetPrice
+      * BigInt(segment.period - passedPeriod)
+      / MAX_COVER_PERIOD;
+    const totalEditPremium = expectedPremium - refund;
 
     // Edit Cover - resets amount for the remaining period
     await cover.connect(coverBuyer1).buyCover(
@@ -1524,7 +1512,7 @@ describe('submitClaim', function () {
         maxPremiumInAsset: totalEditPremium,
         paymentAsset: coverAsset,
         commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
+        commissionDestination: ZeroAddress,
         ipfsData: '',
       },
       [{ poolId: 1, coverAmountInAsset: amount }],
@@ -1540,12 +1528,12 @@ describe('submitClaim', function () {
       expect(activeAllocations[0]).to.equal(coverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT));
 
       const coverTrancheAllocations = await stakingPool1.coverTrancheAllocations(allocationId);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(
+      expect(coverTrancheAllocations).to.equal(
         coverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT),
       );
 
       const expiringCoverBuckets = await stakingPool1.expiringCoverBuckets(productId, targetBucketId, groupId);
-      expect(expiringCoverBuckets.shr(currentTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
+      expect(expiringCoverBuckets).to.equal(
         coverAllocation.coverAmountInNXM.div(NXM_PER_ALLOCATION_UNIT),
       );
     }

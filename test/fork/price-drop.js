@@ -13,7 +13,7 @@ const {
 const { ContractCode, ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const evm = require('./evm')();
 
-const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers;
 
 function assertionErrorMsg(key, parentKey) {
   return `AssertionError: values of ${key}${parentKey ? ` in ${parentKey}` : ''} don't match\n`;

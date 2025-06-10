@@ -13,7 +13,7 @@ const {
 const { ContractCode, ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const evm = require('./evm')();
 
-const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers;
 
 describe('process-expirations', function () {
   async function getContractByContractCode(contractName, contractCode) {

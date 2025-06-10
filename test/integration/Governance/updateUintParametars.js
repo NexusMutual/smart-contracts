@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { toBytes8 } = require('../../../lib/helpers');
-const { parseEther } = require('ethers/lib/utils');
+const { parseEther } = ethers;
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 const { impersonateAccount, setEtherBalance } = require('../../utils').evm;

@@ -7,9 +7,7 @@ const { PoolAsset } = require('../utils').constants;
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
-const { BigNumber } = ethers;
-const { parseEther } = ethers;
-const WeiPerEther = 10n ** 18n;
+const { parseEther, WeiPerEther } = ethers;
 
 describe('getInternalTokenPriceInAsset', function () {
   it('calculates token price correctly in ETH', async function () {
@@ -25,11 +23,11 @@ describe('getInternalTokenPriceInAsset', function () {
     const { pool, chainlinkDAI, ramm } = fixture;
 
     const ethToDaiRate = parseEther('394.59');
-    const daiToEthRate = BigNumber.from(10).pow(36).div(ethToDaiRate);
+    const daiToEthRate = 10n ** 36n / BigInt(ethToDaiRate);
     await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
     const expectedEthPrice = await ramm.getInternalPrice();
-    const expectedPrice = BigNumber.from(expectedEthPrice).mul(WeiPerEther).div(daiToEthRate);
+    const expectedPrice = BigInt(expectedEthPrice) * BigInt(WeiPerEther) / BigInt(daiToEthRate);
     const price = await pool.getInternalTokenPriceInAsset(PoolAsset.DAI);
     expect(price).to.equal(expectedPrice);
   });
@@ -39,7 +37,7 @@ describe('getInternalTokenPriceInAsset', function () {
     const { pool, chainlinkDAI } = fixture;
 
     const ethToDaiRate = parseEther('394.59');
-    const daiToEthRate = BigNumber.from(10).pow(36).div(ethToDaiRate);
+    const daiToEthRate = 10n ** 36n / BigInt(ethToDaiRate);
     await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
     const inexistentAsset = 2 ** 16;

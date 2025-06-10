@@ -9,7 +9,7 @@ const { evm, rammCalculations } = require('../../utils');
 const { daysToSeconds } = require('../../../lib/helpers');
 const setup = require('../setup');
 
-const { MaxUint256 } = ethers;
+const { MaxUint256, parseEther } = ethers;
 
 const { setEtherBalance, setNextBlockTime } = evm;
 const { getInternalPrice } = rammCalculations;
@@ -73,7 +73,7 @@ async function getNextBlockTimestampByPeriodSize(ra) {
   const PERIOD_SIZE = await ra.PERIOD_SIZE();
   const previousBlock = await ethers.provider.getBlock('latest');
   const PERIOD_COUNT = 3; // 3 observations
-  return PERIOD_SIZE.mul(PERIOD_COUNT).add(previousBlock.timestamp).toNumber();
+  return Number(PERIOD_SIZE * BigInt(PERIOD_COUNT) + BigInt(previousBlock.timestamp));
 }
 
 describe('getTotalActiveCoverAmount', function () {
@@ -150,33 +150,33 @@ describe('getTotalActiveCoverAmount', function () {
     const expectedEthCoverAmount1 = await assetToEthWithPrecisionLoss(ethAmount, 0, config, nxmPriceInEth1);
 
     // ETH cover 2
-    const nextBlockTimestamp2 = nextBlockTimestamp1 + PERIOD_SIZE.toNumber();
+    const nextBlockTimestamp2 = Number(nextBlockTimestamp1) + Number(PERIOD_SIZE);
     const nxmPriceInEth2 = await getInternalPrice(ra, p1, tc, mcr, nextBlockTimestamp2);
     await setNextBlockTime(nextBlockTimestamp2);
     await buyCover({ ...ethCoverTemplate, cover, coverBuyer, targetPrice, priceDenominator });
     const expectedEthCoverAmount2 = await assetToEthWithPrecisionLoss(ethAmount, 0, config, nxmPriceInEth2);
 
     // DAI cover 1
-    const nextBlockTimestamp3 = nextBlockTimestamp2 + PERIOD_SIZE.toNumber();
+    const nextBlockTimestamp3 = Number(nextBlockTimestamp2) + Number(PERIOD_SIZE);
     const nxmPriceInEth3 = await getInternalPrice(ra, p1, tc, mcr, nextBlockTimestamp3);
     await setNextBlockTime(nextBlockTimestamp3);
     await buyCover({ ...daiCoverTemplate, cover, coverBuyer, targetPrice, priceDenominator });
     const expectedDaiCoverAmount1 = await assetToEthWithPrecisionLoss(daiAmount, daiToEthRate, config, nxmPriceInEth3);
 
     // DAI cover 2
-    const nextBlockTimestamp4 = nextBlockTimestamp3 + PERIOD_SIZE.toNumber();
+    const nextBlockTimestamp4 = Number(nextBlockTimestamp3) + Number(PERIOD_SIZE);
     const nxmPriceInEth4 = await getInternalPrice(ra, p1, tc, mcr, nextBlockTimestamp4);
     await setNextBlockTime(nextBlockTimestamp4);
     await buyCover({ ...daiCoverTemplate, cover, coverBuyer, targetPrice, priceDenominator });
     const expectedDaiCoverAmount2 = await assetToEthWithPrecisionLoss(daiAmount, daiToEthRate, config, nxmPriceInEth4);
 
-    const expectedTotalActiveCoverAmount = expectedEthCoverAmount1
-      .add(expectedEthCoverAmount2)
-      .add(expectedDaiCoverAmount1)
-      .add(expectedDaiCoverAmount2);
+    const expectedTotalActiveCoverAmount = expectedEthCoverAmount1 +
+      expectedEthCoverAmount2 +
+      expectedDaiCoverAmount1 +
+      expectedDaiCoverAmount2;
     const actualTotalActiveCoverAmount = await mcr.getTotalActiveCoverAmount();
 
-    const totalActiveCoverAmountDiff = expectedTotalActiveCoverAmount - actualTotalActiveCoverAmount;
+    const totalActiveCoverAmountDiff = Number(expectedTotalActiveCoverAmount) - Number(actualTotalActiveCoverAmount);
     expect(
       totalActiveCoverAmountDiff,
       `Total active cover amount ${actualTotalActiveCoverAmount} not close enough to ${expectedTotalActiveCoverAmount}`,

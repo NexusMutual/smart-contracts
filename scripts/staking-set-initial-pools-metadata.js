@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { addresses, StakingPool, StakingPoolFactory } = require('@nexusmutual/deployments');
+const { defaultAbiCoder, id } = ethers;
 
 async function main() {
   const factory = await ethers.getContractAt(StakingPoolFactory, addresses.StakingPoolFactory);
@@ -22,8 +23,8 @@ async function main() {
     ipfsHashes.push(hash);
   }
 
-  const encodedData = ethers.utils.defaultAbiCoder.encode(['string[]'], [ipfsHashes]);
-  const functionSignature = ethers.utils.id('setInitialMetadata(string[])').slice(0, 10);
+  const encodedData = defaultAbiCoder.encode(['string[]'], [ipfsHashes]);
+  const functionSignature = id('setInitialMetadata(string[])').slice(0, 10);
   const data = functionSignature + encodedData.slice(2);
 
   console.log('Tx details:');

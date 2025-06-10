@@ -4,7 +4,6 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { setEtherBalance } = require('../../utils/').evm;
 const { stakingPoolAddressAt } = require('../../utils/').addresses;
-const { Two, MaxUint256 } = ethers
 
 const poolId = 234;
 
@@ -36,10 +35,10 @@ describe('totalBalanceOf', function () {
     const [member] = fixture.accounts.members;
 
     // Mint 1
-    const amount = Two;
+    const amount = 2n;
     await tokenController.connect(internalContract).mint(member.address, amount);
 
-    const expectedAmount = amount.add(fixture.nxmBalanceBefore);
+    const expectedAmount = amount + BigInt(fixture.nxmBalanceBefore);
     // [balanceOf, totalBalanceOf, totalBalanceOfWithoutDelegations] should all return the same result
     expect(expectedAmount).to.be.eq(await nxm.balanceOf(member.address));
     expect(await tokenController.totalBalanceOf(member.address)).to.equal(expectedAmount);
@@ -51,10 +50,10 @@ describe('totalBalanceOf', function () {
     const { assessment, tokenController, nxm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
-    const amount = Two.pow(80);
+    const amount = 2n ** 80n;
     await assessment.setStakeOf(member.address, amount);
 
-    const expectedAmount = amount.add(fixture.nxmBalanceBefore);
+    const expectedAmount = amount + BigInt(fixture.nxmBalanceBefore);
 
     expect(expectedAmount).to.be.gt(await nxm.balanceOf(member.address));
     expect(await tokenController.totalBalanceOf(member.address)).to.equal(expectedAmount);
@@ -69,7 +68,7 @@ describe('totalBalanceOf', function () {
       internalContracts: [internalContract],
     } = fixture.accounts;
 
-    const amount = Two.pow(127); // uint128 overflows
+    const amount = 2n ** 127n; // uint128 overflows
 
     // Get staking pool at ID and impersonate the address
     const stakingPoolAddress = await stakingPoolAddressAt(stakingPoolFactory.address, poolId);
@@ -78,18 +77,18 @@ describe('totalBalanceOf', function () {
 
     // Mint and deposit staked NXM
     await tokenController.connect(internalContract).mint(member.address, amount);
-    await nxm.connect(member).approve(tokenController.address, MaxUint256);
+    await nxm.connect(member).approve(tokenController.address, ethers.MaxUint256);
     await tokenController.connect(stakingPoolSigner).depositStakedNXM(member.address, amount, poolId);
 
     // Make manager to get the delegations
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, member.address);
 
-    const expectedAmount = amount.add(fixture.nxmBalanceBefore);
+    const expectedAmount = amount + BigInt(fixture.nxmBalanceBefore);
 
     expect(expectedAmount).to.be.gt(await nxm.balanceOf(member.address));
     expect(await tokenController.totalBalanceOf(member.address)).to.equal(expectedAmount);
     expect(await tokenController.totalBalanceOfWithoutDelegations(member.address)).to.equal(
-      (await tokenController.totalBalanceOf(member.address)).sub(amount),
+      BigInt(await tokenController.totalBalanceOf(member.address)) - amount,
     );
   });
 
@@ -101,7 +100,7 @@ describe('totalBalanceOf', function () {
       internalContracts: [internalContract],
     } = fixture.accounts;
 
-    const delegateAmount = Two.pow(64); // uint128 overflows
+    const delegateAmount = 2n ** 64n; // uint128 overflows
 
     // setup staking pool signer
     const stakingPoolAddress = await stakingPoolAddressAt(stakingPoolFactory.address, poolId);
@@ -111,19 +110,19 @@ describe('totalBalanceOf', function () {
     // set delegation amount
     await tokenController.connect(stakingPoolSigner);
     await tokenController.connect(internalContract).mint(member.address, delegateAmount);
-    await nxm.connect(member).approve(tokenController.address, MaxUint256);
+    await nxm.connect(member).approve(tokenController.address, ethers.MaxUint256);
     await tokenController.connect(stakingPoolSigner).depositStakedNXM(member.address, delegateAmount, poolId);
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, member.address);
 
     // minted amount
-    const mintedAmount = delegateAmount.div(3);
+    const mintedAmount = delegateAmount / 3n;
     await tokenController.connect(internalContract).mint(member.address, mintedAmount);
 
     expect(await tokenController.totalBalanceOf(member.address)).to.equal(
-      delegateAmount.add(mintedAmount).add(fixture.nxmBalanceBefore),
+      delegateAmount + mintedAmount + BigInt(fixture.nxmBalanceBefore),
     );
     expect(await tokenController.totalBalanceOfWithoutDelegations(member.address)).to.equal(
-      (await tokenController.totalBalanceOf(member.address)).sub(delegateAmount),
+      BigInt(await tokenController.totalBalanceOf(member.address)) - delegateAmount,
     );
   });
 });

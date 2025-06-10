@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const { setEtherBalance } = require('../utils/evm');
-const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers;
 const { BigNumber } = ethers;
 const { daysToSeconds } = require('../../lib/helpers');
 const { V2Addresses, UserAddress, submitGovernanceProposal, getActiveProductsInPool } = require('./utils');
@@ -93,10 +93,10 @@ describe('recalculateEffectiveWeight', function () {
       capacityReductionRatio,
     );
     const allocations = await this.stakingPool.getActiveAllocations(randomProduct.productId);
-    let initialCapacityUsed = BigNumber.from(0);
+    let initialCapacityUsed = BigInt(0);
 
     for (const allocation of allocations) {
-      initialCapacityUsed = initialCapacityUsed.add(allocation);
+      initialCapacityUsed = initialCapacityUsed + BigInt(allocation);
     }
 
     const { timestamp: now } = await ethers.provider.getBlock('latest');
@@ -121,7 +121,7 @@ describe('recalculateEffectiveWeight', function () {
     );
 
     // TODO: fix maxPremiumInAsset calculations
-    const maxPremiumInAssetTooLow = basePremium.add(surgePremium).sub(surgePremiumSkipped);
+    const maxPremiumInAssetTooLow = basePremium + surgePremium - surgePremiumSkipped;
     console.log('maxPremiumInAssetTooLow', maxPremiumInAssetTooLow.toString());
     const maxPremiumInAsset = amount;
 
@@ -150,13 +150,13 @@ describe('recalculateEffectiveWeight', function () {
     );
 
     // check bumped price
-    if (BigNumber.from(bumpedPrice).eq(targetPrice)) {
+    if (BigInt(bumpedPrice) === targetPrice) {
       expect(bumpedPrice).to.be.equal(randomProduct.targetPrice);
-    } else if (BigNumber.from(bumpedPrice).gt(targetPrice)) {
+    } else if (BigInt(bumpedPrice) > targetPrice) {
       // TODO: price bump calculation is off for product 71
       console.log('priceBump', priceBump.toString());
-      expect(bumpedPrice).to.be.equal(basePrice.add(priceBump));
-    } else if (BigNumber.from(bumpedPrice).lt(targetPrice)) {
+      expect(bumpedPrice).to.be.equal(basePrice + priceBump);
+    } else if (BigInt(bumpedPrice) < targetPrice) {
       console.log('bumped price is below target price');
       console.log('bumpedPrice', bumpedPrice.toString());
       console.log('targetPrice', targetPrice.toString());

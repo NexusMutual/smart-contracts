@@ -1,9 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { setNextBlockTime, mineNextBlock, setEtherBalance } = require('../../utils/evm');
-const { BigNumber } = require('ethers');
 
-const { MaxUint256 } = ethers;
+const { MaxUint256, parseEther } = ethers;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { stake } = require('../utils/staking');
 const { buyCover, ETH_ASSET_ID } = require('../utils/cover');
@@ -17,7 +16,7 @@ const increaseTime = async interval => {
   await mineNextBlock();
 };
 
-const ratioScale = BigNumber.from(10000);
+const ratioScale = BigInt(10000);
 
 const ethCoverTemplate = {
   productId: 0, // DEFAULT_PRODUCT
@@ -84,9 +83,9 @@ describe('getMCR', function () {
     const targetPrice = fixture.DEFAULT_PRODUCTS[0].targetPrice;
     const priceDenominator = fixture.config.TARGET_PRICE_DENOMINATOR;
 
-    const gearingFactor = BigNumber.from(await mcr.gearingFactor());
+    const gearingFactor = BigInt(await mcr.gearingFactor());
     const currentMCR = await mcr.getMCR();
-    const coverAmount = gearingFactor.mul(currentMCR.add(parseEther('300'))).div(ratioScale);
+    const coverAmount = gearingFactor * (BigInt(currentMCR) + parseEther('300')) / ratioScale;
 
     await buyCover({
       ...ethCoverTemplate,
@@ -108,10 +107,10 @@ describe('getMCR', function () {
       const storedMCR = await mcr.mcr();
       const latestMCR = await mcr.getMCR();
 
-      const maxMCRIncrement = BigNumber.from(await mcr.maxMCRIncrement());
-      const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
+      const maxMCRIncrement = BigInt(await mcr.maxMCRIncrement());
+      const expectedPercentageIncrease = maxMCRIncrement * BigInt(passedTime) / BigInt(daysToSeconds(1));
 
-      const expectedMCR = storedMCR.mul(expectedPercentageIncrease).div(10000).add(storedMCR);
+      const expectedMCR = BigInt(storedMCR) * expectedPercentageIncrease / BigInt(10000) + BigInt(storedMCR);
       expect(latestMCR).to.be.equal(expectedMCR);
     }
 
@@ -135,11 +134,11 @@ describe('getMCR', function () {
       const storedMCR = await mcr.mcr();
       const latestMCR = await mcr.getMCR();
 
-      const maxMCRIncrement = BigNumber.from(await mcr.maxMCRIncrement());
-      const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
+      const maxMCRIncrement = BigInt(await mcr.maxMCRIncrement());
+      const expectedPercentageIncrease = maxMCRIncrement * BigInt(passedTime) / BigInt(daysToSeconds(1));
 
       expect(storedMCR).to.not.be.equal(latestMCR);
-      const expectedMCR = storedMCR.add(storedMCR.mul(expectedPercentageIncrease).div(10000));
+      const expectedMCR = BigInt(storedMCR) + BigInt(storedMCR) * expectedPercentageIncrease / BigInt(10000);
 
       // TODO: assertion is off
       expect(latestMCR).to.be.equal(expectedMCR);

@@ -15,7 +15,7 @@ const { ContractTypes, ContractCode, ProposalCategory: PROPOSAL_CATEGORIES } = r
 const evm = require('./evm')();
 
 const { BigNumber } = ethers;
-const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers;
 
 /* ========== CONSTRUCTOR PARAMS ========== */
 

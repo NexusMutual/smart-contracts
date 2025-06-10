@@ -139,7 +139,7 @@ function calculateNewObservations(state, currentTimestamp, constants) {
       const ratchetDropA = (timeSinceLastUpdate * BigInt(state.ratchetSpeedA)) / BigInt(constants.RATCHET_SPEED_DENOMINATOR);
 
       newObservations[observationIndex] = {
-        timestamp,
+  timestamp,
         nxmB: Number(BigInt(previousObservation.nxmB) - ratchetDropB),
         nxmA: Number(BigInt(previousObservation.nxmA) - ratchetDropA),
       };

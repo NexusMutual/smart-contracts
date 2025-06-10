@@ -1,8 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { parseEther } = ethers;
-const { BigNumber } = ethers;
-const { MaxUint256 } = ethers;
+const { parseEther, MaxUint256 } = ethers;
 const { daysToSeconds } = require('../../../lib/helpers');
 const { acceptClaim } = require('../utils/voteClaim');
 const { setNextBlockTime, mineNextBlock, setEtherBalance } = require('../../utils/evm');
@@ -25,7 +23,7 @@ const newEthCoverTemplate = {
   assessmentId: 0,
 };
 
-const ratioScale = BigNumber.from(10000);
+const ratioScale = 10000n;
 
 const increaseTime = async interval => {
   const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -215,7 +213,7 @@ describe('updateMCR', function () {
     const gearingFactor = await mcr.gearingFactor();
     const getTotalActiveCoverAmount = await mcr.getTotalActiveCoverAmount();
 
-    const expectedDesiredMCR = getTotalActiveCoverAmount.mul(ratioScale).div(gearingFactor);
+    const expectedDesiredMCR = BigInt(getTotalActiveCoverAmount) * ratioScale / BigInt(gearingFactor);
 
     expect(lastUpdateTimeBefore).to.be.lt(lastUpdateTimeAfter);
     expect(lastUpdateTimeAfter).to.be.equal(currentTime);
@@ -228,12 +226,12 @@ describe('updateMCR', function () {
     const { mcr, ci: claims, as, cover } = fixture.contracts;
     const [coverHolder, member1] = fixture.accounts.members;
 
-    const gearingFactor = BigNumber.from(await mcr.gearingFactor());
+    const gearingFactor = BigInt(await mcr.gearingFactor());
     const currentMCR = await mcr.getMCR();
     const coverAmount = gearingFactor
-      .mul(currentMCR.add(ethers.parseEther('300')))
-      .div(ethers.parseEther('1'))
-      .div(ratioScale);
+      * (BigInt(currentMCR) + BigInt(ethers.parseEther('300')))
+      / BigInt(ethers.parseEther('1'))
+      / ratioScale;
 
     // buy cover
     const newCoverBuyParams = {
@@ -326,11 +324,11 @@ describe('updateMCR', function () {
     await increaseTime(end - currentTime + payoutCooldown);
 
     const priceBefore = parseEther('2.5'); // ETH per ybETH
-    const sumAssured = parseEther('1').mul(newCoverBuyParams.amount);
+    const sumAssured = BigInt(parseEther('1')) * BigInt(newCoverBuyParams.amount);
 
     // sumAssured DAI = tokenAmount ybETH @ priceBefore
     // 500 ETH  /  2 ETH/ybETH  =  1000 ybETH
-    const tokenAmount = parseEther('1').mul(sumAssured).div(priceBefore);
+    const tokenAmount = BigInt(parseEther('1')) * sumAssured / BigInt(priceBefore);
     await ybETH.mint(coverHolder.address, parseEther('1000000000'));
     await ybETH.connect(coverHolder).approve(cg.address, MaxUint256);
     const coverId = 1;

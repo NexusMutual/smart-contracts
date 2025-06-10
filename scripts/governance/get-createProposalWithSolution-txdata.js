@@ -10,6 +10,8 @@ const { GOVERNANCE_ADDRESS, IPFS_API_URL, CATEGORY_PARAM_TYPES } = constants;
 
 const ipfs = ipfsClient({ url: IPFS_API_URL });
 
+const { defaultAbiCoder } = ethers;
+
 const verifyDecodedTxInputs = (inputs, decodedTxInputs) => {
   if (decodedTxInputs[0] !== inputs[0]) {
     throw new Error(`Title mismatch: ${decodedTxInputs[0]} !== ${inputs[0]}`);
@@ -82,7 +84,7 @@ const main = async (proposalFilePath, categoryId, actionParamsRaw, solutionHash 
     );
   }
 
-  const encodedActionParams = ethers.utils.defaultAbiCoder.encode(CATEGORY_PARAM_TYPES[categoryId], actionParams);
+  const encodedActionParams = defaultAbiCoder.encode(CATEGORY_PARAM_TYPES[categoryId], actionParams);
 
   // upload proposal file to IPFS
   const file = await ipfs.add(fs.readFileSync(proposalFilePath));

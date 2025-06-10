@@ -3,9 +3,7 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { ETH } = require('../../../lib/constants').Assets;
-const {
-  utils: { parseEther },
-} = ethers;
+const { parseEther } = ethers;
 
 describe('swapEnzymeVaultShareForETH', function () {
   it('should revert when called while the system is paused', async function () {

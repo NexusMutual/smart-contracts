@@ -4,7 +4,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 const { Two, ZeroAddress } = ethers;
 
-const poolId = Two.pow(95); // overflows at uint96
+const poolId = 2n ** 95n; // overflows at uint96
 
 describe('assignStakingPoolManager', function () {
   it('should revert if not called from internal address', async function () {

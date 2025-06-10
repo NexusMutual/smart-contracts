@@ -10,11 +10,11 @@ const { daysToSeconds } = require('../../lib/helpers');
 const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const { signMembershipApproval } = require('../integration/utils').membership;
-const { parseUnits } = require('ethers/lib/utils');
+const { parseUnits } = ethers;
 
 const JOINING_FEE = parseUnits('0.002');
 
-const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers;
 
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
 const HUGH = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';

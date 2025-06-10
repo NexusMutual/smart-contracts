@@ -1,5 +1,5 @@
 const { network, ethers } = require('hardhat');
-const { parseUnits } = require('ethers/lib/utils');
+const { parseUnits } = ethers;
 const { Role } = require('../../../lib/constants');
 const { signMembershipApproval } = require('../utils').membership;
 const { impersonateAccount, setEtherBalance } = require('../utils').evm;

@@ -2,6 +2,7 @@ require('dotenv').config();
 const fs = require('node:fs/promises');
 const { ethers } = require('hardhat');
 const { addresses } = require('@nexusmutual/deployments');
+const { ZeroAddress } = ethers;
 
 // run command: HARDHAT_NETWORK=mainnet node scripts/migrate-cover-products-metadata.js
 
@@ -12,7 +13,7 @@ const main = async () => {
   ];
 
   const cover = await ethers.getContractAt(LegacyCover, addresses.Cover);
-  const coverProducts = await ethers.getContractAt('CoverProducts', ethers.AddressZero);
+  const coverProducts = await ethers.getContractAt('CoverProducts', addresses.CoverProducts || ZeroAddress);
 
   const productSetFilter = cover.filters.ProductSet();
   const productTypesFilter = cover.filters.ProductTypeSet();

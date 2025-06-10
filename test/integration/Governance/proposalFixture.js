@@ -1,8 +1,5 @@
 const { hex } = require('../../../lib/helpers');
 const { ethers } = require('hardhat');
-const {
-  utils: { defaultAbiCoder },
-} = ethers;
 
 module.exports = {
   proposalTitle: 'Title',
@@ -10,7 +7,7 @@ module.exports = {
   proposalDescHash: 'Description',
   categoryId: 3,
   solutionHash: 'Solution',
-  action: defaultAbiCoder.encode(
+  action: ethers.AbiCoder.defaultAbiCoder().encode(
     [
       'string',
       'uint256',

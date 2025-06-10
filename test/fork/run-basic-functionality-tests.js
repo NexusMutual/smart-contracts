@@ -2,7 +2,7 @@ const { ethers, network } = require('hardhat');
 
 const evm = require('./evm')();
 
-const { parseEther, toUtf8Bytes } = ethers.utils;
+const { parseEther, toUtf8Bytes } = ethers;
 
 const V2Addresses = {
   CoverNFT: '0xcafeaCa76be547F14D0220482667B42D8E7Bc3eb',

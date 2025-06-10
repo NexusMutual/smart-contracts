@@ -1,13 +1,11 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { parseEther, parseUnits, ZeroAddress } = ethers;
 
-const setup = require('./setup');
+const setup = require('../setup');
 const { setNextBlockBaseFee, setNextBlockTime, setEtherBalance } = require('../../utils/evm');
 const { getEventsFromTxReceipt } = require('../../utils/events');
-const { ZeroAddress } = ethers;
-
-const { parseEther } = ethers;
 
 async function getCapitalSupplyAndBalances(p1, tc, tk, memberAddress) {
   return {
@@ -100,7 +98,7 @@ describe('swap', function () {
     const after = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
     const nxmReceived = after.nxmBalance.sub(before.nxmBalance);
     const nxmTransferEvents = getEventsFromTxReceipt(swapTxReceipt, tk, 'Transfer', {
-      from: ethers.AddressZero,
+      from: ZeroAddress,
       to: member.address,
     });
     const nxmTransferAmount = nxmTransferEvents[0]?.args?.value;
@@ -192,7 +190,7 @@ describe('swap', function () {
     const after = await getCapitalSupplyAndBalances(p1, tc, tk, member.address);
     const nxmReceived = after.nxmBalance.sub(before.nxmBalance);
     const nxmTransferEvents = getEventsFromTxReceipt(swapTxReceipt, tk, 'Transfer', {
-      from: ethers.AddressZero,
+      from: ZeroAddress,
       to: member.address,
     });
     const nxmOut = nxmTransferEvents[0]?.args?.value;

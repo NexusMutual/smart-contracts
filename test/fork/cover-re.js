@@ -15,8 +15,7 @@ const { ContractTypes, ContractCode, ProposalCategory: PROPOSAL_CATEGORIES } = r
 const { toBytes8 } = require('../../lib/helpers');
 const evm = require('./evm')();
 
-const { BigNumber } = ethers;
-const { formatEther, parseEther, defaultAbiCoder, toUtf8Bytes, parseUnits, formatUnits } = ethers.utils;
+const { formatEther, parseEther, defaultAbiCoder, toUtf8Bytes, parseUnits, formatUnits } = ethers;
 const { MaxUint256, AddressZero } = ethers;
 
 const AavePoolAbi = require('./abi/aave/AavePool.json');
@@ -132,14 +131,14 @@ describe('coverRe', function () {
       Aave.VARIABLE_DEBT_USDC_ADDRESS,
     ]);
 
-    const safeTrackerTypeAndSalt = BigNumber.from(safeTrackerCreate2Salt).shl(8).add(ContractTypes.Proxy);
+    const safeTrackerTypeAndSalt = defaultAbiCoder.encode(
+      ['bytes2[]', 'address[]', 'uint256[]'],
+      [[toUtf8Bytes(ContractCode.SafeTracker)], [this.safeTracker.address], [safeTrackerTypeAndSalt]],
+    );
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
-      defaultAbiCoder.encode(
-        ['bytes2[]', 'address[]', 'uint256[]'],
-        [[toUtf8Bytes(ContractCode.SafeTracker)], [this.safeTracker.address], [safeTrackerTypeAndSalt]],
-      ),
+      safeTrackerTypeAndSalt,
       this.abMembers,
       this.governance,
     );

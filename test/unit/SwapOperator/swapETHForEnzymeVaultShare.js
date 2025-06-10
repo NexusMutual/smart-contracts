@@ -1,13 +1,10 @@
-const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { BigNumber } = require('ethers');
+const { ethers } = require('hardhat');
 const { ETH } = require('../../../lib/constants').Assets;
 const { mineNextBlock, increaseTime } = require('../../utils/evm');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const {
-  utils: { parseEther },
-} = ethers;
+const { parseEther } = ethers;
 
 describe('swapETHForEnzymeVaultShare', function () {
   it('should revert when called while the system is paused', async function () {
@@ -58,7 +55,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     // allow to send max 1 ether out of pool
 
     const minPoolEth = await swapOperator.minPoolEth();
-    const maxPoolTradableEther = currentEther.sub(minPoolEth);
+    const maxPoolTradableEther = currentEther - minPoolEth;
 
     // should fail with max + 1
     await expect(swapOperator.swapETHForEnzymeVaultShare(currentEther, currentEther))
@@ -79,9 +76,10 @@ describe('swapETHForEnzymeVaultShare', function () {
       to: pool.address,
       value: parseEther('10000'),
     });
-    await expect(swapOperator.swapETHForEnzymeVaultShare(currentEther.add(1), currentEther)).to.be.revertedWith(
-      'Pool: ETH transfer failed',
-    );
+    await expect(swapOperator.swapETHForEnzymeVaultShare(currentEther + 1n, currentEther))
+      .to.be.revertedWith(
+        'Pool: ETH transfer failed',
+      );
   });
 
   it('should revert if Enzyme does not sent enough shares back', async function () {
@@ -123,7 +121,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       value: parseEther('10000'),
     });
 
-    const etherIn = max.add(10001);
+    const etherIn = max + 10001n;
     await expect(swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn))
       .to.be.revertedWithCustomError(swapOperator, 'InvalidPostSwapBalance')
       .withArgs(etherIn, max);
@@ -154,13 +152,13 @@ describe('swapETHForEnzymeVaultShare', function () {
 
     // amounts in/out of the trade
     const etherIn = parseEther('100');
-    const minTokenOut = etherIn.sub(1);
+    const minTokenOut = etherIn - 1n;
     const swapTx = await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
 
     const etherAfter = await ethers.provider.getBalance(pool.address);
     const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
-    const etherSent = etherBefore.sub(etherAfter);
-    const tokensReceived = tokensAfter.sub(tokensBefore);
+    const etherSent = BigInt(etherBefore) - BigInt(etherAfter);
+    const tokensReceived = BigInt(tokensAfter) - BigInt(tokensBefore);
 
     expect(etherSent).to.be.equal(etherIn);
     expect(tokensReceived).to.be.greaterThanOrEqual(minTokenOut);
@@ -192,15 +190,15 @@ describe('swapETHForEnzymeVaultShare', function () {
     const tokensBefore = await enzymeV4Vault.balanceOf(pool.address);
 
     // amounts in/out of the trade
-    const etherIn = BigNumber.from(10000);
-    const minTokenOut = etherIn.sub(1);
+    const etherIn = parseEther('10000');
+    const minTokenOut = etherIn - 1n;
     await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
 
     const etherAfter = await ethers.provider.getBalance(pool.address);
     const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
 
-    const etherSent = etherBefore.sub(etherAfter);
-    const tokensReceived = tokensAfter.sub(tokensBefore);
+    const etherSent = BigInt(etherBefore) - BigInt(etherAfter);
+    const tokensReceived = BigInt(tokensAfter) - BigInt(tokensBefore);
     expect(etherSent).to.be.equal(etherIn);
     expect(tokensReceived).to.be.greaterThanOrEqual(minTokenOut);
   });
@@ -233,14 +231,14 @@ describe('swapETHForEnzymeVaultShare', function () {
       const tokensBefore = await enzymeV4Vault.balanceOf(pool.address);
 
       // amounts in/out of the trade
-      const etherIn = minAssetAmount.div(3);
-      const minTokenOut = etherIn.sub(1);
+      const etherIn = BigInt(minAssetAmount) / 3n;
+      const minTokenOut = etherIn - 1n;
       await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
 
       const etherAfter = await ethers.provider.getBalance(pool.address);
       const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
-      const etherSent = etherBefore.sub(etherAfter);
-      const tokensReceived = tokensAfter.sub(tokensBefore);
+      const etherSent = BigInt(etherBefore) - BigInt(etherAfter);
+      const tokensReceived = BigInt(tokensAfter) - BigInt(tokensBefore);
 
       expect(etherSent).to.be.equal(etherIn);
       expect(tokensReceived).to.be.greaterThanOrEqual(minTokenOut);
@@ -254,14 +252,14 @@ describe('swapETHForEnzymeVaultShare', function () {
       const tokensBefore = await enzymeV4Vault.balanceOf(pool.address);
 
       // amounts in/out of the trade
-      const etherIn = minAssetAmount.div(3);
-      const minTokenOut = etherIn.sub(1);
+      const etherIn = BigInt(minAssetAmount) / 3n;
+      const minTokenOut = etherIn - 1n;
       await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
 
       const etherAfter = await ethers.provider.getBalance(pool.address);
       const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
-      const etherSent = etherBefore.sub(etherAfter);
-      const tokensReceived = tokensAfter.sub(tokensBefore);
+      const etherSent = BigInt(etherBefore) - BigInt(etherAfter);
+      const tokensReceived = BigInt(tokensAfter) - BigInt(tokensBefore);
 
       expect(etherSent).to.be.equal(etherIn);
       expect(tokensReceived).to.be.greaterThanOrEqual(minTokenOut);
@@ -275,14 +273,14 @@ describe('swapETHForEnzymeVaultShare', function () {
       const tokensBefore = await enzymeV4Vault.balanceOf(pool.address);
 
       // amounts in/out of the trade
-      const etherIn = minAssetAmount.div(2);
-      const minTokenOut = etherIn.sub(1);
+      const etherIn = BigInt(minAssetAmount) / 2n;
+      const minTokenOut = etherIn - 1n;
       await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
 
       const etherAfter = await ethers.provider.getBalance(pool.address);
       const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
-      const etherSent = etherBefore.sub(etherAfter);
-      const tokensReceived = tokensAfter.sub(tokensBefore);
+      const etherSent = BigInt(etherBefore) - BigInt(etherAfter);
+      const tokensReceived = BigInt(tokensAfter) - BigInt(tokensBefore);
 
       expect(etherSent).to.be.equal(etherIn);
       expect(tokensReceived).to.be.greaterThanOrEqual(minTokenOut);
@@ -291,9 +289,9 @@ describe('swapETHForEnzymeVaultShare', function () {
       await mineNextBlock();
     }
 
-    const etherIn = minAssetAmount.div(2);
+    const etherIn = BigInt(minAssetAmount) / 2n;
     await expect(swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn))
       .to.be.revertedWithCustomError(swapOperator, 'InvalidBalance')
-      .withArgs(BigNumber.from('116666666666666666666'), minAssetAmount);
+      .withArgs(parseEther('116.666666666666666666'), minAssetAmount);
   });
 });

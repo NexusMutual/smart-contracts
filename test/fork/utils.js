@@ -5,8 +5,7 @@ const assert = require('assert');
 const { setEtherBalance } = require('../utils/evm');
 const { calculateCurrentTrancheId } = require('../utils/stakingPool');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-const { parseEther, defaultAbiCoder, keccak256, toUtf8Bytes } = ethers.utils;
-const { BigNumber } = ethers;
+const { parseEther, defaultAbiCoder, keccak256, toUtf8Bytes, getCreate2Address, Interface } = ethers;
 
 const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
 
@@ -102,7 +101,7 @@ const Aave = {
   VARIABLE_DEBT_USDC_ADDRESS: '0x72E95b8931767C79bA4EeE721354d6E99a61D004',
 };
 
-const ratioScale = BigNumber.from('10000');
+const ratioScale = BigInt(10000);
 
 const ListIdForReceivers = 218;
 
@@ -202,7 +201,7 @@ async function enableAsEnzymeReceiver(receiverAddress) {
   await evm.setBalance(ownerAddress, parseEther('1000'));
 
   // Update Enzyme vault receivers
-  const iface = new ethers.utils.Interface(['function addToList(uint256,address[])']);
+  const iface = new Interface(['function addToList(uint256,address[])']);
   const selector = iface.getSighash('addToList');
   const receiverArgs = defaultAbiCoder.encode(['uint256', 'address[]'], [ListIdForReceivers, [receiverAddress]]);
   await comptroller
@@ -280,7 +279,7 @@ async function getConfig() {
 async function upgradeMultipleContracts(params) {
   const { codes, addresses } = params;
 
-  const contractCodes = codes.map(code => ethers.utils.toUtf8Bytes(code));
+  const contractCodes = codes.map(code => toUtf8Bytes(code));
   const governance = await ethers.getContractAt('Governance', V2Addresses.Governance);
 
   const implAddresses = addresses.map(c => c.address);
@@ -315,7 +314,7 @@ function calculateProxyAddress(masterAddress, salt) {
   const initCode = bytecode + defaultAbiCoder.encode(['address'], [MaxAddress]).slice(2);
   const initCodeHash = keccak256(initCode);
   const saltHex = Buffer.from(salt.toString(16).padStart(64, '0'), 'hex');
-  return ethers.utils.getCreate2Address(masterAddress, saltHex, initCodeHash);
+  return getCreate2Address(masterAddress, saltHex, initCodeHash);
 }
 
 async function getContractByContractCode(contractName, contractCode) {

@@ -14,7 +14,6 @@ const setup = require('./setup');
 
 const { AddressZero } = ethers;
 const { parseEther } = ethers;
-const { BigNumber } = ethers;
 
 const poolId = 1;
 
@@ -178,7 +177,7 @@ describe('setProducts unit tests', function () {
     expect(bumpedPriceUpdateTimeBefore).to.be.equal(initialTimestamp);
 
     await increaseTime(daysToSeconds(2)); // 2 days * 2% per day
-    const priceDrop = BigNumber.from(400); //  = 4% drop
+    const priceDrop = 400n; //  = 4% drop
 
     // increase targetPrice
     const productEditParams = [{ ...products[0], targetPrice: 2000 }];
@@ -188,7 +187,7 @@ describe('setProducts unit tests', function () {
     const product0 = await stakingProducts.getProduct(poolId, 0);
     expect(product0.bumpedPrice).to.not.equal(product0.targetPrice);
 
-    const expectedBumpedPrice = BigNumber.from(bumpedPriceBefore).sub(priceDrop);
+    const expectedBumpedPrice = BigInt(bumpedPriceBefore) - priceDrop;
     expect(product0.bumpedPrice).to.be.equal(expectedBumpedPrice);
     expect(product0.bumpedPriceUpdateTime).to.be.equal(latestTimestamp);
   });
@@ -199,7 +198,7 @@ describe('setProducts unit tests', function () {
     const [manager] = fixture.accounts.members;
 
     // target price = 300
-    const initialTargetPrice = BigNumber.from(300);
+    const initialTargetPrice = 300n;
     const products = [{ ...newProductTemplate, targetPrice: initialTargetPrice }];
 
     // initial price = 500
@@ -218,7 +217,7 @@ describe('setProducts unit tests', function () {
     await increaseTime(daysToSeconds(8));
 
     // decrease target price, but keep it above what the base price would have been if there was no floor
-    const newTargetPrice = BigNumber.from(200);
+    const newTargetPrice = 200n;
 
     const productEditParams = { ...products[0], targetPrice: newTargetPrice };
     await stakingProducts.connect(manager).setProducts(poolId, [productEditParams]);
@@ -620,7 +619,7 @@ describe('setProducts unit tests', function () {
 
     const coverId = 1;
     const amount = parseEther('1');
-    const coverBuyAmount = amount.div(100); // weight is 1/100
+    const coverBuyAmount = BigInt(amount) / 100n; // weight is 1/100
 
     // Get capacity in staking pool
     await depositTo.call(fixture, { staker, amount });
@@ -633,7 +632,7 @@ describe('setProducts unit tests', function () {
     await expect(
       cover
         .connect(coverBuyer)
-        .allocateCapacity({ ...buyCoverParamsTemplate, amount: coverBuyAmount + 1 }, coverId, 0, stakingPool.address),
+        .allocateCapacity({ ...buyCoverParamsTemplate, amount: coverBuyAmount + 1n }, coverId, 0, stakingPool.address),
     ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     await cover
@@ -684,7 +683,7 @@ describe('setProducts unit tests', function () {
     const activeStake = await stakingPool.getActiveStake();
     // TODO: This leaves 0 capacity in the pool,
     // so the effective weight is calculated as if it is a new pool (defaults to target weight)
-    await stakingPool.connect(coverSigner).burnStake(activeStake.sub(1), burnStakeParams);
+    await stakingPool.connect(coverSigner).burnStake(BigInt(activeStake) - 1n, burnStakeParams);
 
     // Increasing weight on any product will cause it to recalculate effective weight
     const increaseTargetWeightParams = products.map(p => ({ ...p, targetWeight: 51 }));
@@ -733,7 +732,7 @@ describe('setProducts unit tests', function () {
 
     // Burn stake 99% of stake
     const activeStake = await stakingPool.getActiveStake();
-    await stakingPool.connect(coverSigner).burnStake(activeStake.sub(parseEther('.01')), burnStakeParams);
+    await stakingPool.connect(coverSigner).burnStake(BigInt(activeStake) - BigInt(parseEther('.01')), burnStakeParams);
 
     // Increasing weight on any product will cause it to recalculate effective weight
     const increaseTargetWeightParams = products.map(p => ({ ...p, targetWeight: 51 }));

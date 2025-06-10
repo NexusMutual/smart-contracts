@@ -126,20 +126,20 @@ function calculateObservation(state, previousState, previousObservation, capital
 
 function calculateInternalPrice(currentState, observations, capital, supply, currentTimestamp, constants) {
   const { GRANULARITY } = constants;
-  const currentIdx = getObservationIndex(BigNumber.from(currentTimestamp), constants);
-  const previousIdx = (currentIdx + 1n) % GRANULARITY;
+  const currentIdx = getObservationIndex(BigInt(currentTimestamp), constants);
 
-  const firstObservation = observations[Number(previousIdx)];
-  const currentObservation = observations[Number(currentIdx)];
+  const firstObservation = observations[currentIdx];
+  const secondObservation = observations[(currentIdx + 1) % 3];
+  const thirdObservation = observations[(currentIdx + 2) % 3];
 
-  const elapsed = BigNumber.from(currentTimestamp) - firstObservation.timestamp;
+  const elapsed = BigInt(currentTimestamp) - BigInt(firstObservation.timestamp);
 
   const spotPriceA = (parseEther('1') * currentState.eth) / currentState.nxmA;
   const spotPriceB = (parseEther('1') * currentState.eth) / currentState.nxmB;
 
-  const averagePriceA = (currentObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) / elapsed;
+  const averagePriceA = (secondObservation.priceCumulativeAbove - firstObservation.priceCumulativeAbove) / elapsed;
 
-  const averagePriceB = (currentObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) / elapsed;
+  const averagePriceB = (secondObservation.priceCumulativeBelow - firstObservation.priceCumulativeBelow) / elapsed;
 
   const priceA = averagePriceA > spotPriceA ? spotPriceA : averagePriceA;
   const priceB = averagePriceB > spotPriceB ? averagePriceB : spotPriceB;
@@ -193,7 +193,7 @@ async function getExpectedObservations(
       previousObservation,
       context.capital,
       context.supply,
-      BigNumber.from(timestamp - previousState.timestamp),
+      BigInt(timestamp - previousState.timestamp),
       fixtureConstants,
     );
 

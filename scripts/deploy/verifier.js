@@ -1,5 +1,6 @@
 const { ethers, run, config } = require('hardhat');
 const { sleep, to } = require(`${config.paths.root}/lib/helpers`);
+const { FormatTypes } = ethers;
 
 module.exports = () => {
   const contracts = {};
@@ -29,7 +30,7 @@ module.exports = () => {
     for (const contract of Object.values(contracts)) {
       const { implFqName, libraries } = contract;
       const factory = await ethers.getContractFactory(implFqName, { libraries });
-      const abiJson = factory.interface.format(ethers.utils.FormatTypes.json);
+      const abiJson = factory.interface.format(FormatTypes.json);
       const abi = JSON.parse(abiJson);
       deployData.push({ ...contract, abi });
     }

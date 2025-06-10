@@ -1,8 +1,6 @@
-const hre = require('hardhat');
-const { ethers } = hre;
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { BigNumber } = ethers;
-const { getAccounts } = require('../../utils/accounts');
+const { getAccounts } = require('../utils').accounts;
 
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
@@ -198,7 +196,7 @@ async function setup() {
 
   const DEFAULT_MIN_PRICE_RATIO = await cover.DEFAULT_MIN_PRICE_RATIO();
   const MAX_COMMISSION_RATIO = await cover.MAX_COMMISSION_RATIO();
-  const BUCKET_SIZE = BigNumber.from(7 * 24 * 3600); // 7 days
+  const BUCKET_SIZE = BigInt(7 * 24 * 3600); // 7 days
   const capacityFactor = '20000';
 
   return {

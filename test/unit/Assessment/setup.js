@@ -1,52 +1,44 @@
 const { ethers } = require('hardhat');
-const { hex } = require('../../../lib/helpers');
+const { hex, toBytes2 } = require('../../../lib/helpers');
 const { Role } = require('../../../lib/constants');
 const { getAccounts } = require('../../utils/accounts');
 const { impersonateAccount, setEtherBalance } = require('../utils').evm;
 
 async function setup() {
   const accounts = await getAccounts();
-  const NXM = await ethers.getContractFactory('NXMTokenMock');
-  const nxm = await NXM.deploy();
-  await nxm.deployed();
+  const NXMToken = await ethers.getContractFactory('NXMTokenMock');
+  const nxm = await NXMToken.deploy();
 
   const ASMockTokenController = await ethers.getContractFactory('ASMockTokenController');
   const tokenController = await ASMockTokenController.deploy(nxm.address);
-  await tokenController.deployed();
 
   const ASMockIndividualClaims = await ethers.getContractFactory('ASMockIndividualClaims');
   const individualClaims = await ASMockIndividualClaims.deploy();
-  await individualClaims.deployed();
 
   const ASMockRamm = await ethers.getContractFactory('RammMock');
   const ramm = await ASMockRamm.deploy();
-  await ramm.deployed();
 
   await nxm.setOperator(tokenController.address);
 
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();
-  await master.deployed();
 
   const DAI = await ethers.getContractFactory('ERC20BlacklistableMock');
   const dai = await DAI.deploy();
-  await dai.deployed();
 
   const Assessment = await ethers.getContractFactory('Assessment');
   const assessment = await Assessment.deploy(nxm.address);
-  await assessment.deployed();
 
   const ASMockMemberRoles = await ethers.getContractFactory('ASMockMemberRoles');
-  const memberRoles = await ASMockMemberRoles.deploy();
-  await memberRoles.deployed();
+  const memberRoles = await ASMockMemberRoles.deploy(nxm.address);
 
   const masterInitTxs = await Promise.all([
-    master.setLatestAddress(hex('TC'), tokenController.address),
+    master.setLatestAddress(toBytes2('TC'), tokenController.address),
     master.setTokenAddress(nxm.address),
-    master.setLatestAddress(hex('CI'), individualClaims.address),
-    master.setLatestAddress(hex('AS'), assessment.address),
-    master.setLatestAddress(hex('MR'), memberRoles.address),
-    master.setLatestAddress(hex('RA'), ramm.address),
+    master.setLatestAddress(toBytes2('CI'), individualClaims.address),
+    master.setLatestAddress(toBytes2('AS'), assessment.address),
+    master.setLatestAddress(toBytes2('MR'), memberRoles.address),
+    master.setLatestAddress(toBytes2('RA'), ramm.address),
     master.enrollInternal(individualClaims.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));

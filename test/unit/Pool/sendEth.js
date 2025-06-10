@@ -33,7 +33,7 @@ describe('sendEth', function () {
     const { pool, master } = fixture;
 
     const poolBalance = parseEther('1000');
-    const sendEthAmount = poolBalance.div(2);
+    const sendEthAmount = BigInt(poolBalance) / 2n;
     await setEtherBalance(pool.address, poolBalance);
 
     // set up reentrancyExploiter
@@ -66,6 +66,6 @@ describe('sendEth', function () {
     await pool.connect(rammSigner).sendEth(member.address, amountToSend);
 
     const afterBalance = await ethers.provider.getBalance(member.address);
-    expect(afterBalance).to.be.equal(beforeBalance.add(amountToSend));
+    expect(afterBalance).to.be.equal(BigInt(beforeBalance) + BigInt(amountToSend));
   });
 });

@@ -31,8 +31,7 @@ async function setup() {
   const coverNFT = await CoverNFT.deploy('', '');
 
   const StakingNFT = await ethers.getContractFactory('MRMockStakingNFT');
-  const stakingNFT = await StakingNFT.deploy('', '');
-  await stakingNFT.deployed();
+  const stakingNFT = await StakingNFT.deploy('Staking NFT', 'stNFT', ZeroAddress);
 
   const Cover = await ethers.getContractFactory('MRMockCover');
   const cover = await Cover.deploy(coverNFT.address, memberRoles.address, stakingNFT.address);

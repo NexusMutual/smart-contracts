@@ -188,12 +188,12 @@ describe('join', function () {
 
     await expect(
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
-        value: JOINING_FEE.sub('1'),
+        value: BigInt(JOINING_FEE) - 1n,
       }),
     ).to.be.revertedWithCustomError(memberRoles, 'TransactionValueDifferentFromJoiningFee');
     await expect(
       memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
-        value: JOINING_FEE.add('1'),
+        value: BigInt(JOINING_FEE) + 1n,
       }),
     ).to.be.revertedWithCustomError(memberRoles, 'TransactionValueDifferentFromJoiningFee');
     await expect(
@@ -285,7 +285,7 @@ describe('join', function () {
       value: JOINING_FEE,
     });
     const balanceAfter = await ethers.provider.getBalance(pool.address);
-    expect(balanceAfter).to.be.equal(balanceBefore.add(JOINING_FEE));
+    expect(balanceAfter).to.be.equal(BigInt(balanceBefore) + BigInt(JOINING_FEE));
   });
 
   it('whitelists the address through token controller to allow it to transfer tokens', async function () {

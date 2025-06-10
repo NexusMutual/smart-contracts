@@ -9,47 +9,48 @@ const { getAccounts } = require('../../utils/accounts');
 
 async function setup() {
   const accounts = await getAccounts();
-  const nxm = await ethers.deployContract('NXMTokenMock');
-  await nxm.deployed();
+  
+  const NXMToken = await ethers.getContractFactory('NXMTokenMock');
+  const nxm = await NXMToken.deploy();
 
-  const memberRoles = await ethers.deployContract('MemberRolesMock');
-  await memberRoles.deployed();
+  const MemberRoles = await ethers.getContractFactory('MemberRolesMock');
+  const memberRoles = await MemberRoles.deploy();
 
-  const ramm = await ethers.deployContract('RammMock');
-  await ramm.deployed();
+  const Ramm = await ethers.getContractFactory('RammMock');
+  const ramm = await Ramm.deploy();
 
-  const tokenController = await ethers.deployContract('CLMockTokenController', [nxm.address]);
-  await tokenController.deployed();
+  const TokenController = await ethers.getContractFactory('CLMockTokenController');
+  const tokenController = await TokenController.deploy(nxm.address);
+
+  const NXMaster = await ethers.getContractFactory('MasterMock');
+  const master = await NXMaster.deploy();
+
+  const ERC20Mock = await ethers.getContractFactory('ERC20BlacklistableMock');
+  const dai = await ERC20Mock.deploy();
+
+  const Pool = await ethers.getContractFactory('PoolMock');
+  const pool = await Pool.deploy();
+
+  const Assessment = await ethers.getContractFactory('CLMockAssessment');
+  const assessment = await Assessment.deploy();
+
+  const CoverNFT = await ethers.getContractFactory('CLMockCoverNFT');
+  const coverNFT = await CoverNFT.deploy();
+
+  const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
+  const individualClaims = await IndividualClaims.deploy(coverNFT.address);
+
+  const Cover = await ethers.getContractFactory('CLMockCover');
+  const cover = await Cover.deploy(coverNFT.address);
+
+  const CoverProducts = await ethers.getContractFactory('CLMockCoverProducts');
+  const coverProducts = await CoverProducts.deploy();
 
   await nxm.setOperator(tokenController.address);
-
-  const master = await ethers.deployContract('MasterMock');
-  await master.deployed();
-
-  const dai = await ethers.deployContract('ERC20BlacklistableMock');
-  await dai.deployed();
-
-  const pool = await ethers.deployContract('PoolMock');
-  await pool.deployed();
 
   await pool.addAsset({ assetAddress: dai.address, isCoverAsset: true, isAbandonedAsset: false });
   await pool.setTokenPrice(ASSET.ETH, parseEther('0.0382')); // 1 NXM ~ 0.0382 ETH
   await pool.setTokenPrice(ASSET.DAI, parseEther('3.82')); // 1 NXM ~ 3.82 DAI)
-
-  const assessment = await ethers.deployContract('CLMockAssessment');
-  await assessment.deployed();
-
-  const coverNFT = await ethers.deployContract('CLMockCoverNFT');
-  await coverNFT.deployed();
-
-  const individualClaims = await ethers.deployContract('IndividualClaims', [coverNFT.address]);
-  await individualClaims.deployed();
-
-  const cover = await ethers.deployContract('CLMockCover', [coverNFT.address]);
-  await cover.deployed();
-
-  const coverProducts = await ethers.deployContract('CLMockCoverProducts');
-  await coverProducts.deployed();
 
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),

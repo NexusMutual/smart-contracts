@@ -14,7 +14,7 @@ const evm = require('./evm')();
 
 const { expect } = chai;
 const { deployContract, BigNumber } = ethers;
-const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers;
 const { NXM_WHALE_1 } = UserAddress;
 
 const compareProxyImplementationAddress = async (proxyAddress, addressToCompare) => {

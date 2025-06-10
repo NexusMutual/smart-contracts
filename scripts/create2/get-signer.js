@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { AwsKmsSigner } = require('@nexusmutual/ethers-v5-aws-kms-signer');
+const { hashMessage, recoverAddress } = ethers;
 
 const SIGNER_TYPE = {
   LOCAL: 'local',
@@ -33,14 +34,13 @@ if (require.main === module) {
     const [signature, ethAddress] = await Promise.all([signer.signMessage(testMessage), signer.getAddress()]);
 
     // recover address from signature
-    const eip191Hash = ethers.utils.hashMessage(testMessage);
-    const recoveredAddress = ethers.utils.recoverAddress(eip191Hash, signature);
+    const eip191Hash = hashMessage(testMessage);
+    const recoveredAddress = recoverAddress(eip191Hash, signature);
 
     if (recoveredAddress !== ethAddress) {
-      throw new Error(`Recovered address ${recoveredAddress} does not match signer address ${ethAddress}`);
+      throw new Error(`Address mismatch: expected ${ethAddress}, got ${recoveredAddress}`);
     }
 
-    console.log(`Recovered address matches signature address (${recoveredAddress})`);
-    process.exit();
+    console.log('Signature verification successful!');
   })().catch(console.error);
 }

@@ -2,9 +2,8 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { AddressZero, Two } = ethers;
 
-const poolId = Two.pow(95); // overflows at uint96
+const poolId = 2n ** 95n; // overflows at uint96
 
 describe('transferStakingPoolOwnership', function () {
   it('should revert if not called from internal address', async function () {
@@ -33,7 +32,7 @@ describe('transferStakingPoolOwnership', function () {
 
     expect(await tokenController.getManagerStakingPools(newManager.address)).to.be.deep.equal([]);
     expect(await tokenController.isStakingPoolManager(newManager.address)).to.be.equal(false);
-    expect(await tokenController.getStakingPoolManager(poolId)).to.be.equal(AddressZero);
+    expect(await tokenController.getStakingPoolManager(poolId)).to.be.equal(ethers.ZeroAddress);
 
     expect(await tokenController.getManagerStakingPools(oldManager.address)).to.be.deep.equal([]);
     expect(await tokenController.isStakingPoolManager(oldManager.address)).to.be.equal(false);
@@ -107,13 +106,13 @@ describe('transferStakingPoolOwnership', function () {
     await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
 
     await expect(
-      tokenController.connect(internalContract).transferStakingPoolsOwnership(oldManager.address, AddressZero),
+      tokenController.connect(internalContract).transferStakingPoolsOwnership(oldManager.address, ethers.ZeroAddress),
     ).to.not.be.reverted;
 
     // Check new manager
-    const poolsNewManager = await tokenController.getManagerStakingPools(AddressZero);
+    const poolsNewManager = await tokenController.getManagerStakingPools(ethers.ZeroAddress);
     expect(poolsNewManager).to.be.deep.equal([poolId]);
-    expect(await tokenController.isStakingPoolManager(AddressZero)).to.be.equal(true);
+    expect(await tokenController.isStakingPoolManager(ethers.ZeroAddress)).to.be.equal(true);
 
     // Check old manager
     const poolsOldManager = await tokenController.getManagerStakingPools(oldManager.address);

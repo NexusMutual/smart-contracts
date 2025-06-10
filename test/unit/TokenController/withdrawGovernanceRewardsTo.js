@@ -2,6 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
+const { parseUnits } = ethers;
 
 describe('withdrawGovernanceRewardsTo', function () {
   it('reverts if the system is paused', async function () {
@@ -22,7 +23,7 @@ describe('withdrawGovernanceRewardsTo', function () {
     const { members } = fixture.accounts;
 
     {
-      await governance.setUnclaimedGovernanceRewards(members[0].address, ethers.utils.parseUnits('1'));
+      await governance.setUnclaimedGovernanceRewards(members[0].address, parseUnits('1'));
       await tokenController.connect(members[0]).withdrawGovernanceRewardsTo(members[1].address, 1);
       const { memberAddress, maxRecords } = await governance.claimRewardLastCalledWith();
       expect(memberAddress).to.be.equal(members[0].address);
@@ -30,7 +31,7 @@ describe('withdrawGovernanceRewardsTo', function () {
     }
 
     {
-      await governance.setUnclaimedGovernanceRewards(members[0].address, ethers.utils.parseUnits('1'));
+      await governance.setUnclaimedGovernanceRewards(members[0].address, parseUnits('1'));
       await tokenController.connect(members[0]).withdrawGovernanceRewardsTo(members[2].address, 99);
       const { memberAddress, maxRecords } = await governance.claimRewardLastCalledWith();
       expect(memberAddress).to.be.equal(members[0].address);
@@ -47,7 +48,7 @@ describe('withdrawGovernanceRewardsTo', function () {
       tokenController.connect(members[0]).withdrawGovernanceRewardsTo(members[1].address, 1),
     ).to.be.revertedWithCustomError(tokenController, 'NoWithdrawableGovernanceRewards');
 
-    await governance.setUnclaimedGovernanceRewards(members[0].address, ethers.utils.parseUnits('1'));
+    await governance.setUnclaimedGovernanceRewards(members[0].address, parseUnits('1'));
     await expect(
       tokenController.connect(members[0]).withdrawGovernanceRewardsTo(members[1].address, 0),
     ).not.to.be.revertedWithCustomError(tokenController, 'NoWithdrawableGovernanceRewards');
@@ -59,10 +60,10 @@ describe('withdrawGovernanceRewardsTo', function () {
     const { members } = fixture.accounts;
 
     const balanceBefore = await nxm.balanceOf(members[1].address);
-    await governance.setUnclaimedGovernanceRewards(members[0].address, ethers.utils.parseUnits('123'));
+    await governance.setUnclaimedGovernanceRewards(members[0].address, parseUnits('123'));
     await tokenController.connect(members[0]).withdrawGovernanceRewardsTo(members[1].address, 0);
     const balanceAfter = await nxm.balanceOf(members[1].address);
-    await expect(balanceAfter).to.be.equal(balanceBefore.add(ethers.utils.parseUnits('123')));
+    await expect(balanceAfter).to.be.equal(balanceBefore.add(parseUnits('123')));
   });
 
   it('allows non-member addresses to send unwithdrawn rewards to member addresses', async function () {
@@ -71,9 +72,9 @@ describe('withdrawGovernanceRewardsTo', function () {
     const { members, nonMembers } = fixture.accounts;
 
     const balanceBefore = await nxm.balanceOf(members[1].address);
-    await governance.setUnclaimedGovernanceRewards(nonMembers[0].address, ethers.utils.parseUnits('123'));
+    await governance.setUnclaimedGovernanceRewards(nonMembers[0].address, parseUnits('123'));
     await tokenController.connect(nonMembers[0]).withdrawGovernanceRewardsTo(members[1].address, 0);
     const balanceAfter = await nxm.balanceOf(members[1].address);
-    await expect(balanceAfter).to.be.equal(balanceBefore.add(ethers.utils.parseUnits('123')));
+    await expect(balanceAfter).to.be.equal(balanceBefore.add(parseUnits('123')));
   });
 });

@@ -9,7 +9,6 @@ describe('constructor', function () {
     const { coverNFT } = fixture.contracts;
 
     const individualClaims = await ethers.deployContract('IndividualClaims', [coverNFT.address]);
-    await individualClaims.deployed();
 
     const coverNFTAddress = await individualClaims.coverNFT();
     expect(coverNFTAddress).to.be.equal(coverNFT.address);

@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 
 const { daysToSeconds } = require('../../../lib/helpers');
 
-const { parseEther, parseUnits } = ethers.utils;
+const { parseEther, parseUnits } = ethers;
 const { AddressZero } = ethers;
 
 const ETH_ASSET_ID = 0;

@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { MerkleTree } = require('merkletreejs');
 const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 const { arrayify, hexZeroPad, hexValue, keccak256 } = ethers;
-const { BigNumber } = ethers;
+const { parseEther } = ethers;
 
 const STATUS = {
   PENDING: 0,

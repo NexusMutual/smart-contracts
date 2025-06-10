@@ -5,9 +5,8 @@ const setup = require('../setup');
 const { ProposalCategory, ContractTypes } = require('../utils').constants;
 const { submitProposal } = require('../utils').governance;
 const { hex } = require('../utils').helpers;
-const { parseEther, defaultAbiCoder } = ethers.utils;
+const { parseEther, defaultAbiCoder, keccak256, getCreate2Address } = ethers;
 const { AddressZero } = ethers;
-const { BigNumber } = ethers;
 
 const MAX_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff';
 
@@ -32,7 +31,7 @@ async function assertNewAddresses(master, contractCodes, newAddresses, contractT
 }
 
 const encoder = (types, values) => {
-  const abiCoder = ethers.utils.defaultAbiCoder;
+  const abiCoder = defaultAbiCoder;
   const encodedParams = abiCoder.encode(types, values);
   return encodedParams.slice(2);
 };
@@ -123,9 +122,9 @@ describe('master', function () {
     const saltHex = Buffer.from(salt.toString(16).padStart(64, '0'), 'hex');
 
     const initCode = OwnedUpgradeabilityProxy.bytecode + encoder(['address'], [MAX_ADDRESS]);
-    const initCodeHash = ethers.utils.keccak256(initCode);
+    const initCodeHash = keccak256(initCode);
 
-    const expectedProxyAddress = ethers.utils.getCreate2Address(master.address, saltHex, initCodeHash);
+    const expectedProxyAddress = getCreate2Address(master.address, saltHex, initCodeHash);
 
     expect(proxy.address).to.be.equal(expectedProxyAddress);
   });

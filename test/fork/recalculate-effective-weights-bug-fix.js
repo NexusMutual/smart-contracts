@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers;
 const { V2Addresses, submitGovernanceProposal, getSigner } = require('./utils');
 const evm = require('./evm')();
 const { verifyPoolWeights } = require('./staking-pool-utils');

@@ -4,6 +4,7 @@ const { expect } = require('chai');
 const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { getCreate2Address } = ethers;
 
 const setup = require('./setup');
 
@@ -117,7 +118,7 @@ describe('createStakingPool', function () {
     const poolId = stakingPoolCount.toNumber() + 1;
     const salt = Buffer.from(poolId.toString(16).padStart(64, '0'), 'hex');
     const initCodeHash = Buffer.from(requiredHash, 'hex');
-    const expectedAddress = ethers.utils.getCreate2Address(stakingPoolFactory.address, salt, initCodeHash);
+    const expectedAddress = getCreate2Address(stakingPoolFactory.address, salt, initCodeHash);
 
     // calculated address check
     const reportedAddress = await stakingProducts.stakingPool(poolId);

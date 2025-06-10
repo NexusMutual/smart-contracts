@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { pick: lodashPick, values: lodashValues } = require('lodash');
 const { expect } = require('chai');
 
-const { BigNumber, parseEther, hexlify, randomBytes, isHexString, hexDataLength, keccak256, toUtf8Bytes } = ethers;
+const { hexlify, randomBytes, isHexString, hexDataLength, keccak256, toUtf8Bytes, parseEther } = ethers;
 
 const daiMinAmount = parseEther('3000');
 const daiMaxAmount = parseEther('20000');
@@ -47,8 +47,6 @@ const lastBlockTimestamp = async () =>
 const makeWrongValue = value => {
   if (isHexString(value)) {
     return hexlify(randomBytes(hexDataLength(value)));
-  } else if (BigNumber.isBigNumber(value)) {
-    return value.add(1);
   } else if (typeof value === 'number') {
     return value + 1;
   } else if (typeof value === 'boolean') {

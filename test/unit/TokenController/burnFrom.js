@@ -1,5 +1,5 @@
 const { expect } = require('chai');
-const { parseEther } = require('ethers/lib/utils');
+const { parseEther } = require('ethers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
 

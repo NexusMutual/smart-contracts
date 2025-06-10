@@ -24,7 +24,7 @@ const { InternalContractsIDs } = require('../utils').constants;
 
 const { BigNumber, deployContract } = ethers;
 const { AddressZero, MaxUint256, ZeroAddress } = ethers;
-const { parseEther, defaultAbiCoder, toUtf8Bytes, formatEther, parseUnits } = ethers.utils;
+const { parseEther, defaultAbiCoder, toUtf8Bytes, formatEther, parseUnits } = ethers;
 
 const ASSESSMENT_VOTER_COUNT = 3;
 const { USDC_ADDRESS } = Address;

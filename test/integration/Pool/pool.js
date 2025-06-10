@@ -110,7 +110,7 @@ describe('Pool functions', function () {
     const MCR_RATIO_DECIMALS = 4;
     const totalAssetValue = await pool.getPoolValueInEth();
     const mcrEth = await mcr.getMCR();
-    const expectedMcrRatio = totalAssetValue.mul(BigNumber.from(10).pow(MCR_RATIO_DECIMALS)).div(mcrEth);
+    const expectedMcrRatio = totalAssetValue.mul(BigNumber.from((10n ** BigInt(MCR_RATIO_DECIMALS)).toString())).div(mcrEth);
 
     const mcrRatio = await pool.getMCRRatio();
     expect(mcrRatio).to.be.equal(expectedMcrRatio);

@@ -18,14 +18,14 @@ describe('transferAsset', function () {
     await pool.connect(governance).addAsset(otherAsset.address, true, '0', '0', 100 /* 1% */);
     await otherAsset.mint(pool.address, tokenAmount);
 
-    const amountToTransfer = tokenAmount.div(2);
+    const amountToTransfer = BigInt(tokenAmount) / 2n;
 
     await pool.connect(governance).transferAsset(otherAsset.address, destination.address, amountToTransfer);
     const destinationBalance = await otherAsset.balanceOf(destination.address);
     expect(destinationBalance).to.eq(amountToTransfer);
 
     const poolBalance = await otherAsset.balanceOf(pool.address);
-    expect(poolBalance).to.eq(tokenAmount.sub(amountToTransfer));
+    expect(poolBalance).to.eq(BigInt(tokenAmount) - BigInt(amountToTransfer));
   });
 
   it('transfers arbitrary ERC20 asset in the Pool to destination', async function () {
@@ -41,14 +41,14 @@ describe('transferAsset', function () {
     const otherToken = await ERC20Mock.deploy();
     await otherToken.mint(pool.address, tokenAmount);
 
-    const amountToTransfer = tokenAmount.div(2);
+    const amountToTransfer = BigInt(tokenAmount) / 2n;
 
     await pool.connect(governance).transferAsset(otherToken.address, destination.address, amountToTransfer);
     const destinationBalance = await otherToken.balanceOf(destination.address);
     expect(destinationBalance).to.eq(amountToTransfer);
 
     const poolBalance = await otherToken.balanceOf(pool.address);
-    expect(poolBalance).to.eq(tokenAmount.sub(amountToTransfer));
+    expect(poolBalance).to.eq(BigInt(tokenAmount) - BigInt(amountToTransfer));
   });
 
   it('transfers entire balance of arbitrary ERC20 asset in the Pool if amount < balance', async function () {
@@ -64,7 +64,7 @@ describe('transferAsset', function () {
     const otherToken = await ERC20Mock.deploy();
 
     await otherToken.mint(pool.address, tokenAmount);
-    const amountToTransfer = tokenAmount.add(1);
+    const amountToTransfer = BigInt(tokenAmount) + 1n;
 
     await pool.connect(governance).transferAsset(otherToken.address, destination.address, amountToTransfer);
 

@@ -2,9 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const {
-  utils: { parseEther },
-} = ethers;
+const { parseEther } = ethers;
 
 describe('recoverAsset', function () {
   it('recovers enzyme vault shares', async function () {

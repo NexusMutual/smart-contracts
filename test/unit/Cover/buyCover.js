@@ -129,7 +129,7 @@ describe('buyCover', function () {
     // no eth should be left in the cover contract
     expect(await ethers.provider.getBalance(cover.address)).to.be.equal(0);
     const premium = (expectedPremium * BigInt(period)) / BigInt(3600 * 24 * 365);
-    expect(await ethers.provider.getBalance(pool.address)).to.equal(poolEthBalanceBefore + premium);
+    expect(await ethers.provider.getBalance(pool.address)).to.equal(BigInt(poolEthBalanceBefore) + BigInt(premium));
     const coverId = await cover.getCoverDataCount();
 
     await assertCoverFields(cover, coverId, {
@@ -207,7 +207,7 @@ describe('buyCover', function () {
     // no eth should be left in the cover contract
     expect(await ethers.provider.getBalance(cover.address)).to.be.equal(0);
     const premium = (expectedPremium * BigInt(period)) / BigInt(3600 * 24 * 365);
-    expect(await ethers.provider.getBalance(pool.address)).to.equal(poolEthBalanceBefore.add(premium));
+    expect(await ethers.provider.getBalance(pool.address)).to.equal(BigInt(poolEthBalanceBefore) + BigInt(premium));
     const coverId = await cover.getCoverDataCount();
 
     await assertCoverFields(cover, coverId, {
@@ -253,14 +253,14 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: 2, coverAmountInAsset: amount.div(2) },
-        { poolId: 1, coverAmountInAsset: amount.div(2) },
+        { poolId: 2, coverAmountInAsset: BigInt(amount) / 2n },
+        { poolId: 1, coverAmountInAsset: BigInt(amount) / 2n },
       ],
       { value: expectedPremium },
     );
 
-    const expectedPremiumPerPool = expectedPremium.div(2).mul(period).div(daysToSeconds(365));
-    expect(await ethers.provider.getBalance(pool.address)).to.equal(expectedPremiumPerPool.mul(2));
+    const expectedPremiumPerPool = BigInt(expectedPremium) / 2n * BigInt(period) / BigInt(daysToSeconds(365));
+    expect(await ethers.provider.getBalance(pool.address)).to.equal(expectedPremiumPerPool * 2n);
 
     const coverId = await cover.getCoverDataCount();
     await assertCoverFields(cover, coverId, {
@@ -279,16 +279,16 @@ describe('buyCover', function () {
     const { amount, targetPriceRatio, productId, coverAsset, period, priceDenominator } = buyCoverFixture;
     const commissionRatio = '500'; // 5%
 
-    const expectedPremium = amount
-      .mul(targetPriceRatio)
-      .div(priceDenominator)
-      .mul(period)
-      .div(3600 * 24 * 365);
+    const expectedPremium = BigInt(amount) *
+      BigInt(targetPriceRatio) /
+      BigInt(priceDenominator) *
+      BigInt(period) /
+      BigInt(3600 * 24 * 365);
 
-    const expectedPremiumWithCommission = expectedPremium
-      .mul(priceDenominator)
-      .div(priceDenominator.sub(commissionRatio));
-    const expectedCommission = expectedPremiumWithCommission.sub(expectedPremium);
+    const expectedPremiumWithCommission = BigInt(expectedPremium) *
+      BigInt(priceDenominator) /
+      (BigInt(priceDenominator) - BigInt(commissionRatio));
+    const expectedCommission = expectedPremiumWithCommission - expectedPremium;
 
     await nxm.mint(coverBuyer.address, parseEther('100000'));
     await nxm.connect(coverBuyer).approve(tokenController.address, parseEther('100000'));
@@ -322,13 +322,13 @@ describe('buyCover', function () {
     const nxmBalanceAfter = await nxm.balanceOf(coverBuyer.address);
     const commissionNxmBalanceAfter = await nxm.balanceOf(stakingPoolManager.address);
 
-    const difference = nxmBalanceBefore.sub(nxmBalanceAfter);
+    const difference = BigInt(nxmBalanceBefore) - BigInt(nxmBalanceAfter);
     expect(difference).to.be.equal(expectedPremiumWithCommission);
 
     // nxm is burned
     expect(await nxm.balanceOf(pool.address)).to.be.equal(0);
 
-    const commissionDifference = commissionNxmBalanceAfter.sub(commissionNxmBalanceBefore);
+    const commissionDifference = BigInt(commissionNxmBalanceAfter) - BigInt(commissionNxmBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
 
     const coverId = await cover.getCoverDataCount();
@@ -355,16 +355,16 @@ describe('buyCover', function () {
     const { amount, targetPriceRatio, productId, period, priceDenominator } = buyCoverFixture;
     const commissionRatio = '500'; // 5%
 
-    const expectedPremium = amount
-      .mul(targetPriceRatio)
-      .div(priceDenominator)
-      .mul(period)
-      .div(3600 * 24 * 365);
+    const expectedPremium = BigInt(amount) *
+      BigInt(targetPriceRatio) /
+      BigInt(priceDenominator) *
+      BigInt(period) /
+      BigInt(3600 * 24 * 365);
 
-    const expectedPremiumWithCommission = expectedPremium
-      .mul(priceDenominator)
-      .div(priceDenominator.sub(commissionRatio));
-    const expectedCommission = expectedPremiumWithCommission.sub(expectedPremium);
+    const expectedPremiumWithCommission = BigInt(expectedPremium) *
+      BigInt(priceDenominator) /
+      (BigInt(priceDenominator) - BigInt(commissionRatio));
+    const expectedCommission = expectedPremiumWithCommission - expectedPremium;
 
     await dai.mint(coverBuyer.address, parseEther('100000'));
     await dai.connect(coverBuyer).approve(cover.address, parseEther('100000'));
@@ -397,10 +397,10 @@ describe('buyCover', function () {
     const daiBalanceAfter = await dai.balanceOf(coverBuyer.address);
     const commissionDaiBalanceAfter = await dai.balanceOf(commissionReceiver.address);
 
-    const difference = daiBalanceBefore.sub(daiBalanceAfter);
+    const difference = BigInt(daiBalanceBefore) - BigInt(daiBalanceAfter);
     expect(difference).to.be.equal(expectedPremiumWithCommission);
 
-    const commissionDifference = commissionDaiBalanceAfter.sub(commissionDaiBalanceBefore);
+    const commissionDifference = BigInt(commissionDaiBalanceAfter) - BigInt(commissionDaiBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
 
     const coverId = await cover.getCoverDataCount();
@@ -426,16 +426,16 @@ describe('buyCover', function () {
     const { amount, targetPriceRatio, productId, period, priceDenominator } = buyCoverFixture;
     const commissionRatio = '500'; // 5%
 
-    const expectedPremium = amount
-      .mul(targetPriceRatio)
-      .div(priceDenominator)
-      .mul(period)
-      .div(3600 * 24 * 365);
+    const expectedPremium = BigInt(amount) *
+      BigInt(targetPriceRatio) /
+      BigInt(priceDenominator) *
+      BigInt(period) /
+      BigInt(3600 * 24 * 365);
 
-    const expectedPremiumWithCommission = expectedPremium
-      .mul(priceDenominator)
-      .div(priceDenominator.sub(commissionRatio));
-    const expectedCommission = expectedPremiumWithCommission.sub(expectedPremium);
+    const expectedPremiumWithCommission = BigInt(expectedPremium) *
+      BigInt(priceDenominator) /
+      (BigInt(priceDenominator) - BigInt(commissionRatio));
+    const expectedCommission = expectedPremiumWithCommission - expectedPremium;
 
     await usdc.mint(coverBuyer.address, parseEther('100000'));
 
@@ -470,10 +470,10 @@ describe('buyCover', function () {
     const usdcBalanceAfter = await usdc.balanceOf(coverBuyer.address);
     const commissionUsdcBalanceAfter = await usdc.balanceOf(commissionReceiver.address);
 
-    const actualPremiumWithCommission = usdcBalanceBefore.sub(usdcBalanceAfter);
+    const actualPremiumWithCommission = BigInt(usdcBalanceBefore) - BigInt(usdcBalanceAfter);
     expect(actualPremiumWithCommission).to.be.equal(expectedPremiumWithCommission);
 
-    const actualCommission = commissionUsdcBalanceAfter.sub(commissionUsdcBalanceBefore);
+    const actualCommission = BigInt(commissionUsdcBalanceAfter) - BigInt(commissionUsdcBalanceBefore);
     expect(actualCommission).to.be.equal(expectedCommission);
 
     const coverId = await cover.getCoverDataCount();
@@ -903,15 +903,15 @@ describe('buyCover', function () {
     const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator } = buyCoverFixture;
     const commissionRatio = '500'; // 5%
 
-    const expectedPremium = amount
-      .mul(targetPriceRatio)
-      .div(priceDenominator)
-      .mul(period)
-      .div(3600 * 24 * 365);
+    const expectedPremium = BigInt(amount) *
+      BigInt(targetPriceRatio) /
+      BigInt(priceDenominator) *
+      BigInt(period) /
+      BigInt(3600 * 24 * 365);
 
-    const expectedPremiumWithCommission = expectedPremium
-      .mul(priceDenominator)
-      .div(priceDenominator.sub(commissionRatio));
+    const expectedPremiumWithCommission = BigInt(expectedPremium) *
+      BigInt(priceDenominator) /
+      (BigInt(priceDenominator) - BigInt(commissionRatio));
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -966,15 +966,15 @@ describe('buyCover', function () {
     const { amount, targetPriceRatio, productId, coverAsset, period, priceDenominator } = buyCoverFixture;
     const commissionRatio = '500'; // 5%
 
-    const expectedPremium = amount
-      .mul(targetPriceRatio)
-      .div(priceDenominator)
-      .mul(period)
-      .div(3600 * 24 * 365);
+    const expectedPremium = BigInt(amount) *
+      BigInt(targetPriceRatio) /
+      BigInt(priceDenominator) *
+      BigInt(period) /
+      BigInt(3600 * 24 * 365);
 
-    const expectedPremiumWithCommission = expectedPremium
-      .mul(priceDenominator)
-      .div(priceDenominator.sub(commissionRatio));
+    const expectedPremiumWithCommission = BigInt(expectedPremium) *
+      BigInt(priceDenominator) /
+      (BigInt(priceDenominator) - BigInt(commissionRatio));
 
     await nxm.mint(coverBuyer.address, parseEther('100000'));
     await nxm.connect(coverBuyer).approve(tokenController.address, parseEther('100000'));
@@ -1026,7 +1026,7 @@ describe('buyCover', function () {
 
     const nxmBalanceAfter = await nxm.balanceOf(coverBuyer.address);
 
-    const difference = nxmBalanceBefore.sub(nxmBalanceAfter);
+    const difference = BigInt(nxmBalanceBefore) - BigInt(nxmBalanceAfter);
     expect(difference).to.be.equal(expectedPremiumWithCommission);
   });
 
@@ -1095,11 +1095,11 @@ describe('buyCover', function () {
     const coverAsset = 1; // DAI
     const { amount, productId, period, targetPriceRatio, priceDenominator } = buyCoverFixture;
 
-    const expectedPremium = amount
-      .mul(targetPriceRatio)
-      .div(priceDenominator)
-      .mul(period)
-      .div(3600 * 24 * 365);
+    const expectedPremium = BigInt(amount) *
+      BigInt(targetPriceRatio) /
+      BigInt(priceDenominator) *
+      BigInt(period) /
+      BigInt(3600 * 24 * 365);
 
     await dai.mint(coverBuyer.address, parseEther('100000'));
     await dai.connect(coverBuyer).approve(cover.address, parseEther('100000'));
@@ -1138,11 +1138,11 @@ describe('buyCover', function () {
     const { cover } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator, poolId } = buyCoverFixture;
-    const expectedPremium = amount
-      .mul(targetPriceRatio)
-      .div(priceDenominator)
-      .mul(period)
-      .div(3600 * 24 * 365);
+    const expectedPremium = BigInt(amount) *
+      BigInt(targetPriceRatio) /
+      BigInt(priceDenominator) *
+      BigInt(period) /
+      BigInt(3600 * 24 * 365);
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -1280,15 +1280,15 @@ describe('buyCover', function () {
     const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator } = buyCoverFixture;
 
     const commissionRatio = 500; // 5%
-    const expectedPremium = amount
-      .mul(targetPriceRatio)
-      .div(priceDenominator)
-      .mul(period)
-      .div(3600 * 24 * 365);
+    const expectedPremium = BigInt(amount) *
+      BigInt(targetPriceRatio) /
+      BigInt(priceDenominator) *
+      BigInt(period) /
+      BigInt(3600 * 24 * 365);
 
-    const expectedPremiumWithCommission = expectedPremium
-      .mul(priceDenominator)
-      .div(priceDenominator.sub(commissionRatio));
+    const expectedPremiumWithCommission = BigInt(expectedPremium) *
+      BigInt(priceDenominator) /
+      (BigInt(priceDenominator) - BigInt(commissionRatio));
 
     const txData = await cover.connect(coverBuyer).populateTransaction.buyCover(
       {
@@ -1349,11 +1349,11 @@ describe('buyCover', function () {
 
     const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator, poolId } = buyCoverFixture;
 
-    const expectedPremium = amount
-      .mul(targetPriceRatio)
-      .div(priceDenominator)
-      .mul(period)
-      .div(3600 * 24 * 365);
+    const expectedPremium = BigInt(amount) *
+      BigInt(targetPriceRatio) /
+      BigInt(priceDenominator) *
+      BigInt(period) /
+      BigInt(3600 * 24 * 365);
 
     await cover.connect(coverBuyer1).buyCover(
       {
@@ -1451,7 +1451,9 @@ describe('buyCover', function () {
 
     // buy cover
     const owner = coverBuyer.address;
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const expectedPremium = BigInt(amount) *
+      BigInt(targetPriceRatio) /
+      BigInt(priceDenominator);
     const buyCoverParams = { ...buyCoverTemplate, owner, expectedPremium, productId };
     await expect(
       cover.connect(coverBuyer).buyCover(buyCoverParams, [poolAllocationRequestTemplate], {
@@ -1503,7 +1505,9 @@ describe('buyCover', function () {
 
     // buy cover
     const owner = coverBuyer.address;
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const expectedPremium = BigInt(amount) *
+      BigInt(targetPriceRatio) /
+      BigInt(priceDenominator);
     const buyCoverParams = { ...buyCoverTemplate, owner, expectedPremium, productId };
     await cover
       .connect(coverBuyer)
@@ -1540,7 +1544,9 @@ describe('buyCover', function () {
 
     // buy cover
     const owner = coverBuyer.address;
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const expectedPremium = BigInt(amount) *
+      BigInt(targetPriceRatio) /
+      BigInt(priceDenominator);
     const buyCoverParams = { ...buyCoverTemplate, owner, expectedPremium, productId };
     await cover
       .connect(coverBuyer)

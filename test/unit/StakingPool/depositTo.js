@@ -8,7 +8,6 @@ const setup = require('./setup');
 const { daysToSeconds } = require('../utils').helpers;
 const { DIVISION_BY_ZERO } = require('../utils').errors;
 
-const { BigNumber } = ethers;
 const { ZeroAddress, MaxUint256 } = ethers;
 const { parseEther } = ethers;
 

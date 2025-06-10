@@ -1,10 +1,11 @@
 const { ethers } = require('hardhat');
 const { addresses, Cover } = require('@nexusmutual/deployments');
+const { parseUnits } = ethers;
 
 // set/change env MAINNET_ACCOUNT_KEY and MAINNET_GAS_PRICE
 // run command: HARDHAT_NETWORK=mainnet node scripts/migrate-cover-data.js
 
-const { MAX_FEE_GWEI = '10' } = process.env;
+const MAX_FEE_GWEI = process.env.MAX_FEE_GWEI || '20';
 
 async function main() {
   const signer = await ethers.getSigner();
@@ -15,8 +16,8 @@ async function main() {
 
   const coversPerTx = 100;
   const gasLimit = 15000000;
-  const maxFeePerGas = ethers.utils.parseUnits(MAX_FEE_GWEI, 'gwei');
-  const maxPriorityFeePerGas = ethers.utils.parseUnits('0.5', 'gwei');
+  const maxFeePerGas = parseUnits(MAX_FEE_GWEI, 'gwei');
+  const maxPriorityFeePerGas = parseUnits('0.5', 'gwei');
 
   while (allCoverIds.length > 0) {
     const coverIds = allCoverIds.splice(0, coversPerTx);

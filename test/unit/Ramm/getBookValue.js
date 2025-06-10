@@ -18,6 +18,6 @@ describe('getBookValue', function () {
     const capital = await pool.getPoolValueInEth();
     const supply = await tokenController.totalSupply();
 
-    expect(bookValue).to.be.equal(parseEther('1').mul(capital).div(supply));
+    expect(bookValue).to.be.equal(BigInt(parseEther('1')) * BigInt(capital) / BigInt(supply));
   });
 });

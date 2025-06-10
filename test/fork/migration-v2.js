@@ -10,7 +10,7 @@ const { Address, calculateProxyAddress, formatInternalContracts, submitGovernanc
 const { ETH } = Address;
 const { BigNumber } = ethers;
 const { AddressZero, Zero, Two } = ethers;
-const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
+const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers;
 
 const SCRIPTS_USE_CACHE = !process.env.NO_CACHE;
 
@@ -59,7 +59,7 @@ const ASSET_V1_TO_ASSET_V2 = {};
 ASSET_V1_TO_ASSET_V2[ETH.toLowerCase()] = 0;
 ASSET_V1_TO_ASSET_V2[DAI_ADDRESS.toLowerCase()] = 1;
 
-const MaxUint96 = Two.pow(96).sub(1);
+const MaxUint96 = BigNumber.from((2n ** 96n).toString()).sub(1);
 
 const V2Addresses = {
   SwapOperator: '0xcafea536d7f79F31Fa49bC40349f6a5F7E19D842',
@@ -699,7 +699,7 @@ describe('V2 upgrade', function () {
       this.contractData.pool.before.minPoolEth,
     );
 
-    const DENOMINATOR_DIFFERENCE = Math.pow(10, 14);
+    const DENOMINATOR_DIFFERENCE = 10n ** 14n;
     Object.entries(this.contractData.pool.before.assetsData).forEach(([asset, value]) => {
       expect(
         this.contractData.pool.after.assetsData[asset].minAmount,

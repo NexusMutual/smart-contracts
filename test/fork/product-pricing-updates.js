@@ -10,7 +10,7 @@ const evm = require('./evm')();
 const { expect } = chai;
 const { deployContract } = ethers;
 
-const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { parseEther, defaultAbiCoder, toUtf8Bytes } = ethers;
 
 const compareProxyImplementationAddress = async (proxyAddress, addressToCompare) => {
   const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);

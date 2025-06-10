@@ -11,7 +11,7 @@ const addresses = require(join(config.paths.root, 'deployments/src/addresses.jso
 const TRANCHE_DURATION = 91 * 24 * 3600; // 91 days
 const sum = arr => arr.reduce((a, b) => a.add(b), ethers.Zero);
 
-const { formatEther, formatUnits, parseEther, toUtf8Bytes } = ethers.utils;
+const { formatEther, formatUnits, parseEther, toUtf8Bytes, defaultAbiCoder } = ethers;
 
 describe('StakingPool rewards update', function () {
   before(async function () {
@@ -89,7 +89,6 @@ describe('StakingPool rewards update', function () {
       addresses.NXMaster,
       addresses.StakingProducts,
     ]);
-    await newStakingPool.deployed();
 
     const newCover = await ethers.deployContract('Cover', [
       addresses.CoverNFT,
@@ -97,14 +96,13 @@ describe('StakingPool rewards update', function () {
       addresses.StakingPoolFactory,
       newStakingPool.address,
     ]);
-    await newCover.deployed();
 
     const codes = [toUtf8Bytes(ContractCode.Cover)];
     const contractAddresses = [newCover.address];
 
     await submitGovernanceProposal(
       ProposalCategory.upgradeMultipleContracts,
-      ethers.utils.defaultAbiCoder.encode(['bytes2[]', 'address[]'], [codes, contractAddresses]),
+      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [codes, contractAddresses]),
       this.abMembers,
       this.governance,
     );

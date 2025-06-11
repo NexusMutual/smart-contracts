@@ -30,11 +30,12 @@ contract ASMockIndividualClaims is MasterAwareV2, IndividualClaimsGeneric {
     string calldata /*ipfsMetadata*/
   ) external payable override returns (Claim memory) {
 
-    uint totalReward = requestedAmount * REWARD_RATIO / REWARD_DENOMINATOR;
-    uint assessmentId = assessment().startAssessment(totalReward, 0);
+    // uint totalReward = requestedAmount * REWARD_RATIO / REWARD_DENOMINATOR;
+    // TODO: change to a new call
+    // uint assessmentId = assessment().startAssessment(totalReward, 0);
 
     Claim memory claim = Claim(
-      uint80(assessmentId),
+      0,
       coverId,
       0, // ex segment id
       requestedAmount,

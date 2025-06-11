@@ -2,515 +2,523 @@
 
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts-v4/utils/cryptography/MerkleProof.sol";
+import {EnumerableSet} from "@openzeppelin/contracts-v4/utils/structs/EnumerableSet.sol";
 
-import "../../abstract/MasterAwareV2.sol";
-import "../../interfaces/IAssessment.sol";
-import "../../interfaces/IMemberRoles.sol";
-import "../../interfaces/INXMToken.sol";
-import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IRamm.sol";
-import "../../libraries/Math.sol";
-import "../../libraries/SafeUintCast.sol";
+import {Multicall} from "../../abstract/Multicall.sol";
+import {IAssessment} from "../../interfaces/IAssessment.sol";
+import {RegistryAware, C_GOVERNOR, C_COVER_PRODUCTS, C_CLAIMS, C_ASSESSMENT} from "../../abstract/RegistryAware.sol";
+import {SafeUintCast} from "../../libraries/SafeUintCast.sol";
 
-/// Provides the assessment mechanism for members to decide the outcome of the events that can lead
-/// to payouts. Mints rewards for stakers that act benevolently and allows burning fraudulent ones.
-contract Assessment is IAssessment, MasterAwareV2 {
+// TODO: is multicall needed?
+contract Assessment is IAssessment, RegistryAware, Multicall {
+  using EnumerableSet for EnumerableSet.AddressSet;
+  using EnumerableSet for EnumerableSet.UintSet;
+  using SafeUintCast for uint;
 
   /* ========== STATE VARIABLES ========== */
 
-  uint internal __unused_0; // was Configuration config
+  mapping(uint groupId => EnumerableSet.UintSet) private _groups;
+  mapping(uint groupId => bytes32) private _groupsMetadata;
+  uint32 private _groupCount;
 
-  // Stake states of users. (See Stake struct)
-  mapping(address => Stake) public override stakeOf;
+  mapping(uint assessorMemberId => EnumerableSet.UintSet) private _groupsForAssessor;
 
-  // Votes of users. (See Vote struct)
-  mapping(address => Vote[]) public override votesOf;
+  // todo: do we keep assessment data (voting group, cooldown) here or in the coverProducts?
+  mapping(uint productTypeId => AssessmentData) private _assessmentData;
 
-  // Mapping used to determine if a user has already voted
-  mapping(address => mapping(uint => bool)) public override hasAlreadyVotedOn;
-
-  // An array of merkle tree roots used to indicate fraudulent assessors. Each root represents a
-  // fraud attempt by one or multiple addresses. Once the root is submitted by adivsory board
-  // members through governance, burnFraud uses this root to burn the fraudulent assessors' stakes
-  // and correct the outcome of the poll.
-  bytes32[] public fraudResolution;
-
-  Assessment[] public override assessments;
+  mapping(uint claimId => Assessment) private _assessments;
 
   /* ========== CONSTANTS ========== */
 
   uint constant internal MIN_VOTING_PERIOD = 3 days;
-  uint constant internal STAKE_LOCKUP_PERIOD = 14 days;
-  uint constant internal PAYOUT_COOLDOWN = 1 days;
-  uint constant internal SILENT_ENDING_PERIOD = 1 days;
-
-  INXMToken public immutable nxm;
-
-  /* ========== MODIFIERS ========== */
-
-  modifier onlyTokenController {
-    require(msg.sender == getInternalContractAddress(ID.TC), OnlyTokenController());
-    _;
-  }
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(address nxmAddress) {
-    nxm = INXMToken(nxmAddress);
+  constructor(address _registry) RegistryAware(_registry) {
   }
 
+  /* ========== GROUP MANAGEMENT ========== */
   /* ========== VIEWS ========== */
 
-  function getMinVotingPeriod() external pure override returns (uint) {
+  function getGroupsCount() external view returns (uint groupCount) {
+    groupCount = _groupCount;
+  }
+
+  function getGroupAssessorCount(uint groupId) external view returns (uint assessorCount) {
+    assessorCount = _groups[groupId].length();
+  }
+
+  function getGroupAssessors(uint groupId) external view returns (uint[] memory assessorMemberIds) {
+    assessorMemberIds = _groups[groupId].values();
+  }
+
+  function isAssessorInGroup(uint assessorMemberId, uint groupId) external view returns (bool) {
+    return _groups[groupId].contains(assessorMemberId);
+  }
+
+  function getGroupsForAssessor(uint assessorMemberId) external view returns (uint[] memory groupIds) {
+    groupIds = _groupsForAssessor[assessorMemberId].values();
+  }
+
+  function getGroupsData(uint[] calldata groupIds) external view returns (AssessmentGroupView[] memory groups) {
+    uint length = groupIds.length;
+    groups = new AssessmentGroupView[](length);
+
+    for (uint i = 0; i < length; i++) {
+      uint groupId = groupIds[i];
+      groups[i] = AssessmentGroupView({
+        id: groupId,
+        ipfsMetadata: _groupsMetadata[groupId],
+        assessors: _groups[groupId].values()
+      });
+    }
+
+    return groups;
+  }
+
+  // todo: check if we want setProductTypes.setProductTypes to also be able to call this function
+  function setAssessmentDataForProductTypes(
+    uint[] calldata productTypeIds,
+    uint cooldownPeriod,
+    uint groupId
+  ) external onlyContracts(C_GOVERNOR | C_COVER_PRODUCTS) {
+    uint length = productTypeIds.length;
+    for (uint i = 0; i < length; i++) {
+      _assessmentData[productTypeIds[i]] = AssessmentData({
+        assessingGroupId: groupId.toUint32(),
+        cooldownPeriod: cooldownPeriod.toUint32()
+      });
+    }
+
+    emit SetAssessmentDataForProductTypes(productTypeIds, cooldownPeriod, groupId);
+  }
+
+  /* ========== MUTATIVE FUNCTIONS ========== */
+
+  function addAssessorsToGroup(address[] calldata assessors, uint groupId) external onlyContracts(C_GOVERNOR) {
+    // make new group id
+    if (groupId == 0) {
+      groupId = ++_groupCount;
+    }
+
+    uint length = assessors.length;
+    for (uint i = 0; i < length; i++) {
+      uint assessorMemberId = registry.getMemberId(assessors[i]);
+      require(assessorMemberId != 0, MustBeMember(assessors[i]));
+      _groups[groupId].add(assessorMemberId);
+      _groupsForAssessor[assessorMemberId].add(groupId);
+      emit AddAssessorToGroup(groupId, assessorMemberId);
+    }
+  }
+
+  function setGroupMetadata(uint groupId, bytes32 ipfsMetadata) external onlyContracts(C_GOVERNOR) {
+    require(groupId > 0 && groupId <= _groupCount, InvalidGroupId());
+
+    _groupsMetadata[groupId] = ipfsMetadata;
+    emit SetGroupMetadata(groupId, ipfsMetadata);
+  }
+
+  // todo: remove by address or by memberId?
+  function removeAssessorsFromGroup(address[] calldata assessors, uint groupId) external onlyContracts(C_GOVERNOR) {
+    require(groupId > 0 && groupId <= _groupCount, InvalidGroupId());
+
+    uint length = assessors.length;
+    for (uint i = 0; i < length; i++) {
+      uint assessorMemberId = registry.getMemberId(assessors[i]);
+      require(assessorMemberId != 0, MustBeMember(assessors[i]));
+      _groups[groupId].remove(assessorMemberId);
+      _groupsForAssessor[assessorMemberId].remove(groupId);
+      emit RemoveAssessorFromGroup(groupId, assessorMemberId);
+    }
+  }
+
+  function removeAssessorsFromAllGroups(address[] calldata assessors) external onlyContracts(C_GOVERNOR) {
+    uint length = assessors.length;
+    for (uint i = 0; i < length; i++) {
+      uint assessorMemberId = registry.getMemberId(assessors[i]);
+      require(assessorMemberId != 0, MustBeMember(assessors[i]));
+
+      uint[] memory assessorsGroups = _groupsForAssessor[assessorMemberId].values();
+      uint assessorsGroupsLength = assessorsGroups.length;
+      for (uint groupIndex = 0; groupIndex < assessorsGroupsLength; groupIndex++) {
+        uint groupId = assessorsGroups[groupIndex];
+        _groups[groupId].remove(assessorMemberId);
+         emit RemoveAssessorFromGroup(groupId, assessorMemberId);
+      }
+
+      _clearSet(_groupsForAssessor[assessorMemberId]._inner);
+    }
+  }
+
+  function _clearSet(EnumerableSet.Set storage set) internal {
+      uint len = set._values.length;
+      for (uint i = 0; i < len; ++i) {
+          delete set._indexes[set._values[i]];
+      }
+      delete set._values;
+
+      // todo: check using a bit more optimized:
+      // assembly {
+      //   sstore(set._values.slot, 0);
+      // }
+  }
+
+  /* ========== VOTING ========== */
+  /* ========== VIEWS ========== */
+
+  /// @notice Returns the minimum voting period for assessments
+  /// @return The minimum voting period in seconds
+  function minVotingPeriod() external pure returns (uint) {
     return MIN_VOTING_PERIOD;
   }
 
-  function getStakeLockupPeriod() external pure override returns (uint) {
-    return STAKE_LOCKUP_PERIOD;
+  /// @notice Returns the payout cooldown period for a given product type
+  /// @param productTypeId The product type identifier
+  /// @return The cooldown period in seconds
+  function payoutCooldown(uint productTypeId) external view returns (uint) {
+
+    // TODO: call CoverProduct to validate productTypeId?
+    AssessmentData memory assessmentData = _assessmentData[productTypeId];
+    require(assessmentData.assessingGroupId != 0, InvalidProductType());
+
+    return assessmentData.cooldownPeriod;
   }
 
-  function getPayoutCooldown() external pure override returns (uint) {
-    return PAYOUT_COOLDOWN;
+  /// @notice Returns the assessor group ID for a given claim
+  /// @param claimId The claim identifier
+  /// @return The group ID of the assessors for the claim
+  function assessorGroupOf(uint claimId) external view returns (uint32) {
+
+    Assessment storage assessment = _assessments[claimId];
+    require(assessment.start != 0, InvalidClaimId());
+
+    return assessment.assessorGroupId;
   }
 
-  function getSilentEndingPeriod() external pure override returns (uint) {
-    return SILENT_ENDING_PERIOD;
-  }
-
-  /// @dev Returns the vote count of an assessor.
-  ///
-  /// @param assessor  The address of the assessor.
-  function getVoteCountOfAssessor(address assessor) external override view returns (uint) {
-    return votesOf[assessor].length;
-  }
-
-  /// @dev Returns the number of assessments.
-  function getAssessmentsCount() external override view returns (uint) {
-    return assessments.length;
-  }
-
-  /// @dev Returns only the poll from the assessment struct to make only one SLOAD. Is used by
-  /// other contracts.
-  ///
-  /// @param assessmentId  The index of the assessment
-  function getPoll(uint assessmentId) external override view returns (Poll memory) {
-    return assessments[assessmentId].poll;
-  }
-
-  /// Returns all pending rewards, the withdrawable amount and the index until which they can be
-  /// withdrawn.
-  ///
-  /// @param staker  The address of the staker
-  function getRewards(address staker) external override view returns (
-    uint totalPendingAmountInNXM,
-    uint withdrawableAmountInNXM,
-    uint withdrawableUntilIndex
+  /// @notice Returns assessment voting info for a claim
+  /// @param claimId The claim identifier
+  /// @return acceptVotes Number of accept votes (snapshot if finalized, live tally otherwise)
+  /// @return denyVotes Number of deny votes (snapshot if finalized, live tally otherwise)
+  /// @return groupSize Number of assessors in the group
+  /// @return start Voting period start timestamp
+  /// @return end Voting period end timestamp
+  /// @return finalizedAt Timestamp when assessment was finalized (0 if not finalized)
+  function getAssessmentInfo(
+    uint claimId
+  ) external view returns (
+    uint acceptVotes,
+    uint denyVotes,
+    uint groupSize,
+    uint32 start,
+    uint32 end,
+    uint32 finalizedAt
   ) {
 
-    uint104 rewardsWithdrawableFromIndex = stakeOf[staker].rewardsWithdrawableFromIndex;
-    Vote memory vote;
-    Assessment memory assessment;
-    uint voteCount = votesOf[staker].length;
-    bool hasReachedUnwithdrawableReward = false;
+    Assessment storage assessment = _assessments[claimId];
+    uint32 assessmentStart = assessment.start;
+    require(assessmentStart != 0, InvalidClaimId());
 
-    for (uint i = rewardsWithdrawableFromIndex; i < voteCount; i++) {
-      vote = votesOf[staker][i];
-      assessment = assessments[vote.assessmentId];
+    EnumerableSet.UintSet storage assessorGroup = _groups[assessment.assessorGroupId];
+    groupSize = assessorGroup.length();
+    end = (assessment.start + MIN_VOTING_PERIOD).toUint32();
+    finalizedAt = assessment.finalizedAt;
 
-      // If hasReachedUnwithdrawableReward is true, skip and continue calculating the pending total
-      // rewards.
-      if (
-        !hasReachedUnwithdrawableReward &&
-        uint(assessment.poll.end) + PAYOUT_COOLDOWN >= block.timestamp
-      ) {
-        hasReachedUnwithdrawableReward = true;
-        // Store the index of the vote until which rewards can be withdrawn.
-        withdrawableUntilIndex = i;
-        // Then, also store the pending total value that can be withdrawn until this index.
-        withdrawableAmountInNXM = totalPendingAmountInNXM;
-      }
-
-      totalPendingAmountInNXM += uint(assessment.totalRewardInNXM) * uint(vote.stakedAmount) /
-        (uint(assessment.poll.accepted) + uint(assessment.poll.denied));
+    if (finalizedAt != 0) {
+      acceptVotes = assessment.acceptVotes;
+      denyVotes = assessment.denyVotes;
+    } else {
+      (acceptVotes, denyVotes) = _getVoteTally(assessment, assessorGroup, groupSize);
     }
 
-    if (!hasReachedUnwithdrawableReward) {
-      withdrawableUntilIndex = voteCount;
-      withdrawableAmountInNXM = totalPendingAmountInNXM;
-    }
+    return (acceptVotes, denyVotes, groupSize, start, end, finalizedAt);
+  }
 
-    return (totalPendingAmountInNXM, withdrawableAmountInNXM, withdrawableUntilIndex);
+  /// @notice Helper to determine if an assessment can be closed after casting a vote
+  /// @dev Checks if the assessment is ready to be closed based on the current vote and voting state
+  /// @param claimId The claim identifier
+  /// @param vote The vote choice (ACCEPT or DENY) to be cast
+  /// @return ready True if the assessment can be closed after this vote, false otherwise
+  function isReadyToCloseAfterVote(uint claimId, Vote vote) external view returns (bool) {
+
+    require(vote == Vote.ACCEPT || vote == Vote.DENY, InvalidVote());
+
+    (uint assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
+
+    // Already finalized
+    if (assessment.finalizedAt != 0) return false;
+
+    EnumerableSet.UintSet storage group = _groups[assessment.assessorGroupId];
+    uint groupSize = group.length();
+
+    // Get current vote tally
+    (uint acceptVotes, uint denyVotes) = _getVoteTally(assessment, group, groupSize);
+
+    // If has previous vote, remove old vote from tally
+    Vote oldVote = assessment.ballot[assessorMemberId].vote;
+    if (oldVote == Vote.ACCEPT) acceptVotes--;
+    else if (oldVote == Vote.DENY) denyVotes--;
+
+    // Increment the tally with the new vote
+    if (vote == Vote.ACCEPT) acceptVotes++;
+    else if (vote == Vote.DENY) denyVotes++;
+
+    if (block.timestamp < assessment.start + MIN_VOTING_PERIOD) {
+      // can close early if all voted & not draw
+      return acceptVotes + denyVotes == groupSize && acceptVotes != denyVotes;
+    } else {
+      // can close if voting period ended, has votes i.e. not (0-0) and not a draw
+      return acceptVotes != denyVotes;
+    }
+  }
+
+  /// @notice Returns the ballot for a given claim and assessor
+  /// @param claimId The claim identifier
+  /// @param assessor The address of the assessor
+  /// @return The Ballot struct for the assessor on the claim
+  function ballotOf(uint claimId, address assessor) external view returns (Ballot memory) {
+    (uint assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, assessor);
+    return assessment.ballot[assessorMemberId];
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  /// Increases the sender's stake by the specified amount and transfers NXM to this contract
-  ///
-  /// @param amount  The amount of nxm to stake
-  function stake(uint96 amount) public whenNotPaused {
+  /// @notice Initiates a new assessment for a claim
+  /// @param claimId Unique identifier for the claim
+  /// @param productTypeId Type of product the claim is for
+  /// @dev Only callable by internal contracts
+  /// @dev Reverts if an assessment already exists for the given claimId
+  function startAssessment(uint claimId, uint16 productTypeId) external onlyContracts(C_CLAIMS) {
 
-    stakeOf[msg.sender].amount += amount;
-    _tokenController().operatorTransfer(msg.sender, address(this), amount);
+    Assessment storage assessment = _assessments[claimId];
+    require(assessment.start == 0, AssessmentAlreadyExists());
 
-    emit StakeDeposited(msg.sender, amount);
+    // TODO: call CoverProduct to validate productTypeId?
+    uint32 assessingGroupId = _assessmentData[productTypeId].assessingGroupId;
+    require(assessingGroupId != 0, InvalidProductType());
+
+    uint32 start = block.timestamp.toUint32();
+    uint32 end = (start + MIN_VOTING_PERIOD).toUint32();
+
+    assessment.start = start;
+    assessment.assessorGroupId = assessingGroupId;
+    // finalizedAt, acceptVotes, denyVotes are initialized to 0 by default
+    // ballot are initialized to NONE (0) by default
+
+    emit AssessmentStarted(claimId, assessingGroupId, start, end);
   }
 
-  /// Withdraws a portion or all of the user's stake
-  ///
-  /// @dev At least stakeLockupPeriodInDays must have passed since the last vote.
-  ///
-  /// @param amount  The amount of nxm to unstake
-  /// @param to      The member address where the NXM is transfered to. Useful for switching
-  ///                membership during stake lockup period and thus allowing the user to withdraw
-  ///                their staked amount to the new address when possible.
-  function unstake(uint96 amount, address to) external override whenNotPaused {
+  /// @notice Cast a single vote on a claim
+  /// @param claimId Identifier of the claim to vote on
+  /// @param vote The vote choice (ACCEPT or DENY)
+  /// @param ipfsHash IPFS hash containing vote rationale
+  /// @dev Only valid assessors can vote, and polls must be open for voting
+  function castVote(uint claimId, Vote vote, bytes32 ipfsHash) external whenNotPaused(C_ASSESSMENT) {
 
-    uint stakeAmount = stakeOf[msg.sender].amount;
-    require(amount <= stakeAmount, InvalidAmount(stakeAmount));
+    require(vote == Vote.ACCEPT || vote == Vote.DENY, InvalidVote());
 
-    uint govLockupExpiry = nxm.isLockedForMV(msg.sender);
-    require(block.timestamp >= govLockupExpiry || to == msg.sender, StakeLockedForGovernance(govLockupExpiry));
+    // Validate assessor and get assessment data
+    (uint assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
 
-    _unstake(msg.sender, amount, to);
-  }
-
-  /// Withdraws all of the the given staker's stake
-  ///
-  /// @dev At least stakeLockupPeriodInDays must have passed since the last vote.
-  ///
-  /// @param staker  The address of the staker whose stake will be unstaked
-  function unstakeAllFor(address staker) external override whenNotPaused onlyTokenController {
-    _unstake(staker, stakeOf[staker].amount, staker);
-  }
-
-  function _unstake(address staker, uint96 amount, address to) internal {
-
-    uint voteCount = votesOf[staker].length;
-    if (voteCount > 0) {
-      Vote memory latestVote = votesOf[staker][voteCount - 1];
-      uint assessmentLockupExpiry = latestVote.timestamp + STAKE_LOCKUP_PERIOD;
-      require(block.timestamp > assessmentLockupExpiry, StakeLockedForAssessment(assessmentLockupExpiry));
+    // If assessment period has passed, see if assessment can be closed
+    if (block.timestamp >= assessment.start + MIN_VOTING_PERIOD) {
+      _closeAssessment(claimId, assessment);
     }
 
-    stakeOf[staker].amount -= amount;
-    nxm.transfer(to, amount);
+    // Do not allow new votes to be cast if assessment has been closed
+    require(assessment.finalizedAt == 0, ClaimAssessmentAlreadyClosed());
 
-    emit StakeWithdrawn(staker, to, amount);
+    // Update ballot
+    Ballot storage ballot = assessment.ballot[assessorMemberId];
+
+    ballot.vote = vote;
+    ballot.ipfsHash = ipfsHash;
+    ballot.timestamp = uint32(block.timestamp);
+
+    emit VoteCast(claimId, msg.sender, assessorMemberId, vote, ipfsHash);
   }
 
-  /// Withdraws a staker's accumulated rewards to a destination address but only the staker can
-  /// call this.
-  ///
-  /// @dev Only withdraws until the last finalized poll.
-  ///
-  /// @param staker      The address of the staker for which the rewards are withdrawn
-  /// @param batchSize   The index until which (but not including) the rewards should be withdrawn.
-  ///                    Used if a large number of assessments accumulates and the function doesn't
-  ///                    fit in one block, thus requiring multiple batched transactions.
-  /// @return withdrawn The amount of rewards withdrawn.
-  /// @return withdrawnUntilIndex The index up to (but not including) the withdrawal was processed.
-  function withdrawRewards(
-    address staker,
-    uint104 batchSize
-  ) external override whenNotPaused returns (uint withdrawn, uint withdrawnUntilIndex) {
-    return _withdrawRewards(staker, staker, batchSize);
+  /// @notice Closes the assessment for a given claim if conditions are met
+  /// @param claimId The claim identifier
+  function closeAssessment(uint claimId) external {
+    _closeAssessment(claimId, _assessments[claimId]);
   }
 
-  /// Withdraws a staker's accumulated rewards.
-  ///
-  /// @dev Only withdraws until the last finalized poll.
-  ///
-  /// @param destination The destination address where the rewards will be withdrawn.
-  /// @param batchSize   The index until which (but not including) the rewards should be withdrawn.
-  ///                    Used if a large number of assessments accumulates and the function doesn't
-  ///                    fit in one block, thus requiring multiple batched transactions.
-  /// @return withdrawn The amount of rewards withdrawn.
-  /// @return withdrawnUntilIndex The index up to (but not including) the withdrawal was processed.
-  function withdrawRewardsTo(
-    address destination,
-    uint104 batchSize
-  ) external override whenNotPaused returns (uint withdrawn, uint withdrawnUntilIndex) {
-    return _withdrawRewards(msg.sender, destination, batchSize);
+  /* ========== INTERNAL FUNCTIONS ========== */
+
+  /// @dev Internal function to count votes that accepts a pre-loaded assessor group and assessment
+  /// @param assessment The pre-loaded assessment data
+  /// @param assessorGroup The pre-loaded assessor group to iterate through
+  /// @param assessorGroupLength The pre-loaded length of the assessor group
+  /// @return acceptCount Number of assessors who voted to accept the claim
+  /// @return denyCount Number of assessors who voted to deny the claim
+  function _getVoteTally(
+    Assessment storage assessment,
+    EnumerableSet.UintSet storage assessorGroup,
+    uint assessorGroupLength
+  ) internal view returns (uint acceptCount, uint denyCount) {
+
+    uint[] memory assessorMembers = assessorGroup.values();
+
+    acceptCount = 0;
+    denyCount = 0;
+
+    for (uint i = 0; i < assessorGroupLength;) {
+        uint assessorMemberId = assessorMembers[i];
+        Vote vote = assessment.ballot[assessorMemberId].vote;
+
+        if (vote == Vote.ACCEPT) acceptCount++;
+        else if (vote == Vote.DENY) denyCount++;
+
+        // Unchecked increment to save gas - cannot overflow as assessor group size is a relatively small number
+        unchecked { ++i; }
+    }
+
+    return (acceptCount, denyCount);
   }
 
-  function _withdrawRewards(
-    address staker,
-    address destination,
-    uint104 batchSize
-  ) internal returns (uint withdrawn, uint withdrawnUntilIndex) {
+  /// @dev Validates if an address is an assessor for a claim and returns related data
+  /// @param claimId The claim identifier
+  /// @param assessor The address to validate
+  /// @return assessorMemberId The member ID of the assessor
+  /// @return assessment The assessment data for the claim
+  function _validateAssessor(uint claimId, address assessor) internal view returns (uint assessorMemberId, Assessment storage assessment) {
+    
+    assessorMemberId = registry.getMemberId(assessor);
+    require(assessorMemberId > 0, MustBeMember(assessor));
+    assessment = _assessments[claimId];
 
-    // This is the index until which (but not including) the previous withdrawal was processed.
-    // The current withdrawal starts from this index.
-    uint104 rewardsWithdrawableFromIndex = stakeOf[staker].rewardsWithdrawableFromIndex;
-    {
-      uint voteCount = votesOf[staker].length;
-      require(rewardsWithdrawableFromIndex < voteCount, NoWithdrawableRewards());
-      // If batchSize is a non-zero value, it means the withdrawal is going to be batched in
-      // multiple transactions.
-      withdrawnUntilIndex = batchSize > 0 ? rewardsWithdrawableFromIndex + batchSize : voteCount;
-    }
+    require(assessment.start != 0, InvalidClaimId());
+    require(_groups[assessment.assessorGroupId].contains(assessorMemberId), InvalidAssessor());
 
-    Vote memory vote;
-    Assessment memory assessment;
-    for (uint i = rewardsWithdrawableFromIndex; i < withdrawnUntilIndex; i++) {
-      vote = votesOf[staker][i];
-      assessment = assessments[vote.assessmentId];
-      if (uint(assessment.poll.end) + PAYOUT_COOLDOWN >= block.timestamp) {
-        // Poll is not final
-        withdrawnUntilIndex = i;
-        break;
-      }
-
-      withdrawn += uint(assessment.totalRewardInNXM) * uint(vote.stakedAmount) /
-        (uint(assessment.poll.accepted) + uint(assessment.poll.denied));
-    }
-
-    // This is the index where the next withdrawReward call will start iterating from
-    stakeOf[staker].rewardsWithdrawableFromIndex = SafeUintCast.toUint104(withdrawnUntilIndex);
-    _tokenController().mint(destination, withdrawn);
-
-    emit RewardWithdrawn(staker, destination, withdrawn);
+    return (assessorMemberId, assessment);
   }
 
-  /// Creates a new assessment
-  ///
-  /// @dev Is used only by contracts acting as redemption methods for cover product types.
-  ///
-  /// @param totalAssessmentReward   The total reward that is shared among the stakers participating
-  ///                                the assessment.
-  /// @param assessmentDepositInETH  The deposit that covers assessment rewards in case it's denied.
-  ///                                If the assessment verdict is positive, the contract that relies
-  ///                                on it can send back the deposit at payout.
-  function startAssessment(
-    uint totalAssessmentReward,
-    uint assessmentDepositInETH
-  ) external override onlyInternal returns (uint) {
+  /// @notice Internal: closes the assessment if finalized conditions are met
+  /// @param claimId The claim identifier
+  /// @param assessment The assessment storage reference
+  function _closeAssessment(uint claimId, Assessment storage assessment) internal {
+    if (assessment.finalizedAt != 0) return;
 
-    assessments.push(Assessment(
-      Poll(
-        0, // accepted
-        0, // denied
-        uint32(block.timestamp), // start
-        uint32(block.timestamp + MIN_VOTING_PERIOD) // end
-      ),
-      uint128(totalAssessmentReward),
-      uint128(assessmentDepositInETH)
-    ));
+    uint32 assessmentStart = assessment.start;
+    require(assessmentStart != 0, InvalidClaimId());
 
-    return assessments.length - 1;
-  }
+    EnumerableSet.UintSet storage assessorGroup = _groups[assessment.assessorGroupId];
+    uint assessorGroupLength = assessorGroup.length();
 
-  /// Casts multiple votes on assessments and optionally allows to increase the stake in the same
-  /// transaction.
-  ///
-  /// @dev See stake and castVote functions.
-  ///
-  /// @param assessmentIds  Array of assessment indexes for which the votes are cast.
-  /// @param votes          Array of votes corresponding to each assessment id from the
-  ///                       assessmentIds param. Elements that are false represent a deny vote and
-  ///                       those that are true represent an accept vote.
-  /// @param stakeIncrease  When a non-zero value is given, this function will also increase the
-  ///                       stake in the same transaction.
-  function castVotes(
-    uint[] calldata assessmentIds,
-    bool[] calldata votes,
-    string[] calldata ipfsAssessmentDataHashes,
-    uint96 stakeIncrease
-  ) external override onlyMember whenNotPaused {
-    require(assessmentIds.length == votes.length, AssessmentIdsVotesLengthMismatch());
-    require(assessmentIds.length == ipfsAssessmentDataHashes.length, AssessmentIdsIpfsLengthMismatch());
+    (uint acceptVotes, uint denyVotes) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
 
-    if (stakeIncrease > 0) {
-      stake(stakeIncrease);
+    bool hasVotesAndNotADraw = acceptVotes != denyVotes; // has votes (i.e. not 0-0) and not a draw
+    bool allVoted = acceptVotes + denyVotes == assessorGroupLength;
+
+    uint32 assessmentEnd = assessmentStart + uint32(MIN_VOTING_PERIOD);
+    bool endPassed = block.timestamp >= assessmentEnd;
+
+    if (hasVotesAndNotADraw && (endPassed || allVoted)) {
+      assessment.finalizedAt = endPassed ? assessmentEnd : uint32(block.timestamp);
+      assessment.acceptVotes = acceptVotes.toUint8();
+      assessment.denyVotes = denyVotes.toUint8();
+      emit AssessmentClosed(claimId);
     }
-
-    for (uint i = 0; i < assessmentIds.length; i++) {
-      _castVote(assessmentIds[i], votes[i], ipfsAssessmentDataHashes[i]);
-    }
-  }
-
-  /// Casts a vote on an assessment
-  ///
-  /// @dev Resets the poll's end date on the first vote. The first vote can only be an accept vote.
-  /// If no votes are cast during minVotingPeriodInDays it is automatically considered denied. When
-  /// the poll ends in less than silentEndingPeriodInDays, the end date is extended with a potion of
-  /// silentEndingPeriodInDays proportional to the user's stake compared to the
-  /// total stake on that assessment, namely the sum of tokens used for both accept and deny votes,
-  /// but no greater than silentEndingPeriodInDays.
-  ///
-  /// @param assessmentId  The index of the assessment for which the vote is cast
-  /// @param isAcceptVote  True to accept, false to deny
-  function _castVote(uint assessmentId, bool isAcceptVote, string memory ipfsAssessmentDataHash) internal {
-
-    {
-      require(!hasAlreadyVotedOn[msg.sender][assessmentId], AlreadyVoted());
-      hasAlreadyVotedOn[msg.sender][assessmentId] = true;
-    }
-
-    uint96 stakeAmount = stakeOf[msg.sender].amount;
-    require(stakeAmount > 0, StakeRequired());
-
-    Poll memory poll = assessments[assessmentId].poll;
-    require(block.timestamp < poll.end, VotingClosed());
-    require(poll.accepted > 0 || isAcceptVote, AcceptVoteRequired());
-
-    if (poll.accepted == 0) {
-      // Reset the poll end date on the first accept vote
-      poll.end = uint32(block.timestamp + MIN_VOTING_PERIOD);
-    }
-
-    // Check if poll ends in less than 24 hours
-    if (poll.end - block.timestamp < SILENT_ENDING_PERIOD) {
-      // Extend proportionally to the user's stake but up to 1 day maximum
-      poll.end += uint32(
-        Math.min(
-          SILENT_ENDING_PERIOD,
-          SILENT_ENDING_PERIOD * uint(stakeAmount) / (uint(poll.accepted + poll.denied))
-        )
-      );
-    }
-
-    if (isAcceptVote) {
-      poll.accepted += stakeAmount;
-    } else {
-      poll.denied += stakeAmount;
-    }
-
-    assessments[assessmentId].poll = poll;
-
-    votesOf[msg.sender].push(Vote(
-      uint80(assessmentId),
-      isAcceptVote,
-      uint32(block.timestamp),
-      stakeAmount
-    ));
-
-    emit VoteCast(msg.sender, assessmentId, stakeAmount, isAcceptVote, ipfsAssessmentDataHash);
-  }
-
-  /// Allows governance to submit a merkle tree root hash representing fraudulent stakers
-  ///
-  /// @dev Leaves' inputs are the sequence of bytes obtained by concatenating:
-  /// - Staker address (20 bytes or 160 bits)
-  /// - The index of the last fraudulent vote (32 bytes or 256 bits)
-  /// - Amount of stake to be burned (12 bytes or 96 bits)
-  /// - The number of previous fraud attempts (2 bytes or 16 bits)
-  ///
-  /// @param root  The merkle tree root hash
-  function submitFraud(bytes32 root) external override onlyGovernance {
-    fraudResolution.push(root);
-    emit FraudSubmitted(root);
-  }
-
-  /// Allows anyone to undo fraudulent votes and burn the fraudulent assessors present in the
-  /// merkle tree whose hash is submitted through submitFraud
-  ///
-  /// @param rootIndex                The index of the merkle tree root hash stored in
-  ///                                 fraudResolution.
-  /// @param proof                    The path from the leaf to the root.
-  /// @param assessor                 The address of the fraudulent assessor.
-  /// @param lastFraudulentVoteIndex  The index of the last fraudulent vote cast by the assessor.
-  /// @param burnAmount               The amount of stake that needs to be burned.
-  /// @param fraudCount               The number of times the assessor has taken part in fraudulent
-  ///                                 voting.
-  /// @param voteBatchSize            The number of iterations that prevents an unbounded loop and
-  ///                                 allows chunked processing. Can also be 0 if chunking is not
-  ///                                 necessary.
-  function processFraud(
-    uint256 rootIndex,
-    bytes32[] calldata proof,
-    address assessor,
-    uint256 lastFraudulentVoteIndex,
-    uint96 burnAmount,
-    uint16 fraudCount,
-    uint256 voteBatchSize
-  ) external override whenNotPaused {
-
-    require(
-      MerkleProof.verify(
-        proof,
-        fraudResolution[rootIndex],
-        keccak256(abi.encodePacked(assessor, lastFraudulentVoteIndex, burnAmount, fraudCount))
-      ),
-      InvalidMerkleProof()
-    );
-
-    Stake memory _stake = stakeOf[assessor];
-
-    // Make sure we don't burn beyond lastFraudulentVoteIndex
-    uint processUntil = _stake.rewardsWithdrawableFromIndex + voteBatchSize;
-
-    if (processUntil >= lastFraudulentVoteIndex) {
-      processUntil = lastFraudulentVoteIndex + 1;
-    }
-
-    for (uint j = _stake.rewardsWithdrawableFromIndex; j < processUntil; j++) {
-      IAssessment.Vote memory vote = votesOf[assessor][j];
-      IAssessment.Poll memory poll = assessments[vote.assessmentId].poll;
-
-      {
-        if (uint32(block.timestamp) >= uint(poll.end) + PAYOUT_COOLDOWN) {
-          // Once the cooldown period ends the poll result is final, thus skip
-          continue;
-        }
-      }
-
-      if (vote.accepted) {
-        poll.accepted -= vote.stakedAmount;
-      } else {
-        poll.denied -= vote.stakedAmount;
-      }
-
-      // If the poll ends in less than 24h, extend it to 24h
-      uint32 nextDay = uint32(block.timestamp + 1 days);
-      if (poll.end < nextDay) {
-        poll.end = nextDay;
-      }
-
-      emit FraudProcessed(vote.assessmentId, assessor, poll);
-      assessments[vote.assessmentId].poll = poll;
-    }
-
-    // Burns an assessor only once for each merkle tree root, no matter how many times this function
-    // runs on the same account. When a transaction is too big to fit in one block, it is batched
-    // in multiple transactions according to voteBatchSize. After burning the tokens, fraudCount
-    // is incremented. If another merkle root is submitted that contains the same addres, the leaf
-    // should use the updated fraudCount stored in the Stake struct as input.
-    if (fraudCount == _stake.fraudCount) {
-      // Make sure this doesn't revert if the stake amount is already subtracted due to a previous
-      // burn from a different merkle tree.
-      burnAmount = burnAmount > _stake.amount ? _stake.amount : burnAmount;
-      _stake.amount -= burnAmount;
-      _stake.fraudCount++;
-
-      // TODO: consider burning the tokens in the token controller contract
-      _ramm().updateTwap();
-      nxm.burn(burnAmount);
-    }
-
-    if (uint104(processUntil) > _stake.rewardsWithdrawableFromIndex) {
-      _stake.rewardsWithdrawableFromIndex = uint104(processUntil);
-    }
-
-    stakeOf[assessor] = _stake;
-  }
-
-  /* ========== DEPENDENCIES ========== */
-
-  function _tokenController() internal view returns (ITokenController) {
-    return ITokenController(getInternalContractAddress(ID.TC));
-  }
-
-  function _ramm() internal view returns (IRamm) {
-    return IRamm(getInternalContractAddress(ID.RA));
-  }
-
-  /// @dev Updates internal contract addresses to the ones stored in master. This function is
-  /// automatically called by the master contract when a contract is added or upgraded.
-  function changeDependentContractAddress() external override {
-    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
-    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
-    internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
   }
 }
+
+// Test cases
+// castVote
+// assessor votes, before poll.end we remove the assessor
+  // after poll.end assessor should be able to vote again
+  // poll.end is extended to 24h from time of last vote
+// assessment closes early if ALL assessors have voted
+  // poll.end should be updated to now
+// if the poll ends in less than 24h, a vote should extended it to 24h from the time of last vote
+// if the poll ends in more than 24h, a vote should NOT extend poll.end
+
+// startAssessment
+// verify the all fields are set correctly
+// should revert if assessment already exists
+
+// getOutcome
+// - should revert if called with a non-existent claim
+// - should revert if empty assessor group
+// - should throw if called before poll.end
+// - should still throw after poll.end, only if Assessment has no votes yet
+// - should throw if there is a draw
+// - should return true if acceptCount > denyCount
+// - should return false if denyCount > acceptCount
+// - should return false if acceptCount == denyCount
+
+
+// Validation Tests
+// ballotOf and hasVoted
+// - should revert when called with an assessor not in the assessor group
+// - should work correctly for a valid assessor
+
+// castVote
+// - should revert if called with a non-existent claim
+// - should revert when called by non-assessor / or empty assessor group
+// - should revert when called after poll has closed (and at least one vote exists)
+// - should revert with invalid vote choice (something other than ACCEPT or DENY)
+// - should work when poll.end has passed but no votes exist yet
+// - should work when poll.end has passed and there is a draw
+// - should close early if all assessors have voted and its not a draw
+// - remove assessor should close early if all assessors have voted and its not a draw
+// - should not close early if all assessors have voted and its a draw
+// - add assessor should not close early if all assessors have voted and its a draw
+// - should extend poll.end if the poll ends in less than 24h from the latest vote
+// - should NOT extend poll.end if the poll ends in more than 24h from the latest vote
+
+// Edge Cases
+// - an assessor should be able to vote multiple times and change their vote (should override previous vote)
+// - vote at the last second before poll.end
+
+// Counting & Results Tests
+// - zero votes (poll should stay open indefinitely)
+// - non-zero draw votes (poll should stay open indefinitely)
+
+// isAssessmentDecided
+// - should revert if called with a non-existent claim
+// - should return false if there are no votes
+// - should return false if there is a draw
+// - should return true if there is at least one vote and its not a draw and the voting period has ended
+// - test when an assessor is removed from the group
+// - test when an assessor is added to the group
+
+// getVoteTally
+// - should revert if called with a non-existent claim
+// - should count votes correctly with various combinations
+// - should handle empty votes properly
+// - should return correct counts when some assessors haven't voted
+// - test with removed assessors - vote should not count
+// - test with empty assessor group - should return 0, 0
+
+// Special Conditions
+// - test behavior when assessor group changes mid-poll
+// - test behavior during transitions (pausing/unpausing)
+
+// Security Tests
+// - try to vote on non-existent claim
+// - try to re-open a decided poll
+// - try to manipulate timestamps through mining
+// - check if malicious assessor can influence voting periods
+
+// getAssessmentInfo
+// - should revert if called with a non-existent claim
+// - should return correct start, end, accepts, denies
+// - should return correct start, end, accepts, denies when an assessor is removed from the group
+// - should return correct start, end, accepts, denies when an assessor is added to the group
+
+// assessorGroupOf
+// - should revert if called with a non-existent claim
+// - should return the correct assessor group
+
+// ballotOf
+// - should revert if called with a non-existent claim
+// - should revert if called with an assessor not in the assessor group
+// - should return the correct ballot
+
+// hasVoted
+// - should revert if called with a non-existent claim
+// - should revert if called with an assessor not in the assessor group
+  // - add assessor to group should not revert and return false
+// - should return true if the assessor has voted
+// - should return false if the assessor has not voted
+// - remove from assessor group after a vote has been cast, should revert

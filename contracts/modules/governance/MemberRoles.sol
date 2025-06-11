@@ -213,8 +213,8 @@ contract MemberRoles is IMemberRoles, IMemberRolesErrors, Governed, MasterAwareV
     // _tokenController.getPendingRewards includes both assessment and governance rewards
     require(_tokenController.getPendingRewards(msg.sender) == 0, MemberHasPendingRewardsInTokenController());
 
-    (uint96 stakeAmount, ,) = assessment().stakeOf(msg.sender);
-    require(stakeAmount == 0, MemberHasAssessmentStake());
+    // (uint96 stakeAmount, ,) = assessment().stakeOf(msg.sender);
+    // require(stakeAmount == 0, MemberHasAssessmentStake());
 
     _tokenController.burnFrom(msg.sender, token.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
@@ -288,8 +288,8 @@ contract MemberRoles is IMemberRoles, IMemberRolesErrors, Governed, MasterAwareV
     // _tokenController.getPendingRewards includes both assessment and governance rewards
     require(_tokenController.getPendingRewards(currentAddress) == 0, MemberHasPendingRewardsInTokenController());
 
-    (uint96 stakeAmount, ,) = assessment().stakeOf(currentAddress);
-    require(stakeAmount == 0, MemberHasAssessmentStake());
+    // (uint96 stakeAmount, ,) = assessment().stakeOf(currentAddress);
+    // require(stakeAmount == 0, MemberHasAssessmentStake());
 
     _tokenController.addToWhitelist(newAddress);
     _updateRole(currentAddress, uint(Role.Member), false);

@@ -234,6 +234,10 @@ contract Ramm is IRamm, MasterAwareV2, ReentrancyGuard {
     State memory initialState
   ) internal returns (uint ethOut) {
 
+    if (block.timestamp <= tokenController().token().isLockedForMV(msg.sender)) {
+      revert LockedForVoting();
+    }
+
     Observation[3] memory _observations = observations;
 
     // current state

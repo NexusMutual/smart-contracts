@@ -114,6 +114,9 @@ interface IRamm {
   // Expiry
   error SwapExpired(uint deadline, uint blockTimestamp);
 
+  // Locked for voting
+  error LockedForVoting();
+
   // Insufficient amount out
   error InsufficientAmountOut(uint amountOut, uint minAmountOut);
 

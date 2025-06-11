@@ -517,6 +517,25 @@ describe('swap', function () {
     );
   });
 
+  it('should revert when nxm is locked for member voting', async function () {
+    const fixture = await loadFixture(setup);
+    const { ramm, nxm } = fixture.contracts;
+    const [member] = fixture.accounts.members;
+
+    const nxmIn = parseEther('1000');
+    const minAmountOut = parseEther('0');
+
+    await nxm.setLock(member.address, 3600 * 24); // lock for 24h since now
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const deadline = timestamp + 5 * 60;
+
+    await expect(ramm.connect(member).swap(nxmIn, minAmountOut, deadline)).to.revertedWithCustomError(
+      ramm,
+      'LockedForVoting',
+    );
+  });
+
   it('should emit EthInjected with the correct ETH injected value - swapNxmForEth', async function () {
     const fixture = await loadFixture(setup);
     const { ramm, nxm, tokenController } = fixture.contracts;

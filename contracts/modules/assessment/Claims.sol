@@ -217,24 +217,21 @@ contract Claims is IClaims, RegistryAware {
 
     CoverData memory coverData = _cover().getCoverData(coverId);
 
-    {
-      ProductType memory productType = _coverProducts().getProductTypeOf(coverData.productId);
-      require(productType.claimMethod == ClaimMethod.IndividualClaims, InvalidClaimMethod());
-      require(requestedAmount <= coverData.amount, CoveredAmountExceeded()); 
-      require(block.timestamp > coverData.start, CantBuyCoverAndClaimInTheSameBlock());
-      require(uint(coverData.start) + uint(coverData.period) + uint(coverData.gracePeriod) > block.timestamp, GracePeriodPassed());
+    (Product memory product, ProductType memory productType) = _coverProducts().getProductWithType(coverData.productId);
 
-      emit ClaimSubmitted(
-        owner,              // claim submitter
-        claimId,      // claimId
-        coverId,            // coverId
-        coverData.productId // user
-      );
-    }
+    require(productType.claimMethod == ClaimMethod.IndividualClaims, InvalidClaimMethod());
+    require(requestedAmount <= coverData.amount, CoveredAmountExceeded()); 
+    require(block.timestamp > coverData.start, CantBuyCoverAndClaimInTheSameBlock());
+    require(uint(coverData.start) + uint(coverData.period) + uint(coverData.gracePeriod) > block.timestamp, GracePeriodPassed());
 
-    uint16 productTypeId = _coverProducts().getProduct(coverData.productId).productType;
+    emit ClaimSubmitted(
+      owner,              // claim submitter
+      claimId,      // claimId
+      coverId,            // coverId
+      coverData.productId // user
+    );
 
-    _assessment().startAssessment(claimId, productTypeId);
+    _assessment().startAssessment(claimId, product.productType);
 
     Claim memory claim = Claim({
       coverId: coverId,
@@ -276,6 +273,9 @@ contract Claims is IClaims, RegistryAware {
   /// @param claimId  Claim identifier
   function redeemClaimPayout(uint104 claimId) external override whenNotPaused(C_CLAIMS) {
     Claim memory claim = _claims[claimId];
+
+    // Close the assessment if it's not already closed
+    _assessment().closeAssessment(claimId);
 
     (uint acceptVotes,uint denyVotes, , , , uint32 finalizedAt) = _assessment().getAssessmentInfo(claimId);
 

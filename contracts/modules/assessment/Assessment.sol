@@ -233,44 +233,6 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     return (acceptVotes, denyVotes, groupSize, start, end, finalizedAt);
   }
 
-  /// @notice Helper to determine if an assessment can be closed after casting a vote
-  /// @dev Checks if the assessment is ready to be closed based on the current vote and voting state
-  /// @param claimId The claim identifier
-  /// @param vote The vote choice (ACCEPT or DENY) to be cast
-  /// @return ready True if the assessment can be closed after this vote, false otherwise
-  function isReadyToCloseAfterVote(uint claimId, Vote vote) external view returns (bool) {
-
-    require(vote == Vote.ACCEPT || vote == Vote.DENY, InvalidVote());
-
-    (uint assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
-
-    // Already finalized
-    if (assessment.finalizedAt != 0) return false;
-
-    EnumerableSet.UintSet storage group = _groups[assessment.assessorGroupId];
-    uint groupSize = group.length();
-
-    // Get current vote tally
-    (uint acceptVotes, uint denyVotes) = _getVoteTally(assessment, group, groupSize);
-
-    // If has previous vote, remove old vote from tally
-    Vote oldVote = assessment.ballot[assessorMemberId].vote;
-    if (oldVote == Vote.ACCEPT) acceptVotes--;
-    else if (oldVote == Vote.DENY) denyVotes--;
-
-    // Increment the tally with the new vote
-    if (vote == Vote.ACCEPT) acceptVotes++;
-    else if (vote == Vote.DENY) denyVotes++;
-
-    if (block.timestamp < assessment.start + MIN_VOTING_PERIOD) {
-      // can close early if all voted & not draw
-      return acceptVotes + denyVotes == groupSize && acceptVotes != denyVotes;
-    } else {
-      // can close if voting period ended, has votes i.e. not (0-0) and not a draw
-      return acceptVotes != denyVotes;
-    }
-  }
-
   /// @notice Returns the ballot for a given claim and assessor
   /// @param claimId The claim identifier
   /// @param assessor The address of the assessor

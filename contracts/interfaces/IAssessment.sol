@@ -77,8 +77,6 @@ interface IAssessment {
 
   function getAssessmentInfo(uint claimId) external view returns (uint acceptVotes, uint denyVotes, uint groupSize, uint32 start, uint32 end, uint32 finalizedAt);
 
-  function isReadyToCloseAfterVote(uint claimId, Vote vote) external view returns (bool);
-
   function ballotOf(uint claimId, address assessor) external view returns (Ballot memory);
 
   /* ========= EVENTS ========== */

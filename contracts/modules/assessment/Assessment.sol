@@ -271,12 +271,10 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
   /// @notice Cast a single vote on a claim
   /// @param claimId Identifier of the claim to vote on
-  /// @param vote The vote choice (ACCEPT or DENY)
+  /// @param voteSupport The vote either to support the claim (true) or vote to deny the claim (false)
   /// @param ipfsHash IPFS hash containing vote rationale
   /// @dev Only valid assessors can vote, and polls must be open for voting
-  function castVote(uint claimId, Vote vote, bytes32 ipfsHash) external whenNotPaused(C_ASSESSMENT) {
-
-    require(vote == Vote.ACCEPT || vote == Vote.DENY, InvalidVote());
+  function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) external whenNotPaused(C_ASSESSMENT) {
 
     // Validate assessor and get assessment data
     (uint assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
@@ -292,11 +290,11 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     // Update ballot
     Ballot storage ballot = assessment.ballot[assessorMemberId];
 
-    ballot.vote = vote;
+    ballot.support = voteSupport;
     ballot.ipfsHash = ipfsHash;
     ballot.timestamp = uint32(block.timestamp);
 
-    emit VoteCast(claimId, msg.sender, assessorMemberId, vote, ipfsHash);
+    emit VoteCast(claimId, msg.sender, assessorMemberId, voteSupport, ipfsHash);
   }
 
   /// @notice Closes the assessment for a given claim if conditions are met
@@ -324,15 +322,14 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     acceptCount = 0;
     denyCount = 0;
 
-    for (uint i = 0; i < assessorGroupLength;) {
+    for (uint i = 0; i < assessorGroupLength; i++) {
         uint assessorMemberId = assessorMembers[i];
-        Vote vote = assessment.ballot[assessorMemberId].vote;
+        Ballot storage ballot = assessment.ballot[assessorMemberId];
 
-        if (vote == Vote.ACCEPT) acceptCount++;
-        else if (vote == Vote.DENY) denyCount++;
-
-        // Unchecked increment to save gas - cannot overflow as assessor group size is a relatively small number
-        unchecked { ++i; }
+        // Only count votes that have been cast
+        if (ballot.timestamp > 0) {
+          ballot.support ? acceptCount++ : denyCount++;
+        }
     }
 
     return (acceptCount, denyCount);
@@ -344,7 +341,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @return assessorMemberId The member ID of the assessor
   /// @return assessment The assessment data for the claim
   function _validateAssessor(uint claimId, address assessor) internal view returns (uint assessorMemberId, Assessment storage assessment) {
-    
+
     assessorMemberId = registry.getMemberId(assessor);
     require(assessorMemberId > 0, MustBeMember(assessor));
     assessment = _assessments[claimId];
@@ -383,104 +380,3 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     }
   }
 }
-
-// Test cases
-// castVote
-// assessor votes, before poll.end we remove the assessor
-  // after poll.end assessor should be able to vote again
-  // poll.end is extended to 24h from time of last vote
-// assessment closes early if ALL assessors have voted
-  // poll.end should be updated to now
-// if the poll ends in less than 24h, a vote should extended it to 24h from the time of last vote
-// if the poll ends in more than 24h, a vote should NOT extend poll.end
-
-// startAssessment
-// verify the all fields are set correctly
-// should revert if assessment already exists
-
-// getOutcome
-// - should revert if called with a non-existent claim
-// - should revert if empty assessor group
-// - should throw if called before poll.end
-// - should still throw after poll.end, only if Assessment has no votes yet
-// - should throw if there is a draw
-// - should return true if acceptCount > denyCount
-// - should return false if denyCount > acceptCount
-// - should return false if acceptCount == denyCount
-
-
-// Validation Tests
-// ballotOf and hasVoted
-// - should revert when called with an assessor not in the assessor group
-// - should work correctly for a valid assessor
-
-// castVote
-// - should revert if called with a non-existent claim
-// - should revert when called by non-assessor / or empty assessor group
-// - should revert when called after poll has closed (and at least one vote exists)
-// - should revert with invalid vote choice (something other than ACCEPT or DENY)
-// - should work when poll.end has passed but no votes exist yet
-// - should work when poll.end has passed and there is a draw
-// - should close early if all assessors have voted and its not a draw
-// - remove assessor should close early if all assessors have voted and its not a draw
-// - should not close early if all assessors have voted and its a draw
-// - add assessor should not close early if all assessors have voted and its a draw
-// - should extend poll.end if the poll ends in less than 24h from the latest vote
-// - should NOT extend poll.end if the poll ends in more than 24h from the latest vote
-
-// Edge Cases
-// - an assessor should be able to vote multiple times and change their vote (should override previous vote)
-// - vote at the last second before poll.end
-
-// Counting & Results Tests
-// - zero votes (poll should stay open indefinitely)
-// - non-zero draw votes (poll should stay open indefinitely)
-
-// isAssessmentDecided
-// - should revert if called with a non-existent claim
-// - should return false if there are no votes
-// - should return false if there is a draw
-// - should return true if there is at least one vote and its not a draw and the voting period has ended
-// - test when an assessor is removed from the group
-// - test when an assessor is added to the group
-
-// getVoteTally
-// - should revert if called with a non-existent claim
-// - should count votes correctly with various combinations
-// - should handle empty votes properly
-// - should return correct counts when some assessors haven't voted
-// - test with removed assessors - vote should not count
-// - test with empty assessor group - should return 0, 0
-
-// Special Conditions
-// - test behavior when assessor group changes mid-poll
-// - test behavior during transitions (pausing/unpausing)
-
-// Security Tests
-// - try to vote on non-existent claim
-// - try to re-open a decided poll
-// - try to manipulate timestamps through mining
-// - check if malicious assessor can influence voting periods
-
-// getAssessmentInfo
-// - should revert if called with a non-existent claim
-// - should return correct start, end, accepts, denies
-// - should return correct start, end, accepts, denies when an assessor is removed from the group
-// - should return correct start, end, accepts, denies when an assessor is added to the group
-
-// assessorGroupOf
-// - should revert if called with a non-existent claim
-// - should return the correct assessor group
-
-// ballotOf
-// - should revert if called with a non-existent claim
-// - should revert if called with an assessor not in the assessor group
-// - should return the correct ballot
-
-// hasVoted
-// - should revert if called with a non-existent claim
-// - should revert if called with an assessor not in the assessor group
-  // - add assessor to group should not revert and return false
-// - should return true if the assessor has voted
-// - should return false if the assessor has not voted
-// - remove from assessor group after a vote has been cast, should revert

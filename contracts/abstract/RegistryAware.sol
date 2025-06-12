@@ -29,6 +29,7 @@ uint constant PAUSE_GLOBAL       = 1 << 0;   // 1
 uint constant PAUSE_RAMM         = 1 << 1;   // 2
 uint constant PAUSE_SWAPS        = 1 << 2;   // 4
 uint constant PAUSE_MEMBERSHIP   = 1 << 3;   // 8
+uint constant PAUSE_ASSESSMENTS  = 1 << 4;   // 16
 
 contract RegistryAware {
 

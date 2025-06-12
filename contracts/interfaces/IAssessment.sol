@@ -26,28 +26,23 @@ interface IAssessment {
     uint32 finalizedAt; // 0, not closed yet else timestamp of closure
     uint8 acceptVotes; // 0, if not finalized yet, should only be set onced finalized
     uint8 denyVotes; // 0, if not finalized yet, should only be set onced finalized
-    mapping(uint assessor => Ballot) ballot; // only stores latest choice
-  }
-
-  enum AssessmentResult {
-    NONE,
-    ACCEPTED,
-    DENIED
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function addAssessorsToGroup(address[] calldata assessors, uint groupId) external;
+  function addAssessorsToGroup(uint[] calldata memberId, uint groupId) external;
 
   function setGroupMetadata(uint groupId, bytes32 ipfsMetadata) external;
 
-  function removeAssessorsFromGroup(address[] calldata assessors, uint groupId) external;
+  function removeAssessorFromGroup(uint assessorMemberId, uint groupId) external;
 
-  function removeAssessorsFromAllGroups(address[] calldata assessors) external;
+  function removeAssessorFromAllGroups(uint assessorMemberId) external;
 
   function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) external;
 
   function startAssessment(uint claimId, uint16 productTypeId) external;
+
+  function closeAssessment(uint claimId) external;
 
   /* ========== VIEWS ========== */
 
@@ -63,7 +58,7 @@ interface IAssessment {
 
   function getGroupsData(uint[] calldata groupIds) external view returns (AssessmentGroupView[] memory groups);
 
-  function minVotingPeriod() external pure returns (uint);
+  function votingPeriod() external pure returns (uint);
 
   function payoutCooldown(uint productTypeId) external view returns (uint);
 
@@ -82,9 +77,9 @@ interface IAssessment {
 
   event AssessmentStarted(
     uint indexed claimId,
-    uint32 assessorGroupId,
-    uint32 start,
-    uint32 end
+    uint assessorGroupId,
+    uint start,
+    uint end
   );
 
   event VoteCast(
@@ -100,6 +95,7 @@ interface IAssessment {
 
   /* ========== ERRORS ========== */
 
+  error InvalidMemberId();
   error MustBeMember(address);
   error InvalidGroupId();
   error AssessmentAlreadyExists();

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import "../generic/SwapOperatorGeneric.sol";
+import "../../generic/SwapOperatorGeneric.sol";
 
 contract STMockSwapOperator is SwapOperatorGeneric {
 

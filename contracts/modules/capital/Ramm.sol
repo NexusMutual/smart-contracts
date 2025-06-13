@@ -227,7 +227,7 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
     State memory initialState
   ) internal returns (uint ethOut) {
 
-    if (block.timestamp <= tokenController().token().isLockedForMV(msg.sender)) {
+    if (block.timestamp <= tokenController.token().isLockedForMV(msg.sender)) {
       revert LockedForVoting();
     }
 

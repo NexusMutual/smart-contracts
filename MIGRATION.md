@@ -10,7 +10,8 @@ phase 1 (first ab action)
 2. batch:
   - call registry.migrate using TempGov
   - call registry.addContract using TempGov to add Token, CoverNFT, StakingNFT
-  - add emergency admins
+  - set emergency admins
+  - set kyc address
   - upgrade master using TempGov
   - transfer of Master ownership from TempGov to Governor
 

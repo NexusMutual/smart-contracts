@@ -180,7 +180,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     Assessment storage assessment = _assessments[claimId];
     require(assessment.start != 0, InvalidClaimId());
 
-    return assessment.assessorGroupId;
+    return assessment.assessmentData.assessingGroupId;
   }
 
   /// @notice Returns assessment voting info for a claim
@@ -206,7 +206,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     uint32 assessmentStart = assessment.start;
     require(assessmentStart != 0, InvalidClaimId());
 
-    EnumerableSet.UintSet storage assessorGroup = _groups[assessment.assessorGroupId];
+    EnumerableSet.UintSet storage assessorGroup = _groups[assessment.assessmentData.assessingGroupId];
     groupSize = assessorGroup.length();
     end = (assessment.start + VOTING_PERIOD).toUint32();
     finalizedAt = assessment.finalizedAt;
@@ -215,7 +215,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
       acceptVotes = assessment.acceptVotes;
       denyVotes = assessment.denyVotes;
     } else {
-      (acceptVotes, denyVotes) = _getVoteTally(claimId, assessorGroup, groupSize);
+      (acceptVotes, denyVotes,) = _getVoteTally(claimId, assessorGroup, groupSize);
     }
 
     return (acceptVotes, denyVotes, groupSize, start, end, finalizedAt);
@@ -242,17 +242,17 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     Assessment storage assessment = _assessments[claimId];
     require(assessment.start == 0, AssessmentAlreadyExists());
 
-    // TODO: call CoverProduct to validate productTypeId?
-    uint32 assessingGroupId = _assessmentData[productTypeId].assessingGroupId;
-    require(assessingGroupId != 0, InvalidProductType());
+    // validate that assessment data exists for the product type
+    AssessmentData memory assessmentData = _assessmentData[productTypeId];
+    uint32 assessingGroupId = assessmentData.assessingGroupId;
+    require(assessingGroupId != 0, MissingAssessmentDataForProductType(productTypeId));
 
     uint32 start = block.timestamp.toUint32();
     uint32 end = (start + VOTING_PERIOD).toUint32();
 
     assessment.start = start;
-    assessment.assessorGroupId = assessingGroupId;
+    assessment.assessmentData = assessmentData;
     // finalizedAt, acceptVotes, denyVotes are initialized to 0 by default
-    // ballot are initialized to NONE (0) by default
 
     emit AssessmentStarted(claimId, assessingGroupId, start, end);
   }
@@ -267,13 +267,8 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     // Validate assessor and get assessment data
     (uint assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
 
-    // If assessment period has passed, see if assessment can be closed
-    if (block.timestamp >= assessment.start + VOTING_PERIOD) {
-      _closeAssessment(claimId, assessment);
-    }
-
-    // Do not allow new votes to be cast if assessment has been closed
-    require(assessment.finalizedAt == 0, ClaimAssessmentAlreadyClosed());
+    // Revert if voting is considered closed (majority reached + voting period over or all voted)
+    require(!_isVotingClosed(claimId, assessment), VotingPeriodEnded());
 
     // Update ballot
     _ballots[assessorMemberId][claimId] = Ballot({
@@ -298,17 +293,19 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param assessorGroup The pre-loaded assessor group to iterate through
   /// @param assessorGroupLength The pre-loaded length of the assessor group
   /// @return acceptCount Number of assessors who voted to accept the claim
-  /// @return denyCount Number of assessors who voted to deny the claim
+  /// @return denyCount  Number of assessors who voted to deny the claim
+  /// @return latestVoteTimestamp Timestamp of the most recent cast vote (0 if no votes yet)
   function _getVoteTally(
     uint claimId,
     EnumerableSet.UintSet storage assessorGroup,
     uint assessorGroupLength
-  ) internal view returns (uint acceptCount, uint denyCount) {
+  ) internal view returns (uint acceptCount, uint denyCount, uint32 latestVoteTimestamp) {
 
     uint[] memory assessorMembers = assessorGroup.values();
 
     acceptCount = 0;
     denyCount = 0;
+    latestVoteTimestamp = 0;
 
     for (uint i = 0; i < assessorGroupLength; i++) {
         uint assessorMemberId = assessorMembers[i];
@@ -317,10 +314,14 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
         // Only count votes that have been cast
         if (ballot.timestamp > 0) {
           ballot.support ? acceptCount++ : denyCount++;
+
+          if (ballot.timestamp > latestVoteTimestamp) {
+            latestVoteTimestamp = ballot.timestamp;
+          }
         }
     }
 
-    return (acceptCount, denyCount);
+    return (acceptCount, denyCount, latestVoteTimestamp);
   }
 
   /// @dev Validates if an address is an assessor for a claim and returns related data
@@ -335,38 +336,85 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     assessment = _assessments[claimId];
 
     require(assessment.start != 0, InvalidClaimId());
-    require(_groups[assessment.assessorGroupId].contains(assessorMemberId), InvalidAssessor());
+    require(_groups[assessment.assessmentData.assessingGroupId].contains(assessorMemberId), InvalidAssessor());
 
     return (assessorMemberId, assessment);
   }
-
-  // TODO: adding cooldown, but should be careful in castVote on the state
 
   /// @notice Internal: closes the assessment if finalized conditions are met
   /// @param claimId The claim identifier
   /// @param assessment The assessment storage reference
   function _closeAssessment(uint claimId, Assessment storage assessment) internal {
+
+    // no-op if assessment is already closed
     if (assessment.finalizedAt != 0) return;
 
     uint32 assessmentStart = assessment.start;
     require(assessmentStart != 0, InvalidClaimId());
 
-    EnumerableSet.UintSet storage assessorGroup = _groups[assessment.assessorGroupId];
+    EnumerableSet.UintSet storage assessorGroup = _groups[assessment.assessmentData.assessingGroupId];
     uint assessorGroupLength = assessorGroup.length();
 
-    (uint acceptVotes, uint denyVotes) = _getVoteTally(claimId, assessorGroup, assessorGroupLength);
 
-    bool hasVotesAndNotADraw = acceptVotes != denyVotes; // has votes (i.e. not 0-0) and not a draw
+    (uint acceptVotes, uint denyVotes, uint32 latestVoteTimestamp) =
+      _getVoteTally(claimId, assessorGroup, assessorGroupLength);
+
+    bool hasMajority = acceptVotes != denyVotes; // includes 0-0 draw case
     bool allVoted = acceptVotes + denyVotes == assessorGroupLength;
 
-    uint32 assessmentEnd = assessmentStart + uint32(VOTING_PERIOD);
-    bool endPassed = block.timestamp >= assessmentEnd;
+    // Revert if no majority
+    require(hasMajority, MajorityNotReached());
 
-    if (hasVotesAndNotADraw && (endPassed || allVoted)) {
-      assessment.finalizedAt = endPassed ? assessmentEnd : uint32(block.timestamp);
-      assessment.acceptVotes = acceptVotes.toUint8();
-      assessment.denyVotes = denyVotes.toUint8();
-      emit AssessmentClosed(claimId);
-    }
+    uint32 assessmentEnd = assessmentStart + VOTING_PERIOD.toUint32();
+    bool votingConcluded = allVoted || (block.timestamp >= assessmentEnd);
+
+    // Revert if voting not concluded
+    require(votingConcluded, VotingNotConcluded());
+
+    // Determine when the cooldown starts
+    uint32 cooldownStart = allVoted ? latestVoteTimestamp : assessmentEnd;
+    uint32 cooldownEnd = cooldownStart + assessment.assessmentData.cooldownPeriod;
+
+    // Ensure cooldown has elapsed
+    require(block.timestamp >= cooldownEnd, AssessmentStillInCooldown());
+
+    assessment.finalizedAt = cooldownStart;
+    assessment.acceptVotes = acceptVotes.toUint8();
+    assessment.denyVotes = denyVotes.toUint8();
+
+    emit AssessmentClosed(claimId);
+  }
+
+  /**
+   * @dev Returns true when no further votes should be accepted.
+   *
+   * Voting is considered closed when:
+   *   1) A majority (accept vs deny) already exists, AND
+   *   2) Either every assessor has voted, or the fixed voting period has elapsed.
+   *
+   * If there is a draw after the period elapsed we still return false so that
+   * additional votes can break the deadlock.
+   */
+  function _isVotingClosed(
+    uint claimId,
+    Assessment storage assessment
+  ) internal view returns (bool closed) {
+
+    // Already finalized (i.e. closed)
+    if (assessment.finalizedAt != 0) return true;
+
+    EnumerableSet.UintSet storage assessorGroup = _groups[assessment.assessmentData.assessingGroupId];
+    uint assessorGroupLength = assessorGroup.length();
+
+    (uint acceptVotes, uint denyVotes,) = _getVoteTally(claimId, assessorGroup, assessorGroupLength);
+
+    // Keep allowing voting if draw
+    bool hasMajority = acceptVotes != denyVotes;
+    if (!hasMajority) return false;
+
+    bool allVoted = acceptVotes + denyVotes == assessorGroupLength;
+    bool votingPeriodOver = block.timestamp >= assessment.start + VOTING_PERIOD.toUint32();
+
+    return (allVoted || votingPeriodOver);
   }
 }

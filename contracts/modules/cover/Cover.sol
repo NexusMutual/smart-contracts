@@ -167,16 +167,25 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
     if (params.coverId != 0) {
 
-
       CoverReference memory coverReference = getCoverReference(params.coverId);
-
       require(coverReference.originalCoverId == params.coverId, MustBeOriginalCoverId(coverReference.originalCoverId));
 
-      (
-        previousCoverAmount,
-        previousCoverExpiration,
-        refundedPremium
-      ) = _requestDeallocation(coverReference.latestCoverId);
+      CoverData memory cover = _coverData[coverReference.latestCoverId];
+      previousCoverAmount = cover.amount;
+      previousCoverExpiration = cover.start + cover.period;
+
+      require(block.timestamp < previousCoverExpiration, ExpiredCoversCannotBeEdited());
+      require(params.coverAsset == cover.coverAsset, CoverAssetMismatch());
+
+      refundedPremium = _requestDeallocation(
+        cover,
+        coverReference.latestCoverId,
+        previousCoverExpiration - block.timestamp // remaining period
+      );
+
+      // mark previous cover as ending now
+      cover.period = (block.timestamp - cover.start).toUint32();
+      _coverData[coverId] = cover;
 
       _coverReference[coverId].originalCoverId = params.coverId.toUint32();
       _coverReference[params.coverId].latestCoverId = coverId.toUint32();
@@ -326,19 +335,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     return (totalCoverAmountInCoverAsset, totalAmountDueInNXM);
   }
 
-  function _requestDeallocation(uint coverId) internal returns (
-    uint previousCoverAmount,
-    uint previousCoverExpiration,
-    uint refundedPremium
-  ) {
-
-    CoverData memory cover = _coverData[coverId];
-
-    // get previous expiration timestamp
-    previousCoverExpiration = cover.start + cover.period;
-
-    // require the previous cover not to be expired
-    require(block.timestamp < previousCoverExpiration, ExpiredCoversCannotBeEdited());
+  function _requestDeallocation(
+    CoverData memory cover,
+    uint coverId,
+    uint remainingPeriod
+  ) internal returns (uint refundedPremium) {
 
     uint allocationsLength = _poolAllocations[coverId].length;
 
@@ -347,7 +348,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       PoolAllocation memory allocation = _poolAllocations[coverId][allocationIndex];
 
       // refund = premium * remaining_period / cover_period
-      refundedPremium += allocation.premiumInNXM * (previousCoverExpiration - block.timestamp) / cover.period;
+      refundedPremium += allocation.premiumInNXM * remainingPeriod / cover.period;
 
       // construct deallocation request
       DeallocationRequest memory deallocationRequest = DeallocationRequest(
@@ -363,15 +364,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       stakingPool(allocation.poolId).requestDeallocation(deallocationRequest);
     }
 
-    // mark previous cover as ending now
-    cover.period = (block.timestamp - cover.start).toUint32();
-    _coverData[coverId] = cover;
-
-    return (
-      cover.amount,
-      previousCoverExpiration,
-      refundedPremium
-    );
+    return refundedPremium;
   }
 
   function _retrievePayment(

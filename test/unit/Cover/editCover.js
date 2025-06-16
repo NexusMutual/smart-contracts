@@ -1691,6 +1691,38 @@ describe('editCover', function () {
     expect(coverReference.latestCoverId).to.equal(originalCoverId);
   });
 
+  it('reverts if the cover asset is different', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover, Assets } = fixture;
+    const [coverBuyer] = fixture.accounts.members;
+
+    const coverBuyParams = { ...coverBuyFixture, coverAsset: Assets.ETH };
+    const editCoverAsset = Assets.DAI;
+
+    const { productId, period, amount } = coverBuyParams;
+    const { coverId: originalCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyParams);
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: originalCoverId,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset: editCoverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: 0,
+          paymentAsset: editCoverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: 1, coverAmountInAsset: amount }],
+      ),
+    ).to.be.revertedWithCustomError(cover, 'CoverAssetMismatch');
+  });
+
   it('cover reference should change after a cover edit', async function () {
     const fixture = await loadFixture(setup);
     const { cover } = fixture;

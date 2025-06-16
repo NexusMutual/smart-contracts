@@ -329,6 +329,58 @@ describe('editCover', function () {
     });
   });
 
+  it('should mark the edited cover as ending now', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+
+    const [coverBuyer] = fixture.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(fixture, coverBuyFixture);
+    const initialCover = await cover.getCoverData(expectedCoverId);
+
+    const reducedPeriod = period - daysToSeconds(1);
+
+    const tx = await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: expectedCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period: reducedPeriod,
+        maxPremiumInAsset: 0,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: 1, coverAmountInAsset: amount.toString() }],
+      {
+        value: 0,
+      },
+    );
+
+    const { blockNumber } = await tx.wait();
+    const { timestamp } = await ethers.provider.getBlock(blockNumber);
+    const expectedNewPeriod = BigNumber.from(timestamp).sub(initialCover.start);
+
+    const editedCover = await cover.getCoverData(expectedCoverId);
+    expect(editedCover.start).to.be.equal(initialCover.start);
+    expect(editedCover.period).to.be.equal(expectedNewPeriod);
+
+    const newCoverId = expectedCoverId.add(1);
+    await assertCoverFields(cover, newCoverId, {
+      productId,
+      coverAsset,
+      period: reducedPeriod,
+      amount,
+      gracePeriod,
+    });
+  });
+
   it('should edit purchased cover and increase period and amount', async function () {
     const fixture = await loadFixture(setup);
     const { cover } = fixture;

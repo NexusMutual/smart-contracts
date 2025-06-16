@@ -185,7 +185,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
       // mark previous cover as ending now
       cover.period = (block.timestamp - cover.start).toUint32();
-      _coverData[coverId] = cover;
+      _coverData[coverReference.latestCoverId] = cover;
 
       _coverReference[coverId].originalCoverId = params.coverId.toUint32();
       _coverReference[params.coverId].latestCoverId = coverId.toUint32();

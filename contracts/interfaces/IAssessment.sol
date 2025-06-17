@@ -42,8 +42,6 @@ interface IAssessment {
 
   function startAssessment(uint claimId, uint16 productTypeId) external;
 
-  function closeAssessment(uint claimId) external;
-
   /* ========== VIEWS ========== */
 
   function getGroupsCount() external view returns (uint groupCount);
@@ -64,9 +62,11 @@ interface IAssessment {
 
   function assessorGroupOf(uint claimId) external view returns (uint32);
 
-  function getAssessmentInfo(uint claimId) external view returns (uint acceptVotes, uint denyVotes, uint groupSize, uint32 start, uint32 end, uint32 finalizedAt);
+  function getAssessmentInfo(uint claimId) external view returns (uint8 acceptVotes, uint8 denyVotes, uint groupSize, uint32 start, uint32 end, uint32 finalizedAt, bool cooldownPassed);
 
   function ballotOf(uint claimId, address assessor) external view returns (Ballot memory);
+
+  function hasCooldownPassed(uint claimId) external view returns (bool);
 
   /* ========= EVENTS ========== */
 
@@ -112,4 +112,6 @@ interface IAssessment {
   error VotingNotConcluded();
   error VotingPeriodEnded();
   error MajorityNotReached();
+  error AssessmentCooldownPassed(uint claimId);
+  error HasNotVoted(uint claimId);
 }

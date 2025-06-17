@@ -96,14 +96,15 @@ contract Claims is IClaims, RegistryAware {
       ,
       uint32 start,
       uint32 end,
-      uint32 finalizedAt
+      uint32 finalizedAt,
+      bool cooldownPassed
     ) = _assessment().getAssessmentInfo(claimId);
 
     ClaimStatus claimStatus = ClaimStatus.PENDING;
     PayoutStatus payoutStatus = PayoutStatus.PENDING;
     {
       // Determine the claims status
-      if (finalizedAt > 0) {
+      if (cooldownPassed) {
         if (acceptVotes > denyVotes) {
           claimStatus = ClaimStatus.ACCEPTED;
         } else {
@@ -203,8 +204,8 @@ contract Claims is IClaims, RegistryAware {
       uint previousSubmission = lastClaimSubmissionOnCover[coverId];
 
       if (previousSubmission > 0) {
-        (uint acceptVotes, uint denyVotes,,,,uint32 finalizedAt) = _assessment().getAssessmentInfo(previousSubmission);
-        require(finalizedAt > 0, ClaimIsBeingAssessed());
+        (uint acceptVotes, uint denyVotes,,,,uint32 finalizedAt,bool cooldownPassed) = _assessment().getAssessmentInfo(previousSubmission);
+        require(cooldownPassed, ClaimIsBeingAssessed());
         require(
           acceptVotes < denyVotes ||
           block.timestamp >= finalizedAt + PAYOUT_REDEMPTION_PERIOD,
@@ -274,12 +275,9 @@ contract Claims is IClaims, RegistryAware {
   function redeemClaimPayout(uint104 claimId) external override whenNotPaused(C_CLAIMS) {
     Claim memory claim = _claims[claimId];
 
-    // Close the assessment if it's not already closed
-    _assessment().closeAssessment(claimId);
+    (uint acceptVotes,uint denyVotes, , , , uint32 finalizedAt, bool cooldownPassed) = _assessment().getAssessmentInfo(claimId);
 
-    (uint acceptVotes,uint denyVotes, , , , uint32 finalizedAt) = _assessment().getAssessmentInfo(claimId);
-
-    require(finalizedAt > 0, ClaimAssessmentNotFinished());
+    require(cooldownPassed, ClaimAssessmentNotFinished());
     require(acceptVotes > denyVotes, ClaimNotAccepted());
 
     require(block.timestamp < finalizedAt + PAYOUT_REDEMPTION_PERIOD, RedemptionPeriodExpired());

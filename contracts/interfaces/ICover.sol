@@ -169,6 +169,7 @@ interface ICover {
   error CoverPeriodTooLong();
   error CoverOutsideOfTheGracePeriod();
   error CoverAmountIsZero();
+  error CoverAssetMismatch();
 
   // Products
   error ProductNotFound();

@@ -175,7 +175,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     _unstake(msg.sender, amount, to);
   }
 
-  /// Withdraws all of the the given staker's stake
+  /// Withdraws all of the given staker's stake
   ///
   /// @dev At least stakeLockupPeriodInDays must have passed since the last vote.
   ///

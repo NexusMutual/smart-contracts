@@ -440,7 +440,7 @@ contract StakingPool is IStakingPool, Multicall {
   /// @notice Withdraws stake and rewards for a given token and specified tranches.
   /// @dev The function processes the withdrawal of both stake and rewards for a given staking NFT (`tokenId`).
   ///      Call StakingPoolViewer.getTokens to retrieve the relevant tranche IDs for a tokenId.
-  ///      A stake can only be withdrawn if the the associated tranche where it was deposited has expired
+  ///      A stake can only be withdrawn if the associated tranche where it was deposited has expired
   ///      Operates only when the contract is not paused.
   /// @param tokenId The ID of the staking NFT representing the deposited stake and its associated rewards.
   /// @param withdrawStake Whether to withdraw the total stake associated with the `tokenId`.

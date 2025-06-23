@@ -20,7 +20,6 @@ contract Claims is IClaims, RegistryAware {
 
   /* ========== STATE VARIABLES ========== */
 
-  // TODO: public?
   mapping(uint claimId => Claim) private _claims;
 
   // Mapping from coverId to claimId used to check if a new claim can be submitted on the given
@@ -71,15 +70,15 @@ contract Claims is IClaims, RegistryAware {
     return _nextClaimId - 1;
   }
 
-  function getClaimInfo(uint claimId) external view returns (Claim memory) {
+  function getClaimInfo(uint claimId) external override view returns (Claim memory) {
     return _claims[claimId];
   }
 
-  function getPayoutRedemptionPeriod() external pure returns (uint) {
+  function getPayoutRedemptionPeriod() external override pure returns (uint) {
     return PAYOUT_REDEMPTION_PERIOD;
   }
 
-  // TODO: check to move to Claim+Assessment Viewer
+  // TODO: check to move to Claim+Assessment Viewer for FE
 
   /// Returns a Claim aggregated in a human-friendly format.
   ///
@@ -90,43 +89,8 @@ contract Claims is IClaims, RegistryAware {
   function getClaimDisplay(uint claimId) internal view returns (ClaimDisplay memory) {
     Claim memory claim = _claims[claimId];
 
-    (
-      uint acceptVotes,
-      uint denyVotes,
-      ,
-      uint32 start,
-      uint32 end,
-      uint32 finalizedAt,
-      bool cooldownPassed
-    ) = _assessment().getAssessmentInfo(claimId);
-
-    ClaimStatus claimStatus = ClaimStatus.PENDING;
-    PayoutStatus payoutStatus = PayoutStatus.PENDING;
-    {
-      // Determine the claims status
-      if (cooldownPassed) {
-        if (acceptVotes > denyVotes) {
-          claimStatus = ClaimStatus.ACCEPTED;
-        } else {
-          claimStatus = ClaimStatus.DENIED;
-        }
-      }
-
-      // Determine the payout status
-      if (claimStatus == ClaimStatus.ACCEPTED) {
-        if (claim.payoutRedeemed) {
-          payoutStatus = PayoutStatus.COMPLETE;
-        } else {
-          if (
-            block.timestamp >= finalizedAt + PAYOUT_REDEMPTION_PERIOD
-          ) {
-            payoutStatus = PayoutStatus.UNCLAIMED;
-          }
-        }
-      } else if (claimStatus == ClaimStatus.DENIED) {
-        payoutStatus = PayoutStatus.DENIED;
-      }
-    }
+    (uint cooldownEnd, IAssessment.AssessmentStatus assessmentStatus) = _assessment().getAssessmentResult(claimId);
+    (IAssessment.Assessment memory assessment) = _assessment().getAssessment(claimId);
 
     CoverData memory coverData = _cover().getCoverData(claim.coverId);
 
@@ -154,10 +118,11 @@ contract Claims is IClaims, RegistryAware {
       claim.coverAsset,
       coverData.start,
       expiration,
-      start,
-      end,
-      uint(claimStatus),
-      uint(payoutStatus)
+      assessment.start,
+      assessment.votingEnd,
+      cooldownEnd,
+      uint(assessmentStatus),
+      claim.payoutRedeemed
     );
   }
 
@@ -168,8 +133,7 @@ contract Claims is IClaims, RegistryAware {
   /// claims by providing the following parameters:
   ///
   /// @param ids   Array of Claim ids which are returned as ClaimDisplay
-  function getClaimsToDisplay (uint[] calldata ids)
-  external view returns (ClaimDisplay[] memory) {
+  function getClaimsToDisplay (uint[] calldata ids) external view returns (ClaimDisplay[] memory) {
     ClaimDisplay[] memory claimDisplays = new ClaimDisplay[](ids.length);
     for (uint i = 0; i < ids.length; i++) {
       uint id = ids[i];
@@ -184,8 +148,8 @@ contract Claims is IClaims, RegistryAware {
   function submitClaim(
     uint32 coverId,
     uint96 requestedAmount,
-    string calldata ipfsMetadata
-  ) external payable override whenNotPaused(C_CLAIMS) returns (Claim memory claim) {
+    bytes32 ipfsMetadata // todo change to bytes32
+  ) external payable override returns (Claim memory claim) {
     require(registry.isMember(msg.sender), OnlyMember());
     require(_coverNFT().isApprovedOrOwner(msg.sender, coverId), OnlyOwnerOrApprovedCanSubmitClaim());
     return _submitClaim(coverId, requestedAmount, ipfsMetadata, msg.sender);
@@ -194,7 +158,7 @@ contract Claims is IClaims, RegistryAware {
   function _submitClaim(
     uint32 coverId,
     uint96 requestedAmount,
-    string calldata ipfsMetadata,
+    bytes32 ipfsMetadata,
     address owner
   ) internal returns (Claim memory) {
 
@@ -204,11 +168,18 @@ contract Claims is IClaims, RegistryAware {
       uint previousSubmission = lastClaimSubmissionOnCover[coverId];
 
       if (previousSubmission > 0) {
-        (uint acceptVotes, uint denyVotes,,,,uint32 finalizedAt,bool cooldownPassed) = _assessment().getAssessmentInfo(previousSubmission);
-        require(cooldownPassed, ClaimIsBeingAssessed());
+        (uint cooldownEnd, IAssessment.AssessmentStatus status) = _assessment().getAssessmentResult(claimId);
+        
         require(
-          acceptVotes < denyVotes ||
-          block.timestamp >= finalizedAt + PAYOUT_REDEMPTION_PERIOD,
+          status != IAssessment.AssessmentStatus.VOTING &&
+          status != IAssessment.AssessmentStatus.COOLDOWN, 
+          ClaimIsBeingAssessed()
+        );
+
+        require(
+          status == IAssessment.AssessmentStatus.DENIED ||
+          block.timestamp >= cooldownEnd + PAYOUT_REDEMPTION_PERIOD ||
+          _claims[claimId].payoutRedeemed,
           PayoutCanStillBeRedeemed()
         );
       }
@@ -227,7 +198,7 @@ contract Claims is IClaims, RegistryAware {
 
     emit ClaimSubmitted(
       owner,              // claim submitter
-      claimId,      // claimId
+      claimId,            // claimId
       coverId,            // coverId
       coverData.productId // user
     );
@@ -243,7 +214,7 @@ contract Claims is IClaims, RegistryAware {
 
     _claims[claimId] = claim;
 
-    if (bytes(ipfsMetadata).length > 0) {
+    if (ipfsMetadata != bytes32(0)) {
       emit MetadataSubmitted(claimId, ipfsMetadata);
     }
 
@@ -272,17 +243,9 @@ contract Claims is IClaims, RegistryAware {
   /// When the tokens are transfered the assessment deposit is also sent back.
   ///
   /// @param claimId  Claim identifier
-  function redeemClaimPayout(uint104 claimId) external override whenNotPaused(C_CLAIMS) {
-    Claim memory claim = _claims[claimId];
+  function redeemClaimPayout(uint104 claimId) external override whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
+    Claim memory claim = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.ACCEPTED);
 
-    (uint acceptVotes,uint denyVotes, , , , uint32 finalizedAt, bool cooldownPassed) = _assessment().getAssessmentInfo(claimId);
-
-    require(cooldownPassed, ClaimAssessmentNotFinished());
-    require(acceptVotes > denyVotes, ClaimNotAccepted());
-
-    require(block.timestamp < finalizedAt + PAYOUT_REDEMPTION_PERIOD, RedemptionPeriodExpired());
-
-    require(!claim.payoutRedeemed, PayoutAlreadyRedeemed());
     _claims[claimId].payoutRedeemed = true;
 
     _ramm().updateTwap();
@@ -295,5 +258,33 @@ contract Claims is IClaims, RegistryAware {
     _pool().sendPayout(claim.coverAsset, coverOwner, claim.amount, CLAIM_DEPOSIT_IN_ETH);
 
     emit ClaimPayoutRedeemed(coverOwner, claim.amount, claimId, claim.coverId);
+  }
+
+  function retriveDeposit(uint104 claimId) external override whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
+    Claim memory claim =_validateClaimStatus(claimId, IAssessment.AssessmentStatus.DRAW);
+    
+    _claims[claimId].payoutRedeemed = true;
+
+    address payable coverOwner = payable(_coverNFT().ownerOf(claim.coverId));
+
+    _pool().returnDeposit(coverOwner, CLAIM_DEPOSIT_IN_ETH);
+
+    emit ClaimDepositRetrived(claimId, coverOwner);
+  }
+
+  function _validateClaimStatus(
+    uint104 claimId, 
+    IAssessment.AssessmentStatus expectedStatus
+  ) internal view returns (Claim memory claim) {
+    claim = _claims[claimId];
+    require(claim.amount > 0, InvalidClaimId());
+    
+    (uint cooldownEnd, IAssessment.AssessmentStatus status) = _assessment().getAssessmentResult(claimId);
+    require(status == expectedStatus, InvalidAssessmentStatus());
+    require(block.timestamp < cooldownEnd + PAYOUT_REDEMPTION_PERIOD, RedemptionPeriodExpired());
+
+    require(!claim.payoutRedeemed, PayoutAlreadyRedeemed());
+
+    return claim;
   }
 }

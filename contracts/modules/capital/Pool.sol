@@ -358,15 +358,26 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     }
 
     if (ethDepositAmount > 0) {
-      // solhint-disable-next-line avoid-low-level-calls
-      (bool transferSucceeded, /* data */) = payoutAddress.call{value: ethDepositAmount}("");
-      require(transferSucceeded, "Pool: ETH transfer failed");
-      emit DepositReturned(payoutAddress, ethDepositAmount);
+      _returnDeposit(payoutAddress, ethDepositAmount);
     }
 
     emit Payout(payoutAddress, asset.assetAddress, amount);
 
     mcr().updateMCRInternal(true);
+  }
+
+  function returnDeposit(
+    address payable payoutAddress, 
+    uint ethDepositAmount
+  ) external override onlyInternal nonReentrant {
+    _returnDeposit(payoutAddress, ethDepositAmount);
+  }
+
+  function _returnDeposit(address payable payoutAddress,  uint ethDepositAmount) internal {
+    // solhint-disable-next-line avoid-low-level-calls
+    (bool transferSucceeded, /* data */) = payoutAddress.call{value: ethDepositAmount}("");
+    require(transferSucceeded, "Pool: ETH transfer failed");
+    emit DepositReturned(payoutAddress, ethDepositAmount);
   }
 
   /* ========== TOKEN RELATED MUTATIVE FUNCTIONS ========== */

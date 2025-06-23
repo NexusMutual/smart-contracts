@@ -60,7 +60,7 @@ contract Registry is IRegistry, EIP712 {
 
   function setEmergencyAdmin(address _emergencyAdmin, bool enabled) external onlyGovernance {
     isEmergencyAdmin[_emergencyAdmin] = enabled;
-    // emit event
+    // emit event?
   }
 
   function proposePauseConfig(uint config) external onlyEmergencyAdmin {

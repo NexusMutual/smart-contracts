@@ -1,14 +1,8 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
-// const { AggregatorType, Assets, ContractTypes } = require('../utils').constants;
-// const { toBytes2 } = require('../utils').helpers;
-// const { proposalCategories } = require('../utils');
-// const { enrollMember, enrollABMember, getGovernanceSigner } = require('./utils/enroll');
-// const { setNextBlockBaseFee } = require('../utils/evm');
-// const { impersonateAccount, setEtherBalance } = require('../utils').evm;
-
 const { parseEther, parseUnits, ZeroAddress, MaxUint256 } = ethers;
+const { C_REGISTRY, C_TOKEN, C_COVER_NFT, C_STAKING_NFT } = nexus.constants.ContractIndexes;
 
 const deployProxy = async (contract, deployParams = [], options = {}) => {
   const contractFactory = await ethers.getContractFactory(contract, options);
@@ -121,6 +115,41 @@ async function setup() {
 
   const ybETH = await ethers.deployContract('ERC20Mock');
   const token = await ethers.deployContract('NXMToken', [defaultSender, INITIAL_SUPPLY]);
+
+  // deploy registry
+  const registryProxy = await ethers.deployContract('UpgradeableProxy');
+  const legacyMaster = await ethers.deployContract('LegacyMaster');
+  const registryImplementation = await ethers.deployContract('DisposableRegistry', [registryProxy, legacyMaster]);
+  await registryProxy.upgradeTo(registryImplementation);
+  const registry = await ethers.getContractAt('Registry', registryProxy);
+
+  // add contracts to registry
+
+  // _addContract(C_REGISTRY, payable(address(this)), true);
+  // _addContract(C_STAKING_PRODUCTS, ZeroAddress, true);
+  // _addContract(C_COVER, ZeroAddress, true);
+  // _addContract(C_COVER_PRODUCTS, ZeroAddress, true);
+  // _addContract(C_SAFE_TRACKER, ZeroAddress, true);
+  // _addContract(C_TOKEN_CONTROLLER, ZeroAddress, true);
+  // _addContract(C_RAMM, ZeroAddress, true);
+  // _addContract(C_LIMIT_ORDERS, ZeroAddress, true);
+
+  // _deployContract(C_GOVERNOR, governorSalt, governorImplementation);
+  // _deployContract(C_POOL, poolSalt, address(0));
+  // _deployContract(C_SWAP_OPERATOR, swapOperator, address(0));
+  // _deployContract(C_ASSESSMENT, assessmentSalt, address(0));
+  // _deployContract(C_CLAIMS, claimsSalt, address(0));
+
+  // addContract(Token)
+  // addContract(CoverNFT)
+  // addContract(StakingNFT)
+
+  await registry.addContract(C_REGISTRY, registry, true);
+
+  // immutable
+  await registry.addContract(C_TOKEN, token, false);
+  await registry.addContract(C_COVER_NFT, coverNFT, false);
+  await registry.addContract(C_STAKING_NFT, stakingNFT, false);
 
   // proxy contracts
   const master = await deployProxy('DisposableNXMaster');

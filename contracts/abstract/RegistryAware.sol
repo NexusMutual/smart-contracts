@@ -25,11 +25,12 @@ uint constant C_CLAIMS           = 1 << 15;  // 32768
 // todo: consider adding StakingPoolFactory
 
 // pause types constants
-uint constant PAUSE_GLOBAL       = 1 << 0;   // 1
-uint constant PAUSE_RAMM         = 1 << 1;   // 2
-uint constant PAUSE_SWAPS        = 1 << 2;   // 4
-uint constant PAUSE_MEMBERSHIP   = 1 << 3;   // 8
-uint constant PAUSE_ASSESSMENTS  = 1 << 4;   // 16
+uint constant PAUSE_GLOBAL        = 1 << 0;   // 1
+uint constant PAUSE_RAMM          = 1 << 1;   // 2
+uint constant PAUSE_SWAPS         = 1 << 2;   // 4
+uint constant PAUSE_MEMBERSHIP    = 1 << 3;   // 8
+uint constant PAUSE_ASSESSMENTS   = 1 << 4;   // 16
+uint constant PAUSE_CLAIMS_PAYOUT = 1 << 5;  // 32
 
 contract RegistryAware {
 

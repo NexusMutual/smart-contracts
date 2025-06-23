@@ -4,28 +4,36 @@ pragma solidity >=0.5.0;
 
 interface IAssessment {
   struct AssessmentData {
-    uint32 assessingGroupId;
+    uint16 assessingGroupId;
     uint32 cooldownPeriod;
   }
 
   struct AssessmentGroupView {
     uint id;
-    bytes32 ipfsMetadata; // TODO: naming?
+    bytes32 ipfsMetadata;
     uint[] assessors;
   }
 
   struct Ballot {
-    bytes32 ipfsHash;
-    bool support;
     uint32 timestamp;
+    bool support;
   }
 
   struct Assessment {
-    AssessmentData assessmentData;
+    uint16 assessingGroupId;
+    uint32 cooldownPeriod;
     uint32 start;
-    uint32 finalizedAt; // 0, not closed yet else timestamp of closure
-    uint8 acceptVotes; // 0, if not finalized yet, should only be set once finalized
-    uint8 denyVotes; // 0, if not finalized yet, should only be set once finalized
+    uint32 votingEnd;
+    uint8 acceptVotes;
+    uint8 denyVotes;
+  }
+
+  enum AssessmentStatus {
+    VOTING,
+    COOLDOWN,
+    ACCEPTED,
+    DENIED,
+    DRAW
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -38,9 +46,21 @@ interface IAssessment {
 
   function removeAssessorFromAllGroups(uint assessorMemberId) external;
 
+  function setAssessmentDataForProductTypes(
+    uint[] calldata productTypeIds,
+    uint cooldownPeriod,
+    uint groupId
+  ) external;
+
+  function undoVotes(uint assessorMemberId, uint[] calldata claimIds) external;
+
   function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) external;
 
   function startAssessment(uint claimId, uint16 productTypeId) external;
+
+  function resetVotingPeriod(uint claimId) external;
+
+  function closeVoting(uint claimId) external;
 
   /* ========== VIEWS ========== */
 
@@ -62,18 +82,18 @@ interface IAssessment {
 
   function assessorGroupOf(uint claimId) external view returns (uint32);
 
-  function getAssessmentInfo(uint claimId) external view returns (uint8 acceptVotes, uint8 denyVotes, uint groupSize, uint32 start, uint32 end, uint32 finalizedAt, bool cooldownPassed);
+  function getAssessmentResult(uint claimId) external view returns(uint cooldownEnd, AssessmentStatus status);
 
   function ballotOf(uint claimId, address assessor) external view returns (Ballot memory);
 
-  function hasCooldownPassed(uint claimId) external view returns (bool);
+  function getAssessment(uint claimId) external view returns(Assessment memory assessment);
 
   /* ========= EVENTS ========== */
 
-  event SetAssessmentDataForProductTypes(uint[] productTypeIds, uint cooldownPeriod, uint groupId);
-  event AddAssessorToGroup(uint indexed groupId, uint assessorMemberId);
-  event RemoveAssessorFromGroup(uint indexed groupId, uint assessorMemberId);
-  event SetGroupMetadata(uint indexed groupId, bytes32 ipfsMetadata);
+  event AssessmentDataForProductTypesSet(uint[] productTypeIds, uint cooldownPeriod, uint groupId);
+  event AssessorAddedToGroup(uint indexed groupId, uint assessorMemberId);
+  event AssessorRemovedFromGroup(uint indexed groupId, uint assessorMemberId);
+  event GroupMetadataSet(uint indexed groupId, bytes32 ipfsMetadata);
 
   event AssessmentStarted(
     uint indexed claimId,
@@ -90,28 +110,21 @@ interface IAssessment {
     bytes32 ipfsHash
   );
 
-  event AssessmentClosed(uint claimId);
-  event AssessmentExtended(uint claimId, uint32 newEnd);
+  event AssessmentVotingEndChanged(uint claimId, uint newEnd);
 
   /* ========== ERRORS ========== */
 
   error AssessmentAlreadyExists();
-  error AssessmentStillInCooldown();
-  error MissingAssessmentDataForProductType(uint16 productTypeId);
-  error ClaimIdsEmpty();
-  error ClaimIdsVotesLengthMismatch();
-  error ClaimIdsCidsLengthMismatch();
-  error EmptyAssessorGroup();
   error InvalidAssessor();
   error InvalidClaimId();
   error InvalidGroupId();
   error InvalidMemberId();
   error InvalidProductType();
-  error InvalidVote();
-  error MustBeMember(address);
-  error VotingNotConcluded();
+  error OnlyMember();
   error VotingPeriodEnded();
-  error MajorityNotReached();
   error AssessmentCooldownPassed(uint claimId);
   error HasNotVoted(uint claimId);
+  error AlreadyVoted();
+  error VotingAlreadyClosed();
+  error NotEverybodyVoted();
 }

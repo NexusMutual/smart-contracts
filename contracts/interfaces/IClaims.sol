@@ -29,10 +29,11 @@ interface IClaims {
     uint assetIndex;
     uint coverStart;
     uint coverEnd;
-    uint pollStart;
-    uint pollEnd;
-    uint claimStatus;
-    uint payoutStatus;
+    uint assessmentStart;
+    uint assessmentVotingEnd;
+    uint assessmentCooldownEnd;
+    uint assessmentStatus;
+    bool payoutRedeemed;
   }
 
   /* ========== VIEWS ========== */
@@ -48,16 +49,19 @@ interface IClaims {
   function submitClaim(
     uint32 coverId,
     uint96 requestedAmount,
-    string calldata ipfsMetadata
+    bytes32 ipfsMetadata
   ) external payable returns (Claim memory);
 
-  function redeemClaimPayout(uint104 id) external;
+  function redeemClaimPayout(uint id) external;
+
+  function retriveDeposit(uint claimId) external; 
 
   /* ========== EVENTS ========== */
 
   event ClaimSubmitted(address indexed user, uint claimId, uint indexed coverId, uint productId);
-  event MetadataSubmitted(uint indexed claimId, string ipfsMetadata);
+  event MetadataSubmitted(uint indexed claimId, bytes32 ipfsMetadata);
   event ClaimPayoutRedeemed(address indexed user, uint amount, uint claimId, uint coverId);
+  event ClaimDepositRetrived(uint indexed claimId, address indexed user);
 
   /* ========== ERRORS ========== */
   
@@ -68,13 +72,11 @@ interface IClaims {
   error CoveredAmountExceeded();
   error CantBuyCoverAndClaimInTheSameBlock();
   error GracePeriodPassed();
-  error AssessmentDepositInsufficient();
-  error AssessmentDepositTrasnferRefundFailed();
+  error AssessmentDepositNotExact();
   error AssessmentDepositTransferToPoolFailed();
-  error ClaimAssessmentNotFinished();
-  error ClaimNotAccepted();
-  error CooldownPeriodNotPassed();
+  error InvalidAssessmentStatus();
   error RedemptionPeriodExpired();
   error PayoutAlreadyRedeemed();
   error OnlyMember();
+  error InvalidClaimId();
 }

@@ -57,6 +57,8 @@ interface IPool {
 
   function sendPayout(uint assetIndex, address payable payoutAddress, uint amount, uint depositInETH) external;
 
+  function returnDeposit(address payable payoutAddress, uint ethDepositAmount) external;
+
   function sendEth(address payoutAddress, uint amount) external;
 
   function getPoolValueInEth() external view returns (uint);

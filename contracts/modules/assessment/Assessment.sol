@@ -271,7 +271,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param voteSupport The assessor's vote; `true` to accept the claim, `false` to deny it.
   /// @param ipfsHash An IPFS hash containing off-chain metadata or reasoning for the vote.
   function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) override external whenNotPaused(PAUSE_ASSESSMENTS) {
-    (uint assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
+    (uint assessorMemberId, Assessment memory assessment) = _validateAssessor(claimId, msg.sender);
 
     require(block.timestamp < assessment.votingEnd, VotingPeriodEnded());
     require(_ballots[assessorMemberId][claimId].timestamp == 0, AlreadyVoted());
@@ -281,6 +281,8 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     } else {
       assessment.denyVotes++;
     }
+
+    _assessments[claimId] = assessment;
 
     _ballots[assessorMemberId][claimId] = Ballot({
       timestamp: uint32(block.timestamp),
@@ -298,7 +300,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param claimId The unique identifier for the claim.
   function closeVotingEarly(uint claimId) override external {
     // an assessor on the claim must call this to prevent front-running
-    (, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
+    (, Assessment memory assessment) = _validateAssessor(claimId, msg.sender);
     require(block.timestamp < assessment.votingEnd, VotingAlreadyClosed());
 
     uint[] memory assessors = getGroupAssessors(assessment.assessingGroupId);
@@ -317,6 +319,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     require(totalVotesFromGroup == groupSize, NotEverybodyVoted());
 
     assessment.votingEnd = block.timestamp.toUint32();
+    _assessments[claimId] = assessment;
 
     emit AssessmentVotingEndChanged(claimId, assessment.votingEnd);
   }
@@ -345,7 +348,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   function _validateAssessor(
     uint claimId,
     address assessor
-  ) internal view returns (uint assessorMemberId, Assessment storage assessment) {
+  ) internal view returns (uint assessorMemberId, Assessment memory assessment) {
     assessorMemberId = registry.getMemberId(assessor);
     require(assessorMemberId > 0, OnlyMember());
     assessment = _assessments[claimId];

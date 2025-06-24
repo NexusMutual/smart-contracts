@@ -243,21 +243,25 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @dev Only callable by internal contracts
   /// @dev Reverts if an assessment already exists for the given claimId
   function startAssessment(uint claimId, uint16 productTypeId) override external onlyContracts(C_CLAIMS) {
-    Assessment memory assessment = _assessments[claimId];
-    require(assessment.start == 0, AssessmentAlreadyExists());
+    require(_assessments[claimId].start == 0, AssessmentAlreadyExists());
 
     // validate that assessment data exists for the product type
     AssessmentData memory assessmentData = _assessmentData[productTypeId];
-    assessment.assessingGroupId = assessmentData.assessingGroupId;
-    assessment.cooldownPeriod = assessmentData.cooldownPeriod;
-    require(assessment.assessingGroupId != 0, InvalidProductType());
+    require(assessmentData.assessingGroupId != 0, InvalidProductType());
 
-    assessment.start = block.timestamp.toUint32();
-    assessment.votingEnd = (assessment.start + VOTING_PERIOD).toUint32();
+    uint32 startTime = block.timestamp.toUint32();
+    uint32 votingEndTime = (startTime + VOTING_PERIOD).toUint32();
 
-    _assessments[claimId] = assessment;
+    _assessments[claimId] = Assessment({
+      assessingGroupId: assessmentData.assessingGroupId,
+      cooldownPeriod: assessmentData.cooldownPeriod,
+      start: startTime,
+      votingEnd: votingEndTime,
+      acceptVotes: 0,
+      denyVotes: 0
+    });
 
-    emit AssessmentStarted(claimId, assessment.assessingGroupId, assessment.start, assessment.votingEnd);
+    emit AssessmentStarted(claimId, assessmentData.assessingGroupId, startTime, votingEndTime);
   }
 
   function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) override external whenNotPaused(PAUSE_ASSESSMENTS) {

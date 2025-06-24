@@ -25,7 +25,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
   mapping(uint claimId => Assessment) private _assessments;
 
-  mapping(uint assessorMemberId => mapping(uint claimId => Ballot)) private _ballots; 
+  mapping(uint assessorMemberId => mapping(uint claimId => Ballot)) private _ballots;
   // todo: do we want just event instead of storing?
   mapping(uint assessorMemberId => mapping(uint claimId => bytes32)) private _ballotsMetadata;
 
@@ -291,16 +291,21 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     emit VoteCast(claimId, msg.sender, assessorMemberId, voteSupport, ipfsHash);
   }
 
-  function closeVoting(uint claimId) override external {
-    Assessment memory assessment = _assessments[claimId];
-    require(assessment.start != 0, InvalidClaimId());
-    require(assessment.votingEnd > block.timestamp, VotingAlreadyClosed());
+  /// @notice Allows for the early closing of a claim's voting period.
+  /// @dev Can only be called if all assigned assessors have cast their votes.
+  ///      Must be called by an active assessor for the claim to prevent potential front-running.
+  ///      Sets the assessment's `votingEnd` to the current block timestamp.
+  /// @param claimId The unique identifier for the claim.
+  function closeVotingEarly(uint claimId) override external {
+    // an assessor on the claim must call this to prevent front-running
+    (, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
+    require(block.timestamp < assessment.votingEnd, VotingAlreadyClosed());
 
     uint[] memory assessors = getGroupAssessors(assessment.assessingGroupId);
     uint groupSize = assessors.length;
     uint totalVotesFromGroup = 0;
 
-    for(uint i = 0; i < groupSize; i++) {
+    for (uint i = 0; i < groupSize; i++) {
       if (_ballots[assessors[i]][claimId].timestamp > 0) {
         totalVotesFromGroup++;
       } else {
@@ -312,11 +317,13 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     require(totalVotesFromGroup == groupSize, NotEverybodyVoted());
 
     assessment.votingEnd = block.timestamp.toUint32();
-    _assessments[claimId] = assessment;
 
     emit AssessmentVotingEndChanged(claimId, assessment.votingEnd);
   }
 
+  /// @notice Resets the voting period for a claim, starting a new full voting window.
+  /// @dev Can only be called by the Governor contract. Reverts if the assessment's cooldown period has already passed.
+  /// @param claimId The unique identifier for the claim.
   function resetVotingPeriod(uint claimId) override external onlyContracts(C_GOVERNOR) {
     Assessment memory assessment = _assessments[claimId];
     require(assessment.start != 0, InvalidClaimId());

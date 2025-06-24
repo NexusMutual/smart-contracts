@@ -5,7 +5,7 @@ pragma solidity >=0.8.0;
 interface IRegistry {
 
   struct Contract {
-    address payable addr;
+    address addr;
     bool isProxy;
   }
 
@@ -47,7 +47,7 @@ interface IRegistry {
   /* == CONTRACT MANAGEMENT == */
   function isValidContractIndex(uint index) external pure returns (bool);
   function deployContract(uint index, bytes32 salt, address implementation) external;
-  function addContract(uint index, address payable contractAddress, bool isProxy) external;
+  function addContract(uint index, address contractAddress, bool isProxy) external;
   function upgradeContract(uint index, address implementation) external;
   function removeContract(uint index) external;
   function getContractAddressByIndex(uint index) external view returns (address payable);
@@ -67,6 +67,7 @@ interface IRegistry {
 
   error ContractAlreadyExists();
   error InvalidContractIndex();
+  error InvalidContractAddress();
   error ContractDoesNotExist();
   error ContractIsNotProxy();
 

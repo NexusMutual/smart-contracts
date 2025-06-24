@@ -32,35 +32,8 @@ contract NXMaster is INXMMaster {
 
   IRegistry public registry;
 
-  event PauseConfigured(bool paused);
-
-  modifier onlyGovernance() {
-    require(getLatestAddress("GV") == msg.sender, "Not authorized");
-    _;
-  }
-
-  modifier onlyEmergencyAdmin() {
-    require(msg.sender == emergencyAdmin, "NXMaster: Not emergencyAdmin");
-    _;
-  }
-
-  function initializeEmergencyAdmin() external {
-    if (emergencyAdmin == address(0)) {
-      emergencyAdmin = 0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D;
-    }
-  }
-
-  /**
-   * @dev set Emergency pause
-   * @param _paused to toggle emergency pause ON/OFF
-   */
-  function setEmergencyPause(bool _paused) public onlyEmergencyAdmin {
-    paused = _paused;
-    emit PauseConfigured(_paused);
-  }
-
   function isPause() public view returns (bool) {
-    return paused;
+    return registry.isPaused(PAUSE_GLOBAL);
   }
 
   function isMember(address _add) public view returns (bool) {
@@ -163,8 +136,9 @@ contract NXMaster is INXMMaster {
     return getLatestAddress("GV") == _add;
   }
 
-  function migrate(address _registry) external onlyGovernance {
+  function migrate(address _registry) external {
 
+    require(getLatestAddress("GV") == msg.sender, "NXMaster: Not authorized");
     require(address(registry) == address(0), "NXMaster: Already migrated");
 
     // transfer proxies' ownership

@@ -1,29 +1,10 @@
 const { ethers, nexus } = require('hardhat');
 const { setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+const { hexlify } = require('ethers/lib/utils');
 
 const { parseEther, parseUnits, ZeroAddress, MaxUint256 } = ethers;
-const { C_REGISTRY, C_TOKEN, C_COVER_NFT, C_STAKING_NFT } = nexus.constants.ContractIndexes;
-
-const deployProxy = async (contract, deployParams = [], options = {}) => {
-  const contractFactory = await ethers.getContractFactory(contract, options);
-  const implementation = await contractFactory.deploy(...deployParams);
-  const proxy = await ethers.deployContract('OwnedUpgradeabilityProxy', [implementation.address]);
-  return await ethers.getContractAt(contract, proxy.address);
-};
-
-const upgradeProxy = async (proxyAddress, contract, constructorArgs = [], options = {}) => {
-  const contractFactory = await ethers.getContractFactory(contract, options);
-  const impl = await contractFactory.deploy(...constructorArgs);
-  const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
-  await proxy.upgradeTo(impl.address);
-  const instance = await ethers.getContractAt(contract, proxyAddress);
-  return instance;
-};
-
-const transferProxyOwnership = async (proxyAddress, newOwner) => {
-  const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
-  await proxy.transferProxyOwnership(newOwner);
-};
+const { ContractIndexes, AggregatorType, Assets } = nexus.constants;
+const { numberToBytes32 } = nexus.helpers;
 
 const assignRoles = accounts => ({
   defaultSender: accounts[0],
@@ -55,8 +36,7 @@ async function setup() {
 
   // deploy external contracts
   const investmentSafe = await ethers.deployContract('ERC20Mock');
-  const investmentSafeAddress = await investmentSafe.getAddress();
-  await setBalance(investmentSafeAddress, parseEther('1000'));
+  await setBalance(await investmentSafe.getAddress(), parseEther('1000'));
 
   const weth = await ethers.deployContract('WETH9');
 
@@ -84,13 +64,18 @@ async function setup() {
   await aWETH.setMetadata('MockAweth', 'aWETH', 18);
 
   // fund investmentSafe
-  await aWETH.setBalance(investmentSafeAddress, parseEther('10000'));
-  await usdc.setBalance(investmentSafeAddress, parseUnits('1000000', usdcDecimals));
-  await debtUsdc.setBalance(investmentSafeAddress, parseUnits('1000000', usdcDecimals));
+  await aWETH.setBalance(investmentSafe, parseEther('10000'));
+  await usdc.setBalance(investmentSafe, parseUnits('1000000', usdcDecimals));
+  await debtUsdc.setBalance(investmentSafe, parseUnits('1000000', usdcDecimals));
 
-  const chainlinkDAI = await ethers.deployContract('ChainlinkAggregatorMock');
-  await chainlinkDAI.setLatestAnswer(parseEther('1'));
+  // deploy oracles
 
+  // eth usd oracle
+  const chainlinkEthUsd = await ethers.deployContract('ChainlinkAggregatorMock');
+  await chainlinkEthUsd.setLatestAnswer(parseUnits('2500', 8));
+  await chainlinkEthUsd.setDecimals(8);
+
+  // eth derivatives
   const chainlinkSteth = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkSteth.setLatestAnswer(parseEther('1'));
 
@@ -100,240 +85,207 @@ async function setup() {
   const chainlinkAweth = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkAweth.setLatestAnswer(parseEther('1'));
 
+  // stablecoins
+  const chainlinkDAI = await ethers.deployContract('ChainlinkAggregatorMock');
+  await chainlinkDAI.setLatestAnswer(parseEther('1'));
+
   const chainlinkUSDC = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkUSDC.setLatestAnswer(parseEther('1'));
 
+  // enzyme vault
   const chainlinkEnzymeVault = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkEnzymeVault.setLatestAnswer(parseEther('1'));
 
-  const chainlinkSt = await ethers.deployContract('ChainlinkAggregatorMock');
-  await chainlinkSt.setLatestAnswer(parseEther('1'));
-
-  const chainlinkEthUsdAsset = await ethers.deployContract('ChainlinkAggregatorMock');
-  await chainlinkEthUsdAsset.setLatestAnswer(parseUnits('2500', 8));
-  await chainlinkEthUsdAsset.setDecimals(8);
-
-  const ybETH = await ethers.deployContract('ERC20Mock');
-  const token = await ethers.deployContract('NXMToken', [defaultSender, INITIAL_SUPPLY]);
-
   // deploy registry
+
   const registryProxy = await ethers.deployContract('UpgradeableProxy');
   const legacyMaster = await ethers.deployContract('LegacyMaster');
   const registryImplementation = await ethers.deployContract('DisposableRegistry', [registryProxy, legacyMaster]);
   await registryProxy.upgradeTo(registryImplementation);
-  const registry = await ethers.getContractAt('Registry', registryProxy);
+  const registry = await ethers.getContractAt('DisposableRegistry', registryProxy);
 
-  // add contracts to registry
+  // initialize registry
 
-  // _addContract(C_REGISTRY, payable(address(this)), true);
-  // _addContract(C_STAKING_PRODUCTS, ZeroAddress, true);
-  // _addContract(C_COVER, ZeroAddress, true);
-  // _addContract(C_COVER_PRODUCTS, ZeroAddress, true);
-  // _addContract(C_SAFE_TRACKER, ZeroAddress, true);
-  // _addContract(C_TOKEN_CONTROLLER, ZeroAddress, true);
-  // _addContract(C_RAMM, ZeroAddress, true);
-  // _addContract(C_LIMIT_ORDERS, ZeroAddress, true);
+  await registry.setGovernor(defaultSender);
+  await registry.addContract(
+    ContractIndexes.C_REGISTRY,
+    registry,
+    false, // registry does not track itself as a proxy
+  );
 
-  // _deployContract(C_GOVERNOR, governorSalt, governorImplementation);
-  // _deployContract(C_POOL, poolSalt, address(0));
-  // _deployContract(C_SWAP_OPERATOR, swapOperator, address(0));
-  // _deployContract(C_ASSESSMENT, assessmentSalt, address(0));
-  // _deployContract(C_CLAIMS, claimsSalt, address(0));
+  const proxyStubIndexes = [
+    ContractIndexes.C_TOKEN_CONTROLLER,
+    ContractIndexes.C_POOL,
+    ContractIndexes.C_COVER,
+    ContractIndexes.C_COVER_PRODUCTS,
+    ContractIndexes.C_STAKING_PRODUCTS,
+    ContractIndexes.C_RAMM,
+    ContractIndexes.C_SAFE_TRACKER,
+    ContractIndexes.C_LIMIT_ORDERS,
+    ContractIndexes.C_SWAP_OPERATOR,
+    ContractIndexes.C_ASSESSMENT,
+    ContractIndexes.C_CLAIMS,
+  ];
 
-  // addContract(Token)
-  // addContract(CoverNFT)
-  // addContract(StakingNFT)
+  for (let i = 0; i < proxyStubIndexes.length; i++) {
+    console.log('contract index:', proxyStubIndexes[i]);
+    console.log('salt:', numberToBytes32(i));
+    await registry.deployContract(proxyStubIndexes[i], numberToBytes32(i), ZeroAddress);
+  }
 
-  await registry.addContract(C_REGISTRY, registry, true);
+  const token = await ethers.deployContract('NXMToken', [defaultSender, INITIAL_SUPPLY]);
+  const coverAddress = await registry.getContractAddressByIndex(ContractIndexes.C_COVER);
 
-  // immutable
-  await registry.addContract(C_TOKEN, token, false);
-  await registry.addContract(C_COVER_NFT, coverNFT, false);
-  await registry.addContract(C_STAKING_NFT, stakingNFT, false);
+  const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [coverAddress]);
 
-  // proxy contracts
-  const master = await deployProxy('DisposableNXMaster');
-  const mr = await deployProxy('DisposableMemberRoles', [token]);
-  const ramm = await deployProxy('Ramm', [INITIAL_SPOT_PRICE_B]);
-  const pc = await deployProxy('DisposableProposalCategory');
-  const gv = await deployProxy('DisposableGovernance');
-  const st = await deployProxy('SafeTracker', [
+  const stakingNFTDescriptor = await ethers.deployContract('StakingNFTDescriptor');
+  const stakingNFT = await ethers.deployContract('StakingNFT', [
+    'Nexus Mutual Deposit',
+    'NMD',
+    stakingPoolFactory,
+    coverAddress, // operator
+    stakingNFTDescriptor,
+  ]);
+
+  const coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [coverAddress]);
+  const coverNFT = await ethers.deployContract('CoverNFT', [
+    'Nexus Mutual Cover',
+    'NMC',
+    coverAddress, // operator
+    coverNFTDescriptor,
+  ]);
+
+  await registry.addContract(ContractIndexes.C_TOKEN, token, false);
+  await registry.addContract(ContractIndexes.C_COVER_NFT, coverNFT, false);
+  await registry.addContract(ContractIndexes.C_STAKING_NFT, stakingNFT, false);
+
+  // deploy proxy implementations
+
+  const governorImplementation = await ethers.deployContract('Governor', [registry]);
+  const tokenControllerImplementation = await ethers.deployContract('TokenController', [
+    stakingPoolFactory,
+    token,
+    stakingNFT,
+  ]);
+  const poolImplementation = await ethers.deployContract('Pool', [registry]);
+
+  const stakingPoolImplementation = await ethers.deployContract('StakingPool', [
+    stakingNFT,
+    token,
+    coverAddress,
+    await registry.getContractAddressByIndex(ContractIndexes.C_TOKEN_CONTROLLER),
+    registry, // master
+    await registry.getContractAddressByIndex(ContractIndexes.C_STAKING_PRODUCTS),
+  ]);
+
+  const coverImplementation = await ethers.deployContract('Cover', [
+    coverNFT,
+    stakingNFT,
+    stakingPoolFactory,
+    stakingPoolImplementation,
+  ]);
+
+  // TODO: call on proxy!
+  // await coverImplementation.changeMasterAddress(registry);
+  // await coverImplementation.changeDependentContractAddress();
+
+  const coverProductsImplementation = await ethers.deployContract('CoverProducts', []);
+
+  const stakingProductsImplementation = await ethers.deployContract('StakingProducts', [
+    coverAddress,
+    stakingPoolFactory,
+  ]);
+
+  const rammImplementation = await ethers.deployContract('Ramm', [registry, INITIAL_SPOT_PRICE_B]);
+
+  const safeTrackerImplementation = await ethers.deployContract('SafeTracker', [
+    registry,
     INVESTMENT_LIMIT,
-    investmentSafe.address,
-    usdc.address,
-    dai.address,
-    weth.address,
-    aWETH.address,
-    debtUsdc.address,
+    investmentSafe,
+    usdc,
+    dai,
+    weth,
+    aWETH,
+    debtUsdc,
   ]);
 
-  // non-proxy contracts
+  const limitOrdersImplementation = await ethers.deployContract('LimitOrders', [token, weth, defaultSender]);
 
-  const mcrEth = parseEther('50000');
-  const latestBlock = await ethers.provider.getBlock('latest');
-  const lastUpdateTime = latestBlock.timestamp;
-  const maxMCRIncrement = 500;
-  const gearingFactor = 48000;
-  const minUpdateTime = 3600;
-  const desiredMCR = mcrEth;
-
-  const disposableMCR = await ethers.deployContract('DisposableMCR', [
-    mcrEth,
-    desiredMCR,
-    lastUpdateTime,
-    maxMCRIncrement,
-    gearingFactor,
-    minUpdateTime,
+  const swapOperatorImplementation = await ethers.deployContract('SwapOperator', [
+    registry,
+    ZeroAddress, // _cowSettlement - no swaps in integration testing
+    ZeroAddress, // _enzymeV4VaultProxyAddress - no enzyme in integration testing
+    ZeroAddress, // _enzymeFundValueCalculatorRouter
+    weth,
+    investmentSafe,
+    defaultSender, // swap controller
   ]);
 
-  // deploy MCR with DisposableMCR as a fake master
-  const block = await ethers.provider.getBlock('latest');
-  const mcrUpdateDeadline = block.timestamp + 30 * 24 * 3600;
-  const mc = await ethers.deployContract('MCR', [disposableMCR.address, mcrUpdateDeadline]);
+  const assessmentImplementation = await ethers.deployContract('Assessment', [token]);
 
-  // trigger initialize and update master address
-  await disposableMCR.initializeNextMcr(mc.address, master.address);
+  const claimsImplementation = await ethers.deployContract('IndividualClaims', [coverNFT]);
 
-  const ethContract = { address: Assets.ETH }; // dummy ETH contract
+  // upgrade proxies
+
+  await registry.upgradeContract(ContractIndexes.C_TOKEN_CONTROLLER, tokenControllerImplementation);
+  await registry.upgradeContract(ContractIndexes.C_POOL, poolImplementation);
+  await registry.upgradeContract(ContractIndexes.C_COVER, coverImplementation);
+  await registry.upgradeContract(ContractIndexes.C_COVER_PRODUCTS, coverProductsImplementation);
+  await registry.upgradeContract(ContractIndexes.C_STAKING_PRODUCTS, stakingProductsImplementation);
+  await registry.upgradeContract(ContractIndexes.C_RAMM, rammImplementation);
+  await registry.upgradeContract(ContractIndexes.C_SAFE_TRACKER, safeTrackerImplementation);
+  await registry.upgradeContract(ContractIndexes.C_LIMIT_ORDERS, limitOrdersImplementation);
+  await registry.upgradeContract(ContractIndexes.C_SWAP_OPERATOR, swapOperatorImplementation);
+  await registry.upgradeContract(ContractIndexes.C_ASSESSMENT, assessmentImplementation);
+  await registry.upgradeContract(ContractIndexes.C_CLAIMS, claimsImplementation);
+
+  await registry.replaceGovernor(numberToBytes32(1337), governorImplementation);
+
+  const masterAwareConctracts = [
+    ContractIndexes.C_TOKEN_CONTROLLER,
+    ContractIndexes.C_COVER,
+    ContractIndexes.C_COVER_PRODUCTS,
+    ContractIndexes.C_STAKING_PRODUCTS,
+    ContractIndexes.C_LIMIT_ORDERS,
+    // TODO: remove Assessment and Claims from here once we've merged the new assessment
+    ContractIndexes.C_ASSESSMENT,
+    ContractIndexes.C_CLAIMS,
+  ];
+
+  // !!!!!! CONTINUE FROM HERE
+  // TODO: deploy (Legacy)NXMaster
+
+  for (const contract of masterAwareConctracts) {
+    const contractAddress = await registry.getContractAddressByIndex(contract);
+    const masterAwareContract = await ethers.getContractAt('IMasterAwareV2', contractAddress);
+    await masterAwareContract.changeMasterAddress(legacyMaster);
+    await masterAwareContract.changeDependentContractAddress();
+  }
+
+  // whatever was here before
+
   const priceFeedOracleAssets = [
     { contract: dai, aggregator: chainlinkDAI, aggregatorType: AggregatorType.ETH, decimals: 18 },
     { contract: stETH, aggregator: chainlinkSteth, aggregatorType: AggregatorType.ETH, decimals: 18 },
     { contract: rETH, aggregator: chainlinkReth, aggregatorType: AggregatorType.ETH, decimals: 18 },
     { contract: aWETH, aggregator: chainlinkAweth, aggregatorType: AggregatorType.ETH, decimals: 18 },
-    { contract: st, aggregator: chainlinkSt, aggregatorType: AggregatorType.ETH, decimals: 18 },
+    { contract: safeTrackerAddress, aggregator: safeTrackerAddress, aggregatorType: AggregatorType.ETH, decimals: 18 },
     { contract: enzymeVault, aggregator: chainlinkEnzymeVault, aggregatorType: AggregatorType.ETH, decimals: 18 },
     { contract: usdc, aggregator: chainlinkUSDC, aggregatorType: AggregatorType.ETH, decimals: usdcDecimals },
     { contract: debtUsdc, aggregator: chainlinkUSDC, aggregatorType: AggregatorType.ETH, decimals: debtUsdcDecimals },
-    { contract: ethContract, aggregator: chainlinkEthUsdAsset, aggregatorType: AggregatorType.USD, decimals: 18 },
+    { contract: Assets.ETH, aggregator: chainlinkEthUsd, aggregatorType: AggregatorType.USD, decimals: 18 },
   ];
-
-  const priceFeedOracle = await ethers.deployContract('PriceFeedOracle', [
-    priceFeedOracleAssets.map(a => a.contract.address),
-    priceFeedOracleAssets.map(a => a.aggregator.address),
-    priceFeedOracleAssets.map(a => a.aggregatorType),
-    priceFeedOracleAssets.map(a => a.decimals),
-    st.address,
-  ]);
-
-  const cowVaultRelayer = await ethers.deployContract('SOMockVaultRelayer');
-  const cowSettlement = await ethers.deployContract('SOMockSettlement', [cowVaultRelayer.address]);
-  const swapOperator = await ethers.deployContract('SwapOperator', [
-    cowSettlement.address,
-    owner.address, // _swapController,
-    master.address,
-    weth.address,
-    ZeroAddress, // _enzymeV4VaultProxyAddress
-    ZeroAddress, // _safe
-    dai.address, // _dai
-    usdc.address, // _usdc
-    ZeroAddress, // _enzymeFundValueCalculatorRouter
-    '0',
-  ]);
 
   const legacyPool = await ethers.deployContract(
     'LegacyPool',
     [master, priceFeedOracle, swapOperator, dai, stETH, enzymeVault, token].map(c => c.address),
   );
 
-  const stakingNFTDescriptor = await ethers.deployContract('StakingNFTDescriptor');
-  const coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [master.address]);
-
-  // 1. deploy StakingPoolFactory, StakingNFT and CoverNFT with owner as temporary operator
-  const spf = await ethers.deployContract('StakingPoolFactory', [owner.address]);
-  const stakingNFT = await ethers.deployContract('StakingNFT', [
-    'Nexus Mutual Deposit',
-    'NMD',
-    spf.address,
-    owner.address,
-    stakingNFTDescriptor.address,
-  ]);
-  const coverNFT = await ethers.deployContract('CoverNFT', [
-    'Nexus Mutual Cover',
-    'NMC',
-    owner.address,
-    coverNFTDescriptor.address,
-  ]);
-
-  // deploy Cover, StakingProducts, CoverProducts and TokenController proxies
-  let cover = await deployProxy('Stub');
-  let stakingProducts = await deployProxy('Stub');
-  let tc = await deployProxy('Stub');
-
-  // deploy StakingPool implementation
-  const spArgs = [stakingNFT, token, cover, tc, master, stakingProducts].map(c => c.address);
-  const stakingPool = await ethers.deployContract('StakingPool', spArgs);
-
-  // deploy implementations and upgrade Cover and StakingProducts proxies
-  await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
-  cover = await ethers.getContractAt('Cover', cover.address);
-
-  await upgradeProxy(stakingProducts.address, 'StakingProducts', [cover.address, spf.address]);
-  stakingProducts = await ethers.getContractAt('StakingProducts', stakingProducts.address);
-
-  await upgradeProxy(tc.address, 'TokenController', [spf.address, token.address, stakingNFT.address]);
-  tc = await ethers.getContractAt('TokenController', tc.address);
-
-  // update operators
-  await spf.changeOperator(stakingProducts.address);
+  // update operators  await spf.changeOperator(stakingProducts.address);
   await stakingNFT.changeOperator(cover.address);
   await coverNFT.changeOperator(cover.address);
   await cover.changeMasterAddress(master.address);
   await stakingProducts.changeMasterAddress(master.address);
-
-  const ci = await deployProxy('IndividualClaims', [coverNFT.address]);
-  const as = await deployProxy('Assessment', [token.address]);
-  const coverProducts = await deployProxy('CoverProducts');
-  await coverProducts.changeMasterAddress(master.address);
-
-  const limitOrders = await deployProxy('LimitOrders', [token.address, weth.address, accounts.defaultSender.address]);
-  await limitOrders.changeMasterAddress(master.address);
-
-  const contractType = code => {
-    const upgradable = ['MC', 'P1', 'CR'];
-    const proxies = ['GV', 'MR', 'PC', 'TC', 'CI', 'AS', 'CO', 'SP', 'RA', 'ST', 'CP', 'LO'];
-
-    if (upgradable.includes(code)) {
-      return ContractTypes.Replaceable;
-    }
-
-    if (proxies.includes(code)) {
-      return ContractTypes.Proxy;
-    }
-
-    return 0;
-  };
-
-  const addressCodes = [
-    { address: tc.address, code: 'TC' },
-    { address: legacyPool.address, code: 'P1' },
-    { address: mc.address, code: 'MC' },
-    { address: owner.address, code: 'GV' },
-    { address: pc.address, code: 'PC' },
-    { address: mr.address, code: 'MR' },
-    { address: ci.address, code: 'CI' },
-    { address: as.address, code: 'AS' },
-    { address: cover.address, code: 'CO' },
-    { address: stakingProducts.address, code: 'SP' },
-    { address: ramm.address, code: 'RA' },
-    { address: st.address, code: 'ST' },
-    { address: coverProducts.address, code: 'CP' },
-    { address: limitOrders.address, code: 'LO' },
-  ];
-
-  await master.initialize(
-    owner.address,
-    token.address,
-    emergencyAdmin.address,
-    addressCodes.map(ac => toBytes2(ac.code)), // codes
-    addressCodes.map(ac => contractType(ac.code)), // types
-    addressCodes.map(ac => ac.address), // addresses
-  );
-
-  await legacyPool.changeDependentContractAddress();
-
-  await ramm.changeMasterAddress(master.address);
-  await ramm.changeDependentContractAddress();
-  await ramm.connect(emergencyAdmin).setEmergencySwapPause(false);
 
   // Manually add pool assets that are not automatically added via LegacyPool constructor
   await legacyPool.addAsset(
@@ -362,15 +314,6 @@ async function setup() {
     [parseEther('10000')], // initial tokens
     [owner.address], // advisory board members
   );
-
-  await mr.setKycAuthAddress(owner.address);
-
-  await pc.initialize(mr.address);
-
-  // FIXME gas override
-  for (const category of proposalCategories) {
-    await pc.addInitialCategory(...category);
-  }
 
   await gv.initialize(
     3 * 24 * 3600, // tokenHoldingTime
@@ -523,9 +466,6 @@ async function setup() {
     rETH,
     aWETH,
     enzymeVault,
-    ybDAI,
-    ybETH,
-    ybUSDC,
   };
   const nonUpgradable = { spf, coverNFT, stakingNFT };
   const instances = { tk: token, p1, mcr: mc };

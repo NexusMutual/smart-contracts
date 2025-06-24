@@ -22,6 +22,8 @@ uint constant C_SWAP_OPERATOR    = 1 << 13;  // 8192
 uint constant C_ASSESSMENT       = 1 << 14;  // 16384
 uint constant C_CLAIMS           = 1 << 15;  // 32768
 
+// todo: consider adding StakingPoolFactory
+
 // pause types constants
 uint constant PAUSE_GLOBAL       = 1 << 0;   // 1
 uint constant PAUSE_RAMM         = 1 << 1;   // 2

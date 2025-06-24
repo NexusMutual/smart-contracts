@@ -11,8 +11,15 @@ contract DisposableRegistry is Registry {
     address _master
   ) Registry(_verifyingAddress, _master) { }
 
-  function addGovernor(address governorImplementation) external {
-    _deployContract(C_GOVERNOR, 0, governorImplementation);
+  function setGovernor(address _governor) external {
+    contracts[C_GOVERNOR] = Contract({ addr: _governor, isProxy: true });
+    contractIndexes[_governor] = C_GOVERNOR;
+  }
+
+  function replaceGovernor(bytes32 _salt, address _governorImplementation) external {
+    delete contracts[C_GOVERNOR];
+    delete contractIndexes[contracts[C_GOVERNOR].addr];
+    _deployContract(C_GOVERNOR, _salt, _governorImplementation);
   }
 
 }

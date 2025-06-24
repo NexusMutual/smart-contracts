@@ -224,18 +224,20 @@ contract Registry is IRegistry, EIP712 {
     require(contracts[index].addr == address(0), ContractAlreadyExists());
     UpgradeableProxy proxy = new UpgradeableProxy{salt: bytes32(salt)}();
     proxy.upgradeTo(implementation);
-    contracts[index] = Contract({ addr: payable(proxy), isProxy: true });
+    contracts[index] = Contract({ addr: address(proxy), isProxy: true });
     contractIndexes[address(proxy)] = index;
   }
 
-  function addContract(uint index, address payable contractAddress, bool isProxy) external onlyGovernance {
+  function addContract(uint index, address contractAddress, bool isProxy) external onlyGovernance {
     _addContract(index, contractAddress, isProxy);
   }
 
-  function _addContract(uint index, address payable contractAddress, bool isProxy) internal {
+  function _addContract(uint index, address contractAddress, bool isProxy) internal {
     require(isValidContractIndex(index), InvalidContractIndex());
+    require(contractAddress != address(0), InvalidContractAddress());
     require(contracts[index].addr == address(0), ContractAlreadyExists());
-    require(UpgradeableProxy(contractAddress).proxyOwner() == address(this), NotProxyOwner());
+    require(!isProxy || UpgradeableProxy(payable(contractAddress)).proxyOwner() == address(this), NotProxyOwner());
+
     contracts[index] = Contract({addr: contractAddress, isProxy: isProxy});
     contractIndexes[contractAddress] = index;
   }
@@ -257,7 +259,7 @@ contract Registry is IRegistry, EIP712 {
 
   function getContractAddressByIndex(uint index) external view returns (address payable) {
     require(isValidContractIndex(index), InvalidContractIndex());
-    return contracts[index].addr;
+    return payable(contracts[index].addr);
   }
 
   function getContractTypeByIndex(uint index) external view returns (bool isProxy) {
@@ -295,7 +297,9 @@ contract Registry is IRegistry, EIP712 {
     // redeploy:        AS    CI             P1       GV
     // add new:                                                SO
 
-    _addContract(C_REGISTRY, payable(address(this)), true);
+    // registry is marked as non proxy because registry is not its own owner
+    _addContract(C_REGISTRY, address(this), false);
+
     _addContract(C_STAKING_PRODUCTS, master.getLatestAddress("SP"), true);
     _addContract(C_COVER, master.getLatestAddress("CO"), true);
     _addContract(C_COVER_PRODUCTS, master.getLatestAddress("CP"), true);

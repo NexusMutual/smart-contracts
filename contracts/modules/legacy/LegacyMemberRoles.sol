@@ -2,20 +2,11 @@
 
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
-
 import "../../abstract/RegistryAware.sol";
-import "../../interfaces/ICover.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IMemberRolesErrors.sol";
-import "../../interfaces/IPool.sol";
-import "../../interfaces/ITokenController.sol";
-import "../../interfaces/INXMToken.sol";
-import "../../interfaces/IStakingPool.sol";
-import "../../interfaces/IAssessment.sol";
 
-contract MemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
+contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
 
   struct MemberRoleDetails {
     uint memberCounter;
@@ -27,7 +18,6 @@ contract MemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
   address internal _unusedMGV; // was Master from GoVerned
   address internal _unusedMMA; // was Master from MasterAwareV2
   uint internal _unusedCMA; // was Contract mapping from MasterAwareV2
-  address internal _unused5; // was ITokenController public tc;
   address internal _unused6; // was address payable public poolAddress;
   address internal _unused7; // was kycAuthAddress
   address internal _unused8; // was ICover internal cover;

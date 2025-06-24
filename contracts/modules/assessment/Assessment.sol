@@ -264,10 +264,16 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     emit AssessmentStarted(claimId, assessmentData.assessingGroupId, startTime, votingEndTime);
   }
 
+  /// @notice Allows an assessor to cast a vote on a claim.
+  /// @dev Requires the caller to be a valid assessor for the claim's assigned group.
+  ///      Reverts if the voting period has ended or if the assessor has already voted.
+  /// @param claimId The unique identifier for the claim to vote on.
+  /// @param voteSupport The assessor's vote; `true` to accept the claim, `false` to deny it.
+  /// @param ipfsHash An IPFS hash containing off-chain metadata or reasoning for the vote.
   function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) override external whenNotPaused(PAUSE_ASSESSMENTS) {
-    (uint assessorMemberId, Assessment memory assessment) = _validateAssessor(claimId, msg.sender);
+    (uint assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
 
-    require(block.timestamp > assessment.votingEnd, VotingPeriodEnded());
+    require(block.timestamp < assessment.votingEnd, VotingPeriodEnded());
     require(_ballots[assessorMemberId][claimId].timestamp == 0, AlreadyVoted());
 
     if (voteSupport) {
@@ -275,8 +281,6 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     } else {
       assessment.denyVotes++;
     }
-
-    _assessments[claimId] = assessment;
 
     _ballots[assessorMemberId][claimId] = Ballot({
       timestamp: uint32(block.timestamp),
@@ -334,7 +338,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   function _validateAssessor(
     uint claimId,
     address assessor
-  ) internal view returns (uint assessorMemberId, Assessment memory assessment) {
+  ) internal view returns (uint assessorMemberId, Assessment storage assessment) {
     assessorMemberId = registry.getMemberId(assessor);
     require(assessorMemberId > 0, OnlyMember());
     assessment = _assessments[claimId];

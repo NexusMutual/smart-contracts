@@ -1,6 +1,5 @@
 const { ethers, nexus } = require('hardhat');
 const { setBalance } = require('@nomicfoundation/hardhat-network-helpers');
-const { hexlify } = require('ethers/lib/utils');
 
 const { parseEther, parseUnits, ZeroAddress, MaxUint256 } = ethers;
 const { ContractIndexes, AggregatorType, Assets } = nexus.constants;
@@ -66,13 +65,17 @@ async function setup() {
   // fund investmentSafe
   await aWETH.setBalance(investmentSafe, parseEther('10000'));
   await usdc.setBalance(investmentSafe, parseUnits('1000000', usdcDecimals));
-  await debtUsdc.setBalance(investmentSafe, parseUnits('1000000', usdcDecimals));
+  await debtUsdc.setBalance(investmentSafe, parseUnits('1000000', debtUsdcDecimals));
+
+  const cbBTCDecimals = 8;
+  const cbBTC = await ethers.deployContract('ERC20Mock');
+  await cbBTC.setMetadata('MockCbtc', 'cbBTC', cbBTCDecimals);
 
   // deploy oracles
 
   // eth usd oracle
   const chainlinkEthUsd = await ethers.deployContract('ChainlinkAggregatorMock');
-  await chainlinkEthUsd.setLatestAnswer(parseUnits('2500', 8));
+  await chainlinkEthUsd.setLatestAnswer(parseEther('2500'));
   await chainlinkEthUsd.setDecimals(8);
 
   // eth derivatives
@@ -84,6 +87,11 @@ async function setup() {
 
   const chainlinkAweth = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkAweth.setLatestAnswer(parseEther('1'));
+
+  // btc derivatives
+  const chainlinkCbBTC = await ethers.deployContract('ChainlinkAggregatorMock');
+  await chainlinkCbBTC.setLatestAnswer(parseEther('105000', 8)); // $105k per btc
+  await chainlinkCbBTC.setDecimals(8); // USD based aggregator
 
   // stablecoins
   const chainlinkDAI = await ethers.deployContract('ChainlinkAggregatorMock');
@@ -128,15 +136,23 @@ async function setup() {
   ];
 
   for (let i = 0; i < proxyStubIndexes.length; i++) {
-    console.log('contract index:', proxyStubIndexes[i]);
-    console.log('salt:', numberToBytes32(i));
     await registry.deployContract(proxyStubIndexes[i], numberToBytes32(i), ZeroAddress);
   }
 
   const token = await ethers.deployContract('NXMToken', [defaultSender, INITIAL_SUPPLY]);
-  const coverAddress = await registry.getContractAddressByIndex(ContractIndexes.C_COVER);
 
-  const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [coverAddress]);
+  const coverAddress = await registry.getContractAddressByIndex(ContractIndexes.C_COVER);
+  const stakingProductsAddress = await registry.getContractAddressByIndex(ContractIndexes.C_STAKING_PRODUCTS);
+
+  const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [stakingProductsAddress]);
+
+  const coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [coverAddress]);
+  const coverNFT = await ethers.deployContract('CoverNFT', [
+    'Nexus Mutual Cover',
+    'NMC',
+    coverAddress, // operator
+    coverNFTDescriptor,
+  ]);
 
   const stakingNFTDescriptor = await ethers.deployContract('StakingNFTDescriptor');
   const stakingNFT = await ethers.deployContract('StakingNFT', [
@@ -145,14 +161,6 @@ async function setup() {
     stakingPoolFactory,
     coverAddress, // operator
     stakingNFTDescriptor,
-  ]);
-
-  const coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [coverAddress]);
-  const coverNFT = await ethers.deployContract('CoverNFT', [
-    'Nexus Mutual Cover',
-    'NMC',
-    coverAddress, // operator
-    coverNFTDescriptor,
   ]);
 
   await registry.addContract(ContractIndexes.C_TOKEN, token, false);
@@ -185,16 +193,12 @@ async function setup() {
     stakingPoolImplementation,
   ]);
 
-  // TODO: call on proxy!
-  // await coverImplementation.changeMasterAddress(registry);
-  // await coverImplementation.changeDependentContractAddress();
-
   const coverProductsImplementation = await ethers.deployContract('CoverProducts', []);
 
-  const stakingProductsImplementation = await ethers.deployContract('StakingProducts', [
-    coverAddress,
-    stakingPoolFactory,
-  ]);
+  const stakingProductsImplementation = await ethers.deployContract(
+    'StakingProducts', // linterpls
+    [coverAddress, stakingPoolFactory],
+  );
 
   const rammImplementation = await ethers.deployContract('Ramm', [registry, INITIAL_SPOT_PRICE_B]);
 
@@ -239,9 +243,25 @@ async function setup() {
   await registry.upgradeContract(ContractIndexes.C_ASSESSMENT, assessmentImplementation);
   await registry.upgradeContract(ContractIndexes.C_CLAIMS, claimsImplementation);
 
-  await registry.replaceGovernor(numberToBytes32(1337), governorImplementation);
+  // get contract instances
 
-  const masterAwareConctracts = [
+  const fetch = async index => await registry.getContractAddressByIndex(index);
+  const getContract = async (index, name) => ethers.getContractAt(name, await fetch(index));
+
+  const governor = await getContract(ContractIndexes.C_GOVERNOR, 'Governor');
+  const tokenController = await getContract(ContractIndexes.C_TOKEN_CONTROLLER, 'TokenController');
+  const pool = await getContract(ContractIndexes.C_POOL, 'Pool');
+  const cover = await getContract(ContractIndexes.C_COVER, 'Cover');
+  const coverProducts = await getContract(ContractIndexes.C_COVER_PRODUCTS, 'CoverProducts');
+  const stakingProducts = await getContract(ContractIndexes.C_STAKING_PRODUCTS, 'StakingProducts');
+  const ramm = await getContract(ContractIndexes.C_RAMM, 'Ramm');
+  const safeTracker = await getContract(ContractIndexes.C_SAFE_TRACKER, 'SafeTracker');
+  const limitOrders = await getContract(ContractIndexes.C_LIMIT_ORDERS, 'LimitOrders');
+  const swapOperator = await getContract(ContractIndexes.C_SWAP_OPERATOR, 'SwapOperator');
+  const assessment = await getContract(ContractIndexes.C_ASSESSMENT, 'Assessment');
+  const claims = await getContract(ContractIndexes.C_CLAIMS, 'IndividualClaims');
+
+  const masterAwareContracts = [
     ContractIndexes.C_TOKEN_CONTROLLER,
     ContractIndexes.C_COVER,
     ContractIndexes.C_COVER_PRODUCTS,
@@ -252,85 +272,46 @@ async function setup() {
     ContractIndexes.C_CLAIMS,
   ];
 
-  // !!!!!! CONTINUE FROM HERE
-  // TODO: deploy (Legacy)NXMaster
+  const assets = [
+    { asset: Assets.ETH, isCoverAsset: true, oracle: chainlinkEthUsd, type: AggregatorType.USD },
+    { asset: dai, isCoverAsset: true, oracle: chainlinkDAI, type: AggregatorType.ETH },
+    { asset: stETH, isCoverAsset: true, oracle: chainlinkSteth, type: AggregatorType.ETH },
+    { asset: rETH, isCoverAsset: true, oracle: chainlinkReth, type: AggregatorType.ETH },
+    { asset: enzymeVault, isCoverAsset: true, oracle: chainlinkEnzymeVault, type: AggregatorType.ETH },
+    { asset: usdc, isCoverAsset: true, oracle: chainlinkUSDC, type: AggregatorType.ETH },
+    { asset: safeTracker, isCoverAsset: true, oracle: safeTracker, type: AggregatorType.ETH },
+    { asset: cbBTC, isCoverAsset: true, oracle: chainlinkCbBTC, type: AggregatorType.USD },
+    { asset: aWETH, isCoverAsset: true, oracle: chainlinkAweth, type: AggregatorType.ETH },
+    { asset: debtUsdc, isCoverAsset: true, oracle: chainlinkUSDC, type: AggregatorType.ETH },
+  ];
 
-  for (const contract of masterAwareConctracts) {
+  for (const assetDetails of assets) {
+    await pool.addAsset(
+      assetDetails.asset,
+      assetDetails.isCoverAsset,
+      await assetDetails.oracle.getAddress(),
+      assetDetails.type,
+    );
+  }
+
+  for (const contract of masterAwareContracts) {
     const contractAddress = await registry.getContractAddressByIndex(contract);
     const masterAwareContract = await ethers.getContractAt('IMasterAwareV2', contractAddress);
     await masterAwareContract.changeMasterAddress(legacyMaster);
     await masterAwareContract.changeDependentContractAddress();
   }
 
+  // work done, switch to the real Governor contract
+  await registry.replaceGovernor(numberToBytes32(1337), governorImplementation);
+
   // whatever was here before
 
-  const priceFeedOracleAssets = [
-    { contract: dai, aggregator: chainlinkDAI, aggregatorType: AggregatorType.ETH, decimals: 18 },
-    { contract: stETH, aggregator: chainlinkSteth, aggregatorType: AggregatorType.ETH, decimals: 18 },
-    { contract: rETH, aggregator: chainlinkReth, aggregatorType: AggregatorType.ETH, decimals: 18 },
-    { contract: aWETH, aggregator: chainlinkAweth, aggregatorType: AggregatorType.ETH, decimals: 18 },
-    { contract: safeTrackerAddress, aggregator: safeTrackerAddress, aggregatorType: AggregatorType.ETH, decimals: 18 },
-    { contract: enzymeVault, aggregator: chainlinkEnzymeVault, aggregatorType: AggregatorType.ETH, decimals: 18 },
-    { contract: usdc, aggregator: chainlinkUSDC, aggregatorType: AggregatorType.ETH, decimals: usdcDecimals },
-    { contract: debtUsdc, aggregator: chainlinkUSDC, aggregatorType: AggregatorType.ETH, decimals: debtUsdcDecimals },
-    { contract: Assets.ETH, aggregator: chainlinkEthUsd, aggregatorType: AggregatorType.USD, decimals: 18 },
-  ];
-
-  const legacyPool = await ethers.deployContract(
-    'LegacyPool',
-    [master, priceFeedOracle, swapOperator, dai, stETH, enzymeVault, token].map(c => c.address),
-  );
-
-  // update operators  await spf.changeOperator(stakingProducts.address);
-  await stakingNFT.changeOperator(cover.address);
-  await coverNFT.changeOperator(cover.address);
-  await cover.changeMasterAddress(master.address);
-  await stakingProducts.changeMasterAddress(master.address);
-
-  // Manually add pool assets that are not automatically added via LegacyPool constructor
-  await legacyPool.addAsset(
-    usdc.address,
-    true,
-    parseUnits('1000000', usdcDecimals),
-    parseUnits('2000000', usdcDecimals),
-    250,
-  );
-  await legacyPool.addAsset(rETH.address, false, parseEther('10000'), parseEther('20000'), 250);
-  await legacyPool.addAsset(st.address, false, parseEther('10000'), parseEther('20000'), 250);
-
-  await tc.changeMasterAddress(master.address);
-  await token.changeOperator(tc.address);
-
-  // whitelist Assessment contract
-  await impersonateAccount(mr.address);
-  await setNextBlockBaseFee(0);
-  await tc.connect(await ethers.getSigner(mr.address)).addToWhitelist(as.address, { gasPrice: 0 });
-
-  await mr.initialize(
-    owner.address,
-    master.address,
-    tc.address,
-    [owner.address], // initial members
-    [parseEther('10000')], // initial tokens
-    [owner.address], // advisory board members
-  );
-
-  await gv.initialize(
-    3 * 24 * 3600, // tokenHoldingTime
-    14 * 24 * 3600, // maxDraftTime
-    5, // maxVoteWeigthPer
-    40, // maxFollowers
-    75, // specialResolutionMajPerc
-    24 * 3600, // actionWaitingTime
-  );
+  await token.changeOperator(tokenController);
 
   const CLAIM_METHOD = {
     INDIVIDUAL_CLAIMS: 0,
+    DEPRECATED_YTC: 1,
   };
-
-  await cover.changeDependentContractAddress();
-  await stakingProducts.changeDependentContractAddress();
-  await coverProducts.changeDependentContractAddress();
 
   await coverProducts.setProductTypes([
     {
@@ -375,59 +356,25 @@ async function setup() {
   // set default product
   await coverProducts.setProducts([defaultProduct]);
 
-  await gv.changeMasterAddress(master.address);
-
-  await master.switchGovernanceAddress(gv.address);
-
-  await upgradeProxy(mr.address, 'MemberRoles', [token.address]);
-  await upgradeProxy(pc.address, 'ProposalCategory');
-  await upgradeProxy(master.address, 'NXMaster');
-  await upgradeProxy(gv.address, 'Governance');
-
-  // replace legacy pool after Ramm is initialized
-  const governanceSigner = await getGovernanceSigner(gv);
-  const p1 = await ethers.deployContract(
-    'Pool',
-    [master, priceFeedOracle, swapOperator, token, legacyPool].map(c => c.address),
-  );
-
-  // deploy CoverBroker
-  const coverBroker = await ethers.deployContract('CoverBroker', [
-    cover.address,
-    mr.address,
-    token.address,
-    master.address,
-    owner.address,
-  ]);
+  // FIXME: deploy CoverBroker
+  // const coverBroker = await ethers.deployContract('CoverBroker', [
+  //   cover.address,
+  //   mr.address,
+  //   token.address,
+  //   master.address,
+  //   owner.address,
+  // ]);
 
   // deploy viewer contracts
-  const stakingViewer = await ethers.deployContract('StakingViewer', [master.address, stakingNFT.address, spf.address]);
-  const assessmentViewer = await ethers.deployContract('AssessmentViewer', [master.address]);
-  const nexusViewer = await ethers.deployContract('NexusViewer', [
-    master.address,
-    stakingViewer.address,
-    assessmentViewer.address,
-  ]);
 
-  await master.connect(governanceSigner).upgradeMultipleContracts([toBytes2('P1')], [p1.address]);
-
-  // [todo] We should probably call changeDependentContractAddress on every contract
-  await cover.changeDependentContractAddress();
-  await ramm.changeDependentContractAddress();
-  await ci.changeDependentContractAddress();
-  await as.changeDependentContractAddress();
-  await mc.changeDependentContractAddress();
-  await mr.changeDependentContractAddress();
-  await tc.changeDependentContractAddress();
-
-  await transferProxyOwnership(mr.address, master.address);
-  await transferProxyOwnership(tc.address, master.address);
-  await transferProxyOwnership(pc.address, master.address);
-  await transferProxyOwnership(gv.address, master.address);
-  await transferProxyOwnership(ci.address, master.address);
-  await transferProxyOwnership(as.address, master.address);
-  await transferProxyOwnership(cover.address, gv.address);
-  await transferProxyOwnership(master.address, gv.address);
+  // const stakingViewer =
+  //                    await ethers.deployContract('StakingViewer', [master.address, stakingNFT.address, spf.address]);
+  // const assessmentViewer = await ethers.deployContract('AssessmentViewer', [master.address]);
+  // const nexusViewer = await ethers.deployContract('NexusViewer', [
+  // master.address,
+  // stakingViewer.address,
+  // assessmentViewer.address,
+  // ]);
 
   // Ensure ALL pool supported assets has fund (except st)
   const POOL_ETHER = parseEther('90000');

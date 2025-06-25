@@ -155,7 +155,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
       require(assetAddress != assets[i].assetAddress, AssetAlreadyExists());
     }
 
-    uint assetDecimals = IERC20Metadata(assetAddress).decimals();
+    uint assetDecimals = assetAddress == ETH ? 18 : IERC20Metadata(assetAddress).decimals();
     uint aggregatorDecimals = aggregator.decimals();
 
     if (aggregatorType == AggregatorType.ETH && aggregatorDecimals != 18) {

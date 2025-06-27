@@ -27,6 +27,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   // pool id => { rewards, deposits }
   mapping(uint => StakingPoolNXMBalances) public override stakingPoolNXMBalances;
 
+  // TODO: consider switching from addresses to memberIds
   // pool id => manager
   mapping(uint => address) internal stakingPoolManagers;
 
@@ -123,7 +124,14 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   /// @dev Removes an address from the whitelist in the token.
   /// @param _member The address to remove.
   function removeFromWhitelist(address _member) public override onlyInternal {
+    require(token.balanceOf(_member) == 0, MemberBalanceNotZero());
     token.removeFromWhiteList(_member);
+  }
+
+  function switchMembershipAddressWithTransfer(address from, address to) external override onlyInternal {
+    token.addToWhiteList(to);
+    token.transferFrom(from, to, token.balanceOf(from));
+    token.removeFromWhiteList(from);
   }
 
   /// @dev Mints new tokens for an address and checks if the address is a member.

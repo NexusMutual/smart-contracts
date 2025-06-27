@@ -79,6 +79,8 @@ interface ITokenController {
 
   function removeFromWhitelist(address _member) external;
 
+  function switchMembershipAddressWithTransfer(address from, address to) external;
+
   function mint(address _member, uint _amount) external;
 
   function lockForMemberVote(address _of, uint _days) external;

@@ -50,4 +50,10 @@ contract DisposableRegistry is Registry {
     }
   }
 
+  function addEmergencyAdmins(address[] calldata emergencyAdmins) external {
+    for (uint i = 0; i < emergencyAdmins.length; i++) {
+      isEmergencyAdmin[emergencyAdmins[i]] = true;
+    }
+  }
+
 }

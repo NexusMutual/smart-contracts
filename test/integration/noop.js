@@ -6,5 +6,6 @@ describe('noop', () => {
   it('should call setup', async () => {
     // eslint-disable-next-line no-unused-vars
     const fixture = await loadFixture(setup);
+    console.log('noop finished!');
   });
 });

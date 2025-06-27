@@ -2,7 +2,7 @@ const { ethers, nexus } = require('hardhat');
 const { setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { parseEther, parseUnits, ZeroAddress, MaxUint256 } = ethers;
-const { ContractIndexes, AggregatorType, Assets } = nexus.constants;
+const { ContractIndexes, ClaimMethod, AggregatorType, Assets } = nexus.constants;
 const { numberToBytes32 } = nexus.helpers;
 
 const assignRoles = accounts => ({
@@ -10,24 +10,14 @@ const assignRoles = accounts => ({
   nonMembers: accounts.slice(1, 5),
   members: accounts.slice(5, 10),
   advisoryBoardMembers: accounts.slice(10, 15),
-  internalContracts: accounts.slice(15, 20),
-  nonInternalContracts: accounts.slice(20, 25),
-  governanceContracts: accounts.slice(25, 30),
-  stakingPoolManagers: accounts.slice(30, 40),
-  emergencyAdmin: accounts[40],
-  generalPurpose: accounts.slice(41),
+  stakingPoolManagers: accounts.slice(15, 25),
+  emergencyAdmins: accounts.slice(25, 30),
+  generalPurpose: accounts.slice(30, 35),
 });
 
 async function setup() {
   const accounts = assignRoles(await ethers.getSigners());
-  const {
-    // basic accounts
-    advisoryBoardMembers,
-    defaultSender,
-    emergencyAdmin,
-    members,
-    stakingPoolManagers,
-  } = accounts;
+  const { defaultSender, members, advisoryBoardMembers, stakingPoolManagers, emergencyAdmins } = accounts;
   const [abMember] = advisoryBoardMembers;
 
   const INITIAL_SUPPLY = parseEther('6750000');
@@ -50,7 +40,7 @@ async function setup() {
   await rETH.setMetadata('MockReth', 'rETH', 18);
 
   const enzymeVault = await ethers.deployContract('ERC20Mock');
-  await enzymeVault.setMetadata('MockNxmty', 'NXMTY', 18);
+  await enzymeVault.setMetadata('MockTreasuryYield', 'NXMTY', 18);
 
   const usdcDecimals = 6;
   const usdc = await ethers.deployContract('ERC20Mock');
@@ -118,8 +108,10 @@ async function setup() {
 
   // initialize registry
 
-  await registry.addMembers([...members, ...advisoryBoardMembers]);
+  // todo: enroll cover broker as well
+  await registry.addMembers([...members, ...advisoryBoardMembers, ...stakingPoolManagers]);
   await registry.addAdvisoryBoardMembers(advisoryBoardMembers);
+  await registry.addEmergencyAdmins(emergencyAdmins);
 
   await registry.setGovernor(defaultSender);
   await registry.addContract(
@@ -313,14 +305,7 @@ async function setup() {
   // work done, switch to the real Governor contract
   await registry.replaceGovernor(numberToBytes32(1337), governorImplementation);
 
-  // whatever was here before
-
   await token.changeOperator(tokenController);
-
-  const CLAIM_METHOD = {
-    INDIVIDUAL_CLAIMS: 0,
-    DEPRECATED_YTC: 1,
-  };
 
   await coverProducts.connect(abMember).setProductTypes([
     {
@@ -329,7 +314,7 @@ async function setup() {
       productTypeId: MaxUint256,
       ipfsMetadata: 'protocolCoverIPFSHash',
       productType: {
-        claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
+        claimMethod: ClaimMethod.IndividualClaims,
         gracePeriod: 30 * 24 * 3600, // 30 days
       },
     },
@@ -340,31 +325,11 @@ async function setup() {
       ipfsMetadata: 'custodyCoverIPFSHash',
       productType: {
         descriptionIpfsHash: 'custodyCoverIPFSHash',
-        claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
+        claimMethod: ClaimMethod.IndividualClaims,
         gracePeriod: 90 * 24 * 3600, // 90 days
       },
     },
   ]);
-
-  const defaultProduct = {
-    productName: 'Product 0',
-    productId: MaxUint256,
-    ipfsMetadata: 'product 0 metadata',
-    product: {
-      productType: 0, // Protocol Cover
-      minPrice: 0,
-      __gap: 0,
-      coverAssets: 0, // Use fallback
-      initialPriceRatio: 100,
-      capacityReductionRatio: 0,
-      isDeprecated: false,
-      useFixedPrice: false,
-    },
-    allowedPools: [],
-  };
-
-  // set default product
-  await coverProducts.connect(abMember).setProducts([defaultProduct]);
 
   // FIXME: deploy CoverBroker
   // const coverBroker = await ethers.deployContract('CoverBroker', [
@@ -386,69 +351,76 @@ async function setup() {
   // assessmentViewer.address,
   // ]);
 
-  // Ensure ALL pool supported assets has fund (except st)
-  const POOL_ETHER = parseEther('90000');
-  const poolAssets = [
-    { asset: dai, poolValue: parseEther('2000000') },
-    { asset: usdc, poolValue: parseUnits('2000000', usdcDecimals) },
-    { asset: stETH, poolValue: parseEther('33202') },
-    { asset: rETH, poolValue: parseEther('13358') },
-    { asset: enzymeVault, poolValue: parseEther('15348') },
-  ];
-  await owner.sendTransaction({ to: p1.address, value: POOL_ETHER.toString() });
-  await Promise.all(poolAssets.map(pa => pa.asset.transfer(p1.address, pa.poolValue)));
+  // mint pool funds
 
-  // Rates
-  const assetToEthRate = (rate, powValue = 36) => BigInt(10).pow(BigInt(powValue)).div(rate);
+  await setBalance(await pool.getAddress(), parseEther('9500'));
+  await dai.mint(pool, parseEther('2000000'));
+  await usdc.mint(pool, parseUnits('2000000', usdcDecimals));
+  await stETH.mint(pool, parseEther('34000'));
+  await rETH.mint(pool, parseEther('12000'));
+  await enzymeVault.mint(pool, parseEther('15000'));
 
-  const ethToDaiRate = 20000;
-  const ethToNxmtyRate = 1000;
-  const ethToUsdcRate = parseUnits('200', usdcDecimals);
+  // mint safeTracker funds
 
-  const daiToEthRate = assetToEthRate(parseEther((ethToDaiRate / 100).toString()));
-  const nxmtyToEthRate = assetToEthRate(parseEther((ethToNxmtyRate / 100).toString()));
-  const usdcToEthRate = assetToEthRate(ethToUsdcRate, 24);
-
-  await chainlinkDAI.setLatestAnswer(daiToEthRate);
-  await chainlinkUSDC.setLatestAnswer(usdcToEthRate);
-  await chainlinkEnzymeVault.setLatestAnswer(nxmtyToEthRate);
+  await setBalance(await safeTracker.getAddress(), parseEther('100')); // 100 eth
+  await weth.mint(safeTracker, parseEther('100')); // 100 weth
+  await aWETH.mint(safeTracker, parseEther('100')); // 100 eth collateral ~= 250k usd
+  await debtUsdc.mint(safeTracker, parseUnits('50000', debtUsdcDecimals)); // 50k usdc debt
+  await usdc.mint(safeTracker, parseUnits('10000', usdcDecimals)); // 10k usdc
 
   const external = {
-    chainlinkDAI,
     dai,
     usdc,
-    debtUsdc,
-    weth,
     stETH,
     rETH,
-    aWETH,
     enzymeVault,
+    cbBTC,
+    weth,
+    aWETH,
+    debtUsdc,
+    chainlinkEthUsd,
+    chainlinkDAI,
+    chainlinkUSDC,
+    chainlinkSteth,
+    chainlinkReth,
+    chainlinkEnzymeVault,
+    chainlinkCbBTC,
+    chainlinkAweth,
   };
-  const nonUpgradable = { spf, coverNFT, stakingNFT };
-  const instances = { tk: token, p1, mcr: mc };
 
-  // we upgraded them, get non-disposable instances because
+  const nonUpgradable = {
+    token,
+    stakingPoolFactory,
+    coverNFT,
+    stakingNFT,
+    // not internally tracked but added for consistency:
+    coverNFTDescriptor,
+    stakingNFTDescriptor,
+  };
+
   const proxies = {
-    master: await ethers.getContractAt('NXMaster', master.address),
-    tc: await ethers.getContractAt('TokenController', tc.address),
-    gv: await ethers.getContractAt('Governance', gv.address),
-    pc: await ethers.getContractAt('ProposalCategory', pc.address),
-    mr: await ethers.getContractAt('MemberRoles', mr.address),
-    ra: await ethers.getContractAt('Ramm', ramm.address),
-    st: await ethers.getContractAt('SafeTracker', st.address),
-    ci: await ethers.getContractAt('IndividualClaims', ci.address),
-    as: await ethers.getContractAt('Assessment', as.address),
-    cover: await ethers.getContractAt('Cover', cover.address),
-    limitOrders: await ethers.getContractAt('LimitOrders', limitOrders.address),
+    registry,
+    master, // legacy
+    memberRoles, // legacy
+    tokenController,
+    governor,
+    pool,
+    ramm,
+    safeTracker,
+    claims,
+    assessment,
+    cover,
+    coverProducts,
+    stakingProducts,
+    limitOrders,
+    swapOperator,
   };
 
   const nonInternal = {
-    priceFeedOracle,
-    swapOperator,
-    coverBroker,
-    stakingViewer,
-    assessmentViewer,
-    nexusViewer,
+    // coverBroker,
+    // stakingViewer,
+    // assessmentViewer,
+    // nexusViewer,
   };
 
   const fixture = {};
@@ -456,66 +428,37 @@ async function setup() {
   fixture.contracts = {
     ...external,
     ...nonUpgradable,
-    ...instances,
     ...proxies,
     ...nonInternal,
   };
 
-  fixture.rates = {
-    ethToDaiRate,
-    ethToNxmtyRate,
-    ethToUsdcRate,
-    daiToEthRate,
-    usdcToEthRate,
-    nxmtyToEthRate,
-  };
-
-  fixture.contractType = contractType;
-
-  await enrollMember(fixture.contracts, members, owner);
-  await enrollMember(fixture.contracts, stakingPoolManagers, owner);
-  await enrollMember(fixture.contracts, advisoryBoardMembers, owner);
-  await enrollABMember(fixture.contracts, advisoryBoardMembers);
-
   // enroll coverBroker as member
-  await impersonateAccount(coverBroker.address);
-  await setEtherBalance(coverBroker.address, parseEther('1000'));
-  const coverBrokerSigner = await ethers.getSigner(coverBroker.address);
-  accounts.coverBrokerSigner = coverBrokerSigner;
-  await enrollMember(fixture.contracts, [coverBrokerSigner], owner, { initialTokens: parseEther('0') });
+  // await impersonateAccount(coverBroker.address);
+  // await setEtherBalance(coverBroker.address, parseEther('1000'));
+  // const coverBrokerSigner = await ethers.getSigner(coverBroker.address);
+  // accounts.coverBrokerSigner = coverBrokerSigner;
+  // await enrollMember(fixture.contracts, [coverBrokerSigner], owner, { initialTokens: parseEther('0') });
 
-  const product = {
-    productId: 0,
-    weight: 100,
-    initialPrice: 1000,
-    targetPrice: 100,
-  };
-
-  const DEFAULT_PRODUCTS = [product];
-  const DEFAULT_POOL_FEE = '5';
-
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 5; i++) {
     await stakingProducts.connect(stakingPoolManagers[i]).createStakingPool(
-      false, // isPrivatePool,
-      DEFAULT_POOL_FEE, // initialPoolFee
-      DEFAULT_POOL_FEE, // maxPoolFee,
-      DEFAULT_PRODUCTS,
-      'ipfs-hash', // ipfs hash
+      false, // isPrivatePool
+      '5', // initialPoolFee
+      '5', // maxPoolFee,
+      [], // products
+      'ipfs-hash',
     );
 
     const poolId = i + 1;
     const stakingPoolAddress = await stakingProducts.stakingPool(poolId);
     const stakingPoolInstance = await ethers.getContractAt('StakingPool', stakingPoolAddress);
-
-    fixture.contracts['stakingPool' + poolId] = stakingPoolInstance;
+    fixture.contracts[`stakingPool${poolId}`] = stakingPoolInstance;
   }
 
-  // set the rest of the products
-  const productList = [
+  const products = [
     {
-      productName: 'Product 1',
+      productName: 'Product 0',
       productId: MaxUint256,
-      ipfsMetadata: 'product 1 metadata',
+      ipfsMetadata: 'product 0 metadata',
       product: {
         productType: 1, // Custody Cover
         minPrice: 0,
@@ -523,9 +466,26 @@ async function setup() {
         coverAssets: 0, // Use fallback
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
+        isDeprecated: false,
         useFixedPrice: false,
       },
       allowedPools: [],
+    },
+    {
+      productName: 'Product 1',
+      productId: MaxUint256,
+      ipfsMetadata: 'product 1 metadata',
+      product: {
+        productType: 0, // Protocol Cover
+        minPrice: 0,
+        __gap: 0,
+        coverAssets: 0, // Use fallback
+        initialPriceRatio: 500,
+        capacityReductionRatio: 0,
+        isDeprecated: false,
+        useFixedPrice: true,
+      },
+      allowedPools: [1, 3],
     },
     {
       productName: 'Product 2',
@@ -535,12 +495,13 @@ async function setup() {
         productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0, // Use fallback
-        initialPriceRatio: 500,
+        coverAssets: 0b10000, // use usdc
+        initialPriceRatio: 100,
         capacityReductionRatio: 0,
-        useFixedPrice: true,
+        isDeprecated: false,
+        useFixedPrice: false,
       },
-      allowedPools: [1, 7],
+      allowedPools: [],
     },
     {
       productName: 'Product 3',
@@ -550,10 +511,11 @@ async function setup() {
         productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0b10000, // use usdc
+        coverAssets: 0, // Use fallback
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
-        useFixedPrice: false,
+        isDeprecated: true,
+        useFixedPrice: true,
       },
       allowedPools: [],
     },
@@ -566,31 +528,31 @@ async function setup() {
         minPrice: 0,
         __gap: 0,
         coverAssets: 0, // Use fallback
-        initialPriceRatio: 100,
-        capacityReductionRatio: 0,
-        useFixedPrice: true,
-        isDeprecated: true,
-      },
-      allowedPools: [],
-    },
-    {
-      productName: 'Product 5',
-      productId: MaxUint256,
-      ipfsMetadata: 'product 5 metadata',
-      product: {
-        productType: 0, // Protocol Cover
-        minPrice: 0,
-        __gap: 0,
-        coverAssets: 0, // Use fallback
         initialPriceRatio: 200,
         capacityReductionRatio: 0,
+        isDeprecated: false,
         useFixedPrice: false,
       },
       allowedPools: [],
     },
   ];
 
-  await coverProducts.setProducts(productList);
+  await coverProducts.connect(abMember).setProducts(products);
+  console.log('products set');
+
+  const stakingPoolProduct = {
+    productId: 0,
+    recalculateEffectiveWeight: true,
+    setTargetWeight: true,
+    targetWeight: 100,
+    setTargetPrice: true,
+    targetPrice: 100,
+  };
+
+  for (let i = 0; i < 5; i++) {
+    const poolId = i + 1;
+    await stakingProducts.connect(stakingPoolManagers[i]).setProducts(poolId, [stakingPoolProduct]);
+  }
 
   const config = {
     TRANCHE_DURATION: await fixture.contracts.stakingPool1.TRANCHE_DURATION(),
@@ -602,18 +564,13 @@ async function setup() {
     COMMISSION_DENOMINATOR: 10000n,
     TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
     ONE_NXM: parseEther('1'),
-    NXM_PER_ALLOCATION_UNIT: await stakingPool.NXM_PER_ALLOCATION_UNIT(),
+    NXM_PER_ALLOCATION_UNIT: await fixture.contracts.stakingPool1.NXM_PER_ALLOCATION_UNIT(),
     USDC_DECIMALS: usdcDecimals,
   };
 
-  fixture.contracts.stakingProducts = stakingProducts;
-  fixture.contracts.coverProducts = coverProducts;
-  fixture.contracts.coverNFTDescriptor = coverNFTDescriptor;
-  fixture.contracts.stakingNFTDescriptor = stakingNFTDescriptor;
   fixture.config = config;
   fixture.accounts = accounts;
-  fixture.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS;
-  fixture.productList = [defaultProduct, ...productList];
+  fixture.products = products;
 
   return fixture;
 }

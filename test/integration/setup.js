@@ -106,11 +106,14 @@ async function setup() {
 
   // deploy registry
 
+  const master = await ethers.deployContract('DisposableNXMaster');
   const registryProxy = await ethers.deployContract('UpgradeableProxy');
-  const legacyMaster = await ethers.deployContract('LegacyMaster');
-  const registryImplementation = await ethers.deployContract('DisposableRegistry', [registryProxy, legacyMaster]);
+  const registryImplementation = await ethers.deployContract('DisposableRegistry', [registryProxy, master]);
   await registryProxy.upgradeTo(registryImplementation);
   const registry = await ethers.getContractAt('DisposableRegistry', registryProxy);
+
+  const memberRoles = await ethers.deployContract('LegacyMemberRoles', [registry]);
+  await master.initialize(registry, memberRoles);
 
   // initialize registry
 
@@ -261,17 +264,6 @@ async function setup() {
   const assessment = await getContract(ContractIndexes.C_ASSESSMENT, 'Assessment');
   const claims = await getContract(ContractIndexes.C_CLAIMS, 'IndividualClaims');
 
-  const masterAwareContracts = [
-    ContractIndexes.C_TOKEN_CONTROLLER,
-    ContractIndexes.C_COVER,
-    ContractIndexes.C_COVER_PRODUCTS,
-    ContractIndexes.C_STAKING_PRODUCTS,
-    ContractIndexes.C_LIMIT_ORDERS,
-    // TODO: remove Assessment and Claims from here once we've merged the new assessment
-    ContractIndexes.C_ASSESSMENT,
-    ContractIndexes.C_CLAIMS,
-  ];
-
   const assets = [
     { asset: Assets.ETH, isCoverAsset: true, oracle: chainlinkEthUsd, type: AggregatorType.USD },
     { asset: dai, isCoverAsset: true, oracle: chainlinkDAI, type: AggregatorType.ETH },
@@ -294,10 +286,23 @@ async function setup() {
     );
   }
 
+  await master.initialize(registry, memberRoles);
+
+  const masterAwareContracts = [
+    ContractIndexes.C_TOKEN_CONTROLLER,
+    ContractIndexes.C_COVER,
+    ContractIndexes.C_COVER_PRODUCTS,
+    ContractIndexes.C_STAKING_PRODUCTS,
+    ContractIndexes.C_LIMIT_ORDERS,
+    // TODO: remove Assessment and Claims from here once we've merged the new assessment
+    ContractIndexes.C_ASSESSMENT,
+    ContractIndexes.C_CLAIMS,
+  ];
+
   for (const contract of masterAwareContracts) {
     const contractAddress = await registry.getContractAddressByIndex(contract);
     const masterAwareContract = await ethers.getContractAt('IMasterAwareV2', contractAddress);
-    await masterAwareContract.changeMasterAddress(legacyMaster);
+    await masterAwareContract.changeMasterAddress(master);
     await masterAwareContract.changeDependentContractAddress();
   }
 

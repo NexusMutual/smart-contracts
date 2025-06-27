@@ -55,81 +55,38 @@ contract NXMaster is INXMMaster {
     return registry.getContractIndexByAddress(_contractAddress) > 0;
   }
 
-  function getInternalContracts() public view returns (
-    bytes2[] memory _contractCodes,
-    address[] memory _contractAddresses
-  ) {
-
-    _contractCodes = contractCodes;
-    _contractAddresses = new address[](contractCodes.length);
-
-    for (uint i = 0; i < _contractCodes.length; i++) {
-      _contractAddresses[i] = getLatestAddress(_contractCodes[i]);
-    }
+  function getContractIndexByCode(bytes2 code) public pure returns (uint index) {
+    return
+      code == "SP" ? C_STAKING_PRODUCTS :
+      code == "CO" ? C_COVER            :
+      code == "AS" ? C_ASSESSMENT       :
+      code == "CP" ? C_COVER_PRODUCTS   :
+      code == "CI" ? C_CLAIMS           :
+      code == "ST" ? C_SAFE_TRACKER     :
+      code == "TC" ? C_TOKEN_CONTROLLER :
+      code == "RA" ? C_RAMM             :
+      code == "P1" ? C_POOL             :
+      code == "GV" ? C_GOVERNOR         :
+      code == "LO" ? C_LIMIT_ORDERS     :
+      code == "MC" ? C_POOL             : // MCR functions are now in the Pool contract
+      0;
   }
 
   function getLatestAddress(bytes2 _contractName) public view returns (address payable contractAddress) {
+
+    // all codes: SP CO AS CP CI ST TC RA PC P1 MR MC GV LO MS
+    // PC/ProposalCategory - dropped
+    // MR/MemberRoles, MS/NXMaster - forward compatible
 
     if (address(registry) == address(0)) {
       return contractAddresses[_contractName];
     }
 
-    // all codes: SP CO AS CP CI ST TC RA PC P1 MR MC GV LO MS
+    uint index = getContractIndexByCode(_contractName);
 
-    if (_contractName == "SP") {
-      return registry.getContractAddressByIndex(C_STAKING_PRODUCTS);
-    }
-
-    if (_contractName == "CO") {
-      return registry.getContractAddressByIndex(C_COVER);
-    }
-
-    if (_contractName == "AS") {
-      return registry.getContractAddressByIndex(C_ASSESSMENT);
-    }
-
-    if (_contractName == "CP") {
-      return registry.getContractAddressByIndex(C_COVER_PRODUCTS);
-    }
-
-    if (_contractName == "CI") {
-      return registry.getContractAddressByIndex(C_CLAIMS);
-    }
-
-    if (_contractName == "ST") {
-      return registry.getContractAddressByIndex(C_SAFE_TRACKER);
-    }
-
-    if (_contractName == "TC") {
-      return registry.getContractAddressByIndex(C_TOKEN_CONTROLLER);
-    }
-
-    if (_contractName == "RA") {
-      return registry.getContractAddressByIndex(C_RAMM);
-    }
-
-    // PC: ProposalCategory dropped
-
-    if (_contractName == "P1") {
-      return registry.getContractAddressByIndex(C_POOL);
-    }
-
-    // MR: MemberRoles dropped
-
-    // MC: MCR dropped
-
-    if (_contractName == "GV") {
-      return registry.getContractAddressByIndex(C_GOVERNOR);
-    }
-
-    if (_contractName == "LO") {
-      return registry.getContractAddressByIndex(C_LIMIT_ORDERS);
-    }
-
-    // MS: NXMaster dropped
-
-    // the ones that we drop
-    return contractAddresses[_contractName];
+    return index > 0
+      ? registry.getContractAddressByIndex(index)
+      : contractAddresses[_contractName];
   }
 
   function checkIsAuthToGoverned(address _add) public view returns (bool) {

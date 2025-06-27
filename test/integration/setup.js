@@ -28,6 +28,7 @@ async function setup() {
     members,
     stakingPoolManagers,
   } = accounts;
+  const [abMember] = advisoryBoardMembers;
 
   const INITIAL_SUPPLY = parseEther('6750000');
   const INITIAL_SPOT_PRICE_B = parseEther('0.0152');
@@ -116,6 +117,9 @@ async function setup() {
   await master.initialize(registry, memberRoles);
 
   // initialize registry
+
+  await registry.addMembers([...members, ...advisoryBoardMembers]);
+  await registry.addAdvisoryBoardMembers(advisoryBoardMembers);
 
   await registry.setGovernor(defaultSender);
   await registry.addContract(
@@ -318,7 +322,7 @@ async function setup() {
     DEPRECATED_YTC: 1,
   };
 
-  await coverProducts.setProductTypes([
+  await coverProducts.connect(abMember).setProductTypes([
     {
       // Protocol Cover
       productTypeName: 'Protocol',
@@ -353,13 +357,14 @@ async function setup() {
       coverAssets: 0, // Use fallback
       initialPriceRatio: 100,
       capacityReductionRatio: 0,
+      isDeprecated: false,
       useFixedPrice: false,
     },
     allowedPools: [],
   };
 
   // set default product
-  await coverProducts.setProducts([defaultProduct]);
+  await coverProducts.connect(abMember).setProducts([defaultProduct]);
 
   // FIXME: deploy CoverBroker
   // const coverBroker = await ethers.deployContract('CoverBroker', [

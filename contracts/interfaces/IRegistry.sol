@@ -85,5 +85,6 @@ interface IRegistry {
 
   error OnlyGovernance();
   error NotProxyOwner();
+  error NotMemberRoles();
 
 }

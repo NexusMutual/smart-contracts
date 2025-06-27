@@ -22,4 +22,32 @@ contract DisposableRegistry is Registry {
     _deployContract(C_GOVERNOR, _salt, _governorImplementation);
   }
 
+  function addMembers(address[] calldata _members) external {
+    for (uint i = 0; i < _members.length; i++) {
+      address member = _members[i];
+      uint memberId = ++membersMeta.lastMemberId;
+      ++membersMeta.memberCount;
+      memberIds[member] = memberId;
+      members[memberId] = member;
+    }
+  }
+
+  function addAdvisoryBoardMembers(address[] calldata abMembers) external {
+
+    uint count = abMembers.length;
+    require(count == ADVISORY_BOARD_SEATS, 'Registry: Invalid advisory board count');
+
+    for (uint i = 0; i < count; i++) {
+      address member = abMembers[i];
+      uint memberId = memberIds[member];
+      require(memberId != 0, NotMember());
+
+      uint seat = i + 1;
+      require(seatToMember[seat] == 0, 'Registry: AB seat already taken');
+
+      memberToSeat[memberIds[member]] = seat;
+      seatToMember[seat] = memberId;
+    }
+  }
+
 }

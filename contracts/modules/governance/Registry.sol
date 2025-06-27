@@ -6,6 +6,7 @@ import "../../abstract/EIP712.sol";
 import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IRegistry.sol";
 import "../../interfaces/INXMMaster.sol";
+import "../../interfaces/ITokenController.sol";
 import "./UpgradeableProxy.sol";
 
 contract Registry is IRegistry, EIP712 {
@@ -150,10 +151,9 @@ contract Registry is IRegistry, EIP712 {
     memberIds[member] = memberId;
     members[memberId] = member;
 
-    emit MembershipChanged(memberId, address(0), member);
+    ITokenController(contracts[C_TOKEN_CONTROLLER].addr).addToWhitelist(member);
 
-    // todo:
-    // TC.addToWhitelist(member)
+    emit MembershipChanged(memberId, address(0), member);
   }
 
   function switchTo(address to) external {
@@ -161,7 +161,7 @@ contract Registry is IRegistry, EIP712 {
   }
 
   function switchFor(address from, address to) external {
-    require(master.getLatestAddress("MR") == msg.sender, 'Registry: Not MemberRoles');
+    require(master.getLatestAddress("MR") == msg.sender, NotMemberRoles());
     _switch(from, to);
   }
 
@@ -174,12 +174,9 @@ contract Registry is IRegistry, EIP712 {
     memberIds[to] = memberId;
     members[memberId] = to;
 
-    emit MembershipChanged(memberId, from, to);
+    ITokenController(contracts[C_TOKEN_CONTROLLER].addr).switchMembershipAddressWithTransfer(from, to);
 
-    // todo:
-    // TC.removeFromWhitelist(from)
-    // TC.addToWhitelist(to)
-    // TK.transferFrom(from, to)
+    emit MembershipChanged(memberId, from, to);
   }
 
   function leave() external {
@@ -187,8 +184,6 @@ contract Registry is IRegistry, EIP712 {
     uint memberId = memberIds[msg.sender];
     require(memberId != 0, NotMember());
     require(memberToSeat[memberId] == 0, AdvisoryBoardMemberCannotLeave());
-
-    emit MembershipChanged(memberId, msg.sender, address(0));
 
     // todo:
     // address[] memory pools = TC.getManagerStakingPools(memberId)
@@ -198,10 +193,9 @@ contract Registry is IRegistry, EIP712 {
     delete memberIds[msg.sender];
     --membersMeta.memberCount;
 
-    // todo:
-    // TC.removeFromWhitelist(msg.sender)
-    // uint balance = TK.balanceOf(msg.sender)
-    // TK.burnFrom(msg.sender, balance) // or revert?
+    ITokenController(contracts[C_TOKEN_CONTROLLER].addr).removeFromWhitelist(msg.sender);
+
+    emit MembershipChanged(memberId, msg.sender, address(0));
   }
 
   function setKycAuthAddress(address _kycAuthAddress) external onlyGovernance {

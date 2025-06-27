@@ -28,6 +28,10 @@ contract TokenControllerGeneric is ITokenController {
     revert("removeFromWhitelist unsupported");
   }
 
+  function switchMembershipAddressWithTransfer(address, address) external virtual {
+    revert("switchMembershipAddressWithTransfer unsupported");
+  }
+
   function mint(address, uint) external virtual {
     revert("mint unsupported");
   }

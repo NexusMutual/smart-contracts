@@ -186,7 +186,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     bool isCoverAsset,
     bool isAbandoned
   ) external override onlyContracts(C_GOVERNOR) {
-    require(assets.length > assetId, "Pool: Asset does not exist");
+    require(assets.length > assetId, InvalidAssetId());
     assets[assetId].isCoverAsset = isCoverAsset;
     assets[assetId].isAbandoned = isAbandoned;
   }
@@ -279,7 +279,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
   ///
   function getInternalTokenPriceInAsset(uint assetId) public view override returns (uint tokenPrice) {
 
-    require(assetId < assets.length, "Pool: Unknown cover asset");
+    require(assetId < assets.length, InvalidAssetId());
     address assetAddress = assets[assetId].assetAddress;
 
     uint internalTokenPrice = ramm.getInternalPrice();
@@ -298,7 +298,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
   ///
   function getInternalTokenPriceInAssetAndUpdateTwap(uint assetId) public override returns (uint tokenPrice) {
 
-    require(assetId < assets.length, "Pool: Unknown cover asset");
+    require(assetId < assets.length, InvalidAssetId());
     address assetAddress = assets[assetId].assetAddress;
 
     uint internalTokenPrice = ramm.getInternalPriceAndUpdateTwap();

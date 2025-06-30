@@ -2,10 +2,33 @@
 
 pragma solidity ^0.8.18;
 
+contract P1MockOldPool {
+  struct Asset {
+    address assetAddress;
+    bool isCoverAsset;
+    bool isAbandoned;
+  }
 
-interface P1MockOldPool {
-  function twapOracle() external view returns (address);
-  function getTokenPrice(address asset) external view returns (uint tokenPrice);
-  function getPoolValueInEth() external view returns (uint);
-  function priceFeedOracle() external view returns (address);
+  Asset[] public assets;
+  address public priceFeedOracleAddress;
+
+  function priceFeedOracle() external view returns (address) {
+    return priceFeedOracleAddress;
+  }
+
+  function getAssets() external view returns (Asset[] memory) {
+    return assets ;
+  }
+
+  function setPriceFeedOracle(address _priceFeedOracle) external {
+    priceFeedOracleAddress = _priceFeedOracle;
+  }
+
+  function addAsset(address assetAddress, bool isCoverAsset) external {
+    assets.push(Asset({
+      assetAddress: assetAddress,
+      isCoverAsset: isCoverAsset,
+      isAbandoned: false
+    }));
+  }
 }

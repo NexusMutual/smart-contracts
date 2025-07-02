@@ -65,6 +65,10 @@ interface IRegistry {
   event MembershipChanged(uint indexed memberId, address indexed previous, address indexed current);
   event AdvisoryBoardMemberSwapped(uint indexed seat, uint indexed from, uint indexed to);
 
+  event EmergencyAdminSet(address indexed emergencyAdmin, bool enabled);
+  event PauseConfigProposed(uint config, address indexed proposer);
+  event PauseConfigConfirmed(uint config, address indexed confirmer);
+
   error ContractAlreadyExists();
   error InvalidContractIndex();
   error InvalidContractAddress();
@@ -72,8 +76,9 @@ interface IRegistry {
   error ContractIsNotProxy();
 
   error OnlyEmergencyAdmin();
-  error ProposerCannotEnablePause();
+  error ProposerCannotConfirmPause();
   error PauseConfigMismatch();
+  error NoConfigProposed();
 
   error InvalidSignature();
   error NotMember();
@@ -83,7 +88,7 @@ interface IRegistry {
   error AdvisoryBoardMemberCannotLeave();
   error InvalidSeat();
 
-  error OnlyGovernance();
+  error OnlyGovernor();
   error NotProxyOwner();
   error NotMemberRoles();
 

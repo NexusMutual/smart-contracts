@@ -7,9 +7,11 @@ import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IRegistry.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../libraries/SafeUintCast.sol";
 import "./UpgradeableProxy.sol";
 
 contract Registry is IRegistry, EIP712 {
+  using SafeUintCast for uint;
 
   // contracts
   mapping(uint index => Contract) internal contracts;
@@ -34,9 +36,9 @@ contract Registry is IRegistry, EIP712 {
     _;
   }
 
-  modifier onlyGovernance() {
+  modifier onlyGovernor() {
     address governor = contracts[C_GOVERNOR].addr;
-    require(msg.sender == governor, OnlyGovernance());
+    require(msg.sender == governor, OnlyGovernor());
     _;
   }
 
@@ -48,7 +50,7 @@ contract Registry is IRegistry, EIP712 {
   uint public constant ADVISORY_BOARD_SEATS = 5;
   bytes32 private constant JOIN_TYPEHASH = keccak256("Join(address member)");
 
-  INXMMaster internal immutable master;
+  INXMMaster public immutable master;
 
   constructor(
     address _verifyingAddress,
@@ -59,22 +61,25 @@ contract Registry is IRegistry, EIP712 {
 
   /* == EMERGENCY PAUSE == */
 
-  function setEmergencyAdmin(address _emergencyAdmin, bool enabled) external onlyGovernance {
+  function setEmergencyAdmin(address _emergencyAdmin, bool enabled) external onlyGovernor {
     isEmergencyAdmin[_emergencyAdmin] = enabled;
-    // emit event?
+    emit EmergencyAdminSet(_emergencyAdmin, enabled);
   }
 
   function proposePauseConfig(uint config) external onlyEmergencyAdmin {
-    systemPause.proposedConfig = uint48(config);
+    systemPause.proposedConfig = config.toUint48();
     systemPause.proposer = msg.sender;
+    emit PauseConfigProposed(config, msg.sender);
   }
 
   function confirmPauseConfig(uint config) external onlyEmergencyAdmin {
-    require(systemPause.proposer != msg.sender, ProposerCannotEnablePause());
+    require(systemPause.proposer != address(0), NoConfigProposed());
+    require(systemPause.proposer != msg.sender, ProposerCannotConfirmPause());
     require(systemPause.proposedConfig == uint48(config), PauseConfigMismatch());
     systemPause.config = uint48(config);
     delete systemPause.proposedConfig;
     delete systemPause.proposer;
+    emit PauseConfigConfirmed(config, msg.sender);
   }
 
   function getSystemPause() external view returns (SystemPause memory) {
@@ -122,7 +127,7 @@ contract Registry is IRegistry, EIP712 {
     return seatToMember[seat];
   }
 
-  function swapAdvisoryBoardMember(uint from, uint to) external onlyGovernance {
+  function swapAdvisoryBoardMember(uint from, uint to) external onlyGovernor {
     require(from != 0, NotMember());
     require(to != 0, NotMember());
     require(members[to] != address(0), NotMember());
@@ -198,7 +203,7 @@ contract Registry is IRegistry, EIP712 {
     emit MembershipChanged(memberId, msg.sender, address(0));
   }
 
-  function setKycAuthAddress(address _kycAuthAddress) external onlyGovernance {
+  function setKycAuthAddress(address _kycAuthAddress) external onlyGovernor {
     membersMeta.kycAuthAddress = _kycAuthAddress;
   }
 
@@ -209,7 +214,7 @@ contract Registry is IRegistry, EIP712 {
     unchecked { return index & (index - 1) == 0 && index > 0; }
   }
 
-  function deployContract(uint index, bytes32 salt, address implementation) external onlyGovernance {
+  function deployContract(uint index, bytes32 salt, address implementation) external onlyGovernor {
     _deployContract(index, salt, implementation);
   }
 
@@ -222,7 +227,7 @@ contract Registry is IRegistry, EIP712 {
     contractIndexes[address(proxy)] = index;
   }
 
-  function addContract(uint index, address contractAddress, bool isProxy) external onlyGovernance {
+  function addContract(uint index, address contractAddress, bool isProxy) external onlyGovernor {
     _addContract(index, contractAddress, isProxy);
   }
 
@@ -236,7 +241,7 @@ contract Registry is IRegistry, EIP712 {
     contractIndexes[contractAddress] = index;
   }
 
-  function upgradeContract(uint index, address implementation) external onlyGovernance {
+  function upgradeContract(uint index, address implementation) external onlyGovernor {
     Contract memory _contract = contracts[index];
     require(_contract.addr != address(0), ContractDoesNotExist());
     require(_contract.isProxy, ContractIsNotProxy());
@@ -244,7 +249,7 @@ contract Registry is IRegistry, EIP712 {
     proxy.upgradeTo(implementation);
   }
 
-  function removeContract(uint index) external onlyGovernance {
+  function removeContract(uint index) external onlyGovernor {
     address contractAddress = contracts[index].addr;
     require(contractAddress != address(0), ContractDoesNotExist());
     contractIndexes[contractAddress] = 0;
@@ -308,7 +313,7 @@ contract Registry is IRegistry, EIP712 {
     _deployContract(C_ASSESSMENT, assessmentSalt, address(0));
     _deployContract(C_CLAIMS, claimsSalt, address(0));
 
-    // todo: manually add Token, CoverNFT, StakingNFT
+    // note: Token, CoverNFT, StakingNFT are added via TempGoverance
   }
 
   function migrateMembers(address[] calldata membersToMigrate) external {

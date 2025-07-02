@@ -4,9 +4,8 @@ pragma solidity ^0.8.18;
 
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IMasterAwareV2.sol";
-import "../../modules/capital/Pool.sol";
 
-contract MasterMock {
+contract MasterMock is INXMMaster {
 
   enum Role {
     Unassigned,
@@ -22,11 +21,9 @@ contract MasterMock {
 
   bool paused;
   address public tokenAddress;
-
   address public emergencyAdmin;
 
   /* utils */
-
 
   function setEmergencyAdmin(address _emergencyAdmin) external {
     emergencyAdmin = _emergencyAdmin;
@@ -89,22 +86,5 @@ contract MasterMock {
   function isPause() public view returns (bool) {
     return paused;
   }
-
-  /* unused functions */
-
-  modifier unused {
-    require(false, "Unexpected MasterMock call");
-    _;
-  }
-
-  function delegateCallBack(bytes32) unused external {}
-
-  function masterInitialized() unused public view returns (bool) {}
-
-  function updatePauseTime(uint) unused public {}
-
-  function owner() external view returns (address) {}
-
-  function pauseTime() external view returns (uint) {}
 
 }

@@ -146,10 +146,10 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     bool isAbProposal = proposal.kind == ProposalKind.AdvisoryBoard;
     uint voterId = isAbProposal
       ? registry.getAdvisoryBoardSeat(msg.sender)
-      : registry.getMemberId(msg.sender);
+      : memberId;
     require(voterId > 0, NotAuthorizedToVote());
 
-    uint weight = isAbProposal ? 1 :_getVoteWeight(msg.sender);
+    uint weight = isAbProposal ? 1 : _getVoteWeight(msg.sender);
     votes[memberId][proposalId] = weight;
 
     if (choice == VoteType.For) {
@@ -216,6 +216,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
       uint quorum = tokenController.totalSupply() * MEMBER_VOTE_QUORUM_PERCENTAGE / 100;
       uint totalVotes = tally.forVotes + tally.againstVotes + tally.abstainVotes;
       require(totalVotes >= quorum, VoteQuorumNotMet());
+      // todo: check if a majority threshold is required
     }
 
     Transaction[] memory txs = transactions[proposalId];

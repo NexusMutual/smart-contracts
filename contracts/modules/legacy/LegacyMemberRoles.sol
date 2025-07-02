@@ -52,6 +52,8 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
       return true;
     }
 
+    // todo: return local storage info if not migrated yet
+
     if (roleId == uint(Role.Member)) {
       return registry.isMember(memberAddress);
     }

@@ -12,12 +12,13 @@ phase 1 (first ab action)
   - call registry.addContract using TempGov to add Token, CoverNFT, StakingNFT
   - set emergency admins
   - set kyc address
-  - upgrade master using TempGov
+  - upgrade MemberRoles
+  - upgrade Master
   - transfer of Master ownership from TempGov to Governor
 
 phase 2 (preparation for second ab action)
 - deploy new P1, SO, RA, ST, AS, CL, GV implementations
-- memberRoles.migrateMembres - called with any address (deployer for ex)
+- memberRoles.migrateMembers - called with any address (deployer for ex)
 
 phase 3 (second ab action)
 1. batch:

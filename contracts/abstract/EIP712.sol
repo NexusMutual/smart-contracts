@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
 
 abstract contract EIP712 {
 
-  bytes32 private immutable DOMAIN_SEPARATOR;
+  bytes32 public immutable DOMAIN_SEPARATOR;
 
   constructor(
     string memory name,

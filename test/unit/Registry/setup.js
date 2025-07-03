@@ -9,7 +9,8 @@ const setup = async () => {
   const [, alice, bob, charlie, mallory, governor] = await ethers.getSigners();
 
   const registryProxy = await ethers.deployContract('UpgradeableProxy');
-  const master = await ethers.deployContract('RGMasterMock');
+  const master = await ethers.deployContract('RGMockMaster');
+  const tokenController = await ethers.deployContract('RGMockTokenController');
   const registryImplementation = await ethers.deployContract('Registry', [registryProxy, master]);
 
   await registryProxy.upgradeTo(registryImplementation);
@@ -19,7 +20,14 @@ const setup = async () => {
   const zeroSigner = await ethers.getSigner(ZeroAddress);
 
   await setNextBlockBaseFeePerGas(0);
-  await registry.connect(zeroSigner).addContract(ContractIndexes.C_GOVERNOR, governor, false, { gasPrice: 0 });
+  await registry
+    .connect(zeroSigner) // the governor is not set initially
+    .addContract(ContractIndexes.C_GOVERNOR, governor, false, { gasPrice: 0 });
+
+  await setNextBlockBaseFeePerGas(0);
+  await registry
+    .connect(governor)
+    .addContract(ContractIndexes.C_TOKEN_CONTROLLER, tokenController, false, { gasPrice: 0 });
 
   const codes = ['CO', 'CP', 'GV', 'LO', 'MR', 'RA', 'SP', 'ST', 'TC'];
 
@@ -28,7 +36,7 @@ const setup = async () => {
     await master.setLatestAddress(hexCode, `0x000000000000000000000000000000000000${hexCode.replace(/^0x/, '')}`);
   }
 
-  return { registry, registryProxy, master, alice, bob, charlie, mallory, governor };
+  return { registry, registryProxy, master, tokenController, alice, bob, charlie, mallory, governor };
 };
 
 module.exports = { setup };

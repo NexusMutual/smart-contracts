@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 
 import "../../generic/NXMasterGeneric.sol";
 
-contract RGMasterMock is NXMasterGeneric {
+contract RGMockMaster is NXMasterGeneric {
 
   // bytes2[] public contractCodes;
   // mapping(address => bool) public contractsActive;

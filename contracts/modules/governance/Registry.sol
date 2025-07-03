@@ -91,9 +91,7 @@ contract Registry is IRegistry, EIP712 {
   }
 
   function isPaused(uint mask) external view returns (bool) {
-    uint config = systemPause.config;
-    // also checks for global pause
-    return (config & 1) != 0 || (config & mask) != 0;
+    return systemPause.config & mask != 0;
   }
 
   /* == MEMBERSHIP MANAGEMENT == */
@@ -106,45 +104,21 @@ contract Registry is IRegistry, EIP712 {
     return memberIds[member];
   }
 
+  function getMemberAddress(uint memberId) external view returns (address) {
+    return members[memberId];
+  }
+
   function getMemberCount() external view returns (uint) {
     return membersMeta.memberCount;
   }
 
-  function isAdvisoryBoardMember(address member) external view returns (bool) {
-    uint memberId = memberIds[member];
-    return memberToSeat[memberId] != 0;
-  }
-
-  function getAdvisoryBoardSeat(address member) external view returns (uint) {
-    uint memberId = memberIds[member];
-    uint seat = memberToSeat[memberId];
-    require(seat != 0, NotAdvisoryBoardMember());
-    return seat;
-  }
-
-  function getMemberIdBySeat(uint seat) external view returns (uint) {
-    require(seat != 0 && seat <= ADVISORY_BOARD_SEATS, InvalidSeat());
-    return seatToMember[seat];
-  }
-
-  function swapAdvisoryBoardMember(uint from, uint to) external onlyGovernor {
-    require(from != 0, NotMember());
-    require(to != 0, NotMember());
-    require(members[to] != address(0), NotMember());
-
-    require(memberToSeat[from] != 0, NotAdvisoryBoardMember());
-    require(memberToSeat[to] == 0, AlreadyAdvisoryBoardMember());
-
-    uint seat = memberToSeat[from];
-    memberToSeat[from] = 0;
-    memberToSeat[to] = seat;
-    seatToMember[seat] = to;
-
-    emit AdvisoryBoardMemberSwapped(seat, from, to);
+  function getLastMemberId() external view returns (uint) {
+    return membersMeta.lastMemberId;
   }
 
   function join(address member, bytes memory signature) external {
     require(memberIds[member] == 0, AlreadyMember());
+    require(wasAddressUsedForJoining[member] == false, AddressAlreadyUsedForJoining());
 
     bytes memory message = abi.encode(JOIN_TYPEHASH, member);
     address signer = recoverSigner(message, signature);
@@ -205,6 +179,40 @@ contract Registry is IRegistry, EIP712 {
 
   function setKycAuthAddress(address _kycAuthAddress) external onlyGovernor {
     membersMeta.kycAuthAddress = _kycAuthAddress;
+  }
+
+  /* == ADVISORY BOARD MANAGEMENT == */
+  function isAdvisoryBoardMember(address member) external view returns (bool) {
+    uint memberId = memberIds[member];
+    return memberToSeat[memberId] != 0;
+  }
+
+  function getAdvisoryBoardSeat(address member) external view returns (uint) {
+    uint memberId = memberIds[member];
+    uint seat = memberToSeat[memberId];
+    require(seat != 0, NotAdvisoryBoardMember());
+    return seat;
+  }
+
+  function getMemberIdBySeat(uint seat) external view returns (uint) {
+    require(seat != 0 && seat <= ADVISORY_BOARD_SEATS, InvalidSeat());
+    return seatToMember[seat];
+  }
+
+  function swapAdvisoryBoardMember(uint from, uint to) external onlyGovernor {
+    require(from != 0, NotMember());
+    require(to != 0, NotMember());
+    require(members[to] != address(0), NotMember());
+
+    require(memberToSeat[from] != 0, NotAdvisoryBoardMember());
+    require(memberToSeat[to] == 0, AlreadyAdvisoryBoardMember());
+
+    uint seat = memberToSeat[from];
+    memberToSeat[from] = 0;
+    memberToSeat[to] = seat;
+    seatToMember[seat] = to;
+
+    emit AdvisoryBoardMemberSwapped(seat, from, to);
   }
 
   /* == CONTRACT MANAGEMENT == */

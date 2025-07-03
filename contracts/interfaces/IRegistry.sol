@@ -30,19 +30,21 @@ interface IRegistry {
   function isPaused(uint mask) external view returns (bool);
   function isEmergencyAdmin(address member) external view returns (bool);
 
-  /* == MEMBERSHIP AND AB MANAGEMENT == */
+  /* == MEMBERSHIP MANAGEMENT == */
   function isMember(address member) external view returns (bool);
   function getMemberId(address member) external view returns (uint);
+  function getMemberAddress(uint memberId) external view returns (address);
   function getMemberCount() external view returns (uint);
-
-  function isAdvisoryBoardMember(address member) external view returns (bool);
-  function getAdvisoryBoardSeat(address member) external view returns (uint);
-  function swapAdvisoryBoardMember(uint from, uint to) external;
-
+  function getLastMemberId() external view returns (uint);
   function join(address member, bytes memory signature) external;
   function switchTo(address to) external;
   function switchFor(address from, address to) external;
   function leave() external;
+
+  /* == ADVISORY BOARD MANAGEMENT == */
+  function isAdvisoryBoardMember(address member) external view returns (bool);
+  function getAdvisoryBoardSeat(address member) external view returns (uint);
+  function swapAdvisoryBoardMember(uint from, uint to) external;
 
   /* == CONTRACT MANAGEMENT == */
   function isValidContractIndex(uint index) external pure returns (bool);
@@ -83,6 +85,8 @@ interface IRegistry {
   error InvalidSignature();
   error NotMember();
   error AlreadyMember();
+  error AddressAlreadyUsedForJoining();
+
   error NotAdvisoryBoardMember();
   error AlreadyAdvisoryBoardMember();
   error AdvisoryBoardMemberCannotLeave();

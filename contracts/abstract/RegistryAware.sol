@@ -38,8 +38,8 @@ contract RegistryAware {
 
   modifier whenNotPaused(uint mask) {
     uint config = registry.getPauseConfig();
-    bool isPaused = (config & PAUSE_GLOBAL) != 0 || (config & mask) != 0;
-    require(!isPaused, Paused(config, mask));
+    uint maskWithGlobal = mask | PAUSE_GLOBAL;
+    require(config & maskWithGlobal == 0, Paused(config, mask));
     _;
   }
 

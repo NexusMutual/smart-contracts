@@ -36,7 +36,7 @@ interface IRegistry {
   function getMemberAddress(uint memberId) external view returns (address);
   function getMemberCount() external view returns (uint);
   function getLastMemberId() external view returns (uint);
-  function join(address member, bytes memory signature) external;
+  function join(address member, bytes memory signature) external payable;
   function switchTo(address to) external;
   function switchFor(address from, address to) external;
   function leave() external;
@@ -81,11 +81,14 @@ interface IRegistry {
   error ProposerCannotConfirmPause();
   error PauseConfigMismatch();
   error NoConfigProposed();
+  error Paused(uint currentState, uint checks);
 
-  error InvalidSignature();
   error NotMember();
   error AlreadyMember();
   error AddressAlreadyUsedForJoining();
+  error InvalidJoinFee();
+  error InvalidSignature();
+  error FeeTransferFailed();
 
   error NotAdvisoryBoardMember();
   error AlreadyAdvisoryBoardMember();

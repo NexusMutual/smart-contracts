@@ -139,5 +139,4 @@ contract PoolMock is PoolGeneric {
     swapOperator = _swapOperator;
   }
 
-  receive() external payable virtual {}
 }

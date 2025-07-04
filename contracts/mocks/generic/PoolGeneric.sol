@@ -64,4 +64,10 @@ contract PoolGeneric /* is IPool */ {
   function setSwapAssetAmount(address, uint) external virtual pure {
     revert("Unsupported");
   }
+
+  fallback() external virtual payable {
+    revert("Unsupported");
+  }
+
+  receive() external virtual payable { }
 }

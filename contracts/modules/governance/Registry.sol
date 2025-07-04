@@ -47,7 +47,15 @@ contract Registry is IRegistry, EIP712 {
     _;
   }
 
+  modifier whenNotPaused(uint mask) {
+    uint config = systemPause.config;
+    uint maskWithGlobal = mask | PAUSE_GLOBAL;
+    require(config & maskWithGlobal == 0, Paused(config, mask));
+    _;
+  }
+
   uint public constant ADVISORY_BOARD_SEATS = 5;
+  uint public constant JOIN_FEE = 0.002 ether; // no more, no less
   bytes32 private constant JOIN_TYPEHASH = keccak256("Join(address member)");
 
   INXMMaster public immutable master;
@@ -116,9 +124,13 @@ contract Registry is IRegistry, EIP712 {
     return membersMeta.lastMemberId;
   }
 
-  function join(address member, bytes memory signature) external {
+  function join(address member, bytes memory signature) external payable whenNotPaused(PAUSE_MEMBERSHIP) {
     require(memberIds[member] == 0, AlreadyMember());
     require(wasAddressUsedForJoining[member] == false, AddressAlreadyUsedForJoining());
+    require(msg.value == JOIN_FEE, InvalidJoinFee());
+
+    (bool success, ) = payable(contracts[C_POOL].addr).call{value: JOIN_FEE}("");
+    require(success, FeeTransferFailed());
 
     bytes memory message = abi.encode(JOIN_TYPEHASH, member);
     address signer = recoverSigner(message, signature);
@@ -135,11 +147,11 @@ contract Registry is IRegistry, EIP712 {
     emit MembershipChanged(memberId, address(0), member);
   }
 
-  function switchTo(address to) external {
+  function switchTo(address to) external whenNotPaused(PAUSE_MEMBERSHIP) {
     _switch(msg.sender, to);
   }
 
-  function switchFor(address from, address to) external {
+  function switchFor(address from, address to) external whenNotPaused(PAUSE_MEMBERSHIP) {
     require(master.getLatestAddress("MR") == msg.sender, NotMemberRoles());
     _switch(from, to);
   }
@@ -158,7 +170,7 @@ contract Registry is IRegistry, EIP712 {
     emit MembershipChanged(memberId, from, to);
   }
 
-  function leave() external {
+  function leave() external whenNotPaused(PAUSE_MEMBERSHIP) {
 
     uint memberId = memberIds[msg.sender];
     require(memberId != 0, NotMember());

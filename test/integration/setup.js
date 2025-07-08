@@ -363,7 +363,10 @@ async function setup() {
   // mint safeTracker funds
 
   await setBalance(await safeTracker.getAddress(), parseEther('100')); // 100 eth
-  await weth.mint(safeTracker, parseEther('100')); // 100 weth
+
+  await weth.deposit({ value: parseEther('100') }); // create 100 weth
+  await weth.transfer(safeTracker, parseEther('100'));
+
   await aWETH.mint(safeTracker, parseEther('100')); // 100 eth collateral ~= 250k usd
   await debtUsdc.mint(safeTracker, parseUnits('50000', debtUsdcDecimals)); // 50k usdc debt
   await usdc.mint(safeTracker, parseUnits('10000', usdcDecimals)); // 10k usdc

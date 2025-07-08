@@ -7,7 +7,12 @@ const { ContractIndexes } = nexus.constants;
 
 const setup = async () => {
   // note: kycAuth is the same as defaultSender
-  const [kycAuth, alice, bob, charlie, mallory, ea1, ea2, governor] = await ethers.getSigners();
+  const signers = await ethers.getSigners();
+  const [kycAuth, alice, bob, charlie, mallory, ea1, ea2, governor] = signers;
+
+  const seats = 5;
+  const abMembersIndex = signers.indexOf(governor) + 1;
+  const advisoryBoardMembers = signers.slice(abMembersIndex, abMembersIndex + seats);
 
   const registryProxy = await ethers.deployContract('UpgradeableProxy');
   const master = await ethers.deployContract('RGMockMaster');
@@ -61,9 +66,9 @@ const setup = async () => {
   }
 
   const contracts = { registry, registryProxy, master, tokenController, pool };
-  const signers = { kycAuth, alice, bob, charlie, mallory, ea1, ea2, governor };
+  const fixtureSigners = { kycAuth, alice, bob, charlie, mallory, ea1, ea2, governor };
 
-  return { ...contracts, ...signers };
+  return { ...contracts, ...fixtureSigners, advisoryBoardMembers };
 };
 
 module.exports = { setup };

@@ -1,11 +1,16 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const {
+  loadFixture,
+  impersonateAccount,
+  setNextBlockBaseFeePerGas,
+} = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setup } = require('./setup');
 
 const { signJoinMessage } = nexus.membership;
 const { PauseTypes } = nexus.constants;
+const { toBytes2 } = nexus.helpers;
 const { ZeroAddress } = ethers;
 
 const JOINING_FEE = ethers.parseEther('0.002');
@@ -31,6 +36,29 @@ describe('leave', () => {
     expect(await registry.getLastMemberId()).to.equal(initialLastMemberId);
     expect(await registry.getMemberId(alice)).to.equal(0n);
     expect(await registry.getMemberAddress(initialLastMemberId)).to.equal(ZeroAddress);
+  });
+
+  it('should revert when the user is an advisory board member', async () => {
+    const { registry, master, kycAuth, advisoryBoardMembers } = await loadFixture(setup);
+    const [abMember] = advisoryBoardMembers;
+
+    for (const ab of advisoryBoardMembers) {
+      const signature = await signJoinMessage(kycAuth, ab, registry);
+      await registry.connect(ab).join(ab, signature, { value: JOINING_FEE });
+    }
+
+    // todo: use DisposableRegistry in the future
+    const mrAddress = await master.getLatestAddress(toBytes2('MR'));
+    await impersonateAccount(mrAddress);
+    const mrSigner = await ethers.getSigner(mrAddress);
+    await setNextBlockBaseFeePerGas(0);
+    await registry.connect(mrSigner).migrateAdvisoryBoardMembers(
+      advisoryBoardMembers,
+      { maxPriorityFeePerGas: 0 }, // overrides
+    );
+
+    await expect(registry.connect(abMember).leave()) // should revert
+      .to.be.revertedWithCustomError(registry, 'AdvisoryBoardMemberCannotLeave');
   });
 
   it('should revert if the user is not a member', async () => {

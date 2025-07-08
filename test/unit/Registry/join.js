@@ -5,7 +5,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
 const { signJoinMessage } = nexus.membership;
-const { PauseTypes } = nexus.constants;
+const { PauseTypes, ContractIndexes } = nexus.constants;
 
 const { ZeroAddress } = ethers;
 const JOINING_FEE = ethers.parseEther('0.002');
@@ -202,6 +202,17 @@ describe('join', () => {
 
     await expect(registry.connect(alice).join(alice, signature, { value: exceededFee })) // join
       .to.be.revertedWithCustomError(registry, 'InvalidJoinFee');
+  });
+
+  it('should revert if the join fee cannot be sent to the pool', async () => {
+    const { registry, kycAuth, alice, governor } = await loadFixture(setup);
+    const signature = await signJoinMessage(kycAuth, alice, registry);
+
+    const feeRejecter = await ethers.deployContract('EtherRejecterMock');
+    await registry.connect(governor).upgradeContract(ContractIndexes.C_POOL, feeRejecter);
+
+    await expect(registry.connect(alice).join(alice, signature, { value: JOINING_FEE })) // join
+      .to.be.revertedWithCustomError(registry, 'FeeTransferFailed');
   });
 
   it('should not allow joining when PAUSE_MEMBERSHIP is active', async () => {

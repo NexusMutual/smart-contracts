@@ -2,7 +2,7 @@ const { ethers, nexus } = require('hardhat');
 const { impersonateAccount, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { ZeroAddress } = ethers;
-const { toBytes2 } = nexus.helpers;
+const { toBytes2, numberToBytes32 } = nexus.helpers;
 const { ContractIndexes } = nexus.constants;
 
 const setup = async () => {
@@ -11,8 +11,8 @@ const setup = async () => {
 
   const registryProxy = await ethers.deployContract('UpgradeableProxy');
   const master = await ethers.deployContract('RGMockMaster');
-  const pool = await ethers.deployContract('RGMockPool');
-  const tokenController = await ethers.deployContract('RGMockTokenController');
+  const poolImplementation = await ethers.deployContract('RGMockPool');
+  const tokenControllerImplementation = await ethers.deployContract('RGMockTokenController');
   const registryImplementation = await ethers.deployContract('Registry', [registryProxy, master]);
 
   await registryProxy.upgradeTo(registryImplementation);
@@ -27,10 +27,30 @@ const setup = async () => {
     .connect(zeroSigner) // the governor is not set initially
     .addContract(ContractIndexes.C_GOVERNOR, governor, false, overrides);
 
-  await registry.connect(governor).addContract(ContractIndexes.C_TOKEN_CONTROLLER, tokenController, false, overrides);
-  await registry.connect(governor).addContract(ContractIndexes.C_POOL, pool, false, overrides);
-  await registry.connect(governor).setEmergencyAdmin(ea1, true, overrides);
-  await registry.connect(governor).setEmergencyAdmin(ea2, true, overrides);
+  await registry.connect(governor).deployContract(
+    ContractIndexes.C_TOKEN_CONTROLLER, //
+    numberToBytes32(0),
+    tokenControllerImplementation,
+  );
+
+  await registry.connect(governor).deployContract(
+    ContractIndexes.C_POOL, //
+    numberToBytes32(1),
+    poolImplementation,
+  );
+
+  const tokenController = await ethers.getContractAt(
+    'RGMockTokenController',
+    await registry.getContractAddressByIndex(ContractIndexes.C_TOKEN_CONTROLLER), // fetches the proxy address
+  );
+
+  const pool = await ethers.getContractAt(
+    'RGMockPool',
+    await registry.getContractAddressByIndex(ContractIndexes.C_POOL), // fetches the proxy address
+  );
+
+  await registry.connect(governor).setEmergencyAdmin(ea1, true);
+  await registry.connect(governor).setEmergencyAdmin(ea2, true);
   await registry.connect(governor).setKycAuthAddress(kycAuth);
 
   const codes = ['CO', 'CP', 'GV', 'LO', 'MR', 'RA', 'SP', 'ST', 'TC'];

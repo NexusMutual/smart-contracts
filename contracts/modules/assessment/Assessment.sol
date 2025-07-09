@@ -158,6 +158,9 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
       _assessments[claimId] = assessment;
       delete _ballots[assessorMemberId][claimId];
+      delete _ballotsMetadata[assessorMemberId][claimId];
+
+      emit VoteUndone(claimId, assessorMemberId);
     }
   }
 

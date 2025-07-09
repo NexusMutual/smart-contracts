@@ -231,11 +231,18 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
   /// @notice Returns the ballot for a given claim and assessor
   /// @param claimId The claim identifier
-  /// @param assessor The address of the assessor
+  /// @param assessorMemberId The member ID of the assessor
   /// @return The Ballot struct for the assessor on the claim
-  function ballotOf(uint claimId, address assessor) override external view returns (Ballot memory) {
-    (uint assessorMemberId, ) = _validateAssessor(claimId, assessor);
+  function ballotOf(uint claimId, uint assessorMemberId) override external view returns (Ballot memory) {
     return _ballots[assessorMemberId][claimId];
+  }
+
+  /// @notice Returns the ballot metadata for a given claim and assessor
+  /// @param claimId The claim identifier
+  /// @param assessorMemberId The member ID of the assessor
+  /// @return The IPFS hash containing off-chain metadata for the vote
+  function getBallotsMetadata(uint claimId, uint assessorMemberId) override external view returns (bytes32) {
+    return _ballotsMetadata[assessorMemberId][claimId];
   }
 
   /* === MUTATIVE FUNCTIONS ==== */

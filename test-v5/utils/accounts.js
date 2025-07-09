@@ -11,6 +11,7 @@ const assignRoles = accounts => ({
   stakingPoolManagers: accounts.slice(30, 40),
   emergencyAdmin: accounts[40],
   generalPurpose: accounts.slice(41),
+  assessors: accounts.slice(41, 46),
 });
 
 const getAccounts = async () => {

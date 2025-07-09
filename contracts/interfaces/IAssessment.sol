@@ -84,9 +84,11 @@ interface IAssessment {
 
   function getAssessmentResult(uint claimId) external view returns(uint cooldownEnd, AssessmentStatus status);
 
-  function ballotOf(uint claimId, address assessor) external view returns (Ballot memory);
+  function ballotOf(uint claimId, uint assessorMemberId) external view returns (Ballot memory);
 
   function getAssessment(uint claimId) external view returns(Assessment memory assessment);
+
+  function getBallotsMetadata(uint claimId, uint assessorMemberId) external view returns (bytes32);
 
   /* ========= EVENTS ========== */
 

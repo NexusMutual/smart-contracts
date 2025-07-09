@@ -40,26 +40,44 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /* ========== GROUP MANAGEMENT ========== */
   /* ========== VIEWS ========== */
 
+  /// @notice Returns the total number of assessor groups
+  /// @return groupCount The current number of assessor groups
   function getGroupsCount() override external view returns (uint groupCount) {
     groupCount = _groupCount;
   }
 
+  /// @notice Returns the number of assessors in a specific group
+  /// @param groupId The ID of the group to query
+  /// @return assessorCount The number of assessors in the group
   function getGroupAssessorCount(uint groupId) public view returns (uint assessorCount) {
     assessorCount = _groups[groupId].length();
   }
 
+  /// @notice Returns all assessor member IDs in a specific group
+  /// @param groupId The ID of the group to query
+  /// @return assessorMemberIds Array of assessor member IDs in the group
   function getGroupAssessors(uint groupId) public view returns (uint[] memory assessorMemberIds) {
     assessorMemberIds = _groups[groupId].values();
   }
 
+  /// @notice Checks if an assessor is a member of a specific group
+  /// @param assessorMemberId The member ID of the assessor
+  /// @param groupId The ID of the group to check
+  /// @return True if the assessor is in the group, false otherwise
   function isAssessorInGroup(uint assessorMemberId, uint groupId) override external view returns (bool) {
     return _groups[groupId].contains(assessorMemberId);
   }
 
+  /// @notice Returns all group IDs that an assessor belongs to
+  /// @param assessorMemberId The member ID of the assessor
+  /// @return groupIds Array of group IDs the assessor belongs to
   function getGroupsForAssessor(uint assessorMemberId) override external view returns (uint[] memory groupIds) {
     groupIds = _groupsForAssessor[assessorMemberId].values();
   }
 
+  /// @notice Returns detailed information for multiple groups
+  /// @param groupIds Array of group IDs to query
+  /// @return groups Array of group data including metadata and assessors
   function getGroupsData(uint[] calldata groupIds) override external view returns (AssessmentGroupView[] memory groups) {
     uint length = groupIds.length;
     groups = new AssessmentGroupView[](length);
@@ -76,24 +94,12 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     return groups;
   }
 
-  function setAssessmentDataForProductTypes(
-    uint[] calldata productTypeIds,
-    uint cooldownPeriod,
-    uint groupId
-  ) override external onlyContracts(C_GOVERNOR) {
-    uint length = productTypeIds.length;
-    for (uint i = 0; i < length; i++) {
-      _assessmentData[productTypeIds[i]] = AssessmentData({
-        assessingGroupId: groupId.toUint16(),
-        cooldownPeriod: cooldownPeriod.toUint32()
-      });
-    }
-
-    emit AssessmentDataForProductTypesSet(productTypeIds, cooldownPeriod, groupId);
-  }
-
   /* ========== MUTATIVE FUNCTIONS ========== */
 
+  /// @notice Adds assessors to a group, creating a new group if groupId is 0
+  /// @param assessorMemberIds Array of member IDs to add to the group
+  /// @param groupId Target group ID (0 creates new group)
+  /// @dev Only callable by governor contract
   function addAssessorsToGroup(uint[] calldata assessorMemberIds, uint groupId) override external onlyContracts(C_GOVERNOR) {
     // make new group id
     if (groupId == 0) {
@@ -110,6 +116,10 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     }
   }
 
+  /// @notice Sets IPFS metadata for a group
+  /// @param groupId The ID of the group to update
+  /// @param ipfsMetadata The IPFS hash containing group metadata
+  /// @dev Only callable by governor contract
   function setGroupMetadata(uint groupId, bytes32 ipfsMetadata) override external onlyContracts(C_GOVERNOR) {
     require(groupId > 0 && groupId <= _groupCount, InvalidGroupId());
 
@@ -117,6 +127,10 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     emit GroupMetadataSet(groupId, ipfsMetadata);
   }
 
+  /// @notice Removes an assessor from a specific group
+  /// @param assessorMemberId The member ID of the assessor to remove
+  /// @param groupId The ID of the group to remove from
+  /// @dev Only callable by governor contract
   function removeAssessorFromGroup(uint assessorMemberId, uint groupId) override external onlyContracts(C_GOVERNOR) {
     require(groupId > 0 && groupId <= _groupCount, InvalidGroupId());
 
@@ -126,6 +140,9 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     emit AssessorRemovedFromGroup(groupId, assessorMemberId);
   }
 
+  /// @notice Removes an assessor from all groups they belong to
+  /// @param assessorMemberId The member ID of the assessor to remove
+  /// @dev Only callable by governor contract
   function removeAssessorFromAllGroups(uint assessorMemberId) override external onlyContracts(C_GOVERNOR) {
     require(assessorMemberId != 0, InvalidMemberId());
 
@@ -140,6 +157,31 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     _clearSet(_groupsForAssessor[assessorMemberId]._inner);
   }
 
+  /// @notice Sets assessment configuration for multiple product types
+  /// @param productTypeIds Array of product type IDs to configure
+  /// @param cooldownPeriod Cooldown period in seconds after voting ends
+  /// @param groupId The assessor group ID responsible for these product types
+  /// @dev Only callable by governor contract
+  function setAssessmentDataForProductTypes(
+    uint[] calldata productTypeIds,
+    uint cooldownPeriod,
+    uint groupId
+  ) override external onlyContracts(C_GOVERNOR) {
+    uint length = productTypeIds.length;
+    for (uint i = 0; i < length; i++) {
+      _assessmentData[productTypeIds[i]] = AssessmentData({
+        assessingGroupId: groupId.toUint16(),
+        cooldownPeriod: cooldownPeriod.toUint32()
+      });
+    }
+
+    emit AssessmentDataForProductTypesSet(productTypeIds, cooldownPeriod, groupId);
+  }
+
+  /// @notice Undoes votes cast by an assessor on multiple claims
+  /// @param assessorMemberId The member ID of the assessor whose votes to undo
+  /// @param claimIds Array of claim IDs to undo votes for
+  /// @dev Only callable by governor contract, must be within cooldown period
   function undoVotes(uint assessorMemberId, uint[] calldata claimIds) override external onlyContracts(C_GOVERNOR) {
     uint len = claimIds.length;
     for (uint i = 0; i < len; i++) {
@@ -164,6 +206,9 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     }
   }
 
+  /// @notice Clears all elements from an EnumerableSet
+  /// @param set The set to clear
+  /// @dev Internal helper function for set cleanup
   function _clearSet(EnumerableSet.Set storage set) internal {
     uint len = set._values.length;
     for (uint i = 0; i < len; i++) {
@@ -201,16 +246,33 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     return assessment.assessingGroupId;
   }
 
+  /// @notice Returns the full assessment data for a claim
+  /// @param claimId The ID of the claim to query
+  /// @return assessment The complete assessment data including votes and timing
   function getAssessment(uint claimId) override external view returns(Assessment memory assessment) {
     return _assessments[claimId];
   }
 
+  /// @notice Returns the minimum voting period (legacy compatibility)
+  /// @return The minimum voting period in seconds
+  function minVotingPeriod() external pure returns (uint) {
+    return VOTING_PERIOD;
+  }
+
+  /// @notice Returns the assessment result and cooldown end time for a claim
+  /// @param claimId The ID of the claim to query
+  /// @return cooldownEnd Timestamp when the cooldown period ends
+  /// @return status Current status of the assessment (VOTING, COOLDOWN, ACCEPTED, DENIED, DRAW)
   function getAssessmentResult(uint claimId) override external view returns(uint cooldownEnd, AssessmentStatus status) {
     Assessment memory assessment = _assessments[claimId];
     cooldownEnd = assessment.votingEnd + assessment.cooldownPeriod;
     return (cooldownEnd, _getAssessmentStatus(assessment));
   }
 
+  /// @notice Determines the current status of an assessment based on timing and votes
+  /// @param assessment The assessment data to evaluate
+  /// @return status The current assessment status
+  /// @dev Internal helper function for status calculation
   function _getAssessmentStatus(Assessment memory assessment) internal view returns(AssessmentStatus status) {
     if (block.timestamp < assessment.votingEnd) {
       return AssessmentStatus.VOTING;

@@ -38,7 +38,7 @@ interface IAssessment {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function addAssessorsToGroup(uint[] calldata memberId, uint groupId) external;
+  function addAssessorsToGroup(uint[] calldata assessorMemberId, uint groupId) external;
 
   function setGroupMetadata(uint groupId, bytes32 ipfsMetadata) external;
 

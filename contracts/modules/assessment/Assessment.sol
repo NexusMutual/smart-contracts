@@ -305,12 +305,11 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
   /// @notice Allows for the early closing of a claim's voting period.
   /// @dev Can only be called if all assigned assessors have cast their votes.
-  ///      Must be called by an active assessor for the claim to prevent potential front-running.
   ///      Sets the assessment's `votingEnd` to the current block timestamp.
   /// @param claimId The unique identifier for the claim.
   function closeVotingEarly(uint claimId) override external {
-    // an assessor on the claim must call this to prevent front-running
-    (, Assessment memory assessment) = _validateAssessor(claimId, msg.sender);
+    Assessment memory assessment = _assessments[claimId];
+    require(assessment.start != 0, InvalidClaimId());
     require(block.timestamp < assessment.votingEnd, VotingAlreadyClosed());
 
     uint[] memory assessors = getGroupAssessors(assessment.assessingGroupId);

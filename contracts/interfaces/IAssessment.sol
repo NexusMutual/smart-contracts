@@ -110,6 +110,11 @@ interface IAssessment {
     bytes32 ipfsHash
   );
 
+  event VoteUndone(
+    uint indexed claimId,
+    uint indexed assessorMemberId
+  );
+
   event AssessmentVotingEndChanged(uint claimId, uint newEnd);
 
   /* ========== ERRORS ========== */

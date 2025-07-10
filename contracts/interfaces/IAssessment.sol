@@ -56,7 +56,7 @@ interface IAssessment {
 
   function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) external;
 
-  function startAssessment(uint claimId, uint16 productTypeId) external;
+  function startAssessment(uint claimId, uint productTypeId) external;
 
   function resetVotingPeriod(uint claimId) external;
 

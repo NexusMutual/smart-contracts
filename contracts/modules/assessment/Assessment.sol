@@ -306,7 +306,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param productTypeId Type of product the claim is for
   /// @dev Only callable by internal contracts
   /// @dev Reverts if an assessment already exists for the given claimId
-  function startAssessment(uint claimId, uint16 productTypeId) override external onlyContracts(C_CLAIMS) {
+  function startAssessment(uint claimId, uint productTypeId) override external onlyContracts(C_CLAIMS) {
     require(_assessments[claimId].start == 0, AssessmentAlreadyExists());
 
     // validate that assessment data exists for the product type

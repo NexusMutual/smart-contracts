@@ -213,9 +213,6 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
       amount = amount + tokensLocked(_of, lockReason[_of][i]);
     }
 
-    (uint assessmentStake,,) = assessment().stakeOf(_of);
-    amount += assessmentStake;
-
     if (includeManagedStakingPools) {
       uint managedStakingPoolCount = managerStakingPools[_of].length;
       for (uint i = 0; i < managedStakingPoolCount; i++) {
@@ -269,11 +266,8 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   /// @param member  The address of the member whose pending rewards are to be retrieved.
   /// @return        The total amount of pending rewards for the given member.
   function getPendingRewards(address member) public view returns (uint) {
-
-    (uint totalPendingAmountInNXM,,) = assessment().getRewards(member);
     uint governanceRewards = governance().getPendingReward(member);
-
-    return totalPendingAmountInNXM + governanceRewards;
+    return governanceRewards;
   }
 
   /// @notice Withdraws NXM from the Nexus platform based on specified options.
@@ -286,22 +280,21 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   /// @param withdrawAssessment         Options specifying assesment withdrawals, set flags to true to include
   ///                                   specific assesment stake or rewards withdrawal.
   function withdrawNXM(
-    WithdrawAssessment calldata withdrawAssessment,
+    WithdrawAssessment calldata withdrawAssessment,     // TODO: remove withdrawAssessment
     StakingPoolDeposit[] calldata stakingPoolDeposits,
     StakingPoolManagerReward[] calldata stakingPoolManagerRewards,
-    uint assessmentRewardsBatchSize,
+    uint, // TODO: remove assessmentRewardsBatchSize
     uint govRewardsBatchSize
   ) external whenNotPaused {
-
     // assessment stake
     if (withdrawAssessment.stake) {
-      assessment().unstakeAllFor(msg.sender);
+    //   assessment().unstakeAllFor(msg.sender);
     }
 
     // assessment rewards
     if (withdrawAssessment.rewards) {
-      // pass in 0 batchSize to withdraw ALL Assessment rewards
-      assessment().withdrawRewards(msg.sender, assessmentRewardsBatchSize.toUint104());
+    //   // pass in 0 batchSize to withdraw ALL Assessment rewards
+    //   assessment().withdrawRewards(msg.sender, assessmentRewardsBatchSize.toUint104());
     }
 
     // governance rewards

@@ -78,7 +78,8 @@ contract NexusViewer is INexusViewer, Multicall {
   }
 
   function _getAssessmentStake(address member) internal view returns (uint assessmentStake, IAssessmentViewer.AssessmentStakeLockedState memory stakeLockedState) {
-    (assessmentStake, , ) = _assessment().stakeOf(member);
+    // (assessmentStake, , ) = _assessment().stakeOf(member);
+    assessmentStake = 0;
     stakeLockedState = assessmentViewer.getStakeLocked(member);
   }
 

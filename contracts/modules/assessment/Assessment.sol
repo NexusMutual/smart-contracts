@@ -187,10 +187,13 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     for (uint i = 0; i < len; i++) {
       uint claimId = claimIds[i];
       Ballot memory ballot = _ballots[assessorMemberId][claimId];
-      Assessment memory assessment = _assessments[claimId];
 
       require(ballot.timestamp > 0, HasNotVoted(claimId));
-      require(!_hasCooldownPassed(assessment), AssessmentCooldownPassed(claimId));
+
+      Assessment memory assessment = _assessments[claimId];
+      uint cooldownEnd = assessment.votingEnd + assessment.cooldownPeriod;
+
+      require(block.timestamp <= cooldownEnd, AssessmentCooldownPassed(claimId));
 
       if (ballot.support) {
         assessment.acceptVotes--;
@@ -270,10 +273,12 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
       return AssessmentStatus.VOTING;
     }
 
-    if (!_hasCooldownPassed(assessment)) {
+    uint cooldownEnd = assessment.votingEnd + assessment.cooldownPeriod;
+    if (block.timestamp <= cooldownEnd) {
       return AssessmentStatus.COOLDOWN;
     }
 
+    // Cooldown has passed, the assessment can have a final decision
     if (assessment.acceptVotes > assessment.denyVotes) {
       return AssessmentStatus.ACCEPTED;
     }
@@ -404,18 +409,13 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   function extendVotingPeriod(uint claimId) override external onlyContracts(C_GOVERNOR) {
     Assessment memory assessment = _assessments[claimId];
     require(assessment.start != 0, InvalidClaimId());
-    require(!_hasCooldownPassed(assessment), AssessmentCooldownPassed(claimId));
+
+    uint cooldownEnd = assessment.votingEnd + assessment.cooldownPeriod;
+    require(block.timestamp <= cooldownEnd, AssessmentCooldownPassed(claimId));
 
     assessment.votingEnd = (block.timestamp + VOTING_PERIOD).toUint32();
     _assessments[claimId] = assessment;
 
     emit VotingEndChanged(claimId, assessment.votingEnd);
-  }
-
-  /* ========== INTERNAL FUNCTIONS ========== */
-
-  function _hasCooldownPassed(Assessment memory assessment) internal view returns (bool) {
-    uint cooldownEnd = assessment.votingEnd + assessment.cooldownPeriod;
-    return (block.timestamp > cooldownEnd);
   }
 }

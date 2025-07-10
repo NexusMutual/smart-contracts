@@ -72,8 +72,6 @@ interface IPermissionedAssessment {
 
   function ballotOf(bytes32 claimId, address assessor) external view returns (Ballot memory);
 
-  function hasVoted(bytes32 claimId, address assessor) external view returns (bool);
-
   function claimsOpenForVoting(address assessor) external view returns (bytes32[] memory);
 
   function getOutcome(bytes32 claimId) external view returns (bool accepted);

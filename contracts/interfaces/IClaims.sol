@@ -79,4 +79,5 @@ interface IClaims {
   error PayoutAlreadyRedeemed();
   error OnlyMember();
   error InvalidClaimId();
+  error AlreadyInitialized();
 }

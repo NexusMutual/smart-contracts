@@ -16,7 +16,7 @@ interface IAssessment {
 
   struct Ballot {
     bytes32 ipfsHash;
-    Vote vote;
+    bool support;
     uint32 timestamp;
   }
 
@@ -35,12 +35,6 @@ interface IAssessment {
     DENIED
   }
 
-  enum Vote {
-    NONE, // 0 - default
-    ACCEPT, // 1
-    DENY // 2
-  }
-
   /* === MUTATIVE FUNCTIONS ==== */
 
   function addAssessorsToGroup(address[] calldata assessors, uint groupId) external;
@@ -51,7 +45,7 @@ interface IAssessment {
 
   function removeAssessorsFromAllGroups(address[] calldata assessors) external;
 
-  function castVote(uint claimId, Vote vote, bytes32 ipfsHash) external;
+  function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) external;
 
   function startAssessment(uint claimId, uint16 productTypeId) external;
 
@@ -83,7 +77,7 @@ interface IAssessment {
 
   event SetAssessmentDataForProductTypes(uint[] productTypeIds, uint cooldownPeriod, uint groupId);
   event AddAssessorToGroup(uint indexed groupId, uint assessorMemberId);
-  event RemoveAssessorFromGroup(uint indexed groupId, uint assessorMemberId);  
+  event RemoveAssessorFromGroup(uint indexed groupId, uint assessorMemberId);
   event SetGroupMetadata(uint indexed groupId, bytes32 ipfsMetadata);
 
   event AssessmentStarted(
@@ -97,7 +91,7 @@ interface IAssessment {
     uint indexed claimId,
     address indexed assessor,
     uint indexed assessorMemberId,
-    Vote vote,
+    bool support,
     bytes32 ipfsHash
   );
 

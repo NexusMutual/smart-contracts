@@ -29,7 +29,15 @@ interface IPermissionedAssessment {
     uint32 start;
     uint32 end;
     uint32 assessorGroupId;
+    uint32 finalizedAt; // 0, not closed yet else timestamp of closure
+    AssessmentResult result; // decision snapshot
     mapping(uint256 assessorMemberId => Ballot) ballot; // only stores latest choice
+  }
+
+  enum AssessmentResult {
+    NONE,
+    ACCEPTED,
+    DENIED
   }
 
   enum Vote {

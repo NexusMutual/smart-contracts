@@ -21,11 +21,11 @@ interface IAssessment {
   }
 
   struct Assessment {
-    uint32 assessorGroupId; // TODO: set AssessmentData instead
+    AssessmentData assessmentData;
     uint32 start;
     uint32 finalizedAt; // 0, not closed yet else timestamp of closure
-    uint8 acceptVotes; // 0, if not finalized yet, should only be set onced finalized
-    uint8 denyVotes; // 0, if not finalized yet, should only be set onced finalized
+    uint8 acceptVotes; // 0, if not finalized yet, should only be set once finalized
+    uint8 denyVotes; // 0, if not finalized yet, should only be set once finalized
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -95,18 +95,21 @@ interface IAssessment {
 
   /* ========== ERRORS ========== */
 
-  error InvalidMemberId();
-  error MustBeMember(address);
-  error InvalidGroupId();
   error AssessmentAlreadyExists();
+  error AssessmentStillInCooldown();
+  error MissingAssessmentDataForProductType(uint16 productTypeId);
   error ClaimIdsEmpty();
-  error ClaimAssessmentAlreadyClosed();
   error ClaimIdsVotesLengthMismatch();
   error ClaimIdsCidsLengthMismatch();
-  error ClaimAssessmentNotFinished();
   error EmptyAssessorGroup();
   error InvalidAssessor();
   error InvalidClaimId();
-  error InvalidVote();
+  error InvalidGroupId();
+  error InvalidMemberId();
   error InvalidProductType();
+  error InvalidVote();
+  error MustBeMember(address);
+  error VotingNotConcluded();
+  error VotingPeriodEnded();
+  error MajorityNotReached();
 }

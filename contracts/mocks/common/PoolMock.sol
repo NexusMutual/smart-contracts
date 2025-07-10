@@ -75,6 +75,12 @@ contract PoolMock is PoolGeneric {
     }
   }
 
+  function returnDeposit(address payable payoutAddress, uint ethDepositAmount) external override virtual {
+    // solhint-disable-next-line avoid-low-level-calls
+    (bool transferSucceeded /* data */, ) = payoutAddress.call{value: ethDepositAmount}("");
+    require(transferSucceeded, "Pool: ETH transfer failed");
+  }
+
   function sendEth(address payoutAddress, uint amount) external override virtual {
     (bool transferSucceeded, bytes memory returndata) = payoutAddress.call{value: amount}("");
 

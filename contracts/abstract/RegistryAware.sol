@@ -29,6 +29,7 @@ uint constant C_CLAIMS           = 65536;
 uint constant PAUSE_GLOBAL       = 1;
 uint constant PAUSE_RAMM         = 2;
 uint constant PAUSE_SWAPS        = 4;
+uint constant PAUSE_ASSESSMENTS  = 8;
 
 contract RegistryAware {
 

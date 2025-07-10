@@ -2,16 +2,14 @@
 
 pragma solidity ^0.8.28;
 
-import {EnumerableSet} from "@openzeppelin/contracts-v4/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts-v4/utils/structs/EnumerableSet.sol";
 
-import {Multicall} from "../../abstract/Multicall.sol";
-import {IAssessment} from "../../interfaces/IAssessment.sol";
-import {RegistryAware, C_GOVERNOR, C_COVER_PRODUCTS, C_CLAIMS, C_ASSESSMENT} from "../../abstract/RegistryAware.sol";
-import {SafeUintCast} from "../../libraries/SafeUintCast.sol";
+import "../../abstract/Multicall.sol";
+import "../../interfaces/IAssessment.sol";
+import "../../abstract/RegistryAware.sol";
+import "../../libraries/SafeUintCast.sol";
 
-// TODO: is multicall needed?
 contract Assessment is IAssessment, RegistryAware, Multicall {
-  using EnumerableSet for EnumerableSet.AddressSet;
   using EnumerableSet for EnumerableSet.UintSet;
   using SafeUintCast for uint;
 
@@ -28,9 +26,13 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
   mapping(uint claimId => Assessment) private _assessments;
 
+  // todo: move ipfs hashes out?
+  // todo: have array instead of mapping so we can think of reverting votes on removal?
+  mapping(uint assessorMemberId => mapping(uint claimId => Ballot)) private _ballots; // only stores latest choice
+
   /* ========== CONSTANTS ========== */
 
-  uint constant internal MIN_VOTING_PERIOD = 3 days;
+  uint constant internal VOTING_PERIOD = 3 days;
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -95,16 +97,16 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
   /* ========== MUTATIVE FUNCTIONS ========== */
 
-  function addAssessorsToGroup(address[] calldata assessors, uint groupId) external onlyContracts(C_GOVERNOR) {
+  function addAssessorsToGroup(uint[] calldata assessorMemberIds, uint groupId) external onlyContracts(C_GOVERNOR) {
     // make new group id
     if (groupId == 0) {
       groupId = ++_groupCount;
     }
 
-    uint length = assessors.length;
+    uint length = assessorMemberIds.length;
     for (uint i = 0; i < length; i++) {
-      uint assessorMemberId = registry.getMemberId(assessors[i]);
-      require(assessorMemberId != 0, MustBeMember(assessors[i]));
+      uint assessorMemberId = assessorMemberIds[i];
+      require(assessorMemberId != 0, InvalidMemberId());
       _groups[groupId].add(assessorMemberId);
       _groupsForAssessor[assessorMemberId].add(groupId);
       emit AddAssessorToGroup(groupId, assessorMemberId);
@@ -118,58 +120,44 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     emit SetGroupMetadata(groupId, ipfsMetadata);
   }
 
-  // todo: remove by address or by memberId?
-  function removeAssessorsFromGroup(address[] calldata assessors, uint groupId) external onlyContracts(C_GOVERNOR) {
+  function removeAssessorFromGroup(uint assessorMemberId, uint groupId) external onlyContracts(C_GOVERNOR) {
     require(groupId > 0 && groupId <= _groupCount, InvalidGroupId());
 
-    uint length = assessors.length;
-    for (uint i = 0; i < length; i++) {
-      uint assessorMemberId = registry.getMemberId(assessors[i]);
-      require(assessorMemberId != 0, MustBeMember(assessors[i]));
-      _groups[groupId].remove(assessorMemberId);
-      _groupsForAssessor[assessorMemberId].remove(groupId);
-      emit RemoveAssessorFromGroup(groupId, assessorMemberId);
-    }
+    require(assessorMemberId != 0, InvalidMemberId());
+    _groups[groupId].remove(assessorMemberId);
+    _groupsForAssessor[assessorMemberId].remove(groupId);
+    emit RemoveAssessorFromGroup(groupId, assessorMemberId);
   }
 
-  function removeAssessorsFromAllGroups(address[] calldata assessors) external onlyContracts(C_GOVERNOR) {
-    uint length = assessors.length;
-    for (uint i = 0; i < length; i++) {
-      uint assessorMemberId = registry.getMemberId(assessors[i]);
-      require(assessorMemberId != 0, MustBeMember(assessors[i]));
+  function removeAssessorFromAllGroups(uint assessorMemberId) external onlyContracts(C_GOVERNOR) {
+    require(assessorMemberId != 0, InvalidMemberId());
 
-      uint[] memory assessorsGroups = _groupsForAssessor[assessorMemberId].values();
-      uint assessorsGroupsLength = assessorsGroups.length;
-      for (uint groupIndex = 0; groupIndex < assessorsGroupsLength; groupIndex++) {
-        uint groupId = assessorsGroups[groupIndex];
-        _groups[groupId].remove(assessorMemberId);
-         emit RemoveAssessorFromGroup(groupId, assessorMemberId);
-      }
-
-      _clearSet(_groupsForAssessor[assessorMemberId]._inner);
+    uint[] memory assessorsGroups = _groupsForAssessor[assessorMemberId].values();
+    uint assessorsGroupsLength = assessorsGroups.length;
+    for (uint groupIndex = 0; groupIndex < assessorsGroupsLength; groupIndex++) {
+      uint groupId = assessorsGroups[groupIndex];
+      _groups[groupId].remove(assessorMemberId);
+      emit RemoveAssessorFromGroup(groupId, assessorMemberId);
     }
+
+    _clearSet(_groupsForAssessor[assessorMemberId]._inner);
   }
 
   function _clearSet(EnumerableSet.Set storage set) internal {
       uint len = set._values.length;
-      for (uint i = 0; i < len; ++i) {
+      for (uint i = 0; i < len; i++) {
           delete set._indexes[set._values[i]];
       }
       delete set._values;
-
-      // todo: check using a bit more optimized:
-      // assembly {
-      //   sstore(set._values.slot, 0);
-      // }
   }
 
   /* ========== VOTING ========== */
   /* ========== VIEWS ========== */
 
-  /// @notice Returns the minimum voting period for assessments
-  /// @return The minimum voting period in seconds
-  function minVotingPeriod() external pure returns (uint) {
-    return MIN_VOTING_PERIOD;
+  /// @notice Returns the voting period for assessments
+  /// @return The voting period in seconds
+  function votingPeriod() external pure returns (uint) {
+    return VOTING_PERIOD;
   }
 
   /// @notice Returns the payout cooldown period for a given product type
@@ -220,14 +208,14 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
     EnumerableSet.UintSet storage assessorGroup = _groups[assessment.assessorGroupId];
     groupSize = assessorGroup.length();
-    end = (assessment.start + MIN_VOTING_PERIOD).toUint32();
+    end = (assessment.start + VOTING_PERIOD).toUint32();
     finalizedAt = assessment.finalizedAt;
 
     if (finalizedAt != 0) {
       acceptVotes = assessment.acceptVotes;
       denyVotes = assessment.denyVotes;
     } else {
-      (acceptVotes, denyVotes) = _getVoteTally(assessment, assessorGroup, groupSize);
+      (acceptVotes, denyVotes) = _getVoteTally(claimId, assessorGroup, groupSize);
     }
 
     return (acceptVotes, denyVotes, groupSize, start, end, finalizedAt);
@@ -238,8 +226,8 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param assessor The address of the assessor
   /// @return The Ballot struct for the assessor on the claim
   function ballotOf(uint claimId, address assessor) external view returns (Ballot memory) {
-    (uint assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, assessor);
-    return assessment.ballot[assessorMemberId];
+    (uint assessorMemberId,) = _validateAssessor(claimId, assessor);
+    return _ballots[assessorMemberId][claimId];
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -259,7 +247,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     require(assessingGroupId != 0, InvalidProductType());
 
     uint32 start = block.timestamp.toUint32();
-    uint32 end = (start + MIN_VOTING_PERIOD).toUint32();
+    uint32 end = (start + VOTING_PERIOD).toUint32();
 
     assessment.start = start;
     assessment.assessorGroupId = assessingGroupId;
@@ -274,13 +262,13 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param voteSupport The vote either to support the claim (true) or vote to deny the claim (false)
   /// @param ipfsHash IPFS hash containing vote rationale
   /// @dev Only valid assessors can vote, and polls must be open for voting
-  function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) external whenNotPaused(C_ASSESSMENT) {
+  function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) external whenNotPaused(PAUSE_ASSESSMENTS) {
 
     // Validate assessor and get assessment data
     (uint assessorMemberId, Assessment storage assessment) = _validateAssessor(claimId, msg.sender);
 
     // If assessment period has passed, see if assessment can be closed
-    if (block.timestamp >= assessment.start + MIN_VOTING_PERIOD) {
+    if (block.timestamp >= assessment.start + VOTING_PERIOD) {
       _closeAssessment(claimId, assessment);
     }
 
@@ -288,11 +276,11 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     require(assessment.finalizedAt == 0, ClaimAssessmentAlreadyClosed());
 
     // Update ballot
-    Ballot storage ballot = assessment.ballot[assessorMemberId];
-
-    ballot.support = voteSupport;
-    ballot.ipfsHash = ipfsHash;
-    ballot.timestamp = uint32(block.timestamp);
+    _ballots[assessorMemberId][claimId] = Ballot({
+      support: voteSupport,
+      ipfsHash: ipfsHash,
+      timestamp: uint32(block.timestamp)
+    });
 
     emit VoteCast(claimId, msg.sender, assessorMemberId, voteSupport, ipfsHash);
   }
@@ -306,13 +294,13 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /* ========== INTERNAL FUNCTIONS ========== */
 
   /// @dev Internal function to count votes that accepts a pre-loaded assessor group and assessment
-  /// @param assessment The pre-loaded assessment data
+  /// @param claimId The claim identifier
   /// @param assessorGroup The pre-loaded assessor group to iterate through
   /// @param assessorGroupLength The pre-loaded length of the assessor group
   /// @return acceptCount Number of assessors who voted to accept the claim
   /// @return denyCount Number of assessors who voted to deny the claim
   function _getVoteTally(
-    Assessment storage assessment,
+    uint claimId,
     EnumerableSet.UintSet storage assessorGroup,
     uint assessorGroupLength
   ) internal view returns (uint acceptCount, uint denyCount) {
@@ -324,7 +312,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
     for (uint i = 0; i < assessorGroupLength; i++) {
         uint assessorMemberId = assessorMembers[i];
-        Ballot storage ballot = assessment.ballot[assessorMemberId];
+        Ballot storage ballot = _ballots[assessorMemberId][claimId];
 
         // Only count votes that have been cast
         if (ballot.timestamp > 0) {
@@ -352,6 +340,8 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     return (assessorMemberId, assessment);
   }
 
+  // TODO: adding cooldown, but should be careful in castVote on the state
+
   /// @notice Internal: closes the assessment if finalized conditions are met
   /// @param claimId The claim identifier
   /// @param assessment The assessment storage reference
@@ -364,12 +354,12 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     EnumerableSet.UintSet storage assessorGroup = _groups[assessment.assessorGroupId];
     uint assessorGroupLength = assessorGroup.length();
 
-    (uint acceptVotes, uint denyVotes) = _getVoteTally(assessment, assessorGroup, assessorGroupLength);
+    (uint acceptVotes, uint denyVotes) = _getVoteTally(claimId, assessorGroup, assessorGroupLength);
 
     bool hasVotesAndNotADraw = acceptVotes != denyVotes; // has votes (i.e. not 0-0) and not a draw
     bool allVoted = acceptVotes + denyVotes == assessorGroupLength;
 
-    uint32 assessmentEnd = assessmentStart + uint32(MIN_VOTING_PERIOD);
+    uint32 assessmentEnd = assessmentStart + uint32(VOTING_PERIOD);
     bool endPassed = block.timestamp >= assessmentEnd;
 
     if (hasVotesAndNotADraw && (endPassed || allVoted)) {

@@ -60,7 +60,7 @@ interface IAssessment {
 
   function resetVotingPeriod(uint claimId) external;
 
-  function closeVoting(uint claimId) external;
+  function closeVotingEarly(uint claimId) external;
 
   /* ========== VIEWS ========== */
 

@@ -27,10 +27,10 @@ interface IPermissionedAssessment {
 
   struct Assessment {
     uint32 start;
-    uint32 end;
     uint32 assessorGroupId;
     uint32 finalizedAt; // 0, not closed yet else timestamp of closure
-    AssessmentResult result; // decision snapshot
+    uint8 acceptVotes; // 0, if not finalized yet, should only be set onced finalized
+    uint8 denyVotes; // 0, if not finalized yet, should only be set onced finalized
     mapping(uint256 assessorMemberId => Ballot) ballot; // only stores latest choice
   }
 

@@ -236,16 +236,6 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     return assessmentData.cooldownPeriod;
   }
 
-  /// @notice Returns the assessor group ID for a given claim
-  /// @param claimId The claim identifier
-  /// @return The group ID of the assessors for the claim
-  function assessorGroupOf(uint claimId) override external view returns (uint32) {
-    Assessment memory assessment = _assessments[claimId];
-    require(assessment.start != 0, InvalidClaimId());
-
-    return assessment.assessingGroupId;
-  }
-
   /// @notice Returns the full assessment data for a claim
   /// @param claimId The ID of the claim to query
   /// @return assessment The complete assessment data including votes and timing

@@ -62,19 +62,19 @@ interface IPermissionedAssessment {
 
   function payoutCooldown(uint256 productTypeId) external view returns (uint256);
 
-  function assessorGroupOf(bytes32 claimId) external view returns (uint32);
+  function assessorGroupOf(uint256 claimId) external view returns (uint32);
 
-  function getAssessmentInfo(bytes32 claimId) external view returns (uint32 start, uint32 end, uint256 accepts, uint256 denies);
+  function getAssessmentInfo(uint256 claimId) external view returns (uint256 accepts, uint256 denies, uint256 groupSize, uint32 end, uint32 finalizedAt, AssessmentResult result);
 
-  function isAssessmentDecided(bytes32 claimId) external view returns (bool);
+  function isAssessmentDecided(uint256 claimId) external view returns (bool);
 
-  function getVoteTally(bytes32 claimId) external view returns (uint256 acceptCount, uint256 denyCount);
+  function getVoteTally(uint256 claimId) external view returns (uint256 acceptCount, uint256 denyCount);
 
-  function ballotOf(bytes32 claimId, address assessor) external view returns (Ballot memory);
+  function ballotOf(uint256 claimId, address assessor) external view returns (Ballot memory);
 
   function claimsOpenForVoting(address assessor) external view returns (bytes32[] memory);
 
-  function getOutcome(bytes32 claimId) external view returns (bool accepted);
+  function getOutcome(uint256 claimId) external view returns (bool accepted);
 
   /* === MUTATIVE FUNCTIONS ==== */
 
@@ -92,9 +92,9 @@ interface IPermissionedAssessment {
 
   // Voting
 
-  function castVote(bytes32 claimId, Vote vote, bytes32 ipfsHash) external;
+  function castVote(uint256 claimId, Vote vote, bytes32 ipfsHash) external;
 
-  function startAssessment(bytes32 claimId, uint16 productTypeId) external;
+  function startAssessment(uint256 claimId, uint16 productTypeId) external;
 
   /* ========= EVENTS ========== */
 
@@ -104,22 +104,22 @@ interface IPermissionedAssessment {
   event RemoveAssessorsFromAllGroups(address[] assessors);
 
   event AssessmentStarted(
-    bytes32 indexed claimId,
+    uint256 indexed claimId,
     uint32 assessorGroupId,
     uint32 start,
     uint32 end
   );
 
   event VoteCast(
-    bytes32 indexed claimId,
+    uint256 indexed claimId,
     address indexed assessor,
     uint256 indexed assessorMemberId,
     Vote vote,
     bytes32 ipfsHash
   );
 
-  event AssessmentClosedEarly(bytes32 claimId);
-  event AssessmentExtended(bytes32 claimId, uint32 newEnd);
+  event AssessmentClosed(uint256 claimId);
+  event AssessmentExtended(uint256 claimId, uint32 newEnd);
 
 
   /* ========== ERRORS ========== */

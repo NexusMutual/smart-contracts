@@ -48,15 +48,19 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
   }
 
   function payoutCooldown(uint256 productTypeId) external view returns (uint256) {
+
     // TODO: call CoverProduct to validate productTypeId?\
-    AssessmentData storage assessmentData = _assessmentData[productTypeId];
+    AssessmentData memory assessmentData = _assessmentData[productTypeId];
     require(assessmentData.assessingGroupId != 0, InvalidProductType());
+
     return assessmentData.cooldownPeriod;
   }
 
   function assessorGroupOf(bytes32 claimId) external view returns (uint32) {
+
     Assessment storage assessment = _assessments[claimId];
     require(assessment.start != 0, InvalidClaimId());
+
     return assessment.assessorGroupId;
   }
 
@@ -210,7 +214,7 @@ contract PermissionedAssessment is IPermissionedAssessment, MasterAwareV2, Multi
       }
     }
 
-    emit VoteCast(claimId, assessorMemberId, vote, ipfsHash);
+    emit VoteCast(claimId, msg.sender, assessorMemberId, vote, ipfsHash);
   }
 
   /* ========== INTERNAL FUNCTIONS ========== */

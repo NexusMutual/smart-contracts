@@ -255,6 +255,8 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @return status Current status of the assessment (VOTING, COOLDOWN, ACCEPTED, DENIED, DRAW)
   function getAssessmentResult(uint claimId) override external view returns(uint cooldownEnd, AssessmentStatus status) {
     Assessment memory assessment = _assessments[claimId];
+    require(assessment.start != 0, InvalidClaimId());
+
     cooldownEnd = assessment.votingEnd + assessment.cooldownPeriod;
     return (cooldownEnd, _getAssessmentStatus(assessment));
   }

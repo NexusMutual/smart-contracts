@@ -276,11 +276,13 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
     if (assessment.acceptVotes > assessment.denyVotes) {
       return AssessmentStatus.ACCEPTED;
-    } else if (assessment.acceptVotes < assessment.denyVotes) {
-      return AssessmentStatus.DENIED;
-    } else {
-      return AssessmentStatus.DRAW;
     }
+
+    if (assessment.acceptVotes < assessment.denyVotes) {
+      return AssessmentStatus.DENIED;
+    }
+
+    return AssessmentStatus.DRAW;
   }
 
   /// @notice Returns the ballot for a given claim and assessor
@@ -393,13 +395,13 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     assessment.votingEnd = block.timestamp.toUint32();
     _assessments[claimId] = assessment;
 
-    emit AssessmentVotingEndChanged(claimId, assessment.votingEnd);
+    emit VotingEndChanged(claimId, assessment.votingEnd);
   }
 
-  /// @notice Resets the voting period for a claim, starting a new full voting window.
+  /// @notice Extends the voting period for a claim, starting a new full voting window.
   /// @dev Can only be called by the Governor contract. Reverts if the assessment's cooldown period has already passed.
   /// @param claimId The unique identifier for the claim.
-  function resetVotingPeriod(uint claimId) override external onlyContracts(C_GOVERNOR) {
+  function extendVotingPeriod(uint claimId) override external onlyContracts(C_GOVERNOR) {
     Assessment memory assessment = _assessments[claimId];
     require(assessment.start != 0, InvalidClaimId());
     require(!_hasCooldownPassed(assessment), AssessmentCooldownPassed(claimId));
@@ -407,7 +409,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     assessment.votingEnd = (block.timestamp + VOTING_PERIOD).toUint32();
     _assessments[claimId] = assessment;
 
-    emit AssessmentVotingEndChanged(claimId, assessment.votingEnd);
+    emit VotingEndChanged(claimId, assessment.votingEnd);
   }
 
   /* ========== INTERNAL FUNCTIONS ========== */

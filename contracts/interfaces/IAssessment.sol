@@ -58,7 +58,7 @@ interface IAssessment {
 
   function startAssessment(uint claimId, uint productTypeId) external;
 
-  function resetVotingPeriod(uint claimId) external;
+  function extendVotingPeriod(uint claimId) external;
 
   function closeVotingEarly(uint claimId) external;
 
@@ -80,7 +80,6 @@ interface IAssessment {
 
   function payoutCooldown(uint productTypeId) external view returns (uint);
 
-  function assessorGroupOf(uint claimId) external view returns (uint32);
 
   function getAssessmentResult(uint claimId) external view returns(uint cooldownEnd, AssessmentStatus status);
 
@@ -117,7 +116,7 @@ interface IAssessment {
     uint indexed assessorMemberId
   );
 
-  event AssessmentVotingEndChanged(uint claimId, uint newEnd);
+  event VotingEndChanged(uint indexed claimId, uint newEnd);
 
   /* ========== ERRORS ========== */
 

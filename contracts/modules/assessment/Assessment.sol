@@ -335,7 +335,16 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param voteSupport The assessor's vote; `true` to accept the claim, `false` to deny it.
   /// @param ipfsHash An IPFS hash containing off-chain metadata or reasoning for the vote.
   function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) override external whenNotPaused(PAUSE_ASSESSMENTS) {
-    (uint assessorMemberId, Assessment memory assessment) = _validateAssessor(claimId, msg.sender);
+    // Validate caller is a member and get their member ID
+    uint assessorMemberId = registry.getMemberId(msg.sender);
+    require(assessorMemberId > 0, OnlyMember());
+
+    // Get assessment data and validate claim exists
+    Assessment memory assessment = _assessments[claimId];
+    require(assessment.start != 0, InvalidClaimId());
+
+    // Validate assessor is in the correct group for this claim
+    require(_groups[assessment.assessingGroupId].contains(assessorMemberId), InvalidAssessor());
 
     require(block.timestamp < assessment.votingEnd, VotingPeriodEnded());
     require(_ballots[assessorMemberId][claimId].timestamp == 0, AlreadyVoted());
@@ -402,25 +411,6 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   }
 
   /* ========== INTERNAL FUNCTIONS ========== */
-
-  /// @dev Validates if an address is an assessor for a claim and returns related data
-  /// @param claimId The claim identifier
-  /// @param assessor The address to validate
-  /// @return assessorMemberId The member ID of the assessor
-  /// @return assessment The assessment data for the claim
-  function _validateAssessor(
-    uint claimId,
-    address assessor
-  ) internal view returns (uint assessorMemberId, Assessment memory assessment) {
-    assessorMemberId = registry.getMemberId(assessor);
-    require(assessorMemberId > 0, OnlyMember());
-    assessment = _assessments[claimId];
-
-    require(assessment.start != 0, InvalidClaimId());
-    require(_groups[assessment.assessingGroupId].contains(assessorMemberId), InvalidAssessor());
-
-    return (assessorMemberId, assessment);
-  }
 
   function _hasCooldownPassed(Assessment memory assessment) internal view returns (bool) {
     uint cooldownEnd = assessment.votingEnd + assessment.cooldownPeriod;

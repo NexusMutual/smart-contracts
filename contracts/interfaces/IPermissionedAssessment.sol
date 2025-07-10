@@ -20,8 +20,8 @@ interface IPermissionedAssessment {
   }
 
   struct Ballot {
-    Vote vote;
     bytes32 ipfsHash;
+    Vote vote;
     uint32 timestamp;
   }
 

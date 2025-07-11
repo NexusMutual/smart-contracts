@@ -167,6 +167,8 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     uint cooldownPeriod,
     uint groupId
   ) override external onlyContracts(C_GOVERNOR) {
+    require(groupId > 0 && groupId <= _groupCount, InvalidGroupId());
+
     uint length = productTypeIds.length;
     for (uint i = 0; i < length; i++) {
       _assessmentData[productTypeIds[i]] = AssessmentData({

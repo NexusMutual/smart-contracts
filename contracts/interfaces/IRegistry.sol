@@ -44,18 +44,19 @@ interface IRegistry {
   /* == ADVISORY BOARD MANAGEMENT == */
   function isAdvisoryBoardMember(address member) external view returns (bool);
   function getAdvisoryBoardSeat(address member) external view returns (uint);
+  function getMemberAddressBySeat(uint seat) external view returns (address);
   function swapAdvisoryBoardMember(uint from, uint to) external;
 
   /* == CONTRACT MANAGEMENT == */
   function isValidContractIndex(uint index) external pure returns (bool);
+  function isProxyContract(uint index) external view returns (bool);
+  function getContractAddressByIndex(uint index) external view returns (address payable);
+  function getContractIndexByAddress(address contractAddress) external view returns (uint);
+  function getContracts(uint[] memory indexes) external view returns (Contract[] memory);
   function deployContract(uint index, bytes32 salt, address implementation) external;
   function addContract(uint index, address contractAddress, bool isProxy) external;
   function upgradeContract(uint index, address implementation) external;
   function removeContract(uint index) external;
-  function getContractAddressByIndex(uint index) external view returns (address payable);
-  function getContractTypeByIndex(uint index) external view returns (bool isProxy);
-  function getContractIndexByAddress(address contractAddress) external view returns (uint);
-  function getContracts(uint[] memory indexes) external view returns (Contract[] memory);
 
   /* == MIGRATIONS == */
   function migrateMembers(address[] calldata membersToMigrate) external;
@@ -66,6 +67,11 @@ interface IRegistry {
   // left: MembershipChanged(memberId, current, address(0))
   event MembershipChanged(uint indexed memberId, address indexed previous, address indexed current);
   event AdvisoryBoardMemberSwapped(uint indexed seat, uint indexed from, uint indexed to);
+
+  event ContractDeployed(uint indexed index, address indexed proxy, address implementation);
+  event ContractUpgraded(uint indexed index, address indexed proxy, address implementation);
+  event ContractAdded(uint indexed index, address indexed contractAddress, bool isProxy);
+  event ContractRemoved(uint indexed index, address indexed contractAddress, bool isProxy);
 
   event EmergencyAdminSet(address indexed emergencyAdmin, bool enabled);
   event PauseConfigProposed(uint config, address indexed proposer);

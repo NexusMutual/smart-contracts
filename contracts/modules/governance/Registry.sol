@@ -31,11 +31,6 @@ contract Registry is IRegistry, EIP712 {
   mapping(address => bool) public isEmergencyAdmin;
   SystemPause internal systemPause; // 3 slots
 
-  modifier onlyMember() {
-    require(memberIds[msg.sender] != 0, NotMember());
-    _;
-  }
-
   modifier onlyGovernor() {
     address governor = contracts[C_GOVERNOR].addr;
     require(msg.sender == governor, OnlyGovernor());
@@ -211,6 +206,11 @@ contract Registry is IRegistry, EIP712 {
     return seatToMember[seat];
   }
 
+  function getMemberAddressBySeat(uint seat) external view returns (address) {
+    require(seat != 0 && seat <= ADVISORY_BOARD_SEATS, InvalidSeat());
+    return members[seatToMember[seat]];
+  }
+
   function swapAdvisoryBoardMember(uint from, uint to) external onlyGovernor {
     require(from != 0, NotMember());
     require(to != 0, NotMember());
@@ -234,6 +234,28 @@ contract Registry is IRegistry, EIP712 {
     unchecked { return index & (index - 1) == 0 && index > 0; }
   }
 
+  function isProxyContract(uint index) external view returns (bool) {
+    require(isValidContractIndex(index), InvalidContractIndex());
+    return contracts[index].isProxy;
+  }
+
+  function getContractAddressByIndex(uint index) external view returns (address payable) {
+    require(isValidContractIndex(index), InvalidContractIndex());
+    return payable(contracts[index].addr);
+  }
+
+  function getContractIndexByAddress(address contractAddress) external view returns (uint) {
+    return contractIndexes[contractAddress];
+  }
+
+  function getContracts(uint[] memory indexes) external view returns (Contract[] memory _contracts) {
+    _contracts = new Contract[](indexes.length);
+    for (uint i = 0; i < indexes.length; i++) {
+      require(isValidContractIndex(indexes[i]), InvalidContractIndex());
+      _contracts[i] = contracts[indexes[i]];
+    }
+  }
+
   function deployContract(uint index, bytes32 salt, address implementation) external onlyGovernor {
     _deployContract(index, salt, implementation);
   }
@@ -241,10 +263,25 @@ contract Registry is IRegistry, EIP712 {
   function _deployContract(uint index, bytes32 salt, address implementation) internal {
     require(isValidContractIndex(index), InvalidContractIndex());
     require(contracts[index].addr == address(0), ContractAlreadyExists());
+
     UpgradeableProxy proxy = new UpgradeableProxy{salt: bytes32(salt)}();
     proxy.upgradeTo(implementation);
+
     contracts[index] = Contract({ addr: address(proxy), isProxy: true });
     contractIndexes[address(proxy)] = index;
+
+    emit ContractDeployed(index, address(proxy), implementation);
+  }
+
+  function upgradeContract(uint index, address implementation) external onlyGovernor {
+    Contract memory _contract = contracts[index];
+    require(_contract.addr != address(0), ContractDoesNotExist());
+    require(_contract.isProxy, ContractIsNotProxy());
+
+    UpgradeableProxy proxy = UpgradeableProxy(payable(_contract.addr));
+    proxy.upgradeTo(implementation);
+
+    emit ContractUpgraded(index, address(proxy), implementation);
   }
 
   function addContract(uint index, address contractAddress, bool isProxy) external onlyGovernor {
@@ -259,43 +296,18 @@ contract Registry is IRegistry, EIP712 {
 
     contracts[index] = Contract({addr: contractAddress, isProxy: isProxy});
     contractIndexes[contractAddress] = index;
-  }
 
-  function upgradeContract(uint index, address implementation) external onlyGovernor {
-    Contract memory _contract = contracts[index];
-    require(_contract.addr != address(0), ContractDoesNotExist());
-    require(_contract.isProxy, ContractIsNotProxy());
-    UpgradeableProxy proxy = UpgradeableProxy(payable(_contract.addr));
-    proxy.upgradeTo(implementation);
+    emit ContractAdded(index, contractAddress, isProxy);
   }
 
   function removeContract(uint index) external onlyGovernor {
-    address contractAddress = contracts[index].addr;
-    require(contractAddress != address(0), ContractDoesNotExist());
-    contractIndexes[contractAddress] = 0;
+    Contract memory _contract = contracts[index];
+    require(_contract.addr != address(0), ContractDoesNotExist());
+
+    contractIndexes[_contract.addr] = 0;
     delete contracts[index];
-  }
 
-  function getContractAddressByIndex(uint index) external view returns (address payable) {
-    require(isValidContractIndex(index), InvalidContractIndex());
-    return payable(contracts[index].addr);
-  }
-
-  function getContractTypeByIndex(uint index) external view returns (bool isProxy) {
-    require(isValidContractIndex(index), InvalidContractIndex());
-    return contracts[index].isProxy;
-  }
-
-  function getContractIndexByAddress(address contractAddress) external view returns (uint) {
-    return contractIndexes[contractAddress];
-  }
-
-  function getContracts(uint[] memory indexes) external view returns (Contract[] memory _contracts) {
-    _contracts = new Contract[](indexes.length);
-    for (uint i = 0; i < indexes.length; i++) {
-      require(isValidContractIndex(indexes[i]), InvalidContractIndex());
-      _contracts[i] = contracts[indexes[i]];
-    }
+    emit ContractRemoved(index, _contract.addr, _contract.isProxy);
   }
 
   function migrate(

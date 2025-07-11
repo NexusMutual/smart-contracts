@@ -6,15 +6,15 @@ const { setup } = require('./setup');
 
 const { solidityKeccak256 } = ethers.utils;
 
-describe('resetVotingPeriod', function () {
+describe('extendVotingPeriod', function () {
   it('should revert when called by non-governor contract', async function () {
     const { contracts, accounts, constants } = await loadFixture(setup);
     const { assessment } = contracts;
     const { CLAIM_ID } = constants;
     const [assessor] = accounts.assessors;
 
-    const resetVotingPeriod = assessment.connect(assessor).resetVotingPeriod(CLAIM_ID);
-    await expect(resetVotingPeriod).to.be.revertedWithCustomError(assessment, 'Unauthorized');
+    const extendVotingPeriod = assessment.connect(assessor).extendVotingPeriod(CLAIM_ID);
+    await expect(extendVotingPeriod).to.be.revertedWithCustomError(assessment, 'Unauthorized');
   });
 
   it('should revert for invalid claim ID', async function () {
@@ -23,8 +23,8 @@ describe('resetVotingPeriod', function () {
     const [governanceAccount] = accounts.governanceContracts;
     const invalidClaimId = 999;
 
-    const resetVotingPeriod = assessment.connect(governanceAccount).resetVotingPeriod(invalidClaimId);
-    await expect(resetVotingPeriod).to.be.revertedWithCustomError(assessment, 'InvalidClaimId');
+    const extendVotingPeriod = assessment.connect(governanceAccount).extendVotingPeriod(invalidClaimId);
+    await expect(extendVotingPeriod).to.be.revertedWithCustomError(assessment, 'InvalidClaimId');
   });
 
   it('should revert when cooldown period has already passed', async function () {
@@ -40,8 +40,8 @@ describe('resetVotingPeriod', function () {
 
     await setTime(timestamp + VOTING_PERIOD.toNumber() + COOLDOWN_PERIOD.toNumber() + 1);
 
-    const resetVotingPeriod = assessment.connect(governanceAccount).resetVotingPeriod(CLAIM_ID);
-    await expect(resetVotingPeriod)
+    const extendVotingPeriod = assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
+    await expect(extendVotingPeriod)
       .to.be.revertedWithCustomError(assessment, 'AssessmentCooldownPassed')
       .withArgs(CLAIM_ID);
   });
@@ -60,7 +60,7 @@ describe('resetVotingPeriod', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     await setTime(timestamp + 60 * 60); // 1 hour forward
 
-    const tx = await assessment.connect(governanceAccount).resetVotingPeriod(CLAIM_ID);
+    const tx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
     await expect(tx).to.not.be.reverted;
 
     // Check that voting end time has been extended
@@ -88,7 +88,7 @@ describe('resetVotingPeriod', function () {
     const VOTING_PERIOD = await assessment.votingPeriod();
     await setTime(timestamp + VOTING_PERIOD.toNumber() + 60); // Just past voting period
 
-    const tx = await assessment.connect(governanceAccount).resetVotingPeriod(CLAIM_ID);
+    const tx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
     await expect(tx).to.not.be.reverted;
 
     // Check that voting end time has been reset to exact value
@@ -99,18 +99,18 @@ describe('resetVotingPeriod', function () {
     expect(newAssessment.votingEnd).to.equal(expectedVotingEnd);
   });
 
-  it('should emit AssessmentVotingEndChanged event', async function () {
+  it('should emit VotingEndChanged event', async function () {
     const { contracts, accounts, constants } = await loadFixture(setup);
     const { assessment } = contracts;
     const { CLAIM_ID } = constants;
     const [governanceAccount] = accounts.governanceContracts;
 
     // Execute the transaction and get the receipt
-    const tx = await assessment.connect(governanceAccount).resetVotingPeriod(CLAIM_ID);
+    const tx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
     const receipt = await tx.wait();
 
-    // Find the AssessmentVotingEndChanged event
-    const event = receipt.events?.find(e => e.event === 'AssessmentVotingEndChanged');
+    // Find the VotingEndChanged event
+    const event = receipt.events?.find(e => e.event === 'VotingEndChanged');
     expect(event?.args[0]).to.equal(CLAIM_ID);
 
     // The new voting end time should be block timestamp + voting period
@@ -145,7 +145,7 @@ describe('resetVotingPeriod', function () {
     expect(assessmentBefore.denyVotes).to.equal(1);
 
     // Reset voting period
-    const tx = await assessment.connect(governanceAccount).resetVotingPeriod(CLAIM_ID);
+    const tx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
     await expect(tx).to.not.be.reverted;
 
     // Votes should remain unchanged
@@ -177,7 +177,7 @@ describe('resetVotingPeriod', function () {
     await expect(castVoteBeforeReset).to.be.revertedWithCustomError(assessment, 'VotingPeriodEnded');
 
     // Reset voting period
-    await assessment.connect(governanceAccount).resetVotingPeriod(CLAIM_ID);
+    await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
 
     // Now voting should work again
     await Promise.all([
@@ -193,7 +193,7 @@ describe('resetVotingPeriod', function () {
     const [governanceAccount] = accounts.governanceContracts;
 
     // First reset voting period
-    const firstTx = await assessment.connect(governanceAccount).resetVotingPeriod(CLAIM_ID);
+    const firstTx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
     const firstResetAssessment = await assessment.getAssessment(CLAIM_ID);
 
     // Calculate expected first reset value
@@ -208,7 +208,7 @@ describe('resetVotingPeriod', function () {
     await setTime(timestamp + 3600); // 1 hour
 
     // Second reset
-    const secondTx = await assessment.connect(governanceAccount).resetVotingPeriod(CLAIM_ID);
+    const secondTx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
     const secondResetAssessment = await assessment.getAssessment(CLAIM_ID);
 
     // Calculate expected second reset value

@@ -1,10 +1,8 @@
-/* eslint-disable */
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 const { setTime } = require('./helpers');
-const { setEtherBalance } = require('../../utils/evm');
 
 const AssessmentStatus = {
   VOTING: 0,
@@ -21,11 +19,9 @@ describe('getAssessmentResult', function () {
 
     // Try to get result for non-existent claim
     const invalidClaimId = 999;
-    const [cooldownEnd, status] = await assessment.getAssessmentResult(invalidClaimId);
+    const getAssessmentResult = assessment.getAssessmentResult(invalidClaimId);
 
-    // Should return default values since assessment doesn't exist (all fields are 0)
-    expect(cooldownEnd).to.equal(0); // votingEnd + cooldownPeriod = 0 + 0 = 0
-    expect(status).to.equal(AssessmentStatus.DRAW);
+    await expect(getAssessmentResult).to.be.revertedWithCustomError(assessment, 'InvalidClaimId');
   });
 
   it('should return VOTING status when current time is before voting end', async function () {

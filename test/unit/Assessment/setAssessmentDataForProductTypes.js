@@ -153,4 +153,25 @@ describe('setAssessmentDataForProductTypes', function () {
       .to.emit(assessment, 'AssessmentDataForProductTypesSet')
       .withArgs(productTypeIds, updatedCooldown, ASSESSOR_GROUP_ID);
   });
+
+  it('should revert when groupId is invalid', async function () {
+    const { contracts, accounts } = await loadFixture(setup);
+    const { assessment } = contracts;
+    const [governanceAccount] = accounts.governanceContracts;
+
+    const productTypeIds = [70, 71];
+    const cooldownPeriod = 24 * 60 * 60; // 1 day
+
+    // Get current group count and create array of invalid IDs
+    const currentGroupCount = await assessment.getGroupsCount();
+    const invalidGroupIds = [0, currentGroupCount.toNumber() + 1];
+
+    for (const invalidGroupId of invalidGroupIds) {
+      const setAssessmentDataForProductTypes = assessment
+        .connect(governanceAccount)
+        .setAssessmentDataForProductTypes(productTypeIds, cooldownPeriod, invalidGroupId);
+
+      await expect(setAssessmentDataForProductTypes).to.be.revertedWithCustomError(assessment, 'InvalidGroupId');
+    }
+  });
 });

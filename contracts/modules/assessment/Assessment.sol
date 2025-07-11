@@ -384,20 +384,15 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     require(assessment.start != 0, InvalidClaimId());
     require(block.timestamp < assessment.votingEnd, VotingAlreadyClosed());
 
-    uint[] memory assessors = getGroupAssessors(assessment.assessingGroupId);
-    uint groupSize = assessors.length;
-    uint totalVotesFromGroup = 0;
+    EnumerableSet.UintSet storage assessorSet = _groups[assessment.assessingGroupId];
+    uint groupSize = assessorSet.length();
 
     for (uint i = 0; i < groupSize; i++) {
-      if (_ballots[assessors[i]][claimId].timestamp > 0) {
-        totalVotesFromGroup++;
-      } else {
-        // can break early because we need everybody to vote
-        break;
+      uint assessorId = assessorSet.at(i);
+      if (_ballots[assessorId][claimId].timestamp == 0) {
+        revert NotEverybodyVoted();
       }
     }
-
-    require(totalVotesFromGroup == groupSize, NotEverybodyVoted());
 
     assessment.votingEnd = block.timestamp.toUint32();
     _assessments[claimId] = assessment;

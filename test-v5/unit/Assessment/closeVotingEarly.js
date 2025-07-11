@@ -1,4 +1,3 @@
-/* eslint-env mocha */
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { setTime } = require('./helpers');
@@ -17,7 +16,7 @@ const { setup } = require('./setup');
  */
 async function allAssessorsVote(assessment, registry, assessors, claimId, ipfsHash, vote = true) {
   // Get the group assessors for this claim
-  const groupId = await assessment.assessorGroupOf(claimId);
+  const { assessingGroupId: groupId } = await assessment.getAssessment(claimId);
   const groupAssessors = await assessment.getGroupAssessors(groupId);
 
   // Create a reverse lookup for member ID to address
@@ -83,7 +82,7 @@ describe('closeVotingEarly', function () {
     await assessment.connect(firstAssessor).castVote(CLAIM_ID, true, IPFS_HASH);
 
     // Verify not all assessors have voted
-    const groupId = await assessment.assessorGroupOf(CLAIM_ID);
+    const { assessingGroupId: groupId } = await assessment.getAssessment(CLAIM_ID);
     const assessorCount = await assessment.getGroupAssessorCount(groupId);
     const assessmentData = await assessment.getAssessment(CLAIM_ID);
     const totalVotes = assessmentData.acceptVotes + assessmentData.denyVotes;
@@ -148,11 +147,14 @@ describe('closeVotingEarly', function () {
     expect(assessmentData.acceptVotes).to.equal(0);
     expect(assessmentData.denyVotes).to.equal(0);
 
-    // Check assessment result
+    // Advance time past the cooldown period to see DRAW status
+    const cooldownPeriod = assessmentData.cooldownPeriod;
+    await setTime(closeVotingTimestamp + cooldownPeriod + 1);
+
+    // Check assessment result after cooldown period
     const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
 
-    // Get cooldown period from the assessment data
-    const cooldownPeriod = assessmentData.cooldownPeriod;
+    // Verify cooldown end calculation
     const expectedCooldownEnd = closeVotingTimestamp + cooldownPeriod;
     expect(cooldownEnd).to.equal(expectedCooldownEnd);
 
@@ -167,9 +169,7 @@ describe('closeVotingEarly', function () {
     expect(status).to.equal(AssessmentStatus.DRAW);
 
     // Verify event was emitted
-    await expect(closeVotingTx)
-      .to.emit(assessment, 'AssessmentVotingEndChanged')
-      .withArgs(CLAIM_ID, closeVotingTimestamp);
+    await expect(closeVotingTx).to.emit(assessment, 'VotingEndChanged').withArgs(CLAIM_ID, closeVotingTimestamp);
   });
 
   it('should update votingEnd to current timestamp', async function () {
@@ -200,7 +200,7 @@ describe('closeVotingEarly', function () {
     expect(updatedAssessment.votingEnd).to.equal(expectedTimestamp);
   });
 
-  it('should emit AssessmentVotingEndChanged event', async function () {
+  it('should emit VotingEndChanged event', async function () {
     const { contracts, accounts, constants } = await loadFixture(setup);
     const { assessment, registry } = contracts;
     const { IPFS_HASH, CLAIM_ID } = constants;
@@ -218,7 +218,7 @@ describe('closeVotingEarly', function () {
     const block = await ethers.provider.getBlock(receipt.blockNumber);
     const expectedTimestamp = block.timestamp;
 
-    await expect(tx).to.emit(assessment, 'AssessmentVotingEndChanged').withArgs(CLAIM_ID, expectedTimestamp);
+    await expect(tx).to.emit(assessment, 'VotingEndChanged').withArgs(CLAIM_ID, expectedTimestamp);
   });
 
   it('should allow anyone to call closeVotingEarly', async function () {

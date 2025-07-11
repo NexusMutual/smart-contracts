@@ -18,7 +18,7 @@ describe('getGroupsData', function () {
     const { assessment } = contracts;
     const { ASSESSOR_GROUP_ID } = constants;
 
-    const [groupsData] = await assessment.getGroupsData([ASSESSOR_GROUP_ID]);
+    const groupsData = await assessment.getGroupsData([ASSESSOR_GROUP_ID]);
     const [groupData] = groupsData;
 
     expect(groupsData.length).to.equal(1);

@@ -1,4 +1,3 @@
-/* eslint-disable */
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
@@ -74,7 +73,7 @@ describe('startAssessment', function () {
       .withArgs(expectedClaimId, constants.ASSESSOR_GROUP_ID, block.timestamp, expectedVotingEnd);
 
     // Verify the assessment was created by checking the assessor group ID
-    const assessorGroupId = await assessment.assessorGroupOf(expectedClaimId);
+    const { assessingGroupId: assessorGroupId } = await assessment.getAssessment(expectedClaimId);
     expect(assessorGroupId).to.equal(constants.ASSESSOR_GROUP_ID);
 
     // Verify all assessment fields are set correctly

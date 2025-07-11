@@ -44,7 +44,6 @@ async function setup() {
 
   // Add assessors to a new assessor group (0 - new group) using governance account
   const assessorMemberIds = await Promise.all(accounts.assessors.map(a => registry.getMemberId(a.address)));
-  console.log('assessorMemberIds: ', assessorMemberIds, assessorMemberIds.length);
   await assessment.connect(governanceAccount).addAssessorsToGroup(assessorMemberIds, 0);
 
   // Get and set ASSESSOR_GROUP_ID for PRODUCT_TYPE_ID using governance account

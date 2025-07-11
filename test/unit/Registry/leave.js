@@ -29,9 +29,7 @@ describe('leave', () => {
       .to.emit(registry, 'MembershipChanged')
       .withArgs(1n, alice, ZeroAddress);
 
-    // eslint-disable-next-line no-unused-expressions
     expect(await registry.isMember(alice)).to.be.false;
-
     expect(await registry.getMemberCount()).to.equal(initialMemberCount - 1n);
     expect(await registry.getLastMemberId()).to.equal(initialLastMemberId);
     expect(await registry.getMemberId(alice)).to.equal(0n);

@@ -29,8 +29,14 @@ const setup = async () => {
 
   await setNextBlockBaseFeePerGas(0);
   await registry
-    .connect(zeroSigner) // the governor is not set initially
+    .connect(zeroSigner) // the governor is initially unset
     .addContract(ContractIndexes.C_GOVERNOR, governor, false, overrides);
+
+  await registry.connect(governor).addContract(
+    ContractIndexes.C_REGISTRY, // add self
+    registry,
+    false,
+  );
 
   await registry.connect(governor).deployContract(
     ContractIndexes.C_TOKEN_CONTROLLER, //

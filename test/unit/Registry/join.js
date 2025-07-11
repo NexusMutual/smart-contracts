@@ -15,7 +15,6 @@ describe('join', () => {
     const { registry, tokenController, kycAuth, alice, bob } = await loadFixture(setup);
     const initialMemberCount = await registry.getMemberCount();
 
-    // eslint-disable-next-line no-unused-expressions
     expect(await registry.isMember(alice)).to.be.false;
 
     const expectedMemberId = initialMemberCount + 1n;
@@ -29,7 +28,6 @@ describe('join', () => {
       .to.emit(tokenController, 'AddToWhitelistCalled')
       .withArgs(alice);
 
-    // eslint-disable-next-line no-unused-expressions
     expect(await registry.isMember(alice)).to.be.true;
     expect(await registry.getLastMemberId()).to.equal(expectedMemberId);
     expect(await registry.getMemberId(alice)).to.equal(expectedMemberId);
@@ -130,10 +128,7 @@ describe('join', () => {
     await registry.connect(alice).join(alice, signature, { value: JOINING_FEE });
     await registry.connect(alice).switchTo(bob);
 
-    // eslint-disable-next-line no-unused-expressions
     expect(await registry.isMember(alice)).to.be.false;
-
-    // eslint-disable-next-line no-unused-expressions
     expect(await registry.isMember(bob)).to.be.true;
 
     await expect(registry.connect(alice).join(alice, signature, { value: JOINING_FEE })) // attempt to rejoin

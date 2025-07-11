@@ -11,7 +11,6 @@ const { setup } = require('./setup');
 const { signJoinMessage } = nexus.membership;
 const { PauseTypes } = nexus.constants;
 const { toBytes2 } = nexus.helpers;
-const { ZeroAddress } = ethers;
 const JOINING_FEE = ethers.parseEther('0.002');
 
 describe('switch', () => {
@@ -28,10 +27,7 @@ describe('switch', () => {
       .to.emit(registry, 'MembershipChanged')
       .withArgs(initialMemberId, alice, bob);
 
-    // eslint-disable-next-line no-unused-expressions
     expect(await registry.isMember(alice)).to.be.false;
-
-    // eslint-disable-next-line no-unused-expressions
     expect(await registry.isMember(bob)).to.be.true;
 
     const finalMemberId = await registry.getMemberId(bob);
@@ -57,7 +53,6 @@ describe('switch', () => {
   it('should prevent switching from an address that is not a member', async () => {
     const { registry, alice, bob } = await loadFixture(setup);
 
-    // eslint-disable-next-line no-unused-expressions
     expect(await registry.isMember(alice)).to.be.false;
 
     await expect(registry.connect(alice).switchTo(alice, bob)) // attempt switch
@@ -105,15 +100,12 @@ describe('switch', () => {
       .to.emit(registry, 'MembershipChanged')
       .withArgs(1n, alice, bob);
 
-    // eslint-disable-next-line no-unused-expressions
     expect(await registry.isMember(alice)).to.be.false;
-
-    // eslint-disable-next-line no-unused-expressions
     expect(await registry.isMember(bob)).to.be.true;
   });
 
   it('should not allow switching when PAUSE_MEMBERSHIP is active', async () => {
-    const { registry, ea1, ea2, alice, bob, kycAuth } = await loadFixture(setup);
+    const { registry, master, ea1, ea2, alice, bob, kycAuth } = await loadFixture(setup);
 
     const signature = await signJoinMessage(kycAuth, alice, registry);
     await registry.connect(alice).join(alice, signature, { value: JOINING_FEE });
@@ -124,21 +116,42 @@ describe('switch', () => {
     await expect(registry.connect(alice).switchTo(bob)) // attempt switch
       .to.be.revertedWithCustomError(registry, 'Paused')
       .withArgs(PauseTypes.PAUSE_MEMBERSHIP, PauseTypes.PAUSE_MEMBERSHIP);
+
+    const mrAddress = await master.getLatestAddress(toBytes2('MR'));
+    await impersonateAccount(mrAddress);
+    const mrSigner = await ethers.getSigner(mrAddress);
+
+    await setNextBlockBaseFeePerGas(0);
+    await expect(registry.connect(mrSigner).switchFor(alice, bob, { gasPrice: 0 }))
+      .to.be.revertedWithCustomError(registry, 'Paused')
+      .withArgs(PauseTypes.PAUSE_MEMBERSHIP, PauseTypes.PAUSE_MEMBERSHIP);
   });
 
   it('should not allow switching when PAUSE_GLOBAL is active', async () => {
-    const { registry, ea1, ea2, alice } = await loadFixture(setup);
+    const { registry, master, ea1, ea2, alice, bob } = await loadFixture(setup);
 
     await registry.connect(ea1).proposePauseConfig(PauseTypes.PAUSE_GLOBAL);
     await registry.connect(ea2).confirmPauseConfig(PauseTypes.PAUSE_GLOBAL);
 
-    await expect(registry.connect(alice).join(alice, '0x', { value: JOINING_FEE })) // attempt join
+    await expect(registry.connect(alice).switchTo(bob)) // attempt switch
+      .to.be.revertedWithCustomError(registry, 'Paused')
+      .withArgs(PauseTypes.PAUSE_GLOBAL, PauseTypes.PAUSE_MEMBERSHIP);
+
+    const mrAddress = await master.getLatestAddress(toBytes2('MR'));
+    await impersonateAccount(mrAddress);
+    const mrSigner = await ethers.getSigner(mrAddress);
+
+    await setNextBlockBaseFeePerGas(0);
+    await expect(registry.connect(mrSigner).switchFor(alice, bob, { gasPrice: 0 }))
       .to.be.revertedWithCustomError(registry, 'Paused')
       .withArgs(PauseTypes.PAUSE_GLOBAL, PauseTypes.PAUSE_MEMBERSHIP);
   });
 
   it('should allow switching when other kinds of pauses are active', async () => {
-    const { registry, ea1, ea2, alice, kycAuth } = await loadFixture(setup);
+    const { registry, master, ea1, ea2, alice, bob, kycAuth } = await loadFixture(setup);
+
+    const signature = await signJoinMessage(kycAuth, alice, registry);
+    await registry.connect(alice).join(alice, signature, { value: JOINING_FEE });
 
     const allOn = 2n ** 48n - 1n;
     const allButGlobalAndMembership = allOn & ~PauseTypes.PAUSE_GLOBAL & ~PauseTypes.PAUSE_MEMBERSHIP;
@@ -146,9 +159,17 @@ describe('switch', () => {
     await registry.connect(ea1).proposePauseConfig(allButGlobalAndMembership);
     await registry.connect(ea2).confirmPauseConfig(allButGlobalAndMembership);
 
-    const signature = await signJoinMessage(kycAuth, alice, registry);
-    await expect(registry.connect(alice).join(alice, signature, { value: JOINING_FEE })) // attempt join
+    await expect(registry.connect(alice).switchTo(bob)) // attempt switch
       .to.emit(registry, 'MembershipChanged')
-      .withArgs(1n, ZeroAddress, alice);
+      .withArgs(1n, alice, bob);
+
+    const mrAddress = await master.getLatestAddress(toBytes2('MR'));
+    await impersonateAccount(mrAddress);
+    const mrSigner = await ethers.getSigner(mrAddress);
+
+    await setNextBlockBaseFeePerGas(0);
+    await expect(registry.connect(mrSigner).switchFor(bob, alice, { gasPrice: 0 }))
+      .to.emit(registry, 'MembershipChanged')
+      .withArgs(1n, bob, alice);
   });
 });

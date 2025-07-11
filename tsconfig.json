@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "types": [
+      "node",
+      "mocha",
+      "hardhat"
+    ]
+  },
+  "typeRoots": [
+    "./types",
+    "./node_modules/@types"
+  ],
+  "include": [
+    "**/*.js",
+    "**/*.d.ts"
+  ]
+}

@@ -225,12 +225,6 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /* ========== VOTING ========== */
   /* ========== VIEWS ========== */
 
-  /// @notice Returns the voting period for assessments
-  /// @return The voting period in seconds
-  function votingPeriod() override external pure returns (uint) {
-    return VOTING_PERIOD;
-  }
-
   /// @notice Returns the payout cooldown period for a given product type
   /// @param productTypeId The product type identifier
   /// @return The cooldown period in seconds

@@ -76,7 +76,7 @@ interface IAssessment {
 
   function getGroupsData(uint[] calldata groupIds) external view returns (AssessmentGroupView[] memory groups);
 
-  function votingPeriod() external pure returns (uint);
+  function minVotingPeriod() external pure returns (uint);
 
   function payoutCooldown(uint productTypeId) external view returns (uint);
 

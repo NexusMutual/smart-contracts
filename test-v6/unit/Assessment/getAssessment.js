@@ -11,16 +11,17 @@ describe('getAssessment', function () {
 
     const assessmentData = await assessment.getAssessment(CLAIM_ID);
     const cooldownPeriod = await assessment.payoutCooldown(PRODUCT_TYPE_ID);
-    const votingPeriod = await assessment.votingPeriod();
+    const expectedVotingPeriod = await assessment.minVotingPeriod();
 
     expect(assessmentData.assessingGroupId).to.equal(ASSESSOR_GROUP_ID);
     expect(assessmentData.cooldownPeriod).to.equal(cooldownPeriod);
 
     const currentBlock = await ethers.provider.getBlock('latest');
-    expect(assessmentData.start).to.equal(currentBlock.timestamp - 1);
+    if (!currentBlock) throw new Error('Block not found');
+    expect(assessmentData.start).to.equal(BigInt(currentBlock.timestamp) - 1n);
 
-    // VotingEnd should be start + votingPeriod (convert BigNumber to number)
-    const expectedVotingEnd = assessmentData.start + Number(votingPeriod);
+    // VotingEnd should be start + votingPeriod
+    const expectedVotingEnd = assessmentData.start + expectedVotingPeriod;
     expect(assessmentData.votingEnd).to.equal(expectedVotingEnd);
 
     expect(assessmentData.acceptVotes).to.equal(0);

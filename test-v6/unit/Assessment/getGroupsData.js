@@ -23,7 +23,7 @@ describe('getGroupsData', function () {
 
     expect(groupsData.length).to.equal(1);
     expect(groupData.id).to.equal(ASSESSOR_GROUP_ID);
-    expect(groupData.ipfsMetadata).to.equal(ethers.constants.HashZero);
+    expect(groupData.ipfsMetadata).to.equal(ethers.ZeroHash);
     expect(groupData.assessors).to.have.lengthOf(accounts.assessors.length);
   });
 
@@ -37,7 +37,7 @@ describe('getGroupsData', function () {
 
     expect(groupsData.length).to.equal(1);
     expect(groupData.id).to.equal(nonExistentGroupId);
-    expect(groupData.ipfsMetadata).to.equal(ethers.constants.HashZero);
+    expect(groupData.ipfsMetadata).to.equal(ethers.ZeroHash);
     expect(groupData.assessors.length).to.equal(0);
   });
 
@@ -52,7 +52,7 @@ describe('getGroupsData', function () {
     expect(groupsData).to.have.length(1);
     expect(groupData.id).to.equal(ASSESSOR_GROUP_ID);
     expect(groupData.assessors.length).to.equal(accounts.assessors.length);
-    expect(groupData.ipfsMetadata).to.equal(ethers.constants.HashZero); // No metadata set initially
+    expect(groupData.ipfsMetadata).to.equal(ethers.ZeroHash); // No metadata set initially
   });
 
   it('should return correct data for multiple groups', async function () {
@@ -76,12 +76,12 @@ describe('getGroupsData', function () {
     // First group (from setup)
     expect(groupData1.id).to.equal(ASSESSOR_GROUP_ID);
     expect(groupData1.assessors).to.have.lengthOf(accounts.assessors.length);
-    expect(groupData1.ipfsMetadata).to.equal(ethers.constants.HashZero);
+    expect(groupData1.ipfsMetadata).to.equal(ethers.ZeroHash);
 
     // Second group (newly created)
     expect(groupData2.id).to.equal(secondGroupId);
     expect(groupData2.assessors.length).to.equal(1); // 1 member added
-    expect(groupData2.ipfsMetadata).to.equal(ethers.constants.HashZero);
+    expect(groupData2.ipfsMetadata).to.equal(ethers.ZeroHash);
   });
 
   it('should handle mixed existing and non-existing groups', async function () {
@@ -90,7 +90,7 @@ describe('getGroupsData', function () {
     const { ASSESSOR_GROUP_ID } = constants;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const newGroupAssessorIds = [300, 301];
+    const newGroupAssessorIds = [300n, 301n];
     const nonExistentGroupId = 999;
 
     // Create new group
@@ -120,7 +120,7 @@ describe('getGroupsData', function () {
     const { assessment } = contracts;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const assessorIds = [500, 501];
+    const assessorIds = [500n, 501n];
 
     // Create new group
     await assessment.connect(governanceAccount).addAssessorsToGroup(assessorIds, 0);
@@ -151,7 +151,7 @@ describe('getGroupsData', function () {
 
     expect(groupsData.length).to.equal(1);
     expect(groupData.id).to.equal(emptyGroupId);
-    expect(groupData.ipfsMetadata).to.equal(ethers.constants.HashZero);
+    expect(groupData.ipfsMetadata).to.equal(ethers.ZeroHash);
     expect(groupData.assessors.length).to.equal(0);
   });
 
@@ -160,7 +160,7 @@ describe('getGroupsData', function () {
     const { assessment } = contracts;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const assessorIds = [600, 601, 602];
+    const assessorIds = [600n, 601n, 602n];
 
     // Create group with assessors
     await assessment.connect(governanceAccount).addAssessorsToGroup(assessorIds, 0);
@@ -177,10 +177,10 @@ describe('getGroupsData', function () {
     // Get updated data
     const [updatedData] = await assessment.getGroupsData([groupId]);
     expect(updatedData.assessors.length).to.equal(2);
-    const updatedDataAssessorIds = updatedData.assessors.map(id => id.toNumber());
-    expect(updatedDataAssessorIds).to.not.include(assessorIdToRemove);
-    expect(updatedDataAssessorIds).to.include(assessor1);
-    expect(updatedDataAssessorIds).to.include(assessor3);
+    const updatedDataAssessorIds = new Set(updatedData.assessors);
+    expect(updatedDataAssessorIds.has(assessorIdToRemove)).to.be.false;
+    expect(updatedDataAssessorIds.has(assessor1)).to.be.true;
+    expect(updatedDataAssessorIds.has(assessor3)).to.be.true;
   });
 
   it('should handle groups with metadata', async function () {
@@ -191,7 +191,7 @@ describe('getGroupsData', function () {
     const [member] = accounts.members;
 
     const memberId = await registry.getMemberId(member.address);
-    const group2IpfsHash = ethers.utils.solidityKeccak256(['string'], ['custom-metadata']);
+    const group2IpfsHash = ethers.solidityPackedKeccak256(['string'], ['custom-metadata']);
 
     // Set metadata for existing group
     await assessment.connect(governanceAccount).setGroupMetadata(ASSESSOR_GROUP_ID, IPFS_HASH);

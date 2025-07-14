@@ -5,8 +5,6 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 const { setEtherBalance } = require('../../utils/evm');
 
-const { solidityKeccak256 } = ethers.utils;
-
 describe('undoVotes', function () {
   it('should revert when called by non-governor contract', async function () {
     const { contracts, accounts, constants } = await loadFixture(setup);
@@ -45,11 +43,12 @@ describe('undoVotes', function () {
 
     // Set time after cooldown period has passed
     const [votingPeriod, cooldownPeriod] = await Promise.all([
-      assessment.votingPeriod(),
+      assessment.minVotingPeriod(),
       assessment.payoutCooldown(PRODUCT_TYPE_ID),
     ]);
     const block = await ethers.provider.getBlock('latest');
-    await setTime(block.timestamp + votingPeriod.toNumber() + cooldownPeriod.toNumber() + 1);
+    if (!block) throw new Error('Block not found');
+    await setTime(BigInt(block.timestamp) + votingPeriod + cooldownPeriod + 1n);
 
     const assessorMemberId = await registry.getMemberId(assessor.address);
     const undoVotes = assessment.connect(governanceAccount).undoVotes(assessorMemberId, [CLAIM_ID]);
@@ -69,7 +68,6 @@ describe('undoVotes', function () {
 
       // Get the block timestamp after casting the vote
       const block = await ethers.provider.getBlock('latest');
-      const expectedTimestamp = block.timestamp;
 
       // Verify vote was recorded
       const assessmentBefore = await assessment.getAssessment(CLAIM_ID);
@@ -81,7 +79,7 @@ describe('undoVotes', function () {
       const assessorMemberId = await registry.getMemberId(assessor.address);
       const ballotBefore = await assessment.ballotOf(CLAIM_ID, assessorMemberId);
       expect(ballotBefore.support).to.equal(vote);
-      expect(ballotBefore.timestamp).to.equal(expectedTimestamp);
+      expect(ballotBefore.timestamp).to.equal(block?.timestamp);
 
       // Verify metadata is stored
       const metadataBefore = await assessment.getBallotsMetadata(CLAIM_ID, assessorMemberId);
@@ -104,7 +102,7 @@ describe('undoVotes', function () {
 
       // Verify metadata is removed
       const metadataAfter = await assessment.getBallotsMetadata(CLAIM_ID, assessorMemberId);
-      expect(metadataAfter).to.equal(ethers.constants.HashZero);
+      expect(metadataAfter).to.equal(ethers.ZeroHash);
     }
   });
 
@@ -119,9 +117,8 @@ describe('undoVotes', function () {
     const claimIds = [2, 3, 4];
     const coverIds = [100, 101, 102];
     const [memberAccount] = accounts.members;
-    await setEtherBalance(memberAccount.address, ethers.utils.parseEther('10'));
 
-    const claimAmount = ethers.utils.parseEther('1');
+    const claimAmount = ethers.parseEther('1');
     await Promise.all(coverIds.map(c => claims.connect(memberAccount).submitClaim(c, claimAmount, IPFS_HASH)));
 
     // Cast votes on multiple claims
@@ -182,9 +179,9 @@ describe('undoVotes', function () {
       assessment.getBallotsMetadata(claimIds[1], assessorMemberId),
       assessment.getBallotsMetadata(claimIds[2], assessorMemberId),
     ]);
-    expect(metadata0After).to.equal(ethers.constants.HashZero);
-    expect(metadata1After).to.equal(ethers.constants.HashZero);
-    expect(metadata2After).to.equal(ethers.constants.HashZero);
+    expect(metadata0After).to.equal(ethers.ZeroHash);
+    expect(metadata1After).to.equal(ethers.ZeroHash);
+    expect(metadata2After).to.equal(ethers.ZeroHash);
   });
 
   it('should allow assessor to vote again after vote is undone', async function () {
@@ -205,11 +202,12 @@ describe('undoVotes', function () {
     await expect(undoTx).to.emit(assessment, 'VoteUndone').withArgs(CLAIM_ID, assessorMemberId);
 
     // Should be able to vote again
-    const newIpfsHash = solidityKeccak256(['string'], ['new-vote-metadata']);
+    const newIpfsHash = ethers.solidityPackedKeccak256(['string'], ['new-vote-metadata']);
     await assessment.connect(assessor).castVote(CLAIM_ID, false, newIpfsHash);
 
     // Get the block timestamp after casting the new vote
     const block = await ethers.provider.getBlock('latest');
+    if (!block) throw new Error('Block not found');
     const expectedTimestamp = block.timestamp;
 
     // Verify new vote was recorded
@@ -233,8 +231,7 @@ describe('undoVotes', function () {
     const newClaimId = 2;
     const coverId = 200;
     const [memberAccount] = accounts.members;
-    await setEtherBalance(memberAccount.address, ethers.utils.parseEther('1'));
-    await claims.connect(memberAccount).submitClaim(coverId, ethers.utils.parseEther('1'), IPFS_HASH);
+    await claims.connect(memberAccount).submitClaim(coverId, ethers.parseEther('1'), IPFS_HASH);
 
     // Cast vote on only one claim (no votes on newClaimId)
     await assessment.connect(assessor).castVote(CLAIM_ID, true, IPFS_HASH);
@@ -278,9 +275,10 @@ describe('undoVotes', function () {
     await assessment.connect(assessor).castVote(CLAIM_ID, true, IPFS_HASH);
 
     // Set time to just after voting ends, but before cooldown ends
-    const votingPeriod = await assessment.votingPeriod();
+    const votingPeriod = await assessment.minVotingPeriod();
     const block = await ethers.provider.getBlock('latest');
-    await setTime(block.timestamp + votingPeriod.toNumber() + 1);
+    if (!block) throw new Error('Block not found');
+    await setTime(BigInt(block.timestamp) + votingPeriod + 1n);
 
     // Undo vote during cooldown period (should work)
     const assessorMemberId = await registry.getMemberId(assessor.address);

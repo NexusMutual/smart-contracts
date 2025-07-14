@@ -34,18 +34,18 @@ describe('getGroupAssessors', function () {
     const { assessment } = contracts;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const newAssessorIds = [100, 101, 102];
+    const newAssessorIds = [100n, 101n, 102n];
 
     // Create new group and add assessors
     await assessment.connect(governanceAccount).addAssessorsToGroup(newAssessorIds, 0);
     const newGroupId = await assessment.getGroupsCount();
 
     const assessors = await assessment.getGroupAssessors(newGroupId);
-    const assessorNumbers = new Set(assessors.map(id => id.toNumber()));
+    const assessorSet = new Set(assessors);
 
     expect(assessors).to.have.lengthOf(newAssessorIds.length);
     for (const assessorId of newAssessorIds) {
-      expect(assessorNumbers.has(assessorId)).to.be.true;
+      expect(assessorSet.has(assessorId)).to.be.true;
     }
   });
 
@@ -63,10 +63,10 @@ describe('getGroupAssessors', function () {
     await assessment.connect(governanceAccount).removeAssessorFromGroup(assessorMemberId, ASSESSOR_GROUP_ID);
 
     const finalAssessors = await assessment.getGroupAssessors(ASSESSOR_GROUP_ID);
-    const finalAssessorNumbers = new Set(finalAssessors.map(id => id.toNumber()));
+    const finalAssessorSet = new Set(finalAssessors);
 
     expect(finalAssessors).to.have.lengthOf(initialAssessors.length - 1);
-    expect(finalAssessorNumbers.has(assessorMemberId.toNumber())).to.be.false;
+    expect(finalAssessorSet.has(assessorMemberId)).to.be.false;
   });
 
   it('should handle empty group correctly', async function () {
@@ -88,26 +88,26 @@ describe('getGroupAssessors', function () {
     const { assessment } = contracts;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const assessorId = 200;
+    const assessorId = 200n;
 
     // Add assessor to new group
     await assessment.connect(governanceAccount).addAssessorsToGroup([assessorId], 0);
     const groupId = await assessment.getGroupsCount();
 
     const assessorsAfterFirst = await assessment.getGroupAssessors(groupId);
-    const assessorsAfterFirstNumbers = new Set(assessorsAfterFirst.map(id => id.toNumber()));
+    const assessorsAfterFirstSet = new Set(assessorsAfterFirst);
 
     expect(assessorsAfterFirst).to.have.lengthOf(1);
-    expect(assessorsAfterFirstNumbers.has(assessorId)).to.be.true;
+    expect(assessorsAfterFirstSet.has(assessorId)).to.be.true;
 
     // Add same assessor again (EnumerableSet handles duplicates)
     await assessment.connect(governanceAccount).addAssessorsToGroup([assessorId], groupId);
 
     const assessorsAfterSecond = await assessment.getGroupAssessors(groupId);
-    const assessorsAfterSecondNumbers = new Set(assessorsAfterSecond.map(id => id.toNumber()));
+    const assessorsAfterSecondSet = new Set(assessorsAfterSecond);
 
     expect(assessorsAfterSecond).to.have.lengthOf(1); // Should still be 1
-    expect(assessorsAfterSecondNumbers.has(assessorId)).to.be.true;
+    expect(assessorsAfterSecondSet.has(assessorId)).to.be.true;
   });
 
   it('should handle large group correctly', async function () {
@@ -116,17 +116,17 @@ describe('getGroupAssessors', function () {
     const [governanceAccount] = accounts.governanceContracts;
 
     // Create array of 50 assessor IDs
-    const largeAssessorBatch = Array.from({ length: 50 }, (_, i) => i + 400);
+    const largeAssessorBatch = Array.from({ length: 50 }, (_, i) => BigInt(i + 400));
 
     await assessment.connect(governanceAccount).addAssessorsToGroup(largeAssessorBatch, 0);
     const largeGroupId = await assessment.getGroupsCount();
 
     const assessors = await assessment.getGroupAssessors(largeGroupId);
-    const assessorNumbers = new Set(assessors.map(id => id.toNumber()));
+    const assessorSet = new Set(assessors);
 
     expect(assessors.length).to.equal(largeAssessorBatch.length);
     for (const assessorId of largeAssessorBatch) {
-      expect(assessorNumbers.has(assessorId)).to.be.true;
+      expect(assessorSet.has(assessorId)).to.be.true;
     }
   });
 
@@ -135,18 +135,21 @@ describe('getGroupAssessors', function () {
     const { assessment } = contracts;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const group1Assessors = [500, 501];
-    const group2Assessors = [502, 503];
-    const sharedAssessor = 504;
+    const group1Assessors = [500n, 501n];
+    const group2Assessors = [502n, 503n];
+    const sharedAssessor = 504n;
+
+    // Get initial group count to calculate correct IDs
+    const initialGroupCount = await assessment.getGroupsCount();
 
     // Create first and second group
     await Promise.all([
-      assessment.connect(governanceAccount).addAssessorsToGroup(group1Assessors, 0),
-      assessment.connect(governanceAccount).addAssessorsToGroup(group2Assessors, 0),
+      assessment.connect(governanceAccount).addAssessorsToGroup(group1Assessors, 0n),
+      assessment.connect(governanceAccount).addAssessorsToGroup(group2Assessors, 0n),
     ]);
 
-    const group1Id = (await assessment.getGroupsCount()) - 1; // Second to last group
-    const group2Id = await assessment.getGroupsCount(); // Last group
+    const group1Id = initialGroupCount + 1n; // First new group
+    const group2Id = initialGroupCount + 2n; // Second new group
 
     // Add shared assessor to both groups
     await Promise.all([
@@ -156,22 +159,22 @@ describe('getGroupAssessors', function () {
 
     // Verify group 1 assessors
     const group1Result = await assessment.getGroupAssessors(group1Id);
-    const group1Numbers = new Set(group1Result.map(id => id.toNumber()));
+    const group1Set = new Set(group1Result);
 
     expect(group1Result.length).to.equal(group1Assessors.length + 1);
-    for (const assessorId of group1Assessors) {
-      expect(group1Numbers.has(assessorId)).to.be.true;
-    }
-    expect(group1Numbers.has(sharedAssessor)).to.be.true;
+    await Promise.all(group1Assessors.map(async assessorId => {
+      expect(group1Set.has(assessorId)).to.be.true;
+    }));
+    expect(group1Set.has(sharedAssessor)).to.be.true;
 
     // Verify group 2 assessors
     const group2Result = await assessment.getGroupAssessors(group2Id);
-    const group2Numbers = new Set(group2Result.map(id => id.toNumber()));
+    const group2Set = new Set(group2Result);
 
     expect(group2Result.length).to.equal(group2Assessors.length + 1);
-    for (const assessorId of group2Assessors) {
-      expect(group2Numbers.has(assessorId)).to.be.true;
-    }
-    expect(group2Numbers.has(sharedAssessor)).to.be.true;
+    await Promise.all(group2Assessors.map(async assessorId => {
+      expect(group2Set.has(assessorId)).to.be.true;
+    }));
+    expect(group2Set.has(sharedAssessor)).to.be.true;
   });
 });

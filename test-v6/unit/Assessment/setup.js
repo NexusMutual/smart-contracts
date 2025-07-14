@@ -1,15 +1,15 @@
 const { ethers } = require('hardhat');
-const { getAccounts } = require('../../utils/accounts');
+const { getAccounts } = require('../../../test/utils/accounts');
 const { setTime } = require('./helpers');
 const { setEtherBalance } = require('../../utils/evm');
 
-const { solidityKeccak256 } = ethers.utils;
+const { solidityPackedKeccak256 } = ethers;
 
-const ONE_DAY = 24 * 60 * 60;
-const MIN_VOTING_PERIOD = 3 * ONE_DAY;
-const PRODUCT_TYPE_ID = 1;
+const ONE_DAY = BigInt(24 * 60 * 60);
+const MIN_VOTING_PERIOD = 3n * ONE_DAY;
+const PRODUCT_TYPE_ID = 1n;
 const CLAIM_ID = 1;
-const IPFS_HASH = solidityKeccak256(['string'], ['standard-ipfs-hash']);
+const IPFS_HASH = solidityPackedKeccak256(['string'], ['standard-ipfs-hash']);
 
 // Contract index constants from RegistryAware.sol
 const C_CLAIMS = 65536;
@@ -22,23 +22,23 @@ async function setup() {
   // Deploy Registry Mock
   const Registry = await ethers.getContractFactory('RegistryMock');
   const registry = await Registry.deploy();
-  await registry.deployed();
+  await registry.waitForDeployment();
 
   // Deploy Assessment contract
   const Assessment = await ethers.getContractFactory('Assessment');
-  const assessment = await Assessment.deploy(registry.address);
-  await assessment.deployed();
+  const assessment = await Assessment.deploy(await registry.getAddress());
+  await assessment.waitForDeployment();
 
   // Deploy Mock Claims contract
   const ASMockClaims = await ethers.getContractFactory('ASMockClaims');
-  const claims = await ASMockClaims.deploy(registry.address);
-  await claims.deployed();
+  const claims = await ASMockClaims.deploy(await registry.getAddress());
+  await claims.waitForDeployment();
 
   // Register contracts in the registry
   const [governanceAccount] = accounts.governanceContracts;
   await Promise.all([
-    registry.addContract(C_ASSESSMENT, assessment.address, false),
-    registry.addContract(C_CLAIMS, claims.address, false),
+    registry.addContract(C_ASSESSMENT, await assessment.getAddress(), false),
+    registry.addContract(C_CLAIMS, await claims.getAddress(), false),
     registry.addContract(C_GOVERNOR, governanceAccount.address, false),
   ]);
 
@@ -54,14 +54,20 @@ async function setup() {
 
   // Use a member account to submit the claim
   const [memberAccount] = accounts.members;
-  await setEtherBalance(memberAccount.address, ethers.utils.parseEther('10'));
+  await setEtherBalance(memberAccount.address, ethers.parseEther('10'));
+
+  // Give Claims contract ETH balance for tests that need to impersonate it
+  const claimsAddress = await claims.getAddress();
+  await setEtherBalance(claimsAddress, ethers.parseEther('10'));
 
   // Submit a claim via the member account (this will call startAssessment internally)
-  await claims.connect(memberAccount).submitClaim(CLAIM_ID, ethers.utils.parseEther('1'), IPFS_HASH);
+  await claims.connect(memberAccount).submitClaim(CLAIM_ID, ethers.parseEther('1'), IPFS_HASH);
 
-  // Reset block timestamp to avoid overflow in downstream fixtures
-  const { timestamp } = await ethers.provider.getBlock('latest');
-  await setTime(timestamp + 1);
+  // Reset blockchain time to create predictable timing baseline for all tests
+  // This ensures: assessment.start = currentTime - 1 for all tests using this fixture
+  const block = await ethers.provider.getBlock('latest');
+  if (!block) throw new Error('Block not found');
+  await setTime(block.timestamp + 1);
 
   return {
     accounts,

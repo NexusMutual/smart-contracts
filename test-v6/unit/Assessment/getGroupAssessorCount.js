@@ -22,14 +22,14 @@ describe('getGroupAssessorCount', function () {
     expect(count).to.equal(0);
   });
 
-  it('should return correct count after adding assessors', async function () {
+  it('should return correct count after adding assessors to new group', async function () {
     const { contracts, accounts } = await loadFixture(setup);
     const { assessment } = contracts;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const newAssessorIds = [100, 101, 102];
+    const newAssessorIds = [100n, 101n, 102n];
 
-    // Create new group and add assessors
+    // Add assessors to new group
     await assessment.connect(governanceAccount).addAssessorsToGroup(newAssessorIds, 0);
     const newGroupId = await assessment.getGroupsCount();
 
@@ -54,14 +54,15 @@ describe('getGroupAssessorCount', function () {
     const [governanceAccount] = accounts.governanceContracts;
     const [assessor] = accounts.assessors;
 
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorAddress = await assessor.getAddress();
+    const assessorMemberId = await registry.getMemberId(assessorAddress);
     const initialCount = await assessment.getGroupAssessorCount(ASSESSOR_GROUP_ID);
 
     // Remove assessor
     await assessment.connect(governanceAccount).removeAssessorFromGroup(assessorMemberId, ASSESSOR_GROUP_ID);
 
     const finalCount = await assessment.getGroupAssessorCount(ASSESSOR_GROUP_ID);
-    expect(finalCount).to.equal(initialCount - 1);
+    expect(finalCount).to.equal(initialCount - 1n);
   });
 
   it('should handle empty group', async function () {
@@ -83,7 +84,7 @@ describe('getGroupAssessorCount', function () {
     const { assessment } = contracts;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const assessorId = 200;
+    const assessorId = 200n;
 
     // Add assessor to new group
     await assessment.connect(governanceAccount).addAssessorsToGroup([assessorId], 0);
@@ -113,5 +114,28 @@ describe('getGroupAssessorCount', function () {
     const count = await assessment.getGroupAssessorCount(largeGroupId);
 
     expect(count).to.equal(largeAssessorBatch.length);
+  });
+
+  it('should handle adding assessor to multiple groups', async function () {
+    const { contracts, accounts } = await loadFixture(setup);
+    const { assessment } = contracts;
+    const [governanceAccount] = accounts.governanceContracts;
+
+    const assessorId = 200n;
+
+    await Promise.all([
+      assessment.connect(governanceAccount).addAssessorsToGroup([assessorId], 0),
+      assessment.connect(governanceAccount).addAssessorsToGroup([assessorId], 0),
+    ]);
+    // Get both group IDs in parallel
+    const [firstGroupId, secondGroupId] = await Promise.all([assessment.getGroupsCount(), assessment.getGroupsCount()]);
+
+    const [firstGroupCount, secondGroupCount] = await Promise.all([
+      assessment.getGroupAssessorCount(firstGroupId),
+      assessment.getGroupAssessorCount(secondGroupId),
+    ]);
+
+    expect(firstGroupCount).to.equal(1);
+    expect(secondGroupCount).to.equal(1);
   });
 });

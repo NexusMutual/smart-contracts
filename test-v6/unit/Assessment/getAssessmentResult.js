@@ -31,7 +31,7 @@ describe('getAssessmentResult', function () {
 
     const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
     const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const expectedCooldownEnd = assessmentData.votingEnd + assessmentData.cooldownPeriod;
+    const expectedCooldownEnd = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
 
     expect(cooldownEnd).to.equal(expectedCooldownEnd);
     expect(status).to.equal(AssessmentStatus.VOTING);
@@ -51,10 +51,10 @@ describe('getAssessmentResult', function () {
     ]);
 
     const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const expectedCooldownEndTime = assessmentData.votingEnd + assessmentData.cooldownPeriod;
+    const expectedCooldownEndTime = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
 
     // Set time to just after voting ends but before cooldown passes
-    await setTime(assessmentData.votingEnd + 1);
+    await setTime(assessmentData.votingEnd + 1n);
 
     const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
 
@@ -76,10 +76,10 @@ describe('getAssessmentResult', function () {
     ]);
 
     const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const cooldownEndTime = assessmentData.votingEnd + assessmentData.cooldownPeriod;
+    const cooldownEndTime = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
 
     // Set time past cooldown period
-    await setTime(cooldownEndTime + 1);
+    await setTime(cooldownEndTime + 1n);
 
     const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(cooldownEnd).to.equal(cooldownEndTime);
@@ -100,10 +100,10 @@ describe('getAssessmentResult', function () {
     ]);
 
     const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const cooldownEndTime = assessmentData.votingEnd + assessmentData.cooldownPeriod;
+    const cooldownEndTime = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
 
     // Set time past cooldown period
-    await setTime(cooldownEndTime + 1);
+    await setTime(cooldownEndTime + 1n);
 
     const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(cooldownEnd).to.equal(cooldownEndTime);
@@ -121,10 +121,10 @@ describe('getAssessmentResult', function () {
     await assessment.connect(assessor2).castVote(CLAIM_ID, false, IPFS_HASH);
 
     const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const cooldownEndTime = assessmentData.votingEnd + assessmentData.cooldownPeriod;
+    const cooldownEndTime = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
 
     // Set time past cooldown period
-    await setTime(cooldownEndTime + 1);
+    await setTime(cooldownEndTime + 1n);
 
     const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
 
@@ -140,10 +140,10 @@ describe('getAssessmentResult', function () {
     // No votes cast (both accept and deny votes = 0)
 
     const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const cooldownEndTime = assessmentData.votingEnd + assessmentData.cooldownPeriod;
+    const cooldownEndTime = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
 
     // Set time past cooldown period
-    await setTime(cooldownEndTime + 1);
+    await setTime(cooldownEndTime + 1n);
 
     const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
 
@@ -161,9 +161,7 @@ describe('getAssessmentResult', function () {
     const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
 
     // Verify that cooldownEnd is calculated as votingEnd + cooldownPeriod
-    const expectedCooldownEnd = assessmentData.votingEnd.add ?
-      assessmentData.votingEnd.add(assessmentData.cooldownPeriod) :
-      ethers.BigNumber.from(assessmentData.votingEnd).add(assessmentData.cooldownPeriod);
+    const expectedCooldownEnd = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
     expect(cooldownEnd).to.equal(expectedCooldownEnd);
 
     // Verify the cooldown period matches the expected value from payoutCooldown
@@ -178,7 +176,7 @@ describe('getAssessmentResult', function () {
     const [assessor1] = accounts.assessors;
 
     const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const expectedCooldownEnd = assessmentData.votingEnd + assessmentData.cooldownPeriod;
+    const expectedCooldownEnd = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
 
     // Initially should be VOTING
     let [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
@@ -189,14 +187,14 @@ describe('getAssessmentResult', function () {
     await assessment.connect(assessor1).castVote(CLAIM_ID, true, IPFS_HASH);
 
     // Set time to just after voting ends but before cooldown passes - should be COOLDOWN
-    await setTime(assessmentData.votingEnd + 1);
+    await setTime(assessmentData.votingEnd + 1n);
     [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(cooldownEnd).to.equal(expectedCooldownEnd);
     expect(status).to.equal(AssessmentStatus.COOLDOWN);
 
     // Set time past cooldown - should be ACCEPTED
-    const cooldownEndTime = assessmentData.votingEnd + assessmentData.cooldownPeriod;
-    await setTime(cooldownEndTime + 1);
+    const cooldownEndTime = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
+    await setTime(cooldownEndTime + 1n);
     [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(cooldownEnd).to.equal(expectedCooldownEnd);
     expect(status).to.equal(AssessmentStatus.ACCEPTED);

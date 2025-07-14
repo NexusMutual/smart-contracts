@@ -55,9 +55,10 @@ describe('closeVotingEarly', function () {
     const { CLAIM_ID } = constants;
 
     // Fast forward past the voting period
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    const VOTING_PERIOD = await assessment.votingPeriod();
-    await setTime(timestamp + VOTING_PERIOD.toNumber() + 1);
+    const block = await ethers.provider.getBlock('latest');
+    if (!block) throw new Error('Block not found');
+    const votingPeriod = await assessment.minVotingPeriod();
+    await setTime(BigInt(block.timestamp) + votingPeriod + 1n);
 
     const closeVotingEarly = assessment.closeVotingEarly(CLAIM_ID);
     await expect(closeVotingEarly).to.be.revertedWithCustomError(assessment, 'VotingAlreadyClosed');
@@ -108,11 +109,11 @@ describe('closeVotingEarly', function () {
     // Get the exact block timestamp when the transaction was mined
     const { blockNumber } = await tx.wait();
     const block = await ethers.provider.getBlock(blockNumber);
-    const expectedVotingEndTime = block.timestamp;
+    const expectedVotingEndTime = block?.timestamp;
 
     const assessmentData = await assessment.getAssessmentResult(CLAIM_ID);
     const cooldownPeriod = await assessment.payoutCooldown(constants.PRODUCT_TYPE_ID);
-    const votingEndTime = assessmentData.cooldownEnd - cooldownPeriod.toNumber();
+    const votingEndTime = assessmentData.cooldownEnd - cooldownPeriod;
 
     expect(votingEndTime).to.equal(expectedVotingEndTime);
   });
@@ -139,6 +140,7 @@ describe('closeVotingEarly', function () {
     const closeVotingTx = await assessment.closeVotingEarly(CLAIM_ID);
     const closeVotingReceipt = await closeVotingTx.wait();
     const closeVotingBlock = await ethers.provider.getBlock(closeVotingReceipt.blockNumber);
+    if (!closeVotingBlock) throw new Error('Block not found');
     const closeVotingTimestamp = closeVotingBlock.timestamp;
 
     // Verify the assessment was updated correctly
@@ -149,13 +151,13 @@ describe('closeVotingEarly', function () {
 
     // Advance time past the cooldown period to see DRAW status
     const cooldownPeriod = assessmentData.cooldownPeriod;
-    await setTime(closeVotingTimestamp + cooldownPeriod + 1);
+    await setTime(Number(BigInt(closeVotingTimestamp) + BigInt(cooldownPeriod) + 1n));
 
     // Check assessment result after cooldown period
     const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
 
     // Verify cooldown end calculation
-    const expectedCooldownEnd = closeVotingTimestamp + cooldownPeriod;
+    const expectedCooldownEnd = BigInt(closeVotingTimestamp) + BigInt(cooldownPeriod);
     expect(cooldownEnd).to.equal(expectedCooldownEnd);
 
     // Verify status is DRAW (0 accept == 0 deny votes)
@@ -192,7 +194,7 @@ describe('closeVotingEarly', function () {
     // Get the exact block timestamp when the transaction was mined
     const { blockNumber } = await tx.wait();
     const block = await ethers.provider.getBlock(blockNumber);
-    const expectedTimestamp = block.timestamp;
+    const expectedTimestamp = block?.timestamp;
 
     // Verify voting end time has been adjusted
     const updatedAssessment = await assessment.getAssessment(CLAIM_ID);
@@ -216,7 +218,7 @@ describe('closeVotingEarly', function () {
     // Get the transaction receipt to find the exact timestamp
     const receipt = await (await tx).wait();
     const block = await ethers.provider.getBlock(receipt.blockNumber);
-    const expectedTimestamp = block.timestamp;
+    const expectedTimestamp = block?.timestamp;
 
     await expect(tx).to.emit(assessment, 'VotingEndChanged').withArgs(CLAIM_ID, expectedTimestamp);
   });
@@ -241,7 +243,7 @@ describe('closeVotingEarly', function () {
     // Get the exact block timestamp when the transaction was mined
     const { blockNumber } = await tx.wait();
     const block = await ethers.provider.getBlock(blockNumber);
-    const expectedTimestamp = block.timestamp;
+    const expectedTimestamp = block?.timestamp;
 
     // Verify voting end time has been adjusted
     const updatedAssessment = await assessment.getAssessment(CLAIM_ID);

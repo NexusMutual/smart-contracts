@@ -40,7 +40,7 @@ describe('getGroupsForAssessor', function () {
     const { assessment } = contracts;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const assessorId = 200;
+    const assessorId = 200n;
 
     // Add assessor to first group
     await assessment.connect(governanceAccount).addAssessorsToGroup([assessorId], 0);
@@ -55,11 +55,12 @@ describe('getGroupsForAssessor', function () {
     const thirdGroupId = await assessment.getGroupsCount();
 
     const groups = await assessment.getGroupsForAssessor(assessorId);
+    const groupsSet = new Set(groups);
 
     expect(groups.length).to.equal(3);
-    expect(groups.map(id => id.toNumber())).to.include(firstGroupId.toNumber());
-    expect(groups.map(id => id.toNumber())).to.include(secondGroupId.toNumber());
-    expect(groups.map(id => id.toNumber())).to.include(thirdGroupId.toNumber());
+    expect(groupsSet.has(firstGroupId)).to.be.true;
+    expect(groupsSet.has(secondGroupId)).to.be.true;
+    expect(groupsSet.has(thirdGroupId)).to.be.true;
   });
 
   it('should return correct groups after adding to existing group', async function () {
@@ -68,7 +69,7 @@ describe('getGroupsForAssessor', function () {
     const { ASSESSOR_GROUP_ID } = constants;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const assessorId = 201;
+    const assessorId = 201n;
 
     // Initially not in any groups
     const initialGroups = await assessment.getGroupsForAssessor(assessorId);
@@ -87,7 +88,7 @@ describe('getGroupsForAssessor', function () {
     const { assessment } = contracts;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const assessorId = 202;
+    const assessorId = 202n;
 
     // Add to new group
     await assessment.connect(governanceAccount).addAssessorsToGroup([assessorId], 0);
@@ -106,8 +107,8 @@ describe('getGroupsForAssessor', function () {
     const { assessment } = contracts;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const assessor1Id = 204;
-    const assessor2Id = 205;
+    const assessor1Id = 204n;
+    const assessor2Id = 205n;
 
     // Add assessor1 to group A
     await assessment.connect(governanceAccount).addAssessorsToGroup([assessor1Id], 0);
@@ -123,20 +124,20 @@ describe('getGroupsForAssessor', function () {
 
     // Verify assessor1's groups
     const groups1 = await assessment.getGroupsForAssessor(assessor1Id);
-    const groups1Numbers = new Set(groups1.map(id => id.toNumber()));
+    const groups1Numbers = new Set(groups1);
 
     expect(groups1.length).to.equal(2);
-    expect(groups1Numbers.has(groupA.toNumber())).to.be.true;
-    expect(groups1Numbers.has(groupC.toNumber())).to.be.true;
-    expect(groups1Numbers.has(groupB.toNumber())).to.be.false;
+    expect(groups1Numbers.has(groupA)).to.be.true;
+    expect(groups1Numbers.has(groupC)).to.be.true;
+    expect(groups1Numbers.has(groupB)).to.be.false;
 
     // Verify assessor2's groups
     const groups2 = await assessment.getGroupsForAssessor(assessor2Id);
-    const groups2Numbers = new Set(groups2.map(id => id.toNumber()));
+    const groups2Numbers = new Set(groups2);
 
     expect(groups2.length).to.equal(2);
-    expect(groups2Numbers.has(groupB.toNumber())).to.be.true;
-    expect(groups2Numbers.has(groupC.toNumber())).to.be.true;
-    expect(groups2Numbers.has(groupA.toNumber())).to.be.false;
+    expect(groups2Numbers.has(groupB)).to.be.true;
+    expect(groups2Numbers.has(groupC)).to.be.true;
+    expect(groups2Numbers.has(groupA)).to.be.false;
   });
 });

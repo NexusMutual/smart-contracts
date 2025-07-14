@@ -3,10 +3,10 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
-const { solidityKeccak256 } = ethers.utils;
+const { solidityPackedKeccak256 } = ethers;
 
 describe('ballotOf', function () {
-  const ipfsHash = solidityKeccak256(['string'], ['test-vote-metadata']);
+  const ipfsHash = solidityPackedKeccak256(['string'], ['test-vote-metadata']);
 
   it('returns default ballot for non-existent assessor member ID', async function () {
     const { contracts, constants } = await loadFixture(setup);
@@ -26,7 +26,8 @@ describe('ballotOf', function () {
     const [assessor] = accounts.assessors;
 
     // Default ballot should have zero timestamp and no support
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorAddress = await assessor.getAddress();
+    const assessorMemberId = await registry.getMemberId(assessorAddress);
     const ballot = await assessment.ballotOf(CLAIM_ID, assessorMemberId);
     expect(ballot.support).to.equal(false);
     expect(ballot.timestamp).to.equal(0);
@@ -38,7 +39,8 @@ describe('ballotOf', function () {
     const { CLAIM_ID } = constants;
     const [assessor] = accounts.assessors;
 
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorAddress = await assessor.getAddress();
+    const assessorMemberId = await registry.getMemberId(assessorAddress);
     const voteSupport = true;
     const tx = await assessment.connect(assessor).castVote(CLAIM_ID, voteSupport, ipfsHash);
     const { blockNumber } = await tx.wait();
@@ -49,7 +51,7 @@ describe('ballotOf', function () {
 
     // Verify ballot matches the vote cast
     expect(ballot.support).to.equal(voteSupport);
-    expect(ballot.timestamp).to.equal(block.timestamp);
+    expect(ballot.timestamp).to.equal(block?.timestamp);
   });
 
   it('returns correct ballot for deny vote', async function () {
@@ -59,7 +61,8 @@ describe('ballotOf', function () {
     const [assessor] = accounts.assessors;
 
     // Cast a deny vote
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorAddress = await assessor.getAddress();
+    const assessorMemberId = await registry.getMemberId(assessorAddress);
     const voteSupport = false;
     const tx = await assessment.connect(assessor).castVote(CLAIM_ID, voteSupport, ipfsHash);
     const { blockNumber } = await tx.wait();
@@ -70,6 +73,6 @@ describe('ballotOf', function () {
 
     // Verify ballot matches the deny vote cast
     expect(ballot.support).to.equal(voteSupport);
-    expect(ballot.timestamp).to.equal(block.timestamp);
+    expect(ballot.timestamp).to.equal(block?.timestamp);
   });
 });

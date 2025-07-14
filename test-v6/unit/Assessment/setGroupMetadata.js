@@ -21,7 +21,7 @@ describe('setGroupMetadata', function () {
     const [governanceAccount] = accounts.governanceContracts;
 
     const groupsCount = await assessment.getGroupsCount();
-    const invalidGroupIds = [0, groupsCount.toNumber() + 1];
+    const invalidGroupIds = [0n, groupsCount + 1n];
 
     for (const invalidGroupId of invalidGroupIds) {
       const setGroupMetadata = assessment.connect(governanceAccount).setGroupMetadata(invalidGroupId, IPFS_HASH);
@@ -52,7 +52,7 @@ describe('setGroupMetadata', function () {
     const { ASSESSOR_GROUP_ID, IPFS_HASH } = constants;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const newMetadata = ethers.utils.solidityKeccak256(['string'], ['updated-metadata']);
+    const newMetadata = ethers.solidityPackedKeccak256(['string'], ['updated-metadata']);
 
     // Set initial metadata
     await assessment.connect(governanceAccount).setGroupMetadata(ASSESSOR_GROUP_ID, IPFS_HASH);
@@ -78,7 +78,7 @@ describe('setGroupMetadata', function () {
     const { ASSESSOR_GROUP_ID, IPFS_HASH } = constants;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const zeroMetadata = ethers.constants.HashZero;
+    const zeroMetadata = ethers.ZeroHash;
 
     // Set initial metadata
     await assessment.connect(governanceAccount).setGroupMetadata(ASSESSOR_GROUP_ID, IPFS_HASH);
@@ -102,7 +102,7 @@ describe('setGroupMetadata', function () {
     const [member] = accounts.members;
 
     const memberId = await registry.getMemberId(member.address);
-    const newMetadata = ethers.utils.solidityKeccak256(['string'], ['new-group-metadata']);
+    const newMetadata = ethers.solidityPackedKeccak256(['string'], ['new-group-metadata']);
 
     // Create second group
     await assessment.connect(governanceAccount).addAssessorsToGroup([memberId], 0);
@@ -115,9 +115,9 @@ describe('setGroupMetadata', function () {
     await assessment.connect(governanceAccount).setGroupMetadata(secondGroupId, newMetadata);
 
     // Verify both groups have correct metadata
-    const groupsData = await assessment.getGroupsData([ASSESSOR_GROUP_ID, secondGroupId]);
-    expect(groupsData[0].ipfsMetadata).to.equal(IPFS_HASH);
-    expect(groupsData[1].ipfsMetadata).to.equal(newMetadata);
+    const [group1Data, group2Data] = await assessment.getGroupsData([ASSESSOR_GROUP_ID, secondGroupId]);
+    expect(group1Data.ipfsMetadata).to.equal(IPFS_HASH);
+    expect(group2Data.ipfsMetadata).to.equal(newMetadata);
   });
 
   it('should maintain metadata when group membership changes', async function () {

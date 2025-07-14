@@ -75,7 +75,7 @@ describe('setAssessmentDataForProductTypes', function () {
     const [governanceAccount] = accounts.governanceContracts;
 
     const productTypeIds = [31];
-    const maxCooldownPeriod = ethers.BigNumber.from(2).pow(32).sub(1); // Max uint32
+    const maxCooldownPeriod = 2n ** 32n - 1n; // Max uint32
 
     const tx = await assessment
       .connect(governanceAccount)
@@ -164,7 +164,7 @@ describe('setAssessmentDataForProductTypes', function () {
 
     // Get current group count and create array of invalid IDs
     const currentGroupCount = await assessment.getGroupsCount();
-    const invalidGroupIds = [0, currentGroupCount.toNumber() + 1];
+    const invalidGroupIds = [0n, currentGroupCount + 1n];
 
     for (const invalidGroupId of invalidGroupIds) {
       const setAssessmentDataForProductTypes = assessment

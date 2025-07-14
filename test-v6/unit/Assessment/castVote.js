@@ -33,9 +33,10 @@ describe('castVote', function () {
     const [assessor] = accounts.assessors;
 
     // Set time past the voting period
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    const votingPeriod = await assessment.votingPeriod();
-    await setTime(timestamp + votingPeriod.toNumber() + 1);
+    const block = await ethers.provider.getBlock('latest');
+    const votingPeriod = await assessment.minVotingPeriod();
+    if (!block) throw new Error('Block not found');
+    await setTime(BigInt(block.timestamp) + votingPeriod + 1n);
 
     // Try to vote after the period has ended - should fail
     const castVote = assessment.connect(assessor).castVote(CLAIM_ID, true, IPFS_HASH);
@@ -48,7 +49,8 @@ describe('castVote', function () {
     const { CLAIM_ID, IPFS_HASH } = constants;
     const [assessor] = accounts.assessors;
 
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorAddress = await assessor.getAddress();
+    const assessorMemberId = await registry.getMemberId(assessorAddress);
     const assessmentDataBefore = await assessment.getAssessment(CLAIM_ID);
 
     const tx = await assessment.connect(assessor).castVote(CLAIM_ID, true, IPFS_HASH);
@@ -57,13 +59,13 @@ describe('castVote', function () {
 
     // Verify vote counting
     const assessmentDataAfter = await assessment.getAssessment(CLAIM_ID);
-    expect(assessmentDataAfter.acceptVotes).to.equal(assessmentDataBefore.acceptVotes + 1);
+    expect(assessmentDataAfter.acceptVotes).to.equal(assessmentDataBefore.acceptVotes + 1n);
     expect(assessmentDataAfter.denyVotes).to.equal(assessmentDataBefore.denyVotes);
 
     // Verify ballot data
     const ballot = await assessment.ballotOf(CLAIM_ID, assessorMemberId);
     expect(ballot.support).to.be.true;
-    expect(ballot.timestamp).to.equal(block.timestamp);
+    expect(ballot.timestamp).to.equal(block?.timestamp);
 
     // Verify metadata
     const storedMetadata = await assessment.getBallotsMetadata(CLAIM_ID, assessorMemberId);
@@ -72,7 +74,7 @@ describe('castVote', function () {
     // Verify event
     await expect(tx)
       .to.emit(assessment, 'VoteCast')
-      .withArgs(CLAIM_ID, assessor.address, assessorMemberId, true, IPFS_HASH);
+      .withArgs(CLAIM_ID, assessorAddress, assessorMemberId, true, IPFS_HASH);
   });
 
   it('should correctly handle voteSupport=false with proper vote counting and ballot storage', async function () {
@@ -81,7 +83,8 @@ describe('castVote', function () {
     const { CLAIM_ID, IPFS_HASH } = constants;
     const [assessor] = accounts.assessors;
 
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorAddress = await assessor.getAddress();
+    const assessorMemberId = await registry.getMemberId(assessorAddress);
     const assessmentDataBefore = await assessment.getAssessment(CLAIM_ID);
 
     const tx = await assessment.connect(assessor).castVote(CLAIM_ID, false, IPFS_HASH);
@@ -91,12 +94,12 @@ describe('castVote', function () {
     // Verify vote counting
     const assessmentDataAfter = await assessment.getAssessment(CLAIM_ID);
     expect(assessmentDataAfter.acceptVotes).to.equal(assessmentDataBefore.acceptVotes);
-    expect(assessmentDataAfter.denyVotes).to.equal(assessmentDataBefore.denyVotes + 1);
+    expect(assessmentDataAfter.denyVotes).to.equal(assessmentDataBefore.denyVotes + 1n);
 
     // Verify ballot data
     const ballot = await assessment.ballotOf(CLAIM_ID, assessorMemberId);
     expect(ballot.support).to.be.false;
-    expect(ballot.timestamp).to.equal(block.timestamp);
+    expect(ballot.timestamp).to.equal(block?.timestamp);
 
     // Verify metadata
     const storedMetadata = await assessment.getBallotsMetadata(CLAIM_ID, assessorMemberId);
@@ -105,7 +108,7 @@ describe('castVote', function () {
     // Verify event
     await expect(tx)
       .to.emit(assessment, 'VoteCast')
-      .withArgs(CLAIM_ID, assessor.address, assessorMemberId, false, IPFS_HASH);
+      .withArgs(CLAIM_ID, assessorAddress, assessorMemberId, false, IPFS_HASH);
   });
 
   it('should accurately track multiple votes from different assessors', async function () {
@@ -119,27 +122,32 @@ describe('castVote', function () {
       {
         assessor: assessor1,
         voteSupport: true,
-        ipfsHash: ethers.utils.solidityKeccak256(['string'], ['assessor1-vote-reasoning']),
+        ipfsHash: ethers.solidityPackedKeccak256(['string'], ['assessor1-vote-reasoning']),
       },
       {
         assessor: assessor2,
         voteSupport: false,
-        ipfsHash: ethers.utils.solidityKeccak256(['string'], ['assessor2-vote-reasoning']),
+        ipfsHash: ethers.solidityPackedKeccak256(['string'], ['assessor2-vote-reasoning']),
       },
       {
         assessor: assessor3,
         voteSupport: true,
-        ipfsHash: ethers.utils.solidityKeccak256(['string'], ['assessor3-vote-reasoning']),
+        ipfsHash: ethers.solidityPackedKeccak256(['string'], ['assessor3-vote-reasoning']),
       },
       {
         assessor: assessor4,
         voteSupport: false,
-        ipfsHash: ethers.utils.solidityKeccak256(['string'], ['assessor4-vote-reasoning']),
+        ipfsHash: ethers.solidityPackedKeccak256(['string'], ['assessor4-vote-reasoning']),
       },
     ];
 
     // Get member IDs for all assessors
-    const memberIds = await Promise.all(votes.map(vote => registry.getMemberId(vote.assessor.address)));
+    const memberIds = await Promise.all(
+      votes.map(async vote => {
+        const assessorAddress = await vote.assessor.getAddress();
+        return registry.getMemberId(assessorAddress);
+      })
+    );
 
     const assessmentDataInitial = await assessment.getAssessment(CLAIM_ID);
     expect(assessmentDataInitial.acceptVotes).to.equal(0);
@@ -211,12 +219,13 @@ describe('castVote', function () {
     const [assessor] = accounts.assessors;
 
     // Get assessor member ID
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorAddress = await assessor.getAddress();
+    const assessorMemberId = await registry.getMemberId(assessorAddress);
 
     const castVote = assessment.connect(assessor).castVote(CLAIM_ID, true, IPFS_HASH);
     await expect(castVote)
       .to.emit(assessment, 'VoteCast')
-      .withArgs(CLAIM_ID, assessor.address, assessorMemberId, true, IPFS_HASH);
+      .withArgs(CLAIM_ID, assessorAddress, assessorMemberId, true, IPFS_HASH);
   });
 
   it('should revert when assessor tries to vote twice', async function () {
@@ -225,7 +234,8 @@ describe('castVote', function () {
     const { CLAIM_ID, IPFS_HASH } = constants;
     const [assessor] = accounts.assessors;
 
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorAddress = await assessor.getAddress();
+    const assessorMemberId = await registry.getMemberId(assessorAddress);
 
     // Cast initial deny vote
     const firstVoteTx = await assessment.connect(assessor).castVote(CLAIM_ID, false, IPFS_HASH);
@@ -240,7 +250,7 @@ describe('castVote', function () {
     // Check ballot still reflects the first vote
     const ballot = await assessment.ballotOf(CLAIM_ID, assessorMemberId);
     expect(ballot.support).to.equal(false);
-    expect(ballot.timestamp).to.equal(block.timestamp);
+    expect(ballot.timestamp).to.equal(block?.timestamp);
 
     // Check vote counts reflect only the first vote
     const assessmentData = await assessment.getAssessment(CLAIM_ID);

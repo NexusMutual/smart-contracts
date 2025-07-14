@@ -22,7 +22,7 @@ describe('removeAssessorFromGroup', function () {
     const { ASSESSOR_GROUP_ID } = constants;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const removeAssessorFromGroup = assessment.connect(governanceAccount).removeAssessorFromGroup(0, ASSESSOR_GROUP_ID);
+    const removeAssessorFromGroup = assessment.connect(governanceAccount).removeAssessorFromGroup(0n, ASSESSOR_GROUP_ID);
 
     await expect(removeAssessorFromGroup).to.be.revertedWithCustomError(assessment, 'InvalidMemberId');
   });
@@ -34,7 +34,7 @@ describe('removeAssessorFromGroup', function () {
     const [member] = accounts.members;
 
     const memberId = await registry.getMemberId(member.address);
-    const invalidGroupId = 0;
+    const invalidGroupId = 0n;
     const removeAssessor = assessment.connect(governanceAccount).removeAssessorFromGroup(memberId, invalidGroupId);
 
     await expect(removeAssessor).to.be.revertedWithCustomError(assessment, 'InvalidGroupId');
@@ -48,7 +48,7 @@ describe('removeAssessorFromGroup', function () {
 
     const memberId = await registry.getMemberId(member.address);
     const groupsCount = await assessment.getGroupsCount();
-    const invalidGroupId = groupsCount.toNumber() + 1;
+    const invalidGroupId = groupsCount + 1n;
     const removeAssessor = assessment.connect(governanceAccount).removeAssessorFromGroup(memberId, invalidGroupId);
 
     await expect(removeAssessor).to.be.revertedWithCustomError(assessment, 'InvalidGroupId');
@@ -67,7 +67,7 @@ describe('removeAssessorFromGroup', function () {
     ]);
 
     // Create new group with multiple members
-    await assessment.connect(governanceAccount).addAssessorsToGroup([memberId1, memberId2, memberId3], 0);
+    await assessment.connect(governanceAccount).addAssessorsToGroup([memberId1, memberId2, memberId3], 0n);
     const groupId = await assessment.getGroupsCount();
 
     // Verify all members are in group
@@ -90,16 +90,18 @@ describe('removeAssessorFromGroup', function () {
 
     // Verify member1 no longer has this group in their list
     const member1Groups = await assessment.getGroupsForAssessor(memberId1);
-    expect(member1Groups.map(g => g.toNumber())).to.not.include(groupId.toNumber());
+    const member1GroupSet = new Set(member1Groups);
+    expect(member1GroupSet.has(groupId)).to.be.false;
 
     // Verify group size decreased
     const currentGroupAssessors = await assessment.getGroupAssessors(groupId);
     expect(currentGroupAssessors.length).to.equal(initialSize - 1);
 
     // Verify member1 is not in the group's assessor list but others are
-    expect(currentGroupAssessors.map(id => id.toNumber())).to.not.include(memberId1.toNumber());
-    expect(currentGroupAssessors.map(id => id.toNumber())).to.include(memberId2.toNumber());
-    expect(currentGroupAssessors.map(id => id.toNumber())).to.include(memberId3.toNumber());
+    const currentGroupAssessorSet = new Set(currentGroupAssessors);
+    expect(currentGroupAssessorSet.has(memberId1)).to.be.false;
+    expect(currentGroupAssessorSet.has(memberId2)).to.be.true;
+    expect(currentGroupAssessorSet.has(memberId3)).to.be.true;
 
     // Verify event emission
     await expect(tx1).to.emit(assessment, 'AssessorRemovedFromGroup').withArgs(groupId, memberId1);
@@ -171,8 +173,9 @@ describe('removeAssessorFromGroup', function () {
 
     // Verify group still contains assessor2 but not assessor1
     const groupAssessors = await assessment.getGroupAssessors(ASSESSOR_GROUP_ID);
-    expect(groupAssessors.map(id => id.toNumber())).to.include(assessorId2.toNumber());
-    expect(groupAssessors.map(id => id.toNumber())).to.not.include(assessorId1.toNumber());
+    const groupAssessorSet = new Set(groupAssessors);
+    expect(groupAssessorSet.has(assessorId2)).to.be.true;
+    expect(groupAssessorSet.has(assessorId1)).to.be.false;
   });
 
   it('should not affect other groups when removing from specific group', async function () {
@@ -187,10 +190,10 @@ describe('removeAssessorFromGroup', function () {
     const initialGroups = await assessment.getGroupsForAssessor(memberId);
 
     // Create two new groups and add member to both
-    await assessment.connect(governanceAccount).addAssessorsToGroup([memberId], 0);
+    await assessment.connect(governanceAccount).addAssessorsToGroup([memberId], 0n);
     const groupId1 = await assessment.getGroupsCount();
 
-    await assessment.connect(governanceAccount).addAssessorsToGroup([memberId], 0);
+    await assessment.connect(governanceAccount).addAssessorsToGroup([memberId], 0n);
     const groupId2 = await assessment.getGroupsCount();
 
     // Verify member is in both new groups
@@ -206,8 +209,8 @@ describe('removeAssessorFromGroup', function () {
 
     // Verify member's groups list contains initial groups plus group2 (but not group1)
     const finalGroups = await assessment.getGroupsForAssessor(memberId);
-    const expectedGroups = [...initialGroups.map(g => g.toNumber()), groupId2.toNumber()].sort();
-    expect(finalGroups.map(g => g.toNumber()).sort()).to.deep.equal(expectedGroups);
+    const expectedGroups = [...initialGroups, groupId2].sort();
+    expect([...finalGroups].sort()).to.deep.equal(expectedGroups);
 
     // Verify event emission only for group1
     await expect(tx).to.emit(assessment, 'AssessorRemovedFromGroup').withArgs(groupId1, memberId);
@@ -222,7 +225,7 @@ describe('removeAssessorFromGroup', function () {
     const memberId = await registry.getMemberId(member.address);
 
     // Create new group with single member
-    await assessment.connect(governanceAccount).addAssessorsToGroup([memberId], 0);
+    await assessment.connect(governanceAccount).addAssessorsToGroup([memberId], 0n);
     const groupId = await assessment.getGroupsCount();
 
     // Verify member is in group and group has 1 assessor
@@ -255,14 +258,14 @@ describe('removeAssessorFromGroup', function () {
     await assessment.connect(governanceAccount).setGroupMetadata(ASSESSOR_GROUP_ID, IPFS_HASH);
 
     // Verify metadata is set
-    let groupsData = await assessment.getGroupsData([ASSESSOR_GROUP_ID]);
-    expect(groupsData[0].ipfsMetadata).to.equal(IPFS_HASH);
+    const [groupsDataBefore] = await assessment.getGroupsData([ASSESSOR_GROUP_ID]);
+    expect(groupsDataBefore.ipfsMetadata).to.equal(IPFS_HASH);
 
     // Remove assessor from group
     await assessment.connect(governanceAccount).removeAssessorFromGroup(assessorId, ASSESSOR_GROUP_ID);
 
     // Verify metadata is still set after removing assessor
-    groupsData = await assessment.getGroupsData([ASSESSOR_GROUP_ID]);
-    expect(groupsData[0].ipfsMetadata).to.equal(IPFS_HASH);
+    const [groupsDataAfter] = await assessment.getGroupsData([ASSESSOR_GROUP_ID]);
+    expect(groupsDataAfter.ipfsMetadata).to.equal(IPFS_HASH);
   });
 });

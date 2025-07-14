@@ -9,7 +9,8 @@ describe('isAssessorInGroup', function () {
     const { ASSESSOR_GROUP_ID } = constants;
     const [assessor] = accounts.assessors;
 
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorAddress = await assessor.getAddress();
+    const assessorMemberId = await registry.getMemberId(assessorAddress);
     const isInGroup = await assessment.isAssessorInGroup(assessorMemberId, ASSESSOR_GROUP_ID);
 
     expect(isInGroup).to.be.true;
@@ -20,12 +21,11 @@ describe('isAssessorInGroup', function () {
     const { assessment } = contracts;
     const { ASSESSOR_GROUP_ID } = constants;
 
-    const nonExistentAssessorIds = [0, 999];
+    const nonExistentAssessorIds = [0n, 999n];
 
-    for (const assessorId of nonExistentAssessorIds) {
-      const isInGroup = await assessment.isAssessorInGroup(assessorId, ASSESSOR_GROUP_ID);
-      expect(isInGroup).to.be.false;
-    }
+    await Promise.all(nonExistentAssessorIds.map(async assessorId => {
+      expect(await assessment.isAssessorInGroup(assessorId, ASSESSOR_GROUP_ID)).to.be.false;
+    }));
   });
 
   it('should return false for non-existent group IDs', async function () {
@@ -33,21 +33,21 @@ describe('isAssessorInGroup', function () {
     const { assessment, registry } = contracts;
     const [assessor] = accounts.assessors;
 
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorAddress = await assessor.getAddress();
+    const assessorMemberId = await registry.getMemberId(assessorAddress);
     const nonExistentGroupIds = [0, 999];
 
-    for (const groupId of nonExistentGroupIds) {
-      const isInGroup = await assessment.isAssessorInGroup(assessorMemberId, groupId);
-      expect(isInGroup).to.be.false;
-    }
+    await Promise.all(nonExistentGroupIds.map(async groupId => {
+      expect(await assessment.isAssessorInGroup(assessorMemberId, groupId)).to.be.false;
+    }));
   });
 
-  it('should work correctly after adding assessor to group', async function () {
+  it('should return true after adding assessor to group', async function () {
     const { contracts, accounts } = await loadFixture(setup);
     const { assessment } = contracts;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const newAssessorId = 100;
+    const newAssessorId = 100n;
 
     // Initially not in any group
     const isInGroupBefore = await assessment.isAssessorInGroup(newAssessorId, 1);
@@ -73,7 +73,8 @@ describe('isAssessorInGroup', function () {
     const [governanceAccount] = accounts.governanceContracts;
     const [assessor] = accounts.assessors;
 
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorAddress = await assessor.getAddress();
+    const assessorMemberId = await registry.getMemberId(assessorAddress);
 
     // Initially should be in the group
     const isInGroupBefore = await assessment.isAssessorInGroup(assessorMemberId, ASSESSOR_GROUP_ID);

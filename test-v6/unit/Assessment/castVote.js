@@ -15,7 +15,7 @@ describe('castVote', function () {
     await expect(castVote).to.be.revertedWithCustomError(assessment, 'InvalidClaimId');
   });
 
-  it('should revert when called by non-assessor', async function () {
+  it('should revert when called by non-member', async function () {
     const { contracts, accounts, constants } = await loadFixture(setup);
     const { assessment } = contracts;
     const { CLAIM_ID } = constants;
@@ -23,6 +23,17 @@ describe('castVote', function () {
     const [nonMember] = accounts.nonMembers;
 
     const castVote = assessment.connect(nonMember).castVote(CLAIM_ID, true, constants.IPFS_HASH);
+    await expect(castVote).to.be.revertedWithCustomError(assessment, 'OnlyMember');
+  });
+
+  it('should revert when called by member but not an assessor', async function () {
+    const { contracts, accounts, constants } = await loadFixture(setup);
+    const { assessment } = contracts;
+    const { CLAIM_ID } = constants;
+
+    const [member] = accounts.members;
+
+    const castVote = assessment.connect(member).castVote(CLAIM_ID, true, constants.IPFS_HASH);
     await expect(castVote).to.be.revertedWithCustomError(assessment, 'InvalidAssessor');
   });
 

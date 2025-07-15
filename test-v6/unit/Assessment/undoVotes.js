@@ -3,7 +3,6 @@ const { expect } = require('chai');
 const { setTime } = require('./helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
-const { setEtherBalance } = require('../../utils/evm');
 
 describe('undoVotes', function () {
   it('should revert when called by non-governor contract', async function () {

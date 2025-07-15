@@ -75,8 +75,8 @@ contract CLMockCover is CoverGeneric {
     uint32 start,
     uint32 period,
     uint32 gracePeriod,
-    uint16 globalRewardsRatio,
-    uint16 globalCapacityRatio
+    uint16 rewardsRatio,
+    uint16 capacityRatio
   ) external payable returns (uint coverId) {
 
     coverId = _coverNFT.mint(owner);
@@ -88,8 +88,8 @@ contract CLMockCover is CoverGeneric {
       start > 0 ? start : uint32(block.timestamp),
       period,
       gracePeriod,
-      globalRewardsRatio,
-      globalCapacityRatio
+      rewardsRatio,
+      capacityRatio
     );
   }
 

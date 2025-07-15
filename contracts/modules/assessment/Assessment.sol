@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts-v4/utils/structs/EnumerableSet.sol";
+import "../../libraries/external/EnumerableSet.sol";
 
 import "../../abstract/Multicall.sol";
 import "../../interfaces/IAssessment.sol";
@@ -154,7 +154,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
       emit AssessorRemovedFromGroup(groupId, assessorMemberId);
     }
 
-    _clearSet(_groupsForAssessor[assessorMemberId]._inner);
+    _groupsForAssessor[assessorMemberId].clear();
   }
 
   /// @notice Sets assessment configuration for multiple product types
@@ -209,17 +209,6 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
       emit VoteUndone(claimId, assessorMemberId);
     }
-  }
-
-  /// @notice Clears all elements from an EnumerableSet
-  /// @param set The set to clear
-  /// @dev Internal helper function for set cleanup
-  function _clearSet(EnumerableSet.Set storage set) internal {
-    uint len = set._values.length;
-    for (uint i = 0; i < len; i++) {
-      delete set._indexes[set._values[i]];
-    }
-    delete set._values;
   }
 
   /* ========== VOTING ========== */

@@ -171,7 +171,7 @@ contract Claims is IClaims, RegistryAware {
       uint previousSubmission = lastClaimSubmissionOnCover[coverId];
 
       if (previousSubmission > 0) {
-        (uint cooldownEnd, IAssessment.AssessmentStatus status) = _assessment().getAssessmentResult(claimId);
+        (uint cooldownEnd, IAssessment.AssessmentStatus status) = _assessment().getAssessmentResult(previousSubmission);
         
         require(
           status != IAssessment.AssessmentStatus.VOTING &&

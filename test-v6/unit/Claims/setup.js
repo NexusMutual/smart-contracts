@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 
 const { ASSET } = require('./helpers');
 const { getAccounts } = require('../../utils/accounts');
-const { C_COVER, C_COVER_NFT, C_COVER_PRODUCTS, C_ASSESSMENT, C_POOL, C_RAMM } = require('../../utils/registry')
+const { C_COVER, C_COVER_NFT, C_COVER_PRODUCTS, C_ASSESSMENT, C_POOL, C_RAMM } = require('../../utils/registry');
 
 const { parseEther } = ethers;
 
@@ -28,9 +28,11 @@ async function setup() {
   const pool = await ethers.deployContract('PoolMock');
   await pool.waitForDeployment();
 
-  await pool.addAsset({ assetAddress: await dai.getAddress(), isCoverAsset: true, isAbandoned: false });
-  await pool.setTokenPrice(ASSET.ETH, parseEther('0.0382')); // 1 NXM ~ 0.0382 ETH
-  await pool.setTokenPrice(ASSET.DAI, parseEther('3.82')); // 1 NXM ~ 3.82 DAI
+  await Promise.all([
+    pool.addAsset({ assetAddress: await dai.getAddress(), isCoverAsset: true, isAbandoned: false }),
+    pool.setTokenPrice(ASSET.ETH, parseEther('0.0382')),
+    pool.setTokenPrice(ASSET.DAI, parseEther('3.82')),
+  ]);
 
   const assessment = await ethers.deployContract('CLMockAssessment');
   await assessment.waitForDeployment();
@@ -48,16 +50,20 @@ async function setup() {
   const coverProducts = await ethers.deployContract('CLMockCoverProducts');
   await coverProducts.waitForDeployment();
 
-  registry.addContract(C_COVER, await cover.getAddress(), false);
-  registry.addContract(C_COVER_NFT, await coverNFT.getAddress(), false);
-  registry.addContract(C_COVER_PRODUCTS, await coverProducts.getAddress(), false);
-  registry.addContract(C_ASSESSMENT, await assessment.getAddress(), false);
-  registry.addContract(C_POOL, await pool.getAddress(), false);
-  registry.addContract(C_RAMM, await ramm.getAddress(), false);
+  await Promise.all([
+    registry.addContract(C_COVER, await cover.getAddress(), false),
+    registry.addContract(C_COVER_NFT, await coverNFT.getAddress(), false),
+    registry.addContract(C_COVER_PRODUCTS, await coverProducts.getAddress(), false),
+    registry.addContract(C_ASSESSMENT, await assessment.getAddress(), false),
+    registry.addContract(C_POOL, await pool.getAddress(), false),
+    registry.addContract(C_RAMM, await ramm.getAddress(), false),
+  ]);
 
-  await coverProducts.addProductType('0', '30', '5000');
-  await coverProducts.addProductType('0', '90', '5000');
-  await coverProducts.addProductType('0', '30', '5000');
+  await Promise.all([
+    coverProducts.addProductType('0', '30', '5000'),
+    coverProducts.addProductType('0', '90', '5000'),
+    coverProducts.addProductType('0', '30', '5000'),
+  ]);
 
   const productTemplate = {
     productType: '0',
@@ -70,25 +76,19 @@ async function setup() {
     useFixedPrice: false,
   };
 
-  await coverProducts.addProduct({
-    ...productTemplate,
-    productType: '0',
-  });
+  await Promise.all([
+    coverProducts.addProduct({ ...productTemplate, productType: '0' }),
+    coverProducts.addProduct({ ...productTemplate, productType: '1' }),
+    coverProducts.addProduct({ ...productTemplate, productType: '2' }),
+  ]);
 
-  await coverProducts.addProduct({
-    ...productTemplate,
-    productType: '1',
-  });
-
-  await coverProducts.addProduct({
-    ...productTemplate,
-    productType: '2',
-  });
-
+  const tokenControllerAddress = await tokenController.getAddress();
   for (const member of accounts.members) {
-    await registry.join(member, ethers.toBeHex(0, 32));
-    await nxm.mint(member.address, parseEther('10000'));
-    await nxm.connect(member).approve(await tokenController.getAddress(), parseEther('10000'));
+    await Promise.all([
+      registry.join(member, ethers.toBeHex(0, 32)),
+      nxm.mint(member.address, parseEther('10000')),
+      nxm.connect(member).approve(tokenControllerAddress, parseEther('10000')),
+    ]);
   }
 
   accounts.defaultSender.sendTransaction({ to: await pool.getAddress(), value: parseEther('200') });
@@ -108,7 +108,7 @@ async function setup() {
     cover,
     coverProducts,
     coverNFT,
-    registry
+    registry,
   };
 
   return { config, accounts, contracts };

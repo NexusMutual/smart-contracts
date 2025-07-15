@@ -1,108 +1,112 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.18;
 
 import "../../interfaces/IRegistry.sol";
 
 contract RegistryMock is IRegistry {
-
-  // Storage for contract registration
   mapping(address => uint) private contractIndexByAddress;
   mapping(uint => address payable) private contractAddressByIndex;
   mapping(uint => bool) private contractTypeByIndex;
 
-  function setEmergencyAdmin(address, bool) external pure {
+  mapping(uint memberId => address member) internal members;
+  mapping(address member => uint memberId) internal memberIds;
+  uint internal memberCount;
+
+  uint internal pauseConfig;
+
+  /* == EMERGENCY PAUSE == */
+  function setEmergencyAdmin(address, bool) external virtual {
     revert("Unsupported");
   }
 
-  function proposePauseConfig(uint) external pure {
+  function proposePauseConfig(uint) external virtual {
     revert("Unsupported");
   }
 
-  function confirmPauseConfig(uint) external pure {
+  function confirmPauseConfig(uint config) external virtual {
+    pauseConfig = config;
+  }
+
+  function getSystemPause() external virtual view returns (SystemPause memory) {
     revert("Unsupported");
   }
 
-  function getSystemPause() external pure returns (SystemPause memory) {
+  function getPauseConfig() external virtual view returns (uint config) {
+    return pauseConfig;
+  }
+
+  function isPaused(uint) external virtual view returns (bool) {
     revert("Unsupported");
   }
 
-  function getPauseConfig() external pure returns (uint) {
-    return 0; // No pauses active
-  }
-
-  function isPaused(uint) external pure returns (bool) {
-    revert("Unsupported");
-  }
-
-  function isEmergencyAdmin(address) external pure returns (bool) {
+  function isEmergencyAdmin(address) external virtual view returns (bool) {
     revert("Unsupported");
   }
 
   /* == MEMBERSHIP AND AB MANAGEMENT == */
-  function isMember(address) external pure returns (bool) {
+  function isMember(address member) external virtual view returns (bool) {
+    return memberIds[member] > 0;
+  }
+
+  function getMemberId(address member) external virtual view returns (uint) {
+    return memberIds[member];
+  }
+
+  function getMemberCount() external virtual view returns (uint) {
+    return memberCount;
+  }
+
+  function isAdvisoryBoardMember(address) external virtual view returns (bool) {
     revert("Unsupported");
   }
 
-  function getMemberId(address member) external pure returns (uint) {
-    return (uint160(member) % 100) + 1;
-  }
-
-  function getMemberCount() external pure returns (uint) {
+  function getAdvisoryBoardSeat(address) external virtual view returns (uint) {
     revert("Unsupported");
   }
 
-  function isAdvisoryBoardMember(address) external pure returns (bool) {
+  function swapAdvisoryBoardMember(uint, uint) external virtual {
     revert("Unsupported");
   }
 
-  function getAdvisoryBoardSeat(address) external pure returns (uint) {
+  function join(address member, bytes memory) external virtual {
+    memberCount++;
+    memberIds[member] = memberCount;
+    members[memberCount] = member;
+  }
+
+  function swap(address) external virtual {
     revert("Unsupported");
   }
 
-  function swapAdvisoryBoardMember(uint, uint) external pure {
+  function swapFor(address, address) external virtual {
     revert("Unsupported");
   }
 
-  function join(address, bytes calldata) external pure {
-    revert("Unsupported");
-  }
-
-  function swap(address) external pure {
-    revert("Unsupported");
-  }
-
-  function swapFor(address, address) external pure {
-    revert("Unsupported");
-  }
-
-  function leave() external pure {
+  function leave() external virtual {
     revert("Unsupported");
   }
 
   /* == CONTRACT MANAGEMENT == */
-  function isValidContractIndex(uint) external pure returns (bool) {
+  function isValidContractIndex(uint) external virtual pure returns (bool) {
     revert("Unsupported");
   }
 
-  function deployContract(uint, bytes32, address) external pure {
+  function deployContract(uint, bytes32, address) external virtual {
     revert("Unsupported");
   }
 
-  function addContract(uint index, address payable contractAddress, bool isProxy) external override {
-    require(contractAddress != address(0), "Invalid contract address");
-    require(index > 0, "Invalid contract index");
-
+  function addContract(uint index, address payable contractAddress, bool isProxy) external virtual {
     contractIndexByAddress[contractAddress] = index;
     contractAddressByIndex[index] = contractAddress;
     contractTypeByIndex[index] = isProxy;
   }
 
-  function upgradeContract(uint, address) external pure {
+  function upgradeContract(uint, address) external virtual {
     revert("Unsupported");
   }
 
-  function removeContract(uint index) external override {
+  function removeContract(uint index) external virtual {
     address contractAddress = contractAddressByIndex[index];
     require(contractAddress != address(0), "Contract does not exist");
 
@@ -111,28 +115,28 @@ contract RegistryMock is IRegistry {
     delete contractTypeByIndex[index];
   }
 
-  function getContractAddressByIndex(uint index) external view override returns (address payable) {
+  function getContractAddressByIndex(uint index) external virtual view returns (address payable) {
     return contractAddressByIndex[index];
   }
 
-  function getContractTypeByIndex(uint index) external view override returns (bool) {
+  function getContractTypeByIndex(uint index) external virtual view returns (bool) {
     return contractTypeByIndex[index];
   }
 
-  function getContractIndexByAddress(address contractAddress) external view override returns (uint) {
+  function getContractIndexByAddress(address contractAddress) external virtual view returns (uint) {
     return contractIndexByAddress[contractAddress];
   }
 
-  function getContracts(uint[] memory) external pure returns (Contract[] memory) {
+  function getContracts(uint[] memory) external virtual view returns (Contract[] memory) {
     revert("Unsupported");
   }
 
   /* == MIGRATIONS == */
-  function migrateMembers(address[] calldata) external pure {
+  function migrateMembers(address[] calldata) external virtual {
     revert("Unsupported");
   }
 
-  function migrateAdvisoryBoardMembers(address[] calldata) external pure {
+  function migrateAdvisoryBoardMembers(address[] calldata) external virtual {
     revert("Unsupported");
   }
 }

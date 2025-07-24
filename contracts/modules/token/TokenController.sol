@@ -283,24 +283,12 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   ///         withdrawable NXM. Reverts if some of the NXM being withdrawn is locked or unavailable.
   /// @param stakingPoolDeposits        Details for withdrawing staking pools stake and rewards. Empty array to skip
   /// @param stakingPoolManagerRewards  Details for withdrawing staking pools manager rewards. Empty array to skip
-  /// @param withdrawAssessment         Options specifying assesment withdrawals, set flags to true to include
   ///                                   specific assesment stake or rewards withdrawal.
   function withdrawNXM(
-    WithdrawAssessment calldata withdrawAssessment,     // TODO: remove withdrawAssessment
     StakingPoolDeposit[] calldata stakingPoolDeposits,
-    StakingPoolManagerReward[] calldata stakingPoolManagerRewards,
-    uint assessmentRewardsBatchSize
+    StakingPoolManagerReward[] calldata stakingPoolManagerRewards
   ) external whenNotPaused {
     // assessment stake
-    if (withdrawAssessment.stake) {
-    //   assessment().unstakeAllFor(msg.sender);
-    }
-
-    // assessment rewards
-    if (withdrawAssessment.rewards) {
-    //   // pass in 0 batchSize to withdraw ALL Assessment rewards
-    //   assessment().withdrawRewards(msg.sender, assessmentRewardsBatchSize.toUint104());
-    }
 
     // staking pool rewards and stake
     for (uint i = 0; i < stakingPoolDeposits.length; i++) {

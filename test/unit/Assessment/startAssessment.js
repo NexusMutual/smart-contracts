@@ -2,12 +2,12 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
 const { setup } = require('./setup');
-const { setEtherBalance, impersonateAccount } = require('../../utils/evm');
+const { impersonateAccount } = require('../../utils/evm');
 
 describe('startAssessment', function () {
   it('should revert when called by non-Claims contract', async function () {
     const { contracts, accounts } = await loadFixture(setup);
-    const { assessment, claims } = contracts;
+    const { assessment } = contracts;
     const [nonClaims] = accounts.members;
 
     const claimId = 999; // Use different claimId
@@ -18,7 +18,7 @@ describe('startAssessment', function () {
   });
 
   it('should revert when assessment data is not set for product type', async function () {
-    const { contracts, accounts } = await loadFixture(setup);
+    const { contracts } = await loadFixture(setup);
     const { assessment, claims } = contracts;
 
     const claimId = 998; // Use different claimId
@@ -33,7 +33,7 @@ describe('startAssessment', function () {
   });
 
   it('should revert when assessment already exists', async function () {
-    const { contracts, accounts } = await loadFixture(setup);
+    const { contracts } = await loadFixture(setup);
     const { assessment, claims } = contracts;
 
     const claimId = 997; // Use different claimId
@@ -52,7 +52,7 @@ describe('startAssessment', function () {
   });
 
   it('should successfully start assessment with correct parameters', async function () {
-    const { contracts, accounts, constants } = await loadFixture(setup);
+    const { contracts, constants } = await loadFixture(setup);
     const { assessment, claims } = contracts;
 
     const expectedClaimId = 996; // Use different claimId
@@ -66,12 +66,14 @@ describe('startAssessment', function () {
 
     const { blockNumber } = await tx.wait();
     const block = await ethers.provider.getBlock(blockNumber);
-    if (!block) throw new Error('Block not found');
+    if (!block) {
+      throw new Error('Block not found');
+    }
 
     // Fetch voting period and assessment data in parallel
     const [expectedVotingPeriod, assessmentData] = await Promise.all([
       assessment.minVotingPeriod(),
-      assessment.getAssessment(expectedClaimId)
+      assessment.getAssessment(expectedClaimId),
     ]);
 
     const expectedVotingEnd = BigInt(block.timestamp) + expectedVotingPeriod;
@@ -95,7 +97,7 @@ describe('startAssessment', function () {
   });
 
   it('should handle multiple assessments with different claim IDs', async function () {
-    const { contracts, accounts, constants } = await loadFixture(setup);
+    const { contracts, constants } = await loadFixture(setup);
     const { assessment, claims } = contracts;
     const { ASSESSOR_GROUP_ID } = constants;
 
@@ -113,7 +115,7 @@ describe('startAssessment', function () {
     // Verify both assessments were created in parallel
     const [assessment1, assessment2] = await Promise.all([
       assessment.getAssessment(claimId1),
-      assessment.getAssessment(claimId2)
+      assessment.getAssessment(claimId2),
     ]);
 
     expect(assessment1.assessingGroupId).to.equal(ASSESSOR_GROUP_ID);
@@ -123,17 +125,16 @@ describe('startAssessment', function () {
     expect(assessment1.start).to.not.equal(assessment2.start);
 
     // Verify events are emitted correctly
-    const [{ blockNumber: blockNumber1 }, { blockNumber: blockNumber2 }] = await Promise.all([
-      tx1.wait(),
-      tx2.wait()
-    ]);
+    const [{ blockNumber: blockNumber1 }, { blockNumber: blockNumber2 }] = await Promise.all([tx1.wait(), tx2.wait()]);
 
     const [block1, block2] = await Promise.all([
       ethers.provider.getBlock(blockNumber1),
-      ethers.provider.getBlock(blockNumber2)
+      ethers.provider.getBlock(blockNumber2),
     ]);
 
-    if (!block1 || !block2) throw new Error('Block not found');
+    if (!block1 || !block2) {
+      throw new Error('Block not found');
+    }
 
     // Expected voting period from assessment contract
     const votingPeriod = await assessment.minVotingPeriod();

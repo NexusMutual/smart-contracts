@@ -22,7 +22,9 @@ describe('removeAssessorFromGroup', function () {
     const { ASSESSOR_GROUP_ID } = constants;
     const [governanceAccount] = accounts.governanceContracts;
 
-    const removeAssessorFromGroup = assessment.connect(governanceAccount).removeAssessorFromGroup(0n, ASSESSOR_GROUP_ID);
+    const removeAssessorFromGroup = assessment
+      .connect(governanceAccount)
+      .removeAssessorFromGroup(0n, ASSESSOR_GROUP_ID);
 
     await expect(removeAssessorFromGroup).to.be.revertedWithCustomError(assessment, 'InvalidMemberId');
   });

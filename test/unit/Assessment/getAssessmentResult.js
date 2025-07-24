@@ -1,4 +1,3 @@
-const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
@@ -158,7 +157,7 @@ describe('getAssessmentResult', function () {
 
     // Get the assessment data for the existing claim
     const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
+    const [cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
 
     // Verify that cooldownEnd is calculated as votingEnd + cooldownPeriod
     const expectedCooldownEnd = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);

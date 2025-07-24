@@ -56,7 +56,9 @@ describe('closeVotingEarly', function () {
 
     // Fast forward past the voting period
     const block = await ethers.provider.getBlock('latest');
-    if (!block) throw new Error('Block not found');
+    if (!block) {
+      throw new Error('Block not found');
+    }
     const votingPeriod = await assessment.minVotingPeriod();
     await setTime(BigInt(block.timestamp) + votingPeriod + 1n);
 
@@ -140,7 +142,9 @@ describe('closeVotingEarly', function () {
     const closeVotingTx = await assessment.closeVotingEarly(CLAIM_ID);
     const closeVotingReceipt = await closeVotingTx.wait();
     const closeVotingBlock = await ethers.provider.getBlock(closeVotingReceipt.blockNumber);
-    if (!closeVotingBlock) throw new Error('Block not found');
+    if (!closeVotingBlock) {
+      throw new Error('Block not found');
+    }
     const closeVotingTimestamp = closeVotingBlock.timestamp;
 
     // Verify the assessment was updated correctly

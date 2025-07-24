@@ -46,7 +46,9 @@ describe('castVote', function () {
     // Set time past the voting period
     const block = await ethers.provider.getBlock('latest');
     const votingPeriod = await assessment.minVotingPeriod();
-    if (!block) throw new Error('Block not found');
+    if (!block) {
+      throw new Error('Block not found');
+    }
     await setTime(BigInt(block.timestamp) + votingPeriod + 1n);
 
     // Try to vote after the period has ended - should fail
@@ -157,7 +159,7 @@ describe('castVote', function () {
       votes.map(async vote => {
         const assessorAddress = await vote.assessor.getAddress();
         return registry.getMemberId(assessorAddress);
-      })
+      }),
     );
 
     const assessmentDataInitial = await assessment.getAssessment(CLAIM_ID);

@@ -4,7 +4,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { parseEther, toBeHex } = ethers;
 
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
-const { C_POOL } = require('../../utils/registry')
+const { C_POOL } = require('../../utils/registry');
 const { ASSET, ASSESSMENT_STATUS, createMockCover, submitClaim } = require('./helpers');
 const { setup } = require('./setup');
 
@@ -14,7 +14,6 @@ const setTime = async timestamp => {
 };
 
 describe('submitClaim', function () {
-
   it('reverts if sender is not a member', async function () {
     const fixture = await loadFixture(setup);
     const { claims } = fixture.contracts;
@@ -71,7 +70,7 @@ describe('submitClaim', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    const claimId = await claims.getClaimsCount() + 1n;
+    const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -96,7 +95,7 @@ describe('submitClaim', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    const claimId = await claims.getClaimsCount() + 1n;
+    const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -114,8 +113,8 @@ describe('submitClaim', function () {
     const [coverOwner] = fixture.accounts.members;
 
     await createMockCover(cover, { owner: coverOwner.address });
-    
-    const claimId = await claims.getClaimsCount() + 1n;
+
+    const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -190,7 +189,6 @@ describe('submitClaim', function () {
   it('reverts if the cover is outside the grace period', async function () {
     const fixture = await loadFixture(setup);
     const { claims, cover, coverProducts } = fixture.contracts;
-    const { claimDepositInETH: deposit } = fixture.config;
     const [coverOwner] = fixture.accounts.members;
     const { gracePeriod } = await coverProducts.getProductType(0);
 
@@ -204,15 +202,15 @@ describe('submitClaim', function () {
     // advance time past grace period
     await setTime(timestamp + Number(coverData.start) + Number(coverData.period) + Number(gracePeriod) + 1);
 
-    await expect(
-      submitClaim(fixture)({ coverId, sender: coverOwner })
-    ).to.be.revertedWithCustomError(claims, 'GracePeriodPassed');
+    await expect(submitClaim(fixture)({ coverId, sender: coverOwner })).to.be.revertedWithCustomError(
+      claims,
+      'GracePeriodPassed',
+    );
   });
 
   it('Assessment should use cover grace period and not product.gracePeriod', async function () {
     const fixture = await loadFixture(setup);
     const { claims, cover, coverProducts } = fixture.contracts;
-    const { claimDepositInETH: deposit } = fixture.config;
     const [coverOwner] = fixture.accounts.members;
     const [boardMember] = fixture.accounts.advisoryBoardMembers;
     const { gracePeriod } = await coverProducts.getProductType(0);
@@ -230,23 +228,22 @@ describe('submitClaim', function () {
     // advance time past grace period
     await setTime(timestamp + Number(coverData.start) + Number(coverData.period) + Number(gracePeriod) + 1);
 
-    await expect(
-      submitClaim(fixture)({ coverId, sender: coverOwner })
-    ).to.be.revertedWithCustomError(claims, 'GracePeriodPassed');
+    await expect(submitClaim(fixture)({ coverId, sender: coverOwner })).to.be.revertedWithCustomError(
+      claims,
+      'GracePeriodPassed',
+    );
   });
 
   it('calls startAssessment with the right productTypeId', async function () {
     const fixture = await loadFixture(setup);
     const { assessment, claims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
-    const coverAsset = ASSET.ETH;
 
     await createMockCover(cover, { owner: coverOwner.address, productId: 1 });
 
     const coverId = 1;
-    const coverData = await cover.getCoverData(coverId);
 
-    const claimId = await claims.getClaimsCount() + 1n;
+    const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId, sender: coverOwner });
 
     expect(await assessment._productTypeForClaimId(claimId)).to.equal(1n);
@@ -267,10 +264,7 @@ describe('submitClaim', function () {
     await createMockCover(cover, { owner: coverOwner.address });
 
     // does not emit event if ipfsMetadata is empty
-    await expect(submitClaim(fixture)({ coverId: 2, sender: coverOwner })).not.to.emit(
-      claims,
-      'MetadataSubmitted',
-    );
+    await expect(submitClaim(fixture)({ coverId: 2, sender: coverOwner })).not.to.emit(claims, 'MetadataSubmitted');
   });
 
   it('stores the claimId in lastClaimSubmissionOnCover', async function () {
@@ -329,7 +323,6 @@ describe('submitClaim', function () {
   it('should emit ClaimSubmitted event', async function () {
     const fixture = await loadFixture(setup);
     const { claims, cover } = fixture.contracts;
-    const { claimDepositInETH: deposit } = fixture.config;
     const [coverOwner] = fixture.accounts.members;
 
     await createMockCover(cover, { owner: coverOwner.address, productId: 2 });

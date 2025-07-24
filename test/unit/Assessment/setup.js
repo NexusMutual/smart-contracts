@@ -77,7 +77,9 @@ async function setup() {
   // Reset blockchain time to create predictable timing baseline for all tests
   // This ensures: assessment.start = currentTime - 1 for all tests using this fixture
   const block = await ethers.provider.getBlock('latest');
-  if (!block) throw new Error('Block not found');
+  if (!block) {
+    throw new Error('Block not found');
+  }
 
   await setTime(block.timestamp + 1);
 

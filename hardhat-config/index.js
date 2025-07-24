@@ -58,7 +58,6 @@ const config = {
 if (process.env.ENABLE_TENDERLY) {
   // const tenderly = require('@tenderly/hardhat-tenderly');
   // tenderly.setup({ automaticVerifications: false });
-
   // config.tenderly = {
   //   username: 'NexusMutual',
   //   project: 'nexusmutual',

@@ -56,15 +56,17 @@ describe('removeAssessorFromAllGroups', function () {
       const { groupIds } = testCase;
 
       // Add assessor to groups
-      await Promise.all(groupIds.map(groupId =>
-        assessment.connect(governanceAccount).addAssessorsToGroup([assessorId], groupId)
-      ));
+      await Promise.all(
+        groupIds.map(groupId => assessment.connect(governanceAccount).addAssessorsToGroup([assessorId], groupId)),
+      );
 
       // Verify assessor is in all groups
-      await Promise.all(groupIds.map(async groupId => {
-        const isInGroup = await assessment.isAssessorInGroup(assessorId, groupId);
-        expect(isInGroup).to.be.true;
-      }));
+      await Promise.all(
+        groupIds.map(async groupId => {
+          const isInGroup = await assessment.isAssessorInGroup(assessorId, groupId);
+          expect(isInGroup).to.be.true;
+        }),
+      );
 
       const assessorGroups = await assessment.getGroupsForAssessor(assessorId);
       expect([...assessorGroups].sort()).to.deep.equal(groupIds);
@@ -72,17 +74,21 @@ describe('removeAssessorFromAllGroups', function () {
       const tx = await assessment.connect(governanceAccount).removeAssessorFromAllGroups(assessorId);
 
       // Verify assessor is removed from all groups
-      await Promise.all(groupIds.map(async groupId => {
-        const isInGroup = await assessment.isAssessorInGroup(assessorId, groupId);
-        expect(isInGroup).to.be.false;
-      }));
+      await Promise.all(
+        groupIds.map(async groupId => {
+          const isInGroup = await assessment.isAssessorInGroup(assessorId, groupId);
+          expect(isInGroup).to.be.false;
+        }),
+      );
       expect(await assessment.getGroupsForAssessor(assessorId)).to.deep.equal([]);
 
       // Verify groups no longer contain assessor
-      await Promise.all(groupIds.map(async groupId => {
-        const groupAssessors = await assessment.getGroupAssessors(groupId);
-        expect(groupAssessors).to.not.include(assessorId);
-      }));
+      await Promise.all(
+        groupIds.map(async groupId => {
+          const groupAssessors = await assessment.getGroupAssessors(groupId);
+          expect(groupAssessors).to.not.include(assessorId);
+        }),
+      );
 
       // Verify events emitted for each group
       for (const groupId of groupIds) {
@@ -106,33 +112,39 @@ describe('removeAssessorFromAllGroups', function () {
     const groupIds = [1n, 2n];
 
     // Add all assessors to both groups
-    await Promise.all(groupIds.map(groupId =>
-      assessment.connect(governanceAccount).addAssessorsToGroup([assessorId1, assessorId2, assessorId3], groupId)
-    ));
+    await Promise.all(
+      groupIds.map(groupId =>
+        assessment.connect(governanceAccount).addAssessorsToGroup([assessorId1, assessorId2, assessorId3], groupId),
+      ),
+    );
 
     // Remove only assessor1 from all groups
     await assessment.connect(governanceAccount).removeAssessorFromAllGroups(assessorId1);
 
     // Verify assessor1 is removed from all groups
-    await Promise.all(groupIds.map(async groupId => {
-      const isInGroup = await assessment.isAssessorInGroup(assessorId1, groupId);
-      expect(isInGroup).to.be.false;
-    }));
+    await Promise.all(
+      groupIds.map(async groupId => {
+        const isInGroup = await assessment.isAssessorInGroup(assessorId1, groupId);
+        expect(isInGroup).to.be.false;
+      }),
+    );
     expect(await assessment.getGroupsForAssessor(assessorId1)).to.deep.equal([]);
 
     // Verify other assessors remain in groups
-    await Promise.all(groupIds.map(async groupId => {
-      const isAssessor2InGroup = await assessment.isAssessorInGroup(assessorId2, groupId);
-      const isAssessor3InGroup = await assessment.isAssessorInGroup(assessorId3, groupId);
-      expect(isAssessor2InGroup).to.be.true;
-      expect(isAssessor3InGroup).to.be.true;
+    await Promise.all(
+      groupIds.map(async groupId => {
+        const isAssessor2InGroup = await assessment.isAssessorInGroup(assessorId2, groupId);
+        const isAssessor3InGroup = await assessment.isAssessorInGroup(assessorId3, groupId);
+        expect(isAssessor2InGroup).to.be.true;
+        expect(isAssessor3InGroup).to.be.true;
 
-      const groupAssessors = await assessment.getGroupAssessors(groupId);
-      const groupAssessorNumbers = new Set(groupAssessors);
-      expect(groupAssessorNumbers.has(assessorId1)).to.be.false;
-      expect(groupAssessorNumbers.has(assessorId2)).to.be.true;
-      expect(groupAssessorNumbers.has(assessorId3)).to.be.true;
-    }));
+        const groupAssessors = await assessment.getGroupAssessors(groupId);
+        const groupAssessorNumbers = new Set(groupAssessors);
+        expect(groupAssessorNumbers.has(assessorId1)).to.be.false;
+        expect(groupAssessorNumbers.has(assessorId2)).to.be.true;
+        expect(groupAssessorNumbers.has(assessorId3)).to.be.true;
+      }),
+    );
 
     // Verify other assessors' group memberships are intact
     const assessor2Groups = await assessment.getGroupsForAssessor(assessorId2);

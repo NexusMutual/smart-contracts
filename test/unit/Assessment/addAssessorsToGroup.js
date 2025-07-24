@@ -44,9 +44,11 @@ describe('addAssessorsToGroup', function () {
     }
 
     // Verify assessors are in the group
-    await Promise.all(newAssessorIds.map(async assessorId => {
-      expect(await assessment.isAssessorInGroup(assessorId, newGroupId)).to.be.true;
-    }));
+    await Promise.all(
+      newAssessorIds.map(async assessorId => {
+        expect(await assessment.isAssessorInGroup(assessorId, newGroupId)).to.be.true;
+      }),
+    );
   });
 
   it('should add assessors to an existing group', async function () {
@@ -70,10 +72,12 @@ describe('addAssessorsToGroup', function () {
 
     // Verify new assessors are in the group
     const finalAssessorSet = new Set(finalAssessors);
-    await Promise.all(newAssessorIds.map(async assessorId => {
-      expect(finalAssessorSet.has(assessorId)).to.be.true;
-      expect(await assessment.isAssessorInGroup(assessorId, ASSESSOR_GROUP_ID)).to.be.true;
-    }));
+    await Promise.all(
+      newAssessorIds.map(async assessorId => {
+        expect(finalAssessorSet.has(assessorId)).to.be.true;
+        expect(await assessment.isAssessorInGroup(assessorId, ASSESSOR_GROUP_ID)).to.be.true;
+      }),
+    );
   });
 
   it('should handle single assessor addition', async function () {
@@ -183,10 +187,12 @@ describe('addAssessorsToGroup', function () {
 
     // Verify all assessors were added and events emitted
     const groupAssessorsSet = new Set(groupAssessors.map(id => id.toString()));
-    await Promise.all(largeAssessorBatch.map(async assessorId => {
-      expect(groupAssessorsSet.has(assessorId.toString())).to.be.true;
-      expect(await assessment.isAssessorInGroup(assessorId, newGroupId)).to.be.true;
-      await expect(tx).to.emit(assessment, 'AssessorAddedToGroup').withArgs(newGroupId, assessorId);
-    }));
+    await Promise.all(
+      largeAssessorBatch.map(async assessorId => {
+        expect(groupAssessorsSet.has(assessorId.toString())).to.be.true;
+        expect(await assessment.isAssessorInGroup(assessorId, newGroupId)).to.be.true;
+        await expect(tx).to.emit(assessment, 'AssessorAddedToGroup').withArgs(newGroupId, assessorId);
+      }),
+    );
   });
 });

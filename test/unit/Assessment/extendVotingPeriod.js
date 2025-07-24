@@ -36,7 +36,9 @@ describe('extendVotingPeriod', function () {
 
     // Move time forward to beyond the cooldown period (voting period + cooldown period + 1)
     const block = await ethers.provider.getBlock('latest');
-    if (!block) throw new Error('Block not found');
+    if (!block) {
+      throw new Error('Block not found');
+    }
     const timeAfterCooldown = BigInt(block.timestamp) + MIN_VOTING_PERIOD + cooldownPeriod + 1n;
     await setTime(timeAfterCooldown);
 
@@ -59,7 +61,9 @@ describe('extendVotingPeriod', function () {
     // Extend the voting period
     const extendTx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
     const extendBlock = await ethers.provider.getBlock(extendTx.blockNumber);
-    if (!extendBlock) throw new Error('Block not found');
+    if (!extendBlock) {
+      throw new Error('Block not found');
+    }
     const expectedNewEnd = BigInt(extendBlock.timestamp) + MIN_VOTING_PERIOD;
 
     // Verify the new voting end time
@@ -75,14 +79,18 @@ describe('extendVotingPeriod', function () {
 
     // Move time forward to cooldown period but not beyond
     const block = await ethers.provider.getBlock('latest');
-    if (!block) throw new Error('Block not found');
+    if (!block) {
+      throw new Error('Block not found');
+    }
     const timeInCooldown = BigInt(block.timestamp) + MIN_VOTING_PERIOD - 1n;
     await setTime(timeInCooldown);
 
     // Extend the voting period
     const extendTx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
     const extendBlock = await ethers.provider.getBlock(extendTx.blockNumber);
-    if (!extendBlock) throw new Error('Block not found');
+    if (!extendBlock) {
+      throw new Error('Block not found');
+    }
     const expectedNewEnd = BigInt(extendBlock.timestamp) + MIN_VOTING_PERIOD;
 
     // Verify the new voting end time
@@ -99,7 +107,9 @@ describe('extendVotingPeriod', function () {
     // Extend the voting period
     const extendTx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
     const extendBlock = await ethers.provider.getBlock(extendTx.blockNumber);
-    if (!extendBlock) throw new Error('Block not found');
+    if (!extendBlock) {
+      throw new Error('Block not found');
+    }
     const expectedNewEnd = BigInt(extendBlock.timestamp) + MIN_VOTING_PERIOD;
 
     await expect(extendTx).to.emit(assessment, 'VotingEndChanged').withArgs(CLAIM_ID, expectedNewEnd);
@@ -113,14 +123,18 @@ describe('extendVotingPeriod', function () {
 
     // Move time forward significantly
     const block = await ethers.provider.getBlock('latest');
-    if (!block) throw new Error('Block not found');
+    if (!block) {
+      throw new Error('Block not found');
+    }
     const advancedTime = BigInt(block.timestamp) + MIN_VOTING_PERIOD / 2n;
     await setTime(advancedTime);
 
     // Extend the voting period
     const extendTx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
     const extendBlock = await ethers.provider.getBlock(extendTx.blockNumber);
-    if (!extendBlock) throw new Error('Block not found');
+    if (!extendBlock) {
+      throw new Error('Block not found');
+    }
     const expectedNewEnd = BigInt(extendBlock.timestamp) + MIN_VOTING_PERIOD;
 
     // Verify the new voting end time
@@ -137,7 +151,9 @@ describe('extendVotingPeriod', function () {
 
     // Move time forward to after original voting period
     const block = await ethers.provider.getBlock('latest');
-    if (!block) throw new Error('Block not found');
+    if (!block) {
+      throw new Error('Block not found');
+    }
     const timeAfterOriginalPeriod = BigInt(block.timestamp) + MIN_VOTING_PERIOD + 1n;
     await setTime(timeAfterOriginalPeriod);
 
@@ -168,7 +184,9 @@ describe('extendVotingPeriod', function () {
     // First reset voting period
     const firstResetTx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
     const firstResetBlock = await ethers.provider.getBlock(firstResetTx.blockNumber);
-    if (!firstResetBlock) throw new Error('Block not found');
+    if (!firstResetBlock) {
+      throw new Error('Block not found');
+    }
     const firstExpectedVotingEnd = BigInt(firstResetBlock.timestamp) + MIN_VOTING_PERIOD;
 
     let currentAssessment = await assessment.getAssessment(CLAIM_ID);
@@ -181,7 +199,9 @@ describe('extendVotingPeriod', function () {
     // Second reset
     const secondResetTx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
     const secondResetBlock = await ethers.provider.getBlock(secondResetTx.blockNumber);
-    if (!secondResetBlock) throw new Error('Block not found');
+    if (!secondResetBlock) {
+      throw new Error('Block not found');
+    }
     const secondExpectedVotingEnd = BigInt(secondResetBlock.timestamp) + MIN_VOTING_PERIOD;
 
     currentAssessment = await assessment.getAssessment(CLAIM_ID);

@@ -16,10 +16,10 @@ const C_SWAP_OPERATOR = 16384;
 const C_ASSESSMENT = 32768;
 const C_CLAIMS = 65536;
 
-const PAUSE_GLOBAL        = 1;
-const PAUSE_RAMM          = 2;
-const PAUSE_SWAPS         = 4;
-const PAUSE_ASSESSMENTS   = 8;
+const PAUSE_GLOBAL = 1;
+const PAUSE_RAMM = 2;
+const PAUSE_SWAPS = 4;
+const PAUSE_ASSESSMENTS = 8;
 const PAUSE_CLAIMS_PAYOUT = 16;
 
 module.exports = {
@@ -40,9 +40,9 @@ module.exports = {
   C_SWAP_OPERATOR,
   C_ASSESSMENT,
   C_CLAIMS,
-  PAUSE_GLOBAL, 
-  PAUSE_RAMM, 
+  PAUSE_GLOBAL,
+  PAUSE_RAMM,
   PAUSE_SWAPS,
   PAUSE_ASSESSMENTS,
-  PAUSE_CLAIMS_PAYOUT
+  PAUSE_CLAIMS_PAYOUT,
 };

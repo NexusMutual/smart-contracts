@@ -17,7 +17,9 @@ describe('getAssessment', function () {
     expect(assessmentData.cooldownPeriod).to.equal(cooldownPeriod);
 
     const currentBlock = await ethers.provider.getBlock('latest');
-    if (!currentBlock) throw new Error('Block not found');
+    if (!currentBlock) {
+      throw new Error('Block not found');
+    }
     expect(assessmentData.start).to.equal(BigInt(currentBlock.timestamp) - 1n);
 
     // VotingEnd should be start + votingPeriod

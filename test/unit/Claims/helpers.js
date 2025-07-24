@@ -7,7 +7,7 @@ const ASSESSMENT_STATUS = {
   ACCEPTED: 2,
   DENIED: 3,
   DRAW: 4,
-}
+};
 
 const ASSET = {
   ETH: 0,
@@ -42,13 +42,7 @@ const createMockCover = async (cover, coverDetails) => {
 
 const submitClaim =
   ({ accounts, contracts, config }) =>
-  async ({
-    coverId = 0,
-    amount = parseEther('1'),
-    ipfsMetadata = toBeHex(0,32),
-    sender,
-    value,
-  }) => {
+  async ({ coverId = 0, amount = parseEther('1'), ipfsMetadata = toBeHex(0, 32), sender, value }) => {
     return await contracts.claims
       .connect(sender || accounts[0])
       .submitClaim(coverId, amount, ipfsMetadata, { value: value || config.claimDepositInETH });

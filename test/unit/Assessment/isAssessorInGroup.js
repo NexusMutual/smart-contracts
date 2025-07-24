@@ -23,9 +23,11 @@ describe('isAssessorInGroup', function () {
 
     const nonExistentAssessorIds = [0n, 999n];
 
-    await Promise.all(nonExistentAssessorIds.map(async assessorId => {
-      expect(await assessment.isAssessorInGroup(assessorId, ASSESSOR_GROUP_ID)).to.be.false;
-    }));
+    await Promise.all(
+      nonExistentAssessorIds.map(async assessorId => {
+        expect(await assessment.isAssessorInGroup(assessorId, ASSESSOR_GROUP_ID)).to.be.false;
+      }),
+    );
   });
 
   it('should return false for non-existent group IDs', async function () {
@@ -37,9 +39,11 @@ describe('isAssessorInGroup', function () {
     const assessorMemberId = await registry.getMemberId(assessorAddress);
     const nonExistentGroupIds = [0, 999];
 
-    await Promise.all(nonExistentGroupIds.map(async groupId => {
-      expect(await assessment.isAssessorInGroup(assessorMemberId, groupId)).to.be.false;
-    }));
+    await Promise.all(
+      nonExistentGroupIds.map(async groupId => {
+        expect(await assessment.isAssessorInGroup(assessorMemberId, groupId)).to.be.false;
+      }),
+    );
   });
 
   it('should return true after adding assessor to group', async function () {

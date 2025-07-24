@@ -37,6 +37,7 @@
     "@nomicfoundation/hardhat-ethers": "^3.0.9",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.13",
     "@nomicfoundation/hardhat-verify": "^2.0.14",
+    "@slippy-lint/slippy": "^0.0.4",
     "@tenderly/hardhat-tenderly": "^1.7.7",
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",
@@ -70,7 +71,9 @@
   "scripts": {
     "compile": "hardhat compile",
     "size": "hardhat size-contracts",
-    "lint": "eslint --max-warnings 0 .",
+    "lint": "npm run lint:js && npm run lint:solidity",
+    "lint:js": "eslint --max-warnings 0 .",
+    "lint:solidity": "slippy contracts/{abstract,external,interfaces,libraries,modules}/**/*.sol",
     "dev": "nodemon --ext js,sol -x 'hardhat test test/unit/**/*.js test/integration/**/*.js test/layout/*.js --show-stack-traces'",
     "dev-integration": "nodemon --ext js,sol -x 'hardhat test test/integration/**/*.js --show-stack-traces'",
     "dev-unit": "nodemon --ext js,sol -x 'hardhat test test/unit/**/*.js --show-stack-traces'",

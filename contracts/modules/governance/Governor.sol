@@ -30,7 +30,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
 
   ITokenController public immutable tokenController;
 
-  uint public constant TIMELOCK_PERIOD = 12 hours;
+  uint public constant TIMELOCK_PERIOD = 1 days;
   uint public constant VOTING_PERIOD = 3 days;
   uint public constant ADVISORY_BOARD_THRESHOLD = 3;
   uint public constant MEMBER_VOTE_QUORUM_PERCENTAGE = 15; // 15% of token supply
@@ -99,7 +99,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
       kind: kind,
       proposedAt: block.timestamp.toUint32(),
       voteBefore: (block.timestamp + VOTING_PERIOD).toUint32(),
-      executeAfter: (block.timestamp + VOTING_PERIOD + TIMELOCK_PERIOD).toUint32(),
+      executeAfter: (block.timestamp + TIMELOCK_PERIOD).toUint32(),
       status: ProposalStatus.Proposed
     });
 
@@ -123,7 +123,6 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     require(proposal.kind == ProposalKind.AdvisoryBoard, CannotCancelMemberProposal());
     require(proposal.status != ProposalStatus.Executed, ProposalAlreadyExecuted());
     require(proposal.status != ProposalStatus.Canceled, ProposalIsCanceled());
-    // todo: consider checking if it's actually in proposed status
 
     proposal.status = ProposalStatus.Canceled;
     proposals[proposalId] = proposal;
@@ -167,6 +166,10 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     if (isAbProposal && tallies[proposalId].forVotes >= ADVISORY_BOARD_THRESHOLD) {
       // start the timelock if the AB proposal has met the threshold
       proposal.executeAfter = (block.timestamp + TIMELOCK_PERIOD).toUint32();
+    }
+
+    if(!isAbProposal) {
+      _lockTokenTransfers(msg.sender, block.timestamp + TIMELOCK_PERIOD);
     }
 
     emit VoteCast(proposalId, proposal.kind, voterId, choice, weight);
@@ -229,6 +232,10 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     proposals[proposalId] = proposal;
 
     emit ProposalExecuted(proposalId);
+  }
+
+  function getProposal(uint proposalId) external view returns (Proposal memory proposal) {
+    return proposals[proposalId];
   }
 
 }

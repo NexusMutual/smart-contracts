@@ -36,7 +36,7 @@ contract TokenControllerGeneric is ITokenController {
     revert("mint unsupported");
   }
 
-  function lockForMemberVote(address, uint) external pure {
+  function lockForMemberVote(address, uint) external virtual {
     revert("lockForMemberVote unsupported");
   }
 
@@ -52,7 +52,7 @@ contract TokenControllerGeneric is ITokenController {
     revert("totalSupply unsupported");
   }
 
-  function totalBalanceOf(address) external pure returns (uint) {
+  function totalBalanceOf(address) external view virtual returns (uint) {
     revert("totalBalanceOf unsupported");
   }
 

@@ -92,6 +92,7 @@ interface IPool {
   );
 
   event Payout(address indexed to, address indexed assetAddress, uint amount);
+  event DepositReturned(address, uint);
 
   // migrations
   error AlreadyMigrated();

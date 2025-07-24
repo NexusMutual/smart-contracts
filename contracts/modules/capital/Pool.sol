@@ -257,6 +257,16 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     _updateMCR(true);
   }
 
+  function returnDeposit(
+    address payable payoutAddress,
+    uint ethDepositAmount
+  ) external override onlyContracts(C_ASSESSMENT) nonReentrant {
+    // solhint-disable-next-line avoid-low-level-calls
+    (bool transferSucceeded, /* data */) = payoutAddress.call{value: ethDepositAmount}("");
+    require(transferSucceeded, "Pool: ETH transfer failed");
+    emit DepositReturned(payoutAddress, ethDepositAmount);
+  }
+
   /* ========== TOKEN AND RAMM ========== */
 
   /// @dev Sends ETH to a member in exchange for NXM tokens.

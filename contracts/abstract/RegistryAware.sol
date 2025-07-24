@@ -30,7 +30,7 @@ uint constant PAUSE_RAMM          = 1 << 1;   // 2
 uint constant PAUSE_SWAPS         = 1 << 2;   // 4
 uint constant PAUSE_MEMBERSHIP    = 1 << 3;   // 8
 uint constant PAUSE_ASSESSMENTS   = 1 << 4;   // 16
-uint constant PAUSE_CLAIMS_PAYOUT = 1 << 5;  // 32
+uint constant PAUSE_CLAIMS_PAYOUT = 1 << 5;   // 32
 
 contract RegistryAware {
 

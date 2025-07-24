@@ -1,8 +1,8 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 
+const { ContractIndexes } = nexus.constants;
 const { ASSET } = require('./helpers');
 const { getAccounts } = require('../../utils/accounts');
-const { C_COVER, C_COVER_NFT, C_COVER_PRODUCTS, C_ASSESSMENT, C_POOL, C_RAMM } = require('../../utils/registry');
 
 const { parseEther } = ethers;
 
@@ -51,12 +51,12 @@ async function setup() {
   await coverProducts.waitForDeployment();
 
   await Promise.all([
-    registry.addContract(C_COVER, await cover.getAddress(), false),
-    registry.addContract(C_COVER_NFT, await coverNFT.getAddress(), false),
-    registry.addContract(C_COVER_PRODUCTS, await coverProducts.getAddress(), false),
-    registry.addContract(C_ASSESSMENT, await assessment.getAddress(), false),
-    registry.addContract(C_POOL, await pool.getAddress(), false),
-    registry.addContract(C_RAMM, await ramm.getAddress(), false),
+    registry.addContract(ContractIndexes.C_COVER, await cover.getAddress(), false),
+    registry.addContract(ContractIndexes.C_COVER_NFT, await coverNFT.getAddress(), false),
+    registry.addContract(ContractIndexes.C_COVER_PRODUCTS, await coverProducts.getAddress(), false),
+    registry.addContract(ContractIndexes.C_ASSESSMENT, await assessment.getAddress(), false),
+    registry.addContract(ContractIndexes.C_POOL, await pool.getAddress(), false),
+    registry.addContract(ContractIndexes.C_RAMM, await ramm.getAddress(), false),
   ]);
 
   await Promise.all([

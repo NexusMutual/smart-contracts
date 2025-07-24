@@ -5,7 +5,7 @@ const { parseEther, toBeHex } = ethers;
 
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { C_POOL } = require('../../utils/registry');
-const { ASSET, ASSESSMENT_STATUS, createMockCover, submitClaim } = require('./helpers');
+const { ASSESSMENT_STATUS, createMockCover, submitClaim } = require('./helpers');
 const { setup } = require('./setup');
 
 const setTime = async timestamp => {
@@ -345,10 +345,9 @@ describe('submitClaim', function () {
     const coverId = 1;
     const coverData = await cover.getCoverData(coverId);
 
-    const PoolEtherRejecterMock = await ethers.getContractFactory('PoolEtherRejecterMock');
+    const fallbackWillFailContractPool = await ethers.deployContract('PoolEtherRejecterMock', []);
 
-    const fallbackWillFailContractPool = await PoolEtherRejecterMock.deploy();
-    await fallbackWillFailContractPool.setTokenPrice(ASSET.ETH, parseEther('0.0382'));
+    // await fallbackWillFailContractPool.setTokenPrice(ASSET.ETH, parseEther('0.0382'));
     await registry.addContract(C_POOL, await fallbackWillFailContractPool.getAddress(), false);
 
     await expect(

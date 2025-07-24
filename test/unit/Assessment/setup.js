@@ -1,48 +1,29 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
 const { setTime } = require('./helpers');
 const { setEtherBalance } = require('../../utils/evm');
 
+const { ContractIndexes } = nexus.constants;
 const ONE_DAY = BigInt(24 * 60 * 60);
 const MIN_VOTING_PERIOD = 3n * ONE_DAY;
 const PRODUCT_TYPE_ID = 1n;
 const CLAIM_ID = 1;
 const IPFS_HASH = ethers.solidityPackedKeccak256(['string'], ['standard-ipfs-hash']);
 
-// Contract index constants from RegistryAware.sol
-const C_CLAIMS = 65536;
-const C_GOVERNOR = 2;
-const C_ASSESSMENT = 32768;
-
 async function setup() {
   const accounts = await getAccounts();
 
-  // Get contract factories
-  const [Registry, Assessment, ASMockClaims] = await Promise.all([
-    ethers.getContractFactory('RegistryMock'),
-    ethers.getContractFactory('Assessment'),
-    ethers.getContractFactory('ASMockClaims'),
-  ]);
-
   // Deploy Registry Mock
-  const registry = await Registry.deploy();
-  const registryAddress = await registry.getAddress();
-
-  // Deploy Assessment and mock Claims contract
-  const [assessment, claims] = await Promise.all([
-    Assessment.deploy(registryAddress),
-    ASMockClaims.deploy(registryAddress),
-  ]);
-
-  // Wait for deployments to complete
-  await Promise.all([registry.waitForDeployment(), assessment.waitForDeployment(), claims.waitForDeployment()]);
+  const registry = await ethers.deployContract('RegistryMock', []);
+  const assessment = await ethers.deployContract('Assessment', [registry]);
+  const claims = await ethers.deployContract('ASMockClaims', [registry]);
 
   // Add contracts in the registry
   const [governanceAccount] = accounts.governanceContracts;
   await Promise.all([
-    registry.addContract(C_ASSESSMENT, await assessment.getAddress(), false),
-    registry.addContract(C_CLAIMS, await claims.getAddress(), false),
-    registry.addContract(C_GOVERNOR, governanceAccount.address, false),
+    registry.addContract(ContractIndexes.C_ASSESSMENT, await assessment.getAddress(), false),
+    registry.addContract(ContractIndexes.C_CLAIMS, await claims.getAddress(), false),
+    registry.addContract(ContractIndexes.C_GOVERNOR, governanceAccount.address, false),
   ]);
 
   // Join assessors and members in the registry

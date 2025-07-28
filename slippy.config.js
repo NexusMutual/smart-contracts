@@ -23,4 +23,5 @@ module.exports = {
     'no-unused-vars': 'error',
     'sort-imports': 'error', // disabled for now
   },
+  ignores: ['contracts/mocks/**/*.sol'],
 };

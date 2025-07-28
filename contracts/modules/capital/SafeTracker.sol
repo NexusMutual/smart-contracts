@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+
+import "../../abstract/ReentrancyGuard.sol";
 import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/ISafeTracker.sol";
 
-contract SafeTracker is ISafeTracker, RegistryAware {
+contract SafeTracker is ISafeTracker, RegistryAware, ReentrancyGuard {
 
   // master + mapping
   uint[2] internal _unused;
@@ -21,7 +23,6 @@ contract SafeTracker is ISafeTracker, RegistryAware {
   uint public immutable investmentLimit;
 
   IERC20 public immutable usdc;
-  IERC20 public immutable dai;
   IERC20 public immutable weth;
   IERC20 public immutable aweth;
   IERC20 public immutable debtUsdc;
@@ -34,21 +35,19 @@ contract SafeTracker is ISafeTracker, RegistryAware {
     uint _investmentLimit,
     address _safe,
     address _usdc,
-    address _dai,
     address _weth,
     address _aweth,
     address _debtUsdc
   ) RegistryAware(_registry) {
 
     require(
-      _usdc != address(0) && _dai != address(0) && _aweth != address(0) && _aweth != address(0) && _debtUsdc != address(0),
+      _usdc != address(0) && _weth != address(0) && _aweth != address(0) && _debtUsdc != address(0),
       "SafeTracker: tokens address cannot be zero address"
     );
 
     investmentLimit = _investmentLimit;
     safe = _safe;
     usdc = IERC20(_usdc);
-    dai = IERC20(_dai);
     weth = IERC20(_weth);
     aweth = IERC20(_aweth);
     debtUsdc = IERC20(_debtUsdc);
@@ -83,6 +82,13 @@ contract SafeTracker is ISafeTracker, RegistryAware {
     emit CoverReInvestmentUSDCUpdated(investedUSDC);
   }
 
+  function transferAssetToSafe(
+    address assetAddress,
+    uint amount
+  ) external onlyContracts(C_GOVERNOR) whenNotPaused(PAUSE_GLOBAL) nonReentrant {
+    pool.transferAssetToSafe(assetAddress, safe, amount);
+  }
+
   /**
   * @dev emits Transfer event only if it's called by Pool or SwapOperator
   */
@@ -107,7 +113,8 @@ contract SafeTracker is ISafeTracker, RegistryAware {
   }
 
   /**
-   * @dev Returns the latest answer for the price of ETH in USD
+   * @dev Returns the latest answer for the price of NXMIS in ETH
+   * @dev Same signature as Aggregator.latestAnswer so we can use it as its own oracle
    * @return 1e18 (1 NXMIS = 1 ETH)
    */
   function latestAnswer() external pure returns (uint256) {
@@ -123,10 +130,6 @@ contract SafeTracker is ISafeTracker, RegistryAware {
     // eth in the safe, weth and aweth balance, weth and aweth are 1:1 to eth
     uint ethAmount = address(safe).balance + weth.balanceOf(safe) + aweth.balanceOf(safe);
 
-    // dai in the safe
-    uint daiAmount = dai.balanceOf(safe);
-    uint daiValueInEth = pool.getEthForAsset(address(dai), daiAmount);
-
     // usdc actually in the safe and usdc invested in CoverRe
     uint usdcAmount = usdc.balanceOf(safe) + coverReInvestmentUSDC;
     uint usdcValueInEth = pool.getEthForAsset(address(usdc), usdcAmount);
@@ -135,7 +138,7 @@ contract SafeTracker is ISafeTracker, RegistryAware {
     uint debtUsdcAmount = debtUsdc.balanceOf(safe);
     uint debtUsdcValueInEth = pool.getEthForAsset(address(usdc), debtUsdcAmount);
 
-    return ethAmount + usdcValueInEth + daiValueInEth - debtUsdcValueInEth;
+    return ethAmount + usdcValueInEth - debtUsdcValueInEth;
   }
 
   function _transfer(address from, address to, uint256 amount) internal returns (bool) {

@@ -4,12 +4,52 @@ pragma solidity >=0.5.0;
 
 import "../../interfaces/IPool.sol";
 
-// TODO: implement the IPool interface
-contract PoolGeneric /* is IPool */ {
+contract PoolGeneric is IPool {
 
-  address public swapOperator;
+  function addAsset(
+    address /* assetAddress */,
+    bool /* isCoverAsset */,
+    Aggregator /* aggregator */,
+    AggregatorType /* aggregatorType */
+  ) external pure {
+    revert("Unsupported");
+  }
 
-  function getAsset(uint) external virtual view returns (Asset memory) {
+  function getAssetForEth(
+    address /* assetAddress */,
+    uint /* amount */
+  ) external view virtual returns (uint) {
+    revert("Unsupported");
+  }
+
+  function getEthForAsset(
+    address /* assetAddress */,
+    uint /* amount */
+  ) external view virtual returns (uint) {
+    revert("Unsupported");
+  }
+
+  function getMCR() external pure returns (uint) {
+    revert("Unsupported");
+  }
+
+  function setAssetDetails(
+    uint /* assetId */,
+    bool /* isCoverAsset */,
+    bool /* isAbandoned */
+  ) external pure {
+    revert("Unsupported");
+  }
+
+  function updateMCR() external pure {
+    revert("Unsupported");
+  }
+
+  function updateMCRInternal(bool /* forceUpdate */) external pure {
+    revert("Unsupported");
+  }
+
+  function getAsset(uint /* assetId */) external virtual view returns (Asset memory) {
     revert("Unsupported");
   }
 
@@ -17,7 +57,15 @@ contract PoolGeneric /* is IPool */ {
     revert("Unsupported");
   }
 
-  function transferAssetToSwapOperator(address, uint) external virtual pure {
+  function transferAssetToSafe(address /* assetAddress */, address /* safeAddress */, uint /* amount */) external virtual {
+    revert("Unsupported");
+  }
+
+  function transferAssetToSwapOperator(address /* assetAddress */, uint /* amount */) external virtual {
+    revert("Unsupported");
+  }
+
+  function clearSwapAssetAmount(address /* assetAddress */) external virtual {
     revert("Unsupported");
   }
 

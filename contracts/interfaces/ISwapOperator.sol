@@ -9,22 +9,18 @@ import "./IWeth.sol";
 
 interface ISwapOperator {
 
-  enum SwapOperationType {
-    EthToAsset,
-    AssetToEth,
-    AssetToAsset
-  }
-
-  struct SafeTransferRequest {
-    address asset;
-    uint amount;
+  enum SwapKind {
+    ExactInput,
+    ExactOutput
   }
 
   struct SwapRequest {
+    uint fromAmount;
+    uint toAmount;
     address fromAsset;
     address toAsset;
-    uint fromAmount;
-    uint toAmountMin;
+    SwapKind swapKind;
+    uint32 deadline;
   }
 
   /* ========== VIEWS ========== */
@@ -65,13 +61,7 @@ interface ISwapOperator {
 
   function recoverAsset(address assetAddress, address receiver) external;
 
-  function setSafeTransferAssetAllowed(address asset, bool allowed) external;
-
-  function requestAssetTransfer(address asset, uint amount) external;
-
-  function transferRequestedAsset(address requestedAsset, uint requestedAmount) external;
-
-  function requestAssetSwap(address assetIn, address assetOut, uint amountIn, uint amountOutMin) external;
+  function requestAssetSwap(SwapRequest calldata swapRequest) external;
 
   /* ========== EVENTS AND ERRORS ========== */
 
@@ -89,9 +79,11 @@ interface ISwapOperator {
   error TokenDisabled(address token);
   error AmountInTooHigh(uint expectedAmountIn, uint actualAmountIn);
   error AmountOutTooLow(uint amountOut, uint minAmount);
-  error AmountOutMinLowerThanSlippage(uint amountOutMin, uint amountOutOnMaxSlippage);
+  error FeeNotZero();
   error InvalidTokenAddress(string token);
   error InvalidDenominationAsset(address expectedAsset, address actualAsset);
+  error InvalidAsset(address requestedAsset, address actualAsset);
+  error SwapDeadlineExceeded(uint deadline, uint blockTimestamp);
 
   // Safe Transfer
   error SafeAssetNotAllowed(address asset);

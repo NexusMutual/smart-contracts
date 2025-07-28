@@ -83,7 +83,7 @@ contract SwapOperatorGeneric is ISwapOperator {
     revert("Unsupported");
   }
 
-  function requestAssetSwap(address, address, uint, uint) external virtual {
+  function requestAssetSwap(SwapRequest calldata) external virtual {
     revert("Unsupported");
   }
 

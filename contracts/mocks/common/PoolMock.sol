@@ -4,13 +4,7 @@ pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import "../../abstract/MasterAwareV2.sol";
-import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IPriceFeedOracle.sol";
-import "../../interfaces/ITokenController.sol";
-import "../../libraries/Math.sol";
-import "../../libraries/SafeUintCast.sol";
 import "../generic/PoolGeneric.sol";
 
 /**
@@ -20,33 +14,22 @@ import "../generic/PoolGeneric.sol";
  */
 contract PoolMock is PoolGeneric {
   using SafeERC20 for IERC20;
-  using SafeUintCast for uint;
 
   Asset[] public assets;
+  mapping (uint => uint) internal prices;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-  mapping (uint => uint) internal prices;
-
-  /* ========== CONSTRUCTOR ========== */
-
-  constructor() {
-    assets.push(
-      Asset(
-        ETH, // asset address
-        true, // is cover asset
-        false // is abandoned
-      )
-    );
-  }
   function getAsset(uint assetId) external override virtual view returns (Asset memory) {
     require(assetId < assets.length, "Pool: Invalid asset id");
     return assets[assetId];
   }
+
   function getAssets() external override virtual view returns (Asset[] memory) {
     return assets;
   }
+
   function getPoolValueInEth() public override virtual view returns (uint) {
     return address(this).balance;
   }
@@ -133,10 +116,6 @@ contract PoolMock is PoolGeneric {
 
   function getTokenPrice() public override virtual view returns (uint) {
     return prices[0];
-  }
-
-  function setSwapOperator(address _swapOperator) public {
-    swapOperator = _swapOperator;
   }
 
 }

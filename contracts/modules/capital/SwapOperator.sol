@@ -1,18 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/ISwapOperator.sol";
-import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/IWeth.sol";
 import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/ISwapOperator.sol";
-import "../../interfaces/ISafeTracker.sol";
 
 import "../../external/enzyme/IEnzymeFundValueCalculatorRouter.sol";
 import "../../external/enzyme/IEnzymeV4Vault.sol";
@@ -27,22 +24,16 @@ contract SwapOperator is ISwapOperator, RegistryAware {
   // storage
 
   SwapRequest public swapRequest;
-  SafeTransferRequest public safeTransferRequest;
-  mapping(address => bool) public allowedSafeTransferAssets;
-
+  address public swapController;
   bytes public currentOrderUID;
 
   // immutables
 
   IPool public immutable pool;
-  ISafeTracker public immutable safeTracker;
-
   ICowSettlement public immutable cowSettlement;
   address public immutable enzymeV4VaultProxyAddress;
   IEnzymeFundValueCalculatorRouter public immutable enzymeFundValueCalculatorRouter;
   IWeth public immutable weth;
-  address public immutable safe;
-  address public immutable swapController;
 
   // constants
 
@@ -57,24 +48,16 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     _;
   }
 
-  modifier onlySafe() {
-    require(msg.sender == safe, OnlySafe());
-    _;
-  }
-
   constructor(
     address _registryAddress,
     address _cowSettlement,
     address _enzymeV4VaultProxyAddress,
     IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter,
-    address _weth,
-    address _safe,
-    address _swapController
+    address _weth
   ) RegistryAware(_registryAddress) {
 
     // internal contracts and addresses
     pool = IPool(fetch(C_POOL));
-    safeTracker = ISafeTracker(fetch(C_SAFE_TRACKER));
 
     // cowswap
     cowSettlement = ICowSettlement(_cowSettlement);
@@ -85,7 +68,9 @@ contract SwapOperator is ISwapOperator, RegistryAware {
 
     // others
     weth = IWeth(_weth);
-    safe = _safe;
+  }
+
+  function setSwapController(address _swapController) external onlyContracts(C_GOVERNOR) {
     swapController = _swapController;
   }
 
@@ -131,53 +116,6 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     );
   }
 
-  /// @dev Using oracle prices, returns the equivalent amount in `toAsset` for a given `fromAmount` in `fromAsset`
-  /// Supports conversions for ETH to Asset, Asset to ETH, and Asset to Asset
-  function getOracleAmount(address fromAsset, address toAsset, uint fromAmount) internal view returns (uint) {
-
-    if (fromAsset == address(weth)) {
-      // ETH -> toAsset
-      return pool.getAssetForEth(toAsset, fromAmount);
-    }
-
-    if (toAsset == address(weth)) {
-      // fromAsset -> ETH
-      return pool.getEthForAsset(fromAsset, fromAmount);
-    }
-
-    // fromAsset -> toAsset via ETH
-    uint fromAmountInEth = pool.getEthForAsset(fromAsset, fromAmount);
-
-    return pool.getAssetForEth(toAsset, fromAmountInEth);
-  }
-
-  /// @dev Validates order.buyAmount against oracle prices and slippage limits
-  ///      Uses the higher maxSlippageRatio of either sell or buy swap details,
-  ///      then checks if the swap amount meets the minimum after slippage
-  function validateOrderAmount(GPv2Order.Data calldata order, uint maxSlippage) internal view {
-    uint oracleBuyAmount = getOracleAmount(address(order.sellToken), address(order.buyToken), order.sellAmount);
-
-    uint maxSlippageAmount = (oracleBuyAmount * maxSlippage) / MAX_SLIPPAGE_DENOMINATOR;
-    uint minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
-
-    require(
-      order.buyAmount >= minBuyAmountOnMaxSlippage,
-      AmountOutTooLow(order.buyAmount, minBuyAmountOnMaxSlippage)
-    );
-  }
-
-  /// @dev Helper function to determine the SwapOperationType of the order
-  /// NOTE: ETH orders has WETH address because ETH will be eventually converted to WETH to do the swap
-  function getSwapOperationType(GPv2Order.Data memory order) internal view returns (SwapOperationType) {
-    if (address(order.sellToken) == address(weth)) {
-      return SwapOperationType.EthToAsset;
-    }
-    if (address(order.buyToken) == address(weth)) {
-      return SwapOperationType.AssetToEth;
-    }
-    return SwapOperationType.AssetToAsset;
-  }
-
   /// @dev Approve a given order to be executed, by presigning it on CoW protocol's settlement contract
   ///      Emits OrderPlaced event on success. Only one order can be open at the same time
   /// @param order - The order to be placed
@@ -192,9 +130,19 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     // Order UID and basic CoW params validations
     validateUID(order, orderUID);
 
+    bool isEthToAsset = address(order.sellToken) == address(weth);
+
+    { // swap request check
+      address requestedFromAsset = swapRequest.fromAsset == ETH ? address(weth) : swapRequest.fromAsset;
+      address requestedToAsset = swapRequest.toAsset == ETH ? address(weth) : swapRequest.toAsset;
+
+      require(address(order.sellToken) == requestedFromAsset, InvalidAsset(requestedFromAsset, address(order.sellToken)));
+      require(address(order.buyToken) == requestedToAsset, InvalidAsset(requestedToAsset, address(order.buyToken)));
+      require(swapRequest.deadline >= block.timestamp, SwapDeadlineExceeded(swapRequest.deadline, block.timestamp));
+    }
+
     require(order.validTo >= block.timestamp + MIN_VALID_TO_PERIOD, BelowMinValidTo());
     require(order.validTo <= block.timestamp + MAX_VALID_TO_PERIOD, AboveMaxValidTo());
-
     require(order.receiver == address(this), InvalidReceiver(address(this)));
 
     require(address(order.sellToken) != ETH, InvalidTokenAddress('sellToken'));
@@ -203,31 +151,18 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     require(order.sellTokenBalance == GPv2Order.BALANCE_ERC20, UnsupportedTokenBalance('sell'));
     require(order.buyTokenBalance == GPv2Order.BALANCE_ERC20, UnsupportedTokenBalance('buy'));
 
-    uint totalOutAmount = order.sellAmount + order.feeAmount;
-    SwapOperationType swapOperationType = getSwapOperationType(order);
+    // fee must be included in the swapped amount
+    require(order.feeAmount == 0, FeeNotZero());
 
-    // validate max fee and max slippage
-    uint feeInEther = address(order.sellToken) == address(weth)
-      ? order.feeAmount
-      : pool.getEthForAsset(address(order.sellToken), order.feeAmount);
+    address transferedAsset = isEthToAsset ? ETH : address(order.sellToken);
+    pool.transferAssetToSwapOperator(transferedAsset, order.sellAmount);
 
-    require(feeInEther <= MAX_FEE, AboveMaxFee(feeInEther, MAX_FEE));
-
-    validateOrderAmount(order, totalOutAmount);
-
-    {
-      address transferedAsset = swapOperationType == SwapOperationType.EthToAsset
-        ? ETH
-        : address(order.sellToken);
-      pool.transferAssetToSwapOperator(transferedAsset, totalOutAmount);
-
-      if (swapOperationType == SwapOperationType.EthToAsset) {
-        weth.deposit{value: totalOutAmount}();
-      }
+    if (isEthToAsset) {
+      weth.deposit{value: order.sellAmount}();
     }
 
-    // Approve cowVaultRelayer contract to spend sellToken totalOutAmount
-    order.sellToken.safeApprove(cowVaultRelayer(), totalOutAmount);
+    // Approve cowVaultRelayer contract to spend sellToken order.sellAmount
+    order.sellToken.safeApprove(cowVaultRelayer(), order.sellAmount);
 
     // Store the orderUID
     currentOrderUID = orderUID;
@@ -301,17 +236,7 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     IERC20Detailed toToken = IERC20Detailed(enzymeV4VaultProxyAddress);
     IEnzymeV4Comptroller comptrollerProxy = enzymeComptroller();
 
-    // slippage
-    {
-      // TODO: fetch this from the swap request
-      uint maxSlippageRatio = 0;
-      require(maxSlippageRatio != 0, "FIXME");
-
-      // check that amoutOutMin respects the requested slippage
-      uint oracleAmountOut = getOracleAmount(ETH, address(toToken), amountIn);
-      uint outOnMaxSlippage = oracleAmountOut - oracleAmountOut * maxSlippageRatio / MAX_SLIPPAGE_DENOMINATOR;
-      require(amountOutMin >= outOnMaxSlippage, AmountOutMinLowerThanSlippage(amountOutMin, outOnMaxSlippage));
-    }
+    // TODO: validate swapRequest
 
     // denomination asset
     {
@@ -362,16 +287,7 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     IERC20Detailed fromToken = IERC20Detailed(enzymeV4VaultProxyAddress);
     IEnzymeV4Comptroller comptrollerProxy = enzymeComptroller();
 
-    // slippage
-    {
-      uint maxSlippageRatio = 0;
-      require(maxSlippageRatio != 0, "FIXME");
-
-      // check that amoutOutMin respects the requested slippage
-      uint oracleAmountOut = getOracleAmount(address(fromToken), ETH, amountIn);
-      uint outOnMaxSlippage = oracleAmountOut - oracleAmountOut * maxSlippageRatio / MAX_SLIPPAGE_DENOMINATOR;
-      require(amountOutMin >= outOnMaxSlippage, AmountOutMinLowerThanSlippage(amountOutMin, outOnMaxSlippage));
-    }
+    // TODO: validate swapRequest
 
     // denomination asset
     {
@@ -420,56 +336,18 @@ contract SwapOperator is ISwapOperator, RegistryAware {
 
     if (asset == ETH) {
       (bool ok, /* data */) = to.call{ value: amount }("");
-      if (!ok) {
-        revert TransferFailed(to, amount, ETH);
-      }
+      require(ok, TransferFailed(to, amount, ETH));
       return;
     }
 
-    IERC20 token = IERC20(asset);
-    token.safeTransfer(to, amount);
-  }
-
-  /// @dev Add or remove an asset to the list of allowed safe transfer assets
-  function setSafeTransferAssetAllowed(
-    address asset,
-    bool allowed
-  ) external onlyContracts(C_GOVERNOR) whenNotPaused(PAUSE_SWAPS) {
-    allowedSafeTransferAssets[asset] = allowed;
-  }
-
-  /// @dev Create a request for transfering assets to the safe
-  function requestAssetTransfer(address asset, uint amount) external onlySafe whenNotPaused(PAUSE_SWAPS) {
-    require(allowedSafeTransferAssets[asset] == true, SafeAssetNotAllowed(asset));
-    safeTransferRequest = SafeTransferRequest(asset, amount);
-  }
-
-  /// @dev Transfer request amount of the asset to the safe
-  function transferRequestedAsset(
-    address requestedAsset, uint requestedAmount) external onlyController whenNotPaused(PAUSE_SWAPS) {
-
-    (address asset, uint amount) = (safeTransferRequest.asset, safeTransferRequest.amount);
-    require(amount > 0, SafeAssetAmountIsZero());
-
-    delete safeTransferRequest;
-
-    require(requestedAsset == asset, SafeAssetMismatch(requestedAsset, asset));
-    require(requestedAmount == amount, SafeAssetAmountMismatch(requestedAmount, amount));
-
-    pool.transferAssetToSwapOperator(asset, amount);
-    transferAssetTo(asset, safe, amount);
-
-    emit TransferredToSafe(asset, amount);
+    IERC20(asset).safeTransfer(to, amount);
   }
 
   /// @dev Create a request to swap two assets
   function requestAssetSwap(
-    address fromAsset,
-    address toAsset,
-    uint fromAmount,
-    uint toAmountMin
+    SwapRequest calldata _swapRequest
   ) external onlyContracts(C_GOVERNOR) whenNotPaused(PAUSE_SWAPS) {
-    swapRequest = SwapRequest(fromAsset, toAsset, fromAmount, toAmountMin);
+    swapRequest = _swapRequest;
   }
 
   /// @dev Recovers assets in the SwapOperator to the pool or a specified receiver, ensuring no ongoing CoW swap orders

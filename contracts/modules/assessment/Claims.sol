@@ -38,9 +38,9 @@ contract Claims is IClaims, RegistryAware {
 
   constructor(address _registry) RegistryAware(_registry) {}
 
-  function initialize() external {
+  function initialize(uint lastClaimId) external {
     require(_nextClaimId == 0, AlreadyInitialized());
-    _nextClaimId = 1; // TODO: start from the last claim Id 
+    _nextClaimId = lastClaimId + 1;
   }
 
   /* ========== VIEWS ========== */

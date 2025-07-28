@@ -42,7 +42,7 @@ async function setup() {
 
   const claims = await ethers.deployContract('Claims', [await registry.getAddress()]);
   await claims.waitForDeployment();
-  await claims.initialize();
+  await claims.initialize(0);
 
   const cover = await ethers.deployContract('CLMockCover', [await coverNFT.getAddress()]);
   await cover.waitForDeployment();

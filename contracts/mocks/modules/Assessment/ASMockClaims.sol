@@ -91,7 +91,7 @@ contract ASMockClaims is IClaims, RegistryAware {
     revert("Unsupported");
   }
 
-  function retriveDeposit(uint) external pure override {
+  function retrieveDeposit(uint) external pure override {
     revert("Unsupported");
   }
 }

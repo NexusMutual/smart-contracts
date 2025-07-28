@@ -256,9 +256,9 @@ contract Claims is IClaims, RegistryAware {
     emit ClaimPayoutRedeemed(coverOwner, claim.amount, claimId, claim.coverId);
   }
 
-  function retriveDeposit(uint claimId) external override whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
-    Claim memory claim =_validateClaimStatus(claimId, IAssessment.AssessmentStatus.DRAW);
-    
+  function retrieveDeposit(uint claimId) external override whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
+    Claim memory claim = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.DRAW);
+
     _claims[claimId].payoutRedeemed = true;
 
     address payable coverOwner = payable(_coverNFT().ownerOf(claim.coverId));

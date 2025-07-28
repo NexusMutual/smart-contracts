@@ -19,14 +19,12 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   mapping(uint groupId => bytes32) private _groupsMetadata;
   uint32 private _groupCount;
 
-  // todo: remove if FE doesn't need it
   mapping(uint assessorMemberId => EnumerableSet.UintSet) private _groupsForAssessor;
   mapping(uint productTypeId => AssessmentData) private _assessmentData;
 
   mapping(uint claimId => Assessment) private _assessments;
 
   mapping(uint assessorMemberId => mapping(uint claimId => Ballot)) private _ballots;
-  // todo: do we want just event instead of storing?
   mapping(uint assessorMemberId => mapping(uint claimId => bytes32)) private _ballotsMetadata;
 
   /* ========== CONSTANTS ========== */

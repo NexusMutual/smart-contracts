@@ -328,7 +328,7 @@ describe('redeemClaimPayout', function () {
     await assessment.setAssessmentResult(claimId, timestamp, ASSESSMENT_STATUS.DRAW);
 
     await setNextBlockBaseFee('0');
-    await claims.connect(originalOwner).retriveDeposit(claimId, { gasPrice: 0 });
+    await claims.connect(originalOwner).retrieveDeposit(claimId, { gasPrice: 0 });
     const ethBalanceAfter = await ethers.provider.getBalance(originalOwner.address);
 
     expect(ethBalanceAfter).to.be.equal(ethBalanceAfterSubmittingClaim + deposit);
@@ -354,31 +354,31 @@ describe('redeemClaimPayout', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     await assessment.setAssessmentResult(claimId, timestamp, ASSESSMENT_STATUS.ACCEPTED);
-    await expect(claims.connect(originalOwner).retriveDeposit(claimId, { gasPrice: 0 })).to.be.revertedWithCustomError(
+    await expect(claims.connect(originalOwner).retrieveDeposit(claimId, { gasPrice: 0 })).to.be.revertedWithCustomError(
       claims,
       'InvalidAssessmentStatus',
     );
 
     await assessment.setAssessmentResult(claimId, timestamp, ASSESSMENT_STATUS.DENIED);
-    await expect(claims.connect(originalOwner).retriveDeposit(claimId, { gasPrice: 0 })).to.be.revertedWithCustomError(
+    await expect(claims.connect(originalOwner).retrieveDeposit(claimId, { gasPrice: 0 })).to.be.revertedWithCustomError(
       claims,
       'InvalidAssessmentStatus',
     );
 
     await assessment.setAssessmentResult(claimId, timestamp, ASSESSMENT_STATUS.VOTING);
-    await expect(claims.connect(originalOwner).retriveDeposit(claimId, { gasPrice: 0 })).to.be.revertedWithCustomError(
+    await expect(claims.connect(originalOwner).retrieveDeposit(claimId, { gasPrice: 0 })).to.be.revertedWithCustomError(
       claims,
       'InvalidAssessmentStatus',
     );
 
     await assessment.setAssessmentResult(claimId, timestamp, ASSESSMENT_STATUS.COOLDOWN);
-    await expect(claims.connect(originalOwner).retriveDeposit(claimId, { gasPrice: 0 })).to.be.revertedWithCustomError(
+    await expect(claims.connect(originalOwner).retrieveDeposit(claimId, { gasPrice: 0 })).to.be.revertedWithCustomError(
       claims,
       'InvalidAssessmentStatus',
     );
   });
 
-  it('retrive deposit should revert if payout is paused', async function () {
+  it('retrieve deposit should revert if payout is paused', async function () {
     const fixture = await loadFixture(setup);
     const { claims, cover, assessment, registry } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
@@ -392,6 +392,6 @@ describe('redeemClaimPayout', function () {
 
     await registry.confirmPauseConfig(PAUSE_CLAIMS_PAYOUT);
 
-    await expect(claims.connect(coverOwner).retriveDeposit(claimId)).to.be.revertedWithCustomError(claims, 'Paused');
+    await expect(claims.connect(coverOwner).retrieveDeposit(claimId)).to.be.revertedWithCustomError(claims, 'Paused');
   });
 });

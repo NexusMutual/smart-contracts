@@ -54,7 +54,7 @@ interface IClaims {
 
   function redeemClaimPayout(uint id) external;
 
-  function retriveDeposit(uint claimId) external; 
+  function retrieveDeposit(uint claimId) external;
 
   /* ========== EVENTS ========== */
 
@@ -64,9 +64,10 @@ interface IClaims {
   event ClaimDepositRetrived(uint indexed claimId, address indexed user);
 
   /* ========== ERRORS ========== */
-  
+
   error ClaimIsBeingAssessed();
   error PayoutCanStillBeRedeemed();
+  error ClaimAlreadyPaidOut();
   error OnlyOwnerOrApprovedCanSubmitClaim();
   error InvalidClaimMethod();
   error CoveredAmountExceeded();

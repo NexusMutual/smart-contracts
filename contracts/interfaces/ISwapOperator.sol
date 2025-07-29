@@ -20,7 +20,7 @@ interface ISwapOperator {
     address fromAsset;
     address toAsset;
     SwapKind swapKind;
-    uint32 deadline;
+    uint32 deadline; // order submission deadline
   }
 
   /* ========== VIEWS ========== */
@@ -76,13 +76,12 @@ interface ISwapOperator {
   error OrderUidMismatch(bytes providedOrderUID, bytes expectedOrderUID);
   error UnsupportedTokenBalance(string kind);
   error InvalidReceiver(address validReceiver);
-  error TokenDisabled(address token);
   error AmountInTooHigh(uint expectedAmountIn, uint actualAmountIn);
   error AmountOutTooLow(uint amountOut, uint minAmount);
   error FeeNotZero();
-  error InvalidTokenAddress(string token);
   error InvalidDenominationAsset(address expectedAsset, address actualAsset);
-  error InvalidAsset(address requestedAsset, address actualAsset);
+  error InvalidAsset(address requestedAsset, address orderAsset);
+  error UnsupportedAsset(address asset);
   error SwapDeadlineExceeded(uint deadline, uint blockTimestamp);
 
   // Safe Transfer
@@ -95,9 +94,8 @@ interface ISwapOperator {
   error BelowMinValidTo();
   error AboveMaxValidTo();
 
-  // Balance
-  error InvalidBalance(uint tokenBalance, uint limit);
-  error InvalidPostSwapBalance(uint postSwapBalance, uint limit);
+  // Asset recovery
+  error ZeroBalance();
 
   // Access Controls
   error OnlyController();
@@ -105,10 +103,4 @@ interface ISwapOperator {
 
   // Transfer
   error TransferFailed(address to, uint value, address token);
-
-  // Cool down
-  error InsufficientTimeBetweenSwaps(uint minValidSwapTime);
-
-  // Fee
-  error AboveMaxFee(uint feeInEth, uint maxFee);
 }

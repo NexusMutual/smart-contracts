@@ -75,6 +75,7 @@ async function setup() {
       usdc,
       safeTracker,
       pool,
+      registry,
       swapOperator,
       cowSettlement,
       cowVaultRelayer,

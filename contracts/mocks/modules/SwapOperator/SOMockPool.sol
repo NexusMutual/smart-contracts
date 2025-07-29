@@ -31,6 +31,15 @@ contract SOMockPool is PoolGeneric {
     return assets;
   }
 
+  function abandonAsset(address asset) external {
+    for (uint i = 0; i < assets.length; i++) {
+      if (assets[i].assetAddress == asset) {
+        assets[i].isAbandoned = true;
+        break;
+      }
+    }
+  }
+
   // the commented code below was not used for swap operator but may be used for other unit tests
   // leaving it here for now
 

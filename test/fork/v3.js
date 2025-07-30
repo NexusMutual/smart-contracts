@@ -91,6 +91,7 @@ describe('v3 launch', function () {
     this.governance = await ethers.getContractAt('TemporaryGovernance', this.governance.target);
   });
 
+   // Withdraw governance rewards / assessment stake & rewards
   require('./legacy-assessment');
 
   /*

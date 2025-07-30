@@ -78,11 +78,10 @@ async function setup() {
     useFixedPrice: false,
   };
 
-  await Promise.all([
-    coverProducts.addProduct({ ...productTemplate, productType: '0' }),
-    coverProducts.addProduct({ ...productTemplate, productType: '1' }),
-    coverProducts.addProduct({ ...productTemplate, productType: '2' }),
-  ]);
+  // NOTE: must sequential to ensure deterministic productId → productType mapping
+  await coverProducts.addProduct({ ...productTemplate, productType: '0' }); // productId 0 -> productType 0
+  await coverProducts.addProduct({ ...productTemplate, productType: '1' }); // productId 1 -> productType 1
+  await coverProducts.addProduct({ ...productTemplate, productType: '2' }); // productId 2 -> productType 2
 
   const tokenControllerAddress = await tokenController.getAddress();
   for (const member of accounts.members) {

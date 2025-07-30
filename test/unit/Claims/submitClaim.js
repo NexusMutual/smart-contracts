@@ -1,12 +1,13 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { parseEther, toBeHex } = ethers;
 
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
-const { C_POOL } = require('../../utils/registry');
 const { ASSET, ASSESSMENT_STATUS, createMockCover, submitClaim } = require('./helpers');
 const { setup } = require('./setup');
+
+const { ContractIndexes } = nexus.constants;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -350,23 +351,29 @@ describe('submitClaim', function () {
 
   it('should revert if assessment deposit to pool fails', async function () {
     const fixture = await loadFixture(setup);
-    const { claims, cover, registry } = fixture.contracts;
+    const { cover, registry } = fixture.contracts;
     const { claimDepositInETH: deposit } = fixture.config;
     const [coverOwner] = fixture.accounts.members;
+    const [governanceAccount] = fixture.accounts.governanceContracts;
 
     await createMockCover(cover, { owner: coverOwner.address });
 
     const coverId = 1;
-    const coverData = await cover.getCoverData(coverId);
+    const { amount } = await cover.getCoverData(coverId);
 
-    const fallbackWillFailContractPool = await ethers.deployContract('PoolEtherRejecterMock', []);
+    const failingPool = await ethers.deployContract('PoolEtherRejecterMock', []);
 
-    // await fallbackWillFailContractPool.setTokenPrice(ASSET.ETH, parseEther('0.0382'));
-    await registry.addContract(C_POOL, await fallbackWillFailContractPool.getAddress(), false);
+    await registry.addContract(ContractIndexes.C_POOL, await failingPool.getAddress(), true);
 
-    await expect(
-      claims.connect(coverOwner).submitClaim(coverId, coverData.amount, toBeHex(0, 32), { value: deposit }),
-    ).to.be.revertedWithCustomError(claims, 'AssessmentDepositTransferToPoolFailed');
+    // Deploy new Claims contract with Pool ETH reject
+    const claimsRejectEth = await ethers.deployContract('Claims', [await registry.getAddress()]);
+    await claimsRejectEth.connect(governanceAccount).initialize(0);
+
+    const ipfsHash = ethers.solidityPackedKeccak256(['string'], ['ipfs-hash']);
+    const overrides = { value: deposit };
+    const submitClaimTx = claimsRejectEth.connect(coverOwner).submitClaim(coverId, amount, ipfsHash, overrides);
+
+    await expect(submitClaimTx).to.be.revertedWithCustomError(claimsRejectEth, 'AssessmentDepositTransferToPoolFailed');
   });
 
   it('reverts if a payout on the same cover can be redeemed', async function () {
@@ -385,10 +392,8 @@ describe('submitClaim', function () {
 
     // Should block new claim during redemption period
     await setTime(timestamp + Math.floor(payoutRedemptionPeriod / 2));
-    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWithCustomError(
-      claims,
-      'PayoutCanStillBeRedeemed',
-    );
+    const submitClaimTx = submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+    await expect(submitClaimTx).to.be.revertedWithCustomError(claims, 'PayoutCanStillBeRedeemed');
 
     // Should allow new claim after redemption period expires
     await setTime(timestamp + payoutRedemptionPeriod + 1);
@@ -449,10 +454,8 @@ describe('submitClaim', function () {
       await claims.redeemClaimPayout(firstClaimId);
 
       // Should prevent re-submission after payout redeemed
-      await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWithCustomError(
-        claims,
-        'ClaimAlreadyPaidOut',
-      );
+      const submitClaimTx = submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+      await expect(submitClaimTx).to.be.revertedWithCustomError(claims, 'ClaimAlreadyPaidOut');
     });
 
     it('reverts if a payout on the same cover can be redeemed', async function () {
@@ -471,10 +474,8 @@ describe('submitClaim', function () {
 
       // Should block new claim during redemption period
       await setTime(timestamp + Math.floor(payoutRedemptionPeriod / 2));
-      await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWithCustomError(
-        claims,
-        'PayoutCanStillBeRedeemed',
-      );
+      const submitClaimTx = submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+      await expect(submitClaimTx).to.be.revertedWithCustomError(claims, 'PayoutCanStillBeRedeemed');
 
       // Should allow new claim after redemption period expires
       await setTime(timestamp + payoutRedemptionPeriod + 1);

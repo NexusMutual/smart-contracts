@@ -28,46 +28,38 @@ contract Claims is IClaims, RegistryAware {
 
   uint private _nextClaimId;
 
+  /* =========== IMMUTABLES =========== */
+
+  ICover public immutable cover;
+  ICoverNFT public immutable coverNFT;
+  ICoverProducts public immutable coverProducts;
+  IAssessment public immutable assessment;
+  IPool public immutable pool;
+  IRamm public immutable ramm;
+
   /* =========== CONSTANTS =========== */
 
   uint constant public PAYOUT_REDEMPTION_PERIOD = 30 days;
 
-  uint constant public CLAIM_DEPOSIT_IN_ETH = 0.1 ether; // TODO: set deposit amount
+  uint constant public CLAIM_DEPOSIT_IN_ETH = 0.05 ether; // TODO: confirm with Hugh/Lee
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(address _registry) RegistryAware(_registry) {}
+  constructor(address _registry) RegistryAware(_registry) {
+    cover = ICover(fetch(C_COVER));
+    coverNFT = ICoverNFT(fetch(C_COVER_NFT));
+    coverProducts = ICoverProducts(fetch(C_COVER_PRODUCTS));
+    assessment = IAssessment(fetch(C_ASSESSMENT));
+    pool = IPool(fetch(C_POOL));
+    ramm = IRamm(fetch(C_RAMM));
+  }
 
-  function initialize(uint lastClaimId) external {
+  function initialize(uint lastClaimId) external onlyContracts(C_GOVERNOR) {
     require(_nextClaimId == 0, AlreadyInitialized());
     _nextClaimId = lastClaimId + 1;
   }
 
   /* ========== VIEWS ========== */
-
-  function _cover() internal view returns (ICover) {
-    return ICover(fetch(C_COVER));
-  }
-
-  function _coverNFT() internal view returns (ICoverNFT) {
-    return ICoverNFT(fetch(C_COVER_NFT));
-  }
-
-  function _coverProducts() internal view returns (ICoverProducts) {
-    return ICoverProducts(fetch(C_COVER_PRODUCTS));
-  }
-
-  function _assessment() internal view returns (IAssessment) {
-    return IAssessment(fetch(C_ASSESSMENT));
-  }
-
-  function _pool() internal view returns (IPool) {
-    return IPool(fetch(C_POOL));
-  }
-
-  function _ramm() internal view returns (IRamm) {
-    return IRamm(fetch(C_RAMM));
-  }
 
   function getClaimsCount() external override view returns (uint) {
     return _nextClaimId - 1;
@@ -92,10 +84,10 @@ contract Claims is IClaims, RegistryAware {
   function getClaimDisplay(uint claimId) internal view returns (ClaimDisplay memory) {
     Claim memory claim = _claims[claimId];
 
-    (uint cooldownEnd, IAssessment.AssessmentStatus assessmentStatus) = _assessment().getAssessmentResult(claimId);
-    (IAssessment.Assessment memory assessment) = _assessment().getAssessment(claimId);
+    (uint cooldownEnd, IAssessment.AssessmentStatus assessmentStatus) = assessment.getAssessmentResult(claimId);
+    (IAssessment.Assessment memory claimAssessment) = assessment.getAssessment(claimId);
 
-    CoverData memory coverData = _cover().getCoverData(claim.coverId);
+    CoverData memory coverData = cover.getCoverData(claim.coverId);
 
     uint expiration = coverData.start + coverData.period;
 
@@ -104,7 +96,7 @@ contract Claims is IClaims, RegistryAware {
       assetSymbol = "ETH";
     } else {
 
-      address assetAddress = _pool().getAsset(claim.coverAsset).assetAddress;
+      address assetAddress = pool.getAsset(claim.coverAsset).assetAddress;
       try IERC20Detailed(assetAddress).symbol() returns (string memory v) {
         assetSymbol = v;
       } catch {
@@ -121,8 +113,8 @@ contract Claims is IClaims, RegistryAware {
       claim.coverAsset,
       coverData.start,
       expiration,
-      assessment.start,
-      assessment.votingEnd,
+      claimAssessment.start,
+      claimAssessment.votingEnd,
       cooldownEnd,
       uint(assessmentStatus),
       claim.payoutRedeemed
@@ -163,7 +155,7 @@ contract Claims is IClaims, RegistryAware {
     bytes32 ipfsMetadata
   ) external payable override returns (Claim memory claim) {
     require(registry.isMember(msg.sender), OnlyMember());
-    require(_coverNFT().isApprovedOrOwner(msg.sender, coverId), OnlyOwnerOrApprovedCanSubmitClaim());
+    require(coverNFT.isApprovedOrOwner(msg.sender, coverId), OnlyOwnerOrApprovedCanSubmitClaim());
     return _submitClaim(coverId, requestedAmount, ipfsMetadata, msg.sender);
   }
 
@@ -180,7 +172,7 @@ contract Claims is IClaims, RegistryAware {
       uint previousSubmission = lastClaimSubmissionOnCover[coverId];
 
       if (previousSubmission > 0) {
-        (uint cooldownEnd, IAssessment.AssessmentStatus status) = _assessment().getAssessmentResult(previousSubmission);
+        (uint cooldownEnd, IAssessment.AssessmentStatus status) = assessment.getAssessmentResult(previousSubmission);
 
         require(
           status != IAssessment.AssessmentStatus.VOTING &&
@@ -207,9 +199,9 @@ contract Claims is IClaims, RegistryAware {
       lastClaimSubmissionOnCover[coverId] = claimId;
     }
 
-    CoverData memory coverData = _cover().getCoverData(coverId);
+    CoverData memory coverData = cover.getCoverData(coverId);
 
-    (Product memory product, ProductType memory productType) = _coverProducts().getProductWithType(coverData.productId);
+    (Product memory product, ProductType memory productType) = coverProducts.getProductWithType(coverData.productId);
 
     require(productType.claimMethod == ClaimMethod.IndividualClaims, InvalidClaimMethod());
     require(requestedAmount <= coverData.amount, CoveredAmountExceeded());
@@ -223,7 +215,7 @@ contract Claims is IClaims, RegistryAware {
       coverData.productId
     );
 
-    _assessment().startAssessment(claimId, product.productType);
+    assessment.startAssessment(claimId, product.productType);
 
     Claim memory claim = Claim({
       coverId: coverId,
@@ -245,7 +237,7 @@ contract Claims is IClaims, RegistryAware {
     (
       bool transferSucceeded,
       /* bytes data */
-    ) =  address(_pool()).call{value: CLAIM_DEPOSIT_IN_ETH}("");
+    ) =  address(pool).call{value: CLAIM_DEPOSIT_IN_ETH}("");
     require(transferSucceeded, AssessmentDepositTransferToPoolFailed());
 
     return claim;
@@ -267,13 +259,13 @@ contract Claims is IClaims, RegistryAware {
 
     ramm.updateTwap();
 
-    address payable coverOwner = payable(_cover.burnStake(
+    address payable coverOwner = payable(cover.burnStake(
       claim.coverId,
       claim.amount
     ));
 
     // Send payout in cover asset
-    _pool().sendPayout(claim.coverAsset, coverOwner, claim.amount, CLAIM_DEPOSIT_IN_ETH);
+    pool.sendPayout(claim.coverAsset, coverOwner, claim.amount, CLAIM_DEPOSIT_IN_ETH);
 
     emit ClaimPayoutRedeemed(coverOwner, claim.amount, claimId, claim.coverId);
   }
@@ -290,9 +282,9 @@ contract Claims is IClaims, RegistryAware {
 
     _claims[claimId].depositRetrieved = true;
 
-    address payable coverOwner = payable(_coverNFT().ownerOf(claim.coverId));
+    address payable coverOwner = payable(coverNFT.ownerOf(claim.coverId));
 
-    _pool().returnDeposit(coverOwner, CLAIM_DEPOSIT_IN_ETH);
+    pool.returnDeposit(coverOwner, CLAIM_DEPOSIT_IN_ETH);
 
     emit ClaimDepositRetrieved(claimId, coverOwner);
   }

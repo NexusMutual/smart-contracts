@@ -41,7 +41,7 @@ contract Claims is IClaims, RegistryAware {
 
   uint constant public PAYOUT_REDEMPTION_PERIOD = 30 days;
 
-  uint constant public CLAIM_DEPOSIT_IN_ETH = 0.05 ether; // TODO: confirm with Hugh/Lee
+  uint constant public CLAIM_DEPOSIT_IN_ETH = 0.05 ether; // TODO: confirm if claim deposit is to be dropped
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -72,8 +72,6 @@ contract Claims is IClaims, RegistryAware {
   function getPayoutRedemptionPeriod() external override pure returns (uint) {
     return PAYOUT_REDEMPTION_PERIOD;
   }
-
-  // TODO: check to move to Claim+Assessment Viewer for FE
 
   /// Returns a Claim aggregated in a human-friendly format.
   ///

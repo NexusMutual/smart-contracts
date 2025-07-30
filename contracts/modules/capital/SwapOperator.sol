@@ -351,6 +351,7 @@ contract SwapOperator is ISwapOperator, RegistryAware {
 
     require(isValidFromAsset, UnsupportedAsset(request.fromAsset));
     require(isValidToAsset, UnsupportedAsset(request.toAsset));
+    require(request.fromAsset != request.toAsset, SameAssetSwapRequest(request.fromAsset));
     require(request.deadline > block.timestamp, SwapDeadlineExceeded(request.deadline, block.timestamp));
 
     // store WETH instead of ETH for convenience

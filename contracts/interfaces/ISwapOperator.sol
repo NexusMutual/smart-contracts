@@ -83,6 +83,7 @@ interface ISwapOperator {
   error InvalidAsset(address requestedAsset, address orderAsset);
   error UnsupportedAsset(address asset);
   error SwapDeadlineExceeded(uint deadline, uint blockTimestamp);
+  error SameAssetSwapRequest(address asset);
 
   // Safe Transfer
   error SafeAssetNotAllowed(address asset);

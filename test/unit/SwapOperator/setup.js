@@ -10,7 +10,7 @@ const deployERC20Mock = async (name, symbol, decimals) => {
 };
 
 async function setup() {
-  const [defaultSender, governance, alice, bob, mallory, swapController /*, safe */] = await ethers.getSigners();
+  const [defaultSender, governor, alice, bob, mallory, swapController /*, safe */] = await ethers.getSigners();
 
   // deploy weth and erc20 mocks
   const weth = await ethers.deployContract('WETH9');
@@ -53,7 +53,7 @@ async function setup() {
   const pool = await ethers.deployContract('SOMockPool', [assetDetails]);
 
   const registry = await ethers.deployContract('SOMockRegistry');
-  await registry.setContractAddress(ContractIndexes.C_GOVERNOR, governance);
+  await registry.setContractAddress(ContractIndexes.C_GOVERNOR, governor);
   await registry.setContractAddress(ContractIndexes.C_POOL, pool);
 
   const swapOperator = await ethers.deployContract('SwapOperator', [
@@ -64,10 +64,10 @@ async function setup() {
     weth,
   ]);
 
-  await swapOperator.connect(governance).setSwapController(swapController);
+  await swapOperator.connect(governor).setSwapController(swapController);
 
   return {
-    accounts: { defaultSender, governance, alice, bob, mallory, swapController },
+    accounts: { defaultSender, governor, alice, bob, mallory, swapController },
     contracts: {
       dai,
       weth,

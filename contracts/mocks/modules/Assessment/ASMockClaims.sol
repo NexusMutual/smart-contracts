@@ -73,7 +73,8 @@ contract ASMockClaims is IClaims, RegistryAware {
       coverId: coverId,
       amount: requestedAmount,
       coverAsset: 0, // ETH for simplicity
-      payoutRedeemed: false
+      payoutRedeemed: false,
+      depositRetrieved: false
     });
 
     _claims[claimId] = claim;

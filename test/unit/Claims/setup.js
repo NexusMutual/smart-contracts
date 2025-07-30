@@ -40,16 +40,13 @@ async function setup() {
   const coverNFT = await ethers.deployContract('CLMockCoverNFT');
   await coverNFT.waitForDeployment();
 
-  const claims = await ethers.deployContract('Claims', [await registry.getAddress()]);
-  await claims.waitForDeployment();
-  await claims.initialize(0);
-
   const cover = await ethers.deployContract('CLMockCover', [await coverNFT.getAddress()]);
   await cover.waitForDeployment();
 
   const coverProducts = await ethers.deployContract('CLMockCoverProducts');
   await coverProducts.waitForDeployment();
 
+  const [governanceAccount] = accounts.governanceContracts;
   await Promise.all([
     registry.addContract(ContractIndexes.C_COVER, await cover.getAddress(), false),
     registry.addContract(ContractIndexes.C_COVER_NFT, await coverNFT.getAddress(), false),
@@ -57,7 +54,12 @@ async function setup() {
     registry.addContract(ContractIndexes.C_ASSESSMENT, await assessment.getAddress(), false),
     registry.addContract(ContractIndexes.C_POOL, await pool.getAddress(), false),
     registry.addContract(ContractIndexes.C_RAMM, await ramm.getAddress(), false),
+    registry.addContract(ContractIndexes.C_GOVERNOR, governanceAccount.address, false),
   ]);
+
+  const claims = await ethers.deployContract('Claims', [await registry.getAddress()]);
+  await claims.waitForDeployment();
+  await claims.connect(governanceAccount).initialize(0);
 
   await Promise.all([
     coverProducts.addProductType('0', '30', '5000'),
@@ -109,6 +111,7 @@ async function setup() {
     coverProducts,
     coverNFT,
     registry,
+    governance: governanceAccount,
   };
 
   return { config, accounts, contracts };

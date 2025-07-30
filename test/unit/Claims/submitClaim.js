@@ -5,7 +5,7 @@ const { parseEther, toBeHex } = ethers;
 
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { C_POOL } = require('../../utils/registry');
-const { ASSESSMENT_STATUS, createMockCover, submitClaim } = require('./helpers');
+const { ASSET, ASSESSMENT_STATUS, createMockCover, submitClaim } = require('./helpers');
 const { setup } = require('./setup');
 
 const setTime = async timestamp => {
@@ -290,6 +290,62 @@ describe('submitClaim', function () {
     await expect(submitClaim(fixture)({ coverId, sender: coverOwner }))
       .to.emit(claims, 'ClaimSubmitted')
       .withArgs(coverOwner.address, 1, coverId, 2);
+  });
+
+  it('creates claim struct with correct initial values', async function () {
+    const fixture = await loadFixture(setup);
+    const { claims, cover } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
+
+    const claimAmount = parseEther('50');
+    await createMockCover(cover, { owner: coverOwner.address, amount: parseEther('100'), coverAsset: ASSET.DAI });
+
+    const coverId = 1;
+    const claimId = (await claims.getClaimsCount()) + 1n;
+
+    await submitClaim(fixture)({ coverId, amount: claimAmount, sender: coverOwner });
+
+    const claim = await claims.getClaimInfo(claimId);
+
+    expect(claim.coverId).to.equal(coverId);
+    expect(claim.amount).to.equal(claimAmount);
+    expect(claim.coverAsset).to.equal(ASSET.DAI);
+    expect(claim.payoutRedeemed).to.be.false;
+    expect(claim.depositRetrieved).to.be.false;
+  });
+
+  it('correctly tracks payoutRedeemed and depositRetrieved through claim lifecycle', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover, assessment, claims } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
+
+    await createMockCover(cover, { owner: coverOwner.address });
+
+    // Submit claim
+    const claimId = (await claims.getClaimsCount()) + 1n;
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+
+    // Both fields should be false
+    let claim = await claims.getClaimInfo(claimId);
+    expect(claim.payoutRedeemed).to.be.false;
+    expect(claim.depositRetrieved).to.be.false;
+
+    // Accept the claim
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    await assessment.setAssessmentResult(claimId, timestamp, ASSESSMENT_STATUS.ACCEPTED);
+
+    // State should still be false until payout is redeemed
+    claim = await claims.getClaimInfo(claimId);
+    expect(claim.payoutRedeemed).to.be.false;
+    expect(claim.depositRetrieved).to.be.false;
+
+    // Redeem payout
+    await claims.redeemClaimPayout(claimId);
+
+    // Both fields should become true
+    claim = await claims.getClaimInfo(claimId);
+    expect(claim.payoutRedeemed).to.be.true;
+    expect(claim.depositRetrieved).to.be.true;
   });
 
   it('should revert if assessment deposit to pool fails', async function () {

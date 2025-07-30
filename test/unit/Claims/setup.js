@@ -9,24 +9,18 @@ const { parseEther } = ethers;
 async function setup() {
   const accounts = await getAccounts();
   const nxm = await ethers.deployContract('NXMTokenMock');
-  await nxm.waitForDeployment();
 
   const registry = await ethers.deployContract('RegistryMock');
-  await registry.waitForDeployment();
 
   const ramm = await ethers.deployContract('RammMock');
-  await ramm.waitForDeployment();
 
   const tokenController = await ethers.deployContract('CLMockTokenController', [await nxm.getAddress()]);
-  await tokenController.waitForDeployment();
 
   await nxm.setOperator(await tokenController.getAddress());
 
   const dai = await ethers.deployContract('ERC20BlacklistableMock');
-  await dai.waitForDeployment();
 
   const pool = await ethers.deployContract('PoolMock');
-  await pool.waitForDeployment();
 
   await Promise.all([
     pool.addAsset({ assetAddress: await dai.getAddress(), isCoverAsset: true, isAbandoned: false }),
@@ -35,16 +29,12 @@ async function setup() {
   ]);
 
   const assessment = await ethers.deployContract('CLMockAssessment');
-  await assessment.waitForDeployment();
 
   const coverNFT = await ethers.deployContract('CLMockCoverNFT');
-  await coverNFT.waitForDeployment();
 
   const cover = await ethers.deployContract('CLMockCover', [await coverNFT.getAddress()]);
-  await cover.waitForDeployment();
 
   const coverProducts = await ethers.deployContract('CLMockCoverProducts');
-  await coverProducts.waitForDeployment();
 
   const [governanceAccount] = accounts.governanceContracts;
   await Promise.all([
@@ -58,7 +48,6 @@ async function setup() {
   ]);
 
   const claims = await ethers.deployContract('Claims', [await registry.getAddress()]);
-  await claims.waitForDeployment();
   await claims.connect(governanceAccount).initialize(0);
 
   await Promise.all([

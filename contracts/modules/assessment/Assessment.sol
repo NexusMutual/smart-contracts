@@ -73,6 +73,13 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     groupIds = _groupsForAssessor[assessorMemberId].values();
   }
 
+  /// @notice Checks if a given member ID belongs to at least one assessor group.
+  /// @param assessorMemberId The ID of the member to check.
+  /// @return True if the member is an assessor, false otherwise.
+  function isAssessor(uint assessorMemberId) override external view returns (bool) {
+    return _groupsForAssessor[assessorMemberId].length() > 0;
+  }
+
   /// @notice Returns detailed information for multiple groups
   /// @param groupIds Array of group IDs to query
   /// @return groups Array of group data including metadata and assessors

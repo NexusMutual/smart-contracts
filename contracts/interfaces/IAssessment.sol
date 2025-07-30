@@ -74,12 +74,13 @@ interface IAssessment {
 
   function getGroupsForAssessor(uint assessorMemberId) external view returns (uint[] memory groupIds);
 
+  function isAssessor(uint assessorMemberId) external view returns (bool);
+
   function getGroupsData(uint[] calldata groupIds) external view returns (AssessmentGroupView[] memory groups);
 
   function minVotingPeriod() external pure returns (uint);
 
   function payoutCooldown(uint productTypeId) external view returns (uint);
-
 
   function getAssessmentResult(uint claimId) external view returns(uint cooldownEnd, AssessmentStatus status);
 

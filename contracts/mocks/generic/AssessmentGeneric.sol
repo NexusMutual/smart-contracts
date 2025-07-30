@@ -79,6 +79,10 @@ contract AssessmentGeneric is IAssessment {
     revert("Unsupported");
   }
 
+  function isAssessor(uint) external virtual view returns (bool) {
+    revert("Unsupported");
+  }
+
   function getGroupsData(uint[] calldata) external virtual view returns (AssessmentGroupView[] memory) {
     revert("Unsupported");
   }

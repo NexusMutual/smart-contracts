@@ -34,14 +34,13 @@ interface IClaims {
     uint assessmentVotingEnd;
     uint assessmentCooldownEnd;
     uint assessmentStatus;
+    uint payoutRedemptionEnd;
     bool payoutRedeemed;
   }
 
   /* ========== VIEWS ========== */
 
   function getClaimInfo(uint claimId) external view returns (Claim memory);
-
-  function getPayoutRedemptionPeriod() external view returns (uint);
 
   function getClaimsCount() external view returns (uint);
 

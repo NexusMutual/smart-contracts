@@ -6,6 +6,7 @@ interface IAssessment {
   struct AssessmentData {
     uint16 assessingGroupId;
     uint32 cooldownPeriod;
+    uint32 payoutRedemptionPeriod;
   }
 
   struct AssessmentGroupView {
@@ -22,6 +23,7 @@ interface IAssessment {
   struct Assessment {
     uint16 assessingGroupId;
     uint32 cooldownPeriod;
+    uint32 payoutRedemptionPeriod;
     uint32 start;
     uint32 votingEnd;
     uint8 acceptVotes;
@@ -49,6 +51,7 @@ interface IAssessment {
   function setAssessmentDataForProductTypes(
     uint[] calldata productTypeIds,
     uint cooldownPeriod,
+    uint redemptionPeriod,
     uint groupId
   ) external;
 
@@ -82,7 +85,7 @@ interface IAssessment {
 
   function payoutCooldown(uint productTypeId) external view returns (uint);
 
-  function getAssessmentResult(uint claimId) external view returns(uint cooldownEnd, AssessmentStatus status);
+  function getAssessmentResult(uint claimId) external view returns(AssessmentStatus status, uint payoutRedemptionPeriod, uint cooldownEnd);
 
   function ballotOf(uint claimId, uint assessorMemberId) external view returns (Ballot memory);
 
@@ -92,7 +95,7 @@ interface IAssessment {
 
   /* ========= EVENTS ========== */
 
-  event AssessmentDataForProductTypesSet(uint[] productTypeIds, uint cooldownPeriod, uint groupId);
+  event AssessmentDataForProductTypesSet(uint[] productTypeIds, uint cooldownPeriod, uint payoutRedemptionPeriod, uint groupId);
   event AssessorAddedToGroup(uint indexed groupId, uint assessorMemberId);
   event AssessorRemovedFromGroup(uint indexed groupId, uint assessorMemberId);
   event GroupMetadataSet(uint indexed groupId, bytes32 ipfsMetadata);

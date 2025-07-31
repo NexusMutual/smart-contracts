@@ -39,8 +39,6 @@ contract Claims is IClaims, RegistryAware {
 
   /* =========== CONSTANTS =========== */
 
-  uint constant public PAYOUT_REDEMPTION_PERIOD = 30 days;
-
   // NOTE: when updating the deposit value, make sure there are no open claims during the upgrade
   uint constant public CLAIM_DEPOSIT_IN_ETH = 0.05 ether; // TODO: confirm if claim deposit is to be dropped
 
@@ -70,10 +68,6 @@ contract Claims is IClaims, RegistryAware {
     return _claims[claimId];
   }
 
-  function getPayoutRedemptionPeriod() external override pure returns (uint) {
-    return PAYOUT_REDEMPTION_PERIOD;
-  }
-
   /// Returns a Claim aggregated in a human-friendly format.
   ///
   /// @dev This view is meant to be used in user interfaces to get a claim in a format suitable for
@@ -83,7 +77,7 @@ contract Claims is IClaims, RegistryAware {
   function getClaimDisplay(uint claimId) internal view returns (ClaimDisplay memory) {
     Claim memory claim = _claims[claimId];
 
-    (uint cooldownEnd, IAssessment.AssessmentStatus assessmentStatus) = assessment.getAssessmentResult(claimId);
+    (IAssessment.AssessmentStatus assessmentStatus, uint payoutRedemptionEnd, uint cooldownEnd) = assessment.getAssessmentResult(claimId);
     (IAssessment.Assessment memory claimAssessment) = assessment.getAssessment(claimId);
 
     CoverData memory coverData = cover.getCoverData(claim.coverId);
@@ -116,6 +110,7 @@ contract Claims is IClaims, RegistryAware {
       claimAssessment.votingEnd,
       cooldownEnd,
       uint(assessmentStatus),
+      payoutRedemptionEnd,
       claim.payoutRedeemed
     );
   }
@@ -162,7 +157,7 @@ contract Claims is IClaims, RegistryAware {
       uint previousSubmission = lastClaimSubmissionOnCover[coverId];
 
       if (previousSubmission > 0) {
-        (uint cooldownEnd, IAssessment.AssessmentStatus status) = assessment.getAssessmentResult(previousSubmission);
+        (IAssessment.AssessmentStatus status, uint payoutRedemptionEnd, /* cooldownEnd */) = assessment.getAssessmentResult(previousSubmission);
 
         require(
           status != IAssessment.AssessmentStatus.VOTING &&
@@ -180,7 +175,7 @@ contract Claims is IClaims, RegistryAware {
 
           // if payout not yet redeemed and still within redemption period
           require(
-            block.timestamp >= cooldownEnd + PAYOUT_REDEMPTION_PERIOD,
+            block.timestamp >= payoutRedemptionEnd,
             PayoutCanStillBeRedeemed()
           );
         }
@@ -239,9 +234,9 @@ contract Claims is IClaims, RegistryAware {
   ///
   /// @param claimId  Claim identifier
   function redeemClaimPayout(uint claimId) external override whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
-    (Claim memory claim, uint cooldownEnd) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.ACCEPTED);
+    (Claim memory claim, uint payoutRedemptionEnd) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.ACCEPTED);
 
-    require(block.timestamp < cooldownEnd + PAYOUT_REDEMPTION_PERIOD, RedemptionPeriodExpired());
+    require(block.timestamp < payoutRedemptionEnd, RedemptionPeriodExpired());
     require(!claim.payoutRedeemed, PayoutAlreadyRedeemed());
 
     _claims[claimId].payoutRedeemed = true;
@@ -266,7 +261,7 @@ contract Claims is IClaims, RegistryAware {
   ///
   /// @param claimId The unique identifier of the claim for which the deposit is being retrieved.
   function retrieveDeposit(uint claimId) external override whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
-    (Claim memory claim, /* cooldownEnd */) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.DRAW);
+    (Claim memory claim, /* payoutRedemptionEnd */) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.DRAW);
 
     require(!claim.depositRetrieved, DepositAlreadyRetrieved());
 
@@ -282,14 +277,14 @@ contract Claims is IClaims, RegistryAware {
   function _validateClaimStatus(
     uint claimId,
     IAssessment.AssessmentStatus expectedStatus
-  ) internal view returns (Claim memory claim, uint cooldownEnd) {
+  ) internal view returns (Claim memory claim, uint payoutRedemptionEnd) {
     claim = _claims[claimId];
     require(claim.amount > 0, InvalidClaimId());
 
     IAssessment.AssessmentStatus status;
-    (cooldownEnd, status) = assessment.getAssessmentResult(claimId);
+    (status, payoutRedemptionEnd, /* cooldownEnd */) = assessment.getAssessmentResult(claimId);
     require(status == expectedStatus, InvalidAssessmentStatus());
 
-    return (claim, cooldownEnd);
+    return (claim, payoutRedemptionEnd);
   }
 }

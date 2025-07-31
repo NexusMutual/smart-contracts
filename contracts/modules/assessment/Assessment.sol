@@ -170,19 +170,22 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   function setAssessmentDataForProductTypes(
     uint[] calldata productTypeIds,
     uint cooldownPeriod,
+    uint payoutRedemptionPeriod,
     uint groupId
   ) override external onlyContracts(C_GOVERNOR) {
+
     require(groupId > 0 && groupId <= _groupCount, InvalidGroupId());
 
     uint length = productTypeIds.length;
     for (uint i = 0; i < length; i++) {
       _assessmentData[productTypeIds[i]] = AssessmentData({
         assessingGroupId: groupId.toUint16(),
-        cooldownPeriod: cooldownPeriod.toUint32()
+        cooldownPeriod: cooldownPeriod.toUint32(),
+        payoutRedemptionPeriod: payoutRedemptionPeriod.toUint32()
       });
     }
 
-    emit AssessmentDataForProductTypesSet(productTypeIds, cooldownPeriod, groupId);
+    emit AssessmentDataForProductTypesSet(productTypeIds, cooldownPeriod, payoutRedemptionPeriod, groupId);
   }
 
   /// @notice Undoes votes cast by an assessor on multiple claims
@@ -244,14 +247,18 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
   /// @notice Returns the assessment result and cooldown end time for a claim
   /// @param claimId The ID of the claim to query
-  /// @return cooldownEnd Timestamp when the cooldown period ends
   /// @return status Current status of the assessment (VOTING, COOLDOWN, ACCEPTED, DENIED, DRAW)
-  function getAssessmentResult(uint claimId) override external view returns(uint cooldownEnd, AssessmentStatus status) {
+  /// @return payoutRedemptionEnd Timestamp when the payout redemption period ends
+  /// @return cooldownEnd Timestamp when the cooldown period ends
+  function getAssessmentResult(uint claimId) override external view returns(AssessmentStatus status, uint payoutRedemptionEnd, uint cooldownEnd) {
+
     Assessment memory assessment = _assessments[claimId];
     require(assessment.start != 0, InvalidClaimId());
 
     cooldownEnd = assessment.votingEnd + assessment.cooldownPeriod;
-    return (cooldownEnd, _getAssessmentStatus(assessment));
+    payoutRedemptionEnd = cooldownEnd + assessment.payoutRedemptionPeriod;
+
+    return (_getAssessmentStatus(assessment), payoutRedemptionEnd, cooldownEnd);
   }
 
   /// @notice Determines the current status of an assessment based on timing and votes
@@ -316,6 +323,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     _assessments[claimId] = Assessment({
       assessingGroupId: assessmentData.assessingGroupId,
       cooldownPeriod: assessmentData.cooldownPeriod,
+      payoutRedemptionPeriod: assessmentData.payoutRedemptionPeriod,
       start: startTime,
       votingEnd: votingEndTime,
       acceptVotes: 0,

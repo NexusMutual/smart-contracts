@@ -75,6 +75,7 @@ contract Claims is IClaims, RegistryAware {
   ///
   /// @param claimId    Claim identifier for which the ClaimDisplay is returned
   function getClaimDisplay(uint claimId) internal view returns (ClaimDisplay memory) {
+
     Claim memory claim = _claims[claimId];
 
     (IAssessment.AssessmentStatus assessmentStatus, uint payoutRedemptionEnd, uint cooldownEnd) = assessment.getAssessmentResult(claimId);
@@ -123,11 +124,14 @@ contract Claims is IClaims, RegistryAware {
   ///
   /// @param ids   Array of Claim ids which are returned as ClaimDisplay
   function getClaimsToDisplay (uint[] calldata ids) external view returns (ClaimDisplay[] memory) {
+
     ClaimDisplay[] memory claimDisplays = new ClaimDisplay[](ids.length);
+
     for (uint i = 0; i < ids.length; i++) {
       uint id = ids[i];
       claimDisplays[i] = getClaimDisplay(id);
     }
+
     return claimDisplays;
   }
 
@@ -136,7 +140,7 @@ contract Claims is IClaims, RegistryAware {
   /// Submits a claim for assessment for a specific cover
   ///
   /// @dev Requires a claim deposit fee. See: CLAIM_DEPOSIT_IN_ETH
-  /// @dev Requires the sender to be a member and the owner or approved operator of the cover NFT.
+  /// @dev Requires the sender to be a member and the owner or approved operator of the cover NFT
   ///
   /// @param coverId          Cover identifier
   /// @param requestedAmount  The amount expected to be received at payout
@@ -230,7 +234,7 @@ contract Claims is IClaims, RegistryAware {
 
   /// Redeems payouts and sends assessment deposit back for accepted claims
   ///
-  /// @dev Can be called by anyone, but the payout and deposit are always transferred to the current cover NFT owner.
+  /// @dev Must be the cover NFT owner for the claim and a member can call this function
   ///
   /// @param claimId  Claim identifier
   function redeemClaimPayout(uint claimId) external override onlyMember whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
@@ -263,6 +267,7 @@ contract Claims is IClaims, RegistryAware {
   ///
   /// @param claimId The unique identifier of the claim for which the deposit is being retrieved.
   function retrieveDeposit(uint claimId) external override whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
+
     (Claim memory claim, /* payoutRedemptionEnd */) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.DRAW);
 
     require(!claim.depositRetrieved, DepositAlreadyRetrieved());
@@ -280,6 +285,7 @@ contract Claims is IClaims, RegistryAware {
     uint claimId,
     IAssessment.AssessmentStatus expectedStatus
   ) internal view returns (Claim memory claim, uint payoutRedemptionEnd) {
+
     claim = _claims[claimId];
     require(claim.amount > 0, InvalidClaimId());
 

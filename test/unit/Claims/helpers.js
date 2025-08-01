@@ -44,13 +44,16 @@ const submitClaim =
   ({ accounts, contracts, config }) =>
   async ({ coverId = 0, amount = parseEther('1'), ipfsMetadata = toBeHex(0, 32), sender, value }) => {
     return await contracts.claims
-      .connect(sender || accounts[0])
-      .submitClaim(coverId, amount, ipfsMetadata, { value: value || config.claimDepositInETH });
+      .connect(sender || accounts.members[0])
+      .submitClaim(coverId, amount, ipfsMetadata, { value: value ?? config.claimDepositInETH });
   };
+
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 module.exports = {
   ASSET,
   ASSESSMENT_STATUS,
   createMockCover,
   submitClaim,
+  daysToSeconds,
 };

@@ -45,14 +45,11 @@ contract ASMockClaims is IClaims, RegistryAware {
     return _claims[claimId];
   }
 
-  function getPayoutRedemptionPeriod() external override pure returns (uint) {
-    return PAYOUT_REDEMPTION_PERIOD;
-  }
-
   /* ========== MUTATIVE FUNCTIONS ========== */
 
   /// @notice Simplified submit claim for testing
   /// @dev Calls assessment.startAssessment and stores the claim
+  /// @dev productTypeId is set to coverId for testing
   function submitClaim(
     uint32 coverId,
     uint96 requestedAmount,
@@ -62,8 +59,8 @@ contract ASMockClaims is IClaims, RegistryAware {
     uint claimId = _nextClaimId++;
     lastClaimSubmissionOnCover[coverId] = claimId;
 
-    // For testing, use a simple product type ID
-    uint16 productTypeId = 1;
+    // For testing, set product type id to coverId
+    uint16 productTypeId = uint16(coverId);
 
     // Start the assessment
     _assessment().startAssessment(claimId, productTypeId);

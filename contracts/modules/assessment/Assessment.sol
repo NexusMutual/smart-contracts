@@ -232,6 +232,13 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     return assessmentData.cooldownPeriod;
   }
 
+  /// @dev Returns assessment data for a given product type
+  /// @param productTypeId The product type identifier
+  /// @return assessmentData The assessment data including assessing group ID, cooldown period, and redemption period
+  function getAssessmentDataForProductType(uint productTypeId) external view override returns (AssessmentData memory assessmentData) {
+    return _assessmentData[productTypeId];
+  }
+
   /// @notice Returns the full assessment data for a claim
   /// @param claimId The ID of the claim to query
   /// @return assessment The complete assessment data including votes and timing

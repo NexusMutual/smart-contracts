@@ -12,7 +12,6 @@ interface IMemberRolesErrors {
   error SignatureAlreadyUsed();
   error InvalidSignature();
   error TransferToPoolFailed();
-  error OnlyMember();
   error LockedForVoting();
   error CantBeStakingPoolManager();
   error HasNXMStakedInClaimAssessmentV1();

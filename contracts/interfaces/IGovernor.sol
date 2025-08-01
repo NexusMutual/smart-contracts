@@ -66,7 +66,6 @@ interface IGovernor {
   error AlreadyAdvisoryBoardMember();
   error OnlyAdvisoryBoardMember();
   error OnlyGovernor();
-  error OnlyMember();
   error NotMember();
   error NotAuthorizedToVote();
 

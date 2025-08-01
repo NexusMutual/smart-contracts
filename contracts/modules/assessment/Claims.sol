@@ -147,8 +147,7 @@ contract Claims is IClaims, RegistryAware {
     uint32 coverId,
     uint96 requestedAmount,
     bytes32 ipfsMetadata
-  ) external payable override returns (Claim memory claim) {
-    require(registry.isMember(msg.sender), OnlyMember());
+  ) external payable override onlyMember returns (Claim memory claim) {
     require(coverNFT.isApprovedOrOwner(msg.sender, coverId), OnlyOwnerOrApprovedCanSubmitClaim());
 
     uint claimId = _nextClaimId++;
@@ -233,7 +232,8 @@ contract Claims is IClaims, RegistryAware {
   /// @dev Can be called by anyone, but the payout and deposit are always transferred to the current cover NFT owner.
   ///
   /// @param claimId  Claim identifier
-  function redeemClaimPayout(uint claimId) external override whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
+  function redeemClaimPayout(uint claimId) external override onlyMember whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
+
     (Claim memory claim, uint payoutRedemptionEnd) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.ACCEPTED);
 
     require(block.timestamp < payoutRedemptionEnd, RedemptionPeriodExpired());

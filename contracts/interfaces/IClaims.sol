@@ -68,6 +68,7 @@ interface IClaims {
   error ClaimIsBeingAssessed();
   error PayoutCanStillBeRedeemed();
   error ClaimAlreadyPaidOut();
+  error OnlyOwnerCanSubmitClaim();
   error OnlyOwnerOrApprovedCanSubmitClaim();
   error InvalidClaimMethod();
   error CoveredAmountExceeded();
@@ -79,7 +80,6 @@ interface IClaims {
   error RedemptionPeriodExpired();
   error PayoutAlreadyRedeemed();
   error DepositAlreadyRetrieved();
-  error OnlyMember();
   error InvalidClaimId();
   error AlreadyInitialized();
 }

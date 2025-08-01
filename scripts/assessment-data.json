@@ -1,0 +1,86 @@
+{
+  "0x87b2a7559d85f4653f13e6546a14189cd5455d45": {
+    "stake": {
+      "amount": "5000.0",
+      "rewardsWithdrawableFromIndex": "5",
+      "fraudCount": "0"
+    },
+    "rewards": {
+      "totalPendingAmountInNXM": "18.760526758002582336",
+      "withdrawableAmountInNXM": "0.0",
+      "withdrawableUntilIndex": "5"
+    }
+  },
+  "0x5fa07227d05774c2ff11c2425919d14225a38dbb": {
+    "stake": {
+      "amount": "264.73",
+      "rewardsWithdrawableFromIndex": "17",
+      "fraudCount": "0"
+    },
+    "rewards": {
+      "totalPendingAmountInNXM": "0.023716667459983831",
+      "withdrawableAmountInNXM": "0.023716667459983831",
+      "withdrawableUntilIndex": "1"
+    }
+  },
+  "0x5929cc4d10b6a1acc5bf5d221889f10251c628a1": {
+    "stake": {
+      "amount": "59.0",
+      "rewardsWithdrawableFromIndex": "0",
+      "fraudCount": "0"
+    },
+    "rewards": {
+      "totalPendingAmountInNXM": "0.399218675804396539",
+      "withdrawableAmountInNXM": "0.399218675804396539",
+      "withdrawableUntilIndex": "7"
+    }
+  },
+  "0xf3bfac9e828bc904112e7bb516d4cd4e6468f785": {
+    "stake": {
+      "amount": "10.0",
+      "rewardsWithdrawableFromIndex": "0",
+      "fraudCount": "0"
+    },
+    "rewards": {
+      "totalPendingAmountInNXM": "0.037663491020649713",
+      "withdrawableAmountInNXM": "0.037663491020649713",
+      "withdrawableUntilIndex": "1"
+    }
+  },
+  "0x2a156b05ae6ab6ea14b4b5f14dc6fba08c320de2": {
+    "stake": {
+      "amount": "1.27",
+      "rewardsWithdrawableFromIndex": "0",
+      "fraudCount": "0"
+    },
+    "rewards": {
+      "totalPendingAmountInNXM": "0.0",
+      "withdrawableAmountInNXM": "0.0",
+      "withdrawableUntilIndex": "0"
+    }
+  },
+  "0xfec65468cf9ab04cea40b113bf679e82973bdb58": {
+    "stake": {
+      "amount": "1.0",
+      "rewardsWithdrawableFromIndex": "0",
+      "fraudCount": "0"
+    },
+    "rewards": {
+      "totalPendingAmountInNXM": "0.0",
+      "withdrawableAmountInNXM": "0.0",
+      "withdrawableUntilIndex": "0"
+    }
+  },
+  "0xa8c320bc7581ca1a24521a9e56a46553ad67e4b0": {
+    "stake": {
+      "amount": "0.01",
+      "rewardsWithdrawableFromIndex": "0",
+      "fraudCount": "0"
+    },
+    "rewards": {
+      "totalPendingAmountInNXM": "0.000000895881368185",
+      "withdrawableAmountInNXM": "0.000000895881368185",
+      "withdrawableUntilIndex": "1"
+    }
+  }
+}

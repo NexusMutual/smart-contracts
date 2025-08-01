@@ -1,7 +1,10 @@
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 const { setTime } = require('./helpers');
+
+const ONE_DAY = 24 * 60 * 60;
 
 const AssessmentStatus = {
   VOTING: 0,
@@ -28,11 +31,13 @@ describe('getAssessmentResult', function () {
     const { assessment } = contracts;
     const { CLAIM_ID } = constants;
 
-    const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
+    const [status, payoutRedemptionEnd, cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
     const assessmentData = await assessment.getAssessment(CLAIM_ID);
     const expectedCooldownEnd = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
+    const expectedPayoutRedemptionEnd = expectedCooldownEnd + BigInt(assessmentData.payoutRedemptionPeriod);
 
     expect(cooldownEnd).to.equal(expectedCooldownEnd);
+    expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
     expect(status).to.equal(AssessmentStatus.VOTING);
   });
 
@@ -49,15 +54,17 @@ describe('getAssessmentResult', function () {
       assessment.connect(assessor3).castVote(CLAIM_ID, false, IPFS_HASH),
     ]);
 
-    const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const expectedCooldownEndTime = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
+    const { votingEnd, cooldownPeriod, payoutRedemptionPeriod } = await assessment.getAssessment(CLAIM_ID);
+    const expectedCooldownEnd = BigInt(votingEnd) + BigInt(cooldownPeriod);
+    const expectedPayoutRedemptionEnd = expectedCooldownEnd + BigInt(payoutRedemptionPeriod);
 
     // Set time to just after voting ends but before cooldown passes
-    await setTime(assessmentData.votingEnd + 1n);
+    await setTime(votingEnd + 1n);
 
-    const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
+    const [status, payoutRedemptionEnd, cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
 
-    expect(cooldownEnd).to.equal(expectedCooldownEndTime);
+    expect(cooldownEnd).to.equal(expectedCooldownEnd);
+    expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
     expect(status).to.equal(AssessmentStatus.COOLDOWN);
   });
 
@@ -74,14 +81,16 @@ describe('getAssessmentResult', function () {
       assessment.connect(assessor3).castVote(CLAIM_ID, false, IPFS_HASH),
     ]);
 
-    const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const cooldownEndTime = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
+    const { votingEnd, cooldownPeriod, payoutRedemptionPeriod } = await assessment.getAssessment(CLAIM_ID);
+    const expectedCooldownEnd = BigInt(votingEnd) + BigInt(cooldownPeriod);
+    const expectedPayoutRedemptionEnd = expectedCooldownEnd + BigInt(payoutRedemptionPeriod);
 
     // Set time past cooldown period
-    await setTime(cooldownEndTime + 1n);
+    await setTime(expectedCooldownEnd + 1n);
 
-    const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
-    expect(cooldownEnd).to.equal(cooldownEndTime);
+    const [status, payoutRedemptionEnd, cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
+    expect(cooldownEnd).to.equal(expectedCooldownEnd);
+    expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
     expect(status).to.equal(AssessmentStatus.ACCEPTED);
   });
 
@@ -98,14 +107,16 @@ describe('getAssessmentResult', function () {
       assessment.connect(assessor3).castVote(CLAIM_ID, true, IPFS_HASH),
     ]);
 
-    const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const cooldownEndTime = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
+    const { votingEnd, cooldownPeriod, payoutRedemptionPeriod } = await assessment.getAssessment(CLAIM_ID);
+    const cooldownEndTime = BigInt(votingEnd) + BigInt(cooldownPeriod);
+    const expectedPayoutRedemptionEnd = cooldownEndTime + BigInt(payoutRedemptionPeriod);
 
     // Set time past cooldown period
     await setTime(cooldownEndTime + 1n);
 
-    const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
+    const [status, payoutRedemptionEnd, cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(cooldownEnd).to.equal(cooldownEndTime);
+    expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
     expect(status).to.equal(AssessmentStatus.DENIED);
   });
 
@@ -119,15 +130,17 @@ describe('getAssessmentResult', function () {
     await assessment.connect(assessor1).castVote(CLAIM_ID, true, IPFS_HASH);
     await assessment.connect(assessor2).castVote(CLAIM_ID, false, IPFS_HASH);
 
-    const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const cooldownEndTime = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
+    const { votingEnd, cooldownPeriod, payoutRedemptionPeriod } = await assessment.getAssessment(CLAIM_ID);
+    const expectedCooldownEnd = BigInt(votingEnd) + BigInt(cooldownPeriod);
+    const expectedPayoutRedemptionEnd = expectedCooldownEnd + BigInt(payoutRedemptionPeriod);
 
     // Set time past cooldown period
-    await setTime(cooldownEndTime + 1n);
+    await setTime(expectedCooldownEnd + 1n);
 
-    const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
+    const [status, payoutRedemptionEnd, cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
 
-    expect(cooldownEnd).to.equal(cooldownEndTime);
+    expect(cooldownEnd).to.equal(expectedCooldownEnd);
+    expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
     expect(status).to.equal(AssessmentStatus.DRAW);
   });
 
@@ -138,64 +151,84 @@ describe('getAssessmentResult', function () {
 
     // No votes cast (both accept and deny votes = 0)
 
-    const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const cooldownEndTime = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
+    const { votingEnd, cooldownPeriod, payoutRedemptionPeriod } = await assessment.getAssessment(CLAIM_ID);
+    const expectedCooldownEnd = BigInt(votingEnd) + BigInt(cooldownPeriod);
+    const expectedPayoutRedemptionEnd = expectedCooldownEnd + BigInt(payoutRedemptionPeriod);
 
     // Set time past cooldown period
-    await setTime(cooldownEndTime + 1n);
+    await setTime(expectedCooldownEnd + 1n);
 
-    const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
+    const [status, payoutRedemptionEnd, cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
 
-    expect(cooldownEnd).to.equal(cooldownEndTime);
+    expect(cooldownEnd).to.equal(expectedCooldownEnd);
+    expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
     expect(status).to.equal(AssessmentStatus.DRAW);
   });
 
-  it('should calculate cooldownEnd correctly with different cooldown periods', async function () {
-    const { contracts, constants } = await loadFixture(setup);
-    const { assessment } = contracts;
-    const { CLAIM_ID, PRODUCT_TYPE_ID } = constants;
-
-    // Get the assessment data for the existing claim
-    const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const [cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
-
-    // Verify that cooldownEnd is calculated as votingEnd + cooldownPeriod
-    const expectedCooldownEnd = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
-    expect(cooldownEnd).to.equal(expectedCooldownEnd);
-
-    // Verify the cooldown period matches the expected value from payoutCooldown
-    const expectedCooldownPeriod = await assessment.payoutCooldown(PRODUCT_TYPE_ID);
-    expect(assessmentData.cooldownPeriod).to.equal(expectedCooldownPeriod);
-  });
-
-  it('should handle assessment status transitions correctly over time', async function () {
+  it('should return different cooldown and payout redemption periods for different product types', async function () {
     const { contracts, accounts, constants } = await loadFixture(setup);
-    const { assessment } = contracts;
-    const { CLAIM_ID, IPFS_HASH } = constants;
-    const [assessor1] = accounts.assessors;
+    const { assessment, claims } = contracts;
+    const { IPFS_HASH } = constants;
+    const [governanceAccount] = accounts.governanceContracts;
+    const [coverOwner] = accounts.members;
 
-    const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const expectedCooldownEnd = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
+    const ASSESSOR_GROUP_ID = await assessment.getGroupsCount();
 
-    // Initially should be VOTING
-    let [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
-    expect(cooldownEnd).to.equal(expectedCooldownEnd);
-    expect(status).to.equal(AssessmentStatus.VOTING);
+    const productType2CooldownPeriod = 2 * ONE_DAY;
+    const productType2PayoutRedemptionPeriod = 20 * ONE_DAY;
 
-    // Cast a vote to create a non-draw scenario
-    await assessment.connect(assessor1).castVote(CLAIM_ID, true, IPFS_HASH);
+    const productType3CooldownPeriod = 3 * ONE_DAY;
+    const productType3PayoutRedemptionPeriod = 30 * ONE_DAY;
 
-    // Set time to just after voting ends but before cooldown passes - should be COOLDOWN
-    await setTime(assessmentData.votingEnd + 1n);
-    [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
-    expect(cooldownEnd).to.equal(expectedCooldownEnd);
-    expect(status).to.equal(AssessmentStatus.COOLDOWN);
+    // Set assessment data for two different product types with different periods
+    await assessment.connect(governanceAccount).setAssessmentDataForProductTypes(
+      [2], // product type 2
+      productType2CooldownPeriod,
+      productType2PayoutRedemptionPeriod,
+      ASSESSOR_GROUP_ID,
+    );
 
-    // Set time past cooldown - should be ACCEPTED
-    const cooldownEndTime = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
-    await setTime(cooldownEndTime + 1n);
-    [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
-    expect(cooldownEnd).to.equal(expectedCooldownEnd);
-    expect(status).to.equal(AssessmentStatus.ACCEPTED);
+    await assessment.connect(governanceAccount).setAssessmentDataForProductTypes(
+      [3], // product type 3
+      productType3CooldownPeriod,
+      productType3PayoutRedemptionPeriod,
+      ASSESSOR_GROUP_ID,
+    );
+
+    // Create a second claim with product type 2 (mock submitClaim sets product type to coverId)
+    const COVER_ID_2 = 2;
+    const CLAIM_ID_2 = 2;
+    await claims.connect(coverOwner).submitClaim(COVER_ID_2, ethers.parseEther('1'), IPFS_HASH);
+
+    const COVER_ID_3 = 3;
+    const CLAIM_ID_3 = 3;
+    await claims.connect(coverOwner).submitClaim(COVER_ID_3, ethers.parseEther('1'), IPFS_HASH);
+
+    // Should have different values for claims with different product types
+    const [status2, payoutRedemptionEnd2, cooldownEnd2] = await assessment.getAssessmentResult(CLAIM_ID_2);
+    const [status3, payoutRedemptionEnd3, cooldownEnd3] = await assessment.getAssessmentResult(CLAIM_ID_3);
+
+    expect(status2).to.equal(AssessmentStatus.VOTING);
+    expect(status3).to.equal(AssessmentStatus.VOTING);
+
+    // Get assessment data for calculations
+    const claimAssessmentData2 = await assessment.getAssessment(CLAIM_ID_2);
+    const claimAssessmentData3 = await assessment.getAssessment(CLAIM_ID_3);
+
+    // Verify getAssessmentResult calculations are correct for each claim
+    const expectedCooldownEnd2 = BigInt(claimAssessmentData2.votingEnd) + BigInt(productType2CooldownPeriod);
+    const expectedPayoutRedemptionEnd2 = expectedCooldownEnd2 + BigInt(productType2PayoutRedemptionPeriod);
+
+    const expectedCooldownEnd3 = BigInt(claimAssessmentData3.votingEnd) + BigInt(productType3CooldownPeriod);
+    const expectedPayoutRedemptionEnd3 = expectedCooldownEnd3 + BigInt(productType3PayoutRedemptionPeriod);
+
+    expect(cooldownEnd2).to.equal(expectedCooldownEnd2);
+    expect(payoutRedemptionEnd2).to.equal(expectedPayoutRedemptionEnd2);
+
+    expect(cooldownEnd3).to.equal(expectedCooldownEnd3);
+    expect(payoutRedemptionEnd3).to.equal(expectedPayoutRedemptionEnd3);
+
+    expect(cooldownEnd2).to.not.equal(cooldownEnd3);
+    expect(payoutRedemptionEnd2).to.not.equal(payoutRedemptionEnd3);
   });
 });

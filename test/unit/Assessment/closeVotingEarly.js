@@ -154,15 +154,18 @@ describe('closeVotingEarly', function () {
     expect(assessmentData.denyVotes).to.equal(0);
 
     // Advance time past the cooldown period to see DRAW status
-    const cooldownPeriod = assessmentData.cooldownPeriod;
+    const { cooldownPeriod, payoutRedemptionPeriod } = assessmentData;
     await setTime(Number(BigInt(closeVotingTimestamp) + BigInt(cooldownPeriod) + 1n));
 
     // Check assessment result after cooldown period
-    const [cooldownEnd, status] = await assessment.getAssessmentResult(CLAIM_ID);
+    const [status, payoutRedemptionEnd, cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
 
-    // Verify cooldown end calculation
+    // Verify cooldown end and payout redemption end calculation
     const expectedCooldownEnd = BigInt(closeVotingTimestamp) + BigInt(cooldownPeriod);
     expect(cooldownEnd).to.equal(expectedCooldownEnd);
+
+    const expectedPayoutRedemptionEnd = expectedCooldownEnd + BigInt(payoutRedemptionPeriod);
+    expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
 
     // Verify status is DRAW (0 accept == 0 deny votes)
     const AssessmentStatus = {

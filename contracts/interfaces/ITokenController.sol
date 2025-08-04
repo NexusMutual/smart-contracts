@@ -85,6 +85,8 @@ interface ITokenController {
 
   function withdrawClaimAssessmentTokens(address[] calldata users) external;
 
+  function unstakeAssessmentFor(address member) external;
+
   function transferStakingPoolsOwnership(address from, address to) external;
 
   function assignStakingPoolManager(uint poolId, address manager) external;

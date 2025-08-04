@@ -128,6 +128,10 @@ contract TokenControllerGeneric is ITokenController {
     revert("getPendingRewards unsupported");
   }
 
+  function unstakeAssessmentFor(address) external virtual {
+    revert("unstakeAssessmentFor unsupported");
+  }
+
   function withdrawNXM(
     StakingPoolDeposit[] calldata,
     StakingPoolManagerReward[] calldata,

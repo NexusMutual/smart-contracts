@@ -176,6 +176,13 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
     }
   }
 
+  /// @dev Unstakes all assessment stake for a specific member.
+  /// @param member The member's address.
+  /// TODO: remove once all stake is withdrawn from Assessment
+  function unstakeAssessmentFor(address member) external override whenNotPaused {
+    assessment().unstakeAllFor(member);
+  }
+
   /// @notice Retrieves the reasons why a user's tokens were locked.
   /// @param _of       The address of the user whose lock reasons are being retrieved.
   /// @return reasons  An array of reasons (as bytes32) for the token lock.
@@ -283,8 +290,8 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   /// @param stakingPoolManagerRewards  Details for withdrawing staking pools manager rewards. Empty array to skip
   /// @param govRewardsBatchSize        The maximum number of iterations to avoid unbounded loops when withdrawing
   ///                                   governance rewards.
-  /// @param withdrawAssessment         Options specifying assesment withdrawals, set flags to true to include
-  ///                                   specific assesment stake or rewards withdrawal.
+  /// @param withdrawAssessment         Options specifying assessment withdrawals, set flags to true to include
+  ///                                   specific assessment stake or rewards withdrawal.
   function withdrawNXM(
     WithdrawAssessment calldata withdrawAssessment,
     StakingPoolDeposit[] calldata stakingPoolDeposits,
@@ -294,6 +301,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   ) external whenNotPaused {
 
     // assessment stake
+    // TODO: deprecate once all assessment member stake are unstaked
     if (withdrawAssessment.stake) {
       assessment().unstakeAllFor(msg.sender);
     }
@@ -317,7 +325,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
       stakingPool(poolId).withdraw(tokenId, true, true, stakingPoolDeposits[i].trancheIds);
     }
 
-    // staking pool manager rewards    
+    // staking pool manager rewards
     for (uint i = 0; i < stakingPoolManagerRewards.length; i++) {
       uint poolId = stakingPoolManagerRewards[i].poolId;
       stakingPool(poolId).withdraw(0, false, true, stakingPoolManagerRewards[i].trancheIds);

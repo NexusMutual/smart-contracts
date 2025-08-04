@@ -101,17 +101,6 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     return uid;
   }
 
-  /// @dev Validate that a given UID is the correct one for a given order
-  /// @param order The order
-  /// @param providedOrderUID The UID
-  function validateUID(GPv2Order.Data calldata order, bytes memory providedOrderUID) internal view {
-    bytes memory calculatedOrderUID = getUID(order);
-    require(
-      keccak256(calculatedOrderUID) == keccak256(providedOrderUID),
-      OrderUidMismatch(providedOrderUID, calculatedOrderUID)
-    );
-  }
-
   /// @dev Approve a given order to be executed, by presigning it on CoW protocol's settlement contract
   ///      Emits OrderPlaced event on success. Only one order can be open at the same time
   /// @param order - The order to be placed
@@ -124,7 +113,8 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     require(orderInProgress() == false, OrderInProgress(currentOrderUID));
 
     // order UID and basic CoW params validations
-    validateUID(order, orderUID);
+    bytes memory calculatedOrderUID = getUID(order);
+    require(keccak256(orderUID) == keccak256(calculatedOrderUID), OrderUidMismatch(orderUID, calculatedOrderUID));
 
     // swap request check
     require(address(order.sellToken) == swapRequest.fromAsset, InvalidAsset(swapRequest.fromAsset, address(order.sellToken)));
@@ -174,7 +164,11 @@ contract SwapOperator is ISwapOperator, RegistryAware {
 
     require(orderInProgress() == true, NoOrderToClose());
 
-    validateUID(order, currentOrderUID);
+    bytes memory calculatedOrderUID = getUID(order);
+    require(
+      keccak256(currentOrderUID) == keccak256(calculatedOrderUID),
+      OrderUidMismatch(currentOrderUID, calculatedOrderUID)
+    );
 
     // invalidate signature, cancel order and unapprove tokens
     cowSettlement.setPreSignature(currentOrderUID, false);

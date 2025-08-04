@@ -1,6 +1,6 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture, setCode, setStorageAt } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setBalance, setCode, setStorageAt } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
 const { ETH } = nexus.constants.Assets;
@@ -121,13 +121,13 @@ describe('recoverAsset', function () {
   it('recovers ETH by sending it to the pool', async function () {
     const fixture = await loadFixture(setup);
     const { swapOperator, pool } = fixture.contracts;
-    const { alice: receiver, swapController, defaultSender } = fixture.accounts;
+    const { alice: receiver, swapController } = fixture.accounts;
 
     const amountInPool = parseEther('2000');
-    await defaultSender.sendTransaction({ to: swapOperator, value: amountInPool });
+    await setBalance(pool.target, amountInPool);
 
     const amountInSwapOperator = parseEther('10');
-    await defaultSender.sendTransaction({ to: swapOperator, value: amountInSwapOperator });
+    await setBalance(swapOperator.target, amountInSwapOperator);
 
     await swapOperator.connect(swapController).recoverAsset(ETH, receiver);
 
@@ -141,34 +141,36 @@ describe('recoverAsset', function () {
   it('recovers wETH by unwrapping it and sending it to the pool', async function () {
     const fixture = await loadFixture(setup);
     const { swapOperator, pool, weth } = fixture.contracts;
-    const { alice: receiver, swapController, defaultSender } = fixture.accounts;
+    const { alice: receiver, swapController } = fixture.accounts;
 
-    // no initial eth
-    expect(await ethers.provider.getBalance(swapOperator)).to.be.equal(0n);
-    expect(await ethers.provider.getBalance(pool)).to.be.equal(0n);
+    // initial eth
+    const initialPoolBalance = await ethers.provider.getBalance(pool);
 
-    // no initial weth
-    expect(await weth.balanceOf(swapOperator)).to.be.equal(0n);
-    expect(await weth.balanceOf(pool)).to.be.equal(0n);
+    // initial weth
+    const initialPoolWethBalance = await weth.balanceOf(pool);
+    const initialSwapOperatorWethBalance = await weth.balanceOf(swapOperator);
 
-    const amountInPool = parseEther('2000');
-    const amountInSwapOperator = parseEther('10');
+    // mint some WETH amounts
+    const wethAddedToSwapOperator = parseEther('10');
+    await weth.deposit({ value: wethAddedToSwapOperator });
+    await weth.transfer(swapOperator, wethAddedToSwapOperator);
+
+    // drop some ETH
     const ethAmountInSwapOperator = parseEther('20');
-
-    await defaultSender.sendTransaction({ to: swapOperator, value: ethAmountInSwapOperator });
-
-    await weth.deposit({ value: amountInPool + amountInSwapOperator });
-    await weth.transfer(pool, amountInPool);
-    await weth.transfer(swapOperator, amountInSwapOperator);
+    await setBalance(swapOperator.target, ethAmountInSwapOperator);
 
     // recover
     await swapOperator.connect(swapController).recoverAsset(weth, receiver);
 
+    // weth checks
     expect(await weth.balanceOf(swapOperator)).to.be.equal(0n);
-    expect(await weth.balanceOf(pool)).to.be.equal(amountInPool); // only the initially minted amount
+    expect(await weth.balanceOf(pool)).to.be.equal(initialPoolWethBalance); // no extra weth sent to the pool
 
+    // eth checks
     expect(await ethers.provider.getBalance(swapOperator)).to.be.equal(0n); // no eth left behind
-    expect(await ethers.provider.getBalance(pool)).to.be.equal(amountInSwapOperator + ethAmountInSwapOperator);
+    expect(await ethers.provider.getBalance(pool)).to.be.equal(
+      initialPoolBalance + initialSwapOperatorWethBalance + wethAddedToSwapOperator + ethAmountInSwapOperator,
+    );
   });
 
   it('reverts if ETH balance is 0', async function () {

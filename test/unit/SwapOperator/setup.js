@@ -1,4 +1,5 @@
 const { ethers, nexus } = require('hardhat');
+const { setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { parseEther } = ethers;
 const { Assets, ContractIndexes } = nexus.constants;
@@ -66,23 +67,19 @@ async function setup() {
 
   await swapOperator.connect(governor).setSwapController(swapController);
 
+  await pool.setSwapOperator(swapOperator);
+  await setBalance(pool.target, parseEther('1000'));
+  await dai.mint(pool.target, parseEther('20000000')); // 20M DAI
+  await usdc.mint(pool.target, parseEther('20000000')); // 20M USDC
+  await stEth.mint(pool.target, parseEther('1000')); // 1000 stETH
+
+  const enzymeContracts = { enzymeV4Vault, enzymeV4Comptroller, enzymeFundValueCalculatorRouter };
+  const cowContracts = { cowVaultRelayer, cowSettlement };
+  const tokens = { weth, dai, usdc, stEth };
+
   return {
     accounts: { defaultSender, governor, alice, bob, mallory, swapController },
-    contracts: {
-      dai,
-      weth,
-      stEth,
-      usdc,
-      safeTracker,
-      pool,
-      registry,
-      swapOperator,
-      cowSettlement,
-      cowVaultRelayer,
-      enzymeV4Vault,
-      enzymeV4Comptroller,
-      enzymeFundValueCalculatorRouter,
-    },
+    contracts: { pool, registry, swapOperator, safeTracker, ...tokens, ...enzymeContracts, ...cowContracts },
   };
 }
 

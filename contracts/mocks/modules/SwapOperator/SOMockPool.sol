@@ -15,6 +15,8 @@ contract SOMockPool is PoolGeneric {
   AssetInSwapOperator public assetInSwapOperator;
   address public swapOperator;
 
+  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
   // struct AssetRate {
   //   int rate; // rate of asset in ETH
   //   uint8 decimals; // decimals of the asset
@@ -25,6 +27,10 @@ contract SOMockPool is PoolGeneric {
     for (uint i = 0; i < _assets.length; i++) {
       assets.push(_assets[i]);
     }
+  }
+
+  function setSwapOperator(address _swapOperator) external {
+    swapOperator = _swapOperator;
   }
 
   function getAssets() external view override returns (Asset[] memory) {
@@ -87,7 +93,12 @@ contract SOMockPool is PoolGeneric {
     assetInSwapOperator.amount = amount.toUint96();
 
     // transfer
-    IERC20(asset).safeTransfer(swapOperator, amount);
+    if (asset == ETH) {
+      (bool success, ) = swapOperator.call{ value: amount }("");
+      require(success, "ETH transfer failed");
+    } else {
+      IERC20(asset).safeTransfer(swapOperator, amount);
+    }
 
     emit TransferAssetToSwapOperatorCalled(asset, amount);
   }

@@ -3,7 +3,6 @@
 pragma solidity ^0.8.28;
 
 import "../../interfaces/IAssessment.sol";
-import "../../interfaces/IGovernance.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingNFT.sol";
@@ -12,10 +11,10 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenControllerErrors.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
-import "../../abstract/MasterAwareV2.sol";
+import "../../abstract/RegistryAware.sol";
 import "./external/LockHandler.sol";
 
-contract TokenController is ITokenController, ITokenControllerErrors, LockHandler, MasterAwareV2 {
+contract TokenController is ITokenController, ITokenControllerErrors, LockHandler, RegistryAware {
   using SafeUintCast for uint;
 
   address internal _unused_token;
@@ -27,7 +26,6 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   // pool id => { rewards, deposits }
   mapping(uint => StakingPoolNXMBalances) public override stakingPoolNXMBalances;
 
-  // TODO: consider switching from addresses to memberIds
   // pool id => manager
   mapping(uint => address) internal stakingPoolManagers;
 
@@ -40,35 +38,21 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   INXMToken public immutable token;
   address public immutable stakingPoolFactory;
   IStakingNFT public immutable stakingNFT;
+  IPool public immutable pool;
 
   modifier onlyStakingPool(uint poolId) {
     require(msg.sender == _stakingPool(poolId), OnlyStakingPool());
     _;
   }
 
-  constructor(
-    address stakingPoolFactoryAddress,
-    address tokenAddress,
-    address stakingNFTAddress
-  ) {
-    stakingPoolFactory = stakingPoolFactoryAddress;
-    token = INXMToken(tokenAddress);
-    stakingNFT = IStakingNFT(stakingNFTAddress);
+  constructor (address _registry, address _stakingPoolFactory) RegistryAware(_registry) {
+    stakingPoolFactory = _stakingPoolFactory;
+    token = INXMToken(fetch(C_TOKEN));
+    stakingNFT = IStakingNFT(fetch(C_STAKING_NFT));
+    pool = IPool(fetch(C_POOL));
   }
 
   /* ========== DEPENDENCIES ========== */
-
-  function assessment() internal view returns (IAssessment) {
-    return IAssessment(internalContracts[uint(ID.AS)]);
-  }
-
-  function governance() internal view returns (IGovernance) {
-    return IGovernance(internalContracts[uint(ID.GV)]);
-  }
-
-  function pool() internal view returns (IPool) {
-    return IPool(internalContracts[uint(ID.P1)]);
-  }
 
   function stakingPool(uint poolId) internal view returns (IStakingPool) {
     return IStakingPool(_stakingPool(poolId));
@@ -78,15 +62,9 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
     return StakingPoolLibrary.getAddress(stakingPoolFactory, poolId);
   }
 
-  function changeDependentContractAddress() public override {
-    internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
-    internalContracts[uint(ID.GV)] = master.getLatestAddress("GV");
-    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
-  }
-
   /// @dev Changes the operator address.
   /// @param _newOperator The new address of the operator.
-  function changeOperator(address _newOperator) public override onlyGovernance {
+  function changeOperator(address _newOperator) public override onlyContracts(C_GOVERNOR) {
     token.changeOperator(_newOperator);
   }
 
@@ -98,7 +76,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
     address _from,
     address _to,
     uint _value
-  ) external override onlyInternal returns (bool) {
+  ) external override onlyContracts(C_COVER) returns (bool) {
 
     token.operatorTransfer(_from, _value);
     if (_to != address(this)) {
@@ -111,20 +89,20 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   /// @param _of     The address to burn tokens of.
   /// @param amount  The amount to burn.
   /// @return        The boolean status of the burning process.
-  function burnFrom(address _of, uint amount) public override onlyInternal returns (bool) {
+  function burnFrom(address _of, uint amount) public override onlyContracts(C_COVER + C_RAMM) returns (bool) {
     return token.burnFrom(_of, amount);
   }
 
   /// @dev Adds an address to the whitelist maintained in the contract.
   /// @param _member The address to add to the whitelist.
-  function addToWhitelist(address _member) public virtual override onlyInternal {
+  function addToWhitelist(address _member) public virtual override onlyContracts(C_REGISTRY) {
     token.addToWhiteList(_member);
   }
 
   /// @notice Removes an address from the whitelist in the token
   /// @dev Requires the member's token balance to be zero before removal.
   /// @param _member The address to remove.
-  function removeFromWhitelist(address _member) public override onlyInternal {
+  function removeFromWhitelist(address _member) public override onlyContracts(C_REGISTRY) {
     require(token.balanceOf(_member) == 0, MemberBalanceNotZero());
     token.removeFromWhiteList(_member);
   }
@@ -133,16 +111,32 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   /// @dev Transfers the full token balance from the old address to the new one, updates whitelist status accordingly.
   /// @param from The address to transfer membership from.
   /// @param to The address to transfer membership to.
-  function switchMembershipAddressWithTransfer(address from, address to) external override onlyInternal {
+  function switchMembershipAddressWithTransfer(address from, address to) external override onlyContracts(C_REGISTRY) {
     token.addToWhiteList(to);
     token.transferFrom(from, to, token.balanceOf(from));
     token.removeFromWhiteList(from);
+
+    uint stakingPoolCount = managerStakingPools[from].length;
+
+    if (stakingPoolCount > 0) {
+      while (stakingPoolCount > 0) {
+        // remove from old
+        uint poolId = managerStakingPools[from][stakingPoolCount - 1];
+        managerStakingPools[from].pop();
+
+        // add to new and update manager
+        managerStakingPools[to].push(poolId);
+        stakingPoolManagers[poolId] = to;
+
+        stakingPoolCount--;
+      }
+    }
   }
 
   /// @dev Mints new tokens for an address and checks if the address is a member.
   /// @param _member The address to send the minted tokens to.
   /// @param _amount The number of tokens to mint.
-  function mint(address _member, uint _amount) public override onlyInternal {
+  function mint(address _member, uint _amount) public override onlyContracts(C_RAMM) {
     _mint(_member, _amount);
   }
 
@@ -162,38 +156,8 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   /// @dev Locks the user's tokens.
   /// @param _of    The user's address.
   /// @param _days  The number of days to lock the tokens.
-  function lockForMemberVote(address _of, uint _days) public override onlyInternal {
+  function lockForMemberVote(address _of, uint _days) public override onlyContracts(C_GOVERNOR) {
     token.lockForMemberVote(_of, _days);
-  }
-
-  /// @dev Unlocks the withdrawable tokens against CLA for specified addresses.
-  /// @param users The addresses of users for whom the tokens are unlocked.
-  function withdrawClaimAssessmentTokens(address[] calldata users) external override whenNotPaused {
-
-    for (uint i = 0; i < users.length; i++) {
-      _withdrawClaimAssessmentTokensForUser(users[i]);
-    }
-  }
-
-  /// @dev Internal function to withdraw claim assessment tokens for a user.
-  /// @param user The user's address.
-  function _withdrawClaimAssessmentTokensForUser(address user) internal whenNotPaused {
-
-    if (!locked[user]["CLA"].claimed) {
-      uint amount = locked[user]["CLA"].amount;
-      if (amount > 0) {
-        locked[user]["CLA"].claimed = true;
-        emit Unlocked(user, "CLA", amount);
-        token.transfer(user, amount);
-      }
-    }
-  }
-
-  /// @notice Retrieves the reasons why a user's tokens were locked.
-  /// @param _of       The address of the user whose lock reasons are being retrieved.
-  /// @return reasons  An array of reasons (as bytes32) for the token lock.
-  function getLockReasons(address _of) external override view returns (bytes32[] memory reasons) {
-    return lockReason[_of];
   }
 
   /// @notice Returns the total supply of the NXM token.
@@ -221,11 +185,6 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
 
     uint amount = token.balanceOf(_of);
 
-    // This loop can be removed once all cover notes are withdrawn
-    for (uint i = 0; i < lockReason[_of].length; i++) {
-      amount = amount + tokensLocked(_of, lockReason[_of][i]);
-    }
-
     if (includeManagedStakingPools) {
       uint managedStakingPoolCount = managerStakingPools[_of].length;
       for (uint i = 0; i < managedStakingPoolCount; i++) {
@@ -241,46 +200,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   /// @dev Intended for external protocols - this is a proxy and the contract address won't change
   function getTokenPrice() public override view returns (uint tokenPrice) {
     // get spot price from ramm
-    return pool().getTokenPrice();
-  }
-
-  /// @notice Withdraws governance rewards for the given member address
-  /// @param memberAddress  The address of the member whose governance rewards are to be withdrawn.
-  /// @param batchSize      The maximum number of iterations to avoid unbounded loops when withdrawing governance rewards.
-  ///                       Cannot be 0 and must fit in one block
-  function withdrawGovernanceRewards(
-    address memberAddress,
-    uint batchSize
-  ) public whenNotPaused {
-
-    uint governanceRewards = governance().claimReward(memberAddress, batchSize);
-    require(governanceRewards > 0, NoWithdrawableGovernanceRewards());
-
-    token.transfer(memberAddress, governanceRewards);
-  }
-
-  /// @notice Withdraws governance rewards to the destination address. It can only be called by the owner
-  ///         of the rewards.
-  /// @param destination  The address to which the governance rewards will be transferred.
-  /// @param batchSize    The maximum number of iterations to avoid unbounded loops when withdrawing governance rewards.
-  ///                     Cannot be 0 and must fit in one block
-  function withdrawGovernanceRewardsTo(
-    address destination,
-    uint batchSize
-  ) public whenNotPaused {
-
-    uint governanceRewards = governance().claimReward(msg.sender, batchSize);
-    require(governanceRewards > 0, NoWithdrawableGovernanceRewards());
-
-    token.transfer(destination, governanceRewards);
-  }
-
-  /// @notice Retrieves the pending rewards for a given member.
-  /// @param member  The address of the member whose pending rewards are to be retrieved.
-  /// @return        The total amount of pending rewards for the given member.
-  function getPendingRewards(address member) public view returns (uint) {
-    uint governanceRewards = governance().getPendingReward(member);
-    return governanceRewards;
+    return pool.getTokenPrice();
   }
 
   /// @notice Withdraws NXM from the Nexus platform based on specified options.
@@ -292,9 +212,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   function withdrawNXM(
     StakingPoolDeposit[] calldata stakingPoolDeposits,
     StakingPoolManagerReward[] calldata stakingPoolManagerRewards
-  ) external whenNotPaused {
-    // assessment stake
-
+  ) external whenNotPaused(PAUSE_GLOBAL) {
     // staking pool rewards and stake
     for (uint i = 0; i < stakingPoolDeposits.length; i++) {
       uint tokenId = stakingPoolDeposits[i].tokenId;
@@ -306,19 +224,6 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
     for (uint i = 0; i < stakingPoolManagerRewards.length; i++) {
       uint poolId = stakingPoolManagerRewards[i].poolId;
       stakingPool(poolId).withdraw(0, false, true, stakingPoolManagerRewards[i].trancheIds);
-    }
-  }
-
-  /// @dev Returns tokens locked for a specified address for a specified reason
-  /// @param _of      The address whose tokens are locked
-  /// @param _reason  The reason to query the locked tokens for
-  function tokensLocked(
-    address _of,
-    bytes32 _reason
-  ) public view returns (uint amount) {
-
-    if (!locked[_of][_reason].claimed) {
-      amount = locked[_of][_reason].amount;
     }
   }
 
@@ -355,31 +260,6 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
     );
   }
 
-  /// @notice Transfer ownership of all staking pools managed by a member to a new address.
-  /// @dev    Used when switching membership.
-  /// @param from  address of the member whose pools are being transferred
-  /// @param to    the new address of the member
-  function transferStakingPoolsOwnership(address from, address to) external override onlyInternal {
-
-    uint stakingPoolCount = managerStakingPools[from].length;
-
-    if (stakingPoolCount == 0) {
-      return;
-    }
-
-    while (stakingPoolCount > 0) {
-      // remove from old
-      uint poolId = managerStakingPools[from][stakingPoolCount - 1];
-      managerStakingPools[from].pop();
-
-      // add to new and update manager
-      managerStakingPools[to].push(poolId);
-      stakingPoolManagers[poolId] = to;
-
-      stakingPoolCount--;
-    }
-  }
-
   function _assignStakingPoolManager(uint poolId, address manager) internal {
 
     address previousManager = stakingPoolManagers[poolId];
@@ -409,7 +289,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   /// @dev    Used by PooledStaking during the migration
   /// @param poolId       id of the staking pool
   /// @param manager      address of the new manager of the staking pool
-  function assignStakingPoolManager(uint poolId, address manager) external override onlyInternal {
+  function assignStakingPoolManager(uint poolId, address manager) external override onlyContracts(C_STAKING_PRODUCTS) {
     _assignStakingPoolManager(poolId, manager);
   }
 

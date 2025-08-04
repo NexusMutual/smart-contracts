@@ -42,9 +42,6 @@ contract NexusViewer is INexusViewer, Multicall {
     // Staking Pool
     IStakingViewer.AggregatedTokens memory aggregatedTokens = stakingViewer.getAggregatedTokens(tokenIds);
     uint managerTotalRewards = stakingViewer.getManagerTotalRewards(member);
-
-    // V1
-    uint legacyClaimAssessmentTokens = _tokenController().tokensLocked(member, "CLA");
     
     return ClaimableNXM({
       governanceRewards: governanceRewards,
@@ -52,8 +49,7 @@ contract NexusViewer is INexusViewer, Multicall {
       assessmentStake: stakeLockedState.isStakeLocked ? 0 : assessmentStake,
       stakingPoolTotalRewards: aggregatedTokens.totalRewards,
       stakingPoolTotalExpiredStake: aggregatedTokens.totalExpiredStake,
-      managerTotalRewards: managerTotalRewards,
-      legacyClaimAssessmentTokens: legacyClaimAssessmentTokens
+      managerTotalRewards: managerTotalRewards
     });
   }
 

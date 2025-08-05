@@ -55,9 +55,9 @@ interface ISwapOperator {
 
   function closeOrder(GPv2Order.Data calldata order) external;
 
-  function swapEnzymeVaultShareForETH(uint amountIn, uint amountOutMin) external;
+  function swapEnzymeVaultShareForETH(uint fromAmount, uint toAmountMin) external;
 
-  function swapETHForEnzymeVaultShare(uint amountIn, uint amountOutMin) external;
+  function swapETHForEnzymeVaultShare(uint fromAmount, uint toAmountMin) external;
 
   function recoverAsset(address assetAddress, address receiver) external;
 
@@ -67,7 +67,7 @@ interface ISwapOperator {
 
   event OrderPlaced(GPv2Order.Data order);
   event OrderClosed(GPv2Order.Data order, uint filledAmount);
-  event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
+  event Swapped(address indexed fromAsset, address indexed toAsset, uint fromAmount, uint toAmount);
   event TransferredToSafe(address asset, uint amount);
 
   // Swap Order
@@ -76,8 +76,18 @@ interface ISwapOperator {
   error OrderUidMismatch(bytes providedOrderUID, bytes expectedOrderUID);
   error UnsupportedTokenBalance(string kind);
   error InvalidReceiver(address validReceiver);
-  error AmountInTooHigh(uint expectedAmountIn, uint actualAmountIn);
-  error AmountOutTooLow(uint amountOut, uint minAmount);
+  error InvalidSwapKind();
+
+  // swap request vs amount
+  error FromAmountMismatch(uint expectedFromAmount, uint actualFromAmount);
+  error ToAmountMismatch(uint expectedToAmount, uint actualToAmount);
+  error FromAmountTooHigh(uint expectedFromAmount, uint actualFromAmount);
+  error ToAmountTooLow(uint expectedToAmount, uint actualToAmount);
+
+  // order amounts vs actual amounts
+  error SwappedFromAmountTooHigh(uint expectedFromAmount, uint actualFromAmount);
+  error SwappedToAmountTooLow(uint expectedToAmount, uint actualToAmount);
+
   error FeeNotZero();
   error InvalidDenominationAsset(address expectedAsset, address actualAsset);
   error InvalidAsset(address requestedAsset, address orderAsset);

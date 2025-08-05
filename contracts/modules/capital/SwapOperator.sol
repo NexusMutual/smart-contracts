@@ -125,6 +125,7 @@ contract SwapOperator is ISwapOperator, RegistryAware {
       require(order.sellAmount == swapRequest.fromAmount, FromAmountMismatch(swapRequest.fromAmount, order.sellAmount));
       require(order.buyAmount >= swapRequest.toAmount, ToAmountTooLow(swapRequest.toAmount, order.buyAmount));
     } else {
+      // ExactOutput (buyAmount)
       require(order.sellAmount <= swapRequest.fromAmount, FromAmountTooHigh(swapRequest.fromAmount, order.sellAmount));
       require(order.buyAmount == swapRequest.toAmount, ToAmountMismatch(swapRequest.toAmount, order.buyAmount));
     }
@@ -178,6 +179,9 @@ contract SwapOperator is ISwapOperator, RegistryAware {
       OrderUidMismatch(currentOrderUID, calculatedOrderUID)
     );
 
+    // read before invalidating the order
+    uint filledAmount = cowSettlement.filledAmount(currentOrderUID);
+
     // invalidate signature, cancel order and unapprove tokens
     cowSettlement.setPreSignature(currentOrderUID, false);
     cowSettlement.invalidateOrder(currentOrderUID);
@@ -190,7 +194,6 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     address sellToken = address(order.sellToken) == address(weth) ? ETH : address(order.sellToken);
     pool.clearSwapAssetAmount(sellToken);
 
-    uint filledAmount = cowSettlement.filledAmount(currentOrderUID);
     delete currentOrderUID;
 
     // emit event

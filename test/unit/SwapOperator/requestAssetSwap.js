@@ -4,7 +4,6 @@ const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers'
 
 const setup = require('./setup');
 const { ContractIndexes, PauseTypes, SwapKind, Assets } = nexus.constants;
-const { ETH } = Assets;
 const { parseEther, parseUnits } = ethers;
 
 describe('requestAssetSwap', function () {
@@ -14,7 +13,7 @@ describe('requestAssetSwap', function () {
     const { alice } = fixture.accounts;
 
     const request = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: 1000,
       toAmount: 1000,
@@ -36,7 +35,7 @@ describe('requestAssetSwap', function () {
     await registry.setPauseConfig(PauseTypes.PAUSE_SWAPS);
 
     const request = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: 1000,
       toAmount: 1000,
@@ -58,7 +57,7 @@ describe('requestAssetSwap', function () {
     await registry.setPauseConfig(PauseTypes.PAUSE_GLOBAL);
 
     const request = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: 1000,
       toAmount: 1000,
@@ -81,7 +80,7 @@ describe('requestAssetSwap', function () {
 
     const daiToEthRequest = {
       fromAsset: dai,
-      toAsset: ETH,
+      toAsset: Assets.ETH,
       fromAmount: 1000,
       toAmount: 1000,
       deadline: timestamp + 1000,
@@ -93,7 +92,7 @@ describe('requestAssetSwap', function () {
       .withArgs(dai);
 
     const ethToDaiRequest = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: 1000,
       toAmount: 1000,
@@ -115,7 +114,7 @@ describe('requestAssetSwap', function () {
 
     const unsupportedToEthRequest = {
       fromAsset: unsupportedAsset,
-      toAsset: ETH,
+      toAsset: Assets.ETH,
       fromAmount: 1000,
       toAmount: 1000,
       deadline: timestamp + 1000,
@@ -127,7 +126,7 @@ describe('requestAssetSwap', function () {
       .withArgs(unsupportedAsset);
 
     const ethToUnsupportedRequest = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: unsupportedAsset,
       fromAmount: 1000,
       toAmount: 1000,
@@ -154,7 +153,7 @@ describe('requestAssetSwap', function () {
     await time.setNextBlockTimestamp(firstAttemptTimestamp);
 
     const expiredRequest = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: parseEther('1'),
       toAmount: parseEther('1000'),
@@ -207,7 +206,7 @@ describe('requestAssetSwap', function () {
     const { governor } = fixture.accounts;
 
     const request = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: parseEther('1'),
       toAmount: parseEther('1000'),
@@ -229,7 +228,7 @@ describe('requestAssetSwap', function () {
 
     const request = {
       fromAsset: dai,
-      toAsset: ETH,
+      toAsset: Assets.ETH,
       fromAmount: parseEther('1000'),
       toAmount: parseEther('1'),
       deadline: (await time.latest()) + 3600,
@@ -250,8 +249,8 @@ describe('requestAssetSwap', function () {
     const timestamp = await time.latest();
 
     const request = {
-      fromAsset: ETH,
-      toAsset: ETH,
+      fromAsset: Assets.ETH,
+      toAsset: Assets.ETH,
       fromAmount: parseEther('1'),
       toAmount: parseEther('1'),
       deadline: timestamp + 3600,
@@ -260,7 +259,7 @@ describe('requestAssetSwap', function () {
 
     await expect(swapOperator.connect(governor).requestAssetSwap(request))
       .to.be.revertedWithCustomError(swapOperator, 'SameAssetSwapRequest')
-      .withArgs(ETH);
+      .withArgs(Assets.ETH);
   });
 
   it('successfully overwrites an existing swap request', async function () {
@@ -270,7 +269,7 @@ describe('requestAssetSwap', function () {
     const timestamp = await time.latest();
 
     const firstRequest = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: parseEther('1'),
       toAmount: parseEther('1000'),

@@ -5,7 +5,6 @@ const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers'
 const setup = require('./setup');
 
 const { PauseTypes, SwapKind, Assets } = nexus.constants;
-const { ETH } = Assets;
 const { parseEther, ZeroAddress } = ethers;
 
 describe('placeOrder', function () {
@@ -33,7 +32,7 @@ describe('placeOrder', function () {
     const orderUID = ethers.randomBytes(56);
 
     const request = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: parseEther('1'),
       toAmount: parseEther('2000'),
@@ -56,7 +55,7 @@ describe('placeOrder', function () {
     const timestamp = await time.latest();
 
     const request = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: parseEther('1'),
       toAmount: parseEther('2000'),
@@ -103,7 +102,7 @@ describe('placeOrder', function () {
     const { governor, swapController } = fixture.accounts;
 
     const request = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: parseEther('1'),
       toAmount: parseEther('2000'),
@@ -146,7 +145,7 @@ describe('placeOrder', function () {
     const timestamp = await time.latest();
 
     await swapOperator.connect(governor).requestAssetSwap({
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: parseEther('1'),
       toAmount: parseEther('2000'),
@@ -184,7 +183,7 @@ describe('placeOrder', function () {
     const timestamp = await time.latest();
 
     const request = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: parseEther('1'),
       toAmount: parseEther('2000'),
@@ -284,7 +283,7 @@ describe('placeOrder', function () {
     const timestamp = await time.latest();
 
     const request = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: parseEther('1'),
       toAmount: parseEther('2000'),
@@ -323,7 +322,7 @@ describe('placeOrder', function () {
     const timestamp = await time.latest();
 
     const request = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: parseEther('1'),
       toAmount: parseEther('2000'),
@@ -363,7 +362,7 @@ describe('placeOrder', function () {
 
     const request = {
       fromAsset: dai,
-      toAsset: ETH,
+      toAsset: Assets.ETH,
       fromAmount: parseEther('2000'),
       toAmount: parseEther('1'),
       deadline: timestamp + 1000,
@@ -402,7 +401,7 @@ describe('placeOrder', function () {
 
     const request = {
       fromAsset: dai,
-      toAsset: ETH,
+      toAsset: Assets.ETH,
       fromAmount: parseEther('2000'),
       toAmount: parseEther('1'),
       deadline: timestamp + 1000,
@@ -440,7 +439,7 @@ describe('placeOrder', function () {
     const timestamp = await time.latest();
 
     const request = {
-      fromAsset: ETH,
+      fromAsset: Assets.ETH,
       toAsset: dai,
       fromAmount: parseEther('1'),
       toAmount: parseEther('2000'),
@@ -482,7 +481,7 @@ describe('placeOrder', function () {
     const tx = await swapOperator.connect(swapController).placeOrder(order, orderUID);
 
     // check the effects
-    await expect(tx).to.emit(pool, 'TransferAssetToSwapOperatorCalled').withArgs(ETH, request.fromAmount);
+    await expect(tx).to.emit(pool, 'TransferAssetToSwapOperatorCalled').withArgs(Assets.ETH, request.fromAmount);
 
     await expect(tx)
       .to.emit(swapOperator, 'OrderPlaced')
@@ -549,7 +548,7 @@ describe('placeOrder', function () {
 
     const request = {
       fromAsset: dai,
-      toAsset: ETH,
+      toAsset: Assets.ETH,
       fromAmount: parseEther('2000'),
       toAmount: parseEther('1'),
       deadline: timestamp + 1000,

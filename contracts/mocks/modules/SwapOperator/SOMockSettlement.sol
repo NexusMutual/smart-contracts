@@ -40,7 +40,10 @@ contract SOMockSettlement {
     vaultRelayer.transfer(order.buyToken, address(vaultRelayer), order.receiver, buyAmount);
   }
 
+  event InvalidateOrderCalledWith(bytes orderUID);
+
   function invalidateOrder(bytes calldata orderUid) external {
-     filledAmount[orderUid] = type(uint256).max;
+    filledAmount[orderUid] = type(uint256).max;
+    emit InvalidateOrderCalledWith(orderUid);
   }
 }

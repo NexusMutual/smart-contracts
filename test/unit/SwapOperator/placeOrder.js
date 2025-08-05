@@ -742,4 +742,43 @@ describe('placeOrder', function () {
     expect(await dai.allowance(swapOperator, cowVaultRelayer)).to.be.equal(request.fromAmount);
     expect(await usdc.allowance(swapOperator, cowVaultRelayer)).to.be.equal(0);
   });
+
+  it('reverts when SwapKind is ExactOutput and buyAmount != swapRequest.toAmount', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, dai } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
+
+    const request = {
+      fromAsset: Assets.ETH,
+      toAsset: dai,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('2000'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactOutput,
+    };
+
+    await swapOperator.connect(governor).requestAssetSwap(request);
+
+    const order = {
+      sellToken: weth,
+      buyToken: dai,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('2001'), // not equal to request.toAmount
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('buy')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
+
+    const orderUID = await swapOperator.getUID(order);
+
+    await expect(swapOperator.connect(swapController).placeOrder(order, orderUID))
+      .to.be.revertedWithCustomError(swapOperator, 'ToAmountMismatch')
+      .withArgs(request.toAmount, order.buyAmount);
+  });
 });

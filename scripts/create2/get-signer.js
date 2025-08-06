@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { AwsKmsSigner } = require('@nexusmutual/ethers-v5-aws-kms-signer');
+const { AwsKmsSigner } = require('@nexusmutual/ethers-v6-aws-kms-signer');
 
 const SIGNER_TYPE = {
   LOCAL: 'local',

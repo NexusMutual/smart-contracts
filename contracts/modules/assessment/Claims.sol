@@ -151,7 +151,7 @@ contract Claims is IClaims, RegistryAware {
     uint32 coverId,
     uint96 requestedAmount,
     bytes32 ipfsMetadata
-  ) external payable override onlyMember returns (Claim memory claim) {
+  ) external payable override onlyMember whenNotPaused(PAUSE_CLAIMS_PAYOUTS) returns (Claim memory claim) {
     require(coverNFT.isApprovedOrOwner(msg.sender, coverId), OnlyOwnerOrApprovedCanSubmitClaim());
     require(coverNFT.ownerOf(coverId) == msg.sender, OnlyOwnerCanSubmitClaim());
 
@@ -237,7 +237,7 @@ contract Claims is IClaims, RegistryAware {
   /// @dev Must be the cover NFT owner for the claim and a member can call this function
   ///
   /// @param claimId  Claim identifier
-  function redeemClaimPayout(uint claimId) external override onlyMember whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
+  function redeemClaimPayout(uint claimId) external override onlyMember whenNotPaused(PAUSE_CLAIMS_PAYOUTS) {
 
     (Claim memory claim, uint payoutRedemptionEnd) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.ACCEPTED);
 
@@ -266,7 +266,7 @@ contract Claims is IClaims, RegistryAware {
   /// @dev Can be called by anyone, but the claim deposit is always transferred to the current cover NFT owner.
   ///
   /// @param claimId The unique identifier of the claim for which the deposit is being retrieved.
-  function retrieveDeposit(uint claimId) external override whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
+  function retrieveDeposit(uint claimId) external override whenNotPaused(PAUSE_CLAIMS_PAYOUTS) {
 
     (Claim memory claim, /* payoutRedemptionEnd */) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.DRAW);
 

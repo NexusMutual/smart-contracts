@@ -97,7 +97,12 @@ interface IAssessment {
 
   /* ========= EVENTS ========== */
 
-  event AssessmentDataForProductTypesSet(uint[] productTypeIds, uint cooldownPeriod, uint payoutRedemptionPeriod, uint groupId);
+  event AssessmentDataForProductTypeSet(
+    uint indexed productTypeId,
+    uint indexed groupId,
+    uint cooldownPeriod,
+    uint payoutRedemptionPeriod
+  );
   event AssessorAddedToGroup(uint indexed groupId, uint assessorMemberId);
   event AssessorRemovedFromGroup(uint indexed groupId, uint assessorMemberId);
   event GroupMetadataSet(uint indexed groupId, bytes32 ipfsMetadata);

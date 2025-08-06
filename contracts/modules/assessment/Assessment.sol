@@ -184,14 +184,14 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
     uint length = productTypeIds.length;
     for (uint i = 0; i < length; i++) {
-      _assessmentData[productTypeIds[i]] = AssessmentData({
+      uint productTypeId = productTypeIds[i];
+      _assessmentData[productTypeId] = AssessmentData({
         assessingGroupId: groupId.toUint16(),
         cooldownPeriod: cooldownPeriod.toUint32(),
         payoutRedemptionPeriod: payoutRedemptionPeriod.toUint32()
       });
+      emit AssessmentDataForProductTypeSet(productTypeId, groupId, cooldownPeriod, payoutRedemptionPeriod);
     }
-
-    emit AssessmentDataForProductTypesSet(productTypeIds, cooldownPeriod, payoutRedemptionPeriod, groupId);
   }
 
   /// @notice Undoes votes cast by an assessor on multiple claims

@@ -4,6 +4,40 @@ const { setup } = require('./setup');
 
 const ONE_DAY = 24 * 60 * 60;
 
+/**
+ * Helper function to verify AssessmentDataForProductTypeSet events
+ */
+async function verifyAssessmentDataEvents(
+  tx,
+  assessment,
+  productTypeIds,
+  cooldownPeriod,
+  payoutRedemptionPeriod,
+  groupId,
+) {
+  const { logs } = await tx.wait();
+
+  const events = logs.filter(log => {
+    try {
+      const { name } = assessment.interface.parseLog(log);
+      return name === 'AssessmentDataForProductTypeSet';
+    } catch {
+      return false;
+    }
+  });
+
+  expect(events).to.have.length(productTypeIds.length);
+
+  // Verify each productType has its own event
+  productTypeIds.forEach((productTypeId, i) => {
+    const parsedEvent = assessment.interface.parseLog(events[i]);
+    expect(parsedEvent.args[0]).to.equal(productTypeId);
+    expect(parsedEvent.args[1]).to.equal(groupId);
+    expect(parsedEvent.args[2]).to.equal(cooldownPeriod);
+    expect(parsedEvent.args[3]).to.equal(payoutRedemptionPeriod);
+  });
+}
+
 describe('setAssessmentDataForProductTypes', function () {
   it('should revert if not called by governor', async function () {
     const { contracts, accounts, constants } = await loadFixture(setup);
@@ -42,15 +76,17 @@ describe('setAssessmentDataForProductTypes', function () {
       expect(assessmentData.cooldownPeriod).to.equal(cooldownPeriod);
       expect(assessmentData.payoutRedemptionPeriod).to.equal(payoutRedemptionPeriod);
       expect(assessmentData.assessingGroupId).to.equal(ASSESSOR_GROUP_ID);
-
-      const assessmentDataCooldown = await assessment.payoutCooldown(productTypeId);
-      expect(assessmentDataCooldown).to.equal(cooldownPeriod);
     }
 
     // Verify event emission
-    await expect(tx)
-      .to.emit(assessment, 'AssessmentDataForProductTypesSet')
-      .withArgs(productTypeIds, cooldownPeriod, payoutRedemptionPeriod, ASSESSOR_GROUP_ID);
+    await verifyAssessmentDataEvents(
+      tx,
+      assessment,
+      productTypeIds,
+      cooldownPeriod,
+      payoutRedemptionPeriod,
+      ASSESSOR_GROUP_ID,
+    );
   });
 
   it('should handle zero cooldown and payout redemption periods', async function () {
@@ -68,13 +104,20 @@ describe('setAssessmentDataForProductTypes', function () {
       .setAssessmentDataForProductTypes(productTypeIds, cooldownPeriod, payoutRedemptionPeriod, ASSESSOR_GROUP_ID);
 
     // Verify assessment data is set with zero cooldown
-    const assessmentDataCooldown = await assessment.payoutCooldown(productTypeIds[0]);
-    expect(assessmentDataCooldown).to.equal(cooldownPeriod);
+    const assessmentData = await assessment.getAssessmentDataForProductType(productTypeIds[0]);
+    expect(assessmentData.cooldownPeriod).to.equal(cooldownPeriod);
+    expect(assessmentData.payoutRedemptionPeriod).to.equal(payoutRedemptionPeriod);
+    expect(assessmentData.assessingGroupId).to.equal(ASSESSOR_GROUP_ID);
 
     // Verify event emission
-    await expect(tx)
-      .to.emit(assessment, 'AssessmentDataForProductTypesSet')
-      .withArgs(productTypeIds, cooldownPeriod, payoutRedemptionPeriod, ASSESSOR_GROUP_ID);
+    await verifyAssessmentDataEvents(
+      tx,
+      assessment,
+      productTypeIds,
+      cooldownPeriod,
+      payoutRedemptionPeriod,
+      ASSESSOR_GROUP_ID,
+    );
   });
 
   it('should handle maximum cooldown period and payout redemption period', async function () {
@@ -92,13 +135,20 @@ describe('setAssessmentDataForProductTypes', function () {
       .setAssessmentDataForProductTypes(productTypeIds, maxCooldownPeriod, payoutRedemptionPeriod, ASSESSOR_GROUP_ID);
 
     // Verify assessment data is set with max cooldown
-    const assessmentDataCooldown = await assessment.payoutCooldown(productTypeIds[0]);
-    expect(assessmentDataCooldown).to.equal(maxCooldownPeriod);
+    const assessmentData = await assessment.getAssessmentDataForProductType(productTypeIds[0]);
+    expect(assessmentData.cooldownPeriod).to.equal(maxCooldownPeriod);
+    expect(assessmentData.payoutRedemptionPeriod).to.equal(payoutRedemptionPeriod);
+    expect(assessmentData.assessingGroupId).to.equal(ASSESSOR_GROUP_ID);
 
     // Verify event emission
-    await expect(tx)
-      .to.emit(assessment, 'AssessmentDataForProductTypesSet')
-      .withArgs(productTypeIds, maxCooldownPeriod, payoutRedemptionPeriod, ASSESSOR_GROUP_ID);
+    await verifyAssessmentDataEvents(
+      tx,
+      assessment,
+      productTypeIds,
+      maxCooldownPeriod,
+      payoutRedemptionPeriod,
+      ASSESSOR_GROUP_ID,
+    );
   });
 
   it('should handle duplicate product type IDs in same call', async function () {
@@ -117,14 +167,21 @@ describe('setAssessmentDataForProductTypes', function () {
 
     // Verify assessment data is set for all IDs (including duplicates)
     for (const productTypeId of productTypeIds) {
-      const assessmentDataCooldown = await assessment.payoutCooldown(productTypeId);
-      expect(assessmentDataCooldown).to.equal(cooldownPeriod);
+      const assessmentData = await assessment.getAssessmentDataForProductType(productTypeId);
+      expect(assessmentData.cooldownPeriod).to.equal(cooldownPeriod);
+      expect(assessmentData.payoutRedemptionPeriod).to.equal(payoutRedemptionPeriod);
+      expect(assessmentData.assessingGroupId).to.equal(ASSESSOR_GROUP_ID);
     }
 
-    // Verify event emission (with original array including duplicates)
-    await expect(tx)
-      .to.emit(assessment, 'AssessmentDataForProductTypesSet')
-      .withArgs(productTypeIds, cooldownPeriod, payoutRedemptionPeriod, ASSESSOR_GROUP_ID);
+    // Verify event emission
+    await verifyAssessmentDataEvents(
+      tx,
+      assessment,
+      productTypeIds,
+      cooldownPeriod,
+      payoutRedemptionPeriod,
+      ASSESSOR_GROUP_ID,
+    );
   });
 
   it('should handle sequential updates to same product types', async function () {
@@ -155,9 +212,6 @@ describe('setAssessmentDataForProductTypes', function () {
       expect(assessmentData.assessingGroupId).to.equal(ASSESSOR_GROUP_ID);
       expect(assessmentData.cooldownPeriod).to.equal(initialCooldown);
       expect(assessmentData.payoutRedemptionPeriod).to.equal(initialPayoutRedemptionPeriod);
-
-      const assessmentDataCooldown = await assessment.payoutCooldown(productTypeId);
-      expect(assessmentDataCooldown).to.equal(initialCooldown);
     }
 
     // Update data
@@ -176,15 +230,17 @@ describe('setAssessmentDataForProductTypes', function () {
       expect(assessmentData.cooldownPeriod).to.equal(updatedCooldown);
       expect(assessmentData.payoutRedemptionPeriod).to.equal(updatedPayoutRedemptionPeriod);
       expect(assessmentData.assessingGroupId).to.equal(ASSESSOR_GROUP_ID);
-
-      const assessmentDataCooldown = await assessment.payoutCooldown(productTypeId);
-      expect(assessmentDataCooldown).to.equal(updatedCooldown);
     }
 
     // Verify event emission for update
-    await expect(tx)
-      .to.emit(assessment, 'AssessmentDataForProductTypesSet')
-      .withArgs(productTypeIds, updatedCooldown, updatedPayoutRedemptionPeriod, ASSESSOR_GROUP_ID);
+    await verifyAssessmentDataEvents(
+      tx,
+      assessment,
+      productTypeIds,
+      updatedCooldown,
+      updatedPayoutRedemptionPeriod,
+      ASSESSOR_GROUP_ID,
+    );
   });
 
   it('should revert when groupId is invalid', async function () {
@@ -253,34 +309,21 @@ describe('setAssessmentDataForProductTypes', function () {
         ASSESSOR_GROUP_ID,
       );
 
-    // Verify that different product types have different assessment data stored
-    const [assessmentData0, assessmentData1, assessmentData2] = await Promise.all([
-      assessment.getAssessmentDataForProductType(0),
-      assessment.getAssessmentDataForProductType(1),
-      assessment.getAssessmentDataForProductType(2),
-    ]);
-
     // Verify each product type has correct data
+    const assessmentData0 = await assessment.getAssessmentDataForProductType(0);
     expect(assessmentData0.cooldownPeriod).to.equal(productType0CooldownPeriod);
     expect(assessmentData0.payoutRedemptionPeriod).to.equal(productType0PayoutRedemptionPeriod);
     expect(assessmentData0.assessingGroupId).to.equal(ASSESSOR_GROUP_ID);
 
+    const assessmentData1 = await assessment.getAssessmentDataForProductType(1);
     expect(assessmentData1.cooldownPeriod).to.equal(productType1CooldownPeriod);
     expect(assessmentData1.payoutRedemptionPeriod).to.equal(productType1PayoutRedemptionPeriod);
     expect(assessmentData1.assessingGroupId).to.equal(ASSESSOR_GROUP_ID);
 
+    const assessmentData2 = await assessment.getAssessmentDataForProductType(2);
     expect(assessmentData2.cooldownPeriod).to.equal(productType2CooldownPeriod);
     expect(assessmentData2.payoutRedemptionPeriod).to.equal(productType2PayoutRedemptionPeriod);
     expect(assessmentData2.assessingGroupId).to.equal(ASSESSOR_GROUP_ID);
-
-    // Verify all values are different from each other
-    expect(assessmentData0.cooldownPeriod).to.not.equal(assessmentData1.cooldownPeriod);
-    expect(assessmentData1.cooldownPeriod).to.not.equal(assessmentData2.cooldownPeriod);
-    expect(assessmentData0.cooldownPeriod).to.not.equal(assessmentData2.cooldownPeriod);
-
-    expect(assessmentData0.payoutRedemptionPeriod).to.not.equal(assessmentData1.payoutRedemptionPeriod);
-    expect(assessmentData1.payoutRedemptionPeriod).to.not.equal(assessmentData2.payoutRedemptionPeriod);
-    expect(assessmentData0.payoutRedemptionPeriod).to.not.equal(assessmentData2.payoutRedemptionPeriod);
 
     // Verify payoutCooldown function returns correct values
     expect(await assessment.payoutCooldown(0)).to.equal(productType0CooldownPeriod);

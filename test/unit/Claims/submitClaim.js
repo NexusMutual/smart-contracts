@@ -1,12 +1,13 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { parseEther, toBeHex } = ethers;
 
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
-const { C_POOL } = require('../../utils/registry');
-const { ASSESSMENT_STATUS, createMockCover, submitClaim } = require('./helpers');
+const { ASSET, ASSESSMENT_STATUS, createMockCover, submitClaim } = require('./helpers');
 const { setup } = require('./setup');
+
+const { ContractIndexes } = nexus.constants;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -70,8 +71,8 @@ describe('submitClaim', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+    const claimId = await claims.getClaimsCount();
 
     const { timestamp } = await ethers.provider.getBlock('latest');
 
@@ -86,43 +87,6 @@ describe('submitClaim', function () {
       claims,
       'ClaimIsBeingAssessed',
     );
-  });
-
-  it('reverts if a payout on the same cover can be redeemed', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover, assessment, claims } = fixture.contracts;
-    const [coverOwner] = fixture.accounts.members;
-
-    await createMockCover(cover, { owner: coverOwner.address });
-
-    const claimId = (await claims.getClaimsCount()) + 1n;
-    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    await assessment.setAssessmentResult(claimId, timestamp, ASSESSMENT_STATUS.ACCEPTED);
-
-    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWithCustomError(
-      claims,
-      'PayoutCanStillBeRedeemed',
-    );
-  });
-
-  it('allows claim submission if an accepted claim is not redeemed during the redemption period', async function () {
-    const fixture = await loadFixture(setup);
-    const { cover, assessment, claims } = fixture.contracts;
-    const [coverOwner] = fixture.accounts.members;
-
-    await createMockCover(cover, { owner: coverOwner.address });
-
-    const claimId = (await claims.getClaimsCount()) + 1n;
-    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    await assessment.setAssessmentResult(claimId, timestamp, ASSESSMENT_STATUS.ACCEPTED);
-    const { payoutRedemptionPeriod } = fixture.config;
-
-    await setTime(timestamp + payoutRedemptionPeriod);
-    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
   });
 
   it('reverts if the submission deposit is not an exact amount', async function () {
@@ -199,8 +163,8 @@ describe('submitClaim', function () {
     const coverId = 1;
     const coverData = await cover.getCoverData(coverId);
 
-    // advance time past grace period
-    await setTime(timestamp + Number(coverData.start) + Number(coverData.period) + Number(gracePeriod) + 1);
+    // Advance time to grace period expiry
+    await setTime(timestamp + Number(coverData.start) + Number(coverData.period) + Number(gracePeriod));
 
     await expect(submitClaim(fixture)({ coverId, sender: coverOwner })).to.be.revertedWithCustomError(
       claims,
@@ -225,8 +189,8 @@ describe('submitClaim', function () {
     const coverId = 1;
     const coverData = await cover.getCoverData(coverId);
 
-    // advance time past grace period
-    await setTime(timestamp + Number(coverData.start) + Number(coverData.period) + Number(gracePeriod) + 1);
+    // Advance time to grace period expiry
+    await setTime(timestamp + Number(coverData.start) + Number(coverData.period) + Number(gracePeriod));
 
     await expect(submitClaim(fixture)({ coverId, sender: coverOwner })).to.be.revertedWithCustomError(
       claims,
@@ -243,8 +207,8 @@ describe('submitClaim', function () {
 
     const coverId = 1;
 
-    const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId, sender: coverOwner });
+    const claimId = await claims.getClaimsCount();
 
     expect(await assessment._productTypeForClaimId(claimId)).to.equal(1n);
   });
@@ -269,38 +233,33 @@ describe('submitClaim', function () {
 
   it('stores the claimId in lastClaimSubmissionOnCover', async function () {
     const fixture = await loadFixture(setup);
-    const { claims, cover } = fixture.contracts;
+    const { assessment, claims, cover } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
 
-    await createMockCover(cover, { owner: coverOwner.address });
+    // Create 2 covers
+    await Promise.all([
+      createMockCover(cover, { owner: coverOwner.address }),
+      createMockCover(cover, { owner: coverOwner.address }),
+    ]);
 
-    const firstCoverId = 1;
+    // First claim on cover 1
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+    expect(await claims.lastClaimSubmissionOnCover(1)).to.equal(1n);
+    expect(await claims.lastClaimSubmissionOnCover(2)).to.equal(0n);
 
-    {
-      const claimId = await claims.lastClaimSubmissionOnCover(firstCoverId);
-      expect(claimId).to.be.equal(0n);
-    }
+    // Claim on cover 2
+    await submitClaim(fixture)({ coverId: 2, sender: coverOwner });
+    expect(await claims.lastClaimSubmissionOnCover(1)).to.equal(1n);
+    expect(await claims.lastClaimSubmissionOnCover(2)).to.equal(2n);
 
-    {
-      await submitClaim(fixture)({ coverId: firstCoverId, sender: coverOwner });
-      const claimId = await claims.lastClaimSubmissionOnCover(firstCoverId);
-      expect(claimId).to.be.equal(1n);
-    }
+    // Set cover 1 claim to DRAW to allow retry
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    await assessment.setAssessmentResult(1, timestamp, ASSESSMENT_STATUS.DRAW);
 
-    await createMockCover(cover, { owner: coverOwner.address });
-
-    const secondCoverId = 2;
-
-    {
-      const claimId = await claims.lastClaimSubmissionOnCover(secondCoverId);
-      expect(claimId).to.be.equal(0n);
-    }
-
-    {
-      await submitClaim(fixture)({ coverId: secondCoverId, sender: coverOwner });
-      const claimId = await claims.lastClaimSubmissionOnCover(secondCoverId);
-      expect(claimId).to.be.equal(2n);
-    }
+    // Second claim on cover 1 (retry after DRAW)
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+    expect(await claims.lastClaimSubmissionOnCover(1)).to.equal(3n);
+    expect(await claims.lastClaimSubmissionOnCover(2)).to.equal(2n);
   });
 
   it('should transfer assessment deposit to pool', async function () {
@@ -334,24 +293,279 @@ describe('submitClaim', function () {
       .withArgs(coverOwner.address, 1, coverId, 2);
   });
 
-  it('should revert if assessment deposit to pool fails', async function () {
+  it('creates claim struct with correct initial values', async function () {
     const fixture = await loadFixture(setup);
-    const { claims, cover, registry } = fixture.contracts;
-    const { claimDepositInETH: deposit } = fixture.config;
+    const { claims, cover } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
+
+    const claimAmount = parseEther('50');
+    await createMockCover(cover, { owner: coverOwner.address, amount: parseEther('100'), coverAsset: ASSET.DAI });
+
+    const coverId = 1;
+    const claimId = (await claims.getClaimsCount()) + 1n;
+
+    await submitClaim(fixture)({ coverId, amount: claimAmount, sender: coverOwner });
+
+    const claim = await claims.getClaimInfo(claimId);
+
+    expect(claim.coverId).to.equal(coverId);
+    expect(claim.amount).to.equal(claimAmount);
+    expect(claim.coverAsset).to.equal(ASSET.DAI);
+    expect(claim.payoutRedeemed).to.be.false;
+    expect(claim.depositRetrieved).to.be.false;
+  });
+
+  it('correctly tracks payoutRedeemed and depositRetrieved through claim lifecycle', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover, assessment, claims } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
 
     await createMockCover(cover, { owner: coverOwner.address });
 
+    // Submit claim
+    const claimId = (await claims.getClaimsCount()) + 1n;
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+
+    // Both fields should be false
+    let claim = await claims.getClaimInfo(claimId);
+    expect(claim.payoutRedeemed).to.be.false;
+    expect(claim.depositRetrieved).to.be.false;
+
+    // Accept the claim
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    await assessment.setAssessmentResult(claimId, timestamp, ASSESSMENT_STATUS.ACCEPTED);
+
+    // State should still be false until payout is redeemed
+    claim = await claims.getClaimInfo(claimId);
+    expect(claim.payoutRedeemed).to.be.false;
+    expect(claim.depositRetrieved).to.be.false;
+
+    // Redeem payout
+    await claims.redeemClaimPayout(claimId);
+
+    // Both fields should become true
+    claim = await claims.getClaimInfo(claimId);
+    expect(claim.payoutRedeemed).to.be.true;
+    expect(claim.depositRetrieved).to.be.true;
+  });
+
+  it('should revert if assessment deposit to pool fails', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover, registry } = fixture.contracts;
+    const { claimDepositInETH: deposit } = fixture.config;
+    const [coverOwner] = fixture.accounts.members;
+    const [governanceAccount] = fixture.accounts.governanceContracts;
+
+    await createMockCover(cover, { owner: coverOwner.address });
+
     const coverId = 1;
-    const coverData = await cover.getCoverData(coverId);
+    const { amount } = await cover.getCoverData(coverId);
 
-    const fallbackWillFailContractPool = await ethers.deployContract('PoolEtherRejecterMock', []);
+    const failingPool = await ethers.deployContract('PoolEtherRejecterMock', []);
 
-    // await fallbackWillFailContractPool.setTokenPrice(ASSET.ETH, parseEther('0.0382'));
-    await registry.addContract(C_POOL, await fallbackWillFailContractPool.getAddress(), false);
+    await registry.addContract(ContractIndexes.C_POOL, await failingPool.getAddress(), true);
 
-    await expect(
-      claims.connect(coverOwner).submitClaim(coverId, coverData.amount, toBeHex(0, 32), { value: deposit }),
-    ).to.be.revertedWithCustomError(claims, 'AssessmentDepositTransferToPoolFailed');
+    // Deploy new Claims contract with Pool ETH reject
+    const claimsRejectEth = await ethers.deployContract('Claims', [await registry.getAddress()]);
+    await claimsRejectEth.connect(governanceAccount).initialize(0);
+
+    const ipfsHash = ethers.solidityPackedKeccak256(['string'], ['ipfs-hash']);
+    const overrides = { value: deposit };
+    const submitClaimTx = claimsRejectEth.connect(coverOwner).submitClaim(coverId, amount, ipfsHash, overrides);
+
+    await expect(submitClaimTx).to.be.revertedWithCustomError(claimsRejectEth, 'AssessmentDepositTransferToPoolFailed');
+  });
+
+  it('reverts if a payout on the same cover can be redeemed', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover, assessment, claims } = fixture.contracts;
+    const { payoutRedemptionPeriod } = fixture.config;
+    const [coverOwner] = fixture.accounts.members;
+
+    await createMockCover(cover, { owner: coverOwner.address });
+
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+    const claimId = await claims.getClaimsCount();
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    await assessment.setAssessmentResult(claimId, timestamp, ASSESSMENT_STATUS.ACCEPTED);
+
+    // Should block new claim during redemption period
+    await setTime(timestamp + Math.floor(payoutRedemptionPeriod / 2));
+    const submitClaimTx = submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+    await expect(submitClaimTx).to.be.revertedWithCustomError(claims, 'PayoutCanStillBeRedeemed');
+
+    // Should allow new claim after redemption period expires
+    await setTime(timestamp + payoutRedemptionPeriod + 1);
+    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
+  });
+
+  it('handles complex sequence: ACCEPTED/redeemed → new claim (DRAW) → retry claim (DENIED) → new claim', async () => {
+    const fixture = await loadFixture(setup);
+    const { cover, assessment, claims } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
+
+    await Promise.all([
+      createMockCover(cover, { owner: coverOwner.address }),
+      createMockCover(cover, { owner: coverOwner.address }),
+      createMockCover(cover, { owner: coverOwner.address }),
+    ]);
+
+    // First claim on cover 1: ACCEPTED and redeemed
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+    const firstClaimId = await claims.getClaimsCount();
+
+    let { timestamp } = await ethers.provider.getBlock('latest');
+    await assessment.setAssessmentResult(firstClaimId, timestamp, ASSESSMENT_STATUS.ACCEPTED);
+    await claims.redeemClaimPayout(firstClaimId);
+
+    // Second claim on cover 2: set to DRAW
+    await submitClaim(fixture)({ coverId: 2, sender: coverOwner });
+    const secondClaimId = await claims.getClaimsCount();
+    ({ timestamp } = await ethers.provider.getBlock('latest'));
+    await assessment.setAssessmentResult(secondClaimId, timestamp, ASSESSMENT_STATUS.DRAW);
+
+    // Third claim on cover 2 again (retry for clear decision)
+    await submitClaim(fixture)({ coverId: 2, sender: coverOwner });
+    const thirdClaimId = await claims.getClaimsCount();
+    ({ timestamp } = await ethers.provider.getBlock('latest'));
+    await assessment.setAssessmentResult(thirdClaimId, timestamp, ASSESSMENT_STATUS.DENIED);
+
+    // Fourth claim on cover 3 (new cover)
+    await expect(submitClaim(fixture)({ coverId: 3, sender: coverOwner })).not.to.be.reverted;
+  });
+
+  describe('ACCEPTED claim re-submission prevention', function () {
+    it('prevents re-submission when payout already redeemed', async function () {
+      const fixture = await loadFixture(setup);
+      const { cover, assessment, claims } = fixture.contracts;
+      const [coverOwner] = fixture.accounts.members;
+
+      await createMockCover(cover, { owner: coverOwner.address });
+
+      // Submit and accept first claim
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+      const firstClaimId = await claims.getClaimsCount();
+
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await assessment.setAssessmentResult(firstClaimId, timestamp, ASSESSMENT_STATUS.ACCEPTED);
+
+      // Redeem the payout
+      await claims.redeemClaimPayout(firstClaimId);
+
+      // Should prevent re-submission after payout redeemed
+      const submitClaimTx = submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+      await expect(submitClaimTx).to.be.revertedWithCustomError(claims, 'ClaimAlreadyPaidOut');
+    });
+
+    it('reverts if a payout on the same cover can be redeemed', async function () {
+      const fixture = await loadFixture(setup);
+      const { cover, assessment, claims } = fixture.contracts;
+      const { payoutRedemptionPeriod } = fixture.config;
+      const [coverOwner] = fixture.accounts.members;
+
+      await createMockCover(cover, { owner: coverOwner.address });
+
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+      const claimId = await claims.getClaimsCount();
+
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await assessment.setAssessmentResult(claimId, timestamp, ASSESSMENT_STATUS.ACCEPTED);
+
+      // Should block new claim during redemption period
+      await setTime(timestamp + Math.floor(payoutRedemptionPeriod / 2));
+      const submitClaimTx = submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+      await expect(submitClaimTx).to.be.revertedWithCustomError(claims, 'PayoutCanStillBeRedeemed');
+
+      // Should allow new claim after redemption period expires
+      await setTime(timestamp + payoutRedemptionPeriod + 1);
+      await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
+    });
+  });
+
+  describe('Allowed re-submission scenarios within grace period', function () {
+    it('allows re-submission after DENIED claim and still', async function () {
+      const fixture = await loadFixture(setup);
+      const { cover, assessment, claims } = fixture.contracts;
+      const [coverOwner] = fixture.accounts.members;
+
+      await createMockCover(cover, { owner: coverOwner.address });
+
+      // Submit and deny first claim
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+      const firstClaimId = await claims.getClaimsCount();
+
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await assessment.setAssessmentResult(firstClaimId, timestamp, ASSESSMENT_STATUS.DENIED);
+
+      // Should allow re-submission after DENIED (edge case - maybe new evidence)
+      await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
+    });
+
+    it('allows re-submission before DRAW claim deposit has been retrieved', async function () {
+      const fixture = await loadFixture(setup);
+      const { cover, assessment, claims } = fixture.contracts;
+      const [coverOwner] = fixture.accounts.members;
+
+      await createMockCover(cover, { owner: coverOwner.address });
+
+      // Submit first claim
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+      const firstClaimId = await claims.getClaimsCount();
+
+      // Set first claim result to DRAW
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await assessment.setAssessmentResult(firstClaimId, timestamp, ASSESSMENT_STATUS.DRAW);
+
+      // Should allow submitting a new claim before deposit retrieval
+      await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
+
+      // Should allow deposit retrieval from first DRAW claim
+      await expect(claims.retrieveDeposit(firstClaimId)).not.to.be.reverted;
+    });
+
+    it('allows re-submission after DRAW claim deposit has been retrieved', async function () {
+      const fixture = await loadFixture(setup);
+      const { cover, assessment, claims } = fixture.contracts;
+      const [coverOwner] = fixture.accounts.members;
+
+      await createMockCover(cover, { owner: coverOwner.address });
+
+      // Submit first claim
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+      const firstClaimId = await claims.getClaimsCount();
+
+      // Set first claim result to DRAW
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await assessment.setAssessmentResult(firstClaimId, timestamp, ASSESSMENT_STATUS.DRAW);
+
+      // Retrieve deposit from DRAW claim
+      await claims.retrieveDeposit(firstClaimId);
+
+      // Should still allow new claims after deposit retrieval
+      await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
+    });
+
+    it('allows re-submission when user missed redeeming the payout', async function () {
+      const fixture = await loadFixture(setup);
+      const { cover, assessment, claims } = fixture.contracts;
+      const { payoutRedemptionPeriod } = fixture.config;
+      const [coverOwner] = fixture.accounts.members;
+
+      await createMockCover(cover, { owner: coverOwner.address });
+
+      // Submit and accept first claim
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+      const firstClaimId = await claims.getClaimsCount();
+
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await assessment.setAssessmentResult(firstClaimId, timestamp, ASSESSMENT_STATUS.ACCEPTED);
+
+      // Move time past redemption period
+      await setTime(timestamp + payoutRedemptionPeriod + 1);
+
+      // Should allow re-submission after redemption period expires (user missed deadline)
+      await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
+    });
   });
 });

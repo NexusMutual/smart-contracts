@@ -9,61 +9,46 @@ const { parseEther } = ethers;
 async function setup() {
   const accounts = await getAccounts();
   const nxm = await ethers.deployContract('NXMTokenMock');
-  await nxm.waitForDeployment();
 
   const registry = await ethers.deployContract('RegistryMock');
-  await registry.waitForDeployment();
 
   const ramm = await ethers.deployContract('RammMock');
-  await ramm.waitForDeployment();
 
-  const tokenController = await ethers.deployContract('CLMockTokenController', [await nxm.getAddress()]);
-  await tokenController.waitForDeployment();
+  const tokenController = await ethers.deployContract('CLMockTokenController', [nxm.target]);
 
-  await nxm.setOperator(await tokenController.getAddress());
+  await nxm.setOperator(tokenController.target);
 
   const dai = await ethers.deployContract('ERC20BlacklistableMock');
-  await dai.waitForDeployment();
 
   const pool = await ethers.deployContract('PoolMock');
-  await pool.waitForDeployment();
 
-  await Promise.all([
-    pool.addAsset({ assetAddress: await dai.getAddress(), isCoverAsset: true, isAbandoned: false }),
-    pool.setTokenPrice(ASSET.ETH, parseEther('0.0382')),
-    pool.setTokenPrice(ASSET.DAI, parseEther('3.82')),
-  ]);
+  await pool.addAsset({ assetAddress: dai.target, isCoverAsset: true, isAbandoned: false });
+  await pool.setTokenPrice(ASSET.ETH, parseEther('0.0382'));
+  await pool.setTokenPrice(ASSET.DAI, parseEther('3.82'));
 
   const assessment = await ethers.deployContract('CLMockAssessment');
-  await assessment.waitForDeployment();
 
   const coverNFT = await ethers.deployContract('CLMockCoverNFT');
-  await coverNFT.waitForDeployment();
 
-  const claims = await ethers.deployContract('Claims', [await registry.getAddress()]);
-  await claims.waitForDeployment();
-  await claims.initialize();
-
-  const cover = await ethers.deployContract('CLMockCover', [await coverNFT.getAddress()]);
-  await cover.waitForDeployment();
+  const cover = await ethers.deployContract('CLMockCover', [coverNFT.target]);
 
   const coverProducts = await ethers.deployContract('CLMockCoverProducts');
-  await coverProducts.waitForDeployment();
 
-  await Promise.all([
-    registry.addContract(ContractIndexes.C_COVER, await cover.getAddress(), false),
-    registry.addContract(ContractIndexes.C_COVER_NFT, await coverNFT.getAddress(), false),
-    registry.addContract(ContractIndexes.C_COVER_PRODUCTS, await coverProducts.getAddress(), false),
-    registry.addContract(ContractIndexes.C_ASSESSMENT, await assessment.getAddress(), false),
-    registry.addContract(ContractIndexes.C_POOL, await pool.getAddress(), false),
-    registry.addContract(ContractIndexes.C_RAMM, await ramm.getAddress(), false),
-  ]);
+  const [governanceAccount] = accounts.governanceContracts;
+  await registry.addContract(ContractIndexes.C_COVER, cover.target, false);
+  await registry.addContract(ContractIndexes.C_COVER_NFT, coverNFT.target, false);
+  await registry.addContract(ContractIndexes.C_COVER_PRODUCTS, coverProducts.target, false);
+  await registry.addContract(ContractIndexes.C_ASSESSMENT, assessment.target, false);
+  await registry.addContract(ContractIndexes.C_POOL, pool.target, false);
+  await registry.addContract(ContractIndexes.C_RAMM, ramm.target, false);
+  await registry.addContract(ContractIndexes.C_GOVERNOR, governanceAccount.address, false);
 
-  await Promise.all([
-    coverProducts.addProductType('0', '30', '5000'),
-    coverProducts.addProductType('0', '90', '5000'),
-    coverProducts.addProductType('0', '30', '5000'),
-  ]);
+  const claims = await ethers.deployContract('Claims', [registry.target]);
+  await claims.connect(governanceAccount).initialize(0);
+
+  await coverProducts.addProductType('0', '30', '5000');
+  await coverProducts.addProductType('0', '90', '5000');
+  await coverProducts.addProductType('0', '30', '5000');
 
   const productTemplate = {
     productType: '0',
@@ -76,13 +61,12 @@ async function setup() {
     useFixedPrice: false,
   };
 
-  await Promise.all([
-    coverProducts.addProduct({ ...productTemplate, productType: '0' }),
-    coverProducts.addProduct({ ...productTemplate, productType: '1' }),
-    coverProducts.addProduct({ ...productTemplate, productType: '2' }),
-  ]);
+  // NOTE: must sequential to ensure deterministic productId → productType mapping
+  await coverProducts.addProduct({ ...productTemplate, productType: '0' }); // productId 0 -> productType 0
+  await coverProducts.addProduct({ ...productTemplate, productType: '1' }); // productId 1 -> productType 1
+  await coverProducts.addProduct({ ...productTemplate, productType: '2' }); // productId 2 -> productType 2
 
-  const tokenControllerAddress = await tokenController.getAddress();
+  const tokenControllerAddress = tokenController.target;
   for (const member of accounts.members) {
     await Promise.all([
       registry.join(member, ethers.toBeHex(0, 32)),
@@ -91,8 +75,8 @@ async function setup() {
     ]);
   }
 
-  accounts.defaultSender.sendTransaction({ to: await pool.getAddress(), value: parseEther('200') });
-  await dai.mint(await pool.getAddress(), parseEther('200'));
+  accounts.defaultSender.sendTransaction({ to: pool.target, value: parseEther('200') });
+  await dai.mint(pool.target, parseEther('200'));
 
   const config = {
     claimDepositInETH: await claims.CLAIM_DEPOSIT_IN_ETH(),
@@ -109,6 +93,7 @@ async function setup() {
     coverProducts,
     coverNFT,
     registry,
+    governance: governanceAccount,
   };
 
   return { config, accounts, contracts };

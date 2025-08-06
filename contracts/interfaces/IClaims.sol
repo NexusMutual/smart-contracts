@@ -13,6 +13,7 @@ interface IClaims {
     uint96 amount;
     uint8 coverAsset; // asset id in the Pool contract
     bool payoutRedeemed;
+    bool depositRetrieved;
   }
 
   // Claim structure but in a human-friendly format.
@@ -54,19 +55,20 @@ interface IClaims {
 
   function redeemClaimPayout(uint id) external;
 
-  function retriveDeposit(uint claimId) external; 
+  function retrieveDeposit(uint claimId) external;
 
   /* ========== EVENTS ========== */
 
   event ClaimSubmitted(address indexed user, uint claimId, uint indexed coverId, uint productId);
   event MetadataSubmitted(uint indexed claimId, bytes32 ipfsMetadata);
   event ClaimPayoutRedeemed(address indexed user, uint amount, uint claimId, uint coverId);
-  event ClaimDepositRetrived(uint indexed claimId, address indexed user);
+  event ClaimDepositRetrieved(uint indexed claimId, address indexed user);
 
   /* ========== ERRORS ========== */
-  
+
   error ClaimIsBeingAssessed();
   error PayoutCanStillBeRedeemed();
+  error ClaimAlreadyPaidOut();
   error OnlyOwnerOrApprovedCanSubmitClaim();
   error InvalidClaimMethod();
   error CoveredAmountExceeded();
@@ -77,6 +79,7 @@ interface IClaims {
   error InvalidAssessmentStatus();
   error RedemptionPeriodExpired();
   error PayoutAlreadyRedeemed();
+  error DepositAlreadyRetrieved();
   error OnlyMember();
   error InvalidClaimId();
   error AlreadyInitialized();

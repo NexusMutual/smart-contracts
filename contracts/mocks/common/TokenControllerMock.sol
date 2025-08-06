@@ -12,8 +12,8 @@ interface ICover {
 
 contract TokenControllerMock is TokenControllerGeneric, MasterAwareV2 {
 
-  address public addToWhitelistLastCalledWtih;
-  address public removeFromWhitelistLastCalledWtih;
+  address public addToWhitelistLastCalledWith;
+  address public removeFromWhitelistLastCalledWith;
 
   mapping(uint => StakingPoolNXMBalances) public _stakingPoolNXMBalances;
 
@@ -38,11 +38,11 @@ contract TokenControllerMock is TokenControllerGeneric, MasterAwareV2 {
   }
 
   function addToWhitelist(address _member) public override onlyInternal {
-    addToWhitelistLastCalledWtih = _member;
+    addToWhitelistLastCalledWith = _member;
   }
 
   function removeFromWhitelist(address _member) public override onlyInternal {
-    removeFromWhitelistLastCalledWtih = _member;
+    removeFromWhitelistLastCalledWith = _member;
   }
 
   /* ========== DEPENDENCIES ========== */

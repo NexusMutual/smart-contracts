@@ -121,13 +121,18 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
     token.addToWhiteList(_member);
   }
 
-  /// @dev Removes an address from the whitelist in the token.
+  /// @notice Removes an address from the whitelist in the token
+  /// @dev Requires the member's token balance to be zero before removal.
   /// @param _member The address to remove.
   function removeFromWhitelist(address _member) public override onlyInternal {
     require(token.balanceOf(_member) == 0, MemberBalanceNotZero());
     token.removeFromWhiteList(_member);
   }
 
+  /// @notice Switches membership from one address to another, transferring all tokens.
+  /// @dev Transfers the full token balance from the old address to the new one, updates whitelist status accordingly.
+  /// @param from The address to transfer membership from.
+  /// @param to The address to transfer membership to.
   function switchMembershipAddressWithTransfer(address from, address to) external override onlyInternal {
     token.addToWhiteList(to);
     token.transferFrom(from, to, token.balanceOf(from));

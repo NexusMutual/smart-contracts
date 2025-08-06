@@ -28,46 +28,39 @@ contract Claims is IClaims, RegistryAware {
 
   uint private _nextClaimId;
 
+  /* =========== IMMUTABLES =========== */
+
+  ICover public immutable cover;
+  ICoverNFT public immutable coverNFT;
+  ICoverProducts public immutable coverProducts;
+  IAssessment public immutable assessment;
+  IPool public immutable pool;
+  IRamm public immutable ramm;
+
   /* =========== CONSTANTS =========== */
 
   uint constant public PAYOUT_REDEMPTION_PERIOD = 30 days;
 
-  uint constant public CLAIM_DEPOSIT_IN_ETH = 0.1 ether; // TODO: set deposit amount
+  // NOTE: when updating the deposit value, make sure there are no open claims during the upgrade
+  uint constant public CLAIM_DEPOSIT_IN_ETH = 0.05 ether; // TODO: confirm if claim deposit is to be dropped
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(address _registry) RegistryAware(_registry) {}
+  constructor(address _registry) RegistryAware(_registry) {
+    cover = ICover(fetch(C_COVER));
+    coverNFT = ICoverNFT(fetch(C_COVER_NFT));
+    coverProducts = ICoverProducts(fetch(C_COVER_PRODUCTS));
+    assessment = IAssessment(fetch(C_ASSESSMENT));
+    pool = IPool(fetch(C_POOL));
+    ramm = IRamm(fetch(C_RAMM));
+  }
 
-  function initialize() external {
+  function initialize(uint lastClaimId) external onlyContracts(C_GOVERNOR) {
     require(_nextClaimId == 0, AlreadyInitialized());
-    _nextClaimId = 1; // TODO: start from the last claim Id 
+    _nextClaimId = lastClaimId + 1;
   }
 
   /* ========== VIEWS ========== */
-
-  function _cover() internal view returns (ICover) {
-    return ICover(fetch(C_COVER));
-  }
-
-  function _coverNFT() internal view returns (ICoverNFT) {
-    return ICoverNFT(fetch(C_COVER_NFT));
-  }
-
-  function _coverProducts() internal view returns (ICoverProducts) {
-    return ICoverProducts(fetch(C_COVER_PRODUCTS));
-  }
-
-  function _assessment() internal view returns (IAssessment) {
-    return IAssessment(fetch(C_ASSESSMENT));
-  }
-
-  function _pool() internal view returns (IPool) {
-    return IPool(fetch(C_POOL));
-  }
-
-  function _ramm() internal view returns (IRamm) {
-    return IRamm(fetch(C_RAMM));
-  }
 
   function getClaimsCount() external override view returns (uint) {
     return _nextClaimId - 1;
@@ -81,8 +74,6 @@ contract Claims is IClaims, RegistryAware {
     return PAYOUT_REDEMPTION_PERIOD;
   }
 
-  // TODO: check to move to Claim+Assessment Viewer for FE
-
   /// Returns a Claim aggregated in a human-friendly format.
   ///
   /// @dev This view is meant to be used in user interfaces to get a claim in a format suitable for
@@ -92,10 +83,10 @@ contract Claims is IClaims, RegistryAware {
   function getClaimDisplay(uint claimId) internal view returns (ClaimDisplay memory) {
     Claim memory claim = _claims[claimId];
 
-    (uint cooldownEnd, IAssessment.AssessmentStatus assessmentStatus) = _assessment().getAssessmentResult(claimId);
-    (IAssessment.Assessment memory assessment) = _assessment().getAssessment(claimId);
+    (uint cooldownEnd, IAssessment.AssessmentStatus assessmentStatus) = assessment.getAssessmentResult(claimId);
+    (IAssessment.Assessment memory claimAssessment) = assessment.getAssessment(claimId);
 
-    CoverData memory coverData = _cover().getCoverData(claim.coverId);
+    CoverData memory coverData = cover.getCoverData(claim.coverId);
 
     uint expiration = coverData.start + coverData.period;
 
@@ -104,7 +95,7 @@ contract Claims is IClaims, RegistryAware {
       assetSymbol = "ETH";
     } else {
 
-      address assetAddress = _pool().getAsset(claim.coverAsset).assetAddress;
+      address assetAddress = pool.getAsset(claim.coverAsset).assetAddress;
       try IERC20Detailed(assetAddress).symbol() returns (string memory v) {
         assetSymbol = v;
       } catch {
@@ -121,8 +112,8 @@ contract Claims is IClaims, RegistryAware {
       claim.coverAsset,
       coverData.start,
       expiration,
-      assessment.start,
-      assessment.votingEnd,
+      claimAssessment.start,
+      claimAssessment.votingEnd,
       cooldownEnd,
       uint(assessmentStatus),
       claim.payoutRedeemed
@@ -147,23 +138,23 @@ contract Claims is IClaims, RegistryAware {
 
   /* ========== MUTATIVE FUNCTIONS ========== */
 
-  /// Submits a claim for assessment
+  /// Submits a claim for assessment for a specific cover
+  ///
+  /// @dev Requires a claim deposit fee. See: CLAIM_DEPOSIT_IN_ETH
+  /// @dev Requires the sender to be a member and the owner or approved operator of the cover NFT.
+  ///
+  /// @param coverId          Cover identifier
+  /// @param requestedAmount  The amount expected to be received at payout
+  /// @param ipfsMetadata     An IPFS hash that stores metadata about the claim that is emitted as
+  ///                         an event. It's required for proof of loss. If this string is empty,
+  ///                         no event is emitted.
   function submitClaim(
     uint32 coverId,
     uint96 requestedAmount,
-    bytes32 ipfsMetadata // todo change to bytes32
+    bytes32 ipfsMetadata
   ) external payable override returns (Claim memory claim) {
     require(registry.isMember(msg.sender), OnlyMember());
-    require(_coverNFT().isApprovedOrOwner(msg.sender, coverId), OnlyOwnerOrApprovedCanSubmitClaim());
-    return _submitClaim(coverId, requestedAmount, ipfsMetadata, msg.sender);
-  }
-
-  function _submitClaim(
-    uint32 coverId,
-    uint96 requestedAmount,
-    bytes32 ipfsMetadata,
-    address owner
-  ) internal returns (Claim memory) {
+    require(coverNFT.isApprovedOrOwner(msg.sender, coverId), OnlyOwnerOrApprovedCanSubmitClaim());
 
     uint claimId = _nextClaimId++;
 
@@ -171,48 +162,57 @@ contract Claims is IClaims, RegistryAware {
       uint previousSubmission = lastClaimSubmissionOnCover[coverId];
 
       if (previousSubmission > 0) {
-        (uint cooldownEnd, IAssessment.AssessmentStatus status) = _assessment().getAssessmentResult(previousSubmission);
-        
+        (uint cooldownEnd, IAssessment.AssessmentStatus status) = assessment.getAssessmentResult(previousSubmission);
+
         require(
           status != IAssessment.AssessmentStatus.VOTING &&
-          status != IAssessment.AssessmentStatus.COOLDOWN, 
+          status != IAssessment.AssessmentStatus.COOLDOWN,
           ClaimIsBeingAssessed()
         );
 
-        require(
-          status == IAssessment.AssessmentStatus.DENIED ||
-          block.timestamp >= cooldownEnd + PAYOUT_REDEMPTION_PERIOD ||
-          _claims[claimId].payoutRedeemed,
-          PayoutCanStillBeRedeemed()
-        );
+        // Prevent re-submission for ACCEPTED claims
+        if (status == IAssessment.AssessmentStatus.ACCEPTED) {
+          // if payout already redeemed
+          require(
+            !_claims[previousSubmission].payoutRedeemed,
+            ClaimAlreadyPaidOut()
+          );
+
+          // if payout not yet redeemed and still within redemption period
+          require(
+            block.timestamp >= cooldownEnd + PAYOUT_REDEMPTION_PERIOD,
+            PayoutCanStillBeRedeemed()
+          );
+        }
       }
 
       lastClaimSubmissionOnCover[coverId] = claimId;
     }
 
-    CoverData memory coverData = _cover().getCoverData(coverId);
+    CoverData memory coverData = cover.getCoverData(coverId);
 
-    (Product memory product, ProductType memory productType) = _coverProducts().getProductWithType(coverData.productId);
+    (Product memory product, ProductType memory productType) = coverProducts.getProductWithType(coverData.productId);
 
     require(productType.claimMethod == ClaimMethod.IndividualClaims, InvalidClaimMethod());
-    require(requestedAmount <= coverData.amount, CoveredAmountExceeded()); 
+    require(requestedAmount <= coverData.amount, CoveredAmountExceeded());
     require(block.timestamp > coverData.start, CantBuyCoverAndClaimInTheSameBlock());
     require(uint(coverData.start) + uint(coverData.period) + uint(coverData.gracePeriod) > block.timestamp, GracePeriodPassed());
 
     emit ClaimSubmitted(
-      owner,              // claim submitter
-      claimId,            // claimId
-      coverId,            // coverId
-      coverData.productId // user
+      msg.sender,
+      claimId,
+      coverId,
+      coverData.productId
     );
 
-    _assessment().startAssessment(claimId, product.productType);
+    assessment.startAssessment(claimId, product.productType);
 
-    Claim memory claim = Claim({
+    claim = Claim({
       coverId: coverId,
       amount: requestedAmount,
       coverAsset: coverData.coverAsset,
-      payoutRedeemed: false
+      payoutRedeemed: false,
+      depositRetrieved: false
     });
 
     _claims[claimId] = claim;
@@ -222,65 +222,74 @@ contract Claims is IClaims, RegistryAware {
     }
 
     require(msg.value == CLAIM_DEPOSIT_IN_ETH, AssessmentDepositNotExact());
-    
+
     // Transfer the assessment deposit to the pool
     (
       bool transferSucceeded,
       /* bytes data */
-    ) =  address(_pool()).call{value: CLAIM_DEPOSIT_IN_ETH}("");
+    ) =  address(pool).call{value: CLAIM_DEPOSIT_IN_ETH}("");
     require(transferSucceeded, AssessmentDepositTransferToPoolFailed());
-  
+
     return claim;
   }
 
-  /// Redeems payouts for accepted claims
+  /// Redeems payouts and sends assessment deposit back for accepted claims
   ///
-  /// @dev Anyone can call this function, the payout always being transfered to the NFT owner.
-  /// When the tokens are transfered the assessment deposit is also sent back.
+  /// @dev Can be called by anyone, but the payout and deposit are always transferred to the current cover NFT owner.
   ///
   /// @param claimId  Claim identifier
   function redeemClaimPayout(uint claimId) external override whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
-    Claim memory claim = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.ACCEPTED);
+    (Claim memory claim, uint cooldownEnd) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.ACCEPTED);
+
+    require(block.timestamp < cooldownEnd + PAYOUT_REDEMPTION_PERIOD, RedemptionPeriodExpired());
+    require(!claim.payoutRedeemed, PayoutAlreadyRedeemed());
 
     _claims[claimId].payoutRedeemed = true;
+    _claims[claimId].depositRetrieved = true;
 
-    _ramm().updateTwap();
-    address payable coverOwner = payable(_cover().burnStake(
+    ramm.updateTwap();
+
+    address payable coverOwner = payable(cover.burnStake(
       claim.coverId,
       claim.amount
     ));
 
     // Send payout in cover asset
-    _pool().sendPayout(claim.coverAsset, coverOwner, claim.amount, CLAIM_DEPOSIT_IN_ETH);
+    pool.sendPayout(claim.coverAsset, coverOwner, claim.amount, CLAIM_DEPOSIT_IN_ETH);
 
     emit ClaimPayoutRedeemed(coverOwner, claim.amount, claimId, claim.coverId);
   }
 
-  function retriveDeposit(uint claimId) external override whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
-    Claim memory claim =_validateClaimStatus(claimId, IAssessment.AssessmentStatus.DRAW);
-    
-    _claims[claimId].payoutRedeemed = true;
+  /// Allows the cover owner to retrieve their claim deposit if their claim is resolved as DRAW.
+  ///
+  /// @dev Can be called by anyone, but the claim deposit is always transferred to the current cover NFT owner.
+  ///
+  /// @param claimId The unique identifier of the claim for which the deposit is being retrieved.
+  function retrieveDeposit(uint claimId) external override whenNotPaused(PAUSE_CLAIMS_PAYOUT) {
+    (Claim memory claim, /* cooldownEnd */) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.DRAW);
 
-    address payable coverOwner = payable(_coverNFT().ownerOf(claim.coverId));
+    require(!claim.depositRetrieved, DepositAlreadyRetrieved());
 
-    _pool().returnDeposit(coverOwner, CLAIM_DEPOSIT_IN_ETH);
+    _claims[claimId].depositRetrieved = true;
 
-    emit ClaimDepositRetrived(claimId, coverOwner);
+    address payable coverOwner = payable(coverNFT.ownerOf(claim.coverId));
+
+    pool.returnDeposit(coverOwner, CLAIM_DEPOSIT_IN_ETH);
+
+    emit ClaimDepositRetrieved(claimId, coverOwner);
   }
 
   function _validateClaimStatus(
-    uint claimId, 
+    uint claimId,
     IAssessment.AssessmentStatus expectedStatus
-  ) internal view returns (Claim memory claim) {
+  ) internal view returns (Claim memory claim, uint cooldownEnd) {
     claim = _claims[claimId];
     require(claim.amount > 0, InvalidClaimId());
-    
-    (uint cooldownEnd, IAssessment.AssessmentStatus status) = _assessment().getAssessmentResult(claimId);
+
+    IAssessment.AssessmentStatus status;
+    (cooldownEnd, status) = assessment.getAssessmentResult(claimId);
     require(status == expectedStatus, InvalidAssessmentStatus());
-    require(block.timestamp < cooldownEnd + PAYOUT_REDEMPTION_PERIOD, RedemptionPeriodExpired());
 
-    require(!claim.payoutRedeemed, PayoutAlreadyRedeemed());
-
-    return claim;
+    return (claim, cooldownEnd);
   }
 }

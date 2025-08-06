@@ -11,7 +11,9 @@ describe('initialize', function () {
 
   it('should not be able to call initialize twice', async function () {
     const fixture = await loadFixture(setup);
-    const { claims } = fixture.contracts;
-    await expect(claims.initialize()).to.revertedWithCustomError(claims, 'AlreadyInitialized');
+    const { claims, governance } = fixture.contracts;
+
+    const initialize = claims.connect(governance).initialize(10);
+    await expect(initialize).to.revertedWithCustomError(claims, 'AlreadyInitialized');
   });
 });

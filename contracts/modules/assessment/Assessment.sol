@@ -19,14 +19,12 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   mapping(uint groupId => bytes32) private _groupsMetadata;
   uint32 private _groupCount;
 
-  // todo: remove if FE doesn't need it
   mapping(uint assessorMemberId => EnumerableSet.UintSet) private _groupsForAssessor;
   mapping(uint productTypeId => AssessmentData) private _assessmentData;
 
   mapping(uint claimId => Assessment) private _assessments;
 
   mapping(uint assessorMemberId => mapping(uint claimId => Ballot)) private _ballots;
-  // todo: do we want just event instead of storing?
   mapping(uint assessorMemberId => mapping(uint claimId => bytes32)) private _ballotsMetadata;
 
   /* ========== CONSTANTS ========== */
@@ -73,6 +71,13 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @return groupIds Array of group IDs the assessor belongs to
   function getGroupsForAssessor(uint assessorMemberId) override external view returns (uint[] memory groupIds) {
     groupIds = _groupsForAssessor[assessorMemberId].values();
+  }
+
+  /// @notice Checks if a given member ID belongs to at least one assessor group.
+  /// @param assessorMemberId The ID of the member to check.
+  /// @return True if the member is an assessor, false otherwise.
+  function isAssessor(uint assessorMemberId) override external view returns (bool) {
+    return _groupsForAssessor[assessorMemberId].length() > 0;
   }
 
   /// @notice Returns detailed information for multiple groups

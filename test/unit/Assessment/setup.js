@@ -20,11 +20,9 @@ async function setup() {
 
   // Add contracts in the registry
   const [governanceAccount] = accounts.governanceContracts;
-  await Promise.all([
-    registry.addContract(ContractIndexes.C_ASSESSMENT, await assessment.getAddress(), false),
-    registry.addContract(ContractIndexes.C_CLAIMS, await claims.getAddress(), false),
-    registry.addContract(ContractIndexes.C_GOVERNOR, governanceAccount.address, false),
-  ]);
+  await registry.addContract(ContractIndexes.C_ASSESSMENT, assessment.target, false);
+  await registry.addContract(ContractIndexes.C_CLAIMS, claims.target, false);
+  await registry.addContract(ContractIndexes.C_GOVERNOR, governanceAccount.address, false);
 
   // Join assessors and members in the registry
   const signature = ethers.toBeHex(0, 32);
@@ -52,8 +50,7 @@ async function setup() {
   await claims.connect(memberAccount).submitClaim(CLAIM_ID, ethers.parseEther('1'), IPFS_HASH);
 
   // Give Claims contract ETH balance for tests that need to impersonate it
-  const claimsAddress = await claims.getAddress();
-  await setEtherBalance(claimsAddress, ethers.parseEther('10'));
+  await setEtherBalance(claims.target, ethers.parseEther('10'));
 
   // Reset blockchain time to create predictable timing baseline for all tests
   // This ensures: assessment.start = currentTime - 1 for all tests using this fixture

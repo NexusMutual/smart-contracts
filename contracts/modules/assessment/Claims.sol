@@ -41,6 +41,7 @@ contract Claims is IClaims, RegistryAware {
 
   uint constant public PAYOUT_REDEMPTION_PERIOD = 30 days;
 
+  // NOTE: when updating the deposit value, make sure there are no open claims during the upgrade
   uint constant public CLAIM_DEPOSIT_IN_ETH = 0.05 ether; // TODO: confirm if claim deposit is to be dropped
 
   /* ========== CONSTRUCTOR ========== */
@@ -154,15 +155,6 @@ contract Claims is IClaims, RegistryAware {
   ) external payable override returns (Claim memory claim) {
     require(registry.isMember(msg.sender), OnlyMember());
     require(coverNFT.isApprovedOrOwner(msg.sender, coverId), OnlyOwnerOrApprovedCanSubmitClaim());
-    return _submitClaim(coverId, requestedAmount, ipfsMetadata, msg.sender);
-  }
-
-  function _submitClaim(
-    uint32 coverId,
-    uint96 requestedAmount,
-    bytes32 ipfsMetadata,
-    address owner
-  ) internal returns (Claim memory) {
 
     uint claimId = _nextClaimId++;
 
@@ -207,7 +199,7 @@ contract Claims is IClaims, RegistryAware {
     require(uint(coverData.start) + uint(coverData.period) + uint(coverData.gracePeriod) > block.timestamp, GracePeriodPassed());
 
     emit ClaimSubmitted(
-      owner,
+      msg.sender,
       claimId,
       coverId,
       coverData.productId
@@ -215,7 +207,7 @@ contract Claims is IClaims, RegistryAware {
 
     assessment.startAssessment(claimId, product.productType);
 
-    Claim memory claim = Claim({
+    claim = Claim({
       coverId: coverId,
       amount: requestedAmount,
       coverAsset: coverData.coverAsset,

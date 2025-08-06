@@ -82,10 +82,9 @@ interface IIndividualClaims {
   event ClaimPayoutRedeemed(address indexed user, uint amount, uint claimId, uint coverId);
 
   /* ========== ERRORS ========== */
-  
+
   error ClaimIsBeingAssessed();
   error PayoutCanStillBeRedeemed();
-  error OnlyOwnerOrApprovedCanSubmitClaim();
   error InvalidClaimMethod();
   error CoveredAmountExceeded();
   error CantBuyCoverAndClaimInTheSameBlock();

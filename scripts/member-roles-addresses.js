@@ -50,11 +50,9 @@ async function loadExistingData(roleIds) {
 }
 
 /**
- * Get new member addresses for a specific role ID, working backwards from the latest
- * @param {Object} memberRolesContract - MemberRoles contract instance
- * @param {number} roleId - Role ID to fetch
- * @param {Set} existingAddresses - Set of existing addresses for fast lookup
- * @param {number} lastKnownCount - Last known member count for this role
+ * Get all new member addresses for the specified role IDs.
+ * If an existing addresses file is found, only new (missing) addresses are added.
+ * If no file exists, all addresses are fetched.
  */
 async function getNewMemberAddressesForRole(memberRolesContract, roleId, existingAddresses, lastKnownCount = 0) {
   console.log(`Fetching new members for role ID ${roleId}...`);

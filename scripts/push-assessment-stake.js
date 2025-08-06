@@ -24,23 +24,15 @@ async function loadAssessmentData() {
 
 /**
  * Filter users who have assessment stakes
- * @param {Object} assessmentData - Assessment data object
  */
 function getUsersWithStake(assessmentData) {
-  const usersWithStake = [];
-
-  for (const [userAddress, userData] of Object.entries(assessmentData)) {
-    const stakeAmount = parseFloat(userData.stake.amount);
-
-    if (stakeAmount > 0) {
-      usersWithStake.push({
-        address: userAddress,
-        stakeAmount,
-        fraudCount: parseInt(userData.stake.fraudCount),
-        rewardsWithdrawableFromIndex: parseInt(userData.stake.rewardsWithdrawableFromIndex),
-      });
-    }
-  }
+  const usersWithStake = Object.entries(assessmentData)
+    .filter(([_, userData]) => parseFloat(userData.stake.amount) > 0)
+    .map(([address, userData]) => ({
+      address,
+      stakeAmount: parseFloat(userData.stake.amount),
+      fraudCount: parseInt(userData.stake.fraudCount),
+    }));
 
   console.log(`Found ${usersWithStake.length} users with assessment stakes`);
   return usersWithStake;
@@ -163,13 +155,8 @@ async function main() {
     let successCount = 0;
     let errorCount = 0;
 
-    for (let i = 0; i < usersWithStake.length; i++) {
-      const user = usersWithStake[i];
-      const userNumber = i + 1;
-
-      console.log(`Processing user ${userNumber}/${usersWithStake.length}: ${user.address}`);
-      console.log(`  Stake amount: ${user.stakeAmount} NXM`);
-      console.log(`  Fraud count: ${user.fraudCount}`);
+    for (const [index, user] of usersWithStake.entries()) {
+      console.log(`Processing user ${index + 1}/${usersWithStake.length}: ${user.address} (${user.stakeAmount} NXM)`);
 
       const result = await unstakeAssessmentForUser(tokenControllerContract, user.address);
 

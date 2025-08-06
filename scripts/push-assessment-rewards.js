@@ -27,24 +27,20 @@ async function loadAssessmentData() {
 
 /**
  * Filter users who have withdrawable rewards
- * @param {Object} assessmentData - Assessment data object
  */
 function getUsersWithWithdrawableRewards(assessmentData) {
-  const usersWithRewards = [];
-
-  for (const [userAddress, userData] of Object.entries(assessmentData)) {
-    const withdrawableAmount = parseFloat(userData.rewards.withdrawableAmountInNXM);
-    const withdrawableUntilIndex = parseInt(userData.rewards.withdrawableUntilIndex);
-
-    if (withdrawableAmount > 0 && withdrawableUntilIndex > 0) {
-      usersWithRewards.push({
-        address: userAddress,
-        withdrawableAmount,
-        withdrawableUntilIndex,
-        totalPendingAmount: parseFloat(userData.rewards.totalPendingAmountInNXM),
-      });
-    }
-  }
+  const usersWithRewards = Object.entries(assessmentData)
+    .filter(([_, userData]) => {
+      const withdrawableAmount = parseFloat(userData.rewards.withdrawableAmountInNXM);
+      const withdrawableUntilIndex = parseInt(userData.rewards.withdrawableUntilIndex);
+      return withdrawableAmount > 0 && withdrawableUntilIndex > 0;
+    })
+    .map(([address, userData]) => ({
+      address,
+      withdrawableAmount: parseFloat(userData.rewards.withdrawableAmountInNXM),
+      withdrawableUntilIndex: parseInt(userData.rewards.withdrawableUntilIndex),
+      totalPendingAmount: parseFloat(userData.rewards.totalPendingAmountInNXM),
+    }));
 
   console.log(`Found ${usersWithRewards.length} users with withdrawable rewards`);
   return usersWithRewards;

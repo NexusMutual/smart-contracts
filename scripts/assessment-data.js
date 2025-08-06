@@ -7,42 +7,23 @@ const { addresses, Assessment } = require('@nexusmutual/deployments');
 const { formatEther } = ethers;
 
 /**
- * Find the most recent member addresses file
- */
-async function findMemberAddressesFile() {
-  try {
-    const files = await fs.readdir(__dirname);
-    const memberAddressFiles = files.filter(
-      file => file.startsWith('member-roles-addresses-role-all') && file.endsWith('.json'),
-    );
-
-    if (memberAddressFiles.length === 0) {
-      throw new Error('No member addresses file found. Run member-roles-addresses.js first.');
-    }
-
-    // Since there's only one file per role combination, just take the first (and only) one
-    const memberAddressFile = memberAddressFiles[0];
-    const fullPath = path.join(__dirname, memberAddressFile);
-
-    console.log(`Using member addresses from: ${memberAddressFile}`);
-    return fullPath;
-  } catch (error) {
-    throw new Error(`Failed to find member addresses file: ${error.message}`);
-  }
-}
-
-/**
  * Load member addresses from JSON file
  */
 async function loadMemberAddresses() {
-  const filePath = await findMemberAddressesFile();
-  const fileContent = await fs.readFile(filePath, 'utf8');
-  const data = JSON.parse(fileContent);
+  const filename = 'member-roles-addresses-role-all.json';
+  const filePath = path.join(__dirname, filename);
 
-  console.log(`Loaded ${data.totalAddresses} addresses extracted at ${data.extractedAt}`);
-  console.log(`Role IDs: ${data.roleIds.join(', ')}`);
+  try {
+    const fileContent = await fs.readFile(filePath, 'utf8');
+    const data = JSON.parse(fileContent);
 
-  return data.addresses;
+    console.log(`Loaded ${data.totalAddresses} addresses extracted at ${data.extractedAt}`);
+    console.log(`Role IDs: ${data.roleIds.join(', ')}`);
+
+    return data.addresses;
+  } catch (error) {
+    throw new Error('No member addresses file found. Run member-roles-addresses.js first.');
+  }
 }
 
 /**
@@ -75,7 +56,7 @@ async function processBatches(addresses, processFn, batchSize = 100) {
       allFailedAddresses.push(...batchResult.failedAddresses);
     }
 
-    // Small delay to be nice to the RPC provider
+    // Small delay to prevent timeouts
     await new Promise(resolve => setTimeout(resolve, 200));
   }
 

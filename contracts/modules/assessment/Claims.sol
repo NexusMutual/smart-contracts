@@ -153,7 +153,7 @@ contract Claims is IClaims, RegistryAware {
     bytes32 ipfsMetadata
   ) external payable override onlyMember whenNotPaused(PAUSE_CLAIMS_PAYOUTS) returns (Claim memory claim) {
     require(coverNFT.isApprovedOrOwner(msg.sender, coverId), OnlyOwnerOrApprovedCanSubmitClaim());
-    require(coverNFT.ownerOf(coverId) == msg.sender, OnlyOwnerCanSubmitClaim());
+    require(coverNFT.ownerOf(coverId) == msg.sender, NotCoverOwner());
 
     uint claimId = _nextClaimId++;
 
@@ -241,7 +241,7 @@ contract Claims is IClaims, RegistryAware {
 
     (Claim memory claim, uint payoutRedemptionEnd) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.ACCEPTED);
 
-    require(coverNFT.ownerOf(claim.coverId) == msg.sender, OnlyOwnerCanSubmitClaim());
+    require(coverNFT.ownerOf(claim.coverId) == msg.sender, NotCoverOwner());
     require(block.timestamp < payoutRedemptionEnd, RedemptionPeriodExpired());
     require(!claim.payoutRedeemed, PayoutAlreadyRedeemed());
 

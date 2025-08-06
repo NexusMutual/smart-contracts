@@ -68,7 +68,7 @@ interface IClaims {
   error ClaimIsBeingAssessed();
   error PayoutCanStillBeRedeemed();
   error ClaimAlreadyPaidOut();
-  error OnlyOwnerCanSubmitClaim();
+  error NotCoverOwner();
   error OnlyOwnerOrApprovedCanSubmitClaim();
   error InvalidClaimMethod();
   error CoveredAmountExceeded();

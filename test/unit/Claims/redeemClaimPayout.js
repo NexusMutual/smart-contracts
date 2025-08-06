@@ -48,7 +48,7 @@ describe('redeemClaimPayout', function () {
     await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.ACCEPTED, payoutRedemptionEnd, cooldownEnd);
 
     const redeemClaimPayout = claims.connect(otherMember).redeemClaimPayout(claimId);
-    await expect(redeemClaimPayout).to.be.revertedWithCustomError(claims, 'OnlyOwnerCanSubmitClaim');
+    await expect(redeemClaimPayout).to.be.revertedWithCustomError(claims, 'NotCoverOwner');
   });
 
   it('reverts if the claim is not accepted', async function () {

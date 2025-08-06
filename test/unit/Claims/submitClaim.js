@@ -1,7 +1,7 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { parseEther, toBeHex } = ethers;
+const { parseEther } = ethers;
 
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { ASSET, ASSESSMENT_STATUS, createMockCover, submitClaim, daysToSeconds } = require('./helpers');
@@ -35,10 +35,10 @@ describe('submitClaim', function () {
     const coverId = 1;
     // Not owner fails
     const notOwnerSubmitClaim = submitClaim(fixture)({ coverId, sender: otherMember });
-    await expect(notOwnerSubmitClaim).to.be.revertedWithCustomError(claims, 'OnlyOwnerCanSubmitClaim');
+    await expect(notOwnerSubmitClaim).to.be.revertedWithCustomError(claims, 'NotCoverOwner');
     // Owner succeeds
     const ownerSubmitClaim = submitClaim(fixture)({ coverId, sender: coverOwner });
-    await expect(ownerSubmitClaim).not.to.be.revertedWithCustomError(claims, 'OnlyOwnerCanSubmitClaim');
+    await expect(ownerSubmitClaim).not.to.be.revertedWithCustomError(claims, 'NotCoverOwner');
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     await createMockCover(cover, { owner: coverOwner.address, start: timestamp + 1 });
@@ -47,7 +47,7 @@ describe('submitClaim', function () {
     // Approved also fails
     await coverNFT.connect(coverOwner).approve(approvedMember.address, coverId2);
     const approvedSubmitClaim = submitClaim(fixture)({ coverId: coverId2, sender: approvedMember });
-    await expect(approvedSubmitClaim).to.be.revertedWithCustomError(claims, 'OnlyOwnerCanSubmitClaim');
+    await expect(approvedSubmitClaim).to.be.revertedWithCustomError(claims, 'NotCoverOwner');
   });
 
   it('reverts if a claim on the same cover is already being assessed', async function () {

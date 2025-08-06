@@ -121,7 +121,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
     token.addToWhiteList(_member);
   }
 
-  /// @notice Removes a member from all assessor groups and the whitelist.
+  /// @notice Removes an address from the whitelist in the token
   /// @dev Requires the member's token balance to be zero before removal.
   /// @param _member The address to remove.
   function removeFromWhitelist(address _member) public override onlyInternal {
@@ -129,7 +129,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
     token.removeFromWhiteList(_member);
   }
 
-  /// @notice Switches membership from one address to another, transferring all tokens and whitelist status.
+  /// @notice Switches membership from one address to another, transferring all tokens.
   /// @dev Transfers the full token balance from the old address to the new one, updates whitelist status accordingly.
   /// @param from The address to transfer membership from.
   /// @param to The address to transfer membership to.

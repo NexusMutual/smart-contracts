@@ -250,6 +250,7 @@ contract Claims is IClaims, RegistryAware {
 
     ramm.updateTwap();
 
+    // TODO: remove return address in burnStake and fetch cover owner from coverNFT
     address payable coverOwner = payable(cover.burnStake(
       claim.coverId,
       claim.amount

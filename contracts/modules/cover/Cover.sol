@@ -491,6 +491,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     activeCover[coverAsset] = _activeCover;
   }
 
+  // TODO: remove return address
   function burnStake(
     uint coverId,
     uint payoutAmountInAsset

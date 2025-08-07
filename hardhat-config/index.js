@@ -37,7 +37,6 @@ const config = {
   mocha: {
     exit: true,
     bail: false,
-    recursive: false,
     timeout: 0,
     slow: 5000,
     jobs: Number(process.env.MOCHA_JOBS) || 3,

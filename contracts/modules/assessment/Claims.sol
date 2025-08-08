@@ -4,11 +4,11 @@ pragma solidity ^0.8.28;
 
 import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IAssessment.sol";
+import "../../interfaces/IClaims.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IERC20Detailed.sol";
-import "../../interfaces/IClaims.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IRamm.sol";

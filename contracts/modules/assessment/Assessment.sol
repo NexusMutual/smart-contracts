@@ -2,11 +2,10 @@
 
 pragma solidity ^0.8.28;
 
-import "../../libraries/external/EnumerableSet.sol";
-
 import "../../abstract/Multicall.sol";
-import "../../interfaces/IAssessment.sol";
 import "../../abstract/RegistryAware.sol";
+import "../../interfaces/IAssessment.sol";
+import "../../libraries/external/EnumerableSet.sol";
 import "../../libraries/SafeUintCast.sol";
 
 contract Assessment is IAssessment, RegistryAware, Multicall {

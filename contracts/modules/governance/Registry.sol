@@ -4,8 +4,8 @@ pragma solidity ^0.8.28;
 
 import "../../abstract/EIP712.sol";
 import "../../abstract/RegistryAware.sol";
-import "../../interfaces/IRegistry.sol";
 import "../../interfaces/INXMMaster.sol";
+import "../../interfaces/IRegistry.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./UpgradeableProxy.sol";

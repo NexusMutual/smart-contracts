@@ -113,18 +113,15 @@ describe('closeVotingEarly', function () {
     const block = await ethers.provider.getBlock(blockNumber);
     const expectedVotingEndTime = block?.timestamp;
 
-    const assessmentData = await assessment.getAssessmentResult(CLAIM_ID);
-    const cooldownPeriod = await assessment.payoutCooldown(constants.PRODUCT_TYPE_ID);
-    const votingEndTime = assessmentData.cooldownEnd - cooldownPeriod;
-
-    expect(votingEndTime).to.equal(expectedVotingEndTime);
+    const assessmentData = await assessment.getAssessment(CLAIM_ID);
+    expect(assessmentData.votingEnd).to.equal(expectedVotingEndTime);
   });
 
   it('should succeed with empty assessor group and result in DRAW status', async function () {
     const { contracts, accounts, constants } = await loadFixture(setup);
     const { assessment } = contracts;
     const [governanceAccount] = accounts.governanceContracts;
-    const { CLAIM_ID, ASSESSOR_GROUP_ID } = constants;
+    const { CLAIM_ID, ASSESSOR_GROUP_ID, PRODUCT_TYPE_ID } = constants;
 
     // Remove all assessors from the existing group to make it empty
     const assessorMemberIds = await Promise.all(accounts.assessors.map(a => contracts.registry.getMemberId(a.address)));
@@ -158,9 +155,11 @@ describe('closeVotingEarly', function () {
     await setTime(Number(BigInt(closeVotingTimestamp) + BigInt(cooldownPeriod) + 1n));
 
     // Check assessment result after cooldown period
-    const [status, payoutRedemptionEnd, cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
+    const [status, payoutRedemptionEnd] = await assessment.getAssessmentResult(CLAIM_ID);
 
     // Verify cooldown end and payout redemption end calculation
+    const assessmentDataForProductType = await assessment.getAssessmentDataForProductType(PRODUCT_TYPE_ID);
+    const cooldownEnd = assessmentData.votingEnd + assessmentDataForProductType.cooldownPeriod;
     const expectedCooldownEnd = BigInt(closeVotingTimestamp) + BigInt(cooldownPeriod);
     expect(cooldownEnd).to.equal(expectedCooldownEnd);
 

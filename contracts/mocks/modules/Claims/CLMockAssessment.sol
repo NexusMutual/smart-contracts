@@ -16,8 +16,8 @@ contract CLMockAssessment is AssessmentGeneric {
     _productTypeForClaimId[claimId] = productTypeId;
   }
 
-  function getAssessmentResult(uint claimId) external override view returns (AssessmentStatus, uint, uint) {
-    return(_status[claimId], _payoutRedemptionEnd[claimId], _cooldownEnd[claimId]);
+  function getAssessmentResult(uint claimId) external override view returns (AssessmentStatus, uint) {
+    return(_status[claimId], _payoutRedemptionEnd[claimId]);
   }
 
   function setAssessmentResult(uint claimId, AssessmentStatus status, uint payoutRedemptionEnd, uint cooldownEnd) external {

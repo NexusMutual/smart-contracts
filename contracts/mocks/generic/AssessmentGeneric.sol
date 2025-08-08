@@ -103,7 +103,7 @@ contract AssessmentGeneric is IAssessment {
     revert("Unsupported");
   }
 
-  function getAssessmentResult(uint) external virtual view returns (AssessmentStatus, uint, uint) {
+  function getAssessmentResult(uint) external virtual view returns (AssessmentStatus, uint) {
     revert("Unsupported");
   }
 

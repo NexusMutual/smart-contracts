@@ -78,12 +78,13 @@ contract Claims is IClaims, RegistryAware {
 
     Claim memory claim = _claims[claimId];
 
-    (IAssessment.AssessmentStatus assessmentStatus, uint payoutRedemptionEnd, uint cooldownEnd) = assessment.getAssessmentResult(claimId);
+    (IAssessment.AssessmentStatus assessmentStatus, uint payoutRedemptionEnd) = assessment.getAssessmentResult(claimId);
     (IAssessment.Assessment memory claimAssessment) = assessment.getAssessment(claimId);
 
     CoverData memory coverData = cover.getCoverData(claim.coverId);
 
     uint expiration = coverData.start + coverData.period;
+    uint cooldownEnd = claimAssessment.votingEnd + claimAssessment.cooldownPeriod;
 
     string memory assetSymbol;
     if (claim.coverAsset == 0) {
@@ -160,7 +161,7 @@ contract Claims is IClaims, RegistryAware {
       uint previousSubmission = lastClaimSubmissionOnCover[coverId];
 
       if (previousSubmission > 0) {
-        (IAssessment.AssessmentStatus status, uint payoutRedemptionEnd, /* cooldownEnd */) = assessment.getAssessmentResult(previousSubmission);
+        (IAssessment.AssessmentStatus status, uint payoutRedemptionEnd) = assessment.getAssessmentResult(previousSubmission);
 
         require(
           status != IAssessment.AssessmentStatus.VOTING &&
@@ -290,7 +291,7 @@ contract Claims is IClaims, RegistryAware {
     require(claim.amount > 0, InvalidClaimId());
 
     IAssessment.AssessmentStatus status;
-    (status, payoutRedemptionEnd, /* cooldownEnd */) = assessment.getAssessmentResult(claimId);
+    (status, payoutRedemptionEnd) = assessment.getAssessmentResult(claimId);
     require(status == expectedStatus, InvalidAssessmentStatus());
 
     return (claim, payoutRedemptionEnd);

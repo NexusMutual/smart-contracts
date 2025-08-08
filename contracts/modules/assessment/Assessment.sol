@@ -263,16 +263,15 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param claimId The ID of the claim to query
   /// @return status Current status of the assessment (VOTING, COOLDOWN, ACCEPTED, DENIED, DRAW)
   /// @return payoutRedemptionEnd Timestamp when the payout redemption period ends
-  /// @return cooldownEnd Timestamp when the cooldown period ends
-  function getAssessmentResult(uint claimId) override external view returns(AssessmentStatus status, uint payoutRedemptionEnd, uint cooldownEnd) {
+  function getAssessmentResult(uint claimId) override external view returns(AssessmentStatus status, uint payoutRedemptionEnd) {
 
     Assessment memory assessment = _assessments[claimId];
     require(assessment.start != 0, InvalidClaimId());
 
-    cooldownEnd = assessment.votingEnd + assessment.cooldownPeriod;
+    uint cooldownEnd = assessment.votingEnd + assessment.cooldownPeriod;
     payoutRedemptionEnd = cooldownEnd + assessment.payoutRedemptionPeriod;
 
-    return (_getAssessmentStatus(assessment), payoutRedemptionEnd, cooldownEnd);
+    return (_getAssessmentStatus(assessment), payoutRedemptionEnd);
   }
 
   /// @notice Determines the current status of an assessment based on timing and votes

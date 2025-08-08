@@ -4,11 +4,11 @@ pragma solidity ^0.8.28;
 
 import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IAssessment.sol";
+import "../../interfaces/IClaims.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IERC20Detailed.sol";
-import "../../interfaces/IClaims.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IRamm.sol";
@@ -78,12 +78,13 @@ contract Claims is IClaims, RegistryAware {
 
     Claim memory claim = _claims[claimId];
 
-    (IAssessment.AssessmentStatus assessmentStatus, uint payoutRedemptionEnd, uint cooldownEnd) = assessment.getAssessmentResult(claimId);
+    (IAssessment.AssessmentStatus assessmentStatus, uint payoutRedemptionEnd) = assessment.getAssessmentResult(claimId);
     (IAssessment.Assessment memory claimAssessment) = assessment.getAssessment(claimId);
 
     CoverData memory coverData = cover.getCoverData(claim.coverId);
 
     uint expiration = coverData.start + coverData.period;
+    uint cooldownEnd = claimAssessment.votingEnd + claimAssessment.cooldownPeriod;
 
     string memory assetSymbol;
     if (claim.coverAsset == 0) {
@@ -151,7 +152,7 @@ contract Claims is IClaims, RegistryAware {
     uint32 coverId,
     uint96 requestedAmount,
     bytes32 ipfsMetadata
-  ) external payable override onlyMember whenNotPaused(PAUSE_CLAIM_PAYOUTS) returns (Claim memory claim) {
+  ) external payable override onlyMember whenNotPaused(PAUSE_CLAIMS) returns (Claim memory claim) {
     require(coverNFT.ownerOf(coverId) == msg.sender, NotCoverOwner());
 
     uint claimId = _nextClaimId++;
@@ -160,7 +161,7 @@ contract Claims is IClaims, RegistryAware {
       uint previousSubmission = lastClaimSubmissionOnCover[coverId];
 
       if (previousSubmission > 0) {
-        (IAssessment.AssessmentStatus status, uint payoutRedemptionEnd, /* cooldownEnd */) = assessment.getAssessmentResult(previousSubmission);
+        (IAssessment.AssessmentStatus status, uint payoutRedemptionEnd) = assessment.getAssessmentResult(previousSubmission);
 
         require(
           status != IAssessment.AssessmentStatus.VOTING &&
@@ -236,7 +237,7 @@ contract Claims is IClaims, RegistryAware {
   /// @dev Must be the cover NFT owner for the claim and a member can call this function
   ///
   /// @param claimId  Claim identifier
-  function redeemClaimPayout(uint claimId) external override onlyMember whenNotPaused(PAUSE_CLAIM_PAYOUTS) {
+  function redeemClaimPayout(uint claimId) external override onlyMember whenNotPaused(PAUSE_CLAIMS) {
 
     (Claim memory claim, uint payoutRedemptionEnd) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.ACCEPTED);
 
@@ -266,7 +267,7 @@ contract Claims is IClaims, RegistryAware {
   /// @dev Can be called by anyone, but the claim deposit is always transferred to the current cover NFT owner.
   ///
   /// @param claimId The unique identifier of the claim for which the deposit is being retrieved.
-  function retrieveDeposit(uint claimId) external override whenNotPaused(PAUSE_CLAIM_PAYOUTS) {
+  function retrieveDeposit(uint claimId) external override whenNotPaused(PAUSE_CLAIMS) {
 
     (Claim memory claim, /* payoutRedemptionEnd */) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.DRAW);
 
@@ -290,7 +291,7 @@ contract Claims is IClaims, RegistryAware {
     require(claim.amount > 0, InvalidClaimId());
 
     IAssessment.AssessmentStatus status;
-    (status, payoutRedemptionEnd, /* cooldownEnd */) = assessment.getAssessmentResult(claimId);
+    (status, payoutRedemptionEnd) = assessment.getAssessmentResult(claimId);
     require(status == expectedStatus, InvalidAssessmentStatus());
 
     return (claim, payoutRedemptionEnd);

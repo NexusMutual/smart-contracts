@@ -87,7 +87,7 @@ interface IAssessment {
 
   function getAssessmentDataForProductType(uint productTypeId) external view returns (AssessmentData memory assessmentData);
 
-  function getAssessmentResult(uint claimId) external view returns(AssessmentStatus status, uint payoutRedemptionPeriod, uint cooldownEnd);
+  function getAssessmentResult(uint claimId) external view returns(AssessmentStatus status, uint payoutRedemptionPeriod);
 
   function ballotOf(uint claimId, uint assessorMemberId) external view returns (Ballot memory);
 

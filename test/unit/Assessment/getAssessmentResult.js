@@ -31,12 +31,11 @@ describe('getAssessmentResult', function () {
     const { assessment } = contracts;
     const { CLAIM_ID } = constants;
 
-    const [status, payoutRedemptionEnd, cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
+    const [status, payoutRedemptionEnd] = await assessment.getAssessmentResult(CLAIM_ID);
     const assessmentData = await assessment.getAssessment(CLAIM_ID);
     const expectedCooldownEnd = BigInt(assessmentData.votingEnd) + BigInt(assessmentData.cooldownPeriod);
     const expectedPayoutRedemptionEnd = expectedCooldownEnd + BigInt(assessmentData.payoutRedemptionPeriod);
 
-    expect(cooldownEnd).to.equal(expectedCooldownEnd);
     expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
     expect(status).to.equal(AssessmentStatus.VOTING);
   });
@@ -61,9 +60,7 @@ describe('getAssessmentResult', function () {
     // Set time to just after voting ends but before cooldown passes
     await setTime(votingEnd + 1n);
 
-    const [status, payoutRedemptionEnd, cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
-
-    expect(cooldownEnd).to.equal(expectedCooldownEnd);
+    const [status, payoutRedemptionEnd] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
     expect(status).to.equal(AssessmentStatus.COOLDOWN);
   });
@@ -88,8 +85,7 @@ describe('getAssessmentResult', function () {
     // Set time past cooldown period
     await setTime(expectedCooldownEnd + 1n);
 
-    const [status, payoutRedemptionEnd, cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
-    expect(cooldownEnd).to.equal(expectedCooldownEnd);
+    const [status, payoutRedemptionEnd] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
     expect(status).to.equal(AssessmentStatus.ACCEPTED);
   });
@@ -114,8 +110,7 @@ describe('getAssessmentResult', function () {
     // Set time past cooldown period
     await setTime(cooldownEndTime + 1n);
 
-    const [status, payoutRedemptionEnd, cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
-    expect(cooldownEnd).to.equal(cooldownEndTime);
+    const [status, payoutRedemptionEnd] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
     expect(status).to.equal(AssessmentStatus.DENIED);
   });
@@ -137,9 +132,7 @@ describe('getAssessmentResult', function () {
     // Set time past cooldown period
     await setTime(expectedCooldownEnd + 1n);
 
-    const [status, payoutRedemptionEnd, cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
-
-    expect(cooldownEnd).to.equal(expectedCooldownEnd);
+    const [status, payoutRedemptionEnd] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
     expect(status).to.equal(AssessmentStatus.DRAW);
   });
@@ -158,9 +151,7 @@ describe('getAssessmentResult', function () {
     // Set time past cooldown period
     await setTime(expectedCooldownEnd + 1n);
 
-    const [status, payoutRedemptionEnd, cooldownEnd] = await assessment.getAssessmentResult(CLAIM_ID);
-
-    expect(cooldownEnd).to.equal(expectedCooldownEnd);
+    const [status, payoutRedemptionEnd] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
     expect(status).to.equal(AssessmentStatus.DRAW);
   });
@@ -205,8 +196,8 @@ describe('getAssessmentResult', function () {
     await claims.connect(coverOwner).submitClaim(COVER_ID_3, ethers.parseEther('1'), IPFS_HASH);
 
     // Should have different values for claims with different product types
-    const [status2, payoutRedemptionEnd2, cooldownEnd2] = await assessment.getAssessmentResult(CLAIM_ID_2);
-    const [status3, payoutRedemptionEnd3, cooldownEnd3] = await assessment.getAssessmentResult(CLAIM_ID_3);
+    const [status2, payoutRedemptionEnd2] = await assessment.getAssessmentResult(CLAIM_ID_2);
+    const [status3, payoutRedemptionEnd3] = await assessment.getAssessmentResult(CLAIM_ID_3);
 
     expect(status2).to.equal(AssessmentStatus.VOTING);
     expect(status3).to.equal(AssessmentStatus.VOTING);
@@ -222,13 +213,8 @@ describe('getAssessmentResult', function () {
     const expectedCooldownEnd3 = BigInt(claimAssessmentData3.votingEnd) + BigInt(productType3CooldownPeriod);
     const expectedPayoutRedemptionEnd3 = expectedCooldownEnd3 + BigInt(productType3PayoutRedemptionPeriod);
 
-    expect(cooldownEnd2).to.equal(expectedCooldownEnd2);
     expect(payoutRedemptionEnd2).to.equal(expectedPayoutRedemptionEnd2);
-
-    expect(cooldownEnd3).to.equal(expectedCooldownEnd3);
     expect(payoutRedemptionEnd3).to.equal(expectedPayoutRedemptionEnd3);
-
-    expect(cooldownEnd2).to.not.equal(cooldownEnd3);
     expect(payoutRedemptionEnd2).to.not.equal(payoutRedemptionEnd3);
   });
 });

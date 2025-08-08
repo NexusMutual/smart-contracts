@@ -47,8 +47,6 @@ interface ISwapOperator {
 
   function enzymeV4VaultProxyAddress() external view returns (address);
 
-  function enzymeFundValueCalculatorRouter() external view returns (IEnzymeFundValueCalculatorRouter);
-
   /* ==== MUTATIVE FUNCTIONS ==== */
 
   function placeOrder(GPv2Order.Data calldata order, bytes calldata orderUID) external;
@@ -85,8 +83,8 @@ interface ISwapOperator {
   error ToAmountTooLow(uint expectedToAmount, uint actualToAmount);
 
   // order amounts vs actual amounts
-  error SwappedFromAmountTooHigh(uint expectedFromAmount, uint actualFromAmount);
-  error SwappedToAmountTooLow(uint expectedToAmount, uint actualToAmount);
+  error SwappedFromAmountTooHigh(uint expectedMaxFromAmount, uint actualFromAmount);
+  error SwappedToAmountTooLow(uint expectedMinToAmount, uint actualToAmount);
 
   error FeeNotZero();
   error InvalidDenominationAsset(address expectedAsset, address actualAsset);

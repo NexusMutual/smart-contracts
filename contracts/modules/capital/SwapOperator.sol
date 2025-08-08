@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import "../../abstract/RegistryAware.sol";
-import "../../external/enzyme/IEnzymeFundValueCalculatorRouter.sol";
 import "../../external/enzyme/IEnzymePolicyManager.sol";
 import "../../external/enzyme/IEnzymeV4Comptroller.sol";
 import "../../external/enzyme/IEnzymeV4Vault.sol";
@@ -30,7 +29,6 @@ contract SwapOperator is ISwapOperator, RegistryAware {
   IPool public immutable pool;
   ICowSettlement public immutable cowSettlement;
   address public immutable enzymeV4VaultProxyAddress;
-  IEnzymeFundValueCalculatorRouter public immutable enzymeFundValueCalculatorRouter;
   IWeth public immutable weth;
 
   // constants
@@ -48,7 +46,6 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     address _registryAddress,
     address _cowSettlement,
     address _enzymeV4VaultProxyAddress,
-    IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter,
     address _weth
   ) RegistryAware(_registryAddress) {
 
@@ -60,7 +57,6 @@ contract SwapOperator is ISwapOperator, RegistryAware {
 
     // enzyme
     enzymeV4VaultProxyAddress = _enzymeV4VaultProxyAddress;
-    enzymeFundValueCalculatorRouter = _enzymeFundValueCalculatorRouter;
 
     // others
     weth = IWeth(_weth);
@@ -264,17 +260,18 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     uint fromTokenBalanceAfter = weth.balanceOf(address(this));
     uint toTokenBalanceAfter = toToken.balanceOf(address(this));
 
+    // redundant in theory
     uint actualFromAmount = fromTokenBalanceBefore - fromTokenBalanceAfter;
     require(actualFromAmount <= fromAmount, SwappedFromAmountTooHigh(fromAmount, actualFromAmount));
 
-    uint toAmount = toTokenBalanceAfter - toTokenBalanceBefore;
-    require(toAmount >= toAmountMin, SwappedToAmountTooLow(toAmount, toAmountMin));
+    uint actualToAmount = toTokenBalanceAfter - toTokenBalanceBefore;
+    require(actualToAmount >= toAmountMin, SwappedToAmountTooLow(toAmountMin, actualToAmount));
 
     returnAssetToPool(toToken);
     returnAssetToPool(IERC20(address(weth)));
     pool.clearSwapAssetAmount(ETH);
 
-    emit Swapped(ETH, enzymeV4VaultProxyAddress, actualFromAmount, toAmount);
+    emit Swapped(ETH, enzymeV4VaultProxyAddress, actualFromAmount, actualToAmount);
   }
 
   /// @dev Exchanges Enzyme Vault shares for ETH with slippage control. Emits `Swapped` on success
@@ -319,7 +316,7 @@ contract SwapOperator is ISwapOperator, RegistryAware {
       assetsOut[0] = address(weth);
 
       uint[] memory assetsOutPercentages = new uint[](1);
-      assetsOutPercentages[0] = 10000;
+      assetsOutPercentages[0] = 10000; // in bps
 
       fromToken.approve(address(comptrollerProxy), fromAmount);
       comptrollerProxy.redeemSharesForSpecificAssets(address(this), fromAmount, assetsOut, assetsOutPercentages);

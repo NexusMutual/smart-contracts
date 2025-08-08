@@ -1,35 +1,91 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.17;
+pragma solidity ^0.8.28;
 
 import "../../../external/enzyme/IEnzymeV4Comptroller.sol";
 import "./SOMockEnzymeV4Vault.sol";
+import "./SOMockExtraSpender.sol";
 
 contract SOMockEnzymeV4Comptroller is IEnzymeV4Comptroller {
 
-  address weth;
-  SOMockEnzymeV4Vault private vault;
+  ERC20 internal denominationAsset;
+  SOMockEnzymeV4Vault internal vault;
 
-  uint public ethToSharesRate = 10000;
+  // mock helpers
+  uint internal sharesToMintOnDeposit;
+  uint internal amountToPullOnDeposit;
+  uint internal sharesToBurnOnRedeem;
+  uint internal amountToPushOnRedeem;
 
-  constructor(address _weth) public {
-    weth = _weth;
+  // bypasses the allowance and pulls an extra amount using another address
+  SOMockExtraSpender public extraSpender;
+  uint public extraExpenseAmount;
+
+  constructor(address _denominationAsset, SOMockEnzymeV4Vault _vault) {
+    denominationAsset = ERC20(_denominationAsset);
+    vault = _vault;
+    extraSpender = new SOMockExtraSpender();
   }
 
-  function getDenominationAsset() external view returns (address denominationAsset_) {
-    return weth;
+  function setDepositMockAmounts(uint _sharesToMintOnDeposit, uint _amountToPullOnDeposit) external {
+    sharesToMintOnDeposit = _sharesToMintOnDeposit;
+    amountToPullOnDeposit = _amountToPullOnDeposit;
   }
+
+  function setExtraExpenseAmount(uint _extraExpenseAmount) external {
+    extraExpenseAmount = _extraExpenseAmount;
+  }
+
+  function setRedeemMockAmounts(uint _sharesToBurnOnRedeem, uint _amountToPushOnRedeem) external {
+    sharesToBurnOnRedeem = _sharesToBurnOnRedeem;
+    amountToPushOnRedeem = _amountToPushOnRedeem;
+  }
+
+  function setDenominationAsset(address _denominationAsset) external {
+    denominationAsset = ERC20(_denominationAsset);
+  }
+
+  function getDenominationAsset() external view returns (address) {
+    return address(denominationAsset);
+  }
+
+  event BuyCalledWith(
+    uint _investmentAmount,
+    uint _minSharesQuantity
+  );
+
+  function buyShares(uint _investmentAmount, uint _minSharesQuantity) external {
+
+    denominationAsset.transferFrom(msg.sender, address(vault), amountToPullOnDeposit);
+    vault.mint(msg.sender, sharesToMintOnDeposit);
+
+    if (extraExpenseAmount > 0) {
+      extraSpender.spend(denominationAsset, msg.sender, extraExpenseAmount);
+    }
+
+    emit BuyCalledWith(_investmentAmount, _minSharesQuantity);
+  }
+
+  event RedeemCalledWith(
+    address indexed _recipient,
+    uint _sharesQuantity,
+    address[] _payoutAssets,
+    uint[] _payoutAssetPercentages
+  );
 
   function redeemSharesForSpecificAssets(
     address _recipient,
-    uint256 _sharesQuantity,
-    address[] calldata /* _payoutAssets */,
-    uint256[] calldata /* _payoutAssetPercentages */
-  ) external returns (uint256[] memory payoutAmounts_) {
-    payoutAmounts_ =  new uint256[](0);
+    uint _sharesQuantity,
+    address[] calldata _payoutAssets,
+    uint[] calldata _payoutAssetPercentages
+  ) external returns (uint[] memory payoutAmounts) {
 
-    vault.burn(_recipient, _sharesQuantity);
-    IERC20(weth).transfer(_recipient, _sharesQuantity * 10000 / ethToSharesRate);
+    payoutAmounts = new uint[](0); // unchecked
+
+    vault.burn(_recipient, sharesToBurnOnRedeem);
+    vault.withdraw(denominationAsset, _recipient, amountToPushOnRedeem);
+
+    emit RedeemCalledWith(_recipient, _sharesQuantity, _payoutAssets, _payoutAssetPercentages);
   }
 
   function vaultCallOnContract(
@@ -38,18 +94,5 @@ contract SOMockEnzymeV4Comptroller is IEnzymeV4Comptroller {
     bytes calldata _encodedArgs
   ) external {
     // no-op
-  }
-
-  function buyShares(uint _investmentAmount, uint /* _minSharesQuantity */) external {
-    uint shares = _investmentAmount * ethToSharesRate / 10000;
-    vault.mint(msg.sender, shares);
-  }
-
-  function setETHToVaultSharesRate(uint _ethToSharesRate) public {
-    ethToSharesRate = _ethToSharesRate;
-  }
-
-  function setVault(SOMockEnzymeV4Vault _vault) public {
-    vault = _vault;
   }
 }

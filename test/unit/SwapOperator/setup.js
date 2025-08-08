@@ -25,23 +25,14 @@ async function setup() {
   const cowSettlement = await ethers.deployContract('SOMockSettlement', [cowVaultRelayer]);
 
   // deploy enzyme mocks
-  const enzymeV4Comptroller = await ethers.deployContract('SOMockEnzymeV4Comptroller', [weth]);
+  const enzymeV4Vault = await ethers.deployContract('SOMockEnzymeV4Vault', []);
+  const enzymeV4Comptroller = await ethers.deployContract('SOMockEnzymeV4Comptroller', [weth, enzymeV4Vault]);
+  await enzymeV4Vault.setAccessor(enzymeV4Comptroller);
 
-  // move weth to Comptroller
-  const comtrollerWethReserves = parseEther('10000');
-  await weth.deposit({ value: comtrollerWethReserves });
-  await weth.transfer(enzymeV4Comptroller, comtrollerWethReserves);
-
-  const enzymeV4Vault = await ethers.deployContract('SOMockEnzymeV4Vault', [
-    enzymeV4Comptroller,
-    'Enzyme V4 Vault Share ETH',
-    'EVSE',
-    18,
-  ]);
-
-  await enzymeV4Comptroller.setVault(enzymeV4Vault);
-
-  const enzymeFundValueCalculatorRouter = await ethers.deployContract('SOMockEnzymeFundValueCalculatorRouter', [weth]);
+  // deposit weth to Enzyme Vault
+  const comptrollerWethReserves = parseEther('10000');
+  await weth.deposit({ value: comptrollerWethReserves });
+  await weth.transfer(enzymeV4Vault, comptrollerWethReserves);
 
   const assetDetails = [
     { assetAddress: Assets.ETH, isCoverAsset: true, isAbandoned: false },
@@ -57,23 +48,16 @@ async function setup() {
   await registry.setContractAddress(ContractIndexes.C_GOVERNOR, governor);
   await registry.setContractAddress(ContractIndexes.C_POOL, pool);
 
-  const swapOperator = await ethers.deployContract('SwapOperator', [
-    registry,
-    cowSettlement,
-    enzymeV4Vault,
-    enzymeFundValueCalculatorRouter,
-    weth,
-  ]);
-
+  const swapOperator = await ethers.deployContract('SwapOperator', [registry, cowSettlement, enzymeV4Vault, weth]);
   await swapOperator.connect(governor).setSwapController(swapController);
-
   await pool.setSwapOperator(swapOperator);
+
   await setBalance(pool.target, parseEther('1000'));
   await dai.mint(pool.target, parseEther('20000000')); // 20M DAI
   await usdc.mint(pool.target, parseEther('20000000')); // 20M USDC
   await stEth.mint(pool.target, parseEther('1000')); // 1000 stETH
 
-  const enzymeContracts = { enzymeV4Vault, enzymeV4Comptroller, enzymeFundValueCalculatorRouter };
+  const enzymeContracts = { enzymeV4Vault, enzymeV4Comptroller };
   const cowContracts = { cowVaultRelayer, cowSettlement };
   const tokens = { weth, dai, usdc, stEth };
 

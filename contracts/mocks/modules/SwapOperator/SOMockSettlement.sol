@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.28;
 
 import './SOMockVaultRelayer.sol';
 import '../../../external/cow/GPv2Order.sol';

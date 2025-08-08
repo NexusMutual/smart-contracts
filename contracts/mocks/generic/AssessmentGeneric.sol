@@ -21,7 +21,7 @@ contract AssessmentGeneric is IAssessment {
     revert("Unsupported");
   }
 
-  function setAssessmentDataForProductTypes(uint[] calldata, uint, uint) external virtual {
+  function setAssessmentDataForProductTypes(uint[] calldata, uint, uint, uint) external virtual {
     revert("Unsupported");
   }
 
@@ -99,7 +99,11 @@ contract AssessmentGeneric is IAssessment {
     revert("Unsupported");
   }
 
-  function getAssessmentResult(uint) external virtual view returns (uint, AssessmentStatus) {
+  function getAssessmentDataForProductType(uint) external virtual view returns (AssessmentData memory) {
+    revert("Unsupported");
+  }
+
+  function getAssessmentResult(uint) external virtual view returns (AssessmentStatus, uint, uint) {
     revert("Unsupported");
   }
 

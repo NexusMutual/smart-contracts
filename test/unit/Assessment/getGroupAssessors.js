@@ -161,24 +161,16 @@ describe('getGroupAssessors', function () {
     const group1Result = await assessment.getGroupAssessors(group1Id);
     const group1Set = new Set(group1Result);
 
-    expect(group1Result.length).to.equal(group1Assessors.length + 1);
-    await Promise.all(
-      group1Assessors.map(async assessorId => {
-        expect(group1Set.has(assessorId)).to.be.true;
-      }),
-    );
-    expect(group1Set.has(sharedAssessor)).to.be.true;
+    const group1WithSharedAssessor = [...group1Assessors, sharedAssessor];
+    expect(group1Result).to.have.lengthOf(group1WithSharedAssessor.length);
+    group1WithSharedAssessor.forEach(assessorId => expect(group1Set.has(assessorId)).to.be.true);
 
     // Verify group 2 assessors
     const group2Result = await assessment.getGroupAssessors(group2Id);
     const group2Set = new Set(group2Result);
 
-    expect(group2Result.length).to.equal(group2Assessors.length + 1);
-    await Promise.all(
-      group2Assessors.map(async assessorId => {
-        expect(group2Set.has(assessorId)).to.be.true;
-      }),
-    );
-    expect(group2Set.has(sharedAssessor)).to.be.true;
+    const group2WithSharedAssessor = [...group2Assessors, sharedAssessor];
+    expect(group2Result).to.have.lengthOf(group2WithSharedAssessor.length);
+    group2WithSharedAssessor.forEach(assessorId => expect(group2Set.has(assessorId)).to.be.true);
   });
 });

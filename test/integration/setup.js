@@ -224,9 +224,9 @@ async function setup() {
     defaultSender, // swap controller
   ]);
 
-  const assessmentImplementation = await ethers.deployContract('Assessment', [token]);
+  const assessmentImplementation = await ethers.deployContract('Assessment', [registry]);
 
-  const claimsImplementation = await ethers.deployContract('IndividualClaims', [coverNFT]);
+  const claimsImplementation = await ethers.deployContract('Claims', [registry]);
 
   // upgrade proxies
 
@@ -258,7 +258,7 @@ async function setup() {
   const limitOrders = await getContract(ContractIndexes.C_LIMIT_ORDERS, 'LimitOrders');
   const swapOperator = await getContract(ContractIndexes.C_SWAP_OPERATOR, 'SwapOperator');
   const assessment = await getContract(ContractIndexes.C_ASSESSMENT, 'Assessment');
-  const claims = await getContract(ContractIndexes.C_CLAIMS, 'IndividualClaims');
+  const claims = await getContract(ContractIndexes.C_CLAIMS, 'Claims');
 
   const assets = [
     { asset: Assets.ETH, isCoverAsset: true, oracle: chainlinkEthUsd, type: AggregatorType.USD },
@@ -290,9 +290,6 @@ async function setup() {
     ContractIndexes.C_COVER_PRODUCTS,
     ContractIndexes.C_STAKING_PRODUCTS,
     ContractIndexes.C_LIMIT_ORDERS,
-    // TODO: remove Assessment and Claims from here once we've merged the new assessment
-    ContractIndexes.C_ASSESSMENT,
-    ContractIndexes.C_CLAIMS,
   ];
 
   for (const contract of masterAwareContracts) {

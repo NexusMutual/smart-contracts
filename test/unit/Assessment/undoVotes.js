@@ -116,7 +116,7 @@ describe('undoVotes', function () {
 
     // Create additional claims using member account
     const claimIds = [2, 3, 4];
-    const coverIds = [100, 101, 102];
+    const coverIds = [2, 3, 4];
     const [memberAccount] = accounts.members;
 
     const claimAmount = ethers.parseEther('1');
@@ -232,7 +232,7 @@ describe('undoVotes', function () {
 
     // Create additional claim using member account
     const newClaimId = 2;
-    const coverId = 200;
+    const coverId = 2;
     const [memberAccount] = accounts.members;
     await claims.connect(memberAccount).submitClaim(coverId, ethers.parseEther('1'), IPFS_HASH);
 

@@ -34,14 +34,13 @@ interface IClaims {
     uint assessmentVotingEnd;
     uint assessmentCooldownEnd;
     uint assessmentStatus;
+    uint payoutRedemptionEnd;
     bool payoutRedeemed;
   }
 
   /* ========== VIEWS ========== */
 
   function getClaimInfo(uint claimId) external view returns (Claim memory);
-
-  function getPayoutRedemptionPeriod() external view returns (uint);
 
   function getClaimsCount() external view returns (uint);
 
@@ -69,7 +68,7 @@ interface IClaims {
   error ClaimIsBeingAssessed();
   error PayoutCanStillBeRedeemed();
   error ClaimAlreadyPaidOut();
-  error OnlyOwnerOrApprovedCanSubmitClaim();
+  error NotCoverOwner();
   error InvalidClaimMethod();
   error CoveredAmountExceeded();
   error CantBuyCoverAndClaimInTheSameBlock();
@@ -80,7 +79,6 @@ interface IClaims {
   error RedemptionPeriodExpired();
   error PayoutAlreadyRedeemed();
   error DepositAlreadyRetrieved();
-  error OnlyMember();
   error InvalidClaimId();
   error AlreadyInitialized();
 }

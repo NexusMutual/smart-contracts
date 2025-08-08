@@ -80,7 +80,6 @@ async function setup() {
 
   const config = {
     claimDepositInETH: await claims.CLAIM_DEPOSIT_IN_ETH(),
-    payoutRedemptionPeriod: Number(await claims.getPayoutRedemptionPeriod()),
   };
 
   const contracts = {

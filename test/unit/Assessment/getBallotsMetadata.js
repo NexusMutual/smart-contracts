@@ -72,7 +72,7 @@ describe('getBallotsMetadata', function () {
     ]);
     const expectedClaimId1 = 2;
     const expectedClaimId2 = 3;
-    const coverIds = [300, 301];
+    const coverIds = [1, 2];
     await setEtherBalance(memberAddress, ethers.parseEther('10'));
 
     for (const coverId of coverIds) {

@@ -30,7 +30,7 @@ uint constant PAUSE_RAMM          = 1 << 1;   // 2
 uint constant PAUSE_SWAPS         = 1 << 2;   // 4
 uint constant PAUSE_MEMBERSHIP    = 1 << 3;   // 8
 uint constant PAUSE_ASSESSMENTS   = 1 << 4;   // 16
-uint constant PAUSE_CLAIMS_PAYOUT = 1 << 5;   // 32
+uint constant PAUSE_CLAIM_PAYOUTS = 1 << 5;   // 32
 
 contract RegistryAware {
 
@@ -38,6 +38,7 @@ contract RegistryAware {
 
   error Paused(uint currentState, uint checks);
   error Unauthorized(address caller, uint callerIndex, uint authorizedBitmap);
+  error OnlyMember();
 
   modifier whenNotPaused(uint mask) {
     uint config = registry.getPauseConfig();
@@ -52,6 +53,11 @@ contract RegistryAware {
       : registry.getContractIndexByAddress(msg.sender);
     bool isAuthorized = callerIndex & authorizedBitmap != 0;
     require(isAuthorized, Unauthorized(msg.sender, callerIndex, authorizedBitmap));
+    _;
+  }
+
+  modifier onlyMember() {
+    require(registry.isMember(msg.sender), OnlyMember());
     _;
   }
 

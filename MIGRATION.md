@@ -1,12 +1,12 @@
 ### Governor upgrade todos
 
 phase 0 (preparation for first ab action)
-- push old governance rewards
 - deploy registry implementation (create2) and proxy (create1) manually
 - deploy TempGov implementation (create2)
+- deploy LegacyAssessment implementation (create2)
 
 phase 1 (first ab action)
-1. upgrade to TempGov using the old Governance
+1. upgrade TempGov and LegacyAssessment using the old Governance
 2. batch:
   - call registry.migrate using TempGov
   - call registry.addContract using TempGov to add Token, CoverNFT, StakingNFT
@@ -17,8 +17,12 @@ phase 1 (first ab action)
   - transfer of Master ownership from TempGov to Governor
 
 phase 2 (preparation for second ab action)
-- deploy new P1, SO, RA, ST, AS, CL, GV implementations
-- memberRoles.migrateMembers - called with any address (deployer for ex)
+1. deploy new P1, SO, RA, ST, AS, CL, GV implementations
+2. execute scripts to push gov/assessment
+   - push old governance rewards
+   - push old assessment stake
+   - push old assessment rewards
+3. memberRoles.migrateMembers - called with any address (deployer for ex)
 
 phase 3 (second ab action)
 1. batch:

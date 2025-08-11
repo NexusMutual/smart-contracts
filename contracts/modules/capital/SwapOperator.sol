@@ -334,7 +334,7 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     require(actualFromAmount <= fromAmount, SwappedFromAmountTooHigh(fromAmount, actualFromAmount));
 
     uint toAmount = toTokenBalanceAfter - toTokenBalanceBefore;
-    require(toAmount >= toAmountMin, SwappedToAmountTooLow(toAmount, toAmountMin));
+    require(toAmount >= toAmountMin, SwappedToAmountTooLow(toAmountMin, toAmount));
 
     returnAssetToPool(IERC20(address(weth)));
     returnAssetToPool(fromToken);

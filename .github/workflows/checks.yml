@@ -9,8 +9,7 @@ concurrency:
 
 env:
   CACHE_KEY: ${{ vars.CACHE_KEY }} # Change to bust caches
-  # https://github.com/NomicFoundation/hardhat/issues/3877
-  NODE_VERSION: '18.15'
+  NODE_VERSION: 22
   NODE_OPTIONS: ${{ vars.NODE_OPTIONS }}
   ENABLE_OPTIMIZER: ${{ vars.ENABLE_OPTIMIZER }}
 

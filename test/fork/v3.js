@@ -1,15 +1,19 @@
 const { ethers, network, nexus } = require('hardhat');
-const { submitGovernanceProposal } = require('../../test-v5/fork/utils');
+const { submitGovernanceProposal } = require('./utils');
 const { getContractAt } = require('@nomicfoundation/hardhat-ethers/internal/helpers');
-const { parseEther, deployContract, toUtf8Bytes, defaultAbiCoder } = ethers;
+const { expect } = require('chai');
+
+const { parseEther, deployContract, toUtf8Bytes, AbiCoder } = ethers;
 const { ContractCode, ContractIndexes, ProposalCategory } = nexus.constants;
+
 const evm = nexus.evmInit();
+const defaultAbiCoder = AbiCoder.defaultAbiCoder();
 
 const ADVISORY_BOARD_MULTISIG = '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D';
 const EMERGENCY_ADMIN = '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D';
 const KYC_AUTH_ADDRESS = '0x176c27973E0229501D049De626d50918ddA24656';
 
-describe('v3 launch', () => {
+describe('v3 launch', function () {
   before(async function () {
     // Initialize evm helper
     await evm.connect(ethers.provider);
@@ -38,26 +42,56 @@ describe('v3 launch', () => {
    * deploy Governor implementation
    * */
 
-  it('should run phase 0', async () => {
+  it('should run phase 0', async function () {
     // push old governance rewards
     // @TODO: calculate salts for registry and registry proxy
-    this.registry = deployContract('UpgradeableProxy', []);
-    const registryImplementation = deployContract('Registry', [this.registry.target, this.master.target]);
-    this.registry.upgradeTo(registryImplementation.target);
-    const tempGovernance = deployContract('TemporaryGovernance', [ADVISORY_BOARD_MULTISIG]);
+    this.registry = await deployContract('UpgradeableProxy', []);
+    const registryImplementation = await deployContract('Registry', [this.registry.target, this.master.target]);
+    const tempGovernanceImplementation = await deployContract('TemporaryGovernance', [ADVISORY_BOARD_MULTISIG]);
+    const legacyAssessmentImplementation = await deployContract('LegacyAssessment', [this.nxm.target]);
 
-    const upgradeContracts = [{ code: ContractCode.Governance, contract: tempGovernance }];
+    await this.registry.upgradeTo(registryImplementation.target);
 
-    await submitGovernanceProposal(
-      ProposalCategory.upgradeMultipleContracts,
-      defaultAbiCoder.encode(
-        ['bytes2[]', 'address[]'],
-        [upgradeContracts.map(c => toUtf8Bytes(c.code)), upgradeContracts.map(c => c.contract.target)],
-      ),
-      this.abMembers,
-      this.governance,
+    // submit governance proposal - upgrade multiple contracts
+    const categoryId = ProposalCategory.upgradeMultipleContracts;
+    const upgradeContracts = [
+      { code: ContractCode.Governance, contract: tempGovernanceImplementation },
+      { code: ContractCode.Assessment, contract: legacyAssessmentImplementation },
+    ];
+    const actionData = defaultAbiCoder.encode(
+      ['bytes2[]', 'address[]'],
+      [upgradeContracts.map(c => toUtf8Bytes(c.code)), upgradeContracts.map(c => c.contract.target)],
     );
+
+    const signers = this.abMembers;
+    const id = await this.governance.getProposalLength();
+
+    console.log(`Proposal ${id}`);
+
+    await this.governance.connect(signers[0]).createProposal('', '', '', 0);
+    await this.governance.connect(signers[0]).categorizeProposal(id, categoryId, 0);
+    await this.governance.connect(signers[0]).submitProposalWithSolution(id, '', actionData);
+
+    await Promise.all(signers.map(signer => this.governance.connect(signer).submitVote(id, 1)));
+
+    const tx = await this.governance.closeProposal(id, { gasLimit: 21e6 });
+    const receipt = await tx.wait();
+
+    const hasActionSuccessLog = receipt.logs.some(log => {
+      try {
+        const parsed = this.governance.interface.parseLog(log);
+        return parsed.name === 'ActionSuccess';
+      } catch {
+        return false;
+      }
+    });
+
+    expect(hasActionSuccessLog, 'ActionSuccess was expected').to.be.true;
+
+    this.governance = await ethers.getContractAt('TemporaryGovernance', this.governance.target);
   });
+
+  require('./legacy-assessment');
 
   /*
    * Phase 1
@@ -70,16 +104,25 @@ describe('v3 launch', () => {
    * - transfer of Master ownership from TempGov to Governor
    * */
 
-  it('should run phase 1', async () => {
-    // @TODO: calculate all the salts
-    await this.registry.migrate(/*
-    params
-    */);
-    const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
-    this.governor = await getContractAt('Governor', governorAddress);
+  it('should run phase 1', async function () {
+    console.info('Snapshot ID Phase 1 start: ', await this.evm.snapshot());
 
-    const memberRolesImplementation = deployContract('LegacyMemberRoles', [this.registry.target]);
-    const masterImplementation = deployContract('NXMaster', []);
+    // @TODO: calculate all the salts
+    // await this.registry.migrate(/*
+    // params
+    // */);
+
+    // Create Registry contract instance using the proxy address but Registry interface
+    // console.log('Registry proxy address: ', this.registry.target);
+    // this.registry = await ethers.getContractAt('Registry', this.registry.target);
+    this.registry = await ethers.getContractAt('Registry', '0xdf422894281A27Aa3d19B0B7D578c59Cb051ABF8');
+    const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
+    this.governor = await ethers.getContractAt('Governor', governorAddress);
+
+    const memberRolesImplementation = await deployContract('LegacyMemberRoles', [this.registry.target]);
+    const masterImplementation = await deployContract('NXMaster', []);
+
+    // const govInterface = (await ethers.getContractFactory('TemporaryGovernance')).interface;
 
     const switchContractsToInternal = [
       { index: ContractIndexes.C_TOKEN, address: this.nxm.target, isProxy: false },
@@ -88,6 +131,7 @@ describe('v3 launch', () => {
     ];
     const transactions = [];
 
+    console.log('adding contracts to registry');
     switchContractsToInternal.forEach(c => {
       transactions.push({
         target: this.registry.target,
@@ -96,41 +140,44 @@ describe('v3 launch', () => {
       });
     });
 
+    console.log('setting emergency admin');
     transactions.push({
       target: this.registry.target,
       value: 0n,
       data: this.registry.interface.encodeFunctionData('setEmergencyAdmin', [EMERGENCY_ADMIN, true]),
     });
 
+    console.log('setting kyc auth address');
     transactions.push({
       target: this.registry.target,
       value: 0n,
       data: this.registry.interface.encodeFunctionData('setKycAuthAddress', [KYC_AUTH_ADDRESS]),
     });
 
+    console.log('upgrading member roles', memberRolesImplementation);
     transactions.push({
       target: this.master.target,
       value: 0n,
       data: this.master.interface.encodeFunctionData('upgradeMultipleContracts', [
         [toUtf8Bytes(ContractCode.MemberRoles)],
-        [memberRolesImplementation],
+        [memberRolesImplementation.target],
       ]),
     });
 
+    console.log('temp gov executing');
     await Promise.all(
-      transactions.map(transaction =>
-        this.tempGovernance.execute(transaction.target, transaction.value, transaction.data),
-      ),
+      transactions.map(transaction => this.governance.execute(transaction.target, transaction.value, transaction.data)),
     );
 
     // upgrade Master
-    this.tempGovernance.execute({
+    console.log('upgrading master');
+    await this.governance.execute({
       target: this.master.target,
       value: 0n,
       data: this.registry.interface.encodeFunctionData('upgradeTo', [masterImplementation.target]),
     });
 
-    this.tempGovernance.execute({
+    await this.governance.execute({
       target: this.master.target,
       value: 0n,
       data: this.registry.interface.encodeFunctionData('transferProxyOwnership', [this.governor.target]),
@@ -143,13 +190,13 @@ describe('v3 launch', () => {
    * - memberRoles.migrateMembers - called with any address (deployer for ex)
    * */
 
-  it('should run phase 3', async () => {
-    const poolImplementation = deployContract('Pool', []);
-    const swapOperatorImplementation = deployContract('SwapOperator', []);
-    const rammImplementation = deployContract('Ramm', []);
-    const safeTrackerImplementation = deployContract('SafeTracker', []);
-    const assessmentImplementation = deployContract('Assessment', []);
-    const claimsImplementation = deployContract('Claims', []);
+  it('should run phase 3', async function () {
+    const poolImplementation = await deployContract('Pool', []);
+    const swapOperatorImplementation = await deployContract('SwapOperator', []);
+    const rammImplementation = await deployContract('Ramm', []);
+    const safeTrackerImplementation = await deployContract('SafeTracker', []);
+    const assessmentImplementation = await deployContract('Assessment', []);
+    const claimsImplementation = await deployContract('Claims', []);
 
     const contractUpgrade = [
       { index: ContractIndexes.C_POOL, address: poolImplementation.target },
@@ -184,7 +231,7 @@ describe('v3 launch', () => {
    * - upgrade Governor using TempGov
    * */
 
-  it('should run phase 2', async () => {
+  it('should run phase 2', async function () {
     await this.pool.migrate(this.oldPool.target, this.mcr.target);
 
     await this.tempGovernance.execute({

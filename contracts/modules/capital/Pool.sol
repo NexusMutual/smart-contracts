@@ -273,11 +273,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
   /// @param member  Member address
   /// @param amount  Amount of ETH to send
   ///
-<<<<<<< HEAD
   function sendEth(address member, uint amount) external override onlyContracts(C_RAMM | C_ASSESSMENT) nonReentrant {
-=======
-  function sendEth(address member, uint amount) external override onlyContracts(C_RAMM, C_ASSESSMENT) nonReentrant {
->>>>>>> 5dbc0eab (test: wip fork)
     (bool transferSucceeded, /* data */) = member.call{value: amount}("");
     require(transferSucceeded, "Pool: ETH transfer failed");
   }

@@ -1,55 +1,99 @@
 const { abis, addresses } = require('@nexusmutual/deployments');
 const { ethers } = require('hardhat');
 
-const { Address, EnzymeAdress, getContractByContractCode, getSigner } = require('./utils');
+const { Address, EnzymeAddress, getContractByContractCode, getSigner } = require('./utils');
 const { ContractCode } = require('../../lib/constants');
 
 const { parseEther } = ethers;
 
 it('load contracts', async function () {
-  this.mcr = await ethers.getContractAt(abis.MCR, addresses.MCR);
-  this.cover = await ethers.getContractAt(abis.Cover, addresses.Cover);
-  this.nxm = await ethers.getContractAt(abis.NXMToken, addresses.NXMToken);
-  this.master = await ethers.getContractAt(abis.NXMaster, addresses.NXMaster);
-  this.coverNFT = await ethers.getContractAt(abis.CoverNFT, addresses.CoverNFT);
-  this.coverProducts = await ethers.getContractAt(abis.CoverProducts, addresses.CoverProducts);
-  this.pool = await ethers.getContractAt(abis.Pool, addresses.Pool);
-  this.safeTracker = await ethers.getContractAt(abis.SafeTracker, addresses.SafeTracker);
-  this.assessment = await ethers.getContractAt(abis.Assessment, addresses.Assessment);
-  this.stakingNFT = await ethers.getContractAt(abis.StakingNFT, addresses.StakingNFT);
-  this.stakingProducts = await ethers.getContractAt(abis.StakingProducts, addresses.StakingProducts);
-  this.swapOperator = await ethers.getContractAt(abis.SwapOperator, addresses.SwapOperator);
-  this.priceFeedOracle = await ethers.getContractAt(abis.PriceFeedOracle, addresses.PriceFeedOracle);
-  this.tokenController = await ethers.getContractAt(abis.TokenController, addresses.TokenController);
-  this.individualClaims = await ethers.getContractAt(abis.IndividualClaims, addresses.IndividualClaims);
-  this.proposalCategory = await ethers.getContractAt(abis.ProposalCategory, addresses.ProposalCategory);
-  this.stakingPoolFactory = await ethers.getContractAt(abis.StakingPoolFactory, addresses.StakingPoolFactory);
-  this.ramm = await ethers.getContractAt(abis.Ramm, addresses.Ramm);
-  this.limitOrders = await ethers.getContractAt(abis.LimitOrders, addresses.LimitOrders);
+  const contracts = await Promise.all([
+    ethers.getContractAt(abis.MCR, addresses.MCR),
+    ethers.getContractAt(abis.Cover, addresses.Cover),
+    ethers.getContractAt(abis.NXMToken, addresses.NXMToken),
+    ethers.getContractAt(abis.NXMaster, addresses.NXMaster),
+    ethers.getContractAt(abis.CoverNFT, addresses.CoverNFT),
+    ethers.getContractAt(abis.CoverProducts, addresses.CoverProducts),
+    ethers.getContractAt(abis.Pool, addresses.Pool),
+    ethers.getContractAt(abis.SafeTracker, addresses.SafeTracker),
+    ethers.getContractAt(abis.Assessment, addresses.Assessment),
+    ethers.getContractAt(abis.StakingNFT, addresses.StakingNFT),
+    ethers.getContractAt(abis.StakingProducts, addresses.StakingProducts),
+    ethers.getContractAt(abis.SwapOperator, addresses.SwapOperator),
+    ethers.getContractAt(abis.PriceFeedOracle, addresses.PriceFeedOracle),
+    ethers.getContractAt(abis.TokenController, addresses.TokenController),
+    ethers.getContractAt(abis.IndividualClaims, addresses.IndividualClaims),
+    ethers.getContractAt(abis.ProposalCategory, addresses.ProposalCategory),
+    ethers.getContractAt(abis.StakingPoolFactory, addresses.StakingPoolFactory),
+    ethers.getContractAt(abis.Ramm, addresses.Ramm),
+    ethers.getContractAt(abis.LimitOrders, addresses.LimitOrders),
+    getContractByContractCode(abis.Governance, ContractCode.Governance),
+    getContractByContractCode(abis.MemberRoles, ContractCode.MemberRoles),
+    ethers.getContractAt(abis.AssessmentViewer, addresses.AssessmentViewer),
+    ethers.getContractAt(abis.CoverViewer, addresses.CoverViewer),
+    ethers.getContractAt(abis.NexusViewer, addresses.NexusViewer),
+    ethers.getContractAt(abis.StakingViewer, addresses.StakingViewer),
+    // External contracts
+    ethers.getContractAt(abis.CoverBroker, addresses.CoverBroker),
+    // Token Mocks
+    ethers.getContractAt('WETH9', Address.WETH_ADDRESS),
+    ethers.getContractAt('ERC20Mock', Address.CBBTC_ADDRESS),
+    ethers.getContractAt('ERC20Mock', Address.DAI_ADDRESS),
+    ethers.getContractAt('ERC20Mock', Address.USDC_ADDRESS),
+    ethers.getContractAt('ERC20Mock', Address.RETH_ADDRESS),
+    ethers.getContractAt('ERC20Mock', Address.STETH_ADDRESS),
+    ethers.getContractAt('ERC20Mock', Address.AWETH_ADDRESS),
+    ethers.getContractAt('ERC20Mock', EnzymeAddress.ENZYMEV4_VAULT_PROXY_ADDRESS),
+  ]);
 
-  this.governance = await getContractByContractCode(abis.Governance, ContractCode.Governance);
-  this.memberRoles = await getContractByContractCode(abis.MemberRoles, ContractCode.MemberRoles);
+  [
+    this.mcr,
+    this.cover,
+    this.nxm,
+    this.master,
+    this.coverNFT,
+    this.coverProducts,
+    this.pool,
+    this.safeTracker,
+    this.assessment,
+    this.stakingNFT,
+    this.stakingProducts,
+    this.swapOperator,
+    this.priceFeedOracle,
+    this.tokenController,
+    this.individualClaims,
+    this.proposalCategory,
+    this.stakingPoolFactory,
+    this.ramm,
+    this.limitOrders,
+    this.governance,
+    this.memberRoles,
+    this.assessmentViewer,
+    this.coverViewer,
+    this.nexusViewer,
+    this.stakingViewer,
+    // External contracts
+    this.coverBroker,
+    // Token Mocks
+    this.weth,
+    this.cbBTC,
+    this.dai,
+    this.usdc,
+    this.rEth,
+    this.stEth,
+    this.awEth,
+    this.enzymeShares,
+  ] = contracts;
 
-  this.assessmentViewer = await ethers.getContractAt(abis.AssessmentViewer, addresses.AssessmentViewer);
-  this.coverViewer = await ethers.getContractAt(abis.CoverViewer, addresses.CoverViewer);
-  this.nexusViewer = await ethers.getContractAt(abis.NexusViewer, addresses.NexusViewer);
-  this.stakingViewer = await ethers.getContractAt(abis.StakingViewer, addresses.StakingViewer);
+  const [coverNFTDescriptorAddress, stakingPoolImplementation] = await Promise.all([
+    this.coverNFT.nftDescriptor(),
+    this.cover.stakingPoolImplementation(),
+  ]);
 
-  this.coverNFTDescriptor = await ethers.getContractAt(abis.CoverNFTDescriptor, await this.coverNFT.nftDescriptor());
-  this.stakingPool = await ethers.getContractAt(abis.StakingPool, await this.cover.stakingPoolImplementation());
-
-  // External contracts
-  this.coverBroker = await ethers.getContractAt(abis.CoverBroker, addresses.CoverBroker);
-
-  // Token Mocks
-  this.weth = await ethers.getContractAt('WETH9', Address.WETH_ADDRESS);
-  this.cbBTC = await ethers.getContractAt('ERC20Mock', Address.CBBTC_ADDRESS);
-  this.dai = await ethers.getContractAt('ERC20Mock', Address.DAI_ADDRESS);
-  this.usdc = await ethers.getContractAt('ERC20Mock', Address.USDC_ADDRESS);
-  this.rEth = await ethers.getContractAt('ERC20Mock', Address.RETH_ADDRESS);
-  this.stEth = await ethers.getContractAt('ERC20Mock', Address.STETH_ADDRESS);
-  this.awEth = await ethers.getContractAt('ERC20Mock', Address.AWETH_ADDRESS);
-  this.enzymeShares = await ethers.getContractAt('ERC20Mock', EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS);
+  [this.coverNFTDescriptor, this.stakingPool] = await Promise.all([
+    ethers.getContractAt(abis.CoverNFTDescriptor, coverNFTDescriptorAddress),
+    ethers.getContractAt(abis.StakingPool, stakingPoolImplementation),
+  ]);
 });
 
 it('Impersonate AB members', async function () {

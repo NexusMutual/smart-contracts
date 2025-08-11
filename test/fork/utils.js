@@ -9,6 +9,7 @@ const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants')
 // Import ethers v6 utilities
 const { parseEther, AbiCoder, keccak256, toUtf8Bytes } = ethers;
 const { JsonRpcProvider, JsonRpcSigner, AbstractSigner, formatters } = ethers;
+
 const defaultAbiCoder = AbiCoder.defaultAbiCoder();
 
 const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
@@ -74,7 +75,7 @@ const UserAddress = {
   USDC_HOLDER: '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503',
 };
 
-const EnzymeAdress = {
+const EnzymeAddress = {
   ENZYMEV4_VAULT_PROXY_ADDRESS: '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD',
   ENZYME_FUND_VALUE_CALCULATOR_ROUTER: '0x7c728cd0CfA92401E01A4849a01b57EE53F5b2b9',
   ENZYME_COMPTROLLER_PROXY_ADDRESS: '0x01F328d6fbe73d3cf25D00a43037EfCF8BfA6F83',
@@ -184,90 +185,13 @@ async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
 //   return provider.getSigner(address);
 // };
 
-class ImpersonatedSigner extends AbstractSigner {
-  constructor(provider, addr) {
-    super(provider);
-    this.addr = addr;
-  }
-
-  getAddress() {
-    return Promise.resolve(this.addr);
-  }
-
-  // Comprehensive recursive BigInt serialization
-  serializeForJSON(obj) {
-    if (obj === null || obj === undefined) {
-      return obj;
-    }
-    if (typeof obj === 'bigint') {
-      return ethers.toQuantity(obj);
-    }
-    if (typeof obj === 'string' || typeof obj === 'boolean') {
-      return obj;
-    }
-    if (typeof obj === 'number') {
-      return obj;
-    }
-    if (Array.isArray(obj)) {
-      return obj.map(item => this.serializeForJSON(item));
-    }
-    if (typeof obj === 'object') {
-      const result = {};
-      for (const [key, value] of Object.entries(obj)) {
-        // Convert gasLimit to gas for JSON RPC and handle numeric values that should be QUANTITY
-        let newKey = key;
-        let newValue = this.serializeForJSON(value);
-
-        if (key === 'gasLimit') {
-          newKey = 'gas';
-          newValue = typeof value === 'number' ? ethers.toQuantity(value) : newValue;
-        } else if (key === 'nonce' && typeof value === 'number') {
-          newValue = ethers.toQuantity(value);
-        } else if (key === 'gasPrice' && typeof value === 'number') {
-          newValue = ethers.toQuantity(value);
-        } else if (key === 'value' && typeof value === 'number') {
-          newValue = ethers.toQuantity(value);
-        }
-
-        result[newKey] = newValue;
-      }
-      return result;
-    }
-    return obj;
-  }
-
-  async sendTransaction(tx) {
-    const from = await this.getAddress();
-    const populatedTx = await this.populateTransaction({ ...tx, from });
-
-    // Convert to legacy transaction format for Tenderly compatibility
-    const legacyTx = { ...populatedTx };
-
-    // Remove EIP-1559 fields and convert to gasPrice
-    if (legacyTx.maxFeePerGas || legacyTx.maxPriorityFeePerGas) {
-      legacyTx.gasPrice = legacyTx.maxFeePerGas || legacyTx.gasPrice || '0x3b9aca00'; // 1 gwei default
-      delete legacyTx.maxFeePerGas;
-      delete legacyTx.maxPriorityFeePerGas;
-      delete legacyTx.type;
-    }
-
-    // Comprehensively serialize all BigInt values
-    const serializedTx = this.serializeForJSON(legacyTx);
-
-    const hash = await this.provider.send('eth_sendTransaction', [serializedTx]);
-    return this.provider.waitForTransaction(hash);
-  }
-}
-
 const getSigner = async address => {
-  // Use hardhat-network-helpers for better network compatibility
-  // if (network.name === 'tenderly') {
-  //   // Create a direct JSON-RPC provider for Tenderly to bypass Hardhat's account management
-  //   const directProvider = new JsonRpcProvider(network.config.url);
-  //   return new ImpersonatedSigner(directProvider, address);
-  // }
+  if (network.name !== 'hardhat') {
+    const jsonProvider = new JsonRpcProvider(network.config.url);
+    return new JsonRpcSigner(jsonProvider, address);
+  }
 
-  return await ethers.getSigner(address);
+  return ethers.getSigner(address);
 };
 
 // const toBytes = (string, size = 32) => {
@@ -430,7 +354,7 @@ module.exports = {
   // toBytes,
   Address,
   UserAddress,
-  EnzymeAdress,
+  EnzymeAddress,
   PriceFeedOracle,
   AggregatorType,
   Aave,

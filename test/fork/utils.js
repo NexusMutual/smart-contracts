@@ -261,11 +261,11 @@ class ImpersonatedSigner extends AbstractSigner {
 
 const getSigner = async address => {
   // Use hardhat-network-helpers for better network compatibility
-  if (network.name === 'tenderly') {
-    // Create a direct JSON-RPC provider for Tenderly to bypass Hardhat's account management
-    const directProvider = new JsonRpcProvider(network.config.url);
-    return new ImpersonatedSigner(directProvider, address);
-  }
+  // if (network.name === 'tenderly') {
+  //   // Create a direct JSON-RPC provider for Tenderly to bypass Hardhat's account management
+  //   const directProvider = new JsonRpcProvider(network.config.url);
+  //   return new ImpersonatedSigner(directProvider, address);
+  // }
 
   return await ethers.getSigner(address);
 };

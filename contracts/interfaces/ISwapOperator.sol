@@ -90,6 +90,7 @@ interface ISwapOperator {
   error InvalidDenominationAsset(address expectedAsset, address actualAsset);
   error InvalidAsset(address requestedAsset, address orderAsset);
   error UnsupportedAsset(address asset);
+  error InvalidSwapOperationForAsset(address asset);
   error SwapDeadlineExceeded(uint deadline, uint blockTimestamp);
   error SameAssetSwapRequest(address asset);
 

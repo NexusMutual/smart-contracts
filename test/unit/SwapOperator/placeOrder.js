@@ -432,6 +432,84 @@ describe('placeOrder', function () {
       .withArgs(request.toAmount, order.buyAmount);
   });
 
+  it('reverts if sellToken is enzyme vault', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, enzymeV4Vault } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
+
+    const request = {
+      fromAsset: enzymeV4Vault,
+      toAsset: Assets.ETH,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('1'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactInput,
+    };
+
+    await swapOperator.connect(governor).requestAssetSwap(request);
+
+    const order = {
+      sellToken: enzymeV4Vault,
+      buyToken: weth,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('1'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
+
+    const orderUID = await swapOperator.getUID(order);
+
+    await expect(swapOperator.connect(swapController).placeOrder(order, orderUID))
+      .to.be.revertedWithCustomError(swapOperator, 'InvalidSwapOperationForAsset')
+      .withArgs(enzymeV4Vault);
+  });
+
+  it('reverts if buyToken is enzyme vault', async function () {
+    const fixture = await loadFixture(setup);
+    const { swapOperator, weth, enzymeV4Vault } = fixture.contracts;
+    const { governor, swapController } = fixture.accounts;
+    const timestamp = await time.latest();
+
+    const request = {
+      fromAsset: Assets.ETH,
+      toAsset: enzymeV4Vault,
+      fromAmount: parseEther('1'),
+      toAmount: parseEther('1'),
+      deadline: timestamp + 1000,
+      swapKind: SwapKind.ExactOutput,
+    };
+
+    await swapOperator.connect(governor).requestAssetSwap(request);
+
+    const order = {
+      sellToken: weth,
+      buyToken: enzymeV4Vault,
+      receiver: swapOperator,
+      sellAmount: parseEther('1'),
+      buyAmount: parseEther('1'),
+      validTo: timestamp + 3600,
+      appData: ethers.ZeroHash,
+      feeAmount: 0,
+      kind: ethers.keccak256(ethers.toUtf8Bytes('sell')),
+      partiallyFillable: false,
+      sellTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+      buyTokenBalance: ethers.keccak256(ethers.toUtf8Bytes('erc20')),
+    };
+
+    const orderUID = await swapOperator.getUID(order);
+
+    await expect(swapOperator.connect(swapController).placeOrder(order, orderUID))
+      .to.be.revertedWithCustomError(swapOperator, 'InvalidSwapOperationForAsset')
+      .withArgs(enzymeV4Vault);
+  });
+
   it('places an ETH to ERC20 order', async function () {
     const fixture = await loadFixture(setup);
     const { swapOperator, pool, weth, dai, cowSettlement, cowVaultRelayer } = fixture.contracts;
@@ -743,6 +821,8 @@ describe('placeOrder', function () {
     expect(await usdc.allowance(swapOperator, cowVaultRelayer)).to.be.equal(0);
   });
 
+  // todo: seems to be a duplicated test in attempt to hit 100% coverage
+  //       for some reason it doesn't report that line as covered anyway
   it('reverts when SwapKind is ExactOutput and buyAmount != swapRequest.toAmount', async function () {
     const fixture = await loadFixture(setup);
     const { swapOperator, weth, dai } = fixture.contracts;

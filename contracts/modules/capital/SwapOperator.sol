@@ -115,6 +115,10 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     // swap request check
     require(address(order.sellToken) == swapRequest.fromAsset, InvalidAsset(swapRequest.fromAsset, address(order.sellToken)));
     require(address(order.buyToken) == swapRequest.toAsset, InvalidAsset(swapRequest.toAsset, address(order.buyToken)));
+
+    require(address(order.sellToken) != enzymeV4VaultProxyAddress, InvalidSwapOperationForAsset(enzymeV4VaultProxyAddress));
+    require(address(order.buyToken) != enzymeV4VaultProxyAddress, InvalidSwapOperationForAsset(enzymeV4VaultProxyAddress));
+
     require(swapRequest.deadline >= block.timestamp, SwapDeadlineExceeded(swapRequest.deadline, block.timestamp));
 
     if (swapRequest.swapKind == SwapKind.ExactInput) {

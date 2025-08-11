@@ -4,7 +4,7 @@ const { ethers } = require('hardhat');
 const { Address, EnzymeAdress, getContractByContractCode, getSigner } = require('./utils');
 const { ContractCode } = require('../../lib/constants');
 
-const { parseEther } = ethers.utils;
+const { parseEther } = ethers;
 
 it('load contracts', async function () {
   this.mcr = await ethers.getContractAt(abis.MCR, addresses.MCR);

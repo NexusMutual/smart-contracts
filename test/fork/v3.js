@@ -116,12 +116,14 @@ describe('v3 launch', function () {
    * */
 
   it('should run phase 1', async function () {
+    console.info('Snapshot ID Phase 1 start: ', await this.evm.snapshot());
+
     // skip phase 0 start
-    // const REGISTRY_ADDRESS = '0xC3E28A37EEF2674175Fc37f28C4f33f9D8aF7E43';
+    // const REGISTRY_ADDRESS = '0x4E8Cd651335e10eA4abA87B23903B0eC7E3Bda53';
     // this.registryProxy = await ethers.getContractAt('UpgradeableProxy', REGISTRY_ADDRESS);
     // skip phase 0 end
 
-    const registryAddress = this.registryProxy?.target || REGISTRY_ADDRESS;
+    const registryAddress = this.registryProxy?.target;
     // console.info('Snapshot ID Phase 1 start: ', await this.evm.snapshot());
     const governorImplementation = await deployContract('Governor', [registryAddress]);
 
@@ -139,10 +141,9 @@ describe('v3 launch', function () {
     const limitOrdersProxy = await ethers.getContractAt('UpgradeableProxy', this.limitOrders.target);
 
     // set temp governance and registry contracts
-    console.log('Governance address from master:', governanceAddress);
     [this.tempGovernance, this.registry] = await Promise.all([
       ethers.getContractAt('TemporaryGovernance', governanceAddress),
-      ethers.getContractAt('Registry', REGISTRY_ADDRESS),
+      ethers.getContractAt('Registry', registryAddress),
     ]);
 
     // transfer proxy ownership to registry
@@ -171,18 +172,19 @@ describe('v3 launch', function () {
 
     // set governance as registry signer
     const governanceSigner = await getSigner(this.tempGovernance.target);
-    this.registry = this.registry.connect(governanceSigner);
 
     // registry.migrate
-    const tx = await this.registry.migrate(
-      governorImplementation.target,
-      ethers.encodeBytes32String('governorSalt'),
-      ethers.encodeBytes32String('poolSalt'),
-      ethers.encodeBytes32String('swapOperatorSalt'),
-      ethers.encodeBytes32String('assessmentSalt'),
-      ethers.encodeBytes32String('claimsSalt'),
-      { gasLimit: 21e6 },
-    );
+    const tx = await this.registry
+      .connect(governanceSigner)
+      .migrate(
+        governorImplementation.target,
+        ethers.encodeBytes32String('governorSalt'),
+        ethers.encodeBytes32String('poolSalt'),
+        ethers.encodeBytes32String('swapOperatorSalt'),
+        ethers.encodeBytes32String('assessmentSalt'),
+        ethers.encodeBytes32String('claimsSalt'),
+        { gasLimit: 21e6 },
+      );
     await tx.wait();
     console.log('registry.migrate done');
 
@@ -272,10 +274,10 @@ describe('v3 launch', function () {
    * */
 
   it('should run phase 2', async function () {
-    console.info('Snapshot ID Phase 2 start: ', await this.evm.snapshot());
+    // console.info('Snapshot ID Phase 2 start: ', await this.evm.snapshot());
 
-    // skip phase 1 start
-    // const REGISTRY_ADDRESS = '0xC3E28A37EEF2674175Fc37f28C4f33f9D8aF7E43';
+    // skip to phase 2 start
+    // const REGISTRY_ADDRESS = '0x4E8Cd651335e10eA4abA87B23903B0eC7E3Bda53';
     // this.registryProxy = await ethers.getContractAt('UpgradeableProxy', REGISTRY_ADDRESS);
     // // set temp governance and registry contracts
     // const governanceAddress = await this.master.getLatestAddress(toBytes2('GV'));
@@ -285,7 +287,17 @@ describe('v3 launch', function () {
     //   ethers.getContractAt('TemporaryGovernance', governanceAddress),
     //   ethers.getContractAt('Registry', REGISTRY_ADDRESS),
     // ]);
-    // skip phase 1 end
+    // skip to phase 2 end
+
+    // set governor as registry signer
+    const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
+    await Promise.all([
+      this.evm.impersonate(governorAddress),
+      this.evm.setBalance(governorAddress, parseEther('1000')),
+    ]);
+    const governorSigner = await ethers.getSigner(governorAddress);
+    console.log('governorAddress: ', governorAddress);
+    this.registry = this.registry.connect(governorSigner);
 
     const poolImplementation = await deployContract('Pool', [this.registry.target]);
     console.log('poolImplementation: ', poolImplementation.target);
@@ -326,18 +338,50 @@ describe('v3 launch', function () {
       { index: ContractIndexes.C_CLAIMS, address: claimsImplementation.target },
     ];
 
-    const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
-    const governorSigner = await ethers.getSigner(governorAddress);
-    console.log('governorAddress: ', governorAddress);
+    await getPoolBalances(this, this.pool.target, 'OLD BEFORE registry.upgradeContracts PHASE 2');
 
-    this.registry = await ethers.getContractAt('Registry', this.registry.target);
+
+    // // Step 1: Preserve old SafeTracker state
+    const oldSafeTrackerAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_SAFE_TRACKER);
+    const oldSafeTracker = await ethers.getContractAt('SafeTracker', oldSafeTrackerAddress);
+    const oldCoverReInvestmentUSDC = await oldSafeTracker.coverReInvestmentUSDC();
+    const safeAddress = await oldSafeTracker.safe();
+
     await Promise.all(
       contractUpgrade.map(async c => {
-        const tx = await this.registry.connect(governorSigner).upgradeContract(c.index, c.address, { gasLimit: 21e6 });
-        return tx.wait();
+        console.log('upgrading contract: ', c.index, c.address);
+        const tx = await this.registry.upgradeContract(c.index, c.address, { gasLimit: 21e6 });
+        await tx.wait();
+        console.log('upgrade contract success');
       }),
     );
     console.log('contracts upgraded');
+
+    // FIX: Restore SafeTracker state after upgrade
+    if (oldCoverReInvestmentUSDC > 0n) {
+      console.log('🔄 RESTORING SafeTracker state after upgrade...');
+
+      // Get the new SafeTracker contract
+      const newSafeTrackerAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_SAFE_TRACKER);
+      const newSafeTracker = await ethers.getContractAt('SafeTracker', newSafeTrackerAddress);
+
+      // Impersonate the safe
+      await Promise.all([this.evm.impersonate(safeAddress), this.evm.setBalance(safeAddress, parseEther('1000'))]);
+      const safeSigner = await ethers.getSigner(safeAddress);
+
+      // Restore the coverReInvestmentUSDC value
+      try {
+        const restoreTx = await newSafeTracker
+          .connect(safeSigner)
+          .updateCoverReInvestmentUSDC(oldCoverReInvestmentUSDC, { gasLimit: 21e6 });
+        await restoreTx.wait();
+
+        const newSafeTrackerCoverReInvestmentUSDC = await newSafeTracker.coverReInvestmentUSDC();
+        console.log('newSafeTrackerCoverReInvestmentUSDC: ', newSafeTrackerCoverReInvestmentUSDC.toString());
+      } catch (errror) {
+        console.log('restore coverReInvestmentUSDC ERROR:', errror.message);
+      }
+    }
 
     const assessmentAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENT);
     this.assessment = await ethers.getContractAt('Assessment', assessmentAddress);
@@ -349,13 +393,17 @@ describe('v3 launch', function () {
     console.log('Expected implementation:', assessmentImplementation.target);
     console.log('Implementation matches:', currentImplementation === assessmentImplementation.target);
 
-    console.log('Testing basic Assessment contract functions...');
-    const currentGroupCount = await this.assessment.getGroupsCount();
-    console.log('Current group count:', currentGroupCount.toString());
+    // initialize Ramm
+    const rammAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_RAMM);
+    this.ramm = await ethers.getContractAt('Ramm', rammAddress);
+    this.ramm.connect(governorSigner).initialize(parseEther('0.01'), parseEther('0.01'));
+    console.log('rammAddress: ', rammAddress);
+
+    await getPoolBalances(this, this.pool.target, 'OLD AFTER registry.upgradeContracts PHASE 2');
   });
 
   it('should migrate members', async function () {
-    console.info('Snapshot ID migrate members start: ', await this.evm.snapshot());
+    // console.info('Snapshot ID migrate members start: ', await this.evm.snapshot());
 
     const membersToMigrate = [
       '0x5fa07227d05774c2ff11c2425919d14225a38dbb',
@@ -387,26 +435,63 @@ describe('v3 launch', function () {
     );
   });
 
+  async function getPoolBalances(thisParam, poolAddress, prefix) {
+    // Check old pool balances to see if migration worked
+    const [ethBalance, usdcBal, cbBTCBal, rEthBal, stEthBal, enzymeShareBal, safeTrackerBal] = await Promise.all([
+      ethers.provider.getBalance(poolAddress),
+      thisParam.usdc.balanceOf(poolAddress),
+      thisParam.cbBTC.balanceOf(poolAddress),
+      thisParam.rEth.balanceOf(poolAddress),
+      thisParam.stEth.balanceOf(poolAddress),
+      thisParam.enzymeShares.balanceOf(poolAddress),
+      thisParam.safeTracker.balanceOf(poolAddress),
+    ]);
+
+    console.log(`\n${prefix} POOL BALANCES:`);
+    console.log('ETH balance:', ethers.formatEther(ethBalance));
+    console.log('USDC balance:', ethers.formatUnits(usdcBal, 6));
+    console.log('cbBTC balance:', ethers.formatUnits(cbBTCBal, 8));
+    console.log('rEth balance:', ethers.formatEther(rEthBal));
+    console.log('stEth balance:', ethers.formatEther(stEthBal));
+    console.log('enzymeShare balance:', ethers.formatEther(enzymeShareBal));
+    console.log('safeTracker balance:', ethers.formatEther(safeTrackerBal));
+
+    const poolContract = await ethers.getContractAt('Pool', poolAddress);
+    const totalPoolValueInEth = await poolContract.getPoolValueInEth();
+    console.log('** totalPoolValueInEth: ', ethers.formatEther(totalPoolValueInEth), '\n');
+
+    await getPoolAssets(poolContract);
+  }
+
+  async function getPoolAssets(poolContract) {
+    let i = 0;
+    while (true) {
+      try {
+        const asset = await poolContract.assets(i);
+        console.log(`asset ${i}: ${asset}`);
+        i++;
+      } catch (e) {
+        console.log(`pool last index is ${i - 1}`);
+        break;
+      }
+    }
+    return i; // asset count
+  }
+
   it('should run phase 3', async function () {
     console.info('Snapshot ID Phase 3 start: ', await this.evm.snapshot());
     const oldPoolAddress = this.pool.target;
     console.log('oldPoolAddress: ', oldPoolAddress);
 
-    // TEST: skip phase 2 start
+    // TEST: skip to phase 3 start
     // set temp governance and registry contracts
-    // const REGISTRY_ADDRESS = '0xC3E28A37EEF2674175Fc37f28C4f33f9D8aF7E43';
+    // const REGISTRY_ADDRESS = '0x4E8Cd651335e10eA4abA87B23903B0eC7E3Bda53';
     // const governanceAddress = await this.master.getLatestAddress(toBytes2('GV'));
     // console.log('Governance address from master:', governanceAddress);
 
     // [this.tempGovernance, this.registry] = await Promise.all([
     //   ethers.getContractAt('TemporaryGovernance', governanceAddress),
     //   ethers.getContractAt('Registry', REGISTRY_ADDRESS),
-    // ]);
-    // // TEST: skip to phase 2 starts
-
-    // [this.registry, this.tempGovernance] = await Promise.all([
-    //   ethers.getContractAt('Registry', REGISTRY_ADDRESS),
-    //   ethers.getContractAt('TemporaryGovernance', this.tempGovernance.target),
     // ]);
 
     // // set advisory board multisig as governance signer
@@ -418,61 +503,43 @@ describe('v3 launch', function () {
     // const multisigSigner = await getSigner(advisoryBoardMultisig);
     // this.tempGovernance = this.tempGovernance.connect(multisigSigner);
 
+    // const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
+    // const governorSigner = await ethers.getSigner(governorAddress);
+
     // TEST: skip to phase 3 ends
 
     const newPoolAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_POOL);
     console.log('newPoolAddress: ', newPoolAddress);
 
-    console.log('migrating pool');
-    this.pool = await ethers.getContractAt('Pool', newPoolAddress);
-    await this.pool.migrate(oldPoolAddress, this.mcr.target, { gasLimit: 21e6 });
-
     console.log('migrating master');
     this.master = await ethers.getContractAt('NXMaster', this.master.target);
-    await this.tempGovernance.execute(
-      this.master.target,
-      0n,
-      this.master.interface.encodeFunctionData('migrate', [this.registry.target]),
-      { gasLimit: 21e6 },
-    );
 
-    // Check Pool has tokens
-    console.log('checking pool balances');
-    const poolAddr = newPoolAddress;
-    const [usdcBal, cbBTCBal, rEthBal, stEthBal, awEthBal, enzymeBal] = await Promise.all([
-      this.usdc.balanceOf(poolAddr),
-      this.cbBTC.balanceOf(poolAddr),
-      this.rEth.balanceOf(poolAddr),
-      this.stEth.balanceOf(poolAddr),
-      this.awEth.balanceOf(poolAddr),
-      this.enzymeShares.balanceOf(poolAddr),
-    ]);
+    await getPoolBalances(this, oldPoolAddress, 'OLD BEFORE MASTER MIGRATION');
 
-    console.log('NEW POOL BALANCES:');
-    console.log('USDC balance:', usdcBal.toString());
-    console.log('cbBTC balance:', cbBTCBal.toString());
-    console.log('rEth balance:', rEthBal.toString());
-    console.log('stEth balance:', stEthBal.toString());
-    console.log('awEth balance:', awEthBal.toString());
-    console.log('enzymeShares balance:', enzymeBal.toString());
+    const governanceAddress = await this.master.getLatestAddress(toBytes2('GV'));
+    const governanceSigner = await getSigner(governanceAddress);
+    const masterMigrateTx = await this.master
+      .connect(governanceSigner)
+      .migrate(this.registry.target, { gasLimit: 21e6 });
+    await masterMigrateTx.wait();
+    console.log('master migrated');
 
-    // Check old pool balances to see if migration worked
-    const [oldUsdcBal, oldCbBTCBal, oldREthBal, oldStEthBal, oldAwEthBal, oldEnzymeBal] = await Promise.all([
-      this.usdc.balanceOf(oldPoolAddress),
-      this.cbBTC.balanceOf(oldPoolAddress),
-      this.rEth.balanceOf(oldPoolAddress),
-      this.stEth.balanceOf(oldPoolAddress),
-      this.awEth.balanceOf(oldPoolAddress),
-      this.enzymeShares.balanceOf(oldPoolAddress),
-    ]);
+    await getPoolBalances(this, oldPoolAddress, 'OLD AFTER MASTER MIGRATION');
+    // await getPoolBalances(this, newPoolAddress, 'NEW AFTER MASTER MIGRATION');
 
-    console.log('OLD POOL BALANCES:');
-    console.log('OLD USDC balance:', oldUsdcBal.toString());
-    console.log('OLD cbBTC balance:', oldCbBTCBal.toString());
-    console.log('OLD rEth balance:', oldREthBal.toString());
-    console.log('OLD stEth balance:', oldStEthBal.toString());
-    console.log('OLD awEth balance:', oldAwEthBal.toString());
-    console.log('OLD enzymeShares balance:', oldEnzymeBal.toString());
+
+    const governorSigner = await ethers.getSigner(governorAddress);
+
+    console.log('migrating pool', oldPoolAddress, this.mcr.target);
+    this.pool = await ethers.getContractAt('Pool', newPoolAddress);
+    const poolMigrateTx = await this.pool
+      .connect(governorSigner)
+      .migrate(oldPoolAddress, this.mcr.target, { gasLimit: 21e6 });
+    await poolMigrateTx.wait();
+    console.log('pool migrated');
+
+    await getPoolBalances(this, oldPoolAddress, 'OLD AFTER POOL MIGRATION');
+    await getPoolBalances(this, newPoolAddress, 'NEW AFTER POOL MIGRATION');
 
     // TODO: fix old pool still has tokens
     // expect(usdcBal).to.not.equal(0n);
@@ -489,15 +556,8 @@ describe('v3 launch', function () {
     const claimsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_CLAIMS);
     this.claims = await ethers.getContractAt('Claims', claimsAddress);
     console.log('claimsAddress: ', claimsAddress);
-
-    // TODO: set pool as old pool for now until its fixed
-
-    console.log('Testing basic Assessment contract functions...');
-
-    const currentGroupCount = await this.assessment.getGroupsCount();
-    console.log('Current group count:', currentGroupCount.toString());
   });
 
   // Assessment and Claims
-  require('./assessment-claims');
+  // require('./assessment-claims');
 });

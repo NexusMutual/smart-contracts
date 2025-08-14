@@ -106,7 +106,10 @@ contract NXMaster is INXMMaster {
       address contractAddress = contractAddresses[code];
 
       if (isProxy[code]) {
-        IUpgradeableProxy(contractAddress).transferProxyOwnership(_registry);
+        IUpgradeableProxy proxy = IUpgradeableProxy(contractAddress);
+        if (proxy.proxyOwner() == address(this)) {
+          proxy.transferProxyOwnership(_registry);
+        }
       }
     }
 
@@ -114,6 +117,10 @@ contract NXMaster is INXMMaster {
     address pool = getLatestAddress("P1");
     address payable newPool = IRegistry(_registry).getContractAddressByIndex(C_POOL);
     ILegacyPool(pool).upgradeCapitalPool(newPool);
+
+    contractsActive[pool] = false;
+    contractAddresses['P1'] = newPool;
+    contractsActive[newPool] = true;
 
     // transfer the control over to registry
     registry = IRegistry(_registry);

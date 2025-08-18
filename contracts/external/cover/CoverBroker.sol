@@ -12,37 +12,32 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IRegistry.sol";
+import "../../abstract/RegistryAware.sol";
 
 /// @title Cover Broker Contract
 /// @notice Enables non-members of the mutual to purchase cover policies.
 /// Supports payments in ETH and pool supported ERC20 assets.
 /// For NXM payments by members, please call Cover.buyCover instead.
 /// @dev See supported ERC20 asset payments via pool.getAssets.
-contract CoverBroker is ICoverBroker, Ownable {
+contract CoverBroker is ICoverBroker, RegistryAware, Ownable {
   using SafeERC20 for IERC20;
 
   // Immutables
   ICover public immutable cover;
-  IRegistry public immutable registry;
   INXMToken public immutable nxmToken;
   IPool public immutable pool;
+  address public immutable tokenController;
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint private constant ETH_ASSET_ID = 0;
   uint private constant NXM_ASSET_ID = type(uint8).max;
-  uint private constant C_POOL = 1 << 4;   // 16
 
-  constructor(
-    address _cover,
-    address _registry,
-    address _nxmToken,
-    address _owner
-  ) {
-    cover = ICover(_cover);
-    registry = IRegistry(_registry);
-    nxmToken = INXMToken(_nxmToken);
-    pool = IPool(registry.getContractAddressByIndex(C_POOL));
+  constructor(address _registry, address _owner) RegistryAware(_registry) {
+    cover = ICover(fetch(C_COVER));
+    nxmToken = INXMToken(fetch(C_TOKEN));
+    pool = IPool(fetch(C_POOL));
+    tokenController = fetch(C_TOKEN_CONTROLLER);
     transferOwnership(_owner);
   }
 
@@ -141,7 +136,7 @@ contract CoverBroker is ICoverBroker, Ownable {
   /// @dev Registry contract needs to be approved to transfer NXM tokens to new membership address.
   /// @param newAddress The address to which the membership will be switched.
   function switchMembership(address newAddress) external onlyOwner {
-    nxmToken.approve(address(registry), type(uint256).max);
+    nxmToken.approve(address(tokenController), type(uint256).max);
     registry.switchTo(newAddress);
   }
 

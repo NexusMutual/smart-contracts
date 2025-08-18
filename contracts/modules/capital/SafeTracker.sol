@@ -9,6 +9,8 @@ import "../../interfaces/ISafeTracker.sol";
 
 contract SafeTracker is ISafeTracker, RegistryAware {
 
+  // master + mapping
+  uint[2] internal _unused;
   uint public coverReInvestmentUSDC;
 
   string public constant symbol = "NXMIS";

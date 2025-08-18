@@ -235,7 +235,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     address payable payoutAddress,
     uint amount,
     uint depositInETH
-  ) external override onlyContracts(C_ASSESSMENT) nonReentrant {
+  ) external override onlyContracts(C_CLAIMS) nonReentrant {
 
     Asset memory asset = assets[assetId];
 
@@ -257,23 +257,13 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     _updateMCR(true);
   }
 
-  function returnDeposit(
-    address payable payoutAddress,
-    uint ethDepositAmount
-  ) external override onlyContracts(C_ASSESSMENT) nonReentrant {
-    // solhint-disable-next-line avoid-low-level-calls
-    (bool transferSucceeded, /* data */) = payoutAddress.call{value: ethDepositAmount}("");
-    require(transferSucceeded, "Pool: ETH transfer failed");
-    emit DepositReturned(payoutAddress, ethDepositAmount);
-  }
-
   /* ========== TOKEN AND RAMM ========== */
 
   /// @dev Sends ETH to a member in exchange for NXM tokens.
   /// @param member  Member address
   /// @param amount  Amount of ETH to send
   ///
-  function sendEth(address member, uint amount) external override onlyContracts(C_RAMM) nonReentrant {
+  function sendEth(address member, uint amount) external override onlyContracts(C_RAMM | C_CLAIMS) nonReentrant {
     (bool transferSucceeded, /* data */) = member.call{value: amount}("");
     require(transferSucceeded, "Pool: ETH transfer failed");
   }

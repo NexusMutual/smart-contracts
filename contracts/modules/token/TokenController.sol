@@ -17,6 +17,9 @@ import "./external/LockHandler.sol";
 contract TokenController is ITokenController, ITokenControllerErrors, LockHandler, RegistryAware {
   using SafeUintCast for uint;
 
+  // master + mapping
+  uint[2] internal _unused;
+
   address internal _unused_token;
   address internal _unused_pooledStaking;
   uint internal _unused_minCALockTime;

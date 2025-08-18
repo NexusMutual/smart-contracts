@@ -11,6 +11,8 @@ const { ethers, nexus, network } = require('hardhat');
 const { parseEther } = require('ethers');
 const { ETH } = nexus.constants.Assets;
 
+// TODO: missing tests when ETH transfers are rejected
+
 describe('transferAssetToSwapOperator', function () {
   it('reverts if the caller is not SwapOperator contract', async function () {
     const fixture = await loadFixture(setup);

@@ -71,6 +71,9 @@ async function setup() {
   ]);
   const pool = await ethers.deployContract('Pool', [registry]);
 
+  // TODO: this needs to be done using DisposablePool to initialize the values
+  //       then we can use a proxy and upgrade to the actual contract
+  //       or override contract code directly using setCode
   await pool.connect(governor).migrate(oldPool, oldMCR);
 
   const MCR_RATIO_DECIMALS = await pool.MCR_RATIO_DECIMALS();

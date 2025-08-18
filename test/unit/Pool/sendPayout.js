@@ -6,6 +6,10 @@ const setup = require('./setup');
 const { parseEther } = ethers;
 const { ETH } = nexus.constants.Assets;
 
+// TODO: missing tests
+// - reentrancy not tested
+// - failed eth transfers not tested
+
 describe('sendPayout', function () {
   it('reverts if the caller is not Assessment contract', async function () {
     const fixture = await loadFixture(setup);

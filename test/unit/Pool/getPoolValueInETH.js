@@ -4,6 +4,14 @@ const { loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-he
 
 const setup = require('./setup');
 
+// TODO: missing test cases
+// - accounts for ETH in swap operator
+// - accounts for other assets in swap operator
+// - accounts for abandoned assets
+// - [less important]: try catch - catch path not tested
+// - [less important]: skip asset.balanceOf call when code length is zero
+// - [less important / not in this file]: missing constructor test
+
 describe('getPoolValueInETH', function () {
   it('return pool value in ETH', async function () {
     const fixture = await loadFixture(setup);

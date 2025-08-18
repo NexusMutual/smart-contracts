@@ -3,6 +3,8 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('./setup');
 
+// TODO: test case name is not what the test actually does
+
 describe('getAssets', function () {
   it('reverts if non asset address is passed', async function () {
     const fixture = await loadFixture(setup);

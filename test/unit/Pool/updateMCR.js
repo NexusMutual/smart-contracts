@@ -10,6 +10,11 @@ const stored = 12348870328212262601890n;
 const desired = 10922706197119349905840n;
 const updatedAt = 1751371403n;
 
+// TODO: missing tests
+// - else path for `if (geared != desired)`
+// - else path for `if (current != stored)`
+// - emitted event
+
 describe('updateMCR', function () {
   it('should revert if there is a pause', async function () {
     const fixture = await loadFixture(setup);

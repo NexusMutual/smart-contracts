@@ -5,6 +5,9 @@ const { loadFixture, setBalance, impersonateAccount } = require('@nomicfoundatio
 const setup = require('./setup');
 const { parseEther } = ethers;
 
+// TODO: missing tests
+// - reentrancy not tested
+
 describe('sendEth', function () {
   it('reverts if the caller is not Ramm contract', async function () {
     const fixture = await loadFixture(setup);

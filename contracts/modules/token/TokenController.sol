@@ -115,24 +115,23 @@ contract TokenController is ITokenController, ITokenControllerErrors, LockHandle
   /// @param from The address to transfer membership from.
   /// @param to The address to transfer membership to.
   function switchMembershipAddressWithTransfer(address from, address to) external override onlyContracts(C_REGISTRY) {
+
     token.addToWhiteList(to);
     token.transferFrom(from, to, token.balanceOf(from));
     token.removeFromWhiteList(from);
 
     uint stakingPoolCount = managerStakingPools[from].length;
 
-    if (stakingPoolCount > 0) {
-      while (stakingPoolCount > 0) {
-        // remove from old
-        uint poolId = managerStakingPools[from][stakingPoolCount - 1];
-        managerStakingPools[from].pop();
+    while (stakingPoolCount > 0) {
+      // remove from old
+      uint poolId = managerStakingPools[from][stakingPoolCount - 1];
+      managerStakingPools[from].pop();
 
-        // add to new and update manager
-        managerStakingPools[to].push(poolId);
-        stakingPoolManagers[poolId] = to;
+      // add to new and update manager
+      managerStakingPools[to].push(poolId);
+      stakingPoolManagers[poolId] = to;
 
-        stakingPoolCount--;
-      }
+      stakingPoolCount--;
     }
   }
 

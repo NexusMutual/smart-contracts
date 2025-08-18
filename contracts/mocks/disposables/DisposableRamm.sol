@@ -6,10 +6,6 @@ import "../../modules/capital/Ramm.sol";
 
 contract DisposableRamm is Ramm {
 
-  uint internal poolValue;
-  uint internal supply;
-  uint internal bondingCurveTokenPrice;
-
   constructor(address _registry, uint spotPriceB) Ramm(_registry, spotPriceB) {
     //
   }
@@ -24,7 +20,11 @@ contract DisposableRamm is Ramm {
 
     super.storeState(initialState);
 
-    Observation[3] memory _observations = getInitialObservations(initialPriceA, initialPriceB, initialState.timestamp);
+    Observation[3] memory _observations = getInitialObservations(
+      initialPriceA,
+      initialPriceB,
+      initialState.timestamp
+    );
 
     for (uint i = 0; i < _observations.length; i++) {
       observations[i] = _observations[i];

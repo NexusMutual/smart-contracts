@@ -1,11 +1,10 @@
 const { ethers, network, nexus } = require('hardhat');
 const { Address, EnzymeAddress, getSigner, submitGovernanceProposal, executeGovernorProposal } = require('./utils');
-const { getContractAt } = require('@nomicfoundation/hardhat-ethers/internal/helpers');
 const { expect } = require('chai');
 const { parseUnits } = require('ethers');
 
 const { parseEther, deployContract, toUtf8Bytes, AbiCoder } = ethers;
-const { ContractCode, ContractIndexes, ProposalCategory } = nexus.constants;
+const { ContractCode, ContractIndexes, ProposalCategory, Role } = nexus.constants;
 const { toBytes2 } = nexus.helpers;
 
 const evm = nexus.evmInit();
@@ -119,11 +118,13 @@ describe('v3 launch', function () {
     // deploy new implementations
     const tempGovernanceImplementation = await deployContract('TemporaryGovernance', [ADVISORY_BOARD_MULTISIG]);
     const legacyAssessmentImplementation = await deployContract('LegacyAssessment', [this.nxm.target]);
+    const memberRolesImplementation = await deployContract('LegacyMemberRoles', [this.registryProxy.target]);
 
     // submit governance proposal - upgrade multiple contracts
     const upgradeContracts = [
       { code: ContractCode.Governance, contract: tempGovernanceImplementation },
       { code: ContractCode.Assessment, contract: legacyAssessmentImplementation },
+      { code: ContractCode.MemberRoles, contract: memberRolesImplementation },
     ];
 
     await submitGovernanceProposal(
@@ -148,7 +149,6 @@ describe('v3 launch', function () {
    * - registry.migrate
    * - set emergency admins
    * - set kyc address
-   * - upgrade MemberRoles
    * - transfer registry proxy ownership Governor
    * */
 
@@ -226,47 +226,12 @@ describe('v3 launch', function () {
     const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
     this.governor = await ethers.getContractAt('Governor', governorAddress);
 
-    const transactions = [];
-
-    // set emergency admin
-    const emergencyAdminData = this.registry.interface.encodeFunctionData('setEmergencyAdmin', [EMERGENCY_ADMIN, true]);
-    transactions.push({
-      target: this.registry.target,
-      value: 0n,
-      data: emergencyAdminData,
-    });
-
-    // set kyc auth address
-    const kycAuthData = this.registry.interface.encodeFunctionData('setKycAuthAddress', [KYC_AUTH_ADDRESS]);
-    transactions.push({
-      target: this.registry.target,
-      value: 0n,
-      data: kycAuthData,
-    });
-
-    // upgrade MemberRoles
-    const memberRolesImplementation = await deployContract('LegacyMemberRoles', [this.registry.target]);
-    const memberRolesUpgradeData = this.master.interface.encodeFunctionData('upgradeMultipleContracts', [
-      [toUtf8Bytes(ContractCode.MemberRoles)],
-      [memberRolesImplementation.target],
-    ]);
-    transactions.push({
-      target: this.master.target,
-      value: 0n,
-      data: memberRolesUpgradeData,
-    });
-
-    await Promise.all(
-      transactions.map(transaction =>
-        this.tempGovernance.execute(transaction.target, transaction.value, transaction.data, { gasLimit: 21e6 }),
-      ),
-    );
-
-    // transfer registry proxy ownership from master to governor
-    const transferOwnershipData = this.registryProxy.interface.encodeFunctionData('transferProxyOwnership', [
-      this.governor.target,
-    ]);
-    await this.tempGovernance.execute(this.master.target, 0n, transferOwnershipData, { gasLimit: 21e6 });
+    // transfer registry proxy ownership from deployer to governor
+    const [deployer] = await ethers.getSigners();
+    await this.registryProxy.connect(deployer).transferProxyOwnership(this.governor.target);
+    const registryProxyOwner = await this.registryProxy.proxyOwner();
+    expect(registryProxyOwner).to.equal(this.governor.target);
+    console.log('registry proxy owner transferred to governor');
   });
 
   /*
@@ -285,7 +250,6 @@ describe('v3 launch', function () {
     // this.registryProxy = await ethers.getContractAt('UpgradeableProxy', REGISTRY_ADDRESS);
     // // set temp governance and registry contracts
     // const governanceAddress = await this.master.getLatestAddress(toBytes2('GV'));
-    // console.log('Governance address from master:', governanceAddress);
 
     // [this.tempGovernance, this.registry] = await Promise.all([
     //   ethers.getContractAt('TemporaryGovernance', governanceAddress),
@@ -299,33 +263,32 @@ describe('v3 launch', function () {
     // ]);
     // const multisigSigner = await getSigner(advisoryBoardMultisig);
     // this.tempGovernance = this.tempGovernance.connect(multisigSigner);
+    // console.log('set advisoryBoardMultisig signer to tempGovernance: ', advisoryBoardMultisig);
     // skip to phase 2 end
 
-    // set governor as registry signer
-    const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
-    await Promise.all([
-      this.evm.impersonate(governorAddress),
-      this.evm.setBalance(governorAddress, parseEther('1000')),
-    ]);
-    const governorSigner = await ethers.getSigner(governorAddress);
-    console.log('governorAddress: ', governorAddress);
+    // memberRoles.migrateMembers (including AB members)
+    this.memberRoles = await ethers.getContractAt('LegacyMemberRoles', this.memberRoles.target);
+    const migrateMembersTx = await this.memberRoles.migrateMembers(5);
+    await migrateMembersTx.wait();
+    console.log('memberRoles.migrateMembers done');
 
-    // upgrade pool first before deploying safeTracker implementation
+    // verify abMembers were migrated
+    for (const address of [
+      '0x87B2a7559d85f4653f13E6546A14189cd5455d45',
+      '0x8D38C81B7bE9Dbe7440D66B92d4EF529806baAE7',
+      '0x23E1B127Fd62A4dbe64cC30Bb30FFfBfd71BcFc6',
+      '0x9063a2C78aFd6C8A3510273d646111Df67D6CB4b',
+      '0x43f4cd7d153701794ce25a01eFD90DdC32FF8e8E',
+    ]) {
+      expect(await this.registry.isAdvisoryBoardMember(address)).to.be.true;
+    }
+
     const poolImplementation = await deployContract('Pool', [this.registry.target]);
-    const poolUpgradeTx = await this.registry
-      .connect(governorSigner)
-      .upgradeContract(ContractIndexes.C_POOL, poolImplementation.target, { gasLimit: 21e6 });
-    await poolUpgradeTx.wait();
-
-    // deploy new contract implementations
     const swapOperatorImplementation = await deployContract('SwapOperator', [
       this.registry.target,
       Address.COWSWAP_SETTLEMENT,
       EnzymeAddress.ENZYMEV4_VAULT_PROXY_ADDRESS,
-      EnzymeAddress.ENZYME_FUND_VALUE_CALCULATOR_ROUTER,
       Address.WETH_ADDRESS,
-      SAFE_ADDRESS,
-      this.tokenController.target, // SWAP_CONTROLLER
     ]);
     const rammImplementation = await deployContract('Ramm', [
       this.registry.target,
@@ -336,7 +299,6 @@ describe('v3 launch', function () {
       parseUnits('25000000', 6), // investmentLimit
       SAFE_ADDRESS,
       Address.USDC_ADDRESS,
-      Address.DAI_ADDRESS,
       Address.WETH_ADDRESS,
       Address.AWETH_ADDRESS,
       '0x72E95b8931767C79bA4EeE721354d6E99a61D004', // VARIABLE_DEBT_USDC_ADDRESS
@@ -345,14 +307,13 @@ describe('v3 launch', function () {
     const claimsImplementation = await deployContract('Claims', [this.registry.target]);
 
     this.contractUpgrades = [
+      { index: ContractIndexes.C_POOL, address: poolImplementation.target },
       { index: ContractIndexes.C_SWAP_OPERATOR, address: swapOperatorImplementation.target },
       { index: ContractIndexes.C_RAMM, address: rammImplementation.target },
       { index: ContractIndexes.C_SAFE_TRACKER, address: safeTrackerImplementation.target },
       { index: ContractIndexes.C_ASSESSMENT, address: assessmentImplementation.target },
       { index: ContractIndexes.C_CLAIMS, address: claimsImplementation.target },
     ];
-
-    // @TODO: memberRoles.migrateMembers
   });
 
   /*
@@ -381,65 +342,57 @@ describe('v3 launch', function () {
     // this.tempGovernance = this.tempGovernance.connect(multisigSigner);
     // TEST: skip to phase 3 ends
 
-    await getPoolBalances(this, this.pool.target, 'OLD BEFORE registry.upgradeContracts');
+    const transactions = [
+      // set emergency admin
+      {
+        target: this.registry.target,
+        value: 0n,
+        data: this.registry.interface.encodeFunctionData('setEmergencyAdmin', [EMERGENCY_ADMIN, true]),
+      },
+      // set kyc auth address
+      {
+        target: this.registry.target,
+        value: 0n,
+        data: this.registry.interface.encodeFunctionData('setKycAuthAddress', [KYC_AUTH_ADDRESS]),
+      },
+      // upgrade contracts
+      ...this.contractUpgrades.map(c => ({
+        target: this.registry.target,
+        value: 0n,
+        data: this.registry.interface.encodeFunctionData('upgradeContract', [c.index, c.address]),
+      })),
+    ];
 
-    // TODO: move to phase 3
-    // TODO: use governance proposal instead
-    await Promise.all(
-      this.contractUpgrades.map(async c => {
-        const tx = await this.registry.connect(governorSigner).upgradeContract(c.index, c.address, { gasLimit: 21e6 });
-        await tx.wait();
-      }),
-    );
+    await executeGovernorProposal(this.governor, this.abMembers, transactions);
     console.log('contracts upgraded');
 
-    // initialize Ramm
-    const rammAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_RAMM);
-    this.ramm = await ethers.getContractAt('Ramm', rammAddress);
-    const rammInitTx = await this.ramm.connect(governorSigner).initialize();
-    await rammInitTx.wait();
-    console.log('ramm initialized: ', rammAddress);
-
-    const assessmentAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENT);
-    this.assessment = await ethers.getContractAt('Assessment', assessmentAddress);
-
-    // TODO: use governor proposal instead
-    // const rammInitializeData = this.ramm.interface.encodeFunctionData('initialize', [
-    //   parseEther('0.01'),
-    //   parseEther('0.01'),
-    // ]);
-    // const rammInitTx = await executeGovernorProposal(this.governor, this.abMembers, [
-    //   { target: this.ramm.target, value: 0n, data: rammInitializeData },
-    // ]);
-
-    await getPoolBalances(this, this.pool.target, 'AFTER registry.upgradeContracts PHASE 2');
+    // recover MemberRoles ETH to pool
+    // TODO: add before/after pool balances check
+    await this.memberRoles.recoverETH();
+    console.log('MemberRoles ETH recovered to pool');
 
     const oldPoolAddress = this.pool.target;
     console.log('oldPoolAddress: ', oldPoolAddress);
-
-    const governanceAddress = await this.master.getLatestAddress(toBytes2('GV'));
-    console.log('Governance address from master:', governanceAddress);
 
     await getPoolBalances(this, oldPoolAddress, 'OLD BEFORE MASTER MIGRATION');
 
     // master.migrate
     this.master = await ethers.getContractAt('NXMaster', this.master.target); // get upgraded master contract
     const migrateData = this.master.interface.encodeFunctionData('migrate', [this.registry.target]);
-    const masterMigrateTx = await this.tempGovernance.execute(this.master.target, 0n, migrateData, { gasLimit: 21e6 });
+    const masterMigrateTx = await this.tempGovernance.execute(this.master.target, 0n, migrateData);
     await masterMigrateTx.wait();
     console.log('master migrated');
 
-    const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
-    const governorSigner = await ethers.getSigner(governorAddress);
-
-    // @TODO: use governor proposal instead
     // pool migrate
     const newPoolAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_POOL);
     this.pool = await ethers.getContractAt('Pool', newPoolAddress);
-    const poolMigrateTx = await this.pool
-      .connect(governorSigner)
-      .migrate(oldPoolAddress, this.mcr.target, { gasLimit: 21e6 });
-    await poolMigrateTx.wait();
+    await executeGovernorProposal(this.governor, this.abMembers, [
+      {
+        target: this.pool.target,
+        value: 0n,
+        data: this.pool.interface.encodeFunctionData('migrate', [oldPoolAddress, this.mcr.target]),
+      },
+    ]);
     console.log('pool migrated');
 
     await getPoolBalances(this, oldPoolAddress, 'OLD AFTER MASTER/POOL MIGRATION');
@@ -460,5 +413,8 @@ describe('v3 launch', function () {
   });
 
   // Assessment and Claims
-  require('./assessment-claims');
+  // require('./assessment-claims');
+
+  // Basic functionality tests
+  require('./basic-functionality-tests');
 });

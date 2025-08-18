@@ -1,17 +1,16 @@
 // const evm = require('./evm')();
-const { artifacts, ethers, network } = require('hardhat');
-const { impersonateAccount } = require('@nomicfoundation/hardhat-network-helpers');
+const { artifacts, ethers, network, nexus } = require('hardhat');
+const { impersonateAccount, time } = require('@nomicfoundation/hardhat-network-helpers');
 const assert = require('assert');
 
 // const { setEtherBalance } = require('../utils/evm');
-// const { calculateCurrentTrancheId } = require('../utils/stakingPool');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 // Import ethers v6 utilities
 const { parseEther, AbiCoder, keccak256, toUtf8Bytes, toBigInt } = ethers;
 const { JsonRpcProvider, JsonRpcSigner, AbstractSigner, formatters } = ethers;
 
 // const defaultAbiCoder = AbiCoder.defaultAbiCoder();
-
+const { VoteType } = nexus.constants;
 const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
 
 const V2Addresses = {
@@ -149,51 +148,26 @@ async function executeGovernorProposal(
 ) {
   // propose
   const [proposer] = abMembers;
-  const proposeTx = await governor.connect(proposer).propose(txs);
-  await proposeTx.wait();
+  await governor.connect(proposer).propose(txs, 'Governor Proposal');
 
   // get proposal id
   const proposalId = await governor.proposalCount();
   console.log(`Proposed. proposalId=${proposalId}`);
 
   // vote for
-  const voteFor = 0;
+  const voteFor = 1;
   await Promise.all(
     abMembers.map(async voter => {
-      const tx = await governor.connect(voter).vote(proposalId, voteFor);
-      await tx.wait();
+      return governor.connect(voter).vote(proposalId, voteFor);
     }),
   );
 
   // fast forward time
-  const prop = await governor.proposals(proposalId); // { proposedAt, voteBefore, executeAfter, ... }
-  const executeAfter = Number(prop.executeAfter);
-  const voteBefore = Number(prop.voteBefore);
-
-  console.log('voteBefore:', new Date(voteBefore * 1000).toISOString());
-  console.log('executeAfter:', new Date(executeAfter * 1000).toISOString());
-
-  try {
-    await ethers.provider.send('evm_setNextBlockTimestamp', [executeAfter + 1]);
-    await ethers.provider.send('evm_mine');
-    console.log(`Fast-forwarded to ${new Date((executeAfter + 1) * 1000).toISOString()}`);
-  } catch {
-    console.warn('fastForward failed (not a local JSON-RPC). Skipping.');
-  }
+  await time.increase(4 * 24 * 3600 + 1);
 
   // Try execute; will succeed only if timelock has passed and tallies satisfy rules
-  try {
-    const execTx = await governor.connect(proposer).execute(proposalId);
-    const execRcpt = await execTx.wait();
-    console.log(`Executed proposal ${proposalId}. Gas used: ${execRcpt.gasUsed}`);
-  } catch (e) {
-    console.log(
-      `Not executed yet (likely waiting for timelock or quorum/majority). ` +
-        `Call execute(${proposalId}) after executeAfter.`,
-    );
-  }
-
-  return { proposalId, voteBefore, executeAfter };
+  await governor.connect(proposer).execute(proposalId, { gasLimit: 21e6 });
+  console.log(`governor proposal ${proposalId} executed`);
 }
 
 // async function submitMemberVoteGovernanceProposal(categoryId, actionData, signers, gv) {
@@ -396,6 +370,11 @@ const getSigner = async address => {
 //   return ethers.utils.getCreate2Address(masterAddress, saltHex, initCodeHash);
 // }
 
+async function calculateCurrentTrancheId() {
+  const timestamp = await time.latest();
+  return Math.floor(timestamp / (91 * 24 * 3600));
+}
+
 async function getContractByContractCode(contractName, contractCode) {
   this.master = this.master ?? (await ethers.getContractAt('NXMaster', V2Addresses.NXMaster));
   const contractAddress = await this.master?.getLatestAddress(toUtf8Bytes(contractCode));
@@ -406,7 +385,7 @@ module.exports = {
   submitGovernanceProposal,
   executeGovernorProposal,
   // submitMemberVoteGovernanceProposal,
-  // calculateCurrentTrancheId,
+  calculateCurrentTrancheId,
   getSigner,
   // toBytes,
   Address,

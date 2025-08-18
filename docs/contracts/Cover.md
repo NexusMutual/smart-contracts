@@ -14,8 +14,8 @@ Represents the basic information about a cover.
 
 ```solidity
 struct CoverData {
-    uint productId;
-    uint coverAsset;
+    uint24 productId;
+    uint8 coverAsset;
     uint96 amount;
     uint32 start;
     uint32 period;
@@ -42,7 +42,7 @@ Represents the allocation of coverage to a specific staking pool.
 
 ```solidity
 struct PoolAllocation {
-    uint poolId;
+    uint40 poolId;
     uint96 coverAmountInNXM;
     uint96 premiumInNXM;
     uint24 allocationId;
@@ -133,33 +133,34 @@ function buyCover(
 
 ```solidity
 struct BuyCoverParams {
-    uint productId;
     uint coverId;
     address owner;
-    uint coverAsset;
-    uint period;
-    uint amount;
-    uint16 commissionRatio;
-    uint paymentAsset;
+    uint24 productId;
+    uint8 coverAsset;
+    uint96 amount;
+    uint32 period;
     uint maxPremiumInAsset;
+    uint8 paymentAsset;
+    uint16 commissionRatio;
     address commissionDestination;
-    bytes ipfsData;
+    string ipfsData;
 }
+
 ```
 
-| Field                     | Description                                                                  |
-|---------------------------|------------------------------------------------------------------------------|
-| `productId`               | The ID of the product to purchase cover for.                                 |
-| `coverId`                 | The ID of an existing cover to extend or modify, or 0 to create a new cover. |
-| `owner`                   | The address that will own the cover NFT.                                     |
-| `coverAsset`              | The asset ID used for coverage. See `Pool.getAssets` (e.g., 0 ~ ETH).        |
-| `period`                  | The duration of the cover in seconds.                                        |
-| `amount`                  | The amount of coverage in the cover asset.                                   |
-| `commissionRatio`         | The commission ratio (in basis points, where 10000 = 100%).                  |
-| `paymentAsset`            | The asset ID used for payment (must be coverAsset or NXM_ASSET_ID).          |
-| `maxPremiumInAsset`       | The maximum premium the buyer is willing to pay in the payment asset.        |
-| `commissionDestination`   | The address where the commission should be sent.                             |
-| `ipfsData`                | IPFS hash of additional data related to the cover (e.g., policy documents).  |
+| Field                     | Description                                                                          |
+|---------------------------|--------------------------------------------------------------------------------------|
+| `coverId`                 | The ID of an existing cover to extend or modify, or 0 to create a new cover.         |
+| `owner`                   | The address that will own the cover NFT.                                             |
+| `productId`               | The ID of the product to purchase cover for.                                         |
+| `coverAsset`              | The asset ID used for coverage. See `Pool.getAssets` (e.g., 0 ~ ETH).                |
+| `amount`                  | The amount of coverage in the cover asset.                                           |
+| `period`                  | The duration of the cover in seconds.                                                |
+| `maxPremiumInAsset`       | The maximum premium the buyer is willing to pay in the payment asset.                |
+| `paymentAsset`            | The asset ID used for payment (must be coverAsset or NXM_ASSET_ID).                  |
+| `commissionRatio`         | The commission ratio (in basis points, where 10000 = 100%).                          |
+| `commissionDestination`   | The address where the commission should be sent.                                     |
+| `ipfsData`                | IPFS hash of additional data related to the cover (e.g., list of wallet addresses).  |
 
 #### `PoolAllocationRequest` Structure:
 
@@ -177,13 +178,13 @@ To retrieve data to construct `PoolAllocationRequest`, call the `/quote` endpoin
 | `poolId`              | ID of the staking pool to allocate cover to.                          |
 | `coverAmountInAsset`  | Amount of coverage to allocate to the pool in the cover asset.        |
 
-**Returns:** The coverId of the purchased or modified cover.
+**Returns:** The coverId of the purchased cover.
 
 **Description:** Purchases new cover or edits an existing cover. Validates input parameters (e.g., cover period, commission ratio), allocates cover amounts across specified staking pools, calculates premiums and commissions, and mints a new Cover NFT if it's a new cover.
 
 ### `expireCover`
 
-Expires a cover that has reached its expiration time.
+Explicitly expires a cover that has reached its expiration time removing its allocations.
 
 ```solidity
 function expireCover(uint coverId) external;

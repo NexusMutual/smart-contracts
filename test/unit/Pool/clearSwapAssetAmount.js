@@ -71,7 +71,9 @@ describe('clearSwapAssetAmount', function () {
     const fixture = await loadFixture(clearSwapAssetAmountSetup);
     const { pool, swapOperatorSigner, usdc } = fixture;
 
-    const packed = ethers.solidityPacked(['uint96', 'address'], [parseEther('1'), usdc.target]);
+    const storedAmount = parseEther('1');
+    const storedAsset = usdc.target;
+    const packed = ethers.solidityPacked(['uint96', 'address'], [storedAmount, storedAsset]);
 
     await network.provider.send('hardhat_setStorageAt', [
       pool.target,
@@ -79,10 +81,14 @@ describe('clearSwapAssetAmount', function () {
       packed,
     ]);
 
+    const stored = await pool.assetInSwapOperator();
+    expect(stored.amount).to.equal(storedAmount);
+    expect(stored.assetAddress).to.equal(storedAsset);
+
     await pool.connect(swapOperatorSigner).clearSwapAssetAmount(usdc);
 
     const { assetAddress, amount } = await pool.assetInSwapOperator();
-    expect(assetAddress).to.equal(ZeroAddress);
     expect(amount).to.equal(0n);
+    expect(assetAddress).to.equal(ZeroAddress);
   });
 });

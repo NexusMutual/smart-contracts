@@ -29,10 +29,6 @@ contract PoolGeneric /* is IPool */ {
     revert("Unsupported");
   }
 
-  function returnDeposit(address payable, uint) external virtual {
-    revert("Unsupported");
-  }
-
   function sendEth(address, uint) external virtual {
     revert("Unsupported");
   }

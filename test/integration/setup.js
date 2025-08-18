@@ -169,11 +169,12 @@ async function setup() {
   await registry.addContract(ContractIndexes.C_TOKEN, token, false);
   await registry.addContract(ContractIndexes.C_COVER_NFT, coverNFT, false);
   await registry.addContract(ContractIndexes.C_STAKING_NFT, stakingNFT, false);
+  await registry.addContract(ContractIndexes.C_STAKING_POOL_FACTORY, stakingPoolFactory, false);
 
   // deploy proxy implementations
 
   const governorImplementation = await ethers.deployContract('Governor', [registry]);
-  const tokenControllerImplementation = await ethers.deployContract('TokenController', [registry, stakingPoolFactory]);
+  const tokenControllerImplementation = await ethers.deployContract('TokenController', [registry]);
   const poolImplementation = await ethers.deployContract('Pool', [registry]);
 
   const stakingPoolImplementation = await ethers.deployContract('StakingPool', [
@@ -314,12 +315,7 @@ async function setup() {
     await masterAwareContract.changeDependentContractAddress();
   }
 
-  const coverBroker = await ethers.deployContract('CoverBroker', [
-    cover.target,
-    registry.target,
-    token.target,
-    defaultSender.address,
-  ]);
+  const coverBroker = await ethers.deployContract('CoverBroker', [registry.target, defaultSender.address]);
   await registry.addMembers([coverBroker.target]);
 
   // work done, switch to the real Governor, registry and Master contracts
@@ -359,13 +355,7 @@ async function setup() {
   ]);
 
   // deploy viewer contracts
-  const stakingViewer = await ethers.deployContract('StakingViewer', [registry, stakingNFT, stakingPoolFactory]);
-  // @TODO: check if this is needed
-  // const nexusViewer = await ethers.deployContract('NexusViewer', [
-  // master.address,
-  // stakingViewer.address,
-  // assessmentViewer.address,
-  // ]);
+  const stakingViewer = await ethers.deployContract('StakingViewer', [registry]);
 
   // mint pool funds
   await setBalance(pool.target, parseEther('12500'));
@@ -445,10 +435,8 @@ async function setup() {
   };
 
   const nonInternal = {
-    // coverBroker,
+    coverBroker,
     stakingViewer,
-    // assessmentViewer,
-    // nexusViewer,
   };
 
   const fixture = {};

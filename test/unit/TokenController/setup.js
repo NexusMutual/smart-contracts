@@ -39,9 +39,10 @@ async function setup() {
     registry.addContract(ContractIndexes.C_COVER, cover, false),
     registry.addContract(ContractIndexes.C_STAKING_PRODUCTS, stakingProducts, false),
     registry.addContract(ContractIndexes.C_RAMM, ramm, false),
+    registry.addContract(ContractIndexes.C_STAKING_POOL_FACTORY, stakingPoolFactory, false),
   ]);
 
-  const tokenController = await ethers.deployContract('TokenController', [registry, stakingPoolFactory]);
+  const tokenController = await ethers.deployContract('TokenController', [registry]);
 
   const amount = parseEther('100');
   await nxm.setOperator(tokenController);

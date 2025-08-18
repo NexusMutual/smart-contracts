@@ -235,7 +235,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     address payable payoutAddress,
     uint amount,
     uint depositInETH
-  ) external override onlyContracts(C_ASSESSMENT) nonReentrant {
+  ) external override onlyContracts(C_CLAIMS) nonReentrant {
 
     Asset memory asset = assets[assetId];
 

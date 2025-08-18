@@ -47,8 +47,8 @@ contract TokenController is ITokenController, ITokenControllerErrors, RegistryAw
     _;
   }
 
-  constructor (address _registry, address _stakingPoolFactory) RegistryAware(_registry) {
-    stakingPoolFactory = _stakingPoolFactory;
+  constructor (address _registry) RegistryAware(_registry) {
+    stakingPoolFactory = fetch(C_STAKING_POOL_FACTORY);
     token = INXMToken(fetch(C_TOKEN));
     stakingNFT = IStakingNFT(fetch(C_STAKING_NFT));
     pool = IPool(fetch(C_POOL));

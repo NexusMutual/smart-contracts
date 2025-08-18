@@ -13,16 +13,14 @@ import "../../interfaces/IStakingViewer.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../interfaces/ICoverProducts.sol";
+import "../../abstract/RegistryAware.sol";
 
-contract StakingViewer is IStakingViewer, Multicall {
+contract StakingViewer is IStakingViewer, RegistryAware, Multicall {
   using UncheckedMath for uint;
 
-  IRegistry public immutable registry;
   IStakingNFT public immutable stakingNFT;
   IStakingPoolFactory public immutable stakingPoolFactory;
 
-  uint constant C_COVER_PRODUCTS   = 1 << 6;   // 64
-  uint constant C_STAKING_PRODUCTS = 1 << 7;   // 128
   uint public constant TRANCHE_DURATION = 91 days;
   uint public constant MAX_ACTIVE_TRANCHES = 8;
   uint public constant ONE_NXM = 1 ether;
@@ -32,16 +30,11 @@ contract StakingViewer is IStakingViewer, Multicall {
   IStakingProducts public immutable stakingProducts;
   ICoverProducts public immutable coverProducts;
 
-  constructor(
-    IRegistry _registry,
-    IStakingNFT _stakingNFT,
-    IStakingPoolFactory _stakingPoolFactory
-  ) {
-    registry = _registry;
-    stakingNFT = _stakingNFT;
-    stakingPoolFactory = _stakingPoolFactory;
-    stakingProducts = IStakingProducts(registry.getContractAddressByIndex(C_STAKING_PRODUCTS));
-    coverProducts = ICoverProducts(registry.getContractAddressByIndex(C_COVER_PRODUCTS));
+  constructor(address _registry) RegistryAware(_registry) {
+    stakingNFT = IStakingNFT(fetch(C_STAKING_NFT));
+    stakingProducts = IStakingProducts(fetch(C_STAKING_PRODUCTS));
+    coverProducts = ICoverProducts(fetch(C_COVER_PRODUCTS));
+    stakingPoolFactory = IStakingPoolFactory(fetch(C_STAKING_POOL_FACTORY));
   }
 
   function stakingPool(uint poolId) public view returns (IStakingPool) {

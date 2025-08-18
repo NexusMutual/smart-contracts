@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.18;
 
+// TODO: should implement ILegacyPool, best to extend PoolGeneric (which should also implement IPool)
 contract P1MockOldPool {
   struct Asset {
     address assetAddress;

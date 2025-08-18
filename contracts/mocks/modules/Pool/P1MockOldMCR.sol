@@ -2,6 +2,11 @@
 
 pragma solidity ^0.8.18;
 
+// TODO:
+// - should implement ILegacyMCR interface
+// - contract name should be the same as the file name
+// - use setters and getters instead of hardcoding values in the contract
+
 contract P1MockMCR {
   function updateMCRInternal(bool) external pure {
     // do nothing

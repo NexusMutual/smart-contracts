@@ -38,4 +38,11 @@ contract NXMasterGeneric is INXMMaster {
     revert("Unsupported");
   }
 
+  function transferOwnershipToRegistry(address) pure external {
+    revert("Unsupported");
+  }
+
+  function migrate(address) pure external {
+    revert("Unsupported");
+  }
 }

@@ -93,12 +93,11 @@ contract NXMaster is INXMMaster {
     return getLatestAddress("GV") == _add;
   }
 
-  function migrate(address _registry) external {
+  function transferOwnershipToRegistry(address _registry) external {
 
     require(getLatestAddress("GV") == msg.sender, "NXMaster: Not authorized");
-    require(address(registry) == address(0), "NXMaster: Already migrated");
 
-    // transfer proxies' ownership
+   // transfer proxies' ownership
     uint contractCount = contractCodes.length;
 
     for (uint i = 0; i < contractCount; i++) {
@@ -106,9 +105,18 @@ contract NXMaster is INXMMaster {
       address contractAddress = contractAddresses[code];
 
       if (isProxy[code]) {
-        IUpgradeableProxy(contractAddress).transferProxyOwnership(_registry);
+        IUpgradeableProxy proxy = IUpgradeableProxy(contractAddress);
+        if (proxy.proxyOwner() == address(this)) {
+          proxy.transferProxyOwnership(_registry);
+        }
       }
     }
+  }
+
+  function migrate(address _registry) external {
+
+    require(getLatestAddress("GV") == msg.sender, "NXMaster: Not authorized");
+    require(address(registry) == address(0), "NXMaster: Already migrated");
 
     // upgrade capital pool
     address pool = getLatestAddress("P1");

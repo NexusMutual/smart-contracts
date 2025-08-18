@@ -87,4 +87,11 @@ contract MasterMock is INXMMaster {
     return paused;
   }
 
+  function transferOwnershipToRegistry(address) pure external {
+    revert("Unsupported");
+  }
+
+  function migrate(address) pure external {
+    revert("Unsupported");
+  }
 }

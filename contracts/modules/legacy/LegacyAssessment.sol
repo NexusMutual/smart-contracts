@@ -197,14 +197,6 @@ contract LegacyAssessment is ILegacyAssessment, MasterAwareV2 {
   }
 
   function _unstake(address staker, uint96 amount, address to) internal {
-
-    uint voteCount = votesOf[staker].length;
-    if (voteCount > 0) {
-      Vote memory latestVote = votesOf[staker][voteCount - 1];
-      uint assessmentLockupExpiry = latestVote.timestamp + STAKE_LOCKUP_PERIOD;
-      require(block.timestamp > assessmentLockupExpiry, StakeLockedForAssessment(assessmentLockupExpiry));
-    }
-
     stakeOf[staker].amount -= amount;
     nxm.transfer(to, amount);
 

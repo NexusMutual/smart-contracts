@@ -312,9 +312,12 @@ contract Registry is IRegistry, EIP712 {
 
   function migrate(
     address governorImplementation,
+    address coverNFT,
+    address stakingNFT,
+    address token,
     bytes32 governorSalt,
     bytes32 poolSalt,
-    bytes32 swapOperator,
+    bytes32 swapOperatorSalt,
     bytes32 assessmentSalt,
     bytes32 claimsSalt
   ) external {
@@ -331,6 +334,10 @@ contract Registry is IRegistry, EIP712 {
     // registry is marked as non proxy because registry is not its own owner
     _addContract(C_REGISTRY, address(this), false);
 
+    _addContract(C_TOKEN, token, false);
+    _addContract(C_COVER_NFT, coverNFT, false);
+    _addContract(C_STAKING_NFT, stakingNFT, false);
+
     _addContract(C_STAKING_PRODUCTS, master.getLatestAddress("SP"), true);
     _addContract(C_COVER, master.getLatestAddress("CO"), true);
     _addContract(C_COVER_PRODUCTS, master.getLatestAddress("CP"), true);
@@ -341,11 +348,9 @@ contract Registry is IRegistry, EIP712 {
 
     _deployContract(C_GOVERNOR, governorSalt, governorImplementation);
     _deployContract(C_POOL, poolSalt, address(0));
-    _deployContract(C_SWAP_OPERATOR, swapOperator, address(0));
+    _deployContract(C_SWAP_OPERATOR, swapOperatorSalt, address(0));
     _deployContract(C_ASSESSMENT, assessmentSalt, address(0));
     _deployContract(C_CLAIMS, claimsSalt, address(0));
-
-    // note: Token, CoverNFT, StakingNFT are added via TempGoverance
   }
 
   function migrateMembers(address[] calldata membersToMigrate) external {

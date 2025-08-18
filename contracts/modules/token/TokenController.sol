@@ -12,13 +12,12 @@ import "../../interfaces/ITokenControllerErrors.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../abstract/RegistryAware.sol";
-import "./external/LockHandler.sol";
 
-contract TokenController is ITokenController, ITokenControllerErrors, LockHandler, RegistryAware {
+contract TokenController is ITokenController, ITokenControllerErrors, RegistryAware {
   using SafeUintCast for uint;
 
-  // master + mapping
-  uint[2] internal _unused;
+  // master + mapping + lockReason + locked
+  uint[4] internal _unused;
 
   address internal _unused_token;
   address internal _unused_pooledStaking;

@@ -123,6 +123,10 @@ contract NXMaster is INXMMaster {
     address payable newPool = IRegistry(_registry).getContractAddressByIndex(C_POOL);
     ILegacyPool(pool).upgradeCapitalPool(newPool);
 
+    contractsActive[pool] = false;
+    contractAddresses['P1'] = newPool;
+    contractsActive[newPool] = true;
+
     // transfer the control over to registry
     registry = IRegistry(_registry);
   }

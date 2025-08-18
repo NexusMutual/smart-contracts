@@ -8,10 +8,10 @@ import "@openzeppelin/contracts-v4/access/Ownable.sol";
 
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverBroker.sol";
-import "../../interfaces/IMemberRoles.sol";
-import "../../interfaces/INXMMaster.sol";
+import "../../interfaces/INXMToken.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/IRegistry.sol";
 
 /// @title Cover Broker Contract
 /// @notice Enables non-members of the mutual to purchase cover policies.
@@ -23,26 +23,26 @@ contract CoverBroker is ICoverBroker, Ownable {
 
   // Immutables
   ICover public immutable cover;
-  IMemberRoles public immutable memberRoles;
+  IRegistry public immutable registry;
   INXMToken public immutable nxmToken;
-  INXMMaster public immutable master;
+  IPool public immutable pool;
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint private constant ETH_ASSET_ID = 0;
   uint private constant NXM_ASSET_ID = type(uint8).max;
+  uint private constant C_POOL = 1 << 4;   // 16
 
   constructor(
     address _cover,
-    address _memberRoles,
+    address _registry,
     address _nxmToken,
-    address _master,
     address _owner
   ) {
     cover = ICover(_cover);
-    memberRoles = IMemberRoles(_memberRoles);
+    registry = IRegistry(_registry);
     nxmToken = INXMToken(_nxmToken);
-    master = INXMMaster(_master);
+    pool = IPool(registry.getContractAddressByIndex(C_POOL));
     transferOwnership(_owner);
   }
 
@@ -114,7 +114,7 @@ contract CoverBroker is ICoverBroker, Ownable {
     PoolAllocationRequest[] calldata poolAllocationRequests
   ) internal returns (uint coverId) {
 
-    address paymentAsset = _pool().getAsset(params.paymentAsset).assetAddress;
+    address paymentAsset = pool.getAsset(params.paymentAsset).assetAddress;
     IERC20 erc20 = IERC20(paymentAsset);
 
     uint erc20BalanceBefore = erc20.balanceOf(address(this));
@@ -138,11 +138,11 @@ contract CoverBroker is ICoverBroker, Ownable {
   }
 
   /// @notice Switches CoverBroker's membership to a new address.
-  /// @dev MemberRoles contract needs to be approved to transfer NXM tokens to new membership address.
+  /// @dev Registry contract needs to be approved to transfer NXM tokens to new membership address.
   /// @param newAddress The address to which the membership will be switched.
   function switchMembership(address newAddress) external onlyOwner {
-    nxmToken.approve(address(memberRoles), type(uint256).max);
-    memberRoles.switchMembership(newAddress);
+    nxmToken.approve(address(registry), type(uint256).max);
+    registry.switchTo(newAddress);
   }
 
   /// @notice Recovers all available funds of a specified asset (ETH or ERC20) to the contract owner.
@@ -170,14 +170,6 @@ contract CoverBroker is ICoverBroker, Ownable {
     }
 
     asset.transfer(msg.sender, erc20Balance);
-  }
-
-  /* ========== DEPENDENCIES ========== */
-
-  /// @dev Fetches the Pool's instance through master contract
-  /// @return The Pool's instance
-  function _pool() internal view returns (IPool) {
-    return IPool(master.getLatestAddress("P1"));
   }
 
   receive() external payable {}

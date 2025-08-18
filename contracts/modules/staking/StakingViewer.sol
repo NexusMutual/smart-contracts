@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 
 import "../../abstract/Multicall.sol";
 import "../../interfaces/ICover.sol";
-import "../../interfaces/INXMMaster.sol";
+import "../../interfaces/IRegistry.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingProducts.sol";
@@ -17,32 +17,31 @@ import "../../interfaces/ICoverProducts.sol";
 contract StakingViewer is IStakingViewer, Multicall {
   using UncheckedMath for uint;
 
-  INXMMaster public immutable master;
+  IRegistry public immutable registry;
   IStakingNFT public immutable stakingNFT;
   IStakingPoolFactory public immutable stakingPoolFactory;
 
+  uint constant C_COVER_PRODUCTS   = 1 << 6;   // 64
+  uint constant C_STAKING_PRODUCTS = 1 << 7;   // 128
   uint public constant TRANCHE_DURATION = 91 days;
   uint public constant MAX_ACTIVE_TRANCHES = 8;
   uint public constant ONE_NXM = 1 ether;
   uint public constant TRANCHE_ID_AT_DEPLOY = 213; // first active tranche at deploy time
   uint public constant MAX_UINT = type(uint).max;
 
+  IStakingProducts public immutable stakingProducts;
+  ICoverProducts public immutable coverProducts;
+
   constructor(
-    INXMMaster _master,
+    IRegistry _registry,
     IStakingNFT _stakingNFT,
     IStakingPoolFactory _stakingPoolFactory
   ) {
-    master = _master;
+    registry = _registry;
     stakingNFT = _stakingNFT;
     stakingPoolFactory = _stakingPoolFactory;
-  }
-
-  function _stakingProducts() internal view returns (IStakingProducts) {
-    return IStakingProducts(master.contractAddresses("SP"));
-  }
-
-  function _coverProducts() internal view returns (ICoverProducts) {
-    return ICoverProducts(master.contractAddresses('CP'));
+    stakingProducts = IStakingProducts(registry.getContractAddressByIndex(C_STAKING_PRODUCTS));
+    coverProducts = ICoverProducts(registry.getContractAddressByIndex(C_COVER_PRODUCTS));
   }
 
   function stakingPool(uint poolId) public view returns (IStakingPool) {
@@ -63,7 +62,7 @@ contract StakingViewer is IStakingViewer, Multicall {
     pool.manager = _stakingPool.manager();
     pool.poolFee = _stakingPool.getPoolFee();
     pool.maxPoolFee = _stakingPool.getMaxPoolFee();
-    pool.metadataIpfsHash = _stakingProducts().getPoolMetadata(poolId);
+    pool.metadataIpfsHash = stakingProducts.getPoolMetadata(poolId);
     pool.activeStake = activeStake;
     pool.currentAPY =
       activeStake != 0
@@ -101,7 +100,6 @@ contract StakingViewer is IStakingViewer, Multicall {
     uint queueSize = 0;
     uint poolCount = stakingPoolFactory.stakingPoolCount();
     Pool[] memory stakedPoolsQueue = new Pool[](poolCount);
-    IStakingProducts stakingProducts = _stakingProducts();
 
     for (uint i = 1; i <= poolCount; i++) {
       (
@@ -134,8 +132,7 @@ contract StakingViewer is IStakingViewer, Multicall {
   function getPoolProducts(uint poolId) public view returns (StakingProduct[] memory products) {
 
     uint stakedProductsCount = 0;
-    uint coverProductCount = _coverProducts().getProductCount();
-    IStakingProducts stakingProducts = _stakingProducts();
+    uint coverProductCount = coverProducts.getProductCount();
     StakingProduct[] memory stakedProductsQueue = new StakingProduct[](coverProductCount);
     for (uint i = 0; i < coverProductCount; i++) {
       (

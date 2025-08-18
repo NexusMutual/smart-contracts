@@ -15,39 +15,19 @@ contract DisposableRamm is Ramm {
   }
 
   function initialize(
-    uint _poolValue,
-    uint _totalSupply,
-    uint _bondingCurveTokenPrice
+    State memory initialState,
+    uint initialPriceA,
+    uint initialPriceB
   ) external {
 
     require(slot1.updatedAt == 0, "DisposableRamm: Already initialized");
 
-    // initialize values
-    poolValue = _poolValue;
-    supply = _totalSupply;
-    bondingCurveTokenPrice = _bondingCurveTokenPrice;
+    super.storeState(initialState);
 
-    // TODO: this is likely broken now, will have to get back and figure out a fix:
+    Observation[3] memory _observations = getInitialObservations(initialPriceA, initialPriceB, initialState.timestamp);
 
-    // // set dependencies to point to self
-    // internalContracts[uint(ID.P1)] = payable(address(this));
-    // internalContracts[uint(ID.TC)] = payable(address(this));
-    // internalContracts[uint(ID.MC)] = payable(address(this));
-
-    super._initialize();
+    for (uint i = 0; i < _observations.length; i++) {
+      observations[i] = _observations[i];
+    }
   }
-
-  // fake pool functions
-  function getPoolValueInEth() external view returns (uint) {
-    return poolValue;
-  }
-
-  function totalSupply() external view returns (uint) {
-    return supply;
-  }
-
-  function getTokenPrice() external view returns (uint) {
-    return bondingCurveTokenPrice;
-  }
-
 }

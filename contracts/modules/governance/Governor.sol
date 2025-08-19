@@ -35,6 +35,8 @@ contract Governor is IGovernor, RegistryAware, Multicall {
   uint public constant ADVISORY_BOARD_THRESHOLD = 3;
   uint public constant MEMBER_VOTE_QUORUM_PERCENTAGE = 15; // 15% of token supply
   uint public constant PROPOSAL_THRESHOLD = 100 ether; // minimum 100 tokens to open an AB swap proposal
+  uint public constant WEIGHT_CAP = 5_00; // 5%
+  uint public constant WEIGHT_CAP_DENOMINATOR = 100_00; // 100%
 
   /* ========== logic ========== */
 
@@ -43,9 +45,10 @@ contract Governor is IGovernor, RegistryAware, Multicall {
   }
 
   function _getVoteWeight(address voter) internal view returns (uint) {
-    // TODO: consider implementing a cap percentage
+    uint totalSupply = tokenController.totalSupply();
     uint weight = tokenController.totalBalanceOf(voter) + 1 ether;
-    return weight;
+    uint maxWeight = totalSupply * WEIGHT_CAP / WEIGHT_CAP_DENOMINATOR;
+    return weight > maxWeight ? maxWeight : weight;
   }
 
   function _lockTokenTransfers(address voter, uint deadline) internal {

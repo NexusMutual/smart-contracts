@@ -29,4 +29,16 @@ contract GVMockTokenController is TokenControllerGeneric {
   function lockForMemberVote(address _of, uint duration) external override {
     lockedUserTokens[_of] = block.timestamp + duration;
   }
+
+  event ExampleFunctionXCalledWith(uint value);
+  event ExampleFunctionYCalledWith(uint msgValue, bool flag);
+
+  function exampleFunctionX(uint value) external {
+    emit ExampleFunctionXCalledWith(value);
+  }
+
+  function exampleFunctionY(bool flag) external payable {
+    emit ExampleFunctionYCalledWith(msg.value, flag);
+  }
+
 }

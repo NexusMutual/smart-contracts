@@ -14,4 +14,5 @@ interface ITokenControllerErrors {
   error OwnershipOfferHasExpired();
   error OnlyStakingPool();
   error MemberBalanceNotZero();
+  error MemberHasStakingPools();
 }

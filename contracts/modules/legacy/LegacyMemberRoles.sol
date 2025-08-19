@@ -19,6 +19,7 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
   address internal _unusedMGV; // was Master from GoVerned
   address internal _unusedMMA; // was Master from MasterAwareV2
   uint internal _unusedCMA; // was Contract mapping from MasterAwareV2
+  address internal _unused5; // was TokenController
   address internal _unused6; // was address payable public poolAddress;
   address internal _unused7; // was kycAuthAddress
   address internal _unused8; // was ICover internal cover;
@@ -98,6 +99,34 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
     uint _nextStorageIndex = nextMemberStorageIndex;
     require(_nextStorageIndex < memberCount, "MemberRoles: Already migrated");
 
+    // execute on the first call only
+    if (_nextStorageIndex == 0) {
+
+      // transfer all ETH to the Pool contract
+      address poolAddress = fetch(C_POOL);
+      (bool success, ) = poolAddress.call{ value: address(this).balance }("");
+      require(success, "MemberRoles: Failed to transfer ETH to Pool");
+
+      // migrate ab members
+      address[] memory abMembers = new address[](5);
+
+      MemberRoleDetails storage abRoleDetails = memberRoleData[uint(Role.AdvisoryBoard)];
+      uint abMembersCount = abRoleDetails.memberAddress.length;
+      uint nextIndex = 0;
+
+      for (uint i = 0; i < abMembersCount; i++) {
+        address memberAddress = abRoleDetails.memberAddress[i];
+        if (abRoleDetails.memberActive[memberAddress]) {
+          // will panic if we end up with >5 active AB members
+          abMembers[nextIndex] = memberAddress;
+          nextIndex++;
+        }
+      }
+
+      require(nextIndex == 5, "MemberRoles: Invalid AB members count");
+      registry.migrateAdvisoryBoardMembers(abMembers);
+    }
+
     address[] memory members = new address[](batchSize);
     uint currentMemoryIndex;
 
@@ -114,6 +143,10 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
 
     registry.migrateMembers(members);
     nextMemberStorageIndex = _nextStorageIndex;
+  }
+
+  function changeDependentContractAddress() external pure {
+    // noop
   }
 
 }

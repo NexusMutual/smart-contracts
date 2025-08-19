@@ -1,5 +1,7 @@
 const { ethers, nexus } = require('hardhat');
+
 const { ContractIndexes } = nexus.constants;
+const { parseEther } = ethers;
 
 const assignRoles = accounts => ({
   defaultSender: accounts[0],
@@ -53,14 +55,18 @@ async function setup() {
     const [member] = accounts.members;
     const [abMember] = accounts.advisoryBoardMembers;
 
-    await tokenController.setTotalBalanceOf(member.address, ethers.parseEther('200'));
-
-    const memberId = await registry.memberIds(member.address);
-    const abMemberId = await registry.memberIds(abMember.address);
-
+    const memberId = await registry.memberIds(member);
+    const abMemberId = await registry.memberIds(abMember);
     const swaps = [{ from: abMemberId, to: memberId }];
 
+    const thresholdBalance = parseEther('200');
+    const totalSupply = parseEther('1000000'); // 1m
+
+    await tokenController.setTotalBalanceOf(member, thresholdBalance);
+    await tokenController.setTotalSupply(totalSupply);
+
     await governor.connect(member).proposeAdvisoryBoardSwap(swaps, 'Member Proposal');
+
     return await governor.proposalCount();
   }
 

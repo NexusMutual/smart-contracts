@@ -31,10 +31,11 @@ describe('getProposal', () => {
     const { TIMELOCK_PERIOD, VOTING_PERIOD } = constants;
     const [member, abMember] = accounts.members;
 
-    await tokenController.setTotalBalanceOf(member.address, ethers.parseEther('200'));
+    await tokenController.setTotalBalanceOf(member, ethers.parseEther('200'));
+    await tokenController.setTotalSupply(ethers.parseEther('10000'));
 
-    const memberId = await registry.memberIds(member.address);
-    const abMemberId = await registry.memberIds(abMember.address);
+    const memberId = await registry.memberIds(member);
+    const abMemberId = await registry.memberIds(abMember);
 
     const swaps = [{ from: abMemberId, to: memberId }];
 

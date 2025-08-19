@@ -3,17 +3,17 @@
 pragma solidity ^0.8.18;
 
 import "../../abstract/Multicall.sol";
+import "../../abstract/RegistryAware.sol";
 import "../../interfaces/ICover.sol";
+import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IRegistry.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
-import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
+import "../../interfaces/IStakingProducts.sol";
 import "../../interfaces/IStakingViewer.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../libraries/UncheckedMath.sol";
-import "../../interfaces/ICoverProducts.sol";
-import "../../abstract/RegistryAware.sol";
 
 contract StakingViewer is IStakingViewer, RegistryAware, Multicall {
   using UncheckedMath for uint;
@@ -324,7 +324,7 @@ contract StakingViewer is IStakingViewer, RegistryAware, Multicall {
   }
 
   function getManagerTokenRewardsByAddr(address manager) public view returns (Token[] memory tokens) {
-    
+
     (Pool[] memory managedPools, uint256 managedPoolCount) = _getMatchingPools(manager);
     tokens = new Token[](managedPoolCount);
 

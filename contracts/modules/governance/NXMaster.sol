@@ -3,10 +3,10 @@
 pragma solidity ^0.8.28;
 
 import "../../abstract/RegistryAware.sol";
+import "../../interfaces/ILegacyPool.sol";
 import "../../interfaces/IMasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMMaster.sol";
-import "../../interfaces/ILegacyPool.sol";
 import "../../interfaces/IUpgradeableProxy.sol";
 
 contract NXMaster is INXMMaster {

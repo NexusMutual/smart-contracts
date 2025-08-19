@@ -113,7 +113,7 @@ contract CoverGeneric is ICover {
     revert("Unsupported");
   }
 
-  function stakingPoolFactory() external virtual view returns (ICompleteStakingPoolFactory) {
+  function stakingPoolFactory() external virtual view returns (address) {
     revert("Unsupported");
   }
 }

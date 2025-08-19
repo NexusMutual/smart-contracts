@@ -8,7 +8,6 @@ import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
-import "../../interfaces/ICompleteStakingPoolFactory.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/ICoverProducts.sol";
@@ -16,7 +15,6 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
-import "../../interfaces/ISwapOperator.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
@@ -77,19 +75,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
-  uint private constant MAX_ACTIVE_TRANCHES = 8; // 7 whole quarters + 1 partial quarter
-
   ICoverNFT public immutable override coverNFT;
   IStakingNFT public immutable override stakingNFT;
-  ICompleteStakingPoolFactory public immutable override stakingPoolFactory;
-  address public immutable stakingPoolImplementation;
+  address public immutable override stakingPoolFactory;
+  address public immutable override stakingPoolImplementation;
 
   /* ========== CONSTRUCTOR ========== */
 
   constructor(
     ICoverNFT _coverNFT,
     IStakingNFT _stakingNFT,
-    ICompleteStakingPoolFactory _stakingPoolFactory,
+    address _stakingPoolFactory,
     address _stakingPoolImplementation
   ) {
     // in constructor we only initialize immutable fields

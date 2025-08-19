@@ -5,15 +5,15 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/extensions/IERC20Metadata.sol";
 
-import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/ReentrancyGuard.sol";
 import "../../abstract/RegistryAware.sol";
 import "../../interfaces/ICover.sol";
-import "../../interfaces/ILegacyPool.sol";
 import "../../interfaces/ILegacyMCR.sol";
-import "../../interfaces/IPriceFeedOracle.sol";
+import "../../interfaces/ILegacyPool.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/IRamm.sol";
+import "../../interfaces/ISafeTracker.sol";
 import "../../interfaces/ISwapOperator.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
@@ -36,6 +36,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
   ICover public immutable cover;
   IRamm public immutable ramm;
   address public immutable swapOperator;
+  address public immutable safeTracker;
 
   /* constants */
 
@@ -55,6 +56,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     cover = ICover(fetch(C_COVER));
     ramm = IRamm(fetch(C_RAMM));
     swapOperator = fetch(C_SWAP_OPERATOR);
+    safeTracker = fetch(C_SAFE_TRACKER);
   }
 
   receive() external payable {}
@@ -191,6 +193,24 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     assets[assetId].isAbandoned = isAbandoned;
   }
 
+  /* ========== INVESTMENT SAFE ========== */
+
+  function transferAssetToSafe(
+    address assetAddress,
+    address safeAddress,
+    uint amount
+  ) external override onlyContracts(C_SAFE_TRACKER) whenNotPaused(PAUSE_GLOBAL) nonReentrant {
+
+    if (assetAddress == ETH) {
+      (bool ok, /* data */) = safeAddress.call{value: amount}("");
+      require(ok, EthTransferFailed(safeAddress, amount));
+      return;
+    }
+
+    IERC20(assetAddress).safeTransfer(safeAddress, amount);
+    emit AssetsTransferredToSafe(assetAddress, amount);
+  }
+
   /* ========== SWAP OPERATOR ========== */
 
   function transferAssetToSwapOperator(
@@ -207,7 +227,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
 
     if (assetAddress == ETH) {
       (bool ok, /* data */) = swapOperator.call{value: amount}("");
-      require(ok, "Pool: ETH transfer failed");
+      require(ok, EthTransferFailed(swapOperator, amount));
       return;
     }
 

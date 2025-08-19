@@ -5,6 +5,7 @@ pragma solidity ^0.8.18;
 import "../../mocks/generic/RegistryGeneric.sol";
 
 contract RegistryMock is RegistryGeneric {
+
   mapping(address => uint) private contractIndexByAddress;
   mapping(uint => address payable) private contractAddressByIndex;
   mapping(uint => bool) private contractTypeByIndex;
@@ -38,7 +39,7 @@ contract RegistryMock is RegistryGeneric {
     return memberCount;
   }
 
-  function join(address member, bytes memory) external override payable virtual {
+  function join(address member, bytes memory) external override payable {
     memberCount++;
     memberIds[member] = memberCount;
     members[memberCount] = member;
@@ -63,10 +64,6 @@ contract RegistryMock is RegistryGeneric {
 
   function getContractAddressByIndex(uint index) external override view returns (address payable) {
     return contractAddressByIndex[index];
-  }
-
-  function getContractTypeByIndex(uint index) external override view returns (bool) {
-    return contractTypeByIndex[index];
   }
 
   function getContractIndexByAddress(address contractAddress) external override view returns (uint) {

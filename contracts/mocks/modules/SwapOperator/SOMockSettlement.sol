@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.28;
 
 import './SOMockVaultRelayer.sol';
 import '../../../external/cow/GPv2Order.sol';
@@ -40,7 +40,10 @@ contract SOMockSettlement {
     vaultRelayer.transfer(order.buyToken, address(vaultRelayer), order.receiver, buyAmount);
   }
 
+  event InvalidateOrderCalledWith(bytes orderUID);
+
   function invalidateOrder(bytes calldata orderUid) external {
-     filledAmount[orderUid] = type(uint256).max;
+    filledAmount[orderUid] = type(uint256).max;
+    emit InvalidateOrderCalledWith(orderUid);
   }
 }

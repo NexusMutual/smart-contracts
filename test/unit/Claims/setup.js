@@ -1,6 +1,6 @@
 const { ethers, nexus } = require('hardhat');
 
-const { ContractIndexes } = nexus.constants;
+const { Assets, ContractIndexes } = nexus.constants;
 const { ASSET } = require('./helpers');
 const { getAccounts } = require('../../utils/accounts');
 
@@ -22,7 +22,8 @@ async function setup() {
 
   const pool = await ethers.deployContract('PoolMock');
 
-  await pool.addAsset({ assetAddress: dai.target, isCoverAsset: true, isAbandoned: false });
+  await pool.addAsset({ assetAddress: Assets.ETH, isCoverAsset: true, isAbandoned: false }); // Asset 0
+  await pool.addAsset({ assetAddress: dai.target, isCoverAsset: true, isAbandoned: false }); // Asset 1
   await pool.setTokenPrice(ASSET.ETH, parseEther('0.0382'));
   await pool.setTokenPrice(ASSET.DAI, parseEther('3.82'));
 

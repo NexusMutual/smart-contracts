@@ -53,8 +53,6 @@ interface IPool {
 
   function setAssetDetails(uint assetId, bool isCoverAsset, bool isAbandoned) external;
 
-  function transferAssetToSwapOperator(address assetAddress, uint amount) external;
-
   function sendPayout(uint assetIndex, address payable payoutAddress, uint amount, uint depositInETH) external;
 
   function sendEth(address payoutAddress, uint amount) external;
@@ -70,6 +68,10 @@ interface IPool {
   function getMCRRatio() external view returns (uint);
 
   function getMCR() external view returns (uint);
+
+  function transferAssetToSafe(address assetAddress, address safeAddress, uint amount) external;
+
+  function transferAssetToSwapOperator(address assetAddress, uint amount) external;
 
   function clearSwapAssetAmount(address assetAddress) external;
 
@@ -90,7 +92,7 @@ interface IPool {
   );
 
   event Payout(address indexed to, address indexed assetAddress, uint amount);
-  event DepositReturned(address, uint);
+  event AssetsTransferredToSafe(address assetAddress, uint amount);
 
   // migrations
   error AlreadyMigrated();

@@ -106,6 +106,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, RegistryAw
   /// @param _member The address to remove.
   function removeFromWhitelist(address _member) public override onlyContracts(C_REGISTRY) {
     require(token.balanceOf(_member) == 0, MemberBalanceNotZero());
+    require(managerStakingPools[_member].length == 0, MemberHasStakingPools());
     token.removeFromWhiteList(_member);
   }
 
@@ -113,6 +114,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, RegistryAw
   /// @dev Transfers the full token balance from the old address to the new one, updates whitelist status accordingly.
   /// @param from The address to transfer membership from.
   /// @param to The address to transfer membership to.
+  /// @param includeNxmTokens transfer the member's tokens to the new address - only for backwards compatibility with MR
   function switchMembership(
     address from,
     address to,

@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { setTime } = require('./helpers');
+const { time } = require('@nomicfoundation/hardhat-network-helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
@@ -45,11 +45,7 @@ describe('undoVotes', function () {
       assessment.minVotingPeriod(),
       assessment.payoutCooldown(PRODUCT_TYPE_ID),
     ]);
-    const block = await ethers.provider.getBlock('latest');
-    if (!block) {
-      throw new Error('Block not found');
-    }
-    await setTime(BigInt(block.timestamp) + votingPeriod + cooldownPeriod + 1n);
+    await time.increase(votingPeriod + cooldownPeriod + 1n);
 
     const assessorMemberId = await registry.getMemberId(assessor.address);
     const undoVotes = assessment.connect(governanceAccount).undoVotes(assessorMemberId, [CLAIM_ID]);
@@ -279,11 +275,7 @@ describe('undoVotes', function () {
 
     // Set time to just after voting ends, but before cooldown ends
     const votingPeriod = await assessment.minVotingPeriod();
-    const block = await ethers.provider.getBlock('latest');
-    if (!block) {
-      throw new Error('Block not found');
-    }
-    await setTime(BigInt(block.timestamp) + votingPeriod + 1n);
+    await time.increase(votingPeriod + 1n);
 
     // Undo vote during cooldown period (should work)
     const assessorMemberId = await registry.getMemberId(assessor.address);

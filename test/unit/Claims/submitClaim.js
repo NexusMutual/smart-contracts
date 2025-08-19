@@ -1,18 +1,12 @@
-const { ethers, nexus } = require('hardhat');
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 const { parseEther } = ethers;
 
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+const { setNextBlockTime, setCode } = require('../../utils/evm');
+
 const { ASSET, ASSESSMENT_STATUS, createMockCover, submitClaim, daysToSeconds } = require('./helpers');
 const { setup } = require('./setup');
-
-const { ContractIndexes } = nexus.constants;
-
-const setTime = async timestamp => {
-  await setNextBlockTime(timestamp);
-  await mineNextBlock();
-};
 
 describe('submitClaim', function () {
   const ipfsHash = ethers.solidityPackedKeccak256(['string'], ['ipfs-hash']);
@@ -143,13 +137,11 @@ describe('submitClaim', function () {
 
     await createMockCover(cover, { owner: coverOwner.address, gracePeriod });
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
-
     const coverId = 1;
     const coverData = await cover.getCoverData(coverId);
 
     // Advance time to grace period expiry
-    await setTime(timestamp + Number(coverData.start) + Number(coverData.period) + Number(gracePeriod));
+    await time.increase(Number(coverData.start) + Number(coverData.period) + Number(gracePeriod));
 
     await expect(submitClaim(fixture)({ coverId })).to.be.revertedWithCustomError(claims, 'GracePeriodPassed');
   });
@@ -167,12 +159,11 @@ describe('submitClaim', function () {
     const longerGracePeriod = gracePeriod * 100n;
     await coverProducts.connect(boardMember).editProductTypes([0], [longerGracePeriod], ['ipfs hash']);
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
     const coverId = 1;
     const coverData = await cover.getCoverData(coverId);
 
     // Advance time to grace period expiry
-    await setTime(timestamp + Number(coverData.start) + Number(coverData.period) + Number(gracePeriod));
+    await time.increase(Number(coverData.start) + Number(coverData.period) + Number(gracePeriod));
 
     await expect(submitClaim(fixture)({ coverId })).to.be.revertedWithCustomError(claims, 'GracePeriodPassed');
   });
@@ -333,29 +324,24 @@ describe('submitClaim', function () {
 
   it('should revert if assessment deposit to pool fails', async function () {
     const fixture = await loadFixture(setup);
-    const { cover, registry } = fixture.contracts;
+    const { cover, pool, claims } = fixture.contracts;
     const { claimDepositInETH: deposit } = fixture.config;
     const [coverOwner] = fixture.accounts.members;
-    const [governanceAccount] = fixture.accounts.governanceContracts;
 
     await createMockCover(cover, { owner: coverOwner.address });
 
     const coverId = 1;
     const { amount } = await cover.getCoverData(coverId);
 
-    const failingPool = await ethers.deployContract('PoolEtherRejecterMock', []);
-
-    await registry.addContract(ContractIndexes.C_POOL, await failingPool.getAddress(), true);
-
-    // Deploy new Claims contract with Pool ETH reject
-    const claimsRejectEth = await ethers.deployContract('Claims', [await registry.getAddress()]);
-    await claimsRejectEth.connect(governanceAccount).initialize(0);
+    const poolRejectingEth = await ethers.deployContract('PoolEtherRejecterMock', []);
+    const bytecode = await ethers.provider.getCode(poolRejectingEth.target);
+    await setCode(pool.target, bytecode);
 
     const ipfsHash = ethers.solidityPackedKeccak256(['string'], ['ipfs-hash']);
     const overrides = { value: deposit };
-    const submitClaimTx = claimsRejectEth.connect(coverOwner).submitClaim(coverId, amount, ipfsHash, overrides);
+    const submitClaimTx = claims.connect(coverOwner).submitClaim(coverId, amount, ipfsHash, overrides);
 
-    await expect(submitClaimTx).to.be.revertedWithCustomError(claimsRejectEth, 'AssessmentDepositTransferToPoolFailed');
+    await expect(submitClaimTx).to.be.revertedWithCustomError(claims, 'AssessmentDepositTransferToPoolFailed');
   });
 
   it('reverts if a payout on the same cover can be redeemed', async function () {
@@ -369,16 +355,17 @@ describe('submitClaim', function () {
     const claimId = await claims.getClaimsCount();
 
     const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
+    const payoutRedemptionPeriod = daysToSeconds(30);
+    const payoutRedemptionEnd = cooldownEnd + payoutRedemptionPeriod;
     await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.ACCEPTED, payoutRedemptionEnd, cooldownEnd);
 
     // Should block new claim during redemption period
-    await setTime(payoutRedemptionEnd - daysToSeconds(1));
+    await time.increase(payoutRedemptionPeriod - daysToSeconds(1));
     const submitClaimTx = submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await expect(submitClaimTx).to.be.revertedWithCustomError(claims, 'PayoutCanStillBeRedeemed');
 
     // Should allow new claim after redemption period expires
-    await setTime(payoutRedemptionEnd);
+    await time.increaseTo(payoutRedemptionEnd);
     await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
   });
 
@@ -523,11 +510,12 @@ describe('submitClaim', function () {
       const firstClaimId = await claims.getClaimsCount();
 
       const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-      const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
+      const payoutRedemptionPeriod = daysToSeconds(30);
+      const payoutRedemptionEnd = cooldownEnd + payoutRedemptionPeriod;
       await assessment.setAssessmentResult(firstClaimId, ASSESSMENT_STATUS.ACCEPTED, payoutRedemptionEnd, cooldownEnd);
 
       // Move time past redemption period
-      await setTime(payoutRedemptionEnd);
+      await time.increase(payoutRedemptionPeriod);
 
       // Should allow re-submission after redemption period expires (user missed deadline)
       await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;

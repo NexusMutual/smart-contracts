@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { setTime } = require('./helpers');
+const { time } = require('@nomicfoundation/hardhat-network-helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
@@ -60,7 +60,7 @@ describe('closeVotingEarly', function () {
       throw new Error('Block not found');
     }
     const votingPeriod = await assessment.minVotingPeriod();
-    await setTime(BigInt(block.timestamp) + votingPeriod + 1n);
+    await time.increase(BigInt(block.timestamp) + votingPeriod + 1n);
 
     const closeVotingEarly = assessment.closeVotingEarly(CLAIM_ID);
     await expect(closeVotingEarly).to.be.revertedWithCustomError(assessment, 'VotingAlreadyClosed');
@@ -152,7 +152,7 @@ describe('closeVotingEarly', function () {
 
     // Advance time past the cooldown period to see DRAW status
     const { cooldownPeriod, payoutRedemptionPeriod } = assessmentData;
-    await setTime(Number(BigInt(closeVotingTimestamp) + BigInt(cooldownPeriod) + 1n));
+    await time.increase(Number(BigInt(closeVotingTimestamp) + BigInt(cooldownPeriod) + 1n));
 
     // Check assessment result after cooldown period
     const [status, payoutRedemptionEnd] = await assessment.getAssessmentResult(CLAIM_ID);

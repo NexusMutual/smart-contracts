@@ -285,7 +285,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
   ///
   function sendEth(address payable member, uint amount) external override onlyContracts(C_RAMM | C_CLAIMS) nonReentrant {
     (bool transferSucceeded, /* data */) = member.call{value: amount}("");
-    require(transferSucceeded, "Pool: ETH transfer failed");
+    require(transferSucceeded, EthTransferFailed(member, amount));
   }
 
   /// Uses internal price for calculating the token price in ETH

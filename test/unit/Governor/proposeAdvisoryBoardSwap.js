@@ -73,6 +73,7 @@ describe('proposeAdvisoryBoardSwap', () => {
     const abMemberId = await registry.memberIds(abMember.address);
 
     await tokenController.setTotalBalanceOf(member.address, parseEther('100'));
+    await tokenController.setTotalSupply(parseEther('10000'));
 
     const boardSwap = [
       {
@@ -93,6 +94,7 @@ describe('proposeAdvisoryBoardSwap', () => {
     const memberId = await registry.memberIds(member.address);
 
     await tokenController.setTotalBalanceOf(member.address, parseEther('100'));
+    await tokenController.setTotalSupply(parseEther('10000'));
 
     const boardSwap = [
       {
@@ -114,6 +116,7 @@ describe('proposeAdvisoryBoardSwap', () => {
     const abMemberId = await registry.memberIds(abMember.address);
 
     await tokenController.setTotalBalanceOf(member.address, parseEther('100'));
+    await tokenController.setTotalSupply(parseEther('10000'));
 
     const boardSwap = [
       {
@@ -136,6 +139,7 @@ describe('proposeAdvisoryBoardSwap', () => {
     const memberId = await registry.memberIds(member.address);
 
     await tokenController.setTotalBalanceOf(member.address, parseEther('100'));
+    await tokenController.setTotalSupply(parseEther('10000'));
 
     const boardSwap = [
       {

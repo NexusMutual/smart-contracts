@@ -188,11 +188,12 @@ describe('execute', () => {
     const { TIMELOCK_PERIOD, VOTING_PERIOD } = constants;
     const abMember = accounts.advisoryBoardMembers[0];
 
+    const value = 1337;
     const txs = [
       {
         target: tokenController.target,
         value: 0,
-        data: tokenController.interface.encodeFunctionData('setTotalSupply', [ethers.parseEther('1000000')]),
+        data: tokenController.interface.encodeFunctionData('exampleFunctionX', [value]),
       },
     ];
 
@@ -206,7 +207,9 @@ describe('execute', () => {
 
     await expect(governor.connect(abMember).execute(newProposalId))
       .to.emit(governor, 'ProposalExecuted')
-      .withArgs(newProposalId);
+      .withArgs(newProposalId)
+      .to.emit(tokenController, 'ExampleFunctionXCalledWith')
+      .withArgs(value);
   });
 
   it('executes multiple transactions successfully', async () => {
@@ -215,19 +218,20 @@ describe('execute', () => {
     const { TIMELOCK_PERIOD, VOTING_PERIOD } = constants;
     const [abMember] = accounts.advisoryBoardMembers;
 
+    const value = 1337;
+    const flag = true;
+    const msgValue = 31337;
+
     const txs = [
       {
         target: tokenController.target,
         value: 0,
-        data: tokenController.interface.encodeFunctionData('setTotalSupply', [ethers.parseEther('1000000')]),
+        data: tokenController.interface.encodeFunctionData('exampleFunctionX', [value]),
       },
       {
         target: tokenController.target,
-        value: 0,
-        data: tokenController.interface.encodeFunctionData('setTotalBalanceOf', [
-          accounts.members[0].address,
-          ethers.parseEther('100000'),
-        ]),
+        value: msgValue,
+        data: tokenController.interface.encodeFunctionData('exampleFunctionY', [flag]),
       },
     ];
 
@@ -239,9 +243,13 @@ describe('execute', () => {
     await governor.connect(accounts.advisoryBoardMembers[2]).vote(newProposalId, Choice.For);
     await time.increase(VOTING_PERIOD + TIMELOCK_PERIOD);
 
-    await expect(governor.connect(abMember).execute(newProposalId))
+    await expect(governor.connect(abMember).execute(newProposalId, { value: msgValue }))
       .to.emit(governor, 'ProposalExecuted')
-      .withArgs(newProposalId);
+      .withArgs(newProposalId)
+      .to.emit(tokenController, 'ExampleFunctionXCalledWith')
+      .withArgs(value)
+      .to.emit(tokenController, 'ExampleFunctionYCalledWith')
+      .withArgs(msgValue, flag);
   });
 
   it('reverts if target is not a contract when data is provided', async () => {
@@ -293,16 +301,20 @@ describe('execute', () => {
     const fixture = await loadFixture(executeMemberProposalSetup);
     const { governor, accounts, tokenController, proposalId, constants } = fixture;
     const { TIMELOCK_PERIOD, VOTING_PERIOD } = constants;
-    const [member] = accounts.members;
+    const [alice, bob, charlie] = accounts.members;
 
     const totalSupply = ethers.parseEther('10000');
     await tokenController.setTotalSupply(totalSupply);
-    await tokenController.setTotalBalanceOf(member.address, ethers.parseEther('2000'));
+    await tokenController.setTotalBalanceOf(alice, ethers.parseEther('2000'));
+    await tokenController.setTotalBalanceOf(bob, ethers.parseEther('2000'));
+    await tokenController.setTotalBalanceOf(charlie, ethers.parseEther('2000'));
 
-    await governor.connect(member).vote(proposalId, Choice.For);
+    await governor.connect(alice).vote(proposalId, Choice.For);
+    await governor.connect(bob).vote(proposalId, Choice.For);
+    await governor.connect(charlie).vote(proposalId, Choice.For);
     await time.increase(VOTING_PERIOD + TIMELOCK_PERIOD + 1n);
 
-    await expect(governor.connect(member).execute(proposalId))
+    await expect(governor.connect(alice).execute(proposalId))
       .to.emit(governor, 'ProposalExecuted')
       .withArgs(proposalId);
 

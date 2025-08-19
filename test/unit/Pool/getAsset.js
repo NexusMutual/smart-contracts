@@ -16,6 +16,9 @@ describe('getAsset', function () {
     const { pool, usdc } = fixture;
 
     const asset = await pool.getAsset(1);
+
     expect(asset.assetAddress).to.be.equal(usdc.target);
+    expect(asset.isCoverAsset).to.equal(true);
+    expect(asset.isAbandoned).to.equal(false);
   });
 });

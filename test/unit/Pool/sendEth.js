@@ -7,9 +7,10 @@ const { parseEther } = ethers;
 
 // TODO: missing tests
 // - reentrancy not tested
+// - EthTransferFailed not tested
 
 describe('sendEth', function () {
-  it('reverts if the caller is not Ramm contract', async function () {
+  it('reverts if the caller is not Ramm or Claims contract', async function () {
     const fixture = await loadFixture(setup);
     const { pool, accounts } = fixture;
     const [member] = accounts.members;
@@ -18,7 +19,7 @@ describe('sendEth', function () {
     await expect(pool.sendEth(member, parseEther('0.1'))).to.be.revertedWithCustomError(pool, 'Unauthorized');
   });
 
-  it('sends eth to a member', async function () {
+  it('sends eth to a member - RAMM', async function () {
     const fixture = await loadFixture(setup);
     const { pool, accounts, ramm } = fixture;
     const [member] = accounts.members;
@@ -30,6 +31,23 @@ describe('sendEth', function () {
 
     const balanceBefore = await ethers.provider.getBalance(member.address);
     await pool.connect(rammSigner).sendEth(member, parseEther('0.1'));
+    const balanceAfter = await ethers.provider.getBalance(member.address);
+
+    expect(balanceAfter).to.be.equal(balanceBefore + parseEther('0.1'));
+  });
+
+  it('sends eth to a member - Claims', async function () {
+    const fixture = await loadFixture(setup);
+    const { pool, accounts, claims } = fixture;
+    const [member] = accounts.members;
+    await impersonateAccount(claims.address);
+    const claimsSigner = await ethers.getSigner(claims.address);
+
+    await setBalance(claims.address, parseEther('1'));
+    await setBalance(pool.target, parseEther('100'));
+
+    const balanceBefore = await ethers.provider.getBalance(member.address);
+    await pool.connect(claimsSigner).sendEth(member, parseEther('0.1'));
     const balanceAfter = await ethers.provider.getBalance(member.address);
 
     expect(balanceAfter).to.be.equal(balanceBefore + parseEther('0.1'));

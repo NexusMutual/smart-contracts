@@ -288,7 +288,17 @@ describe('requestAssetSwap', function () {
       swapKind: SwapKind.ExactOutput,
     };
 
-    await swapOperator.connect(governor).requestAssetSwap(secondRequest);
+    await expect(swapOperator.connect(governor).requestAssetSwap(secondRequest))
+      .to.emit(swapOperator, 'SwapRequestCreated')
+      .withArgs(
+        secondRequest.fromAsset,
+        secondRequest.toAsset,
+        secondRequest.fromAmount,
+        secondRequest.toAmount,
+        secondRequest.swapKind,
+        secondRequest.deadline,
+      );
+
     const storedRequest = await swapOperator.swapRequest();
 
     expect(storedRequest.fromAsset).to.equal(secondRequest.fromAsset);

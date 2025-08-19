@@ -378,6 +378,15 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     }
 
     swapRequest = request;
+
+    emit SwapRequestCreated(
+      swapRequest.fromAsset,
+      swapRequest.toAsset,
+      swapRequest.fromAmount,
+      swapRequest.toAmount,
+      swapRequest.swapKind,
+      swapRequest.deadline
+    );
   }
 
   /// @dev Recovers assets in the SwapOperator to the pool or a specified receiver, ensuring no ongoing CoW swap orders

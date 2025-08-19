@@ -15,10 +15,10 @@ interface ISwapOperator {
   }
 
   struct SwapRequest {
-    uint fromAmount;
-    uint toAmount;
     address fromAsset;
     address toAsset;
+    uint fromAmount;
+    uint toAmount;
     SwapKind swapKind;
     uint32 deadline; // order submission deadline
   }
@@ -67,6 +67,14 @@ interface ISwapOperator {
   event OrderClosed(GPv2Order.Data order, uint filledAmount);
   event Swapped(address indexed fromAsset, address indexed toAsset, uint fromAmount, uint toAmount);
   event TransferredToSafe(address asset, uint amount);
+  event SwapRequestCreated(
+    address indexed fromAsset,
+    address indexed toAsset,
+    uint fromAmount,
+    uint toAmount,
+    SwapKind swapKind,
+    uint32 deadline
+  );
 
   // Swap Order
   error OrderInProgress(bytes currentOrderUID);

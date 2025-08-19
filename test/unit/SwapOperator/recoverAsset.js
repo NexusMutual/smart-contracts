@@ -222,10 +222,10 @@ describe('recoverAsset', function () {
     const { swapOperator } = fixture.contracts;
     const { alice: receiver, swapController } = fixture.accounts;
 
-    // store `ABC` under slot 5 (currentOrderUID)
+    // store `ABC` under slot 6 (currentOrderUID)
     // 0x414243 is the hex encoding of "ABC", 0x06 is the length * 2
     const value = '0x4142430000000000000000000000000000000000000000000000000000000006';
-    await setStorageAt(swapOperator.target, '0x05', value);
+    await setStorageAt(swapOperator.target, '0x06', value);
 
     // check the storage is correct set
     expect(await swapOperator.currentOrderUID()).to.be.equal('0x414243');

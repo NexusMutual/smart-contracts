@@ -1,12 +1,14 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { parseEther } = ethers;
 
 const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee } = require('../../utils/evm');
-const { PAUSE_CLAIMS_PAYOUT } = require('../../utils/registry');
 const { ASSET, ASSESSMENT_STATUS, createMockCover, submitClaim, daysToSeconds } = require('./helpers');
 const { setup } = require('./setup');
+
+const { PauseTypes } = nexus.constants;
+const { PAUSE_CLAIMS } = PauseTypes;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -353,7 +355,7 @@ describe('redeemClaimPayout', function () {
     const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
     await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.ACCEPTED, payoutRedemptionEnd, cooldownEnd);
 
-    await registry.confirmPauseConfig(PAUSE_CLAIMS_PAYOUT);
+    await registry.confirmPauseConfig(PAUSE_CLAIMS);
 
     await expect(claims.connect(coverOwner).redeemClaimPayout(claimId)).to.be.revertedWithCustomError(claims, 'Paused');
   });

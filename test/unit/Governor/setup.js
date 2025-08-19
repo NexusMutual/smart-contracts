@@ -38,17 +38,11 @@ async function setup() {
     }),
   );
 
-  async function createABProposal(txs) {
-    const abMember = accounts.advisoryBoardMembers[0];
+  async function createABProposal(txs = []) {
+    const [abMember] = accounts.advisoryBoardMembers;
 
-    if (!txs) {
-      txs = [
-        {
-          target: ethers.ZeroAddress,
-          value: 0,
-          data: '0x',
-        },
-      ];
+    if (txs.length === 0) {
+      txs = [{ target: ethers.ZeroAddress, value: 0, data: '0x' }];
     }
 
     await governor.connect(abMember).propose(txs, 'Test Proposal');
@@ -56,20 +50,15 @@ async function setup() {
   }
 
   async function createMemberProposal() {
-    const member = accounts.members[0];
-    const abMember = accounts.advisoryBoardMembers[0];
+    const [member] = accounts.members;
+    const [abMember] = accounts.advisoryBoardMembers;
 
     await tokenController.setTotalBalanceOf(member.address, ethers.parseEther('200'));
 
     const memberId = await registry.memberIds(member.address);
     const abMemberId = await registry.memberIds(abMember.address);
 
-    const swaps = [
-      {
-        from: abMemberId,
-        to: memberId,
-      },
-    ];
+    const swaps = [{ from: abMemberId, to: memberId }];
 
     await governor.connect(member).proposeAdvisoryBoardSwap(swaps, 'Member Proposal');
     return await governor.proposalCount();
@@ -81,6 +70,14 @@ async function setup() {
   const MEMBER_VOTE_QUORUM_PERCENTAGE = await governor.MEMBER_VOTE_QUORUM_PERCENTAGE();
   const PROPOSAL_THRESHOLD = await governor.PROPOSAL_THRESHOLD();
 
+  const constants = {
+    TIMELOCK_PERIOD,
+    VOTING_PERIOD,
+    ADVISORY_BOARD_THRESHOLD,
+    MEMBER_VOTE_QUORUM_PERCENTAGE,
+    PROPOSAL_THRESHOLD,
+  };
+
   return {
     accounts,
     governor,
@@ -88,13 +85,7 @@ async function setup() {
     tokenController,
     createABProposal,
     createMemberProposal,
-    constants: {
-      TIMELOCK_PERIOD,
-      VOTING_PERIOD,
-      ADVISORY_BOARD_THRESHOLD,
-      MEMBER_VOTE_QUORUM_PERCENTAGE,
-      PROPOSAL_THRESHOLD,
-    },
+    constants,
   };
 }
 

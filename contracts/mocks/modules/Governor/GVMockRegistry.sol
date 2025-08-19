@@ -5,6 +5,7 @@ pragma solidity ^0.8.18;
 import "../../generic/RegistryGeneric.sol";
 
 contract GVMockRegistry is RegistryGeneric {
+
   // contracts
   mapping(uint index => Contract) internal contracts;
   mapping(address contractAddress => uint index) internal contractIndexes;

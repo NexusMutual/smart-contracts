@@ -171,10 +171,6 @@ contract Registry is IRegistry, EIP712 {
     require(memberId != 0, NotMember());
     require(memberToSeat[memberId] == 0, AdvisoryBoardMemberCannotLeave());
 
-    // todo:
-    // address[] memory pools = TC.getManagerStakingPools(memberId)
-    // require(pools.length == 0, StakingPoolManagersCannotLeave());
-
     delete members[memberId];
     delete memberIds[msg.sender];
     --membersMeta.memberCount;

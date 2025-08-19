@@ -221,7 +221,6 @@ contract Governor is IGovernor, RegistryAware, Multicall {
       uint quorum = tokenController.totalSupply() * MEMBER_VOTE_QUORUM_PERCENTAGE / 100;
       uint totalVotes = tally.forVotes + tally.againstVotes + tally.abstainVotes;
       require(totalVotes >= quorum, VoteQuorumNotMet());
-      // todo: check if a majority threshold is required
     }
 
     Transaction[] memory txs = transactions[proposalId];

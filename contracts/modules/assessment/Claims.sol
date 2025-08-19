@@ -240,8 +240,9 @@ contract Claims is IClaims, RegistryAware {
   function redeemClaimPayout(uint claimId) external override onlyMember whenNotPaused(PAUSE_CLAIMS) {
 
     (Claim memory claim, uint payoutRedemptionEnd) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.ACCEPTED);
+    address coverOwner = coverNFT.ownerOf(claim.coverId);
 
-    require(coverNFT.ownerOf(claim.coverId) == msg.sender, NotCoverOwner());
+    require(coverOwner == msg.sender, NotCoverOwner());
     require(block.timestamp < payoutRedemptionEnd, RedemptionPeriodExpired());
     require(!claim.payoutRedeemed, PayoutAlreadyRedeemed());
 
@@ -250,14 +251,10 @@ contract Claims is IClaims, RegistryAware {
 
     ramm.updateTwap();
 
-    // TODO: remove return address in burnStake and fetch cover owner from coverNFT
-    address payable coverOwner = payable(cover.burnStake(
-      claim.coverId,
-      claim.amount
-    ));
+    cover.burnStake(claim.coverId, claim.amount);
 
     // Send payout in cover asset
-    pool.sendPayout(claim.coverAsset, coverOwner, claim.amount, CLAIM_DEPOSIT_IN_ETH);
+    pool.sendPayout(claim.coverAsset, payable(coverOwner), claim.amount, CLAIM_DEPOSIT_IN_ETH);
 
     emit ClaimPayoutRedeemed(coverOwner, claim.amount, claimId, claim.coverId);
   }

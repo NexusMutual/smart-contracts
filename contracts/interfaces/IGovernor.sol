@@ -55,11 +55,16 @@ interface IGovernor {
   function execute(uint proposalId) external payable;
 
   function getProposal(uint proposalId) external view returns (Proposal memory);
-  // function getProposals(uint start, uint end) external view returns (Proposal[] memory, Transaction[][] memory);
-  // function getVotes(uint proposalId, address account) external view returns (uint);
-  // function getVotesAt(uint proposalId, address account, uint blockNumber) external view returns (uint);
-  // function getTally(uint proposalId) external view returns (Tally memory);
-  // function getTallies(uint start, uint end) external view returns (Tally[] memory);
+  function getProposalDescription(uint proposalId) external view returns (string memory);
+  function getProposalTransactions(uint proposalId) external view returns (Transaction[] memory);
+  function getProposalTally(uint proposalId) external view returns (Tally memory);
+  function getProposalWithDetails(uint proposalId) external view returns (
+    Proposal memory,
+    string memory,
+    Transaction[] memory,
+    Tally memory
+  );
+  function getVote(uint proposalId, uint memberId) external view returns (Vote memory);
 
   event ProposalExecuted(uint proposalId);
   event VoteCast(uint indexed proposalId, ProposalKind indexed kind, uint indexed voterId, Choice choice, uint weight);

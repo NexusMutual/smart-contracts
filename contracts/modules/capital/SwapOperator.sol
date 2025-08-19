@@ -419,7 +419,7 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     }
 
     address destination = isSupported ? address(pool) : receiver;
-    asset.transfer(destination, balance);
+    asset.safeTransfer(destination, balance);
   }
 
   /// @dev Checks if there is an ongoing order

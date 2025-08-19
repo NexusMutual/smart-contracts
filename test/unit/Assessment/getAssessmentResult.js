@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
-const { setTime } = require('./helpers');
+const { time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const ONE_DAY = 24 * 60 * 60;
 
@@ -58,7 +58,7 @@ describe('getAssessmentResult', function () {
     const expectedPayoutRedemptionEnd = expectedCooldownEnd + BigInt(payoutRedemptionPeriod);
 
     // Set time to just after voting ends but before cooldown passes
-    await setTime(votingEnd + 1n);
+    await time.increaseTo(votingEnd + 1n);
 
     const [status, payoutRedemptionEnd] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
@@ -83,7 +83,7 @@ describe('getAssessmentResult', function () {
     const expectedPayoutRedemptionEnd = expectedCooldownEnd + BigInt(payoutRedemptionPeriod);
 
     // Set time past cooldown period
-    await setTime(expectedCooldownEnd + 1n);
+    await time.increaseTo(expectedCooldownEnd + 1n);
 
     const [status, payoutRedemptionEnd] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
@@ -108,7 +108,7 @@ describe('getAssessmentResult', function () {
     const expectedPayoutRedemptionEnd = cooldownEndTime + BigInt(payoutRedemptionPeriod);
 
     // Set time past cooldown period
-    await setTime(cooldownEndTime + 1n);
+    await time.increaseTo(cooldownEndTime + 1n);
 
     const [status, payoutRedemptionEnd] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
@@ -130,7 +130,7 @@ describe('getAssessmentResult', function () {
     const expectedPayoutRedemptionEnd = expectedCooldownEnd + BigInt(payoutRedemptionPeriod);
 
     // Set time past cooldown period
-    await setTime(expectedCooldownEnd + 1n);
+    await time.increaseTo(expectedCooldownEnd + 1n);
 
     const [status, payoutRedemptionEnd] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
@@ -149,7 +149,7 @@ describe('getAssessmentResult', function () {
     const expectedPayoutRedemptionEnd = expectedCooldownEnd + BigInt(payoutRedemptionPeriod);
 
     // Set time past cooldown period
-    await setTime(expectedCooldownEnd + 1n);
+    await time.increaseTo(expectedCooldownEnd + 1n);
 
     const [status, payoutRedemptionEnd] = await assessment.getAssessmentResult(CLAIM_ID);
     expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);

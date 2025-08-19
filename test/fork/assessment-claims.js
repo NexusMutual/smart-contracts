@@ -2,7 +2,7 @@ const { inspect } = require('util');
 
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { parseEther } = ethers;
+const { time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { getSigner, EnzymeAddress } = require('./utils');
 
@@ -10,6 +10,7 @@ const { ContractIndexes, PauseTypes } = nexus.constants;
 
 const { toBytes2 } = nexus.helpers;
 
+const { parseEther } = ethers;
 const { PAUSE_CLAIMS } = PauseTypes;
 // Constants for assessment status
 const ASSESSMENT_STATUS = {
@@ -30,12 +31,6 @@ const ASSET = {
   SafeTracker: 5,
   USDC: 6,
   cbBTC: 7,
-};
-
-// Helper functions
-const setTime = async timestamp => {
-  await ethers.provider.send('evm_setNextBlockTimestamp', [Number(timestamp)]);
-  await ethers.provider.send('evm_mine');
 };
 
 const daysToSeconds = days => BigInt(days) * 24n * 60n * 60n;
@@ -300,8 +295,8 @@ it('Happy Path: ETH claim submission and ACCEPTED payout', async function () {
   // advance time past voting and cooldown periods
   const assessment = await this.assessment.getAssessment(claimId);
   const cooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + daysToSeconds(1);
-  await setTime(cooldownEndTime);
-  console.log('setTime past cooldown period');
+  await time.increaseTo(cooldownEndTime);
+  console.log('time.increaseTo past cooldown period');
 
   // claim ACCEPTED
   const [status, payoutRedemptionEnd] = await this.assessment.getAssessmentResult(claimId);
@@ -515,7 +510,7 @@ it.skip('Phase 1: ETH claim submission validation and DENIED outcome', async fun
   // Advance time past cooldown period
   const assessment = await this.assessment.getAssessment(claimId);
   const cooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 1n;
-  await setTime(cooldownEndTime);
+  await time.increaseTo(cooldownEndTime);
 
   // DENIED
   const [status] = await this.assessment.getAssessmentResult(claimId);
@@ -574,7 +569,7 @@ it.skip('Phase 2: USDC claim with fraud detection and governance intervention', 
 
   // Advance time to end of voting period (enters cooldown)
   let assessment = await this.assessment.getAssessment(usdcClaimId);
-  await setTime(Number(assessment.votingEnd) + 1);
+  await time.increaseTo(Number(assessment.votingEnd) + 1);
 
   // Verify we're in cooldown
   const [cooldownStatus] = await this.assessment.getAssessmentResult(usdcClaimId);
@@ -641,7 +636,7 @@ it.skip('Phase 2: USDC claim with fraud detection and governance intervention', 
   // Advance time through voting and cooldown periods
   assessment = await this.assessment.getAssessment(usdcClaimId);
   const newCooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 1n;
-  await setTime(newCooldownEndTime);
+  await time.increaseTo(newCooldownEndTime);
 
   // Store for next phase
   this.usdcCoverId = usdcCoverId;
@@ -752,7 +747,7 @@ it.skip('Phase 4: ETH claim with DRAW outcome', async function () {
   // Advance time past voting and cooldown periods
   const assessment = await this.assessment.getAssessment(drawClaimId);
   const cooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 1n;
-  await setTime(cooldownEndTime);
+  await time.increaseTo(cooldownEndTime);
 
   // Verify status is DRAW
   const [, status] = await this.assessment.getAssessmentResult(drawClaimId);
@@ -833,14 +828,14 @@ it.skip('Phase 5: ETH claim with redemption period expiry', async function () {
   // Advance time past voting and cooldown periods
   const assessment = await this.assessment.getAssessment(newEthClaimId);
   const cooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 1n;
-  await setTime(cooldownEndTime);
+  await time.increaseTo(cooldownEndTime);
 
   // Verify status is ACCEPTED
   const [payoutRedemptionEnd, status] = await this.assessment.getAssessmentResult(newEthClaimId);
   expect(status).to.equal(ASSESSMENT_STATUS.ACCEPTED);
 
   // Advance time past redemption period without redeeming
-  await setTime(payoutRedemptionEnd + 1n);
+  await time.increaseTo(payoutRedemptionEnd + 1n);
 
   // Attempt to redeem - should fail (redemption period expired)
   await expect(this.claims.connect(this.claimant).redeemClaimPayout(newEthClaimId)).to.be.revertedWithCustomError(
@@ -882,7 +877,7 @@ it.skip('Phase 6: Re-submit claim on same cover after ACCEPTED claim expired', a
   // Advance time past voting and cooldown periods
   const assessment = await this.assessment.getAssessment(resubmitClaimId);
   const cooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 1n;
-  await setTime(cooldownEndTime);
+  await time.increaseTo(cooldownEndTime);
 
   // Verify status is ACCEPTED
   const [, status] = await this.assessment.getAssessmentResult(resubmitClaimId);

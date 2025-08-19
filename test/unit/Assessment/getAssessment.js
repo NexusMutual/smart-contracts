@@ -20,7 +20,7 @@ describe('getAssessment', function () {
     if (!currentBlock) {
       throw new Error('Block not found');
     }
-    expect(assessmentData.start).to.equal(BigInt(currentBlock.timestamp) - 1n);
+    expect(assessmentData.start).to.equal(BigInt(currentBlock.timestamp));
 
     // VotingEnd should be start + votingPeriod
     const expectedVotingEnd = assessmentData.start + expectedVotingPeriod;

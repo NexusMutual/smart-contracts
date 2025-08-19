@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { setTime } = require('./helpers');
+const { time } = require('@nomicfoundation/hardhat-network-helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
@@ -40,7 +40,7 @@ describe('extendVotingPeriod', function () {
       throw new Error('Block not found');
     }
     const timeAfterCooldown = BigInt(block.timestamp) + MIN_VOTING_PERIOD + cooldownPeriod + 1n;
-    await setTime(timeAfterCooldown);
+    await time.increaseTo(timeAfterCooldown);
 
     const extendVotingPeriod = assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
     await expect(extendVotingPeriod)
@@ -83,7 +83,7 @@ describe('extendVotingPeriod', function () {
       throw new Error('Block not found');
     }
     const timeInCooldown = BigInt(block.timestamp) + MIN_VOTING_PERIOD - 1n;
-    await setTime(timeInCooldown);
+    await time.increaseTo(timeInCooldown);
 
     // Extend the voting period
     const extendTx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
@@ -127,7 +127,7 @@ describe('extendVotingPeriod', function () {
       throw new Error('Block not found');
     }
     const advancedTime = BigInt(block.timestamp) + MIN_VOTING_PERIOD / 2n;
-    await setTime(advancedTime);
+    await time.increaseTo(advancedTime);
 
     // Extend the voting period
     const extendTx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
@@ -155,7 +155,7 @@ describe('extendVotingPeriod', function () {
       throw new Error('Block not found');
     }
     const timeAfterOriginalPeriod = BigInt(block.timestamp) + MIN_VOTING_PERIOD + 1n;
-    await setTime(timeAfterOriginalPeriod);
+    await time.increaseTo(timeAfterOriginalPeriod);
 
     // Try to cast a vote - this should fail since period ended
     const ipfsHash = ethers.solidityPackedKeccak256(['string'], ['vote-metadata']);
@@ -194,7 +194,7 @@ describe('extendVotingPeriod', function () {
 
     // Move time forward slightly
     const advancedTime = BigInt(firstResetBlock.timestamp) + MIN_VOTING_PERIOD / 2n;
-    await setTime(advancedTime);
+    await time.increaseTo(advancedTime);
 
     // Second reset
     const secondResetTx = await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);

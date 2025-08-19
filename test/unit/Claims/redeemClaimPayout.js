@@ -1,19 +1,14 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 const { parseEther } = ethers;
 
-const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee } = require('../../utils/evm');
+const { setNextBlockBaseFee } = require('../../utils/evm');
 const { ASSET, ASSESSMENT_STATUS, createMockCover, submitClaim, daysToSeconds } = require('./helpers');
 const { setup } = require('./setup');
 
 const { PauseTypes } = nexus.constants;
 const { PAUSE_CLAIMS } = PauseTypes;
-
-const setTime = async timestamp => {
-  await setNextBlockTime(timestamp);
-  await mineNextBlock();
-};
 
 describe('redeemClaimPayout', function () {
   const ipfsHash = ethers.solidityPackedKeccak256(['string'], ['ipfs-hash']);
@@ -120,7 +115,7 @@ describe('redeemClaimPayout', function () {
 
     await expect(claims.connect(coverOwner).redeemClaimPayout(claimId)).not.to.be.reverted;
 
-    await setTime(payoutRedemptionEnd);
+    await time.increaseTo(payoutRedemptionEnd);
     const redeemClaimPayout = claims.connect(coverOwner).redeemClaimPayout(claimId);
     await expect(redeemClaimPayout).to.be.revertedWithCustomError(claims, 'RedemptionPeriodExpired');
   });

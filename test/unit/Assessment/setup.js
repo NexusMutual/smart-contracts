@@ -1,6 +1,5 @@
 const { ethers, nexus } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
-const { setTime } = require('./helpers');
 const { setEtherBalance } = require('../../utils/evm');
 
 const { ContractIndexes } = nexus.constants;
@@ -52,15 +51,6 @@ async function setup() {
 
   // Give Claims contract ETH balance for tests that need to impersonate it
   await setEtherBalance(claims.target, ethers.parseEther('10'));
-
-  // Reset blockchain time to create predictable timing baseline for all tests
-  // This ensures: assessment.start = currentTime - 1 for all tests using this fixture
-  const block = await ethers.provider.getBlock('latest');
-  if (!block) {
-    throw new Error('Block not found');
-  }
-
-  await setTime(block.timestamp + 1);
 
   return {
     accounts,

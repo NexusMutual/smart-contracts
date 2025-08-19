@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { setTime } = require('./helpers');
+const { time } = require('@nomicfoundation/hardhat-network-helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
 
@@ -49,7 +49,7 @@ describe('castVote', function () {
     if (!block) {
       throw new Error('Block not found');
     }
-    await setTime(BigInt(block.timestamp) + votingPeriod + 1n);
+    await time.increase(BigInt(block.timestamp) + votingPeriod + 1n);
 
     // Try to vote after the period has ended - should fail
     const castVote = assessment.connect(assessor).castVote(CLAIM_ID, true, IPFS_HASH);

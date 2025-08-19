@@ -145,4 +145,8 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
     nextMemberStorageIndex = _nextStorageIndex;
   }
 
+  function changeDependentContractAddress() external pure {
+    // noop
+  }
+
 }

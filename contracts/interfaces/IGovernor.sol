@@ -9,7 +9,7 @@ interface IGovernor {
     Member
   }
 
-  enum VoteType {
+  enum Choice {
     Against,
     For,
     Abstain
@@ -35,10 +35,15 @@ interface IGovernor {
     bytes data;
   }
 
+  struct Vote {
+    Choice choice;
+    uint96 weight;
+  }
+
   struct Tally {
-    uint128 againstVotes;
-    uint128 forVotes;
-    uint128 abstainVotes;
+    uint96 againstVotes;
+    uint96 forVotes;
+    uint96 abstainVotes;
   }
 
   struct AdvisoryBoardSwap {
@@ -49,15 +54,20 @@ interface IGovernor {
   function propose(Transaction[] calldata transactions, string calldata description) external;
   function execute(uint proposalId) external payable;
 
-  // function getProposal(uint proposalId) external view returns (Proposal memory, Transaction[] memory);
-  // function getProposals(uint start, uint end) external view returns (Proposal[] memory, Transaction[][] memory);
-  // function getVotes(uint proposalId, address account) external view returns (uint);
-  // function getVotesAt(uint proposalId, address account, uint blockNumber) external view returns (uint);
-  // function getTally(uint proposalId) external view returns (Tally memory);
-  // function getTallies(uint start, uint end) external view returns (Tally[] memory);
+  function getProposal(uint proposalId) external view returns (Proposal memory);
+  function getProposalDescription(uint proposalId) external view returns (string memory);
+  function getProposalTransactions(uint proposalId) external view returns (Transaction[] memory);
+  function getProposalTally(uint proposalId) external view returns (Tally memory);
+  function getProposalWithDetails(uint proposalId) external view returns (
+    Proposal memory,
+    string memory,
+    Transaction[] memory,
+    Tally memory
+  );
+  function getVote(uint proposalId, uint memberId) external view returns (Vote memory);
 
   event ProposalExecuted(uint proposalId);
-  event VoteCast(uint proposalId, ProposalKind kind, uint voterId, VoteType vote, uint weight);
+  event VoteCast(uint indexed proposalId, ProposalKind indexed kind, uint indexed voterId, Choice choice, uint weight);
   event AdvisoryBoardMemberReplaced(address oldAddress, address newAddress);
   event ProposalCanceled(uint proposalId);
   event ProposalCreated(uint proposalId, ProposalKind kind, string description);

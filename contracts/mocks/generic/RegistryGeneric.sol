@@ -72,11 +72,11 @@ contract RegistryGeneric is IRegistry {
   }
 
   /* == ADVISORY BOARD MANAGEMENT == */
-  function isAdvisoryBoardMember(address /* member */) external pure returns (bool) {
+  function isAdvisoryBoardMember(address /* member */) external view virtual returns (bool) {
     revert("Unsupported");
   }
 
-  function getAdvisoryBoardSeat(address /* member */) external pure returns (uint) {
+  function getAdvisoryBoardSeat(address /* member */) external view virtual returns (uint) {
     revert("Unsupported");
   }
 
@@ -84,7 +84,7 @@ contract RegistryGeneric is IRegistry {
     revert("Unsupported");
   }
 
-  function swapAdvisoryBoardMember(uint /* from */, uint /* to */) external pure {
+  function swapAdvisoryBoardMember(uint /* from */, uint /* to */) external virtual {
     revert("Unsupported");
   }
 

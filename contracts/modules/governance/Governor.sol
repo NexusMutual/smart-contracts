@@ -24,13 +24,13 @@ contract Governor is IGovernor, RegistryAware, Multicall {
 
   mapping(uint proposalId => Tally) internal tallies;
 
-  mapping(uint memberId => mapping(uint proposalId => uint weight)) internal votes;
+  mapping(uint proposalId => mapping(uint memberId => Vote)) internal votes;
 
   /* ========== immutables and constants ========== */
 
   ITokenController public immutable tokenController;
 
-  uint public constant TIMELOCK_PERIOD = 12 hours;
+  uint public constant TIMELOCK_PERIOD = 1 days;
   uint public constant VOTING_PERIOD = 3 days;
   uint public constant ADVISORY_BOARD_THRESHOLD = 3;
   uint public constant MEMBER_VOTE_QUORUM_PERCENTAGE = 15; // 15% of token supply
@@ -123,7 +123,6 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     require(proposal.kind == ProposalKind.AdvisoryBoard, CannotCancelMemberProposal());
     require(proposal.status != ProposalStatus.Executed, ProposalAlreadyExecuted());
     require(proposal.status != ProposalStatus.Canceled, ProposalIsCanceled());
-    // todo: consider checking if it's actually in proposed status
 
     proposal.status = ProposalStatus.Canceled;
     proposals[proposalId] = proposal;
@@ -131,7 +130,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     emit ProposalCanceled(proposalId);
   }
 
-  function vote(uint proposalId, VoteType choice) external {
+  function vote(uint proposalId, Choice choice) external {
 
     Proposal memory proposal = proposals[proposalId];
     require(proposal.proposedAt > 0, ProposalNotFound());
@@ -141,7 +140,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
 
     uint memberId = registry.getMemberId(msg.sender);
     require(memberId > 0, NotMember());
-    require(votes[memberId][proposalId] == 0, AlreadyVoted());
+    require(votes[proposalId][memberId].weight == 0, AlreadyVoted());
 
     bool isAbProposal = proposal.kind == ProposalKind.AdvisoryBoard;
     uint voterId = isAbProposal
@@ -149,24 +148,28 @@ contract Governor is IGovernor, RegistryAware, Multicall {
       : memberId;
     require(voterId > 0, NotAuthorizedToVote());
 
-    uint weight = isAbProposal ? 1 : _getVoteWeight(msg.sender);
-    votes[memberId][proposalId] = weight;
+    uint96 weight = (isAbProposal ? 1 : _getVoteWeight(msg.sender)).toUint96();
+    votes[proposalId][memberId] = Vote({ choice: choice, weight: weight });
 
-    if (choice == VoteType.For) {
-      tallies[proposalId].forVotes += weight.toUint128();
+    if (choice == Choice.For) {
+      tallies[proposalId].forVotes += weight;
     }
 
-    if (choice == VoteType.Against) {
-      tallies[proposalId].againstVotes += weight.toUint128();
+    if (choice == Choice.Against) {
+      tallies[proposalId].againstVotes += weight;
     }
 
-    if (choice == VoteType.Abstain) {
-      tallies[proposalId].abstainVotes += weight.toUint128();
+    if (choice == Choice.Abstain) {
+      tallies[proposalId].abstainVotes += weight;
     }
 
     if (isAbProposal && tallies[proposalId].forVotes >= ADVISORY_BOARD_THRESHOLD) {
       // start the timelock if the AB proposal has met the threshold
       proposal.executeAfter = (block.timestamp + TIMELOCK_PERIOD).toUint32();
+    }
+
+    if(!isAbProposal) {
+      _lockTokenTransfers(msg.sender, block.timestamp + VOTING_PERIOD + TIMELOCK_PERIOD);
     }
 
     emit VoteCast(proposalId, proposal.kind, voterId, choice, weight);
@@ -229,6 +232,40 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     proposals[proposalId] = proposal;
 
     emit ProposalExecuted(proposalId);
+  }
+
+  function getProposal(uint proposalId) external view returns (Proposal memory) {
+    return proposals[proposalId];
+  }
+
+  function getProposalDescription(uint proposalId) external view returns (string memory) {
+    return descriptions[proposalId];
+  }
+
+  function getProposalTransactions(uint proposalId) external view returns (Transaction[] memory) {
+    return transactions[proposalId];
+  }
+
+  function getProposalTally(uint proposalId) external view returns (Tally memory) {
+    return tallies[proposalId];
+  }
+
+  function getProposalWithDetails(uint proposalId) external view returns (
+    Proposal memory,
+    string memory,
+    Transaction[] memory,
+    Tally memory
+  ) {
+    return (
+      proposals[proposalId],
+      descriptions[proposalId],
+      transactions[proposalId],
+      tallies[proposalId]
+    );
+  }
+
+  function getVote(uint proposalId, uint memberId) external view returns (Vote memory) {
+    return votes[proposalId][memberId];
   }
 
 }

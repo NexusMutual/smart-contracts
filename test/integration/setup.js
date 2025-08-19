@@ -208,7 +208,6 @@ async function setup() {
     INVESTMENT_LIMIT,
     investmentSafe,
     usdc,
-    dai,
     weth,
     aWETH,
     debtUsdc,
@@ -220,10 +219,7 @@ async function setup() {
     registry,
     ZeroAddress, // _cowSettlement - no swaps in integration testing
     ZeroAddress, // _enzymeV4VaultProxyAddress - no enzyme in integration testing
-    ZeroAddress, // _enzymeFundValueCalculatorRouter
     weth,
-    investmentSafe,
-    defaultSender, // swap controller
   ]);
 
   const assessmentImplementation = await ethers.deployContract('Assessment', [registry]);

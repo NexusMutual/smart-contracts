@@ -140,6 +140,9 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     // fee must be included in the swapped amount
     require(order.feeAmount == 0, FeeNotZero());
 
+    // delete swap request to mark it as used
+    delete swapRequest;
+
     bool isEthToAsset = address(order.sellToken) == address(weth);
 
     pool.transferAssetToSwapOperator(
@@ -150,9 +153,6 @@ contract SwapOperator is ISwapOperator, RegistryAware {
     if (isEthToAsset) {
       weth.deposit{value: order.sellAmount}();
     }
-
-    // delete swap request to mark it as used
-    delete swapRequest;
 
     // approve cowVaultRelayer contract to spend sellToken order.sellAmount
     order.sellToken.safeApprove(cowVaultRelayer(), order.sellAmount);

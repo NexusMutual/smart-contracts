@@ -8,8 +8,8 @@ import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ILegacyAssessment.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMToken.sol";
-import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IRamm.sol";
+import "../../interfaces/ITokenController.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
@@ -518,5 +518,3 @@ contract LegacyAssessment is ILegacyAssessment, MasterAwareV2 {
     internalContracts[uint(ID.RA)] = master.getLatestAddress("RA");
   }
 }
-
-// TODO: helper function to unstake

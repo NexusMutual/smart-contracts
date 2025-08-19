@@ -61,7 +61,7 @@ contract CPMockCover is CoverGeneric {
     return _productTypes[id];
   }
 
-  function stakingPoolFactory() external override view returns (ICompleteStakingPoolFactory) {
-    return _stakingPoolFactory;
+  function stakingPoolFactory() external override view returns (address) {
+    return address(_stakingPoolFactory);
   }
 }

@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.28;
 
-import "../../abstract/RegistryAware.sol";
 import "../../abstract/Multicall.sol";
+import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IGovernor.sol";
 import "../../interfaces/IRegistry.sol";
 import "../../interfaces/ITokenController.sol";

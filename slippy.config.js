@@ -20,8 +20,8 @@ module.exports = {
     'no-default-visibility': 'error',
     'no-duplicate-imports': 'error',
     'no-uninitialized-immutable-references': 'error',
-    'no-unused-vars': 'error',
-    'sort-imports': 'error', // disabled for now
+    'no-unused-vars': ['error', { ignorePattern: '^__unused_' }],
+    'sort-imports': 'error',
   },
   ignores: ['contracts/mocks/**/*.sol'],
 };

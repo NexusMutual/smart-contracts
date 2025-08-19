@@ -2,17 +2,16 @@
 
 pragma solidity ^0.8.18;
 
+import "@openzeppelin/contracts-v4/access/Ownable.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts-v4/access/Ownable.sol";
 
+import "../../abstract/RegistryAware.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverBroker.sol";
 import "../../interfaces/INXMToken.sol";
-import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IRegistry.sol";
-import "../../abstract/RegistryAware.sol";
 
 /// @title Cover Broker Contract
 /// @notice Enables non-members of the mutual to purchase cover policies.

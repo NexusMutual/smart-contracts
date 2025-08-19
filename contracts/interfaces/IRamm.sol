@@ -2,8 +2,8 @@
 
 pragma solidity >=0.5.0;
 
-import "./IPool.sol";
 import "./INXMToken.sol";
+import "./IPool.sol";
 import "./ITokenController.sol";
 
 interface IRamm {

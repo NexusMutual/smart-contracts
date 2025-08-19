@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.28;
 
+import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
@@ -11,7 +12,6 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenControllerErrors.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
-import "../../abstract/RegistryAware.sol";
 
 contract TokenController is ITokenController, ITokenControllerErrors, RegistryAware {
   using SafeUintCast for uint;

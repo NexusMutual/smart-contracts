@@ -57,7 +57,7 @@ contract PoolMock is PoolGeneric {
     }
   }
 
-  function sendEth(address payoutAddress, uint amount) external override virtual {
+  function sendEth(address payable payoutAddress, uint amount) external override virtual {
     (bool transferSucceeded, bytes memory returndata) = payoutAddress.call{value: amount}("");
 
     if (transferSucceeded) {

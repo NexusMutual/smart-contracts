@@ -2,14 +2,10 @@
 
 pragma solidity ^0.8.18;
 
-// TODO: should implement ILegacyPool, best to extend PoolGeneric (which should also implement IPool)
-contract P1MockOldPool {
-  struct Asset {
-    address assetAddress;
-    bool isCoverAsset;
-    bool isAbandoned;
-  }
+import {PoolGeneric} from "../../generic/PoolGeneric.sol";
+import {Asset} from "../../../interfaces/IPool.sol";
 
+contract P1MockOldPool is PoolGeneric {
   Asset[] public assets;
   address public priceFeedOracleAddress;
 
@@ -19,8 +15,8 @@ contract P1MockOldPool {
     return priceFeedOracleAddress;
   }
 
-  function getAssets() external view returns (Asset[] memory) {
-    return assets ;
+  function getAssets() external view override returns (Asset[] memory) {
+    return assets;
   }
 
   function setPriceFeedOracle(address _priceFeedOracle) external {
@@ -28,10 +24,6 @@ contract P1MockOldPool {
   }
 
   function addAsset(address assetAddress, bool isCoverAsset) external {
-    assets.push(Asset({
-      assetAddress: assetAddress,
-      isCoverAsset: isCoverAsset,
-      isAbandoned: false
-    }));
+    assets.push(Asset({assetAddress: assetAddress, isCoverAsset: isCoverAsset, isAbandoned: false}));
   }
 }

@@ -279,7 +279,7 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
     }
 
     tokenController.burnFrom(msg.sender, nxmIn);
-    pool.sendEth(msg.sender, ethOut);
+    pool.sendEth(payable(msg.sender), ethOut);
 
     emit NxmSwappedForEth(msg.sender, nxmIn, ethOut);
 

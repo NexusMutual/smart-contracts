@@ -14,7 +14,7 @@ contract GVMockRegistry is RegistryGeneric {
   mapping(address member => uint memberId) public memberIds;
   mapping(uint memberId => uint seat) public memberToSeat;
 
-  SystemPause internal systemPause; // 3 slots
+  SystemPause internal systemPause;
 
   function addContract(uint index, address contractAddress, bool isProxy) external override {
     contracts[index] = Contract({addr: contractAddress, isProxy: isProxy});
@@ -71,7 +71,7 @@ contract GVMockRegistry is RegistryGeneric {
     // This is a mock implementation - in real contract it would swap the seats
     require(from > 0 && to > 0, "Invalid member IDs");
     require(from <= membersCount && to <= membersCount, "Member ID out of range");
-    
+
     // Swap the seats
     uint tempSeat = memberToSeat[from];
     memberToSeat[from] = memberToSeat[to];

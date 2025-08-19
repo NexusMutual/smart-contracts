@@ -24,7 +24,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
 
   mapping(uint proposalId => Tally) internal tallies;
 
-  mapping(uint memberId => mapping(uint proposalId => uint weight)) internal votes;
+  mapping(uint proposalId => mapping(uint memberId => Vote)) internal votes;
 
   /* ========== immutables and constants ========== */
 
@@ -99,7 +99,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
       kind: kind,
       proposedAt: block.timestamp.toUint32(),
       voteBefore: (block.timestamp + VOTING_PERIOD).toUint32(),
-      executeAfter: (block.timestamp + TIMELOCK_PERIOD).toUint32(),
+      executeAfter: (block.timestamp + VOTING_PERIOD + TIMELOCK_PERIOD).toUint32(),
       status: ProposalStatus.Proposed
     });
 
@@ -130,7 +130,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     emit ProposalCanceled(proposalId);
   }
 
-  function vote(uint proposalId, VoteType choice) external {
+  function vote(uint proposalId, Choice choice) external {
 
     Proposal memory proposal = proposals[proposalId];
     require(proposal.proposedAt > 0, ProposalNotFound());
@@ -140,7 +140,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
 
     uint memberId = registry.getMemberId(msg.sender);
     require(memberId > 0, NotMember());
-    require(votes[memberId][proposalId] == 0, AlreadyVoted());
+    require(votes[proposalId][memberId].weight == 0, AlreadyVoted());
 
     bool isAbProposal = proposal.kind == ProposalKind.AdvisoryBoard;
     uint voterId = isAbProposal
@@ -148,19 +148,19 @@ contract Governor is IGovernor, RegistryAware, Multicall {
       : memberId;
     require(voterId > 0, NotAuthorizedToVote());
 
-    uint weight = isAbProposal ? 1 : _getVoteWeight(msg.sender);
-    votes[memberId][proposalId] = weight;
+    uint96 weight = (isAbProposal ? 1 : _getVoteWeight(msg.sender)).toUint96();
+    votes[proposalId][memberId] = Vote({ choice: choice, weight: weight });
 
-    if (choice == VoteType.For) {
-      tallies[proposalId].forVotes += weight.toUint128();
+    if (choice == Choice.For) {
+      tallies[proposalId].forVotes += weight;
     }
 
-    if (choice == VoteType.Against) {
-      tallies[proposalId].againstVotes += weight.toUint128();
+    if (choice == Choice.Against) {
+      tallies[proposalId].againstVotes += weight;
     }
 
-    if (choice == VoteType.Abstain) {
-      tallies[proposalId].abstainVotes += weight.toUint128();
+    if (choice == Choice.Abstain) {
+      tallies[proposalId].abstainVotes += weight;
     }
 
     if (isAbProposal && tallies[proposalId].forVotes >= ADVISORY_BOARD_THRESHOLD) {
@@ -169,7 +169,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     }
 
     if(!isAbProposal) {
-      _lockTokenTransfers(msg.sender, block.timestamp + TIMELOCK_PERIOD);
+      _lockTokenTransfers(msg.sender, block.timestamp + VOTING_PERIOD + TIMELOCK_PERIOD);
     }
 
     emit VoteCast(proposalId, proposal.kind, voterId, choice, weight);
@@ -234,7 +234,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     emit ProposalExecuted(proposalId);
   }
 
-  function getProposal(uint proposalId) external view returns (Proposal memory proposal) {
+  function getProposal(uint proposalId) external view returns (Proposal memory) {
     return proposals[proposalId];
   }
 

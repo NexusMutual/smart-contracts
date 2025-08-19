@@ -73,7 +73,7 @@ interface ITokenController {
 
   function removeFromWhitelist(address _member) external;
 
-  function switchMembershipAddressWithTransfer(address from, address to) external;
+  function switchMembership(address from, address to, bool includeNxmTokens) external;
 
   function mint(address _member, uint _amount) external;
 

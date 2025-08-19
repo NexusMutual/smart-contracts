@@ -113,11 +113,18 @@ contract TokenController is ITokenController, ITokenControllerErrors, RegistryAw
   /// @dev Transfers the full token balance from the old address to the new one, updates whitelist status accordingly.
   /// @param from The address to transfer membership from.
   /// @param to The address to transfer membership to.
-  function switchMembershipAddressWithTransfer(address from, address to) external override onlyContracts(C_REGISTRY) {
+  function switchMembership(
+    address from,
+    address to,
+    bool includeNxmTokens
+  ) external override onlyContracts(C_REGISTRY) {
 
     token.addToWhiteList(to);
-    token.transferFrom(from, to, token.balanceOf(from));
     token.removeFromWhiteList(from);
+
+    if (includeNxmTokens) {
+      token.transferFrom(from, to, token.balanceOf(from));
+    }
 
     uint stakingPoolCount = managerStakingPools[from].length;
 

@@ -39,15 +39,15 @@ describe('switch', () => {
     expect(await registry.getLastMemberId()).to.equal(initialMemberId);
   });
 
-  it('calls TokenController.switchMembershipAddressWithTransfer', async () => {
+  it('calls TokenController.SwitchMembershipCalledWith', async () => {
     const { registry, tokenController, kycAuth, alice, bob } = await loadFixture(setup);
 
     const signature = await signJoinMessage(kycAuth, alice, registry);
     await registry.connect(alice).join(alice, signature, { value: JOINING_FEE });
 
     await expect(registry.connect(alice).switchTo(bob))
-      .to.emit(tokenController, 'SwitchMembershipAddressWithTransferCalled')
-      .withArgs(alice, bob);
+      .to.emit(tokenController, 'SwitchMembershipCalledWith')
+      .withArgs(alice, bob, true);
   });
 
   it('should prevent switching from an address that is not a member', async () => {

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+  // SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.8.28;
 
@@ -8,7 +8,7 @@ contract RGMockTokenController is TokenControllerGeneric {
 
   event AddToWhitelistCalled(address member);
   event RemoveFromWhitelistCalled(address member);
-  event SwitchMembershipAddressWithTransferCalled(address member, address to);
+  event SwitchMembershipCalledWith(address member, address to, bool includeNxmTokens);
 
   uint internal dummyWrite;
 
@@ -22,8 +22,8 @@ contract RGMockTokenController is TokenControllerGeneric {
     emit RemoveFromWhitelistCalled(member);
   }
 
-  function switchMembershipAddressWithTransfer(address member, address to) external override {
+  function switchMembership(address member, address to, bool includeNxmTokens) external override {
     dummyWrite = dummyWrite;
-    emit SwitchMembershipAddressWithTransferCalled(member, to);
+    emit SwitchMembershipCalledWith(member, to, includeNxmTokens);
   }
 }

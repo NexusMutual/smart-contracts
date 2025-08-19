@@ -143,15 +143,15 @@ contract Registry is IRegistry, EIP712 {
   }
 
   function switchTo(address to) external whenNotPaused(PAUSE_MEMBERSHIP) {
-    _switch(msg.sender, to);
+    _switch(msg.sender, to, true);
   }
 
   function switchFor(address from, address to) external whenNotPaused(PAUSE_MEMBERSHIP) {
     require(master.getLatestAddress("MR") == msg.sender, NotMemberRoles());
-    _switch(from, to);
+    _switch(from, to, false);
   }
 
-  function _switch(address from, address to) internal {
+  function _switch(address from, address to, bool includeNxmTokens) internal {
     uint memberId = memberIds[from];
     require(memberId != 0, NotMember());
     require(memberIds[to] == 0, AlreadyMember());
@@ -160,7 +160,7 @@ contract Registry is IRegistry, EIP712 {
     memberIds[to] = memberId;
     members[memberId] = to;
 
-    ITokenController(contracts[C_TOKEN_CONTROLLER].addr).switchMembershipAddressWithTransfer(from, to);
+    ITokenController(contracts[C_TOKEN_CONTROLLER].addr).switchMembership(from, to, includeNxmTokens);
 
     emit MembershipChanged(memberId, from, to);
   }

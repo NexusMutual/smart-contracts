@@ -19,6 +19,7 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
   address internal _unusedMGV; // was Master from GoVerned
   address internal _unusedMMA; // was Master from MasterAwareV2
   uint internal _unusedCMA; // was Contract mapping from MasterAwareV2
+  address internal _unused5; // was TokenController
   address internal _unused6; // was address payable public poolAddress;
   address internal _unused7; // was kycAuthAddress
   address internal _unused8; // was ICover internal cover;
@@ -97,6 +98,13 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
     uint memberCount = roleDetails.memberCounter;
     uint _nextStorageIndex = nextMemberStorageIndex;
     require(_nextStorageIndex < memberCount, "MemberRoles: Already migrated");
+
+    // on the first call, transfer all ETH to the Pool contract
+    if (_nextStorageIndex == 0) {
+      address poolAddress = fetch(C_POOL);
+      (bool success, ) = poolAddress.call{ value: address(this).balance }("");
+      require(success, "MemberRoles: Failed to transfer ETH to Pool");
+    }
 
     address[] memory members = new address[](batchSize);
     uint currentMemoryIndex;

@@ -28,3 +28,6 @@ phase 3 (second ab action)
     - upgrades the capital pool
     - switches control over to Governor/Registry
   - upgrade Governor using TempGov
+
+tbd:
+- phase 3 should upgrade contracts to implementations from phase 2

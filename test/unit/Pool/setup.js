@@ -13,13 +13,13 @@ const assignRoles = accounts => ({
   emergencyAdmins: accounts.slice(25, 30),
   generalPurpose: accounts.slice(30, 35),
   governor: accounts.slice(35, 36),
-  assessment: accounts.slice(36, 37),
+  claims: accounts.slice(36, 37),
 });
 
 async function setup() {
   const accounts = assignRoles(await ethers.getSigners());
   const [governor] = accounts.governor;
-  const [assessment] = accounts.assessment;
+  const [claims] = accounts.claims;
   const registry = await ethers.deployContract('P1MockRegistry', []);
   const cover = await ethers.deployContract('P1MockCover', []);
   const ramm = await ethers.deployContract('P1MockRamm', []);
@@ -67,7 +67,7 @@ async function setup() {
     registry.addContract(ContractIndexes.C_COVER, cover, false),
     registry.addContract(ContractIndexes.C_RAMM, ramm, false),
     registry.addContract(ContractIndexes.C_SWAP_OPERATOR, swapOperator, false),
-    registry.addContract(ContractIndexes.C_ASSESSMENT, assessment, false),
+    registry.addContract(ContractIndexes.C_CLAIMS, claims, false),
   ]);
   const pool = await ethers.deployContract('Pool', [registry]);
 
@@ -86,11 +86,11 @@ async function setup() {
 
   return {
     accounts,
-    assessment,
     governor,
     registry,
     pool,
     cover,
+    claims,
     ramm,
     swapOperator,
     usdc,

@@ -28,7 +28,7 @@ contract TokenControllerGeneric is ITokenController {
     revert("removeFromWhitelist unsupported");
   }
 
-  function switchMembershipAddressWithTransfer(address, address) external virtual {
+  function switchMembership(address, address, bool) external virtual {
     revert("switchMembershipAddressWithTransfer unsupported");
   }
 

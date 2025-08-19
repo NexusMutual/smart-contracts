@@ -5,6 +5,7 @@ pragma solidity ^0.8.28;
 import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IMemberRolesErrors.sol";
+import "../../interfaces/INXMToken.sol";
 
 contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
 
@@ -37,7 +38,11 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
 
   uint public nextMemberStorageIndex;
 
-  constructor(address registryAddress) RegistryAware(registryAddress) { }
+  INXMToken public immutable nxmToken;
+
+  constructor(address registryAddress) RegistryAware(registryAddress) {
+    nxmToken = INXMToken(fetch(C_TOKEN));
+  }
 
   function isMember(address member) public view returns (bool) {
     return checkRole(member, uint(IMemberRoles.Role.Member));
@@ -69,6 +74,7 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
     uint memberCount = memberRoleData[uint(Role.Member)].memberCounter;
     require(nextMemberStorageIndex >= memberCount, "MemberRoles: Migration in progress");
     registry.switchFor(msg.sender, newAddress); // proxy the call
+    nxmToken.transferFrom(msg.sender, newAddress, nxmToken.balanceOf(msg.sender));
   }
 
   function numberOfMembers(uint _memberRoleId) external view returns (uint) {

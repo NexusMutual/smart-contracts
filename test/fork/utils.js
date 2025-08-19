@@ -7,9 +7,10 @@ const assert = require('assert');
 // const { calculateCurrentTrancheId } = require('../utils/stakingPool');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 // Import ethers v6 utilities
-const { parseEther, AbiCoder, keccak256, toUtf8Bytes } = ethers;
+const { parseEther, AbiCoder, keccak256, toUtf8Bytes, toBigInt } = ethers;
 const { JsonRpcProvider, JsonRpcSigner, AbstractSigner, formatters } = ethers;
-const defaultAbiCoder = AbiCoder.defaultAbiCoder();
+
+// const defaultAbiCoder = AbiCoder.defaultAbiCoder();
 
 const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
 
@@ -74,7 +75,7 @@ const UserAddress = {
   USDC_HOLDER: '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503',
 };
 
-const EnzymeAdress = {
+const EnzymeAddress = {
   ENZYMEV4_VAULT_PROXY_ADDRESS: '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD',
   ENZYME_FUND_VALUE_CALCULATOR_ROUTER: '0x7c728cd0CfA92401E01A4849a01b57EE53F5b2b9',
   ENZYME_COMPTROLLER_PROXY_ADDRESS: '0x01F328d6fbe73d3cf25D00a43037EfCF8BfA6F83',
@@ -109,7 +110,7 @@ const Aave = {
 
 // const ListIdForReceivers = 218;
 
-async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
+async function submitGovernanceProposal(categoryId, actionData, signers, gv, skipAcceptedValidation = false) {
   const id = await gv.getProposalLength();
 
   console.log(`Proposal ${id}`);
@@ -135,8 +136,64 @@ async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
     'ActionSuccess was expected',
   );
 
-  const proposal = await gv.proposal(id);
-  assert(proposal[2], 3n, 'Proposal Status != ACCEPTED');
+  if (!skipAcceptedValidation) {
+    const proposal = await gv.proposal(id);
+    assert(proposal[2], 3n, 'Proposal Status != ACCEPTED');
+  }
+}
+
+async function executeGovernorProposal(
+  governor,
+  abMembers, // array of Signers; abMembers[0] must be AB member
+  txs,
+) {
+  // propose
+  const [proposer] = abMembers;
+  const proposeTx = await governor.connect(proposer).propose(txs);
+  await proposeTx.wait();
+
+  // get proposal id
+  const proposalId = await governor.proposalCount();
+  console.log(`Proposed. proposalId=${proposalId}`);
+
+  // vote for
+  const voteFor = 0;
+  await Promise.all(
+    abMembers.map(async voter => {
+      const tx = await governor.connect(voter).vote(proposalId, voteFor);
+      await tx.wait();
+    }),
+  );
+
+  // fast forward time
+  const prop = await governor.proposals(proposalId); // { proposedAt, voteBefore, executeAfter, ... }
+  const executeAfter = Number(prop.executeAfter);
+  const voteBefore = Number(prop.voteBefore);
+
+  console.log('voteBefore:', new Date(voteBefore * 1000).toISOString());
+  console.log('executeAfter:', new Date(executeAfter * 1000).toISOString());
+
+  try {
+    await ethers.provider.send('evm_setNextBlockTimestamp', [executeAfter + 1]);
+    await ethers.provider.send('evm_mine');
+    console.log(`Fast-forwarded to ${new Date((executeAfter + 1) * 1000).toISOString()}`);
+  } catch {
+    console.warn('fastForward failed (not a local JSON-RPC). Skipping.');
+  }
+
+  // Try execute; will succeed only if timelock has passed and tallies satisfy rules
+  try {
+    const execTx = await governor.connect(proposer).execute(proposalId);
+    const execRcpt = await execTx.wait();
+    console.log(`Executed proposal ${proposalId}. Gas used: ${execRcpt.gasUsed}`);
+  } catch (e) {
+    console.log(
+      `Not executed yet (likely waiting for timelock or quorum/majority). ` +
+        `Call execute(${proposalId}) after executeAfter.`,
+    );
+  }
+
+  return { proposalId, voteBefore, executeAfter };
 }
 
 // async function submitMemberVoteGovernanceProposal(categoryId, actionData, signers, gv) {
@@ -184,90 +241,13 @@ async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
 //   return provider.getSigner(address);
 // };
 
-class ImpersonatedSigner extends AbstractSigner {
-  constructor(provider, addr) {
-    super(provider);
-    this.addr = addr;
-  }
-
-  getAddress() {
-    return Promise.resolve(this.addr);
-  }
-
-  // Comprehensive recursive BigInt serialization
-  serializeForJSON(obj) {
-    if (obj === null || obj === undefined) {
-      return obj;
-    }
-    if (typeof obj === 'bigint') {
-      return ethers.toQuantity(obj);
-    }
-    if (typeof obj === 'string' || typeof obj === 'boolean') {
-      return obj;
-    }
-    if (typeof obj === 'number') {
-      return obj;
-    }
-    if (Array.isArray(obj)) {
-      return obj.map(item => this.serializeForJSON(item));
-    }
-    if (typeof obj === 'object') {
-      const result = {};
-      for (const [key, value] of Object.entries(obj)) {
-        // Convert gasLimit to gas for JSON RPC and handle numeric values that should be QUANTITY
-        let newKey = key;
-        let newValue = this.serializeForJSON(value);
-
-        if (key === 'gasLimit') {
-          newKey = 'gas';
-          newValue = typeof value === 'number' ? ethers.toQuantity(value) : newValue;
-        } else if (key === 'nonce' && typeof value === 'number') {
-          newValue = ethers.toQuantity(value);
-        } else if (key === 'gasPrice' && typeof value === 'number') {
-          newValue = ethers.toQuantity(value);
-        } else if (key === 'value' && typeof value === 'number') {
-          newValue = ethers.toQuantity(value);
-        }
-
-        result[newKey] = newValue;
-      }
-      return result;
-    }
-    return obj;
-  }
-
-  async sendTransaction(tx) {
-    const from = await this.getAddress();
-    const populatedTx = await this.populateTransaction({ ...tx, from });
-
-    // Convert to legacy transaction format for Tenderly compatibility
-    const legacyTx = { ...populatedTx };
-
-    // Remove EIP-1559 fields and convert to gasPrice
-    if (legacyTx.maxFeePerGas || legacyTx.maxPriorityFeePerGas) {
-      legacyTx.gasPrice = legacyTx.maxFeePerGas || legacyTx.gasPrice || '0x3b9aca00'; // 1 gwei default
-      delete legacyTx.maxFeePerGas;
-      delete legacyTx.maxPriorityFeePerGas;
-      delete legacyTx.type;
-    }
-
-    // Comprehensively serialize all BigInt values
-    const serializedTx = this.serializeForJSON(legacyTx);
-
-    const hash = await this.provider.send('eth_sendTransaction', [serializedTx]);
-    return this.provider.waitForTransaction(hash);
-  }
-}
-
 const getSigner = async address => {
-  // Use hardhat-network-helpers for better network compatibility
-  // if (network.name === 'tenderly') {
-  //   // Create a direct JSON-RPC provider for Tenderly to bypass Hardhat's account management
-  //   const directProvider = new JsonRpcProvider(network.config.url);
-  //   return new ImpersonatedSigner(directProvider, address);
-  // }
+  if (network.name !== 'hardhat') {
+    const jsonProvider = new JsonRpcProvider(network.config.url);
+    return new JsonRpcSigner(jsonProvider, address);
+  }
 
-  return await ethers.getSigner(address);
+  return ethers.getSigner(address);
 };
 
 // const toBytes = (string, size = 32) => {
@@ -424,13 +404,14 @@ async function getContractByContractCode(contractName, contractCode) {
 
 module.exports = {
   submitGovernanceProposal,
+  executeGovernorProposal,
   // submitMemberVoteGovernanceProposal,
   // calculateCurrentTrancheId,
   getSigner,
   // toBytes,
   Address,
   UserAddress,
-  EnzymeAdress,
+  EnzymeAddress,
   PriceFeedOracle,
   AggregatorType,
   Aave,

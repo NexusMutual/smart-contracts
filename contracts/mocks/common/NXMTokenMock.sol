@@ -69,7 +69,7 @@ contract NXMTokenMock is INXMToken, ERC20 {
     return true;
   }
 
-  function lockForMemberVote(address /*_of*/, uint /*_days*/) external {
-    // noop
+  function lockForMemberVote(address _member, uint lockTime) external {
+    isLockedForMV[_member] = block.timestamp + lockTime;
   }
 }

@@ -82,6 +82,11 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
     return memberRoleData[_memberRoleId].memberCounter;
   }
 
+  function getMembersArrayLength(uint _memberRoleId) external view returns (uint) {
+    MemberRoleDetails storage roleDetails = memberRoleData[_memberRoleId];
+    return roleDetails.memberAddress.length;
+  }
+
   function memberAtIndex(
     uint _memberRoleId,
     uint index
@@ -91,46 +96,22 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
     return (_address, _active);
   }
 
+  function hasFinishedMigrating() external view returns (bool) {
+    MemberRoleDetails storage roleDetails = memberRoleData[uint(Role.Member)];
+    return nextMemberStorageIndex == roleDetails.memberAddress.length;
+  }
+
   function migrateMembers(uint batchSize) external {
 
     MemberRoleDetails storage roleDetails = memberRoleData[uint(Role.Member)];
-
-    uint memberCount = roleDetails.memberCounter;
+    uint membersArrayLength = roleDetails.memberAddress.length;
     uint _nextStorageIndex = nextMemberStorageIndex;
-    require(_nextStorageIndex < memberCount, "MemberRoles: Already migrated");
-
-    // execute on the first call only
-    if (_nextStorageIndex == 0) {
-
-      // transfer all ETH to the Pool contract
-      address poolAddress = fetch(C_POOL);
-      (bool success, ) = poolAddress.call{ value: address(this).balance }("");
-      require(success, "MemberRoles: Failed to transfer ETH to Pool");
-
-      // migrate ab members
-      address[] memory abMembers = new address[](5);
-
-      MemberRoleDetails storage abRoleDetails = memberRoleData[uint(Role.AdvisoryBoard)];
-      uint abMembersCount = abRoleDetails.memberAddress.length;
-      uint nextIndex = 0;
-
-      for (uint i = 0; i < abMembersCount; i++) {
-        address memberAddress = abRoleDetails.memberAddress[i];
-        if (abRoleDetails.memberActive[memberAddress]) {
-          // will panic if we end up with >5 active AB members
-          abMembers[nextIndex] = memberAddress;
-          nextIndex++;
-        }
-      }
-
-      require(nextIndex == 5, "MemberRoles: Invalid AB members count");
-      registry.migrateAdvisoryBoardMembers(abMembers);
-    }
+    require(_nextStorageIndex < membersArrayLength, "MemberRoles: Already migrated");
 
     address[] memory members = new address[](batchSize);
-    uint currentMemoryIndex;
+    uint currentMemoryIndex = 0;
 
-    while(currentMemoryIndex < batchSize && _nextStorageIndex < memberCount) {
+    while(currentMemoryIndex < batchSize && _nextStorageIndex < membersArrayLength) {
 
       address memberAddress = roleDetails.memberAddress[_nextStorageIndex++];
       bool isActive = roleDetails.memberActive[memberAddress];
@@ -141,8 +122,56 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
       }
     }
 
-    registry.migrateMembers(members);
+    if (currentMemoryIndex != batchSize) {
+
+      // only pass the filled array portion to registry
+      address[] memory readMembers = new address[](currentMemoryIndex);
+
+      for (uint i = 0; i < currentMemoryIndex; i++) {
+        readMembers[i] = members[i];
+      }
+
+      registry.migrateMembers(readMembers);
+
+    } else {
+      // no need to slice the array
+      registry.migrateMembers(members);
+    }
+
+    // store next storage index for the next batch call
     nextMemberStorageIndex = _nextStorageIndex;
+
+    // migrate AB members: executes on the last call only
+    if (_nextStorageIndex == membersArrayLength) {
+
+      address[] memory abMembers = new address[](5);
+
+      MemberRoleDetails storage abRoleDetails = memberRoleData[uint(Role.AdvisoryBoard)];
+      uint abCount = abRoleDetails.memberAddress.length;
+      uint abMembersNextIndex = 0;
+
+      for (uint i = 0; i < abCount; i++) {
+
+        address memberAddress = abRoleDetails.memberAddress[i];
+        bool isActive = abRoleDetails.memberActive[memberAddress];
+
+        if (isActive) {
+          // will panic if we end up with >5 active AB members
+          abMembers[abMembersNextIndex] = memberAddress;
+          abMembersNextIndex++;
+        }
+      }
+
+      require(abMembersNextIndex == 5, "MemberRoles: Invalid AB members count");
+      registry.migrateAdvisoryBoardMembers(abMembers);
+    }
+  }
+
+  // transfer all ETH to the Pool contract
+  function recoverETH() external {
+    address poolAddress = fetch(C_POOL);
+    (bool success, ) = poolAddress.call{ value: address(this).balance }("");
+    require(success, "MemberRoles: Failed to transfer ETH to Pool");
   }
 
   function changeDependentContractAddress() external pure {

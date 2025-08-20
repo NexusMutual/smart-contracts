@@ -82,6 +82,11 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
     return memberRoleData[_memberRoleId].memberCounter;
   }
 
+  function getMembersArrayLength(uint _memberRoleId) external view returns (uint) {
+    MemberRoleDetails storage roleDetails = memberRoleData[_memberRoleId];
+    return roleDetails.memberAddress.length;
+  }
+
   function memberAtIndex(
     uint _memberRoleId,
     uint index
@@ -91,24 +96,22 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
     return (_address, _active);
   }
 
-  // transfer all ETH to the Pool contract
-  function recoverETH() external {
-    address poolAddress = fetch(C_POOL);
-    (bool success, ) = poolAddress.call{ value: address(this).balance }("");
-    require(success, "MemberRoles: Failed to transfer ETH to Pool");
+  function hasFinishedMigrating() external view returns (bool) {
+    MemberRoleDetails storage roleDetails = memberRoleData[uint(Role.Member)];
+    return nextMemberStorageIndex == roleDetails.memberAddress.length;
   }
 
   function migrateMembers(uint batchSize) external {
 
     MemberRoleDetails storage roleDetails = memberRoleData[uint(Role.Member)];
-    uint memberCount = roleDetails.memberCounter;
+    uint membersArrayLength = roleDetails.memberAddress.length;
     uint _nextStorageIndex = nextMemberStorageIndex;
-    require(_nextStorageIndex < memberCount, "MemberRoles: Already migrated");
+    require(_nextStorageIndex < membersArrayLength, "MemberRoles: Already migrated");
 
     address[] memory members = new address[](batchSize);
     uint currentMemoryIndex = 0;
 
-    while(currentMemoryIndex < batchSize && _nextStorageIndex < memberCount) {
+    while(currentMemoryIndex < batchSize && _nextStorageIndex < membersArrayLength) {
 
       address memberAddress = roleDetails.memberAddress[_nextStorageIndex++];
       bool isActive = roleDetails.memberActive[memberAddress];
@@ -139,7 +142,7 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
     nextMemberStorageIndex = _nextStorageIndex;
 
     // migrate AB members: executes on the last call only
-    if (_nextStorageIndex == memberCount) {
+    if (_nextStorageIndex == membersArrayLength) {
 
       address[] memory abMembers = new address[](5);
 
@@ -162,6 +165,13 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
       require(abMembersNextIndex == 5, "MemberRoles: Invalid AB members count");
       registry.migrateAdvisoryBoardMembers(abMembers);
     }
+  }
+
+  // transfer all ETH to the Pool contract
+  function recoverETH() external {
+    address poolAddress = fetch(C_POOL);
+    (bool success, ) = poolAddress.call{ value: address(this).balance }("");
+    require(success, "MemberRoles: Failed to transfer ETH to Pool");
   }
 
   function changeDependentContractAddress() external pure {

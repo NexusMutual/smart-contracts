@@ -101,65 +101,8 @@ const createCover = async (
   return coverId;
 };
 
-const REGISTRY_ADDRESS = '0x4b73E995c68F307702b1b0828318d7A38037e1bb';
-
-const setupContractsForSkipping = async thisParam => {
-  thisParam.registry = await ethers.getContractAt('Registry', REGISTRY_ADDRESS);
-
-  const [assessmentAddress, claimsAddress, coverAddress, governorAddress, rammAddress, poolAddress] = await Promise.all(
-    [
-      thisParam.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENT),
-      thisParam.registry.getContractAddressByIndex(ContractIndexes.C_CLAIMS),
-      thisParam.registry.getContractAddressByIndex(ContractIndexes.C_COVER),
-      thisParam.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR),
-      thisParam.registry.getContractAddressByIndex(ContractIndexes.C_RAMM),
-      thisParam.registry.getContractAddressByIndex(ContractIndexes.C_POOL),
-    ],
-  );
-
-  thisParam.tempGovernance = await ethers.getContractAt('TemporaryGovernance', governorAddress);
-  console.log('governanceAddress: ', governorAddress);
-
-  thisParam.assessment = await ethers.getContractAt('Assessment', assessmentAddress);
-  console.log('assessmentAddress: ', assessmentAddress);
-
-  thisParam.claims = await ethers.getContractAt('Claims', claimsAddress);
-  console.log('claimsAddress: ', claimsAddress);
-
-  thisParam.cover = await ethers.getContractAt('Cover', coverAddress);
-  console.log('coverAddress: ', coverAddress);
-
-  thisParam.governor = await ethers.getContractAt('Governor', governorAddress);
-  console.log('governorAddress: ', governorAddress);
-
-  // set balances and get signers
-  const addresses = [
-    '0x5fa07227d05774c2ff11c2425919d14225a38dbb',
-    '0x5929cc4d10b6a1acc5bf5d221889f10251c628a1',
-    '0xf3bfac9e828bc904112e7bb516d4cd4e6468f785',
-    '0xfec65468cf9ab04cea40b113bf679e82973bdb58',
-    '0xa8c320bc7581ca1a24521a9e56a46553ad67e4b0',
-    governorAddress,
-  ];
-  const [claimant, assessor1, assessor2, assessor3, assessor4, governorSigner] = await Promise.all(
-    addresses.map(async address => {
-      await Promise.all([thisParam.evm.impersonate(address), thisParam.evm.setBalance(address, parseEther('1000'))]);
-      return getSigner(address);
-    }),
-  );
-  thisParam.assessors = [assessor1, assessor2, assessor3, assessor4];
-  thisParam.claimant = claimant;
-
-  thisParam.pool = await ethers.getContractAt('Pool', poolAddress);
-};
-
 // simple member migrate for dev testing
 it('should migrate members', async function () {
-  console.info('Snapshot ID migrate members start: ', await this.evm.snapshot());
-
-  // skip to setup start
-  await setupContractsForSkipping(this);
-  // skip to setup end
 
   const membersToMigrate = [
     '0x5fa07227d05774c2ff11c2425919d14225a38dbb',
@@ -184,11 +127,6 @@ it('should migrate members', async function () {
 });
 
 it('should run setup - add assessors and configure assessment', async function () {
-  console.info('Snapshot ID Assessment/Claims setup start: ', await this.evm.snapshot());
-
-  // skip to setup start
-  // await setupContractsForSkipping(this);
-  // skip to setup end
 
   console.info('Snapshot assessment/claims setup start: ', await this.evm.snapshot());
 
@@ -253,11 +191,6 @@ it('should run setup - add assessors and configure assessment', async function (
 });
 
 it('Happy Path: ETH claim submission and ACCEPTED payout', async function () {
-  console.info('Snapshot ID Happy Path ETH start: ', await this.evm.snapshot());
-
-  // skip to happy path start
-  // await setupContractsForSkipping(this);
-  // skip to happy path enid
 
   // create ETH cover
   console.log('Creating ETH cover for claimant:', this.claimant.address);

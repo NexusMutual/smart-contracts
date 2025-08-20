@@ -152,7 +152,7 @@ async function executeGovernorProposal(
 
   // get proposal id
   const proposalId = await governor.proposalCount();
-  console.log(`Proposed. proposalId=${proposalId}`);
+  console.log(`Governor proposal ${proposalId} created`);
 
   // vote for
   const voteFor = 1;
@@ -167,7 +167,7 @@ async function executeGovernorProposal(
 
   // Try execute; will succeed only if timelock has passed and tallies satisfy rules
   await governor.connect(proposer).execute(proposalId, { gasLimit: 21e6 });
-  console.log(`governor proposal ${proposalId} executed`);
+  console.log(`Governor proposal ${proposalId} executed`);
 }
 
 // async function submitMemberVoteGovernanceProposal(categoryId, actionData, signers, gv) {

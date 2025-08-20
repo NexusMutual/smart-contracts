@@ -6,6 +6,8 @@ const { ContractIndexes } = nexus.constants;
 
 const { Address, EnzymeAddress, calculateCurrentTrancheId, executeGovernorProposal, Aave } = require('./utils');
 
+const EMERGENCY_ADMIN = '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D';
+
 const VariableDebtTokenAbi = require('./abi/aave/VariableDebtToken.json');
 const { abis, addresses } = require('@nexusmutual/deployments');
 
@@ -241,25 +243,25 @@ describe('basic functionality tests', function () {
 
     const awEthAfter = await this.awEth.balanceOf(GNOSIS_SAFE_ADDRESS);
     const aaveDebtAfter = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
-    const aaveDebtDiff = aaveDebtAfter.sub(aaveDebtBefore);
+    const aaveDebtDiff = aaveDebtAfter - aaveDebtBefore;
     const after = await getCapitalSupplyAndBalances(this.pool, this.tokenController, this.nxm, member._address);
 
     const ethDebt = await this.priceFeedOracle.getEthForAsset(USDC_ADDRESS, aaveDebtDiff);
-    const awEthRewards = awEthAfter.sub(awEthBefore);
+    const awEthRewards = awEthAfter - awEthBefore;
 
-    const ethReceived = after.ethBalance.sub(before.ethBalance);
+    const ethReceived = after.ethBalance - before.ethBalance;
     const nxmSwappedForEthFilter = this.ramm.filters.NxmSwappedForEth(member.address);
     const nxmSwappedForEthEvents = await this.ramm.queryFilter(nxmSwappedForEthFilter, receipt.blockNumber);
     const ethOut = nxmSwappedForEthEvents[0]?.args?.ethOut;
 
     // ETH goes out of capital pool and debt and rewards are added
-    const expectedCapital = before.ethCapital.sub(ethReceived).sub(ethDebt).add(awEthRewards);
+    const expectedCapital = before.ethCapital - ethReceived - ethDebt + awEthRewards;
 
     expect(ethOut).to.be.equal(ethReceived);
-    expect(after.nxmBalance).to.be.equal(before.nxmBalance.sub(nxmIn)); // member sends NXM
-    expect(after.nxmSupply).to.be.equal(before.nxmSupply.sub(nxmIn)); // nxmIn is burned
+    expect(after.nxmBalance).to.be.equal(before.nxmBalance - nxmIn); // member sends NXM
+    expect(after.nxmSupply).to.be.equal(before.nxmSupply - nxmIn); // nxmIn is burned
     expect(after.ethCapital).to.be.closeTo(expectedCapital, 1); // time sensitive due to rewards and debt
-    expect(after.ethBalance).to.be.equal(before.ethBalance.add(ethOut)); // member receives ETH
+    expect(after.ethBalance).to.be.equal(before.ethBalance + ethOut); // member receives ETH
   });
 
   it.skip('Swap ETH for NXM', async function () {
@@ -282,24 +284,24 @@ describe('basic functionality tests', function () {
 
     const awEthAfter = await this.awEth.balanceOf(GNOSIS_SAFE_ADDRESS);
     const aaveDebtAfter = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
-    const aaveDebtDiff = aaveDebtAfter.sub(aaveDebtBefore);
+    const aaveDebtDiff = aaveDebtAfter - aaveDebtBefore;
 
     const ethDebt = await this.priceFeedOracle.getEthForAsset(USDC_ADDRESS, aaveDebtDiff);
-    const awEthRewards = awEthAfter.sub(awEthBefore);
+    const awEthRewards = awEthAfter - awEthBefore;
 
-    const nxmReceived = after.nxmBalance.sub(before.nxmBalance);
+    const nxmReceived = after.nxmBalance - before.nxmBalance;
     const nxmTransferFilter = this.nxm.filters.Transfer(ZeroAddress, member._address);
     const nxmTransferEvents = await this.nxm.queryFilter(nxmTransferFilter, receipt.blockNumber);
     const nxmOut = nxmTransferEvents[0]?.args?.value;
 
     // ETH goes in the capital pool and aave debt and rewards are added
-    const expectedCapital = before.ethCapital.add(ethIn).sub(ethDebt).add(awEthRewards);
+    const expectedCapital = before.ethCapital + ethIn - ethDebt + awEthRewards;
 
     expect(nxmOut).to.be.equal(nxmReceived);
-    expect(after.ethBalance).to.be.equal(before.ethBalance.sub(ethIn)); // member sends ETH
+    expect(after.ethBalance).to.be.equal(before.ethBalance - ethIn); // member sends ETH
     expect(after.ethCapital).to.be.closeTo(expectedCapital, 1); // time sensitive due to rewards and debt
-    expect(after.nxmSupply).to.be.equal(before.nxmSupply.add(nxmReceived)); // nxmOut is minted
-    expect(after.nxmBalance).to.be.equal(before.nxmBalance.add(nxmOut)); // member receives NXM
+    expect(after.nxmSupply).to.be.equal(before.nxmSupply + nxmReceived); // nxmOut is minted
+    expect(after.nxmBalance).to.be.equal(before.nxmBalance + nxmOut); // member receives NXM
   });
 
   it('Add product types', async function () {
@@ -488,7 +490,7 @@ describe('basic functionality tests', function () {
 
     expect(coverCountAfter).to.be.equal(coverCountBefore + 1n);
   });
-  //
+
   // it('Submit claim for ETH custody cover', async function () {
   //   await evm.impersonate(DAI_NXM_HOLDER);
   //   const coverBuyer = await getSigner(DAI_NXM_HOLDER);
@@ -555,7 +557,7 @@ describe('basic functionality tests', function () {
 
     const coverCountBefore = await this.cover.getCoverDataCount();
 
-    await this.cbbtc.connect(coverBuyer).approve(this.cover.target, amount);
+    await this.cbbtc.connect(coverBuyer).approve(this.cover.target, parseUnits('2', 8));
     const maxPremiumInAsset = (amount * 260n) / 10000n;
 
     console.log('Buying cover..');
@@ -929,13 +931,11 @@ describe('basic functionality tests', function () {
     await compareProxyImplementationAddress(this.governor.target, newGovernor.target);
   });
 
-  it.skip('Performs hypothetical future Registry upgrade', async function () {
+  it('Performs hypothetical future Registry upgrade', async function () {
     const newRegistry = await deployContract('Registry', [this.registry, this.master]);
     const upgradableProxy = await ethers.getContractAt('UpgradeableProxy', this.registry.target);
 
     const owner = await upgradableProxy.proxyOwner();
-    console.log(owner);
-    console.log(this.governor.target);
     const txs = [
       {
         target: this.registry,
@@ -949,13 +949,9 @@ describe('basic functionality tests', function () {
     await compareProxyImplementationAddress(this.registry.target, newRegistry.target);
   });
 
-  it.skip('Performs hypothetical future upgrade of contracts', async function () {
+  it('Performs hypothetical future upgrade of contracts', async function () {
     // TokenController.sol
-    const tokenController = await deployContract('TokenController', [
-      this.stakingPoolFactory.target,
-      this.nxm.target,
-      this.stakingNFT.target,
-    ]);
+    const tokenController = await deployContract('TokenController', [this.registry.target]);
 
     // Cover.sol
     const cover = await deployContract('Cover', [
@@ -965,53 +961,59 @@ describe('basic functionality tests', function () {
       this.stakingPool.target,
     ]);
 
-    const swapOperatorAddress = await this.swapOperator.target;
-
-    // Pool.sol
-    const pool = await deployContract('Pool', [
-      this.master.target,
-      this.priceFeedOracle.target,
-      swapOperatorAddress,
-      this.nxm.target,
-      this.pool.target,
+    const swapOperator = await deployContract('SwapOperator', [
+      this.registry.target,
+      Address.COWSWAP_SETTLEMENT,
+      EnzymeAddress.ENZYMEV4_VAULT_PROXY_ADDRESS,
+      Address.WETH_ADDRESS,
     ]);
 
+    // Pool.sol
+    const pool = await deployContract('Pool', [this.registry.target]);
+
     // Assessment.sol
-    const assessment = await deployContract('Assessment', [this.nxm.target]);
+    const assessment = await deployContract('Assessment', [this.registry.target]);
 
     // Claims
+    const claims = await deployContract('Assessment', [this.registry.target]);
 
     // Ramm.sol
-    const ramm = await deployContract('Ramm', ['0']);
+    const ramm = await deployContract('Ramm', [this.registry.target, '0']);
 
-    // await submitGovernanceProposal(
-    //   PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
-    //   defaultAbiCoder.encode(
-    //     ['bytes2[]', 'address[]'],
-    //     [
-    //       ['MR', 'MC', 'CO', 'TC', 'P1', 'AS', 'CI', 'RA'].map(code => toUtf8Bytes(code)),
-    //       [memberRoles, mcr, cover, tokenController, pool, assessment, individualClaims, ramm].map(c => c.target),
-    //     ],
-    //   ),
-    //   this.abMembers,
-    //   this.governance,
-    // );
+    const contractUpgrades = [
+      { index: ContractIndexes.C_TOKEN_CONTROLLER, address: tokenController.target },
+      { index: ContractIndexes.C_COVER, address: cover.target },
+      { index: ContractIndexes.C_SWAP_OPERATOR, address: swapOperator.target },
+      { index: ContractIndexes.C_POOL, address: pool.target },
+      { index: ContractIndexes.C_ASSESSMENT, address: assessment.target },
+      { index: ContractIndexes.C_CLAIMS, address: claims.target },
+      { index: ContractIndexes.C_RAMM, address: ramm.target },
+    ];
+
+    const transactions = contractUpgrades.map(c => ({
+      target: this.registry.target,
+      value: 0n,
+      data: this.registry.interface.encodeFunctionData('upgradeContract', [c.index, c.address]),
+    }));
+
+    await executeGovernorProposal(this.governor, this.abMembers, transactions);
 
     // Compare proxy implementation addresses
     await compareProxyImplementationAddress(this.tokenController.target, tokenController.target);
-    await compareProxyImplementationAddress(this.assessment.target, assessment.target);
     await compareProxyImplementationAddress(this.cover.target, cover.target);
-    await compareProxyImplementationAddress(this.ramm.target, ramm.target);
+    // await compareProxyImplementationAddress(this.swapOperator.target, swapOperator.target);
     await compareProxyImplementationAddress(this.pool.target, pool.target);
+    await compareProxyImplementationAddress(this.assessment.target, assessment.target);
     await compareProxyImplementationAddress(this.claims.target, claims.target);
+    await compareProxyImplementationAddress(this.ramm.target, ramm.target);
   });
 
-  it.skip('Check Pool balance after upgrades', async function () {
+  it('Check Pool balance after upgrades', async function () {
     const poolValueAfter = await this.pool.getPoolValueInEth();
     const aaveDebtAfter = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
 
-    const poolValueDiff = poolValueAfter.sub(this.poolValueBefore);
-    const aaveDebtDiff = aaveDebtAfter.sub(this.aaveDebtBefore);
+    const poolValueDiff = poolValueAfter - this.poolValueBefore;
+    const aaveDebtDiff = aaveDebtAfter - this.aaveDebtBefore;
     const ethDebt = await this.priceFeedOracle.getEthForAsset(USDC_ADDRESS, aaveDebtDiff);
 
     const ethBalanceAfter = await ethers.provider.getBalance(this.pool.target);
@@ -1026,55 +1028,103 @@ describe('basic functionality tests', function () {
       poolValueDiff: formatEther(poolValueDiff),
       ethBalanceBefore: formatEther(this.ethBalanceBefore),
       ethBalanceAfter: formatEther(ethBalanceAfter),
-      ethBalanceDiff: formatEther(ethBalanceAfter.sub(this.ethBalanceBefore)),
+      ethBalanceDiff: formatEther(ethBalanceAfter - this.ethBalanceBefore),
       daiBalanceBefore: formatEther(this.daiBalanceBefore),
       daiBalanceAfter: formatEther(daiBalanceAfter),
-      daiBalanceDiff: formatEther(daiBalanceAfter.sub(this.daiBalanceBefore)),
+      daiBalanceDiff: formatEther(daiBalanceAfter - this.daiBalanceBefore),
       stEthBalanceBefore: formatEther(this.stEthBalanceBefore),
       stEthBalanceAfter: formatEther(stEthBalanceAfter),
-      stEthBalanceDiff: formatEther(stEthBalanceAfter.sub(this.stEthBalanceBefore)),
+      stEthBalanceDiff: formatEther(stEthBalanceAfter - this.stEthBalanceBefore),
       enzymeSharesBalanceBefore: formatEther(this.enzymeSharesBalanceBefore),
       enzymeSharesBalanceAfter: formatEther(enzymeSharesBalanceAfter),
-      enzymeSharesBalanceDiff: formatEther(enzymeSharesBalanceAfter.sub(this.enzymeSharesBalanceBefore)),
+      enzymeSharesBalanceDiff: formatEther(enzymeSharesBalanceAfter - this.enzymeSharesBalanceBefore),
       rethBalanceBefore: formatEther(this.rethBalanceBefore),
       rethBalanceAfter: formatEther(await this.rEth.balanceOf(this.pool.target)),
-      rethBalanceDiff: formatEther(rEthBalanceAfter.sub(this.rethBalanceBefore)),
+      rethBalanceDiff: formatEther(rEthBalanceAfter - this.rethBalanceBefore),
     });
 
-    expect(poolValueDiff.abs(), 'Pool value in ETH should be the same').to.be.lte(ethDebt.add(2));
-    expect(stEthBalanceAfter.sub(this.stEthBalanceBefore).abs(), 'stETH balance should be the same').to.be.lte(2);
-    expect(ethBalanceAfter.sub(this.ethBalanceBefore), 'ETH balance should be the same').to.be.eq(0);
-    expect(daiBalanceAfter.sub(this.daiBalanceBefore), 'DAI balance should be the same').to.be.eq(0);
+    expect(poolValueDiff, 'Pool value in ETH should be the same').to.be.lte(ethDebt + 2n);
+    expect(stEthBalanceAfter - this.stEthBalanceBefore, 'stETH balance should be the same').to.be.lte(2);
+    expect(ethBalanceAfter - this.ethBalanceBefore, 'ETH balance should be the same').to.be.eq(0);
+    expect(daiBalanceAfter - this.daiBalanceBefore, 'DAI balance should be the same').to.be.eq(0);
     expect(
-      enzymeSharesBalanceAfter.sub(this.enzymeSharesBalanceBefore),
+      enzymeSharesBalanceAfter - this.enzymeSharesBalanceBefore,
       'Enzyme shares balance should be the same',
     ).to.be.eq(0);
-    expect(rEthBalanceAfter.sub(this.rethBalanceBefore), 'rETH balance should be the same').to.be.eq(0);
+    expect(rEthBalanceAfter - this.rethBalanceBefore, 'rETH balance should be the same').to.be.eq(0);
   });
 
-  it.skip('trigger emergency pause, do an upgrade and unpause', async function () {
+  it('Performs hypothetical future Registry deployment', async function () {
+    const owner = await this.coverBroker.owner();
+    const newCoverBroker = await deployContract('CoverBroker', [this.registry, owner]);
+
+    await this.coverBroker.switchMembership(newCoverBroker);
+    await this.coverBroker.maxApproveCoverContract(this.cbbtc);
+    await this.coverBroker.maxApproveCoverContract(this.usdc);
+
+    // buy cover
+    const coverBuyer = await ethers.Wallet.createRandom().connect(ethers.provider);
+    const coverBuyerAddress = await coverBuyer.getAddress();
+    await setBalance(coverBuyerAddress, parseEther('1000'));
+    await setUSDCBalance(this.usdc.target, coverBuyer.address, parseEther('1000000'));
+
+    const coverAsset = await this.pool.getAssetId(Address.USDC_ADDRESS);
+    const amount = parseUnits('1000', 6);
+    const coverCountBefore = await this.cover.getCoverDataCount();
+
+    await this.usdc.connect(coverBuyer).approve(this.coverBroker.target, MaxUint256);
+    await this.coverBroker.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyerAddress,
+        productId: protocolProductId,
+        coverAsset,
+        amount,
+        period: 3600 * 24 * 30, // 30 days
+        maxPremiumInAsset: (amount * 260n) / 10000n,
+        paymentAsset: 6, // USDC
+        payWithNXM: false,
+        commissionRatio: '500', // 5%,
+        commissionDestination: coverBuyerAddress,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+    );
+
+    const coverCountAfter = await this.cover.getCoverDataCount();
+    const coverId = coverCountAfter;
+    const isCoverBuyerOwner = await this.coverNFT.isApprovedOrOwner(coverBuyerAddress, coverId);
+
+    expect(isCoverBuyerOwner).to.be.equal(true);
+    expect(coverCountAfter).to.be.equal(coverCountBefore + 1n);
+  });
+
+  it('trigger emergency pause, do an upgrade and unpause', async function () {
     // this test verifies the scenario in which a critical vulnerability is detected
     // system is paused, system is upgraded, and system is resumed
 
-    const emergencyAdminAddress = await this.master.emergencyAdmin();
+    const emergencyAdmin = await ethers.getSigner(EMERGENCY_ADMIN);
+    await setBalance(EMERGENCY_ADMIN, parseEther('1000'));
 
-    await evm.impersonate(emergencyAdminAddress);
-    await evm.setBalance(emergencyAdminAddress, parseEther('1000'));
-    const emergencyAdmin = await getSigner(emergencyAdminAddress);
+    await this.registry.connect(emergencyAdmin).proposePauseConfig(1);
 
-    await this.master.connect(emergencyAdmin).setEmergencyPause(true);
+    const newGovernor = await deployContract('Governor', [this.registry]);
 
-    const newGovernance = await deployContract('Governance');
+    const txs = [
+      {
+        target: this.registry,
+        data: this.registry.interface.encodeFunctionData('upgradeContract', [
+          ContractIndexes.C_GOVERNOR,
+          newGovernor.target,
+        ]),
+        value: 0n,
+      },
+    ];
 
-    await submitGovernanceProposal(
-      PROPOSAL_CATEGORIES.upgradeMultipleContracts,
-      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('GV')], [newGovernance.target]]),
-      this.abMembers,
-      this.governance,
-    );
+    await executeGovernorProposal(this.governor, this.abMembers, txs);
 
-    await compareProxyImplementationAddress(this.governance.target, newGovernance.target);
+    await compareProxyImplementationAddress(this.governor.target, newGovernor.target);
 
-    await this.registry.connect(emergencyAdmin).setEmergencyPause(false);
+    await this.registry.connect(emergencyAdmin).proposePauseConfig(0);
   });
 });

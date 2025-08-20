@@ -426,6 +426,54 @@ describe('extendDeposit', function () {
     expect(updatedTargetManagerDeposit.lastAccNxmPerRewardShare).to.equal(accNxmPerRewardsShareAfter);
   });
 
+  it('updates the initial and new tranche stake and reward shares when extending with a top-up', async function () {
+    const fixture = await loadFixture(extendDepositSetup);
+    const { config, stakingPool } = fixture;
+    const { POOL_FEE_DENOMINATOR } = config;
+    const [user] = fixture.accounts.members;
+
+    const { firstActiveTrancheId, maxTranche } = await getTranches();
+
+    await generateRewards(stakingPool, fixture.coverSigner);
+
+    const managerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
+    const initialDeposit = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
+    const initialTranche = await stakingPool.getTranche(firstActiveTrancheId);
+
+    const initialShareSupply = await stakingPool.getStakeSharesSupply();
+    const initialRewardsSharesSupply = await stakingPool.getRewardsSharesSupply();
+    const initialActiveStake = await stakingPool.getActiveStake();
+    const poolFee = await stakingPool.getPoolFee();
+
+    expect(initialTranche.stakeShares).to.equal(initialDeposit.stakeShares);
+    expect(initialTranche.rewardsShares).to.equal(initialDeposit.rewardsShares.add(managerDeposit.rewardsShares));
+
+    const topUpAmount = parseEther('50');
+    await stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount);
+
+    const updatedInitialTranche = await stakingPool.getTranche(firstActiveTrancheId);
+    const newTranche = await stakingPool.getTranche(maxTranche);
+
+    const actualShareSupply = await stakingPool.getStakeSharesSupply();
+    const actualRewardsSharesSupply = await stakingPool.getRewardsSharesSupply();
+
+    const expectedNewDepositStakeShares = topUpAmount.mul(initialShareSupply).div(initialActiveStake);
+    const expectedNewDepositRewardsShares = expectedNewDepositStakeShares;
+    const expectedNewFeeShares = expectedNewDepositRewardsShares.mul(poolFee).div(POOL_FEE_DENOMINATOR.sub(poolFee));
+    const expectedNewRewardsShares = expectedNewDepositRewardsShares.add(expectedNewFeeShares);
+
+    const expectedTrancheStakeShares = initialTranche.stakeShares.add(expectedNewDepositStakeShares);
+    const expectedTrancheRewardsShares = initialTranche.rewardsShares.add(expectedNewRewardsShares);
+
+    expect(updatedInitialTranche.stakeShares).to.equal(0);
+    expect(updatedInitialTranche.rewardsShares).to.equal(0);
+
+    expect(newTranche.stakeShares).to.equal(expectedTrancheStakeShares);
+    expect(newTranche.rewardsShares).to.equal(expectedTrancheRewardsShares);
+    expect(actualShareSupply).to.equal(initialShareSupply.add(expectedNewDepositStakeShares));
+    expect(actualRewardsSharesSupply).to.equal(initialRewardsSharesSupply.add(expectedNewRewardsShares));
+  });
+
   it('updates the initial and new tranche manager deposit with multiple users', async function () {
     const fixture = await loadFixture(extendDepositSetup);
     const { config, stakingPool, stakingNFT } = fixture;

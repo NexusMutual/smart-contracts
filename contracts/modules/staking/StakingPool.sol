@@ -166,7 +166,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint _maxPoolFee,
     uint _poolId
   ) external {
-    
+
     require(msg.sender == address(stakingProducts), OnlyStakingProductsContract());
     require(_initialPoolFee <= _maxPoolFee, PoolFeeExceedsMax());
     require(_maxPoolFee < 100, MaxPoolFeeAbove100());
@@ -319,7 +319,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint requestTokenId,
     address destination
   ) public whenNotPaused whenNotHalted returns (uint tokenId) {
-    
+
     if (msg.sender != manager()) {
       require(!isPrivatePool, PrivatePool());
       require(block.timestamp > nxm.isLockedForMV(msg.sender), NxmIsLockedForGovernanceVote());
@@ -1137,6 +1137,7 @@ contract StakingPool is IStakingPool, Multicall {
       Tranche memory targetTranche = tranches[targetTrancheId]; // sload
       targetTranche.stakeShares += (initialDeposit.stakeShares + newShares).toUint128();
       targetTranche.rewardsShares += initialDeposit.rewardsShares;
+      targetTranche.rewardsShares += newShares.toUint128();
       targetTranche.rewardsShares += (initialFeeRewardShares + newFeeRewardShares).toUint128();
       tranches[targetTrancheId] = targetTranche; // store
       emit TrancheUpdated(targetTrancheId, targetTranche.stakeShares, _stakeSharesSupply);
@@ -1243,7 +1244,7 @@ contract StakingPool is IStakingPool, Multicall {
   /* pool management */
 
   function setPoolFee(uint newFee) external onlyManager {
-    
+
     require(newFee <= maxPoolFee, PoolFeeExceedsMax());
 
     // passing true because the amount of rewards shares changes

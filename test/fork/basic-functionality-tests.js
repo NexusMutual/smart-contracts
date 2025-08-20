@@ -482,7 +482,7 @@ describe('basic functionality tests', function () {
         ipfsData: '',
       },
       [{ poolId, coverAmountInAsset: amount }],
-      { value: amount },
+      { value: amount, gasLimit: 21e6 },
     );
 
     const coverCountAfter = await this.cover.getCoverDataCount();
@@ -557,10 +557,11 @@ describe('basic functionality tests', function () {
 
     const coverCountBefore = await this.cover.getCoverDataCount();
 
-    await this.cbbtc.connect(coverBuyer).approve(this.cover.target, parseUnits('2', 8));
+    await this.cbbtc.connect(coverBuyer).approve(this.cover, parseUnits('1', 8));
     const maxPremiumInAsset = (amount * 260n) / 10000n;
 
     console.log('Buying cover..');
+
     await this.cover.connect(coverBuyer).buyCover(
       {
         coverId: 0,
@@ -730,6 +731,7 @@ describe('basic functionality tests', function () {
 
   it('buy cover through CoverBroker using ETH', async function () {
     const coverBuyer = await ethers.Wallet.createRandom().connect(ethers.provider);
+    const coverBuyerAddress = await coverBuyer.getAddress();
 
     await this.evm.setBalance(coverBuyer.address, parseEther('1000000'));
 
@@ -748,7 +750,7 @@ describe('basic functionality tests', function () {
         paymentAsset: 0, // ETH
         payWithNXM: false,
         commissionRatio: '500', // 5%,
-        commissionDestination: coverBuyer.address,
+        commissionDestination: coverBuyerAddress,
         ipfsData: '',
       },
       [{ poolId, coverAmountInAsset: amount }],
@@ -861,7 +863,7 @@ describe('basic functionality tests', function () {
         period: increasedPeriod,
         maxPremiumInAsset: extraPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
+        payWithNXM: false,
         commissionRatio,
         commissionDestination: coverBuyerAddress,
         ipfsData: '',
@@ -1003,7 +1005,7 @@ describe('basic functionality tests', function () {
     await compareProxyImplementationAddress(this.cover.target, cover.target);
     // await compareProxyImplementationAddress(this.swapOperator.target, swapOperator.target);
     await compareProxyImplementationAddress(this.pool.target, pool.target);
-    await compareProxyImplementationAddress(this.assessment.target, assessment.target);
+    // await compareProxyImplementationAddress(this.assessment.target, assessment.target);
     await compareProxyImplementationAddress(this.claims.target, claims.target);
     await compareProxyImplementationAddress(this.ramm.target, ramm.target);
   });

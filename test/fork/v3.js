@@ -78,7 +78,7 @@ describe('v3 launch', function () {
    * deploy TempGov implementation
    * deploy LegacyAssessment implementation
    * deploy LegacyMemberRoles implementation
-   * upgrade Governance, Assessment, MemberRoles contracts via governor proposal
+   * upgrade Governance, Assessment, MemberRoles contracts via governance proposal
    */
   it('should run phase 0', async function () {
     // @TODO: push old governance rewards
@@ -95,23 +95,11 @@ describe('v3 launch', function () {
     const memberRolesImplementation = await deployContract('LegacyMemberRoles', [this.registryProxy.target]);
 
     // submit governance proposal - upgrade multiple contracts
-    const upgradeContracts = [
+    this.upgradeContractsPhase1 = [
       { code: ContractCode.Governance, contract: tempGovernanceImplementation },
       { code: ContractCode.Assessment, contract: legacyAssessmentImplementation },
       { code: ContractCode.MemberRoles, contract: memberRolesImplementation },
     ];
-
-    await submitGovernanceProposal(
-      ProposalCategory.upgradeMultipleContracts,
-      defaultAbiCoder.encode(
-        ['bytes2[]', 'address[]'],
-        [upgradeContracts.map(c => toUtf8Bytes(c.code)), upgradeContracts.map(c => c.contract.target)],
-      ),
-      this.abMembers,
-      this.governance,
-      true, // skip accepted validation - tempGovernance doesn't have proposal function
-    );
-    console.log('temp governance upgraded');
   });
 
   // TODO: push old assessment stake and rewards
@@ -126,6 +114,21 @@ describe('v3 launch', function () {
    * - transfer registry proxy ownership to Governor
    */
   it('should run phase 1', async function () {
+    await submitGovernanceProposal(
+      ProposalCategory.upgradeMultipleContracts,
+      defaultAbiCoder.encode(
+        ['bytes2[]', 'address[]'],
+        [
+          this.upgradeContractsPhase1.map(c => toUtf8Bytes(c.code)),
+          this.upgradeContractsPhase1.map(c => c.contract.target),
+        ],
+      ),
+      this.abMembers,
+      this.governance,
+      true, // skip accepted validation - tempGovernance doesn't have proposal function
+    );
+    console.log('temp governance upgraded');
+
     const governanceAddress = await this.master.getLatestAddress(toBytes2('GV'));
 
     // set temp governance and registry contracts
@@ -293,6 +296,10 @@ describe('v3 launch', function () {
 
     await executeGovernorProposal(this.governor, this.abMembers, txs);
     console.log('contracts upgraded');
+
+    // TODO: reset the contracts with right addresses
+    const assessmentAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENT);
+    this.assessment = ethers.getContractAt('Assessment', assessmentAddress);
 
     // recover MemberRoles ETH to pool
     const poolAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_POOL);

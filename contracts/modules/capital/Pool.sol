@@ -495,10 +495,6 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     // copy assets and oracles from the previous Pool
 
     for (uint i = 0; i < _assets.length; i++) {
-      if (_assets[i].assetAddress == DAI) {
-        continue;
-      }
-
       (
         OracleAggregator aggregator,
         IPriceFeedOracle.AggregatorType aggregatorType,
@@ -511,6 +507,10 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
         Aggregator(address(aggregator)),
         AggregatorType(uint8(aggregatorType))
       );
+
+      if (_assets[i].assetAddress == DAI) {
+        assets[i].isAbandoned = true;
+      }
     }
 
     // update MCR and copy MCR values

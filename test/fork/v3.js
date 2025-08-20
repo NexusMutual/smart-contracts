@@ -210,20 +210,30 @@ describe('v3 launch', function () {
     const SAFE_ADDRESS = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';
 
     // memberRoles.migrateMembers (including AB members)
-    this.memberRoles = await ethers.getContractAt('LegacyMemberRoles', this.memberRoles.target);
-    const migrateMembersTx = await this.memberRoles.migrateMembers(5);
-    await migrateMembersTx.wait();
+    this.memberRoles = await ethers.getContractAt('LegacyMemberRoles', this.memberRoles);
+
+    let finishedMigrating = await this.memberRoles.hasFinishedMigrating();
+
+    while (!finishedMigrating) {
+      console.log('calling memberRoles.migrateMembers(500)');
+      const migrateMembersTx = await this.memberRoles.migrateMembers(500);
+      await migrateMembersTx.wait();
+      finishedMigrating = await this.memberRoles.hasFinishedMigrating();
+    }
+
     console.log('memberRoles.migrateMembers done');
 
-    // verify abMembers were migrated
-    for (const address of [
+    const abMembers = [
       '0x87B2a7559d85f4653f13E6546A14189cd5455d45',
       '0x8D38C81B7bE9Dbe7440D66B92d4EF529806baAE7',
       '0x23E1B127Fd62A4dbe64cC30Bb30FFfBfd71BcFc6',
       '0x9063a2C78aFd6C8A3510273d646111Df67D6CB4b',
       '0x43f4cd7d153701794ce25a01eFD90DdC32FF8e8E',
-    ]) {
-      expect(await this.registry.isAdvisoryBoardMember(address)).to.be.true;
+    ];
+
+    // verify abMembers were migrated
+    for (const address of abMembers) {
+      expect(await this.registry.isAdvisoryBoardMember(address)).to.equal(true, `AB member ${address} not migrated`);
     }
 
     const poolImplementation = await deployContract('Pool', [this.registry.target]);

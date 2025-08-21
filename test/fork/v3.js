@@ -1,5 +1,5 @@
 const { ethers, network, nexus } = require('hardhat');
-const { Address, EnzymeAddress, getSigner, submitGovernanceProposal, executeGovernorProposal } = require('./utils');
+const { Address, EnzymeAddress, getSigner, submitGovernanceProposal } = require('./utils');
 const { expect } = require('chai');
 const { parseUnits } = require('ethers');
 
@@ -143,8 +143,8 @@ describe('v3 launch', function () {
       this.evm.impersonate(advisoryBoardMultisig),
       this.evm.setBalance(advisoryBoardMultisig, parseEther('1000')),
     ]);
-    const multisigSigner = await getSigner(advisoryBoardMultisig);
-    this.tempGovernance = this.tempGovernance.connect(multisigSigner);
+    this.multisigSigner = await getSigner(advisoryBoardMultisig);
+    this.tempGovernance = this.tempGovernance.connect(this.multisigSigner);
 
     // upgrade NXMaster
     const masterImplementation = await deployContract('NXMaster', []);
@@ -152,7 +152,6 @@ describe('v3 launch', function () {
       this.master.target,
       0n,
       this.registryProxy.interface.encodeFunctionData('upgradeTo', [masterImplementation.target]),
-      { gasLimit: 21e6 },
     );
     await masterUpgradeTx.wait();
     console.log('master upgraded');
@@ -162,14 +161,12 @@ describe('v3 launch', function () {
     const transferOwnershipCallData = master.interface.encodeFunctionData('transferOwnershipToRegistry', [
       this.registry.target,
     ]);
-    const transferOwnershipTx = await this.tempGovernance.execute(this.master.target, 0n, transferOwnershipCallData, {
-      gasLimit: 21e6,
-    });
+    const transferOwnershipTx = await this.tempGovernance.execute(this.master.target, 0n, transferOwnershipCallData);
     await transferOwnershipTx.wait();
     console.log('ALL contracts proxy ownership transferred to registry');
 
-    // deploy governor implementation
-    const governorImplementation = await deployContract('Governor', [this.registry.target]);
+    // deploy tempGovernance as temp governor implementation
+    const governorImplementation = await deployContract('TemporaryGovernance', [ADVISORY_BOARD_MULTISIG]);
 
     // registry.migrate
     const registryMigrateCallData = this.registry.interface.encodeFunctionData('migrate', [
@@ -183,9 +180,7 @@ describe('v3 launch', function () {
       ethers.encodeBytes32String('assessmentSalt'),
       ethers.encodeBytes32String('claimsSalt'),
     ]);
-    const registryMigrateTx = await this.tempGovernance.execute(this.registry.target, 0n, registryMigrateCallData, {
-      gasLimit: 21e6,
-    });
+    const registryMigrateTx = await this.tempGovernance.execute(this.registry.target, 0n, registryMigrateCallData);
     await registryMigrateTx.wait();
     console.log('registry.migrate done');
 
@@ -282,6 +277,11 @@ describe('v3 launch', function () {
    * - pool.migrate
    */
   it('should run phase 3', async function () {
+    // connect multisig signer to tempGovernor
+    const tempGovernorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
+    this.tempGovernor = await ethers.getContractAt('TemporaryGovernance', tempGovernorAddress);
+    this.tempGovernor = this.tempGovernor.connect(this.multisigSigner);
+
     // registry settings and contract upgrades
     const txs = [
       // set emergency admin
@@ -304,7 +304,9 @@ describe('v3 launch', function () {
       })),
     ];
 
-    await executeGovernorProposal(this.governor, this.abMembers, txs);
+
+    const executeTxs = await Promise.all(txs.map(tx => this.tempGovernor.execute(tx.target, tx.value, tx.data)));
+    await Promise.all(executeTxs.map(tx => tx.wait()));
     console.log('contracts upgraded');
 
     // TODO: reset the contracts with right addresses
@@ -333,13 +335,12 @@ describe('v3 launch', function () {
     const newPoolAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_POOL);
     this.pool = await ethers.getContractAt('Pool', newPoolAddress);
 
-    await executeGovernorProposal(this.governor, this.abMembers, [
-      {
-        target: this.pool.target,
-        value: 0n,
-        data: this.pool.interface.encodeFunctionData('migrate', [oldPoolAddress, this.mcr.target]),
-      },
-    ]);
+    const poolMigrateTx = await this.tempGovernor.execute(
+      this.pool.target,
+      0n,
+      this.pool.interface.encodeFunctionData('migrate', [oldPoolAddress, this.mcr.target]),
+    );
+    await poolMigrateTx.wait();
     console.log('pool migrated');
 
     await getPoolBalances(this, oldPoolAddress, 'OLD POOL BALANCES AFTER POOL.MIGRATION');

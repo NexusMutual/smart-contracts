@@ -71,6 +71,14 @@ contract RegistryGeneric is IRegistry {
     revert("Unsupported");
   }
 
+  function setKycAuthAddress(address /* kycAuthAddress */) external pure {
+    revert("Unsupported");
+  }
+
+  function getKycAuthAddress() external view virtual returns (address) {
+    revert("Unsupported");
+  }
+
   /* == ADVISORY BOARD MANAGEMENT == */
   function isAdvisoryBoardMember(address /* member */) external view virtual returns (bool) {
     revert("Unsupported");

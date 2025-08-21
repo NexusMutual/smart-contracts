@@ -110,6 +110,8 @@ describe('basic functionality tests', function () {
   });
 
   it('load token contracts', async function () {
+    const rammAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_RAMM);
+    this.ramm = await ethers.getContractAt('Ramm', rammAddress);
     this.dai = await ethers.getContractAt('ERC20Mock', Address.DAI_ADDRESS);
     this.usdc = await ethers.getContractAt('ERC20Mock', Address.USDC_ADDRESS);
     this.rEth = await ethers.getContractAt('ERC20Mock', Address.RETH_ADDRESS);
@@ -186,14 +188,49 @@ describe('basic functionality tests', function () {
     );
   });
 
+  // upgrade Governor from TemporaryGovernor to Governor first before calling executeGovernorProposal
+  it('upgrade Governor from TemporaryGovernor to Governor', async function () {
+    const governorImplementation = await deployContract('Governor', [this.registry]);
+
+    const upgradeGovernorTx = await this.tempGovernor.execute(
+      this.registry.target,
+      0n,
+      this.registry.interface.encodeFunctionData('upgradeContract', [
+        ContractIndexes.C_GOVERNOR,
+        governorImplementation.target,
+      ]),
+    );
+    await upgradeGovernorTx.wait();
+
+    await compareProxyImplementationAddress(this.governor.target, governorImplementation.target);
+  });
+
+  it('Performs hypothetical future Governor upgrade', async function () {
+    const newGovernor = await deployContract('Governor', [this.registry]);
+
+    const txs = [
+      {
+        target: this.registry,
+        data: this.registry.interface.encodeFunctionData('upgradeContract', [
+          ContractIndexes.C_GOVERNOR,
+          newGovernor.target,
+        ]),
+        value: 0n,
+      },
+    ];
+
+    await executeGovernorProposal(this.governor, this.abMembers, txs);
+
+    await compareProxyImplementationAddress(this.governor.target, newGovernor.target);
+  });
+
   it('switch kyc auth wallet', async function () {
     this.kycAuthSigner = ethers.Wallet.createRandom().connect(ethers.provider);
-    this.kycAuthAddress = await this.kycAuthSigner.getAddress();
 
     const txs = [
       {
         target: this.registry.target,
-        data: await this.registry.interface.encodeFunctionData('setKycAuthAddress', [this.kycAuthAddress]),
+        data: await this.registry.interface.encodeFunctionData('setKycAuthAddress', [this.kycAuthSigner.address]),
         value: 0,
       },
     ];
@@ -914,25 +951,6 @@ describe('basic functionality tests', function () {
     this.rethBalanceBefore = await this.rEth.balanceOf(this.pool.target);
   });
 
-  it('Performs hypothetical future Governor upgrade', async function () {
-    const newGovernor = await deployContract('Governor', [this.registry]);
-
-    const txs = [
-      {
-        target: this.registry,
-        data: this.registry.interface.encodeFunctionData('upgradeContract', [
-          ContractIndexes.C_GOVERNOR,
-          newGovernor.target,
-        ]),
-        value: 0n,
-      },
-    ];
-
-    await executeGovernorProposal(this.governor, this.abMembers, txs);
-
-    await compareProxyImplementationAddress(this.governor.target, newGovernor.target);
-  });
-
   it('Performs hypothetical future Registry upgrade', async function () {
     const newRegistry = await deployContract('Registry', [this.registry, this.master]);
     const upgradableProxy = await ethers.getContractAt('UpgradeableProxy', this.registry.target);
@@ -977,7 +995,7 @@ describe('basic functionality tests', function () {
     const assessment = await deployContract('Assessment', [this.registry.target]);
 
     // Claims
-    const claims = await deployContract('Assessment', [this.registry.target]);
+    const claims = await deployContract('Claims', [this.registry.target]);
 
     // Ramm.sol
     const ramm = await deployContract('Ramm', [this.registry.target, '0']);

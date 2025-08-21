@@ -72,8 +72,10 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
   }
 
   function switchMembership(address newAddress) external {
-    uint memberCount = memberRoleData[uint(Role.Member)].memberCounter;
-    require(nextMemberStorageIndex >= memberCount, "MemberRoles: Migration in progress");
+    require(
+      nextMemberStorageIndex >= memberRoleData[uint(Role.Member)].memberAddress.length,
+      "MemberRoles: Migration in progress"
+    );
     registry.switchFor(msg.sender, newAddress); // proxy the call
     nxmToken.transferFrom(msg.sender, newAddress, nxmToken.balanceOf(msg.sender));
   }

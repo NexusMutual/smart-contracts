@@ -1,8 +1,7 @@
 const { ethers, nexus } = require('hardhat');
 const { setBalance, time, impersonateAccount } = require('@nomicfoundation/hardhat-network-helpers');
 const { expect } = require('chai');
-
-const { ContractIndexes } = nexus.constants;
+const { abis, addresses } = require('@nexusmutual/deployments');
 
 const {
   Aave,
@@ -16,11 +15,8 @@ const {
   setUSDCBalance,
 } = require('./utils');
 
-const VariableDebtTokenAbi = require('./abi/aave/VariableDebtToken.json');
-const { abis, addresses } = require('@nexusmutual/deployments');
-
 const { deployContract, formatEther, ZeroAddress, MaxUint256, parseEther, parseUnits } = ethers;
-
+const { ContractIndexes } = nexus.constants;
 const { USDC_ADDRESS } = Address;
 
 // eslint-disable-next-line no-unused-vars
@@ -81,7 +77,10 @@ describe('basic functionality tests', function () {
     this.stEth = await ethers.getContractAt('ERC20Mock', Address.STETH_ADDRESS);
     this.awEth = await ethers.getContractAt('ERC20Mock', Address.AWETH_ADDRESS);
     this.enzymeShares = await ethers.getContractAt('ERC20Mock', EnzymeAddress.ENZYMEV4_VAULT_PROXY_ADDRESS);
-    this.aaveUsdcVariableDebtToken = await ethers.getContractAt(VariableDebtTokenAbi, Aave.VARIABLE_DEBT_USDC_ADDRESS);
+    this.aaveUsdcVariableDebtToken = await ethers.getContractAt(
+      ['function balanceOf(address) view returns (uint256)'],
+      Aave.VARIABLE_DEBT_USDC_ADDRESS,
+    );
   });
 
   it('Generate wallets', async function () {

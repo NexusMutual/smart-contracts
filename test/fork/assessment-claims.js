@@ -1,14 +1,10 @@
-const { inspect } = require('util');
-
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { time } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { getSigner, EnzymeAddress } = require('./utils');
+const { getSigner } = require('./utils');
 
 const { ContractIndexes, PauseTypes } = nexus.constants;
-
-const { toBytes2 } = nexus.helpers;
 
 const { parseEther } = ethers;
 const { PAUSE_CLAIMS } = PauseTypes;
@@ -36,6 +32,11 @@ const ASSET = {
 const daysToSeconds = days => BigInt(days) * 24n * 60n * 60n;
 
 const PRODUCT_ID = 247;
+
+const setupContractsForSkipping = () => {
+  // TODO: Rocky, fix me
+  throw new Error("No idea what's this supposed to be");
+};
 
 const createCover = async (
   cover,
@@ -103,7 +104,6 @@ const createCover = async (
 
 // simple member migrate for dev testing
 it('should migrate members', async function () {
-
   const membersToMigrate = [
     '0x5fa07227d05774c2ff11c2425919d14225a38dbb',
     '0x5929cc4d10b6a1acc5bf5d221889f10251c628a1',
@@ -127,7 +127,6 @@ it('should migrate members', async function () {
 });
 
 it('should run setup - add assessors and configure assessment', async function () {
-
   console.info('Snapshot assessment/claims setup start: ', await this.evm.snapshot());
 
   const addresses = [
@@ -191,7 +190,6 @@ it('should run setup - add assessors and configure assessment', async function (
 });
 
 it('Happy Path: ETH claim submission and ACCEPTED payout', async function () {
-
   // create ETH cover
   console.log('Creating ETH cover for claimant:', this.claimant.address);
   const coverId = await createCover(this.cover, this.claimant, {
@@ -232,6 +230,7 @@ it('Happy Path: ETH claim submission and ACCEPTED payout', async function () {
   console.log('time.increaseTo past cooldown period');
 
   // claim ACCEPTED
+  // eslint-disable-next-line no-unused-vars
   const [status, payoutRedemptionEnd] = await this.assessment.getAssessmentResult(claimId);
   expect(status).to.equal(ASSESSMENT_STATUS.ACCEPTED);
   console.log('claim status is ACCEPTED');

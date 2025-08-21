@@ -2,10 +2,12 @@ const { ethers, network } = require('hardhat');
 const { time } = require('@nomicfoundation/hardhat-network-helpers');
 const assert = require('assert');
 
-const { AbiCoder, JsonRpcProvider, JsonRpcSigner, keccak256, toBeHex, toUtf8Bytes, zeroPadValue } = ethers;
+const { AbiCoder, JsonRpcProvider, JsonRpcSigner, keccak256, toBeHex, zeroPadValue } = ethers;
 
 const defaultAbiCoder = AbiCoder.defaultAbiCoder();
 
+// TODO: remove?
+// eslint-disable-next-line no-unused-vars
 const V2Addresses = {
   Assessment: '0xcafeaa5f9c401b7295890f309168Bbb8173690A3',
   Cover: '0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62',

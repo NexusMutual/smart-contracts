@@ -4,7 +4,7 @@ const { expect } = require('chai');
 const { parseUnits } = require('ethers');
 
 const { parseEther, deployContract, toUtf8Bytes, AbiCoder } = ethers;
-const { ContractCode, ContractIndexes, ProposalCategory, Role } = nexus.constants;
+const { ContractCode, ContractIndexes, ProposalCategory } = nexus.constants;
 const { toBytes2 } = nexus.helpers;
 
 const evm = nexus.evmInit();

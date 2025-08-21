@@ -1,4 +1,4 @@
-const { ethers, nexus, tracer } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { setBalance, time, impersonateAccount } = require('@nomicfoundation/hardhat-network-helpers');
 const { expect } = require('chai');
 
@@ -23,12 +23,13 @@ const { deployContract, formatEther, ZeroAddress, MaxUint256, parseEther, parseU
 
 const { USDC_ADDRESS } = Address;
 
-let custodyProductId, custodyCoverId;
-let protocolProductId, protocolCoverId;
+// eslint-disable-next-line no-unused-vars
+let custodyProductId, custodyCoverId, protocolProductId, protocolCoverId;
 let poolId, trancheId, tokenId;
 
 const GNOSIS_SAFE_ADDRESS = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';
 
+// eslint-disable-next-line no-unused-vars
 const parseError = (error, contract) => {
   console.log('Error executing proposal:', error.message);
 

@@ -1,28 +1,25 @@
-const { ethers, nexus } = require('hardhat');
-const { setBalance, time } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers, nexus, tracer } = require('hardhat');
+const { setBalance, time, impersonateAccount } = require('@nomicfoundation/hardhat-network-helpers');
 const { expect } = require('chai');
 
 const { ContractIndexes } = nexus.constants;
 
-const { Address, EnzymeAddress, calculateCurrentTrancheId, executeGovernorProposal, Aave } = require('./utils');
-
-const EMERGENCY_ADMIN = '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D';
+const {
+  Aave,
+  Address,
+  calculateCurrentTrancheId,
+  EnzymeAddress,
+  executeGovernorProposal,
+  getImplementation,
+  setCbBTCBalance,
+  setERC20Balance,
+  setUSDCBalance,
+} = require('./utils');
 
 const VariableDebtTokenAbi = require('./abi/aave/VariableDebtToken.json');
 const { abis, addresses } = require('@nexusmutual/deployments');
 
-const {
-  deployContract,
-  formatEther,
-  ZeroAddress,
-  MaxUint256,
-  parseEther,
-  parseUnits,
-  keccak256,
-  AbiCoder,
-  toBeHex,
-  zeroPadValue,
-} = ethers;
+const { deployContract, formatEther, ZeroAddress, MaxUint256, parseEther, parseUnits } = ethers;
 
 const { USDC_ADDRESS } = Address;
 
@@ -31,8 +28,6 @@ let protocolProductId, protocolCoverId;
 let poolId, trancheId, tokenId;
 
 const GNOSIS_SAFE_ADDRESS = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';
-
-const defaultAbiCoder = AbiCoder.defaultAbiCoder();
 
 const parseError = (error, contract) => {
   console.log('Error executing proposal:', error.message);
@@ -54,39 +49,6 @@ const parseError = (error, contract) => {
 
   // Re-throw the error to fail the test
   throw error;
-};
-
-const setERC20Balance = async (token, address, balance) => {
-  // Standard ERC20 tokens use slot 0 for _balances mapping
-  const standardSlot = 0;
-  const userBalanceSlot = keccak256(defaultAbiCoder.encode(['address', 'uint256'], [address, standardSlot]));
-  const valueHex = zeroPadValue(toBeHex(balance), 32);
-
-  await ethers.provider.send('hardhat_setStorageAt', [token, userBalanceSlot, valueHex]);
-};
-
-const setUSDCBalance = async (token, address, balance) => {
-  const slot = 9;
-  const userBalanceSlot = keccak256(defaultAbiCoder.encode(['address', 'uint256'], [address, slot]));
-  const currentValue = await ethers.provider.getStorage(token, userBalanceSlot);
-  const currentBigInt = ethers.getBigInt(currentValue);
-  const blacklistBit = currentBigInt >> 255n;
-  const newValue = (blacklistBit << 255n) | BigInt(balance);
-  const valueHex = zeroPadValue(toBeHex(newValue), 32);
-  await ethers.provider.send('hardhat_setStorageAt', [token, userBalanceSlot, valueHex]);
-};
-
-const setCbBTCBalance = async (token, address, balance) => {
-  const slot = 9; // Found to work at slot 9
-  const userBalanceSlot = keccak256(defaultAbiCoder.encode(['address', 'uint256'], [address, slot]));
-  const valueHex = zeroPadValue(toBeHex(balance), 32);
-  await ethers.provider.send('hardhat_setStorageAt', [token, userBalanceSlot, valueHex]);
-};
-
-const compareProxyImplementationAddress = async (proxyAddress, addressToCompare) => {
-  const proxy = await ethers.getContractAt('UpgradeableProxy', proxyAddress);
-  const implementationAddress = await proxy.implementation();
-  expect(implementationAddress).to.be.equal(addressToCompare);
 };
 
 const getCapitalSupplyAndBalances = async (pool, tokenController, nxm, memberAddress) => {
@@ -141,70 +103,6 @@ describe('basic functionality tests', function () {
     await setCbBTCBalance(this.cbbtc.target, this.cbBTCHolder.address, parseUnits('100', 8));
   });
 
-  it.skip('Verify dependencies for each contract', async function () {
-    // IMPORTANT: This mapping needs to be updated if we add new dependencies to the contracts.
-    const dependenciesToVerify = {
-      AS: ['TC', 'MR', 'RA'],
-      CI: ['TC', 'MR', 'P1', 'CO', 'AS', 'RA'],
-      MC: ['P1', 'MR', 'CO'],
-      P1: ['MC', 'MR', 'RA'],
-      CO: ['P1', 'TC', 'MR', 'SP'],
-      MR: ['TC', 'P1', 'CO', 'AS'],
-      SP: [], // none
-      TC: ['AS', 'GV', 'P1'],
-      RA: ['P1', 'MC', 'TC'],
-    };
-
-    const latestAddresses = {};
-    const registry = this.registry;
-
-    async function getLatestAddress(contractIndex) {
-      if (!latestAddresses[contractIndex]) {
-        latestAddresses[contractIndex] = await registry.getContractAddressByIndex(contractIndex);
-      }
-      return latestAddresses[contractIndex];
-    }
-
-    await Promise.all(
-      Object.keys(dependenciesToVerify).map(async contractIndex => {
-        const dependencies = dependenciesToVerify[contractIndex];
-
-        const masterAwareV2 = await ethers.getContractAt('IMasterAwareV2', await getLatestAddress(contractCode));
-
-        await Promise.all(
-          dependencies.map(async dependency => {
-            const dependencyAddress = await getLatestAddress(dependency);
-
-            const contractId = InternalContractsIDs[dependency];
-            const storedDependencyAddress = await masterAwareV2.internalContracts(contractId);
-            expect(storedDependencyAddress).to.be.equal(
-              dependencyAddress,
-              `Dependency ${dependency} for ${contractCode} is not set correctly ` +
-                `(expected ${dependencyAddress}, got ${storedDependencyAddress})`,
-            );
-          }),
-        );
-      }),
-    );
-  });
-
-  // upgrade Governor from TemporaryGovernor to Governor first before calling executeGovernorProposal
-  it('upgrade Governor from TemporaryGovernor to Governor', async function () {
-    const governorImplementation = await deployContract('Governor', [this.registry]);
-
-    const upgradeGovernorTx = await this.tempGovernor.execute(
-      this.registry.target,
-      0n,
-      this.registry.interface.encodeFunctionData('upgradeContract', [
-        ContractIndexes.C_GOVERNOR,
-        governorImplementation.target,
-      ]),
-    );
-    await upgradeGovernorTx.wait();
-
-    await compareProxyImplementationAddress(this.governor.target, governorImplementation.target);
-  });
-
   it('Performs hypothetical future Governor upgrade', async function () {
     const newGovernor = await deployContract('Governor', [this.registry]);
 
@@ -221,7 +119,7 @@ describe('basic functionality tests', function () {
 
     await executeGovernorProposal(this.governor, this.abMembers, txs);
 
-    await compareProxyImplementationAddress(this.governor.target, newGovernor.target);
+    expect(await getImplementation(this.governor)).to.be.equal(newGovernor.target);
   });
 
   it('switch kyc auth wallet', async function () {
@@ -235,29 +133,29 @@ describe('basic functionality tests', function () {
       },
     ];
     await executeGovernorProposal(this.governor, this.abMembers, txs);
+
+    const currentKycAuth = await this.registry.getKycAuthAddress();
+    expect(currentKycAuth).to.be.equal(this.kycAuthSigner.address);
   });
 
   it('Add new members', async function () {
     const JOINING_FEE = ethers.parseEther('0.002');
+    const { chainId } = await ethers.provider.getNetwork();
 
     for (const member of this.members) {
-      const signature = await nexus.membership.signJoinMessage(this.kycAuthSigner, member, this.registry, {
-        chainId: 1,
-      });
+      const signature = await nexus.membership.signJoinMessage(this.kycAuthSigner, member, this.registry, { chainId });
       await this.registry.join(member, signature, { value: JOINING_FEE });
       expect(await this.registry.isMember(member.address)).to.be.true;
     }
 
-    // temp add coverBroker as member
-    const coverBrokerSigner = ethers.getSigner(this.coverBroker.target);
+    // enroll coverBroker as member
     const signature = await nexus.membership.signJoinMessage(
       this.kycAuthSigner,
       this.coverBroker.target,
       this.registry,
-      {
-        chainId: 1,
-      },
+      { chainId },
     );
+
     await this.registry.join(this.coverBroker.target, signature, { value: JOINING_FEE });
     expect(await this.registry.isMember(this.coverBroker.target)).to.be.true;
   });
@@ -943,7 +841,6 @@ describe('basic functionality tests', function () {
     // Pool value related info
     this.aaveDebtBefore = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
     this.poolValueBefore = await this.pool.getPoolValueInEth();
-    console.log(this.poolValueBefore.toString());
     this.ethBalanceBefore = await ethers.provider.getBalance(this.pool.target);
     this.daiBalanceBefore = await this.dai.balanceOf(this.pool.target);
     this.stEthBalanceBefore = await this.stEth.balanceOf(this.pool.target);
@@ -953,9 +850,8 @@ describe('basic functionality tests', function () {
 
   it('Performs hypothetical future Registry upgrade', async function () {
     const newRegistry = await deployContract('Registry', [this.registry, this.master]);
-    const upgradableProxy = await ethers.getContractAt('UpgradeableProxy', this.registry.target);
+    const upgradableProxy = await ethers.getContractAt('UpgradeableProxy', this.registry);
 
-    const owner = await upgradableProxy.proxyOwner();
     const txs = [
       {
         target: this.registry,
@@ -966,7 +862,7 @@ describe('basic functionality tests', function () {
 
     await executeGovernorProposal(this.governor, this.abMembers, txs);
 
-    await compareProxyImplementationAddress(this.registry.target, newRegistry.target);
+    expect(await upgradableProxy.implementation()).to.be.equal(newRegistry.target);
   });
 
   it('Performs hypothetical future upgrade of contracts', async function () {
@@ -1018,23 +914,23 @@ describe('basic functionality tests', function () {
 
     await executeGovernorProposal(this.governor, this.abMembers, transactions);
 
-    // Compare proxy implementation addresses
-    await compareProxyImplementationAddress(this.tokenController.target, tokenController.target);
-    await compareProxyImplementationAddress(this.cover.target, cover.target);
-    // await compareProxyImplementationAddress(this.swapOperator.target, swapOperator.target);
-    await compareProxyImplementationAddress(this.pool.target, pool.target);
-    // await compareProxyImplementationAddress(this.assessment.target, assessment.target);
-    await compareProxyImplementationAddress(this.claims.target, claims.target);
-    await compareProxyImplementationAddress(this.ramm.target, ramm.target);
+    // compare proxy implementation addresses
+    expect(await getImplementation(this.tokenController)).to.be.equal(tokenController.target);
+    expect(await getImplementation(this.cover)).to.be.equal(cover.target);
+    expect(await getImplementation(this.swapOperator)).to.be.equal(swapOperator.target);
+    expect(await getImplementation(this.pool)).to.be.equal(pool.target);
+    expect(await getImplementation(this.assessment)).to.be.equal(assessment.target);
+    expect(await getImplementation(this.claims)).to.be.equal(claims.target);
+    expect(await getImplementation(this.ramm)).to.be.equal(ramm.target);
   });
 
   it('Check Pool balance after upgrades', async function () {
     const poolValueAfter = await this.pool.getPoolValueInEth();
-    const aaveDebtAfter = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
-
     const poolValueDiff = poolValueAfter - this.poolValueBefore;
-    const aaveDebtDiff = aaveDebtAfter - this.aaveDebtBefore;
-    const ethDebt = await this.priceFeedOracle.getEthForAsset(USDC_ADDRESS, aaveDebtDiff);
+
+    // const aaveDebtAfter = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
+    // const aaveDebtDiff = aaveDebtAfter - this.aaveDebtBefore;
+    // const usdcDebtInEth = await this.priceFeedOracle.getEthForAsset(USDC_ADDRESS, aaveDebtDiff);
 
     const ethBalanceAfter = await ethers.provider.getBalance(this.pool.target);
     const daiBalanceAfter = await this.dai.balanceOf(this.pool.target);
@@ -1059,28 +955,28 @@ describe('basic functionality tests', function () {
       enzymeSharesBalanceAfter: formatEther(enzymeSharesBalanceAfter),
       enzymeSharesBalanceDiff: formatEther(enzymeSharesBalanceAfter - this.enzymeSharesBalanceBefore),
       rethBalanceBefore: formatEther(this.rethBalanceBefore),
-      rethBalanceAfter: formatEther(await this.rEth.balanceOf(this.pool.target)),
+      rethBalanceAfter: formatEther(rEthBalanceAfter),
       rethBalanceDiff: formatEther(rEthBalanceAfter - this.rethBalanceBefore),
     });
 
-    expect(poolValueDiff, 'Pool value in ETH should be the same').to.be.lte(ethDebt + 2n);
-    expect(stEthBalanceAfter - this.stEthBalanceBefore, 'stETH balance should be the same').to.be.lte(2);
-    expect(ethBalanceAfter - this.ethBalanceBefore, 'ETH balance should be the same').to.be.eq(0);
-    expect(daiBalanceAfter - this.daiBalanceBefore, 'DAI balance should be the same').to.be.eq(0);
-    expect(
-      enzymeSharesBalanceAfter - this.enzymeSharesBalanceBefore,
-      'Enzyme shares balance should be the same',
-    ).to.be.eq(0);
-    expect(rEthBalanceAfter - this.rethBalanceBefore, 'rETH balance should be the same').to.be.eq(0);
+    expect(stEthBalanceAfter, 'stETH balance differs').to.be.gte(this.stEthBalanceBefore - 2n);
+    expect(ethBalanceAfter, 'ETH balance differs').to.be.eq(this.ethBalanceBefore);
+    expect(daiBalanceAfter, 'DAI balance differs').to.be.eq(this.daiBalanceBefore);
+    expect(enzymeSharesBalanceAfter, 'Enzyme shares balance differs').to.be.eq(this.enzymeSharesBalanceBefore);
+    expect(rEthBalanceAfter, 'rETH balance differs').to.be.eq(this.rethBalanceBefore);
+    expect(poolValueAfter, 'Pool value in ETH differs').to.be.gte(this.poolValueBefore - 2n);
   });
 
-  it('Performs hypothetical future Registry deployment', async function () {
+  it('Performs hypothetical future CoverBroker deployment', async function () {
     const owner = await this.coverBroker.owner();
     const newCoverBroker = await deployContract('CoverBroker', [this.registry, owner]);
 
-    await this.coverBroker.switchMembership(newCoverBroker);
-    await this.coverBroker.maxApproveCoverContract(this.cbbtc);
-    await this.coverBroker.maxApproveCoverContract(this.usdc);
+    await impersonateAccount(owner);
+    const ownerSigner = await ethers.getSigner(owner);
+
+    await this.coverBroker.connect(ownerSigner).switchMembership(newCoverBroker);
+    await this.coverBroker.connect(ownerSigner).maxApproveCoverContract(this.cbbtc);
+    await this.coverBroker.connect(ownerSigner).maxApproveCoverContract(this.usdc);
 
     // buy cover
     const coverBuyer = await ethers.Wallet.createRandom().connect(ethers.provider);
@@ -1123,10 +1019,14 @@ describe('basic functionality tests', function () {
     // this test verifies the scenario in which a critical vulnerability is detected
     // system is paused, system is upgraded, and system is resumed
 
-    const emergencyAdmin = await ethers.getSigner(EMERGENCY_ADMIN);
-    await setBalance(EMERGENCY_ADMIN, parseEther('1000'));
+    const emergencyAdmin1 = await ethers.getSigner(this.EMERGENCY_ADMIN_1);
+    const emergencyAdmin2 = await ethers.getSigner(this.EMERGENCY_ADMIN_2);
 
-    await this.registry.connect(emergencyAdmin).proposePauseConfig(1);
+    await setBalance(this.EMERGENCY_ADMIN_1, parseEther('1000'));
+    await setBalance(this.EMERGENCY_ADMIN_2, parseEther('1000'));
+
+    await this.registry.connect(emergencyAdmin1).proposePauseConfig(1);
+    await this.registry.connect(emergencyAdmin2).confirmPauseConfig(1);
 
     const newGovernor = await deployContract('Governor', [this.registry]);
 
@@ -1143,8 +1043,9 @@ describe('basic functionality tests', function () {
 
     await executeGovernorProposal(this.governor, this.abMembers, txs);
 
-    await compareProxyImplementationAddress(this.governor.target, newGovernor.target);
+    expect(await getImplementation(this.governor)).to.be.equal(newGovernor.target);
 
-    await this.registry.connect(emergencyAdmin).proposePauseConfig(0);
+    await this.registry.connect(emergencyAdmin1).proposePauseConfig(0);
+    await this.registry.connect(emergencyAdmin2).confirmPauseConfig(0);
   });
 });

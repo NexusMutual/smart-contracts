@@ -1,17 +1,10 @@
-// const evm = require('./evm')();
-const { artifacts, ethers, network, nexus } = require('hardhat');
-const { impersonateAccount, time } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers, network } = require('hardhat');
+const { time } = require('@nomicfoundation/hardhat-network-helpers');
 const assert = require('assert');
 
-// const { setEtherBalance } = require('../utils/evm');
-const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
-// Import ethers v6 utilities
-const { parseEther, AbiCoder, keccak256, toUtf8Bytes, toBigInt } = ethers;
-const { JsonRpcProvider, JsonRpcSigner, AbstractSigner, formatters } = ethers;
+const { AbiCoder, JsonRpcProvider, JsonRpcSigner, keccak256, toBeHex, toUtf8Bytes, zeroPadValue } = ethers;
 
-// const defaultAbiCoder = AbiCoder.defaultAbiCoder();
-const { VoteType } = nexus.constants;
-const MaxAddress = '0xffffffffffffffffffffffffffffffffffffffff';
+const defaultAbiCoder = AbiCoder.defaultAbiCoder();
 
 const V2Addresses = {
   Assessment: '0xcafeaa5f9c401b7295890f309168Bbb8173690A3',
@@ -166,7 +159,7 @@ async function executeGovernorProposal(
   await time.increase(4 * 24 * 3600 + 1);
 
   // Try execute; will succeed only if timelock has passed and tallies satisfy rules
-  await governor.connect(proposer).execute(proposalId, { gasLimit: 21e6 });
+  await governor.connect(proposer).execute(proposalId);
   console.log(`Governor proposal ${proposalId} executed`);
 }
 
@@ -375,11 +368,37 @@ async function calculateCurrentTrancheId() {
   return Math.floor(timestamp / (91 * 24 * 3600));
 }
 
-async function getContractByContractCode(contractName, contractCode) {
-  this.master = this.master ?? (await ethers.getContractAt('NXMaster', V2Addresses.NXMaster));
-  const contractAddress = await this.master?.getLatestAddress(toUtf8Bytes(contractCode));
-  return ethers.getContractAt(contractName, contractAddress);
-}
+const setERC20Balance = async (token, address, balance) => {
+  // Standard ERC20 tokens use slot 0 for _balances mapping
+  const standardSlot = 0;
+  const userBalanceSlot = keccak256(defaultAbiCoder.encode(['address', 'uint256'], [address, standardSlot]));
+  const valueHex = zeroPadValue(toBeHex(balance), 32);
+
+  await ethers.provider.send('hardhat_setStorageAt', [token, userBalanceSlot, valueHex]);
+};
+
+const setUSDCBalance = async (token, address, balance) => {
+  const slot = 9;
+  const userBalanceSlot = keccak256(defaultAbiCoder.encode(['address', 'uint256'], [address, slot]));
+  const currentValue = await ethers.provider.getStorage(token, userBalanceSlot);
+  const currentBigInt = ethers.getBigInt(currentValue);
+  const blacklistBit = currentBigInt >> 255n;
+  const newValue = (blacklistBit << 255n) | BigInt(balance);
+  const valueHex = zeroPadValue(toBeHex(newValue), 32);
+  await ethers.provider.send('hardhat_setStorageAt', [token, userBalanceSlot, valueHex]);
+};
+
+const setCbBTCBalance = async (token, address, balance) => {
+  const slot = 9; // Found to work at slot 9
+  const userBalanceSlot = keccak256(defaultAbiCoder.encode(['address', 'uint256'], [address, slot]));
+  const valueHex = zeroPadValue(toBeHex(balance), 32);
+  await ethers.provider.send('hardhat_setStorageAt', [token, userBalanceSlot, valueHex]);
+};
+
+const getImplementation = async proxyAddress => {
+  const proxy = await ethers.getContractAt('UpgradeableProxy', proxyAddress);
+  return await proxy.implementation();
+};
 
 module.exports = {
   submitGovernanceProposal,
@@ -405,5 +424,8 @@ module.exports = {
   // upgradeMultipleContracts,
   // formatInternalContracts,
   // calculateProxyAddress,
-  getContractByContractCode,
+  setERC20Balance,
+  setUSDCBalance,
+  setCbBTCBalance,
+  getImplementation,
 };

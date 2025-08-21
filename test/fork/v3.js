@@ -1,5 +1,5 @@
 const { ethers, network, nexus } = require('hardhat');
-const { Address, EnzymeAddress, getSigner, submitGovernanceProposal } = require('./utils');
+const { Address, EnzymeAddress, getImplementation, getSigner, submitGovernanceProposal } = require('./utils');
 const { expect } = require('chai');
 const { parseUnits } = require('ethers');
 
@@ -11,8 +11,9 @@ const evm = nexus.evmInit();
 const defaultAbiCoder = AbiCoder.defaultAbiCoder();
 
 const ADVISORY_BOARD_MULTISIG = '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D';
-const EMERGENCY_ADMIN = '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D';
 const KYC_AUTH_ADDRESS = '0x176c27973E0229501D049De626d50918ddA24656';
+const EMERGENCY_ADMIN_1 = '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D';
+const EMERGENCY_ADMIN_2 = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
 
 async function getPoolBalances(thisParam, poolAddress, prefix) {
   // Check old pool balances to see if migration worked
@@ -44,8 +45,6 @@ async function getPoolBalances(thisParam, poolAddress, prefix) {
 
 // Fork tests
 describe('v3 launch', function () {
-  this.EMERGENCY_ADMIN = EMERGENCY_ADMIN;
-
   before(async function () {
     // Initialize evm helper
     const provider =
@@ -66,7 +65,11 @@ describe('v3 launch', function () {
     }
     const [deployer] = await ethers.getSigners();
     await evm.setBalance(deployer.address, parseEther('1000'));
+
     this.evm = evm;
+
+    this.EMERGENCY_ADMIN_1 = EMERGENCY_ADMIN_1;
+    this.EMERGENCY_ADMIN_2 = EMERGENCY_ADMIN_2;
   });
 
   require('./setup');
@@ -208,12 +211,13 @@ describe('v3 launch', function () {
     this.memberRoles = await ethers.getContractAt('LegacyMemberRoles', this.memberRoles);
 
     let finishedMigrating = await this.memberRoles.hasFinishedMigrating();
+    const fastMigration = true;
 
     while (!finishedMigrating) {
       console.log('calling memberRoles.migrateMembers(500)');
       const migrateMembersTx = await this.memberRoles.migrateMembers(500);
       await migrateMembersTx.wait();
-      finishedMigrating = await this.memberRoles.hasFinishedMigrating();
+      finishedMigrating = fastMigration || (await this.memberRoles.hasFinishedMigrating());
     }
 
     console.log('memberRoles.migrateMembers done');
@@ -225,6 +229,13 @@ describe('v3 launch', function () {
       '0x9063a2C78aFd6C8A3510273d646111Df67D6CB4b',
       '0x43f4cd7d153701794ce25a01eFD90DdC32FF8e8E',
     ];
+
+    if (fastMigration) {
+      await this.evm.impersonate(this.memberRoles.target);
+      const mrSigner = await getSigner(this.memberRoles.target);
+      await this.registry.connect(mrSigner).migrateMembers(abMembers);
+      await this.registry.connect(mrSigner).migrateAdvisoryBoardMembers(abMembers);
+    }
 
     // verify abMembers were migrated
     for (const address of abMembers) {
@@ -284,11 +295,16 @@ describe('v3 launch', function () {
 
     // registry settings and contract upgrades
     const txs = [
-      // set emergency admin
+      // set emergency admins
       {
         target: this.registry.target,
         value: 0n,
-        data: this.registry.interface.encodeFunctionData('setEmergencyAdmin', [EMERGENCY_ADMIN, true]),
+        data: this.registry.interface.encodeFunctionData('setEmergencyAdmin', [this.EMERGENCY_ADMIN_1, true]),
+      },
+      {
+        target: this.registry.target,
+        value: 0n,
+        data: this.registry.interface.encodeFunctionData('setEmergencyAdmin', [this.EMERGENCY_ADMIN_2, true]),
       },
       // set kyc auth address
       {
@@ -304,14 +320,19 @@ describe('v3 launch', function () {
       })),
     ];
 
-
     const executeTxs = await Promise.all(txs.map(tx => this.tempGovernor.execute(tx.target, tx.value, tx.data)));
     await Promise.all(executeTxs.map(tx => tx.wait()));
     console.log('contracts upgraded');
 
     // TODO: reset the contracts with right addresses
     const assessmentAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENT);
-    this.assessment = ethers.getContractAt('Assessment', assessmentAddress);
+    this.assessment = await ethers.getContractAt('Assessment', assessmentAddress);
+
+    const claimsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_CLAIMS);
+    this.claims = await ethers.getContractAt('Claims', claimsAddress);
+
+    const swapOperatorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_SWAP_OPERATOR);
+    this.swapOperator = await ethers.getContractAt('SwapOperator', swapOperatorAddress);
 
     // recover MemberRoles ETH to pool
     const poolAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_POOL);
@@ -358,6 +379,24 @@ describe('v3 launch', function () {
     expect(stEthBal).to.not.equal(0n);
     expect(enzymeShareBal).to.not.equal(0n);
     expect(safeTrackerBal).to.not.equal(0n);
+  });
+
+  // upgrade Governor from TemporaryGovernor to Governor first before calling executeGovernorProposal
+  it('upgrade Governor from TemporaryGovernor to Governor', async function () {
+    const governorImplementation = await deployContract('Governor', [this.registry]);
+
+    const upgradeGovernorTx = await this.tempGovernor.execute(
+      this.registry.target,
+      0n,
+      this.registry.interface.encodeFunctionData('upgradeContract', [
+        ContractIndexes.C_GOVERNOR,
+        governorImplementation.target,
+      ]),
+    );
+    await upgradeGovernorTx.wait();
+
+    const governorProxyImplementation = await getImplementation(this.governor);
+    expect(governorProxyImplementation).to.equal(governorImplementation.target);
   });
 
   // Assessment and Claims

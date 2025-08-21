@@ -40,6 +40,8 @@ interface IRegistry {
   function switchTo(address to) external;
   function switchFor(address from, address to) external;
   function leave() external;
+  function setKycAuthAddress(address kycAuthAddress) external;
+  function getKycAuthAddress() external view returns (address);
 
   /* == ADVISORY BOARD MANAGEMENT == */
   function isAdvisoryBoardMember(address member) external view returns (bool);

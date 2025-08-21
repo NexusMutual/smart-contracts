@@ -184,6 +184,10 @@ contract Registry is IRegistry, EIP712 {
     membersMeta.kycAuthAddress = _kycAuthAddress;
   }
 
+  function getKycAuthAddress() external view returns (address) {
+    return membersMeta.kycAuthAddress;
+  }
+
   /* == ADVISORY BOARD MANAGEMENT == */
   function isAdvisoryBoardMember(address member) external view returns (bool) {
     uint memberId = memberIds[member];

@@ -98,7 +98,7 @@ it('calling unstakeAllForBatch should return user stake', async function () {
 
   // Unstake all for batch using the legacy assessment contract
   const hugh = await getSigner('0x87b2a7559d85f4653f13e6546a14189cd5455d45');
-  const tx = await legacyAssessment.connect(hugh).unstakeAllForBatch(membersWithStake, { gasLimit: 21e6 });
+  const tx = await legacyAssessment.connect(hugh).unstakeAllForBatch(membersWithStake);
   await tx.wait();
 
   // Verify each member now has 0 stake and correct NXM balance

@@ -3,6 +3,7 @@ const { time } = require('@nomicfoundation/hardhat-network-helpers');
 const assert = require('assert');
 
 const { AbiCoder, JsonRpcProvider, JsonRpcSigner, keccak256, toBeHex, zeroPadValue } = ethers;
+const { toBytes2 } = require('../../lib/helpers');
 
 const defaultAbiCoder = AbiCoder.defaultAbiCoder();
 
@@ -100,10 +101,6 @@ const Aave = {
   VARIABLE_DEBT_USDC_ADDRESS: '0x72E95b8931767C79bA4EeE721354d6E99a61D004',
 };
 
-// const ratioScale = BigNumber.from('10000');
-
-// const ListIdForReceivers = 218;
-
 async function submitGovernanceProposal(categoryId, actionData, signers, gv, skipAcceptedValidation = false) {
   const id = await gv.getProposalLength();
 
@@ -115,7 +112,7 @@ async function submitGovernanceProposal(categoryId, actionData, signers, gv, ski
 
   await Promise.all(signers.map(signer => gv.connect(signer).submitVote(id, 1)));
 
-  const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
+  const tx = await gv.closeProposal(id);
   const receipt = await tx.wait();
 
   assert(
@@ -147,15 +144,10 @@ async function executeGovernorProposal(
 
   // get proposal id
   const proposalId = await governor.proposalCount();
-  console.log(`Governor proposal ${proposalId} created`);
 
   // vote for
   const voteFor = 1;
-  await Promise.all(
-    abMembers.map(async voter => {
-      return governor.connect(voter).vote(proposalId, voteFor);
-    }),
-  );
+  await Promise.all(abMembers.map(async voter => governor.connect(voter).vote(proposalId, voteFor)));
 
   // fast forward time
   await time.increase(4 * 24 * 3600 + 1);
@@ -165,51 +157,6 @@ async function executeGovernorProposal(
   console.log(`Governor proposal ${proposalId} executed`);
 }
 
-// async function submitMemberVoteGovernanceProposal(categoryId, actionData, signers, gv) {
-//   const id = await gv.getProposalLength();
-//   await evm.connect(ethers.provider);
-
-//   console.log(`Proposal ${id}`);
-
-//   await gv.connect(signers[0]).createProposal('', '', '', 0);
-//   await gv.connect(signers[0]).categorizeProposal(id, categoryId, 0);
-//   await gv.connect(signers[0]).submitProposalWithSolution(id, '', actionData);
-
-//   await Promise.all(signers.map(signer => gv.connect(signer).submitVote(id, 1)));
-
-//   await evm.increaseTime(7 * 24 * 3600); // for DMCI it needs time to pass or to have over 8k voters
-
-//   const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
-//   const receipt = await tx.wait();
-
-//   await evm.increaseTime(24 * 3600);
-
-//   assert.equal(
-//     receipt.events.some(x => x.event === 'ProposalAccepted' && x.address === gv.address),
-//     true,
-//     'ProposalAccepted was expected',
-//   );
-
-//   const triggerTx = await gv.triggerAction(id);
-//   const triggerTxReceipt = await triggerTx.wait();
-//   assert.equal(
-//     triggerTxReceipt.events.some(x => x.event === 'ActionSuccess' && x.address === gv.address),
-//     true,
-//     'ActionSuccess was expected',
-//   );
-
-//   const proposal = await gv.proposal(id);
-//   assert.equal(proposal[2].toNumber(), 3, 'Proposal Status != ACCEPTED');
-// }
-
-// const getSigner = async address => {
-//   const provider =
-//     network.name !== 'hardhat' // ethers errors out when using non-local accounts
-//       ? new ethers.providers.JsonRpcProvider(network.config.url)
-//       : ethers.provider;
-//   return provider.getSigner(address);
-// };
-
 const getSigner = async address => {
   if (network.name !== 'hardhat') {
     const jsonProvider = new JsonRpcProvider(network.config.url);
@@ -218,152 +165,6 @@ const getSigner = async address => {
 
   return ethers.getSigner(address);
 };
-
-// const toBytes = (string, size = 32) => {
-//   assert(string.length <= size, `String is too long to fit in ${size} bytes`);
-//   return '0x' + Buffer.from(string.padEnd(size, '\0')).toString('hex');
-// };
-
-// const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === code).address;
-
-// const fund = async (from, to) => from.sendTransaction({ to, value: parseEther('1000') });
-
-// const unlock = async address => {
-//   await ethers.provider.send('hardhat_impersonateAccount', [address]);
-//   return await ethers.getSigner(address);
-// };
-
-// async function enableAsEnzymeReceiver(receiverAddress) {
-//   await evm.connect(ethers.provider);
-
-//   const comptroller = await ethers.getContractAt(
-//     'IEnzymeV4Comptroller',
-//     EnzymeAdress.ENZYME_COMPTROLLER_PROXY_ADDRESS,
-//   );
-//   const vault = await ethers.getContractAt('IEnzymeV4Vault', EnzymeAdress.ENZYMEV4_VAULT_PROXY_ADDRESS);
-//   const ownerAddress = await vault.getOwner();
-
-//   // Unlock and funding vault owner
-//   const owner = await getSigner(ownerAddress);
-//   await evm.impersonate(ownerAddress);
-//   await evm.setBalance(ownerAddress, parseEther('1000'));
-
-//   // Update Enzyme vault receivers
-//   const iface = new ethers.utils.Interface(['function addToList(uint256,address[])']);
-//   const selector = iface.getSighash('addToList');
-//   const receiverArgs = defaultAbiCoder.encode(['uint256', 'address[]'], [ListIdForReceivers, [receiverAddress]]);
-//   await comptroller
-//     .connect(owner)
-//     .vaultCallOnContract(EnzymeAdress.ENZYME_ADDRESS_LIST_REGISTRY, selector, receiverArgs);
-
-//   // Check that Enzyme vault receivers contains the Pool address
-//   const registry = await ethers.getContractAt('IAddressListRegistry', EnzymeAdress.ENZYME_ADDRESS_LIST_REGISTRY);
-//   const inReceiverList = await registry.isInList(ListIdForReceivers, receiverAddress);
-//   assert.equal(inReceiverList, true);
-// }
-
-// // Returns any products that are initialized have target weight > 0
-// // These products should be able to be bought if there is capacity
-// async function getActiveProductsInPool(params) {
-//   const { stakingProducts, cover } = this;
-//   const { poolId } = params;
-
-//   // get products from staking pool and discard if not initialized
-//   const numProducts = await cover.productsCount();
-//   const productsInThisPool = [];
-
-//   // TODO: multicall
-//   for (let i = 0; i < numProducts; i++) {
-//     const { targetWeight, lastEffectiveWeight, bumpedPrice, bumpedPriceUpdateTime, targetPrice } =
-//       await stakingProducts.getProduct(poolId, i);
-
-//     if (ethers.constants.One.mul(bumpedPrice).isZero()) {
-//       continue;
-//     }
-
-//     if (ethers.constants.One.mul(targetWeight).eq(0)) {
-//       continue;
-//     }
-//     productsInThisPool.push({
-//       targetWeight,
-//       lastEffectiveWeight,
-//       productId: i,
-//       bumpedPrice,
-//       targetPrice,
-//       bumpedPriceUpdateTime,
-//     });
-//   }
-//   return productsInThisPool;
-// }
-
-// async function getConfig() {
-//   let { cover, stakingPool, stakingProducts } = this;
-
-//   if (stakingPool === undefined) {
-//     stakingPool = await ethers.getContractAt('StakingPool', await cover.stakingPool(1));
-//   }
-
-//   const config = {
-//     PRICE_CHANGE_PER_DAY: stakingProducts.PRICE_CHANGE_PER_DAY(),
-//     PRICE_BUMP_RATIO: stakingProducts.PRICE_BUMP_RATIO(),
-//     NXM_PER_ALLOCATION_UNIT: stakingPool.NXM_PER_ALLOCATION_UNIT(),
-//     ALLOCATION_UNITS_PER_NXM: stakingPool.ALLOCATION_UNITS_PER_NXM(),
-//     INITIAL_PRICE_DENOMINATOR: stakingProducts.INITIAL_PRICE_DENOMINATOR(),
-//     REWARDS_DENOMINATOR: stakingPool.REWARDS_DENOMINATOR(),
-//     WEIGHT_DENOMINATOR: stakingPool.WEIGHT_DENOMINATOR(),
-//     CAPACITY_REDUCTION_DENOMINATOR: stakingPool.CAPACITY_REDUCTION_DENOMINATOR(),
-//     TARGET_PRICE_DENOMINATOR: stakingProducts.TARGET_PRICE_DENOMINATOR(),
-//     POOL_FEE_DENOMINATOR: stakingPool.POOL_FEE_DENOMINATOR(),
-//     GLOBAL_CAPACITY_DENOMINATOR: stakingPool.GLOBAL_CAPACITY_DENOMINATOR(),
-//     TRANCHE_DURATION: stakingProducts.TRANCHE_DURATION(),
-//     GLOBAL_CAPACITY_RATIO: cover.globalCapacityRatio(),
-//     GLOBAL_REWARDS_RATIO: cover.getGlobalRewardsRatio(),
-//     DEFAULT_MIN_PRICE_RATIO: cover.DEFAULT_MIN_PRICE_RATIO(),
-//   };
-//   await Promise.all(Object.keys(config).map(async key => (config[key] = await config[key])));
-//   return config;
-// }
-
-// async function upgradeMultipleContracts(params) {
-//   const { codes, addresses } = params;
-
-//   const contractCodes = codes.map(code => ethers.utils.toUtf8Bytes(code));
-//   const governance = await ethers.getContractAt('Governance', V2Addresses.Governance);
-
-//   const implAddresses = addresses.map(c => c.address);
-//   const memberRoles = await ethers.getContractAt('MemberRoles', V2Addresses.MemberRoles);
-//   const { memberArray: abMembersAddresses } = await memberRoles.members(1);
-
-//   // Impersonate and fund advisory board members
-//   await Promise.all(abMembersAddresses.map(addr => setEtherBalance(addr, parseEther('1000'))));
-//   const abMembers = await Promise.all(abMembersAddresses.map(addr => ethers.getImpersonatedSigner(addr)));
-
-//   await submitGovernanceProposal(
-//     PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
-//     defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, implAddresses]),
-//     abMembers,
-//     governance,
-//   );
-//   return abMembers;
-// }
-
-// /**
-//  * Formats the result of master.getInternalContracts() to a readable logging format
-//  */
-// function formatInternalContracts({ _contractAddresses, _contractCodes }) {
-//   return _contractCodes.map((code, i) => {
-//     const index = `${i}`.padStart(2, '0');
-//     return `[${index}] ${Buffer.from(code.slice(2), 'hex')} -> ${_contractAddresses[i]}`;
-//   });
-// }
-
-// function calculateProxyAddress(masterAddress, salt) {
-//   const { bytecode } = artifacts.readArtifactSync('OwnedUpgradeabilityProxy');
-//   const initCode = bytecode + defaultAbiCoder.encode(['address'], [MaxAddress]).slice(2);
-//   const initCodeHash = keccak256(initCode);
-//   const saltHex = Buffer.from(salt.toString(16).padStart(64, '0'), 'hex');
-//   return ethers.utils.getCreate2Address(masterAddress, saltHex, initCodeHash);
-// }
 
 async function calculateCurrentTrancheId() {
   const timestamp = await time.latest();
@@ -402,30 +203,24 @@ const getImplementation = async proxyAddress => {
   return await proxy.implementation();
 };
 
+async function getContractByContractCode(contractName, contractCode) {
+  this.master = this.master ?? (await ethers.getContractAt('NXMaster', V2Addresses.NXMaster));
+  const contractAddress = await this.master?.getLatestAddress(toBytes2(contractCode));
+  return ethers.getContractAt(contractName, contractAddress);
+}
+
 module.exports = {
   submitGovernanceProposal,
   executeGovernorProposal,
-  // submitMemberVoteGovernanceProposal,
   calculateCurrentTrancheId,
   getSigner,
-  // toBytes,
   Address,
   UserAddress,
   EnzymeAddress,
   PriceFeedOracle,
   AggregatorType,
   Aave,
-  // getAddressByCodeFactory,
-  // fund,
-  // unlock,
-  // ratioScale,
-  // enableAsEnzymeReceiver,
-  // V2Addresses,
-  // getConfig,
-  // getActiveProductsInPool,
-  // upgradeMultipleContracts,
-  // formatInternalContracts,
-  // calculateProxyAddress,
+  getContractByContractCode,
   setERC20Balance,
   setUSDCBalance,
   setCbBTCBalance,

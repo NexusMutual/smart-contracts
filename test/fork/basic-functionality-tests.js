@@ -70,6 +70,10 @@ describe('basic functionality tests', function () {
 
   it('load token contracts', async function () {
     const rammAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_RAMM);
+    const assessmentAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENT);
+    const claimsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_CLAIMS);
+    this.assessment = await ethers.getContractAt('Assessment', assessmentAddress);
+    this.claims = await ethers.getContractAt('Claims', claimsAddress);
     this.ramm = await ethers.getContractAt('Ramm', rammAddress);
     this.dai = await ethers.getContractAt('ERC20Mock', Address.DAI_ADDRESS);
     this.usdc = await ethers.getContractAt('ERC20Mock', Address.USDC_ADDRESS);
@@ -108,7 +112,7 @@ describe('basic functionality tests', function () {
 
     const txs = [
       {
-        target: this.registry,
+        target: this.registry.target,
         data: this.registry.interface.encodeFunctionData('upgradeContract', [
           ContractIndexes.C_GOVERNOR,
           newGovernor.target,
@@ -342,9 +346,7 @@ describe('basic functionality tests', function () {
     ];
 
     const stakingPoolCountBefore = await this.stakingPoolFactory.stakingPoolCount();
-    await this.stakingProducts
-      .connect(manager)
-      .createStakingPool(false, 5, 5, products, 'description', { gasLimit: 21e6 });
+    await this.stakingProducts.connect(manager).createStakingPool(false, 5, 5, products, 'description');
     const stakingPoolCountAfter = await this.stakingPoolFactory.stakingPoolCount();
 
     poolId = stakingPoolCountAfter;

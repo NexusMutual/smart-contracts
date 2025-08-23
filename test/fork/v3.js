@@ -46,6 +46,9 @@ async function getPoolBalances(thisParam, poolAddress, prefix) {
 // Fork tests
 describe('v3 launch', function () {
   before(async function () {
+    this.EMERGENCY_ADMIN = EMERGENCY_ADMIN_1;
+    this.EMERGENCY_ADMIN_2 = EMERGENCY_ADMIN_2;
+
     // Initialize evm helper
     const provider =
       network.name !== 'hardhat' // ethers errors out when using non-local accounts
@@ -151,12 +154,11 @@ describe('v3 launch', function () {
 
     // upgrade NXMaster
     const masterImplementation = await deployContract('NXMaster', []);
-    const masterUpgradeTx = await this.tempGovernance.execute(
+    await this.tempGovernance.execute(
       this.master.target,
       0n,
       this.registryProxy.interface.encodeFunctionData('upgradeTo', [masterImplementation.target]),
     );
-    await masterUpgradeTx.wait();
     console.log('master upgraded');
 
     // transfer all master contracts proxy ownership to registry
@@ -164,9 +166,8 @@ describe('v3 launch', function () {
     const transferOwnershipCallData = master.interface.encodeFunctionData('transferOwnershipToRegistry', [
       this.registry.target,
     ]);
-    const transferOwnershipTx = await this.tempGovernance.execute(this.master.target, 0n, transferOwnershipCallData);
-    await transferOwnershipTx.wait();
-    console.log('ALL contracts proxy ownership transferred to registry');
+    await this.tempGovernance.execute(this.master.target, 0n, transferOwnershipCallData);
+    console.log('all master contracts proxy ownership transferred to registry');
 
     // deploy tempGovernance as temp governor implementation
     const governorImplementation = await deployContract('TemporaryGovernance', [ADVISORY_BOARD_MULTISIG]);
@@ -183,13 +184,16 @@ describe('v3 launch', function () {
       ethers.encodeBytes32String('assessmentSalt'),
       ethers.encodeBytes32String('claimsSalt'),
     ]);
-    const registryMigrateTx = await this.tempGovernance.execute(this.registry.target, 0n, registryMigrateCallData);
-    await registryMigrateTx.wait();
+    await this.tempGovernance.execute(this.registry.target, 0n, registryMigrateCallData);
     console.log('registry.migrate done');
 
-    // get governor contract
+    // governor
     const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
     this.governor = await ethers.getContractAt('Governor', governorAddress);
+
+    // tempGovernor
+    this.tempGovernor = await ethers.getContractAt('TemporaryGovernance', governorAddress);
+    this.tempGovernor = this.tempGovernor.connect(this.multisigSigner);
 
     // transfer registry proxy ownership from deployer to governor
     const [deployer] = await ethers.getSigners();
@@ -288,11 +292,6 @@ describe('v3 launch', function () {
    * - pool.migrate
    */
   it('should run phase 3', async function () {
-    // connect multisig signer to tempGovernor
-    const tempGovernorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
-    this.tempGovernor = await ethers.getContractAt('TemporaryGovernance', tempGovernorAddress);
-    this.tempGovernor = this.tempGovernor.connect(this.multisigSigner);
-
     // registry settings and contract upgrades
     const txs = [
       // set emergency admins
@@ -305,6 +304,11 @@ describe('v3 launch', function () {
         target: this.registry.target,
         value: 0n,
         data: this.registry.interface.encodeFunctionData('setEmergencyAdmin', [this.EMERGENCY_ADMIN_2, true]),
+      },
+      {
+        target: this.registry.target,
+        value: 0n,
+        data: this.registry.interface.encodeFunctionData('setEmergencyAdmin', [EMERGENCY_ADMIN_2, true]),
       },
       // set kyc auth address
       {
@@ -343,33 +347,33 @@ describe('v3 launch', function () {
     expect(await ethers.provider.getBalance(poolAddress)).to.be.gt(poolBalanceBefore);
     console.log('MemberRoles ETH recovered to pool');
 
+    const oldPoolAddress = this.pool.target;
+    await getPoolBalances(this, oldPoolAddress, 'OLD POOL BALANCES BEFORE MASTER/POOL MIGRATION');
+
     // master.migrate
     this.master = await ethers.getContractAt('NXMaster', this.master.target); // get upgraded master contract
-    const migrateData = this.master.interface.encodeFunctionData('migrate', [this.registry.target]);
-    const masterMigrateTx = await this.tempGovernance.execute(this.master.target, 0n, migrateData);
-    await masterMigrateTx.wait();
-    console.log('master migrated');
+
+    await this.tempGovernance.execute(
+      this.master.target,
+      0n,
+      this.master.interface.encodeFunctionData('migrate', [this.registry.target]),
+    );
 
     // pool.migrate
-    const oldPoolAddress = this.pool.target;
-
     const newPoolAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_POOL);
     this.pool = await ethers.getContractAt('Pool', newPoolAddress);
 
-    const poolMigrateTx = await this.tempGovernor.execute(
+    await this.tempGovernor.execute(
       this.pool.target,
       0n,
       this.pool.interface.encodeFunctionData('migrate', [oldPoolAddress, this.mcr.target]),
     );
-    await poolMigrateTx.wait();
     console.log('pool migrated');
-
-    await getPoolBalances(this, oldPoolAddress, 'OLD POOL BALANCES AFTER POOL.MIGRATION');
 
     const [ethBalance, usdcBal, cbBTCBal, rEthBal, stEthBal, enzymeShareBal, safeTrackerBal] = await getPoolBalances(
       this,
       this.pool.target,
-      'NEW POOL BALANCES AFTER POOL.MIGRATION',
+      'NEW POOL BALANCES AFTER MASTEr/POOL MIGRATION',
     );
 
     expect(ethBalance).to.not.equal(0n);
@@ -381,11 +385,31 @@ describe('v3 launch', function () {
     expect(safeTrackerBal).to.not.equal(0n);
   });
 
-  // upgrade Governor from TemporaryGovernor to Governor first before calling executeGovernorProposal
-  it('upgrade Governor from TemporaryGovernor to Governor', async function () {
-    const governorImplementation = await deployContract('Governor', [this.registry]);
+  /**
+   * Phase 4
+   * initialize claims contract
+   * upgrade Governor from TemporaryGovernor to Governor
+   */
 
-    const upgradeGovernorTx = await this.tempGovernor.execute(
+  it('should run phase 4', async function () {
+    const [governorImplementation, claimsAddress, nextClaimId] = await Promise.all([
+      deployContract('Governor', [this.registry]),
+      this.registry.getContractAddressByIndex(ContractIndexes.C_CLAIMS),
+      this.individualClaims.getClaimsCount(),
+    ]);
+
+    this.claims = await ethers.getContractAt('Claims', claimsAddress);
+    const latestClaimId = nextClaimId - 1n;
+
+    // Claims.initialize
+    await this.tempGovernor.execute(
+      this.claims.target,
+      0n,
+      this.claims.interface.encodeFunctionData('initialize', [latestClaimId]),
+    );
+
+    // upgrade Governor from TemporaryGovernor to Governor (last step)
+    await this.tempGovernor.execute(
       this.registry.target,
       0n,
       this.registry.interface.encodeFunctionData('upgradeContract', [
@@ -393,14 +417,16 @@ describe('v3 launch', function () {
         governorImplementation.target,
       ]),
     );
-    await upgradeGovernorTx.wait();
 
     const governorProxyImplementation = await getImplementation(this.governor);
     expect(governorProxyImplementation).to.equal(governorImplementation.target);
+
+    expect(await this.claims.getClaimsCount()).to.be.equal(latestClaimId);
+    console.log('claims initialized and governor upgraded');
   });
 
   // Assessment and Claims
-  // require('./assessment-claims');
+  require('./assessment-claims');
 
   // Basic functionality tests
   require('./basic-functionality-tests');

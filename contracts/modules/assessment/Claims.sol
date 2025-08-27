@@ -26,6 +26,8 @@ contract Claims is IClaims, RegistryAware {
   // cover as long as the last submitted claim reached a final state.
   mapping(uint coverId => uint claimId) public lastClaimSubmissionOnCover;
 
+  mapping(uint memberId => uint[] claimIds) private _memberClaims;
+
   uint private _nextClaimId;
 
   /* =========== IMMUTABLES =========== */
@@ -66,6 +68,10 @@ contract Claims is IClaims, RegistryAware {
 
   function getClaimInfo(uint claimId) external override view returns (Claim memory) {
     return _claims[claimId];
+  }
+
+  function getMemberClaims(uint memberId) external view returns (uint[] memory) {
+    return _memberClaims[memberId];
   }
 
   /// Returns a Claim aggregated in a human-friendly format.
@@ -152,10 +158,14 @@ contract Claims is IClaims, RegistryAware {
     uint32 coverId,
     uint96 requestedAmount,
     bytes32 ipfsMetadata
-  ) external payable override onlyMember whenNotPaused(PAUSE_CLAIMS) returns (Claim memory claim) {
+  ) external payable override whenNotPaused(PAUSE_CLAIMS) returns (Claim memory claim) {
+
+    uint memberId = registry.getMemberId(msg.sender);
+    require(memberId > 0, OnlyMember());
     require(coverNFT.ownerOf(coverId) == msg.sender, NotCoverOwner());
 
     uint claimId = _nextClaimId++;
+    _memberClaims[memberId].push(claimId);
 
     {
       uint previousSubmission = lastClaimSubmissionOnCover[coverId];

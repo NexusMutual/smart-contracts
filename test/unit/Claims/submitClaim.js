@@ -287,6 +287,24 @@ describe('submitClaim', function () {
     expect(claim.depositRetrieved).to.be.false;
   });
 
+  it('pushes claimId to memberClaims', async function () {
+    const fixture = await loadFixture(setup);
+    const { claims, cover, registry } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
+
+    const claimAmount = parseEther('50');
+    await createMockCover(cover, { owner: coverOwner.address, amount: parseEther('100'), coverAsset: ASSET.DAI });
+
+    const coverId = 1;
+    const claimId = (await claims.getClaimsCount()) + 1n;
+
+    await submitClaim(fixture)({ coverId, amount: claimAmount, sender: coverOwner });
+
+    const memberId = await registry.getMemberId(coverOwner.address);
+    const memberClaims = await claims.getMemberClaims(memberId);
+    expect(memberClaims).to.deep.equal([claimId]);
+  });
+
   it('correctly tracks payoutRedeemed and depositRetrieved through claim lifecycle', async function () {
     const fixture = await loadFixture(setup);
     const { cover, assessment, claims } = fixture.contracts;

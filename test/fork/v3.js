@@ -176,6 +176,7 @@ describe('v3 launch', function () {
       governorImplementation.target,
       this.coverNFT.target,
       this.stakingNFT.target,
+      this.stakingPoolFactory.target,
       this.nxm.target,
       ethers.encodeBytes32String('governorSalt'),
       ethers.encodeBytes32String('poolSalt'),

@@ -314,6 +314,7 @@ contract Registry is IRegistry, EIP712 {
     address governorImplementation,
     address coverNFT,
     address stakingNFT,
+    address stakingPoolFactory,
     address token,
     bytes32 governorSalt,
     bytes32 poolSalt,
@@ -337,6 +338,7 @@ contract Registry is IRegistry, EIP712 {
     _addContract(C_TOKEN, token, false);
     _addContract(C_COVER_NFT, coverNFT, false);
     _addContract(C_STAKING_NFT, stakingNFT, false);
+    _addContract(C_STAKING_POOL_FACTORY, stakingPoolFactory, false);
 
     _addContract(C_STAKING_PRODUCTS, master.getLatestAddress("SP"), true);
     _addContract(C_COVER, master.getLatestAddress("CO"), true);

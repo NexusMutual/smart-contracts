@@ -128,7 +128,7 @@ contract CoverBroker is ICoverBroker, RegistryAware, Ownable {
   /// @notice Allows the Cover contract to spend the maximum possible amount of a specified ERC20 token on behalf of the CoverBroker.
   /// @param erc20 The ERC20 token for which to approve spending.
   function maxApproveCoverContract(IERC20 erc20) external onlyOwner {
-    erc20.safeApprove(address(cover), type(uint256).max);
+    erc20.approve(address(cover), type(uint256).max);
   }
 
   /// @notice Switches CoverBroker's membership to a new address.

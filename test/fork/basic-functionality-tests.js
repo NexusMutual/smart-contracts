@@ -4,12 +4,10 @@ const { expect } = require('chai');
 const { abis, addresses } = require('@nexusmutual/deployments');
 
 const {
-  Aave,
-  Address,
-  calculateCurrentTrancheId,
-  EnzymeAddress,
+  Addresses,
   executeGovernorProposal,
   getImplementation,
+  getTrancheId,
   setCbBTCBalance,
   setERC20Balance,
   setUSDCBalance,
@@ -17,13 +15,10 @@ const {
 
 const { deployContract, formatEther, ZeroAddress, MaxUint256, parseEther, parseUnits } = ethers;
 const { ContractIndexes } = nexus.constants;
-const { USDC_ADDRESS } = Address;
 
 // eslint-disable-next-line no-unused-vars
 let custodyProductId, custodyCoverId, protocolProductId, protocolCoverId;
 let poolId, trancheId, tokenId;
-
-const GNOSIS_SAFE_ADDRESS = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';
 
 // eslint-disable-next-line no-unused-vars
 const parseError = (error, contract) => {
@@ -48,15 +43,6 @@ const parseError = (error, contract) => {
   throw error;
 };
 
-const getCapitalSupplyAndBalances = async (pool, tokenController, nxm, memberAddress) => {
-  return {
-    ethCapital: await pool.getPoolValueInEth(),
-    nxmSupply: await tokenController.totalSupply(),
-    ethBalance: await ethers.provider.getBalance(memberAddress),
-    nxmBalance: await nxm.balanceOf(memberAddress),
-  };
-};
-
 describe('basic functionality tests', function () {
   before(async function () {
     // Initialize evm helper
@@ -65,28 +51,24 @@ describe('basic functionality tests', function () {
       await this.evm.connect(ethers.provider);
       await this.evm.increaseTime(7 * 24 * 3600); // +7 days
     }
-    trancheId = await calculateCurrentTrancheId();
+    trancheId = await getTrancheId(await time.latest());
   });
 
   it('load token contracts', async function () {
     const rammAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_RAMM);
     this.ramm = await ethers.getContractAt('Ramm', rammAddress);
-    this.dai = await ethers.getContractAt('ERC20Mock', Address.DAI_ADDRESS);
-    this.usdc = await ethers.getContractAt('ERC20Mock', Address.USDC_ADDRESS);
-    this.rEth = await ethers.getContractAt('ERC20Mock', Address.RETH_ADDRESS);
-    this.stEth = await ethers.getContractAt('ERC20Mock', Address.STETH_ADDRESS);
-    this.awEth = await ethers.getContractAt('ERC20Mock', Address.AWETH_ADDRESS);
-    this.enzymeShares = await ethers.getContractAt('ERC20Mock', EnzymeAddress.ENZYMEV4_VAULT_PROXY_ADDRESS);
-    this.aaveUsdcVariableDebtToken = await ethers.getContractAt(
-      ['function balanceOf(address) view returns (uint256)'],
-      Aave.VARIABLE_DEBT_USDC_ADDRESS,
-    );
+    this.dai = await ethers.getContractAt('ERC20Mock', Addresses.DAI_ADDRESS);
+    this.usdc = await ethers.getContractAt('ERC20Mock', Addresses.USDC_ADDRESS);
+    this.rEth = await ethers.getContractAt('ERC20Mock', Addresses.RETH_ADDRESS);
+    this.stEth = await ethers.getContractAt('ERC20Mock', Addresses.STETH_ADDRESS);
+    this.awEth = await ethers.getContractAt('ERC20Mock', Addresses.AWETH_ADDRESS);
+    this.enzymeShares = await ethers.getContractAt('ERC20Mock', Addresses.ENZYMEV4_VAULT_PROXY_ADDRESS);
+    this.aaveUsdcVariableDebtToken = await ethers.getContractAt('ERC20Mock', Addresses.VARIABLE_DEBT_USDC_ADDRESS);
+    this.cbbtc = await ethers.getContractAt('ERC20Mock', Addresses.CBBTC_ADDRESS);
   });
 
-  it('Generate wallets', async function () {
+  it('funds wallets', async function () {
     this.nxm = await ethers.getContractAt(abis.NXMToken, addresses.NXMToken);
-    this.usdc = await ethers.getContractAt('ERC20Mock', Address.USDC_ADDRESS);
-    this.cbbtc = await ethers.getContractAt('ERC20Mock', Address.CBBTC_ADDRESS);
 
     const accounts = await ethers.getSigners();
     this.members = accounts.slice(1, 15);
@@ -103,7 +85,7 @@ describe('basic functionality tests', function () {
     await setCbBTCBalance(this.cbbtc.target, this.cbBTCHolder.address, parseUnits('100', 8));
   });
 
-  it('Performs hypothetical future Governor upgrade', async function () {
+  it('performs hypothetical future Governor upgrade', async function () {
     const newGovernor = await deployContract('Governor', [this.registry]);
 
     const txs = [
@@ -147,96 +129,79 @@ describe('basic functionality tests', function () {
       await this.registry.join(member, signature, { value: JOINING_FEE });
       expect(await this.registry.isMember(member.address)).to.be.true;
     }
-
-    // enroll coverBroker as member
-    const signature = await nexus.membership.signJoinMessage(
-      this.kycAuthSigner,
-      this.coverBroker.target,
-      this.registry,
-      { chainId },
-    );
-
-    await this.registry.join(this.coverBroker.target, signature, { value: JOINING_FEE });
-    expect(await this.registry.isMember(this.coverBroker.target)).to.be.true;
   });
 
-  it.skip('Swap NXM for ETH', async function () {
+  it('Swap NXM for ETH', async function () {
     const [member] = this.members;
     const nxmIn = parseEther('1');
-    const minEthOut = parseEther('0.0152');
+    const minEthOut = parseEther('0.022');
+    const maxEthOut = parseEther('0.024');
 
-    const awEthBefore = await this.awEth.balanceOf(GNOSIS_SAFE_ADDRESS);
-    const aaveDebtBefore = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
-    const before = await getCapitalSupplyAndBalances(this.pool, this.tokenController, this.nxm, member._address);
-
+    await this.nxm.connect(member).approve(this.tokenController, nxmIn);
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
 
+    const poolEthBefore = await ethers.provider.getBalance(this.pool);
+    const memberEthBefore = await ethers.provider.getBalance(member);
+    const memberNxmBefore = await this.nxm.balanceOf(member);
+    const nxmSupplyBefore = await this.nxm.totalSupply();
+
     await this.evm.setNextBlockBaseFee(0);
     const tx = await this.ramm.connect(member).swap(nxmIn, minEthOut, deadline, { maxPriorityFeePerGas: 0 });
-    const receipt = await tx.wait();
 
-    const awEthAfter = await this.awEth.balanceOf(GNOSIS_SAFE_ADDRESS);
-    const aaveDebtAfter = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
-    const aaveDebtDiff = aaveDebtAfter - aaveDebtBefore;
-    const after = await getCapitalSupplyAndBalances(this.pool, this.tokenController, this.nxm, member._address);
+    const poolEthAfter = await ethers.provider.getBalance(this.pool);
+    const memberEthAfter = await ethers.provider.getBalance(member);
+    const memberNxmAfter = await this.nxm.balanceOf(member);
+    const nxmSupplyAfter = await this.nxm.totalSupply();
 
-    const ethDebt = await this.priceFeedOracle.getEthForAsset(USDC_ADDRESS, aaveDebtDiff);
-    const awEthRewards = awEthAfter - awEthBefore;
+    const memberEthReceived = memberEthAfter - memberEthBefore;
+    const actualEthOut = poolEthBefore - poolEthAfter;
+    expect(memberEthReceived).to.be.equal(actualEthOut);
+    expect(actualEthOut).to.be.gte(minEthOut);
+    expect(actualEthOut).to.be.lte(maxEthOut);
 
-    const ethReceived = after.ethBalance - before.ethBalance;
-    const nxmSwappedForEthFilter = this.ramm.filters.NxmSwappedForEth(member.address);
-    const nxmSwappedForEthEvents = await this.ramm.queryFilter(nxmSwappedForEthFilter, receipt.blockNumber);
-    const ethOut = nxmSwappedForEthEvents[0]?.args?.ethOut;
+    const memberNxmSent = memberNxmBefore - memberNxmAfter;
+    expect(memberNxmSent).to.be.equal(nxmIn);
+    expect(memberNxmAfter).to.be.equal(memberNxmBefore - nxmIn);
+    expect(nxmSupplyAfter).to.be.equal(nxmSupplyBefore - memberNxmSent);
 
-    // ETH goes out of capital pool and debt and rewards are added
-    const expectedCapital = before.ethCapital - ethReceived - ethDebt + awEthRewards;
-
-    expect(ethOut).to.be.equal(ethReceived);
-    expect(after.nxmBalance).to.be.equal(before.nxmBalance - nxmIn); // member sends NXM
-    expect(after.nxmSupply).to.be.equal(before.nxmSupply - nxmIn); // nxmIn is burned
-    expect(after.ethCapital).to.be.closeTo(expectedCapital, 1); // time sensitive due to rewards and debt
-    expect(after.ethBalance).to.be.equal(before.ethBalance + ethOut); // member receives ETH
+    await expect(tx).to.emit(this.ramm, 'NxmSwappedForEth').withArgs(member, memberNxmSent, actualEthOut);
   });
 
-  it.skip('Swap ETH for NXM', async function () {
-    const [member] = this.member;
-    const ethIn = parseEther('1');
-    const minNxmOut = parseEther('28.8');
+  it('Swap ETH for NXM', async function () {
+    const [member] = this.members;
+    const ethIn = parseEther('0.024');
+    const minNxmOut = parseEther('0.95');
+    const maxNxmOut = parseEther('1.05');
 
-    const awEthBefore = await this.awEth.balanceOf(GNOSIS_SAFE_ADDRESS);
-    const aaveDebtBefore = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
-    const before = await getCapitalSupplyAndBalances(this.pool, this.tokenController, this.nxm, member._address);
+    const poolEthBefore = await ethers.provider.getBalance(this.pool);
+    const memberEthBefore = await ethers.provider.getBalance(member);
+    const memberNxmBefore = await this.nxm.balanceOf(member);
+    const nxmSupplyBefore = await this.nxm.totalSupply();
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
 
     await this.evm.setNextBlockBaseFee(0);
     const tx = await this.ramm.connect(member).swap(0, minNxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
-    const receipt = await tx.wait();
 
-    const after = await getCapitalSupplyAndBalances(this.pool, this.tokenController, this.nxm, member._address);
+    const poolEthAfter = await ethers.provider.getBalance(this.pool);
+    const memberEthAfter = await ethers.provider.getBalance(member);
+    const memberNxmAfter = await this.nxm.balanceOf(member);
+    const nxmSupplyAfter = await this.nxm.totalSupply();
 
-    const awEthAfter = await this.awEth.balanceOf(GNOSIS_SAFE_ADDRESS);
-    const aaveDebtAfter = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
-    const aaveDebtDiff = aaveDebtAfter - aaveDebtBefore;
+    const memberNxmReceived = memberNxmAfter - memberNxmBefore;
+    const actualNxmMinted = nxmSupplyAfter - nxmSupplyBefore;
+    expect(memberNxmReceived).to.be.equal(actualNxmMinted);
+    expect(actualNxmMinted).to.be.gte(minNxmOut);
+    expect(actualNxmMinted).to.be.lte(maxNxmOut);
 
-    const ethDebt = await this.priceFeedOracle.getEthForAsset(USDC_ADDRESS, aaveDebtDiff);
-    const awEthRewards = awEthAfter - awEthBefore;
+    const memberEthSent = memberEthBefore - memberEthAfter;
+    const actualEthIn = poolEthAfter - poolEthBefore;
+    expect(memberEthSent).to.be.equal(actualEthIn);
+    expect(actualEthIn).to.be.equal(ethIn);
 
-    const nxmReceived = after.nxmBalance - before.nxmBalance;
-    const nxmTransferFilter = this.nxm.filters.Transfer(ZeroAddress, member._address);
-    const nxmTransferEvents = await this.nxm.queryFilter(nxmTransferFilter, receipt.blockNumber);
-    const nxmOut = nxmTransferEvents[0]?.args?.value;
-
-    // ETH goes in the capital pool and aave debt and rewards are added
-    const expectedCapital = before.ethCapital + ethIn - ethDebt + awEthRewards;
-
-    expect(nxmOut).to.be.equal(nxmReceived);
-    expect(after.ethBalance).to.be.equal(before.ethBalance - ethIn); // member sends ETH
-    expect(after.ethCapital).to.be.closeTo(expectedCapital, 1); // time sensitive due to rewards and debt
-    expect(after.nxmSupply).to.be.equal(before.nxmSupply + nxmReceived); // nxmOut is minted
-    expect(after.nxmBalance).to.be.equal(before.nxmBalance + nxmOut); // member receives NXM
+    await expect(tx).to.emit(this.ramm, 'EthSwappedForNxm').withArgs(member, actualEthIn, memberNxmReceived);
   });
 
   it('Add product types', async function () {
@@ -245,28 +210,20 @@ describe('basic functionality tests', function () {
         productTypeName: 'x',
         productTypeId: MaxUint256,
         ipfsMetadata: 'protocolCoverIPFSHash',
-        productType: {
-          descriptionIpfsHash: 'protocolCoverIPFSHash',
-          claimMethod: 0,
-          gracePeriod: 30,
-        },
+        productType: { descriptionIpfsHash: 'protocolCoverIPFSHash', claimMethod: 0, gracePeriod: 30 },
       },
       {
         productTypeName: 'y',
         productTypeId: MaxUint256,
         ipfsMetadata: 'custodyCoverIPFSHash',
-        productType: {
-          descriptionIpfsHash: 'custodyCoverIPFSHash',
-          claimMethod: 0,
-          gracePeriod: 90,
-        },
+        productType: { descriptionIpfsHash: 'custodyCoverIPFSHash', claimMethod: 0, gracePeriod: 90 },
       },
     ];
 
     const productTypesCountBefore = await this.coverProducts.getProductTypeCount();
     await this.coverProducts.connect(this.abMembers[0]).setProductTypes(productTypes);
     const productTypesCountAfter = await this.coverProducts.getProductTypeCount();
-    expect(productTypesCountAfter).to.be.equal(productTypesCountBefore + BigInt(productTypes.length));
+    expect(productTypesCountAfter - productTypesCountBefore).to.be.equal(productTypes.length);
   });
 
   it('Add protocol product', async function () {
@@ -345,10 +302,11 @@ describe('basic functionality tests', function () {
     await this.stakingProducts
       .connect(manager)
       .createStakingPool(false, 5, 5, products, 'description', { gasLimit: 21e6 });
+
     const stakingPoolCountAfter = await this.stakingPoolFactory.stakingPoolCount();
+    expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore + 1n);
 
     poolId = stakingPoolCountAfter;
-    expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore + 1n);
 
     const address = await this.cover.stakingPool(poolId);
     this.stakingPool = await ethers.getContractAt('StakingPool', address);
@@ -486,7 +444,7 @@ describe('basic functionality tests', function () {
     const coverBuyer = this.cbBTCHolder;
     const coverBuyerAddress = coverBuyer.address;
 
-    const coverAsset = await this.pool.getAssetId(Address.CBBTC_ADDRESS);
+    const coverAsset = await this.pool.getAssetId(Addresses.CBBTC_ADDRESS);
     const amount = parseUnits('1', 8);
     const commissionRatio = '500'; // 5%
 
@@ -577,7 +535,7 @@ describe('basic functionality tests', function () {
     const coverBuyer = this.usdcHolder;
     const coverBuyerAddress = this.usdcHolder.address;
 
-    const coverAsset = await this.pool.getAssetId(Address.USDC_ADDRESS);
+    const coverAsset = await this.pool.getAssetId(Addresses.USDC_ADDRESS);
     const amount = parseUnits('1000', 6);
     const commissionRatio = '500'; // 5%
 
@@ -706,7 +664,7 @@ describe('basic functionality tests', function () {
     await setBalance(coverBuyerAddress, parseEther('1000'));
     await setUSDCBalance(this.usdc.target, coverBuyer.address, parseEther('1000000'));
 
-    const coverAsset = await this.pool.getAssetId(Address.USDC_ADDRESS);
+    const coverAsset = await this.pool.getAssetId(Addresses.USDC_ADDRESS);
     const amount = parseUnits('1000', 6);
     const coverCountBefore = await this.cover.getCoverDataCount();
 
@@ -741,7 +699,7 @@ describe('basic functionality tests', function () {
     const coverBuyer = this.members[1];
     const coverBuyerAddress = coverBuyer.address;
 
-    const coverAsset = await this.pool.getAssetId(Address.USDC_ADDRESS);
+    const coverAsset = await this.pool.getAssetId(Addresses.USDC_ADDRESS);
     const amount = parseUnits('1000', 6);
     const commissionRatio = '0'; // 0%
 
@@ -839,7 +797,9 @@ describe('basic functionality tests', function () {
 
   it('Gets all pool assets balances before upgrade', async function () {
     // Pool value related info
-    this.aaveDebtBefore = await this.aaveUsdcVariableDebtToken.balanceOf(GNOSIS_SAFE_ADDRESS);
+    const safeAddress = await this.safeTracker.safe();
+
+    this.aaveDebtBefore = await this.aaveUsdcVariableDebtToken.balanceOf(safeAddress);
     this.poolValueBefore = await this.pool.getPoolValueInEth();
     this.ethBalanceBefore = await ethers.provider.getBalance(this.pool.target);
     this.daiBalanceBefore = await this.dai.balanceOf(this.pool.target);
@@ -869,32 +829,34 @@ describe('basic functionality tests', function () {
     // TokenController.sol
     const tokenController = await deployContract('TokenController', [this.registry.target]);
 
+    const stakingPoolImplementation = await this.cover.stakingPoolImplementation();
+
     // Cover.sol
     const cover = await deployContract('Cover', [
-      this.coverNFT.target,
-      this.stakingNFT.target,
-      this.stakingPoolFactory.target,
-      this.stakingPool.target,
+      this.coverNFT,
+      this.stakingNFT,
+      this.stakingPoolFactory,
+      stakingPoolImplementation,
     ]);
 
     const swapOperator = await deployContract('SwapOperator', [
-      this.registry.target,
-      Address.COWSWAP_SETTLEMENT,
-      EnzymeAddress.ENZYMEV4_VAULT_PROXY_ADDRESS,
-      Address.WETH_ADDRESS,
+      this.registry,
+      Addresses.COWSWAP_SETTLEMENT,
+      Addresses.ENZYMEV4_VAULT_PROXY_ADDRESS,
+      Addresses.WETH_ADDRESS,
     ]);
 
     // Pool.sol
-    const pool = await deployContract('Pool', [this.registry.target]);
+    const pool = await deployContract('Pool', [this.registry]);
 
     // Assessment.sol
-    const assessment = await deployContract('Assessment', [this.registry.target]);
+    const assessment = await deployContract('Assessment', [this.registry]);
 
     // Claims
-    const claims = await deployContract('Claims', [this.registry.target]);
+    const claims = await deployContract('Claims', [this.registry]);
 
     // Ramm.sol
-    const ramm = await deployContract('Ramm', [this.registry.target, '0']);
+    const ramm = await deployContract('Ramm', [this.registry, '0']);
 
     const contractUpgrades = [
       { index: ContractIndexes.C_TOKEN_CONTROLLER, address: tokenController.target },
@@ -907,7 +869,7 @@ describe('basic functionality tests', function () {
     ];
 
     const transactions = contractUpgrades.map(c => ({
-      target: this.registry.target,
+      target: this.registry,
       value: 0n,
       data: this.registry.interface.encodeFunctionData('upgradeContract', [c.index, c.address]),
     }));
@@ -975,6 +937,8 @@ describe('basic functionality tests', function () {
     const ownerSigner = await ethers.getSigner(owner);
 
     await this.coverBroker.connect(ownerSigner).switchMembership(newCoverBroker);
+    this.coverBroker = newCoverBroker;
+
     await this.coverBroker.connect(ownerSigner).maxApproveCoverContract(this.cbbtc);
     await this.coverBroker.connect(ownerSigner).maxApproveCoverContract(this.usdc);
 
@@ -984,7 +948,7 @@ describe('basic functionality tests', function () {
     await setBalance(coverBuyerAddress, parseEther('1000'));
     await setUSDCBalance(this.usdc.target, coverBuyer.address, parseEther('1000000'));
 
-    const coverAsset = await this.pool.getAssetId(Address.USDC_ADDRESS);
+    const coverAsset = await this.pool.getAssetId(Addresses.USDC_ADDRESS);
     const amount = parseUnits('1000', 6);
     const coverCountBefore = await this.cover.getCoverDataCount();
 
@@ -1005,6 +969,7 @@ describe('basic functionality tests', function () {
         ipfsData: '',
       },
       [{ poolId, coverAmountInAsset: amount }],
+      { gasLimit: 21e6 },
     );
 
     const coverCountAfter = await this.cover.getCoverDataCount();

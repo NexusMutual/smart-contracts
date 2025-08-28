@@ -1,9 +1,11 @@
 const { ethers, network, nexus } = require('hardhat');
-const { Address, EnzymeAddress, getImplementation, getSigner, submitGovernanceProposal } = require('./utils');
 const { expect } = require('chai');
 const { parseUnits } = require('ethers');
+const { addresses } = require('@nexusmutual/deployments');
 
-const { parseEther, deployContract, toUtf8Bytes, AbiCoder } = ethers;
+const { Addresses, getImplementation, getSigner, submitGovernanceProposal } = require('./utils');
+
+const { AbiCoder, deployContract, parseEther, toBeHex, toUtf8Bytes } = ethers;
 const { ContractCode, ContractIndexes, ProposalCategory } = nexus.constants;
 const { toBytes2 } = nexus.helpers;
 
@@ -14,6 +16,10 @@ const ADVISORY_BOARD_MULTISIG = '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D';
 const KYC_AUTH_ADDRESS = '0x176c27973E0229501D049De626d50918ddA24656';
 const EMERGENCY_ADMIN_1 = '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D';
 const EMERGENCY_ADMIN_2 = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
+
+// "false", "0" and empty strings are evaluated as false
+const truthy = v => !/^(false|0|)$/i.test((v || '').trim());
+const FAST_MIGRATION = truthy(process.env.FAST_MIGRATION);
 
 async function getPoolBalances(thisParam, poolAddress, prefix) {
   // Check old pool balances to see if migration worked
@@ -88,8 +94,8 @@ describe('v3 launch', function () {
     // @TODO: calculate salts for registry and registry proxy
 
     this.registryProxy = await deployContract('UpgradeableProxy', []);
-    const registryImplementation = await deployContract('Registry', [this.registryProxy.target, this.master.target]);
-    await this.registryProxy.upgradeTo(registryImplementation.target);
+    const registryImplementation = await deployContract('Registry', [this.registryProxy, this.master]);
+    await this.registryProxy.upgradeTo(registryImplementation);
     console.log('registry address: ', this.registryProxy.target);
 
     // deploy new implementations
@@ -212,13 +218,12 @@ describe('v3 launch', function () {
     this.memberRoles = await ethers.getContractAt('LegacyMemberRoles', this.memberRoles);
 
     let finishedMigrating = await this.memberRoles.hasFinishedMigrating();
-    const fastMigration = true;
 
     while (!finishedMigrating) {
       console.log('calling memberRoles.migrateMembers(500)');
-      const migrateMembersTx = await this.memberRoles.migrateMembers(500);
+      const migrateMembersTx = await this.memberRoles.migrateMembers(50);
       await migrateMembersTx.wait();
-      finishedMigrating = fastMigration || (await this.memberRoles.hasFinishedMigrating());
+      finishedMigrating = FAST_MIGRATION || (await this.memberRoles.hasFinishedMigrating());
     }
 
     console.log('memberRoles.migrateMembers done');
@@ -231,11 +236,23 @@ describe('v3 launch', function () {
       '0x43f4cd7d153701794ce25a01eFD90DdC32FF8e8E',
     ];
 
-    if (fastMigration) {
+    if (FAST_MIGRATION) {
       await this.evm.impersonate(this.memberRoles.target);
       const mrSigner = await getSigner(this.memberRoles.target);
+
+      // 1. migrate ab members
       await this.registry.connect(mrSigner).migrateMembers(abMembers);
       await this.registry.connect(mrSigner).migrateAdvisoryBoardMembers(abMembers);
+
+      // 2. migrate CoverBroker membership
+      await this.registry.connect(mrSigner).migrateMembers([addresses.CoverBroker]);
+
+      // 3. overwrite `nextMemberStorageIndex` to mark the migration as completed
+      const targetLength = await this.memberRoles.getMembersArrayLength(2);
+      const targetLengthAsHex = toBeHex(targetLength, 32);
+      const slot = toBeHex(18, 32);
+      await this.evm.setStorageAt(this.memberRoles.target, slot, targetLengthAsHex);
+      expect(await this.memberRoles.nextMemberStorageIndex()).to.equal(targetLength);
     }
 
     // verify abMembers were migrated
@@ -246,9 +263,9 @@ describe('v3 launch', function () {
     const poolImplementation = await deployContract('Pool', [this.registry.target]);
     const swapOperatorImplementation = await deployContract('SwapOperator', [
       this.registry.target,
-      Address.COWSWAP_SETTLEMENT,
-      EnzymeAddress.ENZYMEV4_VAULT_PROXY_ADDRESS,
-      Address.WETH_ADDRESS,
+      Addresses.COWSWAP_SETTLEMENT,
+      Addresses.ENZYMEV4_VAULT_PROXY_ADDRESS,
+      Addresses.WETH_ADDRESS,
     ]);
     const rammImplementation = await deployContract('Ramm', [
       this.registry.target,
@@ -258,9 +275,9 @@ describe('v3 launch', function () {
       this.registry.target,
       parseUnits('25000000', 6), // investmentLimit
       SAFE_ADDRESS,
-      Address.USDC_ADDRESS,
-      Address.WETH_ADDRESS,
-      Address.AWETH_ADDRESS,
+      Addresses.USDC_ADDRESS,
+      Addresses.WETH_ADDRESS,
+      Addresses.AWETH_ADDRESS,
       '0x72E95b8931767C79bA4EeE721354d6E99a61D004', // VARIABLE_DEBT_USDC_ADDRESS
     ]);
     const assessmentImplementation = await deployContract('Assessment', [this.registry.target]);

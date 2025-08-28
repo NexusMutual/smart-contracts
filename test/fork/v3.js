@@ -94,8 +94,8 @@ describe('v3 launch', function () {
 
     // deploy new implementations
     const tempGovernanceImplementation = await deployContract('TemporaryGovernance', [ADVISORY_BOARD_MULTISIG]);
-    const legacyAssessmentImplementation = await deployContract('LegacyAssessment', [this.nxm.target]);
-    const memberRolesImplementation = await deployContract('LegacyMemberRoles', [this.registryProxy.target]);
+    const legacyAssessmentImplementation = await deployContract('LegacyAssessment', [this.nxm]);
+    const memberRolesImplementation = await deployContract('LegacyMemberRoles', [this.registryProxy, this.nxm]);
 
     // submit governance proposal - upgrade multiple contracts
     this.upgradeContractsPhase1 = [

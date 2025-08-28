@@ -41,8 +41,11 @@ contract LegacyMemberRoles is IMemberRoles, IMemberRolesErrors, RegistryAware {
 
   INXMToken public immutable nxmToken;
 
-  constructor(address registryAddress) RegistryAware(registryAddress) {
-    nxmToken = INXMToken(fetch(C_TOKEN));
+  constructor(
+    address registryAddress,
+    address _nxmToken
+  ) RegistryAware(registryAddress) {
+    nxmToken = INXMToken(_nxmToken);
   }
 
   function isMember(address member) public view returns (bool) {

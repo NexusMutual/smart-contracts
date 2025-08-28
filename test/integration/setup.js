@@ -24,6 +24,9 @@ async function setup() {
   const INITIAL_SPOT_PRICE_B = parseEther('0.0152');
   const INVESTMENT_LIMIT = parseUnits('25000000', 6);
 
+  // deploy token
+  const token = await ethers.deployContract('NXMToken', [defaultSender, INITIAL_SUPPLY]);
+
   // deploy external contracts
   const investmentSafe = await ethers.deployContract('ERC20Mock');
   await setBalance(await investmentSafe.getAddress(), parseEther('1000'));
@@ -107,7 +110,7 @@ async function setup() {
   await registryProxy.upgradeTo(registryDisposable);
   let registry = await ethers.getContractAt('DisposableRegistry', registryProxy);
 
-  const memberRoles = await ethers.deployContract('LegacyMemberRoles', [registry]);
+  const memberRoles = await ethers.deployContract('LegacyMemberRoles', [registry, token]);
   await master.initialize(registry, memberRoles);
 
   // initialize registry
@@ -141,8 +144,6 @@ async function setup() {
   for (let i = 0; i < proxyStubIndexes.length; i++) {
     await registry.deployContract(proxyStubIndexes[i], numberToBytes32(i), ZeroAddress);
   }
-
-  const token = await ethers.deployContract('NXMToken', [defaultSender, INITIAL_SUPPLY]);
 
   const coverAddress = await registry.getContractAddressByIndex(ContractIndexes.C_COVER);
   const stakingProductsAddress = await registry.getContractAddressByIndex(ContractIndexes.C_STAKING_PRODUCTS);

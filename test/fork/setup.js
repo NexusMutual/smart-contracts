@@ -1,9 +1,7 @@
 const { ethers } = require('hardhat');
 const { abis, addresses } = require('@nexusmutual/deployments');
 
-const { Addresses, getSigner } = require('./utils');
-
-const { parseEther } = ethers;
+const { Addresses, getFundedSigner } = require('./utils');
 
 it('load contracts', async function () {
   this.mcr = await ethers.getContractAt(abis.MCR, addresses.MCR);
@@ -47,11 +45,6 @@ it('load contracts', async function () {
 });
 
 it('Impersonate AB members', async function () {
-  const { memberArray: abMembers } = await this.memberRoles.members(1);
-  const impersonatePromises = abMembers.map(async address => {
-    await this.evm.impersonate(address);
-    await this.evm.setBalance(address, parseEther('1000'));
-    return getSigner(address);
-  });
-  this.abMembers = await Promise.all(impersonatePromises);
+  const { memberArray: members } = await this.memberRoles.members(1);
+  this.abMembers = await Promise.all(members.map(address => getFundedSigner(address)));
 });

@@ -1,7 +1,12 @@
 const { ethers, nexus } = require('hardhat');
-const { setBalance, time, impersonateAccount } = require('@nomicfoundation/hardhat-network-helpers');
 const { expect } = require('chai');
 const { abis, addresses } = require('@nexusmutual/deployments');
+const {
+  impersonateAccount,
+  setBalance,
+  setNextBlockBaseFeePerGas,
+  time,
+} = require('@nomicfoundation/hardhat-network-helpers');
 
 const {
   Addresses,
@@ -45,12 +50,7 @@ const parseError = (error, contract) => {
 
 describe('basic functionality tests', function () {
   before(async function () {
-    // Initialize evm helper
-    if (!this.evm) {
-      this.evm = nexus.evmInit();
-      await this.evm.connect(ethers.provider);
-      await this.evm.increaseTime(7 * 24 * 3600); // +7 days
-    }
+    await time.increase(7 * 24 * 3600); // +7 days
     trancheId = await getTrancheId(await time.latest());
   });
 
@@ -146,7 +146,7 @@ describe('basic functionality tests', function () {
     const memberNxmBefore = await this.nxm.balanceOf(member);
     const nxmSupplyBefore = await this.nxm.totalSupply();
 
-    await this.evm.setNextBlockBaseFee(0);
+    await setNextBlockBaseFeePerGas(0).catch(e => e);
     const tx = await this.ramm.connect(member).swap(nxmIn, minEthOut, deadline, { maxPriorityFeePerGas: 0 });
 
     const poolEthAfter = await ethers.provider.getBalance(this.pool);
@@ -182,7 +182,7 @@ describe('basic functionality tests', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     const deadline = timestamp + 5 * 60;
 
-    await this.evm.setNextBlockBaseFee(0);
+    await setNextBlockBaseFeePerGas(0).catch(e => e);
     const tx = await this.ramm.connect(member).swap(0, minNxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
 
     const poolEthAfter = await ethers.provider.getBalance(this.pool);
@@ -626,7 +626,7 @@ describe('basic functionality tests', function () {
     const coverBuyer = await ethers.Wallet.createRandom().connect(ethers.provider);
     const coverBuyerAddress = await coverBuyer.getAddress();
 
-    await this.evm.setBalance(coverBuyer.address, parseEther('1000000'));
+    await setBalance(coverBuyer.address, parseEther('1000000'));
 
     const amount = parseEther('1');
     const coverCountBefore = await this.cover.getCoverDataCount();
@@ -984,11 +984,11 @@ describe('basic functionality tests', function () {
     // this test verifies the scenario in which a critical vulnerability is detected
     // system is paused, system is upgraded, and system is resumed
 
-    const emergencyAdmin1 = await ethers.getSigner(this.EMERGENCY_ADMIN_1);
-    const emergencyAdmin2 = await ethers.getSigner(this.EMERGENCY_ADMIN_2);
+    const emergencyAdmin1 = await ethers.getSigner(Addresses.EMERGENCY_ADMIN_1);
+    const emergencyAdmin2 = await ethers.getSigner(Addresses.EMERGENCY_ADMIN_2);
 
-    await setBalance(this.EMERGENCY_ADMIN_1, parseEther('1000'));
-    await setBalance(this.EMERGENCY_ADMIN_2, parseEther('1000'));
+    await setBalance(Addresses.EMERGENCY_ADMIN_1, parseEther('1000'));
+    await setBalance(Addresses.EMERGENCY_ADMIN_2, parseEther('1000'));
 
     await this.registry.connect(emergencyAdmin1).proposePauseConfig(1);
     await this.registry.connect(emergencyAdmin2).confirmPauseConfig(1);

@@ -2,20 +2,22 @@ const { ethers, network, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { parseUnits } = require('ethers');
 const { addresses } = require('@nexusmutual/deployments');
+const { setBalance, setStorageAt, takeSnapshot } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { Addresses, getImplementation, getSigner, submitGovernanceProposal } = require('./utils');
+const {
+  Addresses,
+  getImplementation,
+  getFundedSigner,
+  getSigner,
+  revertToSnapshot,
+  submitGovernanceProposal,
+} = require('./utils');
 
-const { AbiCoder, deployContract, parseEther, toBeHex, toUtf8Bytes } = ethers;
+const { AbiCoder, deployContract, encodeBytes32String, parseEther, toBeHex, toUtf8Bytes } = ethers;
 const { ContractCode, ContractIndexes, ProposalCategory } = nexus.constants;
 const { toBytes2 } = nexus.helpers;
 
-const evm = nexus.evmInit();
 const defaultAbiCoder = AbiCoder.defaultAbiCoder();
-
-const ADVISORY_BOARD_MULTISIG = '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D';
-const KYC_AUTH_ADDRESS = '0x176c27973E0229501D049De626d50918ddA24656';
-const EMERGENCY_ADMIN_1 = '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D';
-const EMERGENCY_ADMIN_2 = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
 
 // "false", "0" and empty strings are evaluated as false
 const truthy = v => !/^(false|0|)$/i.test((v || '').trim());
@@ -23,15 +25,13 @@ const FAST_MIGRATION = truthy(process.env.FAST_MIGRATION);
 
 async function getPoolBalances(thisParam, poolAddress, prefix) {
   // Check old pool balances to see if migration worked
-  const [ethBalance, usdcBal, cbBTCBal, rEthBal, stEthBal, enzymeShareBal, safeTrackerBal] = await Promise.all([
-    ethers.provider.getBalance(poolAddress),
-    thisParam.usdc.balanceOf(poolAddress),
-    thisParam.cbBTC.balanceOf(poolAddress),
-    thisParam.rEth.balanceOf(poolAddress),
-    thisParam.stEth.balanceOf(poolAddress),
-    thisParam.enzymeShares.balanceOf(poolAddress),
-    thisParam.safeTracker.balanceOf(poolAddress),
-  ]);
+  const ethBalance = await ethers.provider.getBalance(poolAddress);
+  const usdcBal = await thisParam.usdc.balanceOf(poolAddress);
+  const cbBTCBal = await thisParam.cbBTC.balanceOf(poolAddress);
+  const rEthBal = await thisParam.rEth.balanceOf(poolAddress);
+  const stEthBal = await thisParam.stEth.balanceOf(poolAddress);
+  const enzymeShareBal = await thisParam.enzymeShares.balanceOf(poolAddress);
+  const safeTrackerBal = await thisParam.safeTracker.balanceOf(poolAddress);
 
   console.log(`\n${prefix} POOL BALANCES:`);
   console.log('ETH balance:', ethers.formatEther(ethBalance));
@@ -49,33 +49,22 @@ async function getPoolBalances(thisParam, poolAddress, prefix) {
   return [ethBalance, usdcBal, cbBTCBal, rEthBal, stEthBal, enzymeShareBal, safeTrackerBal];
 }
 
-// Fork tests
 describe('v3 launch', function () {
   before(async function () {
-    // Initialize evm helper
-    const provider =
-      network.name !== 'hardhat' // ethers errors out when using non-local accounts
-        ? new ethers.JsonRpcProvider(network.config.url)
-        : ethers.provider;
-    await evm.connect(provider);
-
     // Get or revert snapshot if network is tenderly
     if (network.name === 'tenderly') {
       const { TENDERLY_SNAPSHOT_ID } = process.env;
       if (TENDERLY_SNAPSHOT_ID) {
-        await evm.revert(TENDERLY_SNAPSHOT_ID);
+        await revertToSnapshot(TENDERLY_SNAPSHOT_ID);
         console.info(`Reverted to snapshot ${TENDERLY_SNAPSHOT_ID}`);
       } else {
-        console.info('Snapshot ID: ', await evm.snapshot());
+        const { snapshotId } = await takeSnapshot();
+        console.info('Snapshot ID: ', snapshotId);
       }
     }
+
     const [deployer] = await ethers.getSigners();
-    await evm.setBalance(deployer.address, parseEther('1000'));
-
-    this.evm = evm;
-
-    this.EMERGENCY_ADMIN_1 = EMERGENCY_ADMIN_1;
-    this.EMERGENCY_ADMIN_2 = EMERGENCY_ADMIN_2;
+    await setBalance(deployer.address, parseEther('1000'));
   });
 
   require('./setup');
@@ -99,7 +88,9 @@ describe('v3 launch', function () {
     console.log('registry address: ', this.registryProxy.target);
 
     // deploy new implementations
-    const tempGovernanceImplementation = await deployContract('TemporaryGovernance', [ADVISORY_BOARD_MULTISIG]);
+    const tempGovernanceImplementation = await deployContract('TemporaryGovernance', [
+      Addresses.ADVISORY_BOARD_MULTISIG,
+    ]);
     const legacyAssessmentImplementation = await deployContract('LegacyAssessment', [this.nxm]);
     const memberRolesImplementation = await deployContract('LegacyMemberRoles', [this.registryProxy, this.nxm]);
 
@@ -136,63 +127,49 @@ describe('v3 launch', function () {
       this.governance,
       true, // skip accepted validation - tempGovernance doesn't have proposal function
     );
-    console.log('temp governance upgraded');
 
     const governanceAddress = await this.master.getLatestAddress(toBytes2('GV'));
 
     // set temp governance and registry contracts
-    [this.tempGovernance, this.registry] = await Promise.all([
-      ethers.getContractAt('TemporaryGovernance', governanceAddress),
-      ethers.getContractAt('Registry', this.registryProxy.target),
-    ]);
+    this.tempGovernance = await ethers.getContractAt('TemporaryGovernance', governanceAddress);
+    this.registry = await ethers.getContractAt('Registry', this.registryProxy);
 
     // set advisory board multisig as temp governance signer
     const advisoryBoardMultisig = await this.tempGovernance.advisoryBoardMultisig();
-    await Promise.all([
-      this.evm.impersonate(advisoryBoardMultisig),
-      this.evm.setBalance(advisoryBoardMultisig, parseEther('1000')),
-    ]);
-    this.multisigSigner = await getSigner(advisoryBoardMultisig);
+    this.multisigSigner = await getFundedSigner(advisoryBoardMultisig);
     this.tempGovernance = this.tempGovernance.connect(this.multisigSigner);
 
     // upgrade NXMaster
-    const masterImplementation = await deployContract('NXMaster', []);
-    const masterUpgradeTx = await this.tempGovernance.execute(
-      this.master.target,
+    const masterImplementation = await deployContract('NXMaster');
+    await this.tempGovernance.execute(
+      this.master,
       0n,
       this.registryProxy.interface.encodeFunctionData('upgradeTo', [masterImplementation.target]),
     );
-    await masterUpgradeTx.wait();
-    console.log('master upgraded');
 
     // transfer all master contracts proxy ownership to registry
     const master = await ethers.getContractAt('NXMaster', this.master.target);
-    const transferOwnershipCallData = master.interface.encodeFunctionData('transferOwnershipToRegistry', [
-      this.registry.target,
-    ]);
-    const transferOwnershipTx = await this.tempGovernance.execute(this.master.target, 0n, transferOwnershipCallData);
-    await transferOwnershipTx.wait();
-    console.log('ALL contracts proxy ownership transferred to registry');
+    const { data: transferOwnershipData } = await master.transferOwnershipToRegistry.populateTransaction(this.registry);
+    await this.tempGovernance.execute(this.master.target, 0n, transferOwnershipData);
 
     // deploy tempGovernance as temp governor implementation
-    const governorImplementation = await deployContract('TemporaryGovernance', [ADVISORY_BOARD_MULTISIG]);
+    const governorImplementation = await deployContract('TemporaryGovernance', [Addresses.ADVISORY_BOARD_MULTISIG]);
 
     // registry.migrate
-    const registryMigrateCallData = this.registry.interface.encodeFunctionData('migrate', [
-      governorImplementation.target,
-      this.coverNFT.target,
-      this.stakingNFT.target,
-      this.stakingPoolFactory.target,
-      this.nxm.target,
-      ethers.encodeBytes32String('governorSalt'),
-      ethers.encodeBytes32String('poolSalt'),
-      ethers.encodeBytes32String('swapOperatorSalt'),
-      ethers.encodeBytes32String('assessmentSalt'),
-      ethers.encodeBytes32String('claimsSalt'),
-    ]);
+    const { data: registryMigrateCallData } = await this.registry.migrate.populateTransaction(
+      governorImplementation,
+      this.coverNFT,
+      this.stakingNFT,
+      this.stakingPoolFactory,
+      this.nxm,
+      encodeBytes32String('governorSalt'),
+      encodeBytes32String('poolSalt'),
+      encodeBytes32String('swapOperatorSalt'),
+      encodeBytes32String('assessmentSalt'),
+      encodeBytes32String('claimsSalt'),
+    );
     const registryMigrateTx = await this.tempGovernance.execute(this.registry.target, 0n, registryMigrateCallData);
     await registryMigrateTx.wait();
-    console.log('registry.migrate done');
 
     // get governor contract
     const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
@@ -203,7 +180,6 @@ describe('v3 launch', function () {
     await this.registryProxy.connect(deployer).transferProxyOwnership(this.governor.target);
     const registryProxyOwner = await this.registryProxy.proxyOwner();
     expect(registryProxyOwner).to.equal(this.governor.target);
-    console.log('registry proxy owner transferred to governor');
   });
 
   /*
@@ -237,7 +213,6 @@ describe('v3 launch', function () {
     ];
 
     if (FAST_MIGRATION) {
-      await this.evm.impersonate(this.memberRoles.target);
       const mrSigner = await getSigner(this.memberRoles.target);
 
       // 1. migrate ab members
@@ -249,9 +224,9 @@ describe('v3 launch', function () {
 
       // 3. overwrite `nextMemberStorageIndex` to mark the migration as completed
       const targetLength = await this.memberRoles.getMembersArrayLength(2);
-      const targetLengthAsHex = toBeHex(targetLength, 32);
+      // const targetLengthAsHex = toBeHex(targetLength, 32);
       const slot = toBeHex(18, 32);
-      await this.evm.setStorageAt(this.memberRoles.target, slot, targetLengthAsHex);
+      await setStorageAt(this.memberRoles.target, slot, targetLength);
       expect(await this.memberRoles.nextMemberStorageIndex()).to.equal(targetLength);
     }
 
@@ -317,18 +292,18 @@ describe('v3 launch', function () {
       {
         target: this.registry.target,
         value: 0n,
-        data: this.registry.interface.encodeFunctionData('setEmergencyAdmin', [this.EMERGENCY_ADMIN_1, true]),
+        data: this.registry.interface.encodeFunctionData('setEmergencyAdmin', [Addresses.EMERGENCY_ADMIN_1, true]),
       },
       {
         target: this.registry.target,
         value: 0n,
-        data: this.registry.interface.encodeFunctionData('setEmergencyAdmin', [this.EMERGENCY_ADMIN_2, true]),
+        data: this.registry.interface.encodeFunctionData('setEmergencyAdmin', [Addresses.EMERGENCY_ADMIN_2, true]),
       },
       // set kyc auth address
       {
         target: this.registry.target,
         value: 0n,
-        data: this.registry.interface.encodeFunctionData('setKycAuthAddress', [KYC_AUTH_ADDRESS]),
+        data: this.registry.interface.encodeFunctionData('setKycAuthAddress', [Addresses.KYC_AUTH_ADDRESS]),
       },
       // upgrade contracts
       ...this.contractUpgrades.map(c => ({
@@ -338,8 +313,11 @@ describe('v3 launch', function () {
       })),
     ];
 
-    const executeTxs = await Promise.all(txs.map(tx => this.tempGovernor.execute(tx.target, tx.value, tx.data)));
-    await Promise.all(executeTxs.map(tx => tx.wait()));
+    for (const tx of txs) {
+      const transaction = await this.tempGovernor.execute(tx.target, tx.value, tx.data);
+      await transaction.wait();
+    }
+
     console.log('contracts upgraded');
 
     // TODO: reset the contracts with right addresses
@@ -418,7 +396,7 @@ describe('v3 launch', function () {
   });
 
   // Assessment and Claims
-  // require('./assessment-claims');
+  require('./assessment-claims');
 
   // Basic functionality tests
   require('./basic-functionality-tests');

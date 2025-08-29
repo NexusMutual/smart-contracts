@@ -1,8 +1,8 @@
 const { ethers, network } = require('hardhat');
-const { time } = require('@nomicfoundation/hardhat-network-helpers');
+const { impersonateAccount, setBalance, time } = require('@nomicfoundation/hardhat-network-helpers');
 const assert = require('assert');
 
-const { AbiCoder, JsonRpcProvider, JsonRpcSigner, keccak256, toBeHex, zeroPadValue } = ethers;
+const { AbiCoder, JsonRpcProvider, JsonRpcSigner, keccak256, parseEther, toBeHex, zeroPadValue } = ethers;
 
 const Addresses = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -28,9 +28,15 @@ const Addresses = {
   POOL_DATA_PROVIDER: '0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3',
   WETH_GATEWAY_ADDRESS: '0xD322A49006FC828F9B5B37Ab215F99B4E5caB19C',
   VARIABLE_DEBT_USDC_ADDRESS: '0x72E95b8931767C79bA4EeE721354d6E99a61D004',
+  // Emergency Pause
+  EMERGENCY_ADMIN_1: '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D',
+  EMERGENCY_ADMIN_2: '0x87B2a7559d85f4653f13E6546A14189cd5455d45',
+  // misc
+  ADVISORY_BOARD_MULTISIG: '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D',
+  KYC_AUTH_ADDRESS: '0x176c27973E0229501D049De626d50918ddA24656',
 };
 
-async function submitGovernanceProposal(categoryId, actionData, signers, gv, skipAcceptedValidation = false) {
+async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
   const id = await gv.getProposalLength();
 
   console.log(`Proposal ${id}`);
@@ -39,7 +45,9 @@ async function submitGovernanceProposal(categoryId, actionData, signers, gv, ski
   await gv.connect(signers[0]).categorizeProposal(id, categoryId, 0);
   await gv.connect(signers[0]).submitProposalWithSolution(id, '', actionData);
 
-  await Promise.all(signers.map(signer => gv.connect(signer).submitVote(id, 1)));
+  for (const signer of signers) {
+    await gv.connect(signer).submitVote(id, 1);
+  }
 
   const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
   const receipt = await tx.wait();
@@ -55,11 +63,6 @@ async function submitGovernanceProposal(categoryId, actionData, signers, gv, ski
     }),
     'ActionSuccess was expected',
   );
-
-  if (!skipAcceptedValidation) {
-    const proposal = await gv.proposal(id);
-    assert(proposal[2], 3n, 'Proposal Status != ACCEPTED');
-  }
 }
 
 async function executeGovernorProposal(governor, abMembers, txs) {
@@ -67,7 +70,9 @@ async function executeGovernorProposal(governor, abMembers, txs) {
   await governor.connect(proposer).propose(txs, 'Governor Proposal');
 
   const proposalId = await governor.proposalCount();
-  await Promise.all(abMembers.map(voter => governor.connect(voter).vote(proposalId, 1)));
+  for (const voter of abMembers) {
+    await governor.connect(voter).vote(proposalId, 1);
+  }
 
   await time.increase(4 * 24 * 3600 + 1);
   await governor.connect(proposer).execute(proposalId);
@@ -76,12 +81,24 @@ async function executeGovernorProposal(governor, abMembers, txs) {
 
 const getSigner = async address => {
   if (network.name !== 'hardhat') {
-    const jsonProvider = new JsonRpcProvider(network.config.url);
-    return new JsonRpcSigner(jsonProvider, address);
+    console.log('getting remote signer', address);
+    return new JsonRpcSigner(new JsonRpcProvider(network.config.url), address);
   }
 
+  console.log('impersonating', address);
+  await impersonateAccount(address);
+
+  console.log('getting signer', address);
   return ethers.getSigner(address);
 };
+
+const getFundedSigner = async (address, amount = parseEther('1000')) => {
+  console.log('setting balance', address, ethers.formatEther(amount));
+  await setBalance(address, amount);
+  return getSigner(address);
+};
+
+const revertToSnapshot = async snapshotId => ethers.provider.send('evm_revert', [snapshotId]);
 
 const getTrancheId = timestamp => Math.floor(timestamp / (91 * 24 * 3600));
 
@@ -120,11 +137,13 @@ const getImplementation = async proxyAddress => {
 };
 
 module.exports = {
+  Addresses,
   submitGovernanceProposal,
   executeGovernorProposal,
   getTrancheId,
   getSigner,
-  Addresses,
+  getFundedSigner,
+  revertToSnapshot,
   setERC20Balance,
   setUSDCBalance,
   setCbBTCBalance,

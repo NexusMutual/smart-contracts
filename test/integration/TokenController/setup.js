@@ -1,7 +1,8 @@
-const { loadFixture, setBalance, time, impersonateAccount } = require('@nomicfoundation/hardhat-network-helpers');
-const { ethers, nexus } = require('hardhat');
+import { loadFixture, setBalance, time, impersonateAccount } from '@nomicfoundation/hardhat-network-helpers';
+import { ethers, nexus } from 'hardhat';
 
-const setup = require('../setup');
+import setup from '../setup';
+
 const { calculatePremium, calculateFirstTrancheId } = nexus.protocol;
 
 const { parseEther, ZeroAddress, MaxUint256 } = ethers;
@@ -31,10 +32,11 @@ const buyCoverFixture = {
 async function stakingPoolSetup(fixture) {
   const { stakingPool1, stakingPool2, stakingPool3, stakingProducts, tokenController, token } = fixture.contracts;
   const [manager1, manager2, manager3] = fixture.accounts.stakingPoolManagers;
+  const { provider } = fixture;
 
   const operatorAddress = await token.operator();
   await impersonateAccount(operatorAddress);
-  const operator = await ethers.provider.getSigner(operatorAddress);
+  const operator = await provider.getSigner(operatorAddress);
 
   await setBalance(manager1.address, parseEther('10000'));
   await setBalance(operatorAddress, parseEther('10000'));
@@ -51,7 +53,7 @@ async function stakingPoolSetup(fixture) {
 
   // stake
   const stakeAmount = parseEther('900000');
-  const latestBlock = await ethers.provider.getBlock('latest');
+  const latestBlock = await provider.getBlock('latest');
   const firstActiveTrancheId = calculateFirstTrancheId(latestBlock, buyCoverFixture.period, 0n);
 
   const trancheId = firstActiveTrancheId + 5;
@@ -64,20 +66,24 @@ async function stakingPoolSetup(fixture) {
   await stakingPool2.connect(manager1).depositTo(...depositParams);
   await stakingPool3.connect(manager1).depositTo(...depositParams);
 
-  fixture.tokenIds = [tokenId1, tokenId2, tokenId3];
-  fixture.stakeAmount = stakeAmount;
-  fixture.trancheIds = [[trancheId], [trancheId], [trancheId]];
-  fixture.trancheId = trancheId;
+  // staking data
+  return {
+    tokenIds: [tokenId1, tokenId2, tokenId3],
+    stakeAmount,
+    trancheIds: [[trancheId], [trancheId], [trancheId]],
+    trancheId,
+  };
 }
 
 async function generateStakeRewards(fixture) {
   const { stakingProducts, pool, cover } = fixture.contracts;
+  const { provider } = fixture;
 
   const [coverBuyer, coverReceiver] = fixture.accounts.members;
   const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
   const { productId, period, amount } = buyCoverFixture;
 
-  const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+  const { timestamp: currentTimestamp } = await provider.getBlock('latest');
   const nextBlockTimestamp = currentTimestamp + 10;
   const nxmPrice = await pool.getInternalTokenPriceInAsset(buyCoverFixture.paymentAsset);
   const product = await stakingProducts.getProduct(1, productId);
@@ -104,28 +110,18 @@ async function generateStakeRewards(fixture) {
     ],
     { value: premiumInAsset },
   );
+
+  return fixture;
 }
 
 async function withdrawNXMSetup() {
   const fixture = await loadFixture(setup);
 
   // do not change the order
-  await stakingPoolSetup(fixture);
+  const stakingData = await stakingPoolSetup(fixture);
   await generateStakeRewards(fixture);
 
-  // StakingPool1 deposit params
-  const stakingPoolDeposits = [];
-  const stakingPoolManagerRewards = [];
-  const batchSize = 0;
-
-  return {
-    ...fixture,
-    stakingPoolDeposits,
-    stakingPoolManagerRewards,
-    batchSize,
-  };
+  return { ...fixture, ...stakingData };
 }
 
-module.exports = {
-  withdrawNXMSetup,
-};
+export default withdrawNXMSetup;

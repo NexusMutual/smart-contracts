@@ -1,9 +1,10 @@
-const { ethers, nexus } = require('hardhat');
-const { setBalance, impersonateAccount } = require('@nomicfoundation/hardhat-network-helpers');
+import { network } from 'hardhat';
+import { parseEther, parseUnits, ZeroAddress, MaxUint256 } from 'ethers';
 
-const { parseEther, parseUnits, ZeroAddress, MaxUint256 } = ethers;
-const { ContractIndexes, ClaimMethod, AggregatorType, Assets } = nexus.constants;
-const { numberToBytes32 } = nexus.helpers;
+import nexus from '../../lib/index.js';
+
+const { ContractIndexes, ClaimMethod, AggregatorType, Assets } = nexus.constants || {};
+const { numberToBytes32 } = nexus.helpers || {};
 
 const assignRoles = accounts => ({
   defaultSender: accounts[0],
@@ -15,8 +16,11 @@ const assignRoles = accounts => ({
   generalPurpose: accounts.slice(30, 35),
 });
 
-async function setup() {
-  const accounts = assignRoles(await ethers.getSigners());
+async function setup(connection) {
+  const { ethers, provider } = connection;
+  const { setBalance, impersonateAccount } = connection.networkHelpers;
+
+  const accounts = await ethers.getSigners().then(assignRoles);
   const { defaultSender, members, advisoryBoardMembers, stakingPoolManagers, emergencyAdmins } = accounts;
   const [abMember] = advisoryBoardMembers;
 
@@ -149,6 +153,7 @@ async function setup() {
   const stakingProductsAddress = await registry.getContractAddressByIndex(ContractIndexes.C_STAKING_PRODUCTS);
 
   const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [stakingProductsAddress]);
+  console.log(`stakingPoolFactory deployed at ${stakingPoolFactory.target}`);
 
   const coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [coverAddress]);
   const coverNFT = await ethers.deployContract('CoverNFT', [
@@ -436,9 +441,7 @@ async function setup() {
     stakingViewer,
   };
 
-  const fixture = {};
-
-  fixture.contracts = {
+  const contracts = {
     ...external,
     ...nonUpgradable,
     ...proxies,
@@ -446,18 +449,23 @@ async function setup() {
   };
 
   for (let i = 0; i < 5; i++) {
-    await stakingProducts.connect(stakingPoolManagers[i]).createStakingPool(
+    const tx = await stakingProducts.connect(stakingPoolManagers[i]).createStakingPool(
       false, // isPrivatePool
       '5', // initialPoolFee
       '5', // maxPoolFee,
       [], // products
       'ipfs-hash',
     );
+    const receipt = await tx.wait();
+    receipt.logs.forEach(log => {
+      const parsed = stakingPoolFactory.interface.parseLog(log);
+      parsed?.name === 'StakingPoolCreated' && console.log('StakingPoolCreated event:', parsed.args);
+    });
 
     const poolId = i + 1;
     const stakingPoolAddress = await stakingProducts.stakingPool(poolId);
     const stakingPoolInstance = await ethers.getContractAt('StakingPool', stakingPoolAddress);
-    fixture.contracts[`stakingPool${poolId}`] = stakingPoolInstance;
+    contracts[`stakingPool${poolId}`] = stakingPoolInstance;
   }
 
   const products = [
@@ -560,24 +568,20 @@ async function setup() {
   }
 
   const config = {
-    TRANCHE_DURATION: await fixture.contracts.stakingPool1.TRANCHE_DURATION(),
-    MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION:
-      await fixture.contracts.limitOrders.MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION(),
+    TRANCHE_DURATION: await contracts.stakingPool1.TRANCHE_DURATION(),
+    MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION: await contracts.limitOrders.MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION(),
     BUCKET_SIZE: BigInt(7 * 24 * 3600), // 7 days
     BUCKET_DURATION: BigInt(28 * 24 * 3600), // 28 days
     GLOBAL_REWARDS_RATIO: 5000n, // 50%
     COMMISSION_DENOMINATOR: 10000n,
     TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
     ONE_NXM: parseEther('1'),
-    NXM_PER_ALLOCATION_UNIT: await fixture.contracts.stakingPool1.NXM_PER_ALLOCATION_UNIT(),
+    NXM_PER_ALLOCATION_UNIT: await contracts.stakingPool1.NXM_PER_ALLOCATION_UNIT(),
     USDC_DECIMALS: usdcDecimals,
   };
 
-  fixture.config = config;
-  fixture.accounts = accounts;
-  fixture.products = products;
-
-  return fixture;
+  // return fixture
+  return { contracts, config, accounts, products, provider };
 }
 
-module.exports = setup;
+export default setup;

@@ -13,6 +13,12 @@ import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 
+import "hardhat/console.sol";
+
+interface ICustomCover {
+  function stakingPool(uint poolId) external view returns (address);
+}
+
 contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   using SafeUintCast for uint;
 
@@ -189,7 +195,7 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
 
     require(msg.sender == _tokenController().getStakingPoolManager(poolId), OnlyManager());
 
-    (uint globalCapacityRatio,) = ICover(coverContract).getGlobalCapacityAndPriceRatios();
+    (uint globalCapacityRatio,) = _cover().getGlobalCapacityAndPriceRatios();
 
     uint[] memory initialPriceRatios;
     uint[] memory capacityReductionRatios;
@@ -328,6 +334,12 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
     uint capacityReductionRatio
   ) internal view returns (uint16 effectiveWeight) {
 
+    console.log('_stakingPool            :', address(_stakingPool));
+    console.log('_stakingPool code length:', address(_stakingPool).code.length);
+
+    console.log('stakingPoolFactory       :', address(stakingPoolFactory));
+    console.log('stakingPoolFactory code length:', address(stakingPoolFactory).code.length);
+
     uint activeStake = _stakingPool.getActiveStake();
     uint multiplier = globalCapacityRatio * (CAPACITY_REDUCTION_DENOMINATOR - capacityReductionRatio);
     uint denominator = GLOBAL_CAPACITY_DENOMINATOR * CAPACITY_REDUCTION_DENOMINATOR;
@@ -454,9 +466,16 @@ contract StakingProducts is IStakingProducts, MasterAwareV2, Multicall {
   /* ========== STAKING POOL CREATION ========== */
 
   function stakingPool(uint poolId) public view returns (IStakingPool) {
-    return IStakingPool(
-      StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId)
-    );
+    address sp = StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId);
+
+    console.log('                        pool id:', poolId);
+    console.log('calculated staking pool address:', sp);
+    console.log('   fetched staking pool address:', ICustomCover(coverContract).stakingPool(poolId));
+
+    return IStakingPool(sp);
+    // return IStakingPool(
+    //   StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId)
+    // );
   }
 
   function getStakingPoolCount() external view returns (uint) {

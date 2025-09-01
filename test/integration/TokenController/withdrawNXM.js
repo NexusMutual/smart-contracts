@@ -1,10 +1,10 @@
-const { ethers } = require('hardhat');
-const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
-const { expect } = require('chai');
+import { ethers } from 'hardhat';
+import { loadFixture, time } from '@nomicfoundation/hardhat-network-helpers';
+import { expect } from 'chai';
 
-const { withdrawNXMSetup } = require('./setup');
+import withdrawNXMSetup from './setup';
+
 const { MaxUint256 } = ethers;
-
 const TRANCHE_DURATION_SECONDS = 91 * 24 * 60 * 60;
 
 describe('withdrawNXM', function () {
@@ -55,6 +55,7 @@ describe('withdrawNXM', function () {
     const stakingPoolDeposits = [{ tokenId, trancheIds: [fixture.trancheId] }]; // StakingPool1 deposits
 
     await token.connect(manager).approve(tokenController, MaxUint256);
+    // TODO: is this doing anything at all?
     await tokenController.connect(manager).withdrawNXM(stakingPoolDeposits, stakingPoolManagerRewards);
 
     const [tokenAfter] = await stakingViewer.getTokens([tokenId]);

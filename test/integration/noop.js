@@ -1,11 +1,16 @@
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+import { network } from 'hardhat';
 
-const setup = require('./setup');
+import setup from './setup.js';
+
+const connection = await network.connect();
+const { loadFixture } = connection.networkHelpers;
 
 describe('noop', () => {
   it('should call setup', async () => {
     // eslint-disable-next-line no-unused-vars
-    const fixture = await loadFixture(setup);
+    const fixture = await loadFixture(function getSetup() {
+      return setup(connection);
+    });
     console.log('noop finished!');
   });
 });

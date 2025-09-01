@@ -6,7 +6,8 @@
       "node",
       "mocha",
       "hardhat"
-    ]
+    ],
+    "module": "esnext"
   },
   "typeRoots": [
     "./types",

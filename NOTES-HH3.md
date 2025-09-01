@@ -1,0 +1,8 @@
+- hardhat-ignore-warnings
+- @typechain/hardhat ?
+- @tenderly/hardhat-tenderly
+- [no js example](https://hardhat.org/migrate-from-hardhat2#:~:text=Create%20an%20empty%20config%20file)
+- hh broken
+- build vs compile
+- build -f alias to --force
+- peer dep chai issue: we had 4, wants 5, latest is 6

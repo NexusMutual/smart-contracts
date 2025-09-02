@@ -150,7 +150,6 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     uint voterId = isAbProposal
       ? registry.getAdvisoryBoardSeat(msg.sender)
       : memberId;
-    require(voterId > 0, NotAuthorizedToVote());
 
     uint96 weight = (isAbProposal ? 1 : _getVoteWeight(msg.sender)).toUint96();
     votes[proposalId][memberId] = Vote({ choice: choice, weight: weight });

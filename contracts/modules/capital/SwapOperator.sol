@@ -394,6 +394,7 @@ contract SwapOperator is ISwapOperator, RegistryAware {
   /// @param receiver Address to receive the recovered assets, if asset is not supported by the pool
   function recoverAsset(address assetAddress, address receiver) public onlyController whenNotPaused(PAUSE_SWAPS) {
 
+    require(receiver != address(0), InvalidRecoveryReceiver());
     require(orderInProgress() == false, OrderInProgress(currentOrderUID));
 
     if (assetAddress == address(weth)) {

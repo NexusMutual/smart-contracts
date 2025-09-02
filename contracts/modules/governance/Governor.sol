@@ -58,15 +58,15 @@ contract Governor is IGovernor, RegistryAware, Multicall {
   function propose(
     Transaction[] calldata txs,
     string calldata description
-  ) external {
+  ) external returns (uint proposalId) {
     require(registry.isAdvisoryBoardMember(msg.sender), OnlyAdvisoryBoardMember());
-    _propose(ProposalKind.AdvisoryBoard, txs, description);
+    return _propose(ProposalKind.AdvisoryBoard, txs, description);
   }
 
   function proposeAdvisoryBoardSwap(
     AdvisoryBoardSwap[] memory swaps,
     string calldata description
-  ) external {
+  ) external returns (uint proposalId) {
 
     require(registry.isMember(msg.sender), NotMember());
 
@@ -88,14 +88,14 @@ contract Governor is IGovernor, RegistryAware, Multicall {
       });
     }
 
-    _propose(ProposalKind.Member, txs, description);
+    return _propose(ProposalKind.Member, txs, description);
   }
 
   function _propose(
     ProposalKind kind,
     Transaction[] memory txs,
     string memory description
-  ) internal {
+  ) internal returns (uint proposalId) {
 
     Proposal memory proposal = Proposal({
       kind: kind,
@@ -105,7 +105,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
       status: ProposalStatus.Proposed
     });
 
-    uint proposalId = ++proposalCount;
+    proposalId = ++proposalCount;
     proposals[proposalId] = proposal;
     descriptions[proposalId] = description;
 
@@ -114,6 +114,8 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     }
 
     emit ProposalCreated(proposalId, kind, description);
+
+    return proposalId;
   }
 
   function cancel(uint proposalId) external {

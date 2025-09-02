@@ -33,6 +33,10 @@ contract NXMaster is INXMMaster {
   IRegistry public registry;
 
   function isPause() public view returns (bool) {
+    if (address(registry) == address(0)) {
+      return paused;
+    }
+
     return registry.isPaused(PAUSE_GLOBAL);
   }
 

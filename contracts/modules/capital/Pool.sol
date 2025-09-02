@@ -232,6 +232,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     }
 
     IERC20(assetAddress).safeTransfer(swapOperator, amount);
+    emit AssetsTransferredToSwapOperator(assetAddress, amount);
   }
 
   function clearSwapAssetAmount(

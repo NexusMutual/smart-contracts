@@ -91,7 +91,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, RegistryAw
   /// @param _of     The address to burn tokens of.
   /// @param amount  The amount to burn.
   /// @return        The boolean status of the burning process.
-  function burnFrom(address _of, uint amount) public override onlyContracts(C_COVER + C_RAMM) returns (bool) {
+  function burnFrom(address _of, uint amount) public override onlyContracts(C_COVER | C_RAMM) returns (bool) {
     return token.burnFrom(_of, amount);
   }
 

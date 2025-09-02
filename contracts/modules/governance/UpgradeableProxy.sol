@@ -37,6 +37,7 @@ contract UpgradeableProxy is IUpgradeableProxy {
   }
 
   function transferProxyOwnership(address _newOwner) public onlyProxyOwner {
+    require(_newOwner != address(0), InvalidAddress());
     address _previousOwner = _sload(PROXY_OWNER_POSITION);
     _sstore(PROXY_OWNER_POSITION, _newOwner);
     emit ProxyOwnershipTransferred(_previousOwner, _newOwner);

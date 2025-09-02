@@ -15,4 +15,6 @@ interface IUpgradeableProxy {
 
   function upgradeTo(address _newImplementation) external;
 
+  error InvalidAddress();
+
 }

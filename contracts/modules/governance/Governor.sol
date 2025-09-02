@@ -174,7 +174,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     }
 
     if(!isAbProposal) {
-      _lockTokenTransfers(msg.sender, block.timestamp + VOTING_PERIOD + TIMELOCK_PERIOD);
+      _lockTokenTransfers(msg.sender, proposal.executeAfter);
     }
 
     emit VoteCast(proposalId, proposal.kind, voterId, choice, weight);

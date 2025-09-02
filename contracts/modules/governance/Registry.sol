@@ -393,7 +393,7 @@ contract Registry is IRegistry, EIP712 {
       uint seat = i + 1;
       require(seatToMember[seat] == 0, 'Registry: AB seat already taken');
 
-      memberToSeat[memberIds[member]] = seat;
+      memberToSeat[memberId] = seat;
       seatToMember[seat] = memberId;
     }
   }

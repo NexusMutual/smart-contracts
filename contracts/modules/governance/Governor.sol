@@ -168,6 +168,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     if (isAbProposal && tallies[proposalId].forVotes >= ADVISORY_BOARD_THRESHOLD) {
       // start the timelock if the AB proposal has met the threshold
       proposal.executeAfter = (block.timestamp + TIMELOCK_PERIOD).toUint32();
+      proposals[proposalId].executeAfter = proposal.executeAfter;
     }
 
     if(!isAbProposal) {

@@ -125,7 +125,7 @@ describe('getProposal', () => {
     expect(proposalAfterVote.proposedAt).to.be.equal(initialProposedAt);
     expect(proposalAfterVote.voteBefore).to.be.equal(initialVoteBefore);
 
-    expect(proposalAfterVote.executeAfter).to.be.greaterThanOrEqual(initialExecuteAfter);
+    expect(proposalAfterVote.executeAfter).to.be.lessThanOrEqual(initialExecuteAfter);
 
     await time.increaseTo(initialProposal.executeAfter + 1n);
 

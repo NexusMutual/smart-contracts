@@ -94,7 +94,8 @@ contract Registry is IRegistry, EIP712 {
   }
 
   function isPaused(uint mask) external view returns (bool) {
-    return systemPause.config & mask != 0;
+    uint maskWithGlobal = mask | PAUSE_GLOBAL;
+    return systemPause.config & maskWithGlobal != 0;
   }
 
   /* == MEMBERSHIP MANAGEMENT == */

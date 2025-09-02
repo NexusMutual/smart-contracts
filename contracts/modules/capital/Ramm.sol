@@ -633,7 +633,7 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
   /**
    * @notice Updates the Time-Weighted Average Price (TWAP) by registering new price observations
    */
-  function updateTwap() external {
+  function updateTwap() external whenNotPaused(PAUSE_RAMM) {
     State memory initialState = loadState();
 
     if (initialState.timestamp == block.timestamp) {

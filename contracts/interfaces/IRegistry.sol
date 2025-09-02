@@ -45,6 +45,7 @@ interface IRegistry {
 
   /* == ADVISORY BOARD MANAGEMENT == */
   function isAdvisoryBoardMember(address member) external view returns (bool);
+  function isAdvisoryBoardMemberById(uint memberId) external view returns (bool);
   function getAdvisoryBoardSeat(address member) external view returns (uint);
   function getMemberAddressBySeat(uint seat) external view returns (address);
   function swapAdvisoryBoardMember(uint from, uint to) external;

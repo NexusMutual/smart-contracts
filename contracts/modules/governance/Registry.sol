@@ -195,6 +195,10 @@ contract Registry is IRegistry, EIP712 {
     return memberToSeat[memberId] != 0;
   }
 
+  function isAdvisoryBoardMemberById(uint memberId) external view returns (bool) {
+    return memberToSeat[memberId] != 0;
+  }
+
   function getAdvisoryBoardSeat(address member) external view returns (uint) {
     uint memberId = memberIds[member];
     uint seat = memberToSeat[memberId];

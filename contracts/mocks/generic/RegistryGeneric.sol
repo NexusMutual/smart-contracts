@@ -43,7 +43,7 @@ contract RegistryGeneric is IRegistry {
     revert("Unsupported");
   }
 
-  function getMemberAddress(uint /* memberId */) external pure returns (address) {
+  function getMemberAddress(uint /* memberId */) external view virtual returns (address) {
     revert("Unsupported");
   }
 
@@ -81,6 +81,10 @@ contract RegistryGeneric is IRegistry {
 
   /* == ADVISORY BOARD MANAGEMENT == */
   function isAdvisoryBoardMember(address /* member */) external view virtual returns (bool) {
+    revert("Unsupported");
+  }
+
+  function isAdvisoryBoardMemberById(uint /* member */) external view virtual returns (bool) {
     revert("Unsupported");
   }
 

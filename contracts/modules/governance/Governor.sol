@@ -80,6 +80,8 @@ contract Governor is IGovernor, RegistryAware, Multicall {
 
       require(swaps[i].from != swaps[i].to, InvalidAdvisoryBoardSwap());
       require(swaps[i].from != 0 && swaps[i].to != 0, InvalidAdvisoryBoardSwap());
+      require(registry.isAdvisoryBoardMemberById(swaps[i].from), InvalidAdvisoryBoardSwap());
+      require(registry.getMemberAddress(swaps[i].to) != address(0), NotMember());
 
       txs[i] = Transaction({
         target: address(registry),

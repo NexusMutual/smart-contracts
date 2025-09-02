@@ -29,7 +29,8 @@ describe('getProposal', () => {
   it('returns correct proposal data for member proposal', async () => {
     const { governor, accounts, tokenController, registry, constants } = await loadFixture(setup);
     const { TIMELOCK_PERIOD, VOTING_PERIOD } = constants;
-    const [member, abMember] = accounts.members;
+    const [member] = accounts.members;
+    const [abMember] = accounts.advisoryBoardMembers;
 
     await tokenController.setTotalBalanceOf(member, ethers.parseEther('200'));
     await tokenController.setTotalSupply(ethers.parseEther('10000'));

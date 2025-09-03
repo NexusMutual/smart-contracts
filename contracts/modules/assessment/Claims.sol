@@ -3,7 +3,7 @@
 pragma solidity ^0.8.28;
 
 import "../../abstract/RegistryAware.sol";
-import "../../interfaces/IAssessment.sol";
+import "../../interfaces/IAssessments.sol";
 import "../../interfaces/IClaims.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
@@ -13,10 +13,12 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IRamm.sol";
 import "../../libraries/Math.sol";
+import "./AssessmentLib.sol";
 
 /// Provides a way for cover owners to submit claims and redeem payouts. It is an entry point to
 /// the assessment process where the members of the mutual decide the outcome of claims.
 contract Claims is IClaims, RegistryAware {
+  using AssessmentLib for Assessment;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -35,7 +37,7 @@ contract Claims is IClaims, RegistryAware {
   ICover public immutable cover;
   ICoverNFT public immutable coverNFT;
   ICoverProducts public immutable coverProducts;
-  IAssessment public immutable assessment;
+  IAssessments public immutable assessments;
   IPool public immutable pool;
   IRamm public immutable ramm;
 
@@ -50,7 +52,7 @@ contract Claims is IClaims, RegistryAware {
     cover = ICover(fetch(C_COVER));
     coverNFT = ICoverNFT(fetch(C_COVER_NFT));
     coverProducts = ICoverProducts(fetch(C_COVER_PRODUCTS));
-    assessment = IAssessment(fetch(C_ASSESSMENT));
+    assessments = IAssessments(fetch(C_ASSESSMENT));
     pool = IPool(fetch(C_POOL));
     ramm = IRamm(fetch(C_RAMM));
   }
@@ -70,76 +72,31 @@ contract Claims is IClaims, RegistryAware {
     return _claims[claimId];
   }
 
-  function getMemberClaims(uint memberId) external view returns (uint[] memory) {
-    return _memberClaims[memberId];
-  }
-
-  /// Returns a Claim aggregated in a human-friendly format.
+  /// Returns a Claim with its Cover, Assessment and AssessmentStatus
   ///
   /// @dev This view is meant to be used in user interfaces to get a claim in a format suitable for
-  /// displaying all relevant information in as few calls as possible. See ClaimDisplay struct.
-  ///
-  /// @param claimId    Claim identifier for which the ClaimDisplay is returned
-  function getClaimDisplay(uint claimId) internal view returns (ClaimDisplay memory) {
+  ///      displaying all relevant information in as few calls as possible
+  /// @param claimId    Claim identifier for which the ClaimDetails is returned
+  function getClaimDetails(uint claimId) external view returns (ClaimDetails memory) {
 
     Claim memory claim = _claims[claimId];
+    require(claim.coverId > 0, InvalidClaimId());
 
-    (IAssessment.AssessmentStatus assessmentStatus, uint payoutRedemptionEnd) = assessment.getAssessmentResult(claimId);
-    (IAssessment.Assessment memory claimAssessment) = assessment.getAssessment(claimId);
+    CoverData memory _cover = cover.getCoverData(claim.coverId);
+    Assessment memory _assessment = assessments.getAssessment(claimId);
 
-    CoverData memory coverData = cover.getCoverData(claim.coverId);
-
-    uint expiration = coverData.start + coverData.period;
-    uint cooldownEnd = claimAssessment.votingEnd + claimAssessment.cooldownPeriod;
-
-    string memory assetSymbol;
-    if (claim.coverAsset == 0) {
-      assetSymbol = "ETH";
-    } else {
-
-      address assetAddress = pool.getAsset(claim.coverAsset).assetAddress;
-      try IERC20Detailed(assetAddress).symbol() returns (string memory v) {
-        assetSymbol = v;
-      } catch {
-        // return assetSymbol as an empty string and use claim.coverAsset instead in the UI
-      }
-    }
-
-    return ClaimDisplay(
-      claimId,
-      coverData.productId,
-      claim.coverId,
-      claim.amount,
-      assetSymbol,
-      claim.coverAsset,
-      coverData.start,
-      expiration,
-      claimAssessment.start,
-      claimAssessment.votingEnd,
-      cooldownEnd,
-      uint(assessmentStatus),
-      payoutRedemptionEnd,
-      claim.payoutRedeemed
-    );
+    return ClaimDetails({
+      claimId: claimId,
+      claim: claim,
+      cover: _cover,
+      assessment: _assessment,
+      status: _assessment.getStatus(block.timestamp),
+      outcome: _assessment.getOutcome(block.timestamp)
+    });
   }
 
-  /// Returns an array of claims aggregated in a human-friendly format.
-  ///
-  /// @dev This view is meant to be used in user interfaces to get claims in a format suitable for
-  /// displaying all relevant information in as few calls as possible. It can be used to paginate
-  /// claims by providing the following parameters:
-  ///
-  /// @param ids   Array of Claim ids which are returned as ClaimDisplay
-  function getClaimsToDisplay (uint[] calldata ids) external view returns (ClaimDisplay[] memory) {
-
-    ClaimDisplay[] memory claimDisplays = new ClaimDisplay[](ids.length);
-
-    for (uint i = 0; i < ids.length; i++) {
-      uint id = ids[i];
-      claimDisplays[i] = getClaimDisplay(id);
-    }
-
-    return claimDisplays;
+  function getMemberClaims(uint memberId) external view returns (uint[] memory) {
+    return _memberClaims[memberId];
   }
 
   /* ========== MUTATIVE FUNCTIONS ========== */
@@ -168,28 +125,17 @@ contract Claims is IClaims, RegistryAware {
     _memberClaims[memberId].push(claimId);
 
     {
-      uint previousSubmission = lastClaimSubmissionOnCover[coverId];
+      uint previousClaimId = lastClaimSubmissionOnCover[coverId];
 
-      if (previousSubmission > 0) {
-        (IAssessment.AssessmentStatus status, uint payoutRedemptionEnd) = assessment.getAssessmentResult(previousSubmission);
+      if (previousClaimId > 0) {
+        Assessment memory assessment = assessments.getAssessment(previousClaimId);
 
-        require(
-          status != IAssessment.AssessmentStatus.VOTING &&
-          status != IAssessment.AssessmentStatus.COOLDOWN,
-          ClaimIsBeingAssessed()
-        );
+        require(assessment.getStatus(block.timestamp) == AssessmentStatus.FINALIZED, ClaimIsBeingAssessed());
 
-        // Prevent re-submission for ACCEPTED claims
-        if (status == IAssessment.AssessmentStatus.ACCEPTED) {
-          // if payout already redeemed
-          require(
-            !_claims[previousSubmission].payoutRedeemed,
-            ClaimAlreadyPaidOut()
-          );
-
+        if (assessment.getOutcome(block.timestamp) == AssessmentOutcome.ACCEPTED) {
           // if payout not yet redeemed and still within redemption period
           require(
-            block.timestamp >= payoutRedemptionEnd,
+            block.timestamp >= assessment.getRedemptionEnd() || _claims[previousClaimId].payoutRedeemed,
             PayoutCanStillBeRedeemed()
           );
         }
@@ -214,7 +160,7 @@ contract Claims is IClaims, RegistryAware {
       coverData.productId
     );
 
-    assessment.startAssessment(claimId, product.productType);
+    assessments.startAssessment(claimId, product.productType);
 
     claim = Claim({
       coverId: coverId,
@@ -249,11 +195,16 @@ contract Claims is IClaims, RegistryAware {
   /// @param claimId  Claim identifier
   function redeemClaimPayout(uint claimId) external override onlyMember whenNotPaused(PAUSE_CLAIMS) {
 
-    (Claim memory claim, uint payoutRedemptionEnd) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.ACCEPTED);
+    Claim memory claim = _claims[claimId];
+    require(claim.coverId > 0, InvalidClaimId());
+
+    Assessment memory assessment = assessments.getAssessment(claimId);
+    require(assessment.getOutcome(block.timestamp) == AssessmentOutcome.ACCEPTED, OnlyOnAccepted());
+
     address coverOwner = coverNFT.ownerOf(claim.coverId);
 
     require(coverOwner == msg.sender, NotCoverOwner());
-    require(block.timestamp < payoutRedemptionEnd, RedemptionPeriodExpired());
+    require(block.timestamp < assessment.getRedemptionEnd(), RedemptionPeriodExpired());
     require(!claim.payoutRedeemed, PayoutAlreadyRedeemed());
 
     _claims[claimId].payoutRedeemed = true;
@@ -276,8 +227,13 @@ contract Claims is IClaims, RegistryAware {
   ///
   /// @param claimId The unique identifier of the claim for which the deposit is being retrieved.
   function retrieveDeposit(uint claimId) external override whenNotPaused(PAUSE_CLAIMS) {
+    Claim memory claim = _claims[claimId];
+    require(claim.coverId > 0, InvalidClaimId());
 
-    (Claim memory claim, /* payoutRedemptionEnd */) = _validateClaimStatus(claimId, IAssessment.AssessmentStatus.DRAW);
+    require(
+      assessments.getAssessment(claimId).getOutcome(block.timestamp) == AssessmentOutcome.DRAW,
+      OnlyOnDraw()
+    );
 
     require(!claim.depositRetrieved, DepositAlreadyRetrieved());
 
@@ -288,20 +244,5 @@ contract Claims is IClaims, RegistryAware {
     pool.sendEth(coverOwner, CLAIM_DEPOSIT_IN_ETH);
 
     emit ClaimDepositRetrieved(claimId, coverOwner);
-  }
-
-  function _validateClaimStatus(
-    uint claimId,
-    IAssessment.AssessmentStatus expectedStatus
-  ) internal view returns (Claim memory claim, uint payoutRedemptionEnd) {
-
-    claim = _claims[claimId];
-    require(claim.amount > 0, InvalidClaimId());
-
-    IAssessment.AssessmentStatus status;
-    (status, payoutRedemptionEnd) = assessment.getAssessmentResult(claimId);
-    require(status == expectedStatus, InvalidAssessmentStatus());
-
-    return (claim, payoutRedemptionEnd);
   }
 }

@@ -2,9 +2,10 @@
 
 pragma solidity ^0.8.18;
 
-import "../../../interfaces/IAssessment.sol";
+import "../../../interfaces/IAssessments.sol";
 import "../../generic/AssessmentGeneric.sol";
 
+// todo: change this mock
 contract CLMockAssessment is AssessmentGeneric {
 
   mapping(uint claimId => AssessmentStatus) public _status;
@@ -16,7 +17,7 @@ contract CLMockAssessment is AssessmentGeneric {
     _productTypeForClaimId[claimId] = productTypeId;
   }
 
-  function getAssessmentResult(uint claimId) external override view returns (AssessmentStatus, uint) {
+  function getAssessmentResult(uint claimId) external view returns (AssessmentStatus, uint) {
     return(_status[claimId], _payoutRedemptionEnd[claimId]);
   }
 

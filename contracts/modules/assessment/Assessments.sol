@@ -4,13 +4,15 @@ pragma solidity ^0.8.28;
 
 import "../../abstract/Multicall.sol";
 import "../../abstract/RegistryAware.sol";
-import "../../interfaces/IAssessment.sol";
+import "../../interfaces/IAssessments.sol";
 import "../../libraries/external/EnumerableSet.sol";
 import "../../libraries/SafeUintCast.sol";
+import "./AssessmentLib.sol";
 
-contract Assessment is IAssessment, RegistryAware, Multicall {
+contract Assessments is IAssessments, RegistryAware, Multicall {
   using EnumerableSet for EnumerableSet.UintSet;
   using SafeUintCast for uint;
+  using AssessmentLib for Assessment;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -39,7 +41,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
   /// @notice Returns the total number of assessor groups
   /// @return groupCount The current number of assessor groups
-  function getGroupsCount() override external view returns (uint groupCount) {
+  function getGroupsCount() external view override returns (uint groupCount) {
     groupCount = _groupCount;
   }
 
@@ -61,29 +63,30 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param assessorMemberId The member ID of the assessor
   /// @param groupId The ID of the group to check
   /// @return True if the assessor is in the group, false otherwise
-  function isAssessorInGroup(uint assessorMemberId, uint groupId) override external view returns (bool) {
+  function isAssessorInGroup(uint assessorMemberId, uint groupId) external view override returns (bool) {
     return _groups[groupId].contains(assessorMemberId);
   }
 
   /// @notice Returns all group IDs that an assessor belongs to
   /// @param assessorMemberId The member ID of the assessor
   /// @return groupIds Array of group IDs the assessor belongs to
-  function getGroupsForAssessor(uint assessorMemberId) override external view returns (uint[] memory groupIds) {
+  function getGroupsForAssessor(uint assessorMemberId) external view override returns (uint[] memory groupIds) {
     groupIds = _groupsForAssessor[assessorMemberId].values();
   }
 
   /// @notice Checks if a given member ID belongs to at least one assessor group
   /// @param assessorMemberId The ID of the member to check
   /// @return True if the member is an assessor, false otherwise
-  function isAssessor(uint assessorMemberId) override external view returns (bool) {
+  function isAssessor(uint assessorMemberId) external view override returns (bool) {
     return _groupsForAssessor[assessorMemberId].length() > 0;
   }
 
   /// @notice Returns detailed information for multiple groups
   /// @param groupIds Array of group IDs to query
   /// @return groups Array of group data including metadata and assessors
-  function getGroupsData(uint[] calldata groupIds) override external view returns (AssessmentGroupView[] memory groups) {
-
+  function getGroupsData(
+    uint[] calldata groupIds
+  ) external view override returns (AssessmentGroupView[] memory groups) {
     uint length = groupIds.length;
     groups = new AssessmentGroupView[](length);
 
@@ -105,8 +108,10 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param assessorMemberIds Array of member IDs to add to the group
   /// @param groupId Target group ID (0 creates new group)
   /// @dev Only callable by governor contract
-  function addAssessorsToGroup(uint[] calldata assessorMemberIds, uint groupId) override external onlyContracts(C_GOVERNOR) {
-
+  function addAssessorsToGroup(
+    uint[] calldata assessorMemberIds,
+    uint groupId
+  ) external override onlyContracts(C_GOVERNOR) {
     // make new group id
     if (groupId == 0) {
       groupId = ++_groupCount;
@@ -126,7 +131,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param groupId The ID of the group to update
   /// @param ipfsMetadata The IPFS hash containing group metadata
   /// @dev Only callable by governor contract
-  function setGroupMetadata(uint groupId, bytes32 ipfsMetadata) override external onlyContracts(C_GOVERNOR) {
+  function setGroupMetadata(uint groupId, bytes32 ipfsMetadata) external override onlyContracts(C_GOVERNOR) {
     require(groupId > 0 && groupId <= _groupCount, InvalidGroupId());
 
     _groupsMetadata[groupId] = ipfsMetadata;
@@ -137,8 +142,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param assessorMemberId The member ID of the assessor to remove
   /// @param groupId The ID of the group to remove from
   /// @dev Only callable by governor contract
-  function removeAssessorFromGroup(uint assessorMemberId, uint groupId) override external onlyContracts(C_GOVERNOR) {
-
+  function removeAssessorFromGroup(uint assessorMemberId, uint groupId) external override onlyContracts(C_GOVERNOR) {
     require(groupId > 0 && groupId <= _groupCount, InvalidGroupId());
     require(assessorMemberId != 0, InvalidMemberId());
 
@@ -151,8 +155,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @notice Removes an assessor from all groups they belong to
   /// @param assessorMemberId The member ID of the assessor to remove
   /// @dev Only callable by governor contract
-  function removeAssessorFromAllGroups(uint assessorMemberId) override external onlyContracts(C_GOVERNOR) {
-
+  function removeAssessorFromAllGroups(uint assessorMemberId) external override onlyContracts(C_GOVERNOR) {
     require(assessorMemberId != 0, InvalidMemberId());
 
     uint[] memory assessorsGroups = _groupsForAssessor[assessorMemberId].values();
@@ -177,8 +180,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     uint cooldownPeriod,
     uint payoutRedemptionPeriod,
     uint groupId
-  ) override external onlyContracts(C_GOVERNOR) {
-
+  ) external override onlyContracts(C_GOVERNOR) {
     require(groupId > 0 && groupId <= _groupCount, InvalidGroupId());
 
     uint length = productTypeIds.length;
@@ -197,8 +199,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param assessorMemberId The member ID of the assessor whose votes to undo
   /// @param claimIds Array of claim IDs to undo votes for
   /// @dev Only callable by governor contract, must be within cooldown period
-  function undoVotes(uint assessorMemberId, uint[] calldata claimIds) override external onlyContracts(C_GOVERNOR) {
-
+  function undoVotes(uint assessorMemberId, uint[] calldata claimIds) external override onlyContracts(C_GOVERNOR) {
     uint len = claimIds.length;
     for (uint i = 0; i < len; i++) {
       uint claimId = claimIds[i];
@@ -231,7 +232,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @notice Returns the payout cooldown period for a given product type
   /// @param productTypeId The product type identifier
   /// @return The cooldown period in seconds
-  function payoutCooldown(uint productTypeId) override external view returns (uint) {
+  function payoutCooldown(uint productTypeId) external view override returns (uint) {
     AssessmentData memory assessmentData = _assessmentData[productTypeId];
     require(assessmentData.assessingGroupId != 0, InvalidProductType());
 
@@ -241,14 +242,16 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @dev Returns assessment data for a given product type
   /// @param productTypeId The product type identifier
   /// @return assessmentData The assessment data including assessing group ID, cooldown period, and redemption period
-  function getAssessmentDataForProductType(uint productTypeId) external view override returns (AssessmentData memory assessmentData) {
+  function getAssessmentDataForProductType(
+    uint productTypeId
+  ) external view override returns (AssessmentData memory assessmentData) {
     return _assessmentData[productTypeId];
   }
 
   /// @notice Returns the full assessment data for a claim
   /// @param claimId The ID of the claim to query
   /// @return assessment The complete assessment data including votes and timing
-  function getAssessment(uint claimId) override external view returns(Assessment memory assessment) {
+  function getAssessment(uint claimId) external view override returns (Assessment memory assessment) {
     return _assessments[claimId];
   }
 
@@ -258,53 +261,11 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
     return VOTING_PERIOD;
   }
 
-  /// @notice Returns the assessment result and cooldown end time for a claim
-  /// @param claimId The ID of the claim to query
-  /// @return status Current status of the assessment (VOTING, COOLDOWN, ACCEPTED, DENIED, DRAW)
-  /// @return payoutRedemptionEnd Timestamp when the payout redemption period ends
-  function getAssessmentResult(uint claimId) override external view returns(AssessmentStatus status, uint payoutRedemptionEnd) {
-
-    Assessment memory assessment = _assessments[claimId];
-    require(assessment.start != 0, InvalidClaimId());
-
-    uint cooldownEnd = assessment.votingEnd + assessment.cooldownPeriod;
-    payoutRedemptionEnd = cooldownEnd + assessment.payoutRedemptionPeriod;
-
-    return (_getAssessmentStatus(assessment), payoutRedemptionEnd);
-  }
-
-  /// @notice Determines the current status of an assessment based on timing and votes
-  /// @param assessment The assessment data to evaluate
-  /// @return status The current assessment status
-  /// @dev Internal helper function for status calculation
-  function _getAssessmentStatus(Assessment memory assessment) internal view returns(AssessmentStatus status) {
-
-    if (block.timestamp < assessment.votingEnd) {
-      return AssessmentStatus.VOTING;
-    }
-
-    uint cooldownEnd = assessment.votingEnd + assessment.cooldownPeriod;
-    if (block.timestamp <= cooldownEnd) {
-      return AssessmentStatus.COOLDOWN;
-    }
-
-    // Cooldown has passed, the assessment can have a final decision
-    if (assessment.acceptVotes > assessment.denyVotes) {
-      return AssessmentStatus.ACCEPTED;
-    }
-
-    if (assessment.acceptVotes < assessment.denyVotes) {
-      return AssessmentStatus.DENIED;
-    }
-
-    return AssessmentStatus.DRAW;
-  }
-
   /// @notice Returns the ballot for a given claim and assessor
   /// @param claimId The claim identifier
   /// @param assessorMemberId The member ID of the assessor
   /// @return The Ballot struct for the assessor on the claim
-  function ballotOf(uint claimId, uint assessorMemberId) override external view returns (Ballot memory) {
+  function ballotOf(uint claimId, uint assessorMemberId) external view override returns (Ballot memory) {
     return _ballots[assessorMemberId][claimId];
   }
 
@@ -312,7 +273,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param claimId The claim identifier
   /// @param assessorMemberId The member ID of the assessor
   /// @return The IPFS hash containing off-chain metadata for the vote
-  function getBallotsMetadata(uint claimId, uint assessorMemberId) override external view returns (bytes32) {
+  function getBallotsMetadata(uint claimId, uint assessorMemberId) external view override returns (bytes32) {
     return _ballotsMetadata[assessorMemberId][claimId];
   }
 
@@ -323,8 +284,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param productTypeId Type of product the claim is for
   /// @dev Only callable by internal contracts
   /// @dev Reverts if an assessment already exists for the given claimId
-  function startAssessment(uint claimId, uint productTypeId) override external onlyContracts(C_CLAIMS) {
-
+  function startAssessment(uint claimId, uint productTypeId) external override onlyContracts(C_CLAIMS) {
     require(_assessments[claimId].start == 0, AssessmentAlreadyExists());
 
     AssessmentData memory assessmentData = _assessmentData[productTypeId];
@@ -352,8 +312,11 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @param claimId The unique identifier for the claim to vote on
   /// @param voteSupport The assessor's vote; `true` to accept the claim, `false` to deny it
   /// @param ipfsHash An IPFS hash containing off-chain metadata or reasoning for the vote
-  function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) override external whenNotPaused(PAUSE_ASSESSMENTS) {
-
+  function castVote(
+    uint claimId,
+    bool voteSupport,
+    bytes32 ipfsHash
+  ) external override whenNotPaused(PAUSE_ASSESSMENTS) {
     uint assessorMemberId = registry.getMemberId(msg.sender);
     require(assessorMemberId > 0, OnlyMember());
 
@@ -376,10 +339,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
 
     _assessments[claimId] = assessment;
 
-    _ballots[assessorMemberId][claimId] = Ballot({
-      timestamp: uint32(block.timestamp),
-      support: voteSupport
-    });
+    _ballots[assessorMemberId][claimId] = Ballot({timestamp: uint32(block.timestamp), support: voteSupport});
     _ballotsMetadata[assessorMemberId][claimId] = ipfsHash;
 
     emit VoteCast(claimId, msg.sender, assessorMemberId, voteSupport, ipfsHash);
@@ -389,8 +349,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @dev Can only be called if all assigned assessors have cast their votes
   ///      Sets the assessment's `votingEnd` to the current block timestamp
   /// @param claimId The unique identifier for the claim.
-  function closeVotingEarly(uint claimId) override external {
-
+  function closeVotingEarly(uint claimId) external override {
     Assessment memory assessment = _assessments[claimId];
     require(assessment.start != 0, InvalidClaimId());
     require(block.timestamp < assessment.votingEnd, VotingAlreadyClosed());
@@ -414,8 +373,7 @@ contract Assessment is IAssessment, RegistryAware, Multicall {
   /// @notice Extends the voting period for a claim, starting a new full voting window
   /// @dev Can only be called by the Governor contract. Reverts if the assessment's cooldown period has already passed
   /// @param claimId The unique identifier for the claim
-  function extendVotingPeriod(uint claimId) override external onlyContracts(C_GOVERNOR) {
-
+  function extendVotingPeriod(uint claimId) external override onlyContracts(C_GOVERNOR) {
     Assessment memory assessment = _assessments[claimId];
     require(assessment.start != 0, InvalidClaimId());
 

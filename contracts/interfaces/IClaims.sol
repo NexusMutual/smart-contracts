@@ -2,11 +2,10 @@
 
 pragma solidity >=0.5.0;
 
+import "./IAssessments.sol";
+import "./ICover.sol";
+
 interface IClaims {
-
-  enum ClaimStatus { PENDING, ACCEPTED, DENIED }
-
-  enum PayoutStatus { PENDING, COMPLETE, UNCLAIMED, DENIED }
 
   struct Claim {
     uint32 coverId;
@@ -16,26 +15,13 @@ interface IClaims {
     bool depositRetrieved;
   }
 
-  // Claim structure but in a human-friendly format.
-  //
-  // Contains aggregated values that give an overall view about the claim and other relevant
-  // pieces of information such as cover period, asset symbol etc. This structure is not used in
-  // any storage variables.
-  struct ClaimDisplay {
-    uint id;
-    uint productId;
-    uint coverId;
-    uint amount;
-    string assetSymbol;
-    uint assetIndex;
-    uint coverStart;
-    uint coverEnd;
-    uint assessmentStart;
-    uint assessmentVotingEnd;
-    uint assessmentCooldownEnd;
-    uint assessmentStatus;
-    uint payoutRedemptionEnd;
-    bool payoutRedeemed;
+  struct ClaimDetails {
+    uint claimId;
+    Claim claim;
+    CoverData cover;
+    Assessment assessment;
+    AssessmentStatus status;
+    AssessmentOutcome outcome;
   }
 
   /* ========== VIEWS ========== */
@@ -75,10 +61,11 @@ interface IClaims {
   error GracePeriodPassed();
   error AssessmentDepositNotExact();
   error AssessmentDepositTransferToPoolFailed();
-  error InvalidAssessmentStatus();
   error RedemptionPeriodExpired();
   error PayoutAlreadyRedeemed();
   error DepositAlreadyRetrieved();
   error InvalidClaimId();
   error AlreadyInitialized();
+  error OnlyOnDraw();
+  error OnlyOnAccepted();
 }

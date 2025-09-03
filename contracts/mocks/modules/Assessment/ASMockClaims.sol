@@ -3,7 +3,7 @@
 pragma solidity ^0.8.28;
 
 import "../../../interfaces/IClaims.sol";
-import "../../../interfaces/IAssessment.sol";
+import "../../../interfaces/IAssessments.sol";
 import "../../../abstract/RegistryAware.sol";
 
 /// @title ASMockClaims - Mock Claims contract for Assessment testing
@@ -31,8 +31,8 @@ contract ASMockClaims is IClaims, RegistryAware {
 
   /* ========== INTERNAL FUNCTIONS ========== */
 
-  function _assessment() internal view returns (IAssessment) {
-    return IAssessment(fetch(C_ASSESSMENT));
+  function _assessments() internal view returns (IAssessments) {
+    return IAssessments(fetch(C_ASSESSMENT));
   }
 
   /* ========== VIEWS ========== */
@@ -63,7 +63,7 @@ contract ASMockClaims is IClaims, RegistryAware {
     uint16 productTypeId = uint16(coverId);
 
     // Start the assessment
-    _assessment().startAssessment(claimId, productTypeId);
+    _assessments().startAssessment(claimId, productTypeId);
 
     // Create and store the claim
     claim = Claim({

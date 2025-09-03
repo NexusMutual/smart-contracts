@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.18;
 
-import "../../interfaces/IAssessment.sol";
+import "../../interfaces/IAssessments.sol";
 
-contract AssessmentGeneric is IAssessment {
+contract AssessmentGeneric is IAssessments {
   function addAssessorsToGroup(uint[] calldata, uint) external virtual {
     revert("Unsupported");
   }
@@ -100,10 +100,6 @@ contract AssessmentGeneric is IAssessment {
   }
 
   function getAssessmentDataForProductType(uint) external virtual view returns (AssessmentData memory) {
-    revert("Unsupported");
-  }
-
-  function getAssessmentResult(uint) external virtual view returns (AssessmentStatus, uint) {
     revert("Unsupported");
   }
 

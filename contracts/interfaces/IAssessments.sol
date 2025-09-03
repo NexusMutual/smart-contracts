@@ -2,7 +2,31 @@
 
 pragma solidity >=0.5.0;
 
-interface IAssessment {
+enum AssessmentStatus {
+  VOTING,
+  COOLDOWN,
+  FINALIZED
+}
+
+enum AssessmentOutcome {
+  PENDING,
+  ACCEPTED,
+  DRAW,
+  DENIED
+}
+
+struct Assessment {
+  uint16 assessingGroupId;
+  uint32 cooldownPeriod;
+  uint32 payoutRedemptionPeriod;
+  uint32 start;
+  uint32 votingEnd;
+  uint8 acceptVotes;
+  uint8 denyVotes;
+}
+
+interface IAssessments {
+
   struct AssessmentData {
     uint16 assessingGroupId;
     uint32 cooldownPeriod;
@@ -18,24 +42,6 @@ interface IAssessment {
   struct Ballot {
     uint32 timestamp;
     bool support;
-  }
-
-  struct Assessment {
-    uint16 assessingGroupId;
-    uint32 cooldownPeriod;
-    uint32 payoutRedemptionPeriod;
-    uint32 start;
-    uint32 votingEnd;
-    uint8 acceptVotes;
-    uint8 denyVotes;
-  }
-
-  enum AssessmentStatus {
-    VOTING,
-    COOLDOWN,
-    ACCEPTED,
-    DENIED,
-    DRAW
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -86,8 +92,6 @@ interface IAssessment {
   function payoutCooldown(uint productTypeId) external view returns (uint);
 
   function getAssessmentDataForProductType(uint productTypeId) external view returns (AssessmentData memory assessmentData);
-
-  function getAssessmentResult(uint claimId) external view returns(AssessmentStatus status, uint payoutRedemptionPeriod);
 
   function ballotOf(uint claimId, uint assessorMemberId) external view returns (Ballot memory);
 

@@ -260,22 +260,21 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
 
     Asset memory asset = assets[assetId];
 
-    if (depositInETH > 0) {
-      (bool ok, /* data */) = payoutAddress.call{value: depositInETH}("");
-      require(ok, EthTransferFailed(payoutAddress, depositInETH));
-    }
-
-    if (asset.assetAddress == ETH) {
-      // solhint-disable-next-line avoid-low-level-calls
-      (bool ok, /* data */) = payoutAddress.call{value: amount}("");
-      require(ok, EthTransferFailed(payoutAddress, amount));
-    } else {
+    if (asset.assetAddress != ETH) {
       IERC20(asset.assetAddress).safeTransfer(payoutAddress, amount);
+    }
+    
+    uint ethAmountToSend = depositInETH + (asset.assetAddress == ETH ? amount : 0);
+    if (ethAmountToSend > 0) {
+      (bool ok, /* data */) = payoutAddress.call{value: ethAmountToSend}("");
+      require(ok, EthTransferFailed(payoutAddress, ethAmountToSend));
     }
 
     emit Payout(payoutAddress, asset.assetAddress, amount);
 
-    _updateMCR(true);
+    if (amount > 0) {
+      _updateMCR(true);
+    }
   }
 
   /* ========== TOKEN AND RAMM ========== */
@@ -284,7 +283,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
   /// @param member  Member address
   /// @param amount  Amount of ETH to send
   ///
-  function sendEth(address payable member, uint amount) external override onlyContracts(C_RAMM | C_CLAIMS) nonReentrant {
+  function sendEth(address payable member, uint amount) external override onlyContracts(C_RAMM) nonReentrant {
     (bool transferSucceeded, /* data */) = member.call{value: amount}("");
     require(transferSucceeded, EthTransferFailed(member, amount));
   }

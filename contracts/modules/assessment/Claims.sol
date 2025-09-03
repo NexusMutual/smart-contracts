@@ -241,7 +241,7 @@ contract Claims is IClaims, RegistryAware {
 
     address payable coverOwner = payable(coverNFT.ownerOf(claim.coverId));
 
-    pool.sendEth(coverOwner, CLAIM_DEPOSIT_IN_ETH);
+    pool.sendPayout(0, payable(coverOwner), 0, CLAIM_DEPOSIT_IN_ETH);
 
     emit ClaimDepositRetrieved(claimId, coverOwner);
   }

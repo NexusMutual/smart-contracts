@@ -115,16 +115,17 @@ describe('getProposal', () => {
 
     const initialProposal = await governor.getProposal(proposalId);
     const initialProposedAt = initialProposal.proposedAt;
-    const initialVoteBefore = initialProposal.voteBefore;
     const initialExecuteAfter = initialProposal.executeAfter;
 
     await governor.connect(accounts.advisoryBoardMembers[0]).vote(proposalId, Choice.For);
     await governor.connect(accounts.advisoryBoardMembers[1]).vote(proposalId, Choice.For);
     await governor.connect(accounts.advisoryBoardMembers[2]).vote(proposalId, Choice.For);
 
+    const voteBeforeAfterThreshold = await time.latest();
+
     const proposalAfterVote = await governor.getProposal(proposalId);
     expect(proposalAfterVote.proposedAt).to.be.equal(initialProposedAt);
-    expect(proposalAfterVote.voteBefore).to.be.equal(initialVoteBefore);
+    expect(proposalAfterVote.voteBefore).to.be.equal(voteBeforeAfterThreshold);
 
     expect(proposalAfterVote.executeAfter).to.be.lessThanOrEqual(initialExecuteAfter);
 
@@ -134,7 +135,7 @@ describe('getProposal', () => {
 
     const finalProposal = await governor.getProposal(proposalId);
     expect(finalProposal.proposedAt).to.be.equal(initialProposedAt);
-    expect(finalProposal.voteBefore).to.be.equal(initialVoteBefore);
+    expect(finalProposal.voteBefore).to.be.equal(voteBeforeAfterThreshold);
     expect(finalProposal.status).to.be.equal(ProposalStatus.Executed);
   });
 });

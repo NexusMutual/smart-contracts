@@ -35,9 +35,5 @@ library AssessmentLib {
     return AssessmentOutcome.DRAW;
   }
 
-  function getRedemptionEnd(Assessment memory assessment) internal pure returns(uint) {
-    return assessment.votingEnd + assessment.cooldownPeriod + assessment.payoutRedemptionPeriod;
-  }
-
 }
 

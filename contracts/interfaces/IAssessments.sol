@@ -18,7 +18,6 @@ enum AssessmentOutcome {
 struct Assessment {
   uint16 assessingGroupId;
   uint32 cooldownPeriod;
-  uint32 payoutRedemptionPeriod;
   uint32 start;
   uint32 votingEnd;
   uint8 acceptVotes;
@@ -54,7 +53,7 @@ interface IAssessments {
 
   function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) external;
 
-  function startAssessment(uint claimId, uint productTypeId, uint cooldownPeriod, uint payoutRedemptionPeriod) external;
+  function startAssessment(uint claimId, uint productTypeId, uint cooldownPeriod) external;
 
   function extendVotingPeriod(uint claimId) external;
 

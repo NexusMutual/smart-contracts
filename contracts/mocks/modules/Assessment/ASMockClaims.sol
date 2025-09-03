@@ -71,13 +71,14 @@ contract ASMockClaims is IClaims, RegistryAware {
     uint16 productTypeId = uint16(coverId);
 
     // Start the assessment
-    _assessments().startAssessment(claimId, productTypeId, cooldownPeriod, redemptionPeriod);
+    _assessments().startAssessment(claimId, productTypeId, cooldownPeriod);
 
     // Create and store the claim
     claim = Claim({
       coverId: coverId,
       amount: requestedAmount,
       coverAsset: 0, // ETH for simplicity
+      payoutRedemptionPeriod: uint32(redemptionPeriod),
       payoutRedeemed: false,
       depositRetrieved: false
     });

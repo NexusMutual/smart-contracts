@@ -83,20 +83,30 @@ contract Claims is IClaims, RegistryAware {
     require(claim.coverId > 0, InvalidClaimId());
 
     CoverData memory _cover = cover.getCoverData(claim.coverId);
-    Assessment memory _assessment = assessments.getAssessment(claimId);
+    Assessment memory assessment = assessments.getAssessment(claimId);
 
     return ClaimDetails({
       claimId: claimId,
       claim: claim,
       cover: _cover,
-      assessment: _assessment,
-      status: _assessment.getStatus(),
-      outcome: _assessment.getOutcome()
+      assessment: assessment,
+      status: assessment.getStatus(),
+      outcome: assessment.getOutcome(),
+      redeemable: claimRedeemable(claim, assessment)
     });
   }
 
   function getMemberClaims(uint memberId) external view returns (uint[] memory) {
     return _memberClaims[memberId];
+  }
+
+  /// @dev To be redeemable assessment outcome must be accepted, redemption period must not pass, 
+  ///      and claim must not be already redeemed
+  function claimRedeemable(Claim memory claim, Assessment memory assessment) internal view returns (bool) {
+    return 
+      assessment.getOutcome() == AssessmentOutcome.ACCEPTED &&
+      block.timestamp < assessment.votingEnd + assessment.cooldownPeriod + claim.payoutRedemptionPeriod &&
+      !claim.payoutRedeemed;
   }
 
   /* ========== MUTATIVE FUNCTIONS ========== */
@@ -131,14 +141,7 @@ contract Claims is IClaims, RegistryAware {
         Assessment memory assessment = assessments.getAssessment(previousClaimId);
 
         require(assessment.getStatus() == AssessmentStatus.FINALIZED, ClaimIsBeingAssessed());
-
-        if (assessment.getOutcome() == AssessmentOutcome.ACCEPTED) {
-          // if payout not yet redeemed and still within redemption period
-          require(
-            block.timestamp >= assessment.getRedemptionEnd() || _claims[previousClaimId].payoutRedeemed,
-            PayoutCanStillBeRedeemed()
-          );
-        }
+        require(!claimRedeemable(_claims[previousClaimId], assessment), PayoutCanStillBeRedeemed());
       }
 
       lastClaimSubmissionOnCover[coverId] = claimId;
@@ -160,12 +163,13 @@ contract Claims is IClaims, RegistryAware {
       coverData.productId
     );
 
-    assessments.startAssessment(claimId, product.productType, productType.assessmentCooldownPeriod, productType.payoutRedemptionPeriod);
+    assessments.startAssessment(claimId, product.productType, productType.assessmentCooldownPeriod);
 
     claim = Claim({
       coverId: coverId,
       amount: requestedAmount,
       coverAsset: coverData.coverAsset,
+      payoutRedemptionPeriod: productType.payoutRedemptionPeriod,
       payoutRedeemed: false,
       depositRetrieved: false
     });
@@ -204,8 +208,7 @@ contract Claims is IClaims, RegistryAware {
     address coverOwner = coverNFT.ownerOf(claim.coverId);
 
     require(coverOwner == msg.sender, NotCoverOwner());
-    require(block.timestamp < assessment.getRedemptionEnd(), RedemptionPeriodExpired());
-    require(!claim.payoutRedeemed, PayoutAlreadyRedeemed());
+    require(claimRedeemable(claim, assessment), ClaimNotRedeemable());
 
     _claims[claimId].payoutRedeemed = true;
     _claims[claimId].depositRetrieved = true;

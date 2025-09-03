@@ -11,6 +11,7 @@ interface IClaims {
     uint32 coverId;
     uint96 amount;
     uint8 coverAsset; // asset id in the Pool contract
+    uint32 payoutRedemptionPeriod;
     bool payoutRedeemed;
     bool depositRetrieved;
   }
@@ -22,6 +23,7 @@ interface IClaims {
     Assessment assessment;
     AssessmentStatus status;
     AssessmentOutcome outcome;
+    bool redeemable;
   }
 
   /* ========== VIEWS ========== */
@@ -61,8 +63,7 @@ interface IClaims {
   error GracePeriodPassed();
   error AssessmentDepositNotExact();
   error AssessmentDepositTransferToPoolFailed();
-  error RedemptionPeriodExpired();
-  error PayoutAlreadyRedeemed();
+  error ClaimNotRedeemable();
   error DepositAlreadyRetrieved();
   error InvalidClaimId();
   error AlreadyInitialized();

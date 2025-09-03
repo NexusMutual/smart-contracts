@@ -7,12 +7,10 @@ import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IAssessments.sol";
 import "../../libraries/external/EnumerableSet.sol";
 import "../../libraries/SafeUintCast.sol";
-import "./AssessmentLib.sol";
 
 contract Assessments is IAssessments, RegistryAware, Multicall {
   using EnumerableSet for EnumerableSet.UintSet;
   using SafeUintCast for uint;
-  using AssessmentLib for Assessment;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -265,14 +263,12 @@ contract Assessments is IAssessments, RegistryAware, Multicall {
   /// @param claimId Unique identifier for the claim
   /// @param productTypeId Type of product the claim is for
   /// @param cooldownPeriod Cooldown period for the given product type
-  /// @param payoutRedemptionPeriod Redemption period for the given product type
   /// @dev Only callable by internal contracts
   /// @dev Reverts if an assessment already exists for the given claimId
   function startAssessment(
     uint claimId, 
     uint productTypeId, 
-    uint cooldownPeriod, 
-    uint payoutRedemptionPeriod
+    uint cooldownPeriod
   ) external override onlyContracts(C_CLAIMS) {
     require(_assessments[claimId].start == 0, AssessmentAlreadyExists());
 
@@ -285,7 +281,6 @@ contract Assessments is IAssessments, RegistryAware, Multicall {
     _assessments[claimId] = Assessment({
       assessingGroupId: assessingGroupId.toUint16(),
       cooldownPeriod: cooldownPeriod.toUint32(),
-      payoutRedemptionPeriod: payoutRedemptionPeriod.toUint32(),
       start: startTime,
       votingEnd: votingEndTime,
       acceptVotes: 0,

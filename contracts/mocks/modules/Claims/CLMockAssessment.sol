@@ -10,7 +10,7 @@ contract CLMockAssessment is AssessmentGeneric {
   mapping(uint claimId => uint) public _productTypeForClaimId;
   mapping(uint claimId => Assessment) public _assessments;
 
-  function startAssessment(uint claimId, uint productTypeId, uint, uint) external override {
+  function startAssessment(uint claimId, uint productTypeId, uint) external override {
     _productTypeForClaimId[claimId] = productTypeId;
   }
 

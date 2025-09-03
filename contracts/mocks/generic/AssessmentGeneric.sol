@@ -33,7 +33,7 @@ contract AssessmentGeneric is IAssessments {
     revert("Unsupported");
   }
 
-  function startAssessment(uint, uint, uint,uint) external virtual {
+  function startAssessment(uint, uint, uint) external virtual {
     revert("Unsupported");
   }
 

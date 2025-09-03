@@ -90,8 +90,8 @@ contract Claims is IClaims, RegistryAware {
       claim: claim,
       cover: _cover,
       assessment: _assessment,
-      status: _assessment.getStatus(block.timestamp),
-      outcome: _assessment.getOutcome(block.timestamp)
+      status: _assessment.getStatus(),
+      outcome: _assessment.getOutcome()
     });
   }
 
@@ -130,9 +130,9 @@ contract Claims is IClaims, RegistryAware {
       if (previousClaimId > 0) {
         Assessment memory assessment = assessments.getAssessment(previousClaimId);
 
-        require(assessment.getStatus(block.timestamp) == AssessmentStatus.FINALIZED, ClaimIsBeingAssessed());
+        require(assessment.getStatus() == AssessmentStatus.FINALIZED, ClaimIsBeingAssessed());
 
-        if (assessment.getOutcome(block.timestamp) == AssessmentOutcome.ACCEPTED) {
+        if (assessment.getOutcome() == AssessmentOutcome.ACCEPTED) {
           // if payout not yet redeemed and still within redemption period
           require(
             block.timestamp >= assessment.getRedemptionEnd() || _claims[previousClaimId].payoutRedeemed,
@@ -199,7 +199,7 @@ contract Claims is IClaims, RegistryAware {
     require(claim.coverId > 0, InvalidClaimId());
 
     Assessment memory assessment = assessments.getAssessment(claimId);
-    require(assessment.getOutcome(block.timestamp) == AssessmentOutcome.ACCEPTED, OnlyOnAccepted());
+    require(assessment.getOutcome() == AssessmentOutcome.ACCEPTED, OnlyOnAccepted());
 
     address coverOwner = coverNFT.ownerOf(claim.coverId);
 
@@ -231,7 +231,7 @@ contract Claims is IClaims, RegistryAware {
     require(claim.coverId > 0, InvalidClaimId());
 
     require(
-      assessments.getAssessment(claimId).getOutcome(block.timestamp) == AssessmentOutcome.DRAW,
+      assessments.getAssessment(claimId).getOutcome() == AssessmentOutcome.DRAW,
       OnlyOnDraw()
     );
 

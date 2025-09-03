@@ -6,20 +6,20 @@ import "../../interfaces/IAssessments.sol";
 
 library AssessmentLib {
 
-  function getStatus(Assessment memory assessment, uint timestamp) internal pure returns(AssessmentStatus) {
-    if (timestamp < assessment.votingEnd) {
+  function getStatus(Assessment memory assessment) internal view returns(AssessmentStatus) {
+    if (block.timestamp < assessment.votingEnd) {
       return AssessmentStatus.VOTING;
     }
 
-    if (timestamp <= assessment.votingEnd + assessment.cooldownPeriod) {
+    if (block.timestamp <= assessment.votingEnd + assessment.cooldownPeriod) {
       return AssessmentStatus.COOLDOWN;
     }
 
     return AssessmentStatus.FINALIZED;
   }
 
-  function getOutcome(Assessment memory assessment, uint timestamp) internal pure returns(AssessmentOutcome) {
-    if (timestamp <= assessment.votingEnd + assessment.cooldownPeriod) {
+  function getOutcome(Assessment memory assessment) internal view returns(AssessmentOutcome) {
+    if (block.timestamp <= assessment.votingEnd + assessment.cooldownPeriod) {
       return AssessmentOutcome.PENDING;
     }
 

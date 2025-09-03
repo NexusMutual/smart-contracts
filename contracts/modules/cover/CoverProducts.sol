@@ -291,6 +291,11 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
       require(param.productTypeId < _productTypes.length, ProductTypeNotFound());
 
+      require(
+        _productTypes[param.productTypeId].claimMethod == param.productType.claimMethod, 
+        MustUseSameClaimMethod()
+      );
+
       _productTypes[param.productTypeId] = param.productType;
 
       if (bytes(param.productTypeName).length > 0) {

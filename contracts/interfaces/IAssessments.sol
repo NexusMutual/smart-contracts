@@ -27,12 +27,6 @@ struct Assessment {
 
 interface IAssessments {
 
-  struct AssessmentData {
-    uint16 assessingGroupId;
-    uint32 cooldownPeriod;
-    uint32 payoutRedemptionPeriod;
-  }
-
   struct AssessmentGroupView {
     uint id;
     bytes32 ipfsMetadata;
@@ -54,18 +48,13 @@ interface IAssessments {
 
   function removeAssessorFromAllGroups(uint assessorMemberId) external;
 
-  function setAssessmentDataForProductTypes(
-    uint[] calldata productTypeIds,
-    uint cooldownPeriod,
-    uint redemptionPeriod,
-    uint groupId
-  ) external;
+  function setAssessingGroupIdForProductTypes(uint[] calldata productTypeIds, uint groupId) external;
 
   function undoVotes(uint assessorMemberId, uint[] calldata claimIds) external;
 
   function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) external;
 
-  function startAssessment(uint claimId, uint productTypeId) external;
+  function startAssessment(uint claimId, uint productTypeId, uint cooldownPeriod, uint payoutRedemptionPeriod) external;
 
   function extendVotingPeriod(uint claimId) external;
 
@@ -89,9 +78,7 @@ interface IAssessments {
 
   function minVotingPeriod() external pure returns (uint);
 
-  function payoutCooldown(uint productTypeId) external view returns (uint);
-
-  function getAssessmentDataForProductType(uint productTypeId) external view returns (AssessmentData memory assessmentData);
+  function getAssessingGroupIdForProductType(uint productTypeId) external view returns (uint);
 
   function ballotOf(uint claimId, uint assessorMemberId) external view returns (Ballot memory);
 
@@ -101,12 +88,7 @@ interface IAssessments {
 
   /* ========= EVENTS ========== */
 
-  event AssessmentDataForProductTypeSet(
-    uint indexed productTypeId,
-    uint indexed groupId,
-    uint cooldownPeriod,
-    uint payoutRedemptionPeriod
-  );
+  event AssessingGroupForProductTypeSet(uint indexed productTypeId, uint indexed groupId);
   event AssessorAddedToGroup(uint indexed groupId, uint assessorMemberId);
   event AssessorRemovedFromGroup(uint indexed groupId, uint assessorMemberId);
   event GroupMetadataSet(uint indexed groupId, bytes32 ipfsMetadata);

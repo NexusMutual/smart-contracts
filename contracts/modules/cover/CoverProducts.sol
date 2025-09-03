@@ -291,7 +291,7 @@ contract CoverProducts is ICoverProducts, MasterAwareV2, Multicall {
 
       require(param.productTypeId < _productTypes.length, ProductTypeNotFound());
 
-      _productTypes[param.productTypeId].gracePeriod = param.productType.gracePeriod;
+      _productTypes[param.productTypeId] = param.productType;
 
       if (bytes(param.productTypeName).length > 0) {
         productTypeNames[param.productTypeId] = param.productTypeName;

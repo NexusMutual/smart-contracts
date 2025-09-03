@@ -5,26 +5,20 @@ pragma solidity ^0.8.18;
 import "../../../interfaces/IAssessments.sol";
 import "../../generic/AssessmentGeneric.sol";
 
-// todo: change this mock
 contract CLMockAssessment is AssessmentGeneric {
 
-  mapping(uint claimId => AssessmentStatus) public _status;
-  mapping(uint claimId => uint) public _payoutRedemptionEnd;
-  mapping(uint claimId => uint) public _cooldownEnd;
   mapping(uint claimId => uint) public _productTypeForClaimId;
+  mapping(uint claimId => Assessment) public _assessments;
 
-  function startAssessment(uint claimId, uint productTypeId) external override {
+  function startAssessment(uint claimId, uint productTypeId, uint, uint) external override {
     _productTypeForClaimId[claimId] = productTypeId;
   }
 
-  function getAssessmentResult(uint claimId) external view returns (AssessmentStatus, uint) {
-    return(_status[claimId], _payoutRedemptionEnd[claimId]);
+  function getAssessment(uint claimId) external view override returns(Assessment memory assessment) {
+    return _assessments[claimId];
   }
 
-  function setAssessmentResult(uint claimId, AssessmentStatus status, uint payoutRedemptionEnd, uint cooldownEnd) external {
-    _status[claimId] = status;
-    _payoutRedemptionEnd[claimId] = payoutRedemptionEnd;
-    _cooldownEnd[claimId] = cooldownEnd;
+  function setAssessment(uint claimId, Assessment memory assessment) external {
+    _assessments[claimId] = assessment;
   }
-
 }

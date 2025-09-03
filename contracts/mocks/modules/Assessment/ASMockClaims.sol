@@ -15,6 +15,9 @@ contract ASMockClaims is IClaims, RegistryAware {
   mapping(uint claimId => Claim) private _claims;
   mapping(uint coverId => uint claimId) public lastClaimSubmissionOnCover;
 
+  uint public cooldownPeriod;
+  uint public redemptionPeriod;
+
   uint private _nextClaimId = 1;
 
   /* =========== CONSTANTS =========== */
@@ -47,6 +50,11 @@ contract ASMockClaims is IClaims, RegistryAware {
 
   /* ========== MUTATIVE FUNCTIONS ========== */
 
+  function setCooldownAndRedemptionPeriod(uint _cooldownPeriod, uint _redemptionPeriod) external {
+    cooldownPeriod = _cooldownPeriod;
+    redemptionPeriod = _redemptionPeriod;
+  }
+
   /// @notice Simplified submit claim for testing
   /// @dev Calls assessment.startAssessment and stores the claim
   /// @dev productTypeId is set to coverId for testing
@@ -63,7 +71,7 @@ contract ASMockClaims is IClaims, RegistryAware {
     uint16 productTypeId = uint16(coverId);
 
     // Start the assessment
-    _assessments().startAssessment(claimId, productTypeId);
+    _assessments().startAssessment(claimId, productTypeId, cooldownPeriod, redemptionPeriod);
 
     // Create and store the claim
     claim = Claim({

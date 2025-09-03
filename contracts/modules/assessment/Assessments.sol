@@ -21,7 +21,7 @@ contract Assessments is IAssessments, RegistryAware, Multicall {
   uint32 private _groupCount;
 
   mapping(uint assessorMemberId => EnumerableSet.UintSet) private _groupsForAssessor;
-  mapping(uint productTypeId => AssessmentData) private _assessmentData;
+  mapping(uint productTypeId => uint) private _assessingGroupId;
 
   mapping(uint claimId => Assessment) private _assessments;
 
@@ -170,28 +170,20 @@ contract Assessments is IAssessments, RegistryAware, Multicall {
     _groupsForAssessor[assessorMemberId].clear();
   }
 
-  /// @notice Sets assessment configuration for multiple product types
+  /// @notice Sets assessing group id for multiple product types
   /// @param productTypeIds Array of product type IDs to configure
-  /// @param cooldownPeriod Cooldown period in seconds after voting ends
   /// @param groupId The assessor group ID responsible for these product types
   /// @dev Only callable by governor contract
-  function setAssessmentDataForProductTypes(
+  function setAssessingGroupIdForProductTypes(
     uint[] calldata productTypeIds,
-    uint cooldownPeriod,
-    uint payoutRedemptionPeriod,
     uint groupId
   ) external override onlyContracts(C_GOVERNOR) {
     require(groupId > 0 && groupId <= _groupCount, InvalidGroupId());
 
     uint length = productTypeIds.length;
     for (uint i = 0; i < length; i++) {
-      uint productTypeId = productTypeIds[i];
-      _assessmentData[productTypeId] = AssessmentData({
-        assessingGroupId: groupId.toUint16(),
-        cooldownPeriod: cooldownPeriod.toUint32(),
-        payoutRedemptionPeriod: payoutRedemptionPeriod.toUint32()
-      });
-      emit AssessmentDataForProductTypeSet(productTypeId, groupId, cooldownPeriod, payoutRedemptionPeriod);
+      _assessingGroupId[productTypeIds[i]] = groupId;
+      emit AssessingGroupForProductTypeSet(productTypeIds[i], groupId);
     }
   }
 
@@ -229,23 +221,13 @@ contract Assessments is IAssessments, RegistryAware, Multicall {
   /* ========== VOTING ========== */
   /* ========== VIEWS ========== */
 
-  /// @notice Returns the payout cooldown period for a given product type
+  /// @dev Returns assessing group for a given product type
   /// @param productTypeId The product type identifier
-  /// @return The cooldown period in seconds
-  function payoutCooldown(uint productTypeId) external view override returns (uint) {
-    AssessmentData memory assessmentData = _assessmentData[productTypeId];
-    require(assessmentData.assessingGroupId != 0, InvalidProductType());
-
-    return assessmentData.cooldownPeriod;
-  }
-
-  /// @dev Returns assessment data for a given product type
-  /// @param productTypeId The product type identifier
-  /// @return assessmentData The assessment data including assessing group ID, cooldown period, and redemption period
-  function getAssessmentDataForProductType(
+  /// @return assessingGroupId Assessing group ID
+  function getAssessingGroupIdForProductType(
     uint productTypeId
-  ) external view override returns (AssessmentData memory assessmentData) {
-    return _assessmentData[productTypeId];
+  ) external view override returns (uint assessingGroupId) {
+    return _assessingGroupId[productTypeId];
   }
 
   /// @notice Returns the full assessment data for a claim
@@ -282,28 +264,35 @@ contract Assessments is IAssessments, RegistryAware, Multicall {
   /// @notice Initiates a new assessment for a claim
   /// @param claimId Unique identifier for the claim
   /// @param productTypeId Type of product the claim is for
+  /// @param cooldownPeriod Cooldown period for the given product type
+  /// @param payoutRedemptionPeriod Redemption period for the given product type
   /// @dev Only callable by internal contracts
   /// @dev Reverts if an assessment already exists for the given claimId
-  function startAssessment(uint claimId, uint productTypeId) external override onlyContracts(C_CLAIMS) {
+  function startAssessment(
+    uint claimId, 
+    uint productTypeId, 
+    uint cooldownPeriod, 
+    uint payoutRedemptionPeriod
+  ) external override onlyContracts(C_CLAIMS) {
     require(_assessments[claimId].start == 0, AssessmentAlreadyExists());
 
-    AssessmentData memory assessmentData = _assessmentData[productTypeId];
-    require(assessmentData.assessingGroupId != 0, InvalidProductType());
+    uint assessingGroupId = _assessingGroupId[productTypeId];
+    require(assessingGroupId != 0, InvalidProductType());
 
     uint32 startTime = block.timestamp.toUint32();
     uint32 votingEndTime = (startTime + VOTING_PERIOD).toUint32();
 
     _assessments[claimId] = Assessment({
-      assessingGroupId: assessmentData.assessingGroupId,
-      cooldownPeriod: assessmentData.cooldownPeriod,
-      payoutRedemptionPeriod: assessmentData.payoutRedemptionPeriod,
+      assessingGroupId: assessingGroupId.toUint16(),
+      cooldownPeriod: cooldownPeriod.toUint32(),
+      payoutRedemptionPeriod: payoutRedemptionPeriod.toUint32(),
       start: startTime,
       votingEnd: votingEndTime,
       acceptVotes: 0,
       denyVotes: 0
     });
 
-    emit AssessmentStarted(claimId, assessmentData.assessingGroupId, startTime, votingEndTime);
+    emit AssessmentStarted(claimId, assessingGroupId, startTime, votingEndTime);
   }
 
   /// @notice Allows an assessor to cast a vote on a claim

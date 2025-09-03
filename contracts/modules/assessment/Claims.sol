@@ -160,7 +160,7 @@ contract Claims is IClaims, RegistryAware {
       coverData.productId
     );
 
-    assessments.startAssessment(claimId, product.productType);
+    assessments.startAssessment(claimId, product.productType, productType.assessmentCooldownPeriod, productType.payoutRedemptionPeriod);
 
     claim = Claim({
       coverId: coverId,

@@ -39,6 +39,8 @@ struct Product {
 struct ProductType {
   ClaimMethod claimMethod;
   uint32 gracePeriod;
+  uint32 assessmentCooldownPeriod;
+  uint32 payoutRedemptionPeriod;
 }
 
 interface ICoverProducts {

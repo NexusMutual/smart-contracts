@@ -97,7 +97,7 @@ contract TokenController is ITokenController, ITokenControllerErrors, RegistryAw
 
   /// @dev Adds an address to the whitelist maintained in the contract.
   /// @param _member The address to add to the whitelist.
-  function addToWhitelist(address _member) public virtual override onlyContracts(C_REGISTRY) {
+  function addToWhitelist(address _member) public virtual override onlyContracts(C_REGISTRY | C_GOVERNOR) {
     token.addToWhiteList(_member);
   }
 

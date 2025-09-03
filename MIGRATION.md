@@ -22,6 +22,8 @@ phase 3 (second ab action)
    - registry.setEmergencyAdmin
    - registry.setKycAuthAddress
    - upgrade Pool, SwapOperator, Ramm, SafeTracker, Assessment, Claims, TokenController via governor proposal
+   - claims.initialize
+   - swapoperator.setSwapController
 2. memberRoles.recoverETH
 3. master.migrate (AB action via tempGovernance)
 4. pool.migrate (AB action via governor proposal)

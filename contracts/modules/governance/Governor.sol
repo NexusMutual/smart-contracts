@@ -146,15 +146,15 @@ contract Governor is IGovernor, RegistryAware, Multicall {
 
     uint memberId = registry.getMemberId(msg.sender);
     require(memberId > 0, NotMember());
-    require(votes[proposalId][memberId].weight == 0, AlreadyVoted());
 
     bool isAbProposal = proposal.kind == ProposalKind.AdvisoryBoard;
     uint voterId = isAbProposal
       ? registry.getAdvisoryBoardSeat(msg.sender)
       : memberId;
+    require(votes[proposalId][voterId].weight == 0, AlreadyVoted());
 
     uint96 weight = (isAbProposal ? 1 : _getVoteWeight(msg.sender)).toUint96();
-    votes[proposalId][memberId] = Vote({ choice: choice, weight: weight });
+    votes[proposalId][voterId] = Vote({ choice: choice, weight: weight });
 
     if (choice == Choice.For) {
       tallies[proposalId].forVotes += weight;

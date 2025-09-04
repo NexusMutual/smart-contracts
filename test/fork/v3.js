@@ -270,9 +270,17 @@ describe('v3 launch', function () {
 
       // 3. overwrite `nextMemberStorageIndex` to mark the migration as completed
       const targetLength = await this.memberRoles.getMembersArrayLength(2);
-      // const targetLengthAsHex = toBeHex(targetLength, 32);
-      const slot = toBeHex(18, 32);
-      await setStorageAt(this.memberRoles.target, slot, targetLength);
+      const slot = 18;
+
+      if (network.name === 'tenderly') {
+        // tenderly_setStorageAt must be 32-byte padded slot and value
+        const slotAsHex = toBeHex(slot, 32);
+        const targetLengthAsHex = toBeHex(targetLength, 32);
+        await ethers.provider.send('tenderly_setStorageAt', [this.memberRoles.target, slotAsHex, targetLengthAsHex]);
+      } else {
+        // hardhat_setStorageAt
+        await setStorageAt(this.memberRoles.target, slot, targetLength);
+      }
       expect(await this.memberRoles.nextMemberStorageIndex()).to.equal(targetLength);
     }
 

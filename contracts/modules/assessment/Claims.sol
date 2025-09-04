@@ -203,7 +203,7 @@ contract Claims is IClaims, RegistryAware {
     require(claim.coverId > 0, InvalidClaimId());
 
     Assessment memory assessment = assessments.getAssessment(claimId);
-    require(assessment.getOutcome() == AssessmentOutcome.ACCEPTED, OnlyOnAccepted());
+    require(assessment.getOutcome() == AssessmentOutcome.ACCEPTED, ClaimNotAccepted());
 
     address coverOwner = coverNFT.ownerOf(claim.coverId);
 
@@ -235,7 +235,7 @@ contract Claims is IClaims, RegistryAware {
 
     require(
       assessments.getAssessment(claimId).getOutcome() == AssessmentOutcome.DRAW,
-      OnlyOnDraw()
+      ClaimNotADraw()
     );
 
     require(!claim.depositRetrieved, DepositAlreadyRetrieved());

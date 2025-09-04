@@ -139,7 +139,7 @@ interface ICoverProducts {
   error StakingPoolDoesNotExist();
   error MismatchedArrayLengths();
   error MetadataRequired();
-  error MustUseSameClaimMethod();
+  error ClaimMethodMismatch();
 
   // Misc
   error UnsupportedCoverAssets();

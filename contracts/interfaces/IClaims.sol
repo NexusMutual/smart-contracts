@@ -67,6 +67,6 @@ interface IClaims {
   error DepositAlreadyRetrieved();
   error InvalidClaimId();
   error AlreadyInitialized();
-  error OnlyOnDraw();
-  error OnlyOnAccepted();
+  error ClaimNotADraw();
+  error ClaimNotAccepted();
 }

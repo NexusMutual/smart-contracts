@@ -11,8 +11,8 @@ enum AssessmentStatus {
 enum AssessmentOutcome {
   PENDING,
   ACCEPTED,
-  DRAW,
-  DENIED
+  DENIED,
+  DRAW
 }
 
 struct Assessment {

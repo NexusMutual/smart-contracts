@@ -43,9 +43,12 @@ phase 3 (second ab action)
      - Assessment
      - Claims
      - TokenController
-2. memberRoles.recoverETH
-3. master.migrate (AB action via tempGovernance)
-4. pool.migrate (AB action via tempGovernor)
+2. batch via tempGovernor.execute (AB action)
+   - claims.initialize
+   - swapOperator.setSwapController
+4. memberRoles.recoverETH
+5. master.migrate (AB action via tempGovernance)
+6. pool.migrate (AB action via tempGovernor)
 
 phase 4 (upgrade Governor)
 1. upgrade Governor from TemporaryGovernor to Governor

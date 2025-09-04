@@ -119,10 +119,6 @@ describe('claim assessment', function () {
       gasLimit: 21e6,
     });
 
-    // initialize claims contract
-    const LASTEST_CLAIM_ID = 28;
-    await this.claims.connect(governorSigner).initialize(LASTEST_CLAIM_ID);
-
     // update cover dependent contract addresses
     const coverUpdateDependentAddressesTx = await this.cover.changeDependentContractAddress();
     await coverUpdateDependentAddressesTx.wait();

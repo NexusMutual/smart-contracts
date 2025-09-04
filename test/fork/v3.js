@@ -322,6 +322,8 @@ describe('v3 launch', function () {
    * - registry.setEmergencyAdmin
    * - registry.setKycAuthAddress
    * - upgrade Pool, SwapOperator, Ramm, SafeTracker, Assessment, Claims via governor proposal
+   * - claims.initialize
+   * - swapOperator.setSwapController
    * - memberRoles.recoverETH
    * - master.migrate
    * - pool.migrate
@@ -376,6 +378,32 @@ describe('v3 launch', function () {
     const swapOperatorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_SWAP_OPERATOR);
     this.swapOperator = await ethers.getContractAt('SwapOperator', swapOperatorAddress);
 
+    // get individual claims latest claim id
+    const individualClaims = await ethers.getContractAt(abis.IndividualClaims, addresses.IndividualClaims);
+    const latestClaimCount = await individualClaims.getClaimsCount();
+    const latestClaimId = latestClaimCount - 1n;
+    const SWAP_CONTROLLER = '0x551D5500F613a4beC77BA8B834b5eEd52ad5764f';
+
+    const txs2 = [
+      // claims.initialize
+      {
+        target: this.claims.target,
+        value: 0n,
+        data: this.claims.interface.encodeFunctionData('initialize', [latestClaimId]),
+      },
+      // swapOperator.setSwapController
+      {
+        target: this.swapOperator.target,
+        value: 0n,
+        data: this.swapOperator.interface.encodeFunctionData('setSwapController', [SWAP_CONTROLLER]),
+      },
+    ];
+
+    for (const tx of txs2) {
+      const transaction = await this.tempGovernor.execute(tx.target, tx.value, tx.data);
+      await transaction.wait();
+    }
+
     // recover MemberRoles ETH to pool
     const poolAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_POOL);
     const poolBalanceBefore = await ethers.provider.getBalance(poolAddress);
@@ -423,7 +451,10 @@ describe('v3 launch', function () {
     expect(safeTrackerBal).to.not.equal(0n);
   });
 
-  // upgrade Governor from TemporaryGovernor to Governor first before calling executeGovernorProposal
+  /**
+   * Phase 4
+   * upgrade Governor from TemporaryGovernor to Governor first before calling executeGovernorProposal
+   */
   it('upgrade Governor from TemporaryGovernor to Governor', async function () {
     const governorImplementation = await deployContract('Governor', [this.registry]);
 

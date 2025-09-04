@@ -24,6 +24,7 @@ interface IClaims {
     AssessmentStatus status;
     AssessmentOutcome outcome;
     bool redeemable;
+    bytes32 ipfsMetadata;
   }
 
   /* ========== VIEWS ========== */

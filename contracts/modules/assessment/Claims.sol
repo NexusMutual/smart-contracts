@@ -30,6 +30,8 @@ contract Claims is IClaims, RegistryAware {
 
   mapping(uint memberId => uint[] claimIds) private _memberClaims;
 
+  mapping(uint claimId => bytes32) private _claimsMetadata;
+
   uint private _nextClaimId;
 
   /* =========== IMMUTABLES =========== */
@@ -92,7 +94,8 @@ contract Claims is IClaims, RegistryAware {
       assessment: assessment,
       status: assessment.getStatus(),
       outcome: assessment.getOutcome(),
-      redeemable: claimRedeemable(claim, assessment)
+      redeemable: claimRedeemable(claim, assessment),
+      ipfsMetadata: _claimsMetadata[claimId]
     });
   }
 
@@ -100,10 +103,10 @@ contract Claims is IClaims, RegistryAware {
     return _memberClaims[memberId];
   }
 
-  /// @dev To be redeemable assessment outcome must be accepted, redemption period must not pass, 
+  /// @dev To be redeemable assessment outcome must be accepted, redemption period must not pass,
   ///      and claim must not be already redeemed
   function claimRedeemable(Claim memory claim, Assessment memory assessment) internal view returns (bool) {
-    return 
+    return
       assessment.getOutcome() == AssessmentOutcome.ACCEPTED &&
       block.timestamp < assessment.votingEnd + assessment.cooldownPeriod + claim.payoutRedemptionPeriod &&
       !claim.payoutRedeemed;
@@ -177,6 +180,7 @@ contract Claims is IClaims, RegistryAware {
     _claims[claimId] = claim;
 
     if (ipfsMetadata != bytes32(0)) {
+      _claimsMetadata[claimId] = ipfsMetadata;
       emit MetadataSubmitted(claimId, ipfsMetadata);
     }
 

@@ -58,15 +58,15 @@ contract Governor is IGovernor, RegistryAware, Multicall {
   function propose(
     Transaction[] calldata txs,
     string calldata description
-  ) external {
+  ) external returns (uint proposalId) {
     require(registry.isAdvisoryBoardMember(msg.sender), OnlyAdvisoryBoardMember());
-    _propose(ProposalKind.AdvisoryBoard, txs, description);
+    return _propose(ProposalKind.AdvisoryBoard, txs, description);
   }
 
   function proposeAdvisoryBoardSwap(
     AdvisoryBoardSwap[] memory swaps,
     string calldata description
-  ) external {
+  ) external returns (uint proposalId) {
 
     require(registry.isMember(msg.sender), NotMember());
 
@@ -80,6 +80,8 @@ contract Governor is IGovernor, RegistryAware, Multicall {
 
       require(swaps[i].from != swaps[i].to, InvalidAdvisoryBoardSwap());
       require(swaps[i].from != 0 && swaps[i].to != 0, InvalidAdvisoryBoardSwap());
+      require(registry.isAdvisoryBoardMemberById(swaps[i].from), InvalidAdvisoryBoardSwap());
+      require(registry.getMemberAddress(swaps[i].to) != address(0), NotMember());
 
       txs[i] = Transaction({
         target: address(registry),
@@ -88,14 +90,14 @@ contract Governor is IGovernor, RegistryAware, Multicall {
       });
     }
 
-    _propose(ProposalKind.Member, txs, description);
+    return _propose(ProposalKind.Member, txs, description);
   }
 
   function _propose(
     ProposalKind kind,
     Transaction[] memory txs,
     string memory description
-  ) internal {
+  ) internal returns (uint proposalId) {
 
     Proposal memory proposal = Proposal({
       kind: kind,
@@ -105,7 +107,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
       status: ProposalStatus.Proposed
     });
 
-    uint proposalId = ++proposalCount;
+    proposalId = ++proposalCount;
     proposals[proposalId] = proposal;
     descriptions[proposalId] = description;
 
@@ -114,6 +116,8 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     }
 
     emit ProposalCreated(proposalId, kind, description);
+
+    return proposalId;
   }
 
   function cancel(uint proposalId) external {
@@ -142,16 +146,15 @@ contract Governor is IGovernor, RegistryAware, Multicall {
 
     uint memberId = registry.getMemberId(msg.sender);
     require(memberId > 0, NotMember());
-    require(votes[proposalId][memberId].weight == 0, AlreadyVoted());
 
     bool isAbProposal = proposal.kind == ProposalKind.AdvisoryBoard;
     uint voterId = isAbProposal
       ? registry.getAdvisoryBoardSeat(msg.sender)
       : memberId;
-    require(voterId > 0, NotAuthorizedToVote());
+    require(votes[proposalId][voterId].weight == 0, AlreadyVoted());
 
     uint96 weight = (isAbProposal ? 1 : _getVoteWeight(msg.sender)).toUint96();
-    votes[proposalId][memberId] = Vote({ choice: choice, weight: weight });
+    votes[proposalId][voterId] = Vote({ choice: choice, weight: weight });
 
     if (choice == Choice.For) {
       tallies[proposalId].forVotes += weight;
@@ -168,10 +171,12 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     if (isAbProposal && tallies[proposalId].forVotes >= ADVISORY_BOARD_THRESHOLD) {
       // start the timelock if the AB proposal has met the threshold
       proposal.executeAfter = (block.timestamp + TIMELOCK_PERIOD).toUint32();
+      proposals[proposalId].executeAfter = proposal.executeAfter;
+      proposals[proposalId].voteBefore = block.timestamp.toUint32();
     }
 
     if(!isAbProposal) {
-      _lockTokenTransfers(msg.sender, block.timestamp + VOTING_PERIOD + TIMELOCK_PERIOD);
+      _lockTokenTransfers(msg.sender, proposal.executeAfter);
     }
 
     emit VoteCast(proposalId, proposal.kind, voterId, choice, weight);

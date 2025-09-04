@@ -267,6 +267,7 @@ contract Claims is IClaims, RegistryAware {
     pool.sendPayout(claim.coverAsset, payable(coverOwner), claim.amount, CLAIM_DEPOSIT_IN_ETH);
 
     emit ClaimPayoutRedeemed(coverOwner, claim.amount, claimId, claim.coverId);
+    emit ClaimDepositRetrieved(claimId, coverOwner);
   }
 
   /// Allows the cover owner to retrieve their claim deposit if their claim is resolved as DRAW.

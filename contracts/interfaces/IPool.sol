@@ -93,6 +93,7 @@ interface IPool {
 
   event Payout(address indexed to, address indexed assetAddress, uint amount);
   event AssetsTransferredToSafe(address assetAddress, uint amount);
+  event AssetsTransferredToSwapOperator(address assetAddress, uint amount);
 
   // migrations
   error AlreadyMigrated();

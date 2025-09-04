@@ -51,7 +51,7 @@ interface IGovernor {
     uint to; // memberId
   }
 
-  function propose(Transaction[] calldata transactions, string calldata description) external;
+  function propose(Transaction[] calldata transactions, string calldata description) external returns (uint proposalId);
   function execute(uint proposalId) external payable;
 
   function getProposal(uint proposalId) external view returns (Proposal memory);

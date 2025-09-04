@@ -29,7 +29,8 @@ describe('getProposal', () => {
   it('returns correct proposal data for member proposal', async () => {
     const { governor, accounts, tokenController, registry, constants } = await loadFixture(setup);
     const { TIMELOCK_PERIOD, VOTING_PERIOD } = constants;
-    const [member, abMember] = accounts.members;
+    const [member] = accounts.members;
+    const [abMember] = accounts.advisoryBoardMembers;
 
     await tokenController.setTotalBalanceOf(member, ethers.parseEther('200'));
     await tokenController.setTotalSupply(ethers.parseEther('10000'));
@@ -114,18 +115,19 @@ describe('getProposal', () => {
 
     const initialProposal = await governor.getProposal(proposalId);
     const initialProposedAt = initialProposal.proposedAt;
-    const initialVoteBefore = initialProposal.voteBefore;
     const initialExecuteAfter = initialProposal.executeAfter;
 
     await governor.connect(accounts.advisoryBoardMembers[0]).vote(proposalId, Choice.For);
     await governor.connect(accounts.advisoryBoardMembers[1]).vote(proposalId, Choice.For);
     await governor.connect(accounts.advisoryBoardMembers[2]).vote(proposalId, Choice.For);
 
+    const voteBeforeAfterThreshold = await time.latest();
+
     const proposalAfterVote = await governor.getProposal(proposalId);
     expect(proposalAfterVote.proposedAt).to.be.equal(initialProposedAt);
-    expect(proposalAfterVote.voteBefore).to.be.equal(initialVoteBefore);
+    expect(proposalAfterVote.voteBefore).to.be.equal(voteBeforeAfterThreshold);
 
-    expect(proposalAfterVote.executeAfter).to.be.greaterThanOrEqual(initialExecuteAfter);
+    expect(proposalAfterVote.executeAfter).to.be.lessThanOrEqual(initialExecuteAfter);
 
     await time.increaseTo(initialProposal.executeAfter + 1n);
 
@@ -133,7 +135,7 @@ describe('getProposal', () => {
 
     const finalProposal = await governor.getProposal(proposalId);
     expect(finalProposal.proposedAt).to.be.equal(initialProposedAt);
-    expect(finalProposal.voteBefore).to.be.equal(initialVoteBefore);
+    expect(finalProposal.voteBefore).to.be.equal(voteBeforeAfterThreshold);
     expect(finalProposal.status).to.be.equal(ProposalStatus.Executed);
   });
 });

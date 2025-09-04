@@ -91,13 +91,13 @@ contract TokenController is ITokenController, ITokenControllerErrors, RegistryAw
   /// @param _of     The address to burn tokens of.
   /// @param amount  The amount to burn.
   /// @return        The boolean status of the burning process.
-  function burnFrom(address _of, uint amount) public override onlyContracts(C_COVER + C_RAMM) returns (bool) {
+  function burnFrom(address _of, uint amount) public override onlyContracts(C_COVER | C_RAMM) returns (bool) {
     return token.burnFrom(_of, amount);
   }
 
   /// @dev Adds an address to the whitelist maintained in the contract.
   /// @param _member The address to add to the whitelist.
-  function addToWhitelist(address _member) public virtual override onlyContracts(C_REGISTRY) {
+  function addToWhitelist(address _member) public virtual override onlyContracts(C_REGISTRY | C_GOVERNOR) {
     token.addToWhiteList(_member);
   }
 

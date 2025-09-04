@@ -94,7 +94,8 @@ contract Registry is IRegistry, EIP712 {
   }
 
   function isPaused(uint mask) external view returns (bool) {
-    return systemPause.config & mask != 0;
+    uint maskWithGlobal = mask | PAUSE_GLOBAL;
+    return systemPause.config & maskWithGlobal != 0;
   }
 
   /* == MEMBERSHIP MANAGEMENT == */
@@ -191,6 +192,10 @@ contract Registry is IRegistry, EIP712 {
   /* == ADVISORY BOARD MANAGEMENT == */
   function isAdvisoryBoardMember(address member) external view returns (bool) {
     uint memberId = memberIds[member];
+    return memberToSeat[memberId] != 0;
+  }
+
+  function isAdvisoryBoardMemberById(uint memberId) external view returns (bool) {
     return memberToSeat[memberId] != 0;
   }
 
@@ -392,7 +397,7 @@ contract Registry is IRegistry, EIP712 {
       uint seat = i + 1;
       require(seatToMember[seat] == 0, 'Registry: AB seat already taken');
 
-      memberToSeat[memberIds[member]] = seat;
+      memberToSeat[memberId] = seat;
       seatToMember[seat] = memberId;
     }
   }

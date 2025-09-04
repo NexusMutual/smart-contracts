@@ -295,10 +295,6 @@ contract LimitOrders is ILimitOrders, MasterAwareV2, EIP712 {
     return coverId;
   }
 
-  function whitelistSelf() external {
-    tokenController().addToWhitelist(address(this));
-  }
-
   /// @notice Allows the Cover contract to spend the maximum possible amount of a specified ERC20 token on behalf of the LimitOrders.
   /// @param erc20 The ERC20 token for which to approve spending.
   function maxApproveCoverContract(IERC20 erc20) external {

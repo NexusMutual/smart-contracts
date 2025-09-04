@@ -80,13 +80,13 @@ describe('vote', () => {
       .to.be.revertedWithCustomError(governor, 'AlreadyVoted');
   });
 
-  it('reverts if proposal member tries to vote on AB member proposal', async () => {
-    const { governor, accounts, createABProposal } = await loadFixture(setup);
+  it('reverts if member tries to vote on AB member proposal', async () => {
+    const { governor, accounts, createABProposal, registry } = await loadFixture(setup);
     const [member] = accounts.members;
 
     const proposalId = await createABProposal();
 
     await expect(governor.connect(member).vote(proposalId, Choice.For)) //
-      .to.be.revertedWithCustomError(governor, 'NotAuthorizedToVote');
+      .to.be.revertedWithCustomError(registry, 'NotAdvisoryBoardMember');
   });
 });

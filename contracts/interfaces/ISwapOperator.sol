@@ -82,6 +82,7 @@ interface ISwapOperator {
   error OrderUidMismatch(bytes providedOrderUID, bytes expectedOrderUID);
   error UnsupportedTokenBalance(string kind);
   error InvalidReceiver(address validReceiver);
+  error InvalidRecoveryReceiver();
   error InvalidSwapKind();
 
   // swap request vs amount

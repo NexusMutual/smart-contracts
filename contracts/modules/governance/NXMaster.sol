@@ -33,17 +33,32 @@ contract NXMaster is INXMMaster {
   IRegistry public registry;
 
   function isPause() public view returns (bool) {
+
+    if (address(registry) == address(0)) {
+      return paused;
+    }
+
     return registry.isPaused(PAUSE_GLOBAL);
   }
 
   function isMember(address _add) public view returns (bool) {
-    IMemberRoles mr = IMemberRoles(getLatestAddress("MR"));
-    return mr.checkRole(_add, uint(IMemberRoles.Role.Member));
+
+    if (address(registry) == address(0)) {
+      IMemberRoles mr = IMemberRoles(getLatestAddress("MR"));
+      return mr.checkRole(_add, uint(IMemberRoles.Role.Member));
+    }
+
+    return registry.isMember(_add);
   }
 
   function isAdvisoryBoardMember(address _add) public view returns (bool) {
-    IMemberRoles mr = IMemberRoles(getLatestAddress("MR"));
-    return mr.checkRole(_add, uint(IMemberRoles.Role.AdvisoryBoard));
+
+    if (address(registry) == address(0)) {
+      IMemberRoles mr = IMemberRoles(getLatestAddress("MR"));
+      return mr.checkRole(_add, uint(IMemberRoles.Role.AdvisoryBoard));
+    }
+
+    return registry.isAdvisoryBoardMember(_add);
   }
 
   function isInternal(address _contractAddress) public view returns (bool) {

@@ -43,6 +43,10 @@ contract GVMockRegistry is RegistryGeneric {
     return memberToSeat[memberId] != 0;
   }
 
+  function isAdvisoryBoardMemberById(uint memberId) external override view returns (bool) {
+    return memberToSeat[memberId] != 0;
+  }
+
   function isMember(address member) external override view returns (bool) {
     return memberIds[member] != 0;
   }
@@ -63,9 +67,15 @@ contract GVMockRegistry is RegistryGeneric {
     return memberIds[member];
   }
 
+  function getMemberAddress(uint memberId) external override view returns (address) {
+    return members[memberId];
+  }
+
   function getAdvisoryBoardSeat(address member) external override view returns (uint) {
     uint memberId = memberIds[member];
-    return memberToSeat[memberId];
+    uint seat = memberToSeat[memberId];
+    require(seat != 0, NotAdvisoryBoardMember());
+    return seat;
   }
 
   function swapAdvisoryBoardMember(uint from, uint to) external override {

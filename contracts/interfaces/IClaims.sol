@@ -33,6 +33,8 @@ interface IClaims {
 
   function getClaimsCount() external view returns (uint);
 
+  function getClaimDetails(uint claimId) external view returns (ClaimDetails memory);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function submitClaim(

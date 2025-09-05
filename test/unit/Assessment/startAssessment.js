@@ -5,6 +5,8 @@ const { setup } = require('./setup');
 const { impersonateAccount } = require('../../utils/evm');
 
 describe('startAssessment', function () {
+  const COOLDOWN_PERIOD = 24 * 60 * 60;
+
   it('should revert when called by non-Claims contract', async function () {
     const { contracts, accounts } = await loadFixture(setup);
     const { assessment } = contracts;
@@ -13,7 +15,7 @@ describe('startAssessment', function () {
     const claimId = 999; // Use different claimId
     const PRODUCT_TYPE_ID = 1;
 
-    const startAssessment = assessment.connect(nonClaims).startAssessment(claimId, PRODUCT_TYPE_ID);
+    const startAssessment = assessment.connect(nonClaims).startAssessment(claimId, PRODUCT_TYPE_ID, COOLDOWN_PERIOD);
     await expect(startAssessment).to.be.revertedWithCustomError(assessment, 'Unauthorized');
   });
 
@@ -28,7 +30,9 @@ describe('startAssessment', function () {
     await impersonateAccount(claimsAddress);
     const claimsSigner = await ethers.getSigner(claimsAddress);
 
-    const startAssessment = assessment.connect(claimsSigner).startAssessment(claimId, UNKNOWN_PRODUCT_TYPE_ID);
+    const startAssessment = assessment
+      .connect(claimsSigner)
+      .startAssessment(claimId, UNKNOWN_PRODUCT_TYPE_ID, COOLDOWN_PERIOD);
     await expect(startAssessment).to.be.revertedWithCustomError(assessment, 'InvalidProductType');
   });
 
@@ -44,10 +48,12 @@ describe('startAssessment', function () {
     const claimsSigner = await ethers.getSigner(claimsAddress);
 
     // Start assessment first time
-    await assessment.connect(claimsSigner).startAssessment(claimId, PRODUCT_TYPE_ID);
+    await assessment.connect(claimsSigner).startAssessment(claimId, PRODUCT_TYPE_ID, COOLDOWN_PERIOD);
 
     // Try to start assessment again with same claimId
-    const startAssessmentAgain = assessment.connect(claimsSigner).startAssessment(claimId, PRODUCT_TYPE_ID);
+    const startAssessmentAgain = assessment
+      .connect(claimsSigner)
+      .startAssessment(claimId, PRODUCT_TYPE_ID, COOLDOWN_PERIOD);
     await expect(startAssessmentAgain).to.be.revertedWithCustomError(assessment, 'AssessmentAlreadyExists');
   });
 
@@ -62,7 +68,9 @@ describe('startAssessment', function () {
     await impersonateAccount(claimsAddress);
     const claimsSigner = await ethers.getSigner(claimsAddress);
 
-    const tx = await assessment.connect(claimsSigner).startAssessment(expectedClaimId, PRODUCT_TYPE_ID);
+    const tx = await assessment
+      .connect(claimsSigner)
+      .startAssessment(expectedClaimId, PRODUCT_TYPE_ID, COOLDOWN_PERIOD);
 
     const { blockNumber } = await tx.wait();
     const block = await ethers.provider.getBlock(blockNumber);
@@ -109,8 +117,8 @@ describe('startAssessment', function () {
     await impersonateAccount(claimsAddress);
     const claimsSigner = await ethers.getSigner(claimsAddress);
 
-    const tx1 = await assessment.connect(claimsSigner).startAssessment(claimId1, PRODUCT_TYPE_ID);
-    const tx2 = await assessment.connect(claimsSigner).startAssessment(claimId2, PRODUCT_TYPE_ID);
+    const tx1 = await assessment.connect(claimsSigner).startAssessment(claimId1, PRODUCT_TYPE_ID, COOLDOWN_PERIOD);
+    const tx2 = await assessment.connect(claimsSigner).startAssessment(claimId2, PRODUCT_TYPE_ID, COOLDOWN_PERIOD);
 
     // Verify both assessments were created in parallel
     const [assessment1, assessment2] = await Promise.all([

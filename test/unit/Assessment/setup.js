@@ -14,7 +14,7 @@ async function setup() {
 
   // Deploy contracts
   const registry = await ethers.deployContract('RegistryMock', []);
-  const assessment = await ethers.deployContract('Assessment', [registry]);
+  const assessment = await ethers.deployContract('Assessments', [registry]);
   const claims = await ethers.deployContract('ASMockClaims', [registry]);
 
   // Add contracts in the registry
@@ -35,12 +35,15 @@ async function setup() {
   const assessorMemberIds = await Promise.all(accounts.assessors.map(a => registry.getMemberId(a.address)));
   await assessment.connect(governanceAccount).addAssessorsToGroup(assessorMemberIds, newGroupId);
 
-  // Set assessment data for each product type
+  // Set assessing group for product types
   // NOTE: mock claims sets product type to coverId, so we need to set for each coverId that is used in tests
   const ASSESSOR_GROUP_ID = await assessment.getGroupsCount();
   await assessment
     .connect(governanceAccount)
-    .setAssessmentDataForProductTypes([PRODUCT_TYPE_ID, 2, 3, 4], ONE_DAY, 7n * ONE_DAY, ASSESSOR_GROUP_ID);
+    .setAssessingGroupIdForProductTypes([PRODUCT_TYPE_ID, 2, 3, 4], ASSESSOR_GROUP_ID);
+
+  // Set cooldown and redemption periods
+  await claims.setCooldownAndRedemptionPeriod(ONE_DAY, 7n * ONE_DAY);
 
   // Use a member account to submit the claim
   const [coverOwner] = accounts.members;

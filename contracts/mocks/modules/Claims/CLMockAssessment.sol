@@ -10,8 +10,16 @@ contract CLMockAssessment is AssessmentGeneric {
   mapping(uint claimId => uint) public _productTypeForClaimId;
   mapping(uint claimId => Assessment) public _assessments;
 
-  function startAssessment(uint claimId, uint productTypeId, uint) external override {
+  function startAssessment(uint claimId, uint productTypeId, uint cooldownPeriod) external override {
     _productTypeForClaimId[claimId] = productTypeId;
+    _assessments[claimId] = Assessment({
+      assessingGroupId: 1,
+      start: uint32(block.timestamp),
+      votingEnd: uint32(block.timestamp + 3 days),
+      cooldownPeriod: uint32(cooldownPeriod),
+      acceptVotes: 0,
+      denyVotes: 0
+    });
   }
 
   function getAssessment(uint claimId) external view override returns (Assessment memory assessment) {
@@ -54,7 +62,7 @@ contract CLMockAssessment is AssessmentGeneric {
 
     // default values for all assessments
     assessment.assessingGroupId = 1;
-    assessment.start = uint32(block.timestamp - 100);
+    assessment.start = uint32(block.timestamp - 12 hours);
     assessment.acceptVotes = 3;
     assessment.denyVotes = 2;
     assessment.cooldownPeriod = 1 days;

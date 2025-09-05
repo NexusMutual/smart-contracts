@@ -4,7 +4,7 @@ const { takeSnapshot, time, setNextBlockBaseFeePerGas } = require('@nomicfoundat
 
 const { getFundedSigner, getSigner, setUSDCBalance, Addresses } = require('./utils');
 
-const { AssessmentStatus, ContractIndexes, PauseTypes, PoolAsset } = nexus.constants;
+const { AssessmentOutcome, ContractIndexes, PauseTypes, PoolAsset } = nexus.constants;
 const { PAUSE_CLAIMS } = PauseTypes;
 const { MaxUint256, ZeroAddress, parseEther } = ethers;
 
@@ -172,7 +172,7 @@ describe('claim assessment', function () {
     // claim ACCEPTED
     // eslint-disable-next-line no-unused-vars
     const [status, payoutRedemptionEnd] = await this.assessment.getAssessmentResult(claimId);
-    expect(status).to.equal(AssessmentStatus.Accepted);
+    expect(status).to.equal(AssessmentOutcome.Accepted);
     console.log('claim status is ACCEPTED');
 
     const claimDepositAmount = await this.claims.CLAIM_DEPOSIT_IN_ETH();
@@ -380,7 +380,7 @@ describe('claim assessment', function () {
 
     // DENIED
     const [status] = await this.assessment.getAssessmentResult(claimId);
-    expect(status).to.equal(AssessmentStatus.Denied);
+    expect(status).to.equal(AssessmentOutcome.Denied);
 
     // redeemClaimPayout throws error
     const redeemClaimPayout = this.claims.connect(this.claimant).redeemClaimPayout(claimId);
@@ -434,7 +434,7 @@ describe('claim assessment', function () {
 
     // Verify we're in cooldown
     const [cooldownStatus] = await this.assessment.getAssessmentResult(usdcClaimId);
-    expect(cooldownStatus).to.equal(AssessmentStatus.Cooldown);
+    expect(cooldownStatus).to.equal(AssessmentOutcome.Cooldown);
 
     // Test that assessors can't vote during cooldown
     const lateVoteHash = ethers.solidityPackedKeccak256(['string'], ['late-vote']);
@@ -587,7 +587,7 @@ describe('claim assessment', function () {
 
     // Verify status is DRAW
     const { status } = await this.assessment.getAssessmentResult(drawClaimId);
-    expect(status).to.equal(AssessmentStatus.Draw);
+    expect(status).to.equal(AssessmentOutcome.Draw);
 
     // redeemClaimPayout throws error for DRAW claims
     const redeemClaimPayout = this.claims.connect(this.claimant).redeemClaimPayout(drawClaimId);
@@ -648,7 +648,7 @@ describe('claim assessment', function () {
 
     // Verify status is ACCEPTED
     const { payoutRedemptionEnd, status } = await this.assessment.getAssessmentResult(newEthClaimId);
-    expect(status).to.equal(AssessmentStatus.Accepted);
+    expect(status).to.equal(AssessmentOutcome.Accepted);
 
     // Advance time past redemption period without redeeming
     await time.increaseTo(payoutRedemptionEnd + 1n);
@@ -692,7 +692,7 @@ describe('claim assessment', function () {
 
     // Verify status is ACCEPTED
     const { status } = await this.assessment.getAssessmentResult(resubmitClaimId);
-    expect(status).to.equal(AssessmentStatus.Accepted);
+    expect(status).to.equal(AssessmentOutcome.Accepted);
 
     // Get claim deposit amount from contract
     const claimDepositAmount = await this.claims.CLAIM_DEPOSIT_IN_ETH();

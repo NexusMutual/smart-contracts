@@ -3,10 +3,10 @@ const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setNextBlockBaseFee } = require('../../utils/evm');
-const { ASSET, ASSESSMENT_STATUS, createMockCover, submitClaim, daysToSeconds } = require('./helpers');
+const { createMockCover, submitClaim, daysToSeconds } = require('./helpers');
 const { setup } = require('./setup');
 
-const { PauseTypes } = nexus.constants;
+const { AssessmentStatus, AssessmentOutcome, PauseTypes, PoolAsset } = nexus.constants;
 const { PAUSE_CLAIMS } = PauseTypes;
 
 describe('retrieveDeposit', function () {
@@ -30,21 +30,23 @@ describe('retrieveDeposit', function () {
 
     const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-    const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
 
     // Test all non-DRAW statuses
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.VOTING, payoutRedemptionEnd, cooldownEnd);
-    await expect(claims.retrieveDeposit(claimId)).to.be.revertedWithCustomError(claims, 'InvalidAssessmentStatus');
+    // VOTING status
+    await assessment.setAssessmentForStatus(claimId, AssessmentStatus.Voting);
+    await expect(claims.retrieveDeposit(claimId)).to.be.revertedWithCustomError(claims, 'ClaimNotADraw');
 
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.COOLDOWN, payoutRedemptionEnd, cooldownEnd);
-    await expect(claims.retrieveDeposit(claimId)).to.be.revertedWithCustomError(claims, 'InvalidAssessmentStatus');
+    // COOLDOWN status
+    await assessment.setAssessmentForStatus(claimId, AssessmentStatus.Cooldown);
+    await expect(claims.retrieveDeposit(claimId)).to.be.revertedWithCustomError(claims, 'ClaimNotADraw');
 
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.ACCEPTED, payoutRedemptionEnd, cooldownEnd);
-    await expect(claims.retrieveDeposit(claimId)).to.be.revertedWithCustomError(claims, 'InvalidAssessmentStatus');
+    // ACCEPTED outcome
+    await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Accepted);
+    await expect(claims.retrieveDeposit(claimId)).to.be.revertedWithCustomError(claims, 'ClaimNotADraw');
 
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.DENIED, payoutRedemptionEnd, cooldownEnd);
-    await expect(claims.retrieveDeposit(claimId)).to.be.revertedWithCustomError(claims, 'InvalidAssessmentStatus');
+    // DENIED outcome
+    await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Denied);
+    await expect(claims.retrieveDeposit(claimId)).to.be.revertedWithCustomError(claims, 'ClaimNotADraw');
   });
 
   it('reverts if the deposit has already been retrieved', async function () {
@@ -56,9 +58,7 @@ describe('retrieveDeposit', function () {
 
     const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-    const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
     await expect(claims.retrieveDeposit(claimId)).not.to.be.reverted;
     await expect(claims.retrieveDeposit(claimId)).to.be.revertedWithCustomError(claims, 'DepositAlreadyRetrieved');
@@ -73,9 +73,7 @@ describe('retrieveDeposit', function () {
 
     const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-    const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
     await registry.confirmPauseConfig(PAUSE_CLAIMS);
 
@@ -101,9 +99,7 @@ describe('retrieveDeposit', function () {
 
     const ethBalanceAfterSubmittingClaim = await ethers.provider.getBalance(coverOwner.address);
 
-    const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
     await setNextBlockBaseFee('0');
     await claims.connect(coverOwner).retrieveDeposit(claimId, { gasPrice: 0 });
@@ -121,9 +117,7 @@ describe('retrieveDeposit', function () {
 
     const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-    const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
     await expect(claims.retrieveDeposit(claimId))
       .to.emit(claims, 'ClaimDepositRetrieved')
@@ -139,9 +133,7 @@ describe('retrieveDeposit', function () {
 
     const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-    const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
     const claimBefore = await claims.getClaimInfo(claimId);
     expect(claimBefore.depositRetrieved).to.be.false;
@@ -163,9 +155,7 @@ describe('retrieveDeposit', function () {
     const coverId = 1;
     const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId, sender: originalOwner });
-    const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
     // Transfer NFT to new owner before retrieving deposit
     await coverNFT.connect(originalOwner).transferFrom(originalOwner.address, newOwner.address, coverId);
@@ -194,9 +184,7 @@ describe('retrieveDeposit', function () {
 
     const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-    const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
     const coverOwnerBalanceBefore = await ethers.provider.getBalance(coverOwner.address);
     const otherMemberBalanceBefore = await ethers.provider.getBalance(otherMember.address);
@@ -222,16 +210,12 @@ describe('retrieveDeposit', function () {
     // Submit first claim and set to DRAW
     const firstClaimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-    let { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    let payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(firstClaimId, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Draw);
 
     // Submit second claim and set to DRAW
     const secondClaimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-    ({ timestamp: cooldownEnd } = await ethers.provider.getBlock('latest'));
-    payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(secondClaimId, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForOutcome(secondClaimId, AssessmentOutcome.Draw);
 
     // Retrieve deposit from first claim
     await claims.retrieveDeposit(firstClaimId);
@@ -259,9 +243,7 @@ describe('retrieveDeposit', function () {
 
     const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-    const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
     const poolBalanceBefore = await ethers.provider.getBalance(await pool.getAddress());
 
@@ -279,13 +261,11 @@ describe('retrieveDeposit', function () {
     const { claimDepositInETH: deposit } = fixture.config;
     const [coverOwner] = fixture.accounts.members;
 
-    await createMockCover(cover, { owner: coverOwner.address, coverAsset: ASSET.DAI });
+    await createMockCover(cover, { owner: coverOwner.address, coverAsset: PoolAsset.DAI });
 
     const claimId = (await claims.getClaimsCount()) + 1n;
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-    const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
     const balanceBefore = await ethers.provider.getBalance(coverOwner.address);
 

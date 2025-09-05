@@ -135,12 +135,12 @@ describe('retrieveDeposit', function () {
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
-    const claimBefore = await claims.getClaimInfo(claimId);
+    const claimBefore = await claims.getClaim(claimId);
     expect(claimBefore.depositRetrieved).to.be.false;
 
     await claims.retrieveDeposit(claimId);
 
-    const claimAfter = await claims.getClaimInfo(claimId);
+    const claimAfter = await claims.getClaim(claimId);
     expect(claimAfter.depositRetrieved).to.be.true;
   });
 
@@ -220,8 +220,8 @@ describe('retrieveDeposit', function () {
     // Retrieve deposit from first claim
     await claims.retrieveDeposit(firstClaimId);
 
-    const firstClaim = await claims.getClaimInfo(firstClaimId);
-    const secondClaim = await claims.getClaimInfo(secondClaimId);
+    const firstClaim = await claims.getClaim(firstClaimId);
+    const secondClaim = await claims.getClaim(secondClaimId);
 
     expect(firstClaim.depositRetrieved).to.be.true;
     expect(secondClaim.depositRetrieved).to.be.false;
@@ -229,7 +229,7 @@ describe('retrieveDeposit', function () {
     // Should still be able to retrieve deposit from second claim
     await expect(claims.retrieveDeposit(secondClaimId)).not.to.be.reverted;
 
-    const secondClaimAfter = await claims.getClaimInfo(secondClaimId);
+    const secondClaimAfter = await claims.getClaim(secondClaimId);
     expect(secondClaimAfter.depositRetrieved).to.be.true;
   });
 

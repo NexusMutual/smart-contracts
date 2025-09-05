@@ -29,7 +29,7 @@ interface IClaims {
 
   /* ========== VIEWS ========== */
 
-  function getClaimInfo(uint claimId) external view returns (Claim memory);
+  function getClaim(uint claimId) external view returns (Claim memory);
 
   function getClaimsCount() external view returns (uint);
 

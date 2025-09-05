@@ -47,7 +47,7 @@ contract ASMockClaims is IClaims, RegistryAware {
     return _nextClaimId - 1;
   }
 
-  function getClaimInfo(uint claimId) external override view returns (Claim memory) {
+  function getClaim(uint claimId) external override view returns (Claim memory) {
     return _claims[claimId];
   }
 

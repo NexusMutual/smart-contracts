@@ -60,12 +60,12 @@ describe('redeemClaimPayout', function () {
     // denied
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Denied);
     const redeemClaimPayoutTx1 = claims.connect(coverOwner).redeemClaimPayout(claimId);
-    await expect(redeemClaimPayoutTx1).to.be.revertedWithCustomError(claims, 'ClaimNotAccepted');
+    await expect(redeemClaimPayoutTx1).to.be.revertedWithCustomError(claims, 'ClaimNotRedeemable');
 
     // draw
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
     const redeemClaimPayoutTx2 = claims.connect(coverOwner).redeemClaimPayout(claimId);
-    await expect(redeemClaimPayoutTx2).to.be.revertedWithCustomError(claims, 'ClaimNotAccepted');
+    await expect(redeemClaimPayoutTx2).to.be.revertedWithCustomError(claims, 'ClaimNotRedeemable');
   });
 
   it('reverts while the claim is being assessed or in cooldown period', async function () {
@@ -84,12 +84,12 @@ describe('redeemClaimPayout', function () {
     // still voting
     await assessment.setAssessmentForStatus(claimId, AssessmentStatus.Voting);
     const redeemClaimPayoutTx1 = claims.connect(coverOwner).redeemClaimPayout(claimId);
-    await expect(redeemClaimPayoutTx1).to.be.revertedWithCustomError(claims, 'ClaimNotAccepted');
+    await expect(redeemClaimPayoutTx1).to.be.revertedWithCustomError(claims, 'ClaimNotRedeemable');
 
     // cooldown
     await assessment.setAssessmentForStatus(claimId, AssessmentStatus.Cooldown);
     const redeemClaimPayoutTx2 = claims.connect(coverOwner).redeemClaimPayout(claimId);
-    await expect(redeemClaimPayoutTx2).to.be.revertedWithCustomError(claims, 'ClaimNotAccepted');
+    await expect(redeemClaimPayoutTx2).to.be.revertedWithCustomError(claims, 'ClaimNotRedeemable');
   });
 
   it('reverts if the redemption period expired', async function () {

@@ -638,7 +638,7 @@ describe('claim assessment', function () {
     expect(outcome).to.equal(AssessmentOutcome.Accepted);
 
     // Advance time past redemption period without redeeming
-    const { payoutRedemptionPeriod } = await this.claims.getClaimInfo(newEthClaimId);
+    const { payoutRedemptionPeriod } = await this.claims.getClaim(newEthClaimId);
     await time.increaseTo(cooldownEndTime + payoutRedemptionPeriod + 1n);
 
     // Attempt to redeem - should fail (redemption period expired)

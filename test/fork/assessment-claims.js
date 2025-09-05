@@ -94,7 +94,7 @@ describe('claim assessment', function () {
     // TODO: use governor open/close proposal
     // use governor signer for assessment contract
     const governorSigner = await getFundedSigner(governorAddress);
-    this.assessment = this.assessment.connect(governorSigner);
+    this.assessments = this.assessments.connect(governorSigner);
 
     // add assessors to a new group (groupId 0 creates new group)
     console.log('adding assessors to group');
@@ -105,13 +105,13 @@ describe('claim assessment', function () {
       assessorIds.push(assessorId);
     }
 
-    const tx = await this.assessment.addAssessorsToGroup(assessorIds, 0, { gasLimit: 21e6 });
+    const tx = await this.assessments.addAssessorsToGroup(assessorIds, 0, { gasLimit: 21e6 });
     await tx.wait();
 
-    const groupId = await this.assessment.getGroupsCount();
+    const groupId = await this.assessments.getGroupsCount();
 
     // set assessment data for product types - 1 day cooldown, 30 days redemption period
-    await this.assessment.setAssessingGroupIdForProductTypes([1, 19], groupId, { gasLimit: 21e6 });
+    await this.assessments.setAssessingGroupIdForProductTypes([1, 19], groupId, { gasLimit: 21e6 });
 
     // update cover dependent contract addresses
     const coverUpdateDependentAddressesTx = await this.cover.changeDependentContractAddress();
@@ -147,14 +147,14 @@ describe('claim assessment', function () {
     const ipfsHashFor = ethers.solidityPackedKeccak256(['string'], ['happy-path-accept']);
     const ipfsHashAgainst = ethers.solidityPackedKeccak256(['string'], ['happy-path-deny']);
 
-    await this.assessment.connect(this.assessors[0]).castVote(claimId, true, ipfsHashFor); // accept
-    await this.assessment.connect(this.assessors[1]).castVote(claimId, true, ipfsHashFor); // accept
-    await this.assessment.connect(this.assessors[2]).castVote(claimId, true, ipfsHashFor); // accept
-    await this.assessment.connect(this.assessors[3]).castVote(claimId, false, ipfsHashAgainst); // deny
+    await this.assessments.connect(this.assessors[0]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[1]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[2]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[3]).castVote(claimId, false, ipfsHashAgainst); // deny
     console.log('all votes cast - 3 accept, 1 deny');
 
     // advance time past voting and cooldown periods
-    const assessment = await this.assessment.getAssessment(claimId);
+    const assessment = await this.assessments.getAssessment(claimId);
     const cooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + daysToSeconds(1);
     await time.increaseTo(cooldownEndTime);
     console.log('time.increaseTo past cooldown period');
@@ -324,7 +324,7 @@ describe('claim assessment', function () {
     // Call getAssessmentDataForProductType and log the result
     console.log('=== ASSESSMENT DATA FOR PRODUCT TYPE ===');
     try {
-      const assessmentData = await this.assessment.getAssessmentDataForProductType(product.productType);
+      const assessmentData = await this.assessments.getAssessmentDataForProductType(product.productType);
       console.log('assessmentData for productType', product.productType, ':', {
         assessingGroupId: assessmentData.assessingGroupId,
         cooldownPeriod: assessmentData.cooldownPeriod,
@@ -356,13 +356,13 @@ describe('claim assessment', function () {
     const ipfsHashAgainst = ethers.solidityPackedKeccak256(['string'], ['deny-reasoning']);
 
     // 3 deny, 2 accept
-    await this.assessment.connect(this.assessors[0]).castVote(claimId, false, ipfsHashAgainst); // deny
-    await this.assessment.connect(this.assessors[1]).castVote(claimId, false, ipfsHashAgainst); // deny
-    await this.assessment.connect(this.assessors[2]).castVote(claimId, false, ipfsHashAgainst); // deny
-    await this.assessment.connect(this.assessors[3]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[0]).castVote(claimId, false, ipfsHashAgainst); // deny
+    await this.assessments.connect(this.assessors[1]).castVote(claimId, false, ipfsHashAgainst); // deny
+    await this.assessments.connect(this.assessors[2]).castVote(claimId, false, ipfsHashAgainst); // deny
+    await this.assessments.connect(this.assessors[3]).castVote(claimId, true, ipfsHashFor); // accept
 
     // Advance time past cooldown period
-    const assessment = await this.assessment.getAssessment(claimId);
+    const assessment = await this.assessments.getAssessment(claimId);
     const cooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 1n;
     await time.increaseTo(cooldownEndTime);
 
@@ -373,7 +373,7 @@ describe('claim assessment', function () {
 
     // redeemClaimPayout throws error
     const redeemClaimPayout = this.claims.connect(this.claimant).redeemClaimPayout(claimId);
-    await expect(redeemClaimPayout).to.be.revertedWithCustomError(this.claims, 'ClaimNotAccepted');
+    await expect(redeemClaimPayout).to.be.revertedWithCustomError(this.claims, 'ClaimNotRedeemable');
 
     // retrieveDeposit throw errors
     const retrieveDeposit = this.claims.connect(this.claimant).retrieveDeposit(claimId);
@@ -411,13 +411,13 @@ describe('claim assessment', function () {
     const ipfsHashAgainst = ethers.solidityPackedKeccak256(['string'], ['deny-reasoning']);
 
     // 2 acceptVotes and 2 denyVotes
-    await this.assessment.connect(this.assessors[0]).castVote(usdcClaimId, true, ipfsHashFor); // accept
-    await this.assessment.connect(this.assessors[1]).castVote(usdcClaimId, true, ipfsHashFor); // accept
-    await this.assessment.connect(this.assessors[2]).castVote(usdcClaimId, false, ipfsHashAgainst); // deny
-    await this.assessment.connect(this.assessors[3]).castVote(usdcClaimId, false, ipfsHashAgainst); // deny
+    await this.assessments.connect(this.assessors[0]).castVote(usdcClaimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[1]).castVote(usdcClaimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[2]).castVote(usdcClaimId, false, ipfsHashAgainst); // deny
+    await this.assessments.connect(this.assessors[3]).castVote(usdcClaimId, false, ipfsHashAgainst); // deny
 
     // Advance time to end of voting period (enters cooldown)
-    let assessment = await this.assessment.getAssessment(usdcClaimId);
+    let assessment = await this.assessments.getAssessment(usdcClaimId);
     await time.increaseTo(Number(assessment.votingEnd) + 1);
 
     // Verify we're in cooldown
@@ -428,61 +428,61 @@ describe('claim assessment', function () {
     // Test that assessors can't vote during cooldown
     const lateVoteHash = ethers.solidityPackedKeccak256(['string'], ['late-vote']);
     await expect(
-      this.assessment.connect(this.assessors[0]).castVote(usdcClaimId, true, lateVoteHash),
-    ).to.be.revertedWithCustomError(this.assessment, 'VotingPeriodEnded');
+      this.assessments.connect(this.assessors[0]).castVote(usdcClaimId, true, lateVoteHash),
+    ).to.be.revertedWithCustomError(this.assessments, 'VotingPeriodEnded');
 
     // Test that claim can't be redeemed during cooldown
     const redeemClaimPayout = this.claims.connect(this.claimant).redeemClaimPayout(usdcClaimId);
-    await expect(redeemClaimPayout).to.be.revertedWithCustomError(this.claims, 'ClaimNotAccepted');
+    await expect(redeemClaimPayout).to.be.revertedWithCustomError(this.claims, 'ClaimNotRedeemable');
 
     // Simulate fraud discovery - governance intervenes
     // 1. Undo fraudulent votes from assessors 2 and 3
     const fraudulentAssessorId = await this.registry.getMemberId(this.assessors[3]);
 
     // 2 acceptVotes and 2 denyVotes
-    const assessmentBefore = await this.assessment.getAssessment(usdcClaimId);
+    const assessmentBefore = await this.assessments.getAssessment(usdcClaimId);
     expect(assessmentBefore.acceptVotes).to.equal(2);
     expect(assessmentBefore.denyVotes).to.equal(2);
 
     // 1. Undo fraudulent votes (2 acceptVotes and 1 denyVotes after)
     const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
     const governorSigner = await getSigner(governorAddress);
-    await this.assessment.connect(governorSigner).undoVotes(fraudulentAssessorId, [usdcClaimId]);
+    await this.assessments.connect(governorSigner).undoVotes(fraudulentAssessorId, [usdcClaimId]);
 
-    const assessmentAfter = await this.assessment.getAssessment(usdcClaimId);
+    const assessmentAfter = await this.assessments.getAssessment(usdcClaimId);
     expect(assessmentAfter.acceptVotes).to.equal(2);
     expect(assessmentAfter.denyVotes).to.equal(1);
 
     // 2. Remove fraudulent assessor from group
-    const groupId = await this.assessment.getGroupsCount();
-    const isAssessorInGroupBefore = await this.assessment.isAssessorInGroup(fraudulentAssessorId, groupId);
+    const groupId = await this.assessments.getGroupsCount();
+    const isAssessorInGroupBefore = await this.assessments.isAssessorInGroup(fraudulentAssessorId, groupId);
     expect(isAssessorInGroupBefore).to.be.true;
 
-    await this.assessment.connect(governorSigner).removeAssessorFromGroup(fraudulentAssessorId, groupId);
+    await this.assessments.connect(governorSigner).removeAssessorFromGroup(fraudulentAssessorId, groupId);
 
-    const isAssessorInGroupAfter = await this.assessment.isAssessorInGroup(fraudulentAssessorId, groupId);
+    const isAssessorInGroupAfter = await this.assessments.isAssessorInGroup(fraudulentAssessorId, groupId);
     expect(isAssessorInGroupAfter).to.be.false;
 
     // 3. Add new assessor to group
     const newAssessor = await getSigner(this.nonAssessor.address);
     const newAssessorMemberId = await this.registry.getMemberId(newAssessor);
 
-    const isNewAssessorInGroupBefore = await this.assessment.isAssessorInGroup(newAssessorMemberId, groupId);
+    const isNewAssessorInGroupBefore = await this.assessments.isAssessorInGroup(newAssessorMemberId, groupId);
     expect(isNewAssessorInGroupBefore).to.be.false;
 
-    await this.assessment.connect(governorSigner).addAssessorsToGroup([newAssessorMemberId], groupId);
+    await this.assessments.connect(governorSigner).addAssessorsToGroup([newAssessorMemberId], groupId);
 
-    const isNewAssessorInGroupAfter = await this.assessment.isAssessorInGroup(newAssessorMemberId, groupId);
+    const isNewAssessorInGroupAfter = await this.assessments.isAssessorInGroup(newAssessorMemberId, groupId);
     expect(isNewAssessorInGroupAfter).to.be.true;
 
     // 4. Extend voting period to allow new assessor to vote
-    await this.assessment.connect(governorSigner).extendVotingPeriod(usdcClaimId);
+    await this.assessments.connect(governorSigner).extendVotingPeriod(usdcClaimId);
 
     // 5. New assessors vote (now majority for - 3 accept, 1 deny after fraud removal)
-    await this.assessment.connect(newAssessor).castVote(usdcClaimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(newAssessor).castVote(usdcClaimId, true, ipfsHashFor); // accept
 
     // Advance time through voting and cooldown periods
-    assessment = await this.assessment.getAssessment(usdcClaimId);
+    assessment = await this.assessments.getAssessment(usdcClaimId);
     const newCooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 1n;
     await time.increaseTo(newCooldownEndTime);
 
@@ -561,13 +561,13 @@ describe('claim assessment', function () {
     const ipfsHashFor = ethers.solidityPackedKeccak256(['string'], ['draw-accept']);
     const ipfsHashAgainst = ethers.solidityPackedKeccak256(['string'], ['draw-deny']);
 
-    await this.assessment.connect(this.assessors[0]).castVote(drawClaimId, true, ipfsHashFor); // accept
-    await this.assessment.connect(this.assessors[1]).castVote(drawClaimId, true, ipfsHashFor); // accept
-    await this.assessment.connect(this.assessors[2]).castVote(drawClaimId, false, ipfsHashAgainst); // deny
-    await this.assessment.connect(this.newAssessor).castVote(drawClaimId, false, ipfsHashAgainst); // deny
+    await this.assessments.connect(this.assessors[0]).castVote(drawClaimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[1]).castVote(drawClaimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[2]).castVote(drawClaimId, false, ipfsHashAgainst); // deny
+    await this.assessments.connect(this.newAssessor).castVote(drawClaimId, false, ipfsHashAgainst); // deny
 
     // Advance time past voting and cooldown periods
-    const assessment = await this.assessment.getAssessment(drawClaimId);
+    const assessment = await this.assessments.getAssessment(drawClaimId);
     const cooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 1n;
     await time.increaseTo(cooldownEndTime);
 
@@ -578,7 +578,7 @@ describe('claim assessment', function () {
 
     // redeemClaimPayout throws error for DRAW claims
     const redeemClaimPayout = this.claims.connect(this.claimant).redeemClaimPayout(drawClaimId);
-    await expect(redeemClaimPayout).to.be.revertedWithCustomError(this.claims, 'ClaimNotAccepted');
+    await expect(redeemClaimPayout).to.be.revertedWithCustomError(this.claims, 'ClaimNotRedeemable');
 
     // Get claim deposit amount and balance
     const claimDepositAmount = await this.claims.CLAIM_DEPOSIT_IN_ETH();
@@ -622,13 +622,13 @@ describe('claim assessment', function () {
     const ipfsHashFor = ethers.solidityPackedKeccak256(['string'], ['accept-reasoning-expiry']);
     const ipfsHashAgainst = ethers.solidityPackedKeccak256(['string'], ['deny-reasoning-expiry']);
 
-    await this.assessment.connect(this.assessors[0]).castVote(newEthClaimId, true, ipfsHashFor); // accept
-    await this.assessment.connect(this.assessors[1]).castVote(newEthClaimId, true, ipfsHashFor); // accept
-    await this.assessment.connect(this.assessors[2]).castVote(newEthClaimId, true, ipfsHashFor); // accept
-    await this.assessment.connect(this.newAssessor).castVote(newEthClaimId, false, ipfsHashAgainst); // deny
+    await this.assessments.connect(this.assessors[0]).castVote(newEthClaimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[1]).castVote(newEthClaimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[2]).castVote(newEthClaimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.newAssessor).castVote(newEthClaimId, false, ipfsHashAgainst); // deny
 
     // Advance time past voting and cooldown periods
-    const assessment = await this.assessment.getAssessment(newEthClaimId);
+    const assessment = await this.assessments.getAssessment(newEthClaimId);
     const cooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 1n;
     await time.increaseTo(cooldownEndTime);
 
@@ -667,13 +667,13 @@ describe('claim assessment', function () {
     const ipfsHashFor = ethers.solidityPackedKeccak256(['string'], ['resubmit-after-expiry-accept']);
     const ipfsHashAgainst = ethers.solidityPackedKeccak256(['string'], ['resubmit-after-expiry-deny']);
 
-    await this.assessment.connect(this.assessors[0]).castVote(resubmitClaimId, true, ipfsHashFor); // accept
-    await this.assessment.connect(this.assessors[1]).castVote(resubmitClaimId, true, ipfsHashFor); // accept
-    await this.assessment.connect(this.assessors[2]).castVote(resubmitClaimId, true, ipfsHashFor); // accept
-    await this.assessment.connect(this.newAssessor).castVote(resubmitClaimId, false, ipfsHashAgainst); // deny
+    await this.assessments.connect(this.assessors[0]).castVote(resubmitClaimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[1]).castVote(resubmitClaimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[2]).castVote(resubmitClaimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.newAssessor).castVote(resubmitClaimId, false, ipfsHashAgainst); // deny
 
     // Advance time past voting and cooldown periods
-    const assessment = await this.assessment.getAssessment(resubmitClaimId);
+    const assessment = await this.assessments.getAssessment(resubmitClaimId);
     const cooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 1n;
     await time.increaseTo(cooldownEndTime);
 

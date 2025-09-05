@@ -401,7 +401,7 @@ describe('basic functionality tests', function () {
   //   const coverBuyer = await getSigner(DAI_NXM_HOLDER);
   //
   //   const claimsCountBefore = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountBefore = await this.assessment.getAssessmentsCount();
+  //   const assessmentCountBefore = await this.assessments.getAssessmentsCount();
   //
   //   const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
   //   const requestedAmount = parseEther('1');
@@ -417,7 +417,7 @@ describe('basic functionality tests', function () {
   //     .submitClaim(custodyCoverId, requestedAmount, ipfsHash, { value: deposit });
   //
   //   const claimsCountAfter = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountAfter = await this.assessment.getAssessmentsCount();
+  //   const assessmentCountAfter = await this.assessments.getAssessmentsCount();
   //
   //   assessmentId = assessmentCountBefore.toString();
   //   expect(claimsCountAfter).to.be.equal(claimsCountBefore.add(1));
@@ -497,7 +497,7 @@ describe('basic functionality tests', function () {
   //   const coverBuyer = await getSigner(DAI_NXM_HOLDER);
   //
   //   const claimsCountBefore = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountBefore = await this.assessment.getAssessmentsCount();
+  //   const assessmentCountBefore = await this.assessments.getAssessmentsCount();
   //
   //   const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
   //   const requestedAmount = parseEther('1000');
@@ -513,7 +513,7 @@ describe('basic functionality tests', function () {
   //     .submitClaim(protocolCoverId, requestedAmount, ipfsHash, { value: deposit });
   //
   //   const claimsCountAfter = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountAfter = await this.assessment.getAssessmentsCount();
+  //   const assessmentCountAfter = await this.assessments.getAssessmentsCount();
   //
   //   assessmentId = assessmentCountBefore.toString();
   //   expect(claimsCountAfter).to.be.equal(claimsCountBefore.add(1));
@@ -588,7 +588,7 @@ describe('basic functionality tests', function () {
   //   const coverBuyer = await getSigner(NXM_AB_MEMBER);
   //
   //   const claimsCountBefore = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountBefore = await this.assessment.getAssessmentsCount();
+  //   const assessmentCountBefore = await this.assessments.getAssessmentsCount();
   //
   //   const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
   //   const requestedAmount = parseUnits('1000', 6);
@@ -604,7 +604,7 @@ describe('basic functionality tests', function () {
   //     .submitClaim(protocolCoverId, requestedAmount, ipfsHash, { value: deposit });
   //
   //   const claimsCountAfter = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountAfter = await this.assessment.getAssessmentsCount();
+  //   const assessmentCountAfter = await this.assessments.getAssessmentsCount();
   //
   //   assessmentId = assessmentCountBefore.toString();
   //   expect(claimsCountAfter).to.be.equal(claimsCountBefore.add(1));
@@ -674,11 +674,9 @@ describe('basic functionality tests', function () {
     const coverBuyer = await ethers.Wallet.createRandom().connect(ethers.provider);
     const coverBuyerAddress = await coverBuyer.getAddress();
 
-    await Promise.all([
-      setBalance(coverBuyerAddress, parseEther('1000')),
-      setUSDCBalance(this.usdc.target, coverBuyer.address, parseEther('1000000')),
-      this.usdc.connect(coverBuyer).approve(this.coverBroker.target, MaxUint256),
-    ]);
+    await setBalance(coverBuyerAddress, parseEther('1000'));
+    await setUSDCBalance(this.usdc.target, coverBuyer.address, parseEther('1000000'));
+    await this.usdc.connect(coverBuyer).approve(this.coverBroker.target, MaxUint256);
 
     const coverAsset = await this.pool.getAssetId(Addresses.USDC_ADDRESS);
     const amount = parseUnits('1000', 6);
@@ -896,7 +894,7 @@ describe('basic functionality tests', function () {
     expect(await getImplementation(this.cover)).to.be.equal(cover.target);
     expect(await getImplementation(this.swapOperator)).to.be.equal(swapOperator.target);
     expect(await getImplementation(this.pool)).to.be.equal(pool.target);
-    expect(await getImplementation(this.assessment)).to.be.equal(assessment.target);
+    expect(await getImplementation(this.assessments)).to.be.equal(assessment.target);
     expect(await getImplementation(this.claims)).to.be.equal(claims.target);
     expect(await getImplementation(this.ramm)).to.be.equal(ramm.target);
   });

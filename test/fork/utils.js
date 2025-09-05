@@ -88,19 +88,14 @@ async function executeGovernorProposal(governor, abMembers, txs) {
 
 const getSigner = async address => {
   if (network.name !== 'hardhat') {
-    console.log('getting remote signer', address);
     return new JsonRpcSigner(new JsonRpcProvider(network.config.url), address);
   }
 
-  console.log('impersonating', address);
   await impersonateAccount(address);
-
-  console.log('getting signer', address);
   return ethers.getSigner(address);
 };
 
 const getFundedSigner = async (address, amount = parseEther('1000')) => {
-  console.log('setting balance', address, ethers.formatEther(amount));
   await setBalance(address, amount);
   return getSigner(address);
 };

@@ -74,7 +74,7 @@ contract NXMaster is INXMMaster {
     return
       code == "SP" ? C_STAKING_PRODUCTS :
       code == "CO" ? C_COVER            :
-      code == "AS" ? C_ASSESSMENT       :
+      code == "AS" ? C_ASSESSMENTS      :
       code == "CP" ? C_COVER_PRODUCTS   :
       code == "CI" ? C_CLAIMS           :
       code == "ST" ? C_SAFE_TRACKER     :

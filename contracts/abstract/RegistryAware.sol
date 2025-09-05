@@ -19,7 +19,7 @@ uint constant C_LIMIT_ORDERS         = 1 << 10;  // 1024
 uint constant C_STAKING_NFT          = 1 << 11;  // 2048
 uint constant C_COVER_NFT            = 1 << 12;  // 4096
 uint constant C_SWAP_OPERATOR        = 1 << 13;  // 8192
-uint constant C_ASSESSMENT           = 1 << 14;  // 16384
+uint constant C_ASSESSMENTS          = 1 << 14;  // 16384
 uint constant C_CLAIMS               = 1 << 15;  // 32768
 uint constant C_STAKING_POOL_FACTORY = 1 << 16;  // 65536
 

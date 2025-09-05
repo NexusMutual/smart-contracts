@@ -6,11 +6,11 @@ const { setup } = require('./setup');
 describe('getAssessment', function () {
   it('should return correct assessment data for existing claim', async function () {
     const { contracts, constants } = await loadFixture(setup);
-    const { assessment } = contracts;
-    const { ASSESSOR_GROUP_ID, PRODUCT_TYPE_ID, CLAIM_ID } = constants;
+    const { assessment, claims } = contracts;
+    const { ASSESSOR_GROUP_ID, CLAIM_ID } = constants;
 
     const assessmentData = await assessment.getAssessment(CLAIM_ID);
-    const cooldownPeriod = await assessment.payoutCooldown(PRODUCT_TYPE_ID);
+    const cooldownPeriod = await claims.cooldownPeriod();
     const expectedVotingPeriod = await assessment.minVotingPeriod();
 
     expect(assessmentData.assessingGroupId).to.equal(ASSESSOR_GROUP_ID);

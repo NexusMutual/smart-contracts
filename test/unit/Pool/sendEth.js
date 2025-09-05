@@ -35,21 +35,4 @@ describe('sendEth', function () {
 
     expect(balanceAfter).to.be.equal(balanceBefore + parseEther('0.1'));
   });
-
-  it('sends eth to a member - Claims', async function () {
-    const fixture = await loadFixture(setup);
-    const { pool, accounts, claims } = fixture;
-    const [member] = accounts.members;
-    await impersonateAccount(claims.address);
-    const claimsSigner = await ethers.getSigner(claims.address);
-
-    await setBalance(claims.address, parseEther('1'));
-    await setBalance(pool.target, parseEther('100'));
-
-    const balanceBefore = await ethers.provider.getBalance(member.address);
-    await pool.connect(claimsSigner).sendEth(member, parseEther('0.1'));
-    const balanceAfter = await ethers.provider.getBalance(member.address);
-
-    expect(balanceAfter).to.be.equal(balanceBefore + parseEther('0.1'));
-  });
 });

@@ -2,12 +2,29 @@
 
 pragma solidity >=0.5.0;
 
-interface IAssessment {
-  struct AssessmentData {
-    uint16 assessingGroupId;
-    uint32 cooldownPeriod;
-    uint32 payoutRedemptionPeriod;
-  }
+enum AssessmentStatus {
+  VOTING,
+  COOLDOWN,
+  FINALIZED
+}
+
+enum AssessmentOutcome {
+  PENDING,
+  ACCEPTED,
+  DENIED,
+  DRAW
+}
+
+struct Assessment {
+  uint16 assessingGroupId;
+  uint32 cooldownPeriod;
+  uint32 start;
+  uint32 votingEnd;
+  uint8 acceptVotes;
+  uint8 denyVotes;
+}
+
+interface IAssessments {
 
   struct AssessmentGroupView {
     uint id;
@@ -20,24 +37,6 @@ interface IAssessment {
     bool support;
   }
 
-  struct Assessment {
-    uint16 assessingGroupId;
-    uint32 cooldownPeriod;
-    uint32 payoutRedemptionPeriod;
-    uint32 start;
-    uint32 votingEnd;
-    uint8 acceptVotes;
-    uint8 denyVotes;
-  }
-
-  enum AssessmentStatus {
-    VOTING,
-    COOLDOWN,
-    ACCEPTED,
-    DENIED,
-    DRAW
-  }
-
   /* === MUTATIVE FUNCTIONS ==== */
 
   function addAssessorsToGroup(uint[] calldata assessorMemberId, uint groupId) external;
@@ -48,18 +47,13 @@ interface IAssessment {
 
   function removeAssessorFromAllGroups(uint assessorMemberId) external;
 
-  function setAssessmentDataForProductTypes(
-    uint[] calldata productTypeIds,
-    uint cooldownPeriod,
-    uint redemptionPeriod,
-    uint groupId
-  ) external;
+  function setAssessingGroupIdForProductTypes(uint[] calldata productTypeIds, uint groupId) external;
 
   function undoVotes(uint assessorMemberId, uint[] calldata claimIds) external;
 
   function castVote(uint claimId, bool voteSupport, bytes32 ipfsHash) external;
 
-  function startAssessment(uint claimId, uint productTypeId) external;
+  function startAssessment(uint claimId, uint productTypeId, uint cooldownPeriod) external;
 
   function extendVotingPeriod(uint claimId) external;
 
@@ -83,11 +77,7 @@ interface IAssessment {
 
   function minVotingPeriod() external pure returns (uint);
 
-  function payoutCooldown(uint productTypeId) external view returns (uint);
-
-  function getAssessmentDataForProductType(uint productTypeId) external view returns (AssessmentData memory assessmentData);
-
-  function getAssessmentResult(uint claimId) external view returns(AssessmentStatus status, uint payoutRedemptionPeriod);
+  function getAssessingGroupIdForProductType(uint productTypeId) external view returns (uint);
 
   function ballotOf(uint claimId, uint assessorMemberId) external view returns (Ballot memory);
 
@@ -97,12 +87,7 @@ interface IAssessment {
 
   /* ========= EVENTS ========== */
 
-  event AssessmentDataForProductTypeSet(
-    uint indexed productTypeId,
-    uint indexed groupId,
-    uint cooldownPeriod,
-    uint payoutRedemptionPeriod
-  );
+  event AssessingGroupForProductTypeSet(uint indexed productTypeId, uint indexed groupId);
   event AssessorAddedToGroup(uint indexed groupId, uint assessorMemberId);
   event AssessorRemovedFromGroup(uint indexed groupId, uint assessorMemberId);
   event GroupMetadataSet(uint indexed groupId, bytes32 ipfsMetadata);

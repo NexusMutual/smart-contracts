@@ -139,23 +139,17 @@ describe('getGroupAssessors', function () {
     const group2Assessors = [502n, 503n];
     const sharedAssessor = 504n;
 
-    // Get initial group count to calculate correct IDs
-    const initialGroupCount = await assessment.getGroupsCount();
+    // create first group
+    await assessment.connect(governanceAccount).addAssessorsToGroup(group1Assessors, 0n);
+    const group1Id = await assessment.getGroupsCount();
 
-    // Create first and second group
-    await Promise.all([
-      assessment.connect(governanceAccount).addAssessorsToGroup(group1Assessors, 0n),
-      assessment.connect(governanceAccount).addAssessorsToGroup(group2Assessors, 0n),
-    ]);
+    // create second group
+    await assessment.connect(governanceAccount).addAssessorsToGroup(group2Assessors, 0n);
+    const group2Id = await assessment.getGroupsCount();
 
-    const group1Id = initialGroupCount + 1n; // First new group
-    const group2Id = initialGroupCount + 2n; // Second new group
-
-    // Add shared assessor to both groups
-    await Promise.all([
-      assessment.connect(governanceAccount).addAssessorsToGroup([sharedAssessor], group1Id),
-      assessment.connect(governanceAccount).addAssessorsToGroup([sharedAssessor], group2Id),
-    ]);
+    // add shared assessor to both groups
+    await assessment.connect(governanceAccount).addAssessorsToGroup([sharedAssessor], group1Id);
+    await assessment.connect(governanceAccount).addAssessorsToGroup([sharedAssessor], group2Id);
 
     // Verify group 1 assessors
     const group1Result = await assessment.getGroupAssessors(group1Id);

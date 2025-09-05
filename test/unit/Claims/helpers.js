@@ -1,22 +1,11 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { parseEther, toBeHex } = ethers;
 
-const ASSESSMENT_STATUS = {
-  VOTING: 0,
-  COOLDOWN: 1,
-  ACCEPTED: 2,
-  DENIED: 3,
-  DRAW: 4,
-};
-
-const ASSET = {
-  ETH: 0,
-  DAI: 1,
-};
+const { PoolAsset } = nexus.constants;
 
 const coverDetailsFixture = {
   productId: 0,
-  coverAsset: ASSET.ETH,
+  coverAsset: PoolAsset.ETH,
   amount: parseEther('100'),
   start: 0,
   period: 30 * 24 * 3600, // 30 days
@@ -51,8 +40,6 @@ const submitClaim =
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 module.exports = {
-  ASSET,
-  ASSESSMENT_STATUS,
   createMockCover,
   submitClaim,
   daysToSeconds,

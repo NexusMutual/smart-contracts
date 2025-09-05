@@ -21,19 +21,20 @@ contract CLMockCoverProducts is CoverProductsGeneric {
 
   function addProductType(
     ClaimMethod claimMethod,
-    uint16 gracePeriod,
-    uint16 /*burnRatio*/
+    uint32 gracePeriod,
+    uint32 cooldownPeriod,
+    uint32 redemptionPeriod
   ) external {
-    _productTypes.push(ProductType(claimMethod, gracePeriod));
+    _productTypes.push(ProductType(claimMethod, gracePeriod, cooldownPeriod, redemptionPeriod));
   }
 
   function editProductTypes(
     uint[] calldata productTypeIds,
-    uint32[] calldata gracePeriods,
+    ProductType[] calldata productTypes,
     string[] calldata /* ipfsHash */
   ) external {
     for (uint i = 0; i < productTypeIds.length; i++) {
-      _productTypes[productTypeIds[i]].gracePeriod = gracePeriods[i];
+      _productTypes[productTypeIds[i]] = productTypes[i];
     }
   }
 

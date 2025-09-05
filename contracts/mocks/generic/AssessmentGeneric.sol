@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.18;
 
-import "../../interfaces/IAssessment.sol";
+import "../../interfaces/IAssessments.sol";
 
-contract AssessmentGeneric is IAssessment {
+contract AssessmentGeneric is IAssessments {
   function addAssessorsToGroup(uint[] calldata, uint) external virtual {
     revert("Unsupported");
   }
@@ -33,7 +33,7 @@ contract AssessmentGeneric is IAssessment {
     revert("Unsupported");
   }
 
-  function startAssessment(uint, uint) external virtual {
+  function startAssessment(uint, uint, uint) external virtual {
     revert("Unsupported");
   }
 
@@ -59,59 +59,55 @@ contract AssessmentGeneric is IAssessment {
 
   /* ========== VIEWS ========== */
 
-  function getGroupsCount() external virtual view returns (uint) {
+  function getGroupsCount() external view virtual returns (uint) {
     revert("Unsupported");
   }
 
-  function getGroupAssessorCount(uint) external virtual view returns (uint) {
+  function getGroupAssessorCount(uint) external view virtual returns (uint) {
     revert("Unsupported");
   }
 
-  function getGroupAssessors(uint) external virtual view returns (uint[] memory) {
+  function getGroupAssessors(uint) external view virtual returns (uint[] memory) {
     revert("Unsupported");
   }
 
-  function isAssessorInGroup(uint, uint) external virtual view returns (bool) {
+  function isAssessorInGroup(uint, uint) external view virtual returns (bool) {
     revert("Unsupported");
   }
 
-  function getGroupsForAssessor(uint) external virtual view returns (uint[] memory) {
+  function getGroupsForAssessor(uint) external view virtual returns (uint[] memory) {
     revert("Unsupported");
   }
 
-  function isAssessor(uint) external virtual view returns (bool) {
+  function isAssessor(uint) external view virtual returns (bool) {
     revert("Unsupported");
   }
 
-  function getGroupsData(uint[] calldata) external virtual view returns (AssessmentGroupView[] memory) {
+  function getGroupsData(uint[] calldata) external view virtual returns (AssessmentGroupView[] memory) {
     revert("Unsupported");
   }
 
-  function votingPeriod() external virtual view returns (uint) {
+  function votingPeriod() external view virtual returns (uint) {
     revert("Unsupported");
   }
 
-  function payoutCooldown(uint) external virtual view returns (uint) {
+  function assessorGroupOf(uint) external view virtual returns (uint32) {
     revert("Unsupported");
   }
 
-  function assessorGroupOf(uint) external virtual view returns (uint32) {
+  function setAssessingGroupIdForProductTypes(uint[] calldata, uint) external view virtual {
     revert("Unsupported");
   }
 
-  function getAssessmentDataForProductType(uint) external virtual view returns (AssessmentData memory) {
+  function ballotOf(uint, uint) external view virtual returns (Ballot memory) {
     revert("Unsupported");
   }
 
-  function getAssessmentResult(uint) external virtual view returns (AssessmentStatus, uint) {
+  function getAssessment(uint) external view virtual returns (Assessment memory) {
     revert("Unsupported");
   }
 
-  function ballotOf(uint, uint) external virtual view returns (Ballot memory) {
-    revert("Unsupported");
-  }
-
-  function getAssessment(uint) external virtual view returns (Assessment memory) {
+  function getAssessingGroupIdForProductType(uint) external view virtual returns (uint) {
     revert("Unsupported");
   }
 }

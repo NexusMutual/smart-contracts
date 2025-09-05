@@ -28,11 +28,11 @@ describe('extendVotingPeriod', function () {
   it('should revert when cooldown period has already passed', async function () {
     const { contracts, accounts, constants } = await loadFixture(setup);
     const { assessment } = contracts;
-    const { CLAIM_ID, MIN_VOTING_PERIOD, PRODUCT_TYPE_ID } = constants;
+    const { CLAIM_ID, MIN_VOTING_PERIOD } = constants;
     const [governanceAccount] = accounts.governanceContracts;
 
     // Get the cooldown period for this product type
-    const cooldownPeriod = await assessment.payoutCooldown(PRODUCT_TYPE_ID);
+    const { cooldownPeriod } = await assessment.getAssessment(CLAIM_ID);
 
     // Move time forward to beyond the cooldown period (voting period + cooldown period + 1)
     const block = await ethers.provider.getBlock('latest');

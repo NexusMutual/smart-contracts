@@ -1,12 +1,14 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 const { parseEther } = ethers;
 
 const { setNextBlockTime, setCode } = require('../../utils/evm');
 
-const { ASSET, ASSESSMENT_STATUS, createMockCover, submitClaim, daysToSeconds } = require('./helpers');
+const { createMockCover, submitClaim, daysToSeconds } = require('./helpers');
 const { setup } = require('./setup');
+
+const { AssessmentStatus, AssessmentOutcome, PoolAsset } = nexus.constants;
 
 describe('submitClaim', function () {
   const ipfsHash = ethers.solidityPackedKeccak256(['string'], ['ipfs-hash']);
@@ -51,19 +53,16 @@ describe('submitClaim', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     const claimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
-    const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.VOTING, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForStatus(claimId, AssessmentStatus.Voting);
     await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWithCustomError(
       claims,
       'ClaimIsBeingAssessed',
     );
 
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.COOLDOWN, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForStatus(claimId, AssessmentStatus.Cooldown);
     await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWithCustomError(
       claims,
       'ClaimIsBeingAssessed',
@@ -151,13 +150,22 @@ describe('submitClaim', function () {
     const { claims, cover, coverProducts } = fixture.contracts;
     const [coverOwner] = fixture.accounts.members;
     const [boardMember] = fixture.accounts.advisoryBoardMembers;
-    const { gracePeriod } = await coverProducts.getProductType(0);
+
+    const productTypeData = await coverProducts.getProductType(0);
+    const { claimMethod, gracePeriod, assessmentCooldownPeriod, payoutRedemptionPeriod } = productTypeData;
 
     // create a cover using the default grace period
     await createMockCover(cover, { owner: coverOwner.address, gracePeriod });
 
+    // edit product type with longer grace period
     const longerGracePeriod = gracePeriod * 100n;
-    await coverProducts.connect(boardMember).editProductTypes([0], [longerGracePeriod], ['ipfs hash']);
+    const productTypeLongerGracePeriod = {
+      claimMethod,
+      gracePeriod: longerGracePeriod,
+      assessmentCooldownPeriod,
+      payoutRedemptionPeriod,
+    };
+    await coverProducts.connect(boardMember).editProductTypes([0], [productTypeLongerGracePeriod], ['ipfs hash']);
 
     const coverId = 1;
     const coverData = await cover.getCoverData(coverId);
@@ -177,8 +185,8 @@ describe('submitClaim', function () {
 
     const coverId = 1;
 
-    await submitClaim(fixture)({ coverId, sender: coverOwner });
     const claimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId, sender: coverOwner });
 
     expect(await assessment._productTypeForClaimId(claimId)).to.equal(1n);
   });
@@ -194,7 +202,8 @@ describe('submitClaim', function () {
     const coverId = 1;
     const submitClaimTx = submitClaim(fixture)({ coverId, ipfsMetadata, sender: coverOwner });
 
-    const claimId = (await claims.getClaimsCount()) + 1n;
+    const claimId = await claims.getClaimsCount();
+    await submitClaimTx;
     await expect(submitClaimTx).to.emit(claims, 'MetadataSubmitted').withArgs(claimId, ipfsHash);
 
     await createMockCover(cover, { owner: coverOwner.address });
@@ -225,9 +234,7 @@ describe('submitClaim', function () {
     expect(await claims.lastClaimSubmissionOnCover(2)).to.equal(2n);
 
     // Set cover 1 claim to DRAW to allow retry
-    const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(1, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForOutcome(1, AssessmentOutcome.Draw);
 
     // Second claim on cover 1 (retry after DRAW)
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
@@ -271,18 +278,18 @@ describe('submitClaim', function () {
     const [coverOwner] = fixture.accounts.members;
 
     const claimAmount = parseEther('50');
-    await createMockCover(cover, { owner: coverOwner.address, amount: parseEther('100'), coverAsset: ASSET.DAI });
+    await createMockCover(cover, { owner: coverOwner.address, amount: parseEther('100'), coverAsset: PoolAsset.DAI });
 
     const coverId = 1;
-    const claimId = (await claims.getClaimsCount()) + 1n;
 
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId, amount: claimAmount, sender: coverOwner });
 
     const claim = await claims.getClaimInfo(claimId);
 
     expect(claim.coverId).to.equal(coverId);
     expect(claim.amount).to.equal(claimAmount);
-    expect(claim.coverAsset).to.equal(ASSET.DAI);
+    expect(claim.coverAsset).to.equal(PoolAsset.DAI);
     expect(claim.payoutRedeemed).to.be.false;
     expect(claim.depositRetrieved).to.be.false;
   });
@@ -293,11 +300,11 @@ describe('submitClaim', function () {
     const [coverOwner] = fixture.accounts.members;
 
     const claimAmount = parseEther('50');
-    await createMockCover(cover, { owner: coverOwner.address, amount: parseEther('100'), coverAsset: ASSET.DAI });
+    await createMockCover(cover, { owner: coverOwner.address, amount: parseEther('100'), coverAsset: PoolAsset.DAI });
 
     const coverId = 1;
-    const claimId = (await claims.getClaimsCount()) + 1n;
 
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId, amount: claimAmount, sender: coverOwner });
 
     const memberId = await registry.getMemberId(coverOwner.address);
@@ -313,7 +320,7 @@ describe('submitClaim', function () {
     await createMockCover(cover, { owner: coverOwner.address });
 
     // Submit claim
-    const claimId = (await claims.getClaimsCount()) + 1n;
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     // Both fields should be false
@@ -321,10 +328,8 @@ describe('submitClaim', function () {
     expect(claim.payoutRedeemed).to.be.false;
     expect(claim.depositRetrieved).to.be.false;
 
-    // Accept the claim
-    const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.ACCEPTED, payoutRedemptionEnd, cooldownEnd);
+    // Accept the claim - set up Assessment struct to produce ACCEPTED outcome via AssessmentLib
+    await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Accepted);
 
     // State should still be false until payout is redeemed
     claim = await claims.getClaimInfo(claimId);
@@ -369,13 +374,13 @@ describe('submitClaim', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     const claimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
     const payoutRedemptionPeriod = daysToSeconds(30);
     const payoutRedemptionEnd = cooldownEnd + payoutRedemptionPeriod;
-    await assessment.setAssessmentResult(claimId, ASSESSMENT_STATUS.ACCEPTED, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Accepted);
 
     // Should block new claim during redemption period
     await time.increase(payoutRedemptionPeriod - daysToSeconds(1));
@@ -399,27 +404,21 @@ describe('submitClaim', function () {
     ]);
 
     // First claim on cover 1: ACCEPTED and redeemed
-    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     const firstClaimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
-    let { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-    let payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(firstClaimId, ASSESSMENT_STATUS.ACCEPTED, payoutRedemptionEnd, cooldownEnd);
+    await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Accepted);
     await claims.connect(coverOwner).redeemClaimPayout(firstClaimId);
 
     // Second claim on cover 2: set to DRAW
-    await submitClaim(fixture)({ coverId: 2, sender: coverOwner });
     const secondClaimId = await claims.getClaimsCount();
-    ({ timestamp: cooldownEnd } = await ethers.provider.getBlock('latest'));
-    payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(secondClaimId, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+    await submitClaim(fixture)({ coverId: 2, sender: coverOwner });
+    await assessment.setAssessmentForOutcome(secondClaimId, AssessmentOutcome.Draw);
 
     // Third claim on cover 2 again (retry for clear decision)
-    await submitClaim(fixture)({ coverId: 2, sender: coverOwner });
     const thirdClaimId = await claims.getClaimsCount();
-    ({ timestamp: cooldownEnd } = await ethers.provider.getBlock('latest'));
-    payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-    await assessment.setAssessmentResult(thirdClaimId, ASSESSMENT_STATUS.DENIED, payoutRedemptionEnd, cooldownEnd);
+    await submitClaim(fixture)({ coverId: 2, sender: coverOwner });
+    await assessment.setAssessmentForOutcome(thirdClaimId, AssessmentOutcome.Denied);
 
     // Fourth claim on cover 3 (new cover)
     await expect(submitClaim(fixture)({ coverId: 3, sender: coverOwner })).not.to.be.reverted;
@@ -434,12 +433,10 @@ describe('submitClaim', function () {
       await createMockCover(cover, { owner: coverOwner.address });
 
       // Submit and accept first claim
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
       const firstClaimId = await claims.getClaimsCount();
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
-      const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-      const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-      await assessment.setAssessmentResult(firstClaimId, ASSESSMENT_STATUS.ACCEPTED, payoutRedemptionEnd, cooldownEnd);
+      await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Accepted);
 
       // Redeem the payout
       await claims.connect(coverOwner).redeemClaimPayout(firstClaimId);
@@ -459,12 +456,10 @@ describe('submitClaim', function () {
       await createMockCover(cover, { owner: coverOwner.address });
 
       // Submit and deny first claim
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
       const firstClaimId = await claims.getClaimsCount();
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
-      const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-      const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-      await assessment.setAssessmentResult(firstClaimId, ASSESSMENT_STATUS.DENIED, payoutRedemptionEnd, cooldownEnd);
+      await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Denied);
 
       // Should allow re-submission after DENIED (edge case - maybe new evidence)
       await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
@@ -478,13 +473,11 @@ describe('submitClaim', function () {
       await createMockCover(cover, { owner: coverOwner.address });
 
       // Submit first claim
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
       const firstClaimId = await claims.getClaimsCount();
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
       // Set first claim result to DRAW
-      const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-      const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-      await assessment.setAssessmentResult(firstClaimId, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+      await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Draw);
 
       // Should allow submitting a new claim before deposit retrieval
       await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
@@ -501,13 +494,11 @@ describe('submitClaim', function () {
       await createMockCover(cover, { owner: coverOwner.address });
 
       // Submit first claim
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
       const firstClaimId = await claims.getClaimsCount();
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
       // Set first claim result to DRAW
-      const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
-      const payoutRedemptionEnd = cooldownEnd + daysToSeconds(30);
-      await assessment.setAssessmentResult(firstClaimId, ASSESSMENT_STATUS.DRAW, payoutRedemptionEnd, cooldownEnd);
+      await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Draw);
 
       // Retrieve deposit from DRAW claim
       await claims.retrieveDeposit(firstClaimId);
@@ -524,13 +515,11 @@ describe('submitClaim', function () {
       await createMockCover(cover, { owner: coverOwner.address });
 
       // Submit and accept first claim
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
       const firstClaimId = await claims.getClaimsCount();
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
-      const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
       const payoutRedemptionPeriod = daysToSeconds(30);
-      const payoutRedemptionEnd = cooldownEnd + payoutRedemptionPeriod;
-      await assessment.setAssessmentResult(firstClaimId, ASSESSMENT_STATUS.ACCEPTED, payoutRedemptionEnd, cooldownEnd);
+      await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Accepted);
 
       // Move time past redemption period
       await time.increase(payoutRedemptionPeriod);

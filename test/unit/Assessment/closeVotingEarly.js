@@ -1,8 +1,10 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { time } = require('@nomicfoundation/hardhat-network-helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
+
+const { AssessmentOutcome } = nexus.constants;
 
 /**
  * Helper function to have all assessors vote on a claim
@@ -121,7 +123,7 @@ describe('closeVotingEarly', function () {
     const { contracts, accounts, constants } = await loadFixture(setup);
     const { assessment } = contracts;
     const [governanceAccount] = accounts.governanceContracts;
-    const { CLAIM_ID, ASSESSOR_GROUP_ID, PRODUCT_TYPE_ID } = constants;
+    const { CLAIM_ID, ASSESSOR_GROUP_ID } = constants;
 
     // Remove all assessors from the existing group to make it empty
     const assessorMemberIds = await Promise.all(accounts.assessors.map(a => contracts.registry.getMemberId(a.address)));
@@ -151,30 +153,12 @@ describe('closeVotingEarly', function () {
     expect(assessmentData.denyVotes).to.equal(0);
 
     // Advance time past the cooldown period to see DRAW status
-    const { cooldownPeriod, payoutRedemptionPeriod } = assessmentData;
+    const { cooldownPeriod } = assessmentData;
     await time.increase(Number(BigInt(closeVotingTimestamp) + BigInt(cooldownPeriod) + 1n));
 
-    // Check assessment result after cooldown period
-    const [status, payoutRedemptionEnd] = await assessment.getAssessmentResult(CLAIM_ID);
-
-    // Verify cooldown end and payout redemption end calculation
-    const assessmentDataForProductType = await assessment.getAssessmentDataForProductType(PRODUCT_TYPE_ID);
-    const cooldownEnd = assessmentData.votingEnd + assessmentDataForProductType.cooldownPeriod;
-    const expectedCooldownEnd = BigInt(closeVotingTimestamp) + BigInt(cooldownPeriod);
-    expect(cooldownEnd).to.equal(expectedCooldownEnd);
-
-    const expectedPayoutRedemptionEnd = expectedCooldownEnd + BigInt(payoutRedemptionPeriod);
-    expect(payoutRedemptionEnd).to.equal(expectedPayoutRedemptionEnd);
-
-    // Verify status is DRAW (0 accept == 0 deny votes)
-    const AssessmentStatus = {
-      VOTING: 0,
-      COOLDOWN: 1,
-      ACCEPTED: 2,
-      DENIED: 3,
-      DRAW: 4,
-    };
-    expect(status).to.equal(AssessmentStatus.DRAW);
+    // verify outcome is DRAW (0 accept == 0 deny votes)
+    const { outcome } = await contracts.claims.getClaimDetails(CLAIM_ID);
+    expect(outcome).to.equal(AssessmentOutcome.Draw);
 
     // Verify event was emitted
     await expect(closeVotingTx).to.emit(assessment, 'VotingEndChanged').withArgs(CLAIM_ID, closeVotingTimestamp);

@@ -863,7 +863,7 @@ describe('basic functionality tests', function () {
       { index: ContractIndexes.C_COVER, address: cover.target },
       { index: ContractIndexes.C_SWAP_OPERATOR, address: swapOperator.target },
       { index: ContractIndexes.C_POOL, address: pool.target },
-      { index: ContractIndexes.C_ASSESSMENT, address: assessment.target },
+      { index: ContractIndexes.C_ASSESSMENTS, address: assessment.target },
       { index: ContractIndexes.C_CLAIMS, address: claims.target },
       { index: ContractIndexes.C_RAMM, address: ramm.target },
     ];

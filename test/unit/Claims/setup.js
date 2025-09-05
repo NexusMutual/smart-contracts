@@ -1,10 +1,11 @@
 const { ethers, nexus } = require('hardhat');
 
-const { Assets, ContractIndexes } = nexus.constants;
-const { ASSET } = require('./helpers');
+const { Assets, ContractIndexes, ClaimMethod, PoolAsset } = nexus.constants;
 const { getAccounts } = require('../../utils/accounts');
 
 const { parseEther } = ethers;
+
+const ONE_DAY = 24 * 60 * 60;
 
 async function setup() {
   const accounts = await getAccounts();
@@ -24,8 +25,8 @@ async function setup() {
 
   await pool.addAsset({ assetAddress: Assets.ETH, isCoverAsset: true, isAbandoned: false }); // Asset 0
   await pool.addAsset({ assetAddress: dai.target, isCoverAsset: true, isAbandoned: false }); // Asset 1
-  await pool.setTokenPrice(ASSET.ETH, parseEther('0.0382'));
-  await pool.setTokenPrice(ASSET.DAI, parseEther('3.82'));
+  await pool.setTokenPrice(PoolAsset.ETH, parseEther('0.0382'));
+  await pool.setTokenPrice(PoolAsset.DAI, parseEther('3.82'));
 
   const assessment = await ethers.deployContract('CLMockAssessment');
 
@@ -39,7 +40,7 @@ async function setup() {
   await registry.addContract(ContractIndexes.C_COVER, cover.target, false);
   await registry.addContract(ContractIndexes.C_COVER_NFT, coverNFT.target, false);
   await registry.addContract(ContractIndexes.C_COVER_PRODUCTS, coverProducts.target, false);
-  await registry.addContract(ContractIndexes.C_ASSESSMENT, assessment.target, false);
+  await registry.addContract(ContractIndexes.C_ASSESSMENTS, assessment.target, false);
   await registry.addContract(ContractIndexes.C_POOL, pool.target, false);
   await registry.addContract(ContractIndexes.C_RAMM, ramm.target, false);
   await registry.addContract(ContractIndexes.C_GOVERNOR, governanceAccount.address, false);
@@ -47,9 +48,11 @@ async function setup() {
   const claims = await ethers.deployContract('Claims', [registry.target]);
   await claims.connect(governanceAccount).initialize(0);
 
-  await coverProducts.addProductType('0', '30', '5000');
-  await coverProducts.addProductType('0', '90', '5000');
-  await coverProducts.addProductType('0', '30', '5000');
+  const cooldownPeriod = ONE_DAY;
+  const redemptionPeriod = 30 * ONE_DAY;
+  await coverProducts.addProductType(ClaimMethod.IndividualClaims, 30 * ONE_DAY, cooldownPeriod, redemptionPeriod);
+  await coverProducts.addProductType(ClaimMethod.IndividualClaims, 90 * ONE_DAY, cooldownPeriod, redemptionPeriod);
+  await coverProducts.addProductType(ClaimMethod.IndividualClaims, 30 * ONE_DAY, cooldownPeriod, redemptionPeriod);
 
   const productTemplate = {
     productType: '0',

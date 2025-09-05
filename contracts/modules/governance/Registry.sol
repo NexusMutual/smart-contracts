@@ -356,7 +356,7 @@ contract Registry is IRegistry, EIP712 {
     _deployContract(C_GOVERNOR, governorSalt, governorImplementation);
     _deployContract(C_POOL, poolSalt, address(0));
     _deployContract(C_SWAP_OPERATOR, swapOperatorSalt, address(0));
-    _deployContract(C_ASSESSMENT, assessmentSalt, address(0));
+    _deployContract(C_ASSESSMENTS, assessmentSalt, address(0));
     _deployContract(C_CLAIMS, claimsSalt, address(0));
   }
 

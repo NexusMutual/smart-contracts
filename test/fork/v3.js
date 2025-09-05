@@ -310,7 +310,7 @@ describe('v3 launch', function () {
       { index: ContractIndexes.C_SWAP_OPERATOR, address: swapOperatorImplementation.target },
       { index: ContractIndexes.C_RAMM, address: rammImplementation.target },
       { index: ContractIndexes.C_SAFE_TRACKER, address: safeTrackerImplementation.target },
-      { index: ContractIndexes.C_ASSESSMENT, address: assessmentImplementation.target },
+      { index: ContractIndexes.C_ASSESSMENTS, address: assessmentImplementation.target },
       { index: ContractIndexes.C_CLAIMS, address: claimsImplementation.target },
       // FIX: token controller upgrade causes basic functionality test "Deploy to StakingPool" to fail
       // { index: ContractIndexes.C_TOKEN_CONTROLLER, address: tokenControllerImplementation.target },
@@ -367,7 +367,7 @@ describe('v3 launch', function () {
     console.log('contracts upgraded');
 
     // TODO: reset the contracts with right addresses
-    const assessmentAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENT);
+    const assessmentAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENTS);
     this.assessment = await ethers.getContractAt('Assessment', assessmentAddress);
 
     const claimsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_CLAIMS);

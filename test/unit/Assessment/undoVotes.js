@@ -33,7 +33,7 @@ describe('undoVotes', function () {
   it('should revert when cooldown period has already passed', async function () {
     const { contracts, accounts, constants } = await loadFixture(setup);
     const { assessment, registry } = contracts;
-    const { CLAIM_ID, IPFS_HASH, PRODUCT_TYPE_ID } = constants;
+    const { CLAIM_ID, IPFS_HASH } = constants;
     const [governanceAccount] = accounts.governanceContracts;
     const [assessor] = accounts.assessors;
 
@@ -41,10 +41,8 @@ describe('undoVotes', function () {
     await assessment.connect(assessor).castVote(CLAIM_ID, true, IPFS_HASH);
 
     // Set time after cooldown period has passed
-    const [votingPeriod, cooldownPeriod] = await Promise.all([
-      assessment.minVotingPeriod(),
-      assessment.payoutCooldown(PRODUCT_TYPE_ID),
-    ]);
+    const votingPeriod = await assessment.minVotingPeriod();
+    const { cooldownPeriod } = await assessment.getAssessment(CLAIM_ID);
     await time.increase(votingPeriod + cooldownPeriod + 1n);
 
     const assessorMemberId = await registry.getMemberId(assessor.address);

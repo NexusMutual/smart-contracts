@@ -28,7 +28,7 @@ describe('retrieveDeposit', function () {
 
     await createMockCover(cover, { owner: coverOwner.address, period, gracePeriod });
 
-    const claimId = (await claims.getClaimsCount()) + 1n;
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     // Test all non-DRAW statuses
@@ -56,7 +56,7 @@ describe('retrieveDeposit', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    const claimId = (await claims.getClaimsCount()) + 1n;
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
@@ -71,7 +71,7 @@ describe('retrieveDeposit', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    const claimId = (await claims.getClaimsCount()) + 1n;
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
@@ -91,10 +91,10 @@ describe('retrieveDeposit', function () {
     const coverId = 1;
     const coverData = await cover.getCoverData(coverId);
 
-    const claimId = (await claims.getClaimsCount()) + 1n;
     const ipfsHash = ethers.solidityPackedKeccak256(['string'], ['ipfs-hash']);
 
     await setNextBlockBaseFee('0');
+    const claimId = await claims.getClaimsCount();
     await claims.connect(coverOwner).submitClaim(coverId, coverData.amount, ipfsHash, { value: deposit, gasPrice: 0 });
 
     const ethBalanceAfterSubmittingClaim = await ethers.provider.getBalance(coverOwner.address);
@@ -115,7 +115,7 @@ describe('retrieveDeposit', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    const claimId = (await claims.getClaimsCount()) + 1n;
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
@@ -131,7 +131,7 @@ describe('retrieveDeposit', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    const claimId = (await claims.getClaimsCount()) + 1n;
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
@@ -153,7 +153,7 @@ describe('retrieveDeposit', function () {
     await createMockCover(cover, { owner: originalOwner.address });
 
     const coverId = 1;
-    const claimId = (await claims.getClaimsCount()) + 1n;
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId, sender: originalOwner });
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
@@ -182,7 +182,7 @@ describe('retrieveDeposit', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    const claimId = (await claims.getClaimsCount()) + 1n;
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
@@ -208,12 +208,12 @@ describe('retrieveDeposit', function () {
     await createMockCover(cover, { owner: coverOwner.address });
 
     // Submit first claim and set to DRAW
-    const firstClaimId = (await claims.getClaimsCount()) + 1n;
+    const firstClaimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Draw);
 
     // Submit second claim and set to DRAW
-    const secondClaimId = (await claims.getClaimsCount()) + 1n;
+    const secondClaimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.setAssessmentForOutcome(secondClaimId, AssessmentOutcome.Draw);
 
@@ -241,7 +241,7 @@ describe('retrieveDeposit', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    const claimId = (await claims.getClaimsCount()) + 1n;
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 
@@ -263,7 +263,7 @@ describe('retrieveDeposit', function () {
 
     await createMockCover(cover, { owner: coverOwner.address, coverAsset: PoolAsset.DAI });
 
-    const claimId = (await claims.getClaimsCount()) + 1n;
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
 

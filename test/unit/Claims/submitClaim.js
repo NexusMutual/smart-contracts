@@ -53,8 +53,8 @@ describe('submitClaim', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     const claimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     await assessment.setAssessmentForStatus(claimId, AssessmentStatus.Voting);
     await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).to.be.revertedWithCustomError(
@@ -185,8 +185,8 @@ describe('submitClaim', function () {
 
     const coverId = 1;
 
-    await submitClaim(fixture)({ coverId, sender: coverOwner });
     const claimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId, sender: coverOwner });
 
     expect(await assessment._productTypeForClaimId(claimId)).to.equal(1n);
   });
@@ -202,7 +202,8 @@ describe('submitClaim', function () {
     const coverId = 1;
     const submitClaimTx = submitClaim(fixture)({ coverId, ipfsMetadata, sender: coverOwner });
 
-    const claimId = (await claims.getClaimsCount()) + 1n;
+    const claimId = await claims.getClaimsCount();
+    await submitClaimTx;
     await expect(submitClaimTx).to.emit(claims, 'MetadataSubmitted').withArgs(claimId, ipfsHash);
 
     await createMockCover(cover, { owner: coverOwner.address });
@@ -280,8 +281,8 @@ describe('submitClaim', function () {
     await createMockCover(cover, { owner: coverOwner.address, amount: parseEther('100'), coverAsset: PoolAsset.DAI });
 
     const coverId = 1;
-    const claimId = (await claims.getClaimsCount()) + 1n;
 
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId, amount: claimAmount, sender: coverOwner });
 
     const claim = await claims.getClaimInfo(claimId);
@@ -302,8 +303,8 @@ describe('submitClaim', function () {
     await createMockCover(cover, { owner: coverOwner.address, amount: parseEther('100'), coverAsset: PoolAsset.DAI });
 
     const coverId = 1;
-    const claimId = (await claims.getClaimsCount()) + 1n;
 
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId, amount: claimAmount, sender: coverOwner });
 
     const memberId = await registry.getMemberId(coverOwner.address);
@@ -319,7 +320,7 @@ describe('submitClaim', function () {
     await createMockCover(cover, { owner: coverOwner.address });
 
     // Submit claim
-    const claimId = (await claims.getClaimsCount()) + 1n;
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     // Both fields should be false
@@ -373,8 +374,8 @@ describe('submitClaim', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     const claimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     const { timestamp: cooldownEnd } = await ethers.provider.getBlock('latest');
     const payoutRedemptionPeriod = daysToSeconds(30);
@@ -403,20 +404,20 @@ describe('submitClaim', function () {
     ]);
 
     // First claim on cover 1: ACCEPTED and redeemed
-    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
     const firstClaimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Accepted);
     await claims.connect(coverOwner).redeemClaimPayout(firstClaimId);
 
     // Second claim on cover 2: set to DRAW
-    await submitClaim(fixture)({ coverId: 2, sender: coverOwner });
     const secondClaimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 2, sender: coverOwner });
     await assessment.setAssessmentForOutcome(secondClaimId, AssessmentOutcome.Draw);
 
     // Third claim on cover 2 again (retry for clear decision)
-    await submitClaim(fixture)({ coverId: 2, sender: coverOwner });
     const thirdClaimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 2, sender: coverOwner });
     await assessment.setAssessmentForOutcome(thirdClaimId, AssessmentOutcome.Denied);
 
     // Fourth claim on cover 3 (new cover)
@@ -432,8 +433,8 @@ describe('submitClaim', function () {
       await createMockCover(cover, { owner: coverOwner.address });
 
       // Submit and accept first claim
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
       const firstClaimId = await claims.getClaimsCount();
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
       await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Accepted);
 
@@ -455,8 +456,8 @@ describe('submitClaim', function () {
       await createMockCover(cover, { owner: coverOwner.address });
 
       // Submit and deny first claim
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
       const firstClaimId = await claims.getClaimsCount();
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
       await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Denied);
 
@@ -472,8 +473,8 @@ describe('submitClaim', function () {
       await createMockCover(cover, { owner: coverOwner.address });
 
       // Submit first claim
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
       const firstClaimId = await claims.getClaimsCount();
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
       // Set first claim result to DRAW
       await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Draw);
@@ -493,8 +494,8 @@ describe('submitClaim', function () {
       await createMockCover(cover, { owner: coverOwner.address });
 
       // Submit first claim
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
       const firstClaimId = await claims.getClaimsCount();
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
       // Set first claim result to DRAW
       await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Draw);
@@ -514,8 +515,8 @@ describe('submitClaim', function () {
       await createMockCover(cover, { owner: coverOwner.address });
 
       // Submit and accept first claim
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
       const firstClaimId = await claims.getClaimsCount();
+      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
       const payoutRedemptionPeriod = daysToSeconds(30);
       await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Accepted);

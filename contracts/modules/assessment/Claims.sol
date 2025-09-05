@@ -67,7 +67,7 @@ contract Claims is IClaims, RegistryAware {
   /* ========== VIEWS ========== */
 
   function getClaimsCount() external override view returns (uint) {
-    return _nextClaimId - 1;
+    return _nextClaimId;
   }
 
   function getClaimInfo(uint claimId) external override view returns (Claim memory) {

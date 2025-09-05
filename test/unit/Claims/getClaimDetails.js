@@ -34,9 +34,9 @@ describe('getClaimDetails', function () {
       productId: 0,
     });
 
+    const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId, amount: claimAmount, sender: coverOwner, ipfsMetadata: ipfsHash });
 
-    const claimId = await claims.getClaimsCount();
     const claimDetails = await claims.getClaimDetails(claimId);
     expect(claimDetails.claimId).to.equal(claimId);
 
@@ -78,9 +78,8 @@ describe('getClaimDetails', function () {
     const coverAmount = parseEther('100');
     await createMockCover(cover, { owner: coverOwner.address, amount: coverAmount });
 
-    await submitClaim(fixture)({ coverId, sender: coverOwner, amount: claimAmount });
-
     const claimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId, sender: coverOwner, amount: claimAmount });
 
     // ACCEPTED outcome
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Accepted);
@@ -128,9 +127,8 @@ describe('getClaimDetails', function () {
     const coverAmount = parseEther('100');
     await createMockCover(cover, { owner: coverOwner.address, amount: coverAmount });
 
-    await submitClaim(fixture)({ coverId: 1, sender: coverOwner, amount: claimAmount });
-
     const claimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner, amount: claimAmount });
 
     // DENIED outcome
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Denied);
@@ -178,9 +176,8 @@ describe('getClaimDetails', function () {
     const coverAmount = parseEther('100');
     await createMockCover(cover, { owner: coverOwner.address, amount: coverAmount });
 
-    await submitClaim(fixture)({ coverId: 1, sender: coverOwner, amount: claimAmount });
-
     const claimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner, amount: claimAmount });
 
     // DRAW outcome
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);
@@ -226,9 +223,8 @@ describe('getClaimDetails', function () {
     const coverAmount = parseEther('100');
     await createMockCover(cover, { owner: coverOwner.address, amount: coverAmount });
 
-    await submitClaim(fixture)({ coverId, sender: coverOwner, amount: claimAmount });
-
     const claimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId, sender: coverOwner, amount: claimAmount });
 
     // VOTING status
     await assessment.setAssessmentForStatus(claimId, AssessmentStatus.Voting);
@@ -273,9 +269,8 @@ describe('getClaimDetails', function () {
     const coverAmount = parseEther('100');
     await createMockCover(cover, { owner: coverOwner.address, amount: coverAmount });
 
-    await submitClaim(fixture)({ coverId, sender: coverOwner, amount: claimAmount });
-
     const claimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId, sender: coverOwner, amount: claimAmount });
 
     // COOLDOWN status
     await assessment.setAssessmentForStatus(claimId, AssessmentStatus.Cooldown);
@@ -317,9 +312,8 @@ describe('getClaimDetails', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-
     const claimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     // Set assessment to ACCEPTED and redeem payout
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Accepted);
@@ -342,9 +336,8 @@ describe('getClaimDetails', function () {
 
     await createMockCover(cover, { owner: coverOwner.address });
 
-    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-
     const claimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     // Set assessment to DRAW and retrieve deposit
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Draw);

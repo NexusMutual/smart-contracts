@@ -14,11 +14,61 @@ contract CLMockAssessment is AssessmentGeneric {
     _productTypeForClaimId[claimId] = productTypeId;
   }
 
-  function getAssessment(uint claimId) external view override returns(Assessment memory assessment) {
+  function getAssessment(uint claimId) external view override returns (Assessment memory assessment) {
     return _assessments[claimId];
   }
 
   function setAssessment(uint claimId, Assessment memory assessment) external {
+    _assessments[claimId] = assessment;
+  }
+
+  function setAssessmentForOutcome(uint claimId, AssessmentOutcome desiredOutcome) external {
+    Assessment memory assessment;
+
+    // default values for all assessments
+    assessment.assessingGroupId = 1;
+    assessment.start = uint32(block.timestamp - 100);
+    assessment.votingEnd = uint32(block.timestamp - 1); // votingEnd passed
+    assessment.cooldownPeriod = 1; // cooldownPeriod passed
+
+    if (desiredOutcome == AssessmentOutcome.ACCEPTED) {
+      assessment.acceptVotes = 3;
+      assessment.denyVotes = 2;
+    } else if (desiredOutcome == AssessmentOutcome.DENIED) {
+      assessment.acceptVotes = 2;
+      assessment.denyVotes = 3;
+    } else if (desiredOutcome == AssessmentOutcome.DRAW) {
+      assessment.acceptVotes = 2;
+      assessment.denyVotes = 2;
+    } else {
+      // PENDING - set votingEnd to future or within cooldown
+      assessment.votingEnd = uint32(block.timestamp + 1000);
+      assessment.cooldownPeriod = 1000;
+    }
+
+    _assessments[claimId] = assessment;
+  }
+
+  function setAssessmentForStatus(uint claimId, AssessmentStatus desiredStatus) external {
+    Assessment memory assessment;
+
+    // default values for all assessments
+    assessment.assessingGroupId = 1;
+    assessment.start = uint32(block.timestamp - 100);
+    assessment.acceptVotes = 3;
+    assessment.denyVotes = 2;
+    assessment.cooldownPeriod = 1 days;
+
+    if (desiredStatus == AssessmentStatus.VOTING) {
+      assessment.votingEnd = uint32(block.timestamp + 1 days);
+    } else if (desiredStatus == AssessmentStatus.COOLDOWN) {
+      assessment.votingEnd = uint32(block.timestamp - 100);
+      assessment.cooldownPeriod = 1 days; // still in cooldown
+    } else {
+      assessment.votingEnd = uint32(block.timestamp - 2 days);
+      assessment.cooldownPeriod = 1 days; // cooldown already passed
+    }
+
     _assessments[claimId] = assessment;
   }
 }

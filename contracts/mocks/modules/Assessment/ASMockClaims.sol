@@ -4,11 +4,14 @@ pragma solidity ^0.8.28;
 
 import "../../../interfaces/IClaims.sol";
 import "../../../interfaces/IAssessments.sol";
+import "../../../interfaces/ICover.sol";
 import "../../../abstract/RegistryAware.sol";
+import "../../../modules/assessment/AssessmentLib.sol";
 
 /// @title ASMockClaims - Mock Claims contract for Assessment testing
 /// @dev Simplified Claims implementation for testing purposes
 contract ASMockClaims is IClaims, RegistryAware {
+  using AssessmentLib for Assessment;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -46,6 +49,34 @@ contract ASMockClaims is IClaims, RegistryAware {
 
   function getClaimInfo(uint claimId) external override view returns (Claim memory) {
     return _claims[claimId];
+  }
+
+  function getClaimDetails(uint claimId) external override view returns (ClaimDetails memory) {
+    Assessment memory assessment = _assessments().getAssessment(claimId);
+    Claim memory claim = _claims[claimId];
+
+    // Mock cover data for testing
+    CoverData memory mockCover = CoverData({
+      productId: uint24(claim.coverId),
+      coverAsset: claim.coverAsset,
+      amount: claim.amount,
+      start: uint32(block.timestamp - 30 days),
+      period: uint32(365 days),
+      gracePeriod: uint32(30 days),
+      rewardsRatio: 0,
+      capacityRatio: 0
+    });
+
+    return ClaimDetails({
+      claimId: claimId,
+      claim: claim,
+      cover: mockCover,
+      assessment: assessment,
+      status: assessment.getStatus(),
+      outcome: assessment.getOutcome(),
+      redeemable: false, // NOTE: amend as necessary
+      ipfsMetadata: bytes32(0)
+    });
   }
 
   /* ========== MUTATIVE FUNCTIONS ========== */

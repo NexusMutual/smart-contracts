@@ -205,18 +205,30 @@ describe('basic functionality tests', function () {
   });
 
   it('Add product types', async function () {
+    const ONE_DAY = 24 * 60 * 60;
+
     const productTypes = [
       {
         productTypeName: 'x',
         productTypeId: MaxUint256,
         ipfsMetadata: 'protocolCoverIPFSHash',
-        productType: { descriptionIpfsHash: 'protocolCoverIPFSHash', claimMethod: 0, gracePeriod: 30 },
+        productType: {
+          claimMethod: 0,
+          gracePeriod: 30 * ONE_DAY,
+          assessmentCooldownPeriod: ONE_DAY,
+          payoutRedemptionPeriod: 30 * ONE_DAY,
+        },
       },
       {
         productTypeName: 'y',
         productTypeId: MaxUint256,
         ipfsMetadata: 'custodyCoverIPFSHash',
-        productType: { descriptionIpfsHash: 'custodyCoverIPFSHash', claimMethod: 0, gracePeriod: 90 },
+        productType: {
+          claimMethod: 0,
+          gracePeriod: 90 * ONE_DAY,
+          assessmentCooldownPeriod: ONE_DAY,
+          payoutRedemptionPeriod: 30 * ONE_DAY,
+        },
       },
     ];
 
@@ -661,14 +673,17 @@ describe('basic functionality tests', function () {
   it('buy cover through CoverBroker using ERC20 (USDC)', async function () {
     const coverBuyer = await ethers.Wallet.createRandom().connect(ethers.provider);
     const coverBuyerAddress = await coverBuyer.getAddress();
-    await setBalance(coverBuyerAddress, parseEther('1000'));
-    await setUSDCBalance(this.usdc.target, coverBuyer.address, parseEther('1000000'));
+
+    await Promise.all([
+      setBalance(coverBuyerAddress, parseEther('1000')),
+      setUSDCBalance(this.usdc.target, coverBuyer.address, parseEther('1000000')),
+      this.usdc.connect(coverBuyer).approve(this.coverBroker.target, MaxUint256),
+    ]);
 
     const coverAsset = await this.pool.getAssetId(Addresses.USDC_ADDRESS);
     const amount = parseUnits('1000', 6);
     const coverCountBefore = await this.cover.getCoverDataCount();
 
-    await this.usdc.connect(coverBuyer).approve(this.coverBroker.target, MaxUint256);
     await this.coverBroker.connect(coverBuyer).buyCover(
       {
         coverId: 0,
@@ -850,7 +865,7 @@ describe('basic functionality tests', function () {
     const pool = await deployContract('Pool', [this.registry]);
 
     // Assessment.sol
-    const assessment = await deployContract('Assessment', [this.registry]);
+    const assessment = await deployContract('Assessments', [this.registry]);
 
     // Claims
     const claims = await deployContract('Claims', [this.registry]);

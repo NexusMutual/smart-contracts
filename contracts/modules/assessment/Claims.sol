@@ -70,6 +70,7 @@ contract Claims is IClaims, RegistryAware {
     return _nextClaimId;
   }
 
+  // TODO: rename to getClaim
   function getClaimInfo(uint claimId) external override view returns (Claim memory) {
     return _claims[claimId];
   }
@@ -209,6 +210,7 @@ contract Claims is IClaims, RegistryAware {
     require(claim.coverId > 0, InvalidClaimId());
 
     Assessment memory assessment = assessments.getAssessment(claimId);
+    // not good UX if user calls w/in the cooldown period as they will get ClaimNotAccepted
     require(assessment.getOutcome() == AssessmentOutcome.ACCEPTED, ClaimNotAccepted());
 
     address coverOwner = coverNFT.ownerOf(claim.coverId);

@@ -4,7 +4,7 @@ const { takeSnapshot, time, setNextBlockBaseFeePerGas } = require('@nomicfoundat
 
 const { getFundedSigner, getSigner, setUSDCBalance, Addresses } = require('./utils');
 
-const { AssessmentOutcome, ContractIndexes, PauseTypes, PoolAsset } = nexus.constants;
+const { AssessmentOutcome, AssessmentStatus, ContractIndexes, PauseTypes, PoolAsset } = nexus.constants;
 const { PAUSE_CLAIMS } = PauseTypes;
 const { MaxUint256, ZeroAddress, parseEther } = ethers;
 
@@ -109,15 +109,9 @@ describe('claim assessment', function () {
     await tx.wait();
 
     const groupId = await this.assessment.getGroupsCount();
-    console.log('groupId: ', groupId);
 
     // set assessment data for product types - 1 day cooldown, 30 days redemption period
-    const cooldownPeriod = daysToSeconds(1);
-    const payoutRedemptionPeriod = daysToSeconds(30);
-    console.log('setting assessment data for product types');
-    await this.assessment.setAssessmentDataForProductTypes([1, 19], cooldownPeriod, payoutRedemptionPeriod, groupId, {
-      gasLimit: 21e6,
-    });
+    await this.assessment.setAssessingGroupIdForProductTypes([1, 19], groupId, { gasLimit: 21e6 });
 
     // update cover dependent contract addresses
     const coverUpdateDependentAddressesTx = await this.cover.changeDependentContractAddress();
@@ -140,13 +134,13 @@ describe('claim assessment', function () {
     const requestedAmount = parseEther('0.1');
 
     await setNextBlockBaseFeePerGas(0).catch(e => e); // swallow the error if tenderly freaks out
+    const claimId = await this.claims.getClaimsCount();
     const claimTx = await this.claims.connect(this.claimant).submitClaim(coverId, requestedAmount, ipfsMetaData, {
       value: parseEther('0.05'), // claim deposit
       gasPrice: 0,
       gasLimit: 21e6,
     });
     await claimTx.wait();
-    const claimId = await this.claims.getClaimsCount();
     console.log('ETH claim submitted', claimId);
 
     // cast votes (3 accept, 1 deny)
@@ -166,10 +160,9 @@ describe('claim assessment', function () {
     console.log('time.increaseTo past cooldown period');
 
     // claim ACCEPTED
-    // eslint-disable-next-line no-unused-vars
-    const [status, payoutRedemptionEnd] = await this.assessment.getAssessmentResult(claimId);
-    expect(status).to.equal(AssessmentOutcome.Accepted);
-    console.log('claim status is ACCEPTED');
+    const { status, outcome } = await this.claims.getClaimDetails(claimId);
+    expect(status).to.equal(AssessmentStatus.Finalized);
+    expect(outcome).to.equal(AssessmentOutcome.Accepted);
 
     const claimDepositAmount = await this.claims.CLAIM_DEPOSIT_IN_ETH();
     const claimantEthBalanceBefore = await ethers.provider.getBalance(this.claimant.address);
@@ -259,7 +252,7 @@ describe('claim assessment', function () {
     console.log('claims.cover: ', await this.claims.cover());
     console.log('claims.coverNFT: ', await this.claims.coverNFT());
     console.log('claims.coverProducts: ', await this.claims.coverProducts());
-    console.log('claims.assessment: ', await this.claims.assessment());
+    console.log('claims.assessments: ', await this.claims.assessments());
     console.log('claims.pool: ', await this.claims.pool());
     console.log('claims.ramm: ', await this.claims.ramm());
 
@@ -349,6 +342,7 @@ describe('claim assessment', function () {
     console.log('=== END VALIDATION ===');
 
     // Owner should succeed in submitting claim
+    const claimId = await this.claims.getClaimsCount();
     const claimTx = await this.claims.connect(this.claimant).submitClaim(coverId, parseEther('0.05'), ipfsMetaData, {
       value: parseEther('0.05'),
       gasPrice: 0,
@@ -356,8 +350,6 @@ describe('claim assessment', function () {
     });
     await claimTx.wait();
     console.log('claim submitted');
-
-    const claimId = await this.claims.getClaimsCount();
 
     // Cast majority DENY votes (3 deny, 2 accept)
     const ipfsHashFor = ethers.solidityPackedKeccak256(['string'], ['accept-reasoning']);
@@ -375,16 +367,17 @@ describe('claim assessment', function () {
     await time.increaseTo(cooldownEndTime);
 
     // DENIED
-    const [status] = await this.assessment.getAssessmentResult(claimId);
-    expect(status).to.equal(AssessmentOutcome.Denied);
+    const { status, outcome } = await this.claims.getClaimDetails(claimId);
+    expect(status).to.equal(AssessmentStatus.Finalized);
+    expect(outcome).to.equal(AssessmentOutcome.Denied);
 
     // redeemClaimPayout throws error
     const redeemClaimPayout = this.claims.connect(this.claimant).redeemClaimPayout(claimId);
-    await expect(redeemClaimPayout).to.be.revertedWithCustomError(this.claims, 'InvalidAssessmentStatus');
+    await expect(redeemClaimPayout).to.be.revertedWithCustomError(this.claims, 'ClaimNotAccepted');
 
     // retrieveDeposit throw errors
     const retrieveDeposit = this.claims.connect(this.claimant).retrieveDeposit(claimId);
-    await expect(retrieveDeposit).to.be.revertedWithCustomError(this.claims, 'InvalidAssessmentStatus');
+    await expect(retrieveDeposit).to.be.revertedWithCustomError(this.claims, 'ClaimNotADraw');
 
     // Store for next phase
     this.ethCoverId = coverId;
@@ -404,6 +397,7 @@ describe('claim assessment', function () {
     });
 
     // Submit USDC claim
+    const usdcClaimId = await this.claims.getClaimsCount();
     const usdcClaimTx = await this.claims.connect(this.claimant).submitClaim(
       usdcCoverId,
       ethers.parseUnits('750', 6), // Claim 750 USDC (proportionally reduced)
@@ -411,8 +405,6 @@ describe('claim assessment', function () {
       { value: parseEther('0.05'), gasPrice: 0 },
     );
     await usdcClaimTx.wait();
-
-    const usdcClaimId = await this.claims.getClaimsCount();
 
     // Cast inconclusive votes initially (2 for, 2 against)
     const ipfsHashFor = ethers.solidityPackedKeccak256(['string'], ['accept-reasoning']);
@@ -429,8 +421,9 @@ describe('claim assessment', function () {
     await time.increaseTo(Number(assessment.votingEnd) + 1);
 
     // Verify we're in cooldown
-    const [cooldownStatus] = await this.assessment.getAssessmentResult(usdcClaimId);
-    expect(cooldownStatus).to.equal(AssessmentOutcome.Cooldown);
+    const { status, outcome } = await this.claims.getClaimDetails(usdcClaimId);
+    expect(status).to.equal(AssessmentStatus.Cooldown);
+    expect(outcome).to.equal(AssessmentOutcome.Pending);
 
     // Test that assessors can't vote during cooldown
     const lateVoteHash = ethers.solidityPackedKeccak256(['string'], ['late-vote']);
@@ -439,10 +432,8 @@ describe('claim assessment', function () {
     ).to.be.revertedWithCustomError(this.assessment, 'VotingPeriodEnded');
 
     // Test that claim can't be redeemed during cooldown
-    await expect(this.claims.connect(this.claimant).redeemClaimPayout(usdcClaimId)).to.be.revertedWithCustomError(
-      this.claims,
-      'InvalidAssessmentStatus',
-    );
+    const redeemClaimPayout = this.claims.connect(this.claimant).redeemClaimPayout(usdcClaimId);
+    await expect(redeemClaimPayout).to.be.revertedWithCustomError(this.claims, 'ClaimNotAccepted');
 
     // Simulate fraud discovery - governance intervenes
     // 1. Undo fraudulent votes from assessors 2 and 3
@@ -557,6 +548,7 @@ describe('claim assessment', function () {
     });
 
     // Submit DRAW claim on new cover
+    const drawClaimId = await this.claims.getClaimsCount();
     const drawClaimTx = await this.claims
       .connect(this.claimant)
       .submitClaim(drawCoverId, parseEther('0.3'), ethers.solidityPackedKeccak256(['string'], ['DRAW claim proof']), {
@@ -564,8 +556,6 @@ describe('claim assessment', function () {
         gasPrice: 0,
       });
     await drawClaimTx.wait();
-
-    const drawClaimId = await this.claims.getClaimsCount();
 
     // Cast equal votes (2 for, 2 against = DRAW)
     const ipfsHashFor = ethers.solidityPackedKeccak256(['string'], ['draw-accept']);
@@ -582,12 +572,13 @@ describe('claim assessment', function () {
     await time.increaseTo(cooldownEndTime);
 
     // Verify status is DRAW
-    const { status } = await this.assessment.getAssessmentResult(drawClaimId);
-    expect(status).to.equal(AssessmentOutcome.Draw);
+    const { status, outcome } = await this.claims.getClaimDetails(drawClaimId);
+    expect(status).to.equal(AssessmentStatus.Finalized);
+    expect(outcome).to.equal(AssessmentOutcome.Draw);
 
     // redeemClaimPayout throws error for DRAW claims
     const redeemClaimPayout = this.claims.connect(this.claimant).redeemClaimPayout(drawClaimId);
-    await expect(redeemClaimPayout).to.be.revertedWithCustomError(this.claims, 'InvalidAssessmentStatus');
+    await expect(redeemClaimPayout).to.be.revertedWithCustomError(this.claims, 'ClaimNotAccepted');
 
     // Get claim deposit amount and balance
     const claimDepositAmount = await this.claims.CLAIM_DEPOSIT_IN_ETH();
@@ -618,6 +609,7 @@ describe('claim assessment', function () {
     });
 
     // Submit new ETH claim
+    const newEthClaimId = await this.claims.getClaimsCount();
     await setNextBlockBaseFeePerGas('0').catch(e => e);
     await this.claims.connect(this.claimant).submitClaim(
       newEthCoverId,
@@ -625,8 +617,6 @@ describe('claim assessment', function () {
       ethers.solidityPackedKeccak256(['string'], ['Expiry test claim proof']),
       { value: parseEther('0.05'), gasPrice: 0 },
     );
-
-    const newEthClaimId = await this.claims.getClaimsCount();
 
     // Cast majority FOR votes (3 accept, 1 deny)
     const ipfsHashFor = ethers.solidityPackedKeccak256(['string'], ['accept-reasoning-expiry']);
@@ -643,15 +633,17 @@ describe('claim assessment', function () {
     await time.increaseTo(cooldownEndTime);
 
     // Verify status is ACCEPTED
-    const { payoutRedemptionEnd, status } = await this.assessment.getAssessmentResult(newEthClaimId);
-    expect(status).to.equal(AssessmentOutcome.Accepted);
+    const { status, outcome } = await this.claims.getClaimDetails(newEthClaimId);
+    expect(status).to.equal(AssessmentStatus.Finalized);
+    expect(outcome).to.equal(AssessmentOutcome.Accepted);
 
     // Advance time past redemption period without redeeming
-    await time.increaseTo(payoutRedemptionEnd + 1n);
+    const { payoutRedemptionPeriod } = await this.claims.getClaimInfo(newEthClaimId);
+    await time.increaseTo(cooldownEndTime + payoutRedemptionPeriod + 1n);
 
     // Attempt to redeem - should fail (redemption period expired)
     await expect(this.claims.connect(this.claimant).redeemClaimPayout(newEthClaimId)) //
-      .to.be.revertedWithCustomError(this.claims, 'RedemptionPeriodExpired');
+      .to.be.revertedWithCustomError(this.claims, 'ClaimNotRedeemable');
 
     // Store for Phase 6
     this.expiredClaimCoverId = newEthCoverId;
@@ -663,14 +655,13 @@ describe('claim assessment', function () {
   it('Phase 6: Re-submit claim on same cover after ACCEPTED claim expired', async function () {
     // Re-submit claim on the same ETH cover from Phase 5 (which was ACCEPTED but redemption expired)
     // This should work since the redemption period has passed for the previous ACCEPTED claim
+    const resubmitClaimId = await this.claims.getClaimsCount();
     await this.claims.connect(this.claimant).submitClaim(
       this.expiredClaimCoverId, // Same cover from Phase 5
       parseEther('0.15'), // Reduced from 1.5 ETH
       ethers.solidityPackedKeccak256(['string'], ['Re-submitted after expiry claim proof']),
       { value: parseEther('0.05'), gasPrice: 0 },
     );
-
-    const resubmitClaimId = await this.claims.getClaimsCount();
 
     // Vote to pass (3 accept, 1 deny)
     const ipfsHashFor = ethers.solidityPackedKeccak256(['string'], ['resubmit-after-expiry-accept']);
@@ -687,8 +678,9 @@ describe('claim assessment', function () {
     await time.increaseTo(cooldownEndTime);
 
     // Verify status is ACCEPTED
-    const { status } = await this.assessment.getAssessmentResult(resubmitClaimId);
-    expect(status).to.equal(AssessmentOutcome.Accepted);
+    const { status, outcome } = await this.claims.getClaimDetails(resubmitClaimId);
+    expect(status).to.equal(AssessmentStatus.Finalized);
+    expect(outcome).to.equal(AssessmentOutcome.Accepted);
 
     // Get claim deposit amount from contract
     const claimDepositAmount = await this.claims.CLAIM_DEPOSIT_IN_ETH();
@@ -698,7 +690,11 @@ describe('claim assessment', function () {
 
     // Verify payout - should succeed (ETH payout + ETH deposit returned)
     const redeemClaimPayout = this.claims.connect(this.claimant).redeemClaimPayout(resubmitClaimId, { gasPrice: 0 });
-    await expect(redeemClaimPayout).to.emit(this.claims, 'ClaimPayoutRedeemed');
+    await expect(redeemClaimPayout)
+      .to.emit(this.claims, 'ClaimPayoutRedeemed')
+      .withArgs(this.claimant.address, parseEther('0.15'), resubmitClaimId, this.expiredClaimCoverId)
+      .to.emit(this.claims, 'ClaimDepositRetrieved')
+      .withArgs(resubmitClaimId, this.claimant.address);
 
     // Record balances after redemption
     const claimantEthBalanceAfter = await ethers.provider.getBalance(this.claimant.address);

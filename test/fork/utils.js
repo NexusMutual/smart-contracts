@@ -68,9 +68,16 @@ async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
 async function executeGovernorProposal(governor, abMembers, txs) {
   const [proposer] = abMembers;
   await governor.connect(proposer).propose(txs, 'Governor Proposal');
-
   const proposalId = await governor.proposalCount();
-  for (const voter of abMembers) {
+  console.log('proposalCount: ', proposalId);
+
+  const proposal = await governor.getProposal(proposalId);
+  console.log('proposal: ', proposal);
+
+  const { timestamp } = await ethers.provider.getBlock('latest');
+  console.log('latestBlock.timestamp: ', timestamp);
+
+  for (const voter of abMembers.slice(0, 3)) {
     await governor.connect(voter).vote(proposalId, 1);
   }
 

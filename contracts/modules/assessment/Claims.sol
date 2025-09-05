@@ -94,7 +94,7 @@ contract Claims is IClaims, RegistryAware {
       assessment: assessment,
       status: assessment.getStatus(),
       outcome: assessment.getOutcome(),
-      redeemable: claimRedeemable(claim, assessment),
+      redeemable: _claimRedeemable(claim, assessment),
       ipfsMetadata: _claimsMetadata[claimId]
     });
   }
@@ -105,7 +105,7 @@ contract Claims is IClaims, RegistryAware {
 
   /// @dev To be redeemable assessment outcome must be accepted, redemption period must not pass,
   ///      and claim must not be already redeemed
-  function claimRedeemable(Claim memory claim, Assessment memory assessment) internal view returns (bool) {
+  function _claimRedeemable(Claim memory claim, Assessment memory assessment) internal view returns (bool) {
     return
       assessment.getOutcome() == AssessmentOutcome.ACCEPTED &&
       block.timestamp < assessment.votingEnd + assessment.cooldownPeriod + claim.payoutRedemptionPeriod &&
@@ -146,7 +146,7 @@ contract Claims is IClaims, RegistryAware {
 
         require(previousClaim.payoutRedeemed == false, ClaimAlreadyPaidOut());
         require(assessment.getStatus() == AssessmentStatus.FINALIZED, ClaimIsBeingAssessed());
-        require(!claimRedeemable(previousClaim, assessment), PayoutCanStillBeRedeemed());
+        require(!_claimRedeemable(previousClaim, assessment), PayoutCanStillBeRedeemed());
       }
 
       lastClaimSubmissionOnCover[coverId] = claimId;
@@ -214,7 +214,7 @@ contract Claims is IClaims, RegistryAware {
     address coverOwner = coverNFT.ownerOf(claim.coverId);
 
     require(coverOwner == msg.sender, NotCoverOwner());
-    require(claimRedeemable(claim, assessment), ClaimNotRedeemable());
+    require(_claimRedeemable(claim, assessment), ClaimNotRedeemable());
 
     _claims[claimId].payoutRedeemed = true;
     _claims[claimId].depositRetrieved = true;

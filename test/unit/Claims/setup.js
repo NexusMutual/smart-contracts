@@ -40,7 +40,7 @@ async function setup() {
   await registry.addContract(ContractIndexes.C_COVER, cover.target, false);
   await registry.addContract(ContractIndexes.C_COVER_NFT, coverNFT.target, false);
   await registry.addContract(ContractIndexes.C_COVER_PRODUCTS, coverProducts.target, false);
-  await registry.addContract(ContractIndexes.C_ASSESSMENT, assessment.target, false);
+  await registry.addContract(ContractIndexes.C_ASSESSMENTS, assessment.target, false);
   await registry.addContract(ContractIndexes.C_POOL, pool.target, false);
   await registry.addContract(ContractIndexes.C_RAMM, ramm.target, false);
   await registry.addContract(ContractIndexes.C_GOVERNOR, governanceAccount.address, false);

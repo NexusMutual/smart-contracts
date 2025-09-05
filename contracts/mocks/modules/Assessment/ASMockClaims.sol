@@ -38,7 +38,7 @@ contract ASMockClaims is IClaims, RegistryAware {
   /* ========== INTERNAL FUNCTIONS ========== */
 
   function _assessments() internal view returns (IAssessments) {
-    return IAssessments(fetch(C_ASSESSMENT));
+    return IAssessments(fetch(C_ASSESSMENTS));
   }
 
   /* ========== VIEWS ========== */

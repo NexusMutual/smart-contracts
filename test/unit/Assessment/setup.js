@@ -19,7 +19,7 @@ async function setup() {
 
   // Add contracts in the registry
   const [governanceAccount] = accounts.governanceContracts;
-  await registry.addContract(ContractIndexes.C_ASSESSMENT, assessment.target, false);
+  await registry.addContract(ContractIndexes.C_ASSESSMENTS, assessment.target, false);
   await registry.addContract(ContractIndexes.C_CLAIMS, claims.target, false);
   await registry.addContract(ContractIndexes.C_GOVERNOR, governanceAccount.address, false);
 

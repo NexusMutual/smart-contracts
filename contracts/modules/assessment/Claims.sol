@@ -54,7 +54,7 @@ contract Claims is IClaims, RegistryAware {
     cover = ICover(fetch(C_COVER));
     coverNFT = ICoverNFT(fetch(C_COVER_NFT));
     coverProducts = ICoverProducts(fetch(C_COVER_PRODUCTS));
-    assessments = IAssessments(fetch(C_ASSESSMENT));
+    assessments = IAssessments(fetch(C_ASSESSMENTS));
     pool = IPool(fetch(C_POOL));
     ramm = IRamm(fetch(C_RAMM));
   }

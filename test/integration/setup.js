@@ -137,7 +137,7 @@ async function setup() {
     ContractIndexes.C_SAFE_TRACKER,
     ContractIndexes.C_LIMIT_ORDERS,
     ContractIndexes.C_SWAP_OPERATOR,
-    ContractIndexes.C_ASSESSMENT,
+    ContractIndexes.C_ASSESSMENTS,
     ContractIndexes.C_CLAIMS,
   ];
 
@@ -223,7 +223,7 @@ async function setup() {
     weth,
   ]);
 
-  const assessmentImplementation = await ethers.deployContract('Assessments', [registry]);
+  const assessmentsImplementation = await ethers.deployContract('Assessments', [registry]);
 
   const claimsImplementation = await ethers.deployContract('Claims', [registry]);
 
@@ -238,7 +238,7 @@ async function setup() {
   await registry.upgradeContract(ContractIndexes.C_SAFE_TRACKER, safeTrackerImplementation);
   await registry.upgradeContract(ContractIndexes.C_LIMIT_ORDERS, limitOrdersImplementation);
   await registry.upgradeContract(ContractIndexes.C_SWAP_OPERATOR, swapOperatorImplementation);
-  await registry.upgradeContract(ContractIndexes.C_ASSESSMENT, assessmentImplementation);
+  await registry.upgradeContract(ContractIndexes.C_ASSESSMENTS, assessmentsImplementation);
   await registry.upgradeContract(ContractIndexes.C_CLAIMS, claimsImplementation);
 
   // get contract instances
@@ -256,7 +256,7 @@ async function setup() {
   const safeTracker = await getContract(ContractIndexes.C_SAFE_TRACKER, 'SafeTracker');
   const limitOrders = await getContract(ContractIndexes.C_LIMIT_ORDERS, 'LimitOrders');
   const swapOperator = await getContract(ContractIndexes.C_SWAP_OPERATOR, 'SwapOperator');
-  const assessment = await getContract(ContractIndexes.C_ASSESSMENT, 'Assessments');
+  const assessments = await getContract(ContractIndexes.C_ASSESSMENTS, 'Assessments');
   const claims = await getContract(ContractIndexes.C_CLAIMS, 'Claims');
 
   const block = await ethers.provider.getBlock('latest');
@@ -427,7 +427,7 @@ async function setup() {
     ramm,
     safeTracker,
     claims,
-    assessment,
+    assessments,
     cover,
     coverProducts,
     stakingProducts,

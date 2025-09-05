@@ -141,10 +141,12 @@ contract Claims is IClaims, RegistryAware {
       uint previousClaimId = lastClaimSubmissionOnCover[coverId];
 
       if (previousClaimId > 0) {
+        Claim memory previousClaim = _claims[previousClaimId];
         Assessment memory assessment = assessments.getAssessment(previousClaimId);
 
+        require(previousClaim.payoutRedeemed == false, ClaimAlreadyPaidOut());
         require(assessment.getStatus() == AssessmentStatus.FINALIZED, ClaimIsBeingAssessed());
-        require(!claimRedeemable(_claims[previousClaimId], assessment), PayoutCanStillBeRedeemed());
+        require(!claimRedeemable(previousClaim, assessment), PayoutCanStillBeRedeemed());
       }
 
       lastClaimSubmissionOnCover[coverId] = claimId;

@@ -311,9 +311,7 @@ describe('basic functionality tests', function () {
     ];
 
     const stakingPoolCountBefore = await this.stakingPoolFactory.stakingPoolCount();
-    await this.stakingProducts
-      .connect(manager)
-      .createStakingPool(false, 5, 5, products, 'description', { gasLimit: 21e6 });
+    await this.stakingProducts.connect(manager).createStakingPool(false, 5, 5, products, 'description');
 
     const stakingPoolCountAfter = await this.stakingPoolFactory.stakingPoolCount();
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore + 1n);
@@ -387,7 +385,7 @@ describe('basic functionality tests', function () {
         ipfsData: '',
       },
       [{ poolId, coverAmountInAsset: amount }],
-      { value: amount, gasLimit: 21e6 },
+      { value: amount },
     );
 
     const coverCountAfter = await this.cover.getCoverDataCount();
@@ -982,7 +980,6 @@ describe('basic functionality tests', function () {
         ipfsData: '',
       },
       [{ poolId, coverAmountInAsset: amount }],
-      { gasLimit: 21e6 },
     );
 
     const coverCountAfter = await this.cover.getCoverDataCount();

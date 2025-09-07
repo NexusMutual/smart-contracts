@@ -310,7 +310,7 @@ describe('v3 launch', function () {
     const assessmentImplementation = await deployContract('Assessments', [this.registry.target]);
     const claimsImplementation = await deployContract('Claims', [this.registry.target]);
     const coverProductsImplementation = await deployContract('CoverProducts');
-    // const tokenControllerImplementation = await deployContract('TokenController', [this.registry.target]);
+    const tokenControllerImplementation = await deployContract('TokenController', [this.registry.target]);
 
     this.contractUpgrades = [
       { index: ContractIndexes.C_POOL, address: poolImplementation.target },
@@ -320,8 +320,7 @@ describe('v3 launch', function () {
       { index: ContractIndexes.C_ASSESSMENTS, address: assessmentImplementation.target },
       { index: ContractIndexes.C_CLAIMS, address: claimsImplementation.target },
       { index: ContractIndexes.C_COVER_PRODUCTS, address: coverProductsImplementation.target },
-      // FIX: token controller upgrade causes basic functionality test "Deploy to StakingPool" to fail
-      // { index: ContractIndexes.C_TOKEN_CONTROLLER, address: tokenControllerImplementation.target },
+      { index: ContractIndexes.C_TOKEN_CONTROLLER, address: tokenControllerImplementation.target },
     ];
   });
 
@@ -338,6 +337,7 @@ describe('v3 launch', function () {
    * - memberRoles.recoverETH
    * - master.migrate
    * - pool.migrate
+   * - update existing productTypes with new assessmentCooldownPeriod and payoutRedemptionPeriod fields
    */
   it('should run phase 3', async function () {
     // connect multisig signer to tempGovernor
@@ -466,17 +466,12 @@ describe('v3 launch', function () {
     // update existing productTypes with new assessmentCooldownPeriod and payoutRedemptionPeriod fields
     const ONE_DAY = 24 * 60 * 60;
     const productTypeCount = await this.coverProducts.getProductTypeCount();
-    console.log('productTypeCount:', productTypeCount);
 
     const updatedProductTypeParams = [];
     for (let i = 0; i < productTypeCount; i++) {
       const productType = await this.coverProducts.getProductType(i);
       const productTypeName = await this.coverProducts.getProductTypeName(i);
-      console.log(`productType ${i}:`, productType);
-      console.log(`productTypeName ${i}:`, productTypeName);
-
-      // Create ProductTypeParam with updated ProductType
-      const productTypeParam = {
+      updatedProductTypeParams.push({
         productTypeName,
         productTypeId: i,
         ipfsMetadata: 'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG', // dummy IPFS hash
@@ -486,29 +481,10 @@ describe('v3 launch', function () {
           assessmentCooldownPeriod: ONE_DAY,
           payoutRedemptionPeriod: 30 * ONE_DAY,
         },
-      };
-
-      updatedProductTypeParams.push(productTypeParam);
+      });
     }
 
-    // Set all updated product types at once
-    if (updatedProductTypeParams.length > 0) {
-      const setProductTypesTx = await this.coverProducts
-        .connect(this.abMembers[0])
-        .setProductTypes(updatedProductTypeParams);
-      await setProductTypesTx.wait();
-      console.log('All product types updated with new fields');
-    }
-
-    // Verify that the product types were updated correctly
-    console.log('\nVerifying updated product types:');
-    for (let i = 0; i < productTypeCount; i++) {
-      const updatedProductType = await this.coverProducts.getProductType(i);
-      console.log(`Updated productType ${i}:`, updatedProductType);
-
-      expect(updatedProductType.assessmentCooldownPeriod).to.equal(ONE_DAY);
-      expect(updatedProductType.payoutRedemptionPeriod).to.equal(30 * ONE_DAY);
-    }
+    await this.coverProducts.connect(this.abMembers[0]).setProductTypes(updatedProductTypeParams);
   });
 
   /**

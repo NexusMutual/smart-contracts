@@ -205,18 +205,30 @@ describe('basic functionality tests', function () {
   });
 
   it('Add product types', async function () {
+    const ONE_DAY = 24 * 60 * 60;
+
     const productTypes = [
       {
         productTypeName: 'x',
         productTypeId: MaxUint256,
         ipfsMetadata: 'protocolCoverIPFSHash',
-        productType: { descriptionIpfsHash: 'protocolCoverIPFSHash', claimMethod: 0, gracePeriod: 30 },
+        productType: {
+          claimMethod: 0,
+          gracePeriod: 30 * ONE_DAY,
+          assessmentCooldownPeriod: ONE_DAY,
+          payoutRedemptionPeriod: 30 * ONE_DAY,
+        },
       },
       {
         productTypeName: 'y',
         productTypeId: MaxUint256,
         ipfsMetadata: 'custodyCoverIPFSHash',
-        productType: { descriptionIpfsHash: 'custodyCoverIPFSHash', claimMethod: 0, gracePeriod: 90 },
+        productType: {
+          claimMethod: 0,
+          gracePeriod: 90 * ONE_DAY,
+          assessmentCooldownPeriod: ONE_DAY,
+          payoutRedemptionPeriod: 30 * ONE_DAY,
+        },
       },
     ];
 
@@ -299,9 +311,7 @@ describe('basic functionality tests', function () {
     ];
 
     const stakingPoolCountBefore = await this.stakingPoolFactory.stakingPoolCount();
-    await this.stakingProducts
-      .connect(manager)
-      .createStakingPool(false, 5, 5, products, 'description', { gasLimit: 21e6 });
+    await this.stakingProducts.connect(manager).createStakingPool(false, 5, 5, products, 'description');
 
     const stakingPoolCountAfter = await this.stakingPoolFactory.stakingPoolCount();
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore + 1n);
@@ -375,7 +385,7 @@ describe('basic functionality tests', function () {
         ipfsData: '',
       },
       [{ poolId, coverAmountInAsset: amount }],
-      { value: amount, gasLimit: 21e6 },
+      { value: amount },
     );
 
     const coverCountAfter = await this.cover.getCoverDataCount();
@@ -389,7 +399,7 @@ describe('basic functionality tests', function () {
   //   const coverBuyer = await getSigner(DAI_NXM_HOLDER);
   //
   //   const claimsCountBefore = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountBefore = await this.assessment.getAssessmentsCount();
+  //   const assessmentCountBefore = await this.assessments.getAssessmentsCount();
   //
   //   const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
   //   const requestedAmount = parseEther('1');
@@ -405,7 +415,7 @@ describe('basic functionality tests', function () {
   //     .submitClaim(custodyCoverId, requestedAmount, ipfsHash, { value: deposit });
   //
   //   const claimsCountAfter = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountAfter = await this.assessment.getAssessmentsCount();
+  //   const assessmentCountAfter = await this.assessments.getAssessmentsCount();
   //
   //   assessmentId = assessmentCountBefore.toString();
   //   expect(claimsCountAfter).to.be.equal(claimsCountBefore.add(1));
@@ -485,7 +495,7 @@ describe('basic functionality tests', function () {
   //   const coverBuyer = await getSigner(DAI_NXM_HOLDER);
   //
   //   const claimsCountBefore = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountBefore = await this.assessment.getAssessmentsCount();
+  //   const assessmentCountBefore = await this.assessments.getAssessmentsCount();
   //
   //   const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
   //   const requestedAmount = parseEther('1000');
@@ -501,7 +511,7 @@ describe('basic functionality tests', function () {
   //     .submitClaim(protocolCoverId, requestedAmount, ipfsHash, { value: deposit });
   //
   //   const claimsCountAfter = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountAfter = await this.assessment.getAssessmentsCount();
+  //   const assessmentCountAfter = await this.assessments.getAssessmentsCount();
   //
   //   assessmentId = assessmentCountBefore.toString();
   //   expect(claimsCountAfter).to.be.equal(claimsCountBefore.add(1));
@@ -576,7 +586,7 @@ describe('basic functionality tests', function () {
   //   const coverBuyer = await getSigner(NXM_AB_MEMBER);
   //
   //   const claimsCountBefore = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountBefore = await this.assessment.getAssessmentsCount();
+  //   const assessmentCountBefore = await this.assessments.getAssessmentsCount();
   //
   //   const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
   //   const requestedAmount = parseUnits('1000', 6);
@@ -592,7 +602,7 @@ describe('basic functionality tests', function () {
   //     .submitClaim(protocolCoverId, requestedAmount, ipfsHash, { value: deposit });
   //
   //   const claimsCountAfter = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountAfter = await this.assessment.getAssessmentsCount();
+  //   const assessmentCountAfter = await this.assessments.getAssessmentsCount();
   //
   //   assessmentId = assessmentCountBefore.toString();
   //   expect(claimsCountAfter).to.be.equal(claimsCountBefore.add(1));
@@ -661,14 +671,15 @@ describe('basic functionality tests', function () {
   it('buy cover through CoverBroker using ERC20 (USDC)', async function () {
     const coverBuyer = await ethers.Wallet.createRandom().connect(ethers.provider);
     const coverBuyerAddress = await coverBuyer.getAddress();
+
     await setBalance(coverBuyerAddress, parseEther('1000'));
     await setUSDCBalance(this.usdc.target, coverBuyer.address, parseEther('1000000'));
+    await this.usdc.connect(coverBuyer).approve(this.coverBroker.target, MaxUint256);
 
     const coverAsset = await this.pool.getAssetId(Addresses.USDC_ADDRESS);
     const amount = parseUnits('1000', 6);
     const coverCountBefore = await this.cover.getCoverDataCount();
 
-    await this.usdc.connect(coverBuyer).approve(this.coverBroker.target, MaxUint256);
     await this.coverBroker.connect(coverBuyer).buyCover(
       {
         coverId: 0,
@@ -850,7 +861,7 @@ describe('basic functionality tests', function () {
     const pool = await deployContract('Pool', [this.registry]);
 
     // Assessment.sol
-    const assessment = await deployContract('Assessment', [this.registry]);
+    const assessment = await deployContract('Assessments', [this.registry]);
 
     // Claims
     const claims = await deployContract('Claims', [this.registry]);
@@ -881,7 +892,7 @@ describe('basic functionality tests', function () {
     expect(await getImplementation(this.cover)).to.be.equal(cover.target);
     expect(await getImplementation(this.swapOperator)).to.be.equal(swapOperator.target);
     expect(await getImplementation(this.pool)).to.be.equal(pool.target);
-    expect(await getImplementation(this.assessment)).to.be.equal(assessment.target);
+    expect(await getImplementation(this.assessments)).to.be.equal(assessment.target);
     expect(await getImplementation(this.claims)).to.be.equal(claims.target);
     expect(await getImplementation(this.ramm)).to.be.equal(ramm.target);
   });
@@ -969,7 +980,6 @@ describe('basic functionality tests', function () {
         ipfsData: '',
       },
       [{ poolId, coverAmountInAsset: amount }],
-      { gasLimit: 21e6 },
     );
 
     const coverCountAfter = await this.cover.getCoverDataCount();

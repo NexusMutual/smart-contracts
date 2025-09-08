@@ -76,7 +76,7 @@ describe('v3 launch', function () {
     this.coverProducts = await ethers.getContractAt(abis.CoverProducts, addresses.CoverProducts);
     this.pool = await ethers.getContractAt(abis.Pool, addresses.Pool);
     this.safeTracker = await ethers.getContractAt(abis.SafeTracker, addresses.SafeTracker);
-    this.assessment = await ethers.getContractAt(abis.Assessment, addresses.Assessment);
+    // this.assessment = await ethers.getContractAt(abis.Assessment, addresses.Assessment); // instances created later
     this.stakingNFT = await ethers.getContractAt(abis.StakingNFT, addresses.StakingNFT);
     this.stakingProducts = await ethers.getContractAt(abis.StakingProducts, addresses.StakingProducts);
     this.swapOperator = await ethers.getContractAt(abis.SwapOperator, addresses.SwapOperator);
@@ -89,7 +89,7 @@ describe('v3 launch', function () {
     this.limitOrders = await ethers.getContractAt(abis.LimitOrders, addresses.LimitOrders);
     this.governance = await ethers.getContractAt(abis.Governance, addresses.Governance);
     this.memberRoles = await ethers.getContractAt(abis.MemberRoles, addresses.MemberRoles);
-    this.assessmentViewer = await ethers.getContractAt(abis.AssessmentViewer, addresses.AssessmentViewer);
+    this.assessmentsViewer = await ethers.getContractAt(abis.AssessmentViewer, addresses.AssessmentViewer);
     this.coverViewer = await ethers.getContractAt(abis.CoverViewer, addresses.CoverViewer);
     this.nexusViewer = await ethers.getContractAt(abis.NexusViewer, addresses.NexusViewer);
     this.stakingViewer = await ethers.getContractAt(abis.StakingViewer, addresses.StakingViewer);
@@ -132,7 +132,6 @@ describe('v3 launch', function () {
     this.registryProxy = await deployContract('UpgradeableProxy', []);
     const registryImplementation = await deployContract('Registry', [this.registryProxy, this.master]);
     await this.registryProxy.upgradeTo(registryImplementation);
-    console.log('registry address: ', this.registryProxy.target);
 
     // deploy new implementations
     const tempGovernanceImplementation = await deployContract('TemporaryGovernance', [
@@ -147,10 +146,9 @@ describe('v3 launch', function () {
       { code: ContractCode.Assessment, contract: legacyAssessmentImplementation },
       { code: ContractCode.MemberRoles, contract: memberRolesImplementation },
     ];
-  });
 
-  // TODO: push old assessment stake and rewards
-  // require('./legacy-assessment');
+    this.legacyAssessment = await ethers.getContractAt('LegacyAssessment', addresses.Assessment);
+  });
 
   /*
    * Phase 1
@@ -309,9 +307,10 @@ describe('v3 launch', function () {
       Addresses.AWETH_ADDRESS,
       '0x72E95b8931767C79bA4EeE721354d6E99a61D004', // VARIABLE_DEBT_USDC_ADDRESS
     ]);
-    const assessmentImplementation = await deployContract('Assessment', [this.registry.target]);
+    const assessmentImplementation = await deployContract('Assessments', [this.registry.target]);
     const claimsImplementation = await deployContract('Claims', [this.registry.target]);
-    // const tokenControllerImplementation = await deployContract('TokenController', [this.registry.target]);
+    const coverProductsImplementation = await deployContract('CoverProducts');
+    const tokenControllerImplementation = await deployContract('TokenController', [this.registry.target]);
 
     this.contractUpgrades = [
       { index: ContractIndexes.C_POOL, address: poolImplementation.target },
@@ -320,10 +319,13 @@ describe('v3 launch', function () {
       { index: ContractIndexes.C_SAFE_TRACKER, address: safeTrackerImplementation.target },
       { index: ContractIndexes.C_ASSESSMENTS, address: assessmentImplementation.target },
       { index: ContractIndexes.C_CLAIMS, address: claimsImplementation.target },
-      // FIX: token controller upgrade causes basic functionality test "Deploy to StakingPool" to fail
-      // { index: ContractIndexes.C_TOKEN_CONTROLLER, address: tokenControllerImplementation.target },
+      { index: ContractIndexes.C_COVER_PRODUCTS, address: coverProductsImplementation.target },
+      { index: ContractIndexes.C_TOKEN_CONTROLLER, address: tokenControllerImplementation.target },
     ];
   });
+
+  // push old assessment stake and rewards
+  require('./legacy-assessment');
 
   /*
    * Phase 3
@@ -335,6 +337,7 @@ describe('v3 launch', function () {
    * - memberRoles.recoverETH
    * - master.migrate
    * - pool.migrate
+   * - update existing productTypes with new assessmentCooldownPeriod and payoutRedemptionPeriod fields
    */
   it('should run phase 3', async function () {
     // connect multisig signer to tempGovernor
@@ -377,8 +380,8 @@ describe('v3 launch', function () {
     console.log('contracts upgraded');
 
     // TODO: reset the contracts with right addresses
-    const assessmentAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENTS);
-    this.assessment = await ethers.getContractAt('Assessment', assessmentAddress);
+    const assessmentsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENTS);
+    this.assessments = await ethers.getContractAt('Assessments', assessmentsAddress);
 
     const claimsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_CLAIMS);
     this.claims = await ethers.getContractAt('Claims', claimsAddress);
@@ -386,11 +389,13 @@ describe('v3 launch', function () {
     const swapOperatorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_SWAP_OPERATOR);
     this.swapOperator = await ethers.getContractAt('SwapOperator', swapOperatorAddress);
 
+    const coverProductsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_COVER_PRODUCTS);
+    this.coverProducts = await ethers.getContractAt('CoverProducts', coverProductsAddress);
+
     // get individual claims latest claim id
     const individualClaims = await ethers.getContractAt(abis.IndividualClaims, addresses.IndividualClaims);
     const latestClaimCount = await individualClaims.getClaimsCount();
     const latestClaimId = latestClaimCount - 1n;
-    const SWAP_CONTROLLER = '0x551D5500F613a4beC77BA8B834b5eEd52ad5764f';
 
     const txs2 = [
       // claims.initialize
@@ -403,7 +408,7 @@ describe('v3 launch', function () {
       {
         target: this.swapOperator.target,
         value: 0n,
-        data: this.swapOperator.interface.encodeFunctionData('setSwapController', [SWAP_CONTROLLER]),
+        data: this.swapOperator.interface.encodeFunctionData('setSwapController', [Addresses.SWAP_CONTROLLER]),
       },
     ];
 
@@ -457,6 +462,29 @@ describe('v3 launch', function () {
     expect(stEthBal).to.not.equal(0n);
     expect(enzymeShareBal).to.not.equal(0n);
     expect(safeTrackerBal).to.not.equal(0n);
+
+    // update existing productTypes with new assessmentCooldownPeriod and payoutRedemptionPeriod fields
+    const ONE_DAY = 24 * 60 * 60;
+    const productTypeCount = await this.coverProducts.getProductTypeCount();
+
+    const updatedProductTypeParams = [];
+    for (let i = 0; i < productTypeCount; i++) {
+      const productType = await this.coverProducts.getProductType(i);
+      const productTypeName = await this.coverProducts.getProductTypeName(i);
+      updatedProductTypeParams.push({
+        productTypeName,
+        productTypeId: i,
+        ipfsMetadata: 'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG', // dummy IPFS hash
+        productType: {
+          claimMethod: productType.claimMethod,
+          gracePeriod: productType.gracePeriod,
+          assessmentCooldownPeriod: ONE_DAY,
+          payoutRedemptionPeriod: 30 * ONE_DAY,
+        },
+      });
+    }
+
+    await this.coverProducts.connect(this.abMembers[0]).setProductTypes(updatedProductTypeParams);
   });
 
   /**

@@ -47,9 +47,11 @@ phase 3 (second ab action)
      - SwapOperator
      - Ramm
      - SafeTracker
-     - Assessment
+     - Assessments
      - Claims
      - TokenController
+     - Cover
+     - CoverProducts
    - registry.setEmergencyAdmin 1
    - registry.setEmergencyAdmin 2
    - registry.setKycAuthAddress
@@ -58,7 +60,11 @@ phase 3 (second ab action)
    - pool.migrate (copies the assets, oracles and mcr)
    - master.migrate (moves the capital pool funds!)
    - transfer registry proxy ownership to Governor
-2. safe transaction via TGovernor.execute
+   - setup assessing groups for product types
+3. safe transaction via TGovernor.execute
    - upgrade TGovernor to `Governor.sol` - in theory can be batched above, but just in case
 
 Total transactions for AB: 4
+
+Single AB member ops:
+- update existing CoverProduct productTypes to add assessmentCooldownPeriod and payoutRedemptionPeriod values

@@ -70,7 +70,7 @@ contract Claims is IClaims, RegistryAware {
     return _nextClaimId;
   }
 
-  function getClaimInfo(uint claimId) external override view returns (Claim memory) {
+  function getClaim(uint claimId) external override view returns (Claim memory) {
     return _claims[claimId];
   }
 
@@ -94,7 +94,7 @@ contract Claims is IClaims, RegistryAware {
       assessment: assessment,
       status: assessment.getStatus(),
       outcome: assessment.getOutcome(),
-      redeemable: _claimRedeemable(claim, assessment),
+      redeemable: _isClaimRedeemable(claim, assessment),
       ipfsMetadata: _claimsMetadata[claimId]
     });
   }
@@ -105,7 +105,7 @@ contract Claims is IClaims, RegistryAware {
 
   /// @dev To be redeemable assessment outcome must be accepted, redemption period must not pass,
   ///      and claim must not be already redeemed
-  function _claimRedeemable(Claim memory claim, Assessment memory assessment) internal view returns (bool) {
+  function _isClaimRedeemable(Claim memory claim, Assessment memory assessment) internal view returns (bool) {
     return
       assessment.getOutcome() == AssessmentOutcome.ACCEPTED &&
       block.timestamp < assessment.votingEnd + assessment.cooldownPeriod + claim.payoutRedemptionPeriod &&
@@ -144,9 +144,8 @@ contract Claims is IClaims, RegistryAware {
         Claim memory previousClaim = _claims[previousClaimId];
         Assessment memory assessment = assessments.getAssessment(previousClaimId);
 
-        require(previousClaim.payoutRedeemed == false, ClaimAlreadyPaidOut());
         require(assessment.getStatus() == AssessmentStatus.FINALIZED, ClaimIsBeingAssessed());
-        require(!_claimRedeemable(previousClaim, assessment), PayoutCanStillBeRedeemed());
+        require(!_isClaimRedeemable(previousClaim, assessment), PayoutCanStillBeRedeemed());
       }
 
       lastClaimSubmissionOnCover[coverId] = claimId;
@@ -208,13 +207,11 @@ contract Claims is IClaims, RegistryAware {
     Claim memory claim = _claims[claimId];
     require(claim.coverId > 0, InvalidClaimId());
 
-    Assessment memory assessment = assessments.getAssessment(claimId);
-    require(assessment.getOutcome() == AssessmentOutcome.ACCEPTED, ClaimNotAccepted());
-
     address coverOwner = coverNFT.ownerOf(claim.coverId);
-
     require(coverOwner == msg.sender, NotCoverOwner());
-    require(_claimRedeemable(claim, assessment), ClaimNotRedeemable());
+
+    Assessment memory assessment = assessments.getAssessment(claimId);
+    require(_isClaimRedeemable(claim, assessment), ClaimNotRedeemable());
 
     _claims[claimId].payoutRedeemed = true;
     _claims[claimId].depositRetrieved = true;

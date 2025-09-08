@@ -285,7 +285,7 @@ describe('submitClaim', function () {
     const claimId = await claims.getClaimsCount();
     await submitClaim(fixture)({ coverId, amount: claimAmount, sender: coverOwner });
 
-    const claim = await claims.getClaimInfo(claimId);
+    const claim = await claims.getClaim(claimId);
 
     expect(claim.coverId).to.equal(coverId);
     expect(claim.amount).to.equal(claimAmount);
@@ -324,7 +324,7 @@ describe('submitClaim', function () {
     await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
     // Both fields should be false
-    let claim = await claims.getClaimInfo(claimId);
+    let claim = await claims.getClaim(claimId);
     expect(claim.payoutRedeemed).to.be.false;
     expect(claim.depositRetrieved).to.be.false;
 
@@ -332,7 +332,7 @@ describe('submitClaim', function () {
     await assessment.setAssessmentForOutcome(claimId, AssessmentOutcome.Accepted);
 
     // State should still be false until payout is redeemed
-    claim = await claims.getClaimInfo(claimId);
+    claim = await claims.getClaim(claimId);
     expect(claim.payoutRedeemed).to.be.false;
     expect(claim.depositRetrieved).to.be.false;
 
@@ -340,7 +340,7 @@ describe('submitClaim', function () {
     await claims.connect(coverOwner).redeemClaimPayout(claimId);
 
     // Both fields should become true
-    claim = await claims.getClaimInfo(claimId);
+    claim = await claims.getClaim(claimId);
     expect(claim.payoutRedeemed).to.be.true;
     expect(claim.depositRetrieved).to.be.true;
   });
@@ -424,108 +424,104 @@ describe('submitClaim', function () {
     await expect(submitClaim(fixture)({ coverId: 3, sender: coverOwner })).not.to.be.reverted;
   });
 
-  describe('ACCEPTED claim re-submission prevention', function () {
-    it('prevents re-submission when payout already redeemed', async function () {
-      const fixture = await loadFixture(setup);
-      const { cover, assessment, claims } = fixture.contracts;
-      const [coverOwner] = fixture.accounts.members;
+  it('allows re-submission when the previous claim was redeemed', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover, assessment, claims } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
 
-      await createMockCover(cover, { owner: coverOwner.address });
+    await createMockCover(cover, { owner: coverOwner.address });
 
-      // Submit and accept first claim
-      const firstClaimId = await claims.getClaimsCount();
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+    // Submit and accept first claim
+    const firstClaimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
-      await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Accepted);
+    await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Accepted);
 
-      // Redeem the payout
-      await claims.connect(coverOwner).redeemClaimPayout(firstClaimId);
+    // Redeem the payout
+    await claims.connect(coverOwner).redeemClaimPayout(firstClaimId);
 
-      // Should prevent re-submission after payout redeemed
-      const submitClaimTx = submitClaim(fixture)({ coverId: 1, sender: coverOwner });
-      await expect(submitClaimTx).to.be.revertedWithCustomError(claims, 'ClaimAlreadyPaidOut');
-    });
+    // Should allow a second claim submission after payout redeemed
+    const submitClaimTx = submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+    await expect(submitClaimTx).to.not.be.reverted;
   });
 
-  describe('Allowed re-submission scenarios within grace period', function () {
-    it('allows re-submission after DENIED claim and still', async function () {
-      const fixture = await loadFixture(setup);
-      const { cover, assessment, claims } = fixture.contracts;
-      const [coverOwner] = fixture.accounts.members;
+  it('allows re-submission after DENIED claim and still', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover, assessment, claims } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
 
-      await createMockCover(cover, { owner: coverOwner.address });
+    await createMockCover(cover, { owner: coverOwner.address });
 
-      // Submit and deny first claim
-      const firstClaimId = await claims.getClaimsCount();
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+    // Submit and deny first claim
+    const firstClaimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
-      await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Denied);
+    await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Denied);
 
-      // Should allow re-submission after DENIED (edge case - maybe new evidence)
-      await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
-    });
+    // Should allow re-submission after DENIED (edge case - maybe new evidence)
+    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
+  });
 
-    it('allows re-submission before DRAW claim deposit has been retrieved', async function () {
-      const fixture = await loadFixture(setup);
-      const { cover, assessment, claims } = fixture.contracts;
-      const [coverOwner] = fixture.accounts.members;
+  it('allows re-submission before DRAW claim deposit has been retrieved', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover, assessment, claims } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
 
-      await createMockCover(cover, { owner: coverOwner.address });
+    await createMockCover(cover, { owner: coverOwner.address });
 
-      // Submit first claim
-      const firstClaimId = await claims.getClaimsCount();
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+    // Submit first claim
+    const firstClaimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
-      // Set first claim result to DRAW
-      await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Draw);
+    // Set first claim result to DRAW
+    await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Draw);
 
-      // Should allow submitting a new claim before deposit retrieval
-      await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
+    // Should allow submitting a new claim before deposit retrieval
+    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
 
-      // Should allow deposit retrieval from first DRAW claim
-      await expect(claims.retrieveDeposit(firstClaimId)).not.to.be.reverted;
-    });
+    // Should allow deposit retrieval from first DRAW claim
+    await expect(claims.retrieveDeposit(firstClaimId)).not.to.be.reverted;
+  });
 
-    it('allows re-submission after DRAW claim deposit has been retrieved', async function () {
-      const fixture = await loadFixture(setup);
-      const { cover, assessment, claims } = fixture.contracts;
-      const [coverOwner] = fixture.accounts.members;
+  it('allows re-submission after DRAW claim deposit has been retrieved', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover, assessment, claims } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
 
-      await createMockCover(cover, { owner: coverOwner.address });
+    await createMockCover(cover, { owner: coverOwner.address });
 
-      // Submit first claim
-      const firstClaimId = await claims.getClaimsCount();
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+    // Submit first claim
+    const firstClaimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
-      // Set first claim result to DRAW
-      await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Draw);
+    // Set first claim result to DRAW
+    await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Draw);
 
-      // Retrieve deposit from DRAW claim
-      await claims.retrieveDeposit(firstClaimId);
+    // Retrieve deposit from DRAW claim
+    await claims.retrieveDeposit(firstClaimId);
 
-      // Should still allow new claims after deposit retrieval
-      await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
-    });
+    // Should still allow new claims after deposit retrieval
+    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
+  });
 
-    it('allows re-submission when user missed redeeming the payout', async function () {
-      const fixture = await loadFixture(setup);
-      const { cover, assessment, claims } = fixture.contracts;
-      const [coverOwner] = fixture.accounts.members;
+  it('allows re-submission when user missed redeeming the payout', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover, assessment, claims } = fixture.contracts;
+    const [coverOwner] = fixture.accounts.members;
 
-      await createMockCover(cover, { owner: coverOwner.address });
+    await createMockCover(cover, { owner: coverOwner.address });
 
-      // Submit and accept first claim
-      const firstClaimId = await claims.getClaimsCount();
-      await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
+    // Submit and accept first claim
+    const firstClaimId = await claims.getClaimsCount();
+    await submitClaim(fixture)({ coverId: 1, sender: coverOwner });
 
-      const payoutRedemptionPeriod = daysToSeconds(30);
-      await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Accepted);
+    const payoutRedemptionPeriod = daysToSeconds(30);
+    await assessment.setAssessmentForOutcome(firstClaimId, AssessmentOutcome.Accepted);
 
-      // Move time past redemption period
-      await time.increase(payoutRedemptionPeriod);
+    // Move time past redemption period
+    await time.increase(payoutRedemptionPeriod);
 
-      // Should allow re-submission after redemption period expires (user missed deadline)
-      await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
-    });
+    // Should allow re-submission after redemption period expires (user missed deadline)
+    await expect(submitClaim(fixture)({ coverId: 1, sender: coverOwner })).not.to.be.reverted;
   });
 });

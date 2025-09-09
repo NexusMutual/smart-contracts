@@ -1,8 +1,6 @@
 const { ethers } = require('hardhat');
 const { AwsKmsSigner } = require('@nexusmutual/ethers-v6-aws-kms-signer');
 
-const { getSigners } = ethers;
-
 const SIGNER_TYPE = {
   LOCAL: 'local',
   AWS_KMS: 'aws-kms',
@@ -10,7 +8,7 @@ const SIGNER_TYPE = {
 
 const getSigner = async (kind = SIGNER_TYPE.LOCAL) => {
   if (kind === SIGNER_TYPE.LOCAL) {
-    const [signer] = await getSigners();
+    const [signer] = await ethers.getSigners();
     return signer;
   }
 

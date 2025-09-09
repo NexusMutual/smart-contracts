@@ -5,9 +5,9 @@ const proxyContracts = [
   'NXMaster',
   'Registry',
   'Governor',
-  'MemberRoles',
+  'LegacyMemberRoles',
   'TokenController',
-  'Assessment',
+  'Assessments',
   'Claims',
   'Cover',
   'CoverProducts',
@@ -22,19 +22,15 @@ const proxyContracts = [
 describe('Selector collisions', function () {
   it('compare selectors of proxy and upgradable contracts', async function () {
     // get proxy selectors
-    const { interface: proxyInterface } = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
+    const { interface: proxyInterface } = await ethers.getContractFactory('UpgradeableProxy');
     const protectedFunctions = ['proxyOwner', 'transferProxyOwnership', 'upgradeTo'];
-    const protectedSelectors = protectedFunctions.map(fn => proxyInterface.getSighash(fn));
+    const protectedSelectors = protectedFunctions.map(fn => proxyInterface.getFunction(fn).selector);
 
     // check it fails with a known collision
     const { interface: collidingInterface } = await ethers.getContractFactory('ProxySignatureCollider');
 
     const foundClashes = protectedSelectors.map(selector => {
-      try {
-        return collidingInterface.getFunction(selector);
-      } catch (e) {
-        return false;
-      }
+      return collidingInterface.getFunction(selector) !== null;
     });
 
     expect(foundClashes.filter(f => f !== false).length).to.equal(1);
@@ -43,7 +39,7 @@ describe('Selector collisions', function () {
     for (const contract of proxyContracts) {
       const { interface: contractInterface } = await ethers.getContractFactory(contract);
       for (const signature of protectedSelectors) {
-        expect(() => contractInterface.getFunction(signature)).to.throw('no matching function');
+        expect(contractInterface.getFunction(signature)).to.be.null;
       }
     }
   });

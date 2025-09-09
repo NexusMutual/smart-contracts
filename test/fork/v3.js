@@ -121,6 +121,9 @@ describe('v3 launch', function () {
     }
   });
 
+  // push legacy governance rewards
+  require('../../scripts/push-governance-rewards');
+
   // Phase 0
   //   - push old governance rewards
   //   - deploy registry proxy and implementation
@@ -240,6 +243,10 @@ describe('v3 launch', function () {
   //   - legacyMemberRoles.migrateMembers (including AB members)
   //   - legacyMemberRoles.recoverETH
   //   - deploy new P1, SO, RA, ST, AS, CL implementations
+
+  // push legacy assessment stake and rewards
+  require('../../scripts/push-assessment-stake');
+  require('../../scripts/push-assessment-rewards');
   require('./legacy-assessment');
 
   it('should run phase 2', async function () {
@@ -342,15 +349,18 @@ describe('v3 launch', function () {
     ];
   });
 
-  // Phase 3
-  //   1. ab action, batch execute via safe:
-  //     - upgrade Pool, SwapOperator, Ramm, SafeTracker, Assessment, Claims, TokenController, Cover, CoverProducts
-  //     - registry.setEmergencyAdmin x2
-  //     - registry.setKycAuthAddress
-  //     - swapOperator.setSwapController
-  //     - claims.initialize
-  //     - master.migrate
-  //   2. upgrade TGovernor to Governor (also via safe)
+  /*
+   * Phase 3
+   * - registry.setEmergencyAdmin
+   * - registry.setKycAuthAddress
+   * - upgrade Pool, SwapOperator, Ramm, SafeTracker, Assessment, Claims via governor proposal
+   * - claims.initialize
+   * - swapOperator.setSwapController
+   * - memberRoles.recoverETH
+   * - master.migrate
+   * - pool.migrate
+   * - update existing productTypes with new assessmentCooldownPeriod and payoutRedemptionPeriod fields
+   */
   it('should run phase 3', async function () {
     const tGovernorTxs = [];
     const tGovernanceTxs = [];

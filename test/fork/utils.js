@@ -1,8 +1,26 @@
 const { ethers, network } = require('hardhat');
-const { impersonateAccount, setBalance, time } = require('@nomicfoundation/hardhat-network-helpers');
 const assert = require('assert');
+const {
+  impersonateAccount,
+  setBalance,
+  setStorageAt,
+  setNextBlockBaseFeePerGas,
+  time,
+} = require('@nomicfoundation/hardhat-network-helpers');
 
-const { AbiCoder, JsonRpcProvider, JsonRpcSigner, keccak256, parseEther, toBeHex, zeroPadValue } = ethers;
+const {
+  AbiCoder,
+  Interface,
+  JsonRpcProvider,
+  JsonRpcSigner,
+  concat,
+  getBytes,
+  keccak256,
+  parseEther,
+  solidityPacked,
+  toBeHex,
+  zeroPadValue,
+} = ethers;
 
 const Addresses = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -34,6 +52,9 @@ const Addresses = {
   // misc
   ADVISORY_BOARD_MULTISIG: '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D',
   KYC_AUTH_ADDRESS: '0x176c27973E0229501D049De626d50918ddA24656',
+  // Safe DELEGATECALL txes
+  // https://docs.safe.global/advanced/smart-account-supported-networks?service=Transaction+Service&expand=1
+  MULTISEND: '0xA83c336B20401Af773B6219BA5027174338D1836',
 };
 
 async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
@@ -55,8 +76,7 @@ async function submitGovernanceProposal(categoryId, actionData, signers, gv) {
   assert(
     receipt.logs.some(log => {
       try {
-        const parsed = gv.interface.parseLog(log);
-        return parsed.name === 'ActionSuccess';
+        return gv.interface.parseLog(log).name === 'ActionSuccess';
       } catch {
         return false;
       }
@@ -78,6 +98,59 @@ async function executeGovernorProposal(governor, abMembers, txs) {
   await governor.connect(proposer).execute(proposalId);
   console.log(`Governor proposal ${proposalId} executed`);
 }
+
+// type Tx = { to: string, value?: bigint | number | string, data?: string };
+// pack one inner tx: [op(uint8), to(address), value(uint256), dataLen(uint256), data(bytes)]
+const packMultiSendTx = tx => {
+  const data = tx.data ?? '0x';
+  const len = getBytes(data).length;
+  return solidityPacked(
+    ['uint8', 'address', 'uint256', 'uint256', 'bytes'],
+    [0 /* = CALL */, tx.to, BigInt(tx.value ?? 0), BigInt(len), data],
+  );
+};
+
+const createSafeExecutor = async multisigAddress => {
+  const safeAbi = [
+    // eslint-disable-next-line max-len
+    'function execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes) returns (bool)',
+    'function getOwners() view returns (address[] memory)',
+  ];
+
+  let safe = await ethers.getContractAt(safeAbi, multisigAddress);
+  const multiSendIface = new Interface(['function multiSend(bytes)']);
+
+  const [owner] = await safe.getOwners();
+  const ownerSigner = await getFundedSigner(owner);
+  safe = safe.connect(ownerSigner);
+
+  // sets threshold to 1
+  await setStorageAt(multisigAddress, 4, 1);
+
+  const executeSafeTransaction = async (txs, value = 0n, overrides = {}) => {
+    const blob = concat(txs.map(packMultiSendTx));
+    const data = multiSendIface.encodeFunctionData('multiSend', [blob]);
+    await setNextBlockBaseFeePerGas(0);
+
+    return safe.execTransaction(
+      Addresses.MULTISEND,
+      value,
+      data,
+      1, // operation is always DELEGATECALL
+      0, // safeTxGas
+      0, // baseGas
+      0, // gasPrice
+      ethers.ZeroAddress, // gasToken
+      ethers.ZeroAddress, // refundReceiver
+      // signature packing, ref: https://blog.tenderly.co/how-to-run-safe-simulations-on-tenderly/
+      //              padding    address   zero slot     1
+      solidityPacked(['uint96', 'address', 'uint256', 'uint8'], [0, owner, 0, 1]),
+      { ...overrides, value, maxFeePerGas: 0, maxPriorityFeePerGas: 0 }, // overrides
+    );
+  };
+
+  return executeSafeTransaction;
+};
 
 const getSigner = async address => {
   if (network.name !== 'hardhat') {
@@ -135,6 +208,7 @@ module.exports = {
   Addresses,
   submitGovernanceProposal,
   executeGovernorProposal,
+  createSafeExecutor,
   getTrancheId,
   getSigner,
   getFundedSigner,

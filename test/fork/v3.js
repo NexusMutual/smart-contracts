@@ -6,6 +6,7 @@ const { setBalance, setStorageAt, takeSnapshot } = require('@nomicfoundation/har
 
 const {
   Addresses,
+  createSafeExecutor,
   getImplementation,
   getFundedSigner,
   getSigner,
@@ -13,7 +14,7 @@ const {
   submitGovernanceProposal,
 } = require('./utils');
 
-const { AbiCoder, deployContract, encodeBytes32String, parseEther, toBeHex, toUtf8Bytes } = ethers;
+const { AbiCoder, deployContract, encodeBytes32String, parseEther, toBeHex } = ethers;
 const { ContractCode, ContractIndexes, ProposalCategory } = nexus.constants;
 const { toBytes2 } = nexus.helpers;
 
@@ -116,6 +117,24 @@ describe('v3 launch', function () {
     }
   });
 
+  it('prepare AB multisig for simulations', async function () {
+    const [firstAb] = this.abMembers;
+    const value = parseEther('1');
+
+    this.executeSafeTransaction = await createSafeExecutor(Addresses.ADVISORY_BOARD_MULTISIG);
+
+    const txs = [
+      // wrap 1 ETH
+      { to: this.weth.target, data: this.weth.interface.encodeFunctionData('deposit', []), value },
+      // send it to first ab
+      { to: this.weth.target, data: this.weth.interface.encodeFunctionData('transfer', [firstAb.address, value]) },
+    ];
+
+    await this.executeSafeTransaction(txs, value);
+
+    throw new Error('AB multisig prepared');
+  });
+
   /*
    * Phase 0
    * push old governance rewards
@@ -124,33 +143,6 @@ describe('v3 launch', function () {
    * deploy LegacyAssessment implementation
    * deploy LegacyMemberRoles implementation
    * upgrade Governance, Assessment, MemberRoles contracts via governance proposal
-   */
-  it('should run phase 0', async function () {
-    // @TODO: push old governance rewards
-    // @TODO: calculate salts for registry and registry proxy
-
-    this.registryProxy = await deployContract('UpgradeableProxy', []);
-    const registryImplementation = await deployContract('Registry', [this.registryProxy, this.master]);
-    await this.registryProxy.upgradeTo(registryImplementation);
-
-    // deploy new implementations
-    const tempGovernanceImplementation = await deployContract('TemporaryGovernance', [
-      Addresses.ADVISORY_BOARD_MULTISIG,
-    ]);
-    const legacyAssessmentImplementation = await deployContract('LegacyAssessment', [this.nxm]);
-    const memberRolesImplementation = await deployContract('LegacyMemberRoles', [this.registryProxy, this.nxm]);
-
-    // submit governance proposal - upgrade multiple contracts
-    this.upgradeContractsPhase1 = [
-      { code: ContractCode.Governance, contract: tempGovernanceImplementation },
-      { code: ContractCode.Assessment, contract: legacyAssessmentImplementation },
-      { code: ContractCode.MemberRoles, contract: memberRolesImplementation },
-    ];
-
-    this.legacyAssessment = await ethers.getContractAt('LegacyAssessment', addresses.Assessment);
-  });
-
-  /*
    * Phase 1
    * - push LegacyAssessment stake and rewards
    * - upgrade NXMaster
@@ -158,34 +150,43 @@ describe('v3 launch', function () {
    * - registry.migrate
    * - transfer registry proxy ownership to Governor
    */
-  it('should run phase 1', async function () {
+  it('should run phase 0 and 1', async function () {
+    // @TODO: push old governance rewards
+    // @TODO: calculate salts for registry and registry proxy
+
+    this.registryProxy = await deployContract('UpgradeableProxy', []);
+    const registryImpl = await deployContract('Registry', [this.registryProxy, this.master]);
+    await this.registryProxy.upgradeTo(registryImpl);
+
+    // deploy new implementations
+    const temporaryGovernanceImpl = await deployContract('TemporaryGovernance', [Addresses.ADVISORY_BOARD_MULTISIG]);
+    const legacyAssessmentImpl = await deployContract('LegacyAssessment', [this.nxm]);
+    const legacyMemberRolesImpl = await deployContract('LegacyMemberRoles', [this.registryProxy, this.nxm]);
+
+    // submit governance proposal - upgrade multiple contracts
+    const codes = [ContractCode.Governance, ContractCode.Assessment, ContractCode.MemberRoles];
+    const addresses = [temporaryGovernanceImpl, legacyAssessmentImpl, legacyMemberRolesImpl].map(c => c.target);
+
     await submitGovernanceProposal(
       ProposalCategory.upgradeMultipleContracts,
-      defaultAbiCoder.encode(
-        ['bytes2[]', 'address[]'],
-        [
-          this.upgradeContractsPhase1.map(c => toUtf8Bytes(c.code)),
-          this.upgradeContractsPhase1.map(c => c.contract.target),
-        ],
-      ),
+      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [codes, addresses]),
       this.abMembers,
       this.governance,
     );
 
+    this.legacyAssessment = await ethers.getContractAt('LegacyAssessment', addresses.Assessment);
     const governanceAddress = await this.master.getLatestAddress(toBytes2('GV'));
 
     // set temp governance and registry contracts
-    this.tempGovernance = await ethers.getContractAt('TemporaryGovernance', governanceAddress);
+    this.tGovernance = await ethers.getContractAt('TemporaryGovernance', governanceAddress);
     this.registry = await ethers.getContractAt('Registry', this.registryProxy);
 
     // set advisory board multisig as temp governance signer
-    const advisoryBoardMultisig = await this.tempGovernance.advisoryBoardMultisig();
-    this.multisigSigner = await getFundedSigner(advisoryBoardMultisig);
-    this.tempGovernance = this.tempGovernance.connect(this.multisigSigner);
+    this.tGovernance = this.tGovernance.connect(this.abMultisig);
 
     // upgrade NXMaster
     const masterImplementation = await deployContract('NXMaster');
-    await this.tempGovernance.execute(
+    await this.tGovernance.execute(
       this.master,
       0n,
       this.registryProxy.interface.encodeFunctionData('upgradeTo', [masterImplementation.target]),
@@ -194,14 +195,11 @@ describe('v3 launch', function () {
     // transfer all master contracts proxy ownership to registry
     const master = await ethers.getContractAt('NXMaster', this.master.target);
     const { data: transferOwnershipData } = await master.transferOwnershipToRegistry.populateTransaction(this.registry);
-    await this.tempGovernance.execute(this.master.target, 0n, transferOwnershipData);
-
-    // deploy tempGovernance as temp governor implementation
-    const governorImplementation = await deployContract('TemporaryGovernance', [Addresses.ADVISORY_BOARD_MULTISIG]);
+    await this.tGovernance.execute(this.master.target, 0n, transferOwnershipData);
 
     // registry.migrate
     const { data: registryMigrateCallData } = await this.registry.migrate.populateTransaction(
-      governorImplementation,
+      temporaryGovernanceImpl,
       this.coverNFT,
       this.stakingNFT,
       this.stakingPoolFactory,
@@ -212,7 +210,7 @@ describe('v3 launch', function () {
       encodeBytes32String('assessmentSalt'),
       encodeBytes32String('claimsSalt'),
     );
-    const registryMigrateTx = await this.tempGovernance.execute(this.registry.target, 0n, registryMigrateCallData);
+    const registryMigrateTx = await this.tGovernance.execute(this.registry.target, 0n, registryMigrateCallData);
     await registryMigrateTx.wait();
 
     // get governor contract
@@ -429,7 +427,7 @@ describe('v3 launch', function () {
     // master.migrate
     this.master = await ethers.getContractAt('NXMaster', this.master.target); // get upgraded master contract
     const migrateData = this.master.interface.encodeFunctionData('migrate', [this.registry.target]);
-    const masterMigrateTx = await this.tempGovernance.execute(this.master.target, 0n, migrateData);
+    const masterMigrateTx = await this.tGovernance.execute(this.master.target, 0n, migrateData);
     await masterMigrateTx.wait();
     console.log('master migrated');
 

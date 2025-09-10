@@ -11,7 +11,6 @@ contract TestnetRegistry is Registry {
     address _masterAddress
   ) Registry(_verifyingAddress, _masterAddress) { }
 
-  // TODO: test that this works!
   function recoverSigner(
     bytes memory /* message */,
     bytes memory /* signature */

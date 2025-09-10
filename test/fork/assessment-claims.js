@@ -2,7 +2,7 @@ const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { takeSnapshot, time, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { getFundedSigner, getSigner, setUSDCBalance, Addresses } = require('./utils');
+const { Addresses, getFundedSigner, getSigner, setUSDCBalance, executeGovernorProposal } = require('./utils');
 
 const { AssessmentOutcome, AssessmentStatus, ContractIndexes, PauseTypes, PoolAsset } = nexus.constants;
 const { PAUSE_CLAIMS } = PauseTypes;
@@ -90,15 +90,6 @@ describe('claim assessment', function () {
     const usdc = await ethers.getContractAt('ERC20Mock', usdcAddress);
     await usdc.connect(this.claimant).approve(this.cover, MaxUint256);
 
-    const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
-
-    // TODO: use governor open/close proposal
-    // use governor signer for assessment contract
-    const governorSigner = await getFundedSigner(governorAddress);
-    this.assessments = this.assessments.connect(governorSigner);
-
-    // add assessors to a new group (groupId 0 creates new group)
-    console.log('adding assessors to group');
     const assessorIds = [];
 
     for (const assessor of this.assessors) {
@@ -106,18 +97,27 @@ describe('claim assessment', function () {
       assessorIds.push(assessorId);
     }
 
-    const tx = await this.assessments.addAssessorsToGroup(assessorIds, 0);
-    await tx.wait();
-
-    const groupId = await this.assessments.getGroupsCount();
-
-    // set assessment data for product types - 1 day cooldown, 30 days redemption period
-    await this.assessments.setAssessingGroupIdForProductTypes([1, 19], groupId);
+    const txs = [
+      // add assessors to a new group (groupId 0 creates new group)
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('addAssessorsToGroup', [assessorIds, 0]),
+      },
+      // set assessment groupId for product types
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('setAssessingGroupIdForProductTypes', [[1, 19], 1]),
+      },
+    ];
+    await executeGovernorProposal(this.governor, this.abMembers, txs);
 
     // update cover dependent contract addresses
     const coverUpdateDependentAddressesTx = await this.cover.changeDependentContractAddress();
     await coverUpdateDependentAddressesTx.wait();
 
+    const groupId = await this.assessments.getGroupsCount();
     console.log(`Setup complete: ${assessorIds.length} assessors added to group ${groupId}`);
   });
 
@@ -295,7 +295,7 @@ describe('claim assessment', function () {
 
     // 1. Undo fraudulent votes (2 acceptVotes and 1 denyVotes after)
     const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
-    const governorSigner = await getSigner(governorAddress);
+    const governorSigner = await getFundedSigner(governorAddress);
     await this.assessments.connect(governorSigner).undoVotes(fraudulentAssessorId, [usdcClaimId]);
 
     const assessmentAfter = await this.assessments.getAssessment(usdcClaimId);

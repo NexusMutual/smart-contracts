@@ -256,17 +256,19 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     return tallies[proposalId];
   }
 
-  function getProposalWithDetails(uint proposalId) external view returns (
+  function getProposalWithDetails(uint _proposalId) external view returns (
+    uint proposalId,
     Proposal memory,
     string memory,
     Transaction[] memory,
     Tally memory
   ) {
     return (
-      proposals[proposalId],
-      descriptions[proposalId],
-      transactions[proposalId],
-      tallies[proposalId]
+      _proposalId,
+      proposals[_proposalId],
+      descriptions[_proposalId],
+      transactions[_proposalId],
+      tallies[_proposalId]
     );
   }
 

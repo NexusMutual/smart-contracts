@@ -101,6 +101,10 @@ async function executeGovernorProposal(governor, abMembers, txs) {
 
 // type Tx = { to: string, value?: bigint | number | string, data?: string };
 // pack one inner tx: [op(uint8), to(address), value(uint256), dataLen(uint256), data(bytes)]
+/**
+ * @param { { to: string, value?: bigint | number | string, data?: string } } tx
+ * @returns {string} MultiSend encoded transaction
+ */
 const packMultiSendTx = tx => {
   const data = tx.data ?? '0x';
   const len = getBytes(data).length;
@@ -110,6 +114,10 @@ const packMultiSendTx = tx => {
   );
 };
 
+/**
+ * @param {string} multisigAddress
+ * @returns {Promise<typeof executeSafeTransaction>}
+ */
 const createSafeExecutor = async multisigAddress => {
   const safeAbi = [
     // eslint-disable-next-line max-len
@@ -127,6 +135,12 @@ const createSafeExecutor = async multisigAddress => {
   // sets threshold to 1
   await setStorageAt(multisigAddress, 4, 1);
 
+  /**
+   * @param {{ to: string, value?: bigint | number | string, data?: string }[]} txs
+   * @param {bigint | number | string} value
+   * @param {object} overrides
+   * @returns {Promise<TransactionResponse>} TransactionResponse
+   */
   const executeSafeTransaction = async (txs, value = 0n, overrides = {}) => {
     const blob = concat(txs.map(packMultiSendTx));
     const data = multiSendIface.encodeFunctionData('multiSend', [blob]);

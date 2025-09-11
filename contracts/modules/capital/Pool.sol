@@ -5,6 +5,7 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts-v4/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
+import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/ReentrancyGuard.sol";
 import "../../abstract/RegistryAware.sol";
 import "../../interfaces/ICover.sol";
@@ -263,7 +264,7 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     if (asset.assetAddress != ETH) {
       IERC20(asset.assetAddress).safeTransfer(payoutAddress, amount);
     }
-    
+
     uint ethAmountToSend = depositInETH + (asset.assetAddress == ETH ? amount : 0);
     if (ethAmountToSend > 0) {
       (bool ok, /* data */) = payoutAddress.call{value: ethAmountToSend}("");
@@ -482,11 +483,17 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
   /* ========== MIGRATION ========== */
 
   function migrate(
-    ILegacyPool previousPool,
-    ILegacyMCR previousMCR
-  ) external onlyContracts(C_GOVERNOR) {
+    address _previousPool,
+    address _previousMCR
+  ) external {
 
+    // registry doesn't know the master address, fetching it from the cover contract
+    address masterAddress = address(MasterAwareV2(address(cover)).master());
+    require(msg.sender == masterAddress, 'Pool: Unauthorized');
     require(assets.length == 0, AlreadyMigrated());
+
+    ILegacyPool previousPool = ILegacyPool(_previousPool);
+    ILegacyMCR previousMCR = ILegacyMCR(_previousMCR);
 
     ILegacyPool.Asset[] memory _assets = previousPool.getAssets();
     IPriceFeedOracle priceFeedOracle = previousPool.priceFeedOracle();

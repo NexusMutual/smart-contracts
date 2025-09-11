@@ -180,7 +180,7 @@ describe('claim assessment', function () {
     console.log(`Happy Path ETH test complete: Claim ${claimId} ACCEPTED and paid out successfully`);
   });
 
-  it('Phase 1: ETH claim submission validation and DENIED outcome', async function () {
+  it('Step 1: ETH claim submission validation and DENIED outcome', async function () {
     // Create ETH cover for claimant
     const coverId = await createCover(this.cover, this.claimant, {
       coverAsset: PoolAsset.ETH,
@@ -231,16 +231,16 @@ describe('claim assessment', function () {
     const retrieveDeposit = this.claims.connect(this.claimant).retrieveDeposit(claimId);
     await expect(retrieveDeposit).to.be.revertedWithCustomError(this.claims, 'ClaimNotADraw');
 
-    // Store for next phase
+    // Store for next step
     this.ethCoverId = coverId;
     this.firstClaimId = claimId;
 
-    console.log(`Phase 1 complete: Claim ${claimId} DENIED`);
+    console.log(`Step 1 complete: Claim ${claimId} DENIED`);
   });
 
-  it('Phase 2: USDC claim with fraud detection and governor intervention', async function () {
+  it('Step 2: USDC claim with fraud detection and governor intervention', async function () {
     const { snapshotId } = await takeSnapshot();
-    console.info('Snapshot ID Assessment/Claims Phase 2 start: ', snapshotId);
+    console.info('Snapshot ID Assessment/Claims Step 2 start: ', snapshotId);
 
     // Create USDC cover (immediate re-submission after DENIED should work)
     const usdcCoverId = await createCover(this.cover, this.claimant, {
@@ -365,15 +365,15 @@ describe('claim assessment', function () {
     const newCooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 1n;
     await time.increaseTo(newCooldownEndTime);
 
-    // Store for next phase
+    // Store for next step
     this.usdcCoverId = usdcCoverId;
     this.usdcClaimId = usdcClaimId;
     this.newAssessor = newAssessor;
 
-    console.log(`Phase 2 complete: USDC claim ${usdcClaimId} ready for payout after governor intervention`);
+    console.log(`Step 2 complete: USDC claim ${usdcClaimId} ready for payout after governor intervention`);
   });
 
-  it('Phase 2.5: post-cooldown fraud recovery - governor intervention past cooldown period', async function () {
+  it('Step 2.5: post-cooldown fraud recovery - governor intervention past cooldown period', async function () {
     const coverId = await createCover(this.cover, this.claimant, {
       coverAsset: PoolAsset.ETH,
       amount: parseEther('0.3'),
@@ -489,10 +489,10 @@ describe('claim assessment', function () {
     expect(finalClaimDetails.status).to.equal(AssessmentStatus.Finalized);
     expect(finalClaimDetails.outcome).to.equal(AssessmentOutcome.Draw);
 
-    console.log(`Phase 2.5 complete: post-cooldown fraud recovery successfully changed ACCEPTED to DRAW`);
+    console.log(`Step 2.5 complete: post-cooldown fraud recovery successfully changed ACCEPTED to DRAW`);
   });
 
-  it('Phase 3: Pause and payout functionality testing', async function () {
+  it('Step 3: Pause and payout functionality testing', async function () {
     // Get USDC token contract address from pool
     const usdcAsset = await this.pool.getAsset(PoolAsset.USDC);
     this.usdcToken = await ethers.getContractAt('ERC20Mock', usdcAsset.assetAddress);
@@ -530,15 +530,15 @@ describe('claim assessment', function () {
     // Verify ETH balance increased by exactly the claim deposit amount (gas-free transaction)
     expect(claimantEthBalanceAfter - claimantEthBalanceBefore).to.equal(claimDepositAmount);
 
-    console.log(`Phase 3 complete: Pause/unpause functionality tested, USDC claim paid out`);
+    console.log(`Step 3 complete: Pause/unpause functionality tested, USDC claim paid out`);
     console.log(`   - USDC balance increased by: ${ethers.formatUnits(expectedUsdcIncrease, 6)} USDC`);
     console.log(`   - ETH deposit returned: ${ethers.formatEther(claimDepositAmount)} ETH`);
   });
 
-  it('Phase 3.5: no double redeem after governor changes post-redemption', async function () {
+  it('Step 3.5: no double redeem after governor changes post-redemption', async function () {
     const redeemedClaimId = this.usdcClaimId;
 
-    // verify claim was already redeemed in Phase 3
+    // verify claim was already redeemed in Step 3
     const claimBefore = await this.claims.getClaim(redeemedClaimId);
     expect(claimBefore.payoutRedeemed).to.be.true;
     expect(claimBefore.depositRetrieved).to.be.true;
@@ -599,11 +599,11 @@ describe('claim assessment', function () {
     expect(ethBalanceAfter).to.be.lessThanOrEqual(ethBalanceBefore);
     expect(usdcBalanceAfter).to.be.lessThanOrEqual(usdcBalanceBefore);
 
-    console.log(`Phase 3.5 complete: governor changes on redeemed claim had no effect on redemption protection`);
+    console.log(`Step 3.5 complete: governor changes on redeemed claim had no effect on redemption protection`);
   });
 
-  it('Phase 4: ETH claim with DRAW outcome', async function () {
-    // Create new ETH cover for DRAW test (separate from Phase 1 DENIED cover)
+  it('Step 4: ETH claim with DRAW outcome', async function () {
+    // Create new ETH cover for DRAW test (separate from Step 1 DENIED cover)
     const drawCoverId = await createCover(this.cover, this.claimant, {
       coverAsset: PoolAsset.ETH,
       amount: parseEther('0.8'), // Reduced from 8 ETH
@@ -659,11 +659,11 @@ describe('claim assessment', function () {
     // Verify ETH balance increased by exactly the claim deposit amount (gas-free transaction)
     expect(claimantEthBalanceAfter - claimantEthBalanceBefore).to.equal(claimDepositAmount);
 
-    console.log(`Phase 4 complete: DRAW claim ${drawClaimId} deposit retrieved`);
+    console.log(`Step 4 complete: DRAW claim ${drawClaimId} deposit retrieved`);
     console.log(`   - ETH deposit returned: ${ethers.formatEther(claimDepositAmount)} ETH`);
   });
 
-  it('Phase 5: ETH claim with redemption period expiry', async function () {
+  it('Step 5: ETH claim with redemption period expiry', async function () {
     // Create new ETH cover for redemption expiry test
     const newEthCoverId = await createCover(this.cover, this.claimant, {
       coverAsset: PoolAsset.ETH,
@@ -707,19 +707,19 @@ describe('claim assessment', function () {
     await expect(this.claims.connect(this.claimant).redeemClaimPayout(newEthClaimId)) //
       .to.be.revertedWithCustomError(this.claims, 'ClaimNotRedeemable');
 
-    // Store for Phase 6
+    // Store for Step 6
     this.expiredClaimCoverId = newEthCoverId;
     this.expiredClaimId = newEthClaimId;
 
-    console.log(`Phase 5 complete: Claim ${newEthClaimId} expired without redemption`);
+    console.log(`Step 5 complete: Claim ${newEthClaimId} expired without redemption`);
   });
 
-  it('Phase 6: Re-submit claim on same cover after ACCEPTED claim expired', async function () {
-    // Re-submit claim on the same ETH cover from Phase 5 (which was ACCEPTED but redemption expired)
+  it('Step 6: Re-submit claim on same cover after ACCEPTED claim expired', async function () {
+    // Re-submit claim on the same ETH cover from Step 5 (which was ACCEPTED but redemption expired)
     // This should work since the redemption period has passed for the previous ACCEPTED claim
     const resubmitClaimId = await this.claims.getClaimsCount();
     await this.claims.connect(this.claimant).submitClaim(
-      this.expiredClaimCoverId, // Same cover from Phase 5
+      this.expiredClaimCoverId, // Same cover from Step 5
       parseEther('0.15'), // Reduced from 1.5 ETH
       ethers.solidityPackedKeccak256(['string'], ['Re-submitted after expiry claim proof']),
       { value: CLAIM_DEPOSIT, gasPrice: 0 },
@@ -766,7 +766,7 @@ describe('claim assessment', function () {
     expect(claimantEthBalanceAfter - claimantEthBalanceBefore).to.equal(expectedEthIncrease);
 
     console.log(
-      `Phase 6 complete: Re-submitted claim ${resubmitClaimId} after expired redemption successfully paid out`,
+      `Step 6 complete: Re-submitted claim ${resubmitClaimId} after expired redemption successfully paid out`,
     );
   });
 });

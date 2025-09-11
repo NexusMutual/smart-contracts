@@ -5,6 +5,10 @@ const linker = require('solc/linker');
 
 const { getSigner, SIGNER_TYPE } = require('./get-signer');
 
+const { parseUnits, getContractAt, AbiCoder } = ethers;
+
+const defaultAbiCoder = AbiCoder.defaultAbiCoder();
+
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 
 const usage = () => {
@@ -175,7 +179,7 @@ const getDeploymentBytecode = async options => {
     );
   }
 
-  const constructorArgs = ethers.utils.defaultAbiCoder.encode(constructorAbi.inputs, options.constructorArgs);
+  const constructorArgs = defaultAbiCoder.encode(constructorAbi.inputs, options.constructorArgs);
 
   return `${bytecode}${constructorArgs.replace(/^0x/i, '')}`;
 };
@@ -209,12 +213,12 @@ async function main() {
     throw new Error(`Expected address to be ${opts.address} but got ${address}`);
   }
 
-  const baseFee = ethers.utils.parseUnits(opts.baseFee, 'gwei');
-  const maxPriorityFeePerGas = ethers.utils.parseUnits(opts.priorityFee, 'gwei');
+  const baseFee = parseUnits(opts.baseFee, 'gwei');
+  const maxPriorityFeePerGas = parseUnits(opts.priorityFee, 'gwei');
   const maxFeePerGas = baseFee.add(maxPriorityFeePerGas);
 
   const signer = await getSigner(opts.kms ? SIGNER_TYPE.AWS_KMS : SIGNER_TYPE.LOCAL);
-  const deployer = await ethers.getContractAt('Deployer', opts.factory, signer);
+  const deployer = await getContractAt('Deployer', opts.factory, signer);
   const deployTx = await deployer.deployAt(bytecode, opts.salt, opts.address, {
     maxFeePerGas,
     maxPriorityFeePerGas,

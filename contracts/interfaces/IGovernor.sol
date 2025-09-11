@@ -58,7 +58,8 @@ interface IGovernor {
   function getProposalDescription(uint proposalId) external view returns (string memory);
   function getProposalTransactions(uint proposalId) external view returns (Transaction[] memory);
   function getProposalTally(uint proposalId) external view returns (Tally memory);
-  function getProposalWithDetails(uint proposalId) external view returns (
+  function getProposalWithDetails(uint _proposalId) external view returns (
+    uint proposalId,
     Proposal memory,
     string memory,
     Transaction[] memory,

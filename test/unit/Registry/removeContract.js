@@ -34,11 +34,11 @@ describe('removeContract', () => {
       .withArgs(ContractIndexes.C_POOL, pool, true);
 
     // check that mappings are cleared
-    await expect(registry.getContractAddressByIndex(ContractIndexes.C_POOL)).to.revertedWithCustomError(
-      registry,
-      'ContractDoesNotExist',
-    );
-    expect(await registry.getContractIndexByAddress(pool)).to.equal(0);
+    await expect(registry.getContractAddressByIndex(ContractIndexes.C_POOL)) //
+      .to.revertedWithCustomError(registry, 'ContractDoesNotExist');
+
+    await expect(registry.getContractIndexByAddress(pool)) //
+      .to.revertedWithCustomError(registry, 'ContractDoesNotExist');
   });
 
   it('should successfully remove a non-proxy contract', async () => {
@@ -53,8 +53,11 @@ describe('removeContract', () => {
     await registry.connect(governor).removeContract(idx);
 
     // check that mappings are cleared
-    await expect(registry.getContractAddressByIndex(idx)).to.revertedWithCustomError(registry, 'ContractDoesNotExist');
-    expect(await registry.getContractIndexByAddress(mockContract)).to.equal(0);
+    await expect(registry.getContractAddressByIndex(idx)) //
+      .to.revertedWithCustomError(registry, 'ContractDoesNotExist');
+
+    await expect(registry.getContractIndexByAddress(mockContract)) //
+      .to.revertedWithCustomError(registry, 'ContractDoesNotExist');
   });
 
   it('should not affect the actual proxy contract on-chain', async () => {
@@ -74,10 +77,8 @@ describe('removeContract', () => {
     expect(await proxy.implementation()).to.equal(implementation);
 
     // but Registry no longer tracks it
-    await expect(registry.getContractAddressByIndex(ContractIndexes.C_POOL)).to.revertedWithCustomError(
-      registry,
-      'ContractDoesNotExist',
-    );
+    await expect(registry.getContractAddressByIndex(ContractIndexes.C_POOL)) //
+      .to.revertedWithCustomError(registry, 'ContractDoesNotExist');
   });
 
   it('should allow re-adding contract at same index after removal', async () => {
@@ -127,15 +128,14 @@ describe('removeContract', () => {
     // remove tc
     await registry.connect(governor).removeContract(ContractIndexes.C_TOKEN_CONTROLLER);
 
-    await expect(registry.getContractAddressByIndex(ContractIndexes.C_TOKEN_CONTROLLER)).to.revertedWithCustomError(
-      registry,
-      'ContractDoesNotExist',
-    );
-    await expect(registry.isProxyContract(ContractIndexes.C_TOKEN_CONTROLLER)).to.revertedWithCustomError(
-      registry,
-      'ContractDoesNotExist',
-    );
-    expect(await registry.getContractIndexByAddress(tokenController.target)).to.equal(0);
+    await expect(registry.getContractAddressByIndex(ContractIndexes.C_TOKEN_CONTROLLER)) //
+      .to.revertedWithCustomError(registry, 'ContractDoesNotExist');
+
+    await expect(registry.isProxyContract(ContractIndexes.C_TOKEN_CONTROLLER)) //
+      .to.revertedWithCustomError(registry, 'ContractDoesNotExist');
+
+    await expect(registry.getContractIndexByAddress(tokenController.target)) //
+      .to.revertedWithCustomError(registry, 'ContractDoesNotExist');
 
     expect(await registry.getContractAddressByIndex(ContractIndexes.C_POOL)).to.equal(pool.target);
     expect(await registry.isProxyContract(ContractIndexes.C_POOL)).to.equal(true);

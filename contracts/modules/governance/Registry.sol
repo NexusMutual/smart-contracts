@@ -243,7 +243,6 @@ contract Registry is IRegistry, EIP712 {
     require(isValidContractIndex(index), InvalidContractIndex());
     Contract memory contractDetails = contracts[index];
     require(contractDetails.addr != address(0), ContractDoesNotExist());
-
     return contractDetails.isProxy;
   }
 
@@ -251,13 +250,14 @@ contract Registry is IRegistry, EIP712 {
     require(isValidContractIndex(index), InvalidContractIndex());
     address addr = contracts[index].addr;
     require(addr != address(0), ContractDoesNotExist());
-
     return payable(addr);
   }
 
   function getContractIndexByAddress(address contractAddress) external view returns (uint) {
     require(contractAddress != address(0), InvalidContractAddress());
-    return contractIndexes[contractAddress];
+    uint idx = contractIndexes[contractAddress];
+    require(idx != 0, ContractDoesNotExist());
+    return idx;
   }
 
   function getContracts(uint[] memory indexes) external view returns (Contract[] memory _contracts) {

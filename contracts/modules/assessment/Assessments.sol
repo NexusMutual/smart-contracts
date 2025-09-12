@@ -110,6 +110,9 @@ contract Assessments is IAssessments, RegistryAware, Multicall {
     uint[] calldata assessorMemberIds,
     uint groupId
   ) external override onlyContracts(C_GOVERNOR) {
+
+    require(groupId <= _groupCount, InvalidGroupId());
+
     // make new group id
     if (groupId == 0) {
       groupId = ++_groupCount;

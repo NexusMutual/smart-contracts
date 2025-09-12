@@ -21,6 +21,18 @@ describe('addAssessorsToGroup', function () {
     await expect(addAssessorsToGroup).to.be.revertedWithCustomError(assessment, 'InvalidMemberId');
   });
 
+  it('should revert when groupId is invalid (greater than group count)', async function () {
+    const { contracts, accounts } = await loadFixture(setup);
+    const { assessment } = contracts;
+    const [governanceAccount] = accounts.governanceContracts;
+
+    const currentGroupCount = await assessment.getGroupsCount();
+    const invalidGroupId = currentGroupCount + 1n;
+
+    const addAssessorsToGroup = assessment.connect(governanceAccount).addAssessorsToGroup([1n, 2n], invalidGroupId);
+    await expect(addAssessorsToGroup).to.be.revertedWithCustomError(assessment, 'InvalidGroupId');
+  });
+
   it('should add assessors to a new group', async function () {
     const { contracts, accounts } = await loadFixture(setup);
     const { assessment } = contracts;

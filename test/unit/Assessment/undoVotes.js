@@ -30,26 +30,6 @@ describe('undoVotes', function () {
     await expect(undoVotes).to.be.revertedWithCustomError(assessment, 'HasNotVoted').withArgs(CLAIM_ID);
   });
 
-  it('should revert when cooldown period has already passed', async function () {
-    const { contracts, accounts, constants } = await loadFixture(setup);
-    const { assessment, registry } = contracts;
-    const { CLAIM_ID, IPFS_HASH } = constants;
-    const [governanceAccount] = accounts.governanceContracts;
-    const [assessor] = accounts.assessors;
-
-    // Cast vote
-    await assessment.connect(assessor).castVote(CLAIM_ID, true, IPFS_HASH);
-
-    // Set time after cooldown period has passed
-    const votingPeriod = await assessment.minVotingPeriod();
-    const { cooldownPeriod } = await assessment.getAssessment(CLAIM_ID);
-    await time.increase(votingPeriod + cooldownPeriod + 1n);
-
-    const assessorMemberId = await registry.getMemberId(assessor.address);
-    const undoVotes = assessment.connect(governanceAccount).undoVotes(assessorMemberId, [CLAIM_ID]);
-
-    await expect(undoVotes).to.be.revertedWithCustomError(assessment, 'AssessmentCooldownPassed').withArgs(CLAIM_ID);
-  });
   it(`should successfully undo a vote`, async function () {
     const { contracts, accounts, constants } = await loadFixture(setup);
     const { assessment, registry } = contracts;

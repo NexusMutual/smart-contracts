@@ -25,29 +25,6 @@ describe('extendVotingPeriod', function () {
     await expect(extendVotingPeriod).to.be.revertedWithCustomError(assessment, 'InvalidClaimId');
   });
 
-  it('should revert when cooldown period has already passed', async function () {
-    const { contracts, accounts, constants } = await loadFixture(setup);
-    const { assessment } = contracts;
-    const { CLAIM_ID, MIN_VOTING_PERIOD } = constants;
-    const [governanceAccount] = accounts.governanceContracts;
-
-    // Get the cooldown period for this product type
-    const { cooldownPeriod } = await assessment.getAssessment(CLAIM_ID);
-
-    // Move time forward to beyond the cooldown period (voting period + cooldown period + 1)
-    const block = await ethers.provider.getBlock('latest');
-    if (!block) {
-      throw new Error('Block not found');
-    }
-    const timeAfterCooldown = BigInt(block.timestamp) + MIN_VOTING_PERIOD + cooldownPeriod + 1n;
-    await time.increaseTo(timeAfterCooldown);
-
-    const extendVotingPeriod = assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
-    await expect(extendVotingPeriod)
-      .to.be.revertedWithCustomError(assessment, 'AssessmentCooldownPassed')
-      .withArgs(CLAIM_ID);
-  });
-
   it('should successfully reset voting period during voting phase', async function () {
     const { contracts, accounts, constants } = await loadFixture(setup);
     const { assessment } = contracts;

@@ -43,6 +43,10 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     tokenController = ITokenController(fetch(C_TOKEN_CONTROLLER));
   }
 
+  function getVoteWeight(address voter) public view returns (uint) {
+    return registry.isMember(voter) ? _getVoteWeight(voter) : 0;
+  }
+
   function _getVoteWeight(address voter) internal view returns (uint) {
     uint totalSupply = tokenController.totalSupply();
     uint weight = tokenController.totalBalanceOf(voter) + 1 ether;

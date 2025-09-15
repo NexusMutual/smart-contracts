@@ -1,68 +1,33 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.28;
 
-import "../../interfaces/IGovernance.sol";
-import "../../interfaces/IMemberRoles.sol";
-import "../../interfaces/INXMMaster.sol";
+import "../../abstract/RegistryAware.sol";
+import "../../interfaces/IGovernor.sol";
 import "../../interfaces/INXMToken.sol";
-import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IVotePower.sol";
 
-contract VotePower {
+/// @notice ERC20-like contract to be used in Snapshot voting
+contract VotePower is IVotePower, RegistryAware {
 
   string constant public name = "NXM balance with delegations";
   string constant public symbol = "NXMD";
   uint8 constant public decimals = 18;
 
-  INXMMaster immutable public master;
+  IGovernor public immutable governor;
+  INXMToken public immutable token;
 
-  enum Role {Unassigned, AdvisoryBoard, Member}
-
-  constructor(INXMMaster _master) {
-    master = _master;
-  }
-
-  function totalSupply() public view returns (uint) {
-    return INXMToken(master.tokenAddress()).totalSupply();
+  constructor(address _registry) RegistryAware(_registry) {
+    governor = IGovernor(registry.getContractAddressByIndex(C_GOVERNOR));
+    token = INXMToken(registry.getContractAddressByIndex(C_TOKEN));
   }
 
   function balanceOf(address member) public view returns (uint) {
+    return governor.getVoteWeight(member);
+  }
 
-    ITokenController tokenController = ITokenController(master.getLatestAddress("TC"));
-    IMemberRoles memberRoles = IMemberRoles(master.getLatestAddress("MR"));
-    IGovernance governance = IGovernance(master.getLatestAddress("GV"));
-
-    if (!memberRoles.checkRole(member, uint(Role.Member))) {
-      return 0;
-    }
-
-    uint delegationId = governance.followerDelegation(member);
-
-    if (delegationId != 0) {
-      (, address leader,) = governance.allDelegation(delegationId);
-      if (leader != address(0)) {
-        return 0;
-      }
-    }
-
-    uint balance = tokenController.totalBalanceOf(member) + 1e18;
-    uint[] memory delegationIds = governance.getFollowers(member);
-
-    for (uint i = 0; i < delegationIds.length; i++) {
-
-      (address follower, address leader,) = governance.allDelegation(delegationIds[i]);
-
-      if (
-        leader != member ||
-        !memberRoles.checkRole(follower, uint(Role.Member))
-      ) {
-        continue;
-      }
-
-      balance += tokenController.totalBalanceOf(follower) + 1e18;
-    }
-
-    return balance;
+  function totalSupply() public view returns (uint) {
+    return token.totalSupply();
   }
 
 }

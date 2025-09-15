@@ -722,7 +722,7 @@ contract Ramm is IRamm, RegistryAware, ReentrancyGuard {
     return newObservations;
   }
 
-  function getInternalPriceAndUpdateTwap() external returns (uint internalPrice) {
+  function getInternalPriceAndUpdateTwap() external whenNotPaused(PAUSE_RAMM) returns (uint internalPrice) {
 
     Context memory context = Context(
       pool.getPoolValueInEth(), // capital

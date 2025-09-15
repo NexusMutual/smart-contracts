@@ -44,6 +44,10 @@ contract Governor is IGovernor, RegistryAware, Multicall {
   }
 
   function getVoteWeight(address voter) public view returns (uint) {
+    return registry.isMember(voter) ? _getVoteWeight(voter) : 0;
+  }
+
+  function _getVoteWeight(address voter) internal view returns (uint) {
     uint totalSupply = tokenController.totalSupply();
     uint weight = tokenController.totalBalanceOf(voter) + 1 ether;
     uint maxWeight = totalSupply * VOTE_WEIGHT_CAP_PERCENTAGE / 100;
@@ -71,7 +75,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
     require(registry.isMember(msg.sender), NotMember());
 
     // prevent spam
-    uint weight = getVoteWeight(msg.sender);
+    uint weight = _getVoteWeight(msg.sender);
     require(weight > PROPOSAL_THRESHOLD, ProposalThresholdNotMet());
 
     Transaction[] memory txs = new Transaction[](swaps.length);
@@ -153,7 +157,7 @@ contract Governor is IGovernor, RegistryAware, Multicall {
       : memberId;
     require(votes[proposalId][voterId].weight == 0, AlreadyVoted());
 
-    uint96 weight = (isAbProposal ? 1 : getVoteWeight(msg.sender)).toUint96();
+    uint96 weight = (isAbProposal ? 1 : _getVoteWeight(msg.sender)).toUint96();
     votes[proposalId][voterId] = Vote({ choice: choice, weight: weight });
 
     if (choice == Choice.For) {

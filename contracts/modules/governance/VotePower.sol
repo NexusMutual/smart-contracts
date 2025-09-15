@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.28;
 
 import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IGovernor.sol";
 import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IVotePower.sol";
 
-contract VotePower is RegistryAware {
+/// @notice ERC20-like contract to be used in Snapshot voting
+contract VotePower is IVotePower, RegistryAware {
 
   string constant public name = "NXM balance with delegations";
   string constant public symbol = "NXMD";
@@ -20,17 +22,12 @@ contract VotePower is RegistryAware {
     token = INXMToken(registry.getContractAddressByIndex(C_TOKEN));
   }
 
-  function totalSupply() public view returns (uint) {
-    return token.totalSupply();
+  function balanceOf(address member) public view returns (uint) {
+    return governor.getVoteWeight(member);
   }
 
-  function balanceOf(address member) public view returns (uint) {
-
-    if (!registry.isMember(member)) {
-      return 0;
-    }
-
-    return governor.getVoteWeight(member);
+  function totalSupply() public view returns (uint) {
+    return token.totalSupply();
   }
 
 }

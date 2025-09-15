@@ -204,12 +204,31 @@ describe('v3 launch', function () {
     const receipt = await abTx.wait();
     console.log('Phase 1 AB tx gas used:', receipt.gasUsed.toString());
 
-    const actualMasterImplementatino = await masterProxy.implementation();
-    expect(actualMasterImplementatino).to.equal(masterImpl.target);
+    const actualMasterImplementatinon = await masterProxy.implementation();
+    expect(actualMasterImplementatinon).to.equal(masterImpl.target);
 
-    const memberRolesProxy = await ethers.getContractAt('UpgradeableProxy', addresses.MemberRoles);
-    const actualMemberRolesOwner = await memberRolesProxy.proxyOwner();
-    expect(actualMemberRolesOwner).to.equal(this.registry.target);
+    let codeIndex = 0;
+
+    while (true) {
+      const code = await this.master.contractCodes(codeIndex++).catch(e => {
+        if (e.message.includes('Transaction reverted')) {
+          // return false for revert, expecting invalid opcode meaning out of bounds read
+          return false;
+        }
+        // rethrow for other kinds of errors
+        throw e;
+      });
+
+      if (code === false) {
+        break;
+      }
+
+      if (await this.master.isProxy(code)) {
+        const proxyAddress = await this.master.getLatestAddress(code);
+        const proxy = await ethers.getContractAt('UpgradeableProxy', proxyAddress);
+        expect(await proxy.proxyOwner()).to.equal(this.registry.target);
+      }
+    }
 
     // get governor contract
     const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
@@ -333,10 +352,6 @@ describe('v3 launch', function () {
   //     - master.migrate
   //   2. upgrade TGovernor to Governor (also via safe)
   it('should run phase 3', async function () {
-    const tempGovernorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
-    this.tempGovernor = await ethers.getContractAt('TemporaryGovernance', tempGovernorAddress);
-    this.tempGovernor = this.tempGovernor.connect(this.multisigSigner);
-
     const tGovernorTxs = [];
     const tGovernanceTxs = [];
 
@@ -416,7 +431,6 @@ describe('v3 launch', function () {
     const receipt = await abTx.wait();
     console.log('Phase 3 AB tx gas used:', receipt.gasUsed.toString());
 
-    // TODO: reset the contracts with right addresses
     const assessmentsAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_ASSESSMENTS);
     this.assessments = await ethers.getContractAt('Assessments', assessmentsAddress);
 

@@ -1,8 +1,10 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { time } = require('@nomicfoundation/hardhat-network-helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { setup } = require('./setup');
+
+const { PAUSE_ASSESSMENTS, PAUSE_CLAIMS } = nexus.constants.PauseTypes;
 
 describe('undoVotes', function () {
   it('should revert when called by non-governor contract', async function () {
@@ -11,7 +13,7 @@ describe('undoVotes', function () {
     const { CLAIM_ID } = constants;
     const [assessor] = accounts.assessors;
 
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorMemberId = await registry.getMemberId(assessor);
     const undoVotes = assessment.connect(assessor).undoVotes(assessorMemberId, [CLAIM_ID]);
 
     await expect(undoVotes).to.be.revertedWithCustomError(assessment, 'Unauthorized');
@@ -24,33 +26,13 @@ describe('undoVotes', function () {
     const [governanceAccount] = accounts.governanceContracts;
     const [assessor] = accounts.assessors;
 
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorMemberId = await registry.getMemberId(assessor);
     const undoVotes = assessment.connect(governanceAccount).undoVotes(assessorMemberId, [CLAIM_ID]);
 
     await expect(undoVotes).to.be.revertedWithCustomError(assessment, 'HasNotVoted').withArgs(CLAIM_ID);
   });
 
-  it('should revert when cooldown period has already passed', async function () {
-    const { contracts, accounts, constants } = await loadFixture(setup);
-    const { assessment, registry } = contracts;
-    const { CLAIM_ID, IPFS_HASH } = constants;
-    const [governanceAccount] = accounts.governanceContracts;
-    const [assessor] = accounts.assessors;
-
-    // Cast vote
-    await assessment.connect(assessor).castVote(CLAIM_ID, true, IPFS_HASH);
-
-    // Set time after cooldown period has passed
-    const votingPeriod = await assessment.minVotingPeriod();
-    const { cooldownPeriod } = await assessment.getAssessment(CLAIM_ID);
-    await time.increase(votingPeriod + cooldownPeriod + 1n);
-
-    const assessorMemberId = await registry.getMemberId(assessor.address);
-    const undoVotes = assessment.connect(governanceAccount).undoVotes(assessorMemberId, [CLAIM_ID]);
-
-    await expect(undoVotes).to.be.revertedWithCustomError(assessment, 'AssessmentCooldownPassed').withArgs(CLAIM_ID);
-  });
-  it(`should successfully undo a vote`, async function () {
+  it('should successfully undo a vote', async function () {
     const { contracts, accounts, constants } = await loadFixture(setup);
     const { assessment, registry } = contracts;
     const { CLAIM_ID, IPFS_HASH } = constants;
@@ -71,7 +53,7 @@ describe('undoVotes', function () {
       expect(assessmentBefore.acceptVotes).to.equal(expectedAcceptVotes);
       expect(assessmentBefore.denyVotes).to.equal(expectedDenyVotes);
 
-      const assessorMemberId = await registry.getMemberId(assessor.address);
+      const assessorMemberId = await registry.getMemberId(assessor);
       const ballotBefore = await assessment.ballotOf(CLAIM_ID, assessorMemberId);
       expect(ballotBefore.support).to.equal(vote);
       expect(ballotBefore.timestamp).to.equal(block?.timestamp);
@@ -134,7 +116,7 @@ describe('undoVotes', function () {
     expect(assessment1Before.denyVotes).to.equal(1);
     expect(assessment2Before.acceptVotes).to.equal(1);
 
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorMemberId = await registry.getMemberId(assessor);
     // Verify metadata is stored for all claims
     const [metadata0Before, metadata1Before, metadata2Before] = await Promise.all([
       assessment.getBallotsMetadata(claimIds[0], assessorMemberId),
@@ -190,7 +172,7 @@ describe('undoVotes', function () {
     await assessment.connect(assessor).castVote(CLAIM_ID, true, IPFS_HASH);
 
     // Undo the vote
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorMemberId = await registry.getMemberId(assessor);
     const undoTx = assessment.connect(governanceAccount).undoVotes(assessorMemberId, [CLAIM_ID]);
 
     // Check that VoteUndone event is emitted
@@ -234,7 +216,7 @@ describe('undoVotes', function () {
     await assessment.connect(assessor).castVote(CLAIM_ID, true, IPFS_HASH);
 
     // Try to undo votes on both claims (should fail because no vote on newClaimId)
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorMemberId = await registry.getMemberId(assessor);
     const undoVotes = assessment.connect(governanceAccount).undoVotes(assessorMemberId, [CLAIM_ID, newClaimId]);
     await expect(undoVotes).to.be.revertedWithCustomError(assessment, 'HasNotVoted').withArgs(newClaimId);
   });
@@ -250,7 +232,7 @@ describe('undoVotes', function () {
     await assessment.connect(assessor).castVote(CLAIM_ID, true, IPFS_HASH);
 
     // Undo vote during voting period (should work)
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorMemberId = await registry.getMemberId(assessor);
     const undoTx = assessment.connect(governanceAccount).undoVotes(assessorMemberId, [CLAIM_ID]);
 
     // Check that VoteUndone event is emitted
@@ -276,7 +258,7 @@ describe('undoVotes', function () {
     await time.increase(votingPeriod + 1n);
 
     // Undo vote during cooldown period (should work)
-    const assessorMemberId = await registry.getMemberId(assessor.address);
+    const assessorMemberId = await registry.getMemberId(assessor);
     const undoTx = assessment.connect(governanceAccount).undoVotes(assessorMemberId, [CLAIM_ID]);
 
     // Check that VoteUndone event is emitted
@@ -285,5 +267,109 @@ describe('undoVotes', function () {
     // Verify vote was undone
     const assessmentAfter = await assessment.getAssessment(CLAIM_ID);
     expect(assessmentAfter.acceptVotes).to.equal(0);
+  });
+
+  it('should undo votes after cooldown has passed', async function () {
+    const { contracts, accounts, constants } = await loadFixture(setup);
+    const { assessment, registry } = contracts;
+    const { CLAIM_ID, IPFS_HASH } = constants;
+    const [governanceAccount] = accounts.governanceContracts;
+    const [assessor] = accounts.assessors;
+
+    const assessorMemberId = await registry.getMemberId(assessor);
+
+    // Test both true and false votes
+    for (const vote of [true, false]) {
+      const castVoteTx = await assessment.connect(assessor).castVote(CLAIM_ID, vote, IPFS_HASH);
+      const castVoteBlock = await ethers.provider.getBlock(castVoteTx.blockNumber);
+
+      // verify vote was recorded
+      const assessmentBefore = await assessment.getAssessment(CLAIM_ID);
+      const expectedAcceptVotes = vote ? 1 : 0;
+      const expectedDenyVotes = vote ? 0 : 1;
+      expect(assessmentBefore.acceptVotes).to.equal(expectedAcceptVotes);
+      expect(assessmentBefore.denyVotes).to.equal(expectedDenyVotes);
+
+      const ballotBefore = await assessment.ballotOf(CLAIM_ID, assessorMemberId);
+      expect(ballotBefore.support).to.equal(vote);
+      expect(ballotBefore.timestamp).to.equal(castVoteBlock.timestamp);
+
+      const metadataBefore = await assessment.getBallotsMetadata(CLAIM_ID, assessorMemberId);
+      expect(metadataBefore).to.equal(IPFS_HASH);
+
+      // increase time past cooldown period
+      const votingPeriod = await assessment.minVotingPeriod();
+      const { cooldownPeriod } = await assessment.getAssessment(CLAIM_ID);
+      await time.increase(votingPeriod + cooldownPeriod + 1n);
+
+      // undoVote after cooldown has passed
+      const undoTx = assessment.connect(governanceAccount).undoVotes(assessorMemberId, [CLAIM_ID]);
+      await expect(undoTx).to.emit(assessment, 'VoteUndone').withArgs(CLAIM_ID, assessorMemberId);
+
+      // verify vote was undone
+      const assessmentAfter = await assessment.getAssessment(CLAIM_ID);
+      expect(assessmentAfter.acceptVotes).to.equal(0);
+      expect(assessmentAfter.denyVotes).to.equal(0);
+
+      const ballotAfter = await assessment.ballotOf(CLAIM_ID, assessorMemberId);
+      expect(ballotAfter.support).to.equal(false);
+      expect(ballotAfter.timestamp).to.equal(0);
+
+      // verify metadata is zeroed
+      const metadataAfter = await assessment.getBallotsMetadata(CLAIM_ID, assessorMemberId);
+      expect(metadataAfter).to.equal(ethers.ZeroHash);
+
+      // extend voting period for next vote iteration
+      if (vote === true) {
+        await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
+      }
+    }
+  });
+
+  it('should work while contracts are paused', async function () {
+    const { contracts, accounts, constants } = await loadFixture(setup);
+    const { assessment, registry } = contracts;
+    const { CLAIM_ID, IPFS_HASH } = constants;
+    const [governanceAccount] = accounts.governanceContracts;
+    const [assessor] = accounts.assessors;
+
+    // cast vote
+    await assessment.connect(assessor).castVote(CLAIM_ID, true, IPFS_HASH);
+
+    // increase time past cooldown period
+    const votingPeriod = await assessment.minVotingPeriod();
+    const { cooldownPeriod } = await assessment.getAssessment(CLAIM_ID);
+    await time.increase(votingPeriod + cooldownPeriod + 1n);
+
+    // pause Assessment and Claims contracts
+    await registry.confirmPauseConfig(PAUSE_ASSESSMENTS | PAUSE_CLAIMS);
+
+    // undoVotes should work even when paused
+    const assessorMemberId = await registry.getMemberId(assessor);
+    const undoTx = assessment.connect(governanceAccount).undoVotes(assessorMemberId, [CLAIM_ID]);
+    await expect(undoTx).to.emit(assessment, 'VoteUndone').withArgs(CLAIM_ID, assessorMemberId);
+
+    // verify vote was undone
+    const assessmentAfterUndo = await assessment.getAssessment(CLAIM_ID);
+    expect(assessmentAfterUndo.acceptVotes).to.equal(0);
+    expect(assessmentAfterUndo.denyVotes).to.equal(0);
+
+    // castVote should still be blocked by pause
+    const castVote = assessment.connect(assessor).castVote(CLAIM_ID, true, IPFS_HASH);
+    await expect(castVote).to.be.revertedWithCustomError(assessment, 'Paused');
+
+    // unpause and extend voting period
+    await registry.confirmPauseConfig(0);
+    await assessment.connect(governanceAccount).extendVotingPeriod(CLAIM_ID);
+
+    // castVote should work again
+    await assessment.connect(assessor).castVote(CLAIM_ID, false, IPFS_HASH);
+
+    const ballotFinal = await assessment.ballotOf(CLAIM_ID, assessorMemberId);
+    expect(ballotFinal.support).to.equal(false);
+
+    const assessmentFinal = await assessment.getAssessment(CLAIM_ID);
+    expect(assessmentFinal.acceptVotes).to.equal(0);
+    expect(assessmentFinal.denyVotes).to.equal(1);
   });
 });

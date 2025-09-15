@@ -123,7 +123,6 @@ interface IAssessments {
   error InvalidMemberId();
   error InvalidProductType();
   error VotingPeriodEnded();
-  error AssessmentCooldownPassed(uint claimId);
   error HasNotVoted(uint claimId);
   error AlreadyVoted();
   error VotingAlreadyClosed();

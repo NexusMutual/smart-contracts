@@ -110,6 +110,9 @@ contract Assessments is IAssessments, RegistryAware, Multicall {
     uint[] calldata assessorMemberIds,
     uint groupId
   ) external override onlyContracts(C_GOVERNOR) {
+
+    require(groupId <= _groupCount, InvalidGroupId());
+
     // make new group id
     if (groupId == 0) {
       groupId = ++_groupCount;
@@ -198,9 +201,6 @@ contract Assessments is IAssessments, RegistryAware, Multicall {
       require(ballot.timestamp > 0, HasNotVoted(claimId));
 
       Assessment memory assessment = _assessments[claimId];
-      uint cooldownEnd = assessment.votingEnd + assessment.cooldownPeriod;
-
-      require(block.timestamp <= cooldownEnd, AssessmentCooldownPassed(claimId));
 
       if (ballot.support) {
         assessment.acceptVotes--;
@@ -266,8 +266,8 @@ contract Assessments is IAssessments, RegistryAware, Multicall {
   /// @dev Only callable by internal contracts
   /// @dev Reverts if an assessment already exists for the given claimId
   function startAssessment(
-    uint claimId, 
-    uint productTypeId, 
+    uint claimId,
+    uint productTypeId,
     uint cooldownPeriod
   ) external override onlyContracts(C_CLAIMS) {
     require(_assessments[claimId].start == 0, AssessmentAlreadyExists());
@@ -360,9 +360,6 @@ contract Assessments is IAssessments, RegistryAware, Multicall {
   function extendVotingPeriod(uint claimId) external override onlyContracts(C_GOVERNOR) {
     Assessment memory assessment = _assessments[claimId];
     require(assessment.start != 0, InvalidClaimId());
-
-    uint cooldownEnd = assessment.votingEnd + assessment.cooldownPeriod;
-    require(block.timestamp <= cooldownEnd, AssessmentCooldownPassed(claimId));
 
     assessment.votingEnd = (block.timestamp + VOTING_PERIOD).toUint32();
     _assessments[claimId] = assessment;

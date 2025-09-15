@@ -2,9 +2,9 @@ const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { takeSnapshot, time, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { getFundedSigner, getSigner, setUSDCBalance, Addresses } = require('./utils');
+const { Addresses, getFundedSigner, getSigner, setUSDCBalance, executeGovernorProposal } = require('./utils');
 
-const { AssessmentOutcome, AssessmentStatus, ContractIndexes, PauseTypes, PoolAsset } = nexus.constants;
+const { AssessmentOutcome, AssessmentStatus, PauseTypes, PoolAsset } = nexus.constants;
 const { PAUSE_CLAIMS } = PauseTypes;
 const { MaxUint256, ZeroAddress, parseEther } = ethers;
 
@@ -90,15 +90,6 @@ describe('claim assessment', function () {
     const usdc = await ethers.getContractAt('ERC20Mock', usdcAddress);
     await usdc.connect(this.claimant).approve(this.cover, MaxUint256);
 
-    const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
-
-    // TODO: use governor open/close proposal
-    // use governor signer for assessment contract
-    const governorSigner = await getFundedSigner(governorAddress);
-    this.assessments = this.assessments.connect(governorSigner);
-
-    // add assessors to a new group (groupId 0 creates new group)
-    console.log('adding assessors to group');
     const assessorIds = [];
 
     for (const assessor of this.assessors) {
@@ -106,18 +97,30 @@ describe('claim assessment', function () {
       assessorIds.push(assessorId);
     }
 
-    const tx = await this.assessments.addAssessorsToGroup(assessorIds, 0);
-    await tx.wait();
-
-    const groupId = await this.assessments.getGroupsCount();
-
-    // set assessment data for product types - 1 day cooldown, 30 days redemption period
-    await this.assessments.setAssessingGroupIdForProductTypes([1, 19], groupId);
+    const txs = [
+      // add assessors to a new group (groupId 0 creates new group)
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('addAssessorsToGroup', [assessorIds, 0]),
+      },
+      // set assessment groupId for product types
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('setAssessingGroupIdForProductTypes', [[1, 19], 1]),
+      },
+    ];
+    await executeGovernorProposal(this.governor, this.abMembers, txs);
 
     // update cover dependent contract addresses
     const coverUpdateDependentAddressesTx = await this.cover.changeDependentContractAddress();
     await coverUpdateDependentAddressesTx.wait();
 
+    this.emergencyAdmin1 = await ethers.getSigner(Addresses.EMERGENCY_ADMIN_1);
+    this.emergencyAdmin2 = await ethers.getSigner(Addresses.EMERGENCY_ADMIN_2);
+
+    const groupId = await this.assessments.getGroupsCount();
     console.log(`Setup complete: ${assessorIds.length} assessors added to group ${groupId}`);
   });
 
@@ -235,7 +238,7 @@ describe('claim assessment', function () {
     console.log(`Phase 1 complete: Claim ${claimId} DENIED`);
   });
 
-  it('Phase 2: USDC claim with fraud detection and governance intervention', async function () {
+  it('Phase 2: USDC claim with fraud detection and governor intervention', async function () {
     const { snapshotId } = await takeSnapshot();
     console.info('Snapshot ID Assessment/Claims Phase 2 start: ', snapshotId);
 
@@ -284,8 +287,8 @@ describe('claim assessment', function () {
     const redeemClaimPayout = this.claims.connect(this.claimant).redeemClaimPayout(usdcClaimId);
     await expect(redeemClaimPayout).to.be.revertedWithCustomError(this.claims, 'ClaimNotRedeemable');
 
-    // Simulate fraud discovery - governance intervenes
-    // 1. Undo fraudulent votes from assessors 2 and 3
+    // Simulate fraud discovery - governor intervenes
+
     const fraudulentAssessorId = await this.registry.getMemberId(this.assessors[3]);
 
     // 2 acceptVotes and 2 denyVotes
@@ -293,41 +296,68 @@ describe('claim assessment', function () {
     expect(assessmentBefore.acceptVotes).to.equal(2);
     expect(assessmentBefore.denyVotes).to.equal(2);
 
-    // 1. Undo fraudulent votes (2 acceptVotes and 1 denyVotes after)
-    const governorAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_GOVERNOR);
-    const governorSigner = await getSigner(governorAddress);
-    await this.assessments.connect(governorSigner).undoVotes(fraudulentAssessorId, [usdcClaimId]);
-
-    const assessmentAfter = await this.assessments.getAssessment(usdcClaimId);
-    expect(assessmentAfter.acceptVotes).to.equal(2);
-    expect(assessmentAfter.denyVotes).to.equal(1);
-
-    // 2. Remove fraudulent assessor from group
+    // verify fraudulent assessor is in group
     const groupId = await this.assessments.getGroupsCount();
     const isAssessorInGroupBefore = await this.assessments.isAssessorInGroup(fraudulentAssessorId, groupId);
     expect(isAssessorInGroupBefore).to.be.true;
 
-    await this.assessments.connect(governorSigner).removeAssessorFromGroup(fraudulentAssessorId, groupId);
-
-    const isAssessorInGroupAfter = await this.assessments.isAssessorInGroup(fraudulentAssessorId, groupId);
-    expect(isAssessorInGroupAfter).to.be.false;
-
-    // 3. Add new assessor to group
+    // verify new assessor is not in group
     const newAssessor = await getSigner(this.nonAssessor.address);
     const newAssessorMemberId = await this.registry.getMemberId(newAssessor);
-
     const isNewAssessorInGroupBefore = await this.assessments.isAssessorInGroup(newAssessorMemberId, groupId);
     expect(isNewAssessorInGroupBefore).to.be.false;
 
-    await this.assessments.connect(governorSigner).addAssessorsToGroup([newAssessorMemberId], groupId);
+    // pause Claims and Assessments contracts
+    const { PAUSE_CLAIMS, PAUSE_ASSESSMENTS } = PauseTypes;
+    await this.registry.connect(this.emergencyAdmin1).proposePauseConfig(PAUSE_CLAIMS | PAUSE_ASSESSMENTS);
+    await this.registry.connect(this.emergencyAdmin2).confirmPauseConfig(PAUSE_CLAIMS | PAUSE_ASSESSMENTS);
 
+    const txs = [
+      // undo fraudulent assessor vote
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('undoVotes', [fraudulentAssessorId, [usdcClaimId]]),
+      },
+      // remove fraudulent assessor from group
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('removeAssessorFromGroup', [fraudulentAssessorId, groupId]),
+      },
+      // add new assessor to group
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('addAssessorsToGroup', [[newAssessorMemberId], groupId]),
+      },
+      // extend voting period
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('extendVotingPeriod', [usdcClaimId]),
+      },
+    ];
+    await executeGovernorProposal(this.governor, this.abMembers, txs);
+
+    // verify fraudulent votes is undone (2 acceptVotes and 1 denyVotes after)
+    const assessmentAfter = await this.assessments.getAssessment(usdcClaimId);
+    expect(assessmentAfter.acceptVotes).to.equal(2);
+    expect(assessmentAfter.denyVotes).to.equal(1);
+
+    // verify fraudulent assessor is removed from group
+    const isAssessorInGroupAfter = await this.assessments.isAssessorInGroup(fraudulentAssessorId, groupId);
+    expect(isAssessorInGroupAfter).to.be.false;
+
+    // verify new assessor is added to group
     const isNewAssessorInGroupAfter = await this.assessments.isAssessorInGroup(newAssessorMemberId, groupId);
     expect(isNewAssessorInGroupAfter).to.be.true;
 
-    // 4. Extend voting period to allow new assessor to vote
-    await this.assessments.connect(governorSigner).extendVotingPeriod(usdcClaimId);
+    // unpause Claims and Assessments contracts
+    await this.registry.connect(this.emergencyAdmin1).proposePauseConfig(0); // 0 = no pause
+    await this.registry.connect(this.emergencyAdmin2).confirmPauseConfig(0);
 
-    // 5. New assessors vote (now majority for - 3 accept, 1 deny after fraud removal)
+    // new assessors vote (now majority for - 3 accept, 1 deny after fraud removal)
     await this.assessments.connect(newAssessor).castVote(usdcClaimId, true, ipfsHashFor); // accept
 
     // Advance time through voting and cooldown periods
@@ -340,34 +370,150 @@ describe('claim assessment', function () {
     this.usdcClaimId = usdcClaimId;
     this.newAssessor = newAssessor;
 
-    console.log(`Phase 2 complete: USDC claim ${usdcClaimId} ready for payout after governance intervention`);
+    console.log(`Phase 2 complete: USDC claim ${usdcClaimId} ready for payout after governor intervention`);
+  });
+
+  it('Phase 2.5: post-cooldown fraud recovery - governor intervention past cooldown period', async function () {
+    const coverId = await createCover(this.cover, this.claimant, {
+      coverAsset: PoolAsset.ETH,
+      amount: parseEther('0.3'),
+    });
+
+    const claimId = await this.claims.getClaimsCount();
+    const submitClaimTx = await this.claims
+      .connect(this.claimant)
+      .submitClaim(coverId, parseEther('0.2'), ethers.solidityPackedKeccak256(['string'], ['post-cooldown-claim']), {
+        value: CLAIM_DEPOSIT,
+        gasPrice: 0,
+      });
+    await submitClaimTx.wait();
+
+    // cast votes (3 accept, 1 deny)
+    const ipfsHashFor = ethers.solidityPackedKeccak256(['string'], ['post-cooldown-accept']);
+    const ipfsHashAgainst = ethers.solidityPackedKeccak256(['string'], ['post-cooldown-deny']);
+
+    await this.assessments.connect(this.assessors[0]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[1]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[2]).castVote(claimId, true, ipfsHashAgainst); // accept (fraud)
+    await this.assessments.connect(this.newAssessor).castVote(claimId, false, ipfsHashAgainst); // deny
+
+    // advance time past cooldown period
+    const assessment = await this.assessments.getAssessment(claimId);
+    const finalizedTime = assessment.votingEnd + assessment.cooldownPeriod + daysToSeconds(1);
+    await time.increaseTo(finalizedTime);
+
+    // verify claim is actually finalized but not yet redeemed
+    const { status, outcome, claim } = await this.claims.getClaimDetails(claimId);
+    expect(status).to.equal(AssessmentStatus.Finalized);
+    expect(outcome).to.equal(AssessmentOutcome.Accepted);
+    expect(claim.payoutRedeemed).to.be.false;
+    expect(claim.depositRetrieved).to.be.false;
+
+    const fraudAssessor = await this.registry.getMemberId(this.assessors[2]);
+
+    const assessmentBeforeIntervention = await this.assessments.getAssessment(claimId);
+    expect(assessmentBeforeIntervention.acceptVotes).to.equal(3);
+    expect(assessmentBeforeIntervention.denyVotes).to.equal(1);
+
+    // pause contracts for governor intervention
+    const { PAUSE_CLAIMS, PAUSE_ASSESSMENTS } = PauseTypes;
+    await this.registry.connect(this.emergencyAdmin1).proposePauseConfig(PAUSE_CLAIMS | PAUSE_ASSESSMENTS);
+    await this.registry.connect(this.emergencyAdmin2).confirmPauseConfig(PAUSE_CLAIMS | PAUSE_ASSESSMENTS);
+
+    const replacementAssessor = this.assessors[3];
+    const replacementAssessorMemberId = await this.registry.getMemberId(replacementAssessor);
+    const groupId = await this.assessments.getGroupsCount();
+
+    // execute governor proposal AFTER finalization
+    const postCooldownTxs = [
+      // undo fraudulent vote after finalization
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('undoVotes', [fraudAssessor, [claimId]]),
+      },
+      // remove fraudulent assessor from group
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('removeAssessorFromGroup', [fraudAssessor, groupId]),
+      },
+      // add replacement assessor to group
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('addAssessorsToGroup', [
+          [replacementAssessorMemberId],
+          groupId,
+        ]),
+      },
+      // extend voting period after finalization
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('extendVotingPeriod', [claimId]),
+      },
+    ];
+    await executeGovernorProposal(this.governor, this.abMembers, postCooldownTxs);
+
+    // verify governor intervention worked
+    const assessmentAfterIntervention = await this.assessments.getAssessment(claimId);
+    expect(assessmentAfterIntervention.acceptVotes).to.equal(2); // reduced by 1 (fraudulent vote removed)
+    expect(assessmentAfterIntervention.denyVotes).to.equal(1); // unchanged
+
+    // verify assessor group changes
+    const isFraudAssessorRemoved = await this.assessments.isAssessorInGroup(fraudAssessor, groupId);
+    expect(isFraudAssessorRemoved).to.be.false;
+
+    const isNewAssessorAdded = await this.assessments.isAssessorInGroup(replacementAssessorMemberId, groupId);
+    expect(isNewAssessorAdded).to.be.true;
+
+    // verify voting period was extended (should have new votingEnd time)
+    const extendedAssessment = await this.assessments.getAssessment(claimId);
+    expect(extendedAssessment.votingEnd).to.be.greaterThan(assessmentBeforeIntervention.votingEnd);
+
+    // unpause contracts
+    await this.registry.connect(this.emergencyAdmin1).proposePauseConfig(0);
+    await this.registry.connect(this.emergencyAdmin2).confirmPauseConfig(0);
+
+    // replacement assessor votes (now majority accept - 2 accept, 2 deny)
+    await this.assessments.connect(replacementAssessor).castVote(claimId, false, ipfsHashFor); // deny
+
+    // advance time through new voting and cooldown periods
+    const finalAssessment = await this.assessments.getAssessment(claimId);
+    const newCooldownEndTime = finalAssessment.votingEnd + finalAssessment.cooldownPeriod + daysToSeconds(1);
+    await time.increaseTo(newCooldownEndTime);
+
+    // verify final outcome is now a DRAW (2 accept, 2 deny)
+    const finalClaimDetails = await this.claims.getClaimDetails(claimId);
+    expect(finalClaimDetails.status).to.equal(AssessmentStatus.Finalized);
+    expect(finalClaimDetails.outcome).to.equal(AssessmentOutcome.Draw);
+
+    console.log(`Phase 2.5 complete: post-cooldown fraud recovery successfully changed ACCEPTED to DRAW`);
   });
 
   it('Phase 3: Pause and payout functionality testing', async function () {
     // Get USDC token contract address from pool
     const usdcAsset = await this.pool.getAsset(PoolAsset.USDC);
-    const usdcToken = await ethers.getContractAt('ERC20Mock', usdcAsset.assetAddress);
+    this.usdcToken = await ethers.getContractAt('ERC20Mock', usdcAsset.assetAddress);
 
     // Get claim deposit amount from contract
     const claimDepositAmount = await this.claims.CLAIM_DEPOSIT_IN_ETH();
 
     // Test pause claims payout - should fail when paused
-    const emergencyAdmin1 = await ethers.getSigner(Addresses.EMERGENCY_ADMIN_1);
-    const emergencyAdmin2 = await ethers.getSigner(Addresses.EMERGENCY_ADMIN_2);
-
-    await this.registry.connect(emergencyAdmin1).proposePauseConfig(PAUSE_CLAIMS);
-    await this.registry.connect(emergencyAdmin2).confirmPauseConfig(PAUSE_CLAIMS);
+    await this.registry.connect(this.emergencyAdmin1).proposePauseConfig(PAUSE_CLAIMS);
+    await this.registry.connect(this.emergencyAdmin2).confirmPauseConfig(PAUSE_CLAIMS);
 
     const redeemClaimPayoutPaused = this.claims.connect(this.claimant).redeemClaimPayout(this.usdcClaimId);
     await expect(redeemClaimPayoutPaused).to.be.revertedWithCustomError(this.claims, 'Paused');
 
     // Unpause claims payout
-    await this.registry.connect(emergencyAdmin1).proposePauseConfig(0); // 0 = no pause
-    await this.registry.connect(emergencyAdmin2).confirmPauseConfig(0);
+    await this.registry.connect(this.emergencyAdmin1).proposePauseConfig(0); // 0 = no pause
+    await this.registry.connect(this.emergencyAdmin2).confirmPauseConfig(0);
 
     // Record balances before redemption
     const claimantEthBalanceBefore = await ethers.provider.getBalance(this.claimant.address);
-    const claimantUsdcBalanceBefore = await usdcToken.balanceOf(this.claimant.address);
+    const claimantUsdcBalanceBefore = await this.usdcToken.balanceOf(this.claimant.address);
 
     // Now redemption should succeed (USDC payout + ETH deposit returned)
     const redeemClaimPayout = this.claims.connect(this.claimant).redeemClaimPayout(this.usdcClaimId, { gasPrice: 0 });
@@ -375,7 +521,7 @@ describe('claim assessment', function () {
 
     // Record balances after redemption
     const claimantEthBalanceAfter = await ethers.provider.getBalance(this.claimant.address);
-    const claimantUsdcBalanceAfter = await usdcToken.balanceOf(this.claimant.address);
+    const claimantUsdcBalanceAfter = await this.usdcToken.balanceOf(this.claimant.address);
 
     // Verify USDC balance increased by 750 USDC (with 6 decimals)
     const expectedUsdcIncrease = ethers.parseUnits('750', 6);
@@ -387,6 +533,73 @@ describe('claim assessment', function () {
     console.log(`Phase 3 complete: Pause/unpause functionality tested, USDC claim paid out`);
     console.log(`   - USDC balance increased by: ${ethers.formatUnits(expectedUsdcIncrease, 6)} USDC`);
     console.log(`   - ETH deposit returned: ${ethers.formatEther(claimDepositAmount)} ETH`);
+  });
+
+  it('Phase 3.5: no double redeem after governor changes post-redemption', async function () {
+    const redeemedClaimId = this.usdcClaimId;
+
+    // verify claim was already redeemed in Phase 3
+    const claimBefore = await this.claims.getClaim(redeemedClaimId);
+    expect(claimBefore.payoutRedeemed).to.be.true;
+    expect(claimBefore.depositRetrieved).to.be.true;
+
+    // record current balances (should remain unchanged after governor attempts)
+    const ethBalanceBefore = await ethers.provider.getBalance(this.claimant.address);
+    const usdcBalanceBefore = await this.usdcToken.balanceOf(this.claimant.address);
+
+    const assessorWhoVotedId = await this.registry.getMemberId(this.assessors[0]);
+    const assessmentBefore = await this.assessments.getAssessment(redeemedClaimId);
+
+    // governor attempts undoVotes and extendVotingPeriod on already-redeemed claim
+    // these should NOT revert (governor functions work regardless of redemption state)
+    const postRedemptionTxs = [
+      // attempt to undo vote on redeemed claim
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('undoVotes', [assessorWhoVotedId, [redeemedClaimId]]),
+      },
+      // attempt to extend voting period on redeemed claim
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('extendVotingPeriod', [redeemedClaimId]),
+      },
+    ];
+
+    // governor functions should succeed even on redeemed claims
+    await executeGovernorProposal(this.governor, this.abMembers, postRedemptionTxs);
+
+    await setNextBlockBaseFeePerGas(0);
+
+    // verify claim redemption state is unchanged (still redeemed)
+    const claimAfter = await this.claims.getClaim(redeemedClaimId);
+    expect(claimAfter.payoutRedeemed).to.be.true;
+    expect(claimAfter.depositRetrieved).to.be.true;
+
+    // verify governor changes took effect on assessment state (but don't matter for redeemed claim)
+    const ballotAfterUndo = await this.assessments.ballotOf(redeemedClaimId, assessorWhoVotedId);
+    expect(ballotAfterUndo.timestamp).to.equal(0); // vote was undone
+
+    const assessmentAfter = await this.assessments.getAssessment(redeemedClaimId);
+    expect(assessmentAfter.votingEnd).to.be.greaterThan(assessmentBefore.votingEnd); // voting period was extended
+
+    // second redemption should fail
+    const redeemClaimPayout = this.claims.connect(this.claimant).redeemClaimPayout(redeemedClaimId);
+    await expect(redeemClaimPayout).to.be.revertedWithCustomError(this.claims, 'ClaimNotRedeemable');
+
+    // deposit retrieval should fail
+    const retrieveDeposit = this.claims.connect(this.claimant).retrieveDeposit(redeemedClaimId);
+    await expect(retrieveDeposit).to.be.revertedWithCustomError(this.claims, 'ClaimNotADraw');
+
+    // verify balances remain exactly the same (no double redemption occurred)
+    const ethBalanceAfter = await ethers.provider.getBalance(this.claimant.address);
+    const usdcBalanceAfter = await this.usdcToken.balanceOf(this.claimant.address);
+
+    expect(ethBalanceAfter).to.be.lessThanOrEqual(ethBalanceBefore);
+    expect(usdcBalanceAfter).to.be.lessThanOrEqual(usdcBalanceBefore);
+
+    console.log(`Phase 3.5 complete: governor changes on redeemed claim had no effect on redemption protection`);
   });
 
   it('Phase 4: ETH claim with DRAW outcome', async function () {
@@ -412,7 +625,7 @@ describe('claim assessment', function () {
 
     await this.assessments.connect(this.assessors[0]).castVote(drawClaimId, true, ipfsHashFor); // accept
     await this.assessments.connect(this.assessors[1]).castVote(drawClaimId, true, ipfsHashFor); // accept
-    await this.assessments.connect(this.assessors[2]).castVote(drawClaimId, false, ipfsHashAgainst); // deny
+    await this.assessments.connect(this.assessors[3]).castVote(drawClaimId, false, ipfsHashAgainst); // deny
     await this.assessments.connect(this.newAssessor).castVote(drawClaimId, false, ipfsHashAgainst); // deny
 
     // Advance time past voting and cooldown periods
@@ -473,7 +686,7 @@ describe('claim assessment', function () {
 
     await this.assessments.connect(this.assessors[0]).castVote(newEthClaimId, true, ipfsHashFor); // accept
     await this.assessments.connect(this.assessors[1]).castVote(newEthClaimId, true, ipfsHashFor); // accept
-    await this.assessments.connect(this.assessors[2]).castVote(newEthClaimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[3]).castVote(newEthClaimId, true, ipfsHashFor); // accept
     await this.assessments.connect(this.newAssessor).castVote(newEthClaimId, false, ipfsHashAgainst); // deny
 
     // Advance time past voting and cooldown periods
@@ -518,7 +731,7 @@ describe('claim assessment', function () {
 
     await this.assessments.connect(this.assessors[0]).castVote(resubmitClaimId, true, ipfsHashFor); // accept
     await this.assessments.connect(this.assessors[1]).castVote(resubmitClaimId, true, ipfsHashFor); // accept
-    await this.assessments.connect(this.assessors[2]).castVote(resubmitClaimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[3]).castVote(resubmitClaimId, true, ipfsHashFor); // accept
     await this.assessments.connect(this.newAssessor).castVote(resubmitClaimId, false, ipfsHashAgainst); // deny
 
     // Advance time past voting and cooldown periods

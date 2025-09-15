@@ -57,7 +57,10 @@ describe('removeAssessorFromAllGroups', function () {
 
       // Add assessor to groups
       await Promise.all(
-        groupIds.map(groupId => assessment.connect(governanceAccount).addAssessorsToGroup([assessorId], groupId)),
+        groupIds.map(groupId => {
+          groupId = groupId > 1 ? 0 : groupId; // groupId 2 and 3 does not exist yet so use groupId 0 to create new one
+          return assessment.connect(governanceAccount).addAssessorsToGroup([assessorId], groupId);
+        }),
       );
 
       // Verify assessor is in all groups
@@ -103,19 +106,21 @@ describe('removeAssessorFromAllGroups', function () {
     const [governanceAccount] = accounts.governanceContracts;
     const [assessor1, assessor2, assessor3] = accounts.members;
 
-    const [assessorId1, assessorId2, assessorId3] = await Promise.all([
+    const assessorIds = await Promise.all([
       registry.getMemberId(assessor1.address),
       registry.getMemberId(assessor2.address),
       registry.getMemberId(assessor3.address),
     ]);
+    const [assessorId1, assessorId2, assessorId3] = assessorIds;
 
     const groupIds = [1n, 2n];
 
     // Add all assessors to both groups
     await Promise.all(
-      groupIds.map(groupId =>
-        assessment.connect(governanceAccount).addAssessorsToGroup([assessorId1, assessorId2, assessorId3], groupId),
-      ),
+      groupIds.map(groupId => {
+        groupId = groupId > 1 ? 0 : groupId; // groupId 2 and 3 does not exist yet so use groupId 0 to create new one
+        return assessment.connect(governanceAccount).addAssessorsToGroup(assessorIds, groupId);
+      }),
     );
 
     // Remove only assessor1 from all groups

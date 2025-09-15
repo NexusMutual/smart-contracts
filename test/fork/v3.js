@@ -116,6 +116,9 @@ describe('v3 launch', function () {
     }
   });
 
+  // push legacy governance rewards
+  require('../../scripts/push-governance-rewards');
+
   /*
    * Phase 0
    * push old governance rewards
@@ -126,7 +129,6 @@ describe('v3 launch', function () {
    * upgrade Governance, Assessment, MemberRoles contracts via governance proposal
    */
   it('should run phase 0', async function () {
-    // @TODO: push old governance rewards
     // @TODO: calculate salts for registry and registry proxy
 
     this.registryProxy = await deployContract('UpgradeableProxy', []);
@@ -226,6 +228,10 @@ describe('v3 launch', function () {
     expect(registryProxyOwner).to.equal(this.governor.target);
   });
 
+  // push legacy assessment stake and rewards
+  require('../../scripts/push-assessment-stake');
+  require('../../scripts/push-assessment-rewards');
+
   /*
    * Phase 2
    * - legacyMemberRoles.migrateMembers (including AB members)
@@ -323,9 +329,6 @@ describe('v3 launch', function () {
       { index: ContractIndexes.C_TOKEN_CONTROLLER, address: tokenControllerImplementation.target },
     ];
   });
-
-  // push old assessment stake and rewards
-  require('./legacy-assessment');
 
   /*
    * Phase 3

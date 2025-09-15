@@ -19,11 +19,11 @@ describe('getters', () => {
       .to.be.revertedWithCustomError(registry, 'InvalidContractIndex');
   });
 
-  it('should return zero address for non-existent contracts', async () => {
+  it('should revert for non-existent contracts', async () => {
     const { registry } = await loadFixture(setup);
     const idx = 2n ** 48n; // valid index but no contract
-    expect(await registry.getContractAddressByIndex(idx)).to.equal(ZeroAddress);
-    expect(await registry.isProxyContract(idx)).to.be.false;
+    await expect(registry.getContractAddressByIndex(idx)).to.revertedWithCustomError(registry, 'ContractDoesNotExist');
+    await expect(registry.isProxyContract(idx)).to.revertedWithCustomError(registry, 'ContractDoesNotExist');
   });
 
   it('should return correct index for registered contracts', async () => {
@@ -39,18 +39,23 @@ describe('getters', () => {
   it('should return 0 for unregistered addresses', async () => {
     const { registry, alice } = await loadFixture(setup);
 
-    expect(await registry.getContractIndexByAddress(alice.address)).to.equal(0);
-    expect(await registry.getContractIndexByAddress(ZeroAddress)).to.equal(0);
+    await expect(registry.getContractIndexByAddress(alice.address)) //
+      .to.revertedWithCustomError(registry, 'ContractDoesNotExist');
+
+    await expect(registry.getContractIndexByAddress(ZeroAddress)) //
+      .to.revertedWithCustomError(registry, 'InvalidContractAddress');
 
     const randomAddress = ethers.Wallet.createRandom().address; // an address that we have the PK of
-    expect(await registry.getContractIndexByAddress(randomAddress)).to.equal(0);
+    await expect(registry.getContractIndexByAddress(randomAddress)) //
+      .to.revertedWithCustomError(registry, 'ContractDoesNotExist');
   });
 
   it('should return 0 after contract removal', async () => {
     const { registry, governor } = await loadFixture(setup);
     const poolAddress = await registry.getContractAddressByIndex(ContractIndexes.C_POOL);
     await registry.connect(governor).removeContract(ContractIndexes.C_POOL);
-    expect(await registry.getContractIndexByAddress(poolAddress)).to.equal(0);
+    await expect(registry.getContractIndexByAddress(poolAddress)) //
+      .to.revertedWithCustomError(registry, 'ContractDoesNotExist');
   });
 
   it('should return C_REGISTRY for Registry itself', async () => {

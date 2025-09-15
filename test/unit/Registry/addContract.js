@@ -119,9 +119,10 @@ describe('addContract', () => {
     await registry.connect(governor).addContract(idx, tcProxy, true);
 
     expect(await registry.getContractAddressByIndex(idx)).to.equal(tcProxy);
-    expect(await registry.getContractIndexByAddress(mockPool)).to.equal(0);
     expect(await registry.getContractIndexByAddress(tcProxy)).to.equal(idx);
     expect(await registry.isProxyContract(idx)).to.be.true;
+    await expect(registry.getContractIndexByAddress(mockPool)) // reverts
+      .to.revertedWithCustomError(registry, 'ContractDoesNotExist');
   });
 
   it('should allow adding a non-proxy contract at the same index after removing a proxy contract', async () => {
@@ -142,7 +143,8 @@ describe('addContract', () => {
 
     expect(await registry.getContractAddressByIndex(idx)).to.equal(mockPool);
     expect(await registry.getContractIndexByAddress(mockPool)).to.equal(idx);
-    expect(await registry.getContractIndexByAddress(tcProxy)).to.equal(0);
     expect(await registry.isProxyContract(idx)).to.be.false;
+    await expect(registry.getContractIndexByAddress(tcProxy)) // reverts
+      .to.revertedWithCustomError(registry, 'ContractDoesNotExist');
   });
 });

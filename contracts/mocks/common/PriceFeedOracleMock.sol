@@ -27,7 +27,7 @@ contract PriceFeedOracleMock is IPriceFeedOracle {
     return amount / ethRate;
   }
 
-  function assets(address assetAddress) external view returns (Aggregator, uint8) {
+  function assets(address assetAddress) external view returns (OracleAggregator, uint8) {
     AssetInfo memory asset = assetsMap[assetAddress];
     return (asset.aggregator, asset.decimals);
   }

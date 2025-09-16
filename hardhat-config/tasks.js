@@ -1,21 +1,12 @@
-const { task } = require('hardhat/config');
-const { TASK_TYPECHAIN } = require('@typechain/hardhat/dist/constants');
-const { TASK_COMPILE, TASK_TEST_SETUP_TEST_ENVIRONMENT } = require('hardhat/builtin-tasks/task-names');
+const fs = require('node:fs');
+const path = require('node:path');
 
-task(TASK_TEST_SETUP_TEST_ENVIRONMENT, async (_, hre) => {
-  const accounts = await hre.ethers.getSigners();
-  hre.accounts = {
-    defaultSender: accounts[0],
-    nonMembers: accounts.slice(1, 5),
-    members: accounts.slice(5, 10),
-    advisoryBoardMembers: accounts.slice(10, 15),
-    internalContracts: accounts.slice(15, 20),
-    nonInternalContracts: accounts.slice(20, 25),
-    governanceContracts: accounts.slice(25, 30),
-    stakingPoolManagers: accounts.slice(30, 35),
-    emergencyAdmin: accounts[35],
-    generalPurpose: accounts.slice(36),
-  };
+const { extendEnvironment, task } = require('hardhat/config');
+const { TASK_TYPECHAIN } = require('@typechain/hardhat/dist/constants');
+const { TASK_COMPILE, TASK_TEST } = require('hardhat/builtin-tasks/task-names');
+
+extendEnvironment(hre => {
+  hre.nexus = require('../lib');
 });
 
 task(TASK_TYPECHAIN, async (args, hre, runSuper) => {
@@ -50,5 +41,30 @@ task('coverage').setAction(async function (args, hre, runSuper) {
     ...hre.config.warnings,
     '*': 'warn',
   };
+  return runSuper();
+});
+
+task(TASK_TEST).setAction(async function (args, hre, runSuper) {
+  args.testFiles = args.testFiles.flatMap(file => {
+    // pass as is if it's a file
+    if (fs.existsSync(file) && fs.statSync(file).isFile()) {
+      return [file];
+    }
+
+    // then try as a glob
+    const items = fs.globSync(file);
+
+    if (items.length === 0) {
+      // if nothing matched - return the original path so it can gracefully fail down the pipeline
+      return [file];
+    }
+
+    return items.flatMap(item => {
+      return fs.statSync(item).isDirectory()
+        ? fs.globSync(path.join(item, '**/*.js')) // scan for tests
+        : [item]; // return as is
+    });
+  });
+
   return runSuper();
 });

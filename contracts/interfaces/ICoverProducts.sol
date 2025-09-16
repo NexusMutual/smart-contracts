@@ -39,6 +39,8 @@ struct Product {
 struct ProductType {
   ClaimMethod claimMethod;
   uint32 gracePeriod;
+  uint32 assessmentCooldownPeriod;
+  uint32 payoutRedemptionPeriod;
 }
 
 interface ICoverProducts {
@@ -137,6 +139,7 @@ interface ICoverProducts {
   error StakingPoolDoesNotExist();
   error MismatchedArrayLengths();
   error MetadataRequired();
+  error ClaimMethodMismatch();
 
   // Misc
   error UnsupportedCoverAssets();

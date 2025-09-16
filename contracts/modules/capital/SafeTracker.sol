@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-import "../../abstract/MasterAwareV2.sol";
+
+import "../../abstract/ReentrancyGuard.sol";
+import "../../abstract/RegistryAware.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/ISafeTracker.sol";
 
-contract SafeTracker is ISafeTracker, MasterAwareV2 {
+contract SafeTracker is ISafeTracker, RegistryAware, ReentrancyGuard {
 
+  // master + mapping
+  uint[2] internal _unused;
   uint public coverReInvestmentUSDC;
 
   string public constant symbol = "NXMIS";
@@ -20,34 +23,35 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
   uint public immutable investmentLimit;
 
   IERC20 public immutable usdc;
-  IERC20 public immutable dai;
   IERC20 public immutable weth;
   IERC20 public immutable aweth;
   IERC20 public immutable debtUsdc;
+  IPool public immutable pool;
 
   /* ========== CONSTRUCTOR ========== */
 
   constructor(
+    address _registry,
     uint _investmentLimit,
     address _safe,
     address _usdc,
-    address _dai,
     address _weth,
     address _aweth,
     address _debtUsdc
-  ) {
+  ) RegistryAware(_registry) {
+
     require(
-      _usdc != address(0) && _dai != address(0) && _aweth != address(0) && _aweth != address(0) && _debtUsdc != address(0),
+      _usdc != address(0) && _weth != address(0) && _aweth != address(0) && _debtUsdc != address(0),
       "SafeTracker: tokens address cannot be zero address"
     );
 
     investmentLimit = _investmentLimit;
     safe = _safe;
     usdc = IERC20(_usdc);
-    dai = IERC20(_dai);
     weth = IERC20(_weth);
     aweth = IERC20(_aweth);
     debtUsdc = IERC20(_debtUsdc);
+    pool = IPool(fetch(C_POOL));
   }
 
   /**
@@ -63,25 +67,26 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
   * @return An uint256 representing the amount of the safe.
   */
   function balanceOf(address account) external view returns (uint256) {
-    if (account != address(pool())) {
-      return 0;
-    }
-    return _calculateBalance();
+    return account == address(pool) ? _calculateBalance() : 0;
   }
 
   /**
   * @dev Updates invested USDC in CoverRe
   */
   function updateCoverReInvestmentUSDC(uint investedUSDC) external {
-    if (msg.sender != safe) {
-      revert OnlySafe();
-    }
-    if (investedUSDC > investmentLimit) {
-      revert InvestmentSurpassesLimit();
-    }
-    coverReInvestmentUSDC = investedUSDC;
 
+    require(msg.sender == safe, OnlySafe());
+    require(investedUSDC <= investmentLimit, InvestmentSurpassesLimit());
+
+    coverReInvestmentUSDC = investedUSDC;
     emit CoverReInvestmentUSDCUpdated(investedUSDC);
+  }
+
+  function transferAssetToSafe(
+    address assetAddress,
+    uint amount
+  ) external onlyContracts(C_GOVERNOR) whenNotPaused(PAUSE_GLOBAL) nonReentrant {
+    pool.transferAssetToSafe(assetAddress, safe, amount);
   }
 
   /**
@@ -107,8 +112,13 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
     return true;
   }
 
+  /**
+   * @dev Returns the latest answer for the price of NXMIS in ETH
+   * @dev Same signature as Aggregator.latestAnswer so we can use it as its own oracle
+   * @return 1e18 (1 NXMIS = 1 ETH)
+   */
   function latestAnswer() external pure returns (uint256) {
-    return 1e18;
+    return 1 ether;
   }
 
   /**
@@ -120,38 +130,23 @@ contract SafeTracker is ISafeTracker, MasterAwareV2 {
     // eth in the safe, weth and aweth balance, weth and aweth are 1:1 to eth
     uint ethAmount = address(safe).balance + weth.balanceOf(safe) + aweth.balanceOf(safe);
 
-    IPriceFeedOracle priceFeedOracle = pool().priceFeedOracle();
-
-    // dai in the safe
-    uint daiAmount = dai.balanceOf(safe);
-    uint daiValueInEth = priceFeedOracle.getEthForAsset(address(dai), daiAmount);
-
     // usdc actually in the safe and usdc invested in CoverRe
     uint usdcAmount = usdc.balanceOf(safe) + coverReInvestmentUSDC;
-    uint usdcValueInEth = priceFeedOracle.getEthForAsset(address(usdc), usdcAmount);
+    uint usdcValueInEth = pool.getEthForAsset(address(usdc), usdcAmount);
 
     // usdc debt (borrowed usdc)
     uint debtUsdcAmount = debtUsdc.balanceOf(safe);
-    uint debtUsdcValueInEth = priceFeedOracle.getEthForAsset(address(usdc), debtUsdcAmount);
+    uint debtUsdcValueInEth = pool.getEthForAsset(address(usdc), debtUsdcAmount);
 
-    return ethAmount + usdcValueInEth + daiValueInEth - debtUsdcValueInEth;
+    return ethAmount + usdcValueInEth - debtUsdcValueInEth;
   }
 
   function _transfer(address from, address to, uint256 amount) internal returns (bool) {
-    if (amount == 0 || msg.sender == address(pool())) {
-      emit Transfer(from, to, amount);
-      return true;
-    }
-    revert("Amount exceeds balance");
+
+    require(amount == 0 || msg.sender == address(pool), AmountExceedsBalance());
+
+    emit Transfer(from, to, amount);
+    return true;
   }
 
-  /* ========== DEPENDENCIES ========== */
-
-  function pool() internal view returns (IPool) {
-    return IPool(internalContracts[uint(ID.P1)]);
-  }
-
-  function changeDependentContractAddress() external override {
-    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
-  }
 }

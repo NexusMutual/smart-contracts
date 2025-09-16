@@ -8,21 +8,22 @@ describe('changeOperator', function () {
     const { tokenController } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
-    await expect(tokenController.connect(member).changeOperator(member.address)).to.be.revertedWith(
-      'Caller is not authorized to govern',
+    await expect(tokenController.connect(member).changeOperator(member.address)).to.be.revertedWithCustomError(
+      tokenController,
+      'Unauthorized',
     );
   });
 
   it('updates operator in the token contract', async function () {
     const fixture = await loadFixture(setup);
     const { tokenController, nxm } = fixture.contracts;
-    const [governance] = fixture.accounts.governanceContracts;
+    const [governor] = fixture.accounts.governor;
     const [member] = fixture.accounts.members;
 
     const initialOperator = await nxm.operator();
 
     const newOperator = member.address;
-    await tokenController.connect(governance).changeOperator(member.address);
+    await tokenController.connect(governor).changeOperator(member.address);
 
     const operator = await nxm.operator();
 

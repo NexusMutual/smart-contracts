@@ -10,11 +10,11 @@ contract PriceFeedOracleGeneric is IPriceFeedOracle {
     revert("Unsupported");
   }
 
-  function assets(address) external virtual view returns (Aggregator, uint8) {
+  function assets(address) external virtual view returns (OracleAggregator, uint8) {
     revert("Unsupported");
   }
 
-  function assetsMap(address) external virtual view returns (Aggregator, AggregatorType, uint8) {
+  function assetsMap(address) external virtual view returns (OracleAggregator, AggregatorType, uint8) {
     revert("Unsupported");
   }
 

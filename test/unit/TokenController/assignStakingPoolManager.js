@@ -2,17 +2,17 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { Two } = ethers.constants;
 
-const poolId = Two.pow(95); // overflows at uint96
+const poolId = 2n ** 95n; // overflows at uint96
 
 describe('assignStakingPoolManager', function () {
   it('should revert if not called from internal address', async function () {
     const fixture = await loadFixture(setup);
     const { tokenController } = fixture.contracts;
 
-    await expect(tokenController.assignStakingPoolManager(poolId, ethers.constants.AddressZero)).to.be.revertedWith(
-      'Caller is not an internal contract',
+    await expect(tokenController.assignStakingPoolManager(poolId, ethers.ZeroAddress)).to.be.revertedWithCustomError(
+      tokenController,
+      'Unauthorized',
     );
   });
 
@@ -21,14 +21,14 @@ describe('assignStakingPoolManager', function () {
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
-      internalContracts: [internalContract],
+      stakingProducts: [stakingProducts],
     } = fixture.accounts;
 
     // Set old manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, oldManager.address);
 
     // Set new manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, newManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, newManager.address);
 
     const pools = await tokenController.getManagerStakingPools(newManager.address);
     expect(pools).to.be.deep.equal([poolId]);
@@ -46,11 +46,11 @@ describe('assignStakingPoolManager', function () {
     const { tokenController } = fixture.contracts;
     const {
       members: [newManager],
-      internalContracts: [internalContract],
+      stakingProducts: [stakingProducts],
     } = fixture.accounts;
 
     // Set new manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, newManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, newManager.address);
 
     expect(await tokenController.getStakingPoolManager(poolId)).to.equal(newManager.address);
     expect(await tokenController.isStakingPoolManager(newManager.address)).to.be.equal(true);
@@ -61,22 +61,22 @@ describe('assignStakingPoolManager', function () {
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
-      internalContracts: [internalContract],
+      stakingProducts: [stakingProducts],
     } = fixture.accounts;
 
     // Set old manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, oldManager.address);
 
     // Set new manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId.add(1), newManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId + 1n, newManager.address);
 
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, newManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, newManager.address);
 
     const pools = await tokenController.getManagerStakingPools(newManager.address);
-    expect(pools).to.be.deep.equal([poolId.add(1), poolId]);
+    expect(pools).to.be.deep.equal([poolId + 1n, poolId]);
     expect(pools.length).to.be.equal(2);
 
-    expect(await tokenController.getStakingPoolManager(poolId.add(1))).to.equal(newManager.address);
+    expect(await tokenController.getStakingPoolManager(poolId + 1n)).to.equal(newManager.address);
     expect(await tokenController.getStakingPoolManager(poolId)).to.equal(newManager.address);
     expect(await tokenController.isStakingPoolManager(newManager.address)).to.be.equal(true);
 
@@ -89,27 +89,27 @@ describe('assignStakingPoolManager', function () {
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
-      internalContracts: [internalContract],
+      stakingProducts: [stakingProducts],
     } = fixture.accounts;
 
     // Set old manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId.add(1), oldManager.address);
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId.add(2), oldManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, oldManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId + 1n, oldManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId + 2n, oldManager.address);
 
     // Set new manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, newManager.address);
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId.add(1), newManager.address);
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId.add(2), newManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, newManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId + 1n, newManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId + 2n, newManager.address);
 
     const pools = await tokenController.getManagerStakingPools(newManager.address);
-    expect(pools).to.be.deep.equal([poolId, poolId.add(1), poolId.add(2)]);
+    expect(pools).to.be.deep.equal([poolId, poolId + 1n, poolId + 2n]);
     expect(pools.length).to.be.equal(3);
 
     // New manager is the owner of all the pools
     expect(await tokenController.getStakingPoolManager(poolId)).to.equal(newManager.address);
-    expect(await tokenController.getStakingPoolManager(poolId.add(1))).to.equal(newManager.address);
-    expect(await tokenController.getStakingPoolManager(poolId.add(2))).to.equal(newManager.address);
+    expect(await tokenController.getStakingPoolManager(poolId + 1n)).to.equal(newManager.address);
+    expect(await tokenController.getStakingPoolManager(poolId + 2n)).to.equal(newManager.address);
     expect(await tokenController.isStakingPoolManager(newManager.address)).to.be.equal(true);
 
     // Old manager is no longer staking pool manager

@@ -2,7 +2,6 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('./setup');
-const { Two } = ethers.constants;
 
 const poolId = 150;
 describe('createStakingPoolOwnershipOffer', function () {
@@ -21,11 +20,11 @@ describe('createStakingPoolOwnershipOffer', function () {
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
-      internalContracts: [internalContract],
+      stakingProducts: [stakingProducts],
     } = fixture.accounts;
 
     // Set old manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, oldManager.address);
 
     // Create offer that expires now
     const { timestamp: deadline } = await ethers.provider.getBlock('latest');
@@ -39,11 +38,11 @@ describe('createStakingPoolOwnershipOffer', function () {
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager],
-      internalContracts: [internalContract],
+      stakingProducts: [stakingProducts],
     } = fixture.accounts;
 
     // Set old manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, oldManager.address);
     let { timestamp: expectedDeadline } = await ethers.provider.getBlock('latest');
     expectedDeadline += 2;
 
@@ -61,11 +60,11 @@ describe('createStakingPoolOwnershipOffer', function () {
     const { tokenController } = fixture.contracts;
     const {
       members: [oldManager, newManager, newManager2],
-      internalContracts: [internalContract],
+      stakingProducts: [stakingProducts],
     } = fixture.accounts;
 
     // Set old manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, oldManager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, oldManager.address);
     let { timestamp: expectedDeadline } = await ethers.provider.getBlock('latest');
 
     // Create first offer
@@ -90,13 +89,13 @@ describe('createStakingPoolOwnershipOffer', function () {
     const { tokenController } = fixture.contracts;
     const {
       members: [manager],
-      internalContracts: [internalContract],
+      stakingProducts: [stakingProducts],
     } = fixture.accounts;
 
     // Set manager
-    await tokenController.connect(internalContract).assignStakingPoolManager(poolId, manager.address);
+    await tokenController.connect(stakingProducts).assignStakingPoolManager(poolId, manager.address);
     let { timestamp: expectedDeadline } = await ethers.provider.getBlock('latest');
-    expectedDeadline += Two.pow(31);
+    expectedDeadline += 2 ** 31;
 
     await tokenController.connect(manager).createStakingPoolOwnershipOffer(poolId, manager.address, expectedDeadline);
 

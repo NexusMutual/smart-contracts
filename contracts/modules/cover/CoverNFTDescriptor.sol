@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts-v4/utils/Base64.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
+
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/ICoverNFTDescriptor.sol";
@@ -13,7 +14,6 @@ import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
 import "../../libraries/DateTime.sol";
 import "../../libraries/FloatingPoint.sol";
-
 
 contract CoverNFTDescriptor is ICoverNFTDescriptor {
   using Strings for uint;

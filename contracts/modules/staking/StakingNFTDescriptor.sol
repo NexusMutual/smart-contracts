@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts-v4/utils/Strings.sol";
 import "@openzeppelin/contracts-v4/utils/Base64.sol";
+import "@openzeppelin/contracts-v4/utils/Strings.sol";
+
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingNFTDescriptor.sol";
 import "../../interfaces/IStakingPool.sol";

@@ -12,6 +12,9 @@ const networks = {
 
 if (process.env.TEST_ENV_FORK) {
   networks.hardhat.forking = { url: process.env.TEST_ENV_FORK };
+  if (process.env.BLOCK_NUMBER) {
+    networks.hardhat.forking.blockNumber = Number(process.env.BLOCK_NUMBER);
+  }
 }
 
 const getenv = (network, key, fallback, parser = i => i) => {

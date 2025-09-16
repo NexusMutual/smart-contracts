@@ -4,8 +4,6 @@ pragma solidity >=0.5.0;
 
 import "./ICoverNFT.sol";
 import "./IStakingNFT.sol";
-import "./IStakingPool.sol";
-import "./ICompleteStakingPoolFactory.sol";
 
 /* io structs */
 
@@ -140,7 +138,7 @@ interface ICover {
 
   function stakingNFT() external returns (IStakingNFT);
 
-  function stakingPoolFactory() external returns (ICompleteStakingPoolFactory);
+  function stakingPoolFactory() external returns (address);
 
   /* ========== EVENTS ========== */
 

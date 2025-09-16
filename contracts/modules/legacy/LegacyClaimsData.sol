@@ -2,9 +2,9 @@
 
 pragma solidity ^0.5.0;
 
-import "../../libraries/external/SafeMath.sol";
 import "../../abstract/LegacyMasterAware.sol";
 import "../../interfaces/ILegacyClaimsData.sol";
+import "../../libraries/external/SafeMath.sol";
 
 contract LegacyClaimsData is ILegacyClaimsData, LegacyMasterAware {
   using SafeMath for uint;

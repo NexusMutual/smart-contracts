@@ -2,21 +2,21 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
 const proxyContracts = [
-  'NXMaster',
-  'Registry',
-  'Governor',
-  'LegacyMemberRoles',
-  'TokenController',
   'Assessments',
   'Claims',
   'Cover',
   'CoverProducts',
-  'StakingProducts',
-  'SafeTracker',
-  'SwapOperator',
+  'Governor',
+  'LegacyMemberRoles',
+  'LimitOrders',
+  'NXMaster',
   'Pool',
   'Ramm',
+  'Registry',
   'SafeTracker',
+  'StakingProducts',
+  'SwapOperator',
+  'TokenController',
 ];
 
 describe('Selector collisions', function () {

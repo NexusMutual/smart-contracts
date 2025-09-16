@@ -34,22 +34,22 @@ describe('Storage layout', function () {
 
     // proxy contracts
     const contractsToCompare = [
-      'NXMaster',
-      ['LegacyMemberRoles', 'MemberRoles'],
-      'Registry',
-      'Governor',
-      'TokenController',
       'Assessments',
-      'Claims',
+      // 'Claims', add after adding new contract
       'Cover',
       'CoverProducts',
-      // 'Pool', add after converting to proxy
-      'StakingProducts',
-      'StakingPool',
-      'Ramm',
-      'SafeTracker',
-      // 'SwapOperator', add after converting to proxy
+      'Governor',
+      ['LegacyMemberRoles', 'MemberRoles'],
       'LimitOrders',
+      'NXMaster',
+      // 'Pool', add after converting to proxy
+      'Ramm',
+      'Registry',
+      'SafeTracker',
+      'StakingPool',
+      'StakingProducts',
+      // 'SwapOperator', add after converting to proxy
+      'TokenController',
     ];
 
     // Exceptions / overrides

@@ -104,6 +104,10 @@ contract PoolGeneric is IPool {
     revert("setSwapAssetAmount unsupported");
   }
 
+  function migrate(address /* previousPool */, address /* previousMCR */) external virtual {
+    revert("migrate unsupported");
+  }
+
   fallback() external virtual payable {
     revert("fallback unsupported");
   }

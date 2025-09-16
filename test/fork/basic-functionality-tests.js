@@ -11,6 +11,7 @@ const {
 const {
   Addresses,
   executeGovernorProposal,
+  getFundedSigner,
   getImplementation,
   getTrancheId,
   setCbBTCBalance,
@@ -994,11 +995,8 @@ describe('basic functionality tests', function () {
     // this test verifies the scenario in which a critical vulnerability is detected
     // system is paused, system is upgraded, and system is resumed
 
-    const emergencyAdmin1 = await ethers.getSigner(Addresses.EMERGENCY_ADMIN_1);
-    const emergencyAdmin2 = await ethers.getSigner(Addresses.EMERGENCY_ADMIN_2);
-
-    await setBalance(Addresses.EMERGENCY_ADMIN_1, parseEther('1000'));
-    await setBalance(Addresses.EMERGENCY_ADMIN_2, parseEther('1000'));
+    const emergencyAdmin1 = await getFundedSigner(Addresses.EMERGENCY_ADMIN_1);
+    const emergencyAdmin2 = await getFundedSigner(Addresses.EMERGENCY_ADMIN_2);
 
     await this.registry.connect(emergencyAdmin1).proposePauseConfig(1);
     await this.registry.connect(emergencyAdmin2).confirmPauseConfig(1);

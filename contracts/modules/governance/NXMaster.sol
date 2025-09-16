@@ -3,10 +3,12 @@
 pragma solidity ^0.8.28;
 
 import "../../abstract/RegistryAware.sol";
+import "../../interfaces/ILegacyMCR.sol";
 import "../../interfaces/ILegacyPool.sol";
 import "../../interfaces/IMasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMMaster.sol";
+import "../../interfaces/IPool.sol";
 import "../../interfaces/IUpgradeableProxy.sol";
 
 contract NXMaster is INXMMaster {
@@ -134,13 +136,20 @@ contract NXMaster is INXMMaster {
     require(address(registry) == address(0), "NXMaster: Already migrated");
 
     // upgrade capital pool
-    address pool = getLatestAddress("P1");
+    address oldPool = getLatestAddress("P1");
+    address oldMCR = getLatestAddress("MC");
     address payable newPool = IRegistry(_registry).getContractAddressByIndex(C_POOL);
-    ILegacyPool(pool).upgradeCapitalPool(newPool);
 
-    contractsActive[pool] = false;
+    // update first so the new pool is internal
+    contractsActive[oldPool] = false;
     contractAddresses['P1'] = newPool;
     contractsActive[newPool] = true;
+
+    // trigger assets/aggregators/mcr copy
+    IPool(newPool).migrate(oldPool, oldMCR);
+
+    // move the funds
+    ILegacyPool(oldPool).upgradeCapitalPool(newPool);
 
     // transfer the control over to registry
     registry = IRegistry(_registry);

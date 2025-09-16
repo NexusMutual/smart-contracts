@@ -74,6 +74,9 @@ async function setup() {
   // TODO: this needs to be done using DisposablePool to initialize the values
   //       then we can use a proxy and upgrade to the actual contract
   //       or override contract code directly using setCode
+
+  // mocking master address
+  await cover.setMaster(governor);
   await pool.connect(governor).migrate(oldPool, oldMCR);
 
   const MCR_RATIO_DECIMALS = await pool.MCR_RATIO_DECIMALS();

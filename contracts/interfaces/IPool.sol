@@ -83,6 +83,8 @@ interface IPool {
 
   function updateMCRInternal(bool forceUpdate) external;
 
+  function migrate(address previousPool, address previousMCR) external;
+
   event MCRUpdated(
     uint mcr,
     uint desiredMCR,

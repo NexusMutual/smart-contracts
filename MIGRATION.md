@@ -25,10 +25,9 @@ phase 1: first ab actions
    - Registry.migrate (will also upgade Governor to use TemporaryGovernance)
 
 phase 2: prep for ab actions
-1. call LegacyMemberRoles.migrateMembers
-2. memberRoles.recoverETH
-3. execute script to push LegacyAssessment stake and rewards
-4. deploy new contract implementations (create2)
+1. execute script to push LegacyAssessment stake and rewards
+2. call LegacyMemberRoles.migrateMembers
+3. deploy new contract implementations (create2)
    - Pool
    - SwapOperator
    - Ramm
@@ -57,14 +56,19 @@ phase 3 (second ab action)
    - registry.setKycAuthAddress
    - swapOperator.setSwapController
    - claims.initialize
-   - pool.migrate (copies the assets, oracles and mcr)
-   - master.migrate (moves the capital pool funds!)
+   - master.migrate (copies assets/oracles/mcr and moves the funds!)
    - transfer registry proxy ownership to Governor
    - setup assessing groups for product types
-3. safe transaction via TGovernor.execute
-   - upgrade TGovernor to `Governor.sol` - in theory can be batched above, but just in case
+2. safe transaction via TGovernor.execute
+   - upgrade TGovernor to `Governor.sol` - in theory can be batched above
 
 Total transactions for AB: 4
 
+Non AB:
+- memberRoles.recoverETH
+
 Single AB member ops:
 - update existing CoverProduct productTypes to add assessmentCooldownPeriod and payoutRedemptionPeriod values
+
+Enzyme:
+- remove old depositors and set SwapOperator as a depositor

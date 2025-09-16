@@ -1,10 +1,9 @@
 require('dotenv').config();
-const { artifacts, ethers, run } = require('hardhat');
+const { artifacts, ethers, run, network } = require('hardhat');
 const { getCreateAddress } = ethers;
 const axios = require('axios');
 
 const TENDERLY_ACCESS_KEY = process.env.TENDERLY_ACCESS_KEY;
-const MAINNET_PROVIDER_URL = process.env.MAINNET_PROVIDER_URL;
 const CREATE1_PRIVATE_KEY = process.env.CREATE1_PRIVATE_KEY;
 
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
@@ -192,13 +191,11 @@ const simulateOnTenderly = async (contractName, deploymentBytecode, wallet, gasL
   }
 };
 
-const deployToMainnet = async (contractName, deploymentBytecode, wallet, gasLimit) => {
-  console.log('Deploying to mainnet...');
+const deploy = async (contractName, deploymentBytecode, wallet, gasLimit) => {
+  console.log(`Deploying to ${network.name}...`);
 
-  // Connect to mainnet provider
-  const provider = new ethers.JsonRpcProvider(MAINNET_PROVIDER_URL);
-  const signer = wallet.connect(provider);
-  const txCount = await provider.getTransactionCount(signer.address);
+  const signer = wallet.connect(ethers.provider);
+  const txCount = await ethers.provider.getTransactionCount(signer.address);
 
   if (txCount > 0) {
     console.error('Deployer nonce not 0');
@@ -214,15 +211,16 @@ const deployToMainnet = async (contractName, deploymentBytecode, wallet, gasLimi
 
     console.log('Waiting for deployment transaction to be mined...');
 
-    await contract.deployed();
+    await contract.waitForDeployment();
+    const contractAddress = await contract.getAddress();
 
     console.log('Contract deployed successfully!');
-    console.log(`Contract address: ${contract.address}`);
-    console.log(`Contract on Etherscan: https://etherscan.io/address/${contract.address}`);
+    console.log(`Contract address: ${contractAddress}`);
+    console.log(`Contract on Etherscan: https://etherscan.io/address/${contractAddress}`);
 
     return contract;
   } catch (error) {
-    console.error('Mainnet deployment failed:', error.message);
+    console.error(`${network.name} deployment failed:`, error.message);
     throw error;
   }
 };
@@ -268,9 +266,10 @@ async function main() {
   // Execute on mainnet if requested
   if (opts.execute) {
     try {
-      await deployToMainnet(opts.contract, deploymentBytecode, wallet, opts.gasLimit);
+      await deploy(opts.contract, deploymentBytecode, wallet, opts.gasLimit);
     } catch (error) {
-      console.error('Mainnet deployment failed');
+      console.error(error);
+      console.error(`${network.name} deployment failed`);
       process.exit(1);
     }
   } else {

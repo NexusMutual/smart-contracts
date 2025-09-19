@@ -96,40 +96,40 @@ describe('Storage layout', function () {
         },
       },
       TokenController: {
+        // the variable at slot 0 is now called _unused and uses 4 slots
+        lockReason: {
+          label: '_unused',
+          size: [32, 128], // uses 4 slots now, 32 * 4 = 128 bytes
+          type: ['t_mapping(t_address,t_array(t_bytes32)dyn_storage)', 't_array(t_uint256)_storage'],
+        },
+        // following 3 slots are marked as deleted
+        locked: { deleted: true },
+        master: { deleted: true },
+        internalContracts: { deleted: true },
         coverInfo: {
           label: '_unused_coverInfo',
           type: ['t_mapping(t_uint256,t_struct(CoverInfo)_storage)', 't_uint256'],
         },
-        // mark packed unused as deleted
-        master: {
-          deleted: true,
-        },
-        internalContracts: {
-          deleted: true,
-        },
-        lockReason: {
-          deleted: true,
-        },
-        locked: {
-          deleted: true,
-        },
       },
       Ramm: {
-        // mark packed unused as deleted
+        // the variable at slot 0 is now called _unused and uses 3 slots
         master: {
-          deleted: true,
+          label: '_unused',
+          size: [20, 96], // from address (160 bits) to uint[3]
+          type: ['t_address', 't_array(t_uint256)_storage'],
         },
         internalContracts: {
-          deleted: true,
+          deleted: true, // internal contracts mapping
         },
         _status: {
-          deleted: true,
+          deleted: true, // oz reentrnacy guard
         },
       },
       SafeTracker: {
-        // mark packed unused as deleted
         master: {
-          deleted: true,
+          label: '_unused',
+          size: [20, 64], // from address (160 bits) to uint[2]
+          type: ['t_address', 't_array(t_uint256)_storage'],
         },
         internalContracts: {
           deleted: true,

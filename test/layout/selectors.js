@@ -23,7 +23,7 @@ describe('Selector collisions', function () {
   it('compare selectors of proxy and upgradable contracts', async function () {
     // get proxy selectors
     const { interface: proxyInterface } = await ethers.getContractFactory('UpgradeableProxy');
-    const protectedFunctions = ['proxyOwner', 'transferProxyOwnership', 'upgradeTo'];
+    const protectedFunctions = ['implementation', 'proxyOwner', 'transferProxyOwnership', 'upgradeTo'];
     const protectedSelectors = protectedFunctions.map(fn => proxyInterface.getFunction(fn).selector);
 
     // check it fails with a known collision

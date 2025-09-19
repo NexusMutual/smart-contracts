@@ -1,31 +1,22 @@
-import { Wallet, getCreateAddress } from 'ethers';
+const { SigningKey, Wallet, getCreateAddress, randomBytes } = require('ethers');
 
-async function main() {
-  const targetPrefix = 'cafea';
+function main() {
+  const targetPrefix = (process.argv[2] || 'cafea').toLowerCase();
   let tries = 0;
 
   while (true) {
-    const wallet = Wallet.createRandom();
-    const deployer = wallet.address;
-    const addr = getCreateAddress({ from: deployer, nonce: 0 });
-    tries++;
+    ++tries;
+
+    const key = new SigningKey(randomBytes(32));
+    const deployer = new Wallet(key);
+    const addr = getCreateAddress({ from: deployer.address, nonce: 0 });
 
     if (addr.slice(2, 2 + targetPrefix.length).toLowerCase() === targetPrefix) {
-      console.log('Found matching deployer!');
-      console.log('Deployer:', deployer);
-      console.log('PrivateKey:', wallet.privateKey);
-      console.log('Contract Address:', addr);
-      console.log('Tries:', tries);
-      break;
+      console.log(`\rContract ${addr} | Deployer ${deployer.address} | Private key ${key.privateKey}`);
     }
 
     if (tries % 100 === 0) {
       process.stdout.write(`\rTried ${tries} addresses...`);
-    }
-
-    if (tries >= 500000) {
-      console.log('\nNo matching address found after 500,000 attempts. Exiting...');
-      process.exit(1);
     }
   }
 }

@@ -1,38 +1,32 @@
-require('dotenv').config();
-const { artifacts, ethers, run, network } = require('hardhat');
-const { getCreateAddress } = ethers;
-const axios = require('axios');
+const { artifacts, ethers, network, nexus, run } = require('hardhat');
 
-const TENDERLY_ACCESS_KEY = process.env.TENDERLY_ACCESS_KEY;
-const CREATE1_PRIVATE_KEY = process.env.CREATE1_PRIVATE_KEY;
-
+const { CREATE1_PRIVATE_KEY } = process.env;
+const { waitForInput } = nexus.helpers;
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 
 const usage = () => {
   console.log(`
     Usage:
-      node deply.js [OPTIONS] CONTRACT_NAME
-
-      CONTRACT_NAME is the contract you want to deploy.
+      node deploy.js [OPTIONS] CONTRACT_NAME
 
     Options:
-      --address, -a 
+      --address, -a EXPECTED_ADDRESS
         Expected address of the contract
       --constructor-args, -c ARGS
         Contract's constructor arguments. If there's more than one parameter ARGS should be a valid JSON array.
       --library, -l CONTRACT_NAME:ADDRESS
         Link an external library.
-      --execute, -x
-        Execute the deployment on mainnet (requires CREATE1_PRIVATE_KEY in .env).
+      --base-fee, -b BASE_FEE
+        [gas price] Base fee in gwei. This is a required parameter.
+      --priority-fee, -p MINER_TIP
+        [gas price] Miner tip in gwei. Default: 2 gwei. This is a required parameter.
       --gas-limit, -g GAS_LIMIT
-        Gas limit for the transaction. Default: 8000000.
+        Gas limit for the tx.
       --help, -h
         Print this help message.
-      
 
-    Environment Variables:
-      TENDERLY_ACCESS_KEY - Required for simulation
-      CREATE1_PRIVATE_KEY - Required for mainnet execution (-x option)
+    Environment variables:
+      CREATE1_PRIVATE_KEY - the private key of the account that will deploy the contract
   `);
 };
 
@@ -40,33 +34,26 @@ const parseArgs = async args => {
   const opts = {
     constructorArgs: [],
     libraries: {},
-    execute: false,
-    gasLimit: 8000000,
+    priorityFee: '2',
   };
 
-  const argsArray = args.slice(2);
   const positionalArgs = [];
 
-  if (argsArray.length === 0) {
+  if (args.length === 0) {
     usage();
     process.exit(1);
   }
 
-  while (argsArray.length) {
-    const arg = argsArray.shift();
+  while (args.length) {
+    const arg = args.shift();
 
     if (['--help', '-h'].includes(arg)) {
       usage();
       process.exit();
     }
 
-    if (['--execute', '-x'].includes(arg)) {
-      opts.execute = true;
-      continue;
-    }
-
     if (['--address', '-a'].includes(arg)) {
-      opts.address = argsArray.shift();
+      opts.address = args.shift();
       if (!opts.address.match(ADDRESS_REGEX)) {
         throw new Error(`Invalid address: ${opts.address}`);
       }
@@ -74,18 +61,33 @@ const parseArgs = async args => {
     }
 
     if (['--constructor-args', '-c'].includes(arg)) {
-      const value = argsArray.shift();
+      const value = args.shift();
       opts.constructorArgs = value.match(/^\[/) ? JSON.parse(value) : [value];
       continue;
     }
 
+    if (['--base-fee', '-b'].includes(arg)) {
+      opts.baseFee = args.shift();
+      continue;
+    }
+
+    if (['--priority-fee', '-p'].includes(arg)) {
+      opts.priorityFee = args.shift();
+      continue;
+    }
+
     if (['--gas-limit', '-g'].includes(arg)) {
-      opts.gasLimit = parseInt(argsArray.shift(), 10);
+      opts.gasLimit = parseInt(args.shift(), 10);
+      continue;
+    }
+
+    if (['--gas-limit', '-g'].includes(arg)) {
+      opts.gasLimit = parseInt(args.shift(), 10);
       continue;
     }
 
     if (['--library', '-l'].includes(arg)) {
-      const libArg = argsArray.shift();
+      const libArg = args.shift();
       const [contractName, address] = libArg.split(':');
 
       if (!contractName || !address || !address.match(/^0x[a-f0-9]{40}$/i)) {
@@ -109,6 +111,10 @@ const parseArgs = async args => {
   }
 
   opts.contract = positionalArgs[0];
+
+  if (!opts.address) {
+    throw new Error('Address argument is required');
+  }
 
   return opts;
 };
@@ -141,93 +147,15 @@ const getDeploymentBytecode = async options => {
     );
   }
 
-  const constructorArgs = ethers.AbiCoder.defaultAbiCoder().encode(constructorAbi.inputs, options.constructorArgs);
+  const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+  const constructorArgs = abiCoder.encode(constructorAbi.inputs, options.constructorArgs);
+
   return `${bytecode}${constructorArgs.replace(/^0x/i, '')}`;
 };
 
-const simulateOnTenderly = async (contractName, deploymentBytecode, wallet, gasLimit) => {
-  if (!TENDERLY_ACCESS_KEY) {
-    console.error('TENDERLY_ACCESS_KEY not set');
-    process.exit(1);
-  }
-
-  console.log('Simulating deployment on Tenderly...');
-
-  const deployerAddress = wallet.address;
-  const payload = {
-    save: true,
-    save_if_fails: true,
-    simulation_type: 'full',
-    network_id: '1',
-    from: deployerAddress, // Use actual deployer address
-    to: null, // Contract creation
-    gas: gasLimit,
-    gas_price: 0,
-    value: 0,
-    input: deploymentBytecode,
-  };
-
-  try {
-    const response = await axios.post(
-      `https://api.tenderly.co/api/v1/account/NexusMutual/project/nexusmutual/simulate`,
-      payload,
-      { headers: { 'X-Access-Key': TENDERLY_ACCESS_KEY } },
-    );
-    const { simulation } = response.data;
-
-    console.log(
-      `Tenderly Simulation URL: https://dashboard.tenderly.co/NexusMutual/nexusmutual/simulator/${simulation.id}`,
-    );
-
-    return simulation;
-  } catch (error) {
-    console.error('Tenderly simulation failed:');
-    if (error.response?.data) {
-      console.error('Response data:', JSON.stringify(error.response.data, null, 2));
-    } else {
-      console.error('Error message:', error.message);
-    }
-    throw error;
-  }
-};
-
-const deploy = async (contractName, deploymentBytecode, wallet, gasLimit) => {
-  console.log(`Deploying to ${network.name}...`);
-
-  const signer = wallet.connect(ethers.provider);
-  const txCount = await ethers.provider.getTransactionCount(signer.address);
-
-  if (txCount > 0) {
-    console.error('Deployer nonce not 0');
-    process.exit(1);
-  }
-
-  try {
-    // Deploy the contract
-    const factory = new ethers.ContractFactory([], deploymentBytecode, signer);
-    const contract = await factory.deploy({
-      gasLimit,
-    });
-
-    console.log('Waiting for deployment transaction to be mined...');
-
-    await contract.waitForDeployment();
-    const contractAddress = await contract.getAddress();
-
-    console.log('Contract deployed successfully!');
-    console.log(`Contract address: ${contractAddress}`);
-    console.log(`Contract on Etherscan: https://etherscan.io/address/${contractAddress}`);
-
-    return contract;
-  } catch (error) {
-    console.error(`${network.name} deployment failed:`, error.message);
-    throw error;
-  }
-};
-
 async function main() {
-  const opts = await parseArgs(process.argv).catch(err => {
-    console.error(`Error: ${err.message}`);
+  const opts = await parseArgs(process.argv.slice(2)).catch(e => {
+    console.error(`Error: ${e.message}`);
     process.exit(1);
   });
 
@@ -236,63 +164,48 @@ async function main() {
     process.exit(1);
   }
 
-  if (!opts.address) {
-    console.error('Address variable is required');
-    process.exit(1);
-  }
-
   await run('compile');
 
-  console.log(`Preparing to deploy contract: ${opts.contract}`);
-  console.log(`Constructor args: ${JSON.stringify(opts.constructorArgs)}`);
-  console.log(`Libraries: ${JSON.stringify(opts.libraries)}`);
+  const deploymentBytecode = await getDeploymentBytecode(opts);
+  const deployer = new ethers.Wallet(CREATE1_PRIVATE_KEY, ethers.provider);
+  const actualAddress = ethers.getCreateAddress({ from: deployer.address, nonce: 0 });
 
-  const deploymentBytecode = await getDeploymentBytecode(opts).catch(err => {
-    console.error(`Error: ${err.message}`);
+  if (actualAddress.toLowerCase() !== opts.address.toLowerCase()) {
+    console.error(`Address mismatch! Expected ${opts.address} but got ${actualAddress}`);
     process.exit(1);
+  }
+
+  const txCount = await ethers.provider.getTransactionCount(deployer.address);
+
+  if (txCount > 0) {
+    console.error('Deployer nonce not 0');
+    process.exit(1);
+  }
+
+  const baseFee = ethers.parseUnits(opts.baseFee, 'gwei');
+  const maxPriorityFeePerGas = ethers.parseUnits(opts.priorityFee, 'gwei');
+  const maxFeePerGas = baseFee + maxPriorityFeePerGas;
+
+  console.log(`Deploying ${opts.contract}:${actualAddress} to ${network.name}`);
+  await waitForInput('Press enter to continue...');
+
+  const factory = new ethers.ContractFactory([], deploymentBytecode, deployer);
+  const contract = await factory.deploy({
+    maxFeePerGas,
+    maxPriorityFeePerGas,
+    gasLimit: opts.gasLimit,
   });
 
-  const wallet = new ethers.Wallet(CREATE1_PRIVATE_KEY);
-  const deployerAddress = wallet.address;
-  const expectedAddress = getCreateAddress({ from: deployerAddress, nonce: 0 });
+  const deployTx = contract.deploymentTransaction();
+  console.log(`Waiting for transaction to be mined: https://etherscan.io/tx/${deployTx.hash}`);
 
-  if (expectedAddress.toLowerCase() !== opts.address.toLowerCase()) {
-    console.error('Address mismatch! Expected and provided addresses do not match.');
-    console.error(`Expected: ${expectedAddress}`);
-    console.error(`Provided: ${opts.address}`);
-    process.exit(1);
-  }
+  await contract.waitForDeployment();
 
-  // Execute on mainnet if requested
-  if (opts.execute) {
-    try {
-      await deploy(opts.contract, deploymentBytecode, wallet, opts.gasLimit);
-    } catch (error) {
-      console.error(error);
-      console.error(`${network.name} deployment failed`);
-      process.exit(1);
-    }
-  } else {
-    try {
-      const simulation = await simulateOnTenderly(opts.contract, deploymentBytecode, wallet, opts.gasLimit);
-      if (simulation === null) {
-        console.log('Skipping simulation due to missing TENDERLY_ACCESS_KEY');
-      }
-    } catch (error) {
-      console.error('Simulation failed:', error.message);
-      console.error('Full error:', error);
-      process.exit(1);
-    }
-    console.log('To execute on mainnet, add the --execute (-x) flag');
-  }
-
-  console.log('Script completed successfully!');
+  console.log('Done!');
 }
 
 main()
-  .then(() => {
-    process.exit(0);
-  })
+  .then(() => process.exit(0))
   .catch(error => {
     console.error('An unexpected error encountered:', error);
     process.exit(1);

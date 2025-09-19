@@ -30,7 +30,8 @@ for (const network of ['MAINNET', 'GOERLI', 'SEPOLIA', 'GNOSIS', 'TENDERLY', 'LO
   const accounts = getenv(network, 'ACCOUNT_KEY', undefined, v => v.split(/[^0-9a-fx]+/i));
   const gasPrice = getenv(network, 'GAS_PRICE', undefined, v => parseInt(v, 10) * 1e9);
   const gas = getenv(network, 'GAS_LIMIT', undefined, v => parseInt(v, 10));
-  networks[network.toLowerCase()] = { accounts, gasPrice, gas, url };
+  const chainId = getenv(network, 'CHAIN_ID', undefined, v => parseInt(v, 10));
+  networks[network.toLowerCase()] = { accounts, gasPrice, gas, url, chainId };
 }
 
 module.exports = networks;

@@ -34,17 +34,22 @@ describe('Storage layout', function () {
 
     // proxy contracts
     const contractsToCompare = [
-      'NXMaster',
-      'Governance',
-      'MemberRoles',
-      'ProposalCategory',
-      'TokenController',
-      'IndividualClaims',
-      'Assessment',
+      'Assessments',
+      // 'Claims', add after adding new contract
       'Cover',
-      'StakingProducts',
+      'CoverProducts',
+      'Governor',
+      ['LegacyMemberRoles', 'MemberRoles'],
+      'LimitOrders',
+      'NXMaster',
+      // 'Pool', add after converting to proxy
       'Ramm',
+      'Registry',
       'SafeTracker',
+      'StakingPool',
+      'StakingProducts',
+      // 'SwapOperator', add after converting to proxy
+      'TokenController',
     ];
 
     // Exceptions / overrides
@@ -66,13 +71,6 @@ describe('Storage layout', function () {
         _unused_productTypes: {
           label: '__unused_1',
           type: ['t_array(t_struct(ProductType)_storage)dyn_storage', 't_uint256'],
-        },
-        _coverData: {
-          label: '_legacyCoverData',
-          type: [
-            't_mapping(t_uint256,t_struct(CoverData)_storage)',
-            't_mapping(t_uint256,t_struct(LegacyCoverData)_storage)',
-          ],
         },
         coverSegmentAllocations: {
           label: '_legacyCoverSegmentAllocations',
@@ -97,22 +95,44 @@ describe('Storage layout', function () {
           type: ['t_mapping(t_uint256,t_string_storage)', 't_uint256'],
         },
       },
-      IndividualClaims: {
-        config: {
-          label: '__unused_0',
-          type: ['t_struct(Configuration)_storage', 't_uint256'],
-        },
-      },
-      Assessment: {
-        config: {
-          label: '__unused_0',
-          type: ['t_struct(Configuration)_storage', 't_uint256'],
-        },
-      },
       TokenController: {
+        // the variable at slot 0 is now called _unused and uses 4 slots
+        lockReason: {
+          label: '_unused',
+          size: [32, 128], // uses 4 slots now, 32 * 4 = 128 bytes
+          type: ['t_mapping(t_address,t_array(t_bytes32)dyn_storage)', 't_array(t_uint256)_storage'],
+        },
+        // following 3 slots are marked as deleted
+        locked: { deleted: true },
+        master: { deleted: true },
+        internalContracts: { deleted: true },
         coverInfo: {
           label: '_unused_coverInfo',
           type: ['t_mapping(t_uint256,t_struct(CoverInfo)_storage)', 't_uint256'],
+        },
+      },
+      Ramm: {
+        // the variable at slot 0 is now called _unused and uses 3 slots
+        master: {
+          label: '_unused',
+          size: [20, 96], // from address (160 bits) to uint[3]
+          type: ['t_address', 't_array(t_uint256)_storage'],
+        },
+        internalContracts: {
+          deleted: true, // internal contracts mapping
+        },
+        _status: {
+          deleted: true, // oz reentrnacy guard
+        },
+      },
+      SafeTracker: {
+        master: {
+          label: '_unused',
+          size: [20, 64], // from address (160 bits) to uint[2]
+          type: ['t_address', 't_array(t_uint256)_storage'],
+        },
+        internalContracts: {
+          deleted: true,
         },
       },
       // Example overrides:

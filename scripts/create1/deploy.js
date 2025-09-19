@@ -1,47 +1,38 @@
-const { artifacts, ethers, run } = require('hardhat');
-const { keccak256 } = require('ethereum-cryptography/keccak');
-const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
-const linker = require('solc/linker');
+const { artifacts, ethers, network, nexus, run } = require('hardhat');
 
-const { getSigner, SIGNER_TYPE } = require('./get-signer');
-
+const { CREATE1_PRIVATE_KEY } = process.env;
+const { waitForInput } = nexus.helpers;
 const ADDRESS_REGEX = /^0x[a-f0-9]{40}$/i;
 
 const usage = () => {
   console.log(`
     Usage:
-      create2-deploy [OPTIONS] CONTRACT_NAME
-
-      CONTRACT_NAME is the contract you want to deploy.
+      node deploy.js [OPTIONS] CONTRACT_NAME
 
     Options:
-      --address, -a ADDRESS
-        Expected deployment address. This is a required parameter.
-      --factory-address, -f ADDRESS
-        Address of the contract that will call the CREATE2 opcode. This is a required parameter.
+      --address, -a EXPECTED_ADDRESS
+        Expected address of the contract
       --constructor-args, -c ARGS
         Contract's constructor arguments. If there's more than one parameter ARGS should be a valid JSON array.
-      --salt, -s SALT
-        Use this salt for CREATE2. This is a required parameter.
+      --library, -l CONTRACT_NAME:ADDRESS
+        Link an external library.
       --base-fee, -b BASE_FEE
         [gas price] Base fee in gwei. This is a required parameter.
       --priority-fee, -p MINER_TIP
         [gas price] Miner tip in gwei. Default: 2 gwei. This is a required parameter.
       --gas-limit, -g GAS_LIMIT
         Gas limit for the tx.
-      --kms, -k
-        Use AWS KMS to sign the transaction.
-      --library, -l CONTRACT_NAME:ADDRESS
-        Link an external library.
       --help, -h
         Print this help message.
+
+    Environment variables:
+      CREATE1_PRIVATE_KEY - the private key of the account that will deploy the contract
   `);
 };
 
 const parseArgs = async args => {
   const opts = {
     constructorArgs: [],
-    kms: false,
     libraries: {},
     priorityFee: '2',
   };
@@ -61,11 +52,6 @@ const parseArgs = async args => {
       process.exit();
     }
 
-    if (['--kms', '-k'].includes(arg)) {
-      opts.kms = true;
-      continue;
-    }
-
     if (['--address', '-a'].includes(arg)) {
       opts.address = args.shift();
       if (!opts.address.match(ADDRESS_REGEX)) {
@@ -74,22 +60,9 @@ const parseArgs = async args => {
       continue;
     }
 
-    if (['--factory-address', '-f'].includes(arg)) {
-      opts.factory = args.shift();
-      if (!(opts.factory || '').match(ADDRESS_REGEX)) {
-        throw new Error(`Invalid factory address: ${opts.factory}`);
-      }
-      continue;
-    }
-
     if (['--constructor-args', '-c'].includes(arg)) {
       const value = args.shift();
       opts.constructorArgs = value.match(/^\[/) ? JSON.parse(value) : [value];
-      continue;
-    }
-
-    if (['--salt', '-s'].includes(arg)) {
-      opts.salt = parseInt(args.shift(), 10);
       continue;
     }
 
@@ -108,29 +81,25 @@ const parseArgs = async args => {
       continue;
     }
 
+    if (['--gas-limit', '-g'].includes(arg)) {
+      opts.gasLimit = parseInt(args.shift(), 10);
+      continue;
+    }
+
     if (['--library', '-l'].includes(arg)) {
       const libArg = args.shift();
-
       const [contractName, address] = libArg.split(':');
-      if (!contractName || !address || !address.match(ADDRESS_REGEX)) {
+
+      if (!contractName || !address || !address.match(/^0x[a-f0-9]{40}$/i)) {
         throw new Error(`Invalid library format: ${libArg}. Expected format is CONTRACT_NAME:ADDRESS`);
       }
 
       const { sourceName } = await artifacts.readArtifact(contractName);
       opts.libraries[`${sourceName}:${contractName}`] = address;
-
       continue;
     }
 
     positionalArgs.push(arg);
-  }
-
-  if (typeof opts.factory === 'undefined') {
-    throw new Error('Missing required argument: factory address');
-  }
-
-  if (typeof opts.salt === 'undefined') {
-    throw new Error('Missing required argument: salt');
   }
 
   if (positionalArgs.length === 0) {
@@ -143,6 +112,10 @@ const parseArgs = async args => {
 
   opts.contract = positionalArgs[0];
 
+  if (!opts.address) {
+    throw new Error('Address argument is required');
+  }
+
   return opts;
 };
 
@@ -150,7 +123,7 @@ const getDeploymentBytecode = async options => {
   const { abi, bytecode: initialBytecode } = await artifacts.readArtifact(options.contract);
 
   const bytecode = initialBytecode.includes('__$')
-    ? linker.linkBytecode(initialBytecode, options.libraries)
+    ? require('solc/linker').linkBytecode(initialBytecode, options.libraries)
     : initialBytecode;
 
   if (bytecode.includes('__$')) {
@@ -181,56 +154,58 @@ const getDeploymentBytecode = async options => {
 };
 
 async function main() {
-  const opts = await parseArgs(process.argv.slice(2)).catch(err => {
-    console.error(`Error: ${err.message}`);
+  const opts = await parseArgs(process.argv.slice(2)).catch(e => {
+    console.error(`Error: ${e.message}`);
     process.exit(1);
   });
 
-  // make sure the contracts are compiled and we're not deploying an outdated artifact
+  if (!CREATE1_PRIVATE_KEY) {
+    console.error('CREATE1_PRIVATE_KEY environment variable is required');
+    process.exit(1);
+  }
+
   await run('compile');
 
-  const deploymentBytecode = await getDeploymentBytecode(opts).catch(err => {
-    console.error(`Error: ${err.message}`);
+  const deploymentBytecode = await getDeploymentBytecode(opts);
+  const deployer = new ethers.Wallet(CREATE1_PRIVATE_KEY, ethers.provider);
+  const actualAddress = ethers.getCreateAddress({ from: deployer.address, nonce: 0 });
+
+  if (actualAddress.toLowerCase() !== opts.address.toLowerCase()) {
+    console.error(`Address mismatch! Expected ${opts.address} but got ${actualAddress}`);
     process.exit(1);
-  });
+  }
 
-  const factory = opts.factory.slice(-40);
-  const bytecode = hexToBytes(deploymentBytecode.replace(/^0x/i, ''));
-  const bytecodeHash = bytesToHex(keccak256(bytecode));
+  const txCount = await ethers.provider.getTransactionCount(deployer.address);
 
-  // assemble input
-  const saltHex = opts.salt.toString(16).padStart(64, '0');
-  const input = hexToBytes(`ff${factory}${saltHex}${bytecodeHash}`);
-  const create2Hash = keccak256(input);
-  const address = '0x' + bytesToHex(create2Hash.slice(32 - 20));
-
-  // check if the expected address is the same as resulting address
-  if (address.toLowerCase() !== opts.address.toLowerCase()) {
-    throw new Error(`Expected address to be ${opts.address} but got ${address}`);
+  if (txCount > 0) {
+    console.error('Deployer nonce not 0');
+    process.exit(1);
   }
 
   const baseFee = ethers.parseUnits(opts.baseFee, 'gwei');
   const maxPriorityFeePerGas = ethers.parseUnits(opts.priorityFee, 'gwei');
   const maxFeePerGas = baseFee + maxPriorityFeePerGas;
 
-  const signer = await getSigner(opts.kms ? SIGNER_TYPE.AWS_KMS : SIGNER_TYPE.LOCAL);
-  const deployer = await ethers.getContractAt('Deployer', opts.factory, signer);
-  const deployTx = await deployer.deployAt(bytecode, opts.salt, opts.address, {
+  console.log(`Deploying ${opts.contract}:${actualAddress} to ${network.name}`);
+  await waitForInput('Press enter to continue...');
+
+  const factory = new ethers.ContractFactory([], deploymentBytecode, deployer);
+  const contract = await factory.deploy({
     maxFeePerGas,
     maxPriorityFeePerGas,
     gasLimit: opts.gasLimit,
   });
 
-  console.log(`Waiting tx to be mined: https://etherscan.io/tx/${deployTx.hash}`);
-  await deployTx.wait();
+  const deployTx = contract.deploymentTransaction();
+  console.log(`Waiting for transaction to be mined: https://etherscan.io/tx/${deployTx.hash}`);
+
+  await contract.waitForDeployment();
 
   console.log('Done!');
 }
 
 main()
-  .then(() => {
-    process.exit(0);
-  })
+  .then(() => process.exit(0))
   .catch(error => {
     console.error('An unexpected error encountered:', error);
     process.exit(1);

@@ -1,5 +1,7 @@
 const { ethers } = require('hardhat');
-const { AwsKmsSigner } = require('@nexusmutual/ethers-v5-aws-kms-signer');
+const { AwsKmsSigner } = require('@nexusmutual/ethers-v6-aws-kms-signer');
+
+const { getSigners } = ethers;
 
 const SIGNER_TYPE = {
   LOCAL: 'local',
@@ -8,15 +10,18 @@ const SIGNER_TYPE = {
 
 const getSigner = async (kind = SIGNER_TYPE.LOCAL) => {
   if (kind === SIGNER_TYPE.LOCAL) {
-    const [signer] = await ethers.getSigners();
+    const [signer] = await getSigners();
     return signer;
   }
 
   const provider = ethers.provider;
-  const { AWS_KMS_KEY_ID, AWS_REGION } = process.env;
+  const { AWS_KMS_KEY_ID, AWS_REGION, SECRET_ACCESS_KEY, KMS_KEY_ID } = process.env;
 
   if (kind === SIGNER_TYPE.AWS_KMS) {
-    return new AwsKmsSigner(AWS_KMS_KEY_ID, AWS_REGION, provider);
+    return new AwsKmsSigner(
+      { accessKeyId: AWS_KMS_KEY_ID, region: AWS_REGION, secretAccessKey: SECRET_ACCESS_KEY, kmsKeyId: KMS_KEY_ID },
+      provider,
+    );
   }
 
   throw new Error(`Invalid signer type: ${kind}`);

@@ -10,19 +10,19 @@ Claims go through an assessment process where an assigned assessing group votes 
 
 ### Claims Timeline
 
-1. Claim is submitted with the cover grace period
-2. Assessment voting period (72 hours): starts after claim submission
+1. Claim is submitted within the cover grace period
+2. Assessment voting period: starts after claim submission
 3. Cooldown before payout: starts after assessment voting period ends
 4. Redemption period: starts after cooldown period. the claimant can withdraw their payout on an approved claim within this period
    - If not redeemed in time: The payout expires and **cannot be claimed**
 
 ### Grace Period
 
-Each cover product type has a defined grace period which determines the time window during which a claimant can submit a claim.
+Each cover product type has a defined grace period which determines the time window during which a claimant can still submit a claim.
 
 ### ETH Deposit
 
-Claimants are required to deposit 0.05 ETH when submitting a claim
+Claimants are required to deposit 0.05 ETH when submitting a claim.
 
 ### Claim Status
 
@@ -42,6 +42,15 @@ Claimants are required to deposit 0.05 ETH when submitting a claim
 4. **DRAW** no majority vote reached
    - no payout
    - the claimant can retrieve their deposit back by calling `retrieveDeposit`
+
+### Pause Functionality
+
+The Claims contract includes a pause mechanism for emergency situations. When paused, the following functions are disabled:
+- `submitClaim`: New claims cannot be submitted
+- `redeemClaimPayout`: Payouts cannot be redeemed
+- `retrieveDeposit`: Deposits cannot be retrieved
+
+This pause functionality provides a safety mechanism to protect the protocol during critical situations or when fraudulent activity is detected.
 
 ## Mutative Functions
 

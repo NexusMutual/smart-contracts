@@ -191,7 +191,7 @@ contract Assessments is IAssessments, RegistryAware, Multicall {
   /// @notice Undoes votes cast by an assessor on multiple claims
   /// @param assessorMemberId The member ID of the assessor whose votes to undo
   /// @param claimIds Array of claim IDs to undo votes for
-  /// @dev Only callable by governor contract, must be within cooldown period
+  /// @dev Only callable by governor contract
   function undoVotes(uint assessorMemberId, uint[] calldata claimIds) external override onlyContracts(C_GOVERNOR) {
     uint len = claimIds.length;
     for (uint i = 0; i < len; i++) {
@@ -355,7 +355,7 @@ contract Assessments is IAssessments, RegistryAware, Multicall {
   }
 
   /// @notice Extends the voting period for a claim, starting a new full voting window
-  /// @dev Can only be called by the Governor contract. Reverts if the assessment's cooldown period has already passed
+  /// @dev Can only be called by the Governor contract
   /// @param claimId The unique identifier for the claim
   function extendVotingPeriod(uint claimId) external override onlyContracts(C_GOVERNOR) {
     Assessment memory assessment = _assessments[claimId];

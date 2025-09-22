@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `Assessment` contract manages the evaluation over cover claims. Each cover product type has an assigned assessor group responsible for evaluating all claims submitted under that product type. The assessors within an assessor group are trusted and vetted industry professionals, approved by the Advisory Board.
+The `Assessments` contract manages the evaluation over cover claims. Each cover product type has an assigned assessor group responsible for evaluating all claims submitted under that product type. The assessors within an assessor group are trusted and vetted industry professionals, approved by the Advisory Board.
 
 Each assessor has the responsibility to evaluate the cover claims and cast their votes to approve / deny the claim. A majority in favour needs to be met to approve a claim.
 
@@ -37,24 +37,14 @@ Each cover product type has an assigned assessor group responsible for evaluatin
 * only the votes actually cast are counted
 * if no ones votes against and the voting period ends, a single accept vote is enough to approve the claim
 
-### ETH Deposit & Voting Outcome
-
-- Claimants are required to deposit 0.05 ETH when submitting a claim
-- if majority of the votes cast on `accept`, the claim is approved
-  - claim is paid out and the claim deposit is refunded back to the claimant
-- if majority of the votes cast on `deny`, the claim is rejected
-  - claim is NOT paid out and the claim deposit is NOT returned to the claimant
-- if its a draw, the claim is rejected but the claimant can retrieve their claim deposit and try
-  - claim is NOT paid out but the claimant can retrieve their deposit back
-
 ### Fraud Resolution
 
-- If fraudulent votes are detected, the Advisory Board can step in an intervene before the claims results are finalized
+- If fraudulent votes are detected, the Advisory Board can step in and intervene before the claims results are finalized
 - The Advisory Board has the powers to:
   - pause Assessments and Claims contract
   - undo fraudulent votes
   - remove fraudulent assessors
-  - extend assessment voting period before cooldown period ends
+  - extend assessment voting period
 
 ## Mutative Functions
 
@@ -150,7 +140,7 @@ function removeAssessorFromAllGroups(
 
 ### `setAssessingGroupIdForProductTypes`
 
-Sets assessor group id for multiple product types.
+Sets assessing group id for multiple product types.
 
 ```solidity
 function setAssessingGroupIdForProductTypes(
@@ -162,7 +152,7 @@ function setAssessingGroupIdForProductTypes(
 | Parameter        | Description                                                   |
 | ---------------- | ------------------------------------------------------------- |
 | `productTypeIds` | Array of product type IDs to configure                       |
-| `groupId`        | The assessor group ID responsible for these product types    |
+| `groupId`        | The assessing group ID responsible for these product types    |
 
 - **Access Control:**
   - Only callable by the Governor contract.
@@ -189,8 +179,6 @@ function undoVotes(
 
 - **Access Control:**
   - Only callable by the Governor contract.
-- **Behavior:**
-  - Must be within cooldown period for each claim.
 - **Events:**
   - Emits `VoteUndone` for each vote undone.
 
@@ -264,8 +252,6 @@ function extendVotingPeriod(uint claimId) external override onlyContracts(C_GOVE
 
 - **Access Control:**
   - Only callable by the Governor contract.
-- **Behavior:**
-  - Reverts if the assessment's cooldown period has already passed.
 - **Events:**
   - Emits `VotingEndChanged` event.
 
@@ -437,7 +423,7 @@ function getAssessingGroupIdForProductType(
 | `productTypeId`  | The product type identifier        |
 
 - **Returns:**
-  - assessor group ID.
+  - assessing group ID.
 
 ---
 

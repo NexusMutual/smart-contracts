@@ -603,7 +603,6 @@ async function setup() {
     await stakingProducts.connect(stakingPoolManagers[i]).setProducts(poolId, stakedProducts);
   }
 
-
   // Set pool MCR
   const mcrStorageSlot = 3;
   const storedMcr = parseEther('5000');

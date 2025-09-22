@@ -71,7 +71,6 @@ interface IGovernor {
 
   event ProposalExecuted(uint proposalId);
   event VoteCast(uint indexed proposalId, ProposalKind indexed kind, uint indexed voterId, Choice choice, uint weight);
-  event AdvisoryBoardMemberReplaced(address oldAddress, address newAddress);
   event ProposalCanceled(uint proposalId);
   event ProposalCreated(uint proposalId, ProposalKind kind, string description);
 

@@ -2,9 +2,9 @@
 
 ## Overview
 
-The Governor contract allows creating, voting and executing proposal passed within the Nexus Platform.
+The Governor contract allows creating, voting and executing proposals within the Nexus Platform.
 
-The Advisory Board (AB) can create proposal with arbitrary system actions to determine the direction of the Mutual.
+The Advisory Board (AB) can create proposals with arbitrary system actions to determine the direction of the Mutual.
 
 On the other hand mutual members cannot propose arbitrary actions but maintain control over who serves on the Advisory Board.
 
@@ -59,7 +59,7 @@ function propose(
 
 | Parameter     | Description                                    |
 | ------------- | ---------------------------------------------- |
-| `txs`         | Array of transactions to execute if approved  |
+| `txs`         | Array of transactions to execute if approved   |
 | `description` | Text description of the proposal               |
 
 - **Access Control:**
@@ -84,11 +84,11 @@ function proposeAdvisoryBoardSwap(
 
 | Parameter     | Description                                           |
 | ------------- | ----------------------------------------------------- |
-| `swaps`       | Array of member swaps (from/to member IDs)           |
+| `swaps`       | Array of member swaps (from/to member IDs)            |
 | `description` | Text description of the proposal                      |
 
 - **Access Control:**
-  - Only callable by members with sufficient voting weight (>100 NXM).
+  - Only callable by members with sufficient voting weight (>=100 NXM).
 - **Behavior:**
   - Validates swap pairs and member eligibility.
 - **Returns:**
@@ -129,14 +129,14 @@ function vote(uint proposalId, Choice choice) external { ... }
 
 | Parameter    | Description                                          |
 | ------------ | ---------------------------------------------------- |
-| `proposalId` | The ID of the proposal to vote on                   |
-| `choice`     | Vote choice: Against (0), For (1), or Abstain (2)   |
+| `proposalId` | The ID of the proposal to vote on                    |
+| `choice`     | Vote choice: Against (0), For (1), or Abstain (2)    |
 
 - **Access Control:**
   - Only callable by members (for member proposals) or AB members (for AB proposals).
 - **Behavior:**
   - Locks tokens for member proposals until execution deadline.
-  - AB proposals with 3+ votes immediately start timelock period.
+  - AB proposals with 3+ votes immediately start timelock period and close voting early.
 - **Events:**
   - Emits `VoteCast` event.
 
@@ -241,6 +241,7 @@ Returns comprehensive proposal information in a single call.
 
 ```solidity
 function getProposalWithDetails(uint proposalId) external view returns (
+  uint proposalId,
   Proposal memory,
   string memory,
   Transaction[] memory,
@@ -267,10 +268,10 @@ Returns a specific vote cast on a proposal.
 function getVote(uint proposalId, uint memberId) external view returns (Vote memory) { ... }
 ```
 
-| Parameter    | Description                       |
-| ------------ | --------------------------------- |
-| `proposalId` | The ID of the proposal to query   |
-| `memberId`   | The member ID of the voter        |
+| Parameter    | Description                                                                              |
+| ------------ | ---------------------------------------------------------------------------------------- |
+| `proposalId` | The ID of the proposal to query                                                          |
+| `memberId`   | The member ID of the voter for member proposals or seat id for Advisory Board proposals  |
 
 - **Returns:**
   - The `Vote` struct containing choice and weight.
@@ -290,6 +291,3 @@ function getVote(uint proposalId, uint memberId) external view returns (Vote mem
 
 - **`VoteCast(uint indexed proposalId, ProposalKind indexed kind, uint indexed voterId, Choice choice, uint weight)`**
   Emitted when a vote is cast on a proposal.
-
-- **`AdvisoryBoardMemberReplaced(address oldAddress, address newAddress)`**
-  Emitted when an Advisory Board member is replaced.

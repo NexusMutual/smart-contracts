@@ -17,12 +17,13 @@ const assignRoles = accounts => ({
   stakingPoolManagers: accounts.slice(15, 25),
   emergencyAdmins: accounts.slice(25, 30),
   generalPurpose: accounts.slice(30, 35),
+  assessors: accounts.slice(35, 39),
 });
 
 async function setup() {
   await loadFixture(init);
   const accounts = assignRoles(await ethers.getSigners());
-  const { defaultSender, members, advisoryBoardMembers, stakingPoolManagers, emergencyAdmins } = accounts;
+  const { defaultSender, members, advisoryBoardMembers, stakingPoolManagers, emergencyAdmins, assessors } = accounts;
   const [abMember] = advisoryBoardMembers;
 
   const INITIAL_SUPPLY = parseEther('6750000');
@@ -124,7 +125,7 @@ async function setup() {
   // initialize registry
 
   // todo: enroll cover broker as well
-  await registry.addMembers([...members, ...advisoryBoardMembers, ...stakingPoolManagers]);
+  await registry.addMembers([...members, ...advisoryBoardMembers, ...stakingPoolManagers, ...assessors]);
   await registry.addAdvisoryBoardMembers(advisoryBoardMembers);
   await registry.addEmergencyAdmins(emergencyAdmins);
 
@@ -265,6 +266,8 @@ async function setup() {
   const swapOperator = await getContract(ContractIndexes.C_SWAP_OPERATOR, 'SwapOperator');
   const assessments = await getContract(ContractIndexes.C_ASSESSMENTS, 'Assessments');
   const claims = await getContract(ContractIndexes.C_CLAIMS, 'Claims');
+
+  await claims.initialize(0);
 
   const block = await ethers.provider.getBlock('latest');
   // current state of the contract
@@ -621,7 +624,7 @@ async function setup() {
   const operatorSigner = await getFundedSigner(operatorAddress);
 
   const stakeAmount = parseEther('900000');
-  const trancheId = nexus.protocol.calculateFirstTrancheId(latestBlock, 30n * 24n * 60n * 60n, 0) + 5;
+  const trancheId = calculateFirstTrancheId(latestBlock, 30n * 24n * 60n * 60n, 0) + 5;
   const tokenControllerAddress = await registry.getContractAddressByIndex(ContractIndexes.C_TOKEN_CONTROLLER);
 
   // fund first 3 staking pools with capacity

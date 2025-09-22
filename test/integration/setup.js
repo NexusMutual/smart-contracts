@@ -600,27 +600,12 @@ async function setup() {
     await stakingProducts.connect(stakingPoolManagers[i]).setProducts(poolId, stakedProducts);
   }
 
-  const staker = defaultSender;
-  const stakeAmount = parseEther('900000');
-  const latestBlock = await ethers.provider.getBlock('latest');
-  const firstActiveTrancheId = calculateFirstTrancheId(latestBlock, 30 * 24 * 3600, 0); // 30 days period, 0 gracePeriod
-  const trancheId = firstActiveTrancheId + 5;
-
-  // Add stake capacity to pools 1, 2, and 3 for product 0
-  await token.connect(staker).approve(tokenController, MaxUint256);
-  const depositParams = [stakeAmount, trancheId, 0, staker.address];
-  const tokenId1 = await fixture.contracts.stakingPool1.connect(staker).depositTo.staticCall(...depositParams);
-  const tokenId2 = await fixture.contracts.stakingPool2.connect(staker).depositTo.staticCall(...depositParams);
-  const tokenId3 = await fixture.contracts.stakingPool3.connect(staker).depositTo.staticCall(...depositParams);
-
-  await fixture.contracts.stakingPool1.connect(staker).depositTo(...depositParams);
-  await fixture.contracts.stakingPool2.connect(staker).depositTo(...depositParams);
-  await fixture.contracts.stakingPool3.connect(staker).depositTo(...depositParams);
 
   // Set pool MCR
   const mcrStorageSlot = 3;
   const storedMcr = parseEther('5000');
   const desiredMcr = parseEther('3000');
+  const latestBlock = await ethers.provider.getBlock('latest');
 
   const packedMcrData = ethers.solidityPacked(
     ['uint80', 'uint80', 'uint32'],
@@ -632,6 +617,27 @@ async function setup() {
   // LimitOrders
   await limitOrders.maxApproveTokenControllerContract();
   await limitOrders.maxApproveCoverContract(usdc.target);
+  const operatorAddress = await token.operator();
+  const operatorSigner = await getFundedSigner(operatorAddress);
+
+  const stakeAmount = parseEther('900000');
+  const trancheId = nexus.protocol.calculateFirstTrancheId(latestBlock, 30n * 24n * 60n * 60n, 0) + 5;
+  const tokenControllerAddress = await registry.getContractAddressByIndex(ContractIndexes.C_TOKEN_CONTROLLER);
+
+  // fund first 3 staking pools with capacity
+  const tokenIds = [];
+  for (let i = 0; i < 3; i++) {
+    const manager = stakingPoolManagers[i];
+    const stakingPool = fixture.contracts[`stakingPool${i + 1}`];
+
+    await token.connect(operatorSigner).mint(manager.address, stakeAmount);
+    await token.connect(manager).approve(tokenControllerAddress, MaxUint256);
+
+    const tokenId = await stakingPool.connect(manager).depositTo.staticCall(stakeAmount, trancheId, 0, manager.address);
+    await stakingPool.connect(manager).depositTo(stakeAmount, trancheId, 0, manager.address);
+
+    tokenIds.push(tokenId);
+  }
 
   const config = {
     MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION:
@@ -660,7 +666,7 @@ async function setup() {
   fixture.config = config;
   fixture.accounts = accounts;
 
-  fixture.tokenIds = [tokenId1, tokenId2, tokenId3];
+  fixture.tokenIds = tokenIds;
   fixture.stakeAmount = stakeAmount;
   fixture.trancheIds = [[trancheId], [trancheId], [trancheId]];
   fixture.trancheId = trancheId;

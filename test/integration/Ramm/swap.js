@@ -195,14 +195,16 @@ describe('swap', function () {
     const [member] = fixture.accounts.members;
 
     const nxmIn = parseEther('1');
-    const minEthOut = parseEther('0.0125'); // Lower minimum to account for different market conditions
     const before = await getCapitalSupplyAndBalances(pool, tokenController, token, member.address);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
+
+    const isEthToNxm = false;
+    const expectedEthOut = await calculateExpectedSwapOutput(ramm, pool, tokenController, nxmIn, isEthToNxm, timestamp);
     const deadline = timestamp + 15 * 60; // +15 minutes
 
     await setNextBlockBaseFeePerGas(0);
-    const tx = await ramm.connect(member).swap(nxmIn, minEthOut, deadline, { maxPriorityFeePerGas: 0 });
+    const tx = await ramm.connect(member).swap(nxmIn, expectedEthOut, deadline, { maxPriorityFeePerGas: 0 });
     const swapTxReceipt = await tx.wait();
 
     const after = await getCapitalSupplyAndBalances(pool, tokenController, token, member.address);

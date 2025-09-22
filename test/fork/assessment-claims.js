@@ -2,7 +2,8 @@ const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { takeSnapshot, time, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { Addresses, getFundedSigner, getSigner, setUSDCBalance, executeGovernorProposal } = require('./utils');
+const { Addresses, setUSDCBalance, executeGovernorProposal } = require('./utils');
+const { getSigner, getFundedSigner } = require('../utils/signer');
 
 const { AssessmentOutcome, AssessmentStatus, PauseTypes, PoolAsset } = nexus.constants;
 const { PAUSE_CLAIMS } = PauseTypes;
@@ -117,8 +118,8 @@ describe('claim assessment', function () {
     ];
     await executeGovernorProposal(this.governor, this.abMembers, txs);
 
-    this.emergencyAdmin1 = await ethers.getSigner(Addresses.EMERGENCY_ADMIN_1);
-    this.emergencyAdmin2 = await ethers.getSigner(Addresses.EMERGENCY_ADMIN_2);
+    this.emergencyAdmin1 = await getSigner(Addresses.EMERGENCY_ADMIN_1);
+    this.emergencyAdmin2 = await getSigner(Addresses.EMERGENCY_ADMIN_2);
 
     const groupId = await this.assessments.getGroupsCount();
     console.log(`Setup complete: ${assessorIds.length} assessors added to group ${groupId}`);

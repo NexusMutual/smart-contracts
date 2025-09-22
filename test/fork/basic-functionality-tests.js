@@ -1,23 +1,18 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { abis, addresses } = require('@nexusmutual/deployments');
-const {
-  impersonateAccount,
-  setBalance,
-  setNextBlockBaseFeePerGas,
-  time,
-} = require('@nomicfoundation/hardhat-network-helpers');
+const { setBalance, setNextBlockBaseFeePerGas, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const {
   Addresses,
   executeGovernorProposal,
-  getFundedSigner,
   getImplementation,
   getTrancheId,
   setCbBTCBalance,
   setERC20Balance,
   setUSDCBalance,
 } = require('./utils');
+const { getSigner, getFundedSigner } = require('../utils/signer');
 
 const { deployContract, formatEther, ZeroAddress, MaxUint256, parseEther, parseUnits } = ethers;
 const { ContractIndexes, AssessmentOutcome, AssessmentStatus } = nexus.constants;
@@ -947,8 +942,7 @@ describe('basic functionality tests', function () {
     const owner = await this.coverBroker.owner();
     const newCoverBroker = await deployContract('CoverBroker', [this.registry, owner]);
 
-    await impersonateAccount(owner);
-    const ownerSigner = await ethers.getSigner(owner);
+    const ownerSigner = await getSigner(owner);
 
     await this.coverBroker.connect(ownerSigner).switchMembership(newCoverBroker);
     this.coverBroker = newCoverBroker;

@@ -72,10 +72,13 @@ async function setup() {
 
   // deploy oracles
 
+  const USD_ORACLE_DECIMALS = 8; // Chainlink USD price feeds use 8 decimals
+  const CBBTC_ORACLE_DECIMALS = 8;
+
   // eth usd oracle
   const chainlinkEthUsd = await ethers.deployContract('ChainlinkAggregatorMock');
-  await chainlinkEthUsd.setLatestAnswer(parseEther('2500'));
-  await chainlinkEthUsd.setDecimals(8);
+  await chainlinkEthUsd.setLatestAnswer(parseUnits('2500', USD_ORACLE_DECIMALS));
+  await chainlinkEthUsd.setDecimals(USD_ORACLE_DECIMALS);
 
   // eth derivatives
   const chainlinkSteth = await ethers.deployContract('ChainlinkAggregatorMock');
@@ -89,8 +92,8 @@ async function setup() {
 
   // btc derivatives
   const chainlinkCbBTC = await ethers.deployContract('ChainlinkAggregatorMock');
-  await chainlinkCbBTC.setLatestAnswer(parseEther('105000', 8)); // $105k per btc
-  await chainlinkCbBTC.setDecimals(8); // USD based aggregator
+  await chainlinkCbBTC.setLatestAnswer(parseUnits('105000', CBBTC_ORACLE_DECIMALS)); // $105k per btc
+  await chainlinkCbBTC.setDecimals(CBBTC_ORACLE_DECIMALS); // USD based aggregator
 
   // stablecoins
   const chainlinkDAI = await ethers.deployContract('ChainlinkAggregatorMock');

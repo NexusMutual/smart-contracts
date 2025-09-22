@@ -46,7 +46,7 @@ contract Claims is IClaims, RegistryAware {
   /* =========== CONSTANTS =========== */
 
   // NOTE: when updating the deposit value, make sure there are no open claims during the upgrade
-  uint constant public CLAIM_DEPOSIT_IN_ETH = 0.05 ether; // TODO: confirm if claim deposit is to be dropped
+  uint constant public CLAIM_DEPOSIT_IN_ETH = 0.05 ether;
 
   /* ========== CONSTRUCTOR ========== */
 

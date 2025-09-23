@@ -157,58 +157,50 @@ async function processBatch(addressBatch, assessmentContract) {
   }
 }
 
-/**
- * Main function to extract assessment data
- */
 async function main() {
-  try {
-    const network = await ethers.provider.getNetwork();
-    console.log(`Connected to network: ${network.name} (chainId: ${network.chainId})`);
+  const network = await ethers.provider.getNetwork();
+  console.log(`Connected to network: ${network.name} (chainId: ${network.chainId})`);
 
-    const assessmentContract = await ethers.getContractAt([...Assessment], addresses.Assessment);
-    const memberAddresses = await loadMemberAddresses();
+  const assessmentContract = await ethers.getContractAt([...Assessment], addresses.Assessment);
+  const memberAddresses = await loadMemberAddresses();
 
-    if (memberAddresses.length === 0) {
-      console.log('No member addresses found in file');
-      return;
-    }
+  if (memberAddresses.length === 0) {
+    console.log('No member addresses found in file');
+    return;
+  }
 
-    console.log(`\nProcessing ${memberAddresses.length} addresses...`);
+  console.log(`\nProcessing ${memberAddresses.length} addresses...`);
 
-    const { results, failedAddresses } = await processBatches(
-      memberAddresses,
-      batch => processBatch(batch, assessmentContract),
-      process.env.BATCH_SIZE || 25,
-    );
+  const { results, failedAddresses } = await processBatches(
+    memberAddresses,
+    batch => processBatch(batch, assessmentContract),
+    process.env.BATCH_SIZE || 25,
+  );
 
-    console.log(`\nFound ${results.length} addresses with non-zero stake or rewards`);
+  console.log(`\nFound ${results.length} addresses with non-zero stake or rewards`);
 
-    const result = {};
-    results.forEach(data => {
-      result[data.address] = {
-        stake: data.stake,
-        rewards: data.rewards,
-      };
-    });
+  const result = {};
+  results.forEach(data => {
+    result[data.address] = {
+      stake: data.stake,
+      rewards: data.rewards,
+    };
+  });
 
-    const outputPath = path.join(__dirname, 'assessment-data.json');
-    await fs.writeFile(outputPath, JSON.stringify(result, null, 2));
+  const outputPath = path.join(__dirname, 'assessment-data.json');
+  await fs.writeFile(outputPath, JSON.stringify(result, null, 2));
 
-    console.log(`\nData saved to: ${outputPath}`);
-    console.log(`Total addresses with data: ${Object.keys(result).length}`);
+  console.log(`\nData saved to: ${outputPath}`);
+  console.log(`Total addresses with data: ${Object.keys(result).length}`);
 
-    console.log('Failed addresses: ', inspect(failedAddresses, { depth: null }));
-    console.log('Results: ', inspect(Object.keys(result), { depth: null }));
+  console.log('Failed addresses: ', inspect(failedAddresses, { depth: null }));
+  console.log('Results: ', inspect(Object.keys(result), { depth: null }));
 
-    if (failedAddresses.length > 0) {
-      const failedOutputPath = path.join(__dirname, 'failed-addresses.json');
-      await fs.writeFile(failedOutputPath, JSON.stringify(failedAddresses, null, 2));
-      console.log(`\nFailed addresses saved to: ${failedOutputPath}`);
-      console.log(`Total failed addresses: ${failedAddresses.length}`);
-    }
-  } catch (error) {
-    console.error('Script failed:', error);
-    process.exit(1);
+  if (failedAddresses.length > 0) {
+    const failedOutputPath = path.join(__dirname, 'failed-addresses.json');
+    await fs.writeFile(failedOutputPath, JSON.stringify(failedAddresses, null, 2));
+    console.log(`\nFailed addresses saved to: ${failedOutputPath}`);
+    console.log(`Total failed addresses: ${failedAddresses.length}`);
   }
 }
 

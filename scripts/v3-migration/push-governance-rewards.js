@@ -23,7 +23,7 @@ const pushGovernanceRewards = async signer => {
   const failedAddresses = [];
 
   for (let i = 0; i < usersWithRewards.length; i++) {
-    console.log(`Processing user... ${i + 1}/${usersWithRewards.length}`);
+    process.stdout.write(`\rPushing governance rewards ${i + 1}/${usersWithRewards.length}`);
     const user = usersWithRewards[i];
 
     try {
@@ -38,7 +38,7 @@ const pushGovernanceRewards = async signer => {
     }
   }
 
-  console.log(`=== FINAL SUMMARY ===`);
+  console.log(`\n=== FINAL SUMMARY ===`);
   console.log(`Total users processed: ${usersWithRewards.length}`);
   console.log(`Successful transactions: ${successCount}`);
   console.log(`Failed transactions: ${errorCount}`);

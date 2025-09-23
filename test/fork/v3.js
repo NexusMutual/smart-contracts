@@ -247,7 +247,6 @@ describe('v3 launch', function () {
   // push legacy assessment stake and rewards
   require('../../scripts/push-assessment-stake');
   require('../../scripts/push-assessment-rewards');
-  require('./legacy-assessment');
 
   it('should run phase 2', async function () {
     const SAFE_ADDRESS = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';

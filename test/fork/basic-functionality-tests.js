@@ -20,34 +20,13 @@ const {
 } = require('./utils');
 
 const { deployContract, formatEther, ZeroAddress, MaxUint256, parseEther, parseUnits } = ethers;
-const { ContractIndexes } = nexus.constants;
+const { ContractIndexes, AssessmentOutcome, AssessmentStatus } = nexus.constants;
+
+const CLAIM_DEPOSIT = parseEther('0.05');
 
 // eslint-disable-next-line no-unused-vars
 let custodyProductId, custodyCoverId, protocolProductId, protocolCoverId;
 let poolId, trancheId, tokenId;
-
-// eslint-disable-next-line no-unused-vars
-const parseError = (error, contract) => {
-  console.log('Error executing proposal:', error.message);
-
-  // Try to parse custom error
-  if (error.data) {
-    console.log('Error data:', error.data);
-
-    try {
-      const iface = contract.interface;
-      const decodedError = iface.parseError(error.data);
-      console.log('Custom error name:', decodedError.name);
-      console.log('Custom error args:', decodedError.args);
-    } catch (parseError) {
-      console.log('Could not parse custom error:', parseError.message);
-      console.log('Raw error data:', error.data);
-    }
-  }
-
-  // Re-throw the error to fail the test
-  throw error;
-};
 
 describe('basic functionality tests', function () {
   before(async function () {
@@ -76,6 +55,7 @@ describe('basic functionality tests', function () {
     this.manager = this.members[0];
     this.usdcHolder = this.members[1];
     this.cbBTCHolder = this.members[2];
+    this.assessors = this.members.slice(10, 15);
 
     for (const wallet of this.members) {
       await setERC20Balance(this.nxm.target, wallet.address, parseEther('10000'));
@@ -237,6 +217,35 @@ describe('basic functionality tests', function () {
     await this.coverProducts.connect(this.abMembers[0]).setProductTypes(productTypes);
     const productTypesCountAfter = await this.coverProducts.getProductTypeCount();
     expect(productTypesCountAfter - productTypesCountBefore).to.be.equal(productTypes.length);
+
+    this.newProductTypes = [];
+    for (let i = 1; i <= productTypes.length; i++) {
+      this.newProductTypes.push(productTypesCountAfter - 1n);
+    }
+  });
+
+  it('Add assessment groups', async function () {
+    const assessorIds = await Promise.all(this.assessors.map(assessor => this.registry.getMemberId(assessor.address)));
+
+    const assessmentGroupId = (await this.assessments.getGroupsCount()) + 1n;
+    const txs = [
+      // add assessors to a new group (groupId 0 creates new group)
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('addAssessorsToGroup', [assessorIds, 0]),
+      },
+      // set assessment groupId for product types
+      {
+        target: this.assessments.target,
+        value: 0n,
+        data: this.assessments.interface.encodeFunctionData('setAssessingGroupIdForProductTypes', [
+          [0, 1], // protocol and custody ProductType
+          assessmentGroupId,
+        ]),
+      },
+    ];
+    await executeGovernorProposal(this.governor, this.abMembers, txs);
   });
 
   it('Add protocol product', async function () {
@@ -395,61 +404,58 @@ describe('basic functionality tests', function () {
     expect(coverCountAfter).to.be.equal(coverCountBefore + 1n);
   });
 
-  // it('Submit claim for ETH custody cover', async function () {
-  //   await evm.impersonate(DAI_NXM_HOLDER);
-  //   const coverBuyer = await getSigner(DAI_NXM_HOLDER);
-  //
-  //   const claimsCountBefore = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountBefore = await this.assessments.getAssessmentsCount();
-  //
-  //   const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
-  //   const requestedAmount = parseEther('1');
-  //   const coverData = await this.cover.getCoverData(custodyCoverId);
-  //
-  //   const [deposit] = await this.individualClaims.getAssessmentDepositAndReward(
-  //     requestedAmount,
-  //     coverData.period,
-  //     0, // ETH
-  //   );
-  //   await this.individualClaims
-  //     .connect(coverBuyer)
-  //     .submitClaim(custodyCoverId, requestedAmount, ipfsHash, { value: deposit });
-  //
-  //   const claimsCountAfter = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountAfter = await this.assessments.getAssessmentsCount();
-  //
-  //   assessmentId = assessmentCountBefore.toString();
-  //   expect(claimsCountAfter).to.be.equal(claimsCountBefore.add(1));
-  //   expect(assessmentCountAfter).to.be.equal(assessmentCountBefore.add(1));
-  //
-  //   requestedClaimAmount = requestedAmount;
-  //   claimDeposit = deposit;
-  // });
-  //
-  // it('Process assessment for custody cover and ETH payout', async function () {
-  //   await castAssessmentVote.call(this);
-  //
-  //   const coverIdV2 = custodyCoverId;
-  //   const coverBuyerAddress = DAI_NXM_HOLDER;
-  //   const claimId = (await this.individualClaims.getClaimsCount()).toNumber() - 1;
-  //
-  //   const memberAddress = await this.coverNFT.ownerOf(coverIdV2);
-  //
-  //   const ethBalanceBefore = await ethers.provider.getBalance(coverBuyerAddress);
-  //
-  //   console.log(`Current member balance ${ethBalanceBefore.toString()}. Redeeming claim ${claimId}`);
-  //
-  //   // redeem payout
-  //   await this.individualClaims.redeemClaimPayout(claimId);
-  //
-  //   const ethBalanceAfter = await ethers.provider.getBalance(memberAddress);
-  //
-  //   console.log(`Check correct balance increase`);
-  //   expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(requestedClaimAmount).add(claimDeposit));
-  //
-  //   const { payoutRedeemed } = await this.individualClaims.claims(claimId);
-  //   expect(payoutRedeemed).to.be.equal(true);
-  // });
+  it('Submit claim for ETH custody cover and process the assessment', async function () {
+    const coverBuyer = this.members[1];
+    const claimId = await this.claims.getClaimsCount();
+    const claimsCountBefore = claimId;
+
+    // submit claim
+    const ipfsMetaData = ethers.solidityPackedKeccak256(['string'], ['Happy path ETH claim proof']);
+    const requestedAmount = parseEther('1');
+
+    await this.claims.connect(coverBuyer).submitClaim(custodyCoverId, requestedAmount, ipfsMetaData, {
+      value: CLAIM_DEPOSIT,
+      gasPrice: 0,
+    });
+
+    const claimsCountAfter = await this.claims.getClaimsCount();
+
+    expect(claimsCountAfter).to.equal(claimsCountBefore + 1n);
+
+    const ipfsHashFor = ethers.solidityPackedKeccak256(['string'], ['happy-path-accept']);
+    const ipfsHashAgainst = ethers.solidityPackedKeccak256(['string'], ['happy-path-deny']);
+
+    await this.assessments.connect(this.assessors[0]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[1]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[2]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[3]).castVote(claimId, false, ipfsHashAgainst); // deny
+
+    // advance time past voting and cooldown periods
+    const assessment = await this.assessments.getAssessment(claimId);
+    const cooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 24n * 60n * 60n;
+    await time.increaseTo(cooldownEndTime);
+
+    // claim ACCEPTED
+    const { status, outcome } = await this.claims.getClaimDetails(claimId);
+    expect(status).to.equal(AssessmentStatus.Finalized);
+    expect(outcome).to.equal(AssessmentOutcome.Accepted);
+
+    const claimDepositAmount = await this.claims.CLAIM_DEPOSIT_IN_ETH();
+    const claimantEthBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
+
+    // redeem claim payout
+    const redeemTx = this.claims.connect(coverBuyer).redeemClaimPayout(claimId, { gasPrice: 0 });
+    await expect(redeemTx).to.emit(this.claims, 'ClaimPayoutRedeemed');
+
+    // Verify balances after redemption
+    const claimantEthBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
+
+    // Expected increase: claim amount (0.05 ETH) + deposit returned (0.05 ETH) = 0.1 ETH
+    const expectedEthIncrease = requestedAmount + claimDepositAmount;
+    const actualEthIncrease = claimantEthBalanceAfter - claimantEthBalanceBefore;
+
+    expect(actualEthIncrease).to.equal(expectedEthIncrease);
+  });
 
   it('Buy protocol cbBTC cover', async function () {
     const coverBuyer = this.cbBTCHolder;
@@ -491,56 +497,57 @@ describe('basic functionality tests', function () {
     expect(coverCountAfter).to.be.equal(coverCountBefore + 1n);
   });
 
-  // it('Submit claim for protocol cover in DAI', async function () {
-  //   await evm.impersonate(DAI_NXM_HOLDER);
-  //   const coverBuyer = await getSigner(DAI_NXM_HOLDER);
-  //
-  //   const claimsCountBefore = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountBefore = await this.assessments.getAssessmentsCount();
-  //
-  //   const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
-  //   const requestedAmount = parseEther('1000');
-  //   const coverData = await this.cover.getCoverData(custodyCoverId);
-  //
-  //   const [deposit] = await this.individualClaims.getAssessmentDepositAndReward(
-  //     requestedAmount,
-  //     coverData.period,
-  //     1, // DAI
-  //   );
-  //   await this.individualClaims
-  //     .connect(coverBuyer)
-  //     .submitClaim(protocolCoverId, requestedAmount, ipfsHash, { value: deposit });
-  //
-  //   const claimsCountAfter = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountAfter = await this.assessments.getAssessmentsCount();
-  //
-  //   assessmentId = assessmentCountBefore.toString();
-  //   expect(claimsCountAfter).to.be.equal(claimsCountBefore.add(1));
-  //   expect(assessmentCountAfter).to.be.equal(assessmentCountBefore.add(1));
-  //
-  //   requestedClaimAmount = requestedAmount;
-  //   claimDeposit = deposit;
-  // });
-  //
-  // it('Process assessment and DAI payout for protocol cover', async function () {
-  //   await castAssessmentVote.call(this);
-  //
-  //   const coverIdV2 = custodyCoverId;
-  //   const claimId = (await this.individualClaims.getClaimsCount()).toNumber() - 1;
-  //
-  //   const memberAddress = await this.coverNFT.ownerOf(coverIdV2);
-  //
-  //   const daiBalanceBefore = await this.dai.balanceOf(memberAddress);
-  //
-  //   // redeem payout
-  //   await this.individualClaims.redeemClaimPayout(claimId);
-  //
-  //   const daiBalanceAfter = await this.dai.balanceOf(memberAddress);
-  //   expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(requestedClaimAmount));
-  //
-  //   const { payoutRedeemed } = await this.individualClaims.claims(claimId);
-  //   expect(payoutRedeemed).to.be.equal(true);
-  // });
+  it('Submit claim for cbBTC custody cover and process the assessment', async function () {
+    const coverBuyer = this.cbBTCHolder;
+    const claimId = await this.claims.getClaimsCount();
+    const claimsCountBefore = claimId;
+
+    // submit claim
+    const ipfsMetaData = ethers.solidityPackedKeccak256(['string'], ['Happy path ETH claim proof']);
+    const requestedAmount = parseUnits('1', 8);
+
+    await this.claims.connect(coverBuyer).submitClaim(protocolCoverId, requestedAmount, ipfsMetaData, {
+      value: CLAIM_DEPOSIT,
+      gasPrice: 0,
+    });
+
+    const claimsCountAfter = await this.claims.getClaimsCount();
+
+    expect(claimsCountAfter).to.equal(claimsCountBefore + 1n);
+
+    const ipfsHashFor = ethers.solidityPackedKeccak256(['string'], ['happy-path-accept']);
+    const ipfsHashAgainst = ethers.solidityPackedKeccak256(['string'], ['happy-path-deny']);
+
+    await this.assessments.connect(this.assessors[3]).castVote(claimId, false, ipfsHashAgainst); // deny
+    await this.assessments.connect(this.assessors[0]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[1]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[2]).castVote(claimId, true, ipfsHashFor); // accept
+
+    // advance time past voting and cooldown periods
+    const assessment = await this.assessments.getAssessment(claimId);
+    const cooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 24n * 60n * 60n;
+    await time.increaseTo(cooldownEndTime);
+
+    // claim ACCEPTED
+    const { status, outcome } = await this.claims.getClaimDetails(claimId);
+    expect(status).to.equal(AssessmentStatus.Finalized);
+    expect(outcome).to.equal(AssessmentOutcome.Accepted);
+
+    const claimDepositAmount = await this.claims.CLAIM_DEPOSIT_IN_ETH();
+    const claimantEthBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
+    const claimantCBBTCBalanceBefore = await this.cbBTC.balanceOf(coverBuyer.address);
+
+    // redeem claim payout
+    const redeemTx = this.claims.connect(coverBuyer).redeemClaimPayout(claimId, { gasPrice: 0 });
+    await expect(redeemTx).to.emit(this.claims, 'ClaimPayoutRedeemed');
+
+    // Verify balances after redemption
+    const claimantEthBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
+    const claimantCBBTCBalanceAfter = await this.cbBTC.balanceOf(coverBuyer.address);
+
+    expect(claimantEthBalanceAfter).to.be.equal(claimantEthBalanceBefore + claimDepositAmount);
+    expect(claimantCBBTCBalanceAfter).to.equal(claimantCBBTCBalanceBefore + requestedAmount);
+  });
 
   it('Buy protocol USDC cover', async function () {
     const coverBuyer = this.usdcHolder;
@@ -582,56 +589,57 @@ describe('basic functionality tests', function () {
     expect(coverCountAfter).to.be.equal(coverCountBefore + 1n);
   });
 
-  // it('Submit claim for protocol cover in USDC', async function () {
-  //   await evm.impersonate(NXM_AB_MEMBER);
-  //   const coverBuyer = await getSigner(NXM_AB_MEMBER);
-  //
-  //   const claimsCountBefore = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountBefore = await this.assessments.getAssessmentsCount();
-  //
-  //   const ipfsHash = '0x68747470733a2f2f7777772e796f75747562652e636f6d2f77617463683f763d423365414d47584677316f';
-  //   const requestedAmount = parseUnits('1000', 6);
-  //   const coverData = await this.cover.getCoverData(custodyCoverId);
-  //
-  //   const [deposit] = await this.individualClaims.getAssessmentDepositAndReward(
-  //     requestedAmount,
-  //     coverData.period,
-  //     6, // USDC
-  //   );
-  //   await this.individualClaims
-  //     .connect(coverBuyer)
-  //     .submitClaim(protocolCoverId, requestedAmount, ipfsHash, { value: deposit });
-  //
-  //   const claimsCountAfter = await this.individualClaims.getClaimsCount();
-  //   const assessmentCountAfter = await this.assessments.getAssessmentsCount();
-  //
-  //   assessmentId = assessmentCountBefore.toString();
-  //   expect(claimsCountAfter).to.be.equal(claimsCountBefore.add(1));
-  //   expect(assessmentCountAfter).to.be.equal(assessmentCountBefore.add(1));
-  //
-  //   requestedClaimAmount = requestedAmount;
-  //   claimDeposit = deposit;
-  // });
+  it('Submit claim for USDC custody cover and process the assessment', async function () {
+    const coverBuyer = this.usdcHolder;
+    const claimId = await this.claims.getClaimsCount();
+    const claimsCountBefore = claimId;
 
-  // it('Process assessment and USDC payout for protocol cover', async function () {
-  //   await castAssessmentVote.call(this);
-  //
-  //   const coverIdV2 = protocolCoverId;
-  //   const claimId = (await this.individualClaims.getClaimsCount()).toNumber() - 1;
-  //
-  //   const memberAddress = await this.coverNFT.ownerOf(coverIdV2);
-  //
-  //   const usdcBalanceBefore = await this.usdc.balanceOf(memberAddress);
-  //
-  //   // redeem payout
-  //   await this.individualClaims.redeemClaimPayout(claimId);
-  //
-  //   const usdcBalanceAfter = await this.usdc.balanceOf(memberAddress);
-  //   expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(requestedClaimAmount));
-  //
-  //   const { payoutRedeemed } = await this.individualClaims.claims(claimId);
-  //   expect(payoutRedeemed).to.be.equal(true);
-  // });
+    // submit claim
+    const ipfsMetaData = ethers.solidityPackedKeccak256(['string'], ['Happy path ETH claim proof']);
+    const requestedAmount = parseUnits('1000', 6);
+
+    await this.claims.connect(coverBuyer).submitClaim(protocolCoverId, requestedAmount, ipfsMetaData, {
+      value: CLAIM_DEPOSIT,
+      gasPrice: 0,
+    });
+
+    const claimsCountAfter = await this.claims.getClaimsCount();
+
+    expect(claimsCountAfter).to.equal(claimsCountBefore + 1n);
+
+    const ipfsHashFor = ethers.solidityPackedKeccak256(['string'], ['happy-path-accept']);
+    const ipfsHashAgainst = ethers.solidityPackedKeccak256(['string'], ['happy-path-deny']);
+
+    await this.assessments.connect(this.assessors[0]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[1]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[2]).castVote(claimId, true, ipfsHashFor); // accept
+    await this.assessments.connect(this.assessors[3]).castVote(claimId, false, ipfsHashAgainst); // deny
+
+    // advance time past voting and cooldown periods
+    const assessment = await this.assessments.getAssessment(claimId);
+    const cooldownEndTime = assessment.votingEnd + assessment.cooldownPeriod + 24n * 60n * 60n;
+    await time.increaseTo(cooldownEndTime);
+
+    // claim ACCEPTED
+    const { status, outcome } = await this.claims.getClaimDetails(claimId);
+    expect(status).to.equal(AssessmentStatus.Finalized);
+    expect(outcome).to.equal(AssessmentOutcome.Accepted);
+
+    const claimDepositAmount = await this.claims.CLAIM_DEPOSIT_IN_ETH();
+    const claimantEthBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
+    const claimantUsdcBalanceBefore = await this.usdc.balanceOf(coverBuyer.address);
+
+    // redeem claim payout
+    const redeemTx = this.claims.connect(coverBuyer).redeemClaimPayout(claimId, { gasPrice: 0 });
+    await expect(redeemTx).to.emit(this.claims, 'ClaimPayoutRedeemed');
+
+    // Verify balances after redemption
+    const claimantEthBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
+    const claimantUsdcBalanceAfter = await this.usdc.balanceOf(coverBuyer.address);
+
+    expect(claimantEthBalanceAfter).to.be.equal(claimantEthBalanceBefore + claimDepositAmount);
+    expect(claimantUsdcBalanceAfter).to.be.equal(claimantUsdcBalanceBefore + requestedAmount);
+  });
 
   it('buy cover through CoverBroker using ETH', async function () {
     const coverBuyer = await ethers.Wallet.createRandom().connect(ethers.provider);
@@ -714,7 +722,6 @@ describe('basic functionality tests', function () {
     const coverAsset = await this.pool.getAssetId(Addresses.USDC_ADDRESS);
     const amount = parseUnits('1000', 6);
     const commissionRatio = '0'; // 0%
-
     const usdcTopUpAmount = parseUnits('1000000', 6);
 
     const coverCountBefore = await this.cover.getCoverDataCount();

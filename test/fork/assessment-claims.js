@@ -96,6 +96,7 @@ describe('claim assessment', function () {
       const assessorId = await this.registry.getMemberId(assessor);
       assessorIds.push(assessorId);
     }
+    const assessmentGroupId = (await this.assessments.getGroupsCount()) + 1n;
 
     const txs = [
       // add assessors to a new group (groupId 0 creates new group)
@@ -108,7 +109,10 @@ describe('claim assessment', function () {
       {
         target: this.assessments.target,
         value: 0n,
-        data: this.assessments.interface.encodeFunctionData('setAssessingGroupIdForProductTypes', [[1, 19], 1]),
+        data: this.assessments.interface.encodeFunctionData('setAssessingGroupIdForProductTypes', [
+          [1, 19],
+          assessmentGroupId,
+        ]),
       },
     ];
     await executeGovernorProposal(this.governor, this.abMembers, txs);

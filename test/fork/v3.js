@@ -122,7 +122,7 @@ describe('v3 launch', function () {
   });
 
   // push legacy governance rewards
-  require('../../scripts/push-governance-rewards');
+  require('../../scripts/v3-migration/push-governance-rewards');
 
   // Phase 0
   //   - push old governance rewards
@@ -245,9 +245,8 @@ describe('v3 launch', function () {
   //   - deploy new P1, SO, RA, ST, AS, CL implementations
 
   // push legacy assessment stake and rewards
-  require('../../scripts/push-assessment-stake');
-  require('../../scripts/push-assessment-rewards');
-  require('./legacy-assessment');
+  require('../../scripts/v3-migration/push-assessment-stake');
+  require('../../scripts/v3-migration/push-assessment-rewards');
 
   it('should run phase 2', async function () {
     const SAFE_ADDRESS = '0x51ad1265C8702c9e96Ea61Fe4088C2e22eD4418e';

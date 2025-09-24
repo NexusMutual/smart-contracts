@@ -4,6 +4,7 @@ pragma solidity >=0.5.0;
 
 import "./ICoverNFT.sol";
 import "./IStakingNFT.sol";
+import "./IStakingPoolBeacon.sol";
 
 /* io structs */
 
@@ -35,21 +36,6 @@ struct PoolAllocation {
   uint24 allocationId;
 }
 
-struct LegacyCoverData {
-  uint24 productId;
-  uint8 coverAsset;
-  uint96 amountPaidOut;
-}
-
-struct LegacyCoverSegment {
-  uint96 amount;
-  uint32 start;
-  uint32 period; // seconds
-  uint32 gracePeriod; // seconds
-  uint24 globalRewardsRatio;
-  uint24 globalCapacityRatio;
-}
-
 struct CoverData {
   uint24 productId;
   uint8 coverAsset;
@@ -66,7 +52,7 @@ struct CoverReference {
   uint32 latestCoverId; // used only in the original cover (set to 0 in original cover if never edited)
 }
 
-interface ICover {
+interface ICover is IStakingPoolBeacon {
 
   /* ========== DATA STRUCTURES ========== */
 
@@ -132,7 +118,7 @@ interface ICover {
     address buyer
   ) external payable returns (uint coverId);
 
-  function burnStake(uint coverId, uint amount) external returns (address coverOwner);
+  function burnStake(uint coverId, uint amount) external;
 
   function coverNFT() external returns (ICoverNFT);
 

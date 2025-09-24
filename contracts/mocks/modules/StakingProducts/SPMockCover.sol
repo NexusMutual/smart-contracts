@@ -118,7 +118,7 @@ contract SPMockCover is CoverGeneric {
     emit RequestAllocationReturned(premium, allocationId);
   }
 
-  function stakingPoolImplementation() public view returns (address) {
+  function stakingPoolImplementation() public override view returns (address) {
     return _stakingPoolImplementation;
   }
 }

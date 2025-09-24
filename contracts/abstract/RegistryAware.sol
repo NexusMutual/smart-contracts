@@ -30,6 +30,7 @@ uint constant PAUSE_SWAPS         = 1 << 2;   // 4
 uint constant PAUSE_MEMBERSHIP    = 1 << 3;   // 8
 uint constant PAUSE_ASSESSMENTS   = 1 << 4;   // 16
 uint constant PAUSE_CLAIMS        = 1 << 5;   // 32
+uint constant PAUSE_COVER         = 1 << 6;   // 64
 
 contract RegistryAware {
 
@@ -60,7 +61,6 @@ contract RegistryAware {
     _;
   }
 
-  // TODO: find a better short name for this function
   function fetch(uint index) internal view returns (address) {
     return registry.getContractAddressByIndex(index);
   }

@@ -84,7 +84,7 @@ contract CoverGeneric is ICover {
 
   function executeCoverBuy(
     BuyCoverParams calldata /* params */,
-    PoolAllocationRequest[] calldata, /* coverChunkRequests */
+    PoolAllocationRequest[] calldata /* coverChunkRequests */,
     address /*buyer*/
   ) external virtual payable returns (uint) {
     revert("Unsupported");
@@ -93,7 +93,7 @@ contract CoverGeneric is ICover {
   function burnStake(
     uint /* coverId */,
     uint /* amount */
-  ) external virtual returns (address /* coverOwner */) {
+  ) external virtual {
     revert("Unsupported");
   }
 
@@ -114,6 +114,10 @@ contract CoverGeneric is ICover {
   }
 
   function stakingPoolFactory() external virtual view returns (address) {
+    revert("Unsupported");
+  }
+
+  function stakingPoolImplementation() external virtual view returns (address) {
     revert("Unsupported");
   }
 }

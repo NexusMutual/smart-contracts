@@ -2,45 +2,35 @@
 
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import "../../abstract/MasterAwareV2.sol";
 import "../../abstract/Multicall.sol";
+import "../../abstract/ReentrancyGuard.sol";
+import "../../abstract/RegistryAware.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
-import "../../interfaces/IStakingPoolBeacon.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 
-contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Multicall {
+contract Cover is ICover, RegistryAware, ReentrancyGuard, Multicall {
   using SafeERC20 for IERC20;
   using SafeUintCast for uint;
 
   /* ========== STATE VARIABLES ========== */
 
-  uint private __unused_0; // was Product[] products
-  uint private __unused_1; // was ProductType[] productTypes
-
-  mapping(uint coverId => LegacyCoverData) private _legacyCoverData;
-  mapping(uint coverId => mapping(uint segmentId => PoolAllocation[])) private _legacyCoverSegmentAllocations;
-
-  uint private __unused_4; // was mapping(uint => uint[]) allowedPools
-
-  mapping(uint coverId => LegacyCoverSegment[]) private _legacyCoverSegments;
+  uint[9] private __unused_0; // slots 0 - 8
 
   mapping(uint assetId => ActiveCover) public activeCover;
   mapping(uint assetId => mapping(uint bucketId => uint amount)) internal activeCoverExpirationBuckets;
 
-  uint private __unused_8; // was mapping(uint => string) _productNames
-  uint private __unused_9; // was mapping(uint => string) _productTypeNames
+  uint[2] private _unused_11; // slots 11 - 12
 
   mapping(uint coverId => CoverData) private _coverData;
   mapping(uint coverId => PoolAllocation[]) private _poolAllocations;
@@ -75,6 +65,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
+  IPool public immutable pool;
+  ITokenController public immutable tokenController;
+  ICoverProducts public immutable coverProducts;
   ICoverNFT public immutable override coverNFT;
   IStakingNFT public immutable override stakingNFT;
   address public immutable override stakingPoolFactory;
@@ -83,15 +76,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   /* ========== CONSTRUCTOR ========== */
 
   constructor(
-    ICoverNFT _coverNFT,
-    IStakingNFT _stakingNFT,
-    address _stakingPoolFactory,
+    address _registry,
     address _stakingPoolImplementation
-  ) {
-    // in constructor we only initialize immutable fields
-    coverNFT = _coverNFT;
-    stakingNFT = _stakingNFT;
-    stakingPoolFactory = _stakingPoolFactory;
+  ) RegistryAware(_registry) {
+
+    // fetch deps
+    coverNFT = ICoverNFT(fetch(C_COVER_NFT));
+    coverProducts = ICoverProducts(fetch(C_COVER_PRODUCTS));
+    pool = IPool(fetch(C_POOL));
+    stakingNFT = IStakingNFT(fetch(C_STAKING_NFT));
+    stakingPoolFactory = fetch(C_STAKING_POOL_FACTORY);
+    tokenController = ITokenController(fetch(C_TOKEN_CONTROLLER));
+
+    // store staking pool implementation
     stakingPoolImplementation = _stakingPoolImplementation;
   }
 
@@ -123,7 +120,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory poolAllocationRequests,
     address buyer
-  ) external payable onlyInternal returns (uint coverId) {
+  ) external payable onlyContracts(C_LIMIT_ORDERS) returns (uint coverId) {
 
     if (params.coverId != 0) {
       require(coverNFT.isApprovedOrOwner(buyer, params.coverId), OnlyOwnerOrApproved());
@@ -145,7 +142,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
   function _buyCover(
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory poolAllocationRequests
-  ) internal nonReentrant whenNotPaused returns (uint coverId) {
+  ) internal nonReentrant whenNotPaused(PAUSE_COVER) returns (uint coverId) {
 
     require(params.period >= MIN_COVER_PERIOD, CoverPeriodTooShort());
     require(params.period <= MAX_COVER_PERIOD, CoverPeriodTooLong());
@@ -190,8 +187,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     AllocationRequest memory allocationRequest;
 
     {
-      ICoverProducts coverProducts = _coverProducts();
-
       require(params.productId < coverProducts.getProductCount(), ProductNotFound());
 
       (
@@ -215,7 +210,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       );
     }
 
-    uint nxmPriceInCoverAsset = _pool().getInternalTokenPriceInAssetAndUpdateTwap(params.coverAsset);
+    uint nxmPriceInCoverAsset = pool.getInternalTokenPriceInAssetAndUpdateTwap(params.coverAsset);
 
     (uint coverAmountInCoverAsset, uint amountDueInNXM) = _requestAllocation(
       allocationRequest,
@@ -244,14 +239,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       previousCoverExpiration
     );
 
-    _retrievePayment(
-      refundedPremium >= amountDueInNXM ? 0 : amountDueInNXM - refundedPremium,
-      params.paymentAsset,
-      nxmPriceInCoverAsset,
-      params.maxPremiumInAsset,
-      params.commissionRatio,
-      params.commissionDestination
-    );
+    amountDueInNXM -= Math.min(refundedPremium, amountDueInNXM); // refund capped at new cover amount
+
+    _retrievePayment(amountDueInNXM, nxmPriceInCoverAsset, params);
   }
 
   function expireCover(uint coverId) external {
@@ -365,12 +355,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
   function _retrievePayment(
     uint premiumInNxm,
-    uint paymentAsset,
     uint nxmPriceInCoverAsset,
-    uint maxPremiumInAsset,
-    uint commissionRatio,
-    address commissionDestination
+    BuyCoverParams memory params
   ) internal {
+
+    uint paymentAsset = params.paymentAsset;
+    uint maxPremiumInAsset = params.maxPremiumInAsset;
+    uint commissionRatio = params.commissionRatio;
+    address commissionDestination = params.commissionDestination;
 
     require(msg.value == 0 || paymentAsset == ETH_ASSET_ID, UnexpectedEthSent());
 
@@ -384,7 +376,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
 
       require(premiumInNxm + commissionInNxm <= maxPremiumInAsset, PriceExceedsMaxPremiumInAsset());
 
-      ITokenController tokenController = _tokenController();
       tokenController.burnFrom(msg.sender, premiumInNxm);
 
       if (commissionInNxm > 0) {
@@ -395,7 +386,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       return;
     }
 
-    IPool pool = _pool();
     uint premiumInPaymentAsset = nxmPriceInCoverAsset * premiumInNxm / ONE_NXM;
     uint commission = (premiumInPaymentAsset * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio)) - premiumInPaymentAsset;
     uint premiumWithCommission = premiumInPaymentAsset + commission;
@@ -487,11 +477,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     activeCover[coverAsset] = _activeCover;
   }
 
-  // TODO: remove return address
-  function burnStake(
-    uint coverId,
-    uint payoutAmountInAsset
-  ) external onlyInternal override returns (address /* coverOwner */) {
+  function burnStake(uint coverId, uint payoutAmountInAsset) external onlyContracts(C_CLAIMS) override {
 
     CoverData memory cover = _coverData[coverId];
 
@@ -531,8 +517,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     // update && sstore
     cover.amount -= payoutAmountInAsset.toUint96();
     _coverData[coverId] = cover;
-
-    return coverNFT.ownerOf(coverId);
   }
 
   /* ========== VIEWS ========== */
@@ -614,7 +598,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
       return false;
     }
 
-    Asset memory asset = _pool().getAsset(assetId);
+    Asset memory asset = pool.getAsset(assetId);
 
     return asset.isCoverAsset && !asset.isAbandoned;
   }
@@ -625,68 +609,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard, Mu
     );
   }
 
-  function changeCoverNFTDescriptor(address _coverNFTDescriptor) external onlyAdvisoryBoard {
+  function changeCoverNFTDescriptor(address _coverNFTDescriptor) external onlyContracts(C_GOVERNOR) {
     coverNFT.changeNFTDescriptor(_coverNFTDescriptor);
   }
 
-  function changeStakingNFTDescriptor(address _stakingNFTDescriptor) external onlyAdvisoryBoard {
+  function changeStakingNFTDescriptor(address _stakingNFTDescriptor) external onlyContracts(C_GOVERNOR) {
     stakingNFT.changeNFTDescriptor(_stakingNFTDescriptor);
   }
 
-  /* ========== DEPENDENCIES ========== */
-
-  function _pool() internal view returns (IPool) {
-    return IPool(internalContracts[uint(ID.P1)]);
-  }
-
-  function _tokenController() internal view returns (ITokenController) {
-    return ITokenController(internalContracts[uint(ID.TC)]);
-  }
-
-  function _memberRoles() internal view returns (IMemberRoles) {
-    return IMemberRoles(internalContracts[uint(ID.MR)]);
-  }
-
-  function _coverProducts() internal view returns (ICoverProducts) {
-    return ICoverProducts(internalContracts[uint(ID.CP)]);
-  }
-
-  function changeDependentContractAddress() external override {
-    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
-    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
-    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
-    internalContracts[uint(ID.CP)] = master.getLatestAddress("CP");
-  }
-
-  /* ========== MIGRATION ========== */
-
-  function migrateCoverDataAndPoolAllocations(uint[] calldata coverIds) external {
-    uint length = coverIds.length;
-    for(uint i=0; i<length; i++) {
-      uint coverId = coverIds[i];
-
-      LegacyCoverSegment memory legacyCoverSegment = _legacyCoverSegments[coverId][0];
-
-      require(legacyCoverSegment.amount > 0, AlreadyMigratedCoverData(coverId));
-
-      LegacyCoverData memory legacyCoverData = _legacyCoverData[coverId];
-
-      _coverData[coverId] = CoverData({
-        productId: legacyCoverData.productId,
-        coverAsset: legacyCoverData.coverAsset,
-        amount: legacyCoverSegment.amount,
-        start: legacyCoverSegment.start,
-        period: legacyCoverSegment.period,
-        gracePeriod: legacyCoverSegment.gracePeriod,
-        rewardsRatio: uint(legacyCoverSegment.globalRewardsRatio).toUint16(),
-        capacityRatio: uint(legacyCoverSegment.globalCapacityRatio).toUint16()
-      });
-
-      _poolAllocations[coverId] = _legacyCoverSegmentAllocations[coverId][0];
-
-      delete _legacyCoverSegments[coverId][0];
-      delete _legacyCoverData[coverId];
-      delete _legacyCoverSegmentAllocations[coverId][0];
-    }
-  }
 }

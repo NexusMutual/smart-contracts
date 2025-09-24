@@ -52,6 +52,12 @@ struct CoverReference {
   uint32 latestCoverId; // used only in the original cover (set to 0 in original cover if never edited)
 }
 
+// reinsurance info
+struct Ri {
+  uint24 providerId;
+  uint96 amount;
+}
+
 interface ICover is IStakingPoolBeacon {
 
   /* ========== DATA STRUCTURES ========== */
@@ -78,13 +84,17 @@ interface ICover is IStakingPoolBeacon {
 
   function getCoverData(uint coverId) external view returns (CoverData memory);
 
-  function getPoolAllocations(uint coverId) external view returns (PoolAllocation[] memory);
+  function getCoverRi(uint coverId) external view returns (Ri memory);
 
-  function getCoverDataCount() external view returns (uint);
+  function getCoverDataWithRi(uint coverId) external view returns (CoverData memory, Ri memory);
 
   function getCoverReference(uint coverId) external view returns(CoverReference memory);
 
   function getCoverDataWithReference(uint coverId) external view returns (CoverData memory, CoverReference memory);
+
+  function getCoverDataCount() external view returns (uint);
+
+  function getPoolAllocations(uint coverId) external view returns (PoolAllocation[] memory);
 
   function getLatestEditCoverData(uint coverId) external view returns (CoverData memory);
 
@@ -184,4 +194,9 @@ interface ICover is IStakingPoolBeacon {
   error InsufficientCoverAmountAllocated();
   error UnexpectedPoolId();
   error AlreadyMigratedCoverData(uint coverId);
+
+  // Ri
+  error InvalidSignature();
+  error WrongCoverEditEntrypoint();
+  error RiAmountIsZero();
 }

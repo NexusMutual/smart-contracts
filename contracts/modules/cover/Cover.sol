@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import "../../abstract/Multicall.sol";
+import "../../abstract/EIP712.sol";
 import "../../abstract/ReentrancyGuard.sol";
 import "../../abstract/RegistryAware.sol";
 import "../../interfaces/ICover.sol";
@@ -19,7 +20,7 @@ import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
 
-contract Cover is ICover, RegistryAware, ReentrancyGuard, Multicall {
+contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
   using SafeERC20 for IERC20;
   using SafeUintCast for uint;
 
@@ -35,6 +36,10 @@ contract Cover is ICover, RegistryAware, ReentrancyGuard, Multicall {
   mapping(uint coverId => CoverData) private _coverData;
   mapping(uint coverId => PoolAllocation[]) private _poolAllocations;
   mapping(uint coverId => CoverReference) private _coverReference;
+
+  mapping(uint coverId => Ri) private _coverRi;
+  uint32 public nextRiNonce;
+  address public riSigner;
 
   /* ========== CONSTANTS ========== */
 
@@ -72,13 +77,15 @@ contract Cover is ICover, RegistryAware, ReentrancyGuard, Multicall {
   IStakingNFT public immutable override stakingNFT;
   address public immutable override stakingPoolFactory;
   address public immutable override stakingPoolImplementation;
+  address public immutable claims;
 
   /* ========== CONSTRUCTOR ========== */
 
   constructor(
     address _registry,
-    address _stakingPoolImplementation
-  ) RegistryAware(_registry) {
+    address _stakingPoolImplementation,
+    address _verifyingAddress
+  ) RegistryAware(_registry) EIP712("NexusMutualCover", "1.0.0", _verifyingAddress) {
 
     // fetch deps
     coverNFT = ICoverNFT(fetch(C_COVER_NFT));
@@ -101,6 +108,7 @@ contract Cover is ICover, RegistryAware, ReentrancyGuard, Multicall {
 
     if (params.coverId != 0) {
       require(coverNFT.isApprovedOrOwner(msg.sender, params.coverId), OnlyOwnerOrApproved());
+      require(_coverRi[params.coverId].amount == 0, WrongCoverEditEntrypoint());
     }
 
     coverId = _buyCover(params, poolAllocationRequests);
@@ -124,6 +132,7 @@ contract Cover is ICover, RegistryAware, ReentrancyGuard, Multicall {
 
     if (params.coverId != 0) {
       require(coverNFT.isApprovedOrOwner(buyer, params.coverId), OnlyOwnerOrApproved());
+      require(_coverRi[params.coverId].amount == 0, WrongCoverEditEntrypoint());
     }
 
     coverId = _buyCover(params, poolAllocationRequests);
@@ -133,6 +142,53 @@ contract Cover is ICover, RegistryAware, ReentrancyGuard, Multicall {
       params.coverId != 0 ? params.coverId : coverId,
       params.productId,
       buyer,
+      params.ipfsData
+    );
+
+    return coverId;
+  }
+
+  function buyCoverWithRi(
+    BuyCoverParams memory params,
+    PoolAllocationRequest[] memory poolAllocationRequests,
+    uint riAmount,
+    uint riProviderId,
+    bytes memory signature
+  ) external payable onlyMember returns (uint coverId) {
+
+    if (params.coverId != 0) {
+      require(coverNFT.isApprovedOrOwner(msg.sender, params.coverId), OnlyOwnerOrApproved());
+    } else {
+      // ri amount should be non-zero on first cover buy, but allowed to be zero on edits
+      require(riAmount > 0, RiAmountIsZero());
+    }
+
+    bytes memory message = abi.encode(
+      params.coverId,
+      params.productId,
+      riProviderId,
+      riAmount,
+      params.period,
+      params.coverAsset,
+      nextRiNonce
+    );
+
+    require(recoverSigner(message, signature) == riSigner, InvalidSignature());
+    require(params.paymentAsset == NXM_ASSET_ID, InvalidPaymentAsset());
+
+    nextRiNonce++;
+    _coverRi[coverId].providerId = riProviderId.toUint24();
+    _coverRi[coverId].amount = riAmount.toUint96();
+
+    // TODO: handle payment ¯\_(ツ)_/¯
+
+    coverId = _buyCover(params, poolAllocationRequests);
+
+    emit CoverBought(
+      coverId,
+      params.coverId != 0 ? params.coverId : coverId,
+      params.productId,
+      msg.sender,
       params.ipfsData
     );
 
@@ -521,16 +577,17 @@ contract Cover is ICover, RegistryAware, ReentrancyGuard, Multicall {
 
   /* ========== VIEWS ========== */
 
+  // TODO: patch the descriptor to display the amount including ri
   function getCoverData(uint coverId) external override view returns (CoverData memory) {
     return _coverData[coverId];
   }
 
-  function getPoolAllocations(uint coverId) external override view returns (PoolAllocation[] memory) {
-    return _poolAllocations[coverId];
+  function getCoverRi(uint coverId) external override view returns (Ri memory) {
+    return _coverRi[coverId];
   }
 
-  function getCoverDataCount() external override view returns (uint) {
-    return coverNFT.totalSupply();
+  function getCoverDataWithRi(uint coverId) external override view returns (CoverData memory, Ri memory) {
+    return (_coverData[coverId], _coverRi[coverId]);
   }
 
   function getCoverReference(uint coverId) public override view returns(CoverReference memory coverReference) {
@@ -541,6 +598,14 @@ contract Cover is ICover, RegistryAware, ReentrancyGuard, Multicall {
 
   function getCoverDataWithReference(uint coverId) external override view returns (CoverData memory, CoverReference memory) {
     return (_coverData[coverId], getCoverReference(coverId));
+  }
+
+  function getPoolAllocations(uint coverId) external override view returns (PoolAllocation[] memory) {
+    return _poolAllocations[coverId];
+  }
+
+  function getCoverDataCount() external override view returns (uint) {
+    return coverNFT.totalSupply();
   }
 
   function getLatestEditCoverData(uint coverId) external override view returns (CoverData memory) {

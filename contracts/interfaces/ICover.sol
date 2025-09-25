@@ -58,6 +58,18 @@ struct Ri {
   uint96 amount;
 }
 
+struct RiConfig {
+  uint24 nextNonce;
+  address premiumDestination;
+}
+
+struct RiRequest {
+  uint providerId;
+  uint amount;
+  uint premium;
+  bytes signature;
+}
+
 interface ICover is IStakingPoolBeacon {
 
   /* ========== DATA STRUCTURES ========== */
@@ -128,6 +140,12 @@ interface ICover is IStakingPoolBeacon {
     address buyer
   ) external payable returns (uint coverId);
 
+  function buyCoverWithRi(
+    BuyCoverParams calldata params,
+    PoolAllocationRequest[] calldata coverChunkRequests,
+    RiRequest calldata riRequest
+  ) external payable returns (uint coverId);
+
   function burnStake(uint coverId, uint amount) external;
 
   function coverNFT() external returns (ICoverNFT);
@@ -184,9 +202,7 @@ interface ICover is IStakingPoolBeacon {
 
   // ETH transfers
   error InsufficientEthSent();
-  error SendingEthToPoolFailed();
-  error SendingEthToCommissionDestinationFailed();
-  error ReturningEthRemainderToSenderFailed();
+  error ETHTransferFailed(address to, uint amount);
 
   // Misc
   error ExpiredCoversCannotBeEdited();

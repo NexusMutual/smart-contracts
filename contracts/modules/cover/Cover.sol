@@ -5,8 +5,8 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import "../../abstract/Multicall.sol";
 import "../../abstract/EIP712.sol";
+import "../../abstract/Multicall.sol";
 import "../../abstract/ReentrancyGuard.sol";
 import "../../abstract/RegistryAware.sol";
 import "../../interfaces/ICover.sol";
@@ -31,14 +31,14 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
   mapping(uint assetId => ActiveCover) public activeCover;
   mapping(uint assetId => mapping(uint bucketId => uint amount)) internal activeCoverExpirationBuckets;
 
-  uint[2] private _unused_11; // slots 11 - 12
+  uint[2] private __unused_11; // slots 11 - 12
 
   mapping(uint coverId => CoverData) private _coverData;
   mapping(uint coverId => PoolAllocation[]) private _poolAllocations;
   mapping(uint coverId => CoverReference) private _coverReference;
 
   mapping(uint coverId => Ri) private _coverRi;
-  uint32 public nextRiNonce;
+  mapping(uint providerId => RiConfig) private _riProviderConfigs;
   address public riSigner;
 
   /* ========== CONSTANTS ========== */
@@ -101,6 +101,7 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
+  /// @dev Entrypoint for users buying a cover by interacting with this contract directly
   function buyCover(
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory poolAllocationRequests
@@ -111,7 +112,12 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
       require(_coverRi[params.coverId].amount == 0, WrongCoverEditEntrypoint());
     }
 
-    coverId = _buyCover(params, poolAllocationRequests);
+    coverId = _buyCover(
+      params,
+      poolAllocationRequests,
+      0, // no riPremium
+      address(0) // no riPremiumDestination
+    );
 
     emit CoverBought(
       coverId,
@@ -124,6 +130,7 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     return coverId;
   }
 
+  /// @dev Entrypoint for LimitOrders contract
   function executeCoverBuy(
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory poolAllocationRequests,
@@ -135,7 +142,12 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
       require(_coverRi[params.coverId].amount == 0, WrongCoverEditEntrypoint());
     }
 
-    coverId = _buyCover(params, poolAllocationRequests);
+    coverId = _buyCover(
+      params,
+      poolAllocationRequests,
+      0, // no riPremium
+      address(0) // no riPremiumDestination
+    );
 
     emit CoverBought(
       coverId,
@@ -148,41 +160,42 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     return coverId;
   }
 
+  /// @dev Entrypoint for Users buying cover with ri
   function buyCoverWithRi(
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory poolAllocationRequests,
-    uint riAmount,
-    uint riProviderId,
-    bytes memory signature
+    RiRequest memory riRequest
   ) external payable onlyMember returns (uint coverId) {
 
     if (params.coverId != 0) {
       require(coverNFT.isApprovedOrOwner(msg.sender, params.coverId), OnlyOwnerOrApproved());
     } else {
       // ri amount should be non-zero on first cover buy, but allowed to be zero on edits
-      require(riAmount > 0, RiAmountIsZero());
+      require(riRequest.amount > 0, RiAmountIsZero());
     }
+
+    RiConfig storage riConfig = _riProviderConfigs[riRequest.providerId];
+    address riPremiumDestination = riConfig.premiumDestination;
+    uint nextNonce = riConfig.nextNonce++; // SLOAD + SSTORE
 
     bytes memory message = abi.encode(
       params.coverId,
       params.productId,
-      riProviderId,
-      riAmount,
+      riRequest.amount,
+      riRequest.premium,
+      riRequest.providerId,
       params.period,
       params.coverAsset,
-      nextRiNonce
+      nextNonce
     );
 
-    require(recoverSigner(message, signature) == riSigner, InvalidSignature());
-    require(params.paymentAsset == NXM_ASSET_ID, InvalidPaymentAsset());
+    require(recoverSigner(message, riRequest.signature) == riSigner, InvalidSignature());
+    require(params.paymentAsset == params.coverAsset, InvalidPaymentAsset());
 
-    nextRiNonce++;
-    _coverRi[coverId].providerId = riProviderId.toUint24();
-    _coverRi[coverId].amount = riAmount.toUint96();
+    coverId = _buyCover(params, poolAllocationRequests, riRequest.premium, riPremiumDestination);
 
-    // TODO: handle payment ¯\_(ツ)_/¯
-
-    coverId = _buyCover(params, poolAllocationRequests);
+    _coverRi[coverId].providerId = riRequest.providerId.toUint24();
+    _coverRi[coverId].amount = riRequest.amount.toUint96();
 
     emit CoverBought(
       coverId,
@@ -197,18 +210,47 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
 
   function _buyCover(
     BuyCoverParams memory params,
-    PoolAllocationRequest[] memory poolAllocationRequests
+    PoolAllocationRequest[] memory poolAllocationRequests,
+    uint riPremiumInPaymentAsset,
+    address riPremiumDestination
   ) internal nonReentrant whenNotPaused(PAUSE_COVER) returns (uint coverId) {
 
     require(params.period >= MIN_COVER_PERIOD, CoverPeriodTooShort());
     require(params.period <= MAX_COVER_PERIOD, CoverPeriodTooLong());
     require(params.commissionRatio <= MAX_COMMISSION_RATIO, CommissionRateTooHigh());
     require(params.amount != 0, CoverAmountIsZero());
+
     // can pay with cover asset or nxm only
     require(params.paymentAsset == params.coverAsset || params.paymentAsset == NXM_ASSET_ID, InvalidPaymentAsset());
 
     // new cover
     coverId = coverNFT.mint(params.owner);
+
+    uint premiumInPaymentAsset;
+
+    {
+      uint nxmPriceInCoverAsset = pool.getInternalTokenPriceInAssetAndUpdateTwap(params.coverAsset);
+      uint amountDueInNXM = _createCover(params, poolAllocationRequests, coverId, nxmPriceInCoverAsset);
+      premiumInPaymentAsset = nxmPriceInCoverAsset * amountDueInNXM / ONE_NXM;
+    }
+
+    _retrievePayment(
+      params.paymentAsset,
+      premiumInPaymentAsset,
+      riPremiumInPaymentAsset,
+      params.maxPremiumInAsset + riPremiumInPaymentAsset,
+      riPremiumDestination,
+      params.commissionRatio,
+      params.commissionDestination
+    );
+  }
+
+  function _createCover(
+    BuyCoverParams memory params,
+    PoolAllocationRequest[] memory poolAllocationRequests,
+    uint coverId,
+    uint nxmPriceInCoverAsset
+  ) internal returns (uint amountDueInNXM) {
 
     uint previousCoverAmount;
     uint previousCoverExpiration;
@@ -266,9 +308,7 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
       );
     }
 
-    uint nxmPriceInCoverAsset = pool.getInternalTokenPriceInAssetAndUpdateTwap(params.coverAsset);
-
-    (uint coverAmountInCoverAsset, uint amountDueInNXM) = _requestAllocation(
+    (uint coverAmountInCoverAsset, uint totalPremiumInNxm) = _requestAllocation(
       allocationRequest,
       poolAllocationRequests,
       nxmPriceInCoverAsset
@@ -295,9 +335,10 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
       previousCoverExpiration
     );
 
-    amountDueInNXM -= Math.min(refundedPremium, amountDueInNXM); // refund capped at new cover amount
-
-    _retrievePayment(amountDueInNXM, nxmPriceInCoverAsset, params);
+    // cap refund at new cover premium
+    return totalPremiumInNxm > refundedPremium
+      ? totalPremiumInNxm - refundedPremium
+      : 0;
   }
 
   function expireCover(uint coverId) external {
@@ -341,7 +382,7 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     uint nxmPriceInCoverAsset
   ) internal returns (
     uint totalCoverAmountInCoverAsset,
-    uint totalAmountDueInNXM
+    uint totalPremiumInNXM
   ) {
 
     uint totalCoverAmountInNXM;
@@ -368,13 +409,13 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
         )
       );
 
-      totalAmountDueInNXM += premiumInNXM;
+      totalPremiumInNXM += premiumInNXM;
       totalCoverAmountInNXM += coverAmountInNXM;
     }
 
     totalCoverAmountInCoverAsset = totalCoverAmountInNXM * nxmPriceInCoverAsset / ONE_NXM;
 
-    return (totalCoverAmountInCoverAsset, totalAmountDueInNXM);
+    return (totalCoverAmountInCoverAsset, totalPremiumInNXM);
   }
 
   function _requestDeallocation(
@@ -410,46 +451,41 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
   }
 
   function _retrievePayment(
-    uint premiumInNxm,
-    uint nxmPriceInCoverAsset,
-    BuyCoverParams memory params
+    uint paymentAsset,
+    uint premium,
+    uint riPremium,
+    uint maxAmountInAsset,
+    address riPremiumDestination,
+    uint commissionRatio,
+    address commissionDestination
   ) internal {
 
-    uint paymentAsset = params.paymentAsset;
-    uint maxPremiumInAsset = params.maxPremiumInAsset;
-    uint commissionRatio = params.commissionRatio;
-    address commissionDestination = params.commissionDestination;
+    uint commission = commissionRatio > 0
+      ? (premium * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio)) - premium
+      : 0;
+    uint premiumWithCommission = premium + commission;
 
+    require(premiumWithCommission <= maxAmountInAsset, PriceExceedsMaxPremiumInAsset());
     require(msg.value == 0 || paymentAsset == ETH_ASSET_ID, UnexpectedEthSent());
 
     // NXM payment
     if (paymentAsset == NXM_ASSET_ID) {
-      uint commissionInNxm;
 
-      if (commissionRatio > 0) {
-        commissionInNxm = (premiumInNxm * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio)) - premiumInNxm;
-      }
+      // no ri premium when paying with nxm
 
-      require(premiumInNxm + commissionInNxm <= maxPremiumInAsset, PriceExceedsMaxPremiumInAsset());
+      tokenController.burnFrom(msg.sender, premium);
 
-      tokenController.burnFrom(msg.sender, premiumInNxm);
-
-      if (commissionInNxm > 0) {
+      if (commission > 0) {
         // commission transfer reverts if the commissionDestination is not a member
-        tokenController.operatorTransfer(msg.sender, commissionDestination, commissionInNxm);
+        tokenController.operatorTransfer(msg.sender, commissionDestination, commission);
       }
 
       return;
     }
 
-    uint premiumInPaymentAsset = nxmPriceInCoverAsset * premiumInNxm / ONE_NXM;
-    uint commission = (premiumInPaymentAsset * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio)) - premiumInPaymentAsset;
-    uint premiumWithCommission = premiumInPaymentAsset + commission;
-
-    require(premiumWithCommission <= maxPremiumInAsset, PriceExceedsMaxPremiumInAsset());
-
     // ETH payment
     if (paymentAsset == ETH_ASSET_ID) {
+
       require(msg.value >= premiumWithCommission, InsufficientEthSent());
 
       uint remainder = msg.value - premiumWithCommission;
@@ -457,20 +493,26 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
       {
         // send premium in eth to the pool
         // solhint-disable-next-line avoid-low-level-calls
-        (bool ok, /* data */) = address(pool).call{value: premiumInPaymentAsset}("");
-        require(ok, SendingEthToPoolFailed());
+        (bool ok, /* data */) = address(pool).call{value: premium}("");
+        require(ok, ETHTransferFailed(address(pool), premium));
+      }
+
+      if (riPremium > 0) {
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool ok, /* data */) = address(riPremiumDestination).call{value: riPremium}("");
+        require(ok, ETHTransferFailed(riPremiumDestination, riPremium));
       }
 
       // send commission
       if (commission > 0) {
         (bool ok, /* data */) = address(commissionDestination).call{value: commission}("");
-        require(ok, SendingEthToCommissionDestinationFailed());
+        require(ok, ETHTransferFailed(commissionDestination, commission));
       }
 
       if (remainder > 0) {
         // solhint-disable-next-line avoid-low-level-calls
         (bool ok, /* data */) = address(msg.sender).call{value: remainder}("");
-        require(ok, ReturningEthRemainderToSenderFailed());
+        require(ok, ETHTransferFailed(msg.sender, remainder));
       }
 
       return;
@@ -478,7 +520,11 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
 
     address coverAsset = pool.getAsset(paymentAsset).assetAddress;
     IERC20 token = IERC20(coverAsset);
-    token.safeTransferFrom(msg.sender, address(pool), premiumInPaymentAsset);
+    token.safeTransferFrom(msg.sender, address(pool), premium);
+
+    if (riPremium > 0) {
+      token.safeTransferFrom(msg.sender, riPremiumDestination, riPremium);
+    }
 
     if (commission > 0) {
       token.safeTransferFrom(msg.sender, commissionDestination, commission);

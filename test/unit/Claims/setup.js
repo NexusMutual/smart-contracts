@@ -70,16 +70,13 @@ async function setup() {
   await coverProducts.addProduct({ ...productTemplate, productType: '1' }); // productId 1 -> productType 1
   await coverProducts.addProduct({ ...productTemplate, productType: '2' }); // productId 2 -> productType 2
 
-  const tokenControllerAddress = tokenController.target;
   for (const member of accounts.members) {
-    await Promise.all([
-      registry.join(member, ethers.toBeHex(0, 32)),
-      nxm.mint(member.address, parseEther('10000')),
-      nxm.connect(member).approve(tokenControllerAddress, parseEther('10000')),
-    ]);
+    await registry.join(member, ethers.toBeHex(0, 32));
+    await nxm.mint(member.address, parseEther('10000'));
+    await nxm.connect(member).approve(tokenController, parseEther('10000'));
   }
 
-  accounts.defaultSender.sendTransaction({ to: pool.target, value: parseEther('200') });
+  await accounts.defaultSender.sendTransaction({ to: pool.target, value: parseEther('200') });
   await dai.mint(pool.target, parseEther('200'));
 
   const config = {
@@ -88,6 +85,7 @@ async function setup() {
 
   const contracts = {
     pool,
+    ramm,
     nxm,
     dai,
     claims,

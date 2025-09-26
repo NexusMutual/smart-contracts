@@ -1,16 +1,22 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { parseEther, ZeroAddress } = ethers;
+const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { increaseTime } = require('../../utils/evm');
 const { setup } = require('./setup');
+
+const { parseEther, ZeroAddress } = ethers;
+const { ContractIndexes } = nexus.constants;
 
 async function setupTotalActiveCoverInAsset() {
   const fixture = await loadFixture(setup);
-  const { cover, accounts } = fixture;
-  const coverBuyer = accounts.members[0];
+  const { accounts, cover, registry } = fixture;
+
   const { COVER_BUY_FIXTURE } = fixture.constants;
+  const [coverBuyer] = accounts.members;
+  const [claims] = accounts.internalContracts;
+
+  await registry.addContract(ContractIndexes.C_CLAIMS, claims, true);
+
   const { amount, targetPriceRatio, period, priceDenominator, productId, coverAsset } = COVER_BUY_FIXTURE;
 
   const expectedPremium = (amount * targetPriceRatio * period) / (priceDenominator * 3600n * 24n * 365n);
@@ -103,7 +109,7 @@ describe('totalActiveCoverInAsset', function () {
     const { coverAsset, amount } = COVER_BUY_FIXTURE;
 
     const { totalActiveCoverInAsset: totalActiveCoverInAssetBefore } = await cover.activeCover(coverAsset);
-    await increaseTime(Number(BUCKET_SIZE + COVER_BUY_FIXTURE.period));
+    await time.increase(Number(BUCKET_SIZE + COVER_BUY_FIXTURE.period));
     await cover.expireCover(coverId);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -123,7 +129,7 @@ describe('totalActiveCoverInAsset', function () {
     const { amount, period, coverAsset, productId } = COVER_BUY_FIXTURE;
 
     // Move forward 1 bucket
-    await increaseTime(Number(BUCKET_SIZE));
+    await time.increase(Number(BUCKET_SIZE));
 
     // Edit cover
     await cover.connect(member).buyCover(
@@ -153,7 +159,7 @@ describe('totalActiveCoverInAsset', function () {
 
     {
       // Move many blocks until next cover is expired
-      await increaseTime(500 * 24 * 60 * 60);
+      await time.increase(500 * 24 * 60 * 60);
 
       const amount = parseEther('5');
       await cover.connect(member).buyCover(
@@ -188,24 +194,24 @@ describe('totalActiveCoverInAsset', function () {
   it('should be able to burn all active cover', async function () {
     const fixture = await loadFixture(setupTotalActiveCoverInAsset);
     const { cover, coverId } = fixture;
-    const [internalContract] = fixture.accounts.internalContracts;
+    const [claims] = fixture.accounts.internalContracts;
     const { COVER_BUY_FIXTURE } = fixture.constants;
 
     const { coverAsset, amount } = COVER_BUY_FIXTURE;
 
-    await cover.connect(internalContract).burnStake(coverId, amount);
+    await cover.connect(claims).burnStake(coverId, amount);
     expect(await cover.totalActiveCoverInAsset(coverAsset)).to.be.equal(0);
   });
 
   it('should decrease active cover by 1 WEI, and not cause rounding issues', async function () {
     const fixture = await loadFixture(setupTotalActiveCoverInAsset);
     const { cover, coverId } = fixture;
-    const [internalContract] = fixture.accounts.internalContracts;
+    const [claims] = fixture.accounts.internalContracts;
     const { COVER_BUY_FIXTURE } = fixture.constants;
 
     const { coverAsset, amount } = COVER_BUY_FIXTURE;
 
-    await cover.connect(internalContract).burnStake(coverId, 1);
+    await cover.connect(claims).burnStake(coverId, 1);
     expect(await cover.totalActiveCoverInAsset(coverAsset)).to.be.equal(amount - 1n);
   });
 
@@ -215,20 +221,20 @@ describe('totalActiveCoverInAsset', function () {
     const { BUCKET_SIZE } = fixture.config;
     const { COVER_BUY_FIXTURE } = fixture.constants;
 
-    const [internalContract] = fixture.accounts.internalContracts;
+    const [claims] = fixture.accounts.internalContracts;
     const members = fixture.accounts.members;
     const coverBuyer = members[0];
 
     const { coverAsset, amount, productId, period } = COVER_BUY_FIXTURE;
 
-    await cover.connect(internalContract).burnStake(coverId, amount);
+    await cover.connect(claims).burnStake(coverId, amount);
 
     const timeBetweenPurchases = 2 * 24 * 60 * 60;
     expect(members.length * timeBetweenPurchases < COVER_BUY_FIXTURE.period);
 
     // purchase cover, then burn half of  the cover and move forward 2 days each iteration
     for (let i = 1; i < members.length; i++) {
-      await increaseTime(2 * 24 * 60 * 60);
+      await time.increase(2 * 24 * 60 * 60);
       const expectedActiveCover = (amount * BigInt(i)) / 2n;
 
       const member = members[i];
@@ -250,12 +256,12 @@ describe('totalActiveCoverInAsset', function () {
         { value: expectedPremium },
       );
       // Burn first segment of coverId == i
-      await cover.connect(internalContract).burnStake(i + 1, amount / 2n);
+      await cover.connect(claims).burnStake(i + 1, amount / 2n);
       expect(await cover.totalActiveCoverInAsset(coverAsset)).to.be.equal(expectedActiveCover);
     }
 
     // Move forward cover period + 1 bucket to expire all covers
-    await increaseTime(Number(COVER_BUY_FIXTURE.period + BUCKET_SIZE));
+    await time.increase(Number(COVER_BUY_FIXTURE.period + BUCKET_SIZE));
 
     // New  purchase should be the only active cover
     await cover.connect(coverBuyer).buyCover(

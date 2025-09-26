@@ -1,10 +1,8 @@
 const { ethers, nexus } = require('hardhat');
-const { setBalance } = require('@nomicfoundation/hardhat-network-helpers');
-const { expect } = require('chai');
 const { getAccounts } = require('../../utils/accounts');
 
-const { parseEther, deployContract, getCreateAddress, MaxUint256 } = ethers;
-const { PoolAsset, Role } = nexus.constants;
+const { parseEther, deployContract, MaxUint256 } = ethers;
+const { ContractIndexes, PoolAsset, Role } = nexus.constants;
 const { hex } = nexus.helpers;
 
 const ASSETS = {
@@ -12,6 +10,7 @@ const ASSETS = {
   USDC: 1,
   cbBTC: 2,
 };
+
 const DEFAULT_POOL_FEE = '5';
 const DEFAULT_PRODUCTS = [
   {
@@ -93,92 +92,127 @@ const COVER_BUY_FIXTURE = {
   capacityFactor: '10000',
 };
 
-const getDeployAddressAfter = async (account, txCount) => {
-  const from = account.address;
-  const nonce = (await account.getNonce()) + txCount;
-  return getCreateAddress({ from, nonce });
-};
-
 async function setup() {
   const accounts = await getAccounts();
-  const master = await deployContract('MasterMock');
-  const memberRoles = await deployContract('MemberRolesMock');
-  const nxm = await deployContract('NXMTokenMock');
-  const tokenController = await deployContract('TokenControllerMock', [nxm]);
 
-  await nxm.setOperator(tokenController.target);
+  // deploy proxy contracts
+  const coverProxy = await deployContract('UpgradeableProxy');
+  const coverProductsProxy = await deployContract('UpgradeableProxy');
+  const stakingProductsProxy = await deployContract('UpgradeableProxy');
+  const tokenControllerProxy = await deployContract('UpgradeableProxy');
+  const poolProxy = await deployContract('UpgradeableProxy');
 
-  const stakingPoolImplementation = await deployContract('COMockStakingPool');
+  // deploy immutable contracts
+  const stakingPoolFactory = await deployContract('StakingPoolFactory', [stakingProductsProxy]); // SP is the operator
   const coverNFT = await deployContract('COMockCoverNFT');
   const stakingNFT = await deployContract('COMockStakingNFT');
+  const nxm = await deployContract('NXMTokenMock');
+  await nxm.setOperator(tokenControllerProxy);
 
-  const { defaultSender } = accounts;
-  const expectedStakingProductsAddress = await getDeployAddressAfter(defaultSender, 3);
+  const registry = await deployContract('RegistryMock');
+  await registry.addContract(ContractIndexes.C_REGISTRY, registry, false);
 
-  const stakingPoolFactory = await deployContract('StakingPoolFactory', [expectedStakingProductsAddress]);
+  // add immutables
+  await registry.addContract(ContractIndexes.C_STAKING_POOL_FACTORY, stakingPoolFactory, false);
+  await registry.addContract(ContractIndexes.C_COVER_NFT, coverNFT, false);
+  await registry.addContract(ContractIndexes.C_STAKING_NFT, stakingNFT, false);
+  await registry.addContract(ContractIndexes.C_TOKEN, nxm, false);
 
-  const cover = await deployContract('Cover', [coverNFT, stakingNFT, stakingPoolFactory, stakingPoolImplementation]);
+  // add proxies
+  await registry.addContract(ContractIndexes.C_COVER, coverProxy, true);
+  await registry.addContract(ContractIndexes.C_COVER_PRODUCTS, coverProductsProxy, true);
+  await registry.addContract(ContractIndexes.C_STAKING_PRODUCTS, stakingProductsProxy, true);
+  await registry.addContract(ContractIndexes.C_TOKEN_CONTROLLER, tokenControllerProxy, true);
+  await registry.addContract(ContractIndexes.C_POOL, poolProxy, true);
 
-  const coverProducts = await ethers.deployContract('CoverProducts');
-
-  const stakingProducts = await ethers.deployContract('COMockStakingProducts', [
-    cover,
+  // deploy implementations
+  const stakingPoolImplementation = await deployContract('COMockStakingPool');
+  const coverImplementation = await deployContract('Cover', [registry, stakingPoolImplementation, coverProxy]);
+  const tokenControllerImplementation = await deployContract('TokenControllerMock', [nxm]);
+  const coverProductsImplementation = await ethers.deployContract('CoverProducts');
+  const stakingProductsImplementation = await ethers.deployContract('COMockStakingProducts', [
+    coverProxy,
     stakingPoolFactory,
-    tokenController,
-    coverProducts,
+    tokenControllerProxy,
+    coverProductsProxy,
   ]);
-  expect(expectedStakingProductsAddress).to.equal(stakingProducts.target);
+  const poolImplementation = await deployContract('PoolMock');
+
+  // upgrade proxies
+  await coverProxy.upgradeTo(coverImplementation);
+  await tokenControllerProxy.upgradeTo(tokenControllerImplementation);
+  await coverProductsProxy.upgradeTo(coverProductsImplementation);
+  await stakingProductsProxy.upgradeTo(stakingProductsImplementation);
+  await poolProxy.upgradeTo(poolImplementation);
+
+  // get contract instances
+  const cover = await ethers.getContractAt('Cover', coverProxy);
+  const tokenController = await ethers.getContractAt('TokenControllerMock', tokenControllerProxy);
+  const coverProducts = await ethers.getContractAt('CoverProducts', coverProductsProxy);
+  const stakingProducts = await ethers.getContractAt('COMockStakingProducts', stakingProductsProxy);
+  const pool = await ethers.getContractAt('PoolMock', poolProxy);
+
+  const tk = await tokenControllerImplementation.token();
+  console.log('tk', tk);
 
   const usdc = await deployContract('ERC20CustomDecimalsMock', [6]);
   const cbBTC = await deployContract('ERC20CustomDecimalsMock', [8]);
 
-  const pool = await deployContract('PoolMock');
   await pool.setAssets([
-    { assetAddress: cbBTC.target, isCoverAsset: true, isAbandoned: false },
+    { assetAddress: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', isCoverAsset: true, isAbandoned: false },
     { assetAddress: usdc.target, isCoverAsset: true, isAbandoned: false },
+    { assetAddress: cbBTC.target, isCoverAsset: true, isAbandoned: false },
   ]);
 
   await pool.setTokenPrice('0', parseEther('1'));
   await pool.setTokenPrice('1', parseEther('1'));
   await pool.setTokenPrice('2', parseEther('1'));
 
+  // legacy contracts
+  const memberRoles = await deployContract('MemberRolesMock');
+  const master = await deployContract('MasterMock');
+
   await master.setTokenAddress(nxm);
   await master.setLatestAddress(hex('P1'), pool);
-  await master.setLatestAddress(hex('MR'), memberRoles);
   await master.setLatestAddress(hex('CO'), cover);
   await master.setLatestAddress(hex('TC'), tokenController);
   await master.setLatestAddress(hex('SP'), stakingProducts);
   await master.setLatestAddress(hex('CP'), coverProducts);
-
-  const pooledStakingSigner = accounts.members[4];
-  await master.setLatestAddress(hex('PS'), pooledStakingSigner);
+  await master.setLatestAddress(hex('MR'), memberRoles);
 
   for (const member of accounts.members) {
-    await master.enrollMember(member.address, Role.Member);
-    await memberRoles.setRole(member.address, Role.Member);
-    await setBalance(member.address, parseEther('100'));
-    await usdc.mint(member.address, parseEther('100000'));
+    await master.enrollMember(member, Role.Member);
+    await memberRoles.setRole(member, Role.Member);
+    await registry.join(member, '0x');
+    // await setBalance(member.address, parseEther('100'));
+    await usdc.mint(member, parseEther('100000'));
     await usdc.connect(member).approve(cover, parseEther('100000'));
-    await cbBTC.mint(member.address, parseEther('100000'));
+    await cbBTC.mint(member, parseEther('100000'));
     await cbBTC.connect(member).approve(cover, parseEther('100000'));
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
-    await master.enrollMember(advisoryBoardMember.address, Role.AdvisoryBoard);
-    await memberRoles.setRole(advisoryBoardMember.address, Role.AdvisoryBoard);
+    await master.enrollMember(advisoryBoardMember, Role.AdvisoryBoard);
+    await memberRoles.setRole(advisoryBoardMember, Role.AdvisoryBoard);
+    await registry.join(advisoryBoardMember, '0x');
   }
 
   for (const internalContract of accounts.internalContracts) {
-    await master.enrollInternal(internalContract.address);
+    await master.enrollInternal(internalContract);
   }
 
-  for (const contract of [cover, coverProducts, tokenController]) {
-    await contract.changeMasterAddress(master);
-    await contract.changeDependentContractAddress();
-    await master.enrollInternal(contract);
-  }
+  await coverProducts.changeMasterAddress(master);
+  await coverProducts.changeDependentContractAddress();
+  // await master.enrollInternal(coverProducts);
 
-  await master.setEmergencyAdmin(await accounts.emergencyAdmin.getAddress());
+  // for (const contract of [coverProducts, stakingProducts]) {
+  //   await contract.changeMasterAddress(master);
+  //   await contract.changeDependentContractAddress();
+  //   await master.enrollInternal(contract);
+  // }
+
+  const emergencyAdmin = accounts.emergencyAdmins[0];
+  await master.setEmergencyAdmin(emergencyAdmin); // can only set one
 
   await coverProducts.connect(accounts.advisoryBoardMembers[0]).setProductTypes([
     {
@@ -254,6 +288,7 @@ async function setup() {
 
   return {
     accounts,
+    registry,
     master,
     pool,
     usdc,
@@ -278,7 +313,6 @@ async function setup() {
       COVER_BUY_FIXTURE,
     },
     PoolAsset,
-    pooledStakingSigner,
   };
 }
 

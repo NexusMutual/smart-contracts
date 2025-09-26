@@ -1,20 +1,24 @@
-const { ethers } = require('hardhat');
+const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { parseEther } = ethers;
 
 const { setup } = require('./setup');
+
+const { parseEther } = ethers;
+const { ContractIndexes } = nexus.constants;
 
 const gracePeriod = 120 * 24 * 3600; // 120 days
 const GLOBAL_CAPACITY_DENOMINATOR = 10000n;
 
 async function burnStakeFixture() {
   const fixture = await loadFixture(setup);
-  const { cover, accounts } = fixture;
-  const coverBuyer1 = accounts.members[0];
-  const coverBuyer2 = accounts.members[1];
+  const { accounts, cover, registry } = fixture;
+  const [coverBuyer1, coverBuyer2] = accounts.members;
   const { COVER_BUY_FIXTURE } = fixture.constants;
   const { amount, targetPriceRatio, period, priceDenominator, productId, coverAsset } = COVER_BUY_FIXTURE;
+
+  const [claims] = accounts.internalContracts;
+  await registry.addContract(ContractIndexes.C_CLAIMS, claims, true);
 
   const expectedPremium = (amount * targetPriceRatio * period) / (priceDenominator * 3600n * 24n * 365n);
   // buyCover on 1 pool
@@ -76,7 +80,7 @@ describe('burnStake', function () {
     const fixture = await loadFixture(burnStakeFixture);
     const { cover, stakingProducts, accounts, constants, singlePoolCoverId } = fixture;
     const { COVER_BUY_FIXTURE } = constants;
-    const [internal] = accounts.internalContracts;
+    const [claims] = accounts.internalContracts;
     const { productId, coverAsset, period, amount } = COVER_BUY_FIXTURE;
 
     const payoutAmountInAsset = amount / 2n;
@@ -88,7 +92,7 @@ describe('burnStake', function () {
     const payoutAmountInNXM = (poolAllocation.coverAmountInNXM * payoutAmountInAsset) / coverData.amount;
     const expectedBurnAmount = (payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR) / coverData.capacityRatio;
 
-    await cover.connect(internal).burnStake(singlePoolCoverId, payoutAmountInAsset);
+    await cover.connect(claims).burnStake(singlePoolCoverId, payoutAmountInAsset);
     const storedCoverData = await cover.getCoverData(singlePoolCoverId);
 
     expect(storedCoverData.productId).to.equal(productId);
@@ -111,16 +115,16 @@ describe('burnStake', function () {
     const burnAmountDivisor = 2n;
     const burnAmount = amount / burnAmountDivisor;
 
-    await expect(cover.connect(member).burnStake(singlePoolCoverId, burnAmount)).to.be.revertedWith(
-      'Caller is not an internal contract',
-    );
+    await expect(cover.connect(member).burnStake(singlePoolCoverId, burnAmount))
+      .to.be.revertedWithCustomError(cover, 'Unauthorized')
+      .withArgs(member.address, 0, 1 << 15);
   });
 
   it('updates segment allocation cover amount in nxm', async function () {
     const fixture = await loadFixture(burnStakeFixture);
     const { cover, singlePoolCoverId } = fixture;
     const { amount } = fixture.constants.COVER_BUY_FIXTURE;
-    const [internal] = fixture.accounts.internalContracts;
+    const [claims] = fixture.accounts.internalContracts;
 
     const burnAmountDivisor = 2n;
     const burnAmount = amount / burnAmountDivisor;
@@ -128,7 +132,7 @@ describe('burnStake', function () {
     const [poolAllocationBefore] = await cover.getPoolAllocations(singlePoolCoverId);
     const payoutAmountInNXM = poolAllocationBefore.coverAmountInNXM / burnAmountDivisor;
 
-    await cover.connect(internal).burnStake(singlePoolCoverId, burnAmount);
+    await cover.connect(claims).burnStake(singlePoolCoverId, burnAmount);
 
     const [poolAllocationAfter] = await cover.getPoolAllocations(singlePoolCoverId);
 
@@ -139,7 +143,7 @@ describe('burnStake', function () {
     const fixture = await loadFixture(burnStakeFixture);
     const { cover, stakingProducts, constants, doublePoolCoverId } = fixture;
     const { COVER_BUY_FIXTURE } = constants;
-    const [internal] = fixture.accounts.internalContracts;
+    const [claims] = fixture.accounts.internalContracts;
 
     const { productId, coverAsset, period, amount } = COVER_BUY_FIXTURE;
     const amountOfPools = 2n;
@@ -156,7 +160,7 @@ describe('burnStake', function () {
       return (payoutInNXM * GLOBAL_CAPACITY_DENOMINATOR) / coverData.capacityRatio;
     });
 
-    await cover.connect(internal).burnStake(doublePoolCoverId, payoutAmountInAsset);
+    await cover.connect(claims).burnStake(doublePoolCoverId, payoutAmountInAsset);
     const storedCoverData = await cover.getCoverData(doublePoolCoverId);
 
     expect(storedCoverData.productId).to.equal(productId);
@@ -184,7 +188,7 @@ describe('burnStake', function () {
   it('should perform a burn with globalCapacityRatio when the cover was bought', async function () {
     const fixture = await loadFixture(burnStakeFixture);
     const { cover, stakingProducts, constants, singlePoolCoverId } = fixture;
-    const [internal] = fixture.accounts.internalContracts;
+    const [claims] = fixture.accounts.internalContracts;
     const { productId, coverAsset, period, amount } = constants.COVER_BUY_FIXTURE;
 
     const payoutAmountInAsset = amount / 2n;
@@ -196,7 +200,7 @@ describe('burnStake', function () {
     const payoutAmountInNXM = (poolAllocation.coverAmountInNXM * payoutAmountInAsset) / coverData.amount;
     const expectedBurnAmount = (payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR) / coverData.capacityRatio;
 
-    await cover.connect(internal).burnStake(singlePoolCoverId, payoutAmountInAsset);
+    await cover.connect(claims).burnStake(singlePoolCoverId, payoutAmountInAsset);
     const storedCoverData = await cover.getCoverData(singlePoolCoverId);
 
     expect(storedCoverData.productId).to.equal(productId);
@@ -213,7 +217,7 @@ describe('burnStake', function () {
   it('updates segment allocation premium in nxm', async function () {
     const fixture = await loadFixture(burnStakeFixture);
     const { cover, singlePoolCoverId } = fixture;
-    const [internal] = fixture.accounts.internalContracts;
+    const [claims] = fixture.accounts.internalContracts;
     const { amount } = fixture.constants.COVER_BUY_FIXTURE;
 
     const burnAmountDivisor = 2n;
@@ -221,7 +225,7 @@ describe('burnStake', function () {
 
     const [poolAllocationBefore] = await cover.getPoolAllocations(singlePoolCoverId);
 
-    await cover.connect(internal).burnStake(singlePoolCoverId, burnAmount);
+    await cover.connect(claims).burnStake(singlePoolCoverId, burnAmount);
 
     const payoutAmountInNXM = poolAllocationBefore.premiumInNXM / burnAmountDivisor;
     const [poolAllocationAfter] = await cover.getPoolAllocations(singlePoolCoverId);

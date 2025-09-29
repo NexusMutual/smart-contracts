@@ -17,25 +17,21 @@ contract ERC20Mock is ERC20 {
   }
 
   function setMetadata(
-    string memory name,
-    string memory symbol,
-    uint8 __decimals
+    string memory tokenName,
+    string memory tokenSymbol,
+    uint8 tokenDecimals
   ) public {
-    _name = name;
-    _symbol = symbol;
-    _decimals = __decimals;
+    _name = tokenName;
+    _symbol = tokenSymbol;
+    _decimals = tokenDecimals;
   }
 
-  function setName(string memory name) public {
-    _name = name;
+  function name() public view override returns (string memory) {
+    return _name;
   }
 
-  function setSymbol(string memory symbol) public {
-    _symbol = symbol;
-  }
-
-  function setDecimals(uint8 __decimals) public {
-    _decimals = __decimals;
+  function symbol() public view override returns (string memory) {
+    return _symbol;
   }
 
   function decimals() public view override returns (uint8) {

@@ -58,7 +58,7 @@
     "hardhat": "^2.26.3",
     "hardhat-contract-sizer": "^2.8.0",
     "hardhat-gas-reporter": "^2.3.0",
-    "hardhat-tracer": "^3.2.1",
+    "hardhat-tracer": "^3.4.0",
     "husky": "^9.1.6",
     "ipfs-http-client": "^47.0.1",
     "nodemon": "^3.1.9",

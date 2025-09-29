@@ -2,9 +2,10 @@ const { ethers, nexus } = require('hardhat');
 const { impersonateAccount, loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { init } = require('../init');
+const { calculateFirstTrancheId } = require('../../lib/protocol');
 
 const { parseEther, parseUnits, ZeroAddress, MaxUint256 } = ethers;
-const { ContractIndexes, ClaimMethod, AggregatorType, Assets } = nexus.constants;
+const { ContractIndexes, ClaimMethod, AggregatorType, Assets, PoolAsset } = nexus.constants;
 const { numberToBytes32 } = nexus.helpers;
 
 const assignRoles = accounts => ({
@@ -90,12 +91,12 @@ async function setup() {
   await chainlinkCbBTC.setLatestAnswer(parseEther('105000', 8)); // $105k per btc
   await chainlinkCbBTC.setDecimals(8); // USD based aggregator
 
-  // stablecoins
+  // stablecoins - 1 ETH = 4000 USDC/DAI
   const chainlinkDAI = await ethers.deployContract('ChainlinkAggregatorMock');
-  await chainlinkDAI.setLatestAnswer(parseEther('1'));
+  await chainlinkDAI.setLatestAnswer(parseEther((1 / 4000).toString())); // 1 DAI = 1/4000 ETH
 
   const chainlinkUSDC = await ethers.deployContract('ChainlinkAggregatorMock');
-  await chainlinkUSDC.setLatestAnswer(parseEther('1'));
+  await chainlinkUSDC.setLatestAnswer(parseEther((1 / 4000).toString())); // 1 USDC = 1/4000 ETH
 
   // enzyme vault
   const chainlinkEnzymeVault = await ethers.deployContract('ChainlinkAggregatorMock');
@@ -153,7 +154,7 @@ async function setup() {
 
   const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [stakingProductsAddress]);
 
-  const coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [coverAddress]);
+  const coverNFTDescriptor = await ethers.deployContract('CoverNFTDescriptor', [master.target]);
   const coverNFT = await ethers.deployContract('CoverNFT', [
     'Nexus Mutual Cover',
     'NMC',
@@ -280,16 +281,14 @@ async function setup() {
   const ramm = await getContract(ContractIndexes.C_RAMM, 'Ramm');
 
   const assets = [
-    { asset: Assets.ETH, isCoverAsset: true, oracle: chainlinkEthUsd, type: AggregatorType.USD },
-    { asset: dai, isCoverAsset: true, oracle: chainlinkDAI, type: AggregatorType.ETH },
-    { asset: stETH, isCoverAsset: true, oracle: chainlinkSteth, type: AggregatorType.ETH },
-    { asset: rETH, isCoverAsset: true, oracle: chainlinkReth, type: AggregatorType.ETH },
-    { asset: enzymeVault, isCoverAsset: true, oracle: chainlinkEnzymeVault, type: AggregatorType.ETH },
-    { asset: usdc, isCoverAsset: true, oracle: chainlinkUSDC, type: AggregatorType.ETH },
-    { asset: safeTracker, isCoverAsset: true, oracle: safeTracker, type: AggregatorType.ETH },
-    { asset: cbBTC, isCoverAsset: true, oracle: chainlinkCbBTC, type: AggregatorType.USD },
-    { asset: aWETH, isCoverAsset: true, oracle: chainlinkAweth, type: AggregatorType.ETH },
-    { asset: debtUsdc, isCoverAsset: true, oracle: chainlinkUSDC, type: AggregatorType.ETH },
+    { asset: Assets.ETH, isCoverAsset: true, oracle: chainlinkEthUsd, type: AggregatorType.USD }, // 0 - ETH
+    { asset: dai, isCoverAsset: true, oracle: chainlinkDAI, type: AggregatorType.ETH }, // 1 - DAI
+    { asset: stETH, isCoverAsset: true, oracle: chainlinkSteth, type: AggregatorType.ETH }, // 2 - stETH
+    { asset: enzymeVault, isCoverAsset: true, oracle: chainlinkEnzymeVault, type: AggregatorType.ETH }, // 3 - NXMTY
+    { asset: rETH, isCoverAsset: true, oracle: chainlinkReth, type: AggregatorType.ETH }, // 4 - rETH
+    { asset: safeTracker, isCoverAsset: true, oracle: safeTracker, type: AggregatorType.ETH }, // 5 - safeTracker
+    { asset: usdc, isCoverAsset: true, oracle: chainlinkUSDC, type: AggregatorType.ETH }, // 6 - USDC
+    { asset: cbBTC, isCoverAsset: true, oracle: chainlinkCbBTC, type: AggregatorType.USD }, // 7 - cbBTC
   ];
 
   for (const assetDetails of assets) {
@@ -373,7 +372,8 @@ async function setup() {
 
   await aWETH.mint(safeTracker, parseEther('100')); // 100 eth collateral ~= 250k usd
   await debtUsdc.mint(safeTracker, parseUnits('50000', debtUsdcDecimals)); // 50k usdc debt
-  await usdc.mint(safeTracker, parseUnits('10000', usdcDecimals)); // 10k usdc
+  await usdc.mint(safeTracker, parseUnits('100000', usdcDecimals)); // 100k USDC
+  await cbBTC.mint(safeTracker, parseUnits('100000', cbBTCDecimals)); // 100k cbBTC
 
   await impersonateAccount(tokenController.target);
   const tokenControllerSigner = await ethers.getSigner(tokenController.target);
@@ -471,7 +471,7 @@ async function setup() {
         productType: 1, // Custody Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0, // Use fallback
+        coverAssets: 0, // All supported assets
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
         isDeprecated: false,
@@ -487,7 +487,7 @@ async function setup() {
         productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0, // Use fallback
+        coverAssets: 0, // All supported assets
         initialPriceRatio: 500,
         capacityReductionRatio: 0,
         isDeprecated: false,
@@ -503,7 +503,7 @@ async function setup() {
         productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0b10000, // use usdc
+        coverAssets: (1 << PoolAsset.ETH) | (1 << PoolAsset.USDC) | (1 << PoolAsset.cbBTC),
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
         isDeprecated: false,
@@ -519,7 +519,7 @@ async function setup() {
         productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0, // Use fallback
+        coverAssets: 0, // All supported assets
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
         isDeprecated: true,
@@ -535,7 +535,7 @@ async function setup() {
         productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0, // Use fallback
+        coverAssets: 0, // All supported assets
         initialPriceRatio: 200,
         capacityReductionRatio: 0,
         isDeprecated: false,
@@ -547,8 +547,17 @@ async function setup() {
 
   await coverProducts.connect(abMember).setProducts(products);
 
-  const stakingPoolProduct = {
+  const stakingPoolProduct0 = {
     productId: 0,
+    recalculateEffectiveWeight: true,
+    setTargetWeight: true,
+    targetWeight: 100,
+    setTargetPrice: true,
+    targetPrice: 100,
+  };
+
+  const stakingPoolProduct2 = {
+    productId: 2,
     recalculateEffectiveWeight: true,
     setTargetWeight: true,
     targetWeight: 100,
@@ -558,8 +567,22 @@ async function setup() {
 
   for (let i = 0; i < 5; i++) {
     const poolId = i + 1;
-    await stakingProducts.connect(stakingPoolManagers[i]).setProducts(poolId, [stakingPoolProduct]);
+    await stakingProducts
+      .connect(stakingPoolManagers[i])
+      .setProducts(poolId, [stakingPoolProduct0, stakingPoolProduct2]);
   }
+
+  const staker = defaultSender;
+  const stakeAmount = parseEther('900000');
+  const latestBlock = await ethers.provider.getBlock('latest');
+  const firstActiveTrancheId = calculateFirstTrancheId(latestBlock, 30 * 24 * 3600, 0); // 30 days period, 0 gracePeriod
+  const trancheId = firstActiveTrancheId + 5;
+
+  // Add stake capacity to pools 1, 2, and 3 for product 0
+  await token.connect(staker).approve(tokenController, MaxUint256);
+  await fixture.contracts.stakingPool1.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
+  await fixture.contracts.stakingPool2.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
+  await fixture.contracts.stakingPool3.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
 
   const config = {
     TRANCHE_DURATION: await fixture.contracts.stakingPool1.TRANCHE_DURATION(),
@@ -570,9 +593,11 @@ async function setup() {
     GLOBAL_REWARDS_RATIO: 5000n, // 50%
     COMMISSION_DENOMINATOR: 10000n,
     TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
+    TARGET_PRICE: stakingPoolProduct0.targetPrice,
     ONE_NXM: parseEther('1'),
     NXM_PER_ALLOCATION_UNIT: await fixture.contracts.stakingPool1.NXM_PER_ALLOCATION_UNIT(),
     USDC_DECIMALS: usdcDecimals,
+    STAKE_AMOUNT: stakeAmount,
   };
 
   fixture.config = config;

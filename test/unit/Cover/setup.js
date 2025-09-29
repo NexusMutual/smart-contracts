@@ -152,9 +152,6 @@ async function setup() {
   const stakingProducts = await ethers.getContractAt('COMockStakingProducts', stakingProductsProxy);
   const pool = await ethers.getContractAt('PoolMock', poolProxy);
 
-  const tk = await tokenControllerImplementation.token();
-  console.log('tk', tk);
-
   const usdc = await deployContract('ERC20CustomDecimalsMock', [6]);
   const cbBTC = await deployContract('ERC20CustomDecimalsMock', [8]);
 

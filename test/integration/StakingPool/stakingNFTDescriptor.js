@@ -90,7 +90,7 @@ describe('StakingNFTDescriptor', function () {
     const expectedAmount = formatEther(largeDepositAmount);
     expect(decodedJson.image.slice(0, svgHeader.length)).to.be.equal(svgHeader);
     const decodedSvg = new TextDecoder().decode(base64.toByteArray(decodedJson.image.slice(svgHeader.length)));
-    expect(decodedSvg).to.match(/<tspan>4<\/tspan>/); // tokenId A is 4
+    expect(decodedSvg).to.match(new RegExp(`<tspan>${tokenIdA.toString()}<\\/tspan>`));
     expect(decodedSvg).to.contain(Number(expectedAmount).toFixed(2));
   });
 
@@ -128,7 +128,7 @@ describe('StakingNFTDescriptor', function () {
 
     expect(decodedJson.image.slice(0, svgHeader.length)).to.be.equal(svgHeader);
     const decodedSvg = new TextDecoder().decode(base64.toByteArray(decodedJson.image.slice(svgHeader.length)));
-    expect(decodedSvg).to.match(/<tspan>5<\/tspan>/); // tokenId B is 5
+    expect(decodedSvg).to.match(new RegExp(`<tspan>${tokenIdB.toString()}<\\/tspan>`));
     expect(decodedSvg).to.contain(Number(expectedDepositAmount).toFixed(2));
   });
 

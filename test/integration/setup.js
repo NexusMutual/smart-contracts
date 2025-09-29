@@ -96,7 +96,7 @@ async function setup() {
   await chainlinkCbBTC.setLatestAnswer(parseUnits('105000', CBBTC_ORACLE_DECIMALS)); // $105k per btc
   await chainlinkCbBTC.setDecimals(CBBTC_ORACLE_DECIMALS); // USD based aggregator
 
-  // stablecoins
+  // stablecoins - 1 ETH = 4000 USDC/DAI
   const chainlinkDAI = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkDAI.setLatestAnswer(parseEther((1 / 4000).toString())); // 1 DAI = 1/4000 ETH
 
@@ -639,6 +639,13 @@ async function setup() {
 
     tokenIds.push(tokenId);
   }
+
+  // Add stake capacity to pools 1, 2, and 3 for product 0
+  const staker = defaultSender;
+  await token.connect(staker).approve(tokenController, MaxUint256);
+  await fixture.contracts.stakingPool1.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
+  await fixture.contracts.stakingPool2.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
+  await fixture.contracts.stakingPool3.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
 
   const config = {
     MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION:

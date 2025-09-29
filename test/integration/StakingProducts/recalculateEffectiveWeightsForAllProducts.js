@@ -61,13 +61,8 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     const { stakingProducts, cover, pool, ramm, tokenController } = fixture.contracts;
     const [, coverBuyer] = fixture.accounts.members;
     const [manager] = fixture.accounts.stakingPoolManagers;
-    const {
-      STAKE_AMOUNT,
-      GLOBAL_CAPACITY_DENOMINATOR,
-      CAPACITY_REDUCTION_DENOMINATOR,
-      WEIGHT_DENOMINATOR,
-      NXM_PER_ALLOCATION_UNIT,
-    } = fixture.config;
+    const { GLOBAL_CAPACITY_DENOMINATOR, CAPACITY_REDUCTION_DENOMINATOR, WEIGHT_DENOMINATOR, NXM_PER_ALLOCATION_UNIT } =
+      fixture.config;
 
     const poolId = 1;
     const productId = 0;
@@ -96,14 +91,21 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
       coverAsset,
     );
 
-    // Compute expectedActiveWeight given how much the cover is worth in NXM and existing capacity
+    // Calculate expected active weight based on cover allocation and available capacity
     const coverAmountInNXM = roundUpToMultiple(divCeil(amount * ONE_NXM, ethRate), NXM_PER_ALLOCATION_UNIT);
-    const { _globalCapacityRatio, _defaultMinPriceRatio } = await cover.getGlobalCapacityAndPriceRatios();
+    const coverAllocationAmount = coverAmountInNXM / NXM_PER_ALLOCATION_UNIT;
 
+    // Calculate available capacity in allocation units
+    const stakingPool = fixture.contracts.stakingPool1;
+    const activeStake = await stakingPool.getActiveStake();
+    const { _globalCapacityRatio, _defaultMinPriceRatio } = await cover.getGlobalCapacityAndPriceRatios();
     const availableCapacityRatio = CAPACITY_REDUCTION_DENOMINATOR - _defaultMinPriceRatio;
-    const adjustedStakeCapacity = STAKE_AMOUNT * _globalCapacityRatio * availableCapacityRatio;
-    const expectedCapacity = adjustedStakeCapacity / GLOBAL_CAPACITY_DENOMINATOR / CAPACITY_REDUCTION_DENOMINATOR;
-    const expectedActiveWeight = (coverAmountInNXM * BigInt(WEIGHT_DENOMINATOR)) / expectedCapacity;
+    const capacityMultiplier = _globalCapacityRatio * availableCapacityRatio;
+    const capacityDenominator = GLOBAL_CAPACITY_DENOMINATOR * CAPACITY_REDUCTION_DENOMINATOR;
+    const availableCapacity = (activeStake * capacityMultiplier) / capacityDenominator / NXM_PER_ALLOCATION_UNIT;
+
+    // Expected active weight = allocation / capacity
+    const expectedActiveWeight = (coverAllocationAmount * BigInt(WEIGHT_DENOMINATOR)) / availableCapacity;
 
     const buyCoverParams = buyCoverFixture({
       owner: await coverBuyer.getAddress(),
@@ -136,13 +138,8 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     const { stakingProducts, cover, pool, ramm, tokenController } = fixture.contracts;
     const [, coverBuyer] = fixture.accounts.members;
     const [manager] = fixture.accounts.stakingPoolManagers;
-    const {
-      STAKE_AMOUNT,
-      GLOBAL_CAPACITY_DENOMINATOR,
-      CAPACITY_REDUCTION_DENOMINATOR,
-      WEIGHT_DENOMINATOR,
-      NXM_PER_ALLOCATION_UNIT,
-    } = fixture.config;
+    const { GLOBAL_CAPACITY_DENOMINATOR, CAPACITY_REDUCTION_DENOMINATOR, WEIGHT_DENOMINATOR, NXM_PER_ALLOCATION_UNIT } =
+      fixture.config;
 
     const poolId = 1;
     const firstProductId = 0;
@@ -163,18 +160,25 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
       const productId = firstProductId;
       const amount = parseEther('1400');
 
-      // Compute expectedActiveWeight given how much the cover is worth in NXM and existing capacity
+      // Calculate expected active weight based on cover allocation and available capacity
       const nxmPriceInCoverAsset = await pool.getInternalTokenPriceInAsset(coverAsset);
       const coverAmountInNXM = roundUpToMultiple(
         divCeil(amount * ONE_NXM, nxmPriceInCoverAsset),
         NXM_PER_ALLOCATION_UNIT,
       );
-      const { _globalCapacityRatio, _defaultMinPriceRatio } = await cover.getGlobalCapacityAndPriceRatios();
+      const coverAllocationAmount = coverAmountInNXM / NXM_PER_ALLOCATION_UNIT;
 
+      // Calculate available capacity in allocation units
+      const stakingPool = fixture.contracts.stakingPool1;
+      const activeStake = await stakingPool.getActiveStake();
+      const { _globalCapacityRatio, _defaultMinPriceRatio } = await cover.getGlobalCapacityAndPriceRatios();
       const availableCapacityRatio = CAPACITY_REDUCTION_DENOMINATOR - _defaultMinPriceRatio;
-      const adjustedStakeCapacity = STAKE_AMOUNT * _globalCapacityRatio * availableCapacityRatio;
-      const expectedCapacity = adjustedStakeCapacity / GLOBAL_CAPACITY_DENOMINATOR / CAPACITY_REDUCTION_DENOMINATOR;
-      const expectedActiveWeight = (coverAmountInNXM * BigInt(WEIGHT_DENOMINATOR)) / expectedCapacity;
+      const capacityMultiplier = _globalCapacityRatio * availableCapacityRatio;
+      const capacityDenominator = GLOBAL_CAPACITY_DENOMINATOR * CAPACITY_REDUCTION_DENOMINATOR;
+      const availableCapacity = (activeStake * capacityMultiplier) / capacityDenominator / NXM_PER_ALLOCATION_UNIT;
+
+      // Expected active weight = allocation / capacity
+      const expectedActiveWeight = (coverAllocationAmount * BigInt(WEIGHT_DENOMINATOR)) / availableCapacity;
 
       const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
       const nextTimestamp = currentTimestamp + 10;
@@ -205,7 +209,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
         .connect(coverBuyer)
         .buyCover(buyCoverParams, [{ poolId: 1, coverAmountInAsset: amount }], { value: premiumInAsset });
 
-      const targetWeight = 1; // Must be < expectedActiveWeight (which is 2)
+      const targetWeight = 0; // Must be < expectedActiveWeight (which is 1)
       expect(expectedActiveWeight).to.be.gt(targetWeight);
 
       await stakingProducts
@@ -220,18 +224,25 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
       const amount = parseEther('3500');
       const productId = secondProductId;
 
-      // Compute expectedActiveWeight given how much the cover is worth in NXM and existing capacity
+      // Calculate expected active weight based on cover allocation and available capacity
       const nxmPriceInCoverAsset = await pool.getInternalTokenPriceInAsset(coverAsset);
       const coverAmountInNXM = roundUpToMultiple(
         divCeil(amount * ONE_NXM, nxmPriceInCoverAsset),
         NXM_PER_ALLOCATION_UNIT,
       );
-      const { _globalCapacityRatio, _defaultMinPriceRatio } = await cover.getGlobalCapacityAndPriceRatios();
+      const coverAllocationAmount = coverAmountInNXM / NXM_PER_ALLOCATION_UNIT;
 
+      // Calculate available capacity in allocation units
+      const stakingPool = fixture.contracts.stakingPool1;
+      const activeStake = await stakingPool.getActiveStake();
+      const { _globalCapacityRatio, _defaultMinPriceRatio } = await cover.getGlobalCapacityAndPriceRatios();
       const availableCapacityRatio = CAPACITY_REDUCTION_DENOMINATOR - _defaultMinPriceRatio;
-      const adjustedStakeCapacity = STAKE_AMOUNT * _globalCapacityRatio * availableCapacityRatio;
-      const expectedCapacity = adjustedStakeCapacity / GLOBAL_CAPACITY_DENOMINATOR / CAPACITY_REDUCTION_DENOMINATOR;
-      const expectedActiveWeight = (coverAmountInNXM * BigInt(WEIGHT_DENOMINATOR)) / expectedCapacity;
+      const capacityMultiplier = _globalCapacityRatio * availableCapacityRatio;
+      const capacityDenominator = GLOBAL_CAPACITY_DENOMINATOR * CAPACITY_REDUCTION_DENOMINATOR;
+      const availableCapacity = (activeStake * capacityMultiplier) / capacityDenominator / NXM_PER_ALLOCATION_UNIT;
+
+      // Expected active weight = allocation / capacity
+      const expectedActiveWeight = (coverAllocationAmount * BigInt(WEIGHT_DENOMINATOR)) / availableCapacity;
 
       const { timestamp: currentTimestamp2 } = await ethers.provider.getBlock('latest');
       const nextTimestamp2 = currentTimestamp2 + 10;

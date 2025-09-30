@@ -1,7 +1,7 @@
 const { ethers, nexus } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
 
-const { parseEther, deployContract, MaxUint256 } = ethers;
+const { MaxUint256, deployContract, isAddress, parseEther } = ethers;
 const { ContractIndexes, PoolAsset, Role } = nexus.constants;
 const { hex } = nexus.helpers;
 
@@ -92,8 +92,78 @@ const COVER_BUY_FIXTURE = {
   capacityFactor: '10000',
 };
 
+/**
+ * @typedef {import('ethers').AddressLike} AddressLike
+ */
+
+/**
+ * @param {AddressLike} addresslike
+ * @returns {Promise<string>}
+ */
+const getAddress = async addresslike => (isAddress(addresslike) ? addresslike : addresslike.getAddress());
+
+/**
+ * @param {import('ethers').Signer} signer
+ * @param {AddressLike} verifyingContract
+ * @param {object} quote
+ * @param {bigint|number} quote.coverId
+ * @param {bigint|number} quote.productId
+ * @param {bigint|number} quote.providerId
+ * @param {bigint|number} quote.amount
+ * @param {bigint|number} quote.premium
+ * @param {bigint|number} quote.period
+ * @param {bigint|number} quote.coverAsset
+ * @param {bigint|number} quote.nonce
+ * @param {{ name?: string, version?: string, chainId?: number }} [options]
+ * @returns {Promise<string>}
+ */
+const signRiQuote = async (signer, verifyingContract, quote, options = {}) => {
+  const defaults = { name: 'NexusMutualCover', version: '1.0.0' };
+  const config = { ...defaults, ...options };
+
+  if (config.chainId === undefined) {
+    config.chainId = (await signer.provider.getNetwork()).chainId;
+  }
+
+  const verifier = await getAddress(verifyingContract);
+
+  const name = config.name;
+  const version = config.version;
+  const chainId = config.chainId;
+
+  const domain = { name, version, chainId, verifyingContract: verifier };
+
+  const types = {
+    RiQuote: [
+      { name: 'coverId', type: 'uint256' },
+      { name: 'productId', type: 'uint24' },
+      { name: 'providerId', type: 'uint256' },
+      { name: 'amount', type: 'uint256' },
+      { name: 'premium', type: 'uint256' },
+      { name: 'period', type: 'uint32' },
+      { name: 'coverAsset', type: 'uint8' },
+      { name: 'nonce', type: 'uint256' },
+    ],
+  };
+
+  const values = {
+    coverId: quote.coverId ?? 0,
+    productId: quote.productId,
+    providerId: quote.providerId,
+    amount: quote.amount,
+    premium: quote.premium,
+    period: quote.period,
+    coverAsset: quote.coverAsset,
+    nonce: quote.nonce,
+  };
+
+  return signer.signTypedData(domain, types, values);
+};
+
 async function setup() {
   const accounts = await getAccounts();
+  const [governor] = accounts.governanceContracts;
+  const [riSigner, riPremiumDst] = accounts.generalPurpose;
 
   // deploy proxy contracts
   const coverProxy = await deployContract('UpgradeableProxy');
@@ -111,6 +181,7 @@ async function setup() {
 
   const registry = await deployContract('RegistryMock');
   await registry.addContract(ContractIndexes.C_REGISTRY, registry, false);
+  await registry.addContract(ContractIndexes.C_GOVERNOR, governor, false);
 
   // add immutables
   await registry.addContract(ContractIndexes.C_STAKING_POOL_FACTORY, stakingPoolFactory, false);
@@ -154,6 +225,10 @@ async function setup() {
 
   const usdc = await deployContract('ERC20CustomDecimalsMock', [6]);
   const cbBTC = await deployContract('ERC20CustomDecimalsMock', [8]);
+
+  const riProviderId = 0n;
+  await cover.connect(governor).setRiSigner(riSigner);
+  await cover.connect(governor).setRiConfig(riProviderId, riPremiumDst);
 
   await pool.setAssets([
     { assetAddress: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', isCoverAsset: true, isAbandoned: false },
@@ -303,14 +378,17 @@ async function setup() {
     stakingPool1,
     stakingPool2,
     config: { DEFAULT_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO },
+    riSigner,
+    riPremiumDst,
+    riProviderId,
     constants: {
+      PoolAsset,
       ASSETS,
       DEFAULT_POOL_FEE,
       DEFAULT_PRODUCTS,
       COVER_BUY_FIXTURE,
     },
-    PoolAsset,
   };
 }
 
-module.exports = { setup };
+module.exports = { setup, signRiQuote };

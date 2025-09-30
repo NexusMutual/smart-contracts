@@ -176,17 +176,32 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
 
     RiConfig storage riConfig = _riProviderConfigs[riRequest.providerId];
     address riPremiumDestination = riConfig.premiumDestination;
-    uint nextNonce = riConfig.nextNonce++; // SLOAD + SSTORE
+    uint nonce = riConfig.nextNonce++; // SLOAD + SSTORE
+
+    require(riPremiumDestination != address(0), InvalidRiConfig());
 
     bytes memory message = abi.encode(
+      keccak256(
+        abi.encodePacked(
+          "RiQuote(",
+          "uint256 coverId,",
+          "uint24 productId,",
+          "uint256 providerId,",
+          "uint256 amount,",
+          "uint256 premium,",
+          "uint32 period,",
+          "uint8 coverAsset,",
+          "uint256 nonce)"
+        )
+      ),
       params.coverId,
       params.productId,
+      riRequest.providerId,
       riRequest.amount,
       riRequest.premium,
-      riRequest.providerId,
       params.period,
       params.coverAsset,
-      nextNonce
+      nonce
     );
 
     require(recoverSigner(message, riRequest.signature) == riSigner, InvalidSignature());
@@ -218,7 +233,9 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     require(params.period >= MIN_COVER_PERIOD, CoverPeriodTooShort());
     require(params.period <= MAX_COVER_PERIOD, CoverPeriodTooLong());
     require(params.commissionRatio <= MAX_COMMISSION_RATIO, CommissionRateTooHigh());
-    require(params.amount != 0, CoverAmountIsZero());
+
+    // using riPremium as a proxy for the riAmount
+    require(params.amount != 0 || riPremiumInPaymentAsset != 0, CoverAmountIsZero());
 
     // can pay with cover asset or nxm only
     require(params.paymentAsset == params.coverAsset || params.paymentAsset == NXM_ASSET_ID, InvalidPaymentAsset());
@@ -460,18 +477,18 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     address commissionDestination
   ) internal {
 
-    uint commission = commissionRatio > 0
-      ? (premium * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio)) - premium
-      : 0;
-    uint premiumWithCommission = premium + commission;
+    uint totalPremium = premium + riPremium;
+    uint totalPremiumWithCommission = totalPremium * COMMISSION_DENOMINATOR / (COMMISSION_DENOMINATOR - commissionRatio);
+    uint commission = totalPremiumWithCommission - totalPremium;
 
-    require(premiumWithCommission <= maxAmountInAsset, PriceExceedsMaxPremiumInAsset());
+    require(totalPremiumWithCommission <= maxAmountInAsset, PriceExceedsMaxPremiumInAsset());
     require(msg.value == 0 || paymentAsset == ETH_ASSET_ID, UnexpectedEthSent());
 
     // NXM payment
     if (paymentAsset == NXM_ASSET_ID) {
 
       // no ri premium when paying with nxm
+      require(riPremium == 0, UnexpectedRiPremium());
 
       tokenController.burnFrom(msg.sender, premium);
 
@@ -486,11 +503,11 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     // ETH payment
     if (paymentAsset == ETH_ASSET_ID) {
 
-      require(msg.value >= premiumWithCommission, InsufficientEthSent());
+      require(msg.value >= totalPremiumWithCommission, InsufficientEthSent());
 
-      uint remainder = msg.value - premiumWithCommission;
+      uint remainder = msg.value - totalPremiumWithCommission;
 
-      {
+      if (premium > 0) {
         // send premium in eth to the pool
         // solhint-disable-next-line avoid-low-level-calls
         (bool ok, /* data */) = address(pool).call{value: premium}("");
@@ -520,7 +537,10 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
 
     address coverAsset = pool.getAsset(paymentAsset).assetAddress;
     IERC20 token = IERC20(coverAsset);
-    token.safeTransferFrom(msg.sender, address(pool), premium);
+
+    if (premium > 0) {
+      token.safeTransferFrom(msg.sender, address(pool), premium);
+    }
 
     if (riPremium > 0) {
       token.safeTransferFrom(msg.sender, riPremiumDestination, riPremium);
@@ -718,6 +738,14 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     return IStakingPool(
       StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId)
     );
+  }
+
+  function setRiSigner(address _riSigner) external onlyContracts(C_GOVERNOR) {
+    riSigner = _riSigner;
+  }
+
+  function setRiConfig(uint providerId, address premiumDestination) external onlyContracts(C_GOVERNOR) {
+    _riProviderConfigs[providerId].premiumDestination = premiumDestination;
   }
 
   function changeCoverNFTDescriptor(address _coverNFTDescriptor) external onlyContracts(C_GOVERNOR) {

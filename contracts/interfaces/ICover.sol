@@ -215,4 +215,6 @@ interface ICover is IStakingPoolBeacon {
   error InvalidSignature();
   error WrongCoverEditEntrypoint();
   error RiAmountIsZero();
+  error InvalidRiConfig();
+  error UnexpectedRiPremium();
 }

@@ -1,10 +1,12 @@
+const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { increaseTime } = require('../../utils/evm');
-const { daysToSeconds, sum } = require('../utils');
+const { daysToSeconds } = require('../utils');
 const setup = require('../setup');
+
+const { BigIntMath } = nexus.helpers;
 
 const buyCoverFixture = {
   coverId: 0,
@@ -75,10 +77,10 @@ describe('expireCover', function () {
     const totalCoverAmountAfter = await cover.totalActiveCoverInAsset(0);
     const allocationsAfterBucketExpiration = await stakingPool1.getActiveAllocations(productId);
 
-    expect(sum(allocationsWithCover)).not.to.be.equal(sum(allocationsAfter));
-    expect(sum(initialAllocations)).to.be.equal(sum(allocationsAfter));
-    expect(sum(allocationsAfter)).to.be.equal(0n);
-    expect(sum(allocationsAfterBucketExpiration)).to.be.equal(0n);
+    expect(BigIntMath.sum(allocationsWithCover)).not.to.be.equal(BigIntMath.sum(allocationsAfter));
+    expect(BigIntMath.sum(initialAllocations)).to.be.equal(BigIntMath.sum(allocationsAfter));
+    expect(BigIntMath.sum(allocationsAfter)).to.be.equal(0n);
+    expect(BigIntMath.sum(allocationsAfterBucketExpiration)).to.be.equal(0n);
     expect(totalCoverAmountAfter).to.be.equal(0n);
   });
 
@@ -139,14 +141,14 @@ describe('expireCover', function () {
     const allocationsPool1After = await stakingPool1.getActiveAllocations(productId);
     const allocationsPool2After = await stakingPool2.getActiveAllocations(productId);
 
-    expect(sum(allocationsPool1Before)).to.be.equal(0n);
-    expect(sum(allocationsPool2Before)).to.be.equal(0n);
+    expect(BigIntMath.sum(allocationsPool1Before)).to.be.equal(0n);
+    expect(BigIntMath.sum(allocationsPool2Before)).to.be.equal(0n);
 
-    expect(sum(allocationsPool1During)).to.be.gt(sum(allocationsPool1Before));
-    expect(sum(allocationsPool2During)).to.be.gt(sum(allocationsPool2Before));
+    expect(BigIntMath.sum(allocationsPool1During)).to.be.gt(BigIntMath.sum(allocationsPool1Before));
+    expect(BigIntMath.sum(allocationsPool2During)).to.be.gt(BigIntMath.sum(allocationsPool2Before));
 
-    expect(sum(allocationsPool1After)).to.be.equal(0n);
-    expect(sum(allocationsPool2After)).to.be.equal(0n);
+    expect(BigIntMath.sum(allocationsPool1After)).to.be.equal(0n);
+    expect(BigIntMath.sum(allocationsPool2After)).to.be.equal(0n);
   });
 
   it('should revert when trying to expire already expired cover', async function () {

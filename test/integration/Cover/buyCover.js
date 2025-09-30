@@ -3,10 +3,10 @@ const { expect } = require('chai');
 const { loadFixture, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
-const { calculateFirstTrancheId, calculatePremium, getInternalPrice } = require('../../../lib/protocol');
 const { setNextBlockTime } = require('../../utils/evm');
 const { max, divCeil, daysToSeconds } = require('../utils');
 
+const { calculatePremium, getInternalPrice } = nexus.protocol;
 const { PoolAsset } = nexus.constants;
 
 const REWARD_DENOMINATOR = 10000n;
@@ -46,9 +46,8 @@ const buyCoverFixture = (overrides = {}) => ({
 async function buyCoverSetup() {
   const fixture = await loadFixture(setup);
   const { products } = fixture;
-  const staker = fixture.accounts.defaultSender;
   const [manager1, manager2, manager3] = fixture.accounts.stakingPoolManagers;
-  const { token, stakingProducts, stakingPool1, stakingPool2, stakingPool3, tokenController } = fixture.contracts;
+  const { stakingProducts } = fixture.contracts;
 
   const { targetPrice } = stakedProductParamTemplate;
   const productIdWithBumpedPrice = products.findIndex(
@@ -69,16 +68,6 @@ async function buyCoverSetup() {
     ]);
   await stakingProducts.connect(manager2).setProducts(2, [stakedProductParamTemplate]);
   await stakingProducts.connect(manager3).setProducts(3, [stakedProductParamTemplate]);
-
-  const latestBlock = await ethers.provider.getBlock('latest');
-  const trancheId = calculateFirstTrancheId(latestBlock, buyCoverFixture().period, 0) + 5;
-  const stakeAmount = ethers.parseEther('900000');
-
-  // stake
-  await token.approve(tokenController.target, ethers.MaxUint256);
-  await stakingPool1.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
-  await stakingPool2.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
-  await stakingPool3.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
 
   return fixture;
 }

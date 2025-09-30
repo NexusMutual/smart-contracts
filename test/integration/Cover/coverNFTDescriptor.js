@@ -3,10 +3,10 @@ const { expect } = require('chai');
 const base64 = require('base64-js');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { calculatePremium } = require('../../../lib/protocol');
 const { daysToSeconds } = require('../utils/helpers');
 const setup = require('../setup');
 
+const { calculatePremium } = nexus.protocol;
 const { PoolAsset } = nexus.constants;
 
 const JSON_HEADER = 'data:application/json;base64,';

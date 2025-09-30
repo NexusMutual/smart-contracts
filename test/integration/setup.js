@@ -2,11 +2,11 @@ const { ethers, nexus } = require('hardhat');
 const { impersonateAccount, loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { init } = require('../init');
-const { calculateFirstTrancheId } = require('../../lib/protocol');
 
 const { parseEther, parseUnits, ZeroAddress, MaxUint256 } = ethers;
 const { ContractIndexes, ClaimMethod, AggregatorType, Assets, PoolAsset } = nexus.constants;
 const { numberToBytes32 } = nexus.helpers;
+const { calculateFirstTrancheId } = nexus.protocol;
 
 const assignRoles = accounts => ({
   defaultSender: accounts[0],
@@ -91,7 +91,7 @@ async function setup() {
   await chainlinkCbBTC.setLatestAnswer(parseEther('105000', 8)); // $105k per btc
   await chainlinkCbBTC.setDecimals(8); // USD based aggregator
 
-  // stablecoins - 1 ETH = 4000 USDC/DAI
+  // stablecoins
   const chainlinkDAI = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkDAI.setLatestAnswer(parseEther((1 / 4000).toString())); // 1 DAI = 1/4000 ETH
 
@@ -471,7 +471,7 @@ async function setup() {
         productType: 1, // Custody Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0, // All supported assets
+        coverAssets: 0, // Use fallback (all supported assets)
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
         isDeprecated: false,
@@ -487,7 +487,7 @@ async function setup() {
         productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0, // All supported assets
+        coverAssets: 0, // Use fallback (all supported assets)
         initialPriceRatio: 500,
         capacityReductionRatio: 0,
         isDeprecated: false,
@@ -519,7 +519,7 @@ async function setup() {
         productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0, // All supported assets
+        coverAssets: 0, // Use fallback (all supported assets)
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
         isDeprecated: true,
@@ -535,7 +535,7 @@ async function setup() {
         productType: 0, // Protocol Cover
         minPrice: 0,
         __gap: 0,
-        coverAssets: 0, // All supported assets
+        coverAssets: 0, // Use fallback (all supported assets)
         initialPriceRatio: 200,
         capacityReductionRatio: 0,
         isDeprecated: false,

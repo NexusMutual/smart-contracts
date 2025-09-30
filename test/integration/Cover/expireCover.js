@@ -99,7 +99,6 @@ describe('expireCover', function () {
 
     const coverId = await cover.getCoverDataCount();
 
-    // Get the dynamic allocationId for pool 1
     const poolAllocations = await cover.getPoolAllocations(coverId);
     const pool1Allocation = poolAllocations.find(alloc => alloc.poolId === 1n);
     const expectedAllocationId = pool1Allocation.allocationId;
@@ -196,8 +195,7 @@ describe('expireCover', function () {
         { value: amount },
       );
 
-    // expire bucket
-    await increaseTime(Number(coverBucketExpirationPeriod));
+    await increaseTime(Number(coverBucketExpirationPeriod)); // go to next bucket
 
     const coverId = await cover.getCoverDataCount();
     const expireCover = cover.connect(coverBuyer).expireCover(coverId);

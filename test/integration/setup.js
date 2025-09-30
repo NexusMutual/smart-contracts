@@ -96,7 +96,7 @@ async function setup() {
   await chainlinkCbBTC.setLatestAnswer(parseUnits('105000', CBBTC_ORACLE_DECIMALS)); // $105k per btc
   await chainlinkCbBTC.setDecimals(CBBTC_ORACLE_DECIMALS); // USD based aggregator
 
-  // stablecoins - 1 ETH = 4000 USDC/DAI
+  // stablecoins
   const chainlinkDAI = await ethers.deployContract('ChainlinkAggregatorMock');
   await chainlinkDAI.setLatestAnswer(parseEther((1 / 4000).toString())); // 1 DAI = 1/4000 ETH
 

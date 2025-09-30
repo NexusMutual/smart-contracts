@@ -585,19 +585,24 @@ async function setup() {
   await fixture.contracts.stakingPool3.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
 
   const config = {
-    TRANCHE_DURATION: await fixture.contracts.stakingPool1.TRANCHE_DURATION(),
     MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION:
       await fixture.contracts.limitOrders.MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION(),
-    BUCKET_SIZE: BigInt(7 * 24 * 3600), // 7 days
-    BUCKET_DURATION: BigInt(28 * 24 * 3600), // 28 days
-    GLOBAL_REWARDS_RATIO: 5000n, // 50%
-    COMMISSION_DENOMINATOR: 10000n,
     TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
     TARGET_PRICE: stakingPoolProduct0.targetPrice,
     ONE_NXM: parseEther('1'),
     NXM_PER_ALLOCATION_UNIT: await fixture.contracts.stakingPool1.NXM_PER_ALLOCATION_UNIT(),
     USDC_DECIMALS: usdcDecimals,
     STAKE_AMOUNT: stakeAmount,
+    // Cover constants
+    BUCKET_SIZE: BigInt(7 * 24 * 3600), // 7 days
+    GLOBAL_REWARDS_RATIO: 5000n, // 50%
+    COMMISSION_DENOMINATOR: 10000n,
+    // StakingPool constants
+    BUCKET_DURATION: await fixture.contracts.stakingPool1.BUCKET_DURATION(),
+    TRANCHE_DURATION: await fixture.contracts.stakingPool1.TRANCHE_DURATION(),
+    GLOBAL_CAPACITY_DENOMINATOR: await fixture.contracts.stakingPool1.GLOBAL_CAPACITY_DENOMINATOR(),
+    CAPACITY_REDUCTION_DENOMINATOR: await fixture.contracts.stakingPool1.CAPACITY_REDUCTION_DENOMINATOR(),
+    WEIGHT_DENOMINATOR: await fixture.contracts.stakingPool1.WEIGHT_DENOMINATOR(),
   };
 
   fixture.config = config;

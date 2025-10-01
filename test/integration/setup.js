@@ -1,5 +1,10 @@
 const { ethers, nexus } = require('hardhat');
-const { impersonateAccount, loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+const {
+  impersonateAccount,
+  loadFixture,
+  setBalance,
+  setStorageAt,
+} = require('@nomicfoundation/hardhat-network-helpers');
 
 const { init } = require('../init');
 
@@ -584,6 +589,18 @@ async function setup() {
   await fixture.contracts.stakingPool2.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
   await fixture.contracts.stakingPool3.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
 
+  // Set pool MCR
+  const mcrStorageSlot = 3;
+  const storedMcr = parseEther('5000');
+  const desiredMcr = parseEther('3000');
+
+  const packedMcrData = ethers.solidityPacked(
+    ['uint80', 'uint80', 'uint32'],
+    [storedMcr, desiredMcr, latestBlock.timestamp],
+  );
+
+  await setStorageAt(pool.target, mcrStorageSlot, ethers.zeroPadValue(packedMcrData, 32));
+
   const config = {
     MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION:
       await fixture.contracts.limitOrders.MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION(),
@@ -603,6 +620,9 @@ async function setup() {
     GLOBAL_CAPACITY_DENOMINATOR: await fixture.contracts.stakingPool1.GLOBAL_CAPACITY_DENOMINATOR(),
     CAPACITY_REDUCTION_DENOMINATOR: await fixture.contracts.stakingPool1.CAPACITY_REDUCTION_DENOMINATOR(),
     WEIGHT_DENOMINATOR: await fixture.contracts.stakingPool1.WEIGHT_DENOMINATOR(),
+    // MCR values set in setup
+    INITIAL_STORED_MCR: storedMcr,
+    INITIAL_DESIRED_MCR: desiredMcr,
   };
 
   fixture.config = config;

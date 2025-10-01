@@ -114,10 +114,10 @@ describe('swap', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = timestamp + 54 * 60 * 60; // +54 hours to stabilize price
     const deadline = nextBlockTimestamp + 15 * 60; // add 15 minutes
-    const isEthToNxm = true;
 
-    // Calculate expected output using the exact timestamp the contract will see
-    const failureTimestamp = nextBlockTimestamp + 2 * 60; // +2 minutes like v5
+    // Get expected book value
+    const failureTimestamp = nextBlockTimestamp + 2 * 60; // +2 minutes
+    const isEthToNxm = true;
     const expectedNxmOut = await calculateExpectedSwapOutput(
       ramm,
       pool,
@@ -138,20 +138,20 @@ describe('swap', function () {
     await expect(swapFail).to.be.revertedWithCustomError(ramm, 'InsufficientAmountOut');
     const before = await getCapitalSupplyAndBalances(pool, tokenController, token, member.address);
 
-    // Success case: reuse the same expectedNxmOut like v5
+    // Min amount out success: +3 minutes enough for price to adjust and execute the swap
     await setNextBlockBaseFeePerGas(0);
-    await time.setNextBlockTimestamp(nextBlockTimestamp + 3 * 60); // +3 minutes
+    await time.setNextBlockTimestamp(nextBlockTimestamp + 3 * 60);
     const tx = await ramm.connect(member).swap(0, expectedNxmOut, deadline, { value: ethIn, maxPriorityFeePerGas: 0 });
     const swapTxReceipt = await tx.wait();
 
     const after = await getCapitalSupplyAndBalances(pool, tokenController, token, member.address);
     const nxmReceived = after.nxmBalance - before.nxmBalance;
 
-    const nxmTransferEvents = getEventsFromTxReceipt(swapTxReceipt, token, 'Transfer', {
+    const [nxmTransferEvent] = getEventsFromTxReceipt(swapTxReceipt, token, 'Transfer', {
       from: ZeroAddress,
       to: member.address,
     });
-    const nxmOut = nxmTransferEvents[0]?.args?.value;
+    const nxmOut = nxmTransferEvent?.args?.value;
 
     expect(after.ethCapital).to.be.equal(before.ethCapital + ethIn); // ETH goes into capital pool
     expect(after.nxmSupply).to.be.equal(before.nxmSupply + nxmReceived); // NXM out is minted
@@ -170,9 +170,9 @@ describe('swap', function () {
     const nextBlockTimestamp = timestamp + 3 * 60 * 60; // +3 hours to stabilize price
     const deadline = nextBlockTimestamp + 15 * 60; // add 15 minutes
 
+    // Get expected book value
+    const failureTimestamp = nextBlockTimestamp + 2 * 60; // +2 minutes
     const isEthToNxm = false;
-    // Calculate expected output using the exact timestamp the contract will see
-    const failureTimestamp = nextBlockTimestamp + 2 * 60; // +2 minutes like v5
     const expectedEthOut = await calculateExpectedSwapOutput(
       ramm,
       pool,
@@ -193,8 +193,9 @@ describe('swap', function () {
 
     const before = await getCapitalSupplyAndBalances(pool, tokenController, token, member.address);
 
+    // Min amount out success: +3 minutes enough for price to adjust and execute the swap
     await setNextBlockBaseFeePerGas(0);
-    await time.setNextBlockTimestamp(nextBlockTimestamp + 3 * 60); // +3 minutes
+    await time.setNextBlockTimestamp(nextBlockTimestamp + 3 * 60);
     await ramm.connect(member).swap(nxmIn, expectedEthOut, deadline, {
       maxPriorityFeePerGas: 0,
     });
@@ -240,13 +241,11 @@ describe('swap', function () {
 
     const after = await getCapitalSupplyAndBalances(pool, tokenController, token, member.address);
     const nxmReceived = after.nxmBalance - before.nxmBalance;
-
-    // Parse Transfer events using getEventsFromTxReceipt helper
-    const nxmTransferEvents = getEventsFromTxReceipt(swapTxReceipt, token, 'Transfer', {
+    const [nxmTransferEvent] = getEventsFromTxReceipt(swapTxReceipt, token, 'Transfer', {
       from: ZeroAddress,
       to: member.address,
     });
-    const nxmOut = nxmTransferEvents[0]?.args?.value;
+    const nxmOut = nxmTransferEvent?.args?.value;
 
     expect(after.ethCapital).to.be.equal(before.ethCapital + ethIn); // ETH goes into capital pool
     expect(after.nxmSupply).to.be.equal(before.nxmSupply + nxmReceived); // NXM out is minted
@@ -264,7 +263,7 @@ describe('swap', function () {
     const before = await getCapitalSupplyAndBalances(pool, tokenController, token, member.address);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const deadline = timestamp + 15 * 60; // add 15 minutes
+    const deadline = timestamp + 15 * 60; // +15 minutes
 
     await setNextBlockBaseFeePerGas(0);
     const tx = await ramm.connect(member).swap(nxmIn, minEthOut, deadline, { maxPriorityFeePerGas: 0 });
@@ -272,11 +271,10 @@ describe('swap', function () {
 
     const after = await getCapitalSupplyAndBalances(pool, tokenController, token, member.address);
     const ethReceived = after.ethBalance - before.ethBalance;
-
-    const nxmSwappedForEthEvents = getEventsFromTxReceipt(swapTxReceipt, ramm, 'NxmSwappedForEth', {
+    const [nxmSwappedForEthEvent] = getEventsFromTxReceipt(swapTxReceipt, ramm, 'NxmSwappedForEth', {
       member: member.address,
     });
-    const ethOut = nxmSwappedForEthEvents[0]?.args?.ethOut;
+    const ethOut = nxmSwappedForEthEvent?.args?.ethOut;
 
     expect(after.nxmBalance).to.be.equal(before.nxmBalance - nxmIn); // member sends NXM
     expect(after.nxmSupply).to.be.equal(before.nxmSupply - nxmIn); // nxmIn is burned

@@ -1,5 +1,7 @@
 const { ethers, nexus } = require('hardhat');
-const { setBalance, impersonateAccount } = require('@nomicfoundation/hardhat-network-helpers');
+const { impersonateAccount, loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+
+const { init } = require('../init');
 
 const { parseEther, parseUnits, ZeroAddress, MaxUint256 } = ethers;
 const { ContractIndexes, ClaimMethod, AggregatorType, Assets } = nexus.constants;
@@ -16,6 +18,7 @@ const assignRoles = accounts => ({
 });
 
 async function setup() {
+  await loadFixture(init);
   const accounts = assignRoles(await ethers.getSigners());
   const { defaultSender, members, advisoryBoardMembers, stakingPoolManagers, emergencyAdmins } = accounts;
   const [abMember] = advisoryBoardMembers;

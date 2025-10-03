@@ -1,7 +1,10 @@
 const { ethers, nexus } = require('hardhat');
-const { ContractIndexes } = nexus.constants;
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const { init } = require('../../init');
 
 const { parseEther } = ethers;
+const { ContractIndexes } = nexus.constants;
 const { ETH } = nexus.constants.Assets;
 
 const assignRoles = accounts => ({
@@ -17,6 +20,7 @@ const assignRoles = accounts => ({
 });
 
 async function setup() {
+  await loadFixture(init);
   const accounts = assignRoles(await ethers.getSigners());
   const [governor] = accounts.governor;
   const [claims] = accounts.claims;

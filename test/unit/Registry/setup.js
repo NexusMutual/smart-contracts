@@ -1,11 +1,18 @@
 const { ethers, nexus } = require('hardhat');
-const { impersonateAccount, setNextBlockBaseFeePerGas } = require('@nomicfoundation/hardhat-network-helpers');
+const {
+  impersonateAccount,
+  loadFixture,
+  setNextBlockBaseFeePerGas,
+} = require('@nomicfoundation/hardhat-network-helpers');
+
+const { init } = require('../../init');
 
 const { ZeroAddress } = ethers;
 const { toBytes2, numberToBytes32 } = nexus.helpers;
 const { ContractIndexes } = nexus.constants;
 
 const setup = async () => {
+  await loadFixture(init);
   // note: kycAuth is the same as defaultSender
   const signers = await ethers.getSigners();
   const [kycAuth, alice, bob, charlie, mallory, ea1, ea2, governor] = signers;

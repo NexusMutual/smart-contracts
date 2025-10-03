@@ -1,13 +1,16 @@
 const { ethers, nexus } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
+const { getAccounts } = require('../../utils/accounts');
+const { init } = require('../../init');
 
 const { Assets, ContractIndexes, ClaimMethod, PoolAsset } = nexus.constants;
-const { getAccounts } = require('../../utils/accounts');
-
 const { parseEther } = ethers;
 
 const ONE_DAY = 24 * 60 * 60;
 
 async function setup() {
+  await loadFixture(init);
   const accounts = await getAccounts();
   const nxm = await ethers.deployContract('NXMTokenMock');
 

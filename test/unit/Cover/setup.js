@@ -1,5 +1,8 @@
 const { ethers, nexus } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+
 const { getAccounts } = require('../../utils/accounts');
+const { init } = require('../../init');
 
 const { MaxUint256, deployContract, parseEther } = ethers;
 const { ContractIndexes, PoolAsset, Role } = nexus.constants;
@@ -93,6 +96,7 @@ const COVER_BUY_FIXTURE = {
 };
 
 async function setup() {
+  await loadFixture(init);
   const accounts = await getAccounts();
   const [governor] = accounts.governanceContracts;
   const [riSigner, riPremiumDst] = accounts.generalPurpose;

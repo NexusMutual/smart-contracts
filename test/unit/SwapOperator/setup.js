@@ -1,5 +1,7 @@
 const { ethers, nexus } = require('hardhat');
-const { setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+
+const { init } = require('../../init');
 
 const { parseEther } = ethers;
 const { Assets, ContractIndexes } = nexus.constants;
@@ -11,6 +13,7 @@ const deployERC20Mock = async (name, symbol, decimals) => {
 };
 
 async function setup() {
+  await loadFixture(init);
   const [defaultSender, governor, alice, bob, mallory, swapController /*, safe */] = await ethers.getSigners();
 
   // deploy weth and erc20 mocks

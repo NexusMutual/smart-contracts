@@ -1,6 +1,8 @@
 const { ethers, nexus } = require('hardhat');
+const { loadFixture, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+
 const { getAccounts } = require('../../utils/accounts');
-const { setEtherBalance } = require('../../utils/evm');
+const { init } = require('../../init');
 
 const { ContractIndexes } = nexus.constants;
 const ONE_DAY = BigInt(24 * 60 * 60);
@@ -10,6 +12,7 @@ const CLAIM_ID = 1;
 const IPFS_HASH = ethers.solidityPackedKeccak256(['string'], ['standard-ipfs-hash']);
 
 async function setup() {
+  await loadFixture(init);
   const accounts = await getAccounts();
 
   // Deploy contracts
@@ -47,13 +50,13 @@ async function setup() {
 
   // Use a member account to submit the claim
   const [coverOwner] = accounts.members;
-  await setEtherBalance(coverOwner.address, ethers.parseEther('10'));
+  await setBalance(coverOwner.address, ethers.parseEther('10'));
 
   // Submit a claim using the cover owner account
   await claims.connect(coverOwner).submitClaim(CLAIM_ID, ethers.parseEther('1'), IPFS_HASH);
 
   // Give Claims contract ETH balance for tests that need to impersonate it
-  await setEtherBalance(claims.target, ethers.parseEther('10'));
+  await setBalance(claims.target, ethers.parseEther('10'));
 
   return {
     accounts,

@@ -1,8 +1,9 @@
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
 const { config } = require('hardhat');
 const { expect } = require('chai');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
 
 const extractStorageLayout = require(path.join(config.paths.root, 'scripts/extract-storage-layout'));
 

@@ -106,7 +106,7 @@ describe('basic functionality tests', function () {
     const { chainId } = await ethers.provider.getNetwork();
 
     for (const member of this.members) {
-      const signature = await nexus.membership.signJoinMessage(this.kycAuthSigner, member, this.registry, { chainId });
+      const signature = await nexus.signing.signJoinMessage(this.kycAuthSigner, member, this.registry, { chainId });
       await this.registry.join(member, signature, { value: JOINING_FEE });
       expect(await this.registry.isMember(member.address)).to.be.true;
     }

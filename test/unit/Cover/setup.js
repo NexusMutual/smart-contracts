@@ -1,7 +1,7 @@
 const { ethers, nexus } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
 
-const { MaxUint256, deployContract, isAddress, parseEther } = ethers;
+const { MaxUint256, deployContract, parseEther } = ethers;
 const { ContractIndexes, PoolAsset, Role } = nexus.constants;
 const { hex } = nexus.helpers;
 
@@ -90,74 +90,6 @@ const COVER_BUY_FIXTURE = {
   activeCover: parseEther('5000'),
   capacity: parseEther('10000'),
   capacityFactor: '10000',
-};
-
-/**
- * @typedef {import('ethers').AddressLike} AddressLike
- */
-
-/**
- * @param {AddressLike} addresslike
- * @returns {Promise<string>}
- */
-const getAddress = async addresslike => (isAddress(addresslike) ? addresslike : addresslike.getAddress());
-
-/**
- * @param {import('ethers').Signer} signer
- * @param {AddressLike} verifyingContract
- * @param {object} quote
- * @param {bigint|number} quote.coverId
- * @param {bigint|number} quote.productId
- * @param {bigint|number} quote.providerId
- * @param {bigint|number} quote.amount
- * @param {bigint|number} quote.premium
- * @param {bigint|number} quote.period
- * @param {bigint|number} quote.coverAsset
- * @param {bigint|number} quote.nonce
- * @param {{ name?: string, version?: string, chainId?: number }} [options]
- * @returns {Promise<string>}
- */
-const signRiQuote = async (signer, verifyingContract, quote, options = {}) => {
-  const defaults = { name: 'NexusMutualCover', version: '1.0.0' };
-  const config = { ...defaults, ...options };
-
-  if (config.chainId === undefined) {
-    config.chainId = (await signer.provider.getNetwork()).chainId;
-  }
-
-  const verifier = await getAddress(verifyingContract);
-
-  const name = config.name;
-  const version = config.version;
-  const chainId = config.chainId;
-
-  const domain = { name, version, chainId, verifyingContract: verifier };
-
-  const types = {
-    RiQuote: [
-      { name: 'coverId', type: 'uint256' },
-      { name: 'productId', type: 'uint24' },
-      { name: 'providerId', type: 'uint256' },
-      { name: 'amount', type: 'uint256' },
-      { name: 'premium', type: 'uint256' },
-      { name: 'period', type: 'uint32' },
-      { name: 'coverAsset', type: 'uint8' },
-      { name: 'nonce', type: 'uint256' },
-    ],
-  };
-
-  const values = {
-    coverId: quote.coverId ?? 0,
-    productId: quote.productId,
-    providerId: quote.providerId,
-    amount: quote.amount,
-    premium: quote.premium,
-    period: quote.period,
-    coverAsset: quote.coverAsset,
-    nonce: quote.nonce,
-  };
-
-  return signer.signTypedData(domain, types, values);
 };
 
 async function setup() {
@@ -256,7 +188,6 @@ async function setup() {
     await master.enrollMember(member, Role.Member);
     await memberRoles.setRole(member, Role.Member);
     await registry.join(member, '0x');
-    // await setBalance(member.address, parseEther('100'));
     await usdc.mint(member, parseEther('100000'));
     await usdc.connect(member).approve(cover, parseEther('100000'));
     await cbBTC.mint(member, parseEther('100000'));
@@ -275,13 +206,6 @@ async function setup() {
 
   await coverProducts.changeMasterAddress(master);
   await coverProducts.changeDependentContractAddress();
-  // await master.enrollInternal(coverProducts);
-
-  // for (const contract of [coverProducts, stakingProducts]) {
-  //   await contract.changeMasterAddress(master);
-  //   await contract.changeDependentContractAddress();
-  //   await master.enrollInternal(contract);
-  // }
 
   const emergencyAdmin = accounts.emergencyAdmins[0];
   await master.setEmergencyAdmin(emergencyAdmin); // can only set one
@@ -391,4 +315,4 @@ async function setup() {
   };
 }
 
-module.exports = { setup, signRiQuote };
+module.exports = { setup };

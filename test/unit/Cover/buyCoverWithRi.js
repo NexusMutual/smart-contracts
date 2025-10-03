@@ -1,9 +1,10 @@
+const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { setup, signRiQuote } = require('./setup');
+const { setup } = require('./setup');
 
+const { signRiQuote } = nexus.signing;
 const { parseEther, ZeroAddress } = ethers;
 
 const coverFixture = {

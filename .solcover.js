@@ -48,6 +48,7 @@ async function onCompileComplete() {
 }
 
 module.exports = {
+  mocha: { parallel: false },
   onCompileComplete,
   skipFiles: [
     'abstract/',

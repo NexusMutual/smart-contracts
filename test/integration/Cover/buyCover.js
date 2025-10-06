@@ -20,19 +20,10 @@ function calculateRewards(premium, timestamp, period, rewardRatio, bucketDuratio
   return rewardPerSecond * rewardStreamPeriod;
 }
 
-const stakedProductParamTemplate = {
-  productId: 0, // Use Product 0 which allows all pools
-  recalculateEffectiveWeight: true,
-  setTargetWeight: true,
-  targetWeight: 100,
-  setTargetPrice: true,
-  targetPrice: 100,
-};
-
 const buyCoverFixture = (overrides = {}) => ({
   coverId: 0,
   owner: ethers.ZeroAddress,
-  productId: stakedProductParamTemplate.productId,
+  productId: 0,
   coverAsset: PoolAsset.ETH,
   amount: ethers.parseEther('1'),
   period: daysToSeconds(30),
@@ -44,38 +35,9 @@ const buyCoverFixture = (overrides = {}) => ({
   ...overrides,
 });
 
-async function buyCoverSetup() {
-  const fixture = await loadFixture(setup);
-  const { products } = fixture;
-  const [manager1, manager2, manager3] = fixture.accounts.stakingPoolManagers;
-  const { stakingProducts } = fixture.contracts;
-
-  const { targetPrice } = stakedProductParamTemplate;
-  const productIdWithBumpedPrice = products.findIndex(
-    p => targetPrice !== p.product.initialPriceRatio && !p.product.useFixedPrice,
-  );
-  const productIdWithFixedPrice = products.findIndex(
-    p => targetPrice !== p.product.initialPriceRatio && p.product.useFixedPrice,
-  );
-  const productIdIsDeprecated = products.findIndex(p => p.product.isDeprecated);
-
-  await stakingProducts
-    .connect(manager1)
-    .setProducts(1, [
-      stakedProductParamTemplate,
-      { ...stakedProductParamTemplate, productId: productIdWithBumpedPrice },
-      { ...stakedProductParamTemplate, productId: productIdWithFixedPrice },
-      { ...stakedProductParamTemplate, productId: productIdIsDeprecated },
-    ]);
-  await stakingProducts.connect(manager2).setProducts(2, [stakedProductParamTemplate]);
-  await stakingProducts.connect(manager3).setProducts(3, [stakedProductParamTemplate]);
-
-  return fixture;
-}
-
 describe('buyCover', function () {
   it('allows to buy against multiple staking pools', async function () {
-    const fixture = await loadFixture(buyCoverSetup);
+    const fixture = await loadFixture(setup);
     const { cover, tokenController, stakingProducts, ramm, pool } = fixture.contracts;
     const [coverBuyer, coverReceiver] = fixture.accounts.members;
     const { GLOBAL_REWARDS_RATIO, NXM_PER_ALLOCATION_UNIT, BUCKET_DURATION } = fixture.config;
@@ -137,7 +99,7 @@ describe('buyCover', function () {
   });
 
   it('should purchase new cover with bumped price after initialization', async function () {
-    const fixture = await loadFixture(buyCoverSetup);
+    const fixture = await loadFixture(setup);
     const { cover, tokenController, stakingProducts, pool, ramm } = fixture.contracts;
     const [coverBuyer, coverReceiver] = fixture.accounts.members;
     const { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO, BUCKET_DURATION } = fixture.config;
@@ -175,12 +137,12 @@ describe('buyCover', function () {
   });
 
   it('should purchase new cover with calculated price after the drop', async function () {
-    const fixture = await loadFixture(buyCoverSetup);
+    const fixture = await loadFixture(setup);
     const { cover, tokenController, stakingProducts, pool, ramm } = fixture.contracts;
     const [coverBuyer, coverReceiver] = fixture.accounts.members;
     const { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO, BUCKET_DURATION } = fixture.config;
+    const [{ targetPrice }] = fixture.stakedProducts;
     const { period, amount } = buyCoverFixture();
-    const { targetPrice } = stakedProductParamTemplate;
     const daysElapsed = 1;
 
     const productId = fixture.products.findIndex(
@@ -217,13 +179,13 @@ describe('buyCover', function () {
   });
 
   it('should purchase new cover with fixed price', async function () {
-    const fixture = await loadFixture(buyCoverSetup);
+    const fixture = await loadFixture(setup);
     const { cover, tokenController, stakingProducts, pool, ramm } = fixture.contracts;
     const [coverBuyer, coverReceiver] = fixture.accounts.members;
     const { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO, BUCKET_DURATION } = fixture.config;
+    const [{ targetPrice }] = fixture.stakedProducts;
     const { products } = fixture;
     const { period, amount } = buyCoverFixture();
-    const { targetPrice } = stakedProductParamTemplate;
 
     const latestBlock = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = latestBlock.timestamp + 10;
@@ -264,7 +226,7 @@ describe('buyCover', function () {
   });
 
   it('should revert the purchase of deprecated product', async function () {
-    const fixture = await loadFixture(buyCoverSetup);
+    const fixture = await loadFixture(setup);
     const { products } = fixture;
     const { cover } = fixture.contracts;
     const [coverBuyer, coverReceiver] = fixture.accounts.members;
@@ -283,7 +245,7 @@ describe('buyCover', function () {
 
 describe('CoverBroker - buyCover', function () {
   it('should revert with InvalidOwnerAddress if params.owner is zero address', async function () {
-    const fixture = await loadFixture(buyCoverSetup);
+    const fixture = await loadFixture(setup);
     const { coverBroker } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.nonMembers;
 
@@ -298,7 +260,7 @@ describe('CoverBroker - buyCover', function () {
   });
 
   it('should revert with InvalidOwnerAddress if params.owner is CoverBroker address', async function () {
-    const fixture = await loadFixture(buyCoverSetup);
+    const fixture = await loadFixture(setup);
     const { coverBroker } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.nonMembers;
 
@@ -312,7 +274,7 @@ describe('CoverBroker - buyCover', function () {
   });
 
   it('should revert with InvalidPaymentAsset if paymentAsset is NXM asset ID (255)', async function () {
-    const fixture = await loadFixture(buyCoverSetup);
+    const fixture = await loadFixture(setup);
     const { coverBroker } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.nonMembers;
 
@@ -326,7 +288,7 @@ describe('CoverBroker - buyCover', function () {
   });
 
   it('should revert with InvalidPayment if paymentAsset is not ETH and msg.value > 0', async function () {
-    const fixture = await loadFixture(buyCoverSetup);
+    const fixture = await loadFixture(setup);
     const { coverBroker } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.nonMembers;
 
@@ -340,16 +302,16 @@ describe('CoverBroker - buyCover', function () {
   });
 
   it('should enable non-members to buy cover through the broker with ETH', async function () {
-    const fixture = await loadFixture(buyCoverSetup);
+    const fixture = await loadFixture(setup);
     const { tokenController, stakingProducts, pool, ramm, coverBroker, coverNFT } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.nonMembers;
     const { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO, BUCKET_DURATION } = fixture.config;
+    const [{ targetPrice }] = fixture.stakedProducts;
     const { period, amount } = buyCoverFixture();
 
     const latestBlock = await ethers.provider.getBlock('latest');
     const nextBlockTimestamp = latestBlock.timestamp + 10;
 
-    const { targetPrice } = stakedProductParamTemplate;
     const productId = fixture.products.findIndex(
       ({ product: { initialPriceRatio, useFixedPrice } }) => targetPrice !== initialPriceRatio && useFixedPrice,
     );
@@ -402,7 +364,7 @@ describe('CoverBroker - buyCover', function () {
   });
 
   it('should enable non-members to buy cover through the broker with USDC', async function () {
-    const fixture = await loadFixture(buyCoverSetup);
+    const fixture = await loadFixture(setup);
     const { tokenController, stakingProducts, pool, coverBroker, usdc, coverNFT } = fixture.contracts;
     const [coverBuyer] = fixture.accounts.nonMembers;
     const { NXM_PER_ALLOCATION_UNIT, GLOBAL_REWARDS_RATIO, BUCKET_DURATION } = fixture.config;

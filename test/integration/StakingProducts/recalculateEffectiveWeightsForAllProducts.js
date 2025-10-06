@@ -8,7 +8,7 @@ const setup = require('../setup');
 const { calculatePremium, getInternalPrice } = require('../../../lib/protocol');
 const { roundUpToMultiple, divCeil } = require('../../../lib/helpers').BigIntMath;
 
-const { MaxUint256, parseEther } = ethers;
+const { parseEther } = ethers;
 const { PoolAsset } = nexus.constants;
 
 const ONE_NXM = parseEther('1');
@@ -38,17 +38,9 @@ const buyCoverFixture = (overrides = {}) => ({
   ...overrides,
 });
 
-async function recalculateEffectiveWeightsForAllProductsSetup() {
-  const fixture = await loadFixture(setup);
-  const { token: nxm, tokenController } = fixture.contracts;
-  await nxm.approve(tokenController.target, MaxUint256);
-
-  return fixture;
-}
-
 describe('recalculateEffectiveWeightsForAllProducts', function () {
   it('recalculates effective weights when there is 0 activeStake and targetWeight = 5', async function () {
-    const fixture = await loadFixture(recalculateEffectiveWeightsForAllProductsSetup);
+    const fixture = await loadFixture(setup);
     const { stakingProducts } = fixture.contracts;
     const [manager] = fixture.accounts.stakingPoolManagers;
 
@@ -65,7 +57,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
   });
 
   it('recalculates effective weights correctly when activeWeight > targetWeight', async function () {
-    const fixture = await loadFixture(recalculateEffectiveWeightsForAllProductsSetup);
+    const fixture = await loadFixture(setup);
     const { stakingProducts, cover, pool, ramm, tokenController } = fixture.contracts;
     const [, coverBuyer] = fixture.accounts.members;
     const [manager] = fixture.accounts.stakingPoolManagers;
@@ -133,7 +125,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
   });
 
   it('recalculates effective weights for 2 products when activeWeight > targetWeight', async function () {
-    const fixture = await loadFixture(recalculateEffectiveWeightsForAllProductsSetup);
+    const fixture = await loadFixture(setup);
     const { stakingProducts, cover, pool, ramm, tokenController } = fixture.contracts;
     const [, coverBuyer] = fixture.accounts.members;
     const [manager] = fixture.accounts.stakingPoolManagers;

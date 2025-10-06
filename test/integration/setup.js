@@ -38,7 +38,7 @@ async function setup() {
 
   // deploy external contracts
   const investmentSafe = await ethers.deployContract('ERC20Mock');
-  await setBalance(await investmentSafe.getAddress(), parseEther('1000'));
+  await setBalance(investmentSafe.target, parseEther('1000'));
 
   const weth = await ethers.deployContract('WETH9');
 
@@ -297,12 +297,7 @@ async function setup() {
   ];
 
   for (const assetDetails of assets) {
-    await pool.addAsset(
-      assetDetails.asset,
-      assetDetails.isCoverAsset,
-      await assetDetails.oracle.getAddress(),
-      assetDetails.type,
-    );
+    await pool.addAsset(assetDetails.asset, assetDetails.isCoverAsset, assetDetails.oracle.target, assetDetails.type);
   }
 
   const masterAwareContracts = [ContractIndexes.C_COVER_PRODUCTS, ContractIndexes.C_STAKING_PRODUCTS];
@@ -369,17 +364,15 @@ async function setup() {
   await enzymeVault.mint(pool, parseEther('15000'));
 
   // mint safeTracker funds
-
-  await setBalance(await safeTracker.getAddress(), parseEther('100')); // 100 eth
-
+  await setBalance(safeTracker.target, parseEther('100')); // 100 eth
   await weth.deposit({ value: parseEther('100') }); // create 100 weth
   await weth.transfer(safeTracker, parseEther('100'));
-
   await aWETH.mint(safeTracker, parseEther('100')); // 100 eth collateral ~= 250k usd
   await debtUsdc.mint(safeTracker, parseUnits('50000', debtUsdcDecimals)); // 50k usdc debt
   await usdc.mint(safeTracker, parseUnits('100000', usdcDecimals)); // 100k USDC
   await cbBTC.mint(safeTracker, parseUnits('100000', cbBTCDecimals)); // 100k cbBTC
 
+  // whitelist members
   await impersonateAccount(tokenController.target);
   const tokenControllerSigner = await ethers.getSigner(tokenController.target);
   await setBalance(tokenController.target, parseEther('10000'));
@@ -387,6 +380,11 @@ async function setup() {
   for (const account of [...accounts.members, ...accounts.advisoryBoardMembers, ...accounts.stakingPoolManagers]) {
     await token.connect(tokenControllerSigner).addToWhiteList(account);
   }
+
+  // mint members NXM tokens
+  const [member] = accounts.members;
+  await token.connect(tokenControllerSigner).mint(member.address, parseEther('10000'));
+  await token.connect(member).approve(tokenController.target, parseEther('10000'));
 
   await setBalance(tokenController.target, parseEther('0'));
 
@@ -570,11 +568,27 @@ async function setup() {
     targetPrice: 100,
   };
 
+  const productIdWithBumpedPrice = products.findIndex(
+    p => stakingPoolProduct0.targetPrice !== p.product.initialPriceRatio && !p.product.useFixedPrice,
+  );
+  const productIdWithFixedPrice = products.findIndex(
+    p => stakingPoolProduct0.targetPrice !== p.product.initialPriceRatio && p.product.useFixedPrice,
+  );
+  const productIdIsDeprecated = products.findIndex(p => p.product.isDeprecated);
+
   for (let i = 0; i < 5; i++) {
     const poolId = i + 1;
-    await stakingProducts
-      .connect(stakingPoolManagers[i])
-      .setProducts(poolId, [stakingPoolProduct0, stakingPoolProduct2]);
+    const stakedProducts = [
+      stakingPoolProduct0,
+      stakingPoolProduct2,
+      { ...stakingPoolProduct0, productId: productIdWithBumpedPrice },
+      { ...stakingPoolProduct0, productId: productIdIsDeprecated },
+    ];
+    if ([1, 3].includes(poolId)) {
+      // only pool 1 and 3 for product 1 fixed price
+      stakedProducts.push({ ...stakingPoolProduct0, productId: productIdWithFixedPrice });
+    }
+    await stakingProducts.connect(stakingPoolManagers[i]).setProducts(poolId, stakedProducts);
   }
 
   const staker = defaultSender;
@@ -585,9 +599,14 @@ async function setup() {
 
   // Add stake capacity to pools 1, 2, and 3 for product 0
   await token.connect(staker).approve(tokenController, MaxUint256);
-  await fixture.contracts.stakingPool1.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
-  await fixture.contracts.stakingPool2.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
-  await fixture.contracts.stakingPool3.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
+  const depositParams = [stakeAmount, trancheId, 0, staker.address];
+  const tokenId1 = await fixture.contracts.stakingPool1.connect(staker).depositTo.staticCall(...depositParams);
+  const tokenId2 = await fixture.contracts.stakingPool2.connect(staker).depositTo.staticCall(...depositParams);
+  const tokenId3 = await fixture.contracts.stakingPool3.connect(staker).depositTo.staticCall(...depositParams);
+
+  await fixture.contracts.stakingPool1.connect(staker).depositTo(...depositParams);
+  await fixture.contracts.stakingPool2.connect(staker).depositTo(...depositParams);
+  await fixture.contracts.stakingPool3.connect(staker).depositTo(...depositParams);
 
   // Set pool MCR
   const mcrStorageSlot = 3;
@@ -627,7 +646,14 @@ async function setup() {
 
   fixture.config = config;
   fixture.accounts = accounts;
+
+  fixture.tokenIds = [tokenId1, tokenId2, tokenId3];
+  fixture.stakeAmount = stakeAmount;
+  fixture.trancheIds = [[trancheId], [trancheId], [trancheId]];
+  fixture.trancheId = trancheId;
+
   fixture.products = products;
+  fixture.stakedProducts = [stakingPoolProduct0, stakingPoolProduct2];
 
   return fixture;
 }

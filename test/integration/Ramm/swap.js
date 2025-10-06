@@ -2,12 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
-const {
-  setNextBlockBaseFeePerGas,
-  setBalance,
-  impersonateAccount,
-  time,
-} = require('@nomicfoundation/hardhat-network-helpers');
+const { setNextBlockBaseFeePerGas, time } = require('@nomicfoundation/hardhat-network-helpers');
 const { getEventsFromTxReceipt } = require('../utils/helpers');
 const setup = require('../setup');
 
@@ -65,26 +60,9 @@ async function calculateExpectedSwapOutput(ramm, pool, tokenController, input, i
   }
 }
 
-async function swapSetup() {
-  const fixture = await loadFixture(setup);
-  const { token, pool, tokenController } = fixture.contracts;
-  const [member] = fixture.accounts.members;
-
-  await impersonateAccount(tokenController.target);
-  const tokenControllerSigner = await ethers.getSigner(tokenController.target);
-  await setBalance(tokenController.target, parseEther('10000'));
-  await setBalance(member.address, parseEther('10000'));
-  await setBalance(pool.target, parseEther('145000'));
-
-  await token.connect(tokenControllerSigner).mint(member.address, parseEther('10000'));
-  await token.connect(member).approve(tokenController.target, parseEther('10000'));
-
-  return fixture;
-}
-
 describe('swap', function () {
   it('should revert if both NXM and ETH values are 0', async function () {
-    const fixture = await loadFixture(swapSetup);
+    const fixture = await loadFixture(setup);
     const { ramm } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -160,7 +138,7 @@ describe('swap', function () {
   });
 
   it('should revert if ethOut < minAmountOut when swapping NXM for ETH', async function () {
-    const fixture = await loadFixture(swapSetup);
+    const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController, token } = fixture.contracts;
     const [member] = fixture.accounts.members;
 
@@ -254,7 +232,7 @@ describe('swap', function () {
   });
 
   it('should swap NXM for ETH', async function () {
-    const fixture = await loadFixture(swapSetup);
+    const fixture = await loadFixture(setup);
     const { ramm, pool, tokenController, token } = fixture.contracts;
     const [member] = fixture.accounts.members;
 

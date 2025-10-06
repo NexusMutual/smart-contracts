@@ -14,11 +14,10 @@ const { parseEther, formatEther, MaxUint256 } = ethers;
 const svgHeader = 'data:image/svg+xml;base64,';
 const jsonHeader = 'data:application/json;base64,';
 
-async function stakingNFTDescriptorSetup() {
-  const fixture = await loadFixture(setup);
+async function createStakingDeposit(fixture) {
   const { members } = fixture.accounts;
-
   const [, , staker] = members;
+
   const { stakingPool1, token, tokenController } = fixture.contracts;
   const stakingAmount = parseEther('170.091');
   const block = await ethers.provider.getBlock('latest');
@@ -27,6 +26,8 @@ async function stakingNFTDescriptorSetup() {
   const operatorAddress = await token.operator();
   await impersonateAccount(operatorAddress);
   const operator = await ethers.getSigner(operatorAddress);
+
+  // set balances
   await setBalance(operatorAddress, parseEther('10000'));
   await token.connect(operator).mint(staker.address, parseEther('10000'));
   await token.connect(staker).approve(tokenController.target, MaxUint256);
@@ -44,23 +45,23 @@ async function stakingNFTDescriptorSetup() {
   await stakingPool1.connect(staker).depositTo(...tokenBParams);
 
   return {
-    ...fixture,
-    stakingAmount,
+    tokenIdA,
+    tokenIdB,
     largeDepositAmount,
     smallDepositAmount,
-    testTokenIdA: tokenIdA,
-    testTokenIdB: tokenIdB,
-    testStaker: staker,
     firstTrancheId,
+    stakingAmount,
   };
 }
 
 describe('StakingNFTDescriptor', function () {
   it('tokenURI json output should be formatted properly', async function () {
-    const fixture = await loadFixture(stakingNFTDescriptorSetup);
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
 
-    const uri = await stakingNFT.tokenURI(fixture.testTokenIdA);
+    const { tokenIdA, largeDepositAmount, firstTrancheId } = await createStakingDeposit(fixture);
+
+    const uri = await stakingNFT.tokenURI(tokenIdA);
 
     const jsonHeader = 'data:application/json;base64,';
     expect(uri.slice(0, jsonHeader.length)).to.be.equal(jsonHeader);
@@ -70,23 +71,23 @@ describe('StakingNFTDescriptor', function () {
     expect(decodedJson.description.length).to.be.gt(0);
 
     const { description } = decodedJson;
-    const expectedTotalStake = formatEther(fixture.largeDepositAmount);
+    const expectedTotalStake = formatEther(largeDepositAmount);
     expect(description).to.contain(`Staked amount: ${Number(expectedTotalStake).toFixed(2)} NXM`);
     expect(description).to.contain('Pending rewards: 0.00 NXM');
 
     // active deposits
     expect(description).to.contain('Active deposits:');
-    const largeDepositFormatted = Number(formatEther(fixture.largeDepositAmount)).toFixed(2);
+    const largeDepositFormatted = Number(formatEther(largeDepositAmount)).toFixed(2);
     expect(description).to.contain(`-${largeDepositFormatted} NXM will expire at tranche:`);
 
     // tranche
-    const expectedTrancheA = fixture.firstTrancheId.toString();
+    const expectedTrancheA = firstTrancheId.toString();
     expect(description).to.contain(`-${largeDepositFormatted} NXM will expire at tranche: ${expectedTrancheA}`);
 
     const depositMatches = description.match(new RegExp(`-${largeDepositFormatted} NXM will expire at tranche:`, 'g'));
     expect(depositMatches).to.have.length(1, 'Should show single large deposit in active deposits section');
 
-    const expectedAmount = formatEther(fixture.largeDepositAmount);
+    const expectedAmount = formatEther(largeDepositAmount);
     expect(decodedJson.image.slice(0, svgHeader.length)).to.be.equal(svgHeader);
     const decodedSvg = new TextDecoder().decode(base64.toByteArray(decodedJson.image.slice(svgHeader.length)));
     expect(decodedSvg).to.match(/<tspan>4<\/tspan>/); // tokenId A is 4
@@ -94,21 +95,23 @@ describe('StakingNFTDescriptor', function () {
   });
 
   it('tokenURI with single deposit should be formatted properly', async function () {
-    const fixture = await loadFixture(stakingNFTDescriptorSetup);
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
-    const uri = await stakingNFT.tokenURI(Number(fixture.testTokenIdB));
+
+    const { tokenIdB, smallDepositAmount, firstTrancheId, stakingAmount } = await createStakingDeposit(fixture);
+    const uri = await stakingNFT.tokenURI(Number(tokenIdB));
 
     const jsonHeader = 'data:application/json;base64,';
     expect(uri.slice(0, jsonHeader.length)).to.be.equal(jsonHeader);
 
-    const expectedDepositAmount = Number(formatEther(fixture.stakingAmount)).toFixed(2);
+    const expectedDepositAmount = Number(formatEther(stakingAmount)).toFixed(2);
     const decodedJson = JSON.parse(new TextDecoder().decode(base64.toByteArray(uri.slice(jsonHeader.length))));
     expect(decodedJson.name).to.be.equal('Nexus Mutual Deposit');
     expect(decodedJson.description.length).to.be.gt(0);
 
     const { description } = decodedJson;
 
-    const expectedTotalStake = formatEther(fixture.smallDepositAmount);
+    const expectedTotalStake = formatEther(smallDepositAmount);
     expect(description).to.contain(`Staked amount: ${Number(expectedTotalStake).toFixed(2)} NXM`);
     expect(description).to.contain('Pending rewards: 0.00 NXM');
 
@@ -117,7 +120,7 @@ describe('StakingNFTDescriptor', function () {
     expect(description).to.contain(`-${expectedDepositAmount} NXM will expire at tranche:`);
 
     // trancheId
-    const expectedTrancheB = (fixture.firstTrancheId + 1).toString();
+    const expectedTrancheB = (firstTrancheId + 1).toString();
     expect(description).to.contain(`-${expectedDepositAmount} NXM will expire at tranche: ${expectedTrancheB}`);
 
     const depositMatches = description.match(new RegExp(`-${expectedDepositAmount} NXM will expire at tranche:`, 'g'));
@@ -130,14 +133,16 @@ describe('StakingNFTDescriptor', function () {
   });
 
   it('should handle expired tokens', async function () {
-    const fixture = await loadFixture(stakingNFTDescriptorSetup);
+    const fixture = await loadFixture(setup);
     const { stakingNFT } = fixture.contracts;
+
+    const { tokenIdA } = await createStakingDeposit(fixture);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     await time.setNextBlockTimestamp(timestamp + daysToSeconds(1000));
     await mineNextBlock();
 
-    const uri = await stakingNFT.tokenURI(Number(fixture.testTokenIdA));
+    const uri = await stakingNFT.tokenURI(Number(tokenIdA));
     const decodedJson = JSON.parse(new TextDecoder().decode(base64.toByteArray(uri.slice(jsonHeader.length))));
     expect(decodedJson.description).to.contain('Deposit has expired');
 
@@ -148,7 +153,7 @@ describe('StakingNFTDescriptor', function () {
   });
 
   it('should parse random decimals properly', async function () {
-    const fixture = await loadFixture(stakingNFTDescriptorSetup);
+    const fixture = await loadFixture(setup);
     const { stakingNFTDescriptor } = fixture.contracts;
 
     const promises = [];
@@ -163,11 +168,12 @@ describe('StakingNFTDescriptor', function () {
         }),
       );
     }
+
     await Promise.all(promises);
   });
 
   it('should parse decimals properly', async function () {
-    const fixture = await loadFixture(stakingNFTDescriptorSetup);
+    const fixture = await loadFixture(setup);
     const { stakingNFTDescriptor } = fixture.contracts;
     expect(await stakingNFTDescriptor.toFloat(614955363329695600n, 18)).to.be.equal('0.61');
     expect('0.00').to.be.equal(await stakingNFTDescriptor.toFloat(1, 3));

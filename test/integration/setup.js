@@ -377,7 +377,12 @@ async function setup() {
   const tokenControllerSigner = await ethers.getSigner(tokenController.target);
   await setBalance(tokenController.target, parseEther('10000'));
 
-  for (const account of [...accounts.members, ...accounts.advisoryBoardMembers, ...accounts.stakingPoolManagers]) {
+  for (const account of [
+    ...accounts.members,
+    ...accounts.advisoryBoardMembers,
+    ...accounts.stakingPoolManagers,
+    limitOrders.target,
+  ]) {
     await token.connect(tokenControllerSigner).addToWhiteList(account);
   }
 
@@ -619,6 +624,12 @@ async function setup() {
   );
 
   await setStorageAt(pool.target, mcrStorageSlot, ethers.zeroPadValue(packedMcrData, 32));
+
+  // LimitOrders
+  await limitOrders.changeMasterAddress(master.target);
+  await limitOrders.changeDependentContractAddress();
+  await limitOrders.maxApproveTokenControllerContract();
+  await limitOrders.maxApproveCoverContract(usdc.target);
 
   const config = {
     MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION:

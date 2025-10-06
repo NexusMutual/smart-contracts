@@ -640,25 +640,6 @@ async function setup() {
     tokenIds.push(tokenId);
   }
 
-  // Add stake capacity to pools 1, 2, and 3 for product 0
-  const staker = defaultSender;
-  await token.connect(staker).approve(tokenController, MaxUint256);
-  await fixture.contracts.stakingPool1.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
-  await fixture.contracts.stakingPool2.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
-  await fixture.contracts.stakingPool3.connect(staker).depositTo(stakeAmount, trancheId, 0, staker.address);
-
-  // Set pool MCR
-  const mcrStorageSlot = 3;
-  const storedMcr = parseEther('5000');
-  const desiredMcr = parseEther('3000');
-
-  const packedMcrData = ethers.solidityPacked(
-    ['uint80', 'uint80', 'uint32'],
-    [storedMcr, desiredMcr, latestBlock.timestamp],
-  );
-
-  await setStorageAt(pool.target, mcrStorageSlot, ethers.zeroPadValue(packedMcrData, 32));
-
   const config = {
     MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION:
       await fixture.contracts.limitOrders.MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION(),

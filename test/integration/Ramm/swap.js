@@ -4,6 +4,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { setNextBlockBaseFeePerGas, time } = require('@nomicfoundation/hardhat-network-helpers');
 const { getEventsFromTxReceipt } = require('../utils/helpers');
+const { calculateExpectedSwapOutput } = require('../utils');
 const setup = require('../setup');
 
 const { parseEther, ZeroAddress } = ethers;
@@ -15,49 +16,6 @@ async function getCapitalSupplyAndBalances(pool, tokenController, token, memberA
     ethBalance: await ethers.provider.getBalance(memberAddress),
     nxmBalance: await token.balanceOf(memberAddress),
   };
-}
-
-async function calculateExpectedSwapOutput(ramm, pool, tokenController, input, isEthToNxm, timestamp) {
-  const readOnlyInitState = await ramm.loadState();
-
-  const initState = {
-    nxmA: readOnlyInitState.nxmA,
-    nxmB: readOnlyInitState.nxmB,
-    eth: readOnlyInitState.eth,
-    budget: readOnlyInitState.budget,
-    ratchetSpeedB: readOnlyInitState.ratchetSpeedB,
-    timestamp: readOnlyInitState.timestamp,
-  };
-
-  const context = {
-    capital: await pool.getPoolValueInEth(),
-    supply: await tokenController.totalSupply(),
-    mcr: await pool.getMCR(),
-  };
-  const [readOnlyState] = await ramm._getReserves(initState, context, timestamp);
-
-  const state = {
-    eth: readOnlyState.eth,
-    nxmA: readOnlyState.nxmA,
-    nxmB: readOnlyState.nxmB,
-    budget: readOnlyState.budget,
-    ratchetSpeedB: readOnlyState.ratchetSpeedB,
-    timestamp: readOnlyState.timestamp,
-  };
-
-  if (isEthToNxm) {
-    // ETH -> NXM: k = eth * nxmA
-    const k = state.eth * state.nxmA;
-    const newEth = state.eth + input;
-    const newNxmA = k / newEth;
-    return state.nxmA - newNxmA;
-  } else {
-    // NXM -> ETH: k = eth * nxmB
-    const k = state.eth * state.nxmB;
-    const newNxmB = state.nxmB + input;
-    const newEth = k / newNxmB;
-    return state.eth - newEth;
-  }
 }
 
 describe('swap', function () {

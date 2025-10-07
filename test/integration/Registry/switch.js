@@ -4,7 +4,7 @@ const { loadFixture, setBalance, impersonateAccount } = require('@nomicfoundatio
 
 const setup = require('../setup');
 
-describe('switchTo / switchFor', function () {
+describe('switch', function () {
   it('should switchTo with real TokenController integration and NXM token transfer', async function () {
     const fixture = await loadFixture(setup);
     const { registry, tokenController, token } = fixture.contracts;

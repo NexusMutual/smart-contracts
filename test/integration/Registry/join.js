@@ -9,7 +9,7 @@ const { PauseTypes, ContractIndexes } = nexus.constants;
 const { ZeroAddress } = ethers;
 const JOINING_FEE = ethers.parseEther('0.002');
 
-describe('Registry - join', function () {
+describe('join', function () {
   it('should successfully join with real Pool and TokenController integration', async function () {
     const fixture = await loadFixture(setup);
     const { registry, pool, token } = fixture.contracts;

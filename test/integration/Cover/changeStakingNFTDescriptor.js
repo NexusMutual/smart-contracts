@@ -3,6 +3,7 @@ const { ethers } = require('hardhat');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
+const { getFundedSigner } = require('../../utils/signer');
 
 describe('changeStakingNFTDescriptor', function () {
   it('should change stakingNFTDescriptor address via Governor', async function () {
@@ -12,7 +13,7 @@ describe('changeStakingNFTDescriptor', function () {
     const addressBefore = await stakingNFT.nftDescriptor();
     const newDescriptor = await ethers.deployContract('StakingNFTDescriptor');
 
-    const governorSigner = await ethers.getSigner(governor.target);
+    const governorSigner = await getFundedSigner(governor.target);
     await cover.connect(governorSigner).changeStakingNFTDescriptor(newDescriptor.target);
 
     const addressAfter = await stakingNFT.nftDescriptor();

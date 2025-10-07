@@ -1,3 +1,5 @@
+const { getFundedSigner } = require('../../utils/signer');
+
 /**
  * Parse events from transaction receipt using ethers v6 native functionality
  * @param {Object} txReceipt - Transaction receipt from tx.wait()
@@ -29,9 +31,27 @@ const getEventsFromTxReceipt = (txReceipt, filterContract, filterName = null, fi
   return events;
 };
 
+/**
+ * Converts the given number of days to seconds
+ * @param {*} days
+ * @returns
+ */
 const daysToSeconds = days => days * 24 * 3600;
+
+/**
+ * Helper function to mint NXM tokens to an address by impersonating TokenController
+ * @param {string} address - The address to mint tokens to
+ * @param {BigInt} amount - The amount of tokens to mint
+ * @param {Object} tokenController - TokenController contract instance
+ * @param {Object} token - NXMToken contract instance
+ */
+async function mintNxmTo(address, amount, tokenController, token) {
+  const tokenControllerSigner = await getFundedSigner(tokenController.target);
+  await token.connect(tokenControllerSigner).mint(address, amount);
+}
 
 module.exports = {
   getEventsFromTxReceipt,
   daysToSeconds,
+  mintNxmTo,
 };

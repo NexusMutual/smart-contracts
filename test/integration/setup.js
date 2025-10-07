@@ -254,7 +254,6 @@ async function setup() {
   const fetch = async index => await registry.getContractAddressByIndex(index);
   const getContract = async (index, name) => ethers.getContractAt(name, await fetch(index));
 
-  const governor = await getContract(ContractIndexes.C_GOVERNOR, 'Governor');
   const tokenController = await getContract(ContractIndexes.C_TOKEN_CONTROLLER, 'TokenController');
   const pool = await getContract(ContractIndexes.C_POOL, 'Pool');
   const cover = await getContract(ContractIndexes.C_COVER, 'Cover');
@@ -323,6 +322,8 @@ async function setup() {
   // work done, switch to the real Governor, registry and Master contracts
   const salt = numberToBytes32(1337);
   await registry.replaceGovernor(salt, governorImplementation);
+  const governor = await getContract(ContractIndexes.C_GOVERNOR, 'Governor');
+
   const registryImplementation = await ethers.deployContract('Registry', [registry.target, master]);
   await registryProxy.upgradeTo(registryImplementation);
   registry = await ethers.getContractAt('Registry', registryProxy);
@@ -381,10 +382,11 @@ async function setup() {
   await usdc.mint(safeTracker, parseUnits('100000', usdcDecimals)); // 100k USDC
   await cbBTC.mint(safeTracker, parseUnits('100000', cbBTCDecimals)); // 100k cbBTC
 
-  // whitelist members
+  // TokenController and Governor signers
   const tokenControllerSigner = await getFundedSigner(tokenController.target);
-  await setBalance(tokenController.target, parseEther('10000'));
+  const governorSigner = await getFundedSigner(governor.target);
 
+  // whitelist members
   for (const account of [
     ...accounts.members,
     ...accounts.advisoryBoardMembers,
@@ -399,7 +401,20 @@ async function setup() {
   await token.connect(tokenControllerSigner).mint(member.address, parseEther('10000'));
   await token.connect(member).approve(tokenController.target, parseEther('10000'));
 
-  await setBalance(tokenController.target, parseEther('0'));
+  // Registry
+  const kycAuthSigner = defaultSender;
+  await registry.connect(governorSigner).setKycAuthAddress(kycAuthSigner.address);
+
+  // SwapOperator
+  const swapController = defaultSender;
+  await swapOperator.connect(governorSigner).setSwapController(swapController.address);
+
+  // LimitOrders
+  await limitOrders.maxApproveTokenControllerContract();
+  await limitOrders.maxApproveCoverContract(usdc.target);
+
+  await setBalance(governor.target, 0);
+  await setBalance(tokenController.target, 0);
 
   const external = {
     dai,
@@ -613,12 +628,8 @@ async function setup() {
 
   await setStorageAt(pool.target, mcrStorageSlot, ethers.zeroPadValue(packedMcrData, 32));
 
-  // LimitOrders
-  await limitOrders.maxApproveTokenControllerContract();
-  await limitOrders.maxApproveCoverContract(usdc.target);
   const operatorAddress = await token.operator();
   const operatorSigner = await getFundedSigner(operatorAddress);
-
   const stakeAmount = parseEther('900000');
   const trancheTimestamp = await time.latest();
   const period = 30 * 24 * 60 * 60; // 30 days in seconds
@@ -641,8 +652,7 @@ async function setup() {
   }
 
   const config = {
-    MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION:
-      await fixture.contracts.limitOrders.MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION(),
+    MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION: await limitOrders.MAX_RENEWABLE_PERIOD_BEFORE_EXPIRATION(),
     TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
     TARGET_PRICE: stakingPoolProduct0.targetPrice,
     ONE_NXM: parseEther('1'),
@@ -672,6 +682,8 @@ async function setup() {
 
   fixture.products = products;
   fixture.stakedProducts = [stakingPoolProduct0, stakingPoolProduct2];
+
+  fixture.kycAuthSigner = kycAuthSigner;
 
   return fixture;
 }

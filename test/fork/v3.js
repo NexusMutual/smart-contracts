@@ -500,10 +500,11 @@ describe('v3 launch', function () {
     for (let i = 0; i < productTypeCount; i++) {
       const productType = await this.coverProducts.getProductType(i);
       const productTypeName = await this.coverProducts.getProductTypeName(i);
+      const { ipfsHash } = await this.coverProducts.getLatestProductTypeMetadata(i);
       updatedProductTypeParams.push({
         productTypeName,
         productTypeId: i,
-        ipfsMetadata: 'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG', // dummy IPFS hash
+        ipfsMetadata: ipfsHash,
         productType: {
           claimMethod: productType.claimMethod,
           gracePeriod: productType.gracePeriod,

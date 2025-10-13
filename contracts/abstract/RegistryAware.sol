@@ -39,6 +39,7 @@ contract RegistryAware {
   error Paused(uint currentState, uint checks);
   error Unauthorized(address caller, uint callerIndex, uint authorizedBitmap);
   error OnlyMember();
+  error OnlyAdvisoryBoard();
 
   modifier whenNotPaused(uint mask) {
     uint config = registry.getPauseConfig();
@@ -53,6 +54,11 @@ contract RegistryAware {
       : registry.getContractIndexByAddress(msg.sender);
     bool isAuthorized = callerIndex & authorizedBitmap != 0;
     require(isAuthorized, Unauthorized(msg.sender, callerIndex, authorizedBitmap));
+    _;
+  }
+
+  modifier onlyAdvisoryBoard() {
+    require(registry.isAdvisoryBoardMember(msg.sender), OnlyAdvisoryBoard());
     _;
   }
 

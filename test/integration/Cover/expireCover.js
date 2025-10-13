@@ -1,6 +1,6 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const { increaseTime } = require('../../utils/evm');
 const { daysToSeconds } = require('../utils');
@@ -185,9 +185,9 @@ describe('expireCover', function () {
     const { amount, period } = buyCoverFixture;
     const coverBuyerAddress = await coverBuyer.getAddress();
 
-    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-    const coverBucket = (BigInt(currentTime) + BigInt(period)) / BUCKET_DURATION;
-    const coverBucketExpirationPeriod = (coverBucket + 1n) * BUCKET_DURATION - BigInt(currentTime);
+    const currentTimestamp = await time.latest();
+    const coverBucket = (BigInt(currentTimestamp) + BigInt(period)) / BUCKET_DURATION;
+    const coverBucketExpirationPeriod = (coverBucket + 1n) * BUCKET_DURATION - BigInt(currentTimestamp);
 
     await cover
       .connect(coverBuyer)

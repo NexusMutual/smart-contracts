@@ -1,6 +1,6 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
 
@@ -116,7 +116,7 @@ describe('LimitOrders - executeOrder', function () {
     const buyerBalanceBefore = await usdc.balanceOf(coverBuyer.address);
     const solverBalanceBefore = await usdc.balanceOf(orderSettler.address);
     const nftBalanceBefore = await coverNFT.balanceOf(coverBuyer.address);
-    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const currentTimestamp = await time.latest();
 
     const executionDetails = {
       ...executionDetailsFixture,
@@ -166,7 +166,7 @@ describe('LimitOrders - executeOrder', function () {
     const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);
     const poolAfterUSDC = await usdc.balanceOf(pool.target);
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const timestamp = await time.latest();
     const rewards = calculateRewards(premiumInNxm, timestamp, period);
 
     expect(stakingPoolAfter.rewards).to.be.equal(stakingPoolBefore.rewards + rewards);
@@ -209,7 +209,7 @@ describe('LimitOrders - executeOrder', function () {
 
     const amountOver = parseEther('0.1');
     const solverFee = parseEther('0.001');
-    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const currentTimestamp = await time.latest();
 
     const executionDetails = {
       ...executionDetailsFixture,
@@ -254,7 +254,7 @@ describe('LimitOrders - executeOrder', function () {
     await expect(tx).to.emit(limitOrders, 'OrderExecuted').withArgs(coverBuyer.address, coverId, coverId, digest);
 
     // after balances
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const timestamp = await time.latest();
     const buyerWethBalanceAfter = await weth.balanceOf(coverBuyer.address);
     const solverWethBalanceAfter = await weth.balanceOf(orderSettler.address);
     const nftBalanceAfter = await coverNFT.balanceOf(coverBuyer.address);
@@ -284,7 +284,7 @@ describe('LimitOrders - executeOrder', function () {
     // approve NXM to LimitOrders
     await nxm.connect(coverBuyer).approve(limitOrders.target, parseEther('2500'));
 
-    const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+    const currentTimestamp = await time.latest();
 
     const productId = 0;
     const product = await stakingProducts.getProduct(1, productId);
@@ -348,7 +348,7 @@ describe('LimitOrders - executeOrder', function () {
     expect(nftBalanceAfter).to.be.equal(nftBalanceBefore + 1n);
     expect(balanceAfterNXM).to.be.equal(nxmBalanceBefore - premium);
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const timestamp = await time.latest();
     const rewards = calculateRewards(premium, timestamp, period);
 
     const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);

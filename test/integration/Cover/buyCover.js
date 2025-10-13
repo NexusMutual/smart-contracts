@@ -134,8 +134,8 @@ describe('buyCover', function () {
 
         const product = await stakingProducts.getProduct(1, productId);
 
-        const latestBlock = await ethers.provider.getBlock('latest');
-        const nextBlockTimestamp = latestBlock.timestamp + 10;
+        const latestTimestamp = await time.latest();
+        const nextBlockTimestamp = latestTimestamp + 10;
         const assetPrice = await config.getAssetPrice(fixture.contracts, config.coverAsset, nextBlockTimestamp);
 
         const coverAmountAllocationsPerPool = [
@@ -230,8 +230,8 @@ describe('buyCover', function () {
         const amount = config.getAmount();
         await config.setup(fixture.contracts, coverBuyer, amount);
 
-        const latestBlock = await ethers.provider.getBlock('latest');
-        const nextBlockTimestamp = latestBlock.timestamp + 10;
+        const latestTimestamp = await time.latest();
+        const nextBlockTimestamp = latestTimestamp + 10;
 
         const assetPrice = await config.getAssetPrice(fixture.contracts, config.coverAsset, nextBlockTimestamp);
         const product = await stakingProducts.getProduct(1, productId);
@@ -363,8 +363,8 @@ describe('buyCover', function () {
         const amount = config.getAmount();
         await config.setup(fixture.contracts, coverBuyer, amount);
 
-        const latestBlock = await ethers.provider.getBlock('latest');
-        const nextBlockTimestamp = latestBlock.timestamp + 10;
+        const latestTimestamp = await time.latest();
+        const nextBlockTimestamp = latestTimestamp + 10;
         const assetPrice = await config.getAssetPrice(fixture.contracts, config.coverAsset, nextBlockTimestamp);
 
         const fixedPriceProductId = products.findIndex(
@@ -431,8 +431,8 @@ describe('buyCover', function () {
         const amount = config.getAmount();
         await config.setup(fixture.contracts, coverBuyer, amount);
 
-        const latestBlock = await ethers.provider.getBlock('latest');
-        const buyTimestamp = latestBlock.timestamp + 10;
+        const latestTimestamp = await time.latest();
+        const buyTimestamp = latestTimestamp + 10;
         const assetPrice = await config.getAssetPrice(fixture.contracts, config.coverAsset, buyTimestamp);
         const product = await stakingProducts.getProduct(1, productId);
 
@@ -460,12 +460,9 @@ describe('buyCover', function () {
         await setNextBlockBaseFeePerGas(0);
         await time.setNextBlockTimestamp(buyTimestamp);
 
-        const buyTx = await cover
+        await cover
           .connect(coverBuyer)
           .buyCover(buyCoverParams, [{ poolId: 1, coverAmountInAsset: amount }], buyCoverOptions);
-
-        const buyReceipt = await buyTx.wait();
-        const buyBlock = await ethers.provider.getBlock(buyReceipt.blockNumber);
 
         const coverId = await cover.getCoverDataCount();
         const coverData = await cover.getCoverData(coverId);
@@ -477,7 +474,6 @@ describe('buyCover', function () {
 
         const passedPeriod = 10n; // +10s
         const editTimestamp = coverData.start + passedPeriod;
-        await time.setNextBlockTimestamp(editTimestamp);
 
         // calculate cover edit premiums (increasing amount and period by 2x)
         const increasedAmount = amount * 2n;
@@ -532,12 +528,10 @@ describe('buyCover', function () {
         const editCoverOptions = paymentAsset === PoolAsset.ETH ? { value: coverEditExtraPremium, gasPrice: 0 } : {};
 
         // execute cover edit (amount and period increased by 2x)
-        const editTx = await cover
+        await time.setNextBlockTimestamp(editTimestamp);
+        await cover
           .connect(coverBuyer)
           .buyCover(editCoverParams, [{ poolId: 1, coverAmountInAsset: increasedAmount }], editCoverOptions);
-
-        const editReceipt = await editTx.wait();
-        const editBlock = await ethers.provider.getBlock(editReceipt.blockNumber);
 
         const editedCoverId = coverId + 1n;
         const editedCoverData = await cover.getCoverData(editedCoverId);
@@ -557,8 +551,8 @@ describe('buyCover', function () {
           paymentAsset,
         );
 
-        const oldCoverInput = { premiumInNxm: initialPremium.premiumInNxm, start: buyBlock.timestamp, period };
-        const newCoverInput = { premiumInNxm: newPremiumInNxm, start: editBlock.timestamp, period: increasedPeriod };
+        const oldCoverInput = { premiumInNxm: initialPremium.premiumInNxm, start: buyTimestamp, period };
+        const newCoverInput = { premiumInNxm: newPremiumInNxm, start: editTimestamp, period: increasedPeriod };
         const rewards = calculateCoverEditRewards(oldCoverInput, newCoverInput);
 
         // verify the contract stored the correct new premium
@@ -679,8 +673,8 @@ describe('CoverBroker - buyCover', function () {
     const [{ targetPrice }] = fixture.stakedProducts;
     const { period, amount } = buyCoverFixture();
 
-    const latestBlock = await ethers.provider.getBlock('latest');
-    const nextBlockTimestamp = latestBlock.timestamp + 10;
+    const latestTimestamp = await time.latest();
+    const nextBlockTimestamp = latestTimestamp + 10;
 
     const productId = fixture.products.findIndex(
       ({ product: { initialPriceRatio, useFixedPrice } }) => targetPrice !== initialPriceRatio && useFixedPrice,
@@ -725,7 +719,7 @@ describe('CoverBroker - buyCover', function () {
     expect(nftBalanceAfter).to.equal(nftBalanceBefore + 1n);
     expect(balanceAfter).to.equal(balanceBefore - premiumInAsset); // amountOver should have been refunded
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const timestamp = await time.latest();
     const stakingPoolAfter = await tokenController.stakingPoolNXMBalances(1);
     const poolAfterETH = await ethers.provider.getBalance(pool.target);
     const rewards = calculateRewards(premiumInNxm, timestamp, period);
@@ -775,7 +769,7 @@ describe('CoverBroker - buyCover', function () {
     });
     await coverBroker.connect(coverBuyer).buyCover(buyCoverParams, [{ poolId: 2, coverAmountInAsset: usdcAmount }]);
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const timestamp = await time.latest();
     const userBalanceAfter = await usdc.balanceOf(coverBuyer.address);
     const poolAfterUSDC = await usdc.balanceOf(pool.target);
     const nftBalanceAfter = await coverNFT.balanceOf(coverBuyer.address);

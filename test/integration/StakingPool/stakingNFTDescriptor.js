@@ -1,7 +1,6 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture, setBalance, impersonateAccount } = require('@nomicfoundation/hardhat-network-helpers');
-const { time } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setBalance, impersonateAccount, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
 const { daysToSeconds } = require('../utils');
@@ -138,7 +137,7 @@ describe('StakingNFTDescriptor', function () {
 
     const { tokenIdA } = await createStakingDeposit(fixture);
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const timestamp = await time.latest();
     await time.setNextBlockTimestamp(timestamp + daysToSeconds(1000));
     await mineNextBlock();
 

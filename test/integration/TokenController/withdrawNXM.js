@@ -31,7 +31,7 @@ async function generateStakeRewards(fixture) {
   const { NXM_PER_ALLOCATION_UNIT } = fixture.config;
   const { productId, period, amount } = buyCoverFixture;
 
-  const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+  const currentTimestamp = await time.latest();
   const nextBlockTimestamp = currentTimestamp + 10;
   const nxmPrice = await pool.getInternalTokenPriceInAsset(buyCoverFixture.paymentAsset);
   const product = await stakingProducts.getProduct(1, productId);

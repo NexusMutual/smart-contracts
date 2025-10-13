@@ -1,6 +1,6 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
 const { mintNxmTo } = require('../utils/helpers');
@@ -109,7 +109,7 @@ describe('vote', function () {
     await governor.connect(voter).vote(proposalId, Choice.For);
 
     // RAMM NXM to ETH swap should fail
-    const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+    const deadline = (await time.latest()) + 3600;
     const swapTx = ramm.connect(voter).swap(ethers.parseEther('1'), 0, deadline);
 
     await expect(swapTx).to.be.revertedWithCustomError(ramm, 'LockedForVoting');

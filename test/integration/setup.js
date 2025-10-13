@@ -631,9 +631,8 @@ async function setup() {
   const operatorAddress = await token.operator();
   const operatorSigner = await getFundedSigner(operatorAddress);
   const stakeAmount = parseEther('900000');
-  const trancheTimestamp = await time.latest();
   const period = 30 * 24 * 60 * 60; // 30 days in seconds
-  const trancheId = calculateFirstTrancheId(trancheTimestamp, period, 0) + 5;
+  const trancheId = calculateFirstTrancheId(latestTimestamp, period, 0) + 5;
   const tokenControllerAddress = await registry.getContractAddressByIndex(ContractIndexes.C_TOKEN_CONTROLLER);
 
   // fund first 3 staking pools with capacity

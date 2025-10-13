@@ -1,6 +1,6 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const setup = require('../setup');
 
@@ -26,7 +26,7 @@ describe('Pool functions', function () {
       safeTracker,
     } = fixture.contracts;
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const timestamp = await time.latest();
     const expectedTokenPriceInEth = await getInternalPrice(ramm, pool, tokenController, timestamp);
     const ethUsdRate = await chainlinkEthUsd.latestAnswer();
     const ethOracle = { latestAnswer: () => ethers.parseEther('1') };

@@ -1,9 +1,8 @@
 const { ethers, nexus } = require('hardhat');
 const { expect } = require('chai');
 
-const { setNextBlockTime } = require('../../utils/evm');
 const { daysToSeconds } = require('../utils');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, time } = require('@nomicfoundation/hardhat-network-helpers');
 const setup = require('../setup');
 const { calculatePremium, getInternalPrice } = require('../../../lib/protocol');
 const { roundUpToMultiple, divCeil } = require('../../../lib/helpers').BigIntMath;
@@ -77,8 +76,8 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
     const period = daysToSeconds(30); // 30 days
     const amount = parseEther('1000');
 
-    const latestBlock = await ethers.provider.getBlock('latest');
-    const nextBlockTimestamp = latestBlock.timestamp + 10;
+    const latestTimestamp = await time.latest();
+    const nextBlockTimestamp = latestTimestamp + 10;
 
     const product = await stakingProducts.getProduct(1, productId);
     const ethRate = await getInternalPrice(ramm, pool, tokenController, nextBlockTimestamp);
@@ -117,7 +116,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
       paymentAsset: coverAsset,
     });
 
-    await setNextBlockTime(nextBlockTimestamp);
+    await time.setNextBlockTimestamp(nextBlockTimestamp);
     await cover
       .connect(coverBuyer)
       .buyCover(buyCoverParams, [{ poolId: 1, coverAmountInAsset: amount }], { value: premiumInAsset });
@@ -180,7 +179,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
       // Expected active weight = allocation / capacity
       const expectedActiveWeight = (coverAllocationAmount * BigInt(WEIGHT_DENOMINATOR)) / availableCapacity;
 
-      const { timestamp: currentTimestamp } = await ethers.provider.getBlock('latest');
+      const currentTimestamp = await time.latest();
       const nextTimestamp = currentTimestamp + 10;
       const product = await stakingProducts.getProduct(1, productId);
       const ethRate = await getInternalPrice(ramm, pool, tokenController, nextTimestamp);
@@ -204,7 +203,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
         paymentAsset: coverAsset,
       });
 
-      await setNextBlockTime(nextTimestamp);
+      await time.setNextBlockTimestamp(nextTimestamp);
       await cover
         .connect(coverBuyer)
         .buyCover(buyCoverParams, [{ poolId: 1, coverAmountInAsset: amount }], { value: premiumInAsset });
@@ -244,7 +243,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
       // Expected active weight = allocation / capacity
       const expectedActiveWeight = (coverAllocationAmount * BigInt(WEIGHT_DENOMINATOR)) / availableCapacity;
 
-      const { timestamp: currentTimestamp2 } = await ethers.provider.getBlock('latest');
+      const currentTimestamp2 = await time.latest();
       const nextTimestamp2 = currentTimestamp2 + 10;
       const product = await stakingProducts.getProduct(1, productId);
       const ethRate = await getInternalPrice(ramm, pool, tokenController, nextTimestamp2);
@@ -268,7 +267,7 @@ describe('recalculateEffectiveWeightsForAllProducts', function () {
         paymentAsset: coverAsset,
       });
 
-      await setNextBlockTime(nextTimestamp2);
+      await time.setNextBlockTimestamp(nextTimestamp2);
       await cover
         .connect(coverBuyer)
         .buyCover(buyCoverParams, [{ poolId: 1, coverAmountInAsset: amount }], { value: premiumInAsset });

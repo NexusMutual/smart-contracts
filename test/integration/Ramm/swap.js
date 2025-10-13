@@ -1,8 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { loadFixture, setNextBlockBaseFeePerGas, time } = require('@nomicfoundation/hardhat-network-helpers');
 
-const { setNextBlockBaseFeePerGas, time } = require('@nomicfoundation/hardhat-network-helpers');
 const { getEventsFromTxReceipt } = require('../utils/helpers');
 const { calculateExpectedSwapOutput } = require('../utils');
 const setup = require('../setup');
@@ -47,7 +46,7 @@ describe('swap', function () {
 
     const ethIn = parseEther('1');
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const timestamp = await time.latest();
     const nextBlockTimestamp = timestamp + 54 * 60 * 60; // +54 hours to stabilize price
     const deadline = nextBlockTimestamp + 15 * 60; // add 15 minutes
 
@@ -102,7 +101,7 @@ describe('swap', function () {
 
     const nxmIn = parseEther('1');
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const timestamp = await time.latest();
     const nextBlockTimestamp = timestamp + 3 * 60 * 60; // +3 hours to stabilize price
     const deadline = nextBlockTimestamp + 15 * 60; // add 15 minutes
 
@@ -152,7 +151,7 @@ describe('swap', function () {
 
     const nxmIn = parseEther('1');
     const minAmountOut = parseEther('0.015'); // 0.0152 ETH initial spot price
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const timestamp = await time.latest();
     const deadline = timestamp - 1;
 
     const swap = ramm.connect(member).swap(nxmIn, minAmountOut, deadline);
@@ -168,7 +167,7 @@ describe('swap', function () {
     const minNxmOut = parseEther('28.8');
     const before = await getCapitalSupplyAndBalances(pool, tokenController, token, member.address);
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const timestamp = await time.latest();
     const deadline = timestamp + 15 * 60; // add 15 minutes
 
     await setNextBlockBaseFeePerGas(0);
@@ -197,9 +196,8 @@ describe('swap', function () {
     const nxmIn = parseEther('1');
     const before = await getCapitalSupplyAndBalances(pool, tokenController, token, member.address);
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
-
     const isEthToNxm = false;
+    const timestamp = await time.latest();
     const expectedEthOut = await calculateExpectedSwapOutput(ramm, pool, tokenController, nxmIn, isEthToNxm, timestamp);
     const deadline = timestamp + 15 * 60; // +15 minutes
 

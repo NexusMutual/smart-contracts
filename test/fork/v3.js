@@ -329,10 +329,9 @@ describe('v3 launch', function () {
     const tokenControllerImplementation = await deployContract('TokenController', [this.registry.target]);
     const coverProductsImplementation = await deployContract('CoverProducts');
     const coverImplementation = await deployContract('Cover', [
-      this.coverNFT,
-      this.stakingNFT,
-      this.stakingPoolFactory,
+      this.registry.target,
       await this.cover.stakingPoolImplementation(),
+      this.cover,
     ]);
 
     this.contractUpgrades = [
@@ -449,6 +448,9 @@ describe('v3 launch', function () {
     const poolAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_POOL);
     this.pool = await ethers.getContractAt('Pool', poolAddress);
 
+    const coverAddress = await this.registry.getContractAddressByIndex(ContractIndexes.C_COVER);
+    this.cover = await ethers.getContractAt('Cover', coverAddress);
+
     await getPoolBalances(this, addresses.Pool, 'OLD POOL BALANCES AFTER POOL.MIGRATION');
 
     const [ethBalance, usdcBal, cbBTCBal, rEthBal, stEthBal, enzymeShareBal, safeTrackerBal] = await getPoolBalances(
@@ -529,6 +531,14 @@ describe('v3 launch', function () {
     expect(mrBalanceAfter).to.equal(0n);
 
     console.log('MemberRoles ETH sent to Pool');
+
+    const coverIds = [3000, 3001];
+    const coverIpfsMetadata = ['test3000', 'test3001'];
+
+    await this.cover.connect(this.abMembers[0]).populateIpfsMetadata(coverIds, coverIpfsMetadata);
+
+    expect(await this.cover.getCoverMetadata(coverIds[0])).to.equal(coverIpfsMetadata[0]);
+    expect(await this.cover.getCoverMetadata(coverIds[1])).to.equal(coverIpfsMetadata[1]);
   });
 
   // Basic functionality tests

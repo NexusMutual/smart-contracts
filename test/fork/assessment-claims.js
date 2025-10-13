@@ -117,10 +117,6 @@ describe('claim assessment', function () {
     ];
     await executeGovernorProposal(this.governor, this.abMembers, txs);
 
-    // update cover dependent contract addresses
-    const coverUpdateDependentAddressesTx = await this.cover.changeDependentContractAddress();
-    await coverUpdateDependentAddressesTx.wait();
-
     this.emergencyAdmin1 = await ethers.getSigner(Addresses.EMERGENCY_ADMIN_1);
     this.emergencyAdmin2 = await ethers.getSigner(Addresses.EMERGENCY_ADMIN_2);
 

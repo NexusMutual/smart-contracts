@@ -851,12 +851,7 @@ describe('basic functionality tests', function () {
     const stakingPoolImplementation = await this.cover.stakingPoolImplementation();
 
     // Cover.sol
-    const cover = await deployContract('Cover', [
-      this.coverNFT,
-      this.stakingNFT,
-      this.stakingPoolFactory,
-      stakingPoolImplementation,
-    ]);
+    const cover = await deployContract('Cover', [this.registry.target, stakingPoolImplementation, this.cover]);
 
     const swapOperator = await deployContract('SwapOperator', [
       this.registry,

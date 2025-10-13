@@ -117,9 +117,11 @@ describe('buyCover', function () {
 
   it('emits CoverBought event', async function () {
     const fixture = await loadFixture(setup);
-    const { cover } = fixture;
+    const { cover, registry } = fixture;
     const [coverBuyer] = fixture.accounts.members;
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
+
+    const memberId = await registry.getMemberId(coverBuyer.address);
 
     const tx = await cover.connect(coverBuyer).buyCover(
       {
@@ -140,7 +142,7 @@ describe('buyCover', function () {
     );
 
     const coverId = await cover.getCoverDataCount();
-    await expect(tx).to.emit(cover, 'CoverBought').withArgs(coverId, coverId, productId, coverBuyer.address, '');
+    await expect(tx).to.emit(cover, 'CoverBought').withArgs(coverId, coverId, memberId, productId);
   });
 
   it('should purchase new cover with fixed price using 1 staking pool', async function () {

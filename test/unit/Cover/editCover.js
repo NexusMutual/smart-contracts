@@ -1163,7 +1163,7 @@ describe('editCover', function () {
 
   it('emits CoverBought event', async function () {
     const fixture = await loadFixture(setupEditCoverFixture);
-    const { cover, coverNFT, coverId, coverData } = fixture;
+    const { cover, coverNFT, coverId, coverData, registry } = fixture;
     const { COVER_BUY_FIXTURE } = fixture.constants;
 
     const [coverBuyer] = fixture.accounts.members;
@@ -1184,6 +1184,8 @@ describe('editCover', function () {
 
     const coverOwner = await coverNFT.ownerOf(coverId);
     expect(coverOwner).to.be.equal(coverBuyer.address);
+
+    const memberId = await registry.getMemberId(coverBuyer.address);
 
     const ipfsData = 'test data';
     const editedCoverId = coverId + 1n;
@@ -1209,7 +1211,7 @@ describe('editCover', function () {
       ),
     )
       .to.emit(cover, 'CoverBought')
-      .withArgs(editedCoverId, coverId, productId, coverBuyer.address, ipfsData);
+      .withArgs(editedCoverId, coverId, memberId, productId);
   });
 
   it('retrieves the premium difference from the user in ETH', async function () {

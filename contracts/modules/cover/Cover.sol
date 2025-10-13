@@ -123,9 +123,8 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     emit CoverBought(
       coverId,
       params.coverId != 0 ? params.coverId : coverId,
-      params.productId,
-      msg.sender,
-      params.ipfsData
+      registry.getMemberId(msg.sender),
+      params.productId
     );
 
     return coverId;
@@ -153,9 +152,8 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     emit CoverBought(
       coverId,
       params.coverId != 0 ? params.coverId : coverId,
-      params.productId,
-      buyer,
-      params.ipfsData
+      registry.getMemberId(buyer),
+      params.productId
     );
 
     return coverId;
@@ -216,9 +214,8 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     emit CoverBought(
       coverId,
       params.coverId != 0 ? params.coverId : coverId,
-      params.productId,
-      msg.sender,
-      params.ipfsData
+      registry.getMemberId(msg.sender),
+      params.productId
     );
 
     return coverId;
@@ -645,7 +642,6 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
 
   /* ========== VIEWS ========== */
 
-  // TODO: patch the descriptor to display the amount including ri
   function getCoverData(uint coverId) external override view returns (CoverData memory) {
     return _coverData[coverId];
   }

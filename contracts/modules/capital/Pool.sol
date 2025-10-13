@@ -487,8 +487,9 @@ contract Pool is IPool, ReentrancyGuard, RegistryAware {
     address _previousMCR
   ) external {
 
-    // registry doesn't know the master address, fetching it from the cover contract
-    address masterAddress = address(MasterAwareV2(address(cover)).master());
+    // registry doesn't know the master address, fetching it from the cover products contract
+    address coverProducts = address(cover.coverProducts());
+    address masterAddress = address(MasterAwareV2(coverProducts).master());
     require(msg.sender == masterAddress, 'Pool: Unauthorized');
     require(assets.length == 0, AlreadyMigrated());
 

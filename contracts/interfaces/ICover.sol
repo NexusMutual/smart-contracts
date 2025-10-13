@@ -3,6 +3,7 @@
 pragma solidity >=0.5.0;
 
 import "./ICoverNFT.sol";
+import "./ICoverProducts.sol";
 import "./IStakingNFT.sol";
 import "./IStakingPoolBeacon.sol";
 
@@ -129,6 +130,14 @@ interface ICover is IStakingPoolBeacon {
 
   function DEFAULT_MIN_PRICE_RATIO() external view returns (uint);
 
+  function coverNFT() external returns (ICoverNFT);
+
+  function stakingNFT() external returns (IStakingNFT);
+
+  function stakingPoolFactory() external returns (address);
+
+  function coverProducts() external returns (ICoverProducts);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function buyCover(
@@ -149,12 +158,6 @@ interface ICover is IStakingPoolBeacon {
   ) external payable returns (uint coverId);
 
   function burnStake(uint coverId, uint amount) external;
-
-  function coverNFT() external returns (ICoverNFT);
-
-  function stakingNFT() external returns (IStakingNFT);
-
-  function stakingPoolFactory() external returns (address);
 
   /* ========== EVENTS ========== */
 

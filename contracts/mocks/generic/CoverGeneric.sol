@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/ICoverProducts.sol";
 
 contract CoverGeneric is ICover {
 
@@ -138,6 +139,10 @@ contract CoverGeneric is ICover {
   }
 
   function stakingPoolImplementation() external virtual view returns (address) {
+    revert("Unsupported");
+  }
+
+  function coverProducts() external virtual view returns (ICoverProducts) {
     revert("Unsupported");
   }
 }

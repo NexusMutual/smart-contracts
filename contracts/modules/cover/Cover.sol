@@ -11,7 +11,6 @@ import "../../abstract/ReentrancyGuard.sol";
 import "../../abstract/RegistryAware.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
-import "../../interfaces/ICoverProducts.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";

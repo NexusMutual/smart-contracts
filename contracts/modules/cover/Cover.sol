@@ -36,6 +36,7 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
   mapping(uint coverId => CoverData) private _coverData;
   mapping(uint coverId => PoolAllocation[]) private _poolAllocations;
   mapping(uint coverId => CoverReference) private _coverReference;
+  mapping(uint coverId => string ipfsMedata) private _coverMetadata;
 
   mapping(uint coverId => Ri) private _coverRi;
   mapping(uint providerId => RiConfig) private _riProviderConfigs;
@@ -242,6 +243,7 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
 
     // new cover
     coverId = coverNFT.mint(params.owner);
+    _coverMetadata[coverId] = params.ipfsData;
 
     uint premiumInPaymentAsset;
 
@@ -666,6 +668,10 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
     return (_coverData[coverId], getCoverReference(coverId));
   }
 
+  function getCoverMetadata(uint coverId) external override view returns (string memory) {
+    return _coverMetadata[coverId];
+  }
+
   function getPoolAllocations(uint coverId) external override view returns (PoolAllocation[] memory) {
     return _poolAllocations[coverId];
   }
@@ -754,6 +760,20 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
 
   function changeStakingNFTDescriptor(address _stakingNFTDescriptor) external onlyContracts(C_GOVERNOR) {
     stakingNFT.changeNFTDescriptor(_stakingNFTDescriptor);
+  }
+
+  // one-time migration function
+
+  error IpfsMetadataAlreadySet();
+
+  function populateIpfsMetadata(
+    uint[] memory coverIds,
+    string[] memory ipfsMetadata
+  ) external onlyAdvisoryBoard() {
+    for (uint i = 0; i < coverIds.length; i++) {
+      require(bytes(_coverMetadata[coverIds[i]]).length == 0, IpfsMetadataAlreadySet());
+      _coverMetadata[coverIds[i]] = ipfsMetadata[i];
+    }
   }
 
 }

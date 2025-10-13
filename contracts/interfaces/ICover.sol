@@ -104,6 +104,8 @@ interface ICover is IStakingPoolBeacon {
 
   function getCoverDataWithReference(uint coverId) external view returns (CoverData memory, CoverReference memory);
 
+  function getCoverMetadata(uint coverId) external view returns (string memory);
+
   function getCoverDataCount() external view returns (uint);
 
   function getPoolAllocations(uint coverId) external view returns (PoolAllocation[] memory);

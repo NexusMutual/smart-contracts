@@ -145,6 +145,36 @@ describe('buyCover', function () {
     await expect(tx).to.emit(cover, 'CoverBought').withArgs(coverId, coverId, memberId, productId);
   });
 
+  it('stores the ipfs data', async function () {
+    const fixture = await loadFixture(setup);
+    const { cover } = fixture;
+    const [coverBuyer] = fixture.accounts.members;
+    const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
+    const ipfsData = 'test data';
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: 0,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ZeroAddress,
+        ipfsData,
+      },
+      poolAllocationRequest,
+      { value: expectedPremium },
+    );
+
+    const coverId = await cover.getCoverDataCount();
+    const coverMetadata = await cover.getCoverMetadata(coverId);
+    expect(coverMetadata).to.equal(ipfsData);
+  });
+
   it('should purchase new cover with fixed price using 1 staking pool', async function () {
     const fixture = await loadFixture(setup);
     const { cover, pool, stakingProducts } = fixture;

@@ -494,6 +494,7 @@ describe('v3 launch', function () {
   // post phase 3:
   //   - update existing productTypes with new assessmentCooldownPeriod and payoutRedemptionPeriod fields
   //   - memberRoles.recoverETH
+  //   - migrate cover ipfsMetadata to storage
   it('update productTypes with new assessmentCooldownPeriod and payoutRedemptionPeriod fields', async function () {
     const ONE_DAY = 24 * 60 * 60;
     const productTypeCount = await this.coverProducts.getProductTypeCount();
@@ -532,13 +533,14 @@ describe('v3 launch', function () {
 
     console.log('MemberRoles ETH sent to Pool');
 
-    const coverIds = [3000, 3001];
-    const coverIpfsMetadata = ['test3000', 'test3001'];
+    // migrate cover IPFS metadata to storage
+    const { coverIds, ipfsMetadata } = require('../../scripts/v3-migration/data/cover-ipfs-metadata.json');
 
-    await this.cover.connect(this.abMembers[0]).populateIpfsMetadata(coverIds, coverIpfsMetadata);
+    await this.cover.connect(this.abMembers[0]).populateIpfsMetadata(coverIds, ipfsMetadata);
 
-    expect(await this.cover.getCoverMetadata(coverIds[0])).to.equal(coverIpfsMetadata[0]);
-    expect(await this.cover.getCoverMetadata(coverIds[1])).to.equal(coverIpfsMetadata[1]);
+    const lastIndex = coverIds.length - 1;
+    expect(await this.cover.getCoverMetadata(coverIds[0])).to.equal(ipfsMetadata[0]);
+    expect(await this.cover.getCoverMetadata(coverIds[lastIndex])).to.equal(ipfsMetadata[lastIndex]);
   });
 
   // Basic functionality tests

@@ -35,7 +35,7 @@ contract Cover is ICover, EIP712, RegistryAware, ReentrancyGuard, Multicall {
   mapping(uint coverId => CoverData) private _coverData;
   mapping(uint coverId => PoolAllocation[]) private _poolAllocations;
   mapping(uint coverId => CoverReference) private _coverReference;
-  mapping(uint coverId => string ipfsMedata) private _coverMetadata;
+  mapping(uint coverId => string ipfsMetadata) private _coverMetadata;
 
   mapping(uint coverId => Ri) private _coverRi;
   mapping(uint providerId => RiConfig) private _riProviderConfigs;

@@ -174,19 +174,16 @@ interface ICover is IStakingPoolBeacon {
   // Cover details
   error CoverPeriodTooShort();
   error CoverPeriodTooLong();
-  error CoverOutsideOfTheGracePeriod();
   error CoverAmountIsZero();
   error CoverAssetMismatch();
 
   // Products
   error ProductNotFound();
   error ProductDeprecated();
-  error UnexpectedProductId();
 
   // Cover and payment assets
   error CoverAssetNotSupported();
   error InvalidPaymentAsset();
-  error UnexpectedCoverAsset();
   error UnexpectedEthSent();
   error EditNotSupported();
   error MustBeOriginalCoverId(uint originalCoverId);
@@ -203,7 +200,6 @@ interface ICover is IStakingPoolBeacon {
   error ExpiredCoversCannotBeEdited();
   error CoverNotYetExpired(uint coverId);
   error InsufficientCoverAmountAllocated();
-  error UnexpectedPoolId();
   error AlreadyMigratedCoverData(uint coverId);
 
   // Ri
